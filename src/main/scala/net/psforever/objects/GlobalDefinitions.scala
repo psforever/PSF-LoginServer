@@ -31,7 +31,7 @@ import net.psforever.objects.vital.damage._
 import net.psforever.objects.vital.etc.ExplodingRadialDegrade
 import net.psforever.objects.vital.projectile._
 import net.psforever.objects.vital.prop.DamageWithPosition
-import net.psforever.objects.vital.{ComplexDeployableResolutions, MaxResolutions, SimpleResolutions}
+import net.psforever.objects.vital._
 import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideEmpire, Vector3}
 import net.psforever.types._
 import net.psforever.objects.serverobject.llu.{CaptureFlagDefinition, CaptureFlagSocketDefinition}
@@ -47,6 +47,9 @@ object GlobalDefinitions {
   avatar.DrownAtMaxDepth = true
   avatar.MaxDepth = 1.609375f //Male, standing, not MAX
   avatar.UnderwaterLifespan(suffocation = 60000L, recovery = 10000L)
+  avatar.collision.xy = CollisionXYData(Array((0.1f, 5), (0.25f, 10), (0.5f, 15), (0.75f, 20), (1f, 25))) //not defined in the ADB
+  avatar.collision.z = CollisionZData(Array((10f, 1), (20f, 10), (40f, 25), (60f, 50), (75f, 100)))
+  avatar.maxForwardSpeed = 10f //not in the ADB
   /*
   exo-suits
    */
@@ -5694,6 +5697,10 @@ object GlobalDefinitions {
     fury.MaxDepth = 1.3f
     fury.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
     fury.Geometry = atvForm
+    fury.collision.avatarCollisionDamageMax = 35
+    fury.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
+    fury.collision.z = CollisionZData(Array((8f, 1), (24f, 35), (40f, 100), (48f, 175), (52f, 350)))
+    fury.maxForwardSpeed = 90f
 
     quadassault.Name = "quadassault" // Basilisk
     quadassault.MaxHealth = 650
@@ -5725,6 +5732,10 @@ object GlobalDefinitions {
     quadassault.MaxDepth = 1.3f
     quadassault.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
     quadassault.Geometry = atvForm
+    quadassault.collision.avatarCollisionDamageMax = 35
+    quadassault.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
+    quadassault.collision.z = CollisionZData(Array((8f, 1), (24f, 35), (40f, 100), (48f, 175), (52f, 350)))
+    quadassault.maxForwardSpeed = 90f
 
     quadstealth.Name = "quadstealth" // Wraith
     quadstealth.MaxHealth = 650
@@ -5756,6 +5767,10 @@ object GlobalDefinitions {
     quadstealth.MaxDepth = 1.25f
     quadstealth.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
     quadstealth.Geometry = atvForm
+    quadstealth.collision.avatarCollisionDamageMax = 35
+    quadstealth.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
+    quadstealth.collision.z = CollisionZData(Array((8f, 1), (24f, 35), (40f, 100), (48f, 175), (52f, 350)))
+    quadstealth.maxForwardSpeed = 90f
 
     two_man_assault_buggy.Name = "two_man_assault_buggy" // Harasser
     two_man_assault_buggy.MaxHealth = 1250
@@ -5788,6 +5803,10 @@ object GlobalDefinitions {
     two_man_assault_buggy.MaxDepth = 1.5f
     two_man_assault_buggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
     two_man_assault_buggy.Geometry = GeometryForm.representByCylinder(radius = 2.10545f, height = 1.59376f)
+    two_man_assault_buggy.collision.avatarCollisionDamageMax = 75
+    two_man_assault_buggy.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
+    two_man_assault_buggy.collision.z = CollisionZData(Array((7f, 1), (21f, 50), (35f, 150), (42f, 300), (45.5f, 600)))
+    two_man_assault_buggy.maxForwardSpeed = 85f
 
     skyguard.Name = "skyguard"
     skyguard.MaxHealth = 1000
@@ -5821,6 +5840,10 @@ object GlobalDefinitions {
     skyguard.MaxDepth = 1.5f
     skyguard.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
     skyguard.Geometry = GeometryForm.representByCylinder(radius = 1.8867f, height = 1.4375f)
+    skyguard.collision.avatarCollisionDamageMax = 100
+    skyguard.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
+    skyguard.collision.z = CollisionZData(Array((7f, 1), (21f, 50), (35f, 150), (42f, 300), (45.4f, 600)))
+    skyguard.maxForwardSpeed = 90f
 
     threemanheavybuggy.Name = "threemanheavybuggy" // Marauder
     threemanheavybuggy.MaxHealth = 1700
@@ -5858,6 +5881,10 @@ object GlobalDefinitions {
     threemanheavybuggy.MaxDepth = 1.83f
     threemanheavybuggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
     threemanheavybuggy.Geometry = GeometryForm.representByCylinder(radius = 2.1953f, height = 2.03125f)
+    threemanheavybuggy.collision.avatarCollisionDamageMax = 100
+    threemanheavybuggy.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 15), (0.5f, 30), (0.75f, 60), (1f, 80)))
+    threemanheavybuggy.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 900)))
+    threemanheavybuggy.maxForwardSpeed = 80f
 
     twomanheavybuggy.Name = "twomanheavybuggy" // Enforcer
     twomanheavybuggy.MaxHealth = 1800
@@ -5891,6 +5918,10 @@ object GlobalDefinitions {
     twomanheavybuggy.MaxDepth = 1.95f
     twomanheavybuggy.UnderwaterLifespan(suffocation = 5000L, recovery = 2500L)
     twomanheavybuggy.Geometry = GeometryForm.representByCylinder(radius = 2.60935f, height = 1.79688f)
+    twomanheavybuggy.collision.avatarCollisionDamageMax = 100
+    twomanheavybuggy.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 12), (0.5f, 30), (0.75f, 55), (1f, 80)))
+    twomanheavybuggy.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 900)))
+    twomanheavybuggy.maxForwardSpeed = 80f
 
     twomanhoverbuggy.Name = "twomanhoverbuggy" // Thresher
     twomanhoverbuggy.MaxHealth = 1600
@@ -5926,6 +5957,10 @@ object GlobalDefinitions {
       recovery = 5000L
     ) //but the thresher hovers over water, so ...?
     twomanhoverbuggy.Geometry = GeometryForm.representByCylinder(radius = 2.1875f, height = 2.01563f)
+    twomanhoverbuggy.collision.avatarCollisionDamageMax = 125
+    twomanhoverbuggy.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 13), (0.5f, 35), (0.75f, 65), (1f, 90)))
+    twomanhoverbuggy.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 900)))
+    twomanhoverbuggy.maxForwardSpeed = 85f
 
     mediumtransport.Name = "mediumtransport" // Deliverer
     mediumtransport.MaxHealth = 2500
@@ -5969,6 +6004,10 @@ object GlobalDefinitions {
     mediumtransport.MaxDepth = 1.2f
     mediumtransport.UnderwaterLifespan(suffocation = -1, recovery = -1)
     mediumtransport.Geometry = delivererForm
+    mediumtransport.collision.avatarCollisionDamageMax = 120
+    mediumtransport.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 35), (0.5f, 60), (0.75f, 110), (1f, 175)))
+    mediumtransport.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000)))
+    mediumtransport.maxForwardSpeed = 70f
 
     battlewagon.Name = "battlewagon" // Raider
     battlewagon.MaxHealth = 2500
@@ -6015,6 +6054,10 @@ object GlobalDefinitions {
     battlewagon.MaxDepth = 1.2f
     battlewagon.UnderwaterLifespan(suffocation = -1, recovery = -1)
     battlewagon.Geometry = delivererForm
+    battlewagon.collision.avatarCollisionDamageMax = 120
+    battlewagon.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 35), (0.5f, 60), (0.75f, 110), (1f, 175))) //inherited from mediumtransport
+    battlewagon.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000))) //inherited from mediumtransport
+    battlewagon.maxForwardSpeed = 65f
 
     thunderer.Name = "thunderer"
     thunderer.MaxHealth = 2500
@@ -6058,6 +6101,10 @@ object GlobalDefinitions {
     thunderer.MaxDepth = 1.2f
     thunderer.UnderwaterLifespan(suffocation = -1, recovery = -1)
     thunderer.Geometry = delivererForm
+    thunderer.collision.avatarCollisionDamageMax = 120
+    thunderer.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 35), (0.5f, 60), (0.75f, 110), (1f, 175)))
+    thunderer.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000)))
+    thunderer.maxForwardSpeed = 65f
 
     aurora.Name = "aurora"
     aurora.MaxHealth = 2500
@@ -6101,6 +6148,10 @@ object GlobalDefinitions {
     aurora.MaxDepth = 1.2f
     aurora.UnderwaterLifespan(suffocation = -1, recovery = -1)
     aurora.Geometry = delivererForm
+    aurora.collision.avatarCollisionDamageMax = 120
+    aurora.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 35), (0.5f, 60), (0.75f, 110), (1f, 175)))
+    aurora.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000)))
+    aurora.maxForwardSpeed = 65f
 
     apc_tr.Name = "apc_tr" // Juggernaut
     apc_tr.MaxHealth = 6000
@@ -6164,6 +6215,10 @@ object GlobalDefinitions {
     apc_tr.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_tr.Geometry = apcForm
     apc_tr.MaxCapacitor = 300
+    apc_tr.collision.avatarCollisionDamageMax = 300
+    apc_tr.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
+    apc_tr.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
+    apc_tr.maxForwardSpeed = 60f
 
     apc_nc.Name = "apc_nc" // Vindicator
     apc_nc.MaxHealth = 6000
@@ -6227,6 +6282,10 @@ object GlobalDefinitions {
     apc_nc.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_nc.Geometry = apcForm
     apc_nc.MaxCapacitor = 300
+    apc_nc.collision.avatarCollisionDamageMax = 300
+    apc_nc.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
+    apc_nc.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
+    apc_nc.maxForwardSpeed = 60f
 
     apc_vs.Name = "apc_vs" // Leviathan
     apc_vs.MaxHealth = 6000
@@ -6290,6 +6349,10 @@ object GlobalDefinitions {
     apc_vs.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_vs.Geometry = apcForm
     apc_vs.MaxCapacitor = 300
+    apc_vs.collision.avatarCollisionDamageMax = 300
+    apc_vs.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
+    apc_vs.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
+    apc_vs.maxForwardSpeed = 60f
 
     lightning.Name = "lightning"
     lightning.MaxHealth = 2000
@@ -6324,6 +6387,10 @@ object GlobalDefinitions {
     lightning.MaxDepth = 1.38f
     lightning.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
     lightning.Geometry = GeometryForm.representByCylinder(radius = 2.5078f, height = 1.79688f)
+    lightning.collision.avatarCollisionDamageMax = 150
+    lightning.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 25), (0.75f, 50), (1f, 80)))
+    lightning.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 750)))
+    lightning.maxForwardSpeed = 75f
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
@@ -6363,6 +6430,10 @@ object GlobalDefinitions {
     prowler.MaxDepth = 3
     prowler.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
     prowler.Geometry = GeometryForm.representByCylinder(radius = 3.461f, height = 3.48438f)
+    prowler.collision.avatarCollisionDamageMax = 300
+    prowler.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 15), (0.5f, 40), (0.75f, 75), (1f, 100)))
+    prowler.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 250), (30f, 600), (32.5f, 1500)))
+    prowler.maxForwardSpeed = 57f
 
     vanguard.Name = "vanguard"
     vanguard.MaxHealth = 5400
@@ -6398,6 +6469,10 @@ object GlobalDefinitions {
     vanguard.MaxDepth = 2.7f
     vanguard.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
     vanguard.Geometry = GeometryForm.representByCylinder(radius = 3.8554f, height = 2.60938f)
+    vanguard.collision.avatarCollisionDamageMax = 300
+    vanguard.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
+    vanguard.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 100), (30f, 250), (32.5f, 600)))
+    vanguard.maxForwardSpeed = 60f
 
     magrider.Name = "magrider"
     magrider.MaxHealth = 4200
@@ -6435,6 +6510,10 @@ object GlobalDefinitions {
     magrider.MaxDepth = 2
     magrider.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the magrider hovers over water, so ...?
     magrider.Geometry = GeometryForm.representByCylinder(radius = 3.3008f, height = 3.26562f)
+    magrider.collision.avatarCollisionDamageMax = 225
+    magrider.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 35), (0.5f, 70), (0.75f, 90), (1f, 120)))
+    magrider.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 250), (30f, 600), (32.5f, 1500)))
+    magrider.maxForwardSpeed = 65f
 
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
@@ -6470,6 +6549,10 @@ object GlobalDefinitions {
     ant.MaxDepth = 2
     ant.UnderwaterLifespan(suffocation = 12000L, recovery = 6000L)
     ant.Geometry = GeometryForm.representByCylinder(radius = 2.16795f, height = 2.09376f) //TODO hexahedron
+    ant.collision.avatarCollisionDamageMax = 50
+    ant.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 30), (0.75f, 50), (1f, 70)))
+    ant.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 250), (12f, 500), (13f, 750)))
+    ant.maxForwardSpeed = 65f
 
     ams.Name = "ams"
     ams.MaxHealth = 3000
@@ -6508,6 +6591,10 @@ object GlobalDefinitions {
     ams.MaxDepth = 3
     ams.UnderwaterLifespan(suffocation = 5000L, recovery = 5000L)
     ams.Geometry = GeometryForm.representByCylinder(radius = 3.0117f, height = 3.39062f) //TODO hexahedron
+    ams.collision.avatarCollisionDamageMax = 250
+    ams.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 60), (1f, 100)))
+    ams.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 250), (12f, 805), (13f, 3000)))
+    ams.maxForwardSpeed = 70f
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
@@ -6543,8 +6630,12 @@ object GlobalDefinitions {
     }
     router.DrownAtMaxDepth = true
     router.MaxDepth = 2
-    router.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L)                        //but the router hovers over water, so ...?
+    router.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the router hovers over water, so ...?
     router.Geometry = GeometryForm.representByCylinder(radius = 3.64845f, height = 3.51563f) //TODO hexahedron
+    router.collision.avatarCollisionDamageMax = 150 //it has to bonk you on the head when it falls?
+    router.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 13), (0.5f, 35), (0.75f, 65), (1f, 90)))
+    router.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 350), (39f, 900)))
+    router.maxForwardSpeed = 60f
 
     switchblade.Name = "switchblade"
     switchblade.MaxHealth = 1750
@@ -6585,6 +6676,10 @@ object GlobalDefinitions {
       recovery = 5000L
     ) //but the switchblade hovers over water, so ...?
     switchblade.Geometry = GeometryForm.representByCylinder(radius = 2.4335f, height = 2.73438f)
+    switchblade.collision.avatarCollisionDamageMax = 35
+    switchblade.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 13), (0.5f, 35), (0.75f, 65), (1f, 90)))
+    switchblade.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 350), (39f, 800)))
+    switchblade.maxForwardSpeed = 80f
 
     flail.Name = "flail"
     flail.MaxHealth = 2400
@@ -6621,6 +6716,10 @@ object GlobalDefinitions {
     flail.MaxDepth = 2
     flail.UnderwaterLifespan(suffocation = 45000L, recovery = 5000L) //but the flail hovers over water, so ...?
     flail.Geometry = GeometryForm.representByCylinder(radius = 2.1875f, height = 2.21875f)
+    flail.collision.avatarCollisionDamageMax = 175
+    flail.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 12), (0.5f, 35), (0.75f, 65), (1f, 90)))
+    flail.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 350), (39f, 900)))
+    flail.maxForwardSpeed = 55f
 
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
@@ -6654,6 +6753,10 @@ object GlobalDefinitions {
     mosquito.DrownAtMaxDepth = true
     mosquito.MaxDepth = 2 //flying vehicles will automatically disable
     mosquito.Geometry = GeometryForm.representByCylinder(radius = 2.72108f, height = 2.5f)
+    mosquito.collision.avatarCollisionDamageMax = 50
+    mosquito.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 50), (0.5f, 100), (0.75f, 150), (1f, 200)))
+    mosquito.collision.z = CollisionZData(Array((3f, 1), (9f, 25), (15f, 50), (18f, 75), (19.5f, 100)))
+    mosquito.maxForwardSpeed = 120f
 
     lightgunship.Name = "lightgunship" // Reaver
     lightgunship.MaxHealth = 855 // Temporary - Correct Reaver Health from pre-"Coder Madness 2" Event
@@ -6688,6 +6791,10 @@ object GlobalDefinitions {
     lightgunship.DrownAtMaxDepth = true
     lightgunship.MaxDepth = 2 //flying vehicles will automatically disable
     lightgunship.Geometry = GeometryForm.representByCylinder(radius = 2.375f, height = 1.98438f)
+    lightgunship.collision.avatarCollisionDamageMax = 750
+    lightgunship.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 60), (0.5f, 120), (0.75f, 180), (1f, 250)))
+    lightgunship.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
+    lightgunship.maxForwardSpeed = 105f
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
@@ -6721,6 +6828,10 @@ object GlobalDefinitions {
     wasp.DrownAtMaxDepth = true
     wasp.MaxDepth = 2 //flying vehicles will automatically disable
     wasp.Geometry = GeometryForm.representByCylinder(radius = 2.88675f, height = 2.5f)
+    wasp.collision.avatarCollisionDamageMax = 50 //mosquito numbers
+    wasp.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 50), (0.5f, 100), (0.75f, 150), (1f, 200))) //mosquito numbers
+    wasp.collision.z = CollisionZData(Array((3f, 1), (9f, 25), (15f, 50), (18f, 75), (19.5f, 100))) //mosquito numbers
+    wasp.maxForwardSpeed = 120f
 
     liberator.Name = "liberator"
     liberator.MaxHealth = 2500
@@ -6763,6 +6874,10 @@ object GlobalDefinitions {
     liberator.DrownAtMaxDepth = true
     liberator.MaxDepth = 2 //flying vehicles will automatically disable
     liberator.Geometry = liberatorForm
+    liberator.collision.avatarCollisionDamageMax = 100
+    liberator.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 60), (0.5f, 120), (0.75f, 180), (1f, 250)))
+    liberator.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
+    liberator.maxForwardSpeed = 90f
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
@@ -6806,6 +6921,10 @@ object GlobalDefinitions {
     vulture.DrownAtMaxDepth = true
     vulture.MaxDepth = 2 //flying vehicles will automatically disable
     vulture.Geometry = liberatorForm
+    vulture.collision.avatarCollisionDamageMax = 100
+    vulture.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 60), (0.5f, 120), (0.75f, 180), (1f, 250)))
+    vulture.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
+    vulture.maxForwardSpeed = 97f
 
     dropship.Name = "dropship" // Galaxy
     dropship.MaxHealth = 5000
@@ -6876,6 +6995,10 @@ object GlobalDefinitions {
     dropship.DrownAtMaxDepth = true
     dropship.MaxDepth = 2
     dropship.Geometry = GeometryForm.representByCylinder(radius = 10.52202f, height = 6.23438f)
+    dropship.collision.avatarCollisionDamageMax = 300
+    dropship.collision.xy = CollisionXYData(Array((0.1f, 5), (0.25f, 125), (0.5f, 250), (0.75f, 500), (1f, 1000)))
+    dropship.collision.z = CollisionZData(Array((3f, 5), (9f, 125), (15f, 250), (18f, 500), (19.5f, 1000)))
+    dropship.maxForwardSpeed = 80f
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
@@ -6930,6 +7053,10 @@ object GlobalDefinitions {
     galaxy_gunship.DrownAtMaxDepth = true
     galaxy_gunship.MaxDepth = 2
     galaxy_gunship.Geometry = GeometryForm.representByCylinder(radius = 9.2382f, height = 5.01562f)
+    galaxy_gunship.collision.avatarCollisionDamageMax = 300
+    galaxy_gunship.collision.xy = CollisionXYData(Array((0.1f, 5), (0.25f, 125), (0.5f, 250), (0.75f, 500), (1f, 1000)))
+    galaxy_gunship.collision.z = CollisionZData(Array((3f, 5), (9f, 125), (15f, 250), (18f, 500), (19.5f, 1000)))
+    galaxy_gunship.maxForwardSpeed = 85f
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
@@ -6972,6 +7099,8 @@ object GlobalDefinitions {
     lodestar.DrownAtMaxDepth = true
     lodestar.MaxDepth = 2
     lodestar.Geometry = GeometryForm.representByCylinder(radius = 7.8671f, height = 6.79688f) //TODO hexahedron
+    lodestar.collision.z = CollisionZData(Array((3f, 5), (9f, 125), (15f, 250), (18f, 500), (19.5f, 1000)))
+    lodestar.maxForwardSpeed = 80f
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500
@@ -7011,6 +7140,10 @@ object GlobalDefinitions {
     phantasm.DrownAtMaxDepth = true
     phantasm.MaxDepth = 2
     phantasm.Geometry = GeometryForm.representByCylinder(radius = 5.2618f, height = 3f)
+    phantasm.collision.avatarCollisionDamageMax = 100
+    phantasm.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 60), (0.5f, 120), (0.75f, 180), (1f, 250)))
+    phantasm.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
+    phantasm.maxForwardSpeed = 140f
 
     droppod.Name = "droppod"
     droppod.MaxHealth = 20000
@@ -7185,6 +7318,8 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_turret.Geometry = smallTurret
+    spitfire_turret.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
+    spitfire_turret.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
 
     spitfire_cloaked.Name = "spitfire_cloaked"
     spitfire_cloaked.Descriptor = "CloakingSpitfires"
@@ -7209,6 +7344,8 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_cloaked.Geometry = smallTurret
+    spitfire_cloaked.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
+    spitfire_cloaked.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
 
     spitfire_aa.Name = "spitfire_aa"
     spitfire_aa.Descriptor = "FlakSpitfires"
@@ -7233,6 +7370,8 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     spitfire_aa.Geometry = smallTurret
+    spitfire_aa.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
+    spitfire_aa.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
 
     motionalarmsensor.Name = "motionalarmsensor"
     motionalarmsensor.Descriptor = "MotionSensors"
@@ -7273,6 +7412,9 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     tank_traps.Geometry = GeometryForm.representByCylinder(radius = 2.89680997f, height = 3.57812f)
+    tank_traps.collision.collisionDamageMultiplier = 10f
+    tank_traps.collision.xy = CollisionXYData(Array((0.01f, 5), (0.02f, 10), (0.03f, 15), (0.04f, 20), (0.05f, 25)))
+    tank_traps.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
 
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
@@ -7303,6 +7445,8 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret.Geometry = largeTurret
+    portable_manned_turret.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
+    portable_manned_turret.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
 
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
     portable_manned_turret_nc.Descriptor = "FieldTurrets"
@@ -7332,6 +7476,8 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_nc.Geometry = largeTurret
+    portable_manned_turret_nc.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
+    portable_manned_turret_nc.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
 
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
     portable_manned_turret_tr.Descriptor = "FieldTurrets"
@@ -7361,6 +7507,8 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_tr.Geometry = largeTurret
+    portable_manned_turret_tr.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
+    portable_manned_turret_tr.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
 
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
     portable_manned_turret_vs.Descriptor = "FieldTurrets"
@@ -7390,6 +7538,8 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     portable_manned_turret_vs.Geometry = largeTurret
+    portable_manned_turret_vs.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
+    portable_manned_turret_vs.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
 
     deployable_shield_generator.Name = "deployable_shield_generator"
     deployable_shield_generator.Descriptor = "ShieldGenerators"

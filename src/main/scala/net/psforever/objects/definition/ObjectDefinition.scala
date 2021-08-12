@@ -101,5 +101,15 @@ abstract class ObjectDefinition(private val objectId: Int) extends BasicDefiniti
     Geometry
   }
 
+  /**
+    * The maximum forward speed that can be expected to be achieved by this unit.
+    * Faster speeds are not discounted due to conditions of the motion or game environment
+    * but speeds too far beyond this measure should be considered suspicious.
+    * For ground vehicles, this field is called `maxForward` in the ADB.
+    * For flight vehicles, this field is called `MaxSpeed` and `flightmaxspeed` in the ADB,
+    * and it does not factor in the afterburner.
+    */
+  var maxForwardSpeed: Float = 0f
+
   def ObjectId: Int = objectId
 }

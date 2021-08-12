@@ -197,6 +197,8 @@ class VehicleDefinition(objectId: Int)
     obj.Actor ! akka.actor.PoisonPill
     obj.Actor = Default.Actor
   }
+
+  override val collision: AdvancedCollisionData = new AdvancedCollisionData()
 }
 
 object VehicleDefinition {

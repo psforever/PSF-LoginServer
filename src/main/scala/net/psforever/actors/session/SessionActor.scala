@@ -276,6 +276,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var setAvatar: Boolean                             = false
   var turnCounterFunc: PlanetSideGUID => Unit        = TurnCounterDuringInterim
   var waypointCooldown: Long = 0L
+  var heightLast: Float = 0f
+  var heightTrend: Boolean = false //up = true, down = false
+  var heightHistory: Float = 0f
 
   var clientKeepAlive: Cancellable   = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -3775,11 +3778,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         persist()
         turnCounterFunc(avatar_guid)
         updateBlockMap(player, continent, pos)
+        val posz = pos.z
         val isMoving     = WorldEntity.isMoving(vel)
         val isMovingPlus = isMoving || is_jumping || jump_thrust
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
+        if ((heightTrend && heightLast - posz <= -0.5f) ||
+            (!heightTrend && posz - heightLast >= 0.5f)) {
+          heightTrend = !heightTrend
+          heightHistory = posz
+        }
+        heightLast = posz
 //        if (is_crouching && !player.Crouching) {
 //          //dev stuff goes here
 //        }
@@ -5565,11 +5575,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case _ => (None, None)
         }) match {
           case (Some(target: PlanetSideGameObject with Vitality with FactionAffinity), _) =>
+            val fallHeight = if (heightTrend) {
+              heightLast - heightHistory
+            } else {
+              heightHistory - heightLast
+            }
+            val targetVelocity = target.Velocity.getOrElse(Vector3.Zero)
             HandleDealingDamage(
               target,
               DamageInteraction(
                 SourceEntry(target),
-                CollisionReason(pv, target.DamageModel),
+                CollisionReason(targetVelocity, fallHeight, target.DamageModel),
                 ppos
               )
             )
@@ -7769,18 +7785,41 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     val func = data.calculate()
     target match {
       case obj: Player if obj.CanDamage && obj.Actor != Default.Actor =>
-        log.info(s"${player.Name} is attacking ${obj.Name}")
+        if (obj.CharId != player.CharId) {
+          log.info(s"${player.Name} is attacking ${obj.Name}")
+        } else {
+          log.info(s"${player.Name} hurt ${player.Sex.pronounObject}self")
+        }
         // auto kick players damaging spectators
         if (obj.spectator && obj != player) {
           AdministrativeKick(player)
         } else {
           obj.Actor ! Vitality.Damage(func)
         }
+
       case obj: Vehicle if obj.CanDamage =>
-        log.info(s"${player.Name} is attacking ${obj.OwnerName.getOrElse("someone")}'s ${obj.Definition.Name}")
+        val name = player.Name
+        val ownerName = obj.OwnerName.getOrElse("someone")
+        if (ownerName.equals(name)) {
+          log.info(s"$name is damaging ${player.Sex.possessive} own ${obj.Definition.Name}")
+        } else {
+          log.info(s"$name is attacking $ownerName's ${obj.Definition.Name}")
+        }
         obj.Actor ! Vitality.Damage(func)
-      case obj: Amenity if obj.CanDamage           => obj.Actor ! Vitality.Damage(func)
-      case obj: Deployable if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
+
+      case obj: Amenity if obj.CanDamage =>
+        obj.Actor ! Vitality.Damage(func)
+
+      case obj: Deployable if obj.CanDamage =>
+        val name = player.Name
+        val ownerName = obj.OwnerName.getOrElse("someone")
+        if (ownerName.equals(name)) {
+          log.info(s"$name is damaging ${player.Sex.possessive} own ${obj.Definition.Name}")
+        } else {
+          log.info(s"$name is attacking $ownerName's ${obj.Definition.Name}")
+        }
+        obj.Actor ! Vitality.Damage(func)
+
       case _ => ;
     }
   }

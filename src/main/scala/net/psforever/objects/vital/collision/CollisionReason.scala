@@ -2,7 +2,7 @@
 package net.psforever.objects.vital.collision
 
 import net.psforever.objects.ballistics.SourceEntry
-import net.psforever.objects.vital.base.{DamageModifiers, DamageReason, DamageResolution}
+import net.psforever.objects.vital.base.{DamageModifiers, DamageReason, DamageResolution, DamageType}
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.DamageAndResistance
 import net.psforever.types.Vector3
@@ -30,6 +30,7 @@ final case class AdversarialCollisionReason(source: DamageProperties) extends Da
   */
 final case class CollisionReason(
                                   velocity: Vector3,
+                                  fall: Float,
                                   damageModel: DamageAndResistance
                                 ) extends DamageReason {
   def resolution: DamageResolution.Value = DamageResolution.Collision
@@ -37,16 +38,21 @@ final case class CollisionReason(
   def source: DamageProperties = CollisionReason.noDamage
 
   def same(test: DamageReason): Boolean = test match {
-    case cr: CollisionReason => cr.velocity == velocity
+    case cr: CollisionReason => cr.velocity == velocity && math.abs(cr.fall - fall) < 0.05f
     case _ => false
   }
 
-  override def adversary : Option[SourceEntry] = None
+  override def adversary: Option[SourceEntry] = None
 
-  override def unstructuredModifiers : List[DamageModifiers.Mod] = List(Impact)
+  override def unstructuredModifiers: List[DamageModifiers.Mod] = List(
+    GroundImpact,
+    HeadonImpact
+  )
 }
 
 object CollisionReason {
-  /** The flags for calculating an absence of environment damage. */
-  private val noDamage = new DamageProperties { }
+  /** The flags for calculating an absence of conventional damage for collision. */
+  private val noDamage = new DamageProperties {
+    CausesDamageType = DamageType.Direct
+  }
 }

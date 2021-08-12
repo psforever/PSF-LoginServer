@@ -160,7 +160,7 @@ trait VitalityDefinition extends DamageModifiers {
   var explodes: Boolean = false
 
   /**
-    * damage that is inherent to the object, used for explosions and collisions, mainly
+    * damage that is inherent to the object, used for explosions, mainly
     */
   var innateDamage: Option[DamageWithPosition] = None
 
@@ -168,4 +168,6 @@ trait VitalityDefinition extends DamageModifiers {
     innateDamage = Some(combustion)
     innateDamage
   }
+
+  val collision: CollisionData = new CollisionData()
 }
