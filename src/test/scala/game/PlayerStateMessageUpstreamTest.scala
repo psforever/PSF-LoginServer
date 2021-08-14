@@ -30,7 +30,7 @@ class PlayerStateMessageUpstreamTest extends Specification {
           ) =>
         avatar_guid mustEqual PlanetSideGUID(75)
         pos mustEqual Vector3(3694.1094f, 2735.4531f, 90.84375f)
-        vel.contains(Vector3(4.375f, 2.59375f, 0.0f)) mustEqual true
+        vel.contains(Vector3(15.75f, 9.3375f, 0.0f)) mustEqual true
         facingYaw mustEqual 61.875f
         facingPitch mustEqual -8.4375f
         facingYawUpper mustEqual 0.0f
@@ -51,7 +51,7 @@ class PlayerStateMessageUpstreamTest extends Specification {
     val msg = PlayerStateMessageUpstream(
       PlanetSideGUID(75),
       Vector3(3694.1094f, 2735.4531f, 90.84375f),
-      Some(Vector3(4.375f, 2.59375f, 0.0f)),
+      Some(Vector3(15.75f, 9.3375f, 0.0f)),
       61.875f,
       -8.4375f,
       0.0f,

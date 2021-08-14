@@ -34,7 +34,7 @@ class CharacterDataTest extends Specification {
               pos.coord mustEqual Vector3(3674.8438f, 2726.789f, 91.15625f)
               pos.orient mustEqual Vector3(0f, 0f, 64.6875f)
               pos.vel.isDefined mustEqual true
-              pos.vel.get mustEqual Vector3(1.4375f, -0.4375f, 0f)
+              pos.vel.get mustEqual Vector3(5.1749997f, -1.5749999f, 0.0f)
 
               basic match {
                 case CharacterAppearanceData(a, b, ribbons) =>
@@ -294,7 +294,7 @@ class CharacterDataTest extends Specification {
       val pos: PlacementData = PlacementData(
         Vector3(3674.8438f, 2726.789f, 91.15625f),
         Vector3(0f, 0f, 64.6875f),
-        Some(Vector3(1.4375f, -0.4375f, 0f))
+        Some(Vector3(5.1749997f, -1.5749999f, 0.0f))
       )
       val a: Int => CharacterAppearanceA = CharacterAppearanceA(
         BasicCharacterData(

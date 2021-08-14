@@ -20,7 +20,7 @@ class FireHintMessageTest extends Specification {
         u2 mustEqual 65399
         u3 mustEqual 7581
         u4 mustEqual 0
-        u5 mustEqual None
+        u5.isEmpty mustEqual true
       case _ =>
         ko
     }
@@ -34,7 +34,7 @@ class FireHintMessageTest extends Specification {
         u2 mustEqual 65231
         u3 mustEqual 64736
         u4 mustEqual 3
-        u5 mustEqual Some(Vector3(21.5f, -6.8125f, 2.65625f))
+        u5.contains(Vector3(77.4f, -24.525f, 9.5625f)) mustEqual true
       case _ =>
         ko
     }
@@ -46,7 +46,7 @@ class FireHintMessageTest extends Specification {
 
     pkt mustEqual string
   }
-  "encode string2" in {
+  "encode (string2)" in {
     val msg = FireHintMessage(
       PlanetSideGUID(3592),
       Vector3(2910.789f, 3744.875f, 69.0625f),
@@ -54,7 +54,7 @@ class FireHintMessageTest extends Specification {
       65231,
       64736,
       3,
-      Some(Vector3(21.5f, -6.8125f, 2.65625f))
+      Some(Vector3(77.4f, -24.525f, 9.5625f))
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 

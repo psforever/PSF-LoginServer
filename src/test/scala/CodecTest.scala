@@ -50,11 +50,11 @@ class CodecTest extends Specification {
       val string_vel = hex"857D4E0FFFC0"
 
       "decode" in {
-        Vector3.codec_vel.decode(string_vel.bits).require.value mustEqual Vector3(-3.84375f, 2.59375f, 255.96875f)
+        Vector3.codec_vel.decode(string_vel.bits).require.value mustEqual Vector3(-13.8375f, 9.3375f, 921.4875f)
       }
 
       "encode" in {
-        Vector3.codec_vel.encode(Vector3(-3.84375f, 2.59375f, 255.96875f)).require.bytes mustEqual string_vel
+        Vector3.codec_vel.encode(Vector3(-13.8375f, 9.3375f, 921.4875f)).require.bytes mustEqual string_vel
       }
     }
   }

@@ -4,6 +4,7 @@ package net.psforever.packet.game
 import enumeratum.values.{IntEnum, IntEnumEntry}
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import net.psforever.types.{PlanetSideGUID, Vector3}
+import scodec.Attempt.Successful
 import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -62,14 +63,19 @@ final case class GenericCollisionMsg(
 }
 
 object GenericCollisionMsg extends Marshallable[GenericCollisionMsg] {
+  private val collisionIsCodec: Codec[CollisionIs] = PacketHelpers.createIntEnumCodec(CollisionIs, uint2)
+
+  private val velocityFloatCodec: Codec[Vector3] = Vector3.codec_float
+    .narrow[Vector3](a => Successful(a * 3.6f), a => a * 0.2777778f) //this precision is necessary
+
   implicit val codec: Codec[GenericCollisionMsg] = (
-    ("collision_type" | PacketHelpers.createIntEnumCodec(CollisionIs, uint2)) ::
+    ("collision_type" | collisionIsCodec) ::
     ("p" | PlanetSideGUID.codec) ::
     ("t" | PlanetSideGUID.codec) ::
     ("p_health" | uint16L) ::
     ("t_health" | uint16L) ::
-    ("p_vel" | Vector3.codec_float) ::
-    ("t_vel" | Vector3.codec_float) ::
+    ("p_vel" | velocityFloatCodec) ::
+    ("t_vel" | velocityFloatCodec) ::
     ("p_pos" | Vector3.codec_pos) ::
     ("t_pos" | Vector3.codec_pos) ::
     ("unk1" | uint32L) ::

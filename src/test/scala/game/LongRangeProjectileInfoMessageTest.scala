@@ -15,7 +15,7 @@ class LongRangeProjectileInfoMessageTest extends Specification {
       case LongRangeProjectileInfoMessage(guid, pos, vel) =>
         guid mustEqual PlanetSideGUID(5330)
         pos mustEqual Vector3(2264, 5115.039f, 31.046875f)
-        vel.contains(Vector3(-57.1875f, 9.875f, 47.5f)) mustEqual true
+        vel.contains(Vector3(-205.875f, 35.55f, 171.0f)) mustEqual true
       case _ =>
         ko
     }
@@ -25,7 +25,7 @@ class LongRangeProjectileInfoMessageTest extends Specification {
     val msg = LongRangeProjectileInfoMessage(
       PlanetSideGUID(5330),
       Vector3(2264, 5115.039f, 31.046875f),
-      Vector3(-57.1875f, 9.875f, 47.5f)
+      Vector3(-205.875f, 35.55f, 171.0f)
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
     pkt mustEqual string

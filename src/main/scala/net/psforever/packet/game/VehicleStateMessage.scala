@@ -3,6 +3,7 @@ package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import net.psforever.types.{Angular, PlanetSideGUID, Vector3}
+import scodec.Attempt.Successful
 import scodec.Codec
 import scodec.codecs._
 
@@ -80,15 +81,15 @@ object VehicleStateMessage extends Marshallable[VehicleStateMessage] {
 
   implicit val codec: Codec[VehicleStateMessage] = (
     ("vehicle_guid" | PlanetSideGUID.codec) ::
-      ("unk1" | uintL(3)) ::
-      ("pos" | Vector3.codec_pos) ::
-      ("ang" | codec_orient) ::
-      optional(bool, "vel" | Vector3.codec_vel) ::
-      optional(bool, "flying" | uintL(5)) ::
-      ("unk3" | uintL(7)) ::
-      ("unk4" | uint4L) ::
-      ("wheel_direction" | uintL(5)) ::
-      ("int5" | bool) ::
-      ("is_cloaked" | bool)
+    ("unk1" | uintL(3)) ::
+    ("pos" | Vector3.codec_pos) ::
+    ("ang" | codec_orient) ::
+    ("vel" | optional(bool, Vector3.codec_vel)) ::
+    ("flying" | optional(bool, uintL(5))) ::
+    ("unk3" | uintL(7)) ::
+    ("unk4" | uint4L) ::
+    ("wheel_direction" | uintL(5)) ::
+    ("int5" | bool) ::
+    ("is_cloaked" | bool)
   ).as[VehicleStateMessage]
 }

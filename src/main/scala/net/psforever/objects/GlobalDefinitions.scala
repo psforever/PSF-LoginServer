@@ -40,16 +40,18 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 object GlobalDefinitions {
-  // Characters
+  /*
+  characters
+   */
   val avatar = new AvatarDefinition(121)
   avatar.MaxHealth = 100
   avatar.Damageable = true
   avatar.DrownAtMaxDepth = true
   avatar.MaxDepth = 1.609375f //Male, standing, not MAX
   avatar.UnderwaterLifespan(suffocation = 60000L, recovery = 10000L)
-  avatar.collision.xy = CollisionXYData(Array((0.1f, 5), (0.25f, 10), (0.5f, 15), (0.75f, 20), (1f, 25))) //not defined in the ADB
+  avatar.collision.xy = CollisionXYData(Array((1.1f, 0), (1.5f, 1), (1.75f, 5), (2f, 10), (2.5f, 25))) //not defined in the ADB
   avatar.collision.z = CollisionZData(Array((10f, 1), (20f, 10), (40f, 25), (60f, 50), (75f, 100)))
-  avatar.maxForwardSpeed = 10f //not in the ADB
+  avatar.maxForwardSpeed = 27f //not in the ADB; running speed
   /*
   exo-suits
    */
