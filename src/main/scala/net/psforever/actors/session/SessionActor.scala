@@ -3778,18 +3778,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         persist()
         turnCounterFunc(avatar_guid)
         updateBlockMap(player, continent, pos)
-        val posz = pos.z
         val isMoving     = WorldEntity.isMoving(vel)
         val isMovingPlus = isMoving || is_jumping || jump_thrust
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
-        if ((heightTrend && heightLast - posz <= -0.5f) ||
-            (!heightTrend && posz - heightLast >= 0.5f)) {
-          heightTrend = !heightTrend
-          heightHistory = posz
-        }
-        heightLast = posz
+        fallHeightTracker(pos.z)
 //        if (is_crouching && !player.Crouching) {
 //          //dev stuff goes here
 //        }
@@ -3920,10 +3914,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //we're driving the vehicle
             persist()
             turnCounterFunc(player.GUID)
+            fallHeightTracker(pos.z)
             if (obj.MountedIn.isEmpty) {
               updateBlockMap(obj, continent, pos)
             }
-            val seat = obj.Seats(0)
             player.Position = pos //convenient
             if (obj.WeaponControlledFromSeat(0).isEmpty) {
               player.Orientation = Vector3.z(ang.z) //convenient
@@ -5565,30 +5559,45 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ GenericCollisionMsg(ctype, p, php, ppos, pv, t, thp, tpos, tv, u1, u2, u3) =>
         log.info(s"$msg")
+        val fallHeight = if (heightTrend) {
+          heightLast - heightHistory
+        } else {
+          heightHistory - heightLast
+        }
         ((ctype, ValidObject(p)) match {
           case (CollisionIs.OfInfantry, out @ Some(p: Player))
-            if p == player                                                 => (out, None)
+            if p == player                                                 => (out, t, None)
           case (CollisionIs.OfAircraft, out @ Some(v: Vehicle))
-            if v.Definition.CanFly && v.Seats(0).occupant.contains(player) => (out, ValidObject(t))
+            if v.Definition.CanFly && v.Seats(0).occupant.contains(player) => (out, t, ValidObject(t))
           case (CollisionIs.OfGroundVehicle, out @ Some(v: Vehicle))
-            if v.Seats(0).occupant.contains(player)                        => (out, ValidObject(t))
-          case _ => (None, None)
+            if v.Seats(0).occupant.contains(player)                        => (out, t, ValidObject(t))
+          case _ => (None, t, None)
         }) match {
-          case (Some(target: PlanetSideGameObject with Vitality with FactionAffinity), _) =>
-            val fallHeight = if (heightTrend) {
-              heightLast - heightHistory
-            } else {
-              heightHistory - heightLast
-            }
+          case (None, _, _) => ;
+
+          case (Some(target: PlanetSideGameObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>
+            HandleDealingDamage(
+              target,
+              DamageInteraction(
+                SourceEntry(target),
+                CollisionReason(pv, fallHeight, target.DamageModel),
+                ppos
+              )
+            )
+
+          case (
+            Some(target: PlanetSideGameObject with Vitality with FactionAffinity), _,
+            Some(victim: PlanetSideGameObject with Vitality with FactionAffinity)) =>
             val targetVelocity = target.Velocity.getOrElse(Vector3.Zero)
             HandleDealingDamage(
               target,
               DamageInteraction(
                 SourceEntry(target),
-                CollisionReason(targetVelocity, fallHeight, target.DamageModel),
+                CollisionReason(pv, fallHeight, target.DamageModel),
                 ppos
               )
             )
+
           case _ => ;
         }
 
@@ -9237,6 +9246,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case _ =>
         Seq(item.GUID -> item.Definition.Name)
     }
+  }
+
+  def fallHeightTracker(zHeight: Float): Unit = {
+    if ((heightTrend && heightLast - zHeight <= -0.5f) ||
+        (!heightTrend && zHeight - heightLast >= 0.5f)) {
+      heightTrend = !heightTrend
+      heightHistory = zHeight
+    }
+    heightLast = zHeight
   }
 
   def failWithError(error: String) = {
