@@ -2,13 +2,11 @@
 package objects
 
 import akka.actor.{ActorRef, Props}
-import akka.routing.RandomPool
 import akka.testkit.TestProbe
 import base.FreedContextActorTest
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
-import net.psforever.objects.guid.actor.UniqueNumberSystem
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
-import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
+import net.psforever.objects.guid.{NumberPoolHub, UniqueNumberOps, UniqueNumberSetup}
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.shuttle.{OrbitalShuttle, OrbitalShuttlePad, OrbitalShuttlePadControl, ShuttleAmenity}
@@ -23,7 +21,7 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 
-class OrbitalShuttlePadControltest extends FreedContextActorTest {
+class OrbitalShuttlePadControlTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   val services = ServiceManager.boot(system)
@@ -32,22 +30,17 @@ class OrbitalShuttlePadControltest extends FreedContextActorTest {
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
   val vehicles = ListBuffer[Vehicle]()
-  val guid = new NumberPoolHub(new MaxNumberSource(max = 15))
-  guid.AddPool("dynamic", (11 to 15).toList)
+  val guid = new NumberPoolHub(new MaxNumberSource(max = 20))
+  guid.AddPool("vehicles", (11 to 15).toList)
+  guid.AddPool("tools", (16 to 19).toList)
   val catchall = new TestProbe(system).ref
-  val resolver = context.actorOf(RandomPool(1).props(Props[TaskResolver]()), s"test-taskResolver")
-  val uns = context.actorOf(
-    RandomPool(1).props(
-      Props(classOf[UniqueNumberSystem], guid, UniqueNumberSystem.AllocateNumberPoolActors(this.guid))
-    ),
-    s"test-uns"
-  )
+  val unops = new UniqueNumberOps(guid, UniqueNumberSetup.AllocateNumberPoolActors(context, guid))
   val zone = new Zone("test", new ZoneMap("test-map"), 0) {
     val transport: ActorRef = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"zone-test-vehicles")
 
     override def SetupNumberPools() = {}
     GUID(guid)
-    override def GUID = { uns }
+    override def GUID = { unops }
     override def AvatarEvents = catchall
     override def LocalEvents = catchall
     override def VehicleEvents = catchall
@@ -55,7 +48,6 @@ class OrbitalShuttlePadControltest extends FreedContextActorTest {
     override def Transport = { transport }
     override def Vehicles = { vehicles.toList }
     override def Buildings = { buildingMap.toMap }
-    override def tasks = { resolver }
 
     import akka.actor.typed.scaladsl.adapter._
     this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]

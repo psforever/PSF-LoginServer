@@ -21,10 +21,11 @@ import net.psforever.types.OxygenState
   * @param objectId the object's identifier number
   */
 abstract class ObjectDefinition(private val objectId: Int) extends BasicDefinition {
+  var registerAs: String = "generic"
 
   /** a data converter for this type of object */
   protected var packet: PacketConverter = new ObjectCreateConverter[PlanetSideGameObject]() {}
-  Name = "object definition"
+  Name = "object_definition"
 
   /**
     * Get the conversion object.

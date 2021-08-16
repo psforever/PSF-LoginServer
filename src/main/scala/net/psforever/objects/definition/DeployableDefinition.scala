@@ -59,6 +59,7 @@ abstract class DeployableDefinition(objectId: Int)
   DamageUsing = DamageCalculations.AgainstVehicle
   ResistUsing = NoResistanceSelection
   Packet = new SmallDeployableConverter
+  registerAs = "deployables"
 
   def Item: DeployedItem.Value = item
 }

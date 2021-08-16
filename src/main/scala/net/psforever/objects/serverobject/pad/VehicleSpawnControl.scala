@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.pad
 import akka.actor.{Cancellable, Props}
 import net.psforever.objects.avatar.SpecialCarry
 import net.psforever.objects.entity.WorldEntity
-import net.psforever.objects.guid.GUIDTask.UnregisterVehicle
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.pad.process.{VehicleSpawnControlBase, VehicleSpawnControlConcealPlayer}
 import net.psforever.objects.zones.{Zone, ZoneAware, Zoning}
@@ -516,7 +516,7 @@ object VehicleSpawnControl {
     if (zone.Vehicles.contains(vehicle)) { //already added to zone
       vehicle.Actor ! Vehicle.Deconstruct(Some(0.seconds))
     } else { //just registered to zone
-      zone.tasks ! UnregisterVehicle(vehicle)(zone.GUID)
+      TaskWorkflow.execute(GUIDTask.unregisterVehicle(zone.GUID, vehicle))
     }
   }
 }

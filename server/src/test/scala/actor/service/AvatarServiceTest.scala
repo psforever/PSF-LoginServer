@@ -491,11 +491,7 @@ class AvatarStowEquipmentTest extends ActorTest {
 
 /*
 Preparation for these three Release tests is involved.
-The ServiceManager must not only be set up correctly, but must be given a TaskResolver.
-The AvatarService is started and that starts CorpseRemovalActor, an essential part of this test.
-The CorpseRemovalActor needs that TaskResolver created by the ServiceManager;
-but, another independent TaskResolver will be needed for manual parts of the test.
-(The ServiceManager's TaskResolver can be "borrowed" but that requires writing code to intercept it.)
+The ServiceManager must be set up correctly.
 The Zone needs to be set up and initialized properly with a ZoneActor.
 The ZoneActor builds the GUID Actor and the ZonePopulationActor.
 

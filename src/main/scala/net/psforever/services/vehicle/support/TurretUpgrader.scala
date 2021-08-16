@@ -1,10 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.vehicle.support
 
-import akka.actor.{ActorRef, Cancellable}
+import akka.actor.Cancellable
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.{AmmoBox, Default, PlanetSideGameObject, Tool}
-import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
+import net.psforever.objects.guid._
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.MountedWeapons
@@ -13,8 +13,8 @@ import net.psforever.types.PlanetSideGUID
 import net.psforever.services.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Success
 
 class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
   var task: Cancellable = Default.Cancellable
@@ -172,39 +172,34 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
 
     val oldBoxesTask = oldBoxes
       .filterNot { box => newBoxes.exists(_ eq box) }
-      .map(box => GUIDTask.UnregisterEquipment(box)(guid))
+      .map(box => GUIDTask.unregisterEquipment(guid, box))
       .toList
-    val newBoxesTask = TaskResolver.GiveTask(
-      new Task() {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val newBoxesTask = TaskBundle(
+      new StraightforwardTask() {
         private val localFunc: () => Unit = FinishUpgradingTurret(entry)
 
-        override def isComplete = Task.Resolution.Success
-
-        def Execute(resolver: ActorRef): Unit = {
-          resolver ! Success(this)
-        }
-
-        override def onSuccess(): Unit = {
-          super.onSuccess()
+        def action(): Future[Any] = {
           localFunc()
+          Future(this)
         }
       },
       newBoxes
         .filterNot { box => oldBoxes.exists(_ eq box) }
-        .map(box => GUIDTask.RegisterEquipment(box)(guid))
+        .map(box => GUIDTask.registerEquipment(guid, box))
         .toList
     )
-    target.Zone.tasks ! TaskResolver.GiveTask(
-      new Task() {
+    TaskWorkflow.execute(TaskBundle(
+      new StraightforwardTask() {
         private val tasks = oldBoxesTask
 
-        def Execute(resolver: ActorRef): Unit = {
-          tasks.foreach { resolver ! _ }
-          resolver ! Success(this)
+        def action(): Future[Any] = {
+          tasks.foreach { TaskWorkflow.execute }
+          Future(this)
         }
       },
-      List(newBoxesTask)
-    )
+      newBoxesTask
+    ))
   }
 
   /**

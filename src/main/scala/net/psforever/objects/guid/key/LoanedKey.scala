@@ -2,7 +2,6 @@
 package net.psforever.objects.guid.key
 
 import net.psforever.objects.entity.IdentifiableEntity
-import net.psforever.objects.guid.AvailabilityPolicy
 
 /**
   * The only indirect public access a queued number monitor object (`Key`) is allowed.
@@ -12,7 +11,7 @@ import net.psforever.objects.guid.AvailabilityPolicy
 class LoanedKey(private val guid: Int, private val key: Monitor) {
   def GUID: Int = guid
 
-  def Policy: AvailabilityPolicy.Value = key.policy
+  def Policy: AvailabilityPolicy = key.policy
 
   def Object: Option[IdentifiableEntity] = key.obj
 
@@ -29,9 +28,7 @@ class LoanedKey(private val guid: Int, private val key: Monitor) {
     * @return `true`, if the assignment worked; `false`, otherwise
     */
   def Object_=(obj: Option[IdentifiableEntity]): Option[IdentifiableEntity] = {
-    if (
-      key.policy == AvailabilityPolicy.Leased || (key.policy == AvailabilityPolicy.Restricted && key.obj.isEmpty)
-    ) {
+    if (key.policy == AvailabilityPolicy.Leased) {
       if (key.obj.isDefined) {
         key.obj.get.Invalidate()
         key.obj = None

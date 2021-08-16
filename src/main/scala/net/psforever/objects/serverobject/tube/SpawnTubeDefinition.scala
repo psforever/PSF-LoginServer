@@ -12,6 +12,7 @@ import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition
   */
 class SpawnTubeDefinition(object_id: Int) extends AmenityDefinition(object_id) with SpawnPointDefinition {
   Packet = new SpawnTubeConverter
+  registerAs = "terminals"
 }
 
 object SpawnTubeDefinition {

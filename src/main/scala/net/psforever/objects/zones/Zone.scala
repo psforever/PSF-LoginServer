@@ -2,16 +2,12 @@
 package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
-import akka.routing.RandomPool
 import net.psforever.objects.{PlanetSideGameObject, _}
-import net.psforever.objects.ballistics.{Projectile, SourceEntry}
+import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.ce.Deployable
-import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
-import net.psforever.objects.guid.actor.UniqueNumberSystem
+import net.psforever.objects.guid.{NumberPoolHub, UniqueNumberOps, UniqueNumberSetup}
 import net.psforever.objects.guid.key.LoanedKey
-import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
@@ -39,6 +35,7 @@ import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.geometry.d3.VolumetricGeometry
+import net.psforever.objects.guid.pool.NumberPool
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door
@@ -79,14 +76,16 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   /** Governs general synchronized external requests. */
   var actor: typed.ActorRef[ZoneActor.Command] = _
 
-  /** Actor that handles SOI related functionality, for example if a player is in a SOI */
+  /** Actor that handles SOI related functionality, for example if a player is in an SOI */
   private var soi = Default.Actor
-
-  /** Used by the globally unique identifier system to coordinate requests. */
-  private var accessor: ActorRef = ActorRef.noSender
 
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(65536))
+  /** The core of the unique number system, to which requests may be submitted.
+    * @see `UniqueNumberSys`
+    * @see `Zone.Init(ActorContext)`
+    */
+  private[zones] var unops: UniqueNumberOps = _
 
   /** The blockmap structure for partitioning entities and environmental aspects of the zone.
     * For a standard 8912`^`2 map, each of the four hundred formal map grids is 445.6m long and wide.
@@ -104,8 +103,6 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
 
   /** Used by the `Zone` to coordinate `Equipment` dropping and collection requests. */
   private var ground: ActorRef = Default.Actor
-
-  private var taskResolver: ActorRef = Default.Actor
 
   /**
     */
@@ -177,7 +174,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     * First, the `Actor`-driven aspect of the globally unique identifier system for this `Zone` is finalized.
     * Second, all supporting `Actor` agents are created, e.g., `ground`.
     * Third, the `ZoneMap` server objects are loaded and constructed within that aforementioned system.
-    * To avoid being called more than once, there is a test whether the `accessor` for the globally unique identifier system has been changed.<br>
+    * To avoid being called more than once, there is a test whether the globally unique identifier system has been changed.<br>
     * <br>
     * Execution of this operation should be fail-safe.
     * The chances of failure should be mitigated or skipped.
@@ -187,15 +184,9 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     * @param context a reference to an `ActorContext` necessary for `Props`
     */
   def init(implicit context: ActorContext): Unit = {
-    if (accessor == ActorRef.noSender) {
+    if (unops == null) {
       SetupNumberPools()
-      taskResolver = CreateTaskResolvers(context)
-      accessor = context.actorOf(
-        RandomPool(25).props(
-          Props(classOf[UniqueNumberSystem], this.guid, UniqueNumberSystem.AllocateNumberPoolActors(this.guid))
-        ),
-        s"zone-$id-uns"
-      )
+      context.actorOf(Props(classOf[UniqueNumberSys], this, this.guid), s"zone-$id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"zone-$id-ground")
       deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"zone-$id-deployables")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"zone-$id-vehicles")
@@ -334,26 +325,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     }
   }
 
-  def SetupNumberPools(): Unit = {
-    guid.AddPool("environment", (0 to 3000).toList) //TODO tailor to suit requirements of zone
-    //TODO unlump pools later; do not make any single pool too big
-    guid.AddPool("dynamic", (3001 to 10000).toList).Selector =
-      new RandomSelector //TODO all things will be registered here, for now
-    guid.AddPool("b", (10001 to 15000).toList).Selector = new RandomSelector
-    guid.AddPool("c", (15001 to 20000).toList).Selector = new RandomSelector
-    guid.AddPool("d", (20001 to 25000).toList).Selector = new RandomSelector
-    guid.AddPool("e", (25001 to 30000).toList).Selector = new RandomSelector
-    guid.AddPool("f", (30001 to 35000).toList).Selector = new RandomSelector
-    guid.AddPool("g", (35001 until 40100).toList).Selector = new RandomSelector
-    guid.AddPool("projectiles", (Projectile.baseUID until Projectile.rangeUID).toList)
-    guid.AddPool("locker-contents", (40150 until 40450).toList).Selector = new RandomSelector
-    //TODO disabled temporarily to lighten load times
-    //guid.AddPool("h", (40150 to 45000).toList).Selector = new RandomSelector
-    //guid.AddPool("i", (45001 to 50000).toList).Selector = new RandomSelector
-    //guid.AddPool("j", (50001 to 55000).toList).Selector = new RandomSelector
-    //guid.AddPool("k", (55001 to 60000).toList).Selector = new RandomSelector
-    //guid.AddPool("l", (60001 to 65535).toList).Selector = new RandomSelector
-  }
+  def SetupNumberPools(): Unit = { /* override to tailor to suit requirements of zone */ }
 
   def findSpawns(
       faction: PlanetSideEmpire.Value,
@@ -436,14 +408,14 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   def Number: Int = zoneNumber
 
   /**
-    * The globally unique identifier system is synchronized via an `Actor` to ensure that concurrent requests do not clash.
+    * The globally unique identifier system ensures that concurrent requests do not clash.
     * A clash is merely when the same number is produced more than once by the same system due to concurrent requests.
-    * @return synchronized reference to the globally unique identifier system
+    * @return reference to the globally unique identifier system
     */
-  def GUID: ActorRef = accessor
+  def GUID: UniqueNumberOps = unops
 
   /**
-    * Replace the current globally unique identifier system with a new one.
+    * Replace the current globally unique identifier support structure with a new one.
     * The replacement will not occur if the current system is populated or if its synchronized reference has been created.
     * The primary use of this function should be testing.
     * A warning will be issued.
@@ -475,12 +447,14 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     * @return `true`, if the new pool is created;
     *        `false`, if the new pool can not be created because the system has already been started
     */
-  def AddPool(name: String, pool: Seq[Int]): Boolean = {
-    if (accessor == Default.Actor || accessor == null) {
-      guid.AddPool(name, pool.toList)
-      true
+  def AddPool(name: String, pool: Seq[Int]): Option[NumberPool] = {
+    if (unops == null) {
+      guid.AddPool(name, pool.toList) match {
+        case _: Exception => None
+        case out => Some(out)
+      }
     } else {
-      false
+      None
     }
   }
 
@@ -489,13 +463,12 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     * Throws exceptions for specific reasons if the pool can not be removed before the system has been started.
     * @see `NumberPoolHub.RemovePool`
     * @param name the name of the pool
-    * @return `true`, if the new pool is un-made;
-    *        `false`, if the new pool can not be removed because the system has already been started
+    * @return `true`, if the pool is un-made;
+    *        `false`, if the pool can not be removed (because the system has already been started?)
     */
   def RemovePool(name: String): Boolean = {
-    if (accessor == Default.Actor) {
-      guid.RemovePool(name)
-      true
+    if (unops == null) {
+      guid.RemovePool(name).nonEmpty
     } else {
       false
     }
@@ -526,7 +499,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
 
   /**
     * Recover an object from the globally unique identifier system by the number that was assigned previously.
-    * The object must be upcast into due to the differtence between the storage type and the return type.
+    * The object must be upcast into due to the minor difference between the storage type and the return type.
     * @param object_guid the globally unique identifier requested
     * @return the associated object, if it exists
     * @see `NumberPoolHub(Int)`
@@ -606,7 +579,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
 
   private def BuildSupportObjects(): Unit = {
     //guard against errors here, but don't worry about specifics; let ZoneActor.ZoneSetupCheck complain about problems
-    val other: ListBuffer[IdentifiableEntity] = new ListBuffer[IdentifiableEntity]()
+    val other: ListBuffer[PlanetSideGameObject] = new ListBuffer[PlanetSideGameObject]()
     //turret to weapon
     map.turretToWeapon.foreach({
       case (turret_guid, weapon_guid) =>
@@ -634,7 +607,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
         }
     })
     //after all fixed GUID's are defined  ...
-    other.foreach(obj => guid.register(obj, "dynamic"))
+    other.foreach(obj => guid.register(obj, obj.Definition.registerAs))
   }
 
   private def MakeBuildings(implicit context: ActorContext): PairMap[Int, Building] = {
@@ -836,11 +809,26 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     vehicleEvents = bus
     VehicleEvents
   }
+}
 
-  def tasks: ActorRef = taskResolver
-
-  protected def CreateTaskResolvers(context: ActorContext, numberCreated: Int = 20): ActorRef = {
-    context.actorOf(RandomPool(numberCreated).props(Props[TaskResolver]()), s"zone-$id-taskResolver")
+/**
+  * A local class for spawning `Actor`s to manage the number pools for this zone,
+  * create a number system operations class to access those pools within the context of registering and unregistering,
+  * and assign that number pool operations class to the containing zone
+  * through specific scope access.
+  * @see `UniqueNumberOps`
+  * @see `UniqueNumberSetup`
+  * @see `UniqueNumberSetup.AllocateNumberPoolActors`
+  * @see `Zone.unops`
+  * @param zone the zone in which the operations class will be referenced
+  * @param guid the number pool management class
+  */
+private class UniqueNumberSys(zone: Zone, guid: NumberPoolHub)
+  extends UniqueNumberSetup(guid, UniqueNumberSetup.AllocateNumberPoolActors) {
+  override def init(): UniqueNumberOps = {
+    val unsys = super.init()
+    zone.unops = unsys // zone.unops is accessible from here by virtue of being 'private[zones]`
+    unsys
   }
 }
 

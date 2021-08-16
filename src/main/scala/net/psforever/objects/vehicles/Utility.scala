@@ -228,6 +228,7 @@ object Utility {
       extends AmenityDefinition(DeployedItem.router_telepad_deployable.id)
       with BaseDeployableDefinition {
     Packet = new SmallDeployableConverter
+    registerAs = "terminals"
 
     def Item: DeployedItem.Value = DeployedItem.router_telepad_deployable
   }

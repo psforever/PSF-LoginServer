@@ -7,7 +7,7 @@ import net.psforever.objects.avatar.PlayerControl
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.ExoSuitDefinition
 import net.psforever.objects.equipment.EquipmentSlot
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.InfantryLoadout
 import net.psforever.objects.zones.Zone
@@ -341,7 +341,7 @@ object Players {
   def commonDestroyConstructionItem(player: Player, tool: ConstructionItem, index: Int): Unit = {
     val zone = player.Zone
     if (safelyRemoveConstructionItemFromSlot(player, tool, index, "CommonDestroyConstructionItem")) {
-      zone.tasks ! GUIDTask.UnregisterEquipment(tool)(zone.GUID)
+      TaskWorkflow.execute(GUIDTask.unregisterEquipment(zone.GUID, tool))
     }
   }
 

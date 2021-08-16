@@ -9,7 +9,7 @@ import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.DeployAnimation
 import net.psforever.objects.equipment._
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.Loadout
 import net.psforever.objects.serverobject.aura.{Aura, AuraEffectBehavior}
@@ -284,7 +284,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               val zone = player.Zone
               avatarActor ! AvatarActor.UpdateUseTime(kdef)
               player.Slot(slot).Equipment = None //remove from slot immediately; must exist on client for now
-              zone.tasks ! GUIDTask.UnregisterEquipment(kit)(zone.GUID)
+              TaskWorkflow.execute(GUIDTask.unregisterEquipment(zone.GUID, kit))
               zone.AvatarEvents ! AvatarServiceMessage(
                 zone.id,
                 AvatarAction.PlanetsideAttributeToAll(player.GUID, attribute, value)
@@ -482,17 +482,17 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               obj.Trigger = trigger
               //TODO sufficiently delete the tool
               zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
-              zone.tasks ! GUIDTask.UnregisterEquipment(tool)(zone.GUID)
+              TaskWorkflow.execute(GUIDTask.unregisterEquipment(zone.GUID, tool))
               player.Find(tool) match {
                 case Some(index) if player.VisibleSlots.contains(index) =>
                   player.Slot(index).Equipment = None
-                  zone.tasks ! HoldNewEquipmentUp(player)(trigger, index)
+                  TaskWorkflow.execute(HoldNewEquipmentUp(player)(trigger, index))
                 case Some(index) =>
                   player.Slot(index).Equipment = None
-                  zone.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
+                  TaskWorkflow.execute(PutNewEquipmentInInventoryOrDrop(player)(trigger))
                 case None =>
                   //don't know where boomer trigger "should" go
-                  zone.tasks ! PutNewEquipmentInInventoryOrDrop(player)(trigger)
+                  TaskWorkflow.execute(PutNewEquipmentInInventoryOrDrop(player)(trigger))
               }
               Players.buildCooldownReset(zone, player.Name, obj)
             case _ => ;

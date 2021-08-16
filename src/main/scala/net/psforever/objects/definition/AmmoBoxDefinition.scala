@@ -2,17 +2,17 @@
 package net.psforever.objects.definition
 
 import net.psforever.objects.definition.converter.AmmoBoxConverter
-import net.psforever.objects.equipment.Ammo
+import net.psforever.objects.equipment.{Ammo, EquipmentSize}
 
 class AmmoBoxDefinition(objectId: Int) extends EquipmentDefinition(objectId) {
-  import net.psforever.objects.equipment.EquipmentSize
+  Name = "ammo_box"
+  Size = EquipmentSize.Inventory
+  Packet = AmmoBoxDefinition.converter
   private val ammoType: Ammo.Value = Ammo(objectId) //let throw NoSuchElementException
   private var capacity: Int        = 1
   var repairAmount: Float          = 0
+  registerAs = "ammo"
 
-  Name = "ammo box"
-  Size = EquipmentSize.Inventory
-  Packet = AmmoBoxDefinition.converter
 
   def AmmoType: Ammo.Value = ammoType
 

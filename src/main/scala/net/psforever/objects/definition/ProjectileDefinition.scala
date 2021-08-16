@@ -60,6 +60,7 @@ class ProjectileDefinition(objectId: Int)
   private var finalVelocity: Float            = 0f
   Name = "projectile"
   Modifiers = DistanceDegrade
+  registerAs = "projectiles"
 
   def ProjectileType: Projectiles.Value = projectileType
 

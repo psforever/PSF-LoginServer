@@ -6,7 +6,7 @@ import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem}
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallTurretConverter
 import net.psforever.objects.equipment.{JammableMountedWeapons, JammableUnit}
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
@@ -132,6 +132,6 @@ class TurretControl(turret: TurretDeployable)
 
   override def unregisterDeployable(obj: Deployable): Unit = {
     val zone = obj.Zone
-    zone.tasks ! GUIDTask.UnregisterDeployableTurret(turret)(zone.GUID)
+    TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(zone.GUID, turret))
   }
 }

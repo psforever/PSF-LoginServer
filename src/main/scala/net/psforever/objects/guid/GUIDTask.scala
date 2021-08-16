@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.guid
 
-import akka.actor.ActorRef
+import akka.util.Timeout
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects._
@@ -10,6 +10,8 @@ import net.psforever.objects.locker.{LockerContainer, LockerEquipment}
 import net.psforever.objects.serverobject.turret.WeaponTurret
 
 import scala.annotation.tailrec
+import scala.concurrent.duration._
+import scala.concurrent.Future
 
 /**
   * The basic compiled tasks for assigning (registering) and revoking (unregistering) globally unique identifiers.<br>
@@ -22,43 +24,63 @@ import scala.annotation.tailrec
   * It will get passed from the more complicated functions down into the less complicated functions,
   * until it has found the basic number assignment functionality.<br>
   * <br>
-  * All functions produce a `TaskResolver.GiveTask` container object
-  * or a list of `TaskResolver.GiveTask` container objects that is expected to be used by a `TaskResolver` `Actor`.
+  * All functions produce a `TaskBundle` container object
+  * or a list of `TaskBundle` container objects that is expected to be used by a `TaskBundle` container.
   * These "task containers" can also be unpackaged into their component tasks, sorted into other containers,
   * and combined with other tasks to enact more complicated sequences of operations.
   * Almost all tasks have an explicit registering and an unregistering activity defined for it.
   */
+
 object GUIDTask {
+  private implicit val timeout = Timeout(2.seconds)
+
+  //registration tasking
+  protected case class RegisterObjectTask(
+                                         guid: UniqueNumberOps,
+                                         obj: IdentifiableEntity,
+                                         pool: String
+                                       ) extends Task {
+    def action(): Future[Any] = {
+      guid.Register(obj, pool)
+    }
+
+    def undo(): Unit = {
+      guid.Unregister(obj)
+    }
+
+    def isSuccessful() : Boolean = obj.HasGUID
+
+    override def description(): String = s"register $obj to $pool"
+  }
+
+  def RegisterObjectTask(guid: UniqueNumberOps, obj: IdentifiableEntity): RegisterObjectTask = obj match {
+    case o: PlanetSideGameObject => RegisterObjectTask(guid, o)
+    case _                       => RegisterObjectTask(guid, obj, "generic")
+  }
+
+  def RegisterObjectTask(guid: UniqueNumberOps, obj: PlanetSideGameObject): RegisterObjectTask =
+    RegisterObjectTask(guid, obj, obj.Definition.registerAs)
 
   /**
-    * Construct tasking that registers an object with a globally unique identifier selected from a pool of numbers.<br>
-    * <br>
+    * Construct tasking that registers an object with a globally unique identifier selected from a pool of numbers.
     * Regardless of the complexity of the object provided to this function, only the current depth will be assigned a GUID.
     * This is the most basic operation that all objects that can be assigned a GUID must perform.
     * @param obj the object being registered
     * @param guid implicit reference to a unique number system
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  def RegisterObjectTask(obj: IdentifiableEntity)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(new Task() {
-      private val localObject   = obj
-      private val localAccessor = guid
+  def registerObject(guid: UniqueNumberOps, obj: IdentifiableEntity): TaskBundle =
+    TaskBundle(RegisterObjectTask(guid, obj, "generic"))
 
-      override def Description: String = s"register $localObject"
-
-      override def isComplete: Task.Resolution.Value =
-        if (localObject.HasGUID) {
-          Task.Resolution.Success
-        } else {
-          Task.Resolution.Incomplete
-        }
-
-      def Execute(resolver: ActorRef): Unit = {
-        import net.psforever.objects.guid.actor.Register
-        localAccessor ! Register(localObject, "dynamic", resolver) //TODO pool should not be hardcoded
-      }
-    })
-  }
+  /**
+    * Construct tasking that registers an object with a globally unique identifier selected from a specific pool of numbers.
+    * Regardless of the complexity of the object provided to this function, only the current depth will be assigned a GUID.
+    * @param obj the object being registered
+    * @param guid implicit reference to a unique number system
+    * @return a `TaskBundle` message
+    */
+  def registerObject(guid: UniqueNumberOps, obj: PlanetSideGameObject): TaskBundle =
+    TaskBundle(RegisterObjectTask(guid, obj, obj.Definition.registerAs))
 
   /**
     * Construct tasking that registers an object with a globally unique identifier selected from a pool of numbers, as a `Tool`.<br>
@@ -74,41 +96,14 @@ object GUIDTask {
     * else use a more general function to differentiate between simple and complex objects.
     * @param obj the `Tool` object being registered
     * @param guid implicit reference to a unique number system
-    * @see `GUIDTask.RegisterEquipment`
-    * @return a `TaskResolver.GiveTask` message
+    * @see `GUIDTask.registerEquipment`
+    * @return a `TaskBundle` message
     */
-  def RegisterTool(obj: Tool)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    val ammoTasks: List[TaskResolver.GiveTask] =
-      (0 until obj.MaxAmmoSlot).map(ammoIndex => RegisterObjectTask(obj.AmmoSlots(ammoIndex).Box)).toList
-    TaskResolver.GiveTask(RegisterObjectTask(obj).task, ammoTasks)
-  }
-
-  /**
-    * Construct tasking that registers a `LockerContainer` object
-    * with a globally unique identifier selected from a pool of numbers.
-    * @param obj the object being registered
-    * @param guid implicit reference to a unique number system
-    * @see `GUIDTask.UnregisterLocker`
-    * @return a `TaskResolver.GiveTask` message
-    */
-  def RegisterLocker(obj: LockerContainer)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(RegisterObjectTask(obj).task, RegisterInventory(obj))
-  }
-  def RegisterLocker(obj: LockerEquipment)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(RegisterObjectTask(obj).task, RegisterInventory(obj))
-  }
-
-  /**
-    * Construct tasking that registers the objects that are within the given container's inventory
-    * with a globally unique identifier selected from a pool of numbers for each object.
-    * @param container the storage unit in which objects can be found
-    * @param guid implicit reference to a unique number system
-    * @see `GUID.UnregisterInventory`<br>
-    *       `Container`
-    * @return a list of `TaskResolver.GiveTask` messages
-    */
-  def RegisterInventory(container: Container)(implicit guid: ActorRef): List[TaskResolver.GiveTask] = {
-    container.Inventory.Items.map(entry => { RegisterEquipment(entry.obj) })
+  def registerTool(guid: UniqueNumberOps, obj: Tool): TaskBundle = {
+    TaskBundle(
+      RegisterObjectTask(guid, obj),
+      (0 until obj.MaxAmmoSlot).map(ammoIndex => registerObject(guid, obj.AmmoSlots(ammoIndex).Box))
+    )
   }
 
   /**
@@ -125,15 +120,50 @@ object GUIDTask {
     * The type will be sorted and the object will be handled according to its complexity level.
     * @param obj the `Equipment` object being registered
     * @param guid implicit reference to a unique number system
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  def RegisterEquipment(obj: Equipment)(implicit guid: ActorRef): TaskResolver.GiveTask = {
+  def registerEquipment(guid: UniqueNumberOps, obj: Equipment): TaskBundle = {
     obj match {
-      case tool: Tool =>
-        RegisterTool(tool)
-      case _ =>
-        RegisterObjectTask(obj)
+      case tool: Tool => registerTool(guid, tool)
+      case _ =>          registerObject(guid, obj)
     }
+  }
+
+  /**
+    * Construct tasking that registers the objects that are within the given container's inventory
+    * with a globally unique identifier selected from a pool of numbers for each object.
+    * @param container the storage unit in which objects can be found
+    * @param guid implicit reference to a unique number system
+    * @see `GUIDTask.unregisterInventory`<br>
+    *       `Container`
+    * @return a list of `TaskBundle` messages
+    */
+  def registerInventory(guid: UniqueNumberOps, container: Container): List[TaskBundle] = {
+    container.Inventory.Items.map{ entry => registerEquipment(guid, entry.obj) }
+  }
+
+  /**
+    * Construct tasking that registers a `LockerContainer` object
+    * with a globally unique identifier selected from a pool of numbers.
+    * @param obj the object being registered
+    * @param guid implicit reference to a unique number system
+    * @see `GUIDTask.unregisterLocker`
+    * @return a `TaskBundle` message
+    */
+  def registerLocker(guid: UniqueNumberOps, obj: LockerContainer): TaskBundle = {
+    TaskBundle(RegisterObjectTask(guid, obj), registerInventory(guid, obj))
+  }
+
+  /**
+    * Construct tasking that registers a `LockerContainer` object
+    * with a globally unique identifier selected from a pool of numbers.
+    * @param obj the object being registered
+    * @param guid implicit reference to a unique number system
+    * @see `GUIDTask.unregisterLocker`
+    * @return a `TaskBundle` message
+    */
+  def registerLocker(guid: UniqueNumberOps, obj: LockerEquipment): TaskBundle = {
+    TaskBundle(RegisterObjectTask(guid, obj), registerInventory(guid, obj))
   }
 
   /**
@@ -150,13 +180,13 @@ object GUIDTask {
     * a task built of lesser registration tasks and supporting tasks should be written instead.
     * @param tplayer the `Player` object being registered
     * @param guid implicit reference to a unique number system
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  def RegisterAvatar(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), RegisterEquipment)
-    val lockerTask     = List(RegisterObjectTask(tplayer.avatar.locker))
-    val inventoryTasks = RegisterInventory(tplayer)
-    TaskResolver.GiveTask(RegisterObjectTask(tplayer).task, holsterTasks ++ lockerTask ++ inventoryTasks)
+  def registerAvatar(guid: UniqueNumberOps, tplayer: Player): TaskBundle = {
+    val holsterTasks   = visibleSlotTaskBuilding(guid, tplayer.Holsters(), registerEquipment)
+    val lockerTask     = List(registerObject(guid, tplayer.avatar.locker))
+    val inventoryTasks = registerInventory(guid, tplayer)
+    TaskBundle(RegisterObjectTask(guid, tplayer), holsterTasks ++ lockerTask ++ inventoryTasks)
   }
 
   /**
@@ -165,12 +195,12 @@ object GUIDTask {
     * Similar to `RegisterAvatar` but the locker components are skipped.
     * @param tplayer the `Player` object being registered
     * @param guid implicit reference to a unique number system
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  def RegisterPlayer(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), RegisterEquipment)
-    val inventoryTasks = RegisterInventory(tplayer)
-    TaskResolver.GiveTask(GUIDTask.RegisterObjectTask(tplayer)(guid).task, holsterTasks ++ inventoryTasks)
+  def registerPlayer(guid: UniqueNumberOps, tplayer: Player): TaskBundle = {
+    val holsterTasks   = visibleSlotTaskBuilding(guid, tplayer.Holsters(), registerEquipment)
+    val inventoryTasks = registerInventory(guid, tplayer)
+    TaskBundle(RegisterObjectTask(guid, tplayer), holsterTasks ++ inventoryTasks)
   }
 
   /**
@@ -188,23 +218,37 @@ object GUIDTask {
     * a task built of lesser registration tasks and supporting tasks should be written instead.
     * @param vehicle the `Vehicle` object being registered
     * @param guid implicit reference to a unique number system
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  def RegisterVehicle(vehicle: Vehicle)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    val weaponTasks = VisibleSlotTaskBuilding(vehicle.Weapons.values, RegisterEquipment)
+  def registerVehicle(guid: UniqueNumberOps, vehicle: Vehicle): TaskBundle = {
+    val weaponTasks = visibleSlotTaskBuilding(guid, vehicle.Weapons.values, registerEquipment)
     val utilTasks =
-      Vehicle.EquipmentUtilities(vehicle.Utilities).values.map(util => { RegisterObjectTask(util()) }).toList
-    val inventoryTasks = RegisterInventory(vehicle)
-    TaskResolver.GiveTask(RegisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
+      Vehicle.EquipmentUtilities(vehicle.Utilities).values.map(util => { registerObject(guid, util()) }).toList
+    val inventoryTasks = registerInventory(guid, vehicle)
+    TaskBundle(RegisterObjectTask(guid, vehicle), weaponTasks ++ utilTasks ++ inventoryTasks)
   }
 
-  def RegisterDeployableTurret(
-      obj: PlanetSideGameObject with WeaponTurret
-  )(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      RegisterObjectTask(obj).task,
-      VisibleSlotTaskBuilding(obj.Weapons.values, GUIDTask.RegisterEquipment) ++ RegisterInventory(obj)
+  def registerDeployableTurret(guid: UniqueNumberOps, obj: PlanetSideGameObject with WeaponTurret): TaskBundle = {
+    TaskBundle(
+      RegisterObjectTask(guid, obj),
+      visibleSlotTaskBuilding(guid, obj.Weapons.values, registerEquipment) ++ registerInventory(guid, obj)
     )
+  }
+
+  //unregistration tasking
+  protected case class UnregisterObjectTask(
+                                         guid: UniqueNumberOps,
+                                         obj: IdentifiableEntity
+                                       ) extends Task {
+    def action(): Future[Any] = {
+      guid.Unregister(obj)
+    }
+
+    def undo(): Unit = RegisterObjectTask(guid, obj)
+
+    def isSuccessful() : Boolean = !obj.HasGUID
+
+    override def description(): String = s"unregister $obj"
   }
 
   /**
@@ -214,73 +258,10 @@ object GUIDTask {
     * It is the most basic operation that all objects that can have their GUIDs revoked must perform.
     * @param obj the object being unregistered
     * @param guid implicit reference to a unique number system
-    * @see `GUIDTask.RegisterObjectTask`
-    * @return a `TaskResolver.GiveTask` message
+    * @see `GUIDTask.registerObjectTask`
+    * @return a `TaskBundle` message
     */
-  def UnregisterObjectTask(obj: IdentifiableEntity)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
-        private val localObject   = obj
-        private val localAccessor = guid
-
-        override def Description: String = s"unregister $localObject"
-
-        override def isComplete: Task.Resolution.Value =
-          if (!localObject.HasGUID) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-
-        def Execute(resolver: ActorRef): Unit = {
-          import net.psforever.objects.guid.actor.Unregister
-          localAccessor ! Unregister(localObject, resolver)
-        }
-      }
-    )
-  }
-
-  /**
-    * Construct tasking that unregisters a `Tool` object from a globally unique identifier system.<br>
-    * <br>
-    * This task performs an operation that reverses the effect of `RegisterTool`.
-    * @param obj the `Tool` object being unregistered
-    * @param guid implicit reference to a unique number system
-    * @see `GUIDTask.RegisterTool`
-    * @return a `TaskResolver.GiveTask` message
-    */
-  def UnregisterTool(obj: Tool)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    val ammoTasks: List[TaskResolver.GiveTask] =
-      (0 until obj.MaxAmmoSlot).map(ammoIndex => UnregisterObjectTask(obj.AmmoSlots(ammoIndex).Box)).toList
-    TaskResolver.GiveTask(UnregisterObjectTask(obj).task, ammoTasks)
-  }
-
-  /**
-    * Construct tasking that unregisters a `LockerContainer` object from a globally unique identifier system.
-    * @param obj the object being unregistered
-    * @param guid implicit reference to a unique number system
-    * @see `GUIDTask.RegisterLocker`
-    * @return a `TaskResolver.GiveTask` message
-    */
-  def UnregisterLocker(obj: LockerContainer)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(UnregisterObjectTask(obj).task, UnregisterInventory(obj))
-  }
-  def UnregisterLocker(obj: LockerEquipment)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(RegisterObjectTask(obj).task, RegisterInventory(obj))
-  }
-
-  /**
-    * Construct tasking that unregisters the objects that are within the given container's inventory
-    * from a globally unique identifier system.
-    * @param container the storage unit in which objects can be found
-    * @param guid implicit reference to a unique number system
-    * @see `GUIDTask.RegisterInventory`<br>
-    *       `Container`
-    * @return a list of `TaskResolver.GiveTask` messages
-    */
-  def UnregisterInventory(container: Container)(implicit guid: ActorRef): List[TaskResolver.GiveTask] = {
-    container.Inventory.Items.map(entry => { UnregisterEquipment(entry.obj) })
-  }
+  def unregisterObject(guid: UniqueNumberOps, obj: IdentifiableEntity): TaskBundle = TaskBundle(UnregisterObjectTask(guid, obj))
 
   /**
     * Construct tasking that unregisters an object from a globally unique identifier system
@@ -289,16 +270,72 @@ object GUIDTask {
     * This task performs an operation that reverses the effect of `RegisterEquipment`.
     * @param obj the `Equipment` object being unregistered
     * @param guid implicit reference to a unique number system
-    * @see `GUIDTask.RegisterEquipment`
-    * @return a `TaskResolver.GiveTask` message
+    * @see `GUIDTask.registerEquipment`
+    * @return a `TaskBundle` message
     */
-  def UnregisterEquipment(obj: Equipment)(implicit guid: ActorRef): TaskResolver.GiveTask = {
+  def unregisterTool(guid: UniqueNumberOps, obj: Tool): TaskBundle = {
+    TaskBundle(
+      UnregisterObjectTask(guid, obj),
+      (0 until obj.MaxAmmoSlot).map(ammoIndex => unregisterObject(guid, obj.AmmoSlots(ammoIndex).Box))
+    )
+  }
+
+  /**
+    * Construct tasking that registers an object with a globally unique identifier selected from a pool of numbers,
+    * after determining whether the object is complex (`Tool` or `Locker`) or is simple.<br>
+    * <br>
+    * The objects in this case are specifically `Equipment`, a subclass of the basic register-able `IdentifiableEntity`.
+    * About five subclasses of `Equipment` exist, but they decompose into two groups - "complex objects" and "simple objects."
+    * "Simple objects" are most groups of `Equipment` and just their own GUID to be registered.
+    * "Complex objects" are just the `Tool` category of `Equipment`.
+    * They have internal objects that must also have their GUID's registered to function.<br>
+    * <br>
+    * Using this function when passing unknown `Equipment` is recommended.
+    * The type will be sorted and the object will be handled according to its complexity level.
+    * @param obj the `Equipment` object being registered
+    * @param guid implicit reference to a unique number system
+    * @return a `TaskBundle` message
+    */
+  def unregisterEquipment(guid: UniqueNumberOps, obj: Equipment): TaskBundle = {
     obj match {
-      case tool: Tool =>
-        UnregisterTool(tool)
-      case _ =>
-        UnregisterObjectTask(obj)
+      case tool: Tool => unregisterTool(guid, tool)
+      case _ =>          unregisterObject(guid, obj)
     }
+  }
+
+  /**
+    * Construct tasking that unregisters the objects that are within the given container's inventory
+    * from a globally unique identifier system.
+    * @param container the storage unit in which objects can be found
+    * @param guid implicit reference to a unique number system
+    * @see `GUIDTask.registerInventory`<br>
+    *       `Container`
+    * @return a list of `TaskBundle` messages
+    */
+  def unregisterInventory(guid: UniqueNumberOps, container: Container): List[TaskBundle] = {
+    container.Inventory.Items.map{ entry => unregisterEquipment(guid, entry.obj) }
+  }
+
+  /**
+    * Construct tasking that unregisters a `LockerContainer` object from a globally unique identifier system.
+    * @param obj the object being unregistered
+    * @param guid implicit reference to a unique number system
+    * @see `GUIDTask.registerLocker`
+    * @return a `TaskBundle` message
+    */
+  def unregisterLocker(guid: UniqueNumberOps, obj: LockerContainer): TaskBundle = {
+    TaskBundle(UnregisterObjectTask(guid, obj), unregisterInventory(guid, obj))
+  }
+
+  /**
+    * Construct tasking that unregisters a `LockerContainer` object from a globally unique identifier system.
+    * @param obj the object being unregistered
+    * @param guid implicit reference to a unique number system
+    * @see `GUIDTask.registerLocker`
+    * @return a `TaskBundle` message
+    */
+  def unregisterLocker(guid: UniqueNumberOps, obj: LockerEquipment): TaskBundle = {
+    TaskBundle(UnregisterObjectTask(guid, obj), unregisterInventory(guid, obj))
   }
 
   /**
@@ -307,14 +344,14 @@ object GUIDTask {
     * This task performs an operation that reverses the effect of `RegisterAvatar`.
     * @param tplayer the `Player` object being unregistered
     * @param guid implicit reference to a unique number system
-    * @see `GUIDTask.RegisterAvatar`
-    * @return a `TaskResolver.GiveTask` message
+    * @see `GUIDTask.registerAvatar`
+    * @return a `TaskBundle` message
     */
-  def UnregisterAvatar(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), UnregisterEquipment)
-    val lockerTask     = List(UnregisterObjectTask(tplayer.avatar.locker))
-    val inventoryTasks = UnregisterInventory(tplayer)
-    TaskResolver.GiveTask(UnregisterObjectTask(tplayer).task, holsterTasks ++ lockerTask ++ inventoryTasks)
+  def unregisterAvatar(guid: UniqueNumberOps, tplayer: Player): TaskBundle = {
+    val holsterTasks   = visibleSlotTaskBuilding(guid, tplayer.Holsters(), unregisterEquipment)
+    val lockerTask     = List(unregisterObject(guid, tplayer.avatar.locker))
+    val inventoryTasks = unregisterInventory(guid, tplayer)
+    TaskBundle(UnregisterObjectTask(guid, tplayer), holsterTasks ++ lockerTask ++ inventoryTasks)
   }
 
   /**
@@ -324,13 +361,13 @@ object GUIDTask {
     * This task performs an operation that reverses the effect of `RegisterPlayer`.
     * @param tplayer the `Player` object being unregistered
     * @param guid implicit reference to a unique number system
-    * @see `GUIDTask.RegisterAvatar`
-    * @return a `TaskResolver.GiveTask` message
+    * @see `GUIDTask.registerAvatar`
+    * @return a `TaskBundle` message
     */
-  def UnregisterPlayer(tplayer: Player)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    val holsterTasks   = VisibleSlotTaskBuilding(tplayer.Holsters(), UnregisterEquipment)
-    val inventoryTasks = UnregisterInventory(tplayer)
-    TaskResolver.GiveTask(GUIDTask.UnregisterObjectTask(tplayer).task, holsterTasks ++ inventoryTasks)
+  def unregisterPlayer(guid: UniqueNumberOps, tplayer: Player): TaskBundle = {
+    val holsterTasks   = visibleSlotTaskBuilding(guid, tplayer.Holsters(), unregisterEquipment)
+    val inventoryTasks = unregisterInventory(guid, tplayer)
+    TaskBundle(UnregisterObjectTask(guid, tplayer), holsterTasks ++ inventoryTasks)
   }
 
   /**
@@ -339,26 +376,25 @@ object GUIDTask {
     * This task performs an operation that reverses the effect of `RegisterVehicle`.
     * @param vehicle the `Vehicle` object being unregistered
     * @param guid implicit reference to a unique number system
-    * @see `GUIDTask.RegisterVehicle`
-    * @return a `TaskResolver.GiveTask` message
+    * @see `GUIDTask.registerVehicle`
+    * @return a `TaskBundle` message
     */
-  def UnregisterVehicle(vehicle: Vehicle)(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    val weaponTasks = VisibleSlotTaskBuilding(vehicle.Weapons.values, UnregisterEquipment)
+  def unregisterVehicle(guid: UniqueNumberOps, vehicle: Vehicle): TaskBundle = {
+    val weaponTasks = visibleSlotTaskBuilding(guid, vehicle.Weapons.values, unregisterEquipment)
     val utilTasks =
-      Vehicle.EquipmentUtilities(vehicle.Utilities).values.map(util => { UnregisterObjectTask(util()) }).toList
-    val inventoryTasks = UnregisterInventory(vehicle)
-    TaskResolver.GiveTask(UnregisterObjectTask(vehicle).task, weaponTasks ++ utilTasks ++ inventoryTasks)
+      Vehicle.EquipmentUtilities(vehicle.Utilities).values.map(util => { unregisterObject(guid, util()) }).toList
+    val inventoryTasks = unregisterInventory(guid, vehicle)
+    TaskBundle(UnregisterObjectTask(guid, vehicle), weaponTasks ++ utilTasks ++ inventoryTasks)
   }
 
-  def UnregisterDeployableTurret(
-      obj: PlanetSideGameObject with WeaponTurret
-  )(implicit guid: ActorRef): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      UnregisterObjectTask(obj).task,
-      VisibleSlotTaskBuilding(obj.Weapons.values, GUIDTask.UnregisterEquipment) ++ UnregisterInventory(obj)
+  def unregisterDeployableTurret(guid: UniqueNumberOps, obj: PlanetSideGameObject with WeaponTurret): TaskBundle = {
+    TaskBundle(
+      UnregisterObjectTask(guid, obj),
+      visibleSlotTaskBuilding(guid, obj.Weapons.values, unregisterEquipment) ++ unregisterInventory(guid, obj)
     )
   }
 
+  //support
   /**
     * Construct tasking that allocates work upon encountered `Equipment` objects
     * in reference to a globally unique identifier system of a pool of numbers.
@@ -367,12 +403,14 @@ object GUIDTask {
     * @param func the function used to build tasking from any discovered `Equipment`;
     *             strictly either `RegisterEquipment` or `UnregisterEquipment`
     * @param guid implicit reference to a unique number system
-    * @return a list of `TaskResolver.GiveTask` messages
+    * @return a list of `TaskBundle` messages
     */
-  def VisibleSlotTaskBuilding(list: Iterable[EquipmentSlot], func: Equipment => TaskResolver.GiveTask)(implicit
-      guid: ActorRef
-  ): List[TaskResolver.GiveTask] = {
-    recursiveVisibleSlotTaskBuilding(list.iterator, func)
+  private def visibleSlotTaskBuilding(
+                               guid: UniqueNumberOps,
+                               list: Iterable[EquipmentSlot],
+                               func: (UniqueNumberOps, Equipment) => TaskBundle
+                             ): List[TaskBundle] = {
+    recursiveVisibleSlotTaskBuilding(guid, list.iterator, func)
   }
 
   /**
@@ -386,18 +424,17 @@ object GUIDTask {
     * @return a `List` of `Equipment` tasking
     */
   @tailrec private def recursiveVisibleSlotTaskBuilding(
-      iter: Iterator[EquipmentSlot],
-      func: Equipment => TaskResolver.GiveTask,
-      list: List[TaskResolver.GiveTask] = Nil
-  )(implicit guid: ActorRef): List[TaskResolver.GiveTask] = {
+                                                         guid: UniqueNumberOps,
+                                                         iter: Iterator[EquipmentSlot],
+                                                         func: (UniqueNumberOps, Equipment) => TaskBundle,
+                                                         list: List[TaskBundle] = Nil
+                                                       ): List[TaskBundle] = {
     if (!iter.hasNext) {
       list
     } else {
       iter.next().Equipment match {
-        case Some(item) =>
-          recursiveVisibleSlotTaskBuilding(iter, func, list :+ func(item))
-        case None =>
-          recursiveVisibleSlotTaskBuilding(iter, func, list)
+        case Some(item) => recursiveVisibleSlotTaskBuilding(guid, iter, func, list :+ func(guid, item))
+        case None =>       recursiveVisibleSlotTaskBuilding(guid, iter, func, list)
       }
     }
   }

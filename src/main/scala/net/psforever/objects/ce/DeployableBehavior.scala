@@ -2,7 +2,7 @@
 package net.psforever.objects.ce
 
 import akka.actor.{Actor, ActorRef, Cancellable}
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects._
 import net.psforever.objects.definition.DeployAnimation
 import net.psforever.objects.zones.Zone
@@ -280,7 +280,7 @@ trait DeployableBehavior {
     */
   def unregisterDeployable(obj: Deployable): Unit = {
     val zone = obj.Zone
-    zone.tasks ! GUIDTask.UnregisterObjectTask(obj)(zone.GUID)
+    TaskWorkflow.execute(GUIDTask.unregisterObject(zone.GUID, obj))
   }
 
   /**

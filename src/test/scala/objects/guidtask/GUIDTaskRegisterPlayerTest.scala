@@ -4,15 +4,17 @@ package objects.guidtask
 import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.guid.{GUIDTask, TaskResolver}
+import net.psforever.objects.guid.{GUIDTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.locker.LockerEquipment
 import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire}
 
+import scala.concurrent.duration._
+
 class GUIDTaskRegisterPlayerTest extends ActorTest {
   "RegisterPlayer" in {
-    val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                           = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
-    val obj_wep                       = Tool(GlobalDefinitions.beamer)
+    val (_, uns, probe) = GUIDTaskTest.CommonTestSetup
+    val obj             = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
+    val obj_wep         = Tool(GlobalDefinitions.beamer)
     obj.Slot(0).Equipment = obj_wep
     val obj_wep_ammo = AmmoBox(GlobalDefinitions.energy_cell)
     obj_wep.AmmoSlots.head.Box = obj_wep_ammo
@@ -28,11 +30,11 @@ class GUIDTaskRegisterPlayerTest extends ActorTest {
     assert(!obj_inv_ammo.HasGUID)
     assert(!obj_locker.HasGUID)
     assert(obj_locker_ammo.HasGUID)
-    taskResolver ! TaskResolver.GiveTask(
+    TaskWorkflow.execute(TaskBundle(
       new GUIDTaskTest.RegisterTestTask(probe.ref),
-      List(GUIDTask.RegisterPlayer(obj)(uns))
-    )
-    probe.expectMsg(scala.util.Success)
+      GUIDTask.registerPlayer(uns, obj)
+    ))
+    probe.expectMsg(5.second, scala.util.Success(true))
     assert(obj.HasGUID)
     assert(obj_wep.HasGUID)
     assert(obj_wep_ammo.HasGUID)

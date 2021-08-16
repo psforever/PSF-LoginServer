@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.shuttle
 
 import akka.actor.{Actor, ActorRef}
-import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
+import net.psforever.objects.guid._
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
@@ -14,7 +14,7 @@ import net.psforever.services.hart.{HartTimer, HartTimerActions}
 import net.psforever.services.{Service, ServiceManager}
 import net.psforever.types.ChatMessageType
 
-import scala.util.Success
+import scala.concurrent.Future
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `OrbitalShuttlePad`.<br>
@@ -114,7 +114,7 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
       newShuttle.Position = position + Vector3(0, -8.25f, 0).Rz(pad.Orientation.z) //magic offset number
       newShuttle.Orientation = pad.Orientation
       newShuttle.Faction = pad.Faction
-      zone.tasks ! OrbitalShuttlePadControl.registerShuttle(zone, newShuttle, self)
+      TaskWorkflow.execute(OrbitalShuttlePadControl.registerShuttle(zone, newShuttle, self))
       context.become(shuttleTime)
 
     case _ => ;
@@ -127,33 +127,23 @@ object OrbitalShuttlePadControl {
     * @param zone the zone the shuttle and the pad will occupy
     * @param shuttle the vehicle that will be the shuttle
     * @param ref a reference to the control agency for the orbital shuttle pad
-    * @return a `TaskResolver.GiveTask` object
+    * @return a `TaskBundle` object
     */
-  def registerShuttle(zone: Zone, shuttle: Vehicle, ref: ActorRef): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
+  def registerShuttle(zone: Zone, shuttle: Vehicle, ref: ActorRef): TaskBundle = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    TaskBundle(
+      new StraightforwardTask() {
         private val localZone = zone
         private val localShuttle = shuttle
         private val localSelf = ref
 
-        override def Description: String = s"register an orbital shuttle"
+        override def description(): String = s"register an orbital shuttle"
 
-        override def isComplete : Task.Resolution.Value = if (localShuttle.HasGUID) {
-          Task.Resolution.Success
-        } else {
-          Task.Resolution.Incomplete
-        }
-
-        def Execute(resolver : ActorRef) : Unit = {
+        def action() : Future[Any] = {
           localZone.Transport.tell(Zone.Vehicle.Spawn(localShuttle), localSelf)
-          resolver ! Success(true)
+          Future(this)
         }
-
-        override def onFailure(ex : Throwable) : Unit = {
-          super.onFailure(ex)
-          localSelf ! Zone.Vehicle.CanNotSpawn(localZone, localShuttle, ex.getMessage)
-        }
-      }, List(GUIDTask.RegisterVehicle(shuttle)(zone.GUID))
+      }, GUIDTask.registerVehicle(zone.GUID, shuttle)
     )
   }
 

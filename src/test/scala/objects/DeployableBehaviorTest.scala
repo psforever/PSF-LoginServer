@@ -9,7 +9,7 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{Avatar, Certification, PlayerControl}
 import net.psforever.objects.{ConstructionItem, Deployables, GlobalDefinitions, Player}
 import net.psforever.objects.ce.{Deployable, DeployedItem}
-import net.psforever.objects.guid.{NumberPoolHub, TaskResolver}
+import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
 import net.psforever.packet.game._
@@ -141,7 +141,6 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
     override def Deployables: ActorRef = deployables
     override def Players = List(avatar)
     override def LivePlayers = List(player)
-    override def tasks: ActorRef = eventsProbe.ref
 
     this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
@@ -165,7 +164,7 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
       assert(!avatar.deployables.Contains(jmine), "owned setup test, 2 - avatar already owns deployable")
       zone.Deployables ! Zone.Deployable.BuildByOwner(jmine, player, citem)
       //assert(false, "test needs to be fixed")
-      val eventsMsgs = eventsProbe.receiveN(8, 10.seconds)
+      val eventsMsgs = eventsProbe.receiveN(7, 10.seconds)
       eventsMsgs.head match {
         case AvatarServiceMessage(
           "TestCharacter1",
@@ -220,11 +219,6 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
         case _ =>
           assert(false, "owned setup test, 2 - construction tool not deleted")
       }
-      eventsMsgs(7) match {
-        case TaskResolver.GiveTask(_, _) => ;
-        case _ =>
-          assert(false, "owned setup test, 2 - construction tool not unregistered")
-      }
       assert(player.Slot(slot = 0).Equipment.isEmpty, "owned setup test, 2 - player hand should be empty")
       assert(deployableList.contains(jmine), "owned setup test, 2 - deployable not appended to list")
       assert(avatar.deployables.Contains(jmine), "owned setup test, 2 - avatar does not own deployable")
@@ -244,7 +238,6 @@ class DeployableBehaviorDeconstructTest extends ActorTest {
     GUID(guid)
     override def AvatarEvents: ActorRef = eventsProbe.ref
     override def LocalEvents: ActorRef = eventsProbe.ref
-    override def tasks: ActorRef = eventsProbe.ref
     override def Deployables: ActorRef = deployables
 
     this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
@@ -261,7 +254,7 @@ class DeployableBehaviorDeconstructTest extends ActorTest {
       assert(deployableList.contains(jmine), "deconstruct test - deployable not appended to list")
 
       jmine.Actor ! Deployable.Deconstruct()
-      val eventsMsgs = eventsProbe.receiveN(3, 10.seconds)
+      val eventsMsgs = eventsProbe.receiveN(2, 10.seconds)
       eventsMsgs.head match {
         case LocalServiceMessage("test", LocalAction.EliminateDeployable(`jmine`, PlanetSideGUID(1), Vector3(1,2,3), 2)) => ;
         case _ => assert(false, "deconstruct test - not eliminating deployable")
@@ -276,10 +269,6 @@ class DeployableBehaviorDeconstructTest extends ActorTest {
           )
         ) => ;
         case _ => assert(false, "owned deconstruct test - not removing icon")
-      }
-      eventsMsgs(2) match {
-        case TaskResolver.GiveTask(_, _) => ;
-        case _ => assert(false, "deconstruct test - not unregistering deployable")
       }
       assert(!deployableList.contains(jmine), "deconstruct test - deployable not removed from list")
     }
@@ -304,7 +293,6 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
     override def Deployables: ActorRef = deployables
     override def Players = List(avatar)
     override def LivePlayers = List(player)
-    override def tasks: ActorRef = eventsProbe.ref
 
     this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
@@ -324,12 +312,12 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
   "DeployableBehavior" should {
     "deconstruct and alert owner" in {
       zone.Deployables ! Zone.Deployable.BuildByOwner(jmine, player, citem)
-      eventsProbe.receiveN(8, 10.seconds)
+      eventsProbe.receiveN(7, 10.seconds)
       assert(deployableList.contains(jmine), "owned deconstruct test - deployable not appended to list")
       assert(avatar.deployables.Contains(jmine), "owned deconstruct test - avatar does not own deployable")
 
       jmine.Actor ! Deployable.Deconstruct()
-      val eventsMsgs = eventsProbe.receiveN(4, 10.seconds)
+      val eventsMsgs = eventsProbe.receiveN(3, 10.seconds)
       eventsMsgs.head match {
         case LocalServiceMessage("test", LocalAction.EliminateDeployable(`jmine`, PlanetSideGUID(1), Vector3(1,2,3), 2)) => ;
         case _ => assert(false, "owned deconstruct test - not eliminating deployable")
@@ -348,10 +336,6 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
           )
         ) => ;
         case _ => assert(false, "owned deconstruct test - not removing icon")
-      }
-      eventsMsgs(3) match {
-        case TaskResolver.GiveTask(_, _) => ;
-        case _ => assert(false, "owned deconstruct test - not unregistering deployable")
       }
 
       assert(deployableList.isEmpty, "owned deconstruct test - deployable still in list")

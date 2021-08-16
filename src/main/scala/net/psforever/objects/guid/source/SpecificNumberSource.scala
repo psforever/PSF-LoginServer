@@ -2,8 +2,7 @@
 package net.psforever.objects.guid.source
 
 import net.psforever.objects.entity.IdentifiableEntity
-import net.psforever.objects.guid.AvailabilityPolicy
-import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
+import net.psforever.objects.guid.key.{AvailabilityPolicy, LoanedKey, SecureKey}
 
 /**
   * A `NumberSource` is considered a master "pool" of numbers from which all numbers are available to be drawn.
@@ -27,9 +26,11 @@ class SpecificNumberSource(values: Iterable[Int]) extends NumberSource {
 
   def size : Int = ary.size
 
-  def countAvailable : Int = ary.values.count(key => key.policy == AvailabilityPolicy.Available)
+  def countAvailable : Int = ary.values.count { _.policy == AvailabilityPolicy.Available }
 
-  def countUsed : Int = ary.values.count(_.policy != AvailabilityPolicy.Available)
+  def countUsed : Int = ary.values.count { _.policy == AvailabilityPolicy.Leased }
+
+  def countDangling: Int = ary.values.count { key => key.policy == AvailabilityPolicy.Leased && key.obj.isEmpty }
 
   def test(number : Int) : Boolean = ary.get(number).nonEmpty
 
@@ -74,34 +75,14 @@ class SpecificNumberSource(values: Iterable[Int]) extends NumberSource {
     }
   }
 
-  def restrictNumber(number : Int) : Option[LoanedKey] = {
-    ary.get(number) match {
-      case Some(key) if key.policy != AvailabilityPolicy.Restricted =>
-        key.policy = AvailabilityPolicy.Restricted
-        Some(new LoanedKey(number, key))
-      case _ =>
-        None
-    }
-  }
-
-  def finalizeRestrictions : List[Int] = {
-    ary
-      .filter { case (_, key : Key) => key.policy == AvailabilityPolicy.Restricted }
-      .keys
-      .toList
-  }
-
   def clear(): List[IdentifiableEntity] = {
-    val leased = ary.values.filter(_.policy != AvailabilityPolicy.Available)
-    leased collect { case key if key.obj.isEmpty =>
-      key.policy = AvailabilityPolicy.Available
-    }
-    leased.toList collect { case key if key.obj.nonEmpty =>
-      key.policy = AvailabilityPolicy.Available
-      val out = key.obj.get
-      key.obj = None
-      out
-    }
+    ary.values.foreach { _.policy = AvailabilityPolicy.Available }
+    ary.values.collect {
+      case key if key.obj.nonEmpty =>
+        val obj = key.obj.get
+        key.obj = None
+        obj
+    }.toList
   }
 }
 

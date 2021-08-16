@@ -12,6 +12,7 @@ class ConstructionItemDefinition(objectId: Int) extends EquipmentDefinition(obje
   CItem(objectId) //let throw NoSuchElementException
   private val modes: ListBuffer[ConstructionFireMode] = ListBuffer()
   Packet = new ACEConverter
+  registerAs = "items"
 
   def Modes: ListBuffer[ConstructionFireMode] = modes
 }

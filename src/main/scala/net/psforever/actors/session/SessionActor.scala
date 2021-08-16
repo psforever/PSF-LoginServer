@@ -16,7 +16,7 @@ import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.equipment._
-import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
+import net.psforever.objects.guid._
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -1049,11 +1049,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     //!!only dispatched to SessionActor as cleanup if the target deployable was never fully introduced
     case Zone.Deployable.IsDismissed(obj: TurretDeployable) =>
-      continent.tasks ! GUIDTask.UnregisterDeployableTurret(obj)(continent.GUID)
+      TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(continent.GUID, obj))
 
     //!!only dispatched to SessionActor as cleanup if the target deployable was never fully introduced
     case Zone.Deployable.IsDismissed(obj) =>
-      continent.tasks ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
+      TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, obj))
 
     case ICS.ZonesResponse(zones) =>
       zones.foreach { zone =>
@@ -1156,9 +1156,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       player.avatar = avatar
       interstellarFerry match {
         case Some(vehicle) if vehicle.PassengerInSeat(player).contains(0) =>
-          continent.tasks ! RegisterDrivenVehicle(vehicle, player)
+          TaskWorkflow.execute(registerDrivenVehicle(vehicle, player))
         case _ =>
-          continent.tasks ! RegisterNewAvatar(player)
+          TaskWorkflow.execute(registerNewAvatar(player))
       }
 
     case NewPlayerLoaded(tplayer) =>
@@ -1997,13 +1997,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0))
           }
           //functionally delete
-          delete.foreach { case (obj, _) => continent.tasks ! GUIDTask.UnregisterEquipment(obj)(continent.GUID) }
+          delete.foreach { case (obj, _) => TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj)) }
           //redraw
           if (maxhand) {
-            continent.tasks ! HoldNewEquipmentUp(player)(
+            TaskWorkflow.execute(HoldNewEquipmentUp(player)(
               Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)),
               0
-            )
+            ))
           }
           //draw free hand
           player.FreeHand.Equipment match {
@@ -2075,14 +2075,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           (old_holsters ++ old_inventory).foreach {
             case (obj, guid) =>
               sendResponse(ObjectDeleteMessage(guid, 0))
-              continent.tasks ! GUIDTask.UnregisterEquipment(obj)(continent.GUID)
+              TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj))
           }
           //redraw
           if (maxhand) {
-            continent.tasks ! HoldNewEquipmentUp(player)(
+            TaskWorkflow.execute(HoldNewEquipmentUp(player)(
               Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)),
               0
-            )
+            ))
           }
           ApplyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
           DropLeftovers(player)(drops)
@@ -2166,7 +2166,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           if (Avatar.purchaseCooldowns.contains(item.obj.Definition)) {
             avatarActor ! AvatarActor.UpdatePurchaseTime(item.obj.Definition)
           }
-          continent.tasks ! PutLoadoutEquipmentInInventory(target)(item.obj, item.start)
+          TaskWorkflow.execute(PutLoadoutEquipmentInInventory(target)(item.obj, item.start))
       }
     }
   }
@@ -2574,11 +2574,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
           case None =>
             avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
-            continent.tasks ! BuyNewEquipmentPutInInventory(
+            TaskWorkflow.execute(BuyNewEquipmentPutInInventory(
               continent.GUID(tplayer.VehicleSeated) match { case Some(v : Vehicle) => v; case _ => player },
               tplayer,
               msg.terminal_guid
-            )(item)
+            )(item))
         }
 
       case Terminal.SellEquipment() =>
@@ -2637,7 +2637,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   entry.obj.Faction = tplayer.Faction
                   vTrunk.InsertQuickly(entry.start, entry.obj)
                 })
-                continent.tasks ! RegisterVehicleFromSpawnPad(vehicle, pad, term)
+                TaskWorkflow.execute(registerVehicleFromSpawnPad(vehicle, pad, term))
                 sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
               case _ =>
                 log.error(
@@ -2921,7 +2921,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               (old_weapons ++ old_inventory).foreach {
                 case (obj, eguid) =>
                   sendResponse(ObjectDeleteMessage(eguid, 0))
-                  continent.tasks ! GUIDTask.UnregisterEquipment(obj)(continent.GUID)
+                  TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj))
               }
               ApplyPurchaseTimersBeforePackingLoadout(player, vehicle, added_weapons ++ new_inventory)
             } else if (accessedContainer.contains(target)) {
@@ -4406,7 +4406,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   continent.id,
                   AvatarAction.ProjectileExplodes(player.GUID, obj.GUID, obj)
                 )
-                continent.tasks ! UnregisterProjectile(obj)
+                TaskWorkflow.execute(unregisterProjectile(obj))
               }
             }
 
@@ -4965,13 +4965,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             dObj.Orientation = orient
             dObj.Faction = player.Faction
             dObj.AssignOwnership(player)
-            val tasking: TaskResolver.GiveTask = dObj match {
+            val tasking: TaskBundle = dObj match {
               case turret: TurretDeployable =>
-                GUIDTask.RegisterDeployableTurret(turret)(continent.GUID)
+                GUIDTask.registerDeployableTurret(continent.GUID, turret)
               case _ =>
-                GUIDTask.RegisterObjectTask(dObj)(continent.GUID)
+                GUIDTask.registerObject(continent.GUID, dObj)
             }
-            continent.tasks ! CallBackForTask(tasking, continent.Deployables, Zone.Deployable.BuildByOwner(dObj, player, obj))
+            TaskWorkflow.execute(CallBackForTask(tasking, continent.Deployables, Zone.Deployable.BuildByOwner(dObj, player, obj)))
 
           case Some(obj) =>
             log.warn(s"DeployObject: what is $obj, ${player.Name}?  It's not a construction tool!")
@@ -5724,35 +5724,22 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * as if that player is only just being introduced.
     * `Players` are complex objects that contain a variety of other register-able objects and each of these objects much be handled.
     * @param tplayer the avatar `Player`
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  private def RegisterNewAvatar(tplayer: Player): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
+  private def registerNewAvatar(tplayer: Player): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
         private val localPlayer   = tplayer
         private val localAnnounce = self
 
-        override def Description: String = s"register new player avatar ${localPlayer.Name}"
+        override def description(): String = s"register new player avatar ${localPlayer.Name}"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (localPlayer.HasGUID) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
-          log.trace(s"Player ${localPlayer.Name} is newly registered")
-          resolver ! Success(this)
-          localAnnounce ! NewPlayerLoaded(localPlayer) //alerts WorldSessionActor
-        }
-
-        override def onFailure(ex: Throwable): Unit = {
-          localAnnounce ! PlayerFailedToLoad(localPlayer) //alerts SessionActor
+        def action(): Future[Any] = {
+          localAnnounce ! NewPlayerLoaded(localPlayer)
+          Future(true)
         }
       },
-      List(GUIDTask.RegisterAvatar(tplayer)(continent.GUID))
+      List(GUIDTask.registerAvatar(continent.GUID, tplayer))
     )
   }
 
@@ -5761,35 +5748,22 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * as if that player was already introduced and is just being renewed.
     * `Players` are complex objects that contain a variety of other register-able objects and each of these objects much be handled.
     * @param tplayer the avatar `Player`
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  private def RegisterAvatar(tplayer: Player): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
+  private def registerAvatar(tplayer: Player): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
         private val localPlayer   = tplayer
         private val localAnnounce = self
 
-        override def Description: String = s"register player avatar ${localPlayer.Name}"
+        override def description(): String = s"register player avatar ${localPlayer.Name}"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (localPlayer.HasGUID) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
-          log.trace(s"Player $localPlayer is registered")
-          resolver ! Success(this)
-          localAnnounce ! PlayerLoaded(localPlayer) //alerts WorldSessionActor
-        }
-
-        override def onFailure(ex: Throwable): Unit = {
-          localAnnounce ! PlayerFailedToLoad(localPlayer) //alerts WorldSessionActor
+        def action(): Future[Any] = {
+          localAnnounce ! PlayerLoaded(localPlayer)
+          Future(true)
         }
       },
-      List(GUIDTask.RegisterPlayer(tplayer)(continent.GUID))
+      List(GUIDTask.registerPlayer(continent.GUID, tplayer))
     )
   }
 
@@ -5798,29 +5772,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Use this function to renew the globally unique identifiers on a vehicle that has already been added to the scene once.
     * @param vehicle the `Vehicle` object
     * @see `RegisterVehicleFromSpawnPad`
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  def RegisterVehicle(vehicle: Vehicle): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
+  private def registerVehicle(vehicle: Vehicle): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
         private val localVehicle = vehicle
+        private val localAnnounce = self
 
-        override def Description: String = s"register a ${localVehicle.Definition.Name}"
+        override def description(): String = s"register a ${localVehicle.Definition.Name}"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (localVehicle.HasGUID) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
-          log.trace(s"Vehicle $localVehicle is registered")
-          resolver ! Success(this)
+        def action(): Future[Any] = {
+          Future(true)
         }
       },
-      List(GUIDTask.RegisterVehicle(vehicle)(continent.GUID))
+      List(GUIDTask.registerVehicle(continent.GUID, vehicle))
     )
   }
 
@@ -5839,43 +5805,34 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * and the user who is the driver (second param) is properly seated
     * but the said driver does not know about the vehicle through his usual convention - `VehicleSeated` - yet.
     * @see `GlobalDefinitions.droppod`
-    * @see `GUIDTask.RegisterObjectTask`
+    * @see `GUIDTask.registerObject`
     * @see `interstellarFerry`
     * @see `Player.VehicleSeated`
     * @see `PlayerLoaded`
-    * @see `TaskResolver.GiveTask`
+    * @see `TaskBundle`
     * @see `Vehicles.Own`
     * @param vehicle the unregistered droppod
     * @param tplayer the player using the droppod for instant action;
     *                should already be the driver of the droppod
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  def RegisterDroppod(vehicle: Vehicle, tplayer: Player): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
+  private def registerDroppod(vehicle: Vehicle, tplayer: Player): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
         private val localDriver   = tplayer
         private val localVehicle  = vehicle
         private val localAnnounce = self
 
-        override def Description: String = s"register a ${localVehicle.Definition.Name} manned by ${localDriver.Name}"
+        override def description(): String = s"register a ${localVehicle.Definition.Name} manned by ${localDriver.Name}"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (localVehicle.HasGUID) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
-          log.trace(s"Vehicle $localVehicle is registered")
+        def action(): Future[Any] = {
           localDriver.VehicleSeated = localVehicle.GUID
           Vehicles.Own(localVehicle, localDriver)
           localAnnounce ! PlayerLoaded(localDriver)
-          resolver ! Success(this)
+          Future(true)
         }
       },
-      List(GUIDTask.RegisterObjectTask(vehicle)(continent.GUID))
+      List(GUIDTask.registerObject(continent.GUID, vehicle))
     )
   }
 
@@ -5887,65 +5844,44 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * the vehicle is being brought into existence from scratch and was never a member of any `Zone`.
     * @param obj the `Vehicle` object
     * @see `RegisterVehicle`
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  def RegisterVehicleFromSpawnPad(obj: Vehicle, pad: VehicleSpawnPad, terminal: Terminal): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
-        private val localVehicle  = obj
+  private def registerVehicleFromSpawnPad(vehicle: Vehicle, pad: VehicleSpawnPad, terminal: Terminal): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
+        private val localVehicle  = vehicle
         private val localPad      = pad.Actor
         private val localTerminal = terminal
         private val localPlayer   = player
 
-        override def Description: String = s"register a ${localVehicle.Definition.Name} for spawn pad"
+        override def description(): String = s"register a ${localVehicle.Definition.Name} for spawn pad"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (localVehicle.HasGUID) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
+        def action(): Future[Any] = {
           localPad ! VehicleSpawnPad.VehicleOrder(localPlayer, localVehicle, localTerminal)
-          resolver ! Success(this)
+          Future(true)
         }
       },
-      List(RegisterVehicle(obj))
+      List(registerVehicle(vehicle))
     )
   }
 
-  def RegisterDrivenVehicle(obj: Vehicle, driver: Player): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
-        private val localVehicle  = obj
+  private def registerDrivenVehicle(vehicle: Vehicle, driver: Player): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
+        private val localVehicle  = vehicle
         private val localDriver   = driver
         private val localAnnounce = self
 
-        override def Description: String = s"register a ${localVehicle.Definition.Name} driven by ${localDriver.Name}"
+        override def description(): String = s"register a ${localVehicle.Definition.Name} driven by ${localDriver.Name}"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (localVehicle.HasGUID && localDriver.HasGUID) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
-          log.trace(s"${localDriver.Name} 's vehicle ${localVehicle.Definition.Name} is registered")
+        def action(): Future[Any] = {
           localDriver.VehicleSeated = localVehicle.GUID
           Vehicles.Own(localVehicle, localDriver)
-          localAnnounce ! NewPlayerLoaded(localDriver) //alerts WorldSessionActor
-          resolver ! Success(this)
-        }
-
-        override def onFailure(ex: Throwable): Unit = {
-          localAnnounce ! PlayerFailedToLoad(localDriver) //alerts SessionActor
+          localAnnounce ! NewPlayerLoaded(localDriver)
+          Future(true)
         }
       },
-      List(GUIDTask.RegisterAvatar(driver)(continent.GUID), GUIDTask.RegisterVehicle(obj)(continent.GUID))
+      List(GUIDTask.registerAvatar(continent.GUID, driver), GUIDTask.registerVehicle(continent.GUID, vehicle))
     )
   }
 
@@ -5954,55 +5890,39 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * After the projectile is registered to the curent zone's global unique identifier system,
     * all connected clients save for the one that registered it will be informed about the projectile's "creation."
     * @param obj the projectile to be registered
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  def RegisterProjectile(obj: Projectile): TaskResolver.GiveTask = {
-    val definition = obj.Definition
-    TaskResolver.GiveTask(
-      new Task() {
+  private def registerProjectile(obj: Projectile): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
         private val globalProjectile = obj
         private val localAnnounce    = self
 
-        override def Description: String = s"register a ${globalProjectile.profile.Name}"
+        override def description(): String = s"register a ${globalProjectile.profile.Name}"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (globalProjectile.HasGUID) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
+        def action(): Future[Any] = {
           localAnnounce ! LoadedRemoteProjectile(globalProjectile.GUID, Some(globalProjectile))
-          resolver ! Success(this)
+          Future(true)
         }
       },
-      List(GUIDTask.RegisterObjectTask(obj)(continent.GUID))
+      List(GUIDTask.registerObject(continent.GUID, obj))
     )
   }
 
-  def UnregisterDrivenVehicle(obj: Vehicle, driver: Player): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
-        private val localVehicle = obj
-        private val localDriver  = driver
+  private def unregisterDrivenVehicle(vehicle: Vehicle, driver: Player): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
+        private val localVehicle  = vehicle
+        private val localDriver   = driver
+        private val localAnnounce = self
 
-        override def Description: String = s"unregister a ${localVehicle.Definition.Name} driven by ${localDriver.Name}"
+        override def description(): String = s"unregister a ${localVehicle.Definition.Name} driven by ${localDriver.Name}"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (!localVehicle.HasGUID && !localDriver.HasGUID) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
-          resolver ! Success(this)
+        def action(): Future[Any] = {
+          Future(true)
         }
       },
-      List(GUIDTask.UnregisterAvatar(driver)(continent.GUID), GUIDTask.UnregisterVehicle(obj)(continent.GUID))
+      List(GUIDTask.unregisterAvatar(continent.GUID, driver), GUIDTask.unregisterVehicle(continent.GUID, vehicle))
     )
   }
 
@@ -6011,52 +5931,42 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * After the projectile is unregistered from the curent zone's global unique identifier system,
     * all connected clients save for the one that registered it will be informed about the projectile's "destruction."
     * @param obj the projectile to be unregistered
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  def UnregisterProjectile(obj: Projectile): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
+  private def unregisterProjectile(obj: Projectile): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
         private val globalProjectile = obj
-        private val localAnnounce    = continent.AvatarEvents
+        private val localAnnounce    = self
         private val localMsg         = AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(player.GUID, obj.GUID, 2))
 
-        override def Description: String = s"unregister a ${globalProjectile.profile.Name}"
+        override def description(): String = s"unregister a ${globalProjectile.profile.Name}"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (!globalProjectile.HasGUID) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
+        def action(): Future[Any] = {
           localAnnounce ! localMsg
-          resolver ! Success(this)
+          Future(true)
         }
       },
-      List(GUIDTask.UnregisterObjectTask(obj)(continent.GUID))
+      List(GUIDTask.unregisterObject(continent.GUID, obj))
     )
   }
 
   /**
     * If the projectile object is unregistered, register it.
     * If the projectile object is already registered, unregister it and then register it again.
-    * @see `RegisterProjectile(Projectile)`
-    * @see `UnregisterProjectile(Projectile)`
+    * @see `registerProjectile(Projectile)`
+    * @see `unregisterProjectile(Projectile)`
     * @param obj the projectile to be registered (a second time?)
-    * @return a `TaskResolver.GiveTask` message
+    * @return a `TaskBundle` message
     */
-  def ReregisterProjectile(obj: Projectile): TaskResolver.GiveTask = {
-    val reg = RegisterProjectile(obj)
+  def reregisterProjectile(obj: Projectile): TaskBundle = {
+    val reg = registerProjectile(obj)
     if (obj.HasGUID) {
-      TaskResolver.GiveTask(
-        reg.task,
-        List(
-          TaskResolver.GiveTask(
-            reg.subs(0).task,
-            List(UnregisterProjectile(obj))
-          )
+      TaskBundle(
+        reg.mainTask,
+        TaskBundle(
+          reg.subTasks(0).mainTask,
+          unregisterProjectile(obj)
         )
       )
     } else {
@@ -6371,13 +6281,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case veh: Vehicle => ModifyAmmunitionInVehicle(veh)
               case _ =>            ModifyAmmunition(obj)
             }
-            val stowNewFunc: Equipment => TaskResolver.GiveTask = PutNewEquipmentInInventoryOrDrop(obj)
-            val stowFunc: Equipment => Future[Any] =              PutEquipmentInInventoryOrDrop(obj)
-
+            val stowNewFunc: Equipment => TaskBundle = PutNewEquipmentInInventoryOrDrop(obj)
+            val stowFunc: Equipment => Future[Any]   = PutEquipmentInInventoryOrDrop(obj)
+          
             xs.foreach(item => {
               obj.Inventory -= item.start
               sendResponse(ObjectDeleteMessage(item.obj.GUID, 0))
-              continent.tasks ! GUIDTask.UnregisterObjectTask(item.obj)(continent.GUID)
+              TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, item.obj))
             })
 
             //box will be the replacement ammo; give it the discovered magazine and load it into the weapon
@@ -6426,7 +6336,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 s"PerformToolAmmoChange: ${player.Name} takes ${originalBoxCapacity - splitReloadAmmo} from a box of $originalBoxCapacity $requestedAmmoType ammo"
               )
               val boxForInventory = AmmoBox(box.Definition, splitReloadAmmo)
-              continent.tasks ! stowNewFunc(boxForInventory)
+              TaskWorkflow.execute(stowNewFunc(boxForInventory))
               fullMagazine
             }
             sendResponse(
@@ -6471,10 +6381,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case Nil | List(_) => ; //done (the former case is technically not possible)
                 case _ :: toUpdate =>
                   modifyFunc(previousBox, 0) //update to changed capacity value
-                  toUpdate.foreach(box => { continent.tasks ! stowNewFunc(box) })
+                  toUpdate.foreach(box => { TaskWorkflow.execute(stowNewFunc(box)) })
               }
             } else {
-              continent.tasks ! GUIDTask.UnregisterObjectTask(previousBox)(continent.GUID)
+              TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, previousBox))
             }
         }
       }
@@ -6494,32 +6404,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def NormalItemDrop(obj: PlanetSideServerObject with Container, zone: Zone)(item: Equipment): Unit = {
     zone.Ground.tell(Zone.Ground.DropItem(item, obj.Position, Vector3.z(obj.Orientation.z)), obj.Actor)
-  }
-
-  /**
-    * Register an `Equipment` item and then drop it on the ground.
-    * @see `NormalItemDrop`
-    * @param obj a `Container` object that represents where the item will be dropped;
-    *            curried for callback
-    * @param zone the continent in which the item is being dropped;
-    *             curried for callback
-    * @param item the item
-    */
-  def NewItemDrop(obj: PlanetSideServerObject with Container, zone: Zone)(item: Equipment): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
-        private val localItem                    = item
-        private val localFunc: Equipment => Unit = NormalItemDrop(obj, zone)
-
-        override def Description: String = s"dropping a new ${localItem.Definition.Name} on the ground"
-
-        def Execute(resolver: ActorRef): Unit = {
-          localFunc(localItem)
-          resolver ! Success(this)
-        }
-      },
-      List(GUIDTask.RegisterEquipment(item)(zone.GUID))
-    )
   }
 
   /**
@@ -7274,7 +7158,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @see `AvatarAction.Release`
     * @see `AvatarServiceMessage`
     * @see `FriskDeadBody`
-    * @see `GUIDTask.UnregisterPlayer`
+    * @see `GUIDTask.unregisterPlayer`
     * @see `ObjectDeleteMessage`
     * @see `WellLootedDeadBody`
     * @see `Zone.Corpse.Add`
@@ -7291,7 +7175,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       zone.Population ! Zone.Population.Release(avatar)
       sendResponse(ObjectDeleteMessage(pguid, 0))
       zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(pguid, pguid, 0))
-      zone.tasks ! GUIDTask.UnregisterPlayer(tplayer)(zone.GUID)
+      TaskWorkflow.execute(GUIDTask.unregisterPlayer(zone.GUID, tplayer))
     }
   }
 
@@ -7788,7 +7672,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           projectile.quality(quality)
         } else if (projectile.tool_def.Size == EquipmentSize.Melee) {
           //melee
-          val quality = player.avatar.implants.flatten.find { entry => entry.definition == GlobalDefinitions.melee_booster } match {
+          val quality = player.avatar.implants.flatten.find { entry => entry.definition.implantType == ImplantType.MeleeBooster } match {
             case Some(booster) if booster.active && player.avatar.stamina > 9 =>
               avatarActor ! AvatarActor.ConsumeStamina(10)
               ProjectileQuality.Modified(25f)
@@ -8210,7 +8094,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (!zoneReload && zoneId == continent.id) {
       if (player.isBackpack) { // important! test the actor-wide player ref, not the parameter
         // respawning from unregistered player
-        continent.tasks ! RegisterAvatar(targetPlayer)
+        TaskWorkflow.execute(registerAvatar(targetPlayer))
       } else {
         // move existing player; this is the one case where the original GUID is retained by the player
         self ! PlayerLoaded(targetPlayer)
@@ -8220,15 +8104,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       val original = player
       if (player.isBackpack) {
         session = session.copy(player = targetPlayer)
-        taskThenZoneChange(
-          GUIDTask.UnregisterObjectTask(original.avatar.locker)(continent.GUID),
+        TaskWorkflow.execute(taskThenZoneChange(
+          GUIDTask.unregisterObject(continent.GUID, original.avatar.locker),
           ICS.FindZone(_.id == zoneId, context.self)
-        )
+        ))
       } else if (player.HasGUID) {
-        taskThenZoneChange(
-          GUIDTask.UnregisterAvatar(original)(continent.GUID),
+        TaskWorkflow.execute(taskThenZoneChange(
+          GUIDTask.unregisterAvatar(continent.GUID, original),
           ICS.FindZone(_.id == zoneId, context.self)
-        )
+        ))
       } else {
         cluster ! ICS.FindZone(_.id == zoneId, context.self)
       }
@@ -8317,7 +8201,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (!zoneReload && zoneId == continent.id) {
       if (vehicle.Definition == GlobalDefinitions.droppod) {
         //instant action droppod in the same zone
-        continent.tasks ! RegisterDroppod(vehicle, player)
+        TaskWorkflow.execute(registerDroppod(vehicle, player))
       } else {
         //transferring a vehicle between spawn points (warp gates) in the same zone
         self ! PlayerLoaded(player)
@@ -8325,10 +8209,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     } else if (vehicle.Definition == GlobalDefinitions.droppod) {
       LoadZoneCommonTransferActivity()
       player.Continent = zoneId //forward-set the continent id to perform a test
-      taskThenZoneChange(
-        GUIDTask.UnregisterAvatar(player)(continent.GUID),
+      TaskWorkflow.execute(taskThenZoneChange(
+        GUIDTask.unregisterAvatar(continent.GUID, player),
         ICS.FindZone(_.id == zoneId, context.self)
-      )
+      ))
     } else {
       UnaccessContainer(vehicle)
       LoadZoneCommonTransferActivity()
@@ -8347,10 +8231,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
       //unregister vehicle and driver whole + GiveWorld
       continent.Transport ! Zone.Vehicle.Despawn(vehicle)
-      taskThenZoneChange(
-        UnregisterDrivenVehicle(vehicle, player),
+      TaskWorkflow.execute(taskThenZoneChange(
+        unregisterDrivenVehicle(vehicle, player),
         ICS.FindZone(_.id == zoneId, context.self)
-      )
+      ))
     }
   }
 
@@ -8369,7 +8253,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * A reference to the top-level ferrying vehicle's former globally unique identifier has been retained for this purpose.
     * This vehicle can be deleted for everyone if no more work can be detected.
     *
-    * @see `GUIDTask.UnregisterPlayer`
+    * @see `GUIDTask.unregisterPlayer`
     * @see `LoadZoneCommonTransferActivity`
     * @see `Vehicles.AllGatedOccupantsInSameZone`
     * @see `PlayerLoaded`
@@ -8393,10 +8277,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       val continentId = continent.id
       interstellarFerryTopLevelGUID = None
 
-      taskThenZoneChange(
-        GUIDTask.UnregisterAvatar(player)(continent.GUID),
+      TaskWorkflow.execute(taskThenZoneChange(
+        GUIDTask.unregisterAvatar(continent.GUID, player),
         ICS.FindZone(_.id == zoneId, context.self)
-      )
+      ))
     }
   }
 
@@ -8439,20 +8323,24 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   /** Before changing zones, perform the following task (which can be a nesting of subtasks). */
   def taskThenZoneChange(
-      task: TaskResolver.GiveTask,
-      zoneMessage: ICS.FindZone
-  ): Unit = {
-    continent.tasks ! TaskResolver.GiveTask(
-      new Task() {
-        override def isComplete: Task.Resolution.Value = task.task.isComplete
+                          task: TaskBundle,
+                          zoneMessage: ICS.FindZone
+                        ): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
+        val localAvatar = avatar
+        val localZone = continent
+        val localCluster = cluster
 
-        def Execute(resolver: ActorRef): Unit = {
-          continent.Population ! Zone.Population.Leave(avatar)
+        override def description() : String = s"doing ${task.description()} before transferring zones"
+
+        def action(): Future[Any] = {
+          continent.Population ! Zone.Population.Leave(localAvatar)
           cluster ! zoneMessage
-          resolver ! Success(this)
+          Future(true)
         }
       },
-      List(task)
+      task
     )
   }
 
@@ -8474,7 +8362,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       avatarActor ! AvatarActor.SetVehicle(None)
     }
     RemoveBoomerTriggersFromInventory().foreach(obj => {
-      continent.tasks ! GUIDTask.UnregisterObjectTask(obj)(continent.GUID)
+      TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, obj))
     })
     Deployables.Disown(continent, avatar, self)
     drawDeloyableIcon = RedrawDeployableIcons //important for when SetCurrentAvatar initializes the UI next zone
@@ -8896,7 +8784,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       continent.id,
       AvatarAction.ProjectileExplodes(player.GUID, projectile_guid, projectile)
     )
-    continent.tasks ! UnregisterProjectile(projectile)
+    TaskWorkflow.execute(unregisterProjectile(projectile))
     projectiles(local_index) match {
       case Some(obj) if !obj.isResolved => obj.Miss()
       case _                            => ;
@@ -8933,7 +8821,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         tplayer.VehicleSeated = None
         zone.Population ! Zone.Population.Release(avatar)
         sendResponse(ObjectDeleteMessage(tplayer.GUID, 0))
-        zone.tasks ! GUIDTask.UnregisterPlayer(tplayer)(zone.GUID)
+        TaskWorkflow.execute(GUIDTask.unregisterPlayer(zone.GUID, tplayer))
     }
   }
 
@@ -9144,15 +9032,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             log.trace(
               s"WeaponFireMessage: ${player.Name}'s ${projectile_info.Name} is a remote projectile"
             )
-            continent.tasks ! (if (projectile.HasGUID) {
+            if (projectile.HasGUID) {
               continent.AvatarEvents ! AvatarServiceMessage(
                 continent.id,
                 AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile)
               )
-              ReregisterProjectile(projectile)
+              TaskWorkflow.execute(reregisterProjectile(projectile))
             } else {
-              RegisterProjectile(projectile)
-            })
+              TaskWorkflow.execute(registerProjectile(projectile))
+            }
           }
           projectilesToCleanUp(projectileIndex) = false
 

@@ -9,6 +9,7 @@ import net.psforever.objects.definition.converter._
 import net.psforever.objects.equipment._
 import net.psforever.objects.geometry.GeometryForm
 import net.psforever.objects.inventory.InventoryTile
+import net.psforever.objects.locker.LockerContainerDefinition
 import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.serverobject.doors.DoorDefinition
 import net.psforever.objects.serverobject.generator.GeneratorDefinition
@@ -426,11 +427,7 @@ object GlobalDefinitions {
   Equipment (locker_container, kits, ammunition, weapons)
    */
   import net.psforever.packet.game.objectcreate.ObjectClass
-  val locker_container = new EquipmentDefinition(456) {
-    Name = "locker_container"
-    Size = EquipmentSize.Inventory
-    Packet = new LockerContainerConverter()
-  }
+  val locker_container = new LockerContainerDefinition()
 
   val medkit = KitDefinition(Kits.medkit)
 

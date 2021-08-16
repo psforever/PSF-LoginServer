@@ -61,6 +61,7 @@ class VehicleDefinition(objectId: Int)
   Model = VehicleResolutions.calculate
   RepairDistance = 10
   RepairRestoresAt = 1
+  registerAs = "vehicles"
 
   def MaxShields: Int = maxShields
 

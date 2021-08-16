@@ -3,21 +3,23 @@ package objects.guidtask
 
 import base.ActorTest
 import net.psforever.objects._
-import net.psforever.objects.guid.{GUIDTask, TaskResolver}
+import net.psforever.objects.guid.{GUIDTask, TaskBundle, TaskWorkflow}
+
+import scala.concurrent.duration._
 
 class GUIDTaskRegisterToolTest extends ActorTest {
   "RegisterEquipment -> RegisterTool" in {
-    val (_, uns, taskResolver, probe) = GUIDTaskTest.CommonTestSetup
-    val obj                           = Tool(GlobalDefinitions.beamer)
+    val (_, uns, probe)    = GUIDTaskTest.CommonTestSetup
+    val obj                = Tool(GlobalDefinitions.beamer)
     obj.AmmoSlots.head.Box = AmmoBox(GlobalDefinitions.energy_cell)
 
     assert(!obj.HasGUID)
     assert(!obj.AmmoSlots.head.Box.HasGUID)
-    taskResolver ! TaskResolver.GiveTask(
+    TaskWorkflow.execute(TaskBundle(
       new GUIDTaskTest.RegisterTestTask(probe.ref),
-      List(GUIDTask.RegisterEquipment(obj)(uns))
-    )
-    probe.expectMsg(scala.util.Success)
+      GUIDTask.registerEquipment(uns, obj)
+    ))
+    probe.expectMsg(5.second, scala.util.Success(true))
     assert(obj.HasGUID)
     assert(obj.AmmoSlots.head.Box.HasGUID)
   }

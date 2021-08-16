@@ -1,8 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar.support
 
-import akka.actor.ActorRef
-import net.psforever.objects.guid.{GUIDTask, TaskResolver}
+import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.objects.Player
 import net.psforever.types.ExoSuitType
 import net.psforever.services.{RemoverActor, Service}
@@ -10,7 +9,7 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.duration._
 
-class CorpseRemovalActor(taskResolver: ActorRef) extends RemoverActor(taskResolver) {
+class CorpseRemovalActor extends RemoverActor() {
   final val FirstStandardDuration: FiniteDuration = 1 minute
 
   final val SecondStandardDuration: FiniteDuration = 500 milliseconds
@@ -32,9 +31,9 @@ class CorpseRemovalActor(taskResolver: ActorRef) extends RemoverActor(taskResolv
 
   def ClearanceTest(entry: RemoverActor.Entry): Boolean = !entry.zone.Corpses.contains(entry.obj)
 
-  def DeletionTask(entry: RemoverActor.Entry): TaskResolver.GiveTask = {
+  def DeletionTask(entry: RemoverActor.Entry): TaskBundle = {
     val player = entry.obj.asInstanceOf[Player]
-    val task   = GUIDTask.UnregisterPlayer(player)(entry.zone.GUID)
+    val task   = GUIDTask.unregisterPlayer(entry.zone.GUID, player)
     player.ExoSuit = ExoSuitType.Standard
     task
   }

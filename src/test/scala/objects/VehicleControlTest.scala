@@ -212,7 +212,6 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
 
     override def SetupNumberPools(): Unit = {}
     override def VehicleEvents = vehicleProbe.ref
-    override def tasks = catchall.ref
   }
   zone.actor = system.spawn(ZoneActor(zone), "test-zone-actor")
   // crappy workaround but without it the zone doesn't get initialized in time

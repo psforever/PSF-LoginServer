@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
 import net.psforever.objects.equipment.{Ammo, Equipment}
-import net.psforever.objects.guid.{GUIDTask, Task, TaskResolver}
+import net.psforever.objects.guid._
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -73,32 +73,29 @@ object WorldSession {
     * Equipment will go wherever it fits in containing object, or be dropped if it fits nowhere.
     * Item swapping during the placement is not allowed.
     * @see `ChangeAmmoMessage`
-    * @see `GUIDTask.RegisterEquipment`
+    * @see `GUIDTask.registerEquipment`
     * @see `PutEquipmentInInventoryOrDrop`
     * @see `Task`
-    * @see `TaskResolver.GiveTask`
+    * @see `TaskBundle`
     * @param obj the container
     * @param item the item being manipulated
-    * @return a `TaskResolver` object
+    * @return a `TaskBundle` object
     */
   def PutNewEquipmentInInventorySlot(
                                       obj: PlanetSideServerObject with Container
-                                    )(item: Equipment, slot: Int): TaskResolver.GiveTask = {
+                                    )(item: Equipment, slot: Int): TaskBundle = {
     val localZone = obj.Zone
-    TaskResolver.GiveTask(
-      new Task() {
+    TaskBundle(
+      new StraightforwardTask() {
         private val localContainer = obj
         private val localItem      = item
         private val localSlot      = slot
 
-        override def isComplete: Task.Resolution.Value = Task.Resolution.Success
-
-        def Execute(resolver: ActorRef): Unit = {
+        def action(): Future[Any] = {
           PutEquipmentInInventorySlot(localContainer)(localItem, localSlot)
-          resolver ! Success(this)
         }
       },
-      List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
+      GUIDTask.registerEquipment(localZone.GUID, item)
     )
   }
 
@@ -108,31 +105,28 @@ object WorldSession {
     * Equipment will go wherever it fits in containing object, or be dropped if it fits nowhere.
     * Item swapping during the placement is not allowed.
     * @see `ChangeAmmoMessage`
-    * @see `GUIDTask.RegisterEquipment`
+    * @see `GUIDTask.registerEquipment`
     * @see `PutEquipmentInInventoryOrDrop`
     * @see `Task`
-    * @see `TaskResolver.GiveTask`
+    * @see `TaskBundle`
     * @param obj the container
     * @param item the item being manipulated
-    * @return a `TaskResolver` object
+    * @return a `TaskBundle` object
     */
   def PutNewEquipmentInInventoryOrDrop(
       obj: PlanetSideServerObject with Container
-  )(item: Equipment): TaskResolver.GiveTask = {
+  )(item: Equipment): TaskBundle = {
     val localZone = obj.Zone
-    TaskResolver.GiveTask(
-      new Task() {
+    TaskBundle(
+      new StraightforwardTask() {
         private val localContainer = obj
         private val localItem      = item
 
-        override def isComplete: Task.Resolution.Value = Task.Resolution.Success
-
-        def Execute(resolver: ActorRef): Unit = {
+        def action(): Future[Any] = {
           PutEquipmentInInventoryOrDrop(localContainer)(localItem)
-          resolver ! Success(this)
         }
       },
-      List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
+      GUIDTask.registerEquipment(localZone.GUID, item)
     )
   }
 
@@ -149,7 +143,7 @@ object WorldSession {
     * @see `Containable.PutItemAway`
     * @see `Future.onComplete`
     * @see `Future.recover`
-    * @see `GUIDTask.UnregisterEquipment`
+    * @see `GUIDTask.unregisterEquipment`
     * @see `tell`
     * @see `Zone.AvatarEvents`
     * @param obj the container
@@ -165,7 +159,7 @@ object WorldSession {
     val result         = ask(localContainer.Actor, Containable.PutItemInSlotOnly(localItem, slot))
     result.onComplete {
       case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
-        localContainer.Zone.tasks ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
+        TaskWorkflow.execute(GUIDTask.unregisterEquipment(localContainer.Zone.GUID, localItem))
       case _ => ;
     }
     result
@@ -177,43 +171,33 @@ object WorldSession {
     * This request will (probably) be  coincidental with a number of other such requests based on that loadout
     * so items must be rigidly placed else cascade into a chaostic order.
     * Item swapping during the placement is not allowed.
-    * @see `GUIDTask.RegisterEquipment`
+    * @see `GUIDTask.registerEquipment`
     * @see `PutEquipmentInInventorySlot`
     * @see `Task`
-    * @see `TaskResolver.GiveTask`
+    * @see `TaskBundle`
     * @param obj the container
     * @param item the item being manipulated
     * @param slot where the item will be placed in the container
-    * @return a `TaskResolver` object
+    * @return a `TaskBundle` object
     */
   def PutLoadoutEquipmentInInventory(
       obj: PlanetSideServerObject with Container
-  )(item: Equipment, slot: Int): TaskResolver.GiveTask = {
+  )(item: Equipment, slot: Int): TaskBundle = {
     val localZone = obj.Zone
-    TaskResolver.GiveTask(
-      new Task() {
+    TaskBundle(
+      new StraightforwardTask() {
         private val localContainer                             = obj
         private val localItem                                  = item
         private val localSlot                                  = slot
         private val localFunc: (Equipment, Int) => Future[Any] = PutEquipmentInInventorySlot(obj)
 
-        override def Timeout: Long = 1000
+        override def description(): String = s"PutEquipmentInInventorySlot - ${localItem.Definition.Name}"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (localItem.HasGUID && localContainer.Find(localItem).nonEmpty)
-            Task.Resolution.Success
-          else
-            Task.Resolution.Incomplete
-        }
-
-        override def Description: String = s"PutEquipmentInInventorySlot - ${localItem.Definition.Name}"
-
-        def Execute(resolver: ActorRef): Unit = {
+        def action(): Future[Any] = {
           localFunc(localItem, localSlot)
-          resolver ! Success(this)
         }
       },
-      List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
+      GUIDTask.registerEquipment(localZone.GUID, item)
     )
   }
 
@@ -227,8 +211,8 @@ object WorldSession {
     * @see `ask`
     * @see `Containable.CanNotPutItemInSlot`
     * @see `Containable.PutItemInSlotOnly`
-    * @see `GUIDTask.RegisterEquipment`
-    * @see `GUIDTask.UnregisterEquipment`
+    * @see `GUIDTask.registerEquipment`
+    * @see `GUIDTask.unregisterEquipment`
     * @see `Future.onComplete`
     * @see `PutEquipmentInInventorySlot`
     * @see `TerminalMessageOnTimeout`
@@ -236,31 +220,22 @@ object WorldSession {
     * @param player na
     * @param term na
     * @param item the item being manipulated
-    * @return a `TaskResolver` object
+    * @return a `TaskBundle` object
     */
   def BuyNewEquipmentPutInInventory(
       obj: PlanetSideServerObject with Container,
       player: Player,
       term: PlanetSideGUID
-  )(item: Equipment): TaskResolver.GiveTask = {
+  )(item: Equipment): TaskBundle = {
     val localZone = obj.Zone
-    TaskResolver.GiveTask(
-      new Task() {
+    TaskBundle(
+      new StraightforwardTask() {
         private val localContainer                = obj
         private val localItem                     = item
         private val localPlayer                   = player
         private val localTermMsg: Boolean => Unit = TerminalResult(term, localPlayer, TransactionType.Buy)
 
-        override def Timeout: Long = 1000
-
-        override def isComplete: Task.Resolution.Value = {
-          if (localItem.HasGUID && localContainer.Find(localItem).nonEmpty)
-            Task.Resolution.Success
-          else
-            Task.Resolution.Incomplete
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
+        def action(): Future[Any] = {
           TerminalMessageOnTimeout(
             ask(localContainer.Actor, Containable.PutItemAway(localItem)),
             localTermMsg
@@ -279,16 +254,16 @@ object WorldSession {
                         localTermMsg(true)
                     }
                 } else {
-                  localContainer.Zone.tasks ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
+                  TaskWorkflow.execute(GUIDTask.unregisterEquipment(localContainer.Zone.GUID, localItem))
                   localTermMsg(false)
                 }
               case _ =>
                 localTermMsg(true)
             }
-          resolver ! Success(this)
+          Future(true)
         }
       },
-      List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
+      GUIDTask.registerEquipment(localZone.GUID, item)
     )
   }
 
@@ -306,44 +281,35 @@ object WorldSession {
     * @see `AvatarAction.SendResponse`
     * @see `Containable.CanNotPutItemInSlot`
     * @see `Containable.PutItemInSlotOnly`
-    * @see `GUIDTask.RegisterEquipment`
-    * @see `GUIDTask.UnregisterEquipment`
+    * @see `GUIDTask.registerEquipment`
+    * @see `GUIDTask.unregisterEquipment`
     * @see `Future.onComplete`
     * @see `ObjectHeldMessage`
     * @see `Player.DrawnSlot`
     * @see `Player.LastDrawnSlot`
     * @see `Service.defaultPlayerGUID`
-    * @see `TaskResolver.GiveTask`
+    * @see `TaskBundle`
     * @see `Zone.AvatarEvents`
     * @param player the player whose visible slot will be equipped and drawn
     * @param item the item to equip
     * @param slot the slot in which the item will be equipped
-    * @return a `TaskResolver` object
+    * @return a `TaskBundle` object
     */
-  def HoldNewEquipmentUp(player: Player)(item: Equipment, slot: Int): TaskResolver.GiveTask = {
+  def HoldNewEquipmentUp(player: Player)(item: Equipment, slot: Int): TaskBundle = {
     if (player.VisibleSlots.contains(slot)) {
       val localZone = player.Zone
-      TaskResolver.GiveTask(
-        new Task() {
+      TaskBundle(
+        new StraightforwardTask() {
           private val localPlayer   = player
           private val localGUID     = player.GUID
           private val localItem     = item
           private val localSlot     = slot
 
-          override def Timeout: Long = 1000
-
-          override def isComplete: Task.Resolution.Value = {
-            if (localPlayer.DrawnSlot == localSlot)
-              Task.Resolution.Success
-            else
-              Task.Resolution.Incomplete
-          }
-
-          def Execute(resolver: ActorRef): Unit = {
+          def action(): Future[Any] = {
             ask(localPlayer.Actor, Containable.PutItemInSlotOnly(localItem, localSlot))
               .onComplete {
                 case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
-                  localPlayer.Zone.tasks ! GUIDTask.UnregisterEquipment(localItem)(localZone.GUID)
+                  TaskWorkflow.execute(GUIDTask.unregisterEquipment(localZone.GUID, localItem))
                 case _ =>
                   if (localPlayer.DrawnSlot != Player.HandsDownSlot) {
                     localPlayer.DrawnSlot = Player.HandsDownSlot
@@ -365,10 +331,10 @@ object WorldSession {
                     AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(localGUID, localSlot, false))
                   )
               }
-            resolver ! Success(this)
+            Future(this)
           }
         },
-        List(GUIDTask.RegisterEquipment(item)(localZone.GUID))
+        GUIDTask.registerEquipment(localZone.GUID, item)
       )
     } else {
       //TODO log.error
@@ -460,7 +426,7 @@ object WorldSession {
     * @see `Containable.RemoveItemFromSlot`
     * @see `Future.onComplete`
     * @see `Future.recover`
-    * @see `GUIDTask.UnregisterEquipment`
+    * @see `GUIDTask.unregisterEquipment`
     * @see `Zone.AvatarEvents`
     * @param obj the container to search
     * @param item the item to find and remove from the container
@@ -474,7 +440,7 @@ object WorldSession {
     val result         = ask(localContainer.Actor, Containable.RemoveItemFromSlot(localItem))
     result.onComplete {
       case Success(Containable.ItemFromSlot(_, Some(_), Some(_))) =>
-        localContainer.Zone.tasks ! GUIDTask.UnregisterEquipment(localItem)(localContainer.Zone.GUID)
+        TaskWorkflow.execute(GUIDTask.unregisterEquipment(localContainer.Zone.GUID, localItem))
       case _ =>
     }
     result
@@ -492,7 +458,7 @@ object WorldSession {
     * @see `Containable.RemoveItemFromSlot`
     * @see `Future.onComplete`
     * @see `Future.recover`
-    * @see `GUIDTask.UnregisterEquipment`
+    * @see `GUIDTask.unregisterEquipment`
     * @see `RemoveOldEquipmentFromInventory`
     * @see `TerminalMessageOnTimeout`
     * @see `TerminalResult`
@@ -517,7 +483,7 @@ object WorldSession {
     )
     result.onComplete {
       case Success(Containable.ItemFromSlot(_, Some(item), Some(_))) =>
-        localContainer.Zone.tasks ! GUIDTask.UnregisterEquipment(item)(localContainer.Zone.GUID)
+        TaskWorkflow.execute(GUIDTask.unregisterEquipment(localContainer.Zone.GUID, item))
         localTermMsg(true)
       case _ =>
         localTermMsg(false)
@@ -538,7 +504,7 @@ object WorldSession {
     * @see `LockerContainer`
     * @see `RemoveEquipmentFromLockerContainer`
     * @see `StowEquipmentInLockerContainer`
-    * @see `TaskResolver`
+    * @see `TaskBundle`
     * @param toChannel broadcast channel name for a manual packet callback
     * @param source the container in which the item is to be removed
     * @param destination the container into which the item is to be placed
@@ -573,14 +539,14 @@ object WorldSession {
     * @see `Container`
     * @see `Equipment`
     * @see `GridInventory.CheckCollisionsVar`
-    * @see `GUIDTask.RegisterEquipment`
-    * @see `GUIDTask.UnregisterEquipment`
+    * @see `GUIDTask.registerEquipment`
+    * @see `GUIDTask.unregisterEquipment`
     * @see `IdentifiableEntity.Invalidate`
     * @see `LockerContainer`
     * @see `Service`
     * @see `Task`
-    * @see `TaskResolver`
-    * @see `TaskResolver.GiveTask`
+    * @see `TaskBundle`
+    * @see `TaskBundle`
     * @see `Zone.AvatarEvents`
     * @param toChannel broadcast channel name for a manual packet callback
     * @param source the container in which the item is to be removed
@@ -610,7 +576,7 @@ object WorldSession {
         (false, None)
     }
     if (performSwap) {
-      def moveItemTaskFunc(toSlot: Int): Task = new Task() {
+      def moveItemTaskFunc(toSlot: Int): Task = new StraightforwardTask() {
         val localGUID = swapItemGUID //the swap item's original GUID, if any swap item
         val localChannel = toChannel
         val localSource = source
@@ -621,21 +587,13 @@ object WorldSession {
         val localMoveOnComplete: Try[Any] => Unit = {
           case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) =>
             //swapItem is not registered right now, we can not drop the item without re-registering it
-            localSource.Zone.tasks ! PutNewEquipmentInInventorySlot(localSource)(swapItem, localSrcSlot)
+            TaskWorkflow.execute(PutNewEquipmentInInventorySlot(localSource)(swapItem, localSrcSlot))
           case _ => ;
         }
 
-        override def Description: String = s"unregistering $localItem before stowing in $localDestination"
+        override def description(): String = s"unregistering $localItem before stowing in $localDestination"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (localItem.HasGUID && localDestination.Find(localItem).contains(localDestSlot)) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
+        def action(): Future[Any] = {
           localGUID match {
             case Some(guid) =>
               //see LockerContainerControl.RemoveItemFromSlotCallback
@@ -647,15 +605,15 @@ object WorldSession {
           }
           val moveResult = ask(localDestination.Actor, Containable.PutItemInSlotOrAway(localItem, Some(localDestSlot)))
           moveResult.onComplete(localMoveOnComplete)
-          resolver ! Success(this)
+          moveResult
         }
       }
       val resultOnComplete: Try[Any] => Unit = {
         case Success(Containable.ItemFromSlot(fromSource, Some(itemToMove), Some(fromSlot))) =>
-          destination.Zone.tasks ! TaskResolver.GiveTask(
+          TaskWorkflow.execute(TaskBundle(
             moveItemTaskFunc(fromSlot),
-            List(GUIDTask.UnregisterEquipment(itemToMove)(fromSource.Zone.GUID))
-          )
+            GUIDTask.unregisterEquipment(fromSource.Zone.GUID, itemToMove)
+          ))
         case _ => ;
       }
       val result = ask(source.Actor, Containable.RemoveItemFromSlot(item))
@@ -673,14 +631,14 @@ object WorldSession {
     * @see `Container`
     * @see `Equipment`
     * @see `GridInventory.CheckCollisionsVar`
-    * @see `GUIDTask.RegisterEquipment`
-    * @see `GUIDTask.UnregisterEquipment`
+    * @see `GUIDTask.registerEquipment`
+    * @see `GUIDTask.unregisterEquipment`
     * @see `IdentifiableEntity.Invalidate`
     * @see `LockerContainer`
     * @see `Service`
     * @see `Task`
-    * @see `TaskResolver`
-    * @see `TaskResolver.GiveTask`
+    * @see `TaskBundle`
+    * @see `TaskBundle`
     * @see `Zone.AvatarEvents`
     * @param toChannel broadcast channel name for a manual packet callback
     * @param source the container in which the item is to be removed
@@ -695,8 +653,8 @@ object WorldSession {
                                           item: Equipment,
                                           dest: Int
                                         ): Unit = {
-    destination.Zone.tasks ! TaskResolver.GiveTask(
-      new Task() {
+    TaskWorkflow.execute(TaskBundle(
+      new StraightforwardTask() {
         val localGUID        = item.GUID //original GUID
         val localChannel     = toChannel
         val localSource      = source
@@ -717,25 +675,16 @@ object WorldSession {
           case _       => ;
         }
 
-        override def Description: String = s"registering $localItem in ${localDestination.Zone.id} before removing from $localSource"
+        override def description(): String = s"registering $localItem in ${localDestination.Zone.id} before removing from $localSource"
 
-        override def isComplete: Task.Resolution.Value = {
-          if (localItem.HasGUID && localDestination.Find(localItem).isEmpty) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-        }
-
-        def Execute(resolver: ActorRef): Unit = {
+        def action(): Future[Any] = {
           val zone = localSource.Zone
           //see LockerContainerControl.RemoveItemFromSlotCallback
           zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, localGUID))
-          localSource.Actor ! Containable.MoveItem(localDestination, localItem, localSlot)
-          resolver ! Success(this)
+          ask(localSource.Actor, Containable.MoveItem(localDestination, localItem, localSlot))
         }
       },
-      List(GUIDTask.RegisterEquipment(item)(destination.Zone.GUID))
+      GUIDTask.registerEquipment(destination.Zone.GUID, item))
     )
   }
 
@@ -884,21 +833,21 @@ object WorldSession {
     }
   }
 
-  def CallBackForTask(task: TaskResolver.GiveTask, sendTo: ActorRef, pass: Any): TaskResolver.GiveTask = {
-    TaskResolver.GiveTask(
-      new Task() {
-        private val localDesc   = task.task.Description
+  def CallBackForTask(task: TaskBundle, sendTo: ActorRef, pass: Any): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
+        private val localDesc   = task.description()
         private val destination = sendTo
         private val passMsg     = pass
 
-        override def Description: String = s"callback for tasking $localDesc"
+        override def description(): String = s"callback for tasking $localDesc"
 
-        def Execute(resolver: ActorRef): Unit = {
+        def action() : Future[Any] = {
           destination ! passMsg
-          resolver ! Success(this)
+          Future(this)
         }
       },
-      List(task)
+      task
     )
   }
 }

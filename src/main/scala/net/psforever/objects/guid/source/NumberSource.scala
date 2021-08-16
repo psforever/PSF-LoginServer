@@ -2,7 +2,7 @@
 package net.psforever.objects.guid.source
 
 import net.psforever.objects.entity.IdentifiableEntity
-import net.psforever.objects.guid.key.{LoanedKey, SecureKey}
+import net.psforever.objects.guid.key.{AvailabilityPolicy, LoanedKey, SecureKey}
 
 /**
   * A `NumberSource` is considered a master "pool" of numbers from which all numbers are available to be drawn.
@@ -31,6 +31,20 @@ trait NumberSource {
   def size: Int
 
   /**
+    * Select the type of count desired based on the allocation policy of the key.
+    * @param policy the allocation policy
+    * @return the number of keys belonging to this policy
+    */
+  def count(policy: AvailabilityPolicy): Int = {
+    policy match {
+      case AvailabilityPolicy.Available => countAvailable
+      case AvailabilityPolicy.Leased => countUsed
+      case AvailabilityPolicy.Dangling => countDangling
+    }
+  }
+
+
+  /**
     * The count of numbers that can still be drawn.
     * @return the count
     */
@@ -41,6 +55,13 @@ trait NumberSource {
     * @return the count
     */
   def countUsed: Int
+
+  /**
+    * The count of numbers that can not be drawn but have not yet been assigned to an entity.
+    * Could only ever be a non-zero count if the number of used keys is a non-zero count.
+    * @return the count
+    */
+  def countDangling: Int
 
   /**
     * Is this number a member of this number source?
@@ -98,25 +119,8 @@ trait NumberSource {
   def returnNumber(number: Int): Option[IdentifiableEntity]
 
   /**
-    * Produce a modifiable wrapper for the `Monitor` for this number, only if the number has not been used.
-    * This wrapped `Monitor` can only be assigned once and the number may not be `returnNumber`ed to this source.
-    * @param number the number
-    * @return the wrapped `Monitor`
-    */
-  def restrictNumber(number: Int): Option[LoanedKey]
-
-  /**
-    * Numbers from this source may not longer be marked as `Restricted`.
-    * @return the `List` of all numbers that have been restricted
-    */
-  def finalizeRestrictions: List[Int]
-
-  import net.psforever.objects.entity.IdentifiableEntity
-
-  /**
     * Reset all number `Monitor`s so that their underlying number is not longer treated as assigned.
     * Perform some level of housecleaning to ensure that all dependencies are resolved in some manner.
-    * This is the only way to free `Monitors` that are marked as `Restricted`.
     * @return a `List` of assignments maintained by all the currently-used number `Monitors`
     */
   def clear(): List[IdentifiableEntity]

@@ -4,7 +4,7 @@ package net.psforever.objects
 import akka.actor.{ActorContext, Props}
 import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.ce.{Deployable, DeployedItem}
-import net.psforever.objects.guid.GUIDTask
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.vital.etc.TriggerUsedReason
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -99,7 +99,7 @@ class BoomerDeployableControl(mine: BoomerDeployable)
           zone.id,
           AvatarAction.ObjectDelete(Service.defaultPlayerGUID, trigger.GUID)
         )
-        zone.tasks ! GUIDTask.UnregisterObjectTask(trigger)(zone.GUID)
+        TaskWorkflow.execute(GUIDTask.unregisterObject(zone.GUID, trigger))
       case None => ;
     }
   }

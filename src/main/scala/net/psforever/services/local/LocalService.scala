@@ -19,10 +19,10 @@ class LocalService(zone: Zone) extends Actor {
     Props[HackClearActor](), s"${zone.id}-local-hack-clearer"
   )
   private val hackCapturer = context.actorOf(
-    Props(classOf[HackCaptureActor], zone.tasks), s"${zone.id}-local-hack-capturer"
+    Props[HackCaptureActor](), s"${zone.id}-local-hack-capturer"
   )
   private val captureFlagManager = context.actorOf(
-    Props(classOf[CaptureFlagManager], zone.tasks, zone), s"${zone.id}-local-capture-flag-manager"
+    Props(classOf[CaptureFlagManager], zone), s"${zone.id}-local-capture-flag-manager"
   )
   private[this] val log = org.log4s.getLogger
 

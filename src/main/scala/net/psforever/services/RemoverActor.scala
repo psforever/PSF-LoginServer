@@ -1,15 +1,15 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services
 
-import akka.actor.{ActorRef, Cancellable}
-import net.psforever.objects.guid.TaskResolver
+import akka.actor.Cancellable
+import net.psforever.objects.guid.{StraightforwardTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Default, PlanetSideGameObject}
 import net.psforever.types.Vector3
 import net.psforever.services.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Success
 
 /**
   * The base class for a type of "destruction `Actor`" intended to be used for delaying object cleanup activity.
@@ -30,7 +30,7 @@ import scala.util.Success
   * and finally unregistering it.
   * Some types of object have (de-)implementation variations which should be made explicit through the overrides.
   */
-abstract class RemoverActor(val taskResolver: ActorRef) extends SupportActor[RemoverActor.Entry] {
+abstract class RemoverActor() extends SupportActor[RemoverActor.Entry] {
 
   /**
     * The timer that checks whether entries in the first pool are still eligible for that pool.
@@ -249,30 +249,23 @@ abstract class RemoverActor(val taskResolver: ActorRef) extends SupportActor[Rem
 
   def SecondJob(entry: RemoverActor.Entry): Unit = {
     entry.obj.Position = Vector3.Zero //somewhere it will not disturb anything
-    taskResolver ! FinalTask(entry)
+    TaskWorkflow.execute(FinalTask(entry))
   }
 
-  def FinalTask(entry: RemoverActor.Entry): TaskResolver.GiveTask = {
-    import net.psforever.objects.guid.Task
-    TaskResolver.GiveTask(
-      new Task() {
-        private val localEntry    = entry
-        private val localAnnounce = self
+  def FinalTask(entry: RemoverActor.Entry): TaskBundle = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    TaskBundle(
+      new StraightforwardTask() {
+//        private val localEntry    = entry
+//        private val localAnnounce = self
 
-        override def isComplete: Task.Resolution.Value =
-          if (!localEntry.obj.HasGUID) {
-            Task.Resolution.Success
-          } else {
-            Task.Resolution.Incomplete
-          }
-
-        def Execute(resolver: ActorRef): Unit = {
-          resolver ! Success(this)
+        def action(): Future[Any] = {
+          Future(this)
         }
 
-        override def onFailure(ex: Throwable): Unit = {
-          localAnnounce ! RemoverActor.FailureToWork(localEntry, ex)
-        }
+//        override def onFailure(ex: Throwable): Unit = {
+//          localAnnounce ! RemoverActor.FailureToWork(localEntry, ex)
+//        }
       },
       List(DeletionTask(entry))
     )
@@ -319,7 +312,7 @@ abstract class RemoverActor(val taskResolver: ActorRef) extends SupportActor[Rem
     * @see `GUIDTask`
     * @param entry the entry
     */
-  def DeletionTask(entry: RemoverActor.Entry): TaskResolver.GiveTask
+  def DeletionTask(entry: RemoverActor.Entry): TaskBundle
 }
 
 object RemoverActor extends SupportActorCaseConversions {

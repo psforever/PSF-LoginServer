@@ -1,0 +1,44 @@
+[
+  {
+    "Name": "environment",
+    "Start": 0,
+    "Max": 3076,
+    "Selector": "specific"
+  },
+  {
+    "Name": "players",
+    "Start": 3101,
+    "Max": 4600,
+    "Selector": "random"
+  },
+  {
+    "Name": "lockers",
+    "Start": 4601,
+    "Max": 5100,
+    "Selector": "random"
+  },
+  {
+    "Name": "tools",
+    "Start": 5101,
+    "Max": 9600,
+    "Selector": "random"
+  },
+  {
+    "Name": "ammo",
+    "Start": 9601,
+    "Max": 23100,
+    "Selector": "random"
+  },
+  {
+    "Name": "kits",
+    "Start": 23101,
+    "Max": 36600,
+    "Selector": "random"
+  },
+  {
+    "Name": "items",
+    "Start": 36601,
+    "Max": 39600,
+    "Selector": "random"
+  }
+]

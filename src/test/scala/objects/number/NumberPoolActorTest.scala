@@ -3,9 +3,9 @@ package objects.number
 
 import akka.actor.Props
 import base.ActorTest
-import net.psforever.objects.guid.actor.NumberPoolActor
 import net.psforever.objects.guid.pool.ExclusivePool
 import net.psforever.objects.guid.selector.RandomSelector
+import net.psforever.objects.guid.uns.NumberPoolActor
 
 import scala.concurrent.duration.Duration
 
@@ -29,7 +29,7 @@ class NumberPoolActorTest1 extends ActorTest {
       pool.Selector = new RandomSelector
       val poolActor = system.actorOf(Props(classOf[NumberPoolActor], pool), name = "poolActor2")
       poolActor ! NumberPoolActor.GetSpecificNumber(37)
-      expectMsg(NumberPoolActor.GiveNumber(37, None))
+      expectMsg(NumberPoolActor.GiveNumber(37))
     }
   }
 }
@@ -41,7 +41,7 @@ class NumberPoolActorTest2 extends ActorTest {
       pool.Selector = new RandomSelector
       val poolActor = system.actorOf(Props(classOf[NumberPoolActor], pool), name = "poolActor3")
       poolActor ! NumberPoolActor.GetAnyNumber()
-      expectMsg(NumberPoolActor.GiveNumber(25, None))
+      expectMsg(NumberPoolActor.GiveNumber(25))
 
       poolActor ! NumberPoolActor.GetAnyNumber()
       val msg = receiveOne(Duration.create(500, "ms"))

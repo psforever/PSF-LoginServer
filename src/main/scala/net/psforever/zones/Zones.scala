@@ -12,6 +12,7 @@ import io.circe.parser._
 import net.psforever.objects.{GlobalDefinitions, LocalLockerItem, LocalProjectile}
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.definition.BasicDefinition
+import net.psforever.objects.guid.selector.{NumberSelector, RandomSelector, SpecificSelector}
 import net.psforever.objects.serverobject.doors.{Door, DoorDefinition, SpawnTubeDoor}
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.llu.{CaptureFlagSocket, CaptureFlagSocketDefinition}
@@ -54,6 +55,25 @@ object Zones {
       DefinitionUtil.fromString(objectType)
     }
   }
+
+  private case class GuidNumberPool(
+                                     name: String,
+                                     start: Int,
+                                     max: Int,
+                                     selector: String
+                                   ) {
+    def getSelector() : NumberSelector = {
+      if (selector.equals("random")) new RandomSelector
+      else new SpecificSelector
+    }
+  }
+
+  private implicit val decodeNumberPool: Decoder[GuidNumberPool] = Decoder.forProduct4(
+    "Name",
+    "Start",
+    "Max",
+    "Selector"
+  )(GuidNumberPool.apply)
 
   private implicit val decodeZoneMapEntity: Decoder[ZoneMapEntity] = Decoder.forProduct11(
     "Id",
@@ -585,41 +605,81 @@ object Zones {
     }
   }
 
-  lazy val zones: Seq[Zone] = ZoneInfo.values.map { info =>
-    new Zone(info.id, zoneMaps.find(_.name == info.map.value).get, info.value) {
-      override def init(implicit context: ActorContext): Unit = {
-        super.init(context)
+  lazy val zones: Seq[Zone] = {
+    val defaultGuids =
+      try {
+        val res  = Source.fromResource("guid-pools/default.json")
+        val json = res.mkString
+        res.close()
+        decode[Seq[GuidNumberPool]](json).toOption.get
+      } catch {
+        case _: Exception => Seq()
+      }
 
-        if (!info.id.startsWith("tz")) {
-          this.HotSpotCoordinateFunction = Zones.HotSpots.standardRemapping(info.map.scale, 80, 80)
-          this.HotSpotTimeFunction = Zones.HotSpots.standardTimeRules
-          Zones.initZoneAmenities(this)
+    ZoneInfo.values.map { info =>
+      val guids =
+        try {
+          val res  = Source.fromResource(s"guid-pools/${info.id}.json")
+          val json = res.mkString
+          res.close()
+          val custom = decode[Seq[GuidNumberPool]](json).toOption.get
+          customizePools(defaultGuids, custom)
+        } catch {
+          case _: Exception => defaultGuids
         }
 
-        info.id match {
-          case "home1" =>
-            this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.NC)
-          case "home2" =>
-            this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.TR)
-          case "home3" =>
-            this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.VS)
-          case zoneid if zoneid.startsWith("c") =>
-            this.map.cavern = true
-          case _ => ()
-        }
+      new Zone(info.id, zoneMaps.find(_.name.equals(info.map.value)).get, info.value) {
+        private val addPoolsFunc: () => Unit = addPools(guids, zone = this)
 
-        // Set up warp gate factions aka "sanctuary link". Those names make no sense anymore, don't even ask.
-        this.Buildings.foreach {
-          case (_, building) if building.Name.startsWith("WG") =>
-            building.Name match {
-              case "WG_Amerish_to_Solsar" | "WG_Esamir_to_VSSanc"    => building.Faction = PlanetSideEmpire.NC
-              case "WG_Hossin_to_VSSanc" | "WG_Solsar_to_Amerish"    => building.Faction = PlanetSideEmpire.TR
-              case "WG_Ceryshen_to_Hossin" | "WG_Forseral_to_Solsar" => building.Faction = PlanetSideEmpire.VS
-              case _                                                 => ()
-            }
-          case _ => ()
+        override def SetupNumberPools() : Unit = addPoolsFunc()
+
+        override def init(implicit context: ActorContext): Unit = {
+          super.init(context)
+
+          if (!info.id.startsWith("tz")) {
+            this.HotSpotCoordinateFunction = Zones.HotSpots.standardRemapping(info.map.scale, 80, 80)
+            this.HotSpotTimeFunction = Zones.HotSpots.standardTimeRules
+            Zones.initZoneAmenities(this)
+          }
+
+          info.id match {
+            case "home1" =>
+              this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.NC)
+            case "home2" =>
+              this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.TR)
+            case "home3" =>
+              this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.VS)
+            case zoneid if zoneid.startsWith("c") =>
+              this.map.cavern = true
+            case _ => ;
+          }
+
+          // Set up warp gate factions aka "sanctuary link". Those names make no sense anymore, don't even ask.
+          this.Buildings.foreach {
+            case (_, building) if building.Name.startsWith("WG") =>
+              building.Name match {
+                case "WG_Amerish_to_Solsar" | "WG_Esamir_to_VSSanc"    => building.Faction = PlanetSideEmpire.NC
+                case "WG_Hossin_to_VSSanc" | "WG_Solsar_to_Amerish"    => building.Faction = PlanetSideEmpire.TR
+                case "WG_Ceryshen_to_Hossin" | "WG_Forseral_to_Solsar" => building.Faction = PlanetSideEmpire.VS
+                case _                                                 => ;
+              }
+            case _ => ;
+          }
         }
       }
+    }
+  }
+
+  private def customizePools(base: Seq[GuidNumberPool], custom: Seq[GuidNumberPool]): Seq[GuidNumberPool] = {
+    val exclude = custom.map { _.name }
+    val remainder = base.filterNot { entry => exclude.contains { entry.name } }
+    custom ++ remainder
+  }
+
+  private def addPools(guids: Seq[GuidNumberPool], zone: Zone)(): Unit = {
+    guids.foreach { entry =>
+      zone.AddPool(name = entry.name, (entry.start to entry.max).toList)
+        .foreach { _.Selector = entry.getSelector() }
     }
   }
 

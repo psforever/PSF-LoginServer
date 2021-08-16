@@ -16,6 +16,7 @@ class KitDefinition(objectId: Int) extends EquipmentDefinition(objectId) {
   Tile = InventoryTile.Tile42
   Name = "kit"
   Packet = KitDefinition.converter
+  registerAs = "kits"
 }
 
 object KitDefinition {

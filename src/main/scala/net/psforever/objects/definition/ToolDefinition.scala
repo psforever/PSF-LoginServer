@@ -18,6 +18,7 @@ class ToolDefinition(objectId: Int) extends EquipmentDefinition(objectId) {
   private var defaultFireModeIndex: Option[Int]                         = None
   Name = "tool"
   Packet = ToolDefinition.converter
+  registerAs = "tools"
 
   def AmmoTypes: mutable.ListBuffer[AmmoBoxDefinition] = ammoTypes
 
