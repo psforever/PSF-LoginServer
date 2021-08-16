@@ -183,7 +183,7 @@ object Tool {
     private var ammoTypeIndex: Int = 0
 
     /** a reference to the actual `AmmoBox` of this slot */
-    private var box: AmmoBox = AmmoBox(AmmoDefinition, fdef.Magazine)
+    private var box: AmmoBox = AmmoBox(AmmoDefinition, MaxMagazine())
     private var chamber      = fdef.Chamber
 
     def AmmoTypeIndex: Int = ammoTypeIndex
@@ -221,6 +221,13 @@ object Tool {
     def Chamber_=(chmbr: Int): Int = {
       chamber = math.min(math.max(0, chmbr), fdef.Chamber)
       Chamber
+    }
+
+    def MaxMagazine(): Int = {
+      fdef.CustomMagazine.get(AmmoType) match {
+        case Some(value) => value
+        case None        => fdef.Magazine
+      }
     }
 
     def Box: AmmoBox = box
