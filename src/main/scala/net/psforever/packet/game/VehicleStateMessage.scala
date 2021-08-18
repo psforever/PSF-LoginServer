@@ -3,7 +3,6 @@ package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import net.psforever.types.{Angular, PlanetSideGUID, Vector3}
-import scodec.Attempt.Successful
 import scodec.Codec
 import scodec.codecs._
 

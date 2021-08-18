@@ -44,7 +44,7 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.base._
-import net.psforever.objects.vital.collision.CollisionReason
+import net.psforever.objects.vital.collision.{CollisionReason, CollisionWithReason}
 import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
@@ -279,6 +279,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var heightLast: Float = 0f
   var heightTrend: Boolean = false //up = true, down = false
   var heightHistory: Float = 0f
+  val collisionHistory: mutable.HashMap[ActorRef, Long] = mutable.HashMap()
 
   var clientKeepAlive: Cancellable   = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -5586,17 +5587,35 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             )
 
           case (
-            Some(target: PlanetSideGameObject with Vitality with FactionAffinity), _,
-            Some(victim: PlanetSideGameObject with Vitality with FactionAffinity)) =>
-            val targetVelocity = target.Velocity.getOrElse(Vector3.Zero)
-            HandleDealingDamage(
-              target,
-              DamageInteraction(
-                SourceEntry(target),
-                CollisionReason(pv, fallHeight, target.DamageModel),
-                ppos
+            Some(target: PlanetSideServerObject with Vitality with FactionAffinity), _,
+            Some(victim: PlanetSideServerObject with Vitality with FactionAffinity)) =>
+            val curr = System.currentTimeMillis()
+            if (collisionHistory.get(victim.Actor) match {
+              case Some(lastCollision) if curr - lastCollision <= 500L =>
+                false
+              case _ =>
+                collisionHistory.put(victim.Actor, curr)
+                true
+            }) {
+              val targetSource = SourceEntry(target)
+              val victimSource = SourceEntry(victim)
+              HandleDealingDamage(
+                target,
+                DamageInteraction(
+                  targetSource,
+                  CollisionWithReason(CollisionReason(pv - tv, fallHeight, target.DamageModel), victimSource),
+                  ppos
+                )
               )
-            )
+              HandleDealingDamage(
+                victim,
+                DamageInteraction(
+                  victimSource,
+                  CollisionWithReason(CollisionReason(tv - pv, 0, victim.DamageModel), targetSource),
+                  tpos
+                )
+              )
+            }
 
           case _ => ;
         }
@@ -6806,6 +6825,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     progressBarValue = None
     lastTerminalOrderFulfillment = true
     kitToBeUsed = None
+    collisionHistory.clear()
     accessedContainer match {
       case Some(v: Vehicle) =>
         val vguid = v.GUID

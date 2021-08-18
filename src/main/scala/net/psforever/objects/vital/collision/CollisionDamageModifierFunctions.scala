@@ -8,15 +8,15 @@ import net.psforever.types.Vector3
   * Falling damage is a product of the falling distance.
   */
 case object GroundImpact extends CollisionDamageModifiers.Mod {
-  def calculate(damage: Int, data: DamageInteraction, cause: CollisionReason): Int = {
-    val fall = cause.fall
-    if (fall.toInt != 0) {
-      val z = data.target.Definition.collision.z
-      damage + z.hp(z.height(fall + 0.5f))
-    } else {
-      damage
-    }
-  }
+  def calculate(damage: Int, data: DamageInteraction, cause: CollisionReason): Int =
+    CollisionDamageModifierFunctions.calculateGroundImpact(damage, data, cause)
+}
+/**
+  * Falling damage is a product of the falling distance.
+  */
+case object GroundImpact2 extends CollisionWithDamageModifiers.Mod {
+  def calculate(damage: Int, data: DamageInteraction, cause: CollisionWithReason): Int =
+    CollisionDamageModifierFunctions.calculateGroundImpact(damage, data, cause)
 }
 
 /**
@@ -25,9 +25,32 @@ case object GroundImpact extends CollisionDamageModifiers.Mod {
   * Driving at high velocity into an inelastic structure is bad for one's integrity.
   */
 case object HeadonImpact extends CollisionDamageModifiers.Mod {
-  def calculate(damage: Int, data: DamageInteraction, cause: CollisionReason): Int = {
+  def calculate(damage: Int, data: DamageInteraction, cause: CollisionReason): Int =
+    CollisionDamageModifierFunctions.calculateHeadonImpact(damage, data, cause)
+}
+/**
+  * The damage of a lateral collision is a prosduct of how fast one is reported moving at the time of impact.
+  * As per the format, moving velocity is translated into a throttle gear related to maximum forward speed.
+  */
+case object HeadonImpact2 extends CollisionWithDamageModifiers.Mod {
+  def calculate(damage: Int, data: DamageInteraction, cause: CollisionWithReason): Int =
+    CollisionDamageModifierFunctions.calculateHeadonImpact(damage, data, cause)
+}
+
+object CollisionDamageModifierFunctions {
+  def calculateGroundImpact(damage: Int, data: DamageInteraction, cause: CausedByColliding): Int = {
+    val fall = cause.fall
+    if (fall.toInt != 0) {
+      val z = data.target.Definition.collision.z
+      damage + z.hp(z.height(fall + 0.5f))
+    } else {
+      damage
+    }
+  }
+
+  def calculateHeadonImpact(damage: Int, data: DamageInteraction, cause: CausedByColliding): Int = {
     val vel = Vector3.Magnitude(cause.velocity.xy)
-    if (math.abs(vel) < 0.01f) {
+    if (math.abs(vel) > 0.01f) {
       val definition = data.target.Definition
       val xy = definition.collision.xy
       damage + xy.hp(xy.throttle((vel + 0.5f) / definition.maxForwardSpeed))
@@ -35,8 +58,5 @@ case object HeadonImpact extends CollisionDamageModifiers.Mod {
       damage
     }
   }
-}
-
-object CollisionDamageModifierFunctions {
   //intentionally blank
 }
