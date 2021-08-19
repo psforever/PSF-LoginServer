@@ -5,7 +5,7 @@ import net.psforever.objects.ce.InteractWithMines
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
-import net.psforever.objects.serverobject.mount.{Seat, SeatDefinition}
+import net.psforever.objects.serverobject.mount.{MountableEntity, Seat, SeatDefinition}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.aura.AuraContainer
@@ -86,7 +86,8 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     with JammableUnit
     with CommonNtuContainer
     with Container
-    with AuraContainer {
+    with AuraContainer
+    with MountableEntity {
   interaction(new InteractWithEnvironment())
   interaction(new InteractWithMines(range = 30))
 
@@ -110,11 +111,11 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   private var utilities: Map[Int, Utility]     = Map()
   private val trunk: GridInventory             = GridInventory()
 
-  /**
+  /*
     * Records the GUID of the cargo vehicle (galaxy/lodestar) this vehicle is stored in for DismountVehicleCargoMsg use
     * DismountVehicleCargoMsg only passes the player_guid and this vehicle's guid
     */
-  private var mountedIn: Option[PlanetSideGUID] = None
+  //private var mountedIn: Option[PlanetSideGUID] = None
 
   private var vehicleGatingManifest: Option[VehicleManifest]         = None
   private var previousVehicleGatingManifest: Option[VehicleManifest] = None
@@ -141,22 +142,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   /** How long it takes to jack the vehicle in seconds, based on the hacker's certification level */
   def JackingDuration: Array[Int] = Definition.JackingDuration
-
-  def MountedIn: Option[PlanetSideGUID] = {
-    this.mountedIn
-  }
-
-  def MountedIn_=(cargo_vehicle_guid: PlanetSideGUID): Option[PlanetSideGUID] = MountedIn_=(Some(cargo_vehicle_guid))
-
-  def MountedIn_=(cargo_vehicle_guid: Option[PlanetSideGUID]): Option[PlanetSideGUID] = {
-    cargo_vehicle_guid match {
-      case Some(_) =>
-        this.mountedIn = cargo_vehicle_guid
-      case None =>
-        this.mountedIn = None
-    }
-    MountedIn
-  }
 
   override def Health_=(assignHealth: Int): Int = {
     //TODO should vehicle class enforce this?
@@ -498,6 +483,10 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   def PreviousGatingManifest(): Option[VehicleManifest] = previousVehicleGatingManifest
 
   def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
+
+  override def BailProtection_=(protect: Boolean): Boolean = {
+    !Definition.CanFly && super.BailProtection_=(protect)
+  }
 
   /**
     * This is the definition entry that is used to store and unload pertinent information about the `Vehicle`.

@@ -113,7 +113,7 @@ class VehicleControl(vehicle: Vehicle)
         mountBehavior.apply(msg)
         mountCleanup(mount_point, player)
 
-      case msg @ Mountable.TryDismount(_, seat_num) =>
+      case msg @ Mountable.TryDismount(_, seat_num, _) =>
         dismountBehavior.apply(msg)
         dismountCleanup(seat_num)
 
@@ -247,7 +247,7 @@ class VehicleControl(vehicle: Vehicle)
 
   def commonDisabledBehavior: Receive = checkBehavior
     .orElse {
-      case msg @ Mountable.TryDismount(_, seat_num) =>
+      case msg @ Mountable.TryDismount(_, seat_num, _) =>
         dismountBehavior.apply(msg)
         dismountCleanup(seat_num)
 

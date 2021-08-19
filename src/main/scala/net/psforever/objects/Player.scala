@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.serverobject.environment.InteractWithEnvironment
+import net.psforever.objects.serverobject.mount.MountableEntity
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -31,7 +32,8 @@ class Player(var avatar: Avatar)
     with Container
     with JammableUnit
     with ZoneAware
-    with AuraContainer {
+    with AuraContainer
+    with MountableEntity {
   interaction(new InteractWithEnvironment())
   interaction(new InteractWithMines(range = 10))
 

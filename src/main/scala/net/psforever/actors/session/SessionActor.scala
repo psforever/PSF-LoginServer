@@ -5453,7 +5453,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             case Some(obj: Mountable) =>
               obj.PassengerInSeat(player) match {
                case Some(seat_num) =>
-                  obj.Actor ! Mountable.TryDismount(player, seat_num)
+                  obj.Actor ! Mountable.TryDismount(player, seat_num, bailType)
                   if (interstellarFerry.isDefined) {
                     //short-circuit the temporary channel for transferring between zones, the player is no longer doing that
                     //see above in VehicleResponse.TransferPassenger case
@@ -5565,26 +5565,37 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         } else {
           heightHistory - heightLast
         }
+        var bailProtectStatus: Boolean = false
         ((ctype, ValidObject(p)) match {
           case (CollisionIs.OfInfantry, out @ Some(p: Player))
-            if p == player                                                 => (out, t, None)
-          case (CollisionIs.OfAircraft, out @ Some(v: Vehicle))
-            if v.Definition.CanFly && v.Seats(0).occupant.contains(player) => (out, t, ValidObject(t))
+            if p == player =>
+            bailProtectStatus = p.BailProtection
+            p.BailProtection = false
+            (out, t, None)
           case (CollisionIs.OfGroundVehicle, out @ Some(v: Vehicle))
-            if v.Seats(0).occupant.contains(player)                        => (out, t, ValidObject(t))
-          case _ => (None, t, None)
+            if v.Seats(0).occupant.contains(player) =>
+            bailProtectStatus = v.BailProtection
+            v.BailProtection = false
+            (out, t, ValidObject(t))
+          case (CollisionIs.OfAircraft, out @ Some(v: Vehicle))
+            if v.Definition.CanFly && v.Seats(0).occupant.contains(player) =>
+            (out, t, ValidObject(t))
+          case _ =>
+            (None, t, None)
         }) match {
           case (None, _, _) => ;
 
-          case (Some(target: PlanetSideGameObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>
-            HandleDealingDamage(
-              target,
-              DamageInteraction(
-                SourceEntry(target),
-                CollisionReason(pv, fallHeight, target.DamageModel),
-                ppos
+          case (Some(target: PlanetSideServerObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>
+            if (!bailProtectStatus) {
+              HandleDealingDamage(
+                target,
+                DamageInteraction(
+                  SourceEntry(target),
+                  CollisionReason(pv, fallHeight, target.DamageModel),
+                  ppos
+                )
               )
-            )
+            }
 
           case (
             Some(target: PlanetSideServerObject with Vitality with FactionAffinity), _,
@@ -5599,14 +5610,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }) {
               val targetSource = SourceEntry(target)
               val victimSource = SourceEntry(victim)
-              HandleDealingDamage(
-                target,
-                DamageInteraction(
-                  targetSource,
-                  CollisionWithReason(CollisionReason(pv - tv, fallHeight, target.DamageModel), victimSource),
-                  ppos
+              if (!bailProtectStatus) {
+                HandleDealingDamage(
+                  target,
+                  DamageInteraction(
+                    targetSource,
+                    CollisionWithReason(CollisionReason(pv - tv, fallHeight, target.DamageModel), victimSource),
+                    ppos
+                  )
                 )
-              )
+              }
               HandleDealingDamage(
                 victim,
                 DamageInteraction(
@@ -7791,10 +7804,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def DismountAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
     val player_guid: PlanetSideGUID = tplayer.GUID
     keepAliveFunc = NormalKeepAlive
-    sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, wasKickedByDriver = false))
+    val bailType = if (tplayer.BailProtection) {
+      BailType.Bailed
+    } else {
+      BailType.Normal
+    }
+    sendResponse(DismountVehicleMsg(player_guid, bailType, wasKickedByDriver = false))
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
-      VehicleAction.DismountVehicle(player_guid, BailType.Normal, false)
+      VehicleAction.DismountVehicle(player_guid, bailType, false)
     )
   }
 
@@ -9269,9 +9287,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   def fallHeightTracker(zHeight: Float): Unit = {
-    if ((heightTrend && heightLast - zHeight <= -0.5f) ||
+    if ((heightTrend && heightLast - zHeight >= 0.5f) ||
         (!heightTrend && zHeight - heightLast >= 0.5f)) {
       heightTrend = !heightTrend
+      if (heightTrend) {
+        GetMountableAndSeat(None, player, continent) match {
+          case (Some(v : Vehicle), _) => v.BailProtection = false
+          case _                      => player.BailProtection = false
+        }
+      }
       heightHistory = zHeight
     }
     heightLast = zHeight

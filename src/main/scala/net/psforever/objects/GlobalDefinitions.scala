@@ -50,7 +50,7 @@ object GlobalDefinitions {
   avatar.MaxDepth = 1.609375f //Male, standing, not MAX
   avatar.UnderwaterLifespan(suffocation = 60000L, recovery = 10000L)
   avatar.collision.xy = CollisionXYData(Array((1.1f, 0), (1.5f, 1), (1.75f, 5), (2f, 10), (2.5f, 25))) //not defined in the ADB
-  avatar.collision.z = CollisionZData(Array((10f, 1), (20f, 10), (40f, 25), (60f, 50), (75f, 100)))
+  avatar.collision.z = CollisionZData(Array((5f, 1), (7f, 10), (10f, 25), (25f, 50), (45f, 100))) //not defined in the ADB
   avatar.maxForwardSpeed = 27f //not in the ADB; running speed
   /*
   exo-suits

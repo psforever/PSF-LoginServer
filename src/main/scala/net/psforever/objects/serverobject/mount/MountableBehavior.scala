@@ -7,6 +7,7 @@ import net.psforever.objects.Player
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.types.BailType
 
 import scala.collection.mutable
 
@@ -82,9 +83,9 @@ trait MountableBehavior {
     * @see `Mountable`
     */
   val dismountBehavior: Receive = {
-    case Mountable.TryDismount(user, seat_number) =>
+    case Mountable.TryDismount(user, seat_number, bail_type) =>
       val obj = MountableObject
-      if (dismountTest(obj, seat_number, user) && tryDismount(obj, seat_number, user)) {
+      if (dismountTest(obj, seat_number, user) && tryDismount(obj, seat_number, user, bail_type)) {
         user.VehicleSeated = None
         obj.Zone.actor ! ZoneActor.AddToBlockMap(user, obj.Position)
         sender() ! Mountable.MountMessages(
@@ -112,11 +113,14 @@ trait MountableBehavior {
   private def tryDismount(
                            obj: Mountable,
                            seatNumber: Int,
-                           user: Player
+                           user: Player,
+                           bailType: BailType.Value
                          ): Boolean = {
     obj.Seats.get(seatNumber) match {
-      case Some(seat) => seat.unmount(user).isEmpty
-      case _ => false
+      case Some(seat) if seat.unmount(user, bailType).isEmpty =>
+        true
+      case _          =>
+        false
     }
   }
 }

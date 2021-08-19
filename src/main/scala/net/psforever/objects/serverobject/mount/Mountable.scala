@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.mount
 
 import akka.actor.ActorRef
 import net.psforever.objects.Player
+import net.psforever.types.BailType
 
 import scala.annotation.tailrec
 
@@ -97,7 +98,11 @@ object Mountable {
     * @param player the player who sent this request message
     * @param seat_num the seat index
     */
-  final case class TryDismount(player: Player, seat_num: Int)
+  final case class TryDismount(player: Player, seat_num: Int, bailType: BailType.Value)
+
+  object TryDismount {
+    def apply(player: Player, seatNum: Int): TryDismount = TryDismount(player, seatNum, BailType.Normal)
+  }
 
   /**
     * A basic `Trait` connecting all of the actionable `Mountable` response messages.
