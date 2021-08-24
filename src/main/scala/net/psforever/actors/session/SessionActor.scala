@@ -3975,10 +3975,38 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           KickedByAdministration()
         }
 
-      case msg @ VehicleSubStateMessage(vehicle_guid, player_guid, vehicle_pos, vehicle_ang, vel, unk1, unk2) =>
-        log.debug(
-          s"VehicleSubState: $vehicle_guid, ${player.Name}_guid, $vehicle_pos, $vehicle_ang, $vel, $unk1, $unk2"
-        )
+      case msg @ VehicleSubStateMessage(vehicle_guid, _, pos, ang, vel, unk1, unk2) =>
+        log.info(s"VehicleSubState: $vehicle_guid, $pos, $ang, $vel, $unk1, $unk2")
+        ValidObject(vehicle_guid) match {
+          case Some(obj: Vehicle) =>
+            obj.Position = pos
+            obj.Orientation = ang
+            obj.Velocity = vel
+            updateBlockMap(obj, continent, pos)
+            obj.zoneInteractions()
+            continent.VehicleEvents ! VehicleServiceMessage(
+              continent.id,
+              VehicleAction.VehicleState(
+                player.GUID,
+                vehicle_guid,
+                unk1,
+                pos,
+                ang,
+                obj.Velocity,
+                obj.Flying,
+                0,
+                0,
+                15,
+                false,
+                obj.Cloaked
+              )
+            )
+
+          case _ =>
+            log.warn(
+              s"VehicleSubState: ${player.Name} should not be dispatching this kind of packet for vehicle #${vehicle_guid.guid}"
+            )
+        }
 
       case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, seq, end, target_guid) =>
         val index = projectile_guid.guid - Projectile.baseUID
@@ -9292,7 +9320,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       heightTrend = !heightTrend
       if (heightTrend) {
         GetMountableAndSeat(None, player, continent) match {
-          case (Some(v : Vehicle), _) => v.BailProtection = false
+          case (Some(v: Vehicle), _) => v.BailProtection = false
           case _                      => player.BailProtection = false
         }
       }
