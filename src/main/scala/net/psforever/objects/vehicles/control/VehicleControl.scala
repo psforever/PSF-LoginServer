@@ -486,11 +486,11 @@ class VehicleControl(vehicle: Vehicle)
       if (obj.VisibleSlots.contains(slot)) zone.id else channel,
       VehicleAction.SendResponse(
         Service.defaultPlayerGUID,
-        ObjectCreateMessage(
+        ObjectCreateDetailedMessage(
           definition.ObjectId,
           iguid,
           ObjectCreateMessageParent(oguid, slot),
-          definition.Packet.ConstructorData(item).get
+          definition.Packet.DetailedConstructorData(item).get
         )
       )
     )
