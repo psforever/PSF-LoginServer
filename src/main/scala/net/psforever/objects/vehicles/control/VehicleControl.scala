@@ -178,10 +178,10 @@ class VehicleControl(vehicle: Vehicle)
               //              (oldWeapons, weapons, afterInventory)
               //TODO for now, just refill ammo; assume weapons stay the same
               vehicle.Weapons
-                .collect { case (_, slot : EquipmentSlot) if slot.Equipment.nonEmpty => slot.Equipment.get }
+                .collect { case (_, slot: EquipmentSlot) if slot.Equipment.nonEmpty => slot.Equipment.get }
                 .collect {
-                  case weapon : Tool =>
-                    weapon.AmmoSlots.foreach { ammo => ammo.Box.Capacity = ammo.Box.Definition.Capacity }
+                  case weapon: Tool =>
+                    weapon.AmmoSlots.foreach { ammo => ammo.Box.Capacity = ammo.MaxMagazine() }
                 }
               (Nil, Nil, afterInventory)
             }
@@ -486,11 +486,11 @@ class VehicleControl(vehicle: Vehicle)
       if (obj.VisibleSlots.contains(slot)) zone.id else channel,
       VehicleAction.SendResponse(
         Service.defaultPlayerGUID,
-        ObjectCreateMessage(
+        ObjectCreateDetailedMessage(
           definition.ObjectId,
           iguid,
           ObjectCreateMessageParent(oguid, slot),
-          definition.Packet.ConstructorData(item).get
+          definition.Packet.DetailedConstructorData(item).get
         )
       )
     )
