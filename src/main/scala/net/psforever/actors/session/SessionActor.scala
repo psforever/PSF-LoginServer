@@ -344,45 +344,53 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   def ValidObject(id: PlanetSideGUID): Option[PlanetSideGameObject] = ValidObject(Some(id))
 
-  def ValidObject(id: Option[PlanetSideGUID]): Option[PlanetSideGameObject] =
-    continent.GUID(id) match {
-      case Some(obj: LocalProjectile) =>
-        FindProjectileEntry(id.get)
+  def ValidObject(id: Option[PlanetSideGUID]): Option[PlanetSideGameObject] = {
+    id match {
+      case Some(guid) =>
+        val hint = oldRefsMap.getOrElse(guid, "thing")
+        continent.GUID(guid) match {
+          case Some(obj : LocalProjectile) =>
+            FindProjectileEntry(guid)
 
-      case Some(_: LocalLockerItem) =>
-        player.avatar.locker.Inventory.hasItem(id.get) match {
-          case out @ Some(_) =>
-            out
-          case None =>
-            //delete stale entity reference from client
-            log.warn(
-              s"ValidObject - ${player.Name} has an invalid GUID ${id.get.guid}, believing it in ${player.Sex.possessive} locker"
+          case Some(_: LocalLockerItem) =>
+            player.avatar.locker.Inventory.hasItem(guid) match {
+              case out @ Some(_) =>
+                out
+              case None =>
+                //delete stale entity reference from client
+                log.warn(
+                  s"ValidObject: ${player.Name} is looking for an invalid GUID $guid, believing it a $hint in ${player.Sex.possessive} locker"
+                )
+                sendResponse(ObjectDeleteMessage(guid, 0))
+                None
+            }
+
+          case Some(obj) if obj.HasGUID && obj.GUID != guid =>
+            log.error(
+              s"ValidObject: ${player.Name} found a ${obj.Definition.Name} that isn't the $hint ${player.Sex.pronounSubject} thought it was in zone ${continent.id}"
             )
-            sendResponse(ObjectDeleteMessage(id.get, 0))
+            log.debug(
+              s"ValidObject: potentially fatal error in ${continent.id} - requested $hint with $guid, got ${obj.Definition.Name} with ${obj.GUID}; mismatch"
+            )
+            None
+
+          case out @ Some(obj) if obj.HasGUID =>
+            out
+
+          case None if !id.contains(PlanetSideGUID(0)) =>
+            //delete stale entity reference from client
+            log.error(s"${player.Name} has an invalid reference to $hint with GUID $guid in zone ${continent.id}")
+            sendResponse(ObjectDeleteMessage(guid, 0))
+            None
+
+          case _ =>
             None
         }
 
-      case Some(obj) if obj.HasGUID && obj.GUID != id.get =>
-        log.error(
-          s"ValidObject: ${player.Name} found an object that isn't the one ${player.Sex.pronounSubject} thought it was in zone ${continent.id}"
-        )
-        log.debug(
-          s"ValidObject: potentially fatal error in ${continent.id} - requested ${id.get}, got ${obj.Definition.Name} with ${obj.GUID}; GUID mismatch"
-        )
-        None
-
-      case out @ Some(obj) if obj.HasGUID =>
-        out
-
-      case None if !id.contains(PlanetSideGUID(0)) =>
-        //delete stale entity reference from client
-        log.error(s"${player.Name} has an invalid reference to GUID ${id.get.guid} in zone ${continent.id}")
-        sendResponse(ObjectDeleteMessage(id.get, 0))
-        None
-
-      case _ =>
+      case None =>
         None
     }
+  }
 
   def receive: Receive = {
     case LookupResult("accountIntermediary", endpoint) =>
@@ -1473,6 +1481,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def UpdatePersistence(persistRef: ActorRef)(): Unit = {
     persistRef ! AccountPersistenceService.Update(player.Name, continent, player.Position)
+    updateOldRefsMap()
   }
 
   /**
@@ -9125,6 +9134,48 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           zone.actor ! ZoneActor.UpdateBlockMap(target, newCoords) //hard update
         }
       case None        => ;
+    }
+  }
+
+  var oldRefsMap: mutable.HashMap[PlanetSideGUID, String] = new mutable.HashMap[PlanetSideGUID, String]()
+  def updateOldRefsMap(): Unit = {
+    oldRefsMap.addAll(
+      (continent.GUID(player.VehicleSeated) match {
+        case Some(v: Vehicle) =>
+          v.Weapons.toList.collect {
+            case (_, slot: EquipmentSlot) if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
+          }.flatten ++
+          updateOldRefsMap(v.Inventory)
+        case _ =>
+          Map.empty[PlanetSideGUID, String]
+      }) ++
+      (accessedContainer match {
+        case Some(cont) => updateOldRefsMap(cont.Inventory)
+        case None => Map.empty[PlanetSideGUID, String]
+      }) ++
+      player.Holsters().toList.collect {
+        case slot if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
+      }.flatten ++
+      updateOldRefsMap(player.Inventory) ++
+      updateOldRefsMap(player.avatar.locker.Inventory)
+    )
+  }
+
+  def updateOldRefsMap(inventory: net.psforever.objects.inventory.GridInventory): IterableOnce[(PlanetSideGUID, String)] = {
+    inventory.Items.flatMap {
+      case InventoryItem(o, _) => updateOldRefsMap(o)
+    }
+  }
+
+  def updateOldRefsMap(item: PlanetSideGameObject): IterableOnce[(PlanetSideGUID, String)] = {
+    item match {
+      case t: Tool =>
+        t.AmmoSlots.map { slot =>
+          val box = slot.Box
+          box.GUID -> box.Definition.Name
+        } :+ (t.GUID -> t.Definition.Name)
+      case _ =>
+        Seq(item.GUID -> item.Definition.Name)
     }
   }
 
