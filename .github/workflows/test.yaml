@@ -33,7 +33,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup Scala
-        uses: olafurpg/setup-scala@v12
+        uses: olafurpg/setup-scala@v13
       - name: Run migrations
         run: sbt "server/run migrate"
       - name: Run build
