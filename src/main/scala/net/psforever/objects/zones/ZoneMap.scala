@@ -5,6 +5,7 @@ import net.psforever.objects.serverobject.environment.PieceOfEnvironment
 import net.psforever.objects.serverobject.structures.FoundationBuilder
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.serverobject.{PlanetSideServerObject, ServerObjectBuilder}
+import net.psforever.types.Vector3
 
 /**
   * The fixed instantiation and relation of a series of server objects.<br>
@@ -129,4 +130,8 @@ class ZoneMap(val name: String) {
     lattice = lattice ++ Set((source, target))
   }
 
+  def areValidCoordinates(coordinates: Vector3): Boolean = {
+    coordinates.x >= 0 && coordinates.x <= scale.width &&
+    coordinates.y >= 0 && coordinates.y <= scale.height
+  }
 }

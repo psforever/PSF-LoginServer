@@ -230,7 +230,7 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
   def move(target: BlockMapEntity, toPosition: Vector3): SectorPopulation = {
     target.blockMapEntry match {
       case Some(entry) => move(target, toPosition, entry.coords, entry.range)
-      case None        => SectorGroup(Nil)
+      case _           => SectorGroup(Nil)
     }
   }
 

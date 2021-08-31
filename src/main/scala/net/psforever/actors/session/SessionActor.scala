@@ -3976,7 +3976,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ VehicleSubStateMessage(vehicle_guid, _, pos, ang, vel, unk1, unk2) =>
-        log.info(s"VehicleSubState: $vehicle_guid, $pos, $ang, $vel, $unk1, $unk2")
+        //log.info(s"msg")
         ValidObject(vehicle_guid) match {
           case Some(obj: Vehicle) =>
             obj.Position = pos
@@ -5587,30 +5587,30 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ GenericCollisionMsg(ctype, p, php, ppos, pv, t, thp, tpos, tv, u1, u2, u3) =>
-        log.info(s"$msg")
+        //log.info(s"$msg")
         val fallHeight = if (heightTrend) {
           heightLast - heightHistory
         } else {
           heightHistory - heightLast
         }
-        var bailProtectStatus: Boolean = false
-        ((ctype, ValidObject(p)) match {
+        val (target1, target2, bailProtectStatus) = (ctype, ValidObject(p)) match {
           case (CollisionIs.OfInfantry, out @ Some(p: Player))
             if p == player =>
-            bailProtectStatus = p.BailProtection
+            val bailStatus = p.BailProtection || player.submergedCondition.contains(OxygenState.Suffocation)
             p.BailProtection = false
-            (out, t, None)
+            (out, None, bailStatus)
           case (CollisionIs.OfGroundVehicle, out @ Some(v: Vehicle))
             if v.Seats(0).occupant.contains(player) =>
-            bailProtectStatus = v.BailProtection
+            val bailStatus = v.BailProtection
             v.BailProtection = false
-            (out, t, ValidObject(t))
+            (out, ValidObject(t), bailStatus)
           case (CollisionIs.OfAircraft, out @ Some(v: Vehicle))
             if v.Definition.CanFly && v.Seats(0).occupant.contains(player) =>
-            (out, t, ValidObject(t))
+            (out, ValidObject(t), false)
           case _ =>
-            (None, t, None)
-        }) match {
+            (None, None, false)
+        }
+        (target1, t, target2) match {
           case (None, _, _) => ;
 
           case (Some(target: PlanetSideServerObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>

@@ -37,8 +37,23 @@ case object HeadonImpact2 extends CollisionWithDamageModifiers.Mod {
     CollisionDamageModifierFunctions.calculateHeadonImpact(damage, data, cause)
 }
 
+/**
+  * When the target collides with something,
+  * if the target is not faction related with the cause,
+  * the target takes multiplied damage.
+  */
+case class CollisionDamageMultiplier(multiplier: Float) extends CollisionWithDamageModifiers.Mod {
+  def calculate(damage: Int, data: DamageInteraction, cause: CollisionWithReason): Int = {
+    if (data.target.Faction != cause.collidedWith.Faction) {
+      (multiplier * damage).toInt
+    } else {
+      damage
+    }
+  }
+}
+
 object CollisionDamageModifierFunctions {
-  def calculateGroundImpact(damage: Int, data: DamageInteraction, cause: CausedByColliding): Int = {
+  private[collision] def calculateGroundImpact(damage: Int, data: DamageInteraction, cause: CausedByColliding): Int = {
     val fall = cause.fall
     if (fall.toInt != 0) {
       val z = data.target.Definition.collision.z
@@ -48,9 +63,9 @@ object CollisionDamageModifierFunctions {
     }
   }
 
-  def calculateHeadonImpact(damage: Int, data: DamageInteraction, cause: CausedByColliding): Int = {
+  private[collision] def calculateHeadonImpact(damage: Int, data: DamageInteraction, cause: CausedByColliding): Int = {
     val vel = Vector3.Magnitude(cause.velocity.xy)
-    if (math.abs(vel) > 0.01f) {
+    if (vel > 0.05f) {
       val definition = data.target.Definition
       val xy = definition.collision.xy
       damage + xy.hp(xy.throttle((vel + 0.5f) / definition.maxForwardSpeed))
@@ -58,5 +73,4 @@ object CollisionDamageModifierFunctions {
       damage
     }
   }
-  //intentionally blank
 }

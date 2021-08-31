@@ -4,7 +4,6 @@ package net.psforever.objects.vital
 class CollisionData() {
   var xy: CollisionXYData = CollisionXYData()
   var z: CollisionZData = CollisionZData()
-  var collisionDamageMultiplier: Float = 1f
 }
 
 class ExosuitCollisionData() {

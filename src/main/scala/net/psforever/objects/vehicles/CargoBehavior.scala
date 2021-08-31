@@ -7,12 +7,20 @@ import net.psforever.objects.zones.Zone
 import net.psforever.objects._
 import net.psforever.objects.vehicles.CargoBehavior.{CheckCargoDismount, CheckCargoMounting}
 import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
-import net.psforever.types.{CargoStatus, PlanetSideGUID, Vector3}
+import net.psforever.types.{BailType, CargoStatus, PlanetSideGUID, Vector3}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
+
+trait IsCargo {
+  _: Vehicle =>
+  /* gate-keep mounting behavior so that unit does not try to dismount as cargo, or mount different vehicle */
+  var isMounting: Option[PlanetSideGUID] = None
+  /* gate-keep dismounting behavior so that unit does not try to mount as cargo, or dismount from different vehicle */
+  var isDismounting: Option[PlanetSideGUID] = None
+}
 
 trait CargoBehavior {
   _: Actor =>
@@ -362,10 +370,10 @@ object CargoBehavior {
     carrier.CargoHolds.find({ case (_, hold) => hold.occupant.contains(cargo) }) match {
       case Some((mountPoint, hold)) =>
         cargo.MountedIn = None
-        hold.unmount(cargo)
+        hold.unmount(cargo, if (bailed) BailType.Bailed else BailType.Normal)
         val driverOpt = cargo.Seats(0).occupant
         val rotation: Vector3 = if (Vehicles.CargoOrientation(cargo) == 1) { //TODO: BFRs will likely also need this set
-          //dismount router "sideways" in a lodestar
+          //dismount router "sideways" from the lodestar
           carrier.Orientation.xy + Vector3.z((carrier.Orientation.z - 90) % 360)
         } else {
           carrier.Orientation

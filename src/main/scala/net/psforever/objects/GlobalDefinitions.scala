@@ -35,6 +35,7 @@ import net.psforever.objects.vital._
 import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideEmpire, Vector3}
 import net.psforever.types._
 import net.psforever.objects.serverobject.llu.{CaptureFlagDefinition, CaptureFlagSocketDefinition}
+import net.psforever.objects.vital.collision.CollisionDamageMultiplier
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -7414,9 +7415,9 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     tank_traps.Geometry = GeometryForm.representByCylinder(radius = 2.89680997f, height = 3.57812f)
-    tank_traps.collision.collisionDamageMultiplier = 10f
     tank_traps.collision.xy = CollisionXYData(Array((0.01f, 5), (0.02f, 10), (0.03f, 15), (0.04f, 20), (0.05f, 25)))
     tank_traps.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
+    tank_traps.Modifiers = CollisionDamageMultiplier(10f)
 
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"

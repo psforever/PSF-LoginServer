@@ -7,7 +7,9 @@ import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.DamageAndResistance
 import net.psforever.types.Vector3
 
-
+/**
+  * Common base for reporting damage for reasons of collisions.
+  */
 trait CausedByColliding
   extends DamageReason {
   def resolution: DamageResolution.Value = DamageResolution.Collision
@@ -21,7 +23,10 @@ trait CausedByColliding
 
 /**
   * A wrapper for a "damage source" in damage calculations that explains a collision.
-  * @param velocity na
+  * @param velocity how fast the target is moving prior to the collision
+  * @param fall ongoing vertical displacement since before the collision
+  * @param damageModel the functionality that is necessary for interaction
+  *                    of a vital game object with the rest of the hostile game world
   */
 final case class CollisionReason(
                                   velocity: Vector3,
@@ -42,9 +47,10 @@ final case class CollisionReason(
 }
 
 /**
-  * A wrapper for a "damage source" in damage calculations that explains a collision.
-  * @param cause na
-  * @param collidedWith na
+  * A wrapper for a "damage source" in damage calculations that augment collision information
+  * by providing information about a qualified target that was struck.
+  * @param cause information about the collision
+  * @param collidedWith information regarding the qualified target that was struck
   */
 final case class CollisionWithReason(
                                       cause: CollisionReason,
@@ -72,7 +78,8 @@ final case class CollisionWithReason(
 }
 
 object CollisionReason {
-  /** The flags for calculating an absence of conventional damage for collision. */
+  /** The flags for calculating an absence of conventional damage for collision.
+    * Damage is considered `Direct`, however, which defines some resistance. */
   val noDamage = new DamageProperties {
     CausesDamageType = DamageType.Direct
   }
