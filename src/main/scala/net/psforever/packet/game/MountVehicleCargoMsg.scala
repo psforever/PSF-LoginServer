@@ -10,7 +10,7 @@ import scodec.codecs._
   * @param player_guid The guid of the player sending the request to board another vehicle with a cargo vehicle
   * @param vehicle_guid The guid of the vehicle for the requesting player
   * @param target_vehicle The cargo vehicle guid e.g. Galaxy / Lodestar
-  * @param unk4
+  * @param unk4 na
   */
 final case class MountVehicleCargoMsg(
     player_guid: PlanetSideGUID,

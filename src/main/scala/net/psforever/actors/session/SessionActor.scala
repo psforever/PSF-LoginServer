@@ -2974,7 +2974,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       cargo: Vehicle,
       mountPoint: Int
   ): (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    val msgs @ (attachMessage, mountPointStatusMessage) = CargoBehavior.CargoMountMessages(carrier, cargo, mountPoint)
+    val msgs @ (attachMessage, mountPointStatusMessage) = CarrierBehavior.CargoMountMessages(carrier, cargo, mountPoint)
     CargoMountMessagesForUs(attachMessage, mountPointStatusMessage)
     msgs
   }
@@ -3341,8 +3341,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         (continent.GUID(cargo_guid), continent.GUID(carrier_guid)) match {
           case (Some(cargo: Vehicle), Some(carrier: Vehicle)) =>
             carrier.CargoHolds.find({ case (_, hold) => !hold.isOccupied }) match {
-              case Some((mountPoint, _)) => //try begin the mount process
-                cargo.Actor ! CargoBehavior.CheckCargoMounting(carrier_guid, mountPoint, 0)
+              case Some((mountPoint, _)) =>
+                cargo.Actor ! CargoBehavior.StartCargoMounting(carrier_guid, mountPoint)
               case _ =>
                 log.warn(
                   s"MountVehicleCargoMsg: ${player.Name} trying to load cargo into a ${carrier.Definition.Name} which oes not have a cargo hold"
@@ -3355,17 +3355,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case _ => ;
         }
 
-      case msg @ DismountVehicleCargoMsg(player_guid, cargo_guid, bailed, requestedByPassenger, kicked) =>
+      case msg @ DismountVehicleCargoMsg(_, cargo_guid, bailed, _, kicked) =>
         log.debug(s"DismountVehicleCargoMsg: $msg")
-        //when kicked by carrier driver, player_guid will be PlanetSideGUID(0)
-        //when exiting of the cargo vehicle driver's own accord, player_guid will be the cargo vehicle driver
         continent.GUID(cargo_guid) match {
-          case Some(cargo: Vehicle) if !requestedByPassenger =>
-            continent.GUID(cargo.MountedIn) match {
-              case Some(carrier: Vehicle) =>
-                CargoBehavior.HandleVehicleCargoDismount(continent, cargo_guid, bailed, requestedByPassenger, kicked)
-              case _ => ;
-            }
+          case Some(cargo: Vehicle) =>
+            cargo.Actor ! CargoBehavior.StartCargoDismounting(bailed || kicked)
           case _ => ;
         }
 
@@ -3638,7 +3632,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case vehicle if vehicle.CargoHolds.nonEmpty =>
             vehicle.CargoHolds.collect {
               case (_index, hold: Cargo) if hold.isOccupied =>
-                CargoBehavior.CargoMountBehaviorForAll(
+                CarrierBehavior.CargoMountBehaviorForAll(
                   vehicle,
                   hold.occupant.get,
                   _index
@@ -6970,7 +6964,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
           carrierInfo match {
             case (Some(carrier), Some((index, _))) =>
-              CargoBehavior.CargoMountBehaviorForOthers(carrier, vehicle, index, player.GUID)
+              CarrierBehavior.CargoMountBehaviorForOthers(carrier, vehicle, index, player.GUID)
             case _ =>
               vehicle.MountedIn = None
           }
@@ -8332,7 +8326,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         log.warn(
           s"LoadZoneInVehicleAsDriver: ${player.Name} must eject cargo in hold $index; vehicle is missing driver"
         )
-        CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
+        cargo.Actor ! CargoBehavior.StartCargoDismounting(bailed = false)
       case entry =>
         val cargo = vehicle.CargoHolds(entry.mount).occupant.get
         continent.VehicleEvents ! VehicleServiceMessage(

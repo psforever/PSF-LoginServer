@@ -7,12 +7,15 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * Note: For some reason this packet does not include the GUID of the vehicle that is being dismounted from. As a workaround vehicle.MountedIn in manually set/removed
-  * @param player_guid // GUID of the player that is rqeuesting dismount
-  * @param vehicle_guid GUID of the vehicle that is requesting dismount
-  * @param bailed If the vehicle bailed out of the cargo vehicle
-  * @param requestedByPassenger If a passenger of the vehicle in the cargo bay requests dismount this bit will be set
-  * @param kicked If the vehicle was kicked by the cargo vehicle pilot
+  * Request dismount of one vehicle (cargo) that is being ferried by another vehicle (carrier).
+  * The carrier has what is called a "cargo bay" which is where the cargo is being stored for ferrying.
+  * @param player_guid GUID of the player that is rqeuesting dismount;
+  *                    when kicked by carrier driver, player_guid will be PlanetSideGUID(0);
+  *                    when exiting of the cargo vehicle driver's own accord, player_guid will be the cargo vehicle driver
+  * @param vehicle_guid GUID of the vehicle that is requesting dismount (cargo)
+  * @param bailed if the cargo vehicle bailed out of the cargo vehicle
+  * @param requestedByPassenger if a passenger of the cargo vehicle requests dismount
+  * @param kicked if the cargo vehicle was kicked by the cargo vehicle pilot
   */
 final case class DismountVehicleCargoMsg(
     player_guid: PlanetSideGUID,

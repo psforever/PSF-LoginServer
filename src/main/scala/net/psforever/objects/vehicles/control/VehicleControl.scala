@@ -18,7 +18,7 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.objects.vehicles.{AccessPermissionGroup, CargoBehavior, Utility, VehicleLockState}
+import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.vital.environment.EnvironmentReason
@@ -51,7 +51,8 @@ class VehicleControl(vehicle: Vehicle)
     with JammableMountedWeapons
     with ContainableBehavior
     with AggravatedBehavior
-    with RespondsToZoneEnvironment {
+    with RespondsToZoneEnvironment
+    with CargoBehavior {
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach { case (_, util) => util.Setup }
 
@@ -68,6 +69,9 @@ class VehicleControl(vehicle: Vehicle)
   def ContainerObject = vehicle
 
   def InteractiveObject = vehicle
+
+  def CargoObject = vehicle
+
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
@@ -102,6 +106,7 @@ class VehicleControl(vehicle: Vehicle)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse(containerBehavior)
     .orElse(environmentBehavior)
+    .orElse(cargoBehavior)
     .orElse {
       case Vehicle.Ownership(None) =>
         LoseOwnership()
@@ -372,13 +377,7 @@ class VehicleControl(vehicle: Vehicle)
     //escape being someone else's cargo
     vehicle.MountedIn match {
       case Some(_) =>
-        CargoBehavior.HandleVehicleCargoDismount(
-          zone,
-          guid,
-          bailed = false,
-          requestedByPassenger = false,
-          kicked = false
-        )
+        startCargoDismounting(bailed = false)
       case _ => ;
     }
     if (!vehicle.isFlying || kickPassengers) {

@@ -7069,7 +7069,7 @@ object GlobalDefinitions {
     lodestar.RepairIfDestroyed = false
     lodestar.MaxShields = 1000
     lodestar.CanFly = true
-    lodestar.Seats += 0         -> new SeatDefinition()
+    lodestar.Seats += 0         -> bailableSeat
     lodestar.MountPoints += 1   -> MountInfo(0)
     lodestar.MountPoints += 2   -> MountInfo(1)
     lodestar.Cargo += 1         -> new CargoDefinition()
