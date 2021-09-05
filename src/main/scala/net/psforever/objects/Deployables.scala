@@ -146,19 +146,30 @@ object Deployables {
     * If the default ammunition mode for the `ConstructionTool` is not supported by the given certifications,
     * find a suitable ammunition mode and switch to it internally.
     * No special complaint is raised if the `ConstructionItem` itself is completely unsupported.
+    * The search function will explore every ammo option for every fire mode option
+    * and will stop when it finds either a valid option or when arrives back at the original fire mode.
     * @param certs the certification baseline being compared against
     * @param obj the `ConstructionItem` entity
-    * @return `true`, if the ammunition mode of the item has been changed;
+    * @return `true`, if the firemode and ammunition mode of the item is valid;
     *        `false`, otherwise
     */
-  def initializeConstructionAmmoMode(
-                                      certs: Set[Certification],
-                                      obj: ConstructionItem
-                                    ): Boolean = {
+  def initializeConstructionItem(
+                                  certs: Set[Certification],
+                                  obj: ConstructionItem
+                                ): Boolean = {
+    val initialFireModeIndex = obj.FireModeIndex
     if (!Deployables.constructionItemPermissionComparison(certs, obj.ModePermissions)) {
-      Deployables.performConstructionItemAmmoChange(certs, obj, obj.AmmoTypeIndex)
+      while (!Deployables.constructionItemPermissionComparison(certs, obj.ModePermissions) &&
+             !Deployables.performConstructionItemAmmoChange(certs, obj, obj.AmmoTypeIndex) &&
+             {
+               obj.NextFireMode
+               initialFireModeIndex != obj.FireModeIndex
+             }) {
+        /* change in fire mode occurs in conditional */
+      }
+      Deployables.constructionItemPermissionComparison(certs, obj.ModePermissions)
     } else {
-      false
+      true
     }
   }
 

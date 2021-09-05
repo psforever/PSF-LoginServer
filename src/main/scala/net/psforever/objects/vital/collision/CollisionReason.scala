@@ -72,9 +72,9 @@ final case class CollisionWithReason(
   override def adversary: Option[SourceEntry] = Some(collidedWith)
 
   override def unstructuredModifiers: List[DamageModifiers.Mod] = List(
-    GroundImpact2,
-    HeadonImpact2
-  )
+    GroundImpactWith,
+    HeadonImpactWithEntity
+  ) ++ collidedWith.Definition.Modifiers
 }
 
 object CollisionReason {

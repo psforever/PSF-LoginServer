@@ -415,7 +415,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               (afterHolsters ++ afterInventory).foreach { entry => entry.obj.Faction = player.Faction }
               afterHolsters.foreach {
                 case InventoryItem(citem: ConstructionItem, _) =>
-                  Deployables.initializeConstructionAmmoMode(player.avatar.certifications, citem)
+                  Deployables.initializeConstructionItem(player.avatar.certifications, citem)
                 case _ => ;
               }
               toDeleteOrDrop.foreach { entry => entry.obj.Faction = PlanetSideEmpire.NEUTRAL }
@@ -1133,7 +1133,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           //can not preserve ammo type in construction tool packets
           citem.resetAmmoTypes()
         }
-        Deployables.initializeConstructionAmmoMode(player.avatar.certifications, citem)
+        Deployables.initializeConstructionItem(player.avatar.certifications, citem)
 
       case _ => ;
     }

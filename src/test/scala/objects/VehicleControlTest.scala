@@ -105,10 +105,11 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
 
   guid.register(vehicle, 1)
   guid.register(lodestar, 2)
-  player1.GUID = PlanetSideGUID(3)
-  var utilityId = 10
+  guid.register(player1, 3)
+  guid.register(player2, 4)
+  var utilityId = 5
   lodestar.Utilities.values.foreach { util =>
-    util().GUID = PlanetSideGUID(utilityId)
+    guid.register(util(), utilityId)
     utilityId += 1
   }
   vehicle.Seats(1).mount(player1) //passenger mount
