@@ -66,7 +66,7 @@ lazy val psforeverSettings = Seq(
     "io.kamon"                   %% "kamon-apm-reporter"         % "2.1.20",
     "org.json4s"                 %% "json4s-native"              % "4.0.3",
     "io.getquill"                %% "quill-jasync-postgres"      % "3.9.0",
-    "org.flywaydb"                % "flyway-core"                % "7.14.1",
+    "org.flywaydb"                % "flyway-core"                % "7.15.0",
     "org.postgresql"              % "postgresql"                 % "42.2.23",
     "com.typesafe"                % "config"                     % "1.4.1",
     "com.github.pureconfig"      %% "pureconfig"                 % "0.16.0",
