@@ -5658,10 +5658,17 @@ object GlobalDefinitions {
     * Initialize `VehicleDefinition` globals.
     */
   private def init_vehicles(): Unit = {
+    init_ground_vehicles()
+    init_flight_vehicles()
+  }
+
+  /**
+    * Initialize land-based `VehicleDefinition` globals.
+    */
+  private def init_ground_vehicles(): Unit = {
     val atvForm       = GeometryForm.representByCylinder(radius = 1.1797f, height = 1.1875f) _
     val delivererForm = GeometryForm.representByCylinder(radius = 2.46095f, height = 2.40626f) _ //TODO hexahedron
     val apcForm       = GeometryForm.representByCylinder(radius = 4.6211f, height = 3.90626f) _  //TODO hexahedron
-    val liberatorForm = GeometryForm.representByCylinder(radius = 3.74615f, height = 2.51563f) _
 
     val bailableSeat = new SeatDefinition() {
       bailable = true
@@ -6723,6 +6730,17 @@ object GlobalDefinitions {
     flail.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 12), (0.5f, 35), (0.75f, 65), (1f, 90)))
     flail.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 350), (39f, 900)))
     flail.maxForwardSpeed = 55f
+  }
+
+  /**
+    * Initialize flight `VehicleDefinition` globals.
+    */
+  private def init_flight_vehicles(): Unit = {
+    val liberatorForm = GeometryForm.representByCylinder(radius = 3.74615f, height = 2.51563f) _
+    val bailableSeat = new SeatDefinition() {
+      bailable = true
+    }
+    val variantConverter = new VariantVehicleConverter
 
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
