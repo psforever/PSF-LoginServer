@@ -71,6 +71,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
   private[this] val log = org.log4s.getLogger(player.Name)
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
+  /** suffocating, or regaining breath? */
+  var submergedCondition: Option[OxygenState] = None
   /** assistance for deployable construction, retention of the construction item */
   var deployablePair: Option[(Deployable, ConstructionItem)] = None
   /** control agency for the player's locker container (dedicated inventory slot #5) */
@@ -1187,11 +1189,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     */
   def doInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     val (effect: Boolean, time: Long, percentage: Float) =
-      RespondsToZoneEnvironment.drowningInWateryConditions(obj, player.submergedCondition, interactionTime)
+      RespondsToZoneEnvironment.drowningInWateryConditions(obj, submergedCondition, interactionTime)
     if (effect) {
       import scala.concurrent.ExecutionContext.Implicits.global
       interactionTime = System.currentTimeMillis() + time
-      player.submergedCondition = Some(OxygenState.Suffocation)
+      submergedCondition = Some(OxygenState.Suffocation)
       interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, Player.Die())
       //inform the player that they are in trouble
       player.Zone.AvatarEvents ! AvatarServiceMessage(
@@ -1284,13 +1286,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     */
   def stopInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     val (effect: Boolean, time: Long, percentage: Float) =
-      RespondsToZoneEnvironment.recoveringFromWateryConditions(obj, player.submergedCondition, interactionTime)
+      RespondsToZoneEnvironment.recoveringFromWateryConditions(obj, submergedCondition, interactionTime)
     if (percentage == 100f) {
       recoverFromEnvironmentInteracting()
     }
     if (effect) {
       import scala.concurrent.ExecutionContext.Implicits.global
-      player.submergedCondition = Some(OxygenState.Recovery)
+      submergedCondition = Some(OxygenState.Recovery)
       interactionTime = System.currentTimeMillis() + time
       interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, RecoveredFromEnvironmentInteraction())
       //inform the player
@@ -1309,7 +1311,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
   override def recoverFromEnvironmentInteracting(): Unit = {
     super.recoverFromEnvironmentInteracting()
-    player.submergedCondition = None
+    submergedCondition = None
   }
 }
 

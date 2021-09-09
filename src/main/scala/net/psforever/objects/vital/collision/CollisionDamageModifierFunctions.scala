@@ -53,7 +53,7 @@ case object HeadonImpactWithEntity extends CollisionWithDamageModifiers.Mod {
     (data.target, cause.collidedWith) match {
       case (_: PlayerSource, v: VehicleSource) =>
         val definition = v.Definition
-        damage + (definition.collision.avatarCollisionDamageMax * (vel + 0.5f) / definition.maxForwardSpeed).toInt
+        damage + (definition.collision.avatarCollisionDamageMax * 0.5f * (vel + 0.5f) / definition.maxForwardSpeed).toInt
       case (a: DeployableSource, b) =>
         val xy = a.Definition.collision.xy
         damage + xy.hp(xy.throttle((vel + 0.5f) / b.Definition.maxForwardSpeed))

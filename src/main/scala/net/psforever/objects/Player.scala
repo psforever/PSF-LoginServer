@@ -63,8 +63,6 @@ class Player(var avatar: Avatar)
   private var zoning: Zoning.Method.Value = Zoning.Method.None
 
   private var vehicleSeated: Option[PlanetSideGUID] = None
-  /** suffocating, or regaining breath, or neither? */
-  var submergedCondition: Option[OxygenState] = None
 
   Continent = "home2" //the zone id
 

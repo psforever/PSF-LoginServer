@@ -17,10 +17,10 @@ trait MountableEntity {
 
   def MountedIn: Option[PlanetSideGUID] = mountedIn
 
-  def MountedIn_=(cargo_vehicle_guid: PlanetSideGUID): Option[PlanetSideGUID] = MountedIn_=(Some(cargo_vehicle_guid))
+  def MountedIn_=(cargo_guid: PlanetSideGUID): Option[PlanetSideGUID] = MountedIn_=(Some(cargo_guid))
 
-  def MountedIn_=(cargo_vehicle_guid: Option[PlanetSideGUID]): Option[PlanetSideGUID] = {
-    mountedIn = cargo_vehicle_guid
+  def MountedIn_=(cargo_guid: Option[PlanetSideGUID]): Option[PlanetSideGUID] = {
+    mountedIn = cargo_guid
     MountedIn
   }
 }

@@ -1590,11 +1590,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     CancelAllProximityUnits()
     //droppod action
     val droppod = Vehicle(GlobalDefinitions.droppod)
+    droppod.GUID = PlanetSideGUID(0)  //droppod is not registered, we must jury-rig this
     droppod.Faction = player.Faction
     droppod.Position = spawnPosition.xy + Vector3.z(1024)
     droppod.Orientation = Vector3.z(180) //you always seems to land looking south; don't know why
     droppod.Seats(0).mount(player)
-    droppod.GUID = PlanetSideGUID(0)  //droppod is not registered, we must jury-rig this
     droppod.Invalidate()              //now, we must short-circuit the jury-rig
     interstellarFerry = Some(droppod) //leverage vehicle gating
     player.Position = droppod.Position
@@ -5590,7 +5590,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val (target1, target2, bailProtectStatus) = (ctype, ValidObject(p)) match {
           case (CollisionIs.OfInfantry, out @ Some(p: Player))
             if p == player =>
-            val bailStatus = p.BailProtection || player.submergedCondition.contains(OxygenState.Suffocation)
+            val bailStatus = session.flying || player.spectator || session.speed > 1f || p.BailProtection
             p.BailProtection = false
             (out, None, bailStatus)
           case (CollisionIs.OfGroundVehicle, out @ Some(v: Vehicle))
@@ -9268,26 +9268,28 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   var oldRefsMap: mutable.HashMap[PlanetSideGUID, String] = new mutable.HashMap[PlanetSideGUID, String]()
   def updateOldRefsMap(): Unit = {
-    oldRefsMap.addAll(
-      (continent.GUID(player.VehicleSeated) match {
-        case Some(v: Vehicle) =>
-          v.Weapons.toList.collect {
-            case (_, slot: EquipmentSlot) if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
-          }.flatten ++
-          updateOldRefsMap(v.Inventory)
-        case _ =>
-          Map.empty[PlanetSideGUID, String]
-      }) ++
-      (accessedContainer match {
-        case Some(cont) => updateOldRefsMap(cont.Inventory)
-        case None => Map.empty[PlanetSideGUID, String]
-      }) ++
-      player.Holsters().toList.collect {
-        case slot if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
-      }.flatten ++
-      updateOldRefsMap(player.Inventory) ++
-      updateOldRefsMap(player.avatar.locker.Inventory)
-    )
+    if(player.HasGUID) {
+      oldRefsMap.addAll(
+        (continent.GUID(player.VehicleSeated) match {
+          case Some(v : Vehicle) =>
+            v.Weapons.toList.collect {
+              case (_, slot : EquipmentSlot) if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
+            }.flatten ++
+            updateOldRefsMap(v.Inventory)
+          case _ =>
+            Map.empty[PlanetSideGUID, String]
+        }) ++
+        (accessedContainer match {
+          case Some(cont) => updateOldRefsMap(cont.Inventory)
+          case None => Map.empty[PlanetSideGUID, String]
+        }) ++
+        player.Holsters().toList.collect {
+          case slot if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
+        }.flatten ++
+        updateOldRefsMap(player.Inventory) ++
+        updateOldRefsMap(player.avatar.locker.Inventory)
+      )
+    }
   }
 
   def updateOldRefsMap(inventory: net.psforever.objects.inventory.GridInventory): IterableOnce[(PlanetSideGUID, String)] = {
@@ -9314,7 +9316,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       heightTrend = !heightTrend
       if (heightTrend) {
         GetMountableAndSeat(None, player, continent) match {
-          case (Some(v: Vehicle), _) => v.BailProtection = false
+          case (Some(v: Vehicle), _)  => v.BailProtection = false
           case _                      => player.BailProtection = false
         }
       }
