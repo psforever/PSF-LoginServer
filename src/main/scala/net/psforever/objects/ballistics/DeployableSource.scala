@@ -11,7 +11,7 @@ final case class DeployableSource(
     faction: PlanetSideEmpire.Value,
     health: Int,
     shields: Int,
-    ownerName: String,
+    owner: SourceEntry,
     position: Vector3,
     orientation: Vector3
 ) extends SourceEntry {
@@ -20,7 +20,7 @@ final case class DeployableSource(
   def Definition: ObjectDefinition with DeployableDefinition = obj_def
   def Health                                                     = health
   def Shields                                                    = shields
-  def OwnerName                                                  = ownerName
+  def OwnerName                                                  = owner.Name
   def Position                                                   = position
   def Orientation                                                = orientation
   def Velocity                                                   = None
@@ -29,12 +29,19 @@ final case class DeployableSource(
 
 object DeployableSource {
   def apply(obj: Deployable): DeployableSource = {
+    val ownerName = obj.OwnerName
+    val ownerSource = (obj.Zone.LivePlayers ++ obj.Zone.Corpses)
+      .find { p => ownerName.contains(p.Name) }
+    match {
+      case Some(p) => SourceEntry(p)
+      case _ => SourceEntry.None
+    }
     DeployableSource(
       obj.Definition,
       obj.Faction,
       obj.Health,
       obj.Shields,
-      obj.OwnerName.getOrElse(""),
+      ownerSource,
       obj.Position,
       obj.Orientation
     )

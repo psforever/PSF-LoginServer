@@ -29,6 +29,7 @@ class ExoSuitDefinition(private val suitType: ExoSuitType.Value)
   protected var capacitorRechargeDelayMillis: Int    = 0
   protected var capacitorRechargePerSecond: Int      = 0
   protected var capacitorDrainPerSecond: Int         = 0
+  val collision: ExosuitCollisionData                = new ExosuitCollisionData()
   Name = "exo-suit"
   DamageUsing = DamageCalculations.AgainstExoSuit
   ResistUsing = StandardInfantryResistance

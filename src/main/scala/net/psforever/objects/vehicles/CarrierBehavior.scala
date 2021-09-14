@@ -115,6 +115,11 @@ trait CarrierBehavior {
               kicked = false
             )
           case _ =>
+            obj.CargoHold(mountPoint) match {
+              case Some(hold) if hold.isOccupied && hold.occupant.get.GUID == cargo_guid =>
+                hold.unmount(hold.occupant.get)
+              case _ => ;
+            }
             false
         }
       } else {

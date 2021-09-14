@@ -50,8 +50,8 @@ object GlobalDefinitions {
   avatar.DrownAtMaxDepth = true
   avatar.MaxDepth = 1.609375f //Male, standing, not MAX
   avatar.UnderwaterLifespan(suffocation = 60000L, recovery = 10000L)
-  avatar.collision.xy = CollisionXYData(Array((0.1f, 1), (0.2f, 10), (0.50f, 20), (0.75f, 35), (1f, 50))) //not defined in the ADB
-  avatar.collision.z = CollisionZData(Array((5f, 1), (7f, 10), (10f, 25), (25f, 50), (45f, 100))) //not defined in the ADB
+  avatar.collision.xy = CollisionXYData(Array((0f, 0), (0.1f, 1), (0.2f, 5), (0.50f, 15), (0.75f, 20), (1f, 30))) //not defined in the ADB
+  avatar.collision.z = CollisionZData(Array((0f, 0), (5f, 1), (10f, 10), (20f, 25), (45f, 30), (60f, 40), (75f, 60))) //not defined in the ADB
   avatar.maxForwardSpeed = 27f //not in the ADB; running speed
   /*
   exo-suits
@@ -1710,6 +1710,8 @@ object GlobalDefinitions {
     Standard.ResistanceDirectHit = 4
     Standard.ResistanceSplash = 15
     Standard.ResistanceAggravated = 8
+    Standard.collision.forceFactor = 1.5f
+    Standard.collision.massFactor = 2f
 
     Agile.Name = "lite_armor"
     Agile.Descriptor = "agile"
@@ -1723,6 +1725,8 @@ object GlobalDefinitions {
     Agile.ResistanceDirectHit = 6
     Agile.ResistanceSplash = 25
     Agile.ResistanceAggravated = 10
+    Agile.collision.forceFactor = 1.5f
+    Agile.collision.massFactor = 2f
 
     Reinforced.Name = "med_armor"
     Reinforced.Descriptor = "reinforced"
@@ -1738,6 +1742,8 @@ object GlobalDefinitions {
     Reinforced.ResistanceDirectHit = 10
     Reinforced.ResistanceSplash = 35
     Reinforced.ResistanceAggravated = 12
+    Reinforced.collision.forceFactor = 2f
+    Reinforced.collision.massFactor = 3f
 
     Infiltration.Name = "infiltration_suit"
     Infiltration.Permissions = List(Certification.InfiltrationSuit)
@@ -1758,6 +1764,8 @@ object GlobalDefinitions {
       max.ResistanceDirectHit = 6
       max.ResistanceSplash = 35
       max.ResistanceAggravated = 10
+      max.collision.forceFactor = 4f
+      max.collision.massFactor = 10f
       max.DamageUsing = DamageCalculations.AgainstMaxSuit
       max.Model = MaxResolutions.calculate
     }
@@ -5711,6 +5719,7 @@ object GlobalDefinitions {
     fury.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
     fury.collision.z = CollisionZData(Array((8f, 1), (24f, 35), (40f, 100), (48f, 175), (52f, 350)))
     fury.maxForwardSpeed = 90f
+    fury.mass = 32.1f
 
     quadassault.Name = "quadassault" // Basilisk
     quadassault.MaxHealth = 650
@@ -5746,6 +5755,7 @@ object GlobalDefinitions {
     quadassault.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
     quadassault.collision.z = CollisionZData(Array((8f, 1), (24f, 35), (40f, 100), (48f, 175), (52f, 350)))
     quadassault.maxForwardSpeed = 90f
+    quadassault.mass = 32.1f
 
     quadstealth.Name = "quadstealth" // Wraith
     quadstealth.MaxHealth = 650
@@ -5781,6 +5791,7 @@ object GlobalDefinitions {
     quadstealth.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
     quadstealth.collision.z = CollisionZData(Array((8f, 1), (24f, 35), (40f, 100), (48f, 175), (52f, 350)))
     quadstealth.maxForwardSpeed = 90f
+    quadstealth.mass = 32.1f
 
     two_man_assault_buggy.Name = "two_man_assault_buggy" // Harasser
     two_man_assault_buggy.MaxHealth = 1250
@@ -5817,6 +5828,7 @@ object GlobalDefinitions {
     two_man_assault_buggy.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
     two_man_assault_buggy.collision.z = CollisionZData(Array((7f, 1), (21f, 50), (35f, 150), (42f, 300), (45.5f, 600)))
     two_man_assault_buggy.maxForwardSpeed = 85f
+    two_man_assault_buggy.mass = 52.4f
 
     skyguard.Name = "skyguard"
     skyguard.MaxHealth = 1000
@@ -5854,6 +5866,7 @@ object GlobalDefinitions {
     skyguard.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
     skyguard.collision.z = CollisionZData(Array((7f, 1), (21f, 50), (35f, 150), (42f, 300), (45.4f, 600)))
     skyguard.maxForwardSpeed = 90f
+    skyguard.mass = 78.9f
 
     threemanheavybuggy.Name = "threemanheavybuggy" // Marauder
     threemanheavybuggy.MaxHealth = 1700
@@ -5895,6 +5908,7 @@ object GlobalDefinitions {
     threemanheavybuggy.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 15), (0.5f, 30), (0.75f, 60), (1f, 80)))
     threemanheavybuggy.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 900)))
     threemanheavybuggy.maxForwardSpeed = 80f
+    threemanheavybuggy.mass = 96.3f
 
     twomanheavybuggy.Name = "twomanheavybuggy" // Enforcer
     twomanheavybuggy.MaxHealth = 1800
@@ -5932,6 +5946,7 @@ object GlobalDefinitions {
     twomanheavybuggy.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 12), (0.5f, 30), (0.75f, 55), (1f, 80)))
     twomanheavybuggy.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 900)))
     twomanheavybuggy.maxForwardSpeed = 80f
+    twomanheavybuggy.mass = 83.2f
 
     twomanhoverbuggy.Name = "twomanhoverbuggy" // Thresher
     twomanhoverbuggy.MaxHealth = 1600
@@ -5971,6 +5986,7 @@ object GlobalDefinitions {
     twomanhoverbuggy.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 13), (0.5f, 35), (0.75f, 65), (1f, 90)))
     twomanhoverbuggy.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 900)))
     twomanhoverbuggy.maxForwardSpeed = 85f
+    twomanhoverbuggy.mass = 55.5f
 
     mediumtransport.Name = "mediumtransport" // Deliverer
     mediumtransport.MaxHealth = 2500
@@ -6018,6 +6034,7 @@ object GlobalDefinitions {
     mediumtransport.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 35), (0.5f, 60), (0.75f, 110), (1f, 175)))
     mediumtransport.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000)))
     mediumtransport.maxForwardSpeed = 70f
+    mediumtransport.mass = 108.5f
 
     battlewagon.Name = "battlewagon" // Raider
     battlewagon.MaxHealth = 2500
@@ -6068,6 +6085,7 @@ object GlobalDefinitions {
     battlewagon.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 35), (0.5f, 60), (0.75f, 110), (1f, 175))) //inherited from mediumtransport
     battlewagon.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000))) //inherited from mediumtransport
     battlewagon.maxForwardSpeed = 65f
+    battlewagon.mass = 108.5f
 
     thunderer.Name = "thunderer"
     thunderer.MaxHealth = 2500
@@ -6115,6 +6133,7 @@ object GlobalDefinitions {
     thunderer.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 35), (0.5f, 60), (0.75f, 110), (1f, 175)))
     thunderer.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000)))
     thunderer.maxForwardSpeed = 65f
+    thunderer.mass = 108.5f
 
     aurora.Name = "aurora"
     aurora.MaxHealth = 2500
@@ -6162,6 +6181,7 @@ object GlobalDefinitions {
     aurora.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 35), (0.5f, 60), (0.75f, 110), (1f, 175)))
     aurora.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000)))
     aurora.maxForwardSpeed = 65f
+    aurora.mass = 108.5f
 
     apc_tr.Name = "apc_tr" // Juggernaut
     apc_tr.MaxHealth = 6000
@@ -6229,6 +6249,7 @@ object GlobalDefinitions {
     apc_tr.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
     apc_tr.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
     apc_tr.maxForwardSpeed = 60f
+    apc_tr.mass = 128.4f
 
     apc_nc.Name = "apc_nc" // Vindicator
     apc_nc.MaxHealth = 6000
@@ -6296,6 +6317,7 @@ object GlobalDefinitions {
     apc_nc.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
     apc_nc.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
     apc_nc.maxForwardSpeed = 60f
+    apc_nc.mass = 128.4f
 
     apc_vs.Name = "apc_vs" // Leviathan
     apc_vs.MaxHealth = 6000
@@ -6363,6 +6385,7 @@ object GlobalDefinitions {
     apc_vs.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
     apc_vs.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
     apc_vs.maxForwardSpeed = 60f
+    apc_vs.mass = 128.4f
 
     lightning.Name = "lightning"
     lightning.MaxHealth = 2000
@@ -6401,6 +6424,7 @@ object GlobalDefinitions {
     lightning.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 25), (0.75f, 50), (1f, 80)))
     lightning.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 750)))
     lightning.maxForwardSpeed = 75f
+    lightning.mass = 100.2f
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
@@ -6444,6 +6468,7 @@ object GlobalDefinitions {
     prowler.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 15), (0.5f, 40), (0.75f, 75), (1f, 100)))
     prowler.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 250), (30f, 600), (32.5f, 1500)))
     prowler.maxForwardSpeed = 57f
+    prowler.mass = 510.5f
 
     vanguard.Name = "vanguard"
     vanguard.MaxHealth = 5400
@@ -6483,6 +6508,7 @@ object GlobalDefinitions {
     vanguard.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 5), (0.5f, 20), (0.75f, 40), (1f, 60)))
     vanguard.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 100), (30f, 250), (32.5f, 600)))
     vanguard.maxForwardSpeed = 60f
+    vanguard.mass = 460.4f
 
     magrider.Name = "magrider"
     magrider.MaxHealth = 4200
@@ -6524,6 +6550,7 @@ object GlobalDefinitions {
     magrider.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 35), (0.5f, 70), (0.75f, 90), (1f, 120)))
     magrider.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 250), (30f, 600), (32.5f, 1500)))
     magrider.maxForwardSpeed = 65f
+    magrider.mass = 75.3f
 
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
@@ -6563,6 +6590,7 @@ object GlobalDefinitions {
     ant.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 30), (0.75f, 50), (1f, 70)))
     ant.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 250), (12f, 500), (13f, 750)))
     ant.maxForwardSpeed = 65f
+    ant.mass = 80.5f
 
     ams.Name = "ams"
     ams.MaxHealth = 3000
@@ -6605,6 +6633,7 @@ object GlobalDefinitions {
     ams.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 60), (1f, 100)))
     ams.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 250), (12f, 805), (13f, 3000)))
     ams.maxForwardSpeed = 70f
+    ams.mass = 136.8f
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
@@ -6646,6 +6675,7 @@ object GlobalDefinitions {
     router.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 13), (0.5f, 35), (0.75f, 65), (1f, 90)))
     router.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 350), (39f, 900)))
     router.maxForwardSpeed = 60f
+    router.mass = 60f
 
     switchblade.Name = "switchblade"
     switchblade.MaxHealth = 1750
@@ -6690,6 +6720,7 @@ object GlobalDefinitions {
     switchblade.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 13), (0.5f, 35), (0.75f, 65), (1f, 90)))
     switchblade.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 350), (39f, 800)))
     switchblade.maxForwardSpeed = 80f
+    switchblade.mass = 63.9f
 
     flail.Name = "flail"
     flail.MaxHealth = 2400
@@ -6730,6 +6761,7 @@ object GlobalDefinitions {
     flail.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 12), (0.5f, 35), (0.75f, 65), (1f, 90)))
     flail.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 350), (39f, 900)))
     flail.maxForwardSpeed = 55f
+    flail.mass = 73.5f
   }
 
   /**
@@ -6778,6 +6810,7 @@ object GlobalDefinitions {
     mosquito.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 50), (0.5f, 100), (0.75f, 150), (1f, 200)))
     mosquito.collision.z = CollisionZData(Array((3f, 1), (9f, 25), (15f, 50), (18f, 75), (19.5f, 100)))
     mosquito.maxForwardSpeed = 120f
+    mosquito.mass = 53.6f
 
     lightgunship.Name = "lightgunship" // Reaver
     lightgunship.MaxHealth = 855 // Temporary - Correct Reaver Health from pre-"Coder Madness 2" Event
@@ -6816,6 +6849,7 @@ object GlobalDefinitions {
     lightgunship.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 60), (0.5f, 120), (0.75f, 180), (1f, 250)))
     lightgunship.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
     lightgunship.maxForwardSpeed = 105f
+    lightgunship.mass = 51.1f
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
@@ -6853,6 +6887,7 @@ object GlobalDefinitions {
     wasp.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 50), (0.5f, 100), (0.75f, 150), (1f, 200))) //mosquito numbers
     wasp.collision.z = CollisionZData(Array((3f, 1), (9f, 25), (15f, 50), (18f, 75), (19.5f, 100))) //mosquito numbers
     wasp.maxForwardSpeed = 120f
+    wasp.mass = 53.6f
 
     liberator.Name = "liberator"
     liberator.MaxHealth = 2500
@@ -6861,7 +6896,7 @@ object GlobalDefinitions {
     liberator.RepairIfDestroyed = false
     liberator.MaxShields = 500
     liberator.CanFly = true
-    liberator.Seats += 0             -> new SeatDefinition()
+    liberator.Seats += 0             -> bailableSeat //new SeatDefinition()
     liberator.Seats += 1             -> bailableSeat
     liberator.Seats += 2             -> bailableSeat
     liberator.controlledWeapons += 0 -> 3
@@ -6899,6 +6934,7 @@ object GlobalDefinitions {
     liberator.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 60), (0.5f, 120), (0.75f, 180), (1f, 250)))
     liberator.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
     liberator.maxForwardSpeed = 90f
+    liberator.mass = 82f
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
@@ -6907,7 +6943,7 @@ object GlobalDefinitions {
     vulture.RepairIfDestroyed = false
     vulture.MaxShields = 500
     vulture.CanFly = true
-    vulture.Seats += 0             -> new SeatDefinition()
+    vulture.Seats += 0             -> bailableSeat //new SeatDefinition()
     vulture.Seats += 1             -> bailableSeat
     vulture.Seats += 2             -> bailableSeat
     vulture.controlledWeapons += 0 -> 3
@@ -6946,6 +6982,7 @@ object GlobalDefinitions {
     vulture.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 60), (0.5f, 120), (0.75f, 180), (1f, 250)))
     vulture.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
     vulture.maxForwardSpeed = 97f
+    vulture.mass = 82f
 
     dropship.Name = "dropship" // Galaxy
     dropship.MaxHealth = 5000
@@ -6955,7 +6992,7 @@ object GlobalDefinitions {
     dropship.RepairIfDestroyed = false
     dropship.MaxShields = 1000
     dropship.CanFly = true
-    dropship.Seats += 0 -> new SeatDefinition()
+    dropship.Seats += 0 -> bailableSeat //new SeatDefinition()
     dropship.Seats += 1 -> bailableSeat
     dropship.Seats += 2 -> bailableSeat
     dropship.Seats += 3 -> bailableSeat
@@ -7020,6 +7057,7 @@ object GlobalDefinitions {
     dropship.collision.xy = CollisionXYData(Array((0.1f, 5), (0.25f, 125), (0.5f, 250), (0.75f, 500), (1f, 1000)))
     dropship.collision.z = CollisionZData(Array((3f, 5), (9f, 125), (15f, 250), (18f, 500), (19.5f, 1000)))
     dropship.maxForwardSpeed = 80f
+    dropship.mass = 133f
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
@@ -7029,7 +7067,7 @@ object GlobalDefinitions {
     galaxy_gunship.RepairIfDestroyed = false
     galaxy_gunship.MaxShields = 1200
     galaxy_gunship.CanFly = true
-    galaxy_gunship.Seats += 0             -> new SeatDefinition()
+    galaxy_gunship.Seats += 0             -> bailableSeat //new SeatDefinition()
     galaxy_gunship.Seats += 1             -> bailableSeat
     galaxy_gunship.Seats += 2             -> bailableSeat
     galaxy_gunship.Seats += 3             -> bailableSeat
@@ -7078,6 +7116,7 @@ object GlobalDefinitions {
     galaxy_gunship.collision.xy = CollisionXYData(Array((0.1f, 5), (0.25f, 125), (0.5f, 250), (0.75f, 500), (1f, 1000)))
     galaxy_gunship.collision.z = CollisionZData(Array((3f, 5), (9f, 125), (15f, 250), (18f, 500), (19.5f, 1000)))
     galaxy_gunship.maxForwardSpeed = 85f
+    galaxy_gunship.mass = 133f
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
@@ -7122,6 +7161,7 @@ object GlobalDefinitions {
     lodestar.Geometry = GeometryForm.representByCylinder(radius = 7.8671f, height = 6.79688f) //TODO hexahedron
     lodestar.collision.z = CollisionZData(Array((3f, 5), (9f, 125), (15f, 250), (18f, 500), (19.5f, 1000)))
     lodestar.maxForwardSpeed = 80f
+    lodestar.mass = 128.2f
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500
@@ -7165,6 +7205,7 @@ object GlobalDefinitions {
     phantasm.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 60), (0.5f, 120), (0.75f, 180), (1f, 250)))
     phantasm.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
     phantasm.maxForwardSpeed = 140f
+    phantasm.mass = 100f
 
     droppod.Name = "droppod"
     droppod.MaxHealth = 20000
@@ -7181,6 +7222,7 @@ object GlobalDefinitions {
     droppod.DestroyedModel = None //the adb calls out a droppod; the cyclic nature of this confounds me
     droppod.DamageUsing = DamageCalculations.AgainstAircraft
     droppod.DrownAtMaxDepth = false
+    droppod.mass = 2500f
 
     orbital_shuttle.Name = "orbital_shuttle"
     orbital_shuttle.MaxHealth = 20000
@@ -7213,6 +7255,7 @@ object GlobalDefinitions {
     orbital_shuttle.DestroyedModel = None
     orbital_shuttle.DamageUsing = DamageCalculations.AgainstNothing
     orbital_shuttle.DrownAtMaxDepth = false
+    orbital_shuttle.mass = 25000f
   }
 
   /**
@@ -7341,6 +7384,7 @@ object GlobalDefinitions {
     spitfire_turret.Geometry = smallTurret
     spitfire_turret.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
     spitfire_turret.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
+    spitfire_turret.mass = 5f
 
     spitfire_cloaked.Name = "spitfire_cloaked"
     spitfire_cloaked.Descriptor = "CloakingSpitfires"
@@ -7367,6 +7411,7 @@ object GlobalDefinitions {
     spitfire_cloaked.Geometry = smallTurret
     spitfire_cloaked.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
     spitfire_cloaked.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
+    spitfire_cloaked.mass = 5f
 
     spitfire_aa.Name = "spitfire_aa"
     spitfire_aa.Descriptor = "FlakSpitfires"
@@ -7393,6 +7438,7 @@ object GlobalDefinitions {
     spitfire_aa.Geometry = smallTurret
     spitfire_aa.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
     spitfire_aa.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
+    spitfire_aa.mass = 5f
 
     motionalarmsensor.Name = "motionalarmsensor"
     motionalarmsensor.Descriptor = "MotionSensors"
@@ -7436,6 +7482,7 @@ object GlobalDefinitions {
     tank_traps.collision.xy = CollisionXYData(Array((0.01f, 5), (0.02f, 10), (0.03f, 15), (0.04f, 20), (0.05f, 25)))
     tank_traps.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
     tank_traps.Modifiers = TrapCollisionDamageMultiplier(5f) //10f
+    tank_traps.mass = 600f
 
     val fieldTurretConverter = new FieldTurretConverter
     portable_manned_turret.Name = "portable_manned_turret"
@@ -7468,6 +7515,7 @@ object GlobalDefinitions {
     portable_manned_turret.Geometry = largeTurret
     portable_manned_turret.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
     portable_manned_turret.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
+    portable_manned_turret.mass = 100f
 
     portable_manned_turret_nc.Name = "portable_manned_turret_nc"
     portable_manned_turret_nc.Descriptor = "FieldTurrets"
@@ -7499,6 +7547,7 @@ object GlobalDefinitions {
     portable_manned_turret_nc.Geometry = largeTurret
     portable_manned_turret_nc.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
     portable_manned_turret_nc.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
+    portable_manned_turret_nc.mass = 100f
 
     portable_manned_turret_tr.Name = "portable_manned_turret_tr"
     portable_manned_turret_tr.Descriptor = "FieldTurrets"
@@ -7530,6 +7579,7 @@ object GlobalDefinitions {
     portable_manned_turret_tr.Geometry = largeTurret
     portable_manned_turret_tr.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
     portable_manned_turret_tr.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
+    portable_manned_turret_tr.mass = 100f
 
     portable_manned_turret_vs.Name = "portable_manned_turret_vs"
     portable_manned_turret_vs.Descriptor = "FieldTurrets"
@@ -7561,6 +7611,7 @@ object GlobalDefinitions {
     portable_manned_turret_vs.Geometry = largeTurret
     portable_manned_turret_vs.collision.xy = CollisionXYData(Array((0.01f, 10), (0.02f, 40), (0.03f, 60), (0.04f, 80), (0.05f, 100)))
     portable_manned_turret_vs.collision.z = CollisionZData(Array((4f, 10), (4.25f, 40), (4.5f, 60), (4.75f, 80), (5f, 100)))
+    portable_manned_turret_vs.mass = 100f
 
     deployable_shield_generator.Name = "deployable_shield_generator"
     deployable_shield_generator.Descriptor = "ShieldGenerators"

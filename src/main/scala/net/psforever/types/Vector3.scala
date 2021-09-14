@@ -40,6 +40,18 @@ final case class Vector3(x: Float, y: Float, z: Float) {
   }
 
   /**
+    * Operator for vector scaling, treating `Vector3` objects as actual mathematical vectors.
+    * The application of this overload is "vector / scalar" exclusively.
+    * "scalar / vector" is invalid.
+    * Due to rounding, may not be perfectly equivalent to "vector * ( 1 / scalar )".
+    * @param scalar the value to divide this vector
+    * @return a new `Vector3` object
+    */
+  def /(scalar: Float): Vector3 = {
+    Vector3(x / scalar, y / scalar, z / scalar)
+  }
+
+  /**
     * Operator for returning the ground-planar coordinates
     * and ignoring the perpendicular distance from the world floor.
     * The application of this definition is "vector.xy" or "vector xy."

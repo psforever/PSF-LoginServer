@@ -14,6 +14,22 @@ trait CargoBehavior {
 
   def CargoObject: Vehicle
 
+  def endAllCargoOperations(): Unit = {
+    val obj = CargoObject
+    val zone = obj.Zone
+    zone.GUID(isMounting) match {
+      case Some(v : Vehicle) => v.Actor ! CargoBehavior.EndCargoMounting(obj.GUID)
+      case _ => ;
+    }
+    isMounting = None
+    zone.GUID(isDismounting) match {
+      case Some(v: Vehicle) => v.Actor ! CargoBehavior.EndCargoDismounting(obj.GUID)
+      case _ => ;
+    }
+    isDismounting = None
+    startCargoDismounting(bailed = false)
+  }
+
   val cargoBehavior: Receive = {
     case CargoBehavior.StartCargoMounting(carrier_guid, mountPoint) =>
       startCargoMounting(carrier_guid, mountPoint)
@@ -58,9 +74,11 @@ trait CargoBehavior {
             carrier.Actor ! CarrierBehavior.CheckCargoDismount(obj.GUID, mountPoint, 0, bailed)
 
           case _ =>
+            obj.MountedIn = None
             isDismounting = None
         }
       case _ =>
+        obj.MountedIn = None
         isDismounting = None
     }
   }

@@ -170,4 +170,6 @@ trait VitalityDefinition extends DamageModifiers {
   }
 
   val collision: CollisionData = new CollisionData()
+
+  var mass: Float = 1f
 }

@@ -55,6 +55,7 @@ trait MountableSpace[A <: MountableEntity] {
     target match {
       case Some(p) if testToMount(p) =>
         _occupant = target
+        p.BailProtection = false
         target
       case _ =>
         occupant

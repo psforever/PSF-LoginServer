@@ -5587,66 +5587,85 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         } else {
           heightHistory - heightLast
         }
-        val (target1, target2, bailProtectStatus) = (ctype, ValidObject(p)) match {
-          case (CollisionIs.OfInfantry, out @ Some(p: Player))
-            if p == player =>
-            val bailStatus = session.flying || player.spectator || session.speed > 1f || p.BailProtection
-            p.BailProtection = false
-            (out, None, bailStatus)
+        val (target1, target2, bailProtectStatus, velocity) = (ctype, ValidObject(p)) match {
+          case (CollisionIs.OfInfantry, out @ Some(user: Player))
+            if user == player =>
+            val bailStatus = session.flying || player.spectator || session.speed > 1f || player.BailProtection
+            player.BailProtection = false
+            val v = if (player.avatar.implants.exists {
+              case Some(implant) => implant.definition.implantType == ImplantType.Surge && implant.active
+              case _ => false
+            }) {
+              Vector3.Zero
+            } else {
+              pv
+            }
+            (out, None, bailStatus, v)
           case (CollisionIs.OfGroundVehicle, out @ Some(v: Vehicle))
             if v.Seats(0).occupant.contains(player) =>
             val bailStatus = v.BailProtection
             v.BailProtection = false
-            (out, ValidObject(t), bailStatus)
+            (out, ValidObject(t), bailStatus, pv)
           case (CollisionIs.OfAircraft, out @ Some(v: Vehicle))
             if v.Definition.CanFly && v.Seats(0).occupant.contains(player) =>
-            (out, ValidObject(t), false)
+            (out, ValidObject(t), false, pv)
           case _ =>
-            (None, None, false)
+            (None, None, false, Vector3.Zero)
         }
+        val curr = System.currentTimeMillis()
         (target1, t, target2) match {
           case (None, _, _) => ;
 
           case (Some(target: PlanetSideServerObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>
-            if (!bailProtectStatus) {
-              HandleDealingDamage(
-                target,
-                DamageInteraction(
-                  SourceEntry(target),
-                  CollisionReason(pv, fallHeight, target.DamageModel),
-                  ppos
+            if (collisionHistory.get(target.Actor) match {
+              case Some(lastCollision) if curr - lastCollision <= 1000L =>
+                false
+              case _ =>
+                collisionHistory.put(target.Actor, curr)
+                true
+            }) {
+              if (!bailProtectStatus) {
+                HandleDealingDamage(
+                  target,
+                  DamageInteraction(
+                    SourceEntry(target),
+                    CollisionReason(velocity, fallHeight, target.DamageModel),
+                    ppos
+                  )
                 )
-              )
+              }
             }
 
           case (
-            Some(target: PlanetSideServerObject with Vitality with FactionAffinity), _,
-            Some(victim: PlanetSideServerObject with Vitality with FactionAffinity)) =>
-            val curr = System.currentTimeMillis()
+            Some(us: PlanetSideServerObject with Vitality with FactionAffinity), _,
+            Some(victim: PlanetSideServerObject with Vitality with FactionAffinity)
+            ) =>
             if (collisionHistory.get(victim.Actor) match {
-              case Some(lastCollision) if curr - lastCollision <= 500L =>
+              case Some(lastCollision) if curr - lastCollision <= 1000L =>
                 false
               case _ =>
                 collisionHistory.put(victim.Actor, curr)
                 true
             }) {
-              val targetSource = SourceEntry(target)
+              val usSource = SourceEntry(us)
               val victimSource = SourceEntry(victim)
+              //we take damage from the collision
               if (!bailProtectStatus) {
                 HandleDealingDamage(
-                  target,
+                  us,
                   DamageInteraction(
-                    targetSource,
-                    CollisionWithReason(CollisionReason(pv - tv, fallHeight, target.DamageModel), victimSource),
+                    usSource,
+                    CollisionWithReason(CollisionReason(velocity - tv, fallHeight, us.DamageModel), victimSource),
                     ppos
                   )
                 )
               }
+              //victim gets dealt damage from the collision (no protection)
               HandleDealingDamage(
                 victim,
                 DamageInteraction(
                   victimSource,
-                  CollisionWithReason(CollisionReason(tv - pv, 0, victim.DamageModel), targetSource),
+                  CollisionWithReason(CollisionReason(tv - velocity, 0, victim.DamageModel), usSource),
                   tpos
                 )
               )
@@ -9314,12 +9333,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if ((heightTrend && heightLast - zHeight >= 0.5f) ||
         (!heightTrend && zHeight - heightLast >= 0.5f)) {
       heightTrend = !heightTrend
-      if (heightTrend) {
-        GetMountableAndSeat(None, player, continent) match {
-          case (Some(v: Vehicle), _)  => v.BailProtection = false
-          case _                      => player.BailProtection = false
-        }
-      }
+//      if (heightTrend) {
+//        GetMountableAndSeat(None, player, continent) match {
+//          case (Some(v: Vehicle), _)  => v.BailProtection = false
+//          case _                      => player.BailProtection = false
+//        }
+//      }
       heightHistory = zHeight
     }
     heightLast = zHeight

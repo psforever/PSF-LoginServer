@@ -98,6 +98,7 @@ class VehicleControl(vehicle: Vehicle)
       util().Actor = Default.Actor
     }
     recoverFromEnvironmentInteracting()
+    endAllCargoOperations()
   }
 
   def commonEnabledBehavior: Receive = checkBehavior

@@ -2,6 +2,7 @@
 package net.psforever.objects.vital.collision
 
 import net.psforever.objects.ballistics.{DeployableSource, PlayerSource, VehicleSource}
+import net.psforever.objects.definition.ExoSuitDefinition
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.types.Vector3
 
@@ -51,16 +52,51 @@ case object HeadonImpactWithEntity extends CollisionWithDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: CollisionWithReason): Int = {
     val vel = Vector3.Magnitude(cause.velocity.xy)
     (data.target, cause.collidedWith) match {
-      case (_: PlayerSource, v: VehicleSource) =>
+      case (p: PlayerSource, v: VehicleSource) =>
+        //player hit by vehicle; compromise between momentum-force-damage and velocity-damage
+        //the math here isn't perfect; 3D vector-velocity is being used in 1D momentum equations
         val definition = v.Definition
-        damage + (definition.collision.avatarCollisionDamageMax * 0.5f * (vel + 0.5f) / definition.maxForwardSpeed).toInt
+        val suit = ExoSuitDefinition.Select(p.ExoSuit, p.Faction).collision
+        val pmass = suit.massFactor
+        val pForceFactor = suit.forceFactor
+        val vmass = definition.mass
+        val maxAvtrDam = definition.collision.avatarCollisionDamageMax
+        val maxForwardSpeed = definition.maxForwardSpeed
+        val collisionTime = 1.5f //a drawn-out inelastic collision
+        val pvel = p.Velocity.getOrElse(Vector3.Zero)
+        val vvel = v.Velocity.getOrElse(Vector3.Zero)
+        val velCntrMass = (pvel * pmass + vvel * vmass) / (pmass + vmass) //velocity of the center of mass
+        val pvelFin = Vector3.neg(pvel - velCntrMass) + velCntrMass
+        val damp = math.min(pmass * Vector3.Magnitude(pvelFin - pvel) / (pForceFactor * collisionTime), maxAvtrDam.toFloat)
+        val damc = maxAvtrDam * 0.5f * (vel + 0.5f) / maxForwardSpeed
+        damage + (if (damp > damc) {
+          if (damp - damc > damc) {
+            damp - damc
+          } else {
+            damp
+          }
+        } else {
+          if (damc - damp > damp) {
+            damc - damp
+          } else {
+            damc
+          }
+        }).toInt
+
       case (a: DeployableSource, b) =>
+        //deployable hit by vehicle; anything but an OHKO will cause visual desync, but still should calculate
         val xy = a.Definition.collision.xy
         damage + xy.hp(xy.throttle((vel + 0.5f) / b.Definition.maxForwardSpeed))
-      case (a, b) if vel > 0.05f =>
+      case (_, b: VehicleSource) if vel > 0.05f =>
+        //(usually) vehicle hit by another vehicle; exchange damages results
         val xy = b.Definition.collision.xy
+        damage + xy.hp(xy.throttle((vel + 0.5f) / b.Definition.maxForwardSpeed))
+      case (a, _) if vel > 0.05f =>
+        //something hit by something
+        val xy = a.Definition.collision.xy
         damage + xy.hp(xy.throttle((vel + 0.5f) / a.Definition.maxForwardSpeed))
       case _ =>
+        //moving too slowly
         damage
     }
   }

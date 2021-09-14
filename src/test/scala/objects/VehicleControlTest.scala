@@ -14,7 +14,7 @@ import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.VehicleLockState
-import net.psforever.objects.vehicles.control.VehicleControl
+import net.psforever.objects.vehicles.control.{CargoCarrierControl, VehicleControl}
 import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game._
@@ -96,10 +96,10 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
 
   val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
   vehicle.Faction = PlanetSideEmpire.TR
-  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test-cargo")
   vehicle.Zone = zone
   val lodestar = Vehicle(GlobalDefinitions.lodestar)
   lodestar.Faction = PlanetSideEmpire.TR
+  lodestar.Zone = zone
   val player1 = Player(VehicleTest.avatar1) //name="test1"
   val player2 = Player(VehicleTest.avatar2) //name="test2"
 
@@ -107,6 +107,8 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
   guid.register(lodestar, 2)
   guid.register(player1, 3)
   guid.register(player2, 4)
+  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-test-cargo")
+  lodestar.Actor = system.actorOf(Props(classOf[CargoCarrierControl], lodestar), "vehicle-test-carrier")
   var utilityId = 5
   lodestar.Utilities.values.foreach { util =>
     guid.register(util(), utilityId)
@@ -125,15 +127,20 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
 
   "VehicleControl" should {
     "if mounted as cargo, self-eject when marked for deconstruction" in {
+      assert(player1.VehicleSeated.nonEmpty)
+      assert(vehicle.Seats(1).occupant.nonEmpty)
+      assert(vehicle.MountedIn.nonEmpty)
+      assert(lodestar.CargoHolds(1).isOccupied)
       vehicle.Actor ! Vehicle.Deconstruct()
 
       val vehicle_msg = vehicleProbe.receiveN(6, 500 milliseconds)
       //dismounting as cargo messages
+      //TODO: does not actually kick out the cargo, but instigates the process
       assert(
         vehicle_msg.head match {
           case VehicleServiceMessage(
-          _,
-          VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))
+          "test",
+          VehicleAction.KickPassenger(PlanetSideGUID(3), 4, false, PlanetSideGUID(1))
           ) =>
             true
           case _ => false
@@ -143,7 +150,7 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
         vehicle_msg(1) match {
           case VehicleServiceMessage(
           _,
-          VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))
+          VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))
           ) =>
             true
           case _ => false
@@ -151,6 +158,16 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
       )
       assert(
         vehicle_msg(2) match {
+          case VehicleServiceMessage(
+          _,
+          VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))
+          ) =>
+            true
+          case _ => false
+        }
+      )
+      assert(
+        vehicle_msg(3) match {
           case VehicleServiceMessage(
           "test",
           VehicleAction.SendResponse(
@@ -163,7 +180,7 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
         }
       )
       assert(
-        vehicle_msg(3) match {
+        vehicle_msg(4) match {
           case VehicleServiceMessage(
           "test",
           VehicleAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))
@@ -173,7 +190,7 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
         }
       )
       assert(
-        vehicle_msg(4) match {
+        vehicle_msg(5) match {
           case VehicleServiceMessage(
           "test",
           VehicleAction.SendResponse(
@@ -185,20 +202,10 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
           case _ => false
         }
       )
-      //dismounting as cargo messages
-      //TODO: does not actually kick out the cargo, but instigates the process
-      assert(
-        vehicle_msg(5) match {
-          case VehicleServiceMessage(
-          "test",
-          VehicleAction.KickPassenger(PlanetSideGUID(3), 4, false, PlanetSideGUID(1))
-          ) =>
-            true
-          case _ => false
-        }
-      )
       assert(player1.VehicleSeated.isEmpty)
       assert(vehicle.Seats(1).occupant.isEmpty)
+      assert(vehicle.MountedIn.isEmpty)
+      assert(!lodestar.CargoHolds(1).isOccupied)
     }
   }
 }

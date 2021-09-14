@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.collision
 
-import net.psforever.objects.ballistics.SourceEntry
+import net.psforever.objects.ballistics.{DeployableSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.base.{DamageModifiers, DamageReason, DamageResolution, DamageType}
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.DamageAndResistance
@@ -69,7 +69,22 @@ final case class CollisionWithReason(
 
   def damageModel: DamageAndResistance = cause.damageModel
 
-  override def adversary: Option[SourceEntry] = Some(collidedWith)
+  override def adversary: Option[SourceEntry] = {
+    collidedWith match {
+      case v: VehicleSource =>
+        v.occupants.head match {
+          case SourceEntry.None => Some(collidedWith)
+          case e => Some(e)
+        }
+      case d: DeployableSource =>
+        d.owner match {
+          case SourceEntry.None => Some(collidedWith)
+          case e => Some(e)
+        }
+      case _ =>
+        Some(collidedWith)
+    }
+  }
 
   override def unstructuredModifiers: List[DamageModifiers.Mod] = List(
     GroundImpactWith,

@@ -14,6 +14,7 @@ final case class VehicleSource(
     position: Vector3,
     orientation: Vector3,
     velocity: Option[Vector3],
+    occupants: List[SourceEntry],
     modifiers: ResistanceProfile
 ) extends SourceEntry {
   override def Name                 = SourceEntry.NameFormat(obj_def.Name)
@@ -37,6 +38,12 @@ object VehicleSource {
       obj.Position,
       obj.Orientation,
       obj.Velocity,
+      obj.Seats.values.map { seat =>
+        seat.occupant match {
+          case Some(p) => PlayerSource(p)
+          case _ => SourceEntry.None
+        }
+      }.toList,
       obj.Definition.asInstanceOf[ResistanceProfile]
     )
   }
