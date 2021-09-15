@@ -90,6 +90,8 @@ final case class CollisionWithReason(
     GroundImpactWith,
     HeadonImpactWithEntity
   ) ++ collidedWith.Definition.Modifiers
+
+  override def attribution : Int = collidedWith.Definition.ObjectId
 }
 
 object CollisionReason {
