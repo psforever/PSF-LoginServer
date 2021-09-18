@@ -1,51 +1,17 @@
-// Copyright (c) 2017 PSForever
+// Copyright (c) 2021 PSForever
 package net.psforever.packet.game.objectcreate
 
+import net.psforever.types.PlanetSideGUID
 import net.psforever.packet.{Marshallable, PacketHelpers}
-import scodec.Attempt.{Failure, Successful}
+import scodec.Attempt.Successful
 import scodec.{Attempt, Codec, Err}
-import shapeless.HNil
+import shapeless.HNil //note: do not import shapeless.:: here; it messes up List's :: functionality
 import scodec.codecs._
-import net.psforever.types.{DriveState, PlanetSideGUID}
 
 import scala.collection.mutable.ListBuffer
 
 /**
-  * An `Enumeration` of the various formats that known structures that the stream of bits for `VehicleData` can assume.
-  */
-object VehicleFormat extends Enumeration {
-  type Type = Value
-
-  val Battleframe, Normal, Utility, Variant = Value
-}
-
-/**
-  * A basic `Trait` connecting all of the vehicle data formats (excepting `Normal`/`None`).
-  */
-sealed abstract class SpecificVehicleData(val format: VehicleFormat.Value) extends StreamBitSize
-
-/**
-  * The format of vehicle data for the type of vehicles that are considered "utility."
-  * The vehicles in this category are two:
-  * the advanced nanite transport, and
-  * the advanced mobile station.
-  * @param unk na
-  */
-final case class UtilityVehicleData(unk: Int) extends SpecificVehicleData(VehicleFormat.Utility) {
-  override def bitsize: Long = 6L
-}
-
-/**
-  * A common format variant of vehicle data.
-  * This category includes all flying vehicles and the ancient cavern vehicles.
-  * @param unk na
-  */
-final case class VariantVehicleData(unk: Int) extends SpecificVehicleData(VehicleFormat.Variant) {
-  override def bitsize: Long = 8L
-}
-
-/**
-  * A representation of a generic vehicle.
+  * A representation of a battle frame robotics vehicle.
   * @param pos where the vehicle is and how it is oriented in the game world
   * @param data common vehicle field data:<br>
   *             -bops - this vehicle belongs to the Black Ops, regardless of the faction field;
@@ -54,121 +20,47 @@ final case class VariantVehicleData(unk: Int) extends SpecificVehicleData(Vehicl
   *              health should be less than 3/255, or 0%<br>
   *             -jammered - vehicles will not be jammered by setting this field<br>
   *             -player_guid the vehicle's (official) owner;
-  *              a living player in the game world on the same continent as the vehicle who may mount the driver mount
-  * @param unk3 na
+  *              a living player in the game world on the same continent as the vehicle who may mount the driver seat
   * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
-  * @param unk4 na
   * @param no_mount_points do not display entry points for the seats
   * @param driveState a representation for the current mobility state;
   *                   various vehicles also use this field to indicate "deployment," e.g., the advanced mobile spawn
-  * @param unk5 na
-  * @param unk6 na
-  * @param cloak if a vehicle (that can cloak) is cloaked
-  * @param vehicle_format_data extra information necessary to implement special-type vehicles;
-  *                            see `vehicle_type`
   * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included;
   *                  will also include trunk contents;
-  *                  the driver is the only valid mount entry (more will cause the access permissions to act up)
-  * @param vehicle_type a modifier for parsing the vehicle data format differently;
-  *                     see `vehicle_format_data`;
-  *                     defaults to `Normal`
+  *                  the driver is the only valid seat entry (more will cause the access permissions to act up)
   */
-final case class VehicleData(
-    pos: PlacementData,
-    data: CommonFieldData,
-    unk3: Boolean,
-    health: Int,
-    unk4: Boolean,
-    no_mount_points: Boolean,
-    driveState: DriveState.Value,
-    unk5: Boolean,
-    unk6: Boolean,
-    cloak: Boolean,
-    vehicle_format_data: Option[SpecificVehicleData],
-    inventory: Option[InventoryData] = None
-)(val vehicle_type: VehicleFormat.Value = VehicleFormat.Normal)
-    extends ConstructorData {
+final case class BattleFrameRoboticsData(
+                                          pos: PlacementData,
+                                          data: CommonFieldData,
+                                          health: Int,
+                                          shield: Int,
+                                          unk1: Int,
+                                          unk2: Boolean,
+                                          no_mount_points: Boolean,
+                                          driveState: Int,
+                                          proper_anim: Boolean,
+                                          unk3: Int,
+                                          show_bfr_shield: Boolean,
+                                          unk4: Option[Boolean],
+                                          inventory: Option[InventoryData] = None
+                                        ) extends ConstructorData {
   override def bitsize: Long = {
-    //factor guard bool values into the base size, not its corresponding optional field
-    val posSize: Long  = pos.bitsize
+    val posSize: Long = pos.bitsize
     val dataSize: Long = data.bitsize
-    val extraBitsSize: Long = if (vehicle_format_data.isDefined) { vehicle_format_data.get.bitsize }
-    else { 0L }
-    val inventorySize = if (inventory.isDefined) { inventory.get.bitsize }
-    else { 0L }
-    23L + posSize + dataSize + extraBitsSize + inventorySize
+    val unk4Size = unk4 match {
+      case Some(_) => 1L
+      case None => 0L
+    }
+    val inventorySize = inventory match {
+      case Some(inv) => inv.bitsize
+      case None => 0L
+    }
+    49L + posSize + dataSize + unk4Size + inventorySize
   }
 }
 
-object VehicleData extends Marshallable[VehicleData] {
-
-  /**
-    * Overloaded constructor for specifically handling `Normal` vehicle format.
-    * @param basic a field that encompasses some data used by the vehicle, including `faction` and `owner`
-    * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
-    * @param driveState a representation for the current mobility state
-    * @param cloak if a vehicle (that can cloak) is cloaked
-    * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included
-    */
-  def apply(
-      pos: PlacementData,
-      basic: CommonFieldData,
-      health: Int,
-      driveState: DriveState.Value,
-      cloak: Boolean,
-      inventory: Option[InventoryData]
-  ): VehicleData = {
-    VehicleData(pos, basic, false, health, false, false, driveState, false, false, cloak, None, inventory)(
-      VehicleFormat.Normal
-    )
-  }
-
-  /**
-    * Overloaded constructor for specifically handling `Utility` vehicle format.
-    * @param basic a field that encompasses some data used by the vehicle, including `faction` and `owner`
-    * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
-    * @param driveState a representation for the current mobility state
-    * @param cloak if a vehicle (that can cloak) is cloaked
-    * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included
-    */
-  def apply(
-      pos: PlacementData,
-      basic: CommonFieldData,
-      health: Int,
-      driveState: DriveState.Value,
-      cloak: Boolean,
-      format: UtilityVehicleData,
-      inventory: Option[InventoryData]
-  ): VehicleData = {
-    VehicleData(pos, basic, false, health, false, false, driveState, false, false, cloak, Some(format), inventory)(
-      VehicleFormat.Utility
-    )
-  }
-
-  /**
-    * Overloaded constructor for specifically handling `Variant` vehicle format.
-    * @param basic a field that encompasses some data used by the vehicle, including `faction` and `owner`
-    * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
-    * @param driveState a representation for the current mobility state
-    * @param cloak if a vehicle (that can cloak) is cloaked
-    * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included
-    */
-  def apply(
-      pos: PlacementData,
-      basic: CommonFieldData,
-      health: Int,
-      driveState: DriveState.Value,
-      cloak: Boolean,
-      format: VariantVehicleData,
-      inventory: Option[InventoryData]
-  ): VehicleData = {
-    VehicleData(pos, basic, false, health, false, false, driveState, false, false, cloak, Some(format), inventory)(
-      VehicleFormat.Variant
-    )
-  }
-
+object BattleFrameRoboticsData extends Marshallable[BattleFrameRoboticsData] {
   import net.psforever.packet.game.objectcreate.{PlayerData => Player_Data}
-
   /**
     * Constructor that ignores the coordinate information
     * and performs a vehicle-unique calculation of the padding value.
@@ -183,16 +75,15 @@ object VehicleData extends Marshallable[VehicleData] {
     * @return a `PlayerData` object
     */
   def PlayerData(
-      basic_appearance: Int => CharacterAppearanceData,
-      character_data: (Boolean, Boolean) => CharacterData,
-      inventory: InventoryData,
-      drawn_slot: DrawnSlot.Type,
-      accumulative: Long
-  ): Player_Data = {
+                  basic_appearance: Int=>CharacterAppearanceData,
+                  character_data: (Boolean,Boolean) => CharacterData,
+                  inventory: InventoryData,
+                  drawn_slot: DrawnSlot.Type,
+                  accumulative: Long
+                ): Player_Data = {
     val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
     Player_Data(None, appearance, character_data(appearance.b.backpack, true), Some(inventory), drawn_slot)(false)
   }
-
   /**
     * Constructor for `PlayerData` that ignores the coordinate information and the inventory
     * and performs a vehicle-unique calculation of the padding value.
@@ -206,117 +97,85 @@ object VehicleData extends Marshallable[VehicleData] {
     * @return a `PlayerData` object
     */
   def PlayerData(
-      basic_appearance: Int => CharacterAppearanceData,
-      character_data: (Boolean, Boolean) => CharacterData,
-      drawn_slot: DrawnSlot.Type,
-      accumulative: Long
-  ): Player_Data = {
+                  basic_appearance: Int=>CharacterAppearanceData,
+                  character_data: (Boolean,Boolean) => CharacterData,
+                  drawn_slot: DrawnSlot.Type,
+                  accumulative: Long
+                ): Player_Data = {
     val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
     Player_Data.apply(None, appearance, character_data(appearance.b.backpack, true), None, drawn_slot)(false)
   }
 
-  private val driveState8u = uint8.xmap[DriveState.Value](
-    n => DriveState(n),
-    n => n.id
-  )
+  //  private val driveState8u = uint8.xmap[DriveState.Value] (
+  //    n => DriveState(n),
+  //    n => n.id
+  //  )
 
-  /**
-    * `Codec` for the "utility" format.
-    */
-  private val utility_data_codec: Codec[SpecificVehicleData] = {
-    import shapeless.::
-    uintL(6).hlist.exmap[SpecificVehicleData](
-      {
-        case n :: HNil =>
-          Successful(UtilityVehicleData(n).asInstanceOf[SpecificVehicleData])
-      },
-      {
-        case UtilityVehicleData(n) =>
-          Successful(n :: HNil)
-        case _ =>
-          Failure(Err("wrong kind of vehicle data object (wants 'Utility')"))
-      }
-    )
-  }
-
-  /**
-    * `Codec` for the "variant" format.
-    */
-  private val variant_data_codec: Codec[SpecificVehicleData] = {
-    import shapeless.::
-    uint8L.hlist.exmap[SpecificVehicleData](
-      {
-        case n :: HNil =>
-          Successful(VariantVehicleData(n).asInstanceOf[SpecificVehicleData])
-      },
-      {
-        case VariantVehicleData(n) =>
-          Successful(n :: HNil)
-        case _ =>
-          Failure(Err("wrong kind of vehicle data object (wants 'Variant')"))
-      }
-    )
-  }
-
-  /**
-    * Select an appropriate `Codec` in response to the requested stream format
-    * @param vehicleFormat the requested format
-    * @return the appropriate `Codec` for parsing that format
-    */
-  private def selectFormatReader(vehicleFormat: VehicleFormat.Value): Codec[SpecificVehicleData] =
-    vehicleFormat match {
-      case VehicleFormat.Utility =>
-        utility_data_codec
-      case VehicleFormat.Variant =>
-        variant_data_codec
-      case _ =>
-        Failure(Err(s"$vehicleFormat is not a valid vehicle format for parsing data"))
-          .asInstanceOf[Codec[SpecificVehicleData]]
-    }
-
-  def codec(vehicle_type: VehicleFormat.Value): Codec[VehicleData] = {
+  implicit val codec : Codec[BattleFrameRoboticsData] = {
     import shapeless.::
     (
       ("pos" | PlacementData.codec) >>:~ { pos =>
-        ("data" | CommonFieldData.codec2(false)) ::
-          ("unk3" | bool) ::
-          ("health" | uint8L) ::
-          ("unk4" | bool) :: //usually 0
-          ("no_mount_points" | bool) ::
-          ("driveState" | driveState8u) :: //used for deploy state
-          ("unk5" | bool) ::               //unknown but generally false; can cause stream misalignment if set when unexpectedly
-          ("unk6" | bool) ::
-          ("cloak" | bool) :: //cloak as wraith, phantasm
-          conditional(
-            vehicle_type != VehicleFormat.Normal,
-            "vehicle_format_data" | selectFormatReader(vehicle_type)
-          ) :: //padding?
-          optional(
-            bool,
-            "inventory" | custom_inventory_codec(InitialStreamLengthToSeatEntries(pos.vel.isDefined, vehicle_type))
-          )
+        ("data" | CommonFieldData.codec(false)) ::
+        ("health" | uint8L) ::
+        ("shield" | uint8L) ::
+        ("unk1" | uint16) :: //usually 0
+        ("unk2" | bool) ::
+        ("no_mount_points" | bool) ::
+        ("driveState" | uint8L) :: //used for deploy state
+        ("proper_anim" | bool) :: //when unflagged, bfr stands, even if unmanned
+        ("unk3" | uint4) ::
+        ("show_bfr_shield" | bool) ::
+        optional(bool, target = "inventory" | custom_inventory_codec(InitialStreamLengthToSeatEntries(pos.vel.isDefined)))
       }
-    ).exmap[VehicleData](
+      ).exmap[BattleFrameRoboticsData] (
       {
-        case pos :: data :: u3 :: health :: u4 :: no_mount :: driveState :: u5 :: u6 :: cloak :: format :: inv :: HNil =>
-          Attempt.successful(
-            new VehicleData(pos, data, u3, health, u4, no_mount, driveState, u5, u6, cloak, format, inv)(vehicle_type)
-          )
+        case pos :: data :: health :: shield :: 0 :: u2 :: no_mount :: drive :: proper_anim :: u3 :: show_bfr_shield :: inv :: HNil =>
+          Attempt.successful(BattleFrameRoboticsData(pos, data, health, shield, 0, u2, no_mount, drive, proper_anim, u3, show_bfr_shield, None, inv))
 
         case data =>
-          Attempt.failure(Err(s"invalid vehicle data format - $data"))
+          Attempt.failure(Err(s"decoding invalid battleframe data - $data"))
       },
       {
-        case obj @ VehicleData(pos, data, u3, health, u4, no_mount, driveState, u5, u6, cloak, format, inv) =>
-          if (obj.vehicle_type == VehicleFormat.Normal && format.nonEmpty) {
-            Attempt.failure(Err("invalid vehicle data format; variable bits not expected"))
-          } else if (obj.vehicle_type != VehicleFormat.Normal && format.isEmpty) {
-            Attempt.failure(Err(s"invalid vehicle data format; variable bits for ${obj.vehicle_type} expected"))
-          } else {
-            Attempt.successful(
-              pos :: data :: u3 :: health :: u4 :: no_mount :: driveState :: u5 :: u6 :: cloak :: format :: inv :: HNil
-            )
-          }
+        case obj @ BattleFrameRoboticsData(pos, data, health, shield, 0, u2, no_mount, drive, proper_anim, u3, show_bfr_shield, None, inv) =>
+          Attempt.successful(pos :: data :: health :: shield :: 0 :: u2 :: no_mount :: drive :: proper_anim :: u3 :: show_bfr_shield :: inv :: HNil)
+
+        case data =>
+          Attempt.failure(Err(s"encoding invalid battleframe data - $data"))
+      }
+    )
+  }
+
+  val codec_flight: Codec[BattleFrameRoboticsData] = {
+    import shapeless.::
+    (
+      ("pos" | PlacementData.codec) >>:~ { pos =>
+        ("data" | CommonFieldData.codec(extra = false)) ::
+        ("health" | uint8L) ::
+        ("shield" | uint8L) ::
+        ("unk1" | uint16) :: //usually 0
+        ("unk2" | bool) ::
+        ("no_mount_points" | bool) ::
+        ("driveState" | uint8L) :: //used for deploy state
+        ("proper_anim" | bool) :: //when unflagged, bfr stands, even if unmanned
+        ("unk3" | uint4) ::
+        ("show_bfr_shield" | bool) ::
+        ("unk4" | bool) ::
+        optional(bool, target = "inventory" | custom_inventory_codec(InitialStreamLengthToSeatEntries(pos.vel.isDefined)))
+      }
+      ).exmap[BattleFrameRoboticsData] (
+      {
+        case pos :: data :: health :: shield :: 0 :: u2 :: no_mount :: drive :: proper_anim :: u3 :: show_bfr_shield :: unk4 :: inv :: HNil =>
+          Attempt.successful(BattleFrameRoboticsData(pos, data, health, shield, 0, u2, no_mount, drive, proper_anim, u3, show_bfr_shield, Some(unk4), inv))
+
+        case data =>
+          Attempt.failure(Err(s"decoding invalid battleframe data - $data"))
+      },
+      {
+        case obj @ BattleFrameRoboticsData(pos, data, health, shield, 0, u2, no_mount, drive, proper_anim, u3, show_bfr_shield, Some(unk4), inv) =>
+          Attempt.successful(pos :: data :: health :: shield :: 0 :: u2 :: no_mount :: drive :: proper_anim :: u3 :: show_bfr_shield :: unk4 :: inv :: HNil)
+
+        case data =>
+          Attempt.failure(Err(s"encoding invalid battleframe data - $data"))
       }
     )
   }
@@ -332,18 +191,10 @@ object VehicleData extends Marshallable[VehicleData] {
     * and the first three fields of the `InternalSlot`.
     * @see `ObjectCreateMessage`
     * @param hasVelocity the presence of a velocity field - `vel` - in the `PlacementData` object for this vehicle
-    * @param format the `Codec` subtype for this vehicle
     * @return the length of the bitstream
     */
-  def InitialStreamLengthToSeatEntries(hasVelocity: Boolean, format: VehicleFormat.Type): Long = {
-    198 +
-      (if (hasVelocity) { 42 }
-       else { 0 }) +
-      (format match {
-        case VehicleFormat.Utility => 6
-        case VehicleFormat.Variant => 8
-        case _                     => 0
-      })
+  def InitialStreamLengthToSeatEntries(hasVelocity: Boolean): Long = {
+    198 + (if(hasVelocity) { 42 } else { 0 })
   }
 
   /**
@@ -356,7 +207,7 @@ object VehicleData extends Marshallable[VehicleData] {
   def CumulativeSeatedPlayerNamePadding(base: Long, next: Option[StreamBitSize]): Int = {
     CumulativeSeatedPlayerNamePadding(base + (next match {
       case Some(o) => o.bitsize
-      case None    => 0
+      case None => 0
     }))
   }
 
@@ -392,8 +243,8 @@ object VehicleData extends Marshallable[VehicleData] {
     * the entries are temporarily formatted into a linked list before being put back into a normal `List`.<br>
     * <br>
     * 6 June 2018:<br>
-    * Due to curious behavior in the vehicle mount access controls,
-    * please only encode and decode the driver mount even though all seats are currently reachable.
+    * Due to curious behavior in the vehicle seat access controls,
+    * please only encode and decode the driver seat even though all seats are currently reachable.
     * @param length the distance in bits to the first inventory entry
     * @return a `Codec` that translates `InventoryData`
     */
@@ -402,14 +253,14 @@ object VehicleData extends Marshallable[VehicleData] {
     (
       uint8 >>:~ { size =>
         uint2 ::
-          (inventory_seat_codec(
-            length,                                   //length of stream until current mount
-            CumulativeSeatedPlayerNamePadding(length) //calculated offset of name field in next mount
-          ) >>:~ { seats =>
+        (inventory_seat_codec(
+          length, //length of stream until current seat
+          CumulativeSeatedPlayerNamePadding(length) //calculated offset of name field in next seat
+        ) >>:~ { seats =>
           PacketHelpers.listOfNSized(size - countSeats(seats), InternalSlot.codec).hlist
-        })
+         })
       }
-    ).xmap[InventoryData](
+      ).xmap[InventoryData] (
       {
         case _ :: _ :: None :: inv :: HNil =>
           InventoryData(inv)
@@ -444,23 +295,20 @@ object VehicleData extends Marshallable[VehicleData] {
   private def inventory_seat_codec(length: Long, offset: Int): Codec[Option[InventorySeat]] = {
     import shapeless.::
     (
-      PacketHelpers.peek(uintL(11)) >>:~ { objClass =>
+      PacketHelpers.peek(uintL(bits = 11)) >>:~ { objClass =>
         conditional(objClass == ObjectClass.avatar, seat_codec(offset)) >>:~ { seat =>
-          conditional(
-            objClass == ObjectClass.avatar,
-            inventory_seat_codec(
-              { //length of stream until next mount
-                length + (seat match {
-                  case Some(o) => o.bitsize
-                  case None    => 0
-                })
-              },
-              CumulativeSeatedPlayerNamePadding(length, seat) //calculated offset of name field in next mount
-            )
-          ).hlist
+          conditional(objClass == ObjectClass.avatar, inventory_seat_codec(
+            { //length of stream until next seat
+              length + (seat match {
+                case Some(o) => o.bitsize
+                case None => 0
+              })
+            },
+            CumulativeSeatedPlayerNamePadding(length, seat) //calculated offset of name field in next seat
+          )).hlist
         }
       }
-    ).exmap[Option[InventorySeat]](
+      ).exmap[Option[InventorySeat]] (
       {
         case _ :: None :: None :: HNil =>
           Successful(None)
@@ -486,20 +334,20 @@ object VehicleData extends Marshallable[VehicleData] {
     * The operation performed by this `Codec` is very similar to `InternalSlot.codec`.
     * @param pad the padding offset for the player's name;
     *            0-7 bits;
-    *            this padding value must recalculate for each represented mount
-    * @see `CharacterAppearanceData`<br>
-    *       `VehicleData.InitialStreamLengthToSeatEntries`<br>
-    *       `CumulativeSeatedPlayerNamePadding`
+    *            this padding value must recalculate for each represented seat
+    * @see `CharacterAppearanceData`
+    * @see `VehicleData.InitialStreamLengthToSeatEntries`
+    * @see `CumulativeSeatedPlayerNamePadding`
     * @return a `Codec` that translates `PlayerData`
     */
   private def seat_codec(pad: Int): Codec[InternalSlot] = {
     import shapeless.::
     (
-      ("objectClass" | uintL(11)) ::
-        ("guid" | PlanetSideGUID.codec) ::
-        ("parentSlot" | PacketHelpers.encodedStringSize) ::
-        ("obj" | Player_Data.codec(pad))
-    ).xmap[InternalSlot](
+      ("objectClass" | uintL(bits = 11)) ::
+      ("guid" | PlanetSideGUID.codec) ::
+      ("parentSlot" | PacketHelpers.encodedStringSize) ::
+      ("obj" | Player_Data.codec(pad))
+      ).xmap[InternalSlot] (
       {
         case objectClass :: guid :: parentSlot :: obj :: HNil =>
           InternalSlot(objectClass, guid, parentSlot, obj)
@@ -519,14 +367,14 @@ object VehicleData extends Marshallable[VehicleData] {
   private def countSeats(chain: Option[InventorySeat]): Int = {
     chain match {
       case Some(_) =>
-        var curr  = chain
+        var curr = chain
         var count = 0
         do {
           val link = curr.get
-          count += (if (link.seat.nonEmpty) { 1 }
-                    else { 0 })
+          count += (if(link.seat.nonEmpty) { 1 } else { 0 })
           curr = link.next
-        } while (curr.nonEmpty)
+        }
+        while(curr.nonEmpty)
         count
 
       case None =>
@@ -541,8 +389,8 @@ object VehicleData extends Marshallable[VehicleData] {
     */
   private def unlinkSeats(chain: Option[InventorySeat]): List[InternalSlot] = {
     var curr = chain
-    val out  = new ListBuffer[InternalSlot]
-    while (curr.isDefined) {
+    val out = new ListBuffer[InternalSlot]
+    while(curr.isDefined) {
       val link = curr.get
       link.seat match {
         case None =>
@@ -576,6 +424,4 @@ object VehicleData extends Marshallable[VehicleData] {
         Some(link)
     }
   }
-
-  implicit val codec: Codec[VehicleData] = codec(VehicleFormat.Normal)
 }

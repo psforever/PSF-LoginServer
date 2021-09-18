@@ -74,7 +74,7 @@ case object Certification extends IntEnum[Certification] {
   case object GroundSupport extends Certification(value = 17, name = "ground_support", cost = 2)
 
   case object BattleFrameRobotics
-      extends Certification(value = 18, name = "TODO2", cost = 4, requires = Set(ArmoredAssault2)) // TODO name
+      extends Certification(value = 18, name = "bfr_basic", cost = 4, requires = Set(ArmoredAssault2))
 
   case object Flail extends Certification(value = 19, name = "flail", cost = 1, requires = Set(ArmoredAssault2))
 
@@ -87,10 +87,10 @@ case object Certification extends IntEnum[Certification] {
   case object GalaxyGunship extends Certification(value = 23, name = "gunship", cost = 2, requires = Set(AirSupport))
 
   case object BFRAntiAircraft
-      extends Certification(value = 24, name = "TODO3", cost = 1, requires = Set(BattleFrameRobotics))
+      extends Certification(value = 24, name = "bfr_aa_gunnery", cost = 1, requires = Set(BattleFrameRobotics))
 
   case object BFRAntiInfantry
-      extends Certification(value = 25, name = "TODO4", cost = 1, requires = Set(BattleFrameRobotics)) // TODO name
+      extends Certification(value = 25, name = "bfr_ai_gunnery", cost = 1, requires = Set(BattleFrameRobotics))
 
   case object StandardExoSuit extends Certification(value = 26, name = "standard_armor", cost = 0)
 

@@ -37,7 +37,6 @@ object SpecialEmp {
     MaxHealth = 1
     Damageable = false
     Repairable = false
-    explodes = true
     innateDamage = emp
   }
 

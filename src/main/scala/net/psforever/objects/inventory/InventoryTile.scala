@@ -22,9 +22,11 @@ object InventoryTile {
   final val Tile11   = InventoryTile(1, 1)   //occasional placeholder
   final val Tile22   = InventoryTile(2, 2)   //grenades, boomer trigger
   final val Tile23   = InventoryTile(2, 3)   //canister ammo
-  final val Tile42   = InventoryTile(4, 2)   //medkit
   final val Tile33   = InventoryTile(3, 3)   //ammo box, pistols, ace
+  final val Tile42   = InventoryTile(4, 2)   //medkit
   final val Tile44   = InventoryTile(4, 4)   //large ammo box
+  final val Tile48   = InventoryTile(4, 8)   //bfr arm weapons
+  final val Tile410  = InventoryTile(4, 10)  //bfr gunner weapons
   final val Tile55   = InventoryTile(5, 5)   //bfr ammo box
   final val Tile66   = InventoryTile(6, 6)   //infiltration suit inventory
   final val Tile63   = InventoryTile(6, 3)   //rifles
@@ -36,6 +38,7 @@ object InventoryTile {
   final val Tile1209 = InventoryTile(12, 9)  //reinforced exo-suit inventory
   final val Tile1511 = InventoryTile(15, 11) //common medium trunk capacity
   final val Tile1515 = InventoryTile(15, 15) //common large trunk capacity
+  final val Tile1518 = InventoryTile(15, 18) //gunner bfr trunk capacity
   final val Tile1611 = InventoryTile(16, 11) //uncommon medium trunk capacity - vulture
   final val Tile1612 = InventoryTile(16, 12) //MAX; uncommon medium trunk capacity - lodestar
   final val Tile1816 = InventoryTile(18, 16) //uncommon massive trunk capacity - galaxy_gunship

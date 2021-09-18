@@ -291,7 +291,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     } else {
       Seat(seatNumber) match {
         case Some(_) =>
-          Definition.controlledWeapons.get(seatNumber) match {
+          Definition.controlledWeapons().get(seatNumber) match {
             case Some(_) =>
               Some(AccessPermissionGroup.Gunner)
             case None =>

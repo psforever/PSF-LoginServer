@@ -6,6 +6,7 @@ import net.psforever.objects.{Default, NtuContainerDefinition, Vehicle}
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.vehicles.control.VehicleControl
 import net.psforever.objects.vehicles.{DestroyedVehicle, MountableWeaponsDefinition, UtilityType}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.damage.DamageCalculations
@@ -252,6 +253,20 @@ object VehicleDefinition {
     * @param objectId the object id that is associated with this sort of `Vehicle`
     */
   def Apc(objectId: Int): VehicleDefinition = new ApcDefinition(objectId)
+
+  protected class BfrDefinition(objectId: Int) extends VehicleDefinition(objectId) {
+    override def Initialize(obj: Vehicle, context: ActorContext): Unit = {
+      obj.Actor = context.actorOf(
+        Props(classOf[VehicleControl], obj),
+        PlanetSideServerObject.UniqueActorName(obj)
+      )
+    }
+  }
+  /**
+    * Vehicle definition(s) for the battle frame robotics vehicles.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
+  def Bfr(objectId: Int): VehicleDefinition = new BfrDefinition(objectId)
 
   protected class CarrierDefinition(objectId: Int) extends VehicleDefinition(objectId) {
     import net.psforever.objects.vehicles.control.CargoCarrierControl

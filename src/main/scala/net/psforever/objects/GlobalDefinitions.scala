@@ -427,6 +427,10 @@ object GlobalDefinitions {
   val wasp_rocket_projectile = ProjectileDefinition(Projectiles.wasp_rocket_projectile)
 
   val winchester_projectile = ProjectileDefinition(Projectiles.winchester_projectile)
+
+  val armor_siphon_projectile = ProjectileDefinition(Projectiles.trek_projectile) //fake projectile for storing damage information
+
+  val ntu_siphon_projectile = ProjectileDefinition(Projectiles.trek_projectile) //fake projectile
   init_projectile()
 
   /*
@@ -603,6 +607,10 @@ object GlobalDefinitions {
   val spitfire_aa_ammo = AmmoBoxDefinition(Ammo.spitfire_aa_ammo)
 
   val energy_gun_ammo = AmmoBoxDefinition(Ammo.energy_gun_ammo)
+
+  val armor_siphon_ammo = AmmoBoxDefinition(Ammo.armor_siphon_ammo)
+
+  val ntu_siphon_ammo = AmmoBoxDefinition(Ammo.ntu_siphon_ammo)
   init_ammo()
 
   val chainblade = ToolDefinition(ObjectClass.chainblade)
@@ -871,6 +879,108 @@ object GlobalDefinitions {
   val energy_gun_tr = ToolDefinition(ObjectClass.energy_gun_tr)
 
   val energy_gun_vs = ToolDefinition(ObjectClass.energy_gun_vs)
+
+  val aphelion_armor_siphon = ToolDefinition(ObjectClass.aphelion_armor_siphon)
+
+  val aphelion_armor_siphon_left = ToolDefinition(ObjectClass.aphelion_armor_siphon_left)
+
+  val aphelion_armor_siphon_right = ToolDefinition(ObjectClass.aphelion_armor_siphon_right)
+
+  val aphelion_laser = ToolDefinition(ObjectClass.aphelion_laser)
+
+  val aphelion_laser_left = ToolDefinition(ObjectClass.aphelion_laser_left)
+
+  val aphelion_laser_right = ToolDefinition(ObjectClass.aphelion_laser_right)
+
+  val aphelion_ntu_siphon = ToolDefinition(ObjectClass.aphelion_ntu_siphon)
+
+  val aphelion_ntu_siphon_left = ToolDefinition(ObjectClass.aphelion_ntu_siphon_left)
+
+  val aphelion_ntu_siphon_right = ToolDefinition(ObjectClass.aphelion_ntu_siphon_right)
+
+  val aphelion_ppa = ToolDefinition(ObjectClass.aphelion_ppa)
+
+  val aphelion_ppa_left = ToolDefinition(ObjectClass.aphelion_ppa_left)
+
+  val aphelion_ppa_right = ToolDefinition(ObjectClass.aphelion_ppa_right)
+
+  val aphelion_starfire = ToolDefinition(ObjectClass.aphelion_starfire)
+
+  val aphelion_starfire_left = ToolDefinition(ObjectClass.aphelion_starfire_left)
+
+  val aphelion_starfire_right = ToolDefinition(ObjectClass.aphelion_starfire_right)
+
+  val aphelion_plasma_rocket_pod = ToolDefinition(ObjectClass.aphelion_plasma_rocket_pod)
+
+  val aphelion_immolation_cannon = ToolDefinition(ObjectClass.aphelion_immolation_cannon)
+
+  val colossus_armor_siphon = ToolDefinition(ObjectClass.colossus_armor_siphon)
+
+  val colossus_armor_siphon_left = ToolDefinition(ObjectClass.colossus_armor_siphon_left)
+
+  val colossus_armor_siphon_right = ToolDefinition(ObjectClass.colossus_armor_siphon_right)
+
+  val colossus_burster = ToolDefinition(ObjectClass.colossus_burster)
+
+  val colossus_burster_left = ToolDefinition(ObjectClass.colossus_burster_left)
+
+  val colossus_burster_right = ToolDefinition(ObjectClass.colossus_burster_right)
+
+  val colossus_chaingun = ToolDefinition(ObjectClass.colossus_chaingun)
+
+  val colossus_chaingun_left = ToolDefinition(ObjectClass.colossus_chaingun_left)
+
+  val colossus_chaingun_right = ToolDefinition(ObjectClass.colossus_chaingun_right)
+
+  val colossus_ntu_siphon = ToolDefinition(ObjectClass.colossus_ntu_siphon)
+
+  val colossus_ntu_siphon_left = ToolDefinition(ObjectClass.colossus_ntu_siphon_left)
+
+  val colossus_ntu_siphon_right = ToolDefinition(ObjectClass.colossus_ntu_siphon_right)
+
+  val colossus_tank_cannon = ToolDefinition(ObjectClass.colossus_tank_cannon)
+
+  val colossus_tank_cannon_left = ToolDefinition(ObjectClass.colossus_tank_cannon_left)
+
+  val colossus_tank_cannon_right = ToolDefinition(ObjectClass.colossus_tank_cannon_right)
+
+  val colossus_dual_100mm_cannons = ToolDefinition(ObjectClass.colossus_dual_100mm_cannons)
+
+  val colossus_cluster_bomb_pod = ToolDefinition(ObjectClass.colossus_cluster_bomb_pod)
+
+  val peregrine_armor_siphon = ToolDefinition(ObjectClass.peregrine_armor_siphon)
+
+  val peregrine_armor_siphon_left = ToolDefinition(ObjectClass.peregrine_armor_siphon_left)
+
+  val peregrine_armor_siphon_right = ToolDefinition(ObjectClass.peregrine_armor_siphon_right)
+
+  val peregrine_dual_machine_gun = ToolDefinition(ObjectClass.peregrine_dual_machine_gun)
+
+  val peregrine_dual_machine_gun_left = ToolDefinition(ObjectClass.peregrine_dual_machine_gun_left)
+
+  val peregrine_dual_machine_gun_right = ToolDefinition(ObjectClass.peregrine_dual_machine_gun_right)
+
+  val peregrine_mechhammer = ToolDefinition(ObjectClass.peregrine_mechhammer)
+
+  val peregrine_mechhammer_left = ToolDefinition(ObjectClass.peregrine_mechhammer_left)
+
+  val peregrine_mechhammer_right = ToolDefinition(ObjectClass.peregrine_mechhammer_right)
+
+  val peregrine_sparrow = ToolDefinition(ObjectClass.peregrine_sparrow)
+
+  val peregrine_sparrow_left = ToolDefinition(ObjectClass.peregrine_sparrow_left)
+
+  val peregrine_sparrow_right = ToolDefinition(ObjectClass.peregrine_sparrow_right)
+
+  val peregrine_particle_cannon = ToolDefinition(ObjectClass.peregrine_particle_cannon)
+
+  val peregrine_dual_rocket_pods = ToolDefinition(ObjectClass.peregrine_dual_rocket_pods)
+
+  val peregrine_ntu_siphon = ToolDefinition(ObjectClass.peregrine_ntu_siphon)
+
+  val peregrine_ntu_siphon_left = ToolDefinition(ObjectClass.peregrine_ntu_siphon_left)
+
+  val peregrine_ntu_siphon_right = ToolDefinition(ObjectClass.peregrine_ntu_siphon_right)
   init_tools()
 
   /*
@@ -941,6 +1051,18 @@ object GlobalDefinitions {
   val lodestar = VehicleDefinition.Carrier(ObjectClass.lodestar)
 
   val phantasm = VehicleDefinition(ObjectClass.phantasm)
+
+  val aphelion_gunner = VehicleDefinition.Bfr(ObjectClass.aphelion_gunner)
+
+  val aphelion_flight = VehicleDefinition.Bfr(ObjectClass.aphelion_flight) //eclipse
+
+  val colossus_gunner = VehicleDefinition.Bfr(ObjectClass.colossus_gunner)
+
+  val colossus_flight = VehicleDefinition.Bfr(ObjectClass.colossus_flight) //invader
+
+  val peregrine_gunner = VehicleDefinition.Bfr(ObjectClass.peregrine_gunner)
+
+  val peregrine_flight = VehicleDefinition.Bfr(ObjectClass.peregrine_flight) //eagle
 
   val droppod = VehicleDefinition(ObjectClass.droppod)
 
@@ -2103,6 +2225,14 @@ object GlobalDefinitions {
 
     energy_gun_ammo.Name = "energy_gun_ammo"
     energy_gun_ammo.Size = EquipmentSize.Inventory
+
+    armor_siphon_ammo.Name = "armor_siphon_ammo"
+    armor_siphon_ammo.Capacity = 0
+    armor_siphon_ammo.Size = EquipmentSize.Blocked
+
+    ntu_siphon_ammo.Name = "ntu_siphon_ammo"
+    ntu_siphon_ammo.Capacity = 0
+    ntu_siphon_ammo.Size = EquipmentSize.Blocked
   }
 
   /**
@@ -4180,12 +4310,32 @@ object GlobalDefinitions {
     winchester_projectile.InitialVelocity = 500
     winchester_projectile.Lifespan = 0.6f
     ProjectileDefinition.CalculateDerivedFields(winchester_projectile)
+
+    armor_siphon_projectile.Name = "armor_siphon_projectile"
+    armor_siphon_projectile.Damage0 = 0
+    armor_siphon_projectile.Damage1 = 20 //ground vehicles, siphon drain
+    armor_siphon_projectile.Damage2 = 20 //aircraft, siphon drain
+    armor_siphon_projectile.DamageRadius = 35f
+    armor_siphon_projectile.ProjectileDamageType = DamageType.Direct
+    ProjectileDefinition.CalculateDerivedFields(armor_siphon_projectile)
+
+    ntu_siphon_projectile.Name = "ntu_siphon_projectile"
+    ntu_siphon_projectile.DamageRadius = 35f
+    ProjectileDefinition.CalculateDerivedFields(ntu_siphon_projectile)
   }
 
   /**
     * Initialize `ToolDefinition` globals.
     */
   private def init_tools(): Unit = {
+    init_infantry_tools()
+    init_vehicle_tools()
+  }
+
+  /**
+    * Initialize `ToolDefinition` globals.
+    */
+  private def init_infantry_tools(): Unit = {
     chainblade.Name = "chainblade"
     chainblade.Size = EquipmentSize.Melee
     chainblade.AmmoTypes += melee_ammo
@@ -5061,7 +5211,12 @@ object GlobalDefinitions {
     router_telepad.Modes.head.Item(DeployedItem.router_telepad_deployable, Set(Certification.GroundSupport))
     router_telepad.Tile = InventoryTile.Tile33
     router_telepad.Packet = new TelepadConverter
+  }
 
+  /**
+    * Initialize `ToolDefinition` globals.
+    */
+  private def init_vehicle_tools(): Unit = {
     fury_weapon_systema.Name = "fury_weapon_systema"
     fury_weapon_systema.Size = EquipmentSize.VehicleWeapon
     fury_weapon_systema.AmmoTypes += hellfire_ammo
@@ -5660,6 +5815,594 @@ object GlobalDefinitions {
     energy_gun_vs.FireModes.head.AmmoTypeIndices += 0
     energy_gun_vs.FireModes.head.AmmoSlotIndex = 0
     energy_gun_vs.FireModes.head.Magazine = 100
+
+    val battleFrameToolConverter = new BattleFrameToolConverter
+    aphelion_armor_siphon.Name = "aphelion_armor_siphon"
+    aphelion_armor_siphon.Size = EquipmentSize.BFRArmWeapon
+    aphelion_armor_siphon.AmmoTypes += armor_siphon_ammo
+    aphelion_armor_siphon.ProjectileTypes += armor_siphon_projectile
+    aphelion_armor_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_armor_siphon.FireModes.head.AmmoTypeIndices += 0
+    aphelion_armor_siphon.FireModes.head.AmmoSlotIndex = 0
+    aphelion_armor_siphon.FireModes.head.Magazine = 100
+    aphelion_armor_siphon.Packet = battleFrameToolConverter
+    aphelion_armor_siphon.Tile = InventoryTile.Tile48
+
+    aphelion_armor_siphon_left.Name = "aphelion_armor_siphon_left"
+    aphelion_armor_siphon_left.Size = EquipmentSize.BFRArmWeapon
+    aphelion_armor_siphon_left.AmmoTypes += armor_siphon_ammo
+    aphelion_armor_siphon_left.ProjectileTypes += armor_siphon_projectile
+    aphelion_armor_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_armor_siphon_left.FireModes.head.AmmoTypeIndices += 0
+    aphelion_armor_siphon_left.FireModes.head.AmmoSlotIndex = 0
+    aphelion_armor_siphon_left.FireModes.head.Magazine = 100
+    aphelion_armor_siphon_left.Packet = battleFrameToolConverter
+    aphelion_armor_siphon_left.Tile = InventoryTile.Tile48
+
+    aphelion_armor_siphon_right.Name = "aphelion_armor_siphon_right"
+    aphelion_armor_siphon_right.Size = EquipmentSize.BFRArmWeapon
+    aphelion_armor_siphon_right.AmmoTypes += armor_siphon_ammo
+    aphelion_armor_siphon_right.ProjectileTypes += armor_siphon_projectile
+    aphelion_armor_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_armor_siphon_right.FireModes.head.AmmoTypeIndices += 0
+    aphelion_armor_siphon_right.FireModes.head.AmmoSlotIndex = 0
+    aphelion_armor_siphon_right.FireModes.head.Magazine = 100
+    aphelion_armor_siphon_right.Packet = battleFrameToolConverter
+    aphelion_armor_siphon_right.Tile = InventoryTile.Tile48
+
+    aphelion_laser.Name = "aphelion_laser"
+    aphelion_laser.Size = EquipmentSize.BFRArmWeapon
+    aphelion_laser.AmmoTypes += aphelion_laser_ammo
+    aphelion_laser.ProjectileTypes += aphelion_laser_projectile
+    aphelion_laser.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_laser.FireModes.head.AmmoTypeIndices += 0
+    aphelion_laser.FireModes.head.AmmoSlotIndex = 0
+    aphelion_laser.FireModes.head.Magazine = 350
+    aphelion_laser.Packet = battleFrameToolConverter
+    aphelion_laser.Tile = InventoryTile.Tile48
+
+    aphelion_laser_left.Name = "aphelion_laser_left"
+    aphelion_laser_left.Size = EquipmentSize.BFRArmWeapon
+    aphelion_laser_left.AmmoTypes += aphelion_laser_ammo
+    aphelion_laser_left.ProjectileTypes += aphelion_laser_projectile
+    aphelion_laser_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_laser_left.FireModes.head.AmmoTypeIndices += 0
+    aphelion_laser_left.FireModes.head.AmmoSlotIndex = 0
+    aphelion_laser_left.FireModes.head.Magazine = 350
+    aphelion_laser_left.Packet = battleFrameToolConverter
+    aphelion_laser_left.Tile = InventoryTile.Tile48
+
+    aphelion_laser_right.Name = "aphelion_laser_right"
+    aphelion_laser_right.Size = EquipmentSize.BFRArmWeapon
+    aphelion_laser_right.AmmoTypes += aphelion_laser_ammo
+    aphelion_laser_right.ProjectileTypes += aphelion_laser_projectile
+    aphelion_laser_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_laser_right.FireModes.head.AmmoTypeIndices += 0
+    aphelion_laser_right.FireModes.head.AmmoSlotIndex = 0
+    aphelion_laser_right.FireModes.head.Magazine = 350
+    aphelion_laser_right.Packet = battleFrameToolConverter
+    aphelion_laser_right.Tile = InventoryTile.Tile48
+
+    aphelion_ntu_siphon.Name = "aphelion_ntu_siphon"
+    aphelion_ntu_siphon.Size = EquipmentSize.BFRArmWeapon
+    aphelion_ntu_siphon.AmmoTypes += ntu_siphon_ammo
+    aphelion_ntu_siphon.ProjectileTypes += ntu_siphon_projectile
+    aphelion_ntu_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_ntu_siphon.FireModes.head.AmmoTypeIndices += 0
+    aphelion_ntu_siphon.FireModes.head.AmmoSlotIndex = 0
+    aphelion_ntu_siphon.FireModes.head.Magazine = 150
+    aphelion_ntu_siphon.Packet = battleFrameToolConverter
+    aphelion_ntu_siphon.Tile = InventoryTile.Tile48
+
+    aphelion_ntu_siphon_left.Name = "aphelion_ntu_siphon_left"
+    aphelion_ntu_siphon_left.Size = EquipmentSize.BFRArmWeapon
+    aphelion_ntu_siphon_left.AmmoTypes += ntu_siphon_ammo
+    aphelion_ntu_siphon_left.ProjectileTypes += ntu_siphon_projectile
+    aphelion_ntu_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_ntu_siphon_left.FireModes.head.AmmoTypeIndices += 0
+    aphelion_ntu_siphon_left.FireModes.head.AmmoSlotIndex = 0
+    aphelion_ntu_siphon_left.FireModes.head.Magazine = 150
+    aphelion_ntu_siphon_left.Packet = battleFrameToolConverter
+    aphelion_ntu_siphon_left.Tile = InventoryTile.Tile48
+
+    aphelion_ntu_siphon_right.Name = "aphelion_ntu_siphon_right"
+    aphelion_ntu_siphon_right.Size = EquipmentSize.BFRArmWeapon
+    aphelion_ntu_siphon_right.AmmoTypes += ntu_siphon_ammo
+    aphelion_ntu_siphon_right.ProjectileTypes += ntu_siphon_projectile
+    aphelion_ntu_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_ntu_siphon_right.FireModes.head.AmmoTypeIndices += 0
+    aphelion_ntu_siphon_right.FireModes.head.AmmoSlotIndex = 0
+    aphelion_ntu_siphon_right.FireModes.head.Magazine = 150
+    aphelion_ntu_siphon_right.Packet = battleFrameToolConverter
+    aphelion_ntu_siphon_right.Tile = InventoryTile.Tile48
+
+    aphelion_ppa.Name = "aphelion_ppa"
+    aphelion_ppa.Size = EquipmentSize.BFRArmWeapon
+    aphelion_ppa.AmmoTypes += aphelion_ppa_ammo
+    aphelion_ppa.ProjectileTypes += aphelion_ppa_projectile
+    aphelion_ppa.FireModes += new FireModeDefinition
+    aphelion_ppa.FireModes.head.AmmoTypeIndices += 0
+    aphelion_ppa.FireModes.head.AmmoSlotIndex = 0
+    aphelion_ppa.FireModes.head.Magazine = 25
+    aphelion_ppa.Packet = battleFrameToolConverter
+    aphelion_ppa.Tile = InventoryTile.Tile48
+
+    aphelion_ppa_left.Name = "aphelion_ppa_left"
+    aphelion_ppa_left.Size = EquipmentSize.BFRArmWeapon
+    aphelion_ppa_left.AmmoTypes += aphelion_ppa_ammo
+    aphelion_ppa_left.ProjectileTypes += aphelion_ppa_projectile
+    aphelion_ppa_left.FireModes += new FireModeDefinition
+    aphelion_ppa_left.FireModes.head.AmmoTypeIndices += 0
+    aphelion_ppa_left.FireModes.head.AmmoSlotIndex = 0
+    aphelion_ppa_left.FireModes.head.Magazine = 25
+    aphelion_ppa_left.Packet = battleFrameToolConverter
+    aphelion_ppa_left.Tile = InventoryTile.Tile48
+
+    aphelion_ppa_right.Name = "aphelion_ppa_right"
+    aphelion_ppa_right.Size = EquipmentSize.BFRArmWeapon
+    aphelion_ppa_right.AmmoTypes += aphelion_ppa_ammo
+    aphelion_ppa_right.ProjectileTypes += aphelion_ppa_projectile
+    aphelion_ppa_right.FireModes += new FireModeDefinition
+    aphelion_ppa_right.FireModes.head.AmmoTypeIndices += 0
+    aphelion_ppa_right.FireModes.head.AmmoSlotIndex = 0
+    aphelion_ppa_right.FireModes.head.Magazine = 25
+    aphelion_ppa_right.Packet = battleFrameToolConverter
+    aphelion_ppa_right.Tile = InventoryTile.Tile48
+
+    aphelion_starfire.Name = "aphelion_starfire"
+    aphelion_starfire.Size = EquipmentSize.BFRArmWeapon
+    aphelion_starfire.AmmoTypes += aphelion_starfire_ammo
+    aphelion_starfire.ProjectileTypes += aphelion_starfire_projectile
+    aphelion_starfire.FireModes += new FireModeDefinition
+    aphelion_starfire.FireModes.head.AmmoTypeIndices += 0
+    aphelion_starfire.FireModes.head.AmmoSlotIndex = 0
+    aphelion_starfire.FireModes.head.Magazine = 20
+    aphelion_starfire.Packet = battleFrameToolConverter
+    aphelion_starfire.Tile = InventoryTile.Tile48
+
+    aphelion_starfire_left.Name = "aphelion_starfire_left"
+    aphelion_starfire_left.Size = EquipmentSize.BFRArmWeapon
+    aphelion_starfire_left.AmmoTypes += aphelion_starfire_ammo
+    aphelion_starfire_left.ProjectileTypes += aphelion_starfire_projectile
+    aphelion_starfire_left.FireModes += new FireModeDefinition
+    aphelion_starfire_left.FireModes.head.AmmoTypeIndices += 0
+    aphelion_starfire_left.FireModes.head.AmmoSlotIndex = 0
+    aphelion_starfire_left.FireModes.head.Magazine = 20
+    aphelion_starfire_left.Packet = battleFrameToolConverter
+    aphelion_starfire_left.Tile = InventoryTile.Tile48
+
+    aphelion_starfire_right.Name = "aphelion_starfire_right"
+    aphelion_starfire_right.Size = EquipmentSize.BFRArmWeapon
+    aphelion_starfire_right.AmmoTypes += aphelion_laser_ammo
+    aphelion_starfire_right.ProjectileTypes += aphelion_laser_projectile
+    aphelion_starfire_right.FireModes += new FireModeDefinition
+    aphelion_starfire_right.FireModes.head.AmmoTypeIndices += 0
+    aphelion_starfire_right.FireModes.head.AmmoSlotIndex = 0
+    aphelion_starfire_right.FireModes.head.Magazine = 20
+    aphelion_starfire_right.Packet = battleFrameToolConverter
+    aphelion_starfire_right.Tile = InventoryTile.Tile48
+
+    aphelion_plasma_rocket_pod.Name = "aphelion_plasma_rocket_pod"
+    aphelion_plasma_rocket_pod.Size = EquipmentSize.BFRGunnerWeapon
+    aphelion_plasma_rocket_pod.AmmoTypes += aphelion_plasma_rocket_ammo
+    aphelion_plasma_rocket_pod.ProjectileTypes += aphelion_plasma_rocket_projectile
+    aphelion_plasma_rocket_pod.FireModes += new FireModeDefinition
+    aphelion_plasma_rocket_pod.FireModes.head.AmmoTypeIndices += 0
+    aphelion_plasma_rocket_pod.FireModes.head.AmmoSlotIndex = 0
+    aphelion_plasma_rocket_pod.FireModes.head.Magazine = 40
+    aphelion_plasma_rocket_pod.Packet = battleFrameToolConverter
+    aphelion_plasma_rocket_pod.Tile = InventoryTile.Tile410
+
+    aphelion_immolation_cannon.Name = "aphelion_immolation_cannon"
+    aphelion_immolation_cannon.Size = EquipmentSize.BFRGunnerWeapon
+    aphelion_immolation_cannon.AmmoTypes += aphelion_immolation_cannon_ammo
+    aphelion_immolation_cannon.ProjectileTypes += aphelion_immolation_cannon_projectile
+    aphelion_immolation_cannon.FireModes += new FireModeDefinition
+    aphelion_immolation_cannon.FireModes.head.AmmoTypeIndices += 0
+    aphelion_immolation_cannon.FireModes.head.AmmoSlotIndex = 0
+    aphelion_immolation_cannon.FireModes.head.Magazine = 25
+    aphelion_immolation_cannon.Packet = battleFrameToolConverter
+    aphelion_immolation_cannon.Tile = InventoryTile.Tile410
+
+    colossus_armor_siphon.Name = "colossus_armor_siphon"
+    colossus_armor_siphon.Size = EquipmentSize.BFRArmWeapon
+    colossus_armor_siphon.AmmoTypes += armor_siphon_ammo
+    colossus_armor_siphon.ProjectileTypes += armor_siphon_projectile
+    colossus_armor_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_armor_siphon.FireModes.head.AmmoTypeIndices += 0
+    colossus_armor_siphon.FireModes.head.AmmoSlotIndex = 0
+    colossus_armor_siphon.FireModes.head.Magazine = 100
+    colossus_armor_siphon.Packet = battleFrameToolConverter
+    colossus_armor_siphon.Tile = InventoryTile.Tile48
+
+    colossus_armor_siphon_left.Name = "colossus_armor_siphon_left"
+    colossus_armor_siphon_left.Size = EquipmentSize.BFRArmWeapon
+    colossus_armor_siphon_left.AmmoTypes += armor_siphon_ammo
+    colossus_armor_siphon_left.ProjectileTypes += armor_siphon_projectile
+    colossus_armor_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_armor_siphon_left.FireModes.head.AmmoTypeIndices += 0
+    colossus_armor_siphon_left.FireModes.head.AmmoSlotIndex = 0
+    colossus_armor_siphon_left.FireModes.head.Magazine = 100
+    colossus_armor_siphon_left.Packet = battleFrameToolConverter
+    colossus_armor_siphon_left.Tile = InventoryTile.Tile48
+
+    colossus_armor_siphon_right.Name = "colossus_armor_siphon_right"
+    colossus_armor_siphon_right.Size = EquipmentSize.BFRArmWeapon
+    colossus_armor_siphon_right.AmmoTypes += armor_siphon_ammo
+    colossus_armor_siphon_right.ProjectileTypes += armor_siphon_projectile
+    colossus_armor_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_armor_siphon_right.FireModes.head.AmmoTypeIndices += 0
+    colossus_armor_siphon_right.FireModes.head.AmmoSlotIndex = 0
+    colossus_armor_siphon_right.FireModes.head.Magazine = 100
+    colossus_armor_siphon_right.Packet = battleFrameToolConverter
+    colossus_armor_siphon_right.Tile = InventoryTile.Tile48
+
+    colossus_burster.Name = "colossus_burster"
+    colossus_burster.Size = EquipmentSize.BFRArmWeapon
+    colossus_burster.AmmoTypes += colossus_burster_ammo
+    colossus_burster.ProjectileTypes += colossus_burster_projectile
+    colossus_burster.FireModes += new FireModeDefinition
+    colossus_burster.FireModes.head.AmmoTypeIndices += 0
+    colossus_burster.FireModes.head.AmmoSlotIndex = 0
+    colossus_burster.FireModes.head.Magazine = 25
+    colossus_burster.Packet = battleFrameToolConverter
+    colossus_burster.Tile = InventoryTile.Tile48
+
+    colossus_burster_left.Name = "colossus_burster_left"
+    colossus_burster_left.Size = EquipmentSize.BFRArmWeapon
+    colossus_burster_left.AmmoTypes += colossus_burster_ammo
+    colossus_burster_left.ProjectileTypes += colossus_burster_projectile
+    colossus_burster_left.FireModes += new FireModeDefinition
+    colossus_burster_left.FireModes.head.AmmoTypeIndices += 0
+    colossus_burster_left.FireModes.head.AmmoSlotIndex = 0
+    colossus_burster_left.FireModes.head.Magazine = 25
+    colossus_burster_left.Packet = battleFrameToolConverter
+    colossus_burster_left.Tile = InventoryTile.Tile48
+
+    colossus_burster_right.Name = "colossus_burster_right"
+    colossus_burster_right.Size = EquipmentSize.BFRArmWeapon
+    colossus_burster_right.AmmoTypes += colossus_burster_ammo
+    colossus_burster_right.ProjectileTypes += colossus_burster_projectile
+    colossus_burster_right.FireModes += new FireModeDefinition
+    colossus_burster_right.FireModes.head.AmmoTypeIndices += 0
+    colossus_burster_right.FireModes.head.AmmoSlotIndex = 0
+    colossus_burster_right.FireModes.head.Magazine = 25
+    colossus_burster_right.Packet = battleFrameToolConverter
+    colossus_burster_right.Tile = InventoryTile.Tile48
+
+    colossus_chaingun.Name = "colossus_chaingun"
+    colossus_chaingun.Size = EquipmentSize.BFRArmWeapon
+    colossus_chaingun.AmmoTypes += colossus_chaingun_ammo
+    colossus_chaingun.ProjectileTypes += colossus_chaingun_projectile
+    colossus_chaingun.FireModes += new FireModeDefinition
+    colossus_chaingun.FireModes.head.AmmoTypeIndices += 0
+    colossus_chaingun.FireModes.head.AmmoSlotIndex = 0
+    colossus_chaingun.FireModes.head.Magazine = 125
+    colossus_chaingun.Packet = battleFrameToolConverter
+    colossus_chaingun.Tile = InventoryTile.Tile48
+
+    colossus_chaingun_left.Name = "colossus_chaingun_left"
+    colossus_chaingun_left.Size = EquipmentSize.BFRArmWeapon
+    colossus_chaingun_left.AmmoTypes += colossus_chaingun_ammo
+    colossus_chaingun_left.ProjectileTypes += colossus_chaingun_projectile
+    colossus_chaingun_left.FireModes += new FireModeDefinition
+    colossus_chaingun_left.FireModes.head.AmmoTypeIndices += 0
+    colossus_chaingun_left.FireModes.head.AmmoSlotIndex = 0
+    colossus_chaingun_left.FireModes.head.Magazine = 125
+    colossus_chaingun_left.Packet = battleFrameToolConverter
+    colossus_chaingun_left.Tile = InventoryTile.Tile48
+
+    colossus_chaingun_right.Name = "colossus_chaingun_right"
+    colossus_chaingun_right.Size = EquipmentSize.BFRArmWeapon
+    colossus_chaingun_right.AmmoTypes += colossus_chaingun_ammo
+    colossus_chaingun_right.ProjectileTypes += colossus_chaingun_projectile
+    colossus_chaingun_right.FireModes += new FireModeDefinition
+    colossus_chaingun_right.FireModes.head.AmmoTypeIndices += 0
+    colossus_chaingun_right.FireModes.head.AmmoSlotIndex = 0
+    colossus_chaingun_right.FireModes.head.Magazine = 125
+    colossus_chaingun_right.Packet = battleFrameToolConverter
+    colossus_chaingun_right.Tile = InventoryTile.Tile48
+
+    colossus_ntu_siphon.Name = "colossus_ntu_siphon"
+    colossus_ntu_siphon.Size = EquipmentSize.BFRArmWeapon
+    colossus_ntu_siphon.AmmoTypes += ntu_siphon_ammo
+    colossus_ntu_siphon.ProjectileTypes += ntu_siphon_projectile
+    colossus_ntu_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_ntu_siphon.FireModes.head.AmmoTypeIndices += 0
+    colossus_ntu_siphon.FireModes.head.AmmoSlotIndex = 0
+    colossus_ntu_siphon.FireModes.head.Magazine = 150
+    colossus_ntu_siphon.Packet = battleFrameToolConverter
+    colossus_ntu_siphon.Tile = InventoryTile.Tile48
+
+    colossus_ntu_siphon_left.Name = "colossus_ntu_siphon_left"
+    colossus_ntu_siphon_left.Size = EquipmentSize.BFRArmWeapon
+    colossus_ntu_siphon_left.AmmoTypes += ntu_siphon_ammo
+    colossus_ntu_siphon_left.ProjectileTypes += ntu_siphon_projectile
+    colossus_ntu_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_ntu_siphon_left.FireModes.head.AmmoTypeIndices += 0
+    colossus_ntu_siphon_left.FireModes.head.AmmoSlotIndex = 0
+    colossus_ntu_siphon_left.FireModes.head.Magazine = 150
+    colossus_ntu_siphon_left.Packet = battleFrameToolConverter
+    colossus_ntu_siphon_left.Tile = InventoryTile.Tile48
+
+    colossus_ntu_siphon_right.Name = "colossus_ntu_siphon_right"
+    colossus_ntu_siphon_right.Size = EquipmentSize.BFRArmWeapon
+    colossus_ntu_siphon_right.AmmoTypes += ntu_siphon_ammo
+    colossus_ntu_siphon_right.ProjectileTypes += ntu_siphon_projectile
+    colossus_ntu_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_ntu_siphon_right.FireModes.head.AmmoTypeIndices += 0
+    colossus_ntu_siphon_right.FireModes.head.AmmoSlotIndex = 0
+    colossus_ntu_siphon_right.FireModes.head.Magazine = 150
+    colossus_ntu_siphon_right.Packet = battleFrameToolConverter
+    colossus_ntu_siphon_right.Tile = InventoryTile.Tile48
+
+    colossus_tank_cannon.Name = "colossus_tank_cannon"
+    colossus_tank_cannon.Size = EquipmentSize.BFRArmWeapon
+    colossus_tank_cannon.AmmoTypes += colossus_tank_cannon_ammo
+    colossus_tank_cannon.ProjectileTypes += colossus_tank_cannon_projectile
+    colossus_tank_cannon.FireModes += new FireModeDefinition
+    colossus_tank_cannon.FireModes.head.AmmoTypeIndices += 0
+    colossus_tank_cannon.FireModes.head.AmmoSlotIndex = 0
+    colossus_tank_cannon.FireModes.head.Magazine = 25
+    colossus_tank_cannon.Packet = battleFrameToolConverter
+    colossus_tank_cannon.Tile = InventoryTile.Tile48
+
+    colossus_tank_cannon_left.Name = "colossus_tank_cannon_left"
+    colossus_tank_cannon_left.Size = EquipmentSize.BFRArmWeapon
+    colossus_tank_cannon_left.AmmoTypes += colossus_tank_cannon_ammo
+    colossus_tank_cannon_left.ProjectileTypes += colossus_tank_cannon_projectile
+    colossus_tank_cannon_left.FireModes += new FireModeDefinition
+    colossus_tank_cannon_left.FireModes.head.AmmoTypeIndices += 0
+    colossus_tank_cannon_left.FireModes.head.AmmoSlotIndex = 0
+    colossus_tank_cannon_left.FireModes.head.Magazine = 25
+    colossus_tank_cannon_left.Packet = battleFrameToolConverter
+    colossus_tank_cannon_left.Tile = InventoryTile.Tile48
+
+    colossus_tank_cannon_right.Name = "colossus_tank_cannon_right"
+    colossus_tank_cannon_right.Size = EquipmentSize.BFRArmWeapon
+    colossus_tank_cannon_right.AmmoTypes += colossus_tank_cannon_ammo
+    colossus_tank_cannon_right.ProjectileTypes += colossus_tank_cannon_projectile
+    colossus_tank_cannon_right.FireModes += new FireModeDefinition
+    colossus_tank_cannon_right.FireModes.head.AmmoTypeIndices += 0
+    colossus_tank_cannon_right.FireModes.head.AmmoSlotIndex = 0
+    colossus_tank_cannon_right.FireModes.head.Magazine = 25
+    colossus_tank_cannon_right.Packet = battleFrameToolConverter
+    colossus_tank_cannon_right.Tile = InventoryTile.Tile48
+
+    colossus_dual_100mm_cannons.Name = "colossus_dual_100mm_cannons"
+    colossus_dual_100mm_cannons.Size = EquipmentSize.BFRGunnerWeapon
+    colossus_dual_100mm_cannons.AmmoTypes += colossus_100mm_cannon_ammo
+    colossus_dual_100mm_cannons.ProjectileTypes += colossus_100mm_projectile
+    colossus_dual_100mm_cannons.FireModes += new FireModeDefinition
+    colossus_dual_100mm_cannons.FireModes.head.AmmoTypeIndices += 0
+    colossus_dual_100mm_cannons.FireModes.head.AmmoSlotIndex = 0
+    colossus_dual_100mm_cannons.FireModes.head.Magazine = 22
+    colossus_dual_100mm_cannons.Packet = battleFrameToolConverter
+    colossus_dual_100mm_cannons.Tile = InventoryTile.Tile410
+
+    colossus_cluster_bomb_pod.Name = "colossus_cluster_bomb_pod"
+    colossus_cluster_bomb_pod.Size = EquipmentSize.BFRGunnerWeapon
+    colossus_cluster_bomb_pod.AmmoTypes += colossus_cluster_bomb_ammo
+    colossus_cluster_bomb_pod.ProjectileTypes += colossus_cluster_bomb_projectile
+    colossus_cluster_bomb_pod.FireModes += new FireModeDefinition
+    colossus_cluster_bomb_pod.FireModes.head.AmmoTypeIndices += 0
+    colossus_cluster_bomb_pod.FireModes.head.AmmoSlotIndex = 0
+    colossus_cluster_bomb_pod.FireModes.head.Magazine = 125
+    colossus_cluster_bomb_pod.FireModes += new FireModeDefinition
+    colossus_cluster_bomb_pod.FireModes(1).AmmoTypeIndices += 0
+    colossus_cluster_bomb_pod.FireModes(1).AmmoSlotIndex = 0
+    colossus_cluster_bomb_pod.FireModes(1).Magazine = 125
+    colossus_cluster_bomb_pod.Packet = battleFrameToolConverter
+    colossus_cluster_bomb_pod.Tile = InventoryTile.Tile410
+
+    peregrine_armor_siphon.Name = "peregrine_armor_siphon"
+    peregrine_armor_siphon.Size = EquipmentSize.BFRArmWeapon
+    peregrine_armor_siphon.AmmoTypes += armor_siphon_ammo
+    peregrine_armor_siphon.ProjectileTypes += armor_siphon_projectile
+    peregrine_armor_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_armor_siphon.FireModes.head.AmmoTypeIndices += 0
+    peregrine_armor_siphon.FireModes.head.AmmoSlotIndex = 0
+    peregrine_armor_siphon.FireModes.head.Magazine = 100
+    peregrine_armor_siphon.Packet = battleFrameToolConverter
+    peregrine_armor_siphon.Tile = InventoryTile.Tile48
+
+    peregrine_armor_siphon_left.Name = "peregrine_armor_siphon_left"
+    peregrine_armor_siphon_left.Size = EquipmentSize.BFRArmWeapon
+    peregrine_armor_siphon_left.AmmoTypes += armor_siphon_ammo
+    peregrine_armor_siphon_left.ProjectileTypes += armor_siphon_projectile
+    peregrine_armor_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_armor_siphon_left.FireModes.head.AmmoTypeIndices += 0
+    peregrine_armor_siphon_left.FireModes.head.AmmoSlotIndex = 0
+    peregrine_armor_siphon_left.FireModes.head.Magazine = 100
+    peregrine_armor_siphon_left.Packet = battleFrameToolConverter
+    peregrine_armor_siphon_left.Tile = InventoryTile.Tile48
+
+    peregrine_armor_siphon_right.Name = "peregrine_armor_siphon_right"
+    peregrine_armor_siphon_right.Size = EquipmentSize.BFRArmWeapon
+    peregrine_armor_siphon_right.AmmoTypes += armor_siphon_ammo
+    peregrine_armor_siphon_right.ProjectileTypes += armor_siphon_projectile
+    peregrine_armor_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_armor_siphon_right.FireModes.head.AmmoTypeIndices += 0
+    peregrine_armor_siphon_right.FireModes.head.AmmoSlotIndex = 0
+    peregrine_armor_siphon_right.FireModes.head.Magazine = 100
+    peregrine_armor_siphon_right.Packet = battleFrameToolConverter
+    peregrine_armor_siphon_right.Tile = InventoryTile.Tile48
+
+    peregrine_dual_machine_gun.Name = "peregrine_dual_machine_gun"
+    peregrine_dual_machine_gun.Size = EquipmentSize.BFRArmWeapon
+    peregrine_dual_machine_gun.AmmoTypes += peregrine_dual_machine_gun_ammo
+    peregrine_dual_machine_gun.ProjectileTypes += peregrine_dual_machine_gun_projectile
+    peregrine_dual_machine_gun.FireModes += new FireModeDefinition
+    peregrine_dual_machine_gun.FireModes.head.AmmoTypeIndices += 0
+    peregrine_dual_machine_gun.FireModes.head.AmmoSlotIndex = 0
+    peregrine_dual_machine_gun.FireModes.head.Magazine = 150
+    peregrine_dual_machine_gun.Packet = battleFrameToolConverter
+    peregrine_dual_machine_gun.Tile = InventoryTile.Tile48
+
+    peregrine_dual_machine_gun_left.Name = "peregrine_dual_machine_gun_left"
+    peregrine_dual_machine_gun_left.Size = EquipmentSize.BFRArmWeapon
+    peregrine_dual_machine_gun_left.AmmoTypes += peregrine_dual_machine_gun_ammo
+    peregrine_dual_machine_gun_left.ProjectileTypes += peregrine_dual_machine_gun_projectile
+    peregrine_dual_machine_gun_left.FireModes += new FireModeDefinition
+    peregrine_dual_machine_gun_left.FireModes.head.AmmoTypeIndices += 0
+    peregrine_dual_machine_gun_left.FireModes.head.AmmoSlotIndex = 0
+    peregrine_dual_machine_gun_left.FireModes.head.Magazine = 150
+    peregrine_dual_machine_gun_left.Packet = battleFrameToolConverter
+    peregrine_dual_machine_gun_left.Tile = InventoryTile.Tile48
+
+    peregrine_dual_machine_gun_right.Name = "peregrine_dual_machine_gun_right"
+    peregrine_dual_machine_gun_right.Size = EquipmentSize.BFRArmWeapon
+    peregrine_dual_machine_gun_right.AmmoTypes += peregrine_dual_machine_gun_ammo
+    peregrine_dual_machine_gun_right.ProjectileTypes += peregrine_dual_machine_gun_projectile
+    peregrine_dual_machine_gun_right.FireModes += new FireModeDefinition
+    peregrine_dual_machine_gun_right.FireModes.head.AmmoTypeIndices += 0
+    peregrine_dual_machine_gun_right.FireModes.head.AmmoSlotIndex = 0
+    peregrine_dual_machine_gun_right.FireModes.head.Magazine = 150
+    peregrine_dual_machine_gun_right.Packet = battleFrameToolConverter
+    peregrine_dual_machine_gun_right.Tile = InventoryTile.Tile48
+
+    peregrine_mechhammer.Name = "peregrine_mechhammer"
+    peregrine_mechhammer.Size = EquipmentSize.BFRArmWeapon
+    peregrine_mechhammer.AmmoTypes += peregrine_mechhammer_ammo
+    peregrine_mechhammer.ProjectileTypes += peregrine_mechhammer_projectile
+    peregrine_mechhammer.FireModes += new PelletFireModeDefinition
+    peregrine_mechhammer.FireModes.head.AmmoTypeIndices += 0
+    peregrine_mechhammer.FireModes.head.AmmoSlotIndex = 0
+    peregrine_mechhammer.FireModes.head.Magazine = 30
+    peregrine_mechhammer.FireModes.head.Chamber = 16 //30 shells * 12 pellets = 480
+    peregrine_mechhammer.FireModes += new PelletFireModeDefinition
+    peregrine_mechhammer.FireModes(1).AmmoTypeIndices += 0
+    peregrine_mechhammer.FireModes(1).AmmoSlotIndex = 0
+    peregrine_mechhammer.FireModes(1).Magazine = 30
+    peregrine_mechhammer.FireModes(1).Chamber = 12 //30 shells * 12 pellets = 360
+    peregrine_mechhammer.Packet = battleFrameToolConverter
+    peregrine_mechhammer.Tile = InventoryTile.Tile48
+
+    peregrine_mechhammer_left.Name = "peregrine_mechhammer_left"
+    peregrine_mechhammer_left.Size = EquipmentSize.BFRArmWeapon
+    peregrine_mechhammer_left.AmmoTypes += peregrine_mechhammer_ammo
+    peregrine_mechhammer_left.ProjectileTypes += peregrine_mechhammer_projectile
+    peregrine_mechhammer_left.FireModes += new PelletFireModeDefinition
+    peregrine_mechhammer_left.FireModes.head.AmmoTypeIndices += 0
+    peregrine_mechhammer_left.FireModes.head.AmmoSlotIndex = 0
+    peregrine_mechhammer_left.FireModes.head.Magazine = 30
+    peregrine_mechhammer_left.FireModes.head.Chamber = 16 //30 shells * 12 pellets = 480
+    peregrine_mechhammer_left.FireModes += new PelletFireModeDefinition
+    peregrine_mechhammer_left.FireModes(1).AmmoTypeIndices += 0
+    peregrine_mechhammer_left.FireModes(1).AmmoSlotIndex = 0
+    peregrine_mechhammer_left.FireModes(1).Magazine = 30
+    peregrine_mechhammer_left.FireModes(1).Chamber = 12 //30 shells * 12 pellets = 360
+    peregrine_mechhammer_left.Packet = battleFrameToolConverter
+    peregrine_mechhammer_left.Tile = InventoryTile.Tile48
+
+    peregrine_mechhammer_right.Name = "peregrine_mechhammer_right"
+    peregrine_mechhammer_right.Size = EquipmentSize.BFRArmWeapon
+    peregrine_mechhammer_right.AmmoTypes += peregrine_mechhammer_ammo
+    peregrine_mechhammer_right.ProjectileTypes += peregrine_mechhammer_projectile
+    peregrine_mechhammer_right.FireModes += new PelletFireModeDefinition
+    peregrine_mechhammer_right.FireModes.head.AmmoTypeIndices += 0
+    peregrine_mechhammer_right.FireModes.head.AmmoSlotIndex = 0
+    peregrine_mechhammer_right.FireModes.head.Magazine = 30
+    peregrine_mechhammer_right.FireModes.head.Chamber = 16 //30 shells * 12 pellets = 480
+    peregrine_mechhammer_right.FireModes += new PelletFireModeDefinition
+    peregrine_mechhammer_right.FireModes(1).AmmoTypeIndices += 0
+    peregrine_mechhammer_right.FireModes(1).AmmoSlotIndex = 0
+    peregrine_mechhammer_right.FireModes(1).Magazine = 30
+    peregrine_mechhammer_right.FireModes(1).Chamber = 12 //30 shells * 12 pellets = 360
+    peregrine_mechhammer_right.Packet = battleFrameToolConverter
+    peregrine_mechhammer_right.Tile = InventoryTile.Tile48
+
+    peregrine_ntu_siphon.Name = "peregrine_ntu_siphon"
+    peregrine_ntu_siphon.Size = EquipmentSize.BFRArmWeapon
+    peregrine_ntu_siphon.AmmoTypes += ntu_siphon_ammo
+    peregrine_ntu_siphon.ProjectileTypes += ntu_siphon_projectile
+    peregrine_ntu_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_ntu_siphon.FireModes.head.AmmoTypeIndices += 0
+    peregrine_ntu_siphon.FireModes.head.AmmoSlotIndex = 0
+    peregrine_ntu_siphon.FireModes.head.Magazine = 150
+    peregrine_ntu_siphon.Packet = battleFrameToolConverter
+    peregrine_ntu_siphon.Tile = InventoryTile.Tile48
+
+    peregrine_ntu_siphon_left.Name = "peregrine_ntu_siphon_left"
+    peregrine_ntu_siphon_left.Size = EquipmentSize.BFRArmWeapon
+    peregrine_ntu_siphon_left.AmmoTypes += ntu_siphon_ammo
+    peregrine_ntu_siphon_left.ProjectileTypes += ntu_siphon_projectile
+    peregrine_ntu_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_ntu_siphon_left.FireModes.head.AmmoTypeIndices += 0
+    peregrine_ntu_siphon_left.FireModes.head.AmmoSlotIndex = 0
+    peregrine_ntu_siphon_left.FireModes.head.Magazine = 150
+    peregrine_ntu_siphon_left.Packet = battleFrameToolConverter
+    peregrine_ntu_siphon_left.Tile = InventoryTile.Tile48
+
+    peregrine_ntu_siphon_right.Name = "peregrine_ntu_siphon_right"
+    peregrine_ntu_siphon_right.Size = EquipmentSize.BFRArmWeapon
+    peregrine_ntu_siphon_right.AmmoTypes += ntu_siphon_ammo
+    peregrine_ntu_siphon_right.ProjectileTypes += ntu_siphon_projectile
+    peregrine_ntu_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_ntu_siphon_right.FireModes.head.AmmoTypeIndices += 0
+    peregrine_ntu_siphon_right.FireModes.head.AmmoSlotIndex = 0
+    peregrine_ntu_siphon_right.FireModes.head.Magazine = 150
+    peregrine_ntu_siphon_right.Packet = battleFrameToolConverter
+    peregrine_ntu_siphon_right.Tile = InventoryTile.Tile48
+
+    peregrine_sparrow.Name = "peregrine_sparrow"
+    peregrine_sparrow.Size = EquipmentSize.BFRArmWeapon
+    peregrine_sparrow.AmmoTypes += peregrine_sparrow_ammo
+    peregrine_sparrow.ProjectileTypes += peregrine_sparrow_projectile
+    peregrine_sparrow.FireModes += new FireModeDefinition
+    peregrine_sparrow.FireModes.head.AmmoTypeIndices += 0
+    peregrine_sparrow.FireModes.head.AmmoSlotIndex = 0
+    peregrine_sparrow.FireModes.head.Magazine = 12
+    peregrine_sparrow.Packet = battleFrameToolConverter
+    peregrine_sparrow.Tile = InventoryTile.Tile48
+
+    peregrine_sparrow_left.Name = "peregrine_sparrow_left"
+    peregrine_sparrow_left.Size = EquipmentSize.BFRArmWeapon
+    peregrine_sparrow_left.AmmoTypes += peregrine_sparrow_ammo
+    peregrine_sparrow_left.ProjectileTypes += peregrine_sparrow_projectile
+    peregrine_sparrow_left.FireModes += new FireModeDefinition
+    peregrine_sparrow_left.FireModes.head.AmmoTypeIndices += 0
+    peregrine_sparrow_left.FireModes.head.AmmoSlotIndex = 0
+    peregrine_sparrow_left.FireModes.head.Magazine = 12
+    peregrine_sparrow_left.Packet = battleFrameToolConverter
+    peregrine_sparrow_left.Tile = InventoryTile.Tile48
+
+    peregrine_sparrow_right.Name = "peregrine_sparrow_right"
+    peregrine_sparrow_right.Size = EquipmentSize.BFRArmWeapon
+    peregrine_sparrow_right.AmmoTypes += peregrine_sparrow_ammo
+    peregrine_sparrow_right.ProjectileTypes += peregrine_sparrow_projectile
+    peregrine_sparrow_right.FireModes += new FireModeDefinition
+    peregrine_sparrow_right.FireModes.head.AmmoTypeIndices += 0
+    peregrine_sparrow_right.FireModes.head.AmmoSlotIndex = 0
+    peregrine_sparrow_right.FireModes.head.Magazine = 12
+    peregrine_sparrow_right.Packet = battleFrameToolConverter
+    peregrine_sparrow_right.Tile = InventoryTile.Tile48
+
+    peregrine_particle_cannon.Name = "peregrine_particle_cannon"
+    peregrine_particle_cannon.Size = EquipmentSize.BFRGunnerWeapon
+    peregrine_particle_cannon.AmmoTypes += peregrine_particle_cannon_ammo
+    peregrine_particle_cannon.ProjectileTypes += peregrine_particle_cannon_projectile
+    peregrine_particle_cannon.FireModes += new FireModeDefinition
+    peregrine_particle_cannon.FireModes.head.AmmoTypeIndices += 0
+    peregrine_particle_cannon.FireModes.head.AmmoSlotIndex = 0
+    peregrine_particle_cannon.FireModes.head.Magazine = 10
+    peregrine_particle_cannon.Packet = battleFrameToolConverter
+    peregrine_particle_cannon.Tile = InventoryTile.Tile410
+
+    peregrine_dual_rocket_pods.Name = "peregrine_dual_rocket_pods"
+    peregrine_dual_rocket_pods.Size = EquipmentSize.BFRGunnerWeapon
+    peregrine_dual_rocket_pods.AmmoTypes += peregrine_rocket_pod_ammo
+    peregrine_dual_rocket_pods.ProjectileTypes += peregrine_rocket_pod_projectile
+    peregrine_dual_rocket_pods.FireModes += new FireModeDefinition
+    peregrine_dual_rocket_pods.FireModes.head.AmmoTypeIndices += 0
+    peregrine_dual_rocket_pods.FireModes.head.AmmoSlotIndex = 0
+    peregrine_dual_rocket_pods.FireModes.head.Magazine = 24
+    peregrine_dual_rocket_pods.FireModes += new FireModeDefinition
+    peregrine_dual_rocket_pods.FireModes(1).AmmoTypeIndices += 0
+    peregrine_dual_rocket_pods.FireModes(1).AmmoSlotIndex = 0
+    peregrine_dual_rocket_pods.FireModes(1).Magazine = 24
+    peregrine_dual_rocket_pods.Packet = battleFrameToolConverter
+    peregrine_dual_rocket_pods.Tile = InventoryTile.Tile410
   }
 
   /**
@@ -5678,6 +6421,7 @@ object GlobalDefinitions {
     val delivererForm = GeometryForm.representByCylinder(radius = 2.46095f, height = 2.40626f) _ //TODO hexahedron
     val apcForm       = GeometryForm.representByCylinder(radius = 4.6211f, height = 3.90626f) _  //TODO hexahedron
 
+    val normalSeat = new SeatDefinition()
     val bailableSeat = new SeatDefinition() {
       bailable = true
     }
@@ -5692,7 +6436,7 @@ object GlobalDefinitions {
     fury.RepairIfDestroyed = false
     fury.MaxShields = 130
     fury.Seats += 0             -> bailableSeat
-    fury.controlledWeapons += 0 -> 1
+    fury.controlledWeapons(seat = 0, weapon = 1)
     fury.Weapons += 1           -> fury_weapon_systema
     fury.MountPoints += 1       -> MountInfo(0)
     fury.MountPoints += 2       -> MountInfo(0)
@@ -5702,7 +6446,6 @@ object GlobalDefinitions {
     fury.AutoPilotSpeeds = (24, 10)
     fury.DestroyedModel = Some(DestroyedVehicle.QuadAssault)
     fury.JackingDuration = Array(0, 10, 3, 2)
-    fury.explodes = true
     fury.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150
@@ -5728,7 +6471,7 @@ object GlobalDefinitions {
     quadassault.RepairIfDestroyed = false
     quadassault.MaxShields = 130
     quadassault.Seats += 0             -> bailableSeat
-    quadassault.controlledWeapons += 0 -> 1
+    quadassault.controlledWeapons(seat = 0, weapon = 1)
     quadassault.Weapons += 1           -> quadassault_weapon_system
     quadassault.MountPoints += 1       -> MountInfo(0)
     quadassault.MountPoints += 2       -> MountInfo(0)
@@ -5738,7 +6481,6 @@ object GlobalDefinitions {
     quadassault.AutoPilotSpeeds = (24, 10)
     quadassault.DestroyedModel = Some(DestroyedVehicle.QuadAssault)
     quadassault.JackingDuration = Array(0, 10, 3, 2)
-    quadassault.explodes = true
     quadassault.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150
@@ -5774,7 +6516,6 @@ object GlobalDefinitions {
     quadstealth.AutoPilotSpeeds = (24, 10)
     quadstealth.DestroyedModel = Some(DestroyedVehicle.QuadStealth)
     quadstealth.JackingDuration = Array(0, 10, 3, 2)
-    quadstealth.explodes = true
     quadstealth.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150
@@ -5801,7 +6542,7 @@ object GlobalDefinitions {
     two_man_assault_buggy.MaxShields = 250
     two_man_assault_buggy.Seats += 0             -> bailableSeat
     two_man_assault_buggy.Seats += 1             -> bailableSeat
-    two_man_assault_buggy.controlledWeapons += 1 -> 2
+    two_man_assault_buggy.controlledWeapons(seat = 1, weapon = 2)
     two_man_assault_buggy.Weapons += 2           -> chaingun_p
     two_man_assault_buggy.MountPoints += 1       -> MountInfo(0)
     two_man_assault_buggy.MountPoints += 2       -> MountInfo(1)
@@ -5811,7 +6552,6 @@ object GlobalDefinitions {
     two_man_assault_buggy.AutoPilotSpeeds = (22, 8)
     two_man_assault_buggy.DestroyedModel = Some(DestroyedVehicle.TwoManAssaultBuggy)
     two_man_assault_buggy.JackingDuration = Array(0, 15, 5, 3)
-    two_man_assault_buggy.explodes = true
     two_man_assault_buggy.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -5838,7 +6578,7 @@ object GlobalDefinitions {
     skyguard.MaxShields = 200
     skyguard.Seats += 0             -> bailableSeat
     skyguard.Seats += 1             -> bailableSeat
-    skyguard.controlledWeapons += 1 -> 2
+    skyguard.controlledWeapons(seat = 1, weapon = 2)
     skyguard.Weapons += 2           -> skyguard_weapon_system
     skyguard.MountPoints += 1       -> MountInfo(0)
     skyguard.MountPoints += 2       -> MountInfo(0)
@@ -5849,7 +6589,6 @@ object GlobalDefinitions {
     skyguard.AutoPilotSpeeds = (22, 8)
     skyguard.DestroyedModel = Some(DestroyedVehicle.Skyguard)
     skyguard.JackingDuration = Array(0, 15, 5, 3)
-    skyguard.explodes = true
     skyguard.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -5877,8 +6616,8 @@ object GlobalDefinitions {
     threemanheavybuggy.Seats += 0             -> bailableSeat
     threemanheavybuggy.Seats += 1             -> bailableSeat
     threemanheavybuggy.Seats += 2             -> bailableSeat
-    threemanheavybuggy.controlledWeapons += 1 -> 3
-    threemanheavybuggy.controlledWeapons += 2 -> 4
+    threemanheavybuggy.controlledWeapons(seat = 1, weapon = 3)
+    threemanheavybuggy.controlledWeapons(seat = 2, weapon = 4)
     threemanheavybuggy.Weapons += 3           -> chaingun_p
     threemanheavybuggy.Weapons += 4           -> grenade_launcher_marauder
     threemanheavybuggy.MountPoints += 1       -> MountInfo(0)
@@ -5891,7 +6630,6 @@ object GlobalDefinitions {
     threemanheavybuggy.DestroyedModel = Some(DestroyedVehicle.ThreeManHeavyBuggy)
     threemanheavybuggy.Subtract.Damage1 = 5
     threemanheavybuggy.JackingDuration = Array(0, 20, 7, 5)
-    threemanheavybuggy.explodes = true
     threemanheavybuggy.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -5918,7 +6656,7 @@ object GlobalDefinitions {
     twomanheavybuggy.MaxShields = 360
     twomanheavybuggy.Seats += 0             -> bailableSeat
     twomanheavybuggy.Seats += 1             -> bailableSeat
-    twomanheavybuggy.controlledWeapons += 1 -> 2
+    twomanheavybuggy.controlledWeapons(seat = 1, weapon = 2)
     twomanheavybuggy.Weapons += 2           -> advanced_missile_launcher_t
     twomanheavybuggy.MountPoints += 1       -> MountInfo(0)
     twomanheavybuggy.MountPoints += 2       -> MountInfo(1)
@@ -5929,7 +6667,6 @@ object GlobalDefinitions {
     twomanheavybuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHeavyBuggy)
     twomanheavybuggy.Subtract.Damage1 = 5
     twomanheavybuggy.JackingDuration = Array(0, 20, 7, 5)
-    twomanheavybuggy.explodes = true
     twomanheavybuggy.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -5956,7 +6693,7 @@ object GlobalDefinitions {
     twomanhoverbuggy.MaxShields = 320
     twomanhoverbuggy.Seats += 0             -> bailableSeat
     twomanhoverbuggy.Seats += 1             -> bailableSeat
-    twomanhoverbuggy.controlledWeapons += 1 -> 2
+    twomanhoverbuggy.controlledWeapons(seat = 1, weapon = 2)
     twomanhoverbuggy.Weapons += 2           -> flux_cannon_thresher
     twomanhoverbuggy.MountPoints += 1       -> MountInfo(0)
     twomanhoverbuggy.MountPoints += 2       -> MountInfo(1)
@@ -5967,7 +6704,6 @@ object GlobalDefinitions {
     twomanhoverbuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHoverBuggy)
     twomanhoverbuggy.Subtract.Damage1 = 5
     twomanhoverbuggy.JackingDuration = Array(0, 20, 7, 5)
-    twomanhoverbuggy.explodes = true
     twomanhoverbuggy.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -5997,12 +6733,12 @@ object GlobalDefinitions {
     mediumtransport.Seats += 0 -> new SeatDefinition() {
       restriction = NoReinforcedOrMax
     }
-    mediumtransport.Seats += 1             -> new SeatDefinition()
-    mediumtransport.Seats += 2             -> new SeatDefinition()
-    mediumtransport.Seats += 3             -> new SeatDefinition()
-    mediumtransport.Seats += 4             -> new SeatDefinition()
-    mediumtransport.controlledWeapons += 1 -> 5
-    mediumtransport.controlledWeapons += 2 -> 6
+    mediumtransport.Seats += 1             -> normalSeat
+    mediumtransport.Seats += 2             -> normalSeat
+    mediumtransport.Seats += 3             -> normalSeat
+    mediumtransport.Seats += 4             -> normalSeat
+    mediumtransport.controlledWeapons(seat = 1, weapon = 5)
+    mediumtransport.controlledWeapons(seat = 2, weapon = 6)
     mediumtransport.Weapons += 5           -> mediumtransport_weapon_systemA
     mediumtransport.Weapons += 6           -> mediumtransport_weapon_systemB
     mediumtransport.MountPoints += 1       -> MountInfo(0)
@@ -6017,7 +6753,6 @@ object GlobalDefinitions {
     mediumtransport.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     mediumtransport.Subtract.Damage1 = 7
     mediumtransport.JackingDuration = Array(0, 25, 8, 5)
-    mediumtransport.explodes = true
     mediumtransport.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -6045,14 +6780,14 @@ object GlobalDefinitions {
     battlewagon.Seats += 0 -> new SeatDefinition() {
       restriction = NoReinforcedOrMax
     }
-    battlewagon.Seats += 1             -> new SeatDefinition()
-    battlewagon.Seats += 2             -> new SeatDefinition()
-    battlewagon.Seats += 3             -> new SeatDefinition()
-    battlewagon.Seats += 4             -> new SeatDefinition()
-    battlewagon.controlledWeapons += 1 -> 5
-    battlewagon.controlledWeapons += 2 -> 6
-    battlewagon.controlledWeapons += 3 -> 7
-    battlewagon.controlledWeapons += 4 -> 8
+    battlewagon.Seats += 1             -> normalSeat
+    battlewagon.Seats += 2             -> normalSeat
+    battlewagon.Seats += 3             -> normalSeat
+    battlewagon.Seats += 4             -> normalSeat
+    battlewagon.controlledWeapons(seat = 1, weapon = 5)
+    battlewagon.controlledWeapons(seat = 2, weapon = 6)
+    battlewagon.controlledWeapons(seat = 3, weapon = 7)
+    battlewagon.controlledWeapons(seat = 4, weapon = 8)
     battlewagon.Weapons += 5           -> battlewagon_weapon_systema
     battlewagon.Weapons += 6           -> battlewagon_weapon_systemb
     battlewagon.Weapons += 7           -> battlewagon_weapon_systemc
@@ -6068,7 +6803,6 @@ object GlobalDefinitions {
     battlewagon.AutoPilotSpeeds = (18, 6)
     battlewagon.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     battlewagon.JackingDuration = Array(0, 25, 8, 5)
-    battlewagon.explodes = true
     battlewagon.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -6096,14 +6830,14 @@ object GlobalDefinitions {
     thunderer.Seats += 0 -> new SeatDefinition() {
       restriction = NoReinforcedOrMax
     }
-    thunderer.Seats += 1             -> new SeatDefinition()
-    thunderer.Seats += 2             -> new SeatDefinition()
-    thunderer.Seats += 3             -> new SeatDefinition()
-    thunderer.Seats += 4             -> new SeatDefinition()
+    thunderer.Seats += 1             -> normalSeat
+    thunderer.Seats += 2             -> normalSeat
+    thunderer.Seats += 3             -> normalSeat
+    thunderer.Seats += 4             -> normalSeat
     thunderer.Weapons += 5           -> thunderer_weapon_systema
     thunderer.Weapons += 6           -> thunderer_weapon_systemb
-    thunderer.controlledWeapons += 1 -> 5
-    thunderer.controlledWeapons += 2 -> 6
+    thunderer.controlledWeapons(seat = 1, weapon = 5)
+    thunderer.controlledWeapons(seat = 2, weapon = 6)
     thunderer.MountPoints += 1       -> MountInfo(0)
     thunderer.MountPoints += 2       -> MountInfo(1)
     thunderer.MountPoints += 3       -> MountInfo(2)
@@ -6116,7 +6850,6 @@ object GlobalDefinitions {
     thunderer.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     thunderer.Subtract.Damage1 = 7
     thunderer.JackingDuration = Array(0, 25, 8, 5)
-    thunderer.explodes = true
     thunderer.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -6144,12 +6877,12 @@ object GlobalDefinitions {
     aurora.Seats += 0 -> new SeatDefinition() {
       restriction = NoReinforcedOrMax
     }
-    aurora.Seats += 1             -> new SeatDefinition()
-    aurora.Seats += 2             -> new SeatDefinition()
-    aurora.Seats += 3             -> new SeatDefinition()
-    aurora.Seats += 4             -> new SeatDefinition()
-    aurora.controlledWeapons += 1 -> 5
-    aurora.controlledWeapons += 2 -> 6
+    aurora.Seats += 1             -> normalSeat
+    aurora.Seats += 2             -> normalSeat
+    aurora.Seats += 3             -> normalSeat
+    aurora.Seats += 4             -> normalSeat
+    aurora.controlledWeapons(seat = 1, weapon = 5)
+    aurora.controlledWeapons(seat = 2, weapon = 6)
     aurora.Weapons += 5           -> aurora_weapon_systema
     aurora.Weapons += 6           -> aurora_weapon_systemb
     aurora.MountPoints += 1       -> MountInfo(0)
@@ -6164,7 +6897,6 @@ object GlobalDefinitions {
     aurora.DestroyedModel = Some(DestroyedVehicle.MediumTransport)
     aurora.Subtract.Damage1 = 7
     aurora.JackingDuration = Array(0, 25, 8, 5)
-    aurora.explodes = true
     aurora.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -6189,23 +6921,23 @@ object GlobalDefinitions {
     apc_tr.Repairable = true
     apc_tr.RepairIfDestroyed = false
     apc_tr.MaxShields = 1200
-    apc_tr.Seats += 0             -> new SeatDefinition()
-    apc_tr.Seats += 1             -> new SeatDefinition()
-    apc_tr.Seats += 2             -> new SeatDefinition()
-    apc_tr.Seats += 3             -> new SeatDefinition()
-    apc_tr.Seats += 4             -> new SeatDefinition()
-    apc_tr.Seats += 5             -> new SeatDefinition()
-    apc_tr.Seats += 6             -> new SeatDefinition()
-    apc_tr.Seats += 7             -> new SeatDefinition()
-    apc_tr.Seats += 8             -> new SeatDefinition()
+    apc_tr.Seats += 0             -> normalSeat
+    apc_tr.Seats += 1             -> normalSeat
+    apc_tr.Seats += 2             -> normalSeat
+    apc_tr.Seats += 3             -> normalSeat
+    apc_tr.Seats += 4             -> normalSeat
+    apc_tr.Seats += 5             -> normalSeat
+    apc_tr.Seats += 6             -> normalSeat
+    apc_tr.Seats += 7             -> normalSeat
+    apc_tr.Seats += 8             -> normalSeat
     apc_tr.Seats += 9             -> maxOnlySeat
     apc_tr.Seats += 10            -> maxOnlySeat
-    apc_tr.controlledWeapons += 1 -> 11
-    apc_tr.controlledWeapons += 2 -> 12
-    apc_tr.controlledWeapons += 5 -> 15
-    apc_tr.controlledWeapons += 6 -> 16
-    apc_tr.controlledWeapons += 7 -> 13
-    apc_tr.controlledWeapons += 8 -> 14
+    apc_tr.controlledWeapons(seat = 1, weapon = 11)
+    apc_tr.controlledWeapons(seat = 2, weapon = 12)
+    apc_tr.controlledWeapons(seat = 5, weapon = 15)
+    apc_tr.controlledWeapons(seat = 6, weapon = 16)
+    apc_tr.controlledWeapons(seat = 7, weapon = 13)
+    apc_tr.controlledWeapons(seat = 8, weapon = 14)
     apc_tr.Weapons += 11          -> apc_weapon_systemc_tr
     apc_tr.Weapons += 12          -> apc_weapon_systemb
     apc_tr.Weapons += 13          -> apc_weapon_systema
@@ -6231,7 +6963,6 @@ object GlobalDefinitions {
     apc_tr.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_tr.JackingDuration = Array(0, 45, 15, 10)
     apc_tr.Subtract.Damage1 = 10
-    apc_tr.explodes = true
     apc_tr.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 300
@@ -6257,23 +6988,23 @@ object GlobalDefinitions {
     apc_nc.Repairable = true
     apc_nc.RepairIfDestroyed = false
     apc_nc.MaxShields = 1200
-    apc_nc.Seats += 0             -> new SeatDefinition()
-    apc_nc.Seats += 1             -> new SeatDefinition()
-    apc_nc.Seats += 2             -> new SeatDefinition()
-    apc_nc.Seats += 3             -> new SeatDefinition()
-    apc_nc.Seats += 4             -> new SeatDefinition()
-    apc_nc.Seats += 5             -> new SeatDefinition()
-    apc_nc.Seats += 6             -> new SeatDefinition()
-    apc_nc.Seats += 7             -> new SeatDefinition()
-    apc_nc.Seats += 8             -> new SeatDefinition()
+    apc_nc.Seats += 0             -> normalSeat
+    apc_nc.Seats += 1             -> normalSeat
+    apc_nc.Seats += 2             -> normalSeat
+    apc_nc.Seats += 3             -> normalSeat
+    apc_nc.Seats += 4             -> normalSeat
+    apc_nc.Seats += 5             -> normalSeat
+    apc_nc.Seats += 6             -> normalSeat
+    apc_nc.Seats += 7             -> normalSeat
+    apc_nc.Seats += 8             -> normalSeat
     apc_nc.Seats += 9             -> maxOnlySeat
     apc_nc.Seats += 10            -> maxOnlySeat
-    apc_nc.controlledWeapons += 1 -> 11
-    apc_nc.controlledWeapons += 2 -> 12
-    apc_nc.controlledWeapons += 5 -> 15
-    apc_nc.controlledWeapons += 6 -> 16
-    apc_nc.controlledWeapons += 7 -> 13
-    apc_nc.controlledWeapons += 8 -> 14
+    apc_nc.controlledWeapons(seat = 1, weapon = 11)
+    apc_nc.controlledWeapons(seat = 2, weapon = 12)
+    apc_nc.controlledWeapons(seat = 5, weapon = 15)
+    apc_nc.controlledWeapons(seat = 6, weapon = 16)
+    apc_nc.controlledWeapons(seat = 7, weapon = 13)
+    apc_nc.controlledWeapons(seat = 8, weapon = 14)
     apc_nc.Weapons += 11          -> apc_weapon_systemc_nc
     apc_nc.Weapons += 12          -> apc_weapon_systemb
     apc_nc.Weapons += 13          -> apc_weapon_systema
@@ -6299,7 +7030,6 @@ object GlobalDefinitions {
     apc_nc.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_nc.JackingDuration = Array(0, 45, 15, 10)
     apc_nc.Subtract.Damage1 = 10
-    apc_nc.explodes = true
     apc_nc.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 300
@@ -6325,23 +7055,23 @@ object GlobalDefinitions {
     apc_vs.Repairable = true
     apc_vs.RepairIfDestroyed = false
     apc_vs.MaxShields = 1200
-    apc_vs.Seats += 0             -> new SeatDefinition()
-    apc_vs.Seats += 1             -> new SeatDefinition()
-    apc_vs.Seats += 2             -> new SeatDefinition()
-    apc_vs.Seats += 3             -> new SeatDefinition()
-    apc_vs.Seats += 4             -> new SeatDefinition()
-    apc_vs.Seats += 5             -> new SeatDefinition()
-    apc_vs.Seats += 6             -> new SeatDefinition()
-    apc_vs.Seats += 7             -> new SeatDefinition()
-    apc_vs.Seats += 8             -> new SeatDefinition()
+    apc_vs.Seats += 0             -> normalSeat
+    apc_vs.Seats += 1             -> normalSeat
+    apc_vs.Seats += 2             -> normalSeat
+    apc_vs.Seats += 3             -> normalSeat
+    apc_vs.Seats += 4             -> normalSeat
+    apc_vs.Seats += 5             -> normalSeat
+    apc_vs.Seats += 6             -> normalSeat
+    apc_vs.Seats += 7             -> normalSeat
+    apc_vs.Seats += 8             -> normalSeat
     apc_vs.Seats += 9             -> maxOnlySeat
     apc_vs.Seats += 10            -> maxOnlySeat
-    apc_vs.controlledWeapons += 1 -> 11
-    apc_vs.controlledWeapons += 2 -> 12
-    apc_vs.controlledWeapons += 5 -> 15
-    apc_vs.controlledWeapons += 6 -> 16
-    apc_vs.controlledWeapons += 7 -> 13
-    apc_vs.controlledWeapons += 8 -> 14
+    apc_vs.controlledWeapons(seat = 1, weapon = 11)
+    apc_vs.controlledWeapons(seat = 2, weapon = 12)
+    apc_vs.controlledWeapons(seat = 5, weapon = 15)
+    apc_vs.controlledWeapons(seat = 6, weapon = 16)
+    apc_vs.controlledWeapons(seat = 7, weapon = 13)
+    apc_vs.controlledWeapons(seat = 8, weapon = 14)
     apc_vs.Weapons += 11          -> apc_weapon_systemc_vs
     apc_vs.Weapons += 12          -> apc_weapon_systemb
     apc_vs.Weapons += 13          -> apc_weapon_systema
@@ -6367,7 +7097,6 @@ object GlobalDefinitions {
     apc_vs.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_vs.JackingDuration = Array(0, 45, 15, 10)
     apc_vs.Subtract.Damage1 = 10
-    apc_vs.explodes = true
     apc_vs.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 300
@@ -6396,7 +7125,7 @@ object GlobalDefinitions {
     lightning.Seats += 0 -> new SeatDefinition() {
       restriction = NoReinforcedOrMax
     }
-    lightning.controlledWeapons += 0 -> 1
+    lightning.controlledWeapons(seat = 0, weapon = 1)
     lightning.Weapons += 1           -> lightning_weapon_system
     lightning.MountPoints += 1       -> MountInfo(0)
     lightning.MountPoints += 2       -> MountInfo(0)
@@ -6407,7 +7136,6 @@ object GlobalDefinitions {
     lightning.DestroyedModel = Some(DestroyedVehicle.Lightning)
     lightning.Subtract.Damage1 = 7
     lightning.JackingDuration = Array(0, 20, 7, 5)
-    lightning.explodes = true
     lightning.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 250
@@ -6435,10 +7163,10 @@ object GlobalDefinitions {
     prowler.Seats += 0 -> new SeatDefinition() {
       restriction = NoReinforcedOrMax
     }
-    prowler.Seats += 1             -> new SeatDefinition()
-    prowler.Seats += 2             -> new SeatDefinition()
-    prowler.controlledWeapons += 1 -> 3
-    prowler.controlledWeapons += 2 -> 4
+    prowler.Seats += 1             -> normalSeat
+    prowler.Seats += 2             -> normalSeat
+    prowler.controlledWeapons(seat = 1, weapon = 3)
+    prowler.controlledWeapons(seat = 2, weapon = 4)
     prowler.Weapons += 3           -> prowler_weapon_systemA
     prowler.Weapons += 4           -> prowler_weapon_systemB
     prowler.MountPoints += 1       -> MountInfo(0)
@@ -6451,7 +7179,6 @@ object GlobalDefinitions {
     prowler.DestroyedModel = Some(DestroyedVehicle.Prowler)
     prowler.Subtract.Damage1 = 9
     prowler.JackingDuration = Array(0, 30, 10, 5)
-    prowler.explodes = true
     prowler.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 250
@@ -6479,8 +7206,8 @@ object GlobalDefinitions {
     vanguard.Seats += 0 -> new SeatDefinition() {
       restriction = NoReinforcedOrMax
     }
-    vanguard.Seats += 1             -> new SeatDefinition()
-    vanguard.controlledWeapons += 1 -> 2
+    vanguard.Seats += 1             -> normalSeat
+    vanguard.controlledWeapons(seat = 1, weapon = 2)
     vanguard.Weapons += 2           -> vanguard_weapon_system
     vanguard.MountPoints += 1       -> MountInfo(0)
     vanguard.MountPoints += 2       -> MountInfo(1)
@@ -6491,7 +7218,6 @@ object GlobalDefinitions {
     vanguard.DestroyedModel = Some(DestroyedVehicle.Vanguard)
     vanguard.Subtract.Damage1 = 9
     vanguard.JackingDuration = Array(0, 30, 10, 5)
-    vanguard.explodes = true
     vanguard.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 250
@@ -6519,9 +7245,9 @@ object GlobalDefinitions {
     magrider.Seats += 0 -> new SeatDefinition() {
       restriction = NoReinforcedOrMax
     }
-    magrider.Seats += 1             -> new SeatDefinition()
-    magrider.controlledWeapons += 0 -> 2
-    magrider.controlledWeapons += 1 -> 3
+    magrider.Seats += 1             -> normalSeat
+    magrider.controlledWeapons(seat = 0, weapon = 2)
+    magrider.controlledWeapons(seat = 1, weapon = 3)
     magrider.Weapons += 2           -> particle_beam_magrider
     magrider.Weapons += 3           -> heavy_rail_beam_magrider
     magrider.MountPoints += 1       -> MountInfo(0)
@@ -6533,7 +7259,6 @@ object GlobalDefinitions {
     magrider.DestroyedModel = Some(DestroyedVehicle.Magrider)
     magrider.Subtract.Damage1 = 9
     magrider.JackingDuration = Array(0, 30, 10, 5)
-    magrider.explodes = true
     magrider.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 250
@@ -6573,7 +7298,6 @@ object GlobalDefinitions {
     ant.DestroyedModel = Some(DestroyedVehicle.Ant)
     ant.Subtract.Damage1 = 5
     ant.JackingDuration = Array(0, 60, 20, 15)
-    ant.explodes = true
     ant.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 300
@@ -6616,7 +7340,6 @@ object GlobalDefinitions {
     ams.DestroyedModel = Some(DestroyedVehicle.Ams)
     ams.Subtract.Damage1 = 10
     ams.JackingDuration = Array(0, 60, 20, 15)
-    ams.explodes = true
     ams.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
       Damage0 = 300
@@ -6642,7 +7365,7 @@ object GlobalDefinitions {
     router.Repairable = true
     router.RepairIfDestroyed = false
     router.MaxShields = 800
-    router.Seats += 0       -> new SeatDefinition()
+    router.Seats += 0       -> normalSeat
     router.MountPoints += 1 -> MountInfo(0)
     router.Utilities += 1   -> UtilityType.teleportpad_terminal
     router.Utilities += 2   -> UtilityType.internal_router_telepad_deployable
@@ -6658,7 +7381,6 @@ object GlobalDefinitions {
     router.DestroyedModel = Some(DestroyedVehicle.Router)
     router.Subtract.Damage1 = 5
     router.JackingDuration = Array(0, 20, 7, 5)
-    router.explodes = true
     router.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -6683,8 +7405,8 @@ object GlobalDefinitions {
     switchblade.Repairable = true
     switchblade.RepairIfDestroyed = false
     switchblade.MaxShields = 350
-    switchblade.Seats += 0             -> new SeatDefinition()
-    switchblade.controlledWeapons += 0 -> 1
+    switchblade.Seats += 0             -> normalSeat
+    switchblade.controlledWeapons(seat = 0, weapon = 1)
     switchblade.Weapons += 1           -> scythe
     switchblade.MountPoints += 1       -> MountInfo(0)
     switchblade.MountPoints += 2       -> MountInfo(0)
@@ -6700,7 +7422,6 @@ object GlobalDefinitions {
     switchblade.Subtract.Damage0 = 5
     switchblade.Subtract.Damage1 = 5
     switchblade.JackingDuration = Array(0, 20, 7, 5)
-    switchblade.explodes = true
     switchblade.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -6728,8 +7449,8 @@ object GlobalDefinitions {
     flail.Repairable = true
     flail.RepairIfDestroyed = false
     flail.MaxShields = 480
-    flail.Seats += 0             -> new SeatDefinition()
-    flail.controlledWeapons += 0 -> 1
+    flail.Seats += 0             -> normalSeat
+    flail.controlledWeapons(seat = 0, weapon = 1)
     flail.Weapons += 1           -> flail_weapon
     flail.Utilities += 2         -> UtilityType.targeting_laser_dispenser
     flail.MountPoints += 1       -> MountInfo(0)
@@ -6744,7 +7465,6 @@ object GlobalDefinitions {
     flail.DestroyedModel = Some(DestroyedVehicle.Flail)
     flail.Subtract.Damage1 = 7
     flail.JackingDuration = Array(0, 20, 7, 5)
-    flail.explodes = true
     flail.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -6782,7 +7502,7 @@ object GlobalDefinitions {
     mosquito.MaxShields = 133
     mosquito.CanFly = true
     mosquito.Seats += 0             -> bailableSeat
-    mosquito.controlledWeapons += 0 -> 1
+    mosquito.controlledWeapons(seat = 0, weapon = 1)
     mosquito.Weapons += 1           -> rotarychaingun_mosquito
     mosquito.MountPoints += 1       -> MountInfo(0)
     mosquito.MountPoints += 2       -> MountInfo(0)
@@ -6794,7 +7514,6 @@ object GlobalDefinitions {
     mosquito.DestroyedModel = Some(DestroyedVehicle.Mosquito)
     mosquito.JackingDuration = Array(0, 20, 7, 5)
     mosquito.DamageUsing = DamageCalculations.AgainstAircraft
-    mosquito.explodes = true
     mosquito.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -6820,7 +7539,7 @@ object GlobalDefinitions {
     lightgunship.MaxShields = 171 // Temporary - Correct Reaver Shields from pre-"Coder Madness 2" Event
     lightgunship.CanFly = true
     lightgunship.Seats += 0             -> bailableSeat
-    lightgunship.controlledWeapons += 0 -> 1
+    lightgunship.controlledWeapons(seat = 0, weapon = 1)
     lightgunship.Weapons += 1           -> lightgunship_weapon_system
     lightgunship.MountPoints += 1       -> MountInfo(0)
     lightgunship.MountPoints += 2       -> MountInfo(0)
@@ -6833,7 +7552,6 @@ object GlobalDefinitions {
     lightgunship.Subtract.Damage1 = 3
     lightgunship.JackingDuration = Array(0, 30, 10, 5)
     lightgunship.DamageUsing = DamageCalculations.AgainstAircraft
-    lightgunship.explodes = true
     lightgunship.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 250
@@ -6859,7 +7577,7 @@ object GlobalDefinitions {
     wasp.MaxShields = 103
     wasp.CanFly = true
     wasp.Seats += 0             -> bailableSeat
-    wasp.controlledWeapons += 0 -> 1
+    wasp.controlledWeapons(seat = 0, weapon = 1)
     wasp.Weapons += 1           -> wasp_weapon_system
     wasp.MountPoints += 1       -> MountInfo(0)
     wasp.MountPoints += 2       -> MountInfo(0)
@@ -6871,7 +7589,6 @@ object GlobalDefinitions {
     wasp.DestroyedModel = Some(DestroyedVehicle.Mosquito) //set_resource_parent wasp game_objects mosquito
     wasp.JackingDuration = Array(0, 20, 7, 5)
     wasp.DamageUsing = DamageCalculations.AgainstAircraft
-    wasp.explodes = true
     wasp.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -6899,9 +7616,9 @@ object GlobalDefinitions {
     liberator.Seats += 0             -> bailableSeat //new SeatDefinition()
     liberator.Seats += 1             -> bailableSeat
     liberator.Seats += 2             -> bailableSeat
-    liberator.controlledWeapons += 0 -> 3
-    liberator.controlledWeapons += 1 -> 4
-    liberator.controlledWeapons += 2 -> 5
+    liberator.controlledWeapons(seat = 0, weapon = 3)
+    liberator.controlledWeapons(seat = 1, weapon = 4)
+    liberator.controlledWeapons(seat = 2, weapon = 5)
     liberator.Weapons += 3           -> liberator_weapon_system
     liberator.Weapons += 4           -> liberator_bomb_bay
     liberator.Weapons += 5           -> liberator_25mm_cannon
@@ -6918,7 +7635,6 @@ object GlobalDefinitions {
     liberator.Subtract.Damage1 = 5
     liberator.JackingDuration = Array(0, 30, 10, 5)
     liberator.DamageUsing = DamageCalculations.AgainstAircraft
-    liberator.explodes = true
     liberator.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 250
@@ -6946,9 +7662,9 @@ object GlobalDefinitions {
     vulture.Seats += 0             -> bailableSeat //new SeatDefinition()
     vulture.Seats += 1             -> bailableSeat
     vulture.Seats += 2             -> bailableSeat
-    vulture.controlledWeapons += 0 -> 3
-    vulture.controlledWeapons += 1 -> 4
-    vulture.controlledWeapons += 2 -> 5
+    vulture.controlledWeapons(seat = 0, weapon = 3)
+    vulture.controlledWeapons(seat = 1, weapon = 4)
+    vulture.controlledWeapons(seat = 2, weapon = 5)
     vulture.Weapons += 3           -> vulture_nose_weapon_system
     vulture.Weapons += 4           -> vulture_bomb_bay
     vulture.Weapons += 5           -> vulture_tail_cannon
@@ -6966,7 +7682,6 @@ object GlobalDefinitions {
     vulture.Subtract.Damage1 = 5
     vulture.JackingDuration = Array(0, 30, 10, 5)
     vulture.DamageUsing = DamageCalculations.AgainstAircraft
-    vulture.explodes = true
     vulture.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 250
@@ -7010,9 +7725,9 @@ object GlobalDefinitions {
       restriction = MaxOnly
     }
     dropship.Seats += 11             -> bailableSeat
-    dropship.controlledWeapons += 1  -> 12
-    dropship.controlledWeapons += 2  -> 13
-    dropship.controlledWeapons += 11 -> 14
+    dropship.controlledWeapons(seat = 1, weapon = 12)
+    dropship.controlledWeapons(seat = 2, weapon = 13)
+    dropship.controlledWeapons(seat = 11, weapon = 14)
     dropship.Weapons += 12           -> cannon_dropship_20mm
     dropship.Weapons += 13           -> cannon_dropship_20mm
     dropship.Weapons += 14           -> dropship_rear_turret
@@ -7041,7 +7756,6 @@ object GlobalDefinitions {
     dropship.Subtract.Damage1 = 7
     dropship.JackingDuration = Array(0, 60, 20, 10)
     dropship.DamageUsing = DamageCalculations.AgainstAircraft
-    dropship.explodes = true
     dropship.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 300
@@ -7073,11 +7787,11 @@ object GlobalDefinitions {
     galaxy_gunship.Seats += 3             -> bailableSeat
     galaxy_gunship.Seats += 4             -> bailableSeat
     galaxy_gunship.Seats += 5             -> bailableSeat
-    galaxy_gunship.controlledWeapons += 1 -> 6
-    galaxy_gunship.controlledWeapons += 2 -> 7
-    galaxy_gunship.controlledWeapons += 3 -> 8
-    galaxy_gunship.controlledWeapons += 4 -> 9
-    galaxy_gunship.controlledWeapons += 5 -> 10
+    galaxy_gunship.controlledWeapons(seat = 1, weapon = 6)
+    galaxy_gunship.controlledWeapons(seat = 2, weapon = 7)
+    galaxy_gunship.controlledWeapons(seat = 3, weapon = 8)
+    galaxy_gunship.controlledWeapons(seat = 4, weapon = 9)
+    galaxy_gunship.controlledWeapons(seat = 5, weapon = 10)
     galaxy_gunship.Weapons += 6           -> galaxy_gunship_cannon
     galaxy_gunship.Weapons += 7           -> galaxy_gunship_cannon
     galaxy_gunship.Weapons += 8           -> galaxy_gunship_tailgun
@@ -7100,7 +7814,6 @@ object GlobalDefinitions {
     galaxy_gunship.JackingDuration = Array(0, 60, 20, 10)
     galaxy_gunship.DamageUsing = DamageCalculations.AgainstAircraft
     galaxy_gunship.Modifiers = GalaxyGunshipReduction(0.63f)
-    galaxy_gunship.explodes = true
     galaxy_gunship.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 300
@@ -7147,7 +7860,6 @@ object GlobalDefinitions {
     lodestar.Subtract.Damage1 = 7
     lodestar.JackingDuration = Array(0, 60, 20, 10)
     lodestar.DamageUsing = DamageCalculations.AgainstAircraft
-    lodestar.explodes = true
     lodestar.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 300
@@ -7171,7 +7883,7 @@ object GlobalDefinitions {
     phantasm.MaxShields = 500
     phantasm.CanCloak = true
     phantasm.CanFly = true
-    phantasm.Seats += 0       -> new SeatDefinition()
+    phantasm.Seats += 0       -> normalSeat
     phantasm.Seats += 1       -> bailableSeat
     phantasm.Seats += 2       -> bailableSeat
     phantasm.Seats += 3       -> bailableSeat
@@ -7189,7 +7901,6 @@ object GlobalDefinitions {
     phantasm.DestroyedModel = None //the adb calls out a phantasm_destroyed but no such asset exists
     phantasm.JackingDuration = Array(0, 60, 20, 10)
     phantasm.DamageUsing = DamageCalculations.AgainstAircraft
-    phantasm.explodes = true
     phantasm.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 100
@@ -7258,6 +7969,213 @@ object GlobalDefinitions {
     orbital_shuttle.mass = 25000f
   }
 
+  private def init_bfr_vehicles(): Unit = {
+    val normalSeat = new SeatDefinition()
+
+    val battleFrameConverter = new BattleFrameRoboticsConverter
+    aphelion_gunner.Name = "aphelion_gunner"
+    aphelion_gunner.MaxHealth = 4500
+    aphelion_gunner.Damageable = true
+    aphelion_gunner.Repairable = true
+    aphelion_gunner.RepairIfDestroyed = false
+    aphelion_gunner.MaxShields = 3000
+    //aphelion_gunner.ShieldPeriodicDelay = 500
+    //aphelion_gunner.ShieldDamageDelay = 3500
+    //aphelion_gunner.ShieldAutoRecharge = 45
+    //aphelion_gunner.DefaultShields = aphelion_gunner.MaxShields
+    aphelion_gunner.Seats += 0       -> normalSeat
+    aphelion_gunner.Seats += 1       -> normalSeat
+    aphelion_gunner.controlledWeapons(seat = 0, weapons = Set(2, 3))
+    aphelion_gunner.controlledWeapons(seat = 1, weapon = 4)
+    aphelion_gunner.Weapons += 2     -> aphelion_ppa_left
+    aphelion_gunner.Weapons += 3     -> aphelion_ppa_right
+    aphelion_gunner.Weapons += 4     -> aphelion_plasma_rocket_pod
+    aphelion_gunner.MountPoints += 1 -> MountInfo(0)
+    aphelion_gunner.MountPoints += 2 -> MountInfo(1)
+    aphelion_gunner.TrunkSize = InventoryTile.Tile1518
+    aphelion_gunner.TrunkOffset = 30
+    aphelion_gunner.TrunkLocation = Vector3(0f, -2f, 0f)
+    aphelion_gunner.AutoPilotSpeeds = (5, 1)
+    aphelion_gunner.Packet = battleFrameConverter
+    aphelion_gunner.DestroyedModel = None
+    aphelion_gunner.JackingDuration = Array(0, 62, 60, 30)
+    aphelion_gunner.DamageUsing = DamageCalculations.AgainstBFR
+    aphelion_gunner.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 400
+      Damage1 = 500
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = ExplodingRadialDegrade
+    }
+
+    colossus_gunner.Name = "colossus_gunner"
+    colossus_gunner.MaxHealth = 4500
+    colossus_gunner.Damageable = true
+    colossus_gunner.Repairable = true
+    colossus_gunner.RepairIfDestroyed = false
+    colossus_gunner.MaxShields = 3000
+    //colossus_gunner.ShieldPeriodicDelay = 500
+    //colossus_gunner.ShieldDamageDelay = 3500
+    //colossus_gunner.ShieldAutoRecharge = 45
+    //colossus_gunner.DefaultShields = colossus_gunner.MaxShields
+    colossus_gunner.Seats += 0       -> normalSeat
+    colossus_gunner.Seats += 1       -> normalSeat
+    colossus_gunner.controlledWeapons(seat = 0, weapons = Set(2, 3))
+    colossus_gunner.controlledWeapons(seat = 1, weapon = 4)
+    colossus_gunner.Weapons += 2     -> colossus_tank_cannon_left
+    colossus_gunner.Weapons += 3     -> colossus_tank_cannon_right
+    colossus_gunner.Weapons += 4     -> colossus_dual_100mm_cannons
+    colossus_gunner.MountPoints += 1 -> MountInfo(0)
+    colossus_gunner.MountPoints += 2 -> MountInfo(1)
+    colossus_gunner.TrunkSize = InventoryTile.Tile1518
+    colossus_gunner.TrunkOffset = 30
+    colossus_gunner.TrunkLocation = Vector3(0f, -5f, 0f)
+    colossus_gunner.AutoPilotSpeeds = (5, 1)
+    colossus_gunner.Packet = battleFrameConverter
+    colossus_gunner.DestroyedModel = None
+    colossus_gunner.JackingDuration = Array(0, 62, 60, 30)
+    colossus_gunner.DamageUsing = DamageCalculations.AgainstBFR
+    colossus_gunner.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 400
+      Damage1 = 500
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = ExplodingRadialDegrade
+    }
+
+    peregrine_gunner.Name = "peregrine_gunner"
+    peregrine_gunner.MaxHealth = 4500
+    peregrine_gunner.Damageable = true
+    peregrine_gunner.Repairable = true
+    peregrine_gunner.RepairIfDestroyed = false
+    peregrine_gunner.MaxShields = 3000
+    //peregrine_gunner.ShieldPeriodicDelay = 500
+    //peregrine_gunner.ShieldDamageDelay = 3500
+    //peregrine_gunner.ShieldAutoRecharge = 45
+    //peregrine_gunner.DefaultShields = peregrine_gunner.MaxShields
+    peregrine_gunner.Seats += 0       -> normalSeat
+    peregrine_gunner.Seats += 1       -> normalSeat
+    peregrine_gunner.controlledWeapons(seat = 0, weapons = Set(2, 3))
+    peregrine_gunner.controlledWeapons(seat = 1, weapon = 4)
+    peregrine_gunner.Weapons += 2     -> peregrine_dual_machine_gun_left
+    peregrine_gunner.Weapons += 3     -> peregrine_dual_machine_gun_right
+    peregrine_gunner.Weapons += 4     -> peregrine_particle_cannon
+    peregrine_gunner.MountPoints += 1 -> MountInfo(0)
+    peregrine_gunner.MountPoints += 2 -> MountInfo(1)
+    peregrine_gunner.TrunkSize = InventoryTile.Tile1518
+    peregrine_gunner.TrunkOffset = 30
+    peregrine_gunner.TrunkLocation = Vector3(0f, -5f, 0f)
+    peregrine_gunner.AutoPilotSpeeds = (5, 1)
+    peregrine_gunner.Packet = battleFrameConverter
+    peregrine_gunner.DestroyedModel = None
+    peregrine_gunner.JackingDuration = Array(0, 62, 60, 30)
+    peregrine_gunner.DamageUsing = DamageCalculations.AgainstBFR
+    peregrine_gunner.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 400
+      Damage1 = 500
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = ExplodingRadialDegrade
+    }
+
+    val battleFrameFlightConverter = new BattleFrameFlightConverter
+    aphelion_flight.Name = "aphelion_flight"
+    aphelion_flight.MaxHealth = 3500
+    aphelion_flight.Damageable = true
+    aphelion_flight.Repairable = true
+    aphelion_flight.RepairIfDestroyed = false
+    aphelion_flight.MaxShields = 2500
+    //aphelion_flight.CanFly = true
+    //aphelion_flight.ShieldPeriodicDelay = 500
+    //aphelion_flight.ShieldDamageDelay = 3500
+    //aphelion_flight.ShieldAutoRecharge = 12 //12.5
+    //aphelion_flight.DefaultShields = aphelion_flight.MaxShields
+    aphelion_flight.Seats += 0       -> normalSeat
+    aphelion_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
+    aphelion_flight.Weapons += 1     -> aphelion_ppa_left
+    aphelion_flight.Weapons += 2     -> aphelion_ppa_right
+    aphelion_flight.MountPoints += 1 -> MountInfo(0)
+    aphelion_flight.TrunkSize = InventoryTile.Tile1518 //adb reports 15x11, but the graphic uses 15x18
+    aphelion_flight.TrunkOffset = 30
+    aphelion_flight.TrunkLocation = Vector3(0f, -2f, 0f)
+    aphelion_flight.AutoPilotSpeeds = (5, 1)
+    aphelion_flight.Packet = battleFrameFlightConverter
+    aphelion_flight.DestroyedModel = None
+    aphelion_flight.JackingDuration = Array(0, 62, 60, 30)
+    aphelion_flight.DamageUsing = DamageCalculations.AgainstBFR
+    aphelion_flight.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 400
+      Damage1 = 500
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = ExplodingRadialDegrade
+    }
+
+    colossus_flight.Name = "colossus_flight"
+    colossus_flight.MaxHealth = 3500
+    colossus_flight.Damageable = true
+    colossus_flight.Repairable = true
+    colossus_flight.RepairIfDestroyed = false
+    colossus_flight.MaxShields = 2500
+    //colossus_flight.CanFly = true
+    //colossus_flight.DefaultShields = colossus_flight.MaxShields
+    colossus_flight.Seats += 0       -> normalSeat
+    colossus_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
+    colossus_flight.Weapons += 1     -> colossus_tank_cannon_left
+    colossus_flight.Weapons += 2     -> colossus_tank_cannon_right
+    colossus_flight.MountPoints += 1 -> MountInfo(0)
+    colossus_flight.TrunkSize = InventoryTile.Tile1518 //adb reports 15x11, but the graphic uses 15x18
+    colossus_flight.TrunkOffset = 30
+    colossus_flight.TrunkLocation = Vector3(0f, -5f, 0f)
+    colossus_flight.AutoPilotSpeeds = (5, 1)
+    colossus_flight.Packet = battleFrameFlightConverter
+    colossus_flight.DestroyedModel = None
+    colossus_flight.JackingDuration = Array(0, 62, 60, 30)
+    colossus_flight.DamageUsing = DamageCalculations.AgainstBFR
+    colossus_flight.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 400
+      Damage1 = 500
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = ExplodingRadialDegrade
+    }
+
+    peregrine_flight.Name = "peregrine_flight"
+    peregrine_flight.MaxHealth = 3500
+    peregrine_flight.Damageable = true
+    peregrine_flight.Repairable = true
+    peregrine_flight.RepairIfDestroyed = false
+    peregrine_flight.MaxShields = 2500
+    //peregrine_flight.CanFly = true
+    //peregrine_flight.DefaultShields = peregrine_flight.MaxShields
+    peregrine_flight.Seats += 0       -> normalSeat
+    peregrine_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
+    peregrine_flight.Weapons += 1     -> peregrine_dual_machine_gun_left
+    peregrine_flight.Weapons += 2     -> peregrine_dual_machine_gun_right
+    peregrine_flight.MountPoints += 1 -> MountInfo(0)
+    peregrine_flight.TrunkSize = InventoryTile.Tile1518 //adb reports 15x11, but the graphic uses 15x18
+    peregrine_flight.TrunkOffset = 30
+    peregrine_flight.TrunkLocation = Vector3(0f, -5f, 0f)
+    peregrine_flight.AutoPilotSpeeds = (5, 1)
+    peregrine_flight.Packet = battleFrameFlightConverter
+    peregrine_flight.DestroyedModel = None
+    peregrine_flight.JackingDuration = Array(0, 62, 60, 30)
+    peregrine_flight.DamageUsing = DamageCalculations.AgainstBFR
+    peregrine_flight.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 400
+      Damage1 = 500
+      DamageRadius = 10
+      DamageAtEdge = 0.2f
+      Modifiers = ExplodingRadialDegrade
+    }
+  }
+
   /**
     * Initialize `Deployable` globals.
     */
@@ -7276,7 +8194,6 @@ object GlobalDefinitions {
     boomer.DeployCategory = DeployableCategory.Boomers
     boomer.DeployTime = Duration.create(1000, "ms")
     boomer.deployAnimation = DeployAnimation.Standard
-    boomer.explodes = true
     boomer.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
       SympatheticExplosion = true
@@ -7299,7 +8216,6 @@ object GlobalDefinitions {
     he_mine.Repairable = false
     he_mine.DeployTime = Duration.create(1000, "ms")
     he_mine.deployAnimation = DeployAnimation.Standard
-    he_mine.explodes = true
     he_mine.triggerRadius = 3f
     he_mine.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
@@ -7324,7 +8240,6 @@ object GlobalDefinitions {
     jammer_mine.DeployTime = Duration.create(1000, "ms")
     jammer_mine.deployAnimation = DeployAnimation.Standard
     jammer_mine.DetonateOnJamming = false
-    jammer_mine.explodes = true
     jammer_mine.triggerRadius = 3f
     jammer_mine.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
@@ -7372,7 +8287,6 @@ object GlobalDefinitions {
     spitfire_turret.DeployTime = Duration.create(5000, "ms")
     spitfire_turret.Model = ComplexDeployableResolutions.calculate
     spitfire_turret.deployAnimation = DeployAnimation.Standard
-    spitfire_turret.explodes = true
     spitfire_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -7399,7 +8313,6 @@ object GlobalDefinitions {
     spitfire_cloaked.DeployTime = Duration.create(5000, "ms")
     spitfire_cloaked.deployAnimation = DeployAnimation.Standard
     spitfire_cloaked.Model = ComplexDeployableResolutions.calculate
-    spitfire_cloaked.explodes = true
     spitfire_cloaked.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 50
@@ -7426,7 +8339,6 @@ object GlobalDefinitions {
     spitfire_aa.DeployTime = Duration.create(5000, "ms")
     spitfire_aa.deployAnimation = DeployAnimation.Standard
     spitfire_aa.Model = ComplexDeployableResolutions.calculate
-    spitfire_aa.explodes = true
     spitfire_aa.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -7491,7 +8403,7 @@ object GlobalDefinitions {
     portable_manned_turret.Damageable = true
     portable_manned_turret.Repairable = true
     portable_manned_turret.RepairIfDestroyed = false
-    portable_manned_turret.controlledWeapons += 0 -> 1
+    portable_manned_turret.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret.WeaponPaths(1) += TurretUpgrade.None -> energy_gun
     portable_manned_turret.MountPoints += 1 -> MountInfo(0)
@@ -7503,7 +8415,6 @@ object GlobalDefinitions {
     portable_manned_turret.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret.Model = ComplexDeployableResolutions.calculate
-    portable_manned_turret.explodes = true
     portable_manned_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150
@@ -7525,7 +8436,7 @@ object GlobalDefinitions {
     portable_manned_turret_nc.RepairIfDestroyed = false
     portable_manned_turret_nc.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_nc.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_nc
-    portable_manned_turret_nc.controlledWeapons += 0 -> 1
+    portable_manned_turret_nc.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret_nc.MountPoints += 1 -> MountInfo(0)
     portable_manned_turret_nc.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_nc.ReserveAmmunition = true
@@ -7535,7 +8446,6 @@ object GlobalDefinitions {
     portable_manned_turret_nc.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_nc.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret_nc.Model = ComplexDeployableResolutions.calculate
-    portable_manned_turret_nc.explodes = true
     portable_manned_turret_nc.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150
@@ -7557,7 +8467,7 @@ object GlobalDefinitions {
     portable_manned_turret_tr.RepairIfDestroyed = false
     portable_manned_turret_tr.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_tr.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_tr
-    portable_manned_turret_tr.controlledWeapons += 0 -> 1
+    portable_manned_turret_tr.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret_tr.MountPoints += 1 -> MountInfo(0)
     portable_manned_turret_tr.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_tr.ReserveAmmunition = true
@@ -7567,7 +8477,6 @@ object GlobalDefinitions {
     portable_manned_turret_tr.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_tr.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret_tr.Model = ComplexDeployableResolutions.calculate
-    portable_manned_turret_tr.explodes = true
     portable_manned_turret_tr.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150
@@ -7589,7 +8498,7 @@ object GlobalDefinitions {
     portable_manned_turret_vs.RepairIfDestroyed = false
     portable_manned_turret_vs.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_vs.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_vs
-    portable_manned_turret_vs.controlledWeapons += 0 -> 1
+    portable_manned_turret_vs.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret_vs.MountPoints += 1 -> MountInfo(0)
     portable_manned_turret_vs.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret_vs.ReserveAmmunition = true
@@ -7599,7 +8508,6 @@ object GlobalDefinitions {
     portable_manned_turret_vs.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_vs.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret_vs.Model = ComplexDeployableResolutions.calculate
-    portable_manned_turret_vs.explodes = true
     portable_manned_turret_vs.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150
@@ -7860,10 +8768,12 @@ object GlobalDefinitions {
     vanu_vehicle_term.Subtract.Damage1 = 8
 
     bfr_terminal.Name = "bfr_terminal"
-    bfr_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+    bfr_terminal.Tab += 0 -> OrderTerminalDefinition.VehiclePage(
       VehicleTerminalDefinition.bfrVehicles,
       VehicleTerminalDefinition.trunk
     )
+    bfr_terminal.Tab += 1 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrArmWeapons) //inaccessible?
+    bfr_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrGunnerWeapons) //inaccessible?
     bfr_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     bfr_terminal.MaxHealth = 500
     bfr_terminal.Damageable = true
@@ -8147,11 +9057,10 @@ object GlobalDefinitions {
     manned_turret.WeaponPaths(1) += TurretUpgrade.None      -> phalanx_sgl_hevgatcan
     manned_turret.WeaponPaths(1) += TurretUpgrade.AVCombo   -> phalanx_avcombo
     manned_turret.WeaponPaths(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
-    manned_turret.controlledWeapons += 0                    -> 1
+    manned_turret.controlledWeapons(seat = 0, weapon = 1)
     manned_turret.MountPoints += 1                          -> MountInfo(0)
     manned_turret.FactionLocked = true
     manned_turret.ReserveAmmunition = false
-    manned_turret.explodes = true
     manned_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150
@@ -8171,7 +9080,7 @@ object GlobalDefinitions {
     vanu_sentry_turret.RepairIfDestroyed = true
     vanu_sentry_turret.WeaponPaths += 1                     -> new mutable.HashMap()
     vanu_sentry_turret.WeaponPaths(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
-    vanu_sentry_turret.controlledWeapons += 0               -> 1
+    vanu_sentry_turret.controlledWeapons(seat = 0, weapon = 1)
     vanu_sentry_turret.MountPoints += 1                     -> MountInfo(0)
     vanu_sentry_turret.MountPoints += 2                     -> MountInfo(0)
     vanu_sentry_turret.FactionLocked = false
@@ -8255,7 +9164,6 @@ object GlobalDefinitions {
     generator.RepairDistance = 13.5f
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9
-    generator.explodes = true
     generator.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 99999

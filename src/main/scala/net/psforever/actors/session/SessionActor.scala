@@ -181,10 +181,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var cluster: typed.ActorRef[ICS.Command]                           = Default.Actor
   var _session: Session                                              = Session()
   var progressBarValue: Option[Float]                                = None
-  var shooting: Option[PlanetSideGUID]                               = None //ChangeFireStateMessage_Start
-  var prefire: Option[PlanetSideGUID]                                = None //if WeaponFireMessage precedes ChangeFireStateMessage_Start
-  var shootingStart: Long                                            = 0
-  var shootingStop: Long                                             = 0
+  var shooting: mutable.Set[PlanetSideGUID]                          = mutable.Set.empty //ChangeFireStateMessage_Start
+  var prefire: mutable.Set[PlanetSideGUID]                           = mutable.Set.empty //if WeaponFireMessage precedes ChangeFireStateMessage_Start
+  var shootingStart: mutable.HashMap[PlanetSideGUID, Long]           = mutable.HashMap[PlanetSideGUID, Long]()
+  var shootingStop: mutable.HashMap[PlanetSideGUID, Long]            = mutable.HashMap[PlanetSideGUID, Long]()
   var shotsWhileDead: Int                                            = 0
   var accessedContainer: Option[PlanetSideGameObject with Container] = None
   var connectionState: Int                                           = 25
@@ -331,13 +331,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       //TODO put any temporary values back into the avatar
       squadService ! Service.Leave(Some(s"${avatar.faction}"))
       if (player != null && player.HasGUID) {
-        prefire.orElse(shooting) match {
-          case Some(guid) =>
-            continent.AvatarEvents ! AvatarServiceMessage(
-              continent.id,
-              AvatarAction.ChangeFireState_Stop(player.GUID, guid)
-            )
-          case None => ;
+        (prefire ++ shooting).foreach { guid =>
+          continent.AvatarEvents ! AvatarServiceMessage(
+            continent.id,
+            AvatarAction.ChangeFireState_Stop(player.GUID, guid)
+          )
         }
       }
     }
@@ -2401,9 +2399,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             case Some(vehicle: MountableWeapons) =>
               vehicle.PassengerInSeat(player) match {
                 case Some(seat_num: Int) =>
-                  vehicle.WeaponControlledFromSeat(seat_num) match {
-                    case Some(equipment) if equipment.GUID == weapon_guid =>
-                      val weapon = equipment.asInstanceOf[Tool]
+                  vehicle.WeaponControlledFromSeat(seat_num) foreach {
+                    case weapon: Tool if weapon.GUID == weapon_guid =>
                       sendResponse(InventoryStateMessage(weapon.AmmoSlot.Box.GUID, weapon.GUID, weapon.Magazine))
                     case _ => ;
                   }
@@ -3736,8 +3733,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               val pguid = turret.GUID
               //attached weapon
               if (!turret.isUpgrading) {
-                turret.ControlledWeapon(wepNumber = 1) match {
-                  case Some(obj: Tool) =>
+                turret.ControlledWeapon(wepNumber = 1).foreach {
+                  case obj: Tool =>
                     val objDef = obj.Definition
                     sendResponse(
                       ObjectCreateMessage(
@@ -3877,34 +3874,29 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
         //the majority of the following check retrieves information to determine if we are in control of the child
-        FindContainedWeapon match {
-          case (Some(o), Some(tool)) =>
-            (o match {
-              case mount: Mountable => (o, mount.PassengerInSeat(player))
-              case _                => (None, None)
-            }) match {
-              case (None, None) | (_, None) | (_: Vehicle, Some(0)) => ;
-              case _ =>
-                persist()
-                turnCounterFunc(player.GUID)
-            }
-            if (tool.GUID == object_guid) {
-              //TODO set tool orientation?
-              player.Orientation = Vector3(0f, pitch, yaw)
-              continent.VehicleEvents ! VehicleServiceMessage(
-                continent.id,
-                VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw)
-              )
-            } else {
-              log.warn(
-                s"ChildObjectState: ${player.Name} is using a different controllable agent than entity ${object_guid.guid}"
-              )
-            }
-          case (Some(obj), None) =>
-            log.warn(
-              s"ChildObjectState: ${player.Name} can not find any controllable agent, let alone entity ${object_guid.guid}"
+        val (o, tools) = FindContainedWeapon
+        tools.foreach { tool =>
+          (o match {
+            case Some(mount: Mountable) => (o, mount.PassengerInSeat(player))
+            case _                      => (None, None)
+          }) match {
+            case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ;
+            case _ =>
+              persist()
+              turnCounterFunc(player.GUID)
+          }
+          if (tool.GUID == object_guid) {
+            //TODO set tool orientation?
+            player.Orientation = Vector3(0f, pitch, yaw)
+            continent.VehicleEvents ! VehicleServiceMessage(
+              continent.id,
+              VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw)
             )
-          case (None, _) => ;
+          } else {
+            log.warn(
+              s"ChildObjectState: ${player.Name} is using a different controllable agent than entity ${object_guid.guid}"
+            )
+          }
           //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
         }
         if (player.death_by == -1) {
@@ -4052,8 +4044,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ LongRangeProjectileInfoMessage(guid, _, _) =>
         //log.info(s"$msg")
         FindContainedWeapon match {
-          case (Some(vehicle: Vehicle), Some(weapon: Tool))
-            if weapon.GUID == guid => ; //now what?
+          case (Some(vehicle: Vehicle), weapons)
+            if weapons.exists { _.GUID == guid } => ; //now what?
           case _ => ;
         }
 
@@ -4098,24 +4090,32 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(VoiceHostKill())
 
       case msg @ ChangeAmmoMessage(item_guid, unk1) =>
-        FindContainedEquipment match {
-          case (Some(_), Some(obj: ConstructionItem)) =>
-            if (Deployables.performConstructionItemAmmoChange(player.avatar.certifications, obj, obj.AmmoTypeIndex)) {
-              log.info(
-                s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${obj.AmmoType} (option #${obj.FireModeIndex})"
-              )
-              sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
-            }
-          case (Some(obj: PlanetSideServerObject), Some(tool: Tool)) =>
-            PerformToolAmmoChange(tool, obj)
-          case (_, Some(obj)) =>
-            log.warn(s"ChangeAmmo: the ${obj.Definition.Name} in ${player.Name}'s hands does not contain ammunition")
-          case (_, None) =>
-            log.warn(s"ChangeAmmo: can not find $item_guid")
+        val (thing, equipment) = FindContainedEquipment()
+        if(equipment.isEmpty) {
+          log.warn(s"ChangeAmmo: either can not find $item_guid or the object found was not Equipment")
+        } else {
+          equipment foreach {
+            case obj : ConstructionItem =>
+              if (Deployables.performConstructionItemAmmoChange(player.avatar.certifications, obj, obj.AmmoTypeIndex)) {
+                log.info(
+                  s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${obj.AmmoType} (option #${obj.FireModeIndex})"
+                )
+                sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
+              }
+            case tool : Tool =>
+              thing match {
+                case Some(correctThing: PlanetSideServerObject with Container) =>
+                  PerformToolAmmoChange(tool, correctThing)
+                case _ =>
+                  log.warn(s"ChangeAmmo: the ${thing.get.Definition.Name} in ${player.Name}'s is not the correct type")
+              }
+            case obj =>
+              log.warn(s"ChangeAmmo: the ${obj.Definition.Name} in ${player.Name}'s hands does not contain ammunition")
+          }
         }
 
       case msg @ ChangeFireModeMessage(item_guid, fire_mode) =>
-        FindEquipment match {
+        FindEquipment(item_guid) match {
           case Some(obj: PlanetSideGameObject with FireModeSwitch[_]) =>
             val originalModeIndex = obj.FireModeIndex
             if (obj match {
@@ -4150,12 +4150,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ ChangeFireStateMessage_Start(item_guid) =>
         if (shooting.isEmpty) {
-          FindEquipment match {
+          FindEquipment(item_guid) match {
             case Some(tool: Tool) =>
               if (tool.Magazine > 0 || prefire.contains(item_guid)) {
-                prefire = None
-                shooting = Some(item_guid)
-                shootingStart = System.currentTimeMillis()
+                prefire -= item_guid
+                shooting += item_guid
+                shootingStart += item_guid -> System.currentTimeMillis()
                 //special case - suppress the decimator's alternate fire mode, by projectile
                 if (tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
                   continent.AvatarEvents ! AvatarServiceMessage(
@@ -4181,9 +4181,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 EmptyMagazine(item_guid, tool)
               }
             case Some(_) => //permissible, for now
-              prefire = None
-              shooting = Some(item_guid)
-              shootingStart = System.currentTimeMillis()
+              prefire -= item_guid
+              shooting += item_guid
+              shootingStart += item_guid -> System.currentTimeMillis()
               continent.AvatarEvents ! AvatarServiceMessage(
                 continent.id,
                 AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
@@ -4194,13 +4194,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ ChangeFireStateMessage_Stop(item_guid) =>
-        prefire = None
-        shootingStop = System.currentTimeMillis()
-        if (shooting.contains(item_guid)) {
-          shooting = None
-        }
+        prefire -= item_guid
+        shootingStop += item_guid -> System.currentTimeMillis()
+        shooting -= item_guid
         val pguid = player.GUID
-        FindEquipment match {
+        FindEquipment(item_guid) match {
           case Some(tool: Tool) =>
             //the decimator does not send a ChangeFireState_Start on the last shot; heaven knows why
             if (
@@ -4212,7 +4210,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 continent.id,
                 AvatarAction.ChangeFireState_Start(pguid, item_guid)
               )
-              shootingStart = System.currentTimeMillis() - 1L
+              shootingStart += item_guid -> (System.currentTimeMillis() - 1L)
             }
             tool.FireMode match {
               case mode: ChargeFireModeDefinition =>
@@ -4291,55 +4289,58 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ ReloadMessage(item_guid, ammo_clip, unk1) =>
         FindContainedWeapon match {
-          case (Some(obj: PlanetSideServerObject with Container), Some(tool: Tool)) =>
-            val currentMagazine: Int = tool.Magazine
-            val magazineSize: Int    = tool.MaxMagazine
-            val reloadValue: Int     = magazineSize - currentMagazine
-            if (magazineSize > 0 && reloadValue > 0) {
-              FindEquipmentStock(obj, FindAmmoBoxThatUses(tool.AmmoType), reloadValue, CountAmmunition).reverse match {
-                case Nil => ;
-                case x :: xs =>
-                  val (deleteFunc, modifyFunc): (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
-                    case veh: Vehicle =>
-                      (RemoveOldEquipmentFromInventory(veh), ModifyAmmunitionInVehicle(veh))
-                    case _ =>
-                      (RemoveOldEquipmentFromInventory(obj), ModifyAmmunition(obj))
-                  }
-                  xs.foreach { item => deleteFunc(item.obj) }
-                  val box = x.obj.asInstanceOf[AmmoBox]
-                  val tailReloadValue: Int = if (xs.isEmpty) {
-                    0
-                  } else {
-                    xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum
-                  }
-                  val sumReloadValue: Int = box.Capacity + tailReloadValue
-                  val actualReloadValue = if (sumReloadValue <= reloadValue) {
-                    deleteFunc(box)
-                    sumReloadValue
-                  } else {
-                    modifyFunc(box, reloadValue - tailReloadValue)
-                    reloadValue
-                  }
-                  val finalReloadValue = actualReloadValue + currentMagazine
-                  log.info(
-                    s"${player.Name} successfully reloaded $reloadValue ${tool.AmmoType} into ${tool.Definition.Name}"
-                  )
-                  tool.Magazine = finalReloadValue
-                  sendResponse(ReloadMessage(item_guid, finalReloadValue, unk1))
-                  continent.AvatarEvents ! AvatarServiceMessage(
-                    continent.id,
-                    AvatarAction.Reload(player.GUID, item_guid)
-                  )
+          case (Some(obj: PlanetSideServerObject with Container), tools) =>
+            tools.filter { _.GUID == item_guid }.foreach { tool =>
+              val currentMagazine : Int = tool.Magazine
+              val magazineSize : Int = tool.MaxMagazine
+              val reloadValue : Int = magazineSize - currentMagazine
+              if (magazineSize > 0 && reloadValue > 0) {
+                FindEquipmentStock(obj, FindAmmoBoxThatUses(tool.AmmoType), reloadValue, CountAmmunition).reverse match {
+                  case Nil => ;
+                  case x :: xs =>
+                    val (deleteFunc, modifyFunc) : (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
+                      case veh : Vehicle =>
+                        (RemoveOldEquipmentFromInventory(veh), ModifyAmmunitionInVehicle(veh))
+                      case _ =>
+                        (RemoveOldEquipmentFromInventory(obj), ModifyAmmunition(obj))
+                    }
+                    xs.foreach { item => deleteFunc(item.obj) }
+                    val box = x.obj.asInstanceOf[AmmoBox]
+                    val tailReloadValue : Int = if (xs.isEmpty) {
+                      0
+                    }
+                    else {
+                      xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum
+                    }
+                    val sumReloadValue : Int = box.Capacity + tailReloadValue
+                    val actualReloadValue = if (sumReloadValue <= reloadValue) {
+                      deleteFunc(box)
+                      sumReloadValue
+                    }
+                    else {
+                      modifyFunc(box, reloadValue - tailReloadValue)
+                      reloadValue
+                    }
+                    val finalReloadValue = actualReloadValue + currentMagazine
+                    log.info(
+                      s"${player.Name} successfully reloaded $reloadValue ${tool.AmmoType} into ${tool.Definition.Name}"
+                    )
+                    tool.Magazine = finalReloadValue
+                    sendResponse(ReloadMessage(item_guid, finalReloadValue, unk1))
+                    continent.AvatarEvents ! AvatarServiceMessage(
+                      continent.id,
+                      AvatarAction.Reload(player.GUID, item_guid)
+                    )
+                }
               }
-            } else {
-              log.warn(
-                s"ReloadMessage: the ${tool.Definition.Name} under ${player.Name}'s control can not reload (full=$magazineSize, want=$reloadValue)"
-              )
+              else {
+                log.warn(
+                  s"ReloadMessage: the ${tool.Definition.Name} under ${player.Name}'s control can not reload (full=$magazineSize, want=$reloadValue)"
+                )
+              }
             }
-          case (_, Some(_)) =>
-            log.warn(s"ReloadMessage: the object that was found for $item_guid was not a Tool")
-          case (_, None) =>
-            log.warn(s"ReloadMessage: can not find $item_guid")
+          case (_, _) =>
+            log.warn(s"ReloadMessage: either can not find $item_guid or the object found was not a Tool")
         }
 
       case msg @ ObjectHeldMessage(avatar_guid, held_holsters, unk1) =>
@@ -5192,7 +5193,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ WeaponDelayFireMessage(seq_time, weapon_guid) => ;
 
       case msg @ WeaponDryFireMessage(weapon_guid) =>
-        FindWeapon.orElse { continent.GUID(weapon_guid) } match {
+        FindWeapon
+          .find { _.GUID == weapon_guid }
+          .orElse { continent.GUID(weapon_guid) } match {
           case Some(_: Equipment) =>
             continent.AvatarEvents ! AvatarServiceMessage(
               continent.id,
@@ -5230,8 +5233,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         log.info(s"${player.Name} is lazing a position$purpose")
 
       case msg @ ObjectDetectedMessage(guid1, guid2, unk, targets) =>
-        FindWeapon match {
-          case Some(weapon) if weapon.Projectile.AutoLock =>
+        FindWeapon.foreach {
+          case weapon if weapon.Projectile.AutoLock =>
             //projectile with auto-lock instigates a warning on the target
             val detectedTargets = FindDetectedProjectileTargets(targets)
             if (detectedTargets.nonEmpty) {
@@ -6317,7 +6320,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     *         the first value is a `Container` object;
     *         the second value is an `Equipment` object in the former
     */
-  def FindContainedEquipment: (Option[PlanetSideGameObject with Container], Option[Equipment]) = {
+  def FindContainedEquipment(): (Option[PlanetSideGameObject with Container], Set[Equipment]) = {
     player.VehicleSeated match {
       case Some(vehicle_guid) => //weapon is vehicle turret?
         continent.GUID(vehicle_guid) match {
@@ -6326,13 +6329,27 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case Some(seat_num) =>
                 (Some(vehicle), vehicle.WeaponControlledFromSeat(seat_num))
               case None => ;
-                (None, None)
+                (None, Set.empty)
             }
           case _ => ;
-            (None, None)
+            (None, Set.empty)
         }
       case None => //not in vehicle; weapon in hand?
-        (Some(player), player.Slot(player.DrawnSlot).Equipment)
+        (Some(player), player.Slot(player.DrawnSlot).Equipment match { case Some(a) => Set(a); case _ => Set.empty })
+    }
+  }
+
+/**
+  * Check two locations for a controlled piece of equipment that is associated with the `player`
+  * and has the specified global unique identifier number.
+  */
+  def FindContainedEquipment(
+                              guid: PlanetSideGUID
+                            ): (Option[PlanetSideGameObject with Container], Set[Equipment]) = {
+    val (o, equipment) = FindContainedEquipment()
+    equipment.find { _.GUID == guid } match {
+      case Some(equip) => (o, Set(equip))
+      case None        => (None, Set.empty)
     }
   }
 
@@ -6340,7 +6357,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Runs `FindContainedEquipment` but ignores the `Container` object output.
     * @return an `Equipment` object
     */
-  def FindEquipment: Option[Equipment] = FindContainedEquipment._2
+  def FindEquipment(): Set[Equipment] = FindContainedEquipment()._2
+
+  /**
+    * Runs `FindContainedEquipment` but ignores the `Container` object output
+    * and only discovers `Equipment` with the specified global unique identifier number.
+    * @return an `Equipment` object
+    */
+  def FindEquipment(guid: PlanetSideGUID): Option[Equipment] = FindEquipment().find { _.GUID == guid }
 
   /**
     * Check two locations for a controlled piece of equipment that is associated with the `player`.
@@ -6349,12 +6373,29 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     *         the first value is a `Container` object;
     *         the second value is an `Tool` object in the former
     */
-  def FindContainedWeapon: (Option[PlanetSideGameObject with Container], Option[Tool]) = {
-    FindContainedEquipment match {
-      case (container, Some(tool: Tool)) =>
-        (container, Some(tool))
+  def FindContainedWeapon: (Option[PlanetSideGameObject with Container], Set[Tool]) = {
+    FindContainedEquipment() match {
+      case (container, equipment) =>
+        (container, equipment collect { case t: Tool => t })
       case _ =>
-        (None, None)
+        (None, Set.empty)
+    }
+  }
+
+  /**
+    * Check two locations for a controlled piece of equipment that is associated with the `player`.
+    * Filter for discovered `Tool`-type `Equipment` with a specific global unique identifier number.
+    * @return a `Tuple` of the returned values;
+    *         the first value is a `Container` object;
+    *         the second value is an `Tool` object in the former
+    */
+  def FindContainedWeapon(
+                           guid: PlanetSideGUID
+                         ): (Option[PlanetSideGameObject with Container], Set[Tool]) = {
+    val (o, equipment) = FindContainedWeapon
+    equipment.find { _.GUID == guid } match {
+      case Some(equip) => (o, Set(equip))
+      case None        => (None, Set.empty)
     }
   }
 
@@ -6362,7 +6403,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Runs `FindContainedWeapon` but ignores the `Container` object output.
     * @return a `Tool` object
     */
-  def FindWeapon: Option[Tool] = FindContainedWeapon._2
+  def FindWeapon: Set[Tool] = FindContainedWeapon._2
 
   /**
     * Get the current `Vehicle` object that the player is riding/driving.
@@ -6907,6 +6948,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * This is not a complete list but, for the purpose of enforcement, some pointers will be documented here.
     */
   def PlayerActionsToCancel(): Unit = {
+    shootingStart.clear()
+    shootingStop.clear()
     progressBarUpdate.cancel()
     progressBarValue = None
     lastTerminalOrderFulfillment = true
@@ -6935,18 +6978,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case None => ;
     }
-    prefire.orElse(shooting) match {
-      case Some(guid) =>
-        sendResponse(ChangeFireStateMessage_Stop(guid))
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.ChangeFireState_Stop(player.GUID, guid)
-        )
-        prefire = None
-        shooting = None
-        shootingStop = System.currentTimeMillis()
-      case None => ;
+    val currTime = System.currentTimeMillis()
+    (prefire ++ shooting).foreach { guid =>
+      sendResponse(ChangeFireStateMessage_Stop(guid))
+      continent.AvatarEvents ! AvatarServiceMessage(
+        continent.id,
+        AvatarAction.ChangeFireState_Stop(player.GUID, guid)
+      )
     }
+    prefire.clear()
+    shooting.clear()
     if (session.flying) {
       chatActor ! ChatActor.Message(ChatMsg(ChatMessageType.CMT_FLY, false, "", "off", None))
     }
@@ -8677,8 +8718,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param seatNum the mount
     */
   def UpdateWeaponAtSeatPosition(objWithSeat: MountableWeapons, seatNum: Int): Unit = {
-    objWithSeat.WeaponControlledFromSeat(seatNum) match {
-      case Some(weapon: Tool) =>
+    objWithSeat.WeaponControlledFromSeat(seatNum) foreach {
+      case weapon: Tool =>
         //update mounted weapon belonging to mount
         weapon.AmmoSlots.foreach(slot => {
           //update the magazine(s) in the weapon, specifically
@@ -9212,7 +9253,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             )
           val initialQuality = tool.FireMode match {
             case mode: ChargeFireModeDefinition =>
-              ProjectileQuality.Modified((projectile.fire_time - shootingStart) / mode.Time.toFloat)
+              ProjectileQuality.Modified(
+                projectile.fire_time - shootingStart.getOrElse(tool.GUID, System.currentTimeMillis()) / mode.Time.toFloat
+              )
             case _ =>
               ProjectileQuality.Normal
           }
@@ -9257,13 +9300,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       // Cancel NC MAX shield if it's active
       ToggleMaxSpecialState(enable = false)
     }
-    FindContainedWeapon match {
-      case out @ (Some(_), Some(tool: Tool)) =>
+    val (o, tools) = FindContainedWeapon
+    val collectedTools = tools.collect {
+      case tool: Tool if tool.GUID == weaponGUID =>
         if (tool.Magazine <= 0) { //safety: enforce ammunition depletion
-          prefire = None
+          prefire -= weaponGUID
           EmptyMagazine(weaponGUID, tool)
         } else if (!player.isAlive) { //proper internal accounting, but no projectile
-          prefire = shooting.orElse(Some(weaponGUID))
+          prefire += weaponGUID
           tool.Discharge()
           projectiles(projectileGUID.guid - Projectile.baseUID) = None
           shotsWhileDead += 1
@@ -9278,13 +9322,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             avatarActor ! AvatarActor.ConsumeStamina(avatar.stamina)
           }
           avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)
-          prefire = shooting.orElse(Some(weaponGUID))
+          prefire += weaponGUID
           tool.Discharge()
         }
-        out
-      case _ =>
-        (None, None)
+        (o, Some(tool))
     }
+    collectedTools.headOption.getOrElse((None, None))
   }
 
   def isAcceptableNextSpawnPoint(): Boolean = isAcceptableSpawnPoint(nextSpawnPoint)

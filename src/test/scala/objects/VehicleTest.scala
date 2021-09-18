@@ -136,7 +136,7 @@ class VehicleTest extends Specification {
       fury_vehicle.Weapons.get(1).isDefined mustEqual true
       fury_vehicle.Weapons(1).Equipment.isDefined mustEqual true
       fury_vehicle.Weapons(1).Equipment.get.Definition mustEqual GlobalDefinitions.fury.Weapons(1)
-      fury_vehicle.WeaponControlledFromSeat(0) mustEqual fury_vehicle.Weapons(1).Equipment
+      fury_vehicle.WeaponControlledFromSeat(0) contains fury_vehicle.Weapons(1).Equipment.get mustEqual true
       fury_vehicle.Trunk.Width mustEqual 11
       fury_vehicle.Trunk.Height mustEqual 11
       fury_vehicle.Trunk.Offset mustEqual 30
@@ -248,7 +248,7 @@ class VehicleTest extends Specification {
       chaingun_p.isDefined mustEqual true
 
       harasser_vehicle.WeaponControlledFromSeat(0).isEmpty mustEqual true
-      harasser_vehicle.WeaponControlledFromSeat(1) mustEqual chaingun_p
+      harasser_vehicle.WeaponControlledFromSeat(1).contains(chaingun_p.get) mustEqual true
     }
 
     "can filter utilities with indices that are natural numbers" in {

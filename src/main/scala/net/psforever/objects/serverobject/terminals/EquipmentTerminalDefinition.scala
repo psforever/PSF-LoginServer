@@ -209,6 +209,61 @@ object EquipmentTerminalDefinition {
   )
 
   /**
+    * A `Map` of operations for producing the `Tool` `Equipment` for battleframe arm weapons.
+    * key - an identification string sent by the client
+    * value - a curried function that builds the object
+    */
+  val bfrArmWeapons : Map[String, () => Equipment] = Map(
+    "aphelion_armor_siphon"      -> MakeTool(aphelion_armor_siphon),
+    "aphelion_laser"             -> MakeTool(aphelion_laser),
+    "aphelion_ntu_siphon"        -> MakeTool(aphelion_ntu_siphon),
+    "aphelion_ppa"               -> MakeTool(aphelion_ppa),
+    "aphelion_starfire"          -> MakeTool(aphelion_starfire),
+    "colossus_armor_siphon"      -> MakeTool(colossus_armor_siphon),
+    "colossus_burster"           -> MakeTool(colossus_burster),
+    "colossus_chaingun"          -> MakeTool(colossus_chaingun),
+    "colossus_ntu_siphon"        -> MakeTool(colossus_ntu_siphon),
+    "colossus_tank_cannon"       -> MakeTool(colossus_tank_cannon),
+    "peregrine_armor_siphon"     -> MakeTool(peregrine_armor_siphon),
+    "peregrine_dual_machine_gun" -> MakeTool(peregrine_dual_machine_gun),
+    "peregrine_mechhammer"       -> MakeTool(peregrine_mechhammer),
+    "peregrine_ntu_siphon"       -> MakeTool(peregrine_ntu_siphon),
+    "peregrine_sparrow"          -> MakeTool(peregrine_sparrow)
+  )
+
+  /**
+    * A `Map` of operations for producing the `Tool` `Equipment` for battleframe gunner weapons.
+    * key - an identification string sent by the client
+    * value - a curried function that builds the object
+    */
+  val bfrGunnerWeapons : Map[String, () => Equipment] = Map(
+    "aphelion_immolation_cannon"  -> MakeTool(aphelion_immolation_cannon),
+    "aphelion_plasma_rocket_pod"  -> MakeTool(aphelion_plasma_rocket_pod),
+    "colossus_cluster_bomb_pod"   -> MakeTool(colossus_cluster_bomb_pod),
+    "colossus_dual_100mm_cannons" -> MakeTool(colossus_dual_100mm_cannons),
+    "peregrine_dual_rocket_pods"  -> MakeTool(peregrine_dual_rocket_pods),
+    "peregrine_particle_cannon"   -> MakeTool(peregrine_particle_cannon)
+  )
+
+  val bfrAmmunition : Map[String, () => AmmoBox] = Map(
+    "aphelion_laser_ammo"             -> MakeAmmoBox(aphelion_laser_ammo),
+    "aphelion_immolation_cannon_ammo" -> MakeAmmoBox(aphelion_immolation_cannon_ammo),
+    "aphelion_plasma_rocket_ammo"     -> MakeAmmoBox(aphelion_plasma_rocket_ammo),
+    "aphelion_ppa_ammo"               -> MakeAmmoBox(aphelion_ppa_ammo),
+    "aphelion_starfire_ammo"          -> MakeAmmoBox(aphelion_starfire_ammo),
+    "colossus_100mm_cannon_ammo"      -> MakeAmmoBox(colossus_100mm_cannon_ammo),
+    "colossus_burster_ammo"           -> MakeAmmoBox(colossus_burster_ammo),
+    "colossus_cluster_bomb_ammo"      -> MakeAmmoBox(colossus_cluster_bomb_ammo),
+    "colossus_chaingun_ammo"          -> MakeAmmoBox(colossus_chaingun_ammo),
+    "colossus_tank_cannon_ammo"       -> MakeAmmoBox(colossus_tank_cannon_ammo),
+    "peregrine_dual_machine_gun_ammo" -> MakeAmmoBox(peregrine_dual_machine_gun_ammo),
+    "peregrine_mechhammer_ammo"       -> MakeAmmoBox(peregrine_mechhammer_ammo),
+    "peregrine_particle_cannon_ammo"  -> MakeAmmoBox(peregrine_particle_cannon_ammo),
+    "peregrine_rocket_pod_ammo"       -> MakeAmmoBox(peregrine_rocket_pod_ammo),
+    "peregrine_sparrow_ammo"          -> MakeAmmoBox(peregrine_sparrow_ammo)
+  )
+
+  /**
     * A single-element `Map` of the one piece of `Equipment` specific to the Router.
     */
   val routerTerminal: Map[String, () => Equipment] = Map("router_telepad" -> MakeTelepad(router_telepad))
