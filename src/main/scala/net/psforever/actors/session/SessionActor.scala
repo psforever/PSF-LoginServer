@@ -207,7 +207,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var nextSpawnPoint: Option[SpawnPoint]                              = None
   var setupAvatarFunc: () => Unit                                     = AvatarCreate
   var setCurrentAvatarFunc: Player => Unit                            = SetCurrentAvatarNormally
-  var persist: () => Unit                                             = NoPersistence
+  var persistFunc: () => Unit                                         = NoPersistence
+  var persist: () => Unit                                             = UpdatePersistenceOnly
   var specialItemSlotGuid: Option[PlanetSideGUID] =
     None // If a special item (e.g. LLU) has been attached to the player the GUID should be stored here, or cleared when dropped, since the drop hotkey doesn't send the GUID of the object to be dropped.
 
@@ -1177,6 +1178,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case NewPlayerLoaded(tplayer) =>
       //new zone
       log.info(s"${tplayer.Name} has spawned into ${session.zone.id}")
+      persist = UpdatePersistenceAndRefs
       tplayer.avatar = avatar
       session = session.copy(player = tplayer)
       avatarActor ! AvatarActor.CreateImplants()
@@ -1384,7 +1386,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case PlayerToken.LoginInfo(name, Zone.Nowhere, _) =>
       log.info(s"LoginInfo: player $name is considered a new character")
       //TODO poll the database for saved zone and coordinates?
-      persist = UpdatePersistence(sender())
+      persistFunc = UpdatePersistence(sender())
       deadState = DeadState.RespawnTime
 
       session = session.copy(player = new Player(avatar))
@@ -1400,7 +1402,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case PlayerToken.LoginInfo(playerName, inZone, pos) =>
       log.info(s"LoginInfo: player $playerName is already logged in zone ${inZone.id}; rejoining that character")
-      persist = UpdatePersistence(sender())
+      persistFunc = UpdatePersistence(sender())
       //tell the old WorldSessionActor to kill itself by using its own subscriptions against itself
       inZone.AvatarEvents ! AvatarServiceMessage(playerName, AvatarAction.TeardownConnection())
       //find and reload previous player
@@ -1482,17 +1484,35 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   /**
     * Update this player avatar for persistence.
-    * @param persistRef reference to the persistence monitor
+    * Set to `persist` initially.
     */
-  def UpdatePersistence(persistRef: ActorRef)(): Unit = {
-    persistRef ! AccountPersistenceService.Update(player.Name, continent, player.Position)
+  def UpdatePersistenceOnly(): Unit = {
+    persistFunc()
+  }
+
+  /**
+    * Update this player avatar for persistence.
+    * Set to `persist` when (new) player is loaded.
+    */
+  def UpdatePersistenceAndRefs(): Unit = {
+    persistFunc()
     updateOldRefsMap()
   }
 
   /**
     * Do not update this player avatar for persistence.
+    * Set to `persistFunc` initially.
     */
   def NoPersistence(): Unit = {}
+
+  /**
+    * Update this player avatar for persistence.
+    * Set this to `persistFunc` when persistence is ready.
+    * @param persistRef reference to the persistence monitor
+    */
+  def UpdatePersistence(persistRef: ActorRef)(): Unit = {
+    persistRef ! AccountPersistenceService.Update(player.Name, continent, player.Position)
+  }
 
   /**
     * A zoning message was received.
