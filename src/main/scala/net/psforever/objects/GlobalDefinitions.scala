@@ -1054,20 +1054,21 @@ object GlobalDefinitions {
 
   val aphelion_gunner = VehicleDefinition.Bfr(ObjectClass.aphelion_gunner)
 
-  val aphelion_flight = VehicleDefinition.Bfr(ObjectClass.aphelion_flight) //eclipse
+  val aphelion_flight = VehicleDefinition.Bfr(ObjectClass.aphelion_flight) //Eclipse
 
   val colossus_gunner = VehicleDefinition.Bfr(ObjectClass.colossus_gunner)
 
-  val colossus_flight = VehicleDefinition.Bfr(ObjectClass.colossus_flight) //invader
+  val colossus_flight = VehicleDefinition.Bfr(ObjectClass.colossus_flight) //Invader
 
   val peregrine_gunner = VehicleDefinition.Bfr(ObjectClass.peregrine_gunner)
 
-  val peregrine_flight = VehicleDefinition.Bfr(ObjectClass.peregrine_flight) //eagle
+  val peregrine_flight = VehicleDefinition.Bfr(ObjectClass.peregrine_flight) //Eagle
 
   val droppod = VehicleDefinition(ObjectClass.droppod)
 
   val orbital_shuttle = VehicleDefinition(ObjectClass.orbital_shuttle)
   init_vehicles()
+  init_bfr_vehicles()
 
   /*
   combat engineering deployables
@@ -1178,6 +1179,8 @@ object GlobalDefinitions {
   val dropship_pad_doors = new VehicleSpawnPadDefinition(261)
 
   val vanu_vehicle_creation_pad = new VehicleSpawnPadDefinition(947)
+
+  val bfr_door = new VehicleSpawnPadDefinition(141)
 
   val mb_locker = new LockerDefinition
 
@@ -8963,6 +8966,19 @@ object GlobalDefinitions {
       //damage is 99999 at 14m, dropping rapidly to ~1 at 14.5m
     }
 
+    bfr_door.Name = "bfr_door"
+    bfr_door.Damageable = false
+    bfr_door.Repairable = false
+    //bfr_door.killBox = ...
+    bfr_door.innateDamage = new DamageWithPosition {
+      CausesDamageType = DamageType.One
+      Damage0 = 99999
+      DamageRadiusMin = 14 //TODO fix this
+      DamageRadius = 14.5f //TODO fix this
+      DamageAtEdge = 0.00002f
+      //damage is 99999 at 14m, dropping rapidly to ~1 at 14.5m
+    }
+
     mb_locker.Name = "mb_locker"
     mb_locker.Damageable = false
     mb_locker.Repairable = false
@@ -9022,9 +9038,9 @@ object GlobalDefinitions {
     multivehicle_rearm_terminal.Repairable = false
 
     bfr_rearm_terminal.Name = "bfr_rearm_terminal"
-    bfr_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(
-      Map.empty[String, () => Equipment]
-    ) //TODO add stock to page
+    bfr_rearm_terminal.Tab += 0 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk) //inaccessible?
+    bfr_rearm_terminal.Tab += 1 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrArmWeapons)
+    bfr_rearm_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrGunnerWeapons)
     bfr_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     bfr_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     bfr_rearm_terminal.Damageable = false

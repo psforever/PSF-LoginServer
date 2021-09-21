@@ -11,7 +11,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.services.vehicle.support.TurretUpgrader
-import net.psforever.types.{DriveState, PlanetSideGUID}
+import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
 import net.psforever.services.{GenericEventBus, Service}
 
 class VehicleService(zone: Zone) extends Actor {
@@ -72,6 +72,45 @@ class VehicleService(zone: Zone) extends Actor {
           ObjectCreateMessageParent(target_guid, slot)
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.EquipmentInSlot(pkt))
+          )
+        case VehicleAction.FrameVehicleState(
+          player_guid: PlanetSideGUID,
+          vehicle_guid: PlanetSideGUID,
+          unk1: Int,
+          pos: Vector3,
+          orient: Vector3,
+          vel: Option[Vector3],
+          unk2: Boolean,
+          unk3: Int,
+          unk4: Int,
+          is_crouched: Boolean,
+          unk6: Boolean,
+          unk7: Boolean,
+          unk8: Int,
+          unk9: Long,
+          unkA: Long
+        ) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(
+              s"/$forChannel/Vehicle",
+              player_guid,
+              VehicleResponse.FrameVehicleState(
+                vehicle_guid,
+                unk1,
+                pos,
+                orient,
+                vel,
+                unk2,
+                unk3,
+                unk4,
+                is_crouched,
+                unk6,
+                unk7,
+                unk8,
+                unk9,
+                unkA
+              )
+            )
           )
         case VehicleAction.InventoryState(player_guid, obj, parent_guid, start, con_data) =>
           VehicleEvents.publish(

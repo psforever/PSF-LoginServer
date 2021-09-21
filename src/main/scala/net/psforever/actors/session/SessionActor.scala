@@ -2737,6 +2737,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(pkt)
         }
 
+      case VehicleResponse.FrameVehicleState(vguid, u1, pos, oient, vel, u2, u3, u4, is_crouched, u6, u7, u8, u9, uA) =>
+        if (tplayer_guid != guid) {
+          sendResponse(FrameVehicleStateMessage(vguid, u1, pos, oient, vel, u2, u3, u4, is_crouched, u6, u7, u8, u9, uA))
+        }
+
       case VehicleResponse.HitHint(source_guid) =>
         if (player.isAlive) {
           sendResponse(HitHint(source_guid, player.GUID))
@@ -3093,6 +3098,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     UpdateDeployableUIElements(Deployables.InitializeDeployableUIElements(avatar))
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 75, 0))
     sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
+    sendResponse(GenericActionMessage(24))
     sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
     val pos    = player.Position = shiftPosition.getOrElse(tplayer.Position)
     val orient = player.Orientation = shiftOrientation.getOrElse(tplayer.Orientation)
@@ -3909,7 +3915,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             pos,
             ang,
             vel,
-            flying,
+            is_flying,
             unk6,
             unk7,
             wheels,
@@ -3938,7 +3944,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 obj.Velocity = Some(Vector3.Zero)
               }
               if (obj.Definition.CanFly) {
-                obj.Flying = flying //usually Some(7)
+                obj.Flying = is_flying //usually Some(7)
               }
               obj.Cloaked = obj.Definition.CanCloak && is_cloaked
             } else {
@@ -3955,7 +3961,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 ang,
                 obj.Velocity,
                 if (obj.isFlying) {
-                  flying
+                  is_flying
                 } else {
                   None
                 },
@@ -4012,6 +4018,87 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             log.warn(
               s"VehicleSubState: ${player.Name} should not be dispatching this kind of packet for vehicle #${vehicle_guid.guid}"
             )
+        }
+
+      case msg @ FrameVehicleStateMessage(
+            vehicle_guid,
+            unk1,
+            pos,
+            ang,
+            vel,
+            unk2,
+            unk3,
+            unk4,
+            is_crouched,
+            unk6,
+            unk7,
+            unk8,
+            unk9,
+            unkA
+            ) =>
+        log.info(s"$msg")
+        GetVehicleAndSeat() match {
+          case (Some(obj), Some(0)) =>
+            //we're driving the vehicle
+            persist()
+            turnCounterFunc(player.GUID)
+            if (obj.MountedIn.isEmpty) {
+              updateBlockMap(obj, continent, pos)
+            }
+            val seat = obj.Seats(0)
+            player.Position = pos //convenient
+            if (obj.WeaponControlledFromSeat(0).isEmpty) {
+              player.Orientation = Vector3.z(ang.z) //convenient
+            }
+            obj.Position = pos
+            obj.Orientation = ang
+            if (obj.MountedIn.isEmpty) {
+              if (obj.DeploymentState != DriveState.Deployed) {
+                obj.Velocity = vel
+              } else {
+                obj.Velocity = Some(Vector3.Zero)
+              }
+//              if (obj.Definition.CanFly) {
+//                obj.Flying = flying //usually Some(7)
+//              }
+              //obj.Cloaked = obj.Definition.CanCloak && is_cloaked
+            } else {
+              obj.Velocity = None
+              obj.Flying = None
+            }
+            continent.VehicleEvents ! VehicleServiceMessage(
+              continent.id,
+              VehicleAction.FrameVehicleState(
+                player.GUID,
+                vehicle_guid,
+                unk1,
+                pos,
+                ang,
+                vel,
+                unk2,
+                unk3,
+                unk4,
+                is_crouched,
+                unk6,
+                unk7,
+                unk8,
+                unk9,
+                unkA
+              )
+            )
+            updateSquad()
+            obj.zoneInteractions()
+          case (None, _) =>
+          //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
+          //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
+          case (_, Some(index)) =>
+            log.error(
+              s"VehicleState: ${player.Name} should not be dispatching this kind of packet from vehicle ${vehicle_guid.guid} when not the driver (actually, seat $index)"
+            )
+          case _ => ;
+        }
+        if (player.death_by == -1) {
+          KickedByAdministration()
         }
 
       case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, seq, end, target_guid) =>

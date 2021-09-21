@@ -106,8 +106,6 @@ object Zones {
   // Force domes have GUIDs but are currently classed as separate entities. The dome is controlled by sending GOAM 44 / 48 / 52 to the building GUID
   private val ignoredEntities = Seq(
     "monolith",
-    "bfr_door",
-    "bfr_terminal",
     "force_dome_dsp_physics",
     "force_dome_comm_physics",
     "force_dome_cryo_physics",
@@ -167,14 +165,16 @@ object Zones {
     "vehicle_terminal_combined",
     "dropship_vehicle_terminal",
     "vanu_air_vehicle_term",
-    "vanu_vehicle_term"
+    "vanu_vehicle_term",
+    "bfr_terminal"
   )
   private val terminalTypes = basicTerminalTypes ++ spawnPadTerminalTypes
 
   private val spawnPadTypes = Seq(
     "mb_pad_creation",
     "dropship_pad_doors",
-    "vanu_vehicle_creation_pad"
+    "vanu_vehicle_creation_pad",
+    "bfr_door"
   )
 
   private val doorTypes = Seq(

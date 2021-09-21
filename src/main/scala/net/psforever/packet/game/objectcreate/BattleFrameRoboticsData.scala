@@ -13,18 +13,19 @@ import scala.collection.mutable.ListBuffer
 /**
   * A representation of a battle frame robotics vehicle.
   * @param pos where the vehicle is and how it is oriented in the game world
-  * @param data common vehicle field data:<br>
-  *             -bops - this vehicle belongs to the Black Ops, regardless of the faction field;
-  *              activates the green camo and adjusts permissions<br>
-  *             -destroyed - this vehicle has ben destroyed;
-  *              health should be less than 3/255, or 0%<br>
-  *             -jammered - vehicles will not be jammered by setting this field<br>
-  *             -player_guid the vehicle's (official) owner;
-  *              a living player in the game world on the same continent as the vehicle who may mount the driver seat
+  * @param data common vehicle field data
   * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
+  * @param shield the strength of the shield the vehicle has, as a percentage of a filled bar (255)
+  * @param unk1 na
+  * @param unk2 na
   * @param no_mount_points do not display entry points for the seats
   * @param driveState a representation for the current mobility state;
   *                   various vehicles also use this field to indicate "deployment," e.g., the advanced mobile spawn
+  * @param proper_anim na;
+  *                    I forget what this does
+  * @param unk3 na
+  * @param show_bfr_shield display the swirling shield of the battle frame
+  * @param unk4 na
   * @param inventory the seats, mounted weapons, and utilities (such as terminals) that are currently included;
   *                  will also include trunk contents;
   *                  the driver is the only valid seat entry (more will cause the access permissions to act up)

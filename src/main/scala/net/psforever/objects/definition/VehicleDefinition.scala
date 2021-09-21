@@ -6,7 +6,6 @@ import net.psforever.objects.{Default, NtuContainerDefinition, Vehicle}
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.vehicles.control.VehicleControl
 import net.psforever.objects.vehicles.{DestroyedVehicle, MountableWeaponsDefinition, UtilityType}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.damage.DamageCalculations
@@ -255,9 +254,10 @@ object VehicleDefinition {
   def Apc(objectId: Int): VehicleDefinition = new ApcDefinition(objectId)
 
   protected class BfrDefinition(objectId: Int) extends VehicleDefinition(objectId) {
+    import net.psforever.objects.vehicles.control.BfrControl
     override def Initialize(obj: Vehicle, context: ActorContext): Unit = {
       obj.Actor = context.actorOf(
-        Props(classOf[VehicleControl], obj),
+        Props(classOf[BfrControl], obj),
         PlanetSideServerObject.UniqueActorName(obj)
       )
     }
