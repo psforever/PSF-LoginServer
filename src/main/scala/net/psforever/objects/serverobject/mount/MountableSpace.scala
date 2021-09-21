@@ -85,12 +85,13 @@ trait MountableSpace[A <: MountableEntity] {
 
   /**
     * Attempt to dismount the target entity from this space.
+    * @return the current seat occupant, which should be `None` if the operation was successful
     */
   def unmount(target: Option[A], bailType: BailType.Value): Option[A] = {
     target match {
       case Some(p) if testToUnmount(p) =>
         _occupant = None
-        p.BailProtection = bailable && bailType == BailType.Bailed
+        p.BailProtection = bailable && (bailType == BailType.Bailed || bailType == BailType.Kicked)
         None
       case _ =>
         occupant

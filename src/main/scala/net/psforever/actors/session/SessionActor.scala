@@ -2530,12 +2530,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         obj.Actor ! Vehicle.Deconstruct()
 
       case Mountable.CanDismount(obj: Vehicle, seat_num, _) =>
-        log.info(
-          s"${tplayer.Name} dismounts a ${obj.Definition.asInstanceOf[ObjectDefinition].Name} from seat #$seat_num"
-        )
         val player_guid: PlanetSideGUID = tplayer.GUID
         if (player_guid == player.GUID) {
           //disembarking self
+          log.info(
+            s"${tplayer.Name} dismounts a ${obj.Definition.asInstanceOf[ObjectDefinition].Name} from seat #$seat_num"
+          )
           ConditionalDriverVehicleControl(obj)
           UnaccessContainer(obj)
           DismountAction(tplayer, obj, seat_num)
@@ -2747,12 +2747,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //but always seems to return 4 if user is kicked by mount permissions changing
         sendResponse(DismountVehicleMsg(guid, BailType.Kicked, wasKickedByDriver))
         if (tplayer_guid == guid) {
-          log.info(s"{${player.Name} has been kicked from ${player.Sex.possessive} ride!")
-          continent.GUID(vehicle_guid) match {
+          val typeOfRide = continent.GUID(vehicle_guid) match {
             case Some(obj: Vehicle) =>
               UnaccessContainer(obj)
-            case _ => ;
+              s"the ${obj.Definition.Name}'s seat by ${obj.OwnerName.getOrElse("the pilot")}"
+            case _ =>
+              s"${player.Sex.possessive} ride"
           }
+          log.info(s"${player.Name} has been kicked from $typeOfRide!")
         }
 
       case VehicleResponse.InventoryState2(obj_guid, parent_guid, value) =>
@@ -5517,7 +5519,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case (Some(obj: Mountable), Some(tplayer: Player)) =>
                   obj.PassengerInSeat(tplayer) match {
                     case Some(seat_num) =>
-                      obj.Actor ! Mountable.TryDismount(tplayer, seat_num)
+                      obj.Actor ! Mountable.TryDismount(tplayer, seat_num, bailType)
                     case None =>
                       dismountWarning(
                         s"DismountVehicleMsg: can not find where other player ${player.Name}_guid is seated in mountable $obj_guid"
@@ -5616,20 +5618,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         (target1, t, target2) match {
           case (None, _, _) => ;
 
-          case (Some(target: PlanetSideServerObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>
-            if (collisionHistory.get(target.Actor) match {
+          case (Some(us: PlanetSideServerObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>
+            if (collisionHistory.get(us.Actor) match {
               case Some(lastCollision) if curr - lastCollision <= 1000L =>
                 false
               case _ =>
-                collisionHistory.put(target.Actor, curr)
+                collisionHistory.put(us.Actor, curr)
                 true
             }) {
               if (!bailProtectStatus) {
                 HandleDealingDamage(
-                  target,
+                  us,
                   DamageInteraction(
-                    SourceEntry(target),
-                    CollisionReason(velocity, fallHeight, target.DamageModel),
+                    SourceEntry(us),
+                    CollisionReason(velocity, fallHeight, us.DamageModel),
                     ppos
                   )
                 )
@@ -5660,7 +5662,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   )
                 )
               }
-              //victim gets dealt damage from the collision (no protection)
+              //get dealt damage from our own collision (no protection)
+              collisionHistory.put(us.Actor, curr)
               HandleDealingDamage(
                 victim,
                 DamageInteraction(

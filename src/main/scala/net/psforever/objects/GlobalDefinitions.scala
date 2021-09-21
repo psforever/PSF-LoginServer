@@ -6423,7 +6423,7 @@ object GlobalDefinitions {
     lightning.collision.avatarCollisionDamageMax = 150
     lightning.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 25), (0.75f, 50), (1f, 80)))
     lightning.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 750)))
-    lightning.maxForwardSpeed = 75f
+    lightning.maxForwardSpeed = 74f
     lightning.mass = 100.2f
 
     prowler.Name = "prowler"
@@ -6848,7 +6848,7 @@ object GlobalDefinitions {
     lightgunship.collision.avatarCollisionDamageMax = 750
     lightgunship.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 60), (0.5f, 120), (0.75f, 180), (1f, 250)))
     lightgunship.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
-    lightgunship.maxForwardSpeed = 105f
+    lightgunship.maxForwardSpeed = 104f
     lightgunship.mass = 51.1f
 
     wasp.Name = "wasp"

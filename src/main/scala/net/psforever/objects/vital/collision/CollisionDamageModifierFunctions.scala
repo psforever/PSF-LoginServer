@@ -68,7 +68,7 @@ case object HeadonImpactWithEntity extends CollisionWithDamageModifiers.Mod {
         val velCntrMass = (pvel * pmass + vvel * vmass) / (pmass + vmass) //velocity of the center of mass
         val pvelFin = Vector3.neg(pvel - velCntrMass) + velCntrMass
         val damp = math.min(pmass * Vector3.Magnitude(pvelFin - pvel) / (pForceFactor * collisionTime), maxAvtrDam.toFloat)
-        val dama = maxAvtrDam * 0.5f * (vel + 0.5f) / maxForwardSpeed
+        val dama = maxAvtrDam * 0.35f * (vel + 0.5f) / maxForwardSpeed
         damage + (if (damp > dama) {
           if (damp - dama > dama) {
             damp - dama

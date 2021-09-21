@@ -117,10 +117,8 @@ trait MountableBehavior {
                            bailType: BailType.Value
                          ): Boolean = {
     obj.Seats.get(seatNumber) match {
-      case Some(seat) if seat.unmount(user, bailType).isEmpty =>
-        true
-      case _          =>
-        false
+      case Some(seat) => seat.unmount(user, bailType).isEmpty
+      case _          => false
     }
   }
 }

@@ -442,7 +442,10 @@ object CarrierBehavior {
     carrier.CargoHolds.find({ case (_, hold) => hold.occupant.contains(cargo) }) match {
       case Some((mountPoint, hold)) =>
         cargo.MountedIn = None
-        hold.unmount(cargo, if (bailed) BailType.Bailed else BailType.Normal)
+        hold.unmount(
+          cargo,
+          if (bailed) BailType.Bailed else if (kicked) BailType.Kicked else BailType.Normal
+        )
         val driverOpt = cargo.Seats(0).occupant
         val rotation: Vector3 = if (Vehicles.CargoOrientation(cargo) == 1) { //TODO: BFRs will likely also need this set
           //dismount router "sideways" from the lodestar

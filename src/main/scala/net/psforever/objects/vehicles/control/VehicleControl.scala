@@ -386,13 +386,13 @@ class VehicleControl(vehicle: Vehicle)
       vehicle.Seats.values.foreach { seat =>
         seat.occupant match {
           case Some(player) =>
-            seat.unmount(player)
+            seat.unmount(player, BailType.Kicked)
             player.VehicleSeated = None
             if (player.isAlive) {
               zone.actor ! ZoneActor.AddToBlockMap(player, vehicle.Position)
             }
             if (player.HasGUID) {
-              events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))
+              events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, true, guid))
             }
           case None => ;
         }
