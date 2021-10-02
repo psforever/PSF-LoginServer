@@ -69,7 +69,7 @@ lazy val psforeverSettings = Seq(
     "org.flywaydb"                % "flyway-core"                % "7.15.0",
     "org.postgresql"              % "postgresql"                 % "42.2.23",
     "com.typesafe"                % "config"                     % "1.4.1",
-    "com.github.pureconfig"      %% "pureconfig"                 % "0.16.0",
+    "com.github.pureconfig"      %% "pureconfig"                 % "0.17.0",
     "com.beachape"               %% "enumeratum"                 % "1.7.0",
     "joda-time"                   % "joda-time"                  % "2.10.12",
     "commons-io"                  % "commons-io"                 % "2.11.0",
