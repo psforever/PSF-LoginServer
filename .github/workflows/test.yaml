@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres
+        image: postgres:12.8
         env:
           POSTGRES_DB: psforever
           POSTGRES_USER: psforever
