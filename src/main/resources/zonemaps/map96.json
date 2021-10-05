@@ -1170,6 +1170,19 @@
     "IsChildObject": true
   },
   {
+    "Id": 122,
+    "ObjectName": "llm_socket",
+    "ObjectType": "llm_socket",
+    "Owner": 0,
+    "AbsX": 1974.68848,
+    "AbsY": 2035.21887,
+    "AbsZ": 42.69806,
+    "Yaw": 0.0,
+    "GUID": 93,
+    "MapID": null,
+    "IsChildObject": true
+  },
+  {
     "Id": 109,
     "ObjectName": "lock_external",
     "ObjectType": "lock_external",

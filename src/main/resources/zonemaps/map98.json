@@ -3783,6 +3783,45 @@
     "IsChildObject": true
   },
   {
+    "Id": 449,
+    "ObjectName": "llm_socket",
+    "ObjectType": "llm_socket",
+    "Owner": 317,
+    "AbsX": 1739.221,
+    "AbsY": 1776.55054,
+    "AbsZ": 74.7683,
+    "Yaw": 0.0,
+    "GUID": 298,
+    "MapID": null,
+    "IsChildObject": true
+  },
+  {
+    "Id": 299,
+    "ObjectName": "llm_socket",
+    "ObjectType": "llm_socket",
+    "Owner": 198,
+    "AbsX": 1839.926,
+    "AbsY": 2669.99561,
+    "AbsZ": 105.1724,
+    "Yaw": 0.0,
+    "GUID": 299,
+    "MapID": null,
+    "IsChildObject": true
+  },
+  {
+    "Id": 831,
+    "ObjectName": "llm_socket",
+    "ObjectType": "llm_socket",
+    "Owner": 722,
+    "AbsX": 2672.99951,
+    "AbsY": 2277.26343,
+    "AbsZ": 97.5842,
+    "Yaw": 0.0,
+    "GUID": 300,
+    "MapID": null,
+    "IsChildObject": true
+  },
+  {
     "Id": 434,
     "ObjectName": "lock_external",
     "ObjectType": "lock_external",
