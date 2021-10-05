@@ -1,7 +1,9 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject.mount
 
-trait MountableSpace[A] {
+import net.psforever.types.BailType
+
+trait MountableSpace[A <: MountableEntity] {
   private var _occupant: Option[A] = None
 
   /**
@@ -53,6 +55,7 @@ trait MountableSpace[A] {
     target match {
       case Some(p) if testToMount(p) =>
         _occupant = target
+        p.BailProtection = false
         target
       case _ =>
         occupant
@@ -63,7 +66,7 @@ trait MountableSpace[A] {
     * Tests whether the target is allowed to be mounted.
     * @see `MountableSpace[A].canBeOccupiedBy(A)`
     */
-  protected def testToMount(target: A): Boolean = canBeOccupied && canBeOccupiedBy(target)
+  protected def testToMount(target: A): Boolean = target.MountedIn.isEmpty && canBeOccupied && canBeOccupiedBy(target)
 
   /**
     * Attempt to dismount the target entity from this space.
@@ -73,10 +76,22 @@ trait MountableSpace[A] {
   /**
     * Attempt to dismount the target entity from this space.
     */
-  def unmount(target: Option[A]): Option[A] = {
+  def unmount(target: A, bailType: BailType.Value): Option[A] = unmount(Some(target), bailType)
+
+  /**
+    * Attempt to dismount the target entity from this space.
+    */
+  def unmount(target: Option[A]): Option[A] = unmount(target, BailType.Normal)
+
+  /**
+    * Attempt to dismount the target entity from this space.
+    * @return the current seat occupant, which should be `None` if the operation was successful
+    */
+  def unmount(target: Option[A], bailType: BailType.Value): Option[A] = {
     target match {
       case Some(p) if testToUnmount(p) =>
         _occupant = None
+        p.BailProtection = bailable && (bailType == BailType.Bailed || bailType == BailType.Kicked)
         None
       case _ =>
         occupant

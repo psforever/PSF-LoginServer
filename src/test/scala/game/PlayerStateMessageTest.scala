@@ -99,8 +99,8 @@ class PlayerStateMessageTest extends Specification {
         pos.y mustEqual 5987.6016f
         pos.z mustEqual 44.1875f
         vel.isDefined mustEqual true
-        vel.get.x mustEqual 2.53125f
-        vel.get.y mustEqual 6.5625f
+        vel.get.x mustEqual 9.1125f
+        vel.get.y mustEqual 23.625f
         vel.get.z mustEqual 0.0f
         facingYaw mustEqual 22.5f
         facingPitch mustEqual -11.25f
@@ -155,7 +155,7 @@ class PlayerStateMessageTest extends Specification {
     val msg = PlayerStateMessage(
       PlanetSideGUID(1696),
       Vector3(4008.6016f, 5987.6016f, 44.1875f),
-      Some(Vector3(2.53125f, 6.5625f, 0f)),
+      Some(Vector3(9.1125f, 23.625f, 0f)),
       22.5f,
       -11.25f,
       0f,

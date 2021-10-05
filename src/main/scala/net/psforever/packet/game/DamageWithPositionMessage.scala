@@ -33,11 +33,11 @@ object DamageWithPositionMessage extends Marshallable[DamageWithPositionMessage]
   ).xmap[DamageWithPositionMessage] (
     {
       case unk :: pos :: HNil =>
-        DamageWithPositionMessage(math.max(0, math.min(unk, 255)), pos)
+        DamageWithPositionMessage(unk, pos)
     },
     {
       case DamageWithPositionMessage(unk, pos) =>
-        unk :: pos :: HNil
+        math.max(0, math.min(unk, 255)) :: pos :: HNil
     }
   )
 }

@@ -8,7 +8,7 @@ import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 import net.psforever.objects.vital.resolution.DamageResistanceModel
-import net.psforever.objects.vital.{NoResistanceSelection, VitalityDefinition}
+import net.psforever.objects.vital.{CollisionXYData, NoResistanceSelection, VitalityDefinition}
 
 import scala.concurrent.duration._
 
@@ -60,6 +60,7 @@ abstract class DeployableDefinition(objectId: Int)
   ResistUsing = NoResistanceSelection
   Packet = new SmallDeployableConverter
   registerAs = "deployables"
+  collision.xy = new CollisionXYData(List((0f, 100)))
 
   def Item: DeployedItem.Value = item
 }

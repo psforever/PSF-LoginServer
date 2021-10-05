@@ -101,6 +101,8 @@ class TurretControl(turret: TurretDeployable)
 
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
+    CancelJammeredSound(target)
+    CancelJammeredStatus(target)
     Deployables.AnnounceDestroyDeployable(turret, None)
   }
 

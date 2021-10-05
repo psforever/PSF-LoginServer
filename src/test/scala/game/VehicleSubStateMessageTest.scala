@@ -18,7 +18,7 @@ class VehicleSubStateMessageTest extends Specification {
         vehicle_pos mustEqual Vector3(3465.9575f, 2873.3635f, 91.05253f)
         vehicle_ang mustEqual Vector3(11.6015625f, 0.0f, 3.515625f)
         vel.isDefined mustEqual true
-        vel.get mustEqual Vector3(-0.40625f, 0.03125f, -0.8125f)
+        vel.contains(Vector3(-1.4625f, 0.1125f, -2.925f)) mustEqual true
         unk1 mustEqual false
         unk2.isDefined mustEqual false
       case _ =>
@@ -32,7 +32,7 @@ class VehicleSubStateMessageTest extends Specification {
       PlanetSideGUID(3376),
       Vector3(3465.9575f, 2873.3635f, 91.05253f),
       Vector3(11.6015625f, 0.0f, 3.515625f),
-      Some(Vector3(-0.40625f, 0.03125f, -0.8125f)),
+      Some(Vector3(-1.4625f, 0.1125f, -2.925f)),
       false,
       None
     )

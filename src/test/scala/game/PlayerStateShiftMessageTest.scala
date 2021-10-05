@@ -49,9 +49,9 @@ class PlayerStateShiftMessageTest extends Specification {
         state.get.pos.z mustEqual 50.3125f
         state.get.viewYawLim mustEqual 50.625f
         state.get.vel.isDefined mustEqual true
-        state.get.vel.get.x mustEqual 2.8125f
-        state.get.vel.get.y mustEqual -8.0f
-        state.get.vel.get.z mustEqual 0.375f
+        state.get.vel.get.x mustEqual 10.125f
+        state.get.vel.get.y mustEqual -28.8f
+        state.get.vel.get.z mustEqual 1.3499999f
         unk.isDefined mustEqual false
       case _ =>
         ko
@@ -74,7 +74,7 @@ class PlayerStateShiftMessageTest extends Specification {
 
   "encode (pos and vel)" in {
     val msg = PlayerStateShiftMessage(
-      ShiftState(2, Vector3(4645.75f, 5811.6016f, 50.3125f), 50.625f, Vector3(2.8125f, -8.0f, 0.375f))
+      ShiftState(2, Vector3(4645.75f, 5811.6016f, 50.3125f), 50.625f, Vector3(10.125f, -28.8f, 1.3499999f))
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 

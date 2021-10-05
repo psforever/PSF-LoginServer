@@ -2,6 +2,7 @@
 package net.psforever.types
 
 import net.psforever.newcodecs._
+import scodec.Attempt.Successful
 import scodec.Codec
 import scodec.codecs._
 
@@ -36,6 +37,18 @@ final case class Vector3(x: Float, y: Float, z: Float) {
     */
   def *(scalar: Float): Vector3 = {
     Vector3(x * scalar, y * scalar, z * scalar)
+  }
+
+  /**
+    * Operator for vector scaling, treating `Vector3` objects as actual mathematical vectors.
+    * The application of this overload is "vector / scalar" exclusively.
+    * "scalar / vector" is invalid.
+    * Due to rounding, may not be perfectly equivalent to "vector * ( 1 / scalar )".
+    * @param scalar the value to divide this vector
+    * @return a new `Vector3` object
+    */
+  def /(scalar: Float): Vector3 = {
+    Vector3(x / scalar, y / scalar, z / scalar)
   }
 
   /**
@@ -100,7 +113,7 @@ object Vector3 {
     ("x" | newcodecs.q_float(-256.0, 256.0, 14)) ::
       ("y" | newcodecs.q_float(-256.0, 256.0, 14)) ::
       ("z" | newcodecs.q_float(-256.0, 256.0, 14))
-  ).as[Vector3]
+  ).as[Vector3].narrow(a => Successful(a * 3.6f), a => a * 0.2778f)
 
   implicit val codec_float: Codec[Vector3] = (
     ("x" | floatL) ::

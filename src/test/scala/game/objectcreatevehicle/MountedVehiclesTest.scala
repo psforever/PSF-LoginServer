@@ -28,7 +28,7 @@ class MountedVehiclesTest extends Specification {
           case vdata: VehicleData =>
             vdata.pos.coord mustEqual Vector3(4571.6875f, 5602.1875f, 93)
             vdata.pos.orient mustEqual Vector3(11.25f, 2.8125f, 92.8125f)
-            vdata.pos.vel.contains(Vector3(31.71875f, 8.875f, -0.03125f)) mustEqual true
+            vdata.pos.vel.contains(Vector3(114.1875f, 31.949999f, -0.1125f)) mustEqual true
             vdata.data.faction mustEqual PlanetSideEmpire.TR
             vdata.data.bops mustEqual false
             vdata.data.alternate mustEqual false
@@ -264,7 +264,7 @@ class MountedVehiclesTest extends Specification {
       PlacementData(
         Vector3(4571.6875f, 5602.1875f, 93),
         Vector3(11.25f, 2.8125f, 92.8125f),
-        Some(Vector3(31.71875f, 8.875f, -0.03125f))
+        Some(Vector3(114.1875f, 31.949999f, -0.1125f))
       ),
       CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, Some(false), None, PlanetSideGUID(3776)),
       false,

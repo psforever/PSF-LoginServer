@@ -20,7 +20,9 @@ import scodec.codecs._
   *               in repeating order: 13, 14, 10, 11, 12, 15;
   *               `None`, when landed and for all vehicles that do not fly
   * @param unk3 na
-  * @param unk4 na
+  * @param unk4 na;
+  *             0 by default;
+  *             for mosquito, can become various numbers during collision damage
   * @param wheel_direction for ground vehicles, whether and how much the wheels are being turned;
   *                        15 for straight;
   *                        0 for hard right;
@@ -80,15 +82,15 @@ object VehicleStateMessage extends Marshallable[VehicleStateMessage] {
 
   implicit val codec: Codec[VehicleStateMessage] = (
     ("vehicle_guid" | PlanetSideGUID.codec) ::
-      ("unk1" | uintL(3)) ::
-      ("pos" | Vector3.codec_pos) ::
-      ("ang" | codec_orient) ::
-      optional(bool, "vel" | Vector3.codec_vel) ::
-      optional(bool, "flying" | uintL(5)) ::
-      ("unk3" | uintL(7)) ::
-      ("unk4" | uint4L) ::
-      ("wheel_direction" | uintL(5)) ::
-      ("int5" | bool) ::
-      ("is_cloaked" | bool)
+    ("unk1" | uintL(bits = 3)) ::
+    ("pos" | Vector3.codec_pos) ::
+    ("ang" | codec_orient) ::
+    ("vel" | optional(bool, Vector3.codec_vel)) ::
+    ("flying" | optional(bool, uintL(bits = 5))) ::
+    ("unk3" | uintL(bits = 7)) ::
+    ("unk4" | uint4L) ::
+    ("wheel_direction" | uintL(5)) ::
+    ("is_decelerating" | bool) ::
+    ("is_cloaked" | bool)
   ).as[VehicleStateMessage]
 }

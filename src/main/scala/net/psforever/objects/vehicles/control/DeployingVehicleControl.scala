@@ -34,7 +34,7 @@ class DeployingVehicleControl(vehicle: Vehicle)
         case msg : Deployment.TryUndeploy =>
           deployBehavior.apply(msg)
 
-        case msg @ Mountable.TryDismount(_, seat_num) =>
+        case msg @ Mountable.TryDismount(_, seat_num, _) =>
           dismountBehavior.apply(msg)
           dismountCleanup(seat_num)
       }

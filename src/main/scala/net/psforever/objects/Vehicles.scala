@@ -232,25 +232,13 @@ object Vehicles {
     log.info(s"${hacker.Name} has jacked a ${target.Definition.Name}")
     val zone = target.Zone
     // Forcefully dismount any cargo
-    target.CargoHolds.values.foreach(cargoHold => {
+    target.CargoHolds.foreach { case (index, cargoHold) =>
       cargoHold.occupant match {
         case Some(cargo: Vehicle) =>
-          cargo.Seats(0).occupant match {
-            case Some(_: Player) =>
-              CargoBehavior.HandleVehicleCargoDismount(
-                target.Zone,
-                cargo.GUID,
-                bailed = target.isFlying,
-                requestedByPassenger = false,
-                kicked = true
-              )
-            case _ =>
-              log.error("FinishHackingVehicle: vehicle in cargo hold missing driver")
-              CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, target.GUID, target, bailed = false, requestedByPassenger = false, kicked = true)
-        }
+          cargo.Actor ! CargoBehavior.StartCargoDismounting(bailed = false)
         case None => ;
       }
-    })
+    }
     // Forcefully dismount all seated occupants from the vehicle
     target.Seats.values.foreach(seat => {
       seat.occupant match {

@@ -30,6 +30,7 @@ object DamageResolution extends Enumeration {
   AggravatedSplashBurn, //continuous splashed aggravated damage
   Explosion,            //area of effect damage caused by an internal mechanism; unrelated to Splash
   Environmental,        //died to environmental causes
-  Suicide               //i don't want to be the one the battles always choose
+  Suicide,              //i don't want to be the one the battles always choose
+  Collision             //went splat
   = Value
 }

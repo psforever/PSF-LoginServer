@@ -3,7 +3,7 @@ package net.psforever.objects.vehicles.control
 
 import net.psforever.objects._
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableVehicle}
-import net.psforever.objects.vehicles.CargoBehavior
+import net.psforever.objects.vehicles.{Cargo, CarrierBehavior}
 import net.psforever.objects.vital.interaction.DamageResult
 
 /**
@@ -13,10 +13,15 @@ import net.psforever.objects.vital.interaction.DamageResult
   */
 class CargoCarrierControl(vehicle: Vehicle)
   extends VehicleControl(vehicle)
-    with CargoBehavior {
-  def CargoObject = vehicle
+    with CarrierBehavior {
+  def CarrierObject = vehicle
 
-  override def commonEnabledBehavior: Receive = super.commonEnabledBehavior.orElse(cargoBehavior)
+  override def postStop() : Unit = {
+    super.postStop()
+    endAllCarrierOperations()
+  }
+
+  override def commonEnabledBehavior: Receive = super.commonEnabledBehavior.orElse(carrierBehavior)
 
   /**
     * If the vehicle becomes disabled, the safety and autonomy of the cargo should be prioritized.
@@ -24,21 +29,12 @@ class CargoCarrierControl(vehicle: Vehicle)
     */
   override def PrepareForDisabled(kickPassengers: Boolean) : Unit = {
     //abandon all cargo
-    vehicle.CargoHolds.values
-      .collect {
-        case hold if hold.isOccupied =>
-          val cargo = hold.occupant.get
-          CargoBehavior.HandleVehicleCargoDismount(
-            cargo.GUID,
-            cargo,
-            vehicle.GUID,
-            vehicle,
-            bailed = false,
-            requestedByPassenger = false,
-            kicked = false
-          )
-      }
-    super.PrepareForDisabled(kickPassengers)
+    vehicle.CargoHolds.collect {
+      case (index, hold : Cargo) if hold.isOccupied =>
+        val cargo = hold.occupant.get
+        checkCargoDismount(cargo.GUID, index, iteration = 0, bailed = false)
+        super.PrepareForDisabled(kickPassengers)
+    }
   }
 
   /**

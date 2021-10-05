@@ -82,11 +82,15 @@ object BlockMapEntity {
     * To properly update the range, perform a proper update.)
     * @param target the entity on the blockmap
     * @param newCoords the world coordinates of the entity, the position to which it is moving / being moved
-    * @return always `true`; we are updating this entry
+    * @return `true`, if we are updating this entry; `false`, otherwsie
     */
   private def updateBlockMap(target: BlockMapEntity, newCoords: Vector3): Boolean = {
-    val oldEntry = target.blockMapEntry.get
-    target.blockMapEntry = Some(BlockMapEntry(newCoords, oldEntry.range, oldEntry.sectors))
-    true
+    target.blockMapEntry match {
+      case Some(oldEntry) =>
+        target.blockMapEntry = Some(BlockMapEntry(newCoords, oldEntry.range, oldEntry.sectors))
+        true
+      case None =>
+        false
+    }
   }
 }

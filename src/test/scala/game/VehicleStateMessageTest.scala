@@ -24,7 +24,7 @@ class VehicleStateMessageTest extends Specification {
         vel.isDefined mustEqual true
         vel.get.x mustEqual 0.0f
         vel.get.y mustEqual 0.0f
-        vel.get.z mustEqual 0.03125f
+        vel.get.z mustEqual 0.1125f
         unk2.isDefined mustEqual false
         unk3 mustEqual 0
         unk4 mustEqual 0
@@ -42,7 +42,7 @@ class VehicleStateMessageTest extends Specification {
       0,
       Vector3(3674.8438f, 2726.789f, 91.09375f),
       Vector3(359.29688f, 1.0546875f, 90.35156f),
-      Some(Vector3(0.0f, 0.0f, 0.03125f)),
+      Some(Vector3(0.0f, 0.0f, 0.1125f)),
       None,
       0,
       0,

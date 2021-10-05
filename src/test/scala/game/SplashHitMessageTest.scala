@@ -21,10 +21,7 @@ class SplashHitMessageTest extends Specification {
         projectile_pos.z mustEqual 90.921875f
         unk2 mustEqual 0
         unk3 mustEqual 0
-        projectile_vel.isDefined mustEqual true
-        projectile_vel.get.x mustEqual 2.21875f
-        projectile_vel.get.y mustEqual 0.90625f
-        projectile_vel.get.z mustEqual -1.125f
+        projectile_vel.contains(Vector3(7.9874997f, 3.2624998f, -4.0499997f)) mustEqual true
         unk4.isDefined mustEqual false
         targets.size mustEqual 2
         //0
@@ -53,7 +50,7 @@ class SplashHitMessageTest extends Specification {
       Vector3(3681.3438f, 2728.9062f, 90.921875f),
       0,
       0,
-      Some(Vector3(2.21875f, 0.90625f, -1.125f)),
+      Some(Vector3(7.9874997f, 3.2624998f, -4.0499997f)),
       None,
       SplashedTarget(PlanetSideGUID(75), Vector3(3674.8438f, 2726.789f, 91.15625f), 286326784L, None) ::
         SplashedTarget(PlanetSideGUID(372), Vector3(3679.1328f, 2722.6016f, 92.765625f), 268435456L, None) ::

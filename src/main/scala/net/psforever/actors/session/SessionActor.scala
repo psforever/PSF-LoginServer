@@ -44,6 +44,7 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.base._
+import net.psforever.objects.vital.collision.{CollisionReason, CollisionWithReason}
 import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
@@ -206,7 +207,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var nextSpawnPoint: Option[SpawnPoint]                              = None
   var setupAvatarFunc: () => Unit                                     = AvatarCreate
   var setCurrentAvatarFunc: Player => Unit                            = SetCurrentAvatarNormally
-  var persist: () => Unit                                             = NoPersistence
+  var persistFunc: () => Unit                                         = NoPersistence
+  var persist: () => Unit                                             = UpdatePersistenceOnly
   var specialItemSlotGuid: Option[PlanetSideGUID] =
     None // If a special item (e.g. LLU) has been attached to the player the GUID should be stored here, or cleared when dropped, since the drop hotkey doesn't send the GUID of the object to be dropped.
 
@@ -275,6 +277,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var setAvatar: Boolean                             = false
   var turnCounterFunc: PlanetSideGUID => Unit        = TurnCounterDuringInterim
   var waypointCooldown: Long = 0L
+  var heightLast: Float = 0f
+  var heightTrend: Boolean = false //up = true, down = false
+  var heightHistory: Float = 0f
+  val collisionHistory: mutable.HashMap[ActorRef, Long] = mutable.HashMap()
 
   var clientKeepAlive: Cancellable   = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -1172,6 +1178,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case NewPlayerLoaded(tplayer) =>
       //new zone
       log.info(s"${tplayer.Name} has spawned into ${session.zone.id}")
+      persist = UpdatePersistenceAndRefs
       tplayer.avatar = avatar
       session = session.copy(player = tplayer)
       avatarActor ! AvatarActor.CreateImplants()
@@ -1379,7 +1386,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case PlayerToken.LoginInfo(name, Zone.Nowhere, _) =>
       log.info(s"LoginInfo: player $name is considered a new character")
       //TODO poll the database for saved zone and coordinates?
-      persist = UpdatePersistence(sender())
+      persistFunc = UpdatePersistence(sender())
       deadState = DeadState.RespawnTime
 
       session = session.copy(player = new Player(avatar))
@@ -1395,7 +1402,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case PlayerToken.LoginInfo(playerName, inZone, pos) =>
       log.info(s"LoginInfo: player $playerName is already logged in zone ${inZone.id}; rejoining that character")
-      persist = UpdatePersistence(sender())
+      persistFunc = UpdatePersistence(sender())
       //tell the old WorldSessionActor to kill itself by using its own subscriptions against itself
       inZone.AvatarEvents ! AvatarServiceMessage(playerName, AvatarAction.TeardownConnection())
       //find and reload previous player
@@ -1477,17 +1484,35 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   /**
     * Update this player avatar for persistence.
-    * @param persistRef reference to the persistence monitor
+    * Set to `persist` initially.
     */
-  def UpdatePersistence(persistRef: ActorRef)(): Unit = {
-    persistRef ! AccountPersistenceService.Update(player.Name, continent, player.Position)
+  def UpdatePersistenceOnly(): Unit = {
+    persistFunc()
+  }
+
+  /**
+    * Update this player avatar for persistence.
+    * Set to `persist` when (new) player is loaded.
+    */
+  def UpdatePersistenceAndRefs(): Unit = {
+    persistFunc()
     updateOldRefsMap()
   }
 
   /**
     * Do not update this player avatar for persistence.
+    * Set to `persistFunc` initially.
     */
   def NoPersistence(): Unit = {}
+
+  /**
+    * Update this player avatar for persistence.
+    * Set this to `persistFunc` when persistence is ready.
+    * @param persistRef reference to the persistence monitor
+    */
+  def UpdatePersistence(persistRef: ActorRef)(): Unit = {
+    persistRef ! AccountPersistenceService.Update(player.Name, continent, player.Position)
+  }
 
   /**
     * A zoning message was received.
@@ -1585,11 +1610,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     CancelAllProximityUnits()
     //droppod action
     val droppod = Vehicle(GlobalDefinitions.droppod)
+    droppod.GUID = PlanetSideGUID(0)  //droppod is not registered, we must jury-rig this
     droppod.Faction = player.Faction
     droppod.Position = spawnPosition.xy + Vector3.z(1024)
     droppod.Orientation = Vector3.z(180) //you always seems to land looking south; don't know why
     droppod.Seats(0).mount(player)
-    droppod.GUID = PlanetSideGUID(0)  //droppod is not registered, we must jury-rig this
     droppod.Invalidate()              //now, we must short-circuit the jury-rig
     interstellarFerry = Some(droppod) //leverage vehicle gating
     player.Position = droppod.Position
@@ -1642,7 +1667,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def HandleAvatarServiceResponse(toChannel: String, guid: PlanetSideGUID, reply: AvatarResponse.Response): Unit = {
     val tplayer_guid =
-      if (player.HasGUID) player.GUID
+      if (player != null && player.HasGUID) player.GUID
       else PlanetSideGUID(0)
     reply match {
       case AvatarResponse.TeardownConnection() =>
@@ -2525,12 +2550,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         obj.Actor ! Vehicle.Deconstruct()
 
       case Mountable.CanDismount(obj: Vehicle, seat_num, _) =>
-        log.info(
-          s"${tplayer.Name} dismounts a ${obj.Definition.asInstanceOf[ObjectDefinition].Name} from seat #$seat_num"
-        )
         val player_guid: PlanetSideGUID = tplayer.GUID
         if (player_guid == player.GUID) {
           //disembarking self
+          log.info(
+            s"${tplayer.Name} dismounts a ${obj.Definition.asInstanceOf[ObjectDefinition].Name} from seat #$seat_num"
+          )
           ConditionalDriverVehicleControl(obj)
           UnaccessContainer(obj)
           DismountAction(tplayer, obj, seat_num)
@@ -2742,12 +2767,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //but always seems to return 4 if user is kicked by mount permissions changing
         sendResponse(DismountVehicleMsg(guid, BailType.Kicked, wasKickedByDriver))
         if (tplayer_guid == guid) {
-          log.info(s"{${player.Name} has been kicked from ${player.Sex.possessive} ride!")
-          continent.GUID(vehicle_guid) match {
+          val typeOfRide = continent.GUID(vehicle_guid) match {
             case Some(obj: Vehicle) =>
               UnaccessContainer(obj)
-            case _ => ;
+              s"the ${obj.Definition.Name}'s seat by ${obj.OwnerName.getOrElse("the pilot")}"
+            case _ =>
+              s"${player.Sex.possessive} ride"
           }
+          log.info(s"${player.Name} has been kicked from $typeOfRide!")
         }
 
       case VehicleResponse.InventoryState2(obj_guid, parent_guid, value) =>
@@ -2969,7 +2996,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       cargo: Vehicle,
       mountPoint: Int
   ): (ObjectAttachMessage, CargoMountPointStatusMessage) = {
-    val msgs @ (attachMessage, mountPointStatusMessage) = CargoBehavior.CargoMountMessages(carrier, cargo, mountPoint)
+    val msgs @ (attachMessage, mountPointStatusMessage) = CarrierBehavior.CargoMountMessages(carrier, cargo, mountPoint)
     CargoMountMessagesForUs(attachMessage, mountPointStatusMessage)
     msgs
   }
@@ -3336,8 +3363,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         (continent.GUID(cargo_guid), continent.GUID(carrier_guid)) match {
           case (Some(cargo: Vehicle), Some(carrier: Vehicle)) =>
             carrier.CargoHolds.find({ case (_, hold) => !hold.isOccupied }) match {
-              case Some((mountPoint, _)) => //try begin the mount process
-                cargo.Actor ! CargoBehavior.CheckCargoMounting(carrier_guid, mountPoint, 0)
+              case Some((mountPoint, _)) =>
+                cargo.Actor ! CargoBehavior.StartCargoMounting(carrier_guid, mountPoint)
               case _ =>
                 log.warn(
                   s"MountVehicleCargoMsg: ${player.Name} trying to load cargo into a ${carrier.Definition.Name} which oes not have a cargo hold"
@@ -3350,17 +3377,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case _ => ;
         }
 
-      case msg @ DismountVehicleCargoMsg(player_guid, cargo_guid, bailed, requestedByPassenger, kicked) =>
+      case msg @ DismountVehicleCargoMsg(_, cargo_guid, bailed, _, kicked) =>
         log.debug(s"DismountVehicleCargoMsg: $msg")
-        //when kicked by carrier driver, player_guid will be PlanetSideGUID(0)
-        //when exiting of the cargo vehicle driver's own accord, player_guid will be the cargo vehicle driver
         continent.GUID(cargo_guid) match {
-          case Some(cargo: Vehicle) if !requestedByPassenger =>
-            continent.GUID(cargo.MountedIn) match {
-              case Some(carrier: Vehicle) =>
-                CargoBehavior.HandleVehicleCargoDismount(continent, cargo_guid, bailed, requestedByPassenger, kicked)
-              case _ => ;
-            }
+          case Some(cargo: Vehicle) =>
+            cargo.Actor ! CargoBehavior.StartCargoDismounting(bailed || kicked)
           case _ => ;
         }
 
@@ -3633,7 +3654,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case vehicle if vehicle.CargoHolds.nonEmpty =>
             vehicle.CargoHolds.collect {
               case (_index, hold: Cargo) if hold.isOccupied =>
-                CargoBehavior.CargoMountBehaviorForAll(
+                CarrierBehavior.CargoMountBehaviorForAll(
                   vehicle,
                   hold.occupant.get,
                   _index
@@ -3779,6 +3800,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (isMovingPlus) {
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
+        fallHeightTracker(pos.z)
 //        if (is_crouching && !player.Crouching) {
 //          //dev stuff goes here
 //        }
@@ -3909,10 +3931,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //we're driving the vehicle
             persist()
             turnCounterFunc(player.GUID)
+            fallHeightTracker(pos.z)
             if (obj.MountedIn.isEmpty) {
               updateBlockMap(obj, continent, pos)
             }
-            val seat = obj.Seats(0)
             player.Position = pos //convenient
             if (obj.WeaponControlledFromSeat(0).isEmpty) {
               player.Orientation = Vector3.z(ang.z) //convenient
@@ -3969,10 +3991,38 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           KickedByAdministration()
         }
 
-      case msg @ VehicleSubStateMessage(vehicle_guid, player_guid, vehicle_pos, vehicle_ang, vel, unk1, unk2) =>
-        log.debug(
-          s"VehicleSubState: $vehicle_guid, ${player.Name}_guid, $vehicle_pos, $vehicle_ang, $vel, $unk1, $unk2"
-        )
+      case msg @ VehicleSubStateMessage(vehicle_guid, _, pos, ang, vel, unk1, unk2) =>
+        //log.info(s"msg")
+        ValidObject(vehicle_guid) match {
+          case Some(obj: Vehicle) =>
+            obj.Position = pos
+            obj.Orientation = ang
+            obj.Velocity = vel
+            updateBlockMap(obj, continent, pos)
+            obj.zoneInteractions()
+            continent.VehicleEvents ! VehicleServiceMessage(
+              continent.id,
+              VehicleAction.VehicleState(
+                player.GUID,
+                vehicle_guid,
+                unk1,
+                pos,
+                ang,
+                obj.Velocity,
+                obj.Flying,
+                0,
+                0,
+                15,
+                false,
+                obj.Cloaked
+              )
+            )
+
+          case _ =>
+            log.warn(
+              s"VehicleSubState: ${player.Name} should not be dispatching this kind of packet for vehicle #${vehicle_guid.guid}"
+            )
+        }
 
       case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, seq, end, target_guid) =>
         val index = projectile_guid.guid - Projectile.baseUID
@@ -5447,7 +5497,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             case Some(obj: Mountable) =>
               obj.PassengerInSeat(player) match {
                case Some(seat_num) =>
-                  obj.Actor ! Mountable.TryDismount(player, seat_num)
+                  obj.Actor ! Mountable.TryDismount(player, seat_num, bailType)
                   if (interstellarFerry.isDefined) {
                     //short-circuit the temporary channel for transferring between zones, the player is no longer doing that
                     //see above in VehicleResponse.TransferPassenger case
@@ -5489,7 +5539,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case (Some(obj: Mountable), Some(tplayer: Player)) =>
                   obj.PassengerInSeat(tplayer) match {
                     case Some(seat_num) =>
-                      obj.Actor ! Mountable.TryDismount(tplayer, seat_num)
+                      obj.Actor ! Mountable.TryDismount(tplayer, seat_num, bailType)
                     case None =>
                       dismountWarning(
                         s"DismountVehicleMsg: can not find where other player ${player.Name}_guid is seated in mountable $obj_guid"
@@ -5552,8 +5602,111 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
         }
 
-      case msg @ GenericCollisionMsg(u1, p, t, php, thp, pv, tv, ppos, tpos, u2, u3, u4) =>
-        log.info(s"${player.Name} would be in intense and excruciating pain right now if collision worked")
+      case msg @ GenericCollisionMsg(ctype, p, php, ppos, pv, t, thp, tpos, tv, u1, u2, u3) =>
+        //log.info(s"$msg")
+        val fallHeight = {
+          if (pv.z * pv.z >= (pv.x * pv.x + pv.y * pv.y) * 0.5f) {
+            if (heightTrend) {
+              val fall = heightLast - heightHistory
+              heightHistory = heightLast
+              fall
+            }
+            else {
+              val fall = heightHistory - heightLast
+              heightLast = heightHistory
+              fall
+            }
+          } else {
+            0f
+          }
+        }
+        val (target1, target2, bailProtectStatus, velocity) = (ctype, ValidObject(p)) match {
+          case (CollisionIs.OfInfantry, out @ Some(user: Player))
+            if user == player =>
+            val bailStatus = session.flying || player.spectator || session.speed > 1f || player.BailProtection
+            player.BailProtection = false
+            val v = if (player.avatar.implants.exists {
+              case Some(implant) => implant.definition.implantType == ImplantType.Surge && implant.active
+              case _             => false
+            }) {
+              Vector3.Zero
+            } else {
+              pv
+            }
+            (out, None, bailStatus, v)
+          case (CollisionIs.OfGroundVehicle, out @ Some(v: Vehicle))
+            if v.Seats(0).occupant.contains(player) =>
+            val bailStatus = v.BailProtection
+            v.BailProtection = false
+            (out, ValidObject(t), bailStatus, pv)
+          case (CollisionIs.OfAircraft, out @ Some(v: Vehicle))
+            if v.Definition.CanFly && v.Seats(0).occupant.contains(player) =>
+            (out, ValidObject(t), false, pv)
+          case _ =>
+            (None, None, false, Vector3.Zero)
+        }
+        val curr = System.currentTimeMillis()
+        (target1, t, target2) match {
+          case (None, _, _) => ;
+
+          case (Some(us: PlanetSideServerObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>
+            if (collisionHistory.get(us.Actor) match {
+              case Some(lastCollision) if curr - lastCollision <= 1000L =>
+                false
+              case _ =>
+                collisionHistory.put(us.Actor, curr)
+                true
+            }) {
+              if (!bailProtectStatus) {
+                HandleDealingDamage(
+                  us,
+                  DamageInteraction(
+                    SourceEntry(us),
+                    CollisionReason(velocity, fallHeight, us.DamageModel),
+                    ppos
+                  )
+                )
+              }
+            }
+
+          case (
+            Some(us: PlanetSideServerObject with Vitality with FactionAffinity), _,
+            Some(victim: PlanetSideServerObject with Vitality with FactionAffinity)
+            ) =>
+            if (collisionHistory.get(victim.Actor) match {
+              case Some(lastCollision) if curr - lastCollision <= 1000L =>
+                false
+              case _ =>
+                collisionHistory.put(victim.Actor, curr)
+                true
+            }) {
+              val usSource = SourceEntry(us)
+              val victimSource = SourceEntry(victim)
+              //we take damage from the collision
+              if (!bailProtectStatus) {
+                HandleDealingDamage(
+                  us,
+                  DamageInteraction(
+                    usSource,
+                    CollisionWithReason(CollisionReason(velocity - tv, fallHeight, us.DamageModel), victimSource),
+                    ppos
+                  )
+                )
+              }
+              //get dealt damage from our own collision (no protection)
+              collisionHistory.put(us.Actor, curr)
+              HandleDealingDamage(
+                victim,
+                DamageInteraction(
+                  victimSource,
+                  CollisionWithReason(CollisionReason(tv - velocity, 0, victim.DamageModel), usSource),
+                  tpos
+                )
+              )
+            }
+
+          case _ => ;
+        }
 
       case msg @ BugReportMessage(
             version_major,
@@ -6760,6 +6913,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     progressBarValue = None
     lastTerminalOrderFulfillment = true
     kitToBeUsed = None
+    collisionHistory.clear()
     accessedContainer match {
       case Some(v: Vehicle) =>
         val vguid = v.GUID
@@ -6863,7 +7017,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
           carrierInfo match {
             case (Some(carrier), Some((index, _))) =>
-              CargoBehavior.CargoMountBehaviorForOthers(carrier, vehicle, index, player.GUID)
+              CarrierBehavior.CargoMountBehaviorForOthers(carrier, vehicle, index, player.GUID)
             case _ =>
               vehicle.MountedIn = None
           }
@@ -7725,10 +7879,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def DismountAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
     val player_guid: PlanetSideGUID = tplayer.GUID
     keepAliveFunc = NormalKeepAlive
-    sendResponse(DismountVehicleMsg(player_guid, BailType.Normal, wasKickedByDriver = false))
+    val bailType = if (tplayer.BailProtection) {
+      BailType.Bailed
+    } else {
+      BailType.Normal
+    }
+    sendResponse(DismountVehicleMsg(player_guid, bailType, wasKickedByDriver = false))
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
-      VehicleAction.DismountVehicle(player_guid, BailType.Normal, false)
+      VehicleAction.DismountVehicle(player_guid, bailType, false)
     )
   }
 
@@ -7748,18 +7907,41 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     val func = data.calculate()
     target match {
       case obj: Player if obj.CanDamage && obj.Actor != Default.Actor =>
-        log.info(s"${player.Name} is attacking ${obj.Name}")
+        if (obj.CharId != player.CharId) {
+          log.info(s"${player.Name} is attacking ${obj.Name}")
+        } else {
+          log.info(s"${player.Name} hurt ${player.Sex.pronounObject}self")
+        }
         // auto kick players damaging spectators
         if (obj.spectator && obj != player) {
           AdministrativeKick(player)
         } else {
           obj.Actor ! Vitality.Damage(func)
         }
+
       case obj: Vehicle if obj.CanDamage =>
-        log.info(s"${player.Name} is attacking ${obj.OwnerName.getOrElse("someone")}'s ${obj.Definition.Name}")
+        val name = player.Name
+        val ownerName = obj.OwnerName.getOrElse("someone")
+        if (ownerName.equals(name)) {
+          log.info(s"$name is damaging ${player.Sex.possessive} own ${obj.Definition.Name}")
+        } else {
+          log.info(s"$name is attacking $ownerName's ${obj.Definition.Name}")
+        }
         obj.Actor ! Vitality.Damage(func)
-      case obj: Amenity if obj.CanDamage           => obj.Actor ! Vitality.Damage(func)
-      case obj: Deployable if obj.CanDamage => obj.Actor ! Vitality.Damage(func)
+
+      case obj: Amenity if obj.CanDamage =>
+        obj.Actor ! Vitality.Damage(func)
+
+      case obj: Deployable if obj.CanDamage =>
+        val name = player.Name
+        val ownerName = obj.OwnerName.getOrElse("someone")
+        if (ownerName.equals(name)) {
+          log.info(s"$name is damaging ${player.Sex.possessive} own ${obj.Definition.Name}")
+        } else {
+          log.info(s"$name is attacking $ownerName's ${obj.Definition.Name}")
+        }
+        obj.Actor ! Vitality.Damage(func)
+
       case _ => ;
     }
   }
@@ -8197,7 +8379,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         log.warn(
           s"LoadZoneInVehicleAsDriver: ${player.Name} must eject cargo in hold $index; vehicle is missing driver"
         )
-        CargoBehavior.HandleVehicleCargoDismount(cargo.GUID, cargo, vehicle.GUID, vehicle, false, false, true)
+        cargo.Actor ! CargoBehavior.StartCargoDismounting(bailed = false)
       case entry =>
         val cargo = vehicle.CargoHolds(entry.mount).occupant.get
         continent.VehicleEvents ! VehicleServiceMessage(
@@ -9139,26 +9321,28 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   var oldRefsMap: mutable.HashMap[PlanetSideGUID, String] = new mutable.HashMap[PlanetSideGUID, String]()
   def updateOldRefsMap(): Unit = {
-    oldRefsMap.addAll(
-      (continent.GUID(player.VehicleSeated) match {
-        case Some(v: Vehicle) =>
-          v.Weapons.toList.collect {
-            case (_, slot: EquipmentSlot) if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
-          }.flatten ++
-          updateOldRefsMap(v.Inventory)
-        case _ =>
-          Map.empty[PlanetSideGUID, String]
-      }) ++
-      (accessedContainer match {
-        case Some(cont) => updateOldRefsMap(cont.Inventory)
-        case None => Map.empty[PlanetSideGUID, String]
-      }) ++
-      player.Holsters().toList.collect {
-        case slot if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
-      }.flatten ++
-      updateOldRefsMap(player.Inventory) ++
-      updateOldRefsMap(player.avatar.locker.Inventory)
-    )
+    if(player.HasGUID) {
+      oldRefsMap.addAll(
+        (continent.GUID(player.VehicleSeated) match {
+          case Some(v : Vehicle) =>
+            v.Weapons.toList.collect {
+              case (_, slot : EquipmentSlot) if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
+            }.flatten ++
+            updateOldRefsMap(v.Inventory)
+          case _ =>
+            Map.empty[PlanetSideGUID, String]
+        }) ++
+        (accessedContainer match {
+          case Some(cont) => updateOldRefsMap(cont.Inventory)
+          case None => Map.empty[PlanetSideGUID, String]
+        }) ++
+        player.Holsters().toList.collect {
+          case slot if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
+        }.flatten ++
+        updateOldRefsMap(player.Inventory) ++
+        updateOldRefsMap(player.avatar.locker.Inventory)
+      )
+    }
   }
 
   def updateOldRefsMap(inventory: net.psforever.objects.inventory.GridInventory): IterableOnce[(PlanetSideGUID, String)] = {
@@ -9177,6 +9361,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case _ =>
         Seq(item.GUID -> item.Definition.Name)
     }
+  }
+
+  def fallHeightTracker(zHeight: Float): Unit = {
+    if ((heightTrend && heightLast - zHeight >= 0.5f) ||
+        (!heightTrend && zHeight - heightLast >= 0.5f)) {
+      heightTrend = !heightTrend
+//      if (heightTrend) {
+//        GetMountableAndSeat(None, player, continent) match {
+//          case (Some(v: Vehicle), _)  => v.BailProtection = false
+//          case _                      => player.BailProtection = false
+//        }
+//      }
+      heightHistory = zHeight
+    }
+    heightLast = zHeight
   }
 
   def failWithError(error: String) = {

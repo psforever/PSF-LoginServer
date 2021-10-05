@@ -1061,7 +1061,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
       assert(!turret.Destroyed)
 
       turret.Actor ! Vitality.Damage(applyDamageToA) //also test destruction while jammered
-      vehicleProbe.receiveN(2, 1000 milliseconds)     //flush jammered messages (see above)
+      vehicleProbe.receiveN(2, 1000 milliseconds) //flush jammered messages (see above)
       assert(turret.Health > turret.Definition.DamageDestroysAt)
       assert(turret.Jammed)
       assert(!turret.Destroyed)
@@ -1071,44 +1071,37 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
       player1Probe.expectNoMessage(500 milliseconds)
       val msg3  = player2Probe.receiveOne(200 milliseconds)
       val msg56 = vehicleProbe.receiveN(2, 200 milliseconds)
-      assert(
-        msg12_4.head match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _                                                                                            => false
-        }
-      )
-      assert(
-        msg12_4(1) match {
-          case AvatarServiceMessage("test", AvatarAction.Destroy(PlanetSideGUID(2), _, _, Vector3(1, 0, 0))) => true
-          case _                                                                                             => false
-        }
-      )
-      assert(
-        msg3 match {
-          case Player.Die(_) => true
-          case _            => false
-        }
-      )
-      assert(
-        msg12_4(2) match {
-          case AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(0), PlanetSideGUID(5), _)) => true
-          case _                                                                                                => false
-        }
-      )
-      assert(
-        msg56.head match {
-          case VehicleServiceMessage.TurretUpgrade(SupportActor.ClearSpecific(List(t), _)) if turret eq t => true
-          case _                                                                           => false
-        }
-      )
-      assert(
-        msg56(1) match {
-          case VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(t, _, TurretUpgrade.None, _))
-              if t eq turret =>
-            true
-          case _ => false
-        }
-      )
+      msg12_4.head match {
+        case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => ;
+        case _ =>
+          assert(false, s"DamageableWeaponTurretDestructionTest-1: ${msg12_4.head}")
+      }
+      msg12_4(1) match {
+        case AvatarServiceMessage("test", AvatarAction.Destroy(PlanetSideGUID(2), _, _, Vector3(1, 0, 0))) => ;
+        case _ =>
+          assert(false, s"DamageableWeaponTurretDestructionTest-2: ${msg12_4(1)}")
+      }
+      msg3 match {
+        case Player.Die(_) => true
+        case _ =>
+          assert(false, s"DamageableWeaponTurretDestructionTest-3: player not dead - $msg3")
+      }
+      msg12_4(2) match {
+        case AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(0), PlanetSideGUID(5), _)) => ;
+        case _ =>
+          assert(false, s"DamageableWeaponTurretDestructionTest-4: ${msg12_4(2)}")
+      }
+      msg56.head match {
+        case VehicleServiceMessage.TurretUpgrade(SupportActor.ClearSpecific(List(t), _)) if turret eq t => ;
+        case _ =>
+          assert(false, s"DamageableWeaponTurretDestructionTest-5: ${msg56.head}")
+      }
+      msg56(1) match {
+        case VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(t, _, TurretUpgrade.None, _)) if t eq turret => ;
+          true
+        case _ =>
+          assert(false, s"DamageableWeaponTurretDestructionTest-6: ${msg56(1)}")
+      }
       assert(turret.Health <= turret.Definition.DamageDestroysAt)
       assert(!turret.Jammed)
       assert(turret.Destroyed)
