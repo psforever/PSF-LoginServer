@@ -66,16 +66,11 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
       vehicle.Actor ! Vehicle.Deconstruct()
 
       val vehicle_msg = vehicleProbe.receiveN(1, 500 milliseconds)
-      assert(
-        vehicle_msg.head match {
-          case VehicleServiceMessage(
-          "test",
-          VehicleAction.KickPassenger(PlanetSideGUID(2), 4, false, PlanetSideGUID(1))
-          ) =>
-            true
-          case _ => false
-        }
-      )
+      vehicle_msg.head match {
+        case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(2), 4, true, PlanetSideGUID(1))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionPassengerTest: ${vehicle_msg.head}")
+      }
       assert(player1.VehicleSeated.isEmpty)
       assert(vehicle.Seats(1).occupant.isEmpty)
     }
@@ -126,82 +121,45 @@ class VehicleControlPrepareForDeletionMountedInTest extends FreedContextActorTes
   zone.Transport ! Zone.Vehicle.Spawn(lodestar) //can not fake this
 
   "VehicleControl" should {
-    "if mounted as cargo, self-eject when marked for deconstruction" in {
+    "self-eject when marked for deconstruction if mounted as cargo" in {
       assert(player1.VehicleSeated.nonEmpty)
       assert(vehicle.Seats(1).occupant.nonEmpty)
       assert(vehicle.MountedIn.nonEmpty)
       assert(lodestar.CargoHolds(1).isOccupied)
       vehicle.Actor ! Vehicle.Deconstruct()
 
-      val vehicle_msg = vehicleProbe.receiveN(6, 500 milliseconds)
+      val vehicle_msg = vehicleProbe.receiveN(6, 1 minute)
       //dismounting as cargo messages
-      //TODO: does not actually kick out the cargo, but instigates the process
-      assert(
-        vehicle_msg.head match {
-          case VehicleServiceMessage(
-          "test",
-          VehicleAction.KickPassenger(PlanetSideGUID(3), 4, false, PlanetSideGUID(1))
-          ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        vehicle_msg(1) match {
-          case VehicleServiceMessage(
-          _,
-          VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))
-          ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        vehicle_msg(2) match {
-          case VehicleServiceMessage(
-          _,
-          VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))
-          ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        vehicle_msg(3) match {
-          case VehicleServiceMessage(
-          "test",
-          VehicleAction.SendResponse(
-          _,
-          CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)
-          )
-          ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        vehicle_msg(4) match {
-          case VehicleServiceMessage(
-          "test",
-          VehicleAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))
-          ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        vehicle_msg(5) match {
-          case VehicleServiceMessage(
-          "test",
-          VehicleAction.SendResponse(
-          _,
-          CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)
-          )
-          ) =>
-            true
-          case _ => false
-        }
-      )
+      vehicle_msg.head match {
+        case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(3), 4, true, PlanetSideGUID(1))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-1: ${vehicle_msg.head}")
+      }
+      vehicle_msg(1) match {
+        case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-2: ${vehicle_msg(1)}")
+      }
+      vehicle_msg(2) match {
+        case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-3: ${vehicle_msg(2)}")
+      }
+      vehicle_msg(3) match {
+        case VehicleServiceMessage("test", VehicleAction.SendResponse(_, CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-4: ${vehicle_msg(3)}")
+      }
+      vehicle_msg(4) match {
+        case VehicleServiceMessage("test", VehicleAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-5: ${vehicle_msg(4)}")
+      }
+      vehicle_msg(5) match {
+        case VehicleServiceMessage("test", VehicleAction.SendResponse(_, CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-6: ${vehicle_msg(5)}")
+      }
       assert(player1.VehicleSeated.isEmpty)
       assert(vehicle.Seats(1).occupant.isEmpty)
       assert(vehicle.MountedIn.isEmpty)
@@ -259,55 +217,37 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
 
       val vehicle_msg = vehicleProbe.receiveN(6, 500 milliseconds)
       vehicle_msg(5) match {
-        case VehicleServiceMessage(
-          "test",
-          VehicleAction.KickPassenger(PlanetSideGUID(4), 4, false, PlanetSideGUID(2))
-        ) => ;
-        case _ => assert(false)
+        case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(4), 4, true, PlanetSideGUID(2))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-1: ${vehicle_msg(5)}")
       }
       assert(player2.VehicleSeated.isEmpty)
       assert(lodestar.Seats(0).occupant.isEmpty)
       //cargo dismounting messages
       vehicle_msg.head match {
-        case VehicleServiceMessage(
-          _,
-          VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))
-        ) => ;
-        case _ => assert(false)
+        case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-2: ${vehicle_msg.head}")
       }
       vehicle_msg(1) match {
-        case VehicleServiceMessage(
-          _,
-          VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))
-        ) => ;
-        case _ => assert(false)
+        case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-3: ${vehicle_msg(1)}")
       }
       vehicle_msg(2) match {
-        case VehicleServiceMessage(
-          "test",
-          VehicleAction.SendResponse(
-            _,
-            CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)
-          )
-        ) => ;
-        case _ => assert(false)
+        case VehicleServiceMessage("test", VehicleAction.SendResponse(_, CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-4: ${vehicle_msg(2)}")
       }
       vehicle_msg(3) match {
-        case VehicleServiceMessage(
-          "test",
-          VehicleAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))
-        ) => ;
-        case _ => assert(false)
+        case VehicleServiceMessage("test", VehicleAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-5: ${vehicle_msg(3)}")
       }
       vehicle_msg(4) match {
-        case VehicleServiceMessage(
-          "test",
-          VehicleAction.SendResponse(
-            _,
-            CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)
-          )
-        ) => ;
-        case _ => assert(false)
+        case VehicleServiceMessage("test", VehicleAction.SendResponse(_, CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0))) => ;
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-6: ${vehicle_msg(4)}")
       }
     }
   }

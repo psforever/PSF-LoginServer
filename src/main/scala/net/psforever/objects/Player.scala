@@ -35,7 +35,7 @@ class Player(var avatar: Avatar)
     with AuraContainer
     with MountableEntity {
   interaction(new InteractWithEnvironment())
-  interaction(new InteractWithMines(range = 10))
+  interaction(new InteractWithMinesUnlessSpectating(obj = this, range = 10))
 
   private var backpack: Boolean = false
   private var released: Boolean = false
@@ -593,6 +593,17 @@ object Player {
       obj
     } else {
       player
+    }
+  }
+}
+
+private class InteractWithMinesUnlessSpectating(
+                                                 private val obj: Player,
+                                                 range: Float
+                                               ) extends InteractWithMines(range) {
+  override def interaction(target: InteractsWithZone): Unit = {
+    if (!obj.spectator) {
+      super.interaction(target)
     }
   }
 }

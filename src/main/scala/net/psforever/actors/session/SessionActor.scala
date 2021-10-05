@@ -5604,10 +5604,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ GenericCollisionMsg(ctype, p, php, ppos, pv, t, thp, tpos, tv, u1, u2, u3) =>
         //log.info(s"$msg")
-        val fallHeight = if (heightTrend) {
-          heightLast - heightHistory
-        } else {
-          heightHistory - heightLast
+        val fallHeight = {
+          if (pv.z * pv.z >= (pv.x * pv.x + pv.y * pv.y) * 0.5f) {
+            if (heightTrend) {
+              val fall = heightLast - heightHistory
+              heightHistory = heightLast
+              fall
+            }
+            else {
+              val fall = heightHistory - heightLast
+              heightLast = heightHistory
+              fall
+            }
+          } else {
+            0f
+          }
         }
         val (target1, target2, bailProtectStatus, velocity) = (ctype, ValidObject(p)) match {
           case (CollisionIs.OfInfantry, out @ Some(user: Player))
@@ -5616,7 +5627,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             player.BailProtection = false
             val v = if (player.avatar.implants.exists {
               case Some(implant) => implant.definition.implantType == ImplantType.Surge && implant.active
-              case _ => false
+              case _             => false
             }) {
               Vector3.Zero
             } else {
