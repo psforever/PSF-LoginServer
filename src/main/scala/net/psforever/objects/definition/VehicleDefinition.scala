@@ -27,8 +27,21 @@ class VehicleDefinition(objectId: Int)
     with NtuContainerDefinition
     with ResistanceProfileMutators
     with DamageResistanceModel {
-  /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
+  /** ... */
+  var shieldUiAttribute: Int = 68
+  /** how many points of shield the vehicle starts with (should default to 0 if unset through the accessor) */
+  private var defaultShields : Option[Int] = None
+  /** maximum vehicle shields (generally: 20% of health)
+    * for normal vehicles, offered through amp station facility benefits
+    * for BFR's, it charges when the vehicle is kneeling
+    **/
   private var maxShields: Int = 0
+  /** the minimum amount of time that must elapse in between damage and shield charge activities (ms) */
+  private var shieldChargeDamageCooldown : Long = 5000L
+  /** the minimum amount of time that must elapse in between distinct shield charge activities (ms) */
+  private var shieldChargePeriodicCooldown : Long = 1000L
+  /** if the shield recharges on its own, this value will be non-`None` and indicate by how much */
+  private var autoShieldRecharge : Option[Int] = None
   private val cargo: mutable.HashMap[Int, CargoDefinition] = mutable.HashMap[Int, CargoDefinition]()
   private var deployment: Boolean                                = false
   private val utilities: mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
@@ -63,11 +76,43 @@ class VehicleDefinition(objectId: Int)
   RepairRestoresAt = 1
   registerAs = "vehicles"
 
+  def DefaultShields: Int = defaultShields.getOrElse(0)
+
+  def DefaultShields_=(shield: Int): Int = DefaultShields_=(Some(shield))
+
+  def DefaultShields_=(shield: Option[Int]): Int = {
+    defaultShields = shield
+    DefaultShields
+  }
+
   def MaxShields: Int = maxShields
 
   def MaxShields_=(shields: Int): Int = {
     maxShields = shields
     MaxShields
+  }
+
+  def ShieldPeriodicDelay : Long = shieldChargePeriodicCooldown
+
+  def ShieldPeriodicDelay_=(cooldown: Long): Long = {
+    shieldChargePeriodicCooldown = cooldown
+    ShieldPeriodicDelay
+  }
+
+  def ShieldDamageDelay: Long = shieldChargeDamageCooldown
+
+  def ShieldDamageDelay_=(cooldown: Long): Long = {
+    shieldChargeDamageCooldown = cooldown
+    ShieldDamageDelay
+  }
+
+  def ShieldAutoRecharge: Option[Int] = autoShieldRecharge
+
+  def ShieldAutoRecharge_=(charge: Int): Option[Int] = ShieldAutoRecharge_=(Some(charge))
+
+  def ShieldAutoRecharge_=(charge: Option[Int]): Option[Int] = {
+    autoShieldRecharge = charge
+    ShieldAutoRecharge
   }
 
   def Cargo: mutable.HashMap[Int, CargoDefinition] = cargo

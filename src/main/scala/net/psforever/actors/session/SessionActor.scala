@@ -2446,7 +2446,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val obj_guid: PlanetSideGUID = obj.GUID
         CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
-        sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields))
+        sendResponse(PlanetsideAttributeMessage(obj_guid, obj.Definition.shieldUiAttribute, obj.Shields))
         if (obj.Definition == GlobalDefinitions.ant) {
           sendResponse(PlanetsideAttributeMessage(obj_guid, 45, obj.NtuCapacitorScaled))
         }
@@ -3197,7 +3197,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
         //positive shield strength
         if (vehicle.Definition.MaxShields > 0) {
-          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 68, vehicle.Shields))
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, vehicle.Definition.shieldUiAttribute, vehicle.Shields))
         }
         // ANT capacitor
         if (vehicle.Definition == GlobalDefinitions.ant) {
@@ -3636,7 +3636,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }
             //positive shield strength
             if (vehicle.Shields > 0) {
-              sendResponse(PlanetsideAttributeMessage(vguid, 68, vehicle.Shields))
+              sendResponse(PlanetsideAttributeMessage(vguid, vehicle.Definition.shieldUiAttribute, vehicle.Shields))
             }
           case _ => ; //no vehicle
         }
@@ -3879,32 +3879,32 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         player.zoneInteractions()
 
       case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
-        //the majority of the following check retrieves information to determine if we are in control of the child
         val (o, tools) = FindContainedWeapon
-        tools.foreach { tool =>
-          (o match {
-            case Some(mount: Mountable) => (o, mount.PassengerInSeat(player))
-            case _                      => (None, None)
-          }) match {
-            case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ;
-            case _ =>
-              persist()
-              turnCounterFunc(player.GUID)
-          }
-          if (tool.GUID == object_guid) {
+        //is COSM our primary upstream packet?
+        (o match {
+          case Some(mount: Mountable) => (o, mount.PassengerInSeat(player))
+          case _                      => (None, None)
+        }) match {
+          case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ;
+          case _ =>
+            persist()
+            turnCounterFunc(player.GUID)
+        }
+        //the majority of the following check retrieves information to determine if we are in control of the child
+        tools.find { _.GUID == object_guid } match {
+          case None =>
+            log.warn(
+              s"ChildObjectState: ${player.Name} is using a different controllable agent than entity ${object_guid.guid}"
+            )
+          case Some(tool) =>
             //TODO set tool orientation?
             player.Orientation = Vector3(0f, pitch, yaw)
             continent.VehicleEvents ! VehicleServiceMessage(
               continent.id,
               VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw)
             )
-          } else {
-            log.warn(
-              s"ChildObjectState: ${player.Name} is using a different controllable agent than entity ${object_guid.guid}"
-            )
-          }
-          //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
         }
+        //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
         if (player.death_by == -1) {
           KickedByAdministration()
         }
@@ -4036,7 +4036,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             unk9,
             unkA
             ) =>
-        log.info(s"$msg")
+        //log.info(s"$msg")
         GetVehicleAndSeat() match {
           case (Some(obj), Some(0)) =>
             //we're driving the vehicle

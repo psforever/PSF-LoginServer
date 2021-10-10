@@ -1068,7 +1068,6 @@ object GlobalDefinitions {
 
   val orbital_shuttle = VehicleDefinition(ObjectClass.orbital_shuttle)
   init_vehicles()
-  init_bfr_vehicles()
 
   /*
   combat engineering deployables
@@ -1182,6 +1181,12 @@ object GlobalDefinitions {
 
   val bfr_door = new VehicleSpawnPadDefinition(141)
 
+  val pad_create = new VehicleSpawnPadDefinition(615)
+
+  val pad_creation = new VehicleSpawnPadDefinition(616)
+
+  val spawnpoint_vehicle = new VehicleSpawnPadDefinition(816)
+
   val mb_locker = new LockerDefinition
 
   val lock_external = new IFFLockDefinition
@@ -1285,12 +1290,12 @@ object GlobalDefinitions {
   hst.NoWarp += dropship
   hst.NoWarp += galaxy_gunship
   hst.NoWarp += lodestar
-  //hst.NoWarp += aphelion_gunner
-  //hst.NoWarp += aphelion_flight
-  //hst.NoWarp += colossus_gunner
-  //hst.NoWarp += colossus_flight
-  //hst.NoWarp += peregrine_gunner
-  //hst.NoWarp += peregrine_flight
+  hst.NoWarp += aphelion_gunner
+  hst.NoWarp += aphelion_flight
+  hst.NoWarp += colossus_gunner
+  hst.NoWarp += colossus_flight
+  hst.NoWarp += peregrine_gunner
+  hst.NoWarp += peregrine_flight
   hst.SpecificPointFunc = SpawnPoint.Gate
 
   val mainbase1            = new BuildingDefinition(474) { Name = "mainbase1" }
@@ -6414,6 +6419,7 @@ object GlobalDefinitions {
   private def init_vehicles(): Unit = {
     init_ground_vehicles()
     init_flight_vehicles()
+    init_bfr_vehicles()
   }
 
   /**
@@ -6424,6 +6430,9 @@ object GlobalDefinitions {
     val delivererForm = GeometryForm.representByCylinder(radius = 2.46095f, height = 2.40626f) _ //TODO hexahedron
     val apcForm       = GeometryForm.representByCylinder(radius = 4.6211f, height = 3.90626f) _  //TODO hexahedron
 
+    val driverSeat = new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     val normalSeat = new SeatDefinition()
     val bailableSeat = new SeatDefinition() {
       bailable = true
@@ -6733,9 +6742,7 @@ object GlobalDefinitions {
     mediumtransport.Repairable = true
     mediumtransport.RepairIfDestroyed = false
     mediumtransport.MaxShields = 500
-    mediumtransport.Seats += 0 -> new SeatDefinition() {
-      restriction = NoReinforcedOrMax
-    }
+    mediumtransport.Seats += 0             -> driverSeat
     mediumtransport.Seats += 1             -> normalSeat
     mediumtransport.Seats += 2             -> normalSeat
     mediumtransport.Seats += 3             -> normalSeat
@@ -6780,9 +6787,7 @@ object GlobalDefinitions {
     battlewagon.Repairable = true
     battlewagon.RepairIfDestroyed = false
     battlewagon.MaxShields = 500
-    battlewagon.Seats += 0 -> new SeatDefinition() {
-      restriction = NoReinforcedOrMax
-    }
+    battlewagon.Seats += 0             -> driverSeat
     battlewagon.Seats += 1             -> normalSeat
     battlewagon.Seats += 2             -> normalSeat
     battlewagon.Seats += 3             -> normalSeat
@@ -6830,9 +6835,7 @@ object GlobalDefinitions {
     thunderer.Repairable = true
     thunderer.RepairIfDestroyed = false
     thunderer.MaxShields = 500
-    thunderer.Seats += 0 -> new SeatDefinition() {
-      restriction = NoReinforcedOrMax
-    }
+    thunderer.Seats += 0             -> driverSeat
     thunderer.Seats += 1             -> normalSeat
     thunderer.Seats += 2             -> normalSeat
     thunderer.Seats += 3             -> normalSeat
@@ -6877,9 +6880,7 @@ object GlobalDefinitions {
     aurora.Repairable = true
     aurora.RepairIfDestroyed = false
     aurora.MaxShields = 500
-    aurora.Seats += 0 -> new SeatDefinition() {
-      restriction = NoReinforcedOrMax
-    }
+    aurora.Seats += 0             -> driverSeat
     aurora.Seats += 1             -> normalSeat
     aurora.Seats += 2             -> normalSeat
     aurora.Seats += 3             -> normalSeat
@@ -7125,9 +7126,7 @@ object GlobalDefinitions {
     lightning.Repairable = true
     lightning.RepairIfDestroyed = false
     lightning.MaxShields = 400
-    lightning.Seats += 0 -> new SeatDefinition() {
-      restriction = NoReinforcedOrMax
-    }
+    lightning.Seats += 0             -> driverSeat
     lightning.controlledWeapons(seat = 0, weapon = 1)
     lightning.Weapons += 1           -> lightning_weapon_system
     lightning.MountPoints += 1       -> MountInfo(0)
@@ -7163,9 +7162,7 @@ object GlobalDefinitions {
     prowler.Repairable = true
     prowler.RepairIfDestroyed = false
     prowler.MaxShields = 960
-    prowler.Seats += 0 -> new SeatDefinition() {
-      restriction = NoReinforcedOrMax
-    }
+    prowler.Seats += 0             -> driverSeat
     prowler.Seats += 1             -> normalSeat
     prowler.Seats += 2             -> normalSeat
     prowler.controlledWeapons(seat = 1, weapon = 3)
@@ -7206,9 +7203,7 @@ object GlobalDefinitions {
     vanguard.Repairable = true
     vanguard.RepairIfDestroyed = false
     vanguard.MaxShields = 1080
-    vanguard.Seats += 0 -> new SeatDefinition() {
-      restriction = NoReinforcedOrMax
-    }
+    vanguard.Seats += 0             -> driverSeat
     vanguard.Seats += 1             -> normalSeat
     vanguard.controlledWeapons(seat = 1, weapon = 2)
     vanguard.Weapons += 2           -> vanguard_weapon_system
@@ -7245,9 +7240,7 @@ object GlobalDefinitions {
     magrider.Repairable = true
     magrider.RepairIfDestroyed = false
     magrider.MaxShields = 840
-    magrider.Seats += 0 -> new SeatDefinition() {
-      restriction = NoReinforcedOrMax
-    }
+    magrider.Seats += 0             -> driverSeat
     magrider.Seats += 1             -> normalSeat
     magrider.controlledWeapons(seat = 0, weapon = 2)
     magrider.controlledWeapons(seat = 1, weapon = 3)
@@ -7287,9 +7280,7 @@ object GlobalDefinitions {
     ant.Repairable = true
     ant.RepairIfDestroyed = false
     ant.MaxShields = 400
-    ant.Seats += 0 -> new SeatDefinition() {
-      restriction = NoReinforcedOrMax
-    }
+    ant.Seats += 0       -> driverSeat
     ant.MountPoints += 1 -> MountInfo(0)
     ant.MountPoints += 2 -> MountInfo(0)
     ant.Deployment = true
@@ -7325,9 +7316,7 @@ object GlobalDefinitions {
     ams.Repairable = true
     ams.RepairIfDestroyed = false
     ams.MaxShields = 600 + 1
-    ams.Seats += 0 -> new SeatDefinition() {
-      restriction = NoReinforcedOrMax
-    }
+    ams.Seats += 0       -> driverSeat
     ams.MountPoints += 1 -> MountInfo(0)
     ams.MountPoints += 2 -> MountInfo(0)
     ams.Utilities += 1   -> UtilityType.matrix_terminalc
@@ -7886,7 +7875,7 @@ object GlobalDefinitions {
     phantasm.MaxShields = 500
     phantasm.CanCloak = true
     phantasm.CanFly = true
-    phantasm.Seats += 0       -> normalSeat
+    phantasm.Seats += 0       -> new SeatDefinition()
     phantasm.Seats += 1       -> bailableSeat
     phantasm.Seats += 2       -> bailableSeat
     phantasm.Seats += 3       -> bailableSeat
@@ -7973,6 +7962,9 @@ object GlobalDefinitions {
   }
 
   private def init_bfr_vehicles(): Unit = {
+    val driverSeat = new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+    }
     val normalSeat = new SeatDefinition()
 
     val battleFrameConverter = new BattleFrameRoboticsConverter
@@ -7981,12 +7973,13 @@ object GlobalDefinitions {
     aphelion_gunner.Damageable = true
     aphelion_gunner.Repairable = true
     aphelion_gunner.RepairIfDestroyed = false
+    aphelion_gunner.shieldUiAttribute = 79
     aphelion_gunner.MaxShields = 3000
-    //aphelion_gunner.ShieldPeriodicDelay = 500
-    //aphelion_gunner.ShieldDamageDelay = 3500
-    //aphelion_gunner.ShieldAutoRecharge = 45
-    //aphelion_gunner.DefaultShields = aphelion_gunner.MaxShields
-    aphelion_gunner.Seats += 0       -> normalSeat
+    aphelion_gunner.ShieldPeriodicDelay = 500
+    aphelion_gunner.ShieldDamageDelay = 3500
+    aphelion_gunner.ShieldAutoRecharge = 45
+    aphelion_gunner.DefaultShields = aphelion_gunner.MaxShields
+    aphelion_gunner.Seats += 0       -> driverSeat
     aphelion_gunner.Seats += 1       -> normalSeat
     aphelion_gunner.controlledWeapons(seat = 0, weapons = Set(2, 3))
     aphelion_gunner.controlledWeapons(seat = 1, weapon = 4)
@@ -8011,18 +8004,20 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = ExplodingRadialDegrade
     }
+    aphelion_gunner.DrownAtMaxDepth = true
 
     colossus_gunner.Name = "colossus_gunner"
     colossus_gunner.MaxHealth = 4500
     colossus_gunner.Damageable = true
     colossus_gunner.Repairable = true
     colossus_gunner.RepairIfDestroyed = false
+    colossus_gunner.shieldUiAttribute = 79
     colossus_gunner.MaxShields = 3000
-    //colossus_gunner.ShieldPeriodicDelay = 500
-    //colossus_gunner.ShieldDamageDelay = 3500
-    //colossus_gunner.ShieldAutoRecharge = 45
-    //colossus_gunner.DefaultShields = colossus_gunner.MaxShields
-    colossus_gunner.Seats += 0       -> normalSeat
+    colossus_gunner.ShieldPeriodicDelay = 500
+    colossus_gunner.ShieldDamageDelay = 3500
+    colossus_gunner.ShieldAutoRecharge = 45
+    colossus_gunner.DefaultShields = colossus_gunner.MaxShields
+    colossus_gunner.Seats += 0       -> driverSeat
     colossus_gunner.Seats += 1       -> normalSeat
     colossus_gunner.controlledWeapons(seat = 0, weapons = Set(2, 3))
     colossus_gunner.controlledWeapons(seat = 1, weapon = 4)
@@ -8047,18 +8042,20 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = ExplodingRadialDegrade
     }
+    colossus_gunner.DrownAtMaxDepth = true
 
     peregrine_gunner.Name = "peregrine_gunner"
     peregrine_gunner.MaxHealth = 4500
     peregrine_gunner.Damageable = true
     peregrine_gunner.Repairable = true
     peregrine_gunner.RepairIfDestroyed = false
+    peregrine_gunner.shieldUiAttribute = 79
     peregrine_gunner.MaxShields = 3000
-    //peregrine_gunner.ShieldPeriodicDelay = 500
-    //peregrine_gunner.ShieldDamageDelay = 3500
-    //peregrine_gunner.ShieldAutoRecharge = 45
-    //peregrine_gunner.DefaultShields = peregrine_gunner.MaxShields
-    peregrine_gunner.Seats += 0       -> normalSeat
+    peregrine_gunner.ShieldPeriodicDelay = 500
+    peregrine_gunner.ShieldDamageDelay = 3500
+    peregrine_gunner.ShieldAutoRecharge = 45
+    peregrine_gunner.DefaultShields = peregrine_gunner.MaxShields
+    peregrine_gunner.Seats += 0       -> driverSeat
     peregrine_gunner.Seats += 1       -> normalSeat
     peregrine_gunner.controlledWeapons(seat = 0, weapons = Set(2, 3))
     peregrine_gunner.controlledWeapons(seat = 1, weapon = 4)
@@ -8083,6 +8080,7 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = ExplodingRadialDegrade
     }
+    peregrine_gunner.DrownAtMaxDepth = true
 
     val battleFrameFlightConverter = new BattleFrameFlightConverter
     aphelion_flight.Name = "aphelion_flight"
@@ -8090,13 +8088,14 @@ object GlobalDefinitions {
     aphelion_flight.Damageable = true
     aphelion_flight.Repairable = true
     aphelion_flight.RepairIfDestroyed = false
+    aphelion_flight.CanFly = true
+    aphelion_flight.shieldUiAttribute = 79
     aphelion_flight.MaxShields = 2500
-    //aphelion_flight.CanFly = true
-    //aphelion_flight.ShieldPeriodicDelay = 500
-    //aphelion_flight.ShieldDamageDelay = 3500
-    //aphelion_flight.ShieldAutoRecharge = 12 //12.5
-    //aphelion_flight.DefaultShields = aphelion_flight.MaxShields
-    aphelion_flight.Seats += 0       -> normalSeat
+    aphelion_flight.ShieldPeriodicDelay = 500
+    aphelion_flight.ShieldDamageDelay = 3500
+    aphelion_flight.ShieldAutoRecharge = 12 //12.5
+    aphelion_flight.DefaultShields = aphelion_flight.MaxShields
+    aphelion_flight.Seats += 0       -> driverSeat
     aphelion_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
     aphelion_flight.Weapons += 1     -> aphelion_ppa_left
     aphelion_flight.Weapons += 2     -> aphelion_ppa_right
@@ -8117,16 +8116,21 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = ExplodingRadialDegrade
     }
+    aphelion_flight.DrownAtMaxDepth = true
 
     colossus_flight.Name = "colossus_flight"
     colossus_flight.MaxHealth = 3500
     colossus_flight.Damageable = true
     colossus_flight.Repairable = true
     colossus_flight.RepairIfDestroyed = false
+    colossus_flight.CanFly = true
+    colossus_flight.shieldUiAttribute = 79
     colossus_flight.MaxShields = 2500
-    //colossus_flight.CanFly = true
-    //colossus_flight.DefaultShields = colossus_flight.MaxShields
-    colossus_flight.Seats += 0       -> normalSeat
+    colossus_flight.ShieldPeriodicDelay = 500
+    colossus_flight.ShieldDamageDelay = 3500
+    colossus_flight.ShieldAutoRecharge = 12 //12.5
+    colossus_flight.DefaultShields = colossus_flight.MaxShields
+    colossus_flight.Seats += 0       -> driverSeat
     colossus_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
     colossus_flight.Weapons += 1     -> colossus_tank_cannon_left
     colossus_flight.Weapons += 2     -> colossus_tank_cannon_right
@@ -8147,16 +8151,21 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = ExplodingRadialDegrade
     }
+    colossus_flight.DrownAtMaxDepth = true
 
     peregrine_flight.Name = "peregrine_flight"
     peregrine_flight.MaxHealth = 3500
     peregrine_flight.Damageable = true
     peregrine_flight.Repairable = true
     peregrine_flight.RepairIfDestroyed = false
+    peregrine_flight.CanFly = true
+    peregrine_flight.shieldUiAttribute = 79
     peregrine_flight.MaxShields = 2500
-    //peregrine_flight.CanFly = true
-    //peregrine_flight.DefaultShields = peregrine_flight.MaxShields
-    peregrine_flight.Seats += 0       -> normalSeat
+    peregrine_flight.ShieldPeriodicDelay = 500
+    peregrine_flight.ShieldDamageDelay = 3500
+    peregrine_flight.ShieldAutoRecharge = 12 //12.5
+    peregrine_flight.DefaultShields = peregrine_flight.MaxShields
+    peregrine_flight.Seats += 0       -> driverSeat
     peregrine_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
     peregrine_flight.Weapons += 1     -> peregrine_dual_machine_gun_left
     peregrine_flight.Weapons += 2     -> peregrine_dual_machine_gun_right
@@ -8177,6 +8186,7 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = ExplodingRadialDegrade
     }
+    peregrine_flight.DrownAtMaxDepth = true
   }
 
   /**
@@ -8917,6 +8927,7 @@ object GlobalDefinitions {
     mb_pad_creation.Name = "mb_pad_creation"
     mb_pad_creation.Damageable = false
     mb_pad_creation.Repairable = false
+    mb_pad_creation.VehicleCreationZOffset = 2.52604f
     mb_pad_creation.killBox = VehicleSpawnPadDefinition.prepareKillBox(
       forwardLimit = 14,
       backLimit = 10,
@@ -8935,6 +8946,8 @@ object GlobalDefinitions {
     dropship_pad_doors.Name = "dropship_pad_doors"
     dropship_pad_doors.Damageable = false
     dropship_pad_doors.Repairable = false
+    dropship_pad_doors.VehicleCreationZOffset = 4.89507f
+    dropship_pad_doors.VehicleCreationZOrientOffset = -90f
     dropship_pad_doors.killBox = VehicleSpawnPadDefinition.prepareKillBox(
       forwardLimit = 14,
       backLimit = 14,
@@ -8969,6 +8982,8 @@ object GlobalDefinitions {
     bfr_door.Name = "bfr_door"
     bfr_door.Damageable = false
     bfr_door.Repairable = false
+    //bfr_door.VehicleCreationZOffset = -4.5f
+    bfr_door.VehicleCreationZOrientOffset = 135f //90f
     //bfr_door.killBox = ...
     bfr_door.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -8978,6 +8993,25 @@ object GlobalDefinitions {
       DamageAtEdge = 0.00002f
       //damage is 99999 at 14m, dropping rapidly to ~1 at 14.5m
     }
+
+    pad_create.Name = "pad_create"
+    pad_create.Damageable = false
+    pad_create.Repairable = false
+    //pad_create.killBox = ...
+    //pad_create.innateDamage = ...
+
+    pad_creation.Name = "pad_creation"
+    pad_creation.Damageable = false
+    pad_creation.Repairable = false
+    pad_creation.VehicleCreationZOffset = 1.70982f
+    //pad_creation.killBox = ...
+    //pad_creation.innateDamage = ...
+
+    spawnpoint_vehicle.Name = "spawnpoint_vehicle"
+    spawnpoint_vehicle.Damageable = false
+    spawnpoint_vehicle.Repairable = false
+    //spawnpoint_vehicle.killBox = ...
+    //spawnpoint_vehicle.innateDamage = ...
 
     mb_locker.Name = "mb_locker"
     mb_locker.Damageable = false
@@ -9038,9 +9072,15 @@ object GlobalDefinitions {
     multivehicle_rearm_terminal.Repairable = false
 
     bfr_rearm_terminal.Name = "bfr_rearm_terminal"
-    bfr_rearm_terminal.Tab += 0 -> OrderTerminalDefinition.VehiclePage(VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk) //inaccessible?
-    bfr_rearm_terminal.Tab += 1 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrArmWeapons)
-    bfr_rearm_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrGunnerWeapons)
+    bfr_rearm_terminal.Tab += 0 -> OrderTerminalDefinition.VehiclePage(
+      VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk
+    ) //inaccessible?
+    bfr_rearm_terminal.Tab += 1 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrArmWeapons
+    )
+    bfr_rearm_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrGunnerWeapons
+    )
     bfr_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
     bfr_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     bfr_rearm_terminal.Damageable = false

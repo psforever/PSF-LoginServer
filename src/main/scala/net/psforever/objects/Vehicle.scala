@@ -3,7 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.ce.InteractWithMines
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
-import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot, JammableUnit}
+import net.psforever.objects.equipment.{EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
 import net.psforever.objects.serverobject.mount.{MountableEntity, Seat, SeatDefinition}
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -602,10 +602,11 @@ object Vehicle {
     val vdef: VehicleDefinition = vehicle.Definition
     //general stuff
     vehicle.Health = vdef.DefaultHealth
+    vehicle.Shields = vdef.DefaultShields
     //create weapons
     vehicle.weapons = vdef.Weapons.map[Int, EquipmentSlot] {
       case (num: Int, definition: ToolDefinition) =>
-        val slot = EquipmentSlot(EquipmentSize.VehicleWeapon)
+        val slot = EquipmentSlot(definition.Size)
         slot.Equipment = Tool(definition)
         num -> slot
     }.toMap

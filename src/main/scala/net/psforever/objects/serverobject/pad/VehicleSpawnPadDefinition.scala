@@ -18,28 +18,16 @@ class VehicleSpawnPadDefinition(objectId: Int) extends AmenityDefinition(objectI
   // However, it seems these values need to be reversed to turn CCW to CW rotation (e.g. +90 to -90)
   private var vehicle_creation_z_orient_offset = 0f
 
-  def VehicleCreationZOffset: Float       = vehicle_creation_z_offset
+  def VehicleCreationZOffset: Float = vehicle_creation_z_offset
   def VehicleCreationZOrientOffset: Float = vehicle_creation_z_orient_offset
 
-  objectId match {
-    case 141 =>
-      Name = "bfr_door"
-      vehicle_creation_z_offset = -4.5f
-      vehicle_creation_z_orient_offset = 90f
-    case 261 =>
-      Name = "dropship_pad_doors"
-      vehicle_creation_z_offset = 4.89507f
-      vehicle_creation_z_orient_offset = -90f
-    case 525 =>
-      Name = "mb_pad_creation"
-      vehicle_creation_z_offset = 2.52604f
-    case 615 => Name = "pad_create"
-    case 616 =>
-      Name = "pad_creation"
-      vehicle_creation_z_offset = 1.70982f
-    case 816 => Name = "spawnpoint_vehicle"
-    case 947 => Name = "vanu_vehicle_creation_pad"
-    case _   => throw new IllegalArgumentException("Not a valid object id with the type vehicle_creation_pad")
+  def VehicleCreationZOffset_=(offset: Float): Float = {
+    vehicle_creation_z_offset = offset
+    vehicle_creation_z_offset
+  }
+  def VehicleCreationZOrientOffset_=(offset: Float): Float = {
+    vehicle_creation_z_orient_offset = offset
+    vehicle_creation_z_orient_offset
   }
 
   /** The region surrounding a vehicle spawn pad that is cleared of damageable targets prior to a vehicle being spawned.

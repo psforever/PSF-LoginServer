@@ -127,7 +127,7 @@ trait DamageableVehicle
       if (damageToShields > 0) {
         events ! VehicleServiceMessage(
           vehicleChannel,
-          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 68, obj.Shields)
+          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, obj.Definition.shieldUiAttribute, obj.Shields)
         )
         announceConfrontation = true
       }
@@ -191,7 +191,7 @@ trait DamageableVehicle
       obj.Shields = 0
       zone.VehicleEvents ! VehicleServiceMessage(
         zone.id,
-        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, 0)
+        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, obj.Definition.shieldUiAttribute, 0)
       )
     }
     //clean up

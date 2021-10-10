@@ -511,6 +511,11 @@ object Zones {
                 owningBuildingGuid = ownerGuid
               )
               zoneMap.addLocalObject(
+                obj.guid + 2,
+                Terminal.Constructor(obj.position, GlobalDefinitions.bfr_rearm_terminal),
+                owningBuildingGuid = ownerGuid
+              )
+              zoneMap.addLocalObject(
                 obj.guid + 3,
                 ProximityTerminal.Constructor(obj.position, GlobalDefinitions.recharge_terminal),
                 owningBuildingGuid = ownerGuid

@@ -5,6 +5,7 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
+import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
@@ -20,7 +21,7 @@ import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
-import net.psforever.objects.vital.VehicleShieldCharge
+import net.psforever.objects.vital.{DamagingActivity, VehicleShieldCharge, VitalsActivity}
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.zones._
@@ -124,19 +125,7 @@ class VehicleControl(vehicle: Vehicle)
         dismountCleanup(seat_num)
 
       case Vehicle.ChargeShields(amount) =>
-        val now : Long = System.currentTimeMillis()
-        //make certain vehicles don't charge shields too quickly
-        if (
-          vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
-          !vehicle.History.exists(VehicleControl.LastShieldChargeOrDamage(now))
-        ) {
-          vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), amount))
-          vehicle.Shields = vehicle.Shields + amount
-          vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
-            s"${vehicle.Actor}",
-            VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), vehicle.GUID, 68, vehicle.Shields)
-          )
-        }
+        chargeShields(amount)
 
       case Vehicle.UpdateZoneInteractionProgressUI(player) =>
         updateZoneInteractionProgressUI(player)
@@ -521,6 +510,25 @@ class VehicleControl(vehicle: Vehicle)
     )
   }
 
+  //make certain vehicles don't charge shields too quickly
+  def canChargeShields(): Boolean = {
+    val now: Long = System.currentTimeMillis()
+    val func: VitalsActivity => Boolean = VehicleControl.LastShieldChargeOrDamage(now, vehicle.Definition)
+    vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
+    !vehicle.History.exists(func)
+  }
+
+  def chargeShields(amount: Int): Unit = {
+    if (canChargeShields()) {
+      vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), amount))
+      vehicle.Shields = vehicle.Shields + amount
+      vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
+        s"${vehicle.Actor}",
+        VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), vehicle.GUID, vehicle.Definition.shieldUiAttribute, vehicle.Shields)
+      )
+    }
+  }
+
   /**
     * Water causes vehicles to become disabled if they dive off too far, too deep.
     * Flying vehicles do not display progress towards being waterlogged.  They just disable outright.
@@ -720,8 +728,7 @@ class VehicleControl(vehicle: Vehicle)
 }
 
 object VehicleControl {
-  import net.psforever.objects.vital.{DamageFromProjectile, VehicleShieldCharge, VitalsActivity}
-  import scala.concurrent.duration._
+  import net.psforever.objects.vital.{VehicleShieldCharge, VitalsActivity}
 
   private case class PrepareForDeletion()
 
@@ -735,15 +742,14 @@ object VehicleControl {
     * Determine if a given activity entry would invalidate the act of charging vehicle shields this tick.
     * @param now the current time (in nanoseconds)
     * @param act a `VitalsActivity` entry to test
-    * @return `true`, if the vehicle took damage in the last five seconds or
-    *        charged shields in the last second;
+    * @return `true`, if the vehicle took damage in the last five seconds or charged shields in the last second;
     *        `false`, otherwise
     */
-  def LastShieldChargeOrDamage(now: Long)(act: VitalsActivity): Boolean = {
+  def LastShieldChargeOrDamage(now: Long, vdef: VehicleDefinition)(act: VitalsActivity): Boolean = {
     act match {
-      case DamageFromProjectile(data) => now - data.interaction.hitTime < (5 seconds).toMillis //damage delays next charge by 5s
-      case vsc: VehicleShieldCharge   => now - vsc.time < (1 seconds).toMillis      //previous charge delays next by 1s
-      case _                          => false
+      case dact: DamagingActivity    => now - dact.data.interaction.hitTime < vdef.ShieldDamageDelay //damage delays next charge
+      case vsc: VehicleShieldCharge => now - vsc.time < vdef.ShieldPeriodicDelay //previous charge delays next
+      case _                        => false
     }
   }
 }
