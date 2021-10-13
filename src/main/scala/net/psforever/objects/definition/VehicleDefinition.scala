@@ -42,6 +42,7 @@ class VehicleDefinition(objectId: Int)
   private var shieldChargePeriodicCooldown : Long = 1000L
   /** if the shield recharges on its own, this value will be non-`None` and indicate by how much */
   private var autoShieldRecharge : Option[Int] = None
+  private var autoShieldRechargeSpecial : Option[Int] = None
   private val cargo: mutable.HashMap[Int, CargoDefinition] = mutable.HashMap[Int, CargoDefinition]()
   private var deployment: Boolean                                = false
   private val utilities: mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
@@ -113,6 +114,15 @@ class VehicleDefinition(objectId: Int)
   def ShieldAutoRecharge_=(charge: Option[Int]): Option[Int] = {
     autoShieldRecharge = charge
     ShieldAutoRecharge
+  }
+
+  def ShieldAutoRechargeSpecial: Option[Int] = autoShieldRechargeSpecial.orElse(ShieldAutoRecharge)
+
+  def ShieldAutoRechargeSpecial_=(charge: Int): Option[Int] = ShieldAutoRechargeSpecial_=(Some(charge))
+
+  def ShieldAutoRechargeSpecial_=(charge: Option[Int]): Option[Int] = {
+    autoShieldRechargeSpecial = charge
+    ShieldAutoRechargeSpecial
   }
 
   def Cargo: mutable.HashMap[Int, CargoDefinition] = cargo

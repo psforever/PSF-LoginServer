@@ -4052,16 +4052,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }
             obj.Position = pos
             obj.Orientation = ang
+            obj.DeploymentState = if (is_crouched) DriveState.Kneeling else DriveState.Mobile
             if (obj.MountedIn.isEmpty) {
-              if (obj.DeploymentState != DriveState.Deployed) {
+              if (obj.DeploymentState != DriveState.Kneeling) {
                 obj.Velocity = vel
               } else {
                 obj.Velocity = Some(Vector3.Zero)
+                obj.Flying = None
               }
 //              if (obj.Definition.CanFly) {
 //                obj.Flying = flying //usually Some(7)
 //              }
-              //obj.Cloaked = obj.Definition.CanCloak && is_cloaked
             } else {
               obj.Velocity = None
               obj.Flying = None

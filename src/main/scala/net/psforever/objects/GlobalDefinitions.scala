@@ -8105,6 +8105,7 @@ object GlobalDefinitions {
     aphelion_gunner.ShieldPeriodicDelay = 500
     aphelion_gunner.ShieldDamageDelay = 3500
     aphelion_gunner.ShieldAutoRecharge = 45
+    aphelion_gunner.ShieldAutoRechargeSpecial = 85
     aphelion_gunner.DefaultShields = aphelion_gunner.MaxShields
     aphelion_gunner.Seats += 0       -> driverSeat
     aphelion_gunner.Seats += 1       -> normalSeat
@@ -8143,6 +8144,7 @@ object GlobalDefinitions {
     colossus_gunner.ShieldPeriodicDelay = 500
     colossus_gunner.ShieldDamageDelay = 3500
     colossus_gunner.ShieldAutoRecharge = 45
+    colossus_gunner.ShieldAutoRechargeSpecial = 85
     colossus_gunner.DefaultShields = colossus_gunner.MaxShields
     colossus_gunner.Seats += 0       -> driverSeat
     colossus_gunner.Seats += 1       -> normalSeat
@@ -8181,6 +8183,7 @@ object GlobalDefinitions {
     peregrine_gunner.ShieldPeriodicDelay = 500
     peregrine_gunner.ShieldDamageDelay = 3500
     peregrine_gunner.ShieldAutoRecharge = 45
+    peregrine_gunner.ShieldAutoRechargeSpecial = 85
     peregrine_gunner.DefaultShields = peregrine_gunner.MaxShields
     peregrine_gunner.Seats += 0       -> driverSeat
     peregrine_gunner.Seats += 1       -> normalSeat
@@ -8221,6 +8224,7 @@ object GlobalDefinitions {
     aphelion_flight.ShieldPeriodicDelay = 500
     aphelion_flight.ShieldDamageDelay = 3500
     aphelion_flight.ShieldAutoRecharge = 12 //12.5
+    aphelion_flight.ShieldAutoRechargeSpecial = 25
     aphelion_flight.DefaultShields = aphelion_flight.MaxShields
     aphelion_flight.Seats += 0       -> driverSeat
     aphelion_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
@@ -8256,6 +8260,7 @@ object GlobalDefinitions {
     colossus_flight.ShieldPeriodicDelay = 500
     colossus_flight.ShieldDamageDelay = 3500
     colossus_flight.ShieldAutoRecharge = 12 //12.5
+    colossus_flight.ShieldAutoRechargeSpecial = 25
     colossus_flight.DefaultShields = colossus_flight.MaxShields
     colossus_flight.Seats += 0       -> driverSeat
     colossus_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
@@ -8291,6 +8296,7 @@ object GlobalDefinitions {
     peregrine_flight.ShieldPeriodicDelay = 500
     peregrine_flight.ShieldDamageDelay = 3500
     peregrine_flight.ShieldAutoRecharge = 12 //12.5
+    peregrine_flight.ShieldAutoRechargeSpecial = 25
     peregrine_flight.DefaultShields = peregrine_flight.MaxShields
     peregrine_flight.Seats += 0       -> driverSeat
     peregrine_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))

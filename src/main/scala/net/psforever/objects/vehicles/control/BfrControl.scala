@@ -12,7 +12,7 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.GenericObjectActionMessage
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{DriveState, PlanetSideGUID}
 //import net.psforever.objects.vehicles._
 //import net.psforever.types.DriveState
 
@@ -104,9 +104,14 @@ class BfrControl(vehicle: Vehicle)
       val guid0 = Service.defaultPlayerGUID
       val vguid = vehicle.GUID
       val zone = vehicle.Zone
+      val definition = vehicle.Definition
       val events = zone.VehicleEvents
       val before = vehicle.Shields
-      val chargeAmount = vehicle.Definition.ShieldAutoRecharge.getOrElse(amount)
+      val chargeAmount = (if (vehicle.DeploymentState == DriveState.Kneeling || vehicle.Seats(0).occupant.isEmpty) {
+        definition.ShieldAutoRechargeSpecial
+      } else {
+        definition.ShieldAutoRecharge
+      }).getOrElse(amount)
       vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), chargeAmount))
       vehicle.Shields = before + chargeAmount
       val after = vehicle.Shields
@@ -118,13 +123,13 @@ class BfrControl(vehicle: Vehicle)
       }
       events ! VehicleServiceMessage(
         s"${vehicle.Actor}",
-        VehicleAction.PlanetsideAttribute(guid0, vguid, vehicle.Definition.shieldUiAttribute, after)
+        VehicleAction.PlanetsideAttribute(guid0, vguid, definition.shieldUiAttribute, after)
       )
       //continue charge?
       shieldCharge.cancel()
-      if (after < vehicle.Definition.MaxShields) {
+      if (after < definition.MaxShields) {
         shieldCharge = context.system.scheduler.scheduleOnce(
-          delay = vehicle.Definition.ShieldPeriodicDelay milliseconds,
+          delay = definition.ShieldPeriodicDelay milliseconds,
           self,
           Vehicle.ChargeShields(0)
         )
