@@ -2,10 +2,10 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Tool
-import net.psforever.packet.game.objectcreate.{CommonFieldData, InternalSlot, WeaponData}
+import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedWeaponData, InternalSlot, WeaponData}
 import net.psforever.types.PlanetSideGUID
 
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 class BattleFrameToolConverter extends ObjectCreateConverter[Tool]() {
   override def ConstructorData(obj: Tool): Try[WeaponData] = {
@@ -32,5 +32,6 @@ class BattleFrameToolConverter extends ObjectCreateConverter[Tool]() {
     )
   }
 
-  override def DetailedConstructorData(obj: Tool): Try[WeaponData] = ConstructorData(obj)
+  override def DetailedConstructorData(obj: Tool): Try[DetailedWeaponData] =
+    Failure(new Exception("BattleFrameToolConverter should not be used to generate detailed BattleFrameRToolData (nothing should)"))
 }

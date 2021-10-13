@@ -92,58 +92,7 @@ trait ContainableBehavior {
 
     case msg @ Containable.MoveItem(destination, equipment, destSlot) =>
       /* can be deferred */
-      if (ContainableBehavior.TestPutItemInSlot(destination, equipment, destSlot).nonEmpty) { //test early, before we try to move the item
-        val source = ContainerObject
-        val item   = equipment
-        val dest   = destSlot
-        LocalRemoveItemFromSlot(item) match {
-          case Containable.ItemFromSlot(_, Some(_), slot @ Some(originalSlot)) =>
-            if (source eq destination) {
-              //when source and destination are the same, moving the item can be performed in one pass
-              LocalPutItemInSlot(item, dest) match {
-                case Containable.ItemPutInSlot(_, _, _, None) => ; //success
-                case Containable.ItemPutInSlot(_, _, _, Some(swapItem)) => //success, but with swap item
-                  LocalPutItemInSlotOnlyOrAway(swapItem, slot) match {
-                    case Containable.ItemPutInSlot(_, _, _, None) => ;
-                    case _ =>
-                      source.Zone.Ground.tell(
-                        Zone.Ground.DropItem(swapItem, source.Position, Vector3.z(source.Orientation.z)),
-                        source.Actor
-                      ) //drop it
-                  }
-                case _: Containable.CanNotPutItemInSlot => //failure case ; try restore original item placement
-                  LocalPutItemInSlot(item, originalSlot)
-              }
-            } else {
-              //destination sync
-              destination.Actor ! ContainableBehavior.Wait()
-              implicit val timeout = new Timeout(1000 milliseconds)
-              val moveItemOver     = ask(destination.Actor, ContainableBehavior.MoveItemPutItemInSlot(item, dest))
-              moveItemOver.onComplete {
-                case Success(Containable.ItemPutInSlot(_, _, _, None)) => ; //successful
-
-                case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) => //successful, but with swap item
-                  PutItBackOrDropIt(source, swapItem, slot, destination.Actor)
-
-                case Success(_: Containable.CanNotPutItemInSlot) => //failure case ; try restore original item placement
-                  PutItBackOrDropIt(source, item, slot, source.Actor)
-
-                case Failure(_) => //failure case ; try restore original item placement
-                  PutItBackOrDropIt(source, item, slot, source.Actor)
-
-                case _ => ; //TODO what?
-              }
-              //always do this
-              moveItemOver
-                .recover { case _: AskTimeoutException => destination.Actor ! ContainableBehavior.Resume() }
-                .onComplete { _ => destination.Actor ! ContainableBehavior.Resume() }
-            }
-          case _ => ;
-          //we could not find the item to be moved in the source location; trying to act on old data?
-        }
-      } else {
-        MessageDeferredCallback(msg)
-      }
+      ContainableMoveItem(destination, equipment, destSlot, msg)
 
     case ContainableBehavior.MoveItemPutItemInSlot(item, dest) =>
       sender() ! LocalPutItemInSlot(item, dest)
@@ -187,6 +136,66 @@ trait ContainableBehavior {
   }
 
   /* Functions (item transfer) */
+
+  protected def ContainableMoveItem(
+                                   destination: PlanetSideServerObject with Container,
+                                   equipment: Equipment,
+                                   destSlot: Int,
+                                   msg: Any
+                                 ) : Unit = {
+    if (ContainableBehavior.TestPutItemInSlot(destination, equipment, destSlot).nonEmpty) { //test early, before we try to move the item
+      val source = ContainerObject
+      val item   = equipment
+      val dest   = destSlot
+      LocalRemoveItemFromSlot(item) match {
+        case Containable.ItemFromSlot(_, Some(_), slot @ Some(originalSlot)) =>
+          if (source eq destination) {
+            //when source and destination are the same, moving the item can be performed in one pass
+            LocalPutItemInSlot(item, dest) match {
+              case Containable.ItemPutInSlot(_, _, _, None) => ; //success
+              case Containable.ItemPutInSlot(_, _, _, Some(swapItem)) => //success, but with swap item
+                LocalPutItemInSlotOnlyOrAway(swapItem, slot) match {
+                  case Containable.ItemPutInSlot(_, _, _, None) => ;
+                  case _ =>
+                    source.Zone.Ground.tell(
+                      Zone.Ground.DropItem(swapItem, source.Position, Vector3.z(source.Orientation.z)),
+                      source.Actor
+                    ) //drop it
+                }
+              case _: Containable.CanNotPutItemInSlot => //failure case ; try restore original item placement
+                LocalPutItemInSlot(item, originalSlot)
+            }
+          } else {
+            //destination sync
+            destination.Actor ! ContainableBehavior.Wait()
+            implicit val timeout = new Timeout(1000 milliseconds)
+            val moveItemOver     = ask(destination.Actor, ContainableBehavior.MoveItemPutItemInSlot(item, dest))
+            moveItemOver.onComplete {
+              case Success(Containable.ItemPutInSlot(_, _, _, None)) => ; //successful
+
+              case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) => //successful, but with swap item
+                PutItBackOrDropIt(source, swapItem, slot, destination.Actor)
+
+              case Success(_: Containable.CanNotPutItemInSlot) => //failure case ; try restore original item placement
+                PutItBackOrDropIt(source, item, slot, source.Actor)
+
+              case Failure(_) => //failure case ; try restore original item placement
+                PutItBackOrDropIt(source, item, slot, source.Actor)
+
+              case _ => ; //TODO what?
+            }
+            //always do this
+            moveItemOver
+              .recover { case _: AskTimeoutException => destination.Actor ! ContainableBehavior.Resume() }
+              .onComplete { _ => destination.Actor ! ContainableBehavior.Resume() }
+          }
+        case _ => ;
+        //we could not find the item to be moved in the source location; trying to act on old data?
+      }
+    } else {
+      MessageDeferredCallback(msg)
+    }
+  }
 
   private def LocalRemoveItemFromSlot(slot: Int): Any = {
     val source          = ContainerObject

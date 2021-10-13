@@ -352,35 +352,29 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   override def Slot(slotNum: Int): EquipmentSlot = {
     weapons
       .get(slotNum)
-      //      .orElse(utilities.get(slotNum) match {
-      //        case Some(_) =>
-      //          //TODO what do now?
-      //          None
-      //        case None => ;
-      //          None
-      //      })
       .orElse(Some(Inventory.Slot(slotNum)))
       .get
+  }
+
+  override def SlotMapResolution(slot : Int) : Int = {
+    if (GlobalDefinitions.isBattleFrameVehicle(vehicleDef)) {
+      //for the benefit of BFR equipment slots
+      if (slot == 0) 2 else if (slot == 1) 3 else if (slot == 2) 4 else slot
+    } else {
+      slot
+    }
   }
 
   override def Find(guid: PlanetSideGUID): Option[Int] = {
     weapons.find({
       case (_, obj) =>
         obj.Equipment match {
-          case Some(item) =>
-            if (item.HasGUID && item.GUID == guid) {
-              true
-            } else {
-              false
-            }
-          case None =>
-            false
+          case Some(item) => item.HasGUID && item.GUID == guid
+          case None       => false
         }
     }) match {
-      case Some((index, _)) =>
-        Some(index)
-      case None =>
-        Inventory.Find(guid)
+      case Some((index, _)) => Some(index)
+      case None             => Inventory.Find(guid)
     }
   }
 
@@ -388,13 +382,10 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     weapons.get(dest) match {
       case Some(slot) =>
         slot.Equipment match {
-          case Some(item) =>
-            Success(List(InventoryItem(item, dest)))
-          case None =>
-            Success(List())
+          case Some(item) => Success(List(InventoryItem(item, dest)))
+          case None       => Success(List())
         }
-      case None =>
-        super.Collisions(dest, width, height)
+      case None           => super.Collisions(dest, width, height)
     }
   }
 

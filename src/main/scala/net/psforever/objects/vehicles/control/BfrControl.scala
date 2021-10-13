@@ -4,6 +4,8 @@ package net.psforever.objects.vehicles.control
 import akka.actor.Cancellable
 import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
+import net.psforever.objects.definition.ToolDefinition
+import net.psforever.objects.equipment.{Equipment, EquipmentHandiness, Handiness}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult
@@ -25,6 +27,7 @@ class BfrControl(vehicle: Vehicle)
   extends VehicleControl(vehicle) {
   /** shield-auto charge */
   var shieldCharge: Cancellable = Default.Cancellable
+
   if (vehicle.Shields < vehicle.MaxShields) {
     chargeShields(amount = 0) //start charging if starts as uncharged
   }
@@ -53,6 +56,37 @@ class BfrControl(vehicle: Vehicle)
     shieldCharge.cancel()
     shieldCharge = Default.Cancellable
     disableShield()
+  }
+
+  override def RemoveItemFromSlotCallback(item: Equipment, slot: Int): Unit = {
+    BfrControl.dimorphics.find { _.contains(item.Definition) } match {
+      case Some(dimorph) if vehicle.VisibleSlots.contains(slot) => //revert to a generic variant
+        Tool.LoadDefinition(
+          item.asInstanceOf[Tool],
+          dimorph.transform(Handiness.Generic).asInstanceOf[ToolDefinition]
+        )
+      case None => ; //no dimorphic entry; place as-is
+    }
+    super.RemoveItemFromSlotCallback(item, slot)
+  }
+
+  override def PutItemInSlotCallback(item: Equipment, slot: Int): Unit = {
+    BfrControl.dimorphics.find { _.contains(item.Definition) } match {
+      case Some(dimorph) if vehicle.VisibleSlots.contains(slot) => //left-handed or right-handed variant
+        Tool.LoadDefinition(
+          item.asInstanceOf[Tool],
+          dimorph.transform(
+            if (slot == 2) Handiness.Left else Handiness.Right
+          ).asInstanceOf[ToolDefinition]
+        )
+      case Some(dimorph) => //revert to a generic variant
+        Tool.LoadDefinition(
+          item.asInstanceOf[Tool],
+          dimorph.transform(Handiness.Generic).asInstanceOf[ToolDefinition]
+        )
+      case None => ; //no dimorphic entry; place as-is
+    }
+    super.PutItemInSlotCallback(item, slot)
   }
 
   def disableShield(): Unit = {
@@ -98,5 +132,28 @@ class BfrControl(vehicle: Vehicle)
         shieldCharge = Default.Cancellable
       }
     }
+  }
+}
+
+object BfrControl {
+  val dimorphics: List[EquipmentHandiness] = {
+    import GlobalDefinitions._
+    List(
+      EquipmentHandiness(aphelion_armor_siphon, aphelion_armor_siphon_left, aphelion_armor_siphon_right),
+      EquipmentHandiness(aphelion_laser, aphelion_laser_left, aphelion_laser_right),
+      EquipmentHandiness(aphelion_ntu_siphon, aphelion_ntu_siphon_left, aphelion_ntu_siphon_right),
+      EquipmentHandiness(aphelion_ppa, aphelion_ppa_left, aphelion_ppa_right),
+      EquipmentHandiness(aphelion_starfire, aphelion_starfire_left, aphelion_starfire_right),
+      EquipmentHandiness(colossus_armor_siphon, colossus_armor_siphon_left, colossus_armor_siphon_right),
+      EquipmentHandiness(colossus_burster, colossus_burster_left, colossus_burster_right),
+      EquipmentHandiness(colossus_chaingun, colossus_chaingun_left, colossus_chaingun_right),
+      EquipmentHandiness(colossus_ntu_siphon, colossus_ntu_siphon_left, colossus_ntu_siphon_right),
+      EquipmentHandiness(colossus_tank_cannon, colossus_tank_cannon_left, colossus_tank_cannon_right),
+      EquipmentHandiness(peregrine_armor_siphon, peregrine_armor_siphon_left, peregrine_armor_siphon_right),
+      EquipmentHandiness(peregrine_dual_machine_gun, peregrine_dual_machine_gun_left, peregrine_dual_machine_gun_right),
+      EquipmentHandiness(peregrine_mechhammer, peregrine_mechhammer_left, peregrine_mechhammer_right),
+      EquipmentHandiness(peregrine_ntu_siphon, peregrine_ntu_siphon_left, peregrine_ntu_siphon_right),
+      EquipmentHandiness(peregrine_sparrow, peregrine_sparrow_left, peregrine_sparrow_right)
+    )
   }
 }

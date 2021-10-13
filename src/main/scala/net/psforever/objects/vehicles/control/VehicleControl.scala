@@ -6,6 +6,7 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.definition.VehicleDefinition
+import net.psforever.objects.definition.converter.OCM
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
@@ -468,19 +469,13 @@ class VehicleControl(vehicle: Vehicle)
     val channel    = self.toString
     val events     = zone.VehicleEvents
     val iguid      = item.GUID
-    val definition = item.Definition
     item.Faction = obj.Faction
     events ! VehicleServiceMessage(
       //TODO when a new weapon, the equipment slot ui goes blank, but the weapon functions; remount vehicle to correct it
       if (obj.VisibleSlots.contains(slot)) zone.id else channel,
       VehicleAction.SendResponse(
         Service.defaultPlayerGUID,
-        ObjectCreateDetailedMessage(
-          definition.ObjectId,
-          iguid,
-          ObjectCreateMessageParent(oguid, slot),
-          definition.Packet.DetailedConstructorData(item).get
-        )
+        OCM.detailed(item, ObjectCreateMessageParent(oguid, slot))
       )
     )
     item match {
@@ -493,7 +488,7 @@ class VehicleControl(vehicle: Vehicle)
         weapon.AmmoSlots.map { slot => slot.Box }.foreach { box =>
           events ! VehicleServiceMessage(
             channel,
-            VehicleAction.InventoryState2(Service.defaultPlayerGUID, iguid, weapon.GUID, box.Capacity)
+            VehicleAction.InventoryState2(Service.defaultPlayerGUID, box.GUID, iguid, box.Capacity)
           )
         }
       case _ => ;

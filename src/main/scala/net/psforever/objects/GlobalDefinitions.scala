@@ -1750,6 +1750,119 @@ object GlobalDefinitions {
   }
 
   /**
+    * Given the the definition of a piece of equipment,
+    * determine whether it is a weapon to be installed on battle frame robotics units.
+    * @param tdef the `EquipmentDefinition` of the alleged weapon
+    * @return `true`, if the definition represents a battle frame robotics weapon;
+    *         `false`, otherwise
+    */
+  def isBattleFrameWeapon(tdef : EquipmentDefinition) : Boolean = {
+    isBattleFrameWeaponForVS(tdef) || isBattleFrameWeaponForTR(tdef) || isBattleFrameWeaponForNC(tdef)
+  }
+
+  /**
+    * Given the the definition of a battle frame robotics weapon, determine whether it is used by the specific faction.
+    * @param tdef the `EquipmentDefinition` of the alleged weapon
+    * @param faction the suggested alignment of the weapon
+    * @return `true`, if a battle frame robotics weapon and associated with the given faction;
+    *         `false`, otherwise
+    */
+  def isBattleFrameWeapon(tdef : EquipmentDefinition, faction : PlanetSideEmpire.Value) : Boolean = {
+    faction match {
+      case PlanetSideEmpire.VS =>
+        isBattleFrameWeaponForVS(tdef)
+      case PlanetSideEmpire.TR =>
+        isBattleFrameWeaponForTR(tdef)
+      case PlanetSideEmpire.NC =>
+        isBattleFrameWeaponForNC(tdef)
+      case _ =>
+        false
+    }
+  }
+
+  def isBattleFrameArmorSiphon(edef : EquipmentDefinition) : Boolean = {
+    edef match {
+      case `aphelion_armor_siphon` | `aphelion_armor_siphon_left` | `aphelion_armor_siphon_right` |
+           `colossus_armor_siphon` | `colossus_armor_siphon_left` | `colossus_armor_siphon_right` |
+           `peregrine_armor_siphon` | `peregrine_armor_siphon_left` | `peregrine_armor_siphon_right` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  def isBattleFrameNTUSiphon(edef : EquipmentDefinition) : Boolean = {
+    edef match {
+      case `aphelion_ntu_siphon` | `aphelion_ntu_siphon_left` | `aphelion_ntu_siphon_right` |
+           `colossus_ntu_siphon` | `colossus_ntu_siphon_left` | `colossus_ntu_siphon_right` |
+           `peregrine_ntu_siphon` | `peregrine_ntu_siphon_left` | `peregrine_ntu_siphon_right` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
+    * Given the the definition of a battle frame robotics weapon, determine whether it is used by the Vanu Sovereignty.
+    * @param tdef the `EquipmentDefinition` of the alleged weapon
+    * @return `true`, if a battle frame robotics weapon and associated with the given faction;
+    *         `false`, otherwise
+    */
+  def isBattleFrameWeaponForVS(tdef : EquipmentDefinition) : Boolean = {
+    tdef match {
+      case `aphelion_armor_siphon` | `aphelion_armor_siphon_left` | `aphelion_armor_siphon_right` |
+           `aphelion_laser` | `aphelion_laser_left` | `aphelion_laser_right` |
+           `aphelion_ntu_siphon` | `aphelion_ntu_siphon_left` | `aphelion_ntu_siphon_right` |
+           `aphelion_ppa` | `aphelion_ppa_left` | `aphelion_ppa_right` |
+           `aphelion_starfire` | `aphelion_starfire_left` | `aphelion_starfire_right` |
+           `aphelion_immolation_cannon` | `aphelion_plasma_rocket_pod` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
+    * Given the the definition of a battle frame robotics weapon, determine whether it is used by the Terran Republic.
+    * @param tdef the `EquipmentDefinition` of the alleged weapon
+    * @return `true`, if a battle frame robotics weapon and associated with the given faction;
+    *         `false`, otherwise
+    */
+  def isBattleFrameWeaponForTR(tdef : EquipmentDefinition) : Boolean = {
+    tdef match {
+      case `colossus_armor_siphon` | `colossus_armor_siphon_left` | `colossus_armor_siphon_right` |
+           `colossus_burster` | `colossus_burster_left` | `colossus_burster_right` |
+           `colossus_chaingun` | `colossus_chaingun_left` | `colossus_chaingun_right` |
+           `colossus_ntu_siphon` | `colossus_ntu_siphon_left` | `colossus_ntu_siphon_right` |
+           `colossus_tank_cannon` | `colossus_tank_cannon_left` | `colossus_tank_cannon_right` |
+           `colossus_cluster_bomb_pod` | `colossus_dual_100mm_cannons` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
+    * Given the the definition of a battle frame robotics weapon, determine whether it is used by the New Conglomerate.
+    * @param tdef the `EquipmentDefinition` of the alleged weapon
+    * @return `true`, if a battle frame robotics weapon and associated with the given faction;
+    *         `false`, otherwise
+    */
+  def isBattleFrameWeaponForNC(tdef : EquipmentDefinition) : Boolean = {
+    tdef match {
+      case `peregrine_armor_siphon` | `peregrine_armor_siphon_left` | `peregrine_armor_siphon_right` |
+           `peregrine_dual_machine_gun` | `peregrine_dual_machine_gun_left` | `peregrine_dual_machine_gun_right` |
+           `peregrine_mechhammer` | `peregrine_mechhammer_left` | `peregrine_mechhammer_right` |
+           `peregrine_ntu_siphon` | `colossus_ntu_siphon_left` | `peregrine_ntu_siphon_right` |
+           `peregrine_sparrow` | `peregrine_sparrow_left` | `peregrine_sparrow_right` |
+           `peregrine_particle_cannon` | `peregrine_dual_rocket_pods` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
     * Using the definition for a `Vehicle` determine whether it can fly.
     * @param vdef the `VehicleDefinition` of the vehicle
     * @return `true`, if it is; `false`, otherwise
@@ -1772,6 +1885,20 @@ object GlobalDefinitions {
   def isHoverVehicle(vdef: VehicleDefinition): Boolean = {
     vdef match {
       case `twomanhoverbuggy` | `magrider` | `router` | `flail` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
+    * Using the definition for a `Vehicle` determine whether it is a frame vehicle, primarily a battleframe vehicle.
+    * @param vdef the `VehicleDefinition` of the vehicle
+    * @return `true`, if it is; `false`, otherwise
+    */
+  def isBattleFrameVehicle(vdef : VehicleDefinition) : Boolean = {
+    vdef match {
+      case `colossus_gunner` | `colossus_flight` | `peregrine_gunner` | `peregrine_flight` | `aphelion_gunner` | `aphelion_flight` =>
         true
       case _ =>
         false

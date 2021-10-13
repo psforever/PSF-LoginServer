@@ -4594,7 +4594,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 Some(destination: PlanetSideServerObject with Container),
                 Some(item: Equipment)
               ) =>
-            ContainableMoveItem(player.Name, source, destination, item, dest)
+            ContainableMoveItem(player.Name, source, destination, item, destination.SlotMapResolution(dest))
           case (None, _, _) =>
             log.error(
               s"MoveItem: ${player.Name} wanted to move $item_guid from $source_guid, but could not find source object"
