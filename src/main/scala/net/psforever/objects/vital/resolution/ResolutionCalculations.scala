@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.vital.resolution
 
-import net.psforever.objects.{PlanetSideGameObject, Player, TurretDeployable, Vehicle}
+import net.psforever.objects._
 import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -323,6 +323,25 @@ object ResolutionCalculations {
           case _ => 0
         }
         SimpleApplication(dam, data)(target)
+    }
+  }
+
+  def BfrApplication(damage: Int, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
+    val targetBefore = SourceEntry(target)
+    (target, data.cause) match {
+      case (obj: Vehicle, reason: ProjectileReason)
+        if CanDamage(obj, damage, data) &&
+           GlobalDefinitions.isBattleFrameVehicle(obj.Definition) &&
+           reason.projectile.profile.DamageToBattleframeOnly =>
+        obj.Health = obj.Health - damage
+        DamageResult(targetBefore, SourceEntry(target), data)
+
+      case (obj: Vehicle, _)
+        if CanDamage(obj, damage, data) =>
+        VehicleApplication(damage, data)(target)
+
+      case _ =>
+        DamageResult(targetBefore, SourceEntry(target), data)
     }
   }
 

@@ -2404,6 +2404,7 @@ object GlobalDefinitions {
     bullet_12mm_projectile.DegradeMultiplier = 0.5f
     bullet_12mm_projectile.InitialVelocity = 500
     bullet_12mm_projectile.Lifespan = 0.5f
+    bullet_12mm_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(bullet_12mm_projectile)
 
     bullet_12mm_projectileb.Name = "12mmbullet_projectileb"
@@ -2418,6 +2419,7 @@ object GlobalDefinitions {
     bullet_12mm_projectileb.DegradeMultiplier = 0.5f
     bullet_12mm_projectileb.InitialVelocity = 500
     bullet_12mm_projectileb.Lifespan = 0.5f
+    bullet_12mm_projectileb.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(bullet_12mm_projectileb)
 
     bullet_150mm_projectile.Name = "150mmbullet_projectile"
@@ -2543,6 +2545,7 @@ object GlobalDefinitions {
     bullet_9mm_AP_projectile.InitialVelocity = 500
     bullet_9mm_AP_projectile.Lifespan = 0.4f
     bullet_9mm_AP_projectile.UseDamage1Subtract = true
+    bullet_9mm_AP_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(bullet_9mm_AP_projectile)
 
     bullet_9mm_projectile.Name = "9mmbullet_projectile"
@@ -2554,6 +2557,7 @@ object GlobalDefinitions {
     bullet_9mm_projectile.InitialVelocity = 500
     bullet_9mm_projectile.Lifespan = 0.4f
     bullet_9mm_projectile.UseDamage1Subtract = true
+    bullet_9mm_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(bullet_9mm_projectile)
 
     anniversary_projectilea.Name = "anniversary_projectilea"
@@ -2567,6 +2571,7 @@ object GlobalDefinitions {
     anniversary_projectilea.DegradeMultiplier = 0.2f
     anniversary_projectilea.InitialVelocity = 500
     anniversary_projectilea.Lifespan = 0.5f
+    anniversary_projectilea.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(anniversary_projectilea)
 
     anniversary_projectileb.Name = "anniversary_projectileb"
@@ -2581,6 +2586,7 @@ object GlobalDefinitions {
     anniversary_projectileb.DegradeMultiplier = 0.2f
     anniversary_projectileb.InitialVelocity = 500
     anniversary_projectileb.Lifespan = 0.5f
+    anniversary_projectileb.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(anniversary_projectileb)
 
     aphelion_immolation_cannon_projectile.Name = "aphelion_immolation_cannon_projectile"
@@ -2679,6 +2685,7 @@ object GlobalDefinitions {
     bolt_projectile.ProjectileDamageType = DamageType.Splash
     bolt_projectile.InitialVelocity = 500
     bolt_projectile.Lifespan = 1.0f
+    bolt_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(bolt_projectile)
     //TODO bolt_projectile.Modifiers = DistanceDegrade?
 
@@ -2824,6 +2831,7 @@ object GlobalDefinitions {
     dualcycler_projectile.DegradeMultiplier = .5f
     dualcycler_projectile.InitialVelocity = 500
     dualcycler_projectile.Lifespan = 0.5f
+    dualcycler_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(dualcycler_projectile)
 
     dynomite_projectile.Name = "dynomite_projectile"
@@ -2848,6 +2856,7 @@ object GlobalDefinitions {
     energy_cell_projectile.InitialVelocity = 500
     energy_cell_projectile.Lifespan = .4f
     energy_cell_projectile.UseDamage1Subtract = true
+    energy_cell_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(energy_cell_projectile)
 
     energy_gun_nc_projectile.Name = "energy_gun_nc_projectile"
@@ -2856,6 +2865,7 @@ object GlobalDefinitions {
     energy_gun_nc_projectile.ProjectileDamageType = DamageType.Direct
     energy_gun_nc_projectile.InitialVelocity = 500
     energy_gun_nc_projectile.Lifespan = 0.5f
+    energy_gun_nc_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(energy_gun_nc_projectile)
 
     energy_gun_tr_projectile.Name = "energy_gun_tr_projectile"
@@ -2866,6 +2876,7 @@ object GlobalDefinitions {
     energy_gun_tr_projectile.DegradeMultiplier = .5f
     energy_gun_tr_projectile.InitialVelocity = 500
     energy_gun_tr_projectile.Lifespan = 0.5f
+    energy_gun_tr_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(energy_gun_tr_projectile)
 
     energy_gun_vs_projectile.Name = "energy_gun_vs_projectile"
@@ -2876,6 +2887,7 @@ object GlobalDefinitions {
     energy_gun_vs_projectile.DegradeMultiplier = 0.5f
     energy_gun_vs_projectile.InitialVelocity = 500
     energy_gun_vs_projectile.Lifespan = .5f
+    energy_gun_vs_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(energy_gun_vs_projectile)
 
     enhanced_energy_cell_projectile.Name = "enhanced_energy_cell_projectile"
@@ -2888,6 +2900,7 @@ object GlobalDefinitions {
     enhanced_energy_cell_projectile.InitialVelocity = 500
     enhanced_energy_cell_projectile.Lifespan = .4f
     enhanced_energy_cell_projectile.UseDamage1Subtract = true
+    enhanced_energy_cell_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(enhanced_energy_cell_projectile)
 
     enhanced_quasar_projectile.Name = "enhanced_quasar_projectile"
@@ -2899,6 +2912,7 @@ object GlobalDefinitions {
     enhanced_quasar_projectile.DegradeMultiplier = 0.5f
     enhanced_quasar_projectile.InitialVelocity = 500
     enhanced_quasar_projectile.Lifespan = .4f
+    enhanced_quasar_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(enhanced_quasar_projectile)
 
     falcon_projectile.Name = "falcon_projectile"
@@ -3189,6 +3203,7 @@ object GlobalDefinitions {
     heavy_sniper_projectile.ProjectileDamageType = DamageType.Splash
     heavy_sniper_projectile.InitialVelocity = 500
     heavy_sniper_projectile.Lifespan = 1.0f
+    heavy_sniper_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(heavy_sniper_projectile)
     heavy_sniper_projectile.Modifiers = RadialDegrade
 
@@ -3434,6 +3449,7 @@ object GlobalDefinitions {
     lasher_projectile.InitialVelocity = 120
     lasher_projectile.LashRadius = 2.5f
     lasher_projectile.Lifespan = 0.75f
+    lasher_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(lasher_projectile)
     lasher_projectile.Modifiers = List(
       DistanceDegrade,
@@ -3452,6 +3468,7 @@ object GlobalDefinitions {
     lasher_projectile_ap.InitialVelocity = 120
     lasher_projectile_ap.LashRadius = 2.5f
     lasher_projectile_ap.Lifespan = 0.75f
+    lasher_projectile_ap.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(lasher_projectile_ap)
     lasher_projectile_ap.Modifiers = List(
       DistanceDegrade,
@@ -3814,6 +3831,7 @@ object GlobalDefinitions {
     phalanx_projectile.DegradeMultiplier = 0.25f
     phalanx_projectile.InitialVelocity = 400
     phalanx_projectile.Lifespan = 1f
+    phalanx_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(phalanx_projectile)
 
     phoenix_missile_guided_projectile.Name = "phoenix_missile_guided_projectile"
@@ -4017,6 +4035,7 @@ object GlobalDefinitions {
     pulsar_ap_projectile.InitialVelocity = 500
     pulsar_ap_projectile.Lifespan = .4f
     pulsar_ap_projectile.UseDamage1Subtract = true
+    pulsar_ap_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(pulsar_ap_projectile)
 
     pulsar_projectile.Name = "pulsar_projectile"
@@ -4028,6 +4047,7 @@ object GlobalDefinitions {
     pulsar_projectile.InitialVelocity = 500
     pulsar_projectile.Lifespan = .4f
     pulsar_projectile.UseDamage1Subtract = true
+    pulsar_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(pulsar_projectile)
 
     quasar_projectile.Name = "quasar_projectile"
@@ -4038,6 +4058,7 @@ object GlobalDefinitions {
     quasar_projectile.DegradeMultiplier = 0.5f
     quasar_projectile.InitialVelocity = 500
     quasar_projectile.Lifespan = .4f
+    quasar_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(quasar_projectile)
 
     radiator_grenade_projectile.Name = "radiator_grenade_projectile" // Todo : Radiator damages ?
@@ -4124,6 +4145,7 @@ object GlobalDefinitions {
     scattercannon_projectile.ProjectileDamageType = DamageType.Direct
     scattercannon_projectile.InitialVelocity = 400
     scattercannon_projectile.Lifespan = 0.25f
+    scattercannon_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(scattercannon_projectile)
 
     scythe_projectile.Name = "scythe_projectile"
@@ -4149,6 +4171,7 @@ object GlobalDefinitions {
     shotgun_shell_AP_projectile.InitialVelocity = 400
     shotgun_shell_AP_projectile.Lifespan = 0.25f
     shotgun_shell_AP_projectile.UseDamage1Subtract = true
+    shotgun_shell_AP_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(shotgun_shell_AP_projectile)
 
     shotgun_shell_projectile.Name = "shotgun_shell_projectile"
@@ -4158,6 +4181,7 @@ object GlobalDefinitions {
     shotgun_shell_projectile.InitialVelocity = 400
     shotgun_shell_projectile.Lifespan = 0.25f
     shotgun_shell_projectile.UseDamage1Subtract = true
+    shotgun_shell_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(shotgun_shell_projectile)
 
     six_shooter_projectile.Name = "six_shooter_projectile"
@@ -4236,6 +4260,7 @@ object GlobalDefinitions {
     spiker_projectile.ProjectileDamageType = DamageType.Splash
     spiker_projectile.InitialVelocity = 40
     spiker_projectile.Lifespan = 5f
+    spiker_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(spiker_projectile)
     spiker_projectile.Modifiers = List(
       SpikerChargeDamage,
@@ -4269,6 +4294,7 @@ object GlobalDefinitions {
     spitfire_ammo_projectile.DegradeMultiplier = 0.5f
     spitfire_ammo_projectile.InitialVelocity = 100
     spitfire_ammo_projectile.Lifespan = .5f
+    spitfire_ammo_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(spitfire_ammo_projectile)
 
     starfire_projectile.Name = "starfire_projectile"
@@ -4350,6 +4376,7 @@ object GlobalDefinitions {
     trek_projectile.ProjectileDamageType = DamageType.Direct
     trek_projectile.InitialVelocity = 40
     trek_projectile.Lifespan = 7f
+    trek_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(trek_projectile)
     trek_projectile.Modifiers = MaxDistanceCutoff
 
@@ -4414,6 +4441,7 @@ object GlobalDefinitions {
     wasp_gun_projectile.DegradeMultiplier = 0.5f
     wasp_gun_projectile.InitialVelocity = 500
     wasp_gun_projectile.Lifespan = 0.5f
+    wasp_gun_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(wasp_gun_projectile)
 
     wasp_rocket_projectile.Name = "wasp_rocket_projectile"
@@ -8123,7 +8151,8 @@ object GlobalDefinitions {
     aphelion_gunner.Packet = battleFrameConverter
     aphelion_gunner.DestroyedModel = None
     aphelion_gunner.JackingDuration = Array(0, 62, 60, 30)
-    aphelion_gunner.DamageUsing = DamageCalculations.AgainstBFR
+    aphelion_gunner.DamageUsing = DamageCalculations.AgainstBfr
+    aphelion_gunner.Model = BfrResolutions.calculate
     aphelion_gunner.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 400
@@ -8162,7 +8191,8 @@ object GlobalDefinitions {
     colossus_gunner.Packet = battleFrameConverter
     colossus_gunner.DestroyedModel = None
     colossus_gunner.JackingDuration = Array(0, 62, 60, 30)
-    colossus_gunner.DamageUsing = DamageCalculations.AgainstBFR
+    colossus_gunner.DamageUsing = DamageCalculations.AgainstBfr
+    colossus_gunner.Model = BfrResolutions.calculate
     colossus_gunner.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 400
@@ -8201,7 +8231,8 @@ object GlobalDefinitions {
     peregrine_gunner.Packet = battleFrameConverter
     peregrine_gunner.DestroyedModel = None
     peregrine_gunner.JackingDuration = Array(0, 62, 60, 30)
-    peregrine_gunner.DamageUsing = DamageCalculations.AgainstBFR
+    peregrine_gunner.DamageUsing = DamageCalculations.AgainstBfr
+    peregrine_gunner.Model = BfrResolutions.calculate
     peregrine_gunner.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 400
@@ -8238,7 +8269,8 @@ object GlobalDefinitions {
     aphelion_flight.Packet = battleFrameFlightConverter
     aphelion_flight.DestroyedModel = None
     aphelion_flight.JackingDuration = Array(0, 62, 60, 30)
-    aphelion_flight.DamageUsing = DamageCalculations.AgainstBFR
+    aphelion_flight.DamageUsing = DamageCalculations.AgainstBfr
+    aphelion_flight.Model = BfrResolutions.calculate
     aphelion_flight.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 400
@@ -8274,7 +8306,8 @@ object GlobalDefinitions {
     colossus_flight.Packet = battleFrameFlightConverter
     colossus_flight.DestroyedModel = None
     colossus_flight.JackingDuration = Array(0, 62, 60, 30)
-    colossus_flight.DamageUsing = DamageCalculations.AgainstBFR
+    colossus_flight.DamageUsing = DamageCalculations.AgainstBfr
+    colossus_flight.Model = BfrResolutions.calculate
     colossus_flight.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 400
@@ -8310,7 +8343,8 @@ object GlobalDefinitions {
     peregrine_flight.Packet = battleFrameFlightConverter
     peregrine_flight.DestroyedModel = None
     peregrine_flight.JackingDuration = Array(0, 62, 60, 30)
-    peregrine_flight.DamageUsing = DamageCalculations.AgainstBFR
+    peregrine_flight.DamageUsing = DamageCalculations.AgainstBfr
+    peregrine_flight.Model = BfrResolutions.calculate
     peregrine_flight.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 400
