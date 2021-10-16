@@ -1,7 +1,7 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.damage
 
-import akka.actor.Actor
+import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.damage.Damageable.Target
@@ -30,6 +30,8 @@ trait DamageableVehicle
 
   /** whether or not the vehicle has been damaged directly, report that damage has occurred */
   protected var reportDamageToVehicle: Boolean = false
+  /** when the vehicle is destroyed, its major explosion is delayed */
+  protected var queuedExplosion: Option[Cancellable] = None
 
   def DamageableObject: Vehicle
   def AggravatedObject : Vehicle = DamageableObject
@@ -48,6 +50,13 @@ trait DamageableVehicle
         obj.Health = 0
         obj.History(cause)
         DestructionAwareness(obj, cause)
+
+      case DamageableVehicle.DelayedExplosion(cause) =>
+        //cool guys don't look at explosions
+        if (queuedExplosion.nonEmpty) {
+          val obj = DamageableObject
+          Zone.serverSideDamage(obj.Zone, obj, Zone.explosionDamage(Some(cause)))
+        }
     }
 
   /**
@@ -183,7 +192,14 @@ trait DamageableVehicle
     //passengers die with us
     DamageableMountable.DestructionAwareness(obj, cause)
     //things positioned around us can get hurt from us
-    Zone.serverSideDamage(obj.Zone, target, Zone.explosionDamage(Some(cause)))
+    (queuedExplosion, DamageableObject.Definition.explosionDelay) match {
+      case (None, Some(delay)) => //set a future explosion for later
+        import scala.concurrent.ExecutionContext.Implicits.global
+        import scala.concurrent.duration._
+        queuedExplosion = Some(context.system.scheduler.scheduleOnce(delay milliseconds, self, DamageableVehicle.DelayedExplosion))
+      case _ => //explode now
+        Zone.serverSideDamage(obj.Zone, target, Zone.explosionDamage(Some(cause)))
+    }
     //special considerations for certain vehicles
     Vehicles.BeforeUnloadVehicle(obj, zone)
     //shields
@@ -214,4 +230,6 @@ object DamageableVehicle {
     * @param cause historical information about damage
     */
   final case class Destruction(cause: DamageResult)
+
+  final case class DelayedExplosion(cause: DamageResult)
 }

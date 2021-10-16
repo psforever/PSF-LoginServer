@@ -8018,6 +8018,8 @@ object GlobalDefinitions {
     lodestar.DrownAtMaxDepth = true
     lodestar.MaxDepth = 2
     lodestar.Geometry = GeometryForm.representByCylinder(radius = 7.8671f, height = 6.79688f) //TODO hexahedron
+    lodestar.collision.avatarCollisionDamageMax = 300
+    lodestar.collision.xy = CollisionXYData(Array((0.1f, 5), (0.25f, 125), (0.5f, 250), (0.75f, 500), (1f, 1000)))
     lodestar.collision.z = CollisionZData(Array((3f, 5), (9f, 125), (15f, 250), (18f, 500), (19.5f, 1000)))
     lodestar.maxForwardSpeed = 80f
     lodestar.mass = 128.2f
@@ -8150,6 +8152,7 @@ object GlobalDefinitions {
     aphelion_gunner.AutoPilotSpeeds = (5, 1)
     aphelion_gunner.Packet = battleFrameConverter
     aphelion_gunner.DestroyedModel = None
+    aphelion_gunner.explosionDelay = Some(3000L)
     aphelion_gunner.JackingDuration = Array(0, 62, 60, 30)
     aphelion_gunner.DamageUsing = DamageCalculations.AgainstBfr
     aphelion_gunner.Model = BfrResolutions.calculate
@@ -8162,6 +8165,13 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     aphelion_gunner.DrownAtMaxDepth = true
+    aphelion_gunner.MaxDepth = 2.0f
+    //aphelion_gunner.Geometry = ...
+    aphelion_gunner.collision.avatarCollisionDamageMax = 300
+    aphelion_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
+    aphelion_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
+    //aphelion_gunner.maxForwardSpeed = ...
+    aphelion_gunner.mass = 615.1f
 
     colossus_gunner.Name = "colossus_gunner"
     colossus_gunner.MaxHealth = 4500
@@ -8190,6 +8200,7 @@ object GlobalDefinitions {
     colossus_gunner.AutoPilotSpeeds = (5, 1)
     colossus_gunner.Packet = battleFrameConverter
     colossus_gunner.DestroyedModel = None
+    colossus_gunner.explosionDelay = Some(3000L)
     colossus_gunner.JackingDuration = Array(0, 62, 60, 30)
     colossus_gunner.DamageUsing = DamageCalculations.AgainstBfr
     colossus_gunner.Model = BfrResolutions.calculate
@@ -8202,6 +8213,13 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     colossus_gunner.DrownAtMaxDepth = true
+    colossus_gunner.MaxDepth = 3.0f
+    //colossus_gunner.Geometry = ...
+    colossus_gunner.collision.avatarCollisionDamageMax = 300
+    colossus_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
+    colossus_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
+    //colossus_gunner.maxForwardSpeed = ...
+    colossus_gunner.mass = 709.7f
 
     peregrine_gunner.Name = "peregrine_gunner"
     peregrine_gunner.MaxHealth = 4500
@@ -8230,6 +8248,7 @@ object GlobalDefinitions {
     peregrine_gunner.AutoPilotSpeeds = (5, 1)
     peregrine_gunner.Packet = battleFrameConverter
     peregrine_gunner.DestroyedModel = None
+    peregrine_gunner.explosionDelay = Some(3000L)
     peregrine_gunner.JackingDuration = Array(0, 62, 60, 30)
     peregrine_gunner.DamageUsing = DamageCalculations.AgainstBfr
     peregrine_gunner.Model = BfrResolutions.calculate
@@ -8242,6 +8261,13 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     peregrine_gunner.DrownAtMaxDepth = true
+    peregrine_gunner.MaxDepth = 2.5f
+    //peregrine_gunner.Geometry = ...
+    peregrine_gunner.collision.avatarCollisionDamageMax = 300
+    peregrine_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
+    peregrine_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
+    //peregrine_gunner.maxForwardSpeed = ...
+    peregrine_gunner.mass = 713f
 
     val battleFrameFlightConverter = new BattleFrameFlightConverter
     aphelion_flight.Name = "aphelion_flight"
@@ -8268,6 +8294,7 @@ object GlobalDefinitions {
     aphelion_flight.AutoPilotSpeeds = (5, 1)
     aphelion_flight.Packet = battleFrameFlightConverter
     aphelion_flight.DestroyedModel = None
+    aphelion_flight.explosionDelay = Some(3000L)
     aphelion_flight.JackingDuration = Array(0, 62, 60, 30)
     aphelion_flight.DamageUsing = DamageCalculations.AgainstBfr
     aphelion_flight.Model = BfrResolutions.calculate
@@ -8280,6 +8307,13 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     aphelion_flight.DrownAtMaxDepth = true
+    aphelion_flight.MaxDepth = 2.0f
+    //aphelion_flight.Geometry = ...
+    aphelion_flight.collision.avatarCollisionDamageMax = 300
+    aphelion_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
+    aphelion_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
+    //aphelion_flight.maxForwardSpeed = ...
+    aphelion_flight.mass = 615.1f
 
     colossus_flight.Name = "colossus_flight"
     colossus_flight.MaxHealth = 3500
@@ -8305,6 +8339,7 @@ object GlobalDefinitions {
     colossus_flight.AutoPilotSpeeds = (5, 1)
     colossus_flight.Packet = battleFrameFlightConverter
     colossus_flight.DestroyedModel = None
+    colossus_flight.explosionDelay = Some(3000L)
     colossus_flight.JackingDuration = Array(0, 62, 60, 30)
     colossus_flight.DamageUsing = DamageCalculations.AgainstBfr
     colossus_flight.Model = BfrResolutions.calculate
@@ -8317,6 +8352,13 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     colossus_flight.DrownAtMaxDepth = true
+    colossus_flight.MaxDepth = 3.0f
+    //colossus_flight.Geometry = ...
+    colossus_flight.collision.avatarCollisionDamageMax = 300
+    colossus_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
+    colossus_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
+    //colossus_flight.maxForwardSpeed = ...
+    colossus_flight.mass = 709.7f
 
     peregrine_flight.Name = "peregrine_flight"
     peregrine_flight.MaxHealth = 3500
@@ -8342,6 +8384,7 @@ object GlobalDefinitions {
     peregrine_flight.AutoPilotSpeeds = (5, 1)
     peregrine_flight.Packet = battleFrameFlightConverter
     peregrine_flight.DestroyedModel = None
+    peregrine_flight.explosionDelay = Some(3000L)
     peregrine_flight.JackingDuration = Array(0, 62, 60, 30)
     peregrine_flight.DamageUsing = DamageCalculations.AgainstBfr
     peregrine_flight.Model = BfrResolutions.calculate
@@ -8354,6 +8397,13 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     peregrine_flight.DrownAtMaxDepth = true
+    peregrine_flight.MaxDepth = 2.5f
+    //peregrine_flight.Geometry = ...
+    peregrine_flight.collision.avatarCollisionDamageMax = 300
+    peregrine_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
+    peregrine_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
+    //peregrine_flight.maxForwardSpeed = ...
+    peregrine_flight.mass = 713f
   }
 
   /**

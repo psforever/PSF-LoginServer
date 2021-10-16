@@ -52,9 +52,9 @@ class VehicleDefinition(objectId: Int)
   private var trunkSize: InventoryTile                           = InventoryTile.None
   private var trunkOffset: Int                                   = 0
   /* The position offset of the trunk, orientation as East = 0 */
-  private var trunkLocation: Vector3                         = Vector3.Zero
-  private var canCloak: Boolean                              = false
-  private var canFly: Boolean                                = false
+  private var trunkLocation: Vector3                             = Vector3.Zero
+  private var canCloak: Boolean                                  = false
+  private var canFly: Boolean                                    = false
   /** whether the vehicle gains and/or maintains ownership based on access to the driver seat<br>
     * `Some(true)` - assign ownership upon the driver mount, maintains ownership after the driver dismounts<br>
     * `Some(false)` - assign ownership upon the driver mount, becomes unowned after the driver dismounts<br>
@@ -62,12 +62,18 @@ class VehicleDefinition(objectId: Int)
     * Be cautious about using `None` as the client tends to equate the driver seat as the owner's seat for many vehicles
     * and breaking from the client's convention either requires additional fields or just doesn't work.
     */
-  private var canBeOwned: Option[Boolean]                    = Some(true)
-  private var serverVehicleOverrideSpeeds: (Int, Int)        = (0, 0)
-  var undergoesDecay: Boolean                                = true
-  private var deconTime: Option[FiniteDuration]              = None
-  private var maxCapacitor: Int                              = 0
-  private var destroyedModel: Option[DestroyedVehicle.Value] = None
+  private var canBeOwned: Option[Boolean]                        = Some(true)
+  private var serverVehicleOverrideSpeeds: (Int, Int)            = (0, 0)
+  var undergoesDecay: Boolean                                    = true
+  private var deconTime: Option[FiniteDuration]                  = None
+  private var maxCapacitor: Int                                  = 0
+  /**
+    * explosion delay extends the time of the explosion further beyond when the vehicle is actually destroyed;
+    * see `innateDamage` for explosion information;
+    * for BFR's, the ADB field is `death_large_explosion_interval`
+    */
+  var explosionDelay: Option[Long]                               = None
+  private var destroyedModel: Option[DestroyedVehicle.Value]     = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter
   DamageUsing = DamageCalculations.AgainstVehicle
