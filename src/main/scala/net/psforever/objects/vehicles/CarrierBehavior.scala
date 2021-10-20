@@ -223,7 +223,7 @@ object CarrierBehavior {
           )
           zone.VehicleEvents ! VehicleServiceMessage(
             s"${cargo.Actor}",
-            VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields))
+            VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, cargo.Definition.shieldUiAttribute, cargo.Shields))
           )
           CargoMountBehaviorForAll(carrier, cargo, mountPoint)
           zone.actor ! ZoneActor.RemoveFromBlockMap(cargo)
@@ -470,7 +470,7 @@ object CarrierBehavior {
         )
         events ! VehicleServiceMessage(
           s"$cargoActor",
-          VehicleAction.SendResponse(GUID0, PlanetsideAttributeMessage(cargoGUID, 68, cargo.Shields))
+          VehicleAction.SendResponse(GUID0, PlanetsideAttributeMessage(cargoGUID, cargo.Definition.shieldUiAttribute, cargo.Shields))
         )
         zone.actor ! ZoneActor.AddToBlockMap(cargo, carrier.Position)
         if (carrier.isFlying) {

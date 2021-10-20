@@ -6,7 +6,7 @@ import net.psforever.objects.{Default, NtuContainerDefinition, Vehicle}
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.vehicles.{DestroyedVehicle, MountableWeaponsDefinition, UtilityType}
+import net.psforever.objects.vehicles.{DestroyedVehicle, MountableWeaponsDefinition, UtilityType, VehicleSubsystemEntry}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
@@ -33,7 +33,7 @@ class VehicleDefinition(objectId: Int)
   private var defaultShields : Option[Int] = None
   /** maximum vehicle shields (generally: 20% of health)
     * for normal vehicles, offered through amp station facility benefits
-    * for BFR's, it charges when the vehicle is kneeling
+    * for BFR's, it charges naturally
     **/
   private var maxShields: Int = 0
   /** the minimum amount of time that must elapse in between damage and shield charge activities (ms) */
@@ -43,10 +43,15 @@ class VehicleDefinition(objectId: Int)
   /** if the shield recharges on its own, this value will be non-`None` and indicate by how much */
   private var autoShieldRecharge : Option[Int] = None
   private var autoShieldRechargeSpecial : Option[Int] = None
+  /** shield drain is what happens to the shield under special conditions, e.g., bfr flight;
+    * the drain interval is 250ms which is convenient for us
+    * we can skip needing to define is explicitly */
+  private var shieldDrain : Option[Int] = None
   private val cargo: mutable.HashMap[Int, CargoDefinition] = mutable.HashMap[Int, CargoDefinition]()
   private var deployment: Boolean                                = false
   private val utilities: mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
   private val utilityOffsets: mutable.HashMap[Int, Vector3]      = mutable.HashMap()
+  var subsystems: List[VehicleSubsystemEntry]                         = Nil
   private var deploymentTime_Deploy: Int                         = 0 //ms
   private var deploymentTime_Undeploy: Int                       = 0 //ms
   private var trunkSize: InventoryTile                           = InventoryTile.None
@@ -66,6 +71,7 @@ class VehicleDefinition(objectId: Int)
   private var serverVehicleOverrideSpeeds: (Int, Int)            = (0, 0)
   var undergoesDecay: Boolean                                    = true
   private var deconTime: Option[FiniteDuration]                  = None
+  private var defaultCapacitor: Int                              = 0
   private var maxCapacitor: Int                                  = 0
   /**
     * explosion delay extends the time of the explosion further beyond when the vehicle is actually destroyed;
@@ -129,6 +135,15 @@ class VehicleDefinition(objectId: Int)
   def ShieldAutoRechargeSpecial_=(charge: Option[Int]): Option[Int] = {
     autoShieldRechargeSpecial = charge
     ShieldAutoRechargeSpecial
+  }
+
+  def ShieldDrain: Option[Int] = shieldDrain
+
+  def ShieldDrain_=(drain: Int): Option[Int] = ShieldDrain_=(Some(drain))
+
+  def ShieldDrain_=(drain: Option[Int]): Option[Int] = {
+    shieldDrain = drain
+    ShieldDrain
   }
 
   def Cargo: mutable.HashMap[Int, CargoDefinition] = cargo
@@ -224,6 +239,13 @@ class VehicleDefinition(objectId: Int)
   def AutoPilotSpeed1: Int = serverVehicleOverrideSpeeds._1
 
   def AutoPilotSpeed2: Int = serverVehicleOverrideSpeeds._2
+
+  def DefaultCapacitor: Int = defaultCapacitor
+
+  def DefaultCapacitor_=(defValue: Int): Int = {
+    defaultCapacitor = defValue
+    DefaultCapacitor
+  }
 
   def MaxCapacitor : Int = maxCapacitor
 
@@ -328,6 +350,21 @@ object VehicleDefinition {
     * @param objectId the object id that is associated with this sort of `Vehicle`
     */
   def Bfr(objectId: Int): VehicleDefinition = new BfrDefinition(objectId)
+
+  protected class BfrFlightDefinition(objectId: Int) extends VehicleDefinition(objectId) {
+    import net.psforever.objects.vehicles.control.BfrFlightControl
+    override def Initialize(obj: Vehicle, context: ActorContext): Unit = {
+      obj.Actor = context.actorOf(
+        Props(classOf[BfrFlightControl], obj),
+        PlanetSideServerObject.UniqueActorName(obj)
+      )
+    }
+  }
+  /**
+    * Vehicle definition(s) for the flight variant of the battle frame robotics vehicles.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
+  def BfrFlight(objectId: Int): VehicleDefinition = new BfrFlightDefinition(objectId)
 
   protected class CarrierDefinition(objectId: Int) extends VehicleDefinition(objectId) {
     import net.psforever.objects.vehicles.control.CargoCarrierControl

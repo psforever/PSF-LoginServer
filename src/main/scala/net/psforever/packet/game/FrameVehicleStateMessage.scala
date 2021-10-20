@@ -9,7 +9,7 @@ import scodec.codecs._
 //TODO write more thorough comments later.
 /**
   * Dispatched to report and update the operational condition of a given battle frame robotics vehicle.
-  * @param vehicle_guid the battle frame robotics
+  * @param vehicle_guid the battleframe robotic unit
   * @param unk1 na
   * @param pos the xyz-coordinate location in the world
   * @param orient the orientation of the vehicle
@@ -18,9 +18,12 @@ import scodec.codecs._
   * @param unk3 na
   * @param unk4 na
   * @param is_crouched the battleframe unit is crouched
-  * @param unk6 na
-  * @param unk7 na
-  * @param unk8 na
+  * @param is_airborne the battleframe unit is either flying or falling (after flying)
+  * @param ascending_flight is the battleframe unit ascending;
+  *                         normally reports `ascending_flight` before properly reporting as `is_airborne`;
+  *                         continues to report `ascending_flight` until begins falling
+  * @param flight_time_remaining a measure of how much longer the battleframe unit, if it can fly, can fly;
+  *                              reported as a 0-10 value, counting down from 10 when airborne and provided vertical thrust
   * @param unk9 na
   * @param unkA na
   * @see `PlacementData`
@@ -35,9 +38,9 @@ final case class FrameVehicleStateMessage(
                                            unk3: Int,
                                            unk4: Int,
                                            is_crouched: Boolean,
-                                           unk6: Boolean,
-                                           unk7: Boolean,
-                                           unk8: Int,
+                                           is_airborne: Boolean,
+                                           ascending_flight: Boolean,
+                                           flight_time_remaining: Int,
                                            unk9: Long,
                                            unkA: Long
                                          ) extends PlanetSideGamePacket {
@@ -69,9 +72,9 @@ object FrameVehicleStateMessage extends Marshallable[FrameVehicleStateMessage] {
     ("unk3" | uint2) ::
     ("unk4" | uint2) ::
     ("is_crouched" | bool) ::
-    ("unk6" | bool) ::
-    ("unk7" | bool) ::
-    ("unk8" | uint4) ::
+    ("is_airborne" | bool) ::
+    ("ascending_flight" | bool) ::
+    ("flight_time_remaining" | uint4) ::
     ("unk9" | uint32) ::
     ("unkA" | uint32)
   ).as[FrameVehicleStateMessage]

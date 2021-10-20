@@ -12,7 +12,7 @@ sealed trait Trade {
 }
 
 final case class NoTrade(value: Int) extends Trade {
-  assert(value == 1 || value == 2 || value == 3, s"NoTrade has wrong code value - $value not in [a-f]")
+  assert(value > 0 || value < 10, s"NoTrade has wrong code value - $value not in [0,a-f]")
 }
 
 final case class TradeOne(value: Int, unk1: PlanetSideGUID, unk2: PlanetSideGUID, unk3: PlanetSideGUID) extends Trade {
@@ -29,13 +29,34 @@ final case class TradeThree(value: Int, unk: PlanetSideGUID) extends Trade {
 
 final case class TradeFour(value: Int, unk: Int) extends Trade {
   assert(value == 9, s"TradeFour has wrong code value - $value not in [9]")
+  assert(unk < 0 || unk > 15, s"TradeFour value is out of bounds - $unk not in [0-f]")
 }
 
-final case class TradeMessage(unk: Int, trade: Trade)
+final case class TradeMessage(trade: Trade)
   extends PlanetSideGamePacket {
   type Packet = TradeMessage
   def opcode = GamePacketOpcode.TradeMessage
   def encode = TradeMessage.encode(this)
+}
+
+object NoTrade {
+  def apply(): NoTrade = NoTrade(0)
+}
+
+object TradeOne {
+  def apply(unk1: PlanetSideGUID, unk2: PlanetSideGUID, unk3: PlanetSideGUID): TradeOne = TradeOne(1, unk1, unk2, unk3)
+}
+
+object TradeTwo {
+  def apply(unk1: PlanetSideGUID, unk2: PlanetSideGUID): TradeTwo = TradeTwo(4, unk1, unk2)
+}
+
+object TradeThree {
+  def apply(unk: PlanetSideGUID): TradeThree = TradeThree(6, unk)
+}
+
+object TradeFour {
+  def apply(unk: Int): TradeFour = TradeFour(6, unk)
 }
 
 object TradeMessage extends Marshallable[TradeMessage] {
@@ -96,16 +117,13 @@ object TradeMessage extends Marshallable[TradeMessage] {
   }
 
   implicit val codec: Codec[TradeMessage] = (
-    ("unk" | uint8) ::
-    (uint4 >>:~ { code =>
-      ("trade" | selectTradeCodec(code)).hlist
-    })
+    uint4 >>:~ { code => ("trade" | selectTradeCodec(code)).hlist }
     ).xmap[TradeMessage](
     {
-      case unk :: _ :: trade :: HNil => TradeMessage(unk, trade)
+      case _ :: trade :: HNil => TradeMessage(trade)
     },
     {
-      case TradeMessage(unk, trade) => unk :: trade.value :: trade :: HNil
+      case TradeMessage(trade) => trade.value :: trade :: HNil
     }
   )
 }

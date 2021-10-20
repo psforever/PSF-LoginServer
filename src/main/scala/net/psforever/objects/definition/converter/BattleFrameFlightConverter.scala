@@ -40,7 +40,7 @@ class BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle]() {
           driveState = 60,
           proper_anim = true,
           unk3 = 0,
-          show_bfr_shield = false,
+          show_bfr_shield = obj.Shields > 0,
           unk4 = Some(false),
           Some(InventoryData(MakeDriverSeat(obj) ++ MakeUtilities(obj) ++ MakeMountings(obj)))
         )

@@ -4,7 +4,7 @@ package net.psforever.objects.vehicles.control
 import akka.actor.Cancellable
 import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
-import net.psforever.objects.definition.ToolDefinition
+import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentHandiness, Handiness}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.vital.VehicleShieldCharge
@@ -40,7 +40,7 @@ class BfrControl(vehicle: Vehicle)
   override def DamageAwareness(target: Target, cause: DamageResult, amount: Any) : Unit = {
     super.DamageAwareness(target, cause, amount)
     //manage shield display and charge
-    disableShield()
+    disableShieldIfDrained()
     if (shieldCharge != Default.Cancellable && vehicle.Shields < vehicle.MaxShields) {
       shieldCharge.cancel()
       shieldCharge = context.system.scheduler.scheduleOnce(
@@ -89,25 +89,33 @@ class BfrControl(vehicle: Vehicle)
     super.PutItemInSlotCallback(item, slot)
   }
 
-  def disableShield(): Unit = {
+  def disableShieldIfDrained(): Unit = {
     if (vehicle.Shields == 0) {
-      val zone = vehicle.Zone
-      zone.VehicleEvents ! VehicleServiceMessage(
-        s"${zone.id}",
-        VehicleAction.SendResponse(PlanetSideGUID(0), GenericObjectActionMessage(vehicle.GUID, 180))
-      )
+      disableShield()
     }
   }
 
+  def disableShield(): Unit = {
+    val zone = vehicle.Zone
+    zone.VehicleEvents ! VehicleServiceMessage(
+      s"${zone.id}",
+      VehicleAction.SendResponse(PlanetSideGUID(0), GenericObjectActionMessage(vehicle.GUID, 45))
+    )
+  }
+
+  def enableShield(): Unit = {
+    val zone = vehicle.Zone
+    zone.VehicleEvents ! VehicleServiceMessage(
+      s"${zone.id}",
+      VehicleAction.SendResponse(PlanetSideGUID(0), GenericObjectActionMessage(vehicle.GUID, 44))
+    )
+  }
+
   override def chargeShields(amount: Int): Unit = {
-    if (canChargeShields()) {
-      val guid0 = Service.defaultPlayerGUID
-      val vguid = vehicle.GUID
-      val zone = vehicle.Zone
-      val definition = vehicle.Definition
-      val events = zone.VehicleEvents
-      val before = vehicle.Shields
-      val chargeAmount = (if (vehicle.DeploymentState == DriveState.Kneeling || vehicle.Seats(0).occupant.isEmpty) {
+    val definition = vehicle.Definition
+    val before = vehicle.Shields
+    val after = if (canChargeShields()) {
+      val chargeAmount = (if (vehicle.DeploymentState == DriveState.Kneeling || vehicle.Seats(0).occupant.nonEmpty) {
         definition.ShieldAutoRechargeSpecial
       } else {
         definition.ShieldAutoRecharge
@@ -115,28 +123,43 @@ class BfrControl(vehicle: Vehicle)
       vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), chargeAmount))
       vehicle.Shields = before + chargeAmount
       val after = vehicle.Shields
-      if (before == 0 && before < after) {
-        events ! VehicleServiceMessage(
-          s"${zone.id}",
-          VehicleAction.SendResponse(guid0, GenericObjectActionMessage(vguid, 176))
-        )
+      showShieldCharge()
+      if (before == 0 && after > 0) {
+        enableShield()
       }
-      events ! VehicleServiceMessage(
-        s"${vehicle.Actor}",
-        VehicleAction.PlanetsideAttribute(guid0, vguid, definition.shieldUiAttribute, after)
-      )
-      //continue charge?
-      shieldCharge.cancel()
-      if (after < definition.MaxShields) {
-        shieldCharge = context.system.scheduler.scheduleOnce(
-          delay = definition.ShieldPeriodicDelay milliseconds,
-          self,
-          Vehicle.ChargeShields(0)
-        )
-      } else {
-        shieldCharge = Default.Cancellable
-      }
+      after
+    } else {
+      before
     }
+    //continue charge?
+    shieldCharge(after, definition, delay = 0)
+  }
+
+  def shieldCharge(delay: Long): Unit = {
+    shieldCharge(vehicle.Shields, vehicle.Definition, delay)
+  }
+
+  def shieldCharge(after:Int, definition: VehicleDefinition, delay: Long): Unit = {
+    shieldCharge.cancel()
+    if (after < definition.MaxShields) {
+      shieldCharge = context.system.scheduler.scheduleOnce(
+        delay = definition.ShieldPeriodicDelay + delay milliseconds,
+        self,
+        Vehicle.ChargeShields(0)
+      )
+    } else {
+      shieldCharge = Default.Cancellable
+    }
+  }
+
+  def showShieldCharge(): Unit = {
+    val vguid = vehicle.GUID
+    val zone = vehicle.Zone
+    val shields = vehicle.Shields
+    zone.VehicleEvents ! VehicleServiceMessage(
+      s"${vehicle.Actor}",
+      VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vguid, vehicle.Definition.shieldUiAttribute, shields)
+    )
   }
 }
 

@@ -107,9 +107,10 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     */
   private val groupPermissions: Array[VehicleLockState.Value] =
     Array(VehicleLockState.Locked, VehicleLockState.Empire, VehicleLockState.Empire, VehicleLockState.Locked)
-  private var cargoHolds: Map[Int, Cargo]      = Map.empty
-  private var utilities: Map[Int, Utility]     = Map()
-  private val trunk: GridInventory             = GridInventory()
+  private var cargoHolds: Map[Int, Cargo]        = Map.empty
+  private var utilities: Map[Int, Utility]       = Map.empty
+  private var subsystems: List[VehicleSubsystem] = Nil
+  private val trunk: GridInventory               = GridInventory()
 
   /*
     * Records the GUID of the cargo vehicle (galaxy/lodestar) this vehicle is stored in for DismountVehicleCargoMsg use
@@ -594,6 +595,7 @@ object Vehicle {
     //general stuff
     vehicle.Health = vdef.DefaultHealth
     vehicle.Shields = vdef.DefaultShields
+    vehicle.Capacitor = vdef.DefaultCapacitor
     //create weapons
     vehicle.weapons = vdef.Weapons.map[Int, EquipmentSlot] {
       case (num: Int, definition: ToolDefinition) =>
@@ -620,6 +622,8 @@ object Vehicle {
         utilObj.LocationOffset = vdef.UtilityOffset.get(num)
         num -> obj
     }.toMap
+    //subsystems
+    vehicle.subsystems = vdef.subsystems.map { entry => new VehicleSubsystem(entry) }
     //trunk
     vdef.TrunkSize match {
       case InventoryTile.None => ;

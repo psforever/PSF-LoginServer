@@ -15,7 +15,7 @@ trait VitalsActivity {
 }
 
 trait HealingActivity extends VitalsActivity {
-  def time: Long = System.currentTimeMillis()
+  val time: Long = System.currentTimeMillis()
 }
 
 trait DamagingActivity extends VitalsActivity {

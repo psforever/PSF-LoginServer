@@ -42,6 +42,7 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vehicles._
+import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.collision.{CollisionReason, CollisionWithReason}
@@ -2459,6 +2460,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //phantasm doesn't uncloak if the driver is uncloaked and no other vehicle cloaks
             obj.Cloaked = tplayer.Cloaked
           }
+          sendResponse(GenericObjectActionMessage(obj_guid, 11))
         } else if (obj.WeaponControlledFromSeat(seat_number).isEmpty) {
           keepAliveFunc = KeepAlivePersistence
         }
@@ -4030,9 +4032,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             unk3,
             unk4,
             is_crouched,
-            unk6,
-            unk7,
-            unk8,
+            is_airborne,
+            ascending_flight,
+            flight_time,
             unk9,
             unkA
             ) =>
@@ -4056,6 +4058,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             if (obj.MountedIn.isEmpty) {
               if (obj.DeploymentState != DriveState.Kneeling) {
                 obj.Velocity = vel
+                if (is_airborne || ascending_flight) {
+                  obj.Flying = Some(flight_time)
+                  obj.Actor ! BfrFlight.Soaring
+                } else if (obj.Flying.nonEmpty) {
+                  obj.Flying = None
+                  obj.Actor ! BfrFlight.Landed
+                }
               } else {
                 obj.Velocity = Some(Vector3.Zero)
                 obj.Flying = None
@@ -4080,9 +4089,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 unk3,
                 unk4,
                 is_crouched,
-                unk6,
-                unk7,
-                unk8,
+                is_airborne,
+                ascending_flight,
+                flight_time,
                 unk9,
                 unkA
               )
@@ -5963,8 +5972,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         progressBarUpdate.cancel()
         progressBarValue = None
 
-      case msg @ TradeMessage(_,_) =>
-        log.info(s"${player.Name} wants to trade, for some reason - $msg")
+      case TradeMessage(trade) =>
+        log.info(s"${player.Name} wants to trade, for some reason - $trade")
 
       case _ =>
         log.warn(s"Unhandled GamePacket $pkt")

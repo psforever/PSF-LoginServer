@@ -25,7 +25,7 @@ import net.psforever.objects.serverobject.structures.{AmenityDefinition, AutoRep
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
 import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
-import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, UtilityType}
+import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, UtilityType, VehicleSubsystemEntry}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
 import net.psforever.objects.vital.etc.ExplodingRadialDegrade
@@ -1054,15 +1054,15 @@ object GlobalDefinitions {
 
   val aphelion_gunner = VehicleDefinition.Bfr(ObjectClass.aphelion_gunner)
 
-  val aphelion_flight = VehicleDefinition.Bfr(ObjectClass.aphelion_flight) //Eclipse
-
   val colossus_gunner = VehicleDefinition.Bfr(ObjectClass.colossus_gunner)
-
-  val colossus_flight = VehicleDefinition.Bfr(ObjectClass.colossus_flight) //Invader
 
   val peregrine_gunner = VehicleDefinition.Bfr(ObjectClass.peregrine_gunner)
 
-  val peregrine_flight = VehicleDefinition.Bfr(ObjectClass.peregrine_flight) //Eagle
+  val aphelion_flight = VehicleDefinition.BfrFlight(ObjectClass.aphelion_flight) //Eclipse
+
+  val colossus_flight = VehicleDefinition.BfrFlight(ObjectClass.colossus_flight) //Invader
+
+  val peregrine_flight = VehicleDefinition.BfrFlight(ObjectClass.peregrine_flight) //Eagle
 
   val droppod = VehicleDefinition(ObjectClass.droppod)
 
@@ -6596,6 +6596,8 @@ object GlobalDefinitions {
       restriction = MaxOnly
     }
 
+    val controlSubsystem = List(VehicleSubsystemEntry.Controls)
+
     fury.Name = "fury"
     fury.MaxHealth = 650
     fury.Damageable = true
@@ -6607,6 +6609,7 @@ object GlobalDefinitions {
     fury.Weapons += 1           -> fury_weapon_systema
     fury.MountPoints += 1       -> MountInfo(0)
     fury.MountPoints += 2       -> MountInfo(0)
+    fury.subsystems = controlSubsystem
     fury.TrunkSize = InventoryTile.Tile1111
     fury.TrunkOffset = 30
     fury.TrunkLocation = Vector3(-1.71f, 0f, 0f)
@@ -6642,6 +6645,7 @@ object GlobalDefinitions {
     quadassault.Weapons += 1           -> quadassault_weapon_system
     quadassault.MountPoints += 1       -> MountInfo(0)
     quadassault.MountPoints += 2       -> MountInfo(0)
+    quadassault.subsystems = controlSubsystem
     quadassault.TrunkSize = InventoryTile.Tile1111
     quadassault.TrunkOffset = 30
     quadassault.TrunkLocation = Vector3(-1.71f, 0f, 0f)
@@ -6677,6 +6681,7 @@ object GlobalDefinitions {
     quadstealth.CanCloak = true
     quadstealth.MountPoints += 1 -> MountInfo(0)
     quadstealth.MountPoints += 2 -> MountInfo(0)
+    quadstealth.subsystems = controlSubsystem
     quadstealth.TrunkSize = InventoryTile.Tile1111
     quadstealth.TrunkOffset = 30
     quadstealth.TrunkLocation = Vector3(-1.71f, 0f, 0f)
@@ -6713,6 +6718,7 @@ object GlobalDefinitions {
     two_man_assault_buggy.Weapons += 2           -> chaingun_p
     two_man_assault_buggy.MountPoints += 1       -> MountInfo(0)
     two_man_assault_buggy.MountPoints += 2       -> MountInfo(1)
+    two_man_assault_buggy.subsystems = controlSubsystem
     two_man_assault_buggy.TrunkSize = InventoryTile.Tile1511
     two_man_assault_buggy.TrunkOffset = 30
     two_man_assault_buggy.TrunkLocation = Vector3(-2.5f, 0f, 0f)
@@ -6750,6 +6756,7 @@ object GlobalDefinitions {
     skyguard.MountPoints += 1       -> MountInfo(0)
     skyguard.MountPoints += 2       -> MountInfo(0)
     skyguard.MountPoints += 3       -> MountInfo(1)
+    skyguard.subsystems = controlSubsystem
     skyguard.TrunkSize = InventoryTile.Tile1511
     skyguard.TrunkOffset = 30
     skyguard.TrunkLocation = Vector3(2.5f, 0f, 0f)
@@ -6790,6 +6797,7 @@ object GlobalDefinitions {
     threemanheavybuggy.MountPoints += 1       -> MountInfo(0)
     threemanheavybuggy.MountPoints += 2       -> MountInfo(1)
     threemanheavybuggy.MountPoints += 3       -> MountInfo(2)
+    threemanheavybuggy.subsystems = controlSubsystem
     threemanheavybuggy.TrunkSize = InventoryTile.Tile1511
     threemanheavybuggy.TrunkOffset = 30
     threemanheavybuggy.TrunkLocation = Vector3(3.01f, 0f, 0f)
@@ -6827,6 +6835,7 @@ object GlobalDefinitions {
     twomanheavybuggy.Weapons += 2           -> advanced_missile_launcher_t
     twomanheavybuggy.MountPoints += 1       -> MountInfo(0)
     twomanheavybuggy.MountPoints += 2       -> MountInfo(1)
+    twomanheavybuggy.subsystems = controlSubsystem
     twomanheavybuggy.TrunkSize = InventoryTile.Tile1511
     twomanheavybuggy.TrunkOffset = 30
     twomanheavybuggy.TrunkLocation = Vector3(-0.23f, -2.05f, 0f)
@@ -6864,6 +6873,7 @@ object GlobalDefinitions {
     twomanhoverbuggy.Weapons += 2           -> flux_cannon_thresher
     twomanhoverbuggy.MountPoints += 1       -> MountInfo(0)
     twomanhoverbuggy.MountPoints += 2       -> MountInfo(1)
+    twomanhoverbuggy.subsystems = controlSubsystem
     twomanhoverbuggy.TrunkSize = InventoryTile.Tile1511
     twomanhoverbuggy.TrunkOffset = 30
     twomanhoverbuggy.TrunkLocation = Vector3(-3.39f, 0f, 0f)
@@ -6911,6 +6921,7 @@ object GlobalDefinitions {
     mediumtransport.MountPoints += 3       -> MountInfo(2)
     mediumtransport.MountPoints += 4       -> MountInfo(3)
     mediumtransport.MountPoints += 5       -> MountInfo(4)
+    mediumtransport.subsystems = controlSubsystem
     mediumtransport.TrunkSize = InventoryTile.Tile1515
     mediumtransport.TrunkOffset = 30
     mediumtransport.TrunkLocation = Vector3(-3.46f, 0f, 0f)
@@ -6960,6 +6971,7 @@ object GlobalDefinitions {
     battlewagon.MountPoints += 3       -> MountInfo(2)
     battlewagon.MountPoints += 4       -> MountInfo(3)
     battlewagon.MountPoints += 5       -> MountInfo(4)
+    battlewagon.subsystems = controlSubsystem
     battlewagon.TrunkSize = InventoryTile.Tile1515
     battlewagon.TrunkOffset = 30
     battlewagon.TrunkLocation = Vector3(-3.46f, 0f, 0f)
@@ -7004,6 +7016,7 @@ object GlobalDefinitions {
     thunderer.MountPoints += 3       -> MountInfo(2)
     thunderer.MountPoints += 4       -> MountInfo(3)
     thunderer.MountPoints += 5       -> MountInfo(4)
+    thunderer.subsystems = controlSubsystem
     thunderer.TrunkSize = InventoryTile.Tile1515
     thunderer.TrunkOffset = 30
     thunderer.TrunkLocation = Vector3(-3.46f, 0f, 0f)
@@ -7049,6 +7062,7 @@ object GlobalDefinitions {
     aurora.MountPoints += 3       -> MountInfo(2)
     aurora.MountPoints += 4       -> MountInfo(3)
     aurora.MountPoints += 5       -> MountInfo(4)
+    aurora.subsystems = controlSubsystem
     aurora.TrunkSize = InventoryTile.Tile1515
     aurora.TrunkOffset = 30
     aurora.TrunkLocation = Vector3(-3.46f, 0f, 0f)
@@ -7115,6 +7129,7 @@ object GlobalDefinitions {
     apc_tr.MountPoints += 10      -> MountInfo(8)
     apc_tr.MountPoints += 11      -> MountInfo(9)
     apc_tr.MountPoints += 12      -> MountInfo(10)
+    apc_tr.subsystems = controlSubsystem
     apc_tr.TrunkSize = InventoryTile.Tile2016
     apc_tr.TrunkOffset = 30
     apc_tr.TrunkLocation = Vector3(-5.82f, 0f, 0f)
@@ -7182,6 +7197,7 @@ object GlobalDefinitions {
     apc_nc.MountPoints += 10      -> MountInfo(8)
     apc_nc.MountPoints += 11      -> MountInfo(9)
     apc_nc.MountPoints += 12      -> MountInfo(10)
+    apc_nc.subsystems = controlSubsystem
     apc_nc.TrunkSize = InventoryTile.Tile2016
     apc_nc.TrunkOffset = 30
     apc_nc.TrunkLocation = Vector3(-5.82f, 0f, 0f)
@@ -7249,6 +7265,7 @@ object GlobalDefinitions {
     apc_vs.MountPoints += 10      -> MountInfo(8)
     apc_vs.MountPoints += 11      -> MountInfo(9)
     apc_vs.MountPoints += 12      -> MountInfo(10)
+    apc_vs.subsystems = controlSubsystem
     apc_vs.TrunkSize = InventoryTile.Tile2016
     apc_vs.TrunkOffset = 30
     apc_vs.TrunkLocation = Vector3(-5.82f, 0f, 0f)
@@ -7286,6 +7303,7 @@ object GlobalDefinitions {
     lightning.Weapons += 1           -> lightning_weapon_system
     lightning.MountPoints += 1       -> MountInfo(0)
     lightning.MountPoints += 2       -> MountInfo(0)
+    lightning.subsystems = controlSubsystem
     lightning.TrunkSize = InventoryTile.Tile1511
     lightning.TrunkOffset = 30
     lightning.TrunkLocation = Vector3(-3f, 0f, 0f)
@@ -7327,6 +7345,7 @@ object GlobalDefinitions {
     prowler.MountPoints += 1       -> MountInfo(0)
     prowler.MountPoints += 2       -> MountInfo(1)
     prowler.MountPoints += 3       -> MountInfo(2)
+    prowler.subsystems = controlSubsystem
     prowler.TrunkSize = InventoryTile.Tile1511
     prowler.TrunkOffset = 30
     prowler.TrunkLocation = Vector3(-4.71f, 0f, 0f)
@@ -7364,6 +7383,7 @@ object GlobalDefinitions {
     vanguard.Weapons += 2           -> vanguard_weapon_system
     vanguard.MountPoints += 1       -> MountInfo(0)
     vanguard.MountPoints += 2       -> MountInfo(1)
+    vanguard.subsystems = controlSubsystem
     vanguard.TrunkSize = InventoryTile.Tile1511
     vanguard.TrunkOffset = 30
     vanguard.TrunkLocation = Vector3(-4.84f, 0f, 0f)
@@ -7403,6 +7423,7 @@ object GlobalDefinitions {
     magrider.Weapons += 3           -> heavy_rail_beam_magrider
     magrider.MountPoints += 1       -> MountInfo(0)
     magrider.MountPoints += 2       -> MountInfo(1)
+    magrider.subsystems = controlSubsystem
     magrider.TrunkSize = InventoryTile.Tile1511
     magrider.TrunkOffset = 30
     magrider.TrunkLocation = Vector3(5.06f, 0f, 0f)
@@ -7438,6 +7459,7 @@ object GlobalDefinitions {
     ant.Seats += 0       -> driverSeat
     ant.MountPoints += 1 -> MountInfo(0)
     ant.MountPoints += 2 -> MountInfo(0)
+    ant.subsystems = controlSubsystem
     ant.Deployment = true
     ant.DeployTime = 1500
     ant.UndeployTime = 1500
@@ -7478,6 +7500,7 @@ object GlobalDefinitions {
     ams.Utilities += 2   -> UtilityType.ams_respawn_tube
     ams.Utilities += 3   -> UtilityType.order_terminala
     ams.Utilities += 4   -> UtilityType.order_terminalb
+    ams.subsystems = controlSubsystem
     ams.Deployment = true
     ams.DeployTime = 2000
     ams.UndeployTime = 2000
@@ -7516,6 +7539,7 @@ object GlobalDefinitions {
     router.MountPoints += 1 -> MountInfo(0)
     router.Utilities += 1   -> UtilityType.teleportpad_terminal
     router.Utilities += 2   -> UtilityType.internal_router_telepad_deployable
+    router.subsystems = controlSubsystem
     router.TrunkSize = InventoryTile.Tile1511
     router.TrunkOffset = 30
     router.TrunkLocation = Vector3(0f, 3.4f, 0f)
@@ -7557,6 +7581,7 @@ object GlobalDefinitions {
     switchblade.Weapons += 1           -> scythe
     switchblade.MountPoints += 1       -> MountInfo(0)
     switchblade.MountPoints += 2       -> MountInfo(0)
+    switchblade.subsystems = controlSubsystem
     switchblade.TrunkSize = InventoryTile.Tile1511
     switchblade.TrunkOffset = 30
     switchblade.TrunkLocation = Vector3(-2.5f, 0f, 0f)
@@ -7601,6 +7626,7 @@ object GlobalDefinitions {
     flail.Weapons += 1           -> flail_weapon
     flail.Utilities += 2         -> UtilityType.targeting_laser_dispenser
     flail.MountPoints += 1       -> MountInfo(0)
+    flail.subsystems = controlSubsystem
     flail.TrunkSize = InventoryTile.Tile1511
     flail.TrunkOffset = 30
     flail.TrunkLocation = Vector3(-3.75f, 0f, 0f)
@@ -7639,8 +7665,10 @@ object GlobalDefinitions {
     val bailableSeat = new SeatDefinition() {
       bailable = true
     }
-    val variantConverter = new VariantVehicleConverter
 
+    val flightSubsystems = List(VehicleSubsystemEntry.Controls, VehicleSubsystemEntry.Ejection)
+
+    val variantConverter = new VariantVehicleConverter
     mosquito.Name = "mosquito"
     mosquito.MaxHealth = 665
     mosquito.Damageable = true
@@ -7653,6 +7681,7 @@ object GlobalDefinitions {
     mosquito.Weapons += 1           -> rotarychaingun_mosquito
     mosquito.MountPoints += 1       -> MountInfo(0)
     mosquito.MountPoints += 2       -> MountInfo(0)
+    mosquito.subsystems = flightSubsystems :+ VehicleSubsystemEntry.MosquitoRadar
     mosquito.TrunkSize = InventoryTile.Tile1111
     mosquito.TrunkOffset = 30
     mosquito.TrunkLocation = Vector3(-4.6f, 0f, 0f)
@@ -7690,6 +7719,7 @@ object GlobalDefinitions {
     lightgunship.Weapons += 1           -> lightgunship_weapon_system
     lightgunship.MountPoints += 1       -> MountInfo(0)
     lightgunship.MountPoints += 2       -> MountInfo(0)
+    lightgunship.subsystems = flightSubsystems
     lightgunship.TrunkSize = InventoryTile.Tile1511
     lightgunship.TrunkOffset = 30
     lightgunship.TrunkLocation = Vector3(-5.61f, 0f, 0f)
@@ -7728,6 +7758,7 @@ object GlobalDefinitions {
     wasp.Weapons += 1           -> wasp_weapon_system
     wasp.MountPoints += 1       -> MountInfo(0)
     wasp.MountPoints += 2       -> MountInfo(0)
+    wasp.subsystems = flightSubsystems
     wasp.TrunkSize = InventoryTile.Tile1111
     wasp.TrunkOffset = 30
     wasp.TrunkLocation = Vector3(-4.6f, 0f, 0f)
@@ -7773,6 +7804,7 @@ object GlobalDefinitions {
     liberator.MountPoints += 2       -> MountInfo(1)
     liberator.MountPoints += 3       -> MountInfo(1)
     liberator.MountPoints += 4       -> MountInfo(2)
+    liberator.subsystems = flightSubsystems
     liberator.TrunkSize = InventoryTile.Tile1515
     liberator.TrunkOffset = 30
     liberator.TrunkLocation = Vector3(-0.76f, -1.88f, 0f)
@@ -7819,6 +7851,7 @@ object GlobalDefinitions {
     vulture.MountPoints += 2       -> MountInfo(1)
     vulture.MountPoints += 3       -> MountInfo(1)
     vulture.MountPoints += 4       -> MountInfo(2)
+    vulture.subsystems = flightSubsystems
     vulture.TrunkSize = InventoryTile.Tile1611
     vulture.TrunkOffset = 30
     vulture.TrunkLocation = Vector3(-0.76f, -1.88f, 0f)
@@ -7894,6 +7927,7 @@ object GlobalDefinitions {
     dropship.MountPoints += 11 -> MountInfo(9)
     dropship.MountPoints += 12 -> MountInfo(10)
     dropship.MountPoints += 13 -> MountInfo(15)
+    dropship.subsystems = flightSubsystems
     dropship.TrunkSize = InventoryTile.Tile1612
     dropship.TrunkOffset = 30
     dropship.TrunkLocation = Vector3(-7.39f, -4.96f, 0f)
@@ -7950,6 +7984,7 @@ object GlobalDefinitions {
     galaxy_gunship.MountPoints += 4       -> MountInfo(2)
     galaxy_gunship.MountPoints += 5       -> MountInfo(4)
     galaxy_gunship.MountPoints += 6       -> MountInfo(5)
+    galaxy_gunship.subsystems = flightSubsystems
     galaxy_gunship.TrunkSize = InventoryTile.Tile1816
     galaxy_gunship.TrunkOffset = 30
     galaxy_gunship.TrunkLocation = Vector3(-9.85f, 0f, 0f)
@@ -7998,6 +8033,7 @@ object GlobalDefinitions {
     lodestar.Utilities += 5     -> UtilityType.multivehicle_rearm_terminal
     lodestar.Utilities += 6     -> UtilityType.bfr_rearm_terminal
     lodestar.Utilities += 7     -> UtilityType.bfr_rearm_terminal
+    lodestar.subsystems = flightSubsystems
     lodestar.TrunkSize = InventoryTile.Tile1612
     lodestar.TrunkOffset = 30
     lodestar.TrunkLocation = Vector3(6.85f, -6.8f, 0f)
@@ -8042,6 +8078,7 @@ object GlobalDefinitions {
     phantasm.MountPoints += 3 -> MountInfo(2)
     phantasm.MountPoints += 4 -> MountInfo(3)
     phantasm.MountPoints += 5 -> MountInfo(4)
+    phantasm.subsystems = flightSubsystems
     phantasm.TrunkSize = InventoryTile.Tile1107
     phantasm.TrunkOffset = 30
     phantasm.TrunkLocation = Vector3(-6.16f, 0f, 0f)
@@ -8123,6 +8160,15 @@ object GlobalDefinitions {
       restriction = NoReinforcedOrMax
     }
     val normalSeat = new SeatDefinition()
+    val bfrSubsystems = List(
+      VehicleSubsystemEntry.BattleframeLeftArm,
+      VehicleSubsystemEntry.BattleframeRightArm,
+      VehicleSubsystemEntry.BattleframeMovementServo,
+      VehicleSubsystemEntry.BattleframeWeaponry,
+      VehicleSubsystemEntry.BattleframeSensorArray,
+      VehicleSubsystemEntry.BattleframeTrunk
+    )
+    val bfrFlightSubsystems = bfrSubsystems :+ VehicleSubsystemEntry.BattleframeFlightPod
 
     val battleFrameConverter = new BattleFrameRoboticsConverter
     aphelion_gunner.Name = "aphelion_gunner"
@@ -8146,6 +8192,7 @@ object GlobalDefinitions {
     aphelion_gunner.Weapons += 4     -> aphelion_plasma_rocket_pod
     aphelion_gunner.MountPoints += 1 -> MountInfo(0)
     aphelion_gunner.MountPoints += 2 -> MountInfo(1)
+    aphelion_gunner.subsystems = bfrSubsystems
     aphelion_gunner.TrunkSize = InventoryTile.Tile1518
     aphelion_gunner.TrunkOffset = 30
     aphelion_gunner.TrunkLocation = Vector3(0f, -2f, 0f)
@@ -8166,11 +8213,11 @@ object GlobalDefinitions {
     }
     aphelion_gunner.DrownAtMaxDepth = true
     aphelion_gunner.MaxDepth = 2.0f
-    //aphelion_gunner.Geometry = ...
+    aphelion_gunner.Geometry = GeometryForm.representByCylinder(radius = 1.2618f, height = 6.01562f)
     aphelion_gunner.collision.avatarCollisionDamageMax = 300
     aphelion_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     aphelion_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    //aphelion_gunner.maxForwardSpeed = ...
+    aphelion_gunner.maxForwardSpeed = 24
     aphelion_gunner.mass = 615.1f
 
     colossus_gunner.Name = "colossus_gunner"
@@ -8194,6 +8241,7 @@ object GlobalDefinitions {
     colossus_gunner.Weapons += 4     -> colossus_dual_100mm_cannons
     colossus_gunner.MountPoints += 1 -> MountInfo(0)
     colossus_gunner.MountPoints += 2 -> MountInfo(1)
+    colossus_gunner.subsystems = bfrSubsystems
     colossus_gunner.TrunkSize = InventoryTile.Tile1518
     colossus_gunner.TrunkOffset = 30
     colossus_gunner.TrunkLocation = Vector3(0f, -5f, 0f)
@@ -8242,6 +8290,7 @@ object GlobalDefinitions {
     peregrine_gunner.Weapons += 4     -> peregrine_particle_cannon
     peregrine_gunner.MountPoints += 1 -> MountInfo(0)
     peregrine_gunner.MountPoints += 2 -> MountInfo(1)
+    peregrine_gunner.subsystems = bfrSubsystems
     peregrine_gunner.TrunkSize = InventoryTile.Tile1518
     peregrine_gunner.TrunkOffset = 30
     peregrine_gunner.TrunkLocation = Vector3(0f, -5f, 0f)
@@ -8266,7 +8315,7 @@ object GlobalDefinitions {
     peregrine_gunner.collision.avatarCollisionDamageMax = 300
     peregrine_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     peregrine_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    //peregrine_gunner.maxForwardSpeed = ...
+    peregrine_gunner.maxForwardSpeed = 24
     peregrine_gunner.mass = 713f
 
     val battleFrameFlightConverter = new BattleFrameFlightConverter
@@ -8282,12 +8331,14 @@ object GlobalDefinitions {
     aphelion_flight.ShieldDamageDelay = 3500
     aphelion_flight.ShieldAutoRecharge = 12 //12.5
     aphelion_flight.ShieldAutoRechargeSpecial = 25
-    aphelion_flight.DefaultShields = aphelion_flight.MaxShields
+    aphelion_flight.ShieldDrain = 30
+    //aphelion_flight.DefaultShields = aphelion_flight.MaxShields
     aphelion_flight.Seats += 0       -> driverSeat
     aphelion_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
     aphelion_flight.Weapons += 1     -> aphelion_ppa_left
     aphelion_flight.Weapons += 2     -> aphelion_ppa_right
     aphelion_flight.MountPoints += 1 -> MountInfo(0)
+    aphelion_flight.subsystems = bfrFlightSubsystems
     aphelion_flight.TrunkSize = InventoryTile.Tile1518 //adb reports 15x11, but the graphic uses 15x18
     aphelion_flight.TrunkOffset = 30
     aphelion_flight.TrunkLocation = Vector3(0f, -2f, 0f)
@@ -8308,11 +8359,11 @@ object GlobalDefinitions {
     }
     aphelion_flight.DrownAtMaxDepth = true
     aphelion_flight.MaxDepth = 2.0f
-    //aphelion_flight.Geometry = ...
+    aphelion_flight.Geometry = GeometryForm.representByCylinder(radius = 1.98045f, height = 6.03125f)
     aphelion_flight.collision.avatarCollisionDamageMax = 300
     aphelion_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     aphelion_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    //aphelion_flight.maxForwardSpeed = ...
+    aphelion_flight.maxForwardSpeed = 34
     aphelion_flight.mass = 615.1f
 
     colossus_flight.Name = "colossus_flight"
@@ -8333,6 +8384,7 @@ object GlobalDefinitions {
     colossus_flight.Weapons += 1     -> colossus_tank_cannon_left
     colossus_flight.Weapons += 2     -> colossus_tank_cannon_right
     colossus_flight.MountPoints += 1 -> MountInfo(0)
+    colossus_flight.subsystems = bfrFlightSubsystems
     colossus_flight.TrunkSize = InventoryTile.Tile1518 //adb reports 15x11, but the graphic uses 15x18
     colossus_flight.TrunkOffset = 30
     colossus_flight.TrunkLocation = Vector3(0f, -5f, 0f)
@@ -8357,7 +8409,7 @@ object GlobalDefinitions {
     colossus_flight.collision.avatarCollisionDamageMax = 300
     colossus_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     colossus_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    //colossus_flight.maxForwardSpeed = ...
+    colossus_flight.maxForwardSpeed = 34
     colossus_flight.mass = 709.7f
 
     peregrine_flight.Name = "peregrine_flight"
@@ -8378,6 +8430,7 @@ object GlobalDefinitions {
     peregrine_flight.Weapons += 1     -> peregrine_dual_machine_gun_left
     peregrine_flight.Weapons += 2     -> peregrine_dual_machine_gun_right
     peregrine_flight.MountPoints += 1 -> MountInfo(0)
+    peregrine_flight.subsystems = bfrFlightSubsystems
     peregrine_flight.TrunkSize = InventoryTile.Tile1518 //adb reports 15x11, but the graphic uses 15x18
     peregrine_flight.TrunkOffset = 30
     peregrine_flight.TrunkLocation = Vector3(0f, -5f, 0f)
@@ -8402,7 +8455,7 @@ object GlobalDefinitions {
     peregrine_flight.collision.avatarCollisionDamageMax = 300
     peregrine_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     peregrine_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    //peregrine_flight.maxForwardSpeed = ...
+    peregrine_flight.maxForwardSpeed = 34
     peregrine_flight.mass = 713f
   }
 

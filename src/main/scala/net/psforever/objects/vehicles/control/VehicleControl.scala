@@ -507,8 +507,7 @@ class VehicleControl(vehicle: Vehicle)
 
   //make certain vehicles don't charge shields too quickly
   def canChargeShields(): Boolean = {
-    val now: Long = System.currentTimeMillis()
-    val func: VitalsActivity => Boolean = VehicleControl.LastShieldChargeOrDamage(now, vehicle.Definition)
+    val func: VitalsActivity => Boolean = VehicleControl.LastShieldChargeOrDamage(System.currentTimeMillis(), vehicle.Definition)
     vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
     !vehicle.History.exists(func)
   }
@@ -737,12 +736,12 @@ object VehicleControl {
     * Determine if a given activity entry would invalidate the act of charging vehicle shields this tick.
     * @param now the current time (in nanoseconds)
     * @param act a `VitalsActivity` entry to test
-    * @return `true`, if the vehicle took damage in the last five seconds or charged shields in the last second;
+    * @return `true`, if the shield charge would be blocked;
     *        `false`, otherwise
     */
   def LastShieldChargeOrDamage(now: Long, vdef: VehicleDefinition)(act: VitalsActivity): Boolean = {
     act match {
-      case dact: DamagingActivity    => now - dact.data.interaction.hitTime < vdef.ShieldDamageDelay //damage delays next charge
+      case dact: DamagingActivity   => now - dact.time < vdef.ShieldDamageDelay //damage delays next charge
       case vsc: VehicleShieldCharge => now - vsc.time < vdef.ShieldPeriodicDelay //previous charge delays next
       case _                        => false
     }
