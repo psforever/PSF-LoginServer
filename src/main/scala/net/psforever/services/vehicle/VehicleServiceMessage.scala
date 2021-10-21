@@ -57,6 +57,7 @@ object VehicleAction {
       unk9: Long,
       unkA: Long
   ) extends Action
+  final case class GenericObjectAction(player_guid: PlanetSideGUID, guid: PlanetSideGUID, action: Int) extends Action
   final case class InventoryState(
       player_guid: PlanetSideGUID,
       obj: PlanetSideGameObject,

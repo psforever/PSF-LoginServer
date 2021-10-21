@@ -7,6 +7,7 @@ import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentHandiness, Handiness}
 import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.vehicles.VehicleSubsystemEntry
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.GenericObjectActionMessage
@@ -160,6 +161,44 @@ class BfrControl(vehicle: Vehicle)
       s"${vehicle.Actor}",
       VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vguid, vehicle.Definition.shieldUiAttribute, shields)
     )
+  }
+
+  override def parseObjectAction(guid: PlanetSideGUID, action: Int, other: Option[Any]): Unit = {
+    super.parseObjectAction(guid, action, other)
+    if (action == 38 || action == 39) {
+      //disable or enable fire control for the left arm weapon or for the right arm weapon
+      ((vehicle.Weapons
+        .find { case (_, slot) => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid } match {
+        case Some((2, _)) => vehicle.Subsystems(VehicleSubsystemEntry.BattleframeLeftArm)
+        case Some((3, _)) => vehicle.Subsystems(VehicleSubsystemEntry.BattleframeRightArm)
+        case _            => None
+      }) match {
+        case subsys @ Some(subsystem) =>
+          if (action == 38 && !subsystem.enabled) {
+            subsystem.enabled = true
+            subsys
+          } else if (action == 39 && subsystem.enabled) {
+            subsystem.enabled = false
+            subsys
+          } else {
+            None
+          }
+        case None =>
+          None
+      }) match {
+        case Some(_) =>
+          val doNotSendTo = other match {
+            case Some(pguid: PlanetSideGUID) => pguid
+            case _                           => Service.defaultPlayerGUID
+          }
+          val zone = vehicle.Zone
+          zone.VehicleEvents ! VehicleServiceMessage(
+            zone.id,
+            VehicleAction.GenericObjectAction(doNotSendTo, guid, action)
+          )
+        case None => ;
+      }
+    }
   }
 }
 

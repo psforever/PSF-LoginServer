@@ -51,7 +51,7 @@ class VehicleDefinition(objectId: Int)
   private var deployment: Boolean                                = false
   private val utilities: mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
   private val utilityOffsets: mutable.HashMap[Int, Vector3]      = mutable.HashMap()
-  var subsystems: List[VehicleSubsystemEntry]                         = Nil
+  var subsystems: List[VehicleSubsystemEntry]                    = Nil
   private var deploymentTime_Deploy: Int                         = 0 //ms
   private var deploymentTime_Undeploy: Int                       = 0 //ms
   private var trunkSize: InventoryTile                           = InventoryTile.None

@@ -112,6 +112,14 @@ class VehicleService(zone: Zone) extends Actor {
               )
             )
           )
+        case VehicleAction.GenericObjectAction(player_guid, guid, code) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(
+              s"/$forChannel/Vehicle",
+              player_guid,
+              VehicleResponse.GenericObjectAction(guid, code)
+            )
+          )
         case VehicleAction.InventoryState(player_guid, obj, parent_guid, start, con_data) =>
           VehicleEvents.publish(
             VehicleServiceResponse(

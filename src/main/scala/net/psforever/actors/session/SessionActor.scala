@@ -38,7 +38,7 @@ import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject, ServerObject}
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vehicles._
@@ -2744,6 +2744,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(FrameVehicleStateMessage(vguid, u1, pos, oient, vel, u2, u3, u4, is_crouched, u6, u7, u8, u9, uA))
         }
 
+      case VehicleResponse.GenericObjectAction(object_guid, action) =>
+        if (tplayer_guid != guid) {
+          sendResponse(GenericObjectActionMessage(object_guid, action))
+        }
+
       case VehicleResponse.HitHint(source_guid) =>
         if (player.isAlive) {
           sendResponse(HitHint(source_guid, player.GUID))
@@ -3568,7 +3573,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
         val allActiveVehicles = vehicles ++ usedVehicle
         //active vehicles (and some wreckage)
-        vehicles.foreach(vehicle => {
+        vehicles.foreach { vehicle =>
           val vguid       = vehicle.GUID
           val vdefinition = vehicle.Definition
           sendResponse(
@@ -3598,7 +3603,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   )
                 )
             }
-        })
+          vehicle.SubsystemMessages().foreach { SendResponse } //how many of these need to be loaded from our perspective?
+        }
         vehicles.collect {
           case vehicle if vehicle.Faction == faction =>
             Vehicles.ReloadAccessPermissions(vehicle, player.Name)
@@ -5137,15 +5143,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ GenericObjectActionMessage(object_guid, code) =>
         log.debug(s"$msg")
         ValidObject(object_guid) match {
-          case Some(vehicle: Vehicle) =>
-            if (code == 55) {
-              //apc emp
-              vehicle.Actor ! SpecialEmp.Burst()
-            }
+          case Some(vehicle: Vehicle)
+            if vehicle.OwnerName.contains(player.Name) =>
+            vehicle.Actor ! ServerObject.GenericObjectAction(object_guid, code, Some(player.GUID))
+
           case Some(tool: Tool) =>
             if (tool.Definition == GlobalDefinitions.maelstrom && code == 35) {
               //maelstrom primary fire mode effect (no target)
               HandleWeaponFireAccountability(object_guid, PlanetSideGUID(Projectile.baseUID))
+            } else {
+              ValidObject(player.VehicleSeated) match {
+                case Some(vehicle: Vehicle)
+                  if vehicle.OwnerName.contains(player.Name) =>
+                  vehicle.Actor ! ServerObject.GenericObjectAction(object_guid, code, Some(tool))
+                case _ => ;
+              }
             }
           case _ => ;
         }
@@ -5826,60 +5838,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ PlanetsideAttributeMessage(object_guid, attribute_type, attribute_value) =>
         ValidObject(object_guid) match {
+          case Some(vehicle: Vehicle) if player.avatar.vehicle.contains(vehicle.GUID) =>
+            vehicle.Actor ! ServerObject.AttributeMsg(attribute_type, attribute_value)
           case Some(vehicle: Vehicle) =>
-            if (player.avatar.vehicle.contains(vehicle.GUID)) {
-              if (9 < attribute_type && attribute_type < 14) {
-                vehicle.PermissionGroup(attribute_type, attribute_value) match {
-                  case Some(allow) =>
-                    val group = AccessPermissionGroup(attribute_type - 10)
-                    log.info(s"${player.Name} changed ${vehicle.Definition.Name}'s access permission $group to $allow")
-                    continent.VehicleEvents ! VehicleServiceMessage(
-                      continent.id,
-                      VehicleAction.SeatPermissions(player.GUID, vehicle.GUID, attribute_type, attribute_value)
-                    )
-                    //kick players who should not be seated in the vehicle due to permission changes
-                    if (allow == VehicleLockState.Locked) { //TODO only important permission atm
-                      vehicle.Seats.foreach {
-                        case (seatIndex, seat) =>
-                          seat.occupant match {
-                            case Some(tplayer: Player) =>
-                              if (vehicle.SeatPermissionGroup(seatIndex).contains(group) && tplayer != player) { //can not kick self
-                                seat.unmount(tplayer)
-                                tplayer.VehicleSeated = None
-                                continent.VehicleEvents ! VehicleServiceMessage(
-                                  continent.id,
-                                  VehicleAction.KickPassenger(tplayer.GUID, 4, false, object_guid)
-                                )
-                              }
-                            case _ => ; // No player seated
-                          }
-                      }
-                      vehicle.CargoHolds.foreach {
-                        case (cargoIndex, hold) =>
-                          hold.occupant match {
-                            case Some(cargo) =>
-                              if (vehicle.SeatPermissionGroup(cargoIndex).contains(group)) {
-                                //todo: this probably doesn't work for passengers within the cargo vehicle
-                                // Instruct client to start bail dismount procedure
-                                self ! DismountVehicleCargoMsg(player.GUID, cargo.GUID, true, false, false)
-                              }
-                            case None => ; // No vehicle in cargo
-                          }
-                      }
-                    }
-                  case None => ;
-                }
-              } else {
-                log.warn(
-                  s"PlanetsideAttribute: vehicle attributes - unsupported change on vehicle $object_guid - $attribute_type, ${player.Name}"
-                )
-              }
-            } else {
-              log.warn(
-                s"PlanetsideAttribute: vehicle attributes - ${player.Name} does not own vehicle ${vehicle.GUID} and can not change it"
-              )
-            }
-
+            log.warn(
+              s"PlanetsideAttribute: ${player.Name} does not own vehicle ${vehicle.GUID} and can not change it"
+            )
           // Cosmetics options
           case Some(player: Player) if attribute_type == 106 =>
             avatarActor ! AvatarActor.SetCosmetics(Cosmetic.valuesFromAttributeValue(attribute_value))
@@ -7109,6 +7073,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def AvatarCreate(): Unit = {
     val health = player.Health
     val armor  = player.Armor
+    val events = continent.VehicleEvents
+    val zoneid = continent.id
     avatarActor ! AvatarActor.ResetImplants()
     player.Spawn()
     if (health != 0) {
@@ -7147,8 +7113,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           vehicle.CargoHolds.values
             .collect { case hold if hold.isOccupied => hold.occupant.get }
             .foreach { _.MountedIn = vguid }
-          continent.VehicleEvents ! VehicleServiceMessage(
-            continent.id,
+          events ! VehicleServiceMessage(
+            zoneid,
             VehicleAction.LoadVehicle(player.GUID, vehicle, vdef.ObjectId, vguid, data)
           )
           carrierInfo match {
@@ -7186,6 +7152,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
         }
         Vehicles.ReloadAccessPermissions(vehicle, player.Name)
+        vehicle.SubsystemMessages().foreach { pkt =>
+          events ! VehicleServiceMessage(
+            continent.id,
+            VehicleAction.SendResponse(Service.defaultPlayerGUID, pkt)
+          )
+        }
         log.debug(s"AvatarCreate (vehicle): ${player.Name}'s ${vehicle.Definition.Name}")
         log.trace(s"AvatarCreate (vehicle): ${player.Name}'s ${vehicle.Definition.Name} - $vguid -> $vdata")
         AvatarCreateInVehicle(player, vehicle, seat)
@@ -7197,7 +7169,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val guid   = player.GUID
         sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, guid, data))
         continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
+          zoneid,
           AvatarAction.LoadPlayer(guid, ObjectClass.avatar, guid, packet.ConstructorData(player).get, None)
         )
         log.debug(s"AvatarCreate: ${player.Name}")

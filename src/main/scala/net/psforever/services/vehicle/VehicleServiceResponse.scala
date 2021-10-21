@@ -49,6 +49,7 @@ object VehicleResponse {
       unk9: Long,
       unkA: Long
   ) extends Response
+  final case class GenericObjectAction(guid: PlanetSideGUID, action: Int)   extends Response
   final case class HitHint(source_guid: PlanetSideGUID)                     extends Response
   final case class InventoryState(
       obj: PlanetSideGameObject,

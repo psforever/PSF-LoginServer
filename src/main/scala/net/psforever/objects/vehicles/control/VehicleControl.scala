@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2021 PSForever
 package net.psforever.objects.vehicles.control
 
-import akka.actor.{Actor, Cancellable}
+import akka.actor.Cancellable
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
@@ -11,7 +11,7 @@ import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject, ServerObjectControl}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.serverobject.damage.{AggravatedBehavior, DamageableVehicle}
@@ -45,7 +45,7 @@ import scala.concurrent.duration._
   * @param vehicle the `Vehicle` object being governed
   */
 class VehicleControl(vehicle: Vehicle)
-  extends Actor
+  extends ServerObjectControl
     with FactionAffinityBehavior.Check
     with MountableBehavior
     with DamageableVehicle
@@ -104,6 +104,7 @@ class VehicleControl(vehicle: Vehicle)
   }
 
   def commonEnabledBehavior: Receive = checkBehavior
+    .orElse(attributeBehavior)
     .orElse(jammableBehavior)
     .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
@@ -717,6 +718,61 @@ class VehicleControl(vehicle: Vehicle)
             recoverFromEnvironmentInteracting()
         }
       case None => ;
+    }
+  }
+
+  override def parseAttribute(attribute: Int, value: Long, other: Option[Any]) : Unit = {
+    val vguid = vehicle.GUID
+    val (dname, dguid) = other match {
+      case Some(p: Player) => (p.Name, p.GUID)
+      case _               => (vehicle.OwnerName.getOrElse("The driver"), PlanetSideGUID(0))
+    }
+    val zone = vehicle.Zone
+    if (9 < attribute && attribute < 14) {
+      vehicle.PermissionGroup(attribute, value) match {
+        case Some(allow) =>
+          val group = AccessPermissionGroup(attribute - 10)
+          log.info(s"$dname changed ${vehicle.Definition.Name}'s access permission $group to $allow")
+          zone.VehicleEvents ! VehicleServiceMessage(
+            zone.id,
+            VehicleAction.SeatPermissions(dguid, vguid, attribute, value)
+          )
+          //kick players who should not be seated in the vehicle due to permission changes
+          if (allow == VehicleLockState.Locked) { //TODO only important permission atm
+            vehicle.Seats.foreach {
+              case (seatIndex, seat) =>
+                seat.occupant match {
+                  case Some(tplayer: Player) =>
+                    if (vehicle.SeatPermissionGroup(seatIndex).contains(group) && !tplayer.Name.equals(dname)) { //can not kick self
+                      seat.unmount(tplayer)
+                      tplayer.VehicleSeated = None
+                      zone.VehicleEvents ! VehicleServiceMessage(
+                        zone.id,
+                        VehicleAction.KickPassenger(tplayer.GUID, 4, false, vguid)
+                      )
+                    }
+                  case _ => ; // No player seated
+                }
+            }
+            vehicle.CargoHolds.foreach {
+              case (cargoIndex, hold) =>
+                hold.occupant match {
+                  case Some(cargo) =>
+                    if (vehicle.SeatPermissionGroup(cargoIndex).contains(group)) {
+                      //todo: this probably doesn't work for passengers within the cargo vehicle
+                      // Instruct client to start bail dismount procedure
+                      self ! DismountVehicleCargoMsg(dguid, cargo.GUID, true, false, false)
+                    }
+                  case None => ; // No vehicle in cargo
+                }
+            }
+          }
+        case None => ;
+      }
+    } else {
+      log.warn(
+        s"parseAttributes: unsupported change on $vguid - $attribute, $dname"
+      )
     }
   }
 }

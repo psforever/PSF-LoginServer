@@ -19,6 +19,7 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.objects.zones.InteractsWithZone
 import net.psforever.objects.zones.blockmap.BlockMapEntity
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
@@ -341,6 +342,15 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
         None
     }
   }
+
+  def Subsystems(): List[VehicleSubsystem] = subsystems
+
+  def Subsystems(sys: VehicleSubsystemEntry): Option[VehicleSubsystem] = subsystems.find { _.sys == sys }
+
+  def SubsystemMessages(): List[PlanetSideGamePacket] =
+    subsystems
+      .filterNot { _.enabled }
+      .map { _.getMessage(vehicle = this) }
 
   override def DeployTime = Definition.DeployTime
 
