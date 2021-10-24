@@ -73,6 +73,9 @@ class VehicleDefinition(objectId: Int)
   private var deconTime: Option[FiniteDuration]                  = None
   private var defaultCapacitor: Int                              = 0
   private var maxCapacitor: Int                                  = 0
+  private var capacitorRecharge: Int                             = 0
+  private var capacitorDrain: Int                                = 0
+  private var capacitorDrainSpecial: Int                         = 0
   /**
     * explosion delay extends the time of the explosion further beyond when the vehicle is actually destroyed;
     * see `innateDamage` for explosion information;
@@ -252,6 +255,27 @@ class VehicleDefinition(objectId: Int)
   def MaxCapacitor_=(max: Int) : Int = {
     maxCapacitor = max
     MaxCapacitor
+  }
+
+  def CapacitorRecharge: Int = capacitorRecharge
+
+  def CapacitorRecharge_=(charge: Int): Int = {
+    capacitorRecharge = charge
+    CapacitorRecharge
+  }
+
+  def CapacitorDrain: Int = capacitorDrain
+
+  def CapacitorDrain_=(charge: Int): Int = {
+    capacitorDrain = charge
+    CapacitorDrain
+  }
+
+  def CapacitorDrainSpecial: Int = capacitorDrainSpecial
+
+  def CapacitorDrainSpecial_=(charge: Int): Int = {
+    capacitorDrainSpecial = charge
+    CapacitorDrainSpecial
   }
 
   private var jackDuration        = Array(0, 0, 0, 0)

@@ -4050,7 +4050,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //we're driving the vehicle
             persist()
             turnCounterFunc(player.GUID)
-            if (obj.MountedIn.isEmpty) {
+            val mountedState = obj.MountedIn.isEmpty
+            if (mountedState) {
               updateBlockMap(obj, continent, pos)
             }
             val seat = obj.Seats(0)
@@ -4060,24 +4061,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }
             obj.Position = pos
             obj.Orientation = ang
+            obj.Velocity = vel
             obj.DeploymentState = if (is_crouched) DriveState.Kneeling else DriveState.Mobile
-            if (obj.MountedIn.isEmpty) {
-              if (obj.DeploymentState != DriveState.Kneeling) {
-                obj.Velocity = vel
-                if (is_airborne || ascending_flight) {
-                  obj.Flying = Some(flight_time)
-                  obj.Actor ! BfrFlight.Soaring
-                } else if (obj.Flying.nonEmpty) {
-                  obj.Flying = None
-                  obj.Actor ! BfrFlight.Landed
-                }
-              } else {
-                obj.Velocity = Some(Vector3.Zero)
+            if (mountedState && obj.DeploymentState != DriveState.Kneeling) {
+              if (is_airborne) {
+                val flight = if (ascending_flight) flight_time else -flight_time
+                obj.Flying = Some(flight)
+                obj.Actor ! BfrFlight.Soaring(flight)
+              } else if (obj.Flying.nonEmpty) {
                 obj.Flying = None
+                obj.Actor ! BfrFlight.Landed
               }
-//              if (obj.Definition.CanFly) {
-//                obj.Flying = flying //usually Some(7)
-//              }
             } else {
               obj.Velocity = None
               obj.Flying = None

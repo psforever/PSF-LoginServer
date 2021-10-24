@@ -113,6 +113,11 @@ class BfrControl(vehicle: Vehicle)
   }
 
   override def chargeShields(amount: Int): Unit = {
+    chargeShieldsOnly(amount)
+    shieldCharge(vehicle.Shields, vehicle.Definition, delay = 0) //continue charge?
+  }
+
+  def chargeShieldsOnly(amount: Int): Unit = {
     val definition = vehicle.Definition
     val before = vehicle.Shields
     val after = if (canChargeShields()) {
@@ -132,8 +137,6 @@ class BfrControl(vehicle: Vehicle)
     } else {
       before
     }
-    //continue charge?
-    shieldCharge(after, definition, delay = 0)
   }
 
   def shieldCharge(delay: Long): Unit = {

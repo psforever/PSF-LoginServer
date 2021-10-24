@@ -24,8 +24,13 @@ trait VehicleCapacitance {
     capacitor.cancel()
   }
 
+  def capacitanceStopAndBlank(): Unit = {
+    capacitor.cancel()
+    capacitor = Default.Cancellable
+  }
+
   def capacitancePostStop(): Unit = {
-    capacitanceStop()
+    capacitanceStopAndBlank()
     CapacitanceObject.Capacitor = 0
   }
 
@@ -34,14 +39,21 @@ trait VehicleCapacitance {
       capacitorCharge(amount)
   }
 
-  protected def capacitorCharge(amount: Int): Unit = {
+  protected def capacitorCharge(amount: Int): Boolean = {
+    capacitorOnlyCharge(amount)
+    startCapacitorTimer()
+    true
+  }
+
+  protected def capacitorOnlyCharge(amount: Int): Boolean = {
     val obj = CapacitanceObject
-    if (obj.Capacitor < obj.Definition.MaxCapacitor) {
-      obj.Capacitor += amount
+    val capacitorBefore = obj.Capacitor
+    val capacitorAfter = obj.Capacitor += amount
+    if (capacitorBefore != capacitorAfter) {
       showCapacitorCharge()
-      startCapacitorTimer()
+      true
     } else {
-      capacitor = Default.Cancellable
+      false
     }
   }
 
@@ -53,14 +65,14 @@ trait VehicleCapacitance {
     )
   }
 
-  //TODO switch from magic numbers to definition numbers?
   protected def startCapacitorTimer(): Unit = {
     val obj = CapacitanceObject
-    if (obj.Definition.MaxCapacitor > obj.Capacitor) {
+    if (obj.Capacitor < obj.Definition.MaxCapacitor) {
+      capacitor.cancel()
       capacitor = context.system.scheduler.scheduleOnce(
         delay = 1000 millisecond,
         self,
-        VehicleCapacitance.CapacitorCharge(10)
+        VehicleCapacitance.CapacitorCharge(obj.Definition.CapacitorRecharge)
       )
     }
   }

@@ -46,11 +46,7 @@ class ApcControl(vehicle: Vehicle)
       val emp = obj.Definition.innateDamage.getOrElse { SpecialEmp.emp }
       val faction = obj.Faction
       //drain the capacitor
-      obj.Capacitor = 0
-      events ! VehicleServiceMessage(
-        self.toString(),
-        VehicleAction.PlanetsideAttribute(GUID0, obj.GUID, 113, 0)
-      )
+      capacitorCharge(-vehicle.Capacitor)
       //cause the emp
       events ! VehicleServiceMessage(
         zone.id,
@@ -74,7 +70,7 @@ class ApcControl(vehicle: Vehicle)
         Zone.findAllTargets
       )
       //start charging again
-      startCapacitorTimer()
+      //startCapacitorTimer()
     }
   }
 

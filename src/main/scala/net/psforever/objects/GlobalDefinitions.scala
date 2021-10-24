@@ -7150,6 +7150,7 @@ object GlobalDefinitions {
     apc_tr.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_tr.Geometry = apcForm
     apc_tr.MaxCapacitor = 300
+    apc_tr.CapacitorRecharge = 10
     apc_tr.collision.avatarCollisionDamageMax = 300
     apc_tr.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
     apc_tr.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
@@ -7218,6 +7219,7 @@ object GlobalDefinitions {
     apc_nc.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_nc.Geometry = apcForm
     apc_nc.MaxCapacitor = 300
+    apc_nc.CapacitorRecharge = 10
     apc_nc.collision.avatarCollisionDamageMax = 300
     apc_nc.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
     apc_nc.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
@@ -7286,6 +7288,7 @@ object GlobalDefinitions {
     apc_vs.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_vs.Geometry = apcForm
     apc_vs.MaxCapacitor = 300
+    apc_vs.CapacitorRecharge = 10
     apc_vs.collision.avatarCollisionDamageMax = 300
     apc_vs.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
     apc_vs.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
@@ -8332,7 +8335,7 @@ object GlobalDefinitions {
     aphelion_flight.ShieldAutoRecharge = 12 //12.5
     aphelion_flight.ShieldAutoRechargeSpecial = 25
     aphelion_flight.ShieldDrain = 30
-    //aphelion_flight.DefaultShields = aphelion_flight.MaxShields
+    aphelion_flight.DefaultShields = aphelion_flight.MaxShields
     aphelion_flight.Seats += 0       -> driverSeat
     aphelion_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
     aphelion_flight.Weapons += 1     -> aphelion_ppa_left
@@ -8360,6 +8363,11 @@ object GlobalDefinitions {
     aphelion_flight.DrownAtMaxDepth = true
     aphelion_flight.MaxDepth = 2.0f
     aphelion_flight.Geometry = GeometryForm.representByCylinder(radius = 1.98045f, height = 6.03125f)
+    aphelion_flight.MaxCapacitor = 156
+    aphelion_flight.DefaultCapacitor = aphelion_flight.MaxCapacitor
+    aphelion_flight.CapacitorDrain = 16
+    aphelion_flight.CapacitorDrainSpecial = 3
+    aphelion_flight.CapacitorRecharge = 42
     aphelion_flight.collision.avatarCollisionDamageMax = 300
     aphelion_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     aphelion_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
