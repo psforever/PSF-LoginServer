@@ -3103,10 +3103,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     session = session.copy(player = tplayer)
     val guid = tplayer.GUID
     UpdateDeployableUIElements(Deployables.InitializeDeployableUIElements(avatar))
+    sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 75, 0))
     sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
-    sendResponse(GenericActionMessage(24))
-    sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
     val pos    = player.Position = shiftPosition.getOrElse(tplayer.Position)
     val orient = player.Orientation = shiftOrientation.getOrElse(tplayer.Orientation)
     sendResponse(PlayerStateShiftMessage(ShiftState(1, pos, orient.z)))
@@ -3143,10 +3142,19 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(guid, 53, 1))
     }
     sendResponse(AvatarSearchCriteriaMessage(guid, List(0, 0, 0, 0, 0, 0)))
-    (1 to 73).foreach(i => {
-      // not all GUID's are set, and not all of the set ones will always be zero; what does this section do?
-      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(i), 67, 0))
-    })
+    //these are facilities and towers and bunkers in the zone, but not necessarily all of them for some reason
+    //for standard zones, facilities are 1, towers and bunkers are 0
+    //for caverns, who knows
+    continent.Buildings
+      .filter { case (_, building) =>
+        val buildingType = building.BuildingType
+        buildingType == StructureType.Facility ||
+        buildingType == StructureType.Tower ||
+        buildingType == StructureType.Bunker
+      }
+      .foreach { case (_, building) =>
+      sendResponse(PlanetsideAttributeMessage(building.GUID, 67, building.BuildingType == StructureType.Facility))
+    }
     (0 to 30).foreach(i => {
       //TODO 30 for a new character only?
       sendResponse(AvatarStatisticsMessage(2, Statistics(0L)))

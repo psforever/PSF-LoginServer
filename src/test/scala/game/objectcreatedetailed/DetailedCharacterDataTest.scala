@@ -160,7 +160,7 @@ class DetailedCharacterDataTest extends Specification {
                   b.unk6 mustEqual 0L
                   b.unk7 mustEqual 0L
                   b.unk8 mustEqual 0L
-                  b.unk9.contains(DCDExtra2(0, 0)) mustEqual true
+                  b.unk9.contains(ImprintingProgress(0, 0)) mustEqual true
                   b.unkA mustEqual Nil
                   b.unkB mustEqual Nil
                   b.unkC mustEqual false
@@ -348,7 +348,7 @@ class DetailedCharacterDataTest extends Specification {
                   b.unk6 mustEqual 0L
                   b.unk7 mustEqual 0L
                   b.unk8 mustEqual 0L
-                  b.unk9.contains(DCDExtra2(0, 0)) mustEqual true
+                  b.unk9.contains(ImprintingProgress(0, 0)) mustEqual true
                   b.unkA mustEqual Nil
                   b.unkB mustEqual Nil
                   b.unkC mustEqual false
@@ -575,7 +575,7 @@ class DetailedCharacterDataTest extends Specification {
                   b.unk6 mustEqual 0L
                   b.unk7 mustEqual 0L
                   b.unk8 mustEqual 0L
-                  b.unk9.contains(DCDExtra2(0, 0)) mustEqual true
+                  b.unk9.contains(ImprintingProgress(0, 0)) mustEqual true
                   b.unkA mustEqual Nil
                   b.unkB mustEqual Nil
                   b.unkC mustEqual false
@@ -1614,7 +1614,7 @@ class DetailedCharacterDataTest extends Specification {
         0L,
         0L,
         0L,
-        Some(DCDExtra2(0, 0)),
+        Some(ImprintingProgress(0, 0)),
         Nil,
         Nil,
         false,
@@ -1796,7 +1796,7 @@ class DetailedCharacterDataTest extends Specification {
         0L,
         0L,
         0L,
-        Some(DCDExtra2(0, 0)),
+        Some(ImprintingProgress(0, 0)),
         Nil,
         Nil,
         false,
@@ -2022,7 +2022,7 @@ class DetailedCharacterDataTest extends Specification {
         0L,
         0L,
         0L,
-        Some(DCDExtra2(0, 0)),
+        Some(ImprintingProgress(0, 0)),
         Nil,
         Nil,
         false,

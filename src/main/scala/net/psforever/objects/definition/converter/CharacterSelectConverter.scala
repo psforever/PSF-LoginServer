@@ -119,7 +119,7 @@ class CharacterSelectConverter extends AvatarConverter {
       0L,
       0L,
       0L,
-      Some(DCDExtra2(0, 0)),
+      Some(ImprintingProgress(0, 0)),
       Nil,
       Nil,
       unkC = false,

@@ -160,7 +160,7 @@ object AvatarConverter {
       0L,
       0L,
       0L,
-      Some(DCDExtra2(0, 0)),
+      None, //Some(ImprintingProgress(0, 0)),
       Nil,
       Nil,
       unkC = false,
