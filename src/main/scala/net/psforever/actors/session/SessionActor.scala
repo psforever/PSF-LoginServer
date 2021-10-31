@@ -1418,7 +1418,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           //rejoin current avatar/player
           log.info(s"LoginInfo: player $playerName is alive")
           deadState = DeadState.Alive
-          session = session.copy(player = p)
+          session = session.copy(player = p, avatar = a)
           persist()
           setupAvatarFunc = AvatarRejoin
           avatarActor ! AvatarActor.ReplaceAvatar(a)
@@ -1428,7 +1428,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           //convert player to a corpse (unless in vehicle); automatic recall to closest spawn point
           log.info(s"LoginInfo: player $playerName is dead")
           deadState = DeadState.Dead
-          session = session.copy(player = p)
+          session = session.copy(player = p, avatar = a)
           persist()
           player.Zone = inZone
           HandleReleaseAvatar(p, inZone)
@@ -1449,7 +1449,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 tplayer.Release //for proper respawn
                 tplayer.Zone = inZone
                 tplayer
-            }
+            }, avatar = a
           )
           avatarActor ! AvatarActor.ReplaceAvatar(a)
           avatarActor ! AvatarActor.LoginAvatar(context.self)

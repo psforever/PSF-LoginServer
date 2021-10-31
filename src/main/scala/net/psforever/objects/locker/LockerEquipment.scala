@@ -8,7 +8,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 /**
   * A wrapper class that allows a player-facing locker component
-  * to be treated standard `Equipment` object in the player's fifth (sixth) slot.
+  * to be treated like a standard `Equipment` object in the player's fifth (sixth) slot.
   * (The opposite is not true - the equipment does not get treated as a locker component.)
   * During packet conversion and registration and general access in terms of holsters or "equipment slots",
   * the component may be be treated the same as other existing objects at the same level.
