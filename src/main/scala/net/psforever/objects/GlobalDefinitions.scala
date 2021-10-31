@@ -8169,6 +8169,7 @@ object GlobalDefinitions {
       VehicleSubsystemEntry.BattleframeMovementServo,
       VehicleSubsystemEntry.BattleframeWeaponry,
       VehicleSubsystemEntry.BattleframeSensorArray,
+      VehicleSubsystemEntry.BattleframeShieldGenerator,
       VehicleSubsystemEntry.BattleframeTrunk
     )
     val bfrFlightSubsystems = bfrSubsystems :+ VehicleSubsystemEntry.BattleframeFlightPod
@@ -8215,7 +8216,8 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     aphelion_gunner.DrownAtMaxDepth = true
-    aphelion_gunner.MaxDepth = 2.0f
+    aphelion_gunner.MaxDepth = 5.09375f
+    aphelion_gunner.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
     aphelion_gunner.Geometry = GeometryForm.representByCylinder(radius = 1.2618f, height = 6.01562f)
     aphelion_gunner.collision.avatarCollisionDamageMax = 300
     aphelion_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
@@ -8264,12 +8266,13 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     colossus_gunner.DrownAtMaxDepth = true
-    colossus_gunner.MaxDepth = 3.0f
-    //colossus_gunner.Geometry = ...
+    colossus_gunner.MaxDepth = 5.515625f
+    colossus_gunner.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
+    colossus_gunner.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 5.984375f)
     colossus_gunner.collision.avatarCollisionDamageMax = 300
     colossus_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     colossus_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    //colossus_gunner.maxForwardSpeed = ...
+    colossus_gunner.maxForwardSpeed = 19
     colossus_gunner.mass = 709.7f
 
     peregrine_gunner.Name = "peregrine_gunner"
@@ -8313,12 +8316,13 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     peregrine_gunner.DrownAtMaxDepth = true
-    peregrine_gunner.MaxDepth = 2.5f
-    //peregrine_gunner.Geometry = ...
+    peregrine_gunner.MaxDepth = 6.03125f
+    peregrine_gunner.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
+    peregrine_gunner.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 6.421875f)
     peregrine_gunner.collision.avatarCollisionDamageMax = 300
     peregrine_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     peregrine_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    peregrine_gunner.maxForwardSpeed = 24
+    peregrine_gunner.maxForwardSpeed = 19
     peregrine_gunner.mass = 713f
 
     val battleFrameFlightConverter = new BattleFrameFlightConverter
@@ -8342,7 +8346,7 @@ object GlobalDefinitions {
     aphelion_flight.Weapons += 2     -> aphelion_ppa_right
     aphelion_flight.MountPoints += 1 -> MountInfo(0)
     aphelion_flight.subsystems = bfrFlightSubsystems
-    aphelion_flight.TrunkSize = InventoryTile.Tile1518 //adb reports 15x11, but the graphic uses 15x18
+    aphelion_flight.TrunkSize = InventoryTile.Tile1511
     aphelion_flight.TrunkOffset = 30
     aphelion_flight.TrunkLocation = Vector3(0f, -2f, 0f)
     aphelion_flight.AutoPilotSpeeds = (5, 1)
@@ -8361,7 +8365,8 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     aphelion_flight.DrownAtMaxDepth = true
-    aphelion_flight.MaxDepth = 2.0f
+    aphelion_flight.MaxDepth = 5.09375f
+    aphelion_flight.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
     aphelion_flight.Geometry = GeometryForm.representByCylinder(radius = 1.98045f, height = 6.03125f)
     aphelion_flight.MaxCapacitor = 156
     aphelion_flight.DefaultCapacitor = aphelion_flight.MaxCapacitor
@@ -8393,7 +8398,7 @@ object GlobalDefinitions {
     colossus_flight.Weapons += 2     -> colossus_tank_cannon_right
     colossus_flight.MountPoints += 1 -> MountInfo(0)
     colossus_flight.subsystems = bfrFlightSubsystems
-    colossus_flight.TrunkSize = InventoryTile.Tile1518 //adb reports 15x11, but the graphic uses 15x18
+    colossus_flight.TrunkSize = InventoryTile.Tile1511
     colossus_flight.TrunkOffset = 30
     colossus_flight.TrunkLocation = Vector3(0f, -5f, 0f)
     colossus_flight.AutoPilotSpeeds = (5, 1)
@@ -8412,8 +8417,9 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     colossus_flight.DrownAtMaxDepth = true
-    colossus_flight.MaxDepth = 3.0f
-    //colossus_flight.Geometry = ...
+    colossus_flight.MaxDepth = 5.515625f
+    colossus_flight.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
+    colossus_flight.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 5.984375f)
     colossus_flight.collision.avatarCollisionDamageMax = 300
     colossus_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     colossus_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
@@ -8439,7 +8445,7 @@ object GlobalDefinitions {
     peregrine_flight.Weapons += 2     -> peregrine_dual_machine_gun_right
     peregrine_flight.MountPoints += 1 -> MountInfo(0)
     peregrine_flight.subsystems = bfrFlightSubsystems
-    peregrine_flight.TrunkSize = InventoryTile.Tile1518 //adb reports 15x11, but the graphic uses 15x18
+    peregrine_flight.TrunkSize = InventoryTile.Tile1511
     peregrine_flight.TrunkOffset = 30
     peregrine_flight.TrunkLocation = Vector3(0f, -5f, 0f)
     peregrine_flight.AutoPilotSpeeds = (5, 1)
@@ -8458,12 +8464,13 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     peregrine_flight.DrownAtMaxDepth = true
-    peregrine_flight.MaxDepth = 2.5f
-    //peregrine_flight.Geometry = ...
+    peregrine_flight.MaxDepth = 6.03125f
+    peregrine_flight.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
+    peregrine_flight.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 6.421875f)
     peregrine_flight.collision.avatarCollisionDamageMax = 300
     peregrine_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     peregrine_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    peregrine_flight.maxForwardSpeed = 34
+    peregrine_flight.maxForwardSpeed = 38
     peregrine_flight.mass = 713f
   }
 

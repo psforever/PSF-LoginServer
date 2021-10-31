@@ -253,12 +253,12 @@ class MountedVehiclesTest extends Specification {
         )
       )
     )
-    val player = VehicleData.PlayerData(
+    val player = MountableInventory.PlayerData(
       app,
       char,
       inv,
       DrawnSlot.None,
-      VehicleData.InitialStreamLengthToSeatEntries(true, VehicleFormat.Variant)
+      MountableInventory.InitialStreamLengthToSeatEntries(true, VehicleFormat.Variant)
     )
     val obj = VehicleData(
       PlacementData(

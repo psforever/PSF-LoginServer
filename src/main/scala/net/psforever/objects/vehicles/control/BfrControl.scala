@@ -7,7 +7,7 @@ import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentHandiness, Handiness}
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.vehicles.VehicleSubsystemEntry
+import net.psforever.objects.vehicles.{VehicleSubsystem, VehicleSubsystemEntry}
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.GenericObjectActionMessage
@@ -68,26 +68,32 @@ class BfrControl(vehicle: Vehicle)
         )
       case None => ; //no dimorphic entry; place as-is
     }
+    //if the weapon arm is disabled, enable it before removing (makes life easy)
+    parseObjectAction(item.GUID, action = 38, None)
     super.RemoveItemFromSlotCallback(item, slot)
   }
 
   override def PutItemInSlotCallback(item: Equipment, slot: Int): Unit = {
-    BfrControl.dimorphics.find { _.contains(item.Definition) } match {
+    val definition = item.Definition
+    val handiness = BfrControl.dimorphics.find { _.contains(definition) } match {
       case Some(dimorph) if vehicle.VisibleSlots.contains(slot) => //left-handed or right-handed variant
+        val handiness = bfrHandiness(slot)
         Tool.LoadDefinition(
           item.asInstanceOf[Tool],
-          dimorph.transform(
-            if (slot == 2) Handiness.Left else Handiness.Right
-          ).asInstanceOf[ToolDefinition]
+          dimorph.transform(handiness).asInstanceOf[ToolDefinition]
         )
+        handiness
       case Some(dimorph) => //revert to a generic variant
         Tool.LoadDefinition(
           item.asInstanceOf[Tool],
           dimorph.transform(Handiness.Generic).asInstanceOf[ToolDefinition]
         )
-      case None => ; //no dimorphic entry; place as-is
+        Handiness.Generic
+      case None => //no dimorphic entry; place as-is
+        Handiness.Generic
     }
     super.PutItemInSlotCallback(item, slot)
+    specialArmWeaponEquipManagement(Some(item, slot, handiness))
   }
 
   def disableShieldIfDrained(): Unit = {
@@ -120,7 +126,7 @@ class BfrControl(vehicle: Vehicle)
   def chargeShieldsOnly(amount: Int): Unit = {
     val definition = vehicle.Definition
     val before = vehicle.Shields
-    val after = if (canChargeShields()) {
+    if (canChargeShields()) {
       val chargeAmount = (if (vehicle.DeploymentState == DriveState.Kneeling || vehicle.Seats(0).occupant.nonEmpty) {
         definition.ShieldAutoRechargeSpecial
       } else {
@@ -133,9 +139,6 @@ class BfrControl(vehicle: Vehicle)
       if (before == 0 && after > 0) {
         enableShield()
       }
-      after
-    } else {
-      before
     }
   }
 
@@ -170,11 +173,11 @@ class BfrControl(vehicle: Vehicle)
     super.parseObjectAction(guid, action, other)
     if (action == 38 || action == 39) {
       //disable or enable fire control for the left arm weapon or for the right arm weapon
-      ((vehicle.Weapons
-        .find { case (_, slot) => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid } match {
-        case Some((2, _)) => vehicle.Subsystems(VehicleSubsystemEntry.BattleframeLeftArm)
-        case Some((3, _)) => vehicle.Subsystems(VehicleSubsystemEntry.BattleframeRightArm)
-        case _            => None
+      ((vehicle.Weapons.find { case (_, slot) => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid } match {
+        case Some((slot, _)) =>
+          bfrHandSubsystem(bfrHandiness(slot))
+        case _ =>
+          None
       }) match {
         case subsys @ Some(subsystem) =>
           if (action == 38 && !subsystem.enabled) {
@@ -201,6 +204,89 @@ class BfrControl(vehicle: Vehicle)
           )
         case None => ;
       }
+    }
+  }
+
+  def bfrHandiness(slot: Int): equipment.Hand = {
+    //for the benefit of BFR equipment slots interacting with MoveItemMessage
+    if (slot == 2) Handiness.Left else if (slot == 3) Handiness.Right else Handiness.Generic
+  }
+
+  def bfrHandSubsystem(side: equipment.Hand): Option[VehicleSubsystem] = {
+    //for the benefit of BFR equipment slots interacting with MoveItemMessage
+    side match {
+      case Handiness.Left => vehicle.Subsystems(VehicleSubsystemEntry.BattleframeLeftArm)
+      case Handiness.Right => vehicle.Subsystems(VehicleSubsystemEntry.BattleframeRightArm)
+      case _              => None
+    }
+  }
+
+  def specialArmWeaponEquipManagement(params: Option[(Equipment, Int, equipment.Hand)]): Unit = {
+    val weapons = vehicle.Weapons
+    val firstArmSlot = vehicle.Weapons.keys.min
+    val leftArm = bfrHandSubsystem(Handiness.Left).get
+    val rightArm = bfrHandSubsystem(Handiness.Right).get
+    params match {
+      case Some((item, slot, handiness)) =>
+        //budget logic: the arm weapons are "next to each other" index-wise
+        val otherArmEquipment = (if (firstArmSlot == slot) weapons(slot + 1) else weapons(slot - 1)).Equipment
+        val definition = item.Definition
+        if (
+          (GlobalDefinitions.isBattleFrameArmorSiphon(definition) ||
+           GlobalDefinitions.isBattleFrameNTUSiphon(definition)) &&
+          otherArmEquipment.nonEmpty
+        ) {
+          if ((handiness == Handiness.Left && rightArm.enabled) ||
+             (handiness == Handiness.Right && leftArm.enabled)
+          ) {
+            //there is active equipment attached to the other arm; this arm can safely be disabled
+            parseObjectAction(item.GUID, action = 39, None)
+          } else if (
+            ((handiness == Handiness.Left && !rightArm.enabled) ||
+             (handiness == Handiness.Right && !leftArm.enabled)) &&
+            {
+              val edef = otherArmEquipment.get.Definition
+              !(GlobalDefinitions.isBattleFrameArmorSiphon(edef) || GlobalDefinitions.isBattleFrameNTUSiphon(edef))
+            }
+          ) {
+            //there is non-siphon equipment attached to the other arm, but it needs to be re-enabled
+            parseObjectAction(otherArmEquipment.get.GUID, action = 38, None)
+            parseObjectAction(item.GUID, action = 39, None)
+          }
+        }
+      case None =>
+        //if one arm is a siphon, only one arm on the BFR should be enabled at a time
+        (
+          weapons.get(firstArmSlot  ).map { _.Equipment }.head,
+          weapons.get(firstArmSlot+1).map { _.Equipment }.head
+        ) match {
+          case (Some(lequipment), Some(requipment)) =>
+            if (leftArm.enabled && rightArm.enabled) {
+              if ( {
+                val lEquipDef = lequipment.Definition
+                GlobalDefinitions.isBattleFrameArmorSiphon(lEquipDef) ||
+                GlobalDefinitions.isBattleFrameNTUSiphon(lEquipDef)
+              }) {
+                //disable left arm
+                parseObjectAction(lequipment.GUID, action = 39, None)
+              }
+              else if ( {
+                val rEquipDef = requipment.Definition
+                GlobalDefinitions.isBattleFrameArmorSiphon(rEquipDef) ||
+                GlobalDefinitions.isBattleFrameNTUSiphon(rEquipDef)
+              }) {
+                //disable right arm
+                parseObjectAction(requipment.GUID, action = 39, None)
+              }
+            }
+          case (Some(lequipment), None) =>
+            //make certain left arm is enabled
+            parseObjectAction(lequipment.GUID, action = 38, None)
+          case (None, Some(requipment)) =>
+            //make certain right arm is enabled
+            parseObjectAction(requipment.GUID, action = 38, None)
+          case _ => ;
+        }
     }
   }
 }

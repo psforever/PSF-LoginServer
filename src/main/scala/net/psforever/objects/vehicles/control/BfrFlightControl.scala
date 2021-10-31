@@ -1,8 +1,10 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vehicles.control
 
-import net.psforever.objects.Vehicle
+import net.psforever.objects.equipment.Handiness
+import net.psforever.objects.{Vehicle, equipment}
 import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.vehicles.VehicleSubsystemEntry
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.types.Vector3
 
@@ -49,11 +51,14 @@ class BfrFlightControl(vehicle: Vehicle)
             false
           })
         }
+        //shields off
+        vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled = false
         //shield drain
         if (vehicle.Shields > 0) {
           vehicle.Definition.ShieldDrain match {
             case Some(drain) if localFlyingValue.isEmpty =>
               disableShield()
+              vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled = false
               vehicle.Shields -= drain
               showShieldCharge()
             case Some(drain) =>
@@ -67,6 +72,7 @@ class BfrFlightControl(vehicle: Vehicle)
         if (flying.nonEmpty) {
           flying = None
           vehicle.Flying = None
+          vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled = true
           if (vehicle.Shields > 0) {
             enableShield()
           }
@@ -98,6 +104,11 @@ class BfrFlightControl(vehicle: Vehicle)
     } else {
       false
     }
+  }
+
+  override def bfrHandiness(slot: Int): equipment.Hand = {
+    //for the benefit of BFR equipment slots interacting with MoveItemMessage
+    if (slot == 1) Handiness.Left else if (slot == 2) Handiness.Right else Handiness.Generic
   }
 }
 

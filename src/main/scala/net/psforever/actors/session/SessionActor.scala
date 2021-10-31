@@ -3103,9 +3103,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     session = session.copy(player = tplayer)
     val guid = tplayer.GUID
     UpdateDeployableUIElements(Deployables.InitializeDeployableUIElements(avatar))
-    sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 75, 0))
     sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
+    sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, true, "", "1 on", None)) //CC on //TODO once per respawn?
     val pos    = player.Position = shiftPosition.getOrElse(tplayer.Position)
     val orient = player.Orientation = shiftOrientation.getOrElse(tplayer.Orientation)
     sendResponse(PlayerStateShiftMessage(ShiftState(1, pos, orient.z)))
@@ -3144,7 +3144,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     sendResponse(AvatarSearchCriteriaMessage(guid, List(0, 0, 0, 0, 0, 0)))
     //these are facilities and towers and bunkers in the zone, but not necessarily all of them for some reason
     //for standard zones, facilities are 1, towers and bunkers are 0
-    //for caverns, who knows
+    //for standard zone facilities in a position for valid vehicle gate shield benefits, 1 activates that shield
+    //for caverns, who knows what this does
+    //why is this all set in bulk?
     continent.Buildings
       .filter { case (_, building) =>
         val buildingType = building.BuildingType
@@ -3153,7 +3155,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         buildingType == StructureType.Bunker
       }
       .foreach { case (_, building) =>
-      sendResponse(PlanetsideAttributeMessage(building.GUID, 67, building.BuildingType == StructureType.Facility))
+      sendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0/*building.BuildingType == StructureType.Facility*/))
     }
     (0 to 30).foreach(i => {
       //TODO 30 for a new character only?
@@ -3909,9 +3911,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //the majority of the following check retrieves information to determine if we are in control of the child
         tools.find { _.GUID == object_guid } match {
           case None =>
-            log.warn(
-              s"ChildObjectState: ${player.Name} is using a different controllable agent than entity ${object_guid.guid}"
-            )
+            //todo: old warning; this state is problematic, but can trigger in otherwise valid instances
+            //log.warn(
+            //  s"ChildObjectState: ${player.Name} is using a different controllable agent than entity ${object_guid.guid}"
+            //)
           case Some(tool) =>
             //TODO set tool orientation?
             player.Orientation = Vector3(0f, pitch, yaw)
@@ -4070,6 +4073,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             obj.Position = pos
             obj.Orientation = ang
             obj.Velocity = vel
+//            if (is_crouched && obj.DeploymentState != DriveState.Kneeling) {
+//              //dev stuff goes here
+//            } else if (!is_crouched && obj.DeploymentState == DriveState.Kneeling) {
+//              //dev stuff goes here
+//            }
             obj.DeploymentState = if (is_crouched) DriveState.Kneeling else DriveState.Mobile
             if (mountedState && obj.DeploymentState != DriveState.Kneeling) {
               if (is_airborne) {
@@ -6384,21 +6392,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     *         the second value is an `Equipment` object in the former
     */
   def FindContainedEquipment(): (Option[PlanetSideGameObject with Container], Set[Equipment]) = {
-    player.VehicleSeated match {
-      case Some(vehicle_guid) => //weapon is vehicle turret?
-        continent.GUID(vehicle_guid) match {
-          case Some(vehicle: Mountable with MountableWeapons with Container) =>
-            vehicle.PassengerInSeat(player) match {
-              case Some(seat_num) =>
-                (Some(vehicle), vehicle.WeaponControlledFromSeat(seat_num))
-              case None => ;
-                (None, Set.empty)
-            }
-          case _ => ;
+    continent.GUID(player.VehicleSeated) match {
+      case Some(vehicle: Mountable with MountableWeapons with Container) =>
+        vehicle.PassengerInSeat(player) match {
+          case Some(seat_num) =>
+            (Some(vehicle), vehicle.WeaponControlledFromSeat(seat_num))
+          case None =>
             (None, Set.empty)
         }
-      case None => //not in vehicle; weapon in hand?
-        (Some(player), player.Slot(player.DrawnSlot).Equipment match { case Some(a) => Set(a); case _ => Set.empty })
+      case _ =>
+        player.Slot(player.DrawnSlot).Equipment match {
+          case Some(a) =>
+            (Some(player), Set(a))
+          case _ =>
+            (None, Set.empty)
+        }
     }
   }
 

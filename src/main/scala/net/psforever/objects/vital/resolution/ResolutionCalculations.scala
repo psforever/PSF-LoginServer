@@ -6,6 +6,7 @@ import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
+import net.psforever.objects.vehicles.VehicleSubsystemEntry
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.{DamagingActivity, Vitality, VitalsHistory}
 import net.psforever.objects.vital.damage.DamageCalculations
@@ -332,7 +333,10 @@ object ResolutionCalculations {
       case (obj: Vehicle, reason: ProjectileReason)
         if CanDamage(obj, damage, data) &&
            GlobalDefinitions.isBattleFrameVehicle(obj.Definition) &&
-           reason.projectile.profile.DamageToBattleframeOnly =>
+           (
+             reason.projectile.profile.DamageToBattleframeOnly ||
+             !obj.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled
+             ) =>
         obj.Health = obj.Health - damage
         DamageResult(targetBefore, SourceEntry(target), data)
 

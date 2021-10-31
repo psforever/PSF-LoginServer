@@ -3,7 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.ce.InteractWithMines
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
-import net.psforever.objects.equipment.{EquipmentSlot, JammableUnit}
+import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
 import net.psforever.objects.serverobject.mount.{MountableEntity, Seat, SeatDefinition}
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -22,6 +22,7 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
+import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Success, Try}
 
@@ -367,10 +368,14 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
       .get
   }
 
-  override def SlotMapResolution(slot : Int) : Int = {
+  override def SlotMapResolution(slot: Int): Int = {
     if (GlobalDefinitions.isBattleFrameVehicle(vehicleDef)) {
-      //for the benefit of BFR equipment slots
-      if (slot == 0) 2 else if (slot == 1) 3 else if (slot == 2) 4 else slot
+      //for the benefit of BFR equipment slots interacting with MoveItemMessage
+      if (VisibleSlots.size == 2) {
+        if (slot == 0) 1 else if (slot == 1) 2 else slot //*_flight
+      } else {
+        if (slot == 0) 2 else if (slot == 1) 3 else if (slot == 2) 4 else slot //*_gunner
+      }
     } else {
       slot
     }
@@ -386,6 +391,31 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     }) match {
       case Some((index, _)) => Some(index)
       case None             => Inventory.Find(guid)
+    }
+  }
+
+  override def Fit(obj: Equipment): Option[Int] = {
+    recursiveSlotFit(weapons.iterator, obj.Size) match {
+      case Some(index) =>
+        Some(index)
+      case None =>
+        trunk.Fit(obj.Definition.Tile)
+    }
+  }
+
+  @tailrec private def recursiveSlotFit(
+                                         iter: Iterator[(Int, EquipmentSlot)],
+                                         objSize: EquipmentSize.Value
+                                       ): Option[Int] = {
+    if (!iter.hasNext) {
+      None
+    } else {
+      val (index, slot) = iter.next()
+      if (slot.Equipment.isEmpty && slot.Size.equals(objSize)) {
+        Some(index)
+      } else {
+        recursiveSlotFit(iter, objSize)
+      }
     }
   }
 

@@ -464,12 +464,12 @@ class VehicleControl(vehicle: Vehicle)
   }
 
   def PutItemInSlotCallback(item: Equipment, slot: Int): Unit = {
-    val obj        = ContainerObject
-    val oguid      = obj.GUID
-    val zone       = obj.Zone
-    val channel    = self.toString
-    val events     = zone.VehicleEvents
-    val iguid      = item.GUID
+    val obj      = ContainerObject
+    val oguid    = obj.GUID
+    val zone     = obj.Zone
+    val channel  = self.toString
+    val events   = zone.VehicleEvents
+    val iguid    = item.GUID
     item.Faction = obj.Faction
     events ! VehicleServiceMessage(
       //TODO when a new weapon, the equipment slot ui goes blank, but the weapon functions; remount vehicle to correct it
