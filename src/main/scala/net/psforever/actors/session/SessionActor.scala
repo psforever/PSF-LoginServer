@@ -431,9 +431,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       accountPersistence ! AccountPersistenceService.Login(avatar.name)
 
     case AvatarActor.AvatarLoginResponse(avatar) =>
-      session = session.copy(avatar = avatar)
-      Deployables.InitializeDeployableQuantities(avatar)
-      cluster ! ICS.FilterZones(_ => true, context.self)
+      avatarLoginResponse(avatar)
 
     case packet: PlanetSideGamePacket =>
       handleGamePkt(packet)
@@ -1390,7 +1388,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       deadState = DeadState.RespawnTime
 
       session = session.copy(player = new Player(avatar))
-      //ay-coordinates indicate sanctuary spawn bias:
+      //xy-coordinates indicate sanctuary spawn bias:
       player.Position = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 4) match {
         case 0 => Vector3(8192, 8192, 0) //NE
         case 1 => Vector3(8192, 0, 0)    //SE
@@ -1422,7 +1420,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           persist()
           setupAvatarFunc = AvatarRejoin
           avatarActor ! AvatarActor.ReplaceAvatar(a)
-          avatarActor ! AvatarActor.LoginAvatar(context.self)
+          avatarLoginResponse(a)
 
         case (Some(a), Some(p)) =>
           //convert player to a corpse (unless in vehicle); automatic recall to closest spawn point
@@ -1433,7 +1431,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           player.Zone = inZone
           HandleReleaseAvatar(p, inZone)
           avatarActor ! AvatarActor.ReplaceAvatar(a)
-          avatarActor ! AvatarActor.LoginAvatar(context.self)
+          avatarLoginResponse(a)
 
         case (Some(a), None) =>
           //respawn avatar as a new player; automatic recall to closest spawn point
@@ -1452,7 +1450,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }, avatar = a
           )
           avatarActor ! AvatarActor.ReplaceAvatar(a)
-          avatarActor ! AvatarActor.LoginAvatar(context.self)
+          avatarLoginResponse(a)
 
         case _ =>
           //fall back to sanctuary/prior?
@@ -9376,6 +9374,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       heightHistory = zHeight
     }
     heightLast = zHeight
+  }
+
+  /**
+    * During login, when the avatar is set, the response code sets up session and deployable toolbox stats.
+    * Immediately contact the interstellar cluster to deal with zoning conditions.
+    * Only call this once during login and never any time after that.
+    * @param avatar the avatar being set as the current one belonging to this session
+    */
+  def avatarLoginResponse(avatar: Avatar): Unit = {
+    session = session.copy(avatar = avatar)
+    Deployables.InitializeDeployableQuantities(avatar)
+    cluster ! ICS.FilterZones(_ => true, context.self)
   }
 
   def failWithError(error: String) = {

@@ -366,30 +366,26 @@ class AvatarActor(
 
           result.onComplete {
             case Success((loadouts, implants, certs, locker)) =>
-              val validatedLocker = if (avatar.locker.HasGUID || avatar.locker.Inventory.Size > 0) {
-                //if locker shows indication of being previously used, this player is rejoining an active session
-                avatar.locker
-              } else {
-                locker
-              }
               avatar = avatar.copy(
                 loadouts = loadouts,
                 // make sure we always have the base certifications
                 certifications =
                   certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
                 implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
-                locker = validatedLocker
+                locker = locker
               )
-
               staminaRegenTimer.cancel()
               staminaRegenTimer = defaultStaminaRegen()
               replyTo ! AvatarLoginResponse(avatar)
-            case Failure(e) => log.error(e)("db failure")
+            case Failure(e) =>
+              log.error(e)("db failure")
           }
           Behaviors.same
 
         case ReplaceAvatar(newAvatar) =>
           replaceAvatar(newAvatar)
+          staminaRegenTimer.cancel()
+          staminaRegenTimer = defaultStaminaRegen()
           Behaviors.same
 
         case AddFirstTimeEvent(event) =>
