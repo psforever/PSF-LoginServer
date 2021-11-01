@@ -54,7 +54,7 @@ lazy val psforeverSettings = Seq(
     "com.typesafe.scala-logging" %% "scala-logging"              % "3.9.4",
     "org.specs2"                 %% "specs2-core"                % "4.13.0" % "test",
     "org.scalatest"              %% "scalatest"                  % "3.2.10"  % "test",
-    "org.scodec"                 %% "scodec-core"                % "1.11.8",
+    "org.scodec"                 %% "scodec-core"                % "1.11.9",
     "ch.qos.logback"              % "logback-classic"            % "1.2.6",
     "org.log4s"                  %% "log4s"                      % "1.10.0",
     "org.fusesource.jansi"        % "jansi"                      % "2.4.0",
