@@ -374,16 +374,18 @@ class AvatarActor(
                 implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
                 locker = locker
               )
-
               staminaRegenTimer.cancel()
               staminaRegenTimer = defaultStaminaRegen()
               replyTo ! AvatarLoginResponse(avatar)
-            case Failure(e) => log.error(e)("db failure")
+            case Failure(e) =>
+              log.error(e)("db failure")
           }
           Behaviors.same
 
         case ReplaceAvatar(newAvatar) =>
           replaceAvatar(newAvatar)
+          staminaRegenTimer.cancel()
+          staminaRegenTimer = defaultStaminaRegen()
           Behaviors.same
 
         case AddFirstTimeEvent(event) =>
