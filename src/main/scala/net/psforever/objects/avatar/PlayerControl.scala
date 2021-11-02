@@ -265,7 +265,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                       (None, 0, 0, "Stamina at maximum - No recharge required.")
                     } else {
                       avatarActor ! AvatarActor.RestoreStamina(100)
-                      (Some(index), 2, player.avatar.stamina, "")
+                      //proper stamina update will occur due to above message; update something relatively harmless instead
+                      (Some(index), 3, player.avatar.maxStamina, "")
                     }
                   } else {
                     log.warn(s"UseItem: Your $kit behavior is not supported, ${player.Name}")
