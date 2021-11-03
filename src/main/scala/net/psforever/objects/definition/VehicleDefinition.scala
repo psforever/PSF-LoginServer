@@ -77,11 +77,11 @@ class VehicleDefinition(objectId: Int)
   private var capacitorDrain: Int                                = 0
   private var capacitorDrainSpecial: Int                         = 0
   /**
-    * explosion delay extends the time of the explosion further beyond when the vehicle is actually destroyed;
+    * extend the time of the final scrspping and explosion further beyond when the vehicle is actually destroyed;
     * see `innateDamage` for explosion information;
     * for BFR's, the ADB field is `death_large_explosion_interval`
     */
-  var explosionDelay: Option[Long]                               = None
+  var destructionDelay: Option[Long]                             = None
   private var destroyedModel: Option[DestroyedVehicle.Value]     = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter

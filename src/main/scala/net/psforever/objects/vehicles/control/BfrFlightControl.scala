@@ -87,6 +87,11 @@ class BfrFlightControl(vehicle: Vehicle)
     capacitanceStop()
   }
 
+  override def destructionDelayed(delay: Long, cause: DamageResult): Unit = {
+    super.destructionDelayed(delay, cause)
+    capacitanceStop()
+  }
+
   override def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     capacitancePostStop()

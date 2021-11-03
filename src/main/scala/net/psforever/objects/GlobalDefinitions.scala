@@ -8203,7 +8203,7 @@ object GlobalDefinitions {
     aphelion_gunner.AutoPilotSpeeds = (5, 1)
     aphelion_gunner.Packet = battleFrameConverter
     aphelion_gunner.DestroyedModel = None
-    aphelion_gunner.explosionDelay = Some(3000L)
+    aphelion_gunner.destructionDelay = Some(4000L)
     aphelion_gunner.JackingDuration = Array(0, 62, 60, 30)
     aphelion_gunner.DamageUsing = DamageCalculations.AgainstBfr
     aphelion_gunner.Model = BfrResolutions.calculate
@@ -8222,7 +8222,7 @@ object GlobalDefinitions {
     aphelion_gunner.collision.avatarCollisionDamageMax = 300
     aphelion_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     aphelion_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    aphelion_gunner.maxForwardSpeed = 24
+    aphelion_gunner.maxForwardSpeed = 17
     aphelion_gunner.mass = 615.1f
 
     colossus_gunner.Name = "colossus_gunner"
@@ -8253,7 +8253,7 @@ object GlobalDefinitions {
     colossus_gunner.AutoPilotSpeeds = (5, 1)
     colossus_gunner.Packet = battleFrameConverter
     colossus_gunner.DestroyedModel = None
-    colossus_gunner.explosionDelay = Some(3000L)
+    colossus_gunner.destructionDelay = Some(4000L)
     colossus_gunner.JackingDuration = Array(0, 62, 60, 30)
     colossus_gunner.DamageUsing = DamageCalculations.AgainstBfr
     colossus_gunner.Model = BfrResolutions.calculate
@@ -8272,7 +8272,7 @@ object GlobalDefinitions {
     colossus_gunner.collision.avatarCollisionDamageMax = 300
     colossus_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     colossus_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    colossus_gunner.maxForwardSpeed = 19
+    colossus_gunner.maxForwardSpeed = 17
     colossus_gunner.mass = 709.7f
 
     peregrine_gunner.Name = "peregrine_gunner"
@@ -8303,7 +8303,7 @@ object GlobalDefinitions {
     peregrine_gunner.AutoPilotSpeeds = (5, 1)
     peregrine_gunner.Packet = battleFrameConverter
     peregrine_gunner.DestroyedModel = None
-    peregrine_gunner.explosionDelay = Some(3000L)
+    peregrine_gunner.destructionDelay = Some(4000L)
     peregrine_gunner.JackingDuration = Array(0, 62, 60, 30)
     peregrine_gunner.DamageUsing = DamageCalculations.AgainstBfr
     peregrine_gunner.Model = BfrResolutions.calculate
@@ -8322,7 +8322,7 @@ object GlobalDefinitions {
     peregrine_gunner.collision.avatarCollisionDamageMax = 300
     peregrine_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     peregrine_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    peregrine_gunner.maxForwardSpeed = 19
+    peregrine_gunner.maxForwardSpeed = 17
     peregrine_gunner.mass = 713f
 
     val battleFrameFlightConverter = new BattleFrameFlightConverter
@@ -8352,7 +8352,7 @@ object GlobalDefinitions {
     aphelion_flight.AutoPilotSpeeds = (5, 1)
     aphelion_flight.Packet = battleFrameFlightConverter
     aphelion_flight.DestroyedModel = None
-    aphelion_flight.explosionDelay = Some(3000L)
+    aphelion_flight.destructionDelay = Some(4000L)
     aphelion_flight.JackingDuration = Array(0, 62, 60, 30)
     aphelion_flight.DamageUsing = DamageCalculations.AgainstBfr
     aphelion_flight.Model = BfrResolutions.calculate
@@ -8376,7 +8376,7 @@ object GlobalDefinitions {
     aphelion_flight.collision.avatarCollisionDamageMax = 300
     aphelion_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     aphelion_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    aphelion_flight.maxForwardSpeed = 34
+    aphelion_flight.maxForwardSpeed = 35
     aphelion_flight.mass = 615.1f
 
     colossus_flight.Name = "colossus_flight"
@@ -8404,7 +8404,7 @@ object GlobalDefinitions {
     colossus_flight.AutoPilotSpeeds = (5, 1)
     colossus_flight.Packet = battleFrameFlightConverter
     colossus_flight.DestroyedModel = None
-    colossus_flight.explosionDelay = Some(3000L)
+    colossus_flight.destructionDelay = Some(4000L)
     colossus_flight.JackingDuration = Array(0, 62, 60, 30)
     colossus_flight.DamageUsing = DamageCalculations.AgainstBfr
     colossus_flight.Model = BfrResolutions.calculate
@@ -8451,7 +8451,7 @@ object GlobalDefinitions {
     peregrine_flight.AutoPilotSpeeds = (5, 1)
     peregrine_flight.Packet = battleFrameFlightConverter
     peregrine_flight.DestroyedModel = None
-    peregrine_flight.explosionDelay = Some(3000L)
+    peregrine_flight.destructionDelay = Some(4000L)
     peregrine_flight.JackingDuration = Array(0, 62, 60, 30)
     peregrine_flight.DamageUsing = DamageCalculations.AgainstBfr
     peregrine_flight.Model = BfrResolutions.calculate
@@ -8470,7 +8470,7 @@ object GlobalDefinitions {
     peregrine_flight.collision.avatarCollisionDamageMax = 300
     peregrine_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     peregrine_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
-    peregrine_flight.maxForwardSpeed = 38
+    peregrine_flight.maxForwardSpeed = 35
     peregrine_flight.mass = 713f
   }
 

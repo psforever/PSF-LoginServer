@@ -38,6 +38,32 @@ class BfrControl(vehicle: Vehicle)
     shieldCharge.cancel()
   }
 
+  def explosionBehavior: Receive = {
+    case BfrControl.VehicleExplosion =>
+      val guid = vehicle.GUID
+      val guid0 = Service.defaultPlayerGUID
+      val zone = vehicle.Zone
+      val zoneid = zone.id
+      val events = zone.VehicleEvents
+      events ! VehicleServiceMessage(
+        zoneid,
+        VehicleAction.GenericObjectAction(guid0, guid, 46)
+      )
+      context.system.scheduler.scheduleOnce(delay = 500 milliseconds, self, BfrControl.VehicleExplosion)
+  }
+
+  override def commonEnabledBehavior: Receive = super.commonEnabledBehavior.orElse(explosionBehavior)
+
+  override def commonDisabledBehavior: Receive = super.commonDisabledBehavior.orElse(explosionBehavior)
+
+  override def PrepareForDisabled(kickPassengers: Boolean) : Unit = {
+    super.PrepareForDisabled(kickPassengers)
+    if (vehicle.Health == 0) {
+      //shield off
+      disableShield()
+    }
+  }
+
   override def DamageAwareness(target: Target, cause: DamageResult, amount: Any) : Unit = {
     super.DamageAwareness(target, cause, amount)
     //manage shield display and charge
@@ -50,6 +76,14 @@ class BfrControl(vehicle: Vehicle)
         Vehicle.ChargeShields(0)
       )
     }
+  }
+
+  override def destructionDelayed(delay: Long, cause: DamageResult): Unit = {
+    super.destructionDelayed(delay, cause)
+    shieldCharge.cancel()
+    shieldCharge = Default.Cancellable
+    //harmless boom boom's
+    context.system.scheduler.scheduleOnce(delay = 0 milliseconds, self, BfrControl.VehicleExplosion)
   }
 
   override def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
@@ -292,6 +326,8 @@ class BfrControl(vehicle: Vehicle)
 }
 
 object BfrControl {
+  private case object VehicleExplosion
+
   val dimorphics: List[EquipmentHandiness] = {
     import GlobalDefinitions._
     List(

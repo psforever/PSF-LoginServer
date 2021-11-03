@@ -43,7 +43,7 @@ import shapeless.{::, HNil}
   *             39 - for BFR's, disable an enabled arm weapon<br>
   *             44 - for BFR's, animates the energy shield<br>
   *             45 - for BFR's, energy shield dissipates<br>
-  *             46 - for BFR's, four explosions on the machine's abdomen<br>
+  *             46 - for BFR's, causes an explosions on the machine's midsection<br>
   *             48 - for BFR's, Control Interface unstable messages<br>
   *             49 - for BFR's, Control Interface malfunction messages<br>
   *             50 - For aircraft - client shows "The bailing mechanism failed! To fix the mechanism, land and repair the vehicle!"<br/>

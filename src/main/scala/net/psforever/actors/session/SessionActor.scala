@@ -2602,11 +2602,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         tplayer.avatar.purchaseCooldown(item.Definition) match {
           case Some(_) =>
             lastTerminalOrderFulfillment = true
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
+            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
           case None =>
             avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
             TaskWorkflow.execute(BuyNewEquipmentPutInInventory(
-              continent.GUID(tplayer.VehicleSeated) match { case Some(v : Vehicle) => v; case _ => player },
+              continent.GUID(tplayer.VehicleSeated) match { case Some(v: Vehicle) => v; case _ => player },
               tplayer,
               msg.terminal_guid
             )(item))
@@ -2669,7 +2669,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   vTrunk.InsertQuickly(entry.start, entry.obj)
                 })
                 TaskWorkflow.execute(registerVehicleFromSpawnPad(vehicle, pad, term))
-                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = true))
+                if(GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
+                  sendResponse(UnuseItemMessage(player.GUID, msg.terminal_guid))
+                }
               case _ =>
                 log.error(
                   s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
@@ -2686,10 +2689,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           s"${msg.transaction_type} order"
         }
         log.warn(s"NoDeal: ${tplayer.Name} made a request but the terminal rejected the $order")
-        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, false))
+        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, success = false))
         lastTerminalOrderFulfillment = true
 
-      case _ => ;
+      case _ =>
+        val transaction = msg.transaction_type
+        log.warn(s"n/a: ${tplayer.Name} made a $transaction request but terminal#${msg.terminal_guid.guid} is missing or wrong")
+        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, transaction, success = false))
+        lastTerminalOrderFulfillment = true
     }
   }
 
