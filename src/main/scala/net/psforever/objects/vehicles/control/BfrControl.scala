@@ -5,7 +5,7 @@ import akka.actor.Cancellable
 import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
-import net.psforever.objects.equipment.{Equipment, EquipmentHandiness, Handiness}
+import net.psforever.objects.equipment.{ArmorSiphonBehavior, Equipment, EquipmentHandiness, Handiness}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.vehicles.{VehicleSubsystem, VehicleSubsystemEntry}
 import net.psforever.objects.vital.VehicleShieldCharge
@@ -25,9 +25,12 @@ import scala.concurrent.duration._
   * @param vehicle the battleframe robotics unit
   */
 class BfrControl(vehicle: Vehicle)
-  extends VehicleControl(vehicle) {
+  extends VehicleControl(vehicle)
+  with ArmorSiphonBehavior.SiphonOwner {
   /** shield-auto charge */
   var shieldCharge: Cancellable = Default.Cancellable
+
+  override def SiphoningObject: Vehicle = vehicle
 
   if (vehicle.Shields < vehicle.MaxShields) {
     chargeShields(amount = 0) //start charging if starts as uncharged
@@ -36,6 +39,7 @@ class BfrControl(vehicle: Vehicle)
   override def postStop(): Unit = {
     super.postStop()
     shieldCharge.cancel()
+    repairPostStop()
   }
 
   def explosionBehavior: Receive = {
@@ -52,7 +56,9 @@ class BfrControl(vehicle: Vehicle)
       context.system.scheduler.scheduleOnce(delay = 500 milliseconds, self, BfrControl.VehicleExplosion)
   }
 
-  override def commonEnabledBehavior: Receive = super.commonEnabledBehavior.orElse(explosionBehavior)
+  override def commonEnabledBehavior: Receive = super.commonEnabledBehavior
+    .orElse(siphonRepairBehavior)
+    .orElse(explosionBehavior)
 
   override def commonDisabledBehavior: Receive = super.commonDisabledBehavior.orElse(explosionBehavior)
 

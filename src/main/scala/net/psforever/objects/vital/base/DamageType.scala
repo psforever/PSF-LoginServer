@@ -10,5 +10,5 @@ object DamageType extends Enumeration(1) {
   type Type = Value
 
   //"one" (numerical 1 in the ADB) corresponds to objects that explode
-  final val Direct, Splash, Lash, Radiation, Aggravated, One, None = Value
+  final val Direct, Splash, Lash, Radiation, Aggravated, One, Siphon, None = Value
 }

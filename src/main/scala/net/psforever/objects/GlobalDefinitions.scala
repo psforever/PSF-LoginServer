@@ -28,7 +28,7 @@ import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, Turr
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, UtilityType, VehicleSubsystemEntry}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
-import net.psforever.objects.vital.etc.ExplodingRadialDegrade
+import net.psforever.objects.vital.etc.{ArmorSiphonMaxDistanceCutoff, ExplodingRadialDegrade}
 import net.psforever.objects.vital.projectile._
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital._
@@ -4478,12 +4478,20 @@ object GlobalDefinitions {
     armor_siphon_projectile.Damage0 = 0
     armor_siphon_projectile.Damage1 = 20 //ground vehicles, siphon drain
     armor_siphon_projectile.Damage2 = 20 //aircraft, siphon drain
+    armor_siphon_projectile.Damage3 = 0
+    armor_siphon_projectile.Damage4 = 20 //bfr's, siphon drain
+    armor_siphon_projectile.DamageToVehicleOnly = true
     armor_siphon_projectile.DamageRadius = 35f
-    armor_siphon_projectile.ProjectileDamageType = DamageType.Direct
+    armor_siphon_projectile.ProjectileDamageType = DamageType.Siphon
     ProjectileDefinition.CalculateDerivedFields(armor_siphon_projectile)
+    armor_siphon_projectile.Modifiers = List(
+      ArmorSiphonMaxDistanceCutoff,
+      ArmorSiphonRepairHost
+    )
 
     ntu_siphon_projectile.Name = "ntu_siphon_projectile"
     ntu_siphon_projectile.DamageRadius = 35f
+    ntu_siphon_projectile.ProjectileDamageType = DamageType.Siphon
     ProjectileDefinition.CalculateDerivedFields(ntu_siphon_projectile)
   }
 

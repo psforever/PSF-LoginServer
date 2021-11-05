@@ -335,6 +335,7 @@ object ResolutionCalculations {
            GlobalDefinitions.isBattleFrameVehicle(obj.Definition) &&
            (
              reason.projectile.profile.DamageToBattleframeOnly ||
+             reason.projectile.profile.DamageToVehicleOnly ||
              !obj.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled
              ) =>
         obj.Health = obj.Health - damage

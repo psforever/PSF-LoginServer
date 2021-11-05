@@ -8,7 +8,7 @@ import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.definition.converter.OCM
 import net.psforever.objects.entity.WorldEntity
-import net.psforever.objects.equipment.{Equipment, EquipmentSlot, JammableMountedWeapons}
+import net.psforever.objects.equipment.{ArmorSiphonBehavior, Equipment, EquipmentSlot, JammableMountedWeapons}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject, ServerObjectControl}
@@ -49,6 +49,7 @@ class VehicleControl(vehicle: Vehicle)
     with FactionAffinityBehavior.Check
     with MountableBehavior
     with DamageableVehicle
+    with ArmorSiphonBehavior.Target
     with RepairableVehicle
     with JammableMountedWeapons
     with ContainableBehavior
@@ -65,6 +66,8 @@ class VehicleControl(vehicle: Vehicle)
   def FactionObject = vehicle
 
   def DamageableObject = vehicle
+
+  def SiphonableObject = vehicle
 
   def RepairableObject = vehicle
 
@@ -107,6 +110,7 @@ class VehicleControl(vehicle: Vehicle)
     .orElse(attributeBehavior)
     .orElse(jammableBehavior)
     .orElse(takesDamage)
+    .orElse(siphoningBehavior)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse(containerBehavior)
     .orElse(environmentBehavior)

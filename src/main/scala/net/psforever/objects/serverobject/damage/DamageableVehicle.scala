@@ -185,7 +185,7 @@ trait DamageableVehicle
     (queuedDestruction, DamageableObject.Definition.destructionDelay) match {
       case (None, Some(delay)) => //set a future explosion for later
         destructionDelayed(delay, cause)
-      case (Some(_), _) => //explode now
+      case (Some(_), _) | (None, None) => //explode now
         super.DestructionAwareness(target, cause)
         val obj = DamageableObject
         val zone = target.Zone

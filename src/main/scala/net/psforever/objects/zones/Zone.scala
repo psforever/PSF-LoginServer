@@ -1061,11 +1061,11 @@ object Zone {
       * and a token that qualifies the current location of the object in the zone is returned.
       * The following groups of objects are searched:
       * the inventories of all players and all corpses,
-      * all vehicles trunks,
+      * all vehicles weapon mounts and trunks,
       * the lockers of all players and corpses;
       * and, if still not found, the ground is scoured too.
-      * @see `ItemLocation`<br>
-      *       `LockerContainer`
+      * @see `ItemLocation`
+      * @see `LockerContainer`
       * @param equipment the target object
       * @param guid that target object's globally unique identifier
       * @param continent the zone whose objects to search

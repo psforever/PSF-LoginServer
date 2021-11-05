@@ -77,7 +77,7 @@ class VehicleDefinition(objectId: Int)
   private var capacitorDrain: Int                                = 0
   private var capacitorDrainSpecial: Int                         = 0
   /**
-    * extend the time of the final scrspping and explosion further beyond when the vehicle is actually destroyed;
+    * extend the time of the final scrapping and explosion further beyond when the vehicle is functionally rendered destroyed;
     * see `innateDamage` for explosion information;
     * for BFR's, the ADB field is `death_large_explosion_interval`
     */

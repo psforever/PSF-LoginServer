@@ -4712,9 +4712,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           ) =>
         // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
         // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
-        val equipment = player.Slot(player.DrawnSlot).Equipment match {
-          case out @ Some(item) if item.GUID == item_used_guid => out
-          case _                                               => None
+        val equipment = FindContainedEquipment(item_used_guid) match {
+          case (Some(_), a) => a.headOption
+          case _            => None
         }
         ValidObject(object_guid) match {
           case Some(door: Door) =>
@@ -5094,7 +5094,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
           case Some(obj) =>
             CancelZoningProcessWithDescriptiveReason("cancel_use")
-            log.warn(s"UseItem: ${player.Name} does not know how to handle $obj")
+            equipment match {
+              case Some(item)
+                if GlobalDefinitions.isBattleFrameArmorSiphon(item.Definition) ||
+                   GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) => ;
+
+              case _ =>
+                log.warn(s"UseItem: ${player.Name} does not know how to handle $obj")
+
+            }
 
           case None =>
             log.error(s"UseItem: ${player.Name} can not find object $object_guid")
