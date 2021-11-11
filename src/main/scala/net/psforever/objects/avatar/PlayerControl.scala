@@ -1323,10 +1323,10 @@ object PlayerControl {
     */
   private def auraEffectToAttributeValue(effect: Aura): Int = effect match {
     case Aura.Plasma => 1
-    case Aura.Comet => 2
+    case Aura.Comet  => 2
     case Aura.Napalm => 4
-    case Aura.Fire => 8
-    case _ => 0
+    case Aura.Fire   => 8
+    case _           => 0
   }
 
   def sendResponse(zone: Zone, channel: String, msg: PlanetSideGamePacket): Unit = {

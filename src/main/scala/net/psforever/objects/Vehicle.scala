@@ -91,7 +91,8 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     with AuraContainer
     with MountableEntity {
   interaction(new InteractWithEnvironment())
-  interaction(new InteractWithMines(range = 30))
+  interaction(new InteractWithMines(range = 20))
+  interaction(new InteractWithRadiationCloudsSeatedInVehicle(obj = this, range = 20))
 
   private var faction: PlanetSideEmpire.Value     = PlanetSideEmpire.NEUTRAL
   private var shields: Int                        = 0

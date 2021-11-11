@@ -267,7 +267,7 @@ class BfrControl(vehicle: Vehicle)
     val leftArm = bfrHandSubsystem(Handiness.Left).get
     val rightArm = bfrHandSubsystem(Handiness.Right).get
     params match {
-      case Some((item, slot, handiness)) =>
+      case Some((item, slot, handiness)) if vehicle.VisibleSlots.contains(slot) =>
         //budget logic: the arm weapons are "next to each other" index-wise
         val otherArmEquipment = (if (firstArmSlot == slot) weapons(slot + 1) else weapons(slot - 1)).Equipment
         val definition = item.Definition
@@ -294,7 +294,7 @@ class BfrControl(vehicle: Vehicle)
             parseObjectAction(item.GUID, action = 39, None)
           }
         }
-      case None =>
+      case _ =>
         //if one arm is a siphon, only one arm on the BFR should be enabled at a time
         (
           weapons.get(firstArmSlot  ).map { _.Equipment }.head,

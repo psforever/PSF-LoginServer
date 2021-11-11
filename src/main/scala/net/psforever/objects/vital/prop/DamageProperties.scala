@@ -29,7 +29,8 @@ trait DamageProperties
   /** use a specific modifier as a part of damage calculations */
   private var useDamage1Subtract: Boolean                = false
   /** some other entity confers damage;
-    * a set value should not `None` and not `0` but is preferred to be the damager's uid */
+    * a set value should be the damager's object uid
+    * usually corresponding to a projectile */
   private var damageProxy: Option[Int]                   = None
   /** na;
     * currently used with jammer properties only */

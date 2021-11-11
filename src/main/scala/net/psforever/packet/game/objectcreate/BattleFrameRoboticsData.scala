@@ -61,7 +61,7 @@ object BattleFrameRoboticsData extends Marshallable[BattleFrameRoboticsData] {
     import shapeless.::
     (
       ("pos" | PlacementData.codec) >>:~ { pos =>
-        ("data" | CommonFieldData.codec(false)) ::
+        ("data" | CommonFieldData.codec(extra = false)) ::
         ("health" | uint8L) ::
         ("shield" | uint8L) ::
         ("unk1" | uint16) :: //usually 0
@@ -106,7 +106,7 @@ object BattleFrameRoboticsData extends Marshallable[BattleFrameRoboticsData] {
         ("unk3" | uint4) ::
         ("show_bfr_shield" | bool) ::
         ("unk4" | bool) ::
-        optional(bool, target = "inventory" | MountableInventory.custom_inventory_codec(pos.vel.isDefined, VehicleFormat.Battleframe))
+        optional(bool, target = "inventory" | MountableInventory.custom_inventory_codec(pos.vel.isDefined, VehicleFormat.BattleframeFlight))
       }
       ).exmap[BattleFrameRoboticsData] (
       {

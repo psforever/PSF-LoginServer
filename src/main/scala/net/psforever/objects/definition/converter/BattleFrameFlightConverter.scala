@@ -10,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 
 class BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle]() {
   override def DetailedConstructorData(obj: Vehicle): Try[BattleFrameRoboticsData] =
-    Failure(new Exception("BattleFrameFlightConverter should not be used to generate detailed BattleFrameFlightConverter (nothing should)"))
+    Failure(new Exception("BattleFrameFlightConverter should not be used to generate detailed BattleFrameRoboticsData (nothing should)"))
 
   override def ConstructorData(obj: Vehicle): Try[BattleFrameRoboticsData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
@@ -78,7 +78,7 @@ class BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle]() {
   }
 
   private def MakeDriverSeat(obj: Vehicle): List[InventoryItemData.InventoryItem] = {
-    val offset: Long = MountableInventory.InitialStreamLengthToSeatEntries(obj.Velocity.nonEmpty, VehicleFormat.Battleframe)
+    val offset: Long = MountableInventory.InitialStreamLengthToSeatEntries(obj.Velocity.nonEmpty, VehicleFormat.BattleframeFlight)
     obj.Seats(0).occupant match {
       case Some(player) =>
         List(InventoryItemData(ObjectClass.avatar, player.GUID, 0, SeatConverter.MakeSeat(player, offset)))

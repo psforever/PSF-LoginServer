@@ -3,7 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.{PlanetSideGameObject, _}
-import net.psforever.objects.ballistics.SourceEntry
+import net.psforever.objects.ballistics.{Projectile, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{NumberPoolHub, UniqueNumberOps, UniqueNumberSetup}
@@ -12,10 +12,10 @@ import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Amenity, AmenityOwner, Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures._
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.serverobject.zipline.ZipLinePath
-import net.psforever.types.{DriveState, PlanetSideEmpire, PlanetSideGUID, SpawnGroup, Vector3}
+import net.psforever.types._
 import org.log4s.Logger
 import net.psforever.services.avatar.AvatarService
 import net.psforever.services.local.LocalService
@@ -124,6 +124,9 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     */
   private val corpses: ListBuffer[Player] = ListBuffer[Player]()
 
+  private var projectiles: ActorRef = Default.Actor
+  private val projectileList: ListBuffer[Projectile] = ListBuffer[Projectile]()
+
   /**
     */
   private var population: ActorRef = Default.Actor
@@ -189,6 +192,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       context.actorOf(Props(classOf[UniqueNumberSys], this, this.guid), s"zone-$id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"zone-$id-ground")
       deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"zone-$id-deployables")
+      projectiles = context.actorOf(Props(classOf[ZoneProjectileActor], this, projectileList), s"zone-$id-projectiles")
       transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"zone-$id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"zone-$id-players")
       projector = context.actorOf(
@@ -539,6 +543,10 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   def Ground: ActorRef = ground
 
   def Deployables: ActorRef = deployables
+
+  def Projectile: ActorRef = projectiles
+
+  def Projectiles: List[Projectile] = projectileList.toList
 
   def Transport: ActorRef = transport
 

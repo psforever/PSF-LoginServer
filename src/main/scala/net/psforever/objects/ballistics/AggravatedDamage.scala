@@ -171,6 +171,8 @@ object AggravatedDamage {
         DamageType.Direct
       case DamageResolution.AggravatedSplash | DamageResolution.AggravatedSplashBurn =>
         DamageType.Splash
+      case DamageResolution.Radiation =>
+        DamageType.Splash
       case _ =>
         DamageType.None
     }

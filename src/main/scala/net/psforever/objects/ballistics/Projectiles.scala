@@ -25,6 +25,7 @@ object Projectiles extends Enumeration {
   final val anniversary_projectileb                   = Value(59)
   final val aphelion_immolation_cannon_projectile     = Value(87)
   final val aphelion_laser_projectile                 = Value(91)
+  final val aphelion_plasma_cloud                     = Value(96) //radiation cloud
   final val aphelion_plasma_rocket_projectile         = Value(99)
   final val aphelion_ppa_projectile                   = Value(103)
   final val aphelion_starfire_projectile              = Value(108)
@@ -48,6 +49,7 @@ object Projectiles extends Enumeration {
   final val falcon_projectile                         = Value(286)
   final val firebird_missile_projectile               = Value(288)
   final val flail_projectile                          = Value(296)
+  final val flamethrower_fire_cloud                   = Value(301)
   final val flamethrower_fireball                     = Value(302)
   final val flamethrower_projectile                   = Value(303)
   final val flux_cannon_apc_projectile                = Value(305)
@@ -79,6 +81,7 @@ object Projectiles extends Enumeration {
   final val liberator_bomb_cluster_bomblet_projectile = Value(436)
   final val liberator_bomb_cluster_projectile         = Value(437)
   final val liberator_bomb_projectile                 = Value(438)
+  final val maelstrom_grenade_damager                 = Value(464)
   final val maelstrom_grenade_projectile              = Value(465)
   final val maelstrom_grenade_projectile_contact      = Value(466)
   final val maelstrom_stream_projectile               = Value(467)
@@ -100,6 +103,7 @@ object Projectiles extends Enumeration {
   final val peregrine_dual_machine_gun_projectile     = Value(639)
   final val peregrine_mechhammer_projectile           = Value(647)
   final val peregrine_particle_cannon_projectile      = Value(654)
+  final val peregrine_particle_cannon_radiation_cloud = Value(655) //radiation cloud
   final val peregrine_rocket_pod_projectile           = Value(657)
   final val peregrine_sparrow_projectile              = Value(661)
   final val phalanx_av_projectile                     = Value(665)
@@ -117,6 +121,7 @@ object Projectiles extends Enumeration {
   final val pulsar_ap_projectile                      = Value(702)
   final val pulsar_projectile                         = Value(703)
   final val quasar_projectile                         = Value(713)
+  final val radiator_cloud                            = Value(717) //radiation cloud
   final val radiator_grenade_projectile               = Value(718)
   final val radiator_sticky_projectile                = Value(719)
   final val reaver_rocket_projectile                  = Value(723)

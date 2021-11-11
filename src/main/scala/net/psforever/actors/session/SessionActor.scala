@@ -1361,7 +1361,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         )
       }
       //immediately slated for deletion?
-      CleanUpRemoteProjectile(projectile.GUID, projectile)
+      projectiles.indexWhere({
+        case Some(p) => p eq projectile
+        case None    => false
+      }) match {
+        case -1 => ; //required catch
+        case index if projectile.Definition.ExistsOnRemoteClients && projectilesToCleanUp(index) =>
+          continent.Projectile ! ZoneProjectile.Remove(projectile.GUID)
+        case _ => ;
+      }
 
     case LoadedRemoteProjectile(projectile_guid, None) =>
       continent.GUID(projectile_guid) match {
@@ -4579,12 +4587,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             } else {
               obj.Miss()
-              if (obj.profile.ExistsOnRemoteClients && obj.HasGUID) {
-                continent.AvatarEvents ! AvatarServiceMessage(
-                  continent.id,
-                  AvatarAction.ProjectileExplodes(player.GUID, obj.GUID, obj)
-                )
-                TaskWorkflow.execute(unregisterProjectile(obj))
+              if (obj.profile.ExistsOnRemoteClients) {
+                continent.Projectile ! ZoneProjectile.Remove(object_guid)
               }
             }
 
@@ -5406,43 +5410,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                       }
                     targets.map { target =>
                       CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
-                      (target, hitPos, target.Position)
+                      (target, projectile, hitPos, target.Position)
                     }
 
                   case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                     CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
-                    List((target, hitInfo.shot_origin, hitPos))
+                    List((target, projectile, hitInfo.shot_origin, hitPos))
 
-                  case None if projectile.profile.DamageProxy.getOrElse(0) > 0 =>
-                    //server-side maelstrom grenade target selection
-                    if (projectile.tool_def == GlobalDefinitions.maelstrom) {
-                      val shotOrigin = hitInfo.shot_origin
-                      val radius     = projectile.profile.LashRadius * projectile.profile.LashRadius
-                      val targets = continent.blockMap
-                        .sector(hitPos, projectile.profile.LashRadius)
-                        .livePlayerList
-                        .filter { target =>
-                          Vector3.DistanceSquared(target.Position, hitPos) <= radius
-                        }
-                      //chainlash is separated from the actual damage application for convenience
-                      continent.AvatarEvents ! AvatarServiceMessage(
-                        continent.id,
-                        AvatarAction.SendResponse(
-                          PlanetSideGUID(0),
-                          ChainLashMessage(
-                            hitPos,
-                            projectile.profile.ObjectId,
-                            targets.map { _.GUID }
-                          )
-                        )
-                      )
-                      targets.map { target =>
-                        CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
-                        (target, hitPos, target.Position)
-                      }
-                    } else {
-                      Nil
-                    }
+                  case None =>
+                    HandleDamageProxy(projectile, projectile_guid, hitPos)
 
                   case _ =>
                     Nil
@@ -5453,10 +5429,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               .foreach({
                 case (
                       target: PlanetSideGameObject with FactionAffinity with Vitality,
+                      proj: Projectile,
                       shotOrigin: Vector3,
                       hitPos: Vector3
                     ) =>
-                  ResolveProjectileInteraction(projectile, DamageResolution.Hit, target, hitPos) match {
+                  ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos) match {
                     case Some(resprojectile) =>
                       HandleDealingDamage(target, resprojectile)
                     case None => ;
@@ -5513,6 +5490,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case _ => ;
               }
             })
+            //...
+            HandleDamageProxy(projectile, projectile_guid, explosion_pos)
             if (
               projectile.profile.HasJammedEffectDuration ||
               projectile.profile.JammerProjectile ||
@@ -5532,7 +5511,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               //cleanup
               val localIndex = projectile_guid.guid - Projectile.baseUID
               if (projectile.HasGUID) {
-                CleanUpRemoteProjectile(projectile.GUID, projectile, localIndex)
+                continent.Projectile ! ZoneProjectile.Remove(projectile.GUID)
               } else {
                 projectilesToCleanUp(localIndex) = true
               }
@@ -6134,30 +6113,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     )
   }
 
-  /**
-    * Construct tasking that adds a completed but unregistered projectile into the scene.
-    * After the projectile is registered to the curent zone's global unique identifier system,
-    * all connected clients save for the one that registered it will be informed about the projectile's "creation."
-    * @param obj the projectile to be registered
-    * @return a `TaskBundle` message
-    */
-  private def registerProjectile(obj: Projectile): TaskBundle = {
-    TaskBundle(
-      new StraightforwardTask() {
-        private val globalProjectile = obj
-        private val localAnnounce    = self
-
-        override def description(): String = s"register a ${globalProjectile.profile.Name}"
-
-        def action(): Future[Any] = {
-          localAnnounce ! LoadedRemoteProjectile(globalProjectile.GUID, Some(globalProjectile))
-          Future(true)
-        }
-      },
-      List(GUIDTask.registerObject(continent.GUID, obj))
-    )
-  }
-
   private def unregisterDrivenVehicle(vehicle: Vehicle, driver: Player): TaskBundle = {
     TaskBundle(
       new StraightforwardTask() {
@@ -6173,54 +6128,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       },
       List(GUIDTask.unregisterAvatar(continent.GUID, driver), GUIDTask.unregisterVehicle(continent.GUID, vehicle))
     )
-  }
-
-  /**
-    * Construct tasking that removes a formerly complete and currently registered projectile from the scene.
-    * After the projectile is unregistered from the curent zone's global unique identifier system,
-    * all connected clients save for the one that registered it will be informed about the projectile's "destruction."
-    * @param obj the projectile to be unregistered
-    * @return a `TaskBundle` message
-    */
-  private def unregisterProjectile(obj: Projectile): TaskBundle = {
-    TaskBundle(
-      new StraightforwardTask() {
-        private val globalProjectile = obj
-        private val localAnnounce    = self
-        private val localMsg         = AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(player.GUID, obj.GUID, 2))
-
-        override def description(): String = s"unregister a ${globalProjectile.profile.Name}"
-
-        def action(): Future[Any] = {
-          localAnnounce ! localMsg
-          Future(true)
-        }
-      },
-      List(GUIDTask.unregisterObject(continent.GUID, obj))
-    )
-  }
-
-  /**
-    * If the projectile object is unregistered, register it.
-    * If the projectile object is already registered, unregister it and then register it again.
-    * @see `registerProjectile(Projectile)`
-    * @see `unregisterProjectile(Projectile)`
-    * @param obj the projectile to be registered (a second time?)
-    * @return a `TaskBundle` message
-    */
-  def reregisterProjectile(obj: Projectile): TaskBundle = {
-    val reg = registerProjectile(obj)
-    if (obj.HasGUID) {
-      TaskBundle(
-        reg.mainTask,
-        TaskBundle(
-          reg.subTasks(0).mainTask,
-          unregisterProjectile(obj)
-        )
-      )
-    } else {
-      reg
-    }
   }
 
   def AccessContainer(container: Container): Unit = {
@@ -7953,33 +7860,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       log.warn("expected projectile was already counted as a missed shot; can not resolve any further")
       None
     } else {
-      projectile.Resolve()
-      val outProjectile =
-        if (projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)) {
-          //aggravated
-          val quality = projectile.profile.Aggravated match {
-            case Some(aggravation)
-                if aggravation.targets.exists(validation => validation.test(target)) &&
-                  aggravation.info.exists(_.damage_type == AggravatedDamage.basicDamageType(resolution)) =>
-              ProjectileQuality.AggravatesTarget
-            case _ =>
-              ProjectileQuality.Normal
-          }
-          projectile.quality(quality)
-        } else if (projectile.tool_def.Size == EquipmentSize.Melee) {
-          //melee
-          val quality = player.avatar.implants.flatten.find { entry => entry.definition.implantType == ImplantType.MeleeBooster } match {
-            case Some(booster) if booster.active && player.avatar.stamina > 9 =>
-              avatarActor ! AvatarActor.ConsumeStamina(10)
-              ProjectileQuality.Modified(25f)
-            case _ =>
-              ProjectileQuality.Normal
-          }
-          projectile.quality(quality)
-        } else {
-          //normal
-          projectile
-        }
+      val outProjectile = ProjectileQuality.modifiers(projectile, resolution, target, pos, Some(player))
+      if (projectile.tool_def.Size == EquipmentSize.Melee && outProjectile.quality == ProjectileQuality.Modified(25)) {
+        avatarActor ! AvatarActor.ConsumeStamina(10)
+      }
       Some(DamageInteraction(SourceEntry(target), ProjectileReason(resolution, outProjectile, target.DamageModel), pos))
     }
   }
@@ -9071,51 +8955,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       }
   }
 
-  /**
-    * For a given registered remote projectile, perform all the actions necessary to properly dispose of it.
-    * Those actions involve:
-    * informing that the projectile should explode,
-    * unregistering the projectile's globally unique identifier,
-    * and managing the projectiles's local status information.
-    * @see `CleanUpRemoteProjectile(PlanetSideGUID, Projectile, Int)`
-    * @param projectile_guid the globally unique identifier of the projectile
-    * @param projectile the projectile
-    */
-  def CleanUpRemoteProjectile(projectile_guid: PlanetSideGUID, projectile: Projectile): Unit = {
-    projectiles.indexWhere({
-      case Some(p) => p eq projectile
-      case None    => false
-    }) match {
-      case -1 => ; //required catch
-      case index if projectilesToCleanUp(index) =>
-        CleanUpRemoteProjectile(projectile_guid, projectile, index)
-      case _ => ;
-    }
-  }
-
-  /**
-    * For a given registered remote projectile, perform all the actions necessary to properly dispose of it.
-    * Those actions involve:
-    * informing that the projectile should explode,
-    * unregistering the projectile's globally unique identifier,
-    * and managing the projectiles's local status information.
-    * @param projectile_guid the globally unique identifier of the projectile
-    * @param projectile the projectile
-    * @param local_index an index of the absolute sequence of the projectile, for internal lists
-    */
-  def CleanUpRemoteProjectile(projectile_guid: PlanetSideGUID, projectile: Projectile, local_index: Int): Unit = {
-    continent.AvatarEvents ! AvatarServiceMessage(
-      continent.id,
-      AvatarAction.ProjectileExplodes(player.GUID, projectile_guid, projectile)
-    )
-    TaskWorkflow.execute(unregisterProjectile(projectile))
-    projectiles(local_index) match {
-      case Some(obj) if !obj.isResolved => obj.Miss()
-      case _                            => ;
-    }
-    projectilesToCleanUp(local_index) = false
-  }
-
   def CheckForHitPositionDiscrepancy(
       projectile_guid: PlanetSideGUID,
       hitPos: Vector3,
@@ -9353,20 +9192,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             case _ =>
               ProjectileQuality.Normal
           }
-          projectiles(projectileIndex) = Some(projectile.quality(initialQuality))
+          val qualityprojectile = projectile.quality(initialQuality)
+          projectiles(projectileIndex) = Some(qualityprojectile)
           if (projectile_info.ExistsOnRemoteClients) {
             log.trace(
               s"WeaponFireMessage: ${player.Name}'s ${projectile_info.Name} is a remote projectile"
             )
-            if (projectile.HasGUID) {
-              continent.AvatarEvents ! AvatarServiceMessage(
-                continent.id,
-                AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile)
-              )
-              TaskWorkflow.execute(reregisterProjectile(projectile))
-            } else {
-              TaskWorkflow.execute(registerProjectile(projectile))
-            }
+            continent.Projectile ! ZoneProjectile.Add(player.GUID, qualityprojectile)
           }
           projectilesToCleanUp(projectileIndex) = false
 
@@ -9422,6 +9254,59 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         (o, Some(tool))
     }
     collectedTools.headOption.getOrElse((None, None))
+  }
+
+  /**
+    * Take a projectile that was introduced into the game world and
+    * determine if it generates a secondary damage projectile or
+    * an method of damage causation that requires additional management.
+    * @param projectile the projectile
+    * @param pguid the client-local projectile identifier
+    * @param hitPos the game world position where the projectile is being recorded
+    * @return a for all affected targets, a combination of projectiles, projectile location, and the target's location;
+    *         nothing if no targets were affected
+    */
+  def HandleDamageProxy(
+                         projectile: Projectile,
+                         pguid: PlanetSideGUID,
+                         hitPos: Vector3
+                       ): List[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile, Vector3, Vector3)] = {
+    GlobalDefinitions.getDamageProxy(projectile, hitPos) match {
+      case Some(proxy) if proxy.profile.ExistsOnRemoteClients =>
+        proxy.Position = hitPos
+        continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
+        Nil
+
+      case Some(proxy)
+        if proxy.tool_def == GlobalDefinitions.maelstrom =>
+        //server-side maelstrom grenade target selection
+        val radius = proxy.profile.LashRadius * proxy.profile.LashRadius
+        val targets = continent.blockMap
+          .sector(hitPos, proxy.profile.LashRadius)
+          .livePlayerList
+          .filter { target =>
+            Vector3.DistanceSquared(target.Position, hitPos) <= radius
+          }
+        //chainlash is separated from the actual damage application for convenience
+        continent.AvatarEvents ! AvatarServiceMessage(
+          continent.id,
+          AvatarAction.SendResponse(
+            PlanetSideGUID(0),
+            ChainLashMessage(
+              hitPos,
+              projectile.profile.ObjectId,
+              targets.map { _.GUID }
+            )
+          )
+        )
+        targets.map { target =>
+          CheckForHitPositionDiscrepancy(pguid, hitPos, target)
+          (target, proxy, hitPos, target.Position)
+        }
+
+      case _ =>
+        Nil
+    }
   }
 
   def isAcceptableNextSpawnPoint(): Boolean = isAcceptableSpawnPoint(nextSpawnPoint)

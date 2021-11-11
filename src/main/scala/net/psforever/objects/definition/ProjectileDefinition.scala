@@ -46,6 +46,8 @@ class ProjectileDefinition(objectId: Int)
   /** projectile takes the form of a type of "grenade";
     * grenades arc with gravity rather than travel in a relatively straight path */
   private var grenade_projectile: Boolean = false
+  /** radiation clouds create independent damage-dealing areas in a zone that last for the projectile's lifespan */
+  var radiation_cloud: Boolean = true
   //derived calculations
   /** the calculated distance at which the projectile have traveled far enough to despawn (m);
     * typically handled as the projectile no longer performing damage;

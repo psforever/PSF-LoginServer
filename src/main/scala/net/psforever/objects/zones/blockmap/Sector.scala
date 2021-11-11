@@ -1,6 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.zones.blockmap
 
+import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.environment.PieceOfEnvironment
@@ -29,6 +30,8 @@ trait SectorPopulation {
 
   def environmentList: List[PieceOfEnvironment]
 
+  def projectileList: List[Projectile]
+
   /**
     * A count of all the entities in all the lists.
     */
@@ -40,7 +43,8 @@ trait SectorPopulation {
     deployableList.size +
     buildingList.size +
     amenityList.size +
-    environmentList.size
+    environmentList.size +
+    projectileList.size
   }
 }
 
@@ -143,6 +147,10 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
     (a: PieceOfEnvironment, b: PieceOfEnvironment) => a eq b
   )
 
+  private val projectiles: SectorListOf[Projectile] = new SectorListOf[Projectile](
+    (a: Projectile, b: Projectile) => a.id == b.id
+  )
+
   def livePlayerList : List[Player] = livePlayers.list
 
   def corpseList: List[Player] = corpses.list
@@ -158,6 +166,8 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   def amenityList : List[Amenity] = amenities.list
 
   def environmentList: List[PieceOfEnvironment] = environment.list
+
+  def projectileList: List[Projectile] = projectiles.list
 
   /**
     * Appropriate an entity added to this blockmap bucket
@@ -189,6 +199,8 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
         amenities.list.size < amenities.addTo(a).size
       case e: PieceOfEnvironment =>
         environment.list.size < environment.addTo(e).size
+      case p: Projectile =>
+        projectiles.list.size < projectiles.addTo(p).size
       case _ =>
         false
     }
@@ -211,6 +223,8 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
         equipmentOnGround.list.size > equipmentOnGround.removeFrom(e).size
       case d: Deployable =>
         deployables.list.size > deployables.removeFrom(d).size
+      case p: Projectile =>
+        projectiles.list.size > projectiles.removeFrom(p).size
       case _ =>
         false
     }
@@ -237,7 +251,8 @@ class SectorGroup(
                    val deployableList: List[Deployable],
                    val buildingList: List[Building],
                    val amenityList: List[Amenity],
-                   val environmentList: List[PieceOfEnvironment]
+                   val environmentList: List[PieceOfEnvironment],
+                   val projectileList: List[Projectile]
                  )
   extends SectorPopulation
 
@@ -257,7 +272,8 @@ object SectorGroup {
       sector.deployableList,
       sector.buildingList,
       sector.amenityList,
-      sector.environmentList
+      sector.environmentList,
+      sector.projectileList
     )
   }
 
@@ -276,7 +292,8 @@ object SectorGroup {
       sectors.flatMap { _.deployableList }.toList.distinct,
       sectors.flatMap { _.buildingList }.toList.distinct,
       sectors.flatMap { _.amenityList }.toList.distinct,
-      sectors.flatMap { _.environmentList }.toList.distinct
+      sectors.flatMap { _.environmentList }.toList.distinct,
+      sectors.flatMap { _.projectileList }.toList.distinct
     )
   }
 }

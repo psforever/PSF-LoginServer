@@ -78,7 +78,7 @@ class NumberPoolHub(private val source: NumberSource) {
       case Nil => ;
       case collisions =>
         throw new IllegalArgumentException(
-          s"can not add pool $name - it contains the following redundant numbers: ${collisions.mkString(",")}"
+          s"can not add pool $name - it contains the following redundant numbers: ${collisions.sorted.mkString(",")}"
         )
     }
     pool.foreach(i => bigpool += i.toLong -> name)

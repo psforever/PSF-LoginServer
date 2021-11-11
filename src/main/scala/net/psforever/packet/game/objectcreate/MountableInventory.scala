@@ -140,10 +140,11 @@ object MountableInventory {
     198 +
     (if (hasVelocity) 42 else 0) +
     (format match {
-      case VehicleFormat.Utility     => 6
-      case VehicleFormat.Variant     => 8
-      case VehicleFormat.Battleframe => 0
-      case _                         => 0
+      case VehicleFormat.Utility           => 6
+      case VehicleFormat.Variant           => 8
+      case VehicleFormat.Battleframe       => 1
+      case VehicleFormat.BattleframeFlight => 2
+      case _                               => 0
     })
   }
 

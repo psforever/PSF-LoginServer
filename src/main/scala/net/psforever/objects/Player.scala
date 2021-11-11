@@ -2,6 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.avatar.{Avatar, LoadoutManager, SpecialCarry}
+import net.psforever.objects.ballistics.InteractWithRadiationClouds
 import net.psforever.objects.ce.{Deployable, InteractWithMines}
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
@@ -36,6 +37,7 @@ class Player(var avatar: Avatar)
     with MountableEntity {
   interaction(new InteractWithEnvironment())
   interaction(new InteractWithMinesUnlessSpectating(obj = this, range = 10))
+  interaction(new InteractWithRadiationClouds(range = 10f, Some(this)))
 
   private var backpack: Boolean = false
   private var released: Boolean = false

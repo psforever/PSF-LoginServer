@@ -14,7 +14,7 @@ import net.psforever.types.DriveState
 object VehicleFormat extends Enumeration {
   type Type = Value
 
-  val Battleframe, Normal, Utility, Variant = Value
+  val Battleframe, BattleframeFlight, Normal, Utility, Variant = Value
 }
 
 /**
@@ -237,7 +237,7 @@ object VehicleData extends Marshallable[VehicleData] {
         ("unk6" | bool) ::
         ("cloak" | bool) :: //cloak as wraith, phantasm
         conditional(vehicle_type != VehicleFormat.Normal,"vehicle_format_data" | selectFormatReader(vehicle_type)) ::
-        optional(bool, target = "inventory" | MountableInventory.custom_inventory_codec(pos.vel.isDefined, VehicleFormat.Battleframe))
+        optional(bool, target = "inventory" | MountableInventory.custom_inventory_codec(pos.vel.isDefined, VehicleFormat.Normal))
       }
     ).exmap[VehicleData](
       {

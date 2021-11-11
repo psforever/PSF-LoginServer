@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.projectile
 
-import net.psforever.objects.ballistics.{ChargeDamage, PlayerSource, ProjectileQuality}
+import net.psforever.objects.ballistics._
 import net.psforever.objects.equipment.ChargeFireModeDefinition
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.damage.DamageModifierFunctions
@@ -323,6 +323,28 @@ case object FlailDistanceDamageBoost extends ProjectileDamageModifiers.Mod {
     } else if (distance >= distanceNoDegrade) {
       damage + (damage * (profile.DegradeMultiplier - 1) *
                 math.min(distance - distanceNoDegrade, distanceNoMultiplier) / distanceNoMultiplier).toInt
+    } else {
+      damage
+    }
+  }
+}
+
+/**
+  * If the damge is caused by a projectile that emits a field that permeates vehicle armor,
+  * determine by how much the traversed armor's shielding reduces the damage.
+  * Infantry take damage, reduced only if one is equipped with a mechanized assault exo-suit.
+  */
+case object ShieldAgainstRadiation extends ProjectileDamageModifiers.Mod {
+  def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
+    if (data.resolution == DamageResolution.Radiation) {
+      data.target match {
+        case p: PlayerSource if p.ExoSuit == ExoSuitType.MAX =>
+          damage - (damage * p.Modifiers.RadiationShielding).toInt
+        case _: PlayerSource =>
+          damage
+        case _ =>
+          0
+      }
     } else {
       damage
     }

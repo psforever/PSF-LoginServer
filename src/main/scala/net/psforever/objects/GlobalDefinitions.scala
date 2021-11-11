@@ -28,7 +28,7 @@ import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, Turr
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, UtilityType, VehicleSubsystemEntry}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
-import net.psforever.objects.vital.etc.{ArmorSiphonMaxDistanceCutoff, ExplodingRadialDegrade}
+import net.psforever.objects.vital.etc.{ArmorSiphonMaxDistanceCutoff, ExplodingRadialDegrade, InfantryAggravatedRadiation, InfantryAggravatedRadiationBurn}
 import net.psforever.objects.vital.projectile._
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital._
@@ -37,6 +37,7 @@ import net.psforever.types._
 import net.psforever.objects.serverobject.llu.{CaptureFlagDefinition, CaptureFlagSocketDefinition}
 import net.psforever.objects.vital.collision.TrapCollisionDamageMultiplier
 
+import scala.annotation.switch
 import scala.collection.mutable
 import scala.concurrent.duration._
 
@@ -182,6 +183,8 @@ object GlobalDefinitions {
 
   val aphelion_laser_projectile = ProjectileDefinition(Projectiles.aphelion_laser_projectile)
 
+  val aphelion_plasma_cloud = ProjectileDefinition(Projectiles.aphelion_plasma_cloud)
+
   val aphelion_plasma_rocket_projectile = ProjectileDefinition(Projectiles.aphelion_plasma_rocket_projectile)
 
   val aphelion_ppa_projectile = ProjectileDefinition(Projectiles.aphelion_ppa_projectile)
@@ -228,7 +231,7 @@ object GlobalDefinitions {
 
   val flail_projectile = ProjectileDefinition(Projectiles.flail_projectile)
 
-  val flamethrower_fire_cloud = ProjectileDefinition(Projectiles.flamethrower_projectile) //flamethrower_fire_cloud
+  val flamethrower_fire_cloud = ProjectileDefinition(Projectiles.flamethrower_fire_cloud)
 
   val flamethrower_fireball = ProjectileDefinition(Projectiles.flamethrower_fireball)
 
@@ -294,6 +297,8 @@ object GlobalDefinitions {
 
   val liberator_bomb_projectile = ProjectileDefinition(Projectiles.liberator_bomb_projectile)
 
+  val maelstrom_grenade_damager = ProjectileDefinition(Projectiles.maelstrom_grenade_damager)
+
   val maelstrom_grenade_projectile = ProjectileDefinition(Projectiles.maelstrom_grenade_projectile)
 
   val maelstrom_grenade_projectile_contact = ProjectileDefinition(Projectiles.maelstrom_grenade_projectile_contact)
@@ -336,6 +341,8 @@ object GlobalDefinitions {
 
   val peregrine_particle_cannon_projectile = ProjectileDefinition(Projectiles.peregrine_particle_cannon_projectile)
 
+  val peregrine_particle_cannon_radiation_cloud = ProjectileDefinition(Projectiles.peregrine_particle_cannon_radiation_cloud)
+
   val peregrine_rocket_pod_projectile = ProjectileDefinition(Projectiles.peregrine_rocket_pod_projectile)
 
   val peregrine_sparrow_projectile = ProjectileDefinition(Projectiles.peregrine_sparrow_projectile)
@@ -369,6 +376,8 @@ object GlobalDefinitions {
   val pulsar_projectile = ProjectileDefinition(Projectiles.pulsar_projectile)
 
   val quasar_projectile = ProjectileDefinition(Projectiles.quasar_projectile)
+
+  val radiator_cloud = ProjectileDefinition(Projectiles.radiator_cloud)
 
   val radiator_grenade_projectile = ProjectileDefinition(Projectiles.radiator_grenade_projectile)
 
@@ -1941,6 +1950,45 @@ object GlobalDefinitions {
   }
 
   /**
+    * Return a projectile that is the damage proxy of another projectile,
+    * if such a damage proxy is defined in the appropriate field by its unique object identifier.
+    * @see `ProjectileDefinition.DamageProxy`
+    * @param projectile the original projectile
+    * @return the damage proxy projectile definition, if that can be produced
+    */
+  def getDamageProxy(projectile: Projectile, hitPosition: Vector3): Option[Projectile] = {
+    projectile.Definition.DamageProxy match {
+      case Some(uoid) =>
+        ((uoid: @switch) match {
+          case 96 =>  Some(aphelion_plasma_cloud)
+          case 301 => Some(projectile.profile) //'flamethrower_fire_cloud' can not be made into a packet
+          case 464 => Some(projectile.profile) //'maelstrom_grenade_damager' can not be made into a packet
+          case 655 => Some(peregrine_particle_cannon_radiation_cloud)
+          case 717 => Some(radiator_cloud)
+          case _   => None
+        }) match {
+          case Some(proxy)
+            if proxy eq projectile.profile =>
+            Some(projectile)
+          case Some(proxy) =>
+            Some(Projectile(
+              proxy,
+              projectile.tool_def,
+              projectile.fire_mode,
+              projectile.owner,
+              projectile.attribute_to,
+              hitPosition,
+              Vector3.Zero
+            ))
+          case None =>
+            None
+        }
+      case None =>
+        None
+    }
+  }
+
+  /**
     * Initialize `KitDefinition` globals.
     */
   private def init_kit(): Unit = {
@@ -2021,6 +2069,7 @@ object GlobalDefinitions {
       max.ResistanceDirectHit = 6
       max.ResistanceSplash = 35
       max.ResistanceAggravated = 10
+      max.RadiationShielding = 0.5f
       max.collision.forceFactor = 4f
       max.collision.massFactor = 10f
       max.DamageUsing = DamageCalculations.AgainstMaxSuit
@@ -2374,9 +2423,18 @@ object GlobalDefinitions {
     * Initialize `ProjectileDefinition` globals.
     */
   private def init_projectile(): Unit = {
-    val projectileConverter: ProjectileConverter = new ProjectileConverter
+    init_standard_projectile()
+    init_bfr_projectile()
+  }
 
-    no_projectile.Name = "none"
+  /**
+    * Initialize `ProjectileDefinition` globals for most projectiles.
+    */
+  private def init_standard_projectile(): Unit = {
+    val projectileConverter: ProjectileConverter = new ProjectileConverter
+    val radCloudConverter: RadiationCloudConverter = new RadiationCloudConverter
+
+    no_projectile.Name = "no_projectile"
     ProjectileDefinition.CalculateDerivedFields(no_projectile)
     no_projectile.Modifiers = Nil
 
@@ -2589,93 +2647,6 @@ object GlobalDefinitions {
     anniversary_projectileb.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(anniversary_projectileb)
 
-    aphelion_immolation_cannon_projectile.Name = "aphelion_immolation_cannon_projectile"
-    aphelion_immolation_cannon_projectile.Damage0 = 55
-    aphelion_immolation_cannon_projectile.Damage1 = 225
-    aphelion_immolation_cannon_projectile.Damage2 = 210
-    aphelion_immolation_cannon_projectile.Damage3 = 135
-    aphelion_immolation_cannon_projectile.Damage4 = 140
-    aphelion_immolation_cannon_projectile.DamageAtEdge = 0.1f
-    aphelion_immolation_cannon_projectile.DamageRadius = 2.0f
-    aphelion_immolation_cannon_projectile.ProjectileDamageType = DamageType.Splash
-    aphelion_immolation_cannon_projectile.InitialVelocity = 250
-    aphelion_immolation_cannon_projectile.Lifespan = 1.4f
-    ProjectileDefinition.CalculateDerivedFields(aphelion_immolation_cannon_projectile)
-    aphelion_immolation_cannon_projectile.Modifiers = RadialDegrade
-
-    aphelion_laser_projectile.Name = "aphelion_laser_projectile"
-    aphelion_laser_projectile.Damage0 = 3
-    aphelion_laser_projectile.Damage1 = 5
-    aphelion_laser_projectile.Damage2 = 5
-    aphelion_laser_projectile.Damage3 = 4
-    aphelion_laser_projectile.Damage4 = 5
-    aphelion_laser_projectile.ProjectileDamageType = DamageType.Direct
-    aphelion_laser_projectile.DegradeDelay = .05f
-    aphelion_laser_projectile.DegradeMultiplier = 0.5f
-    aphelion_laser_projectile.InitialVelocity = 500
-    aphelion_laser_projectile.Lifespan = 0.35f
-    ProjectileDefinition.CalculateDerivedFields(aphelion_laser_projectile)
-
-    aphelion_plasma_rocket_projectile.Name = "aphelion_plasma_rocket_projectile"
-    //has property aggravated_damage_max_factor, but it's the aphelion_plasma_cloud that performs aggravated damage
-    aphelion_plasma_rocket_projectile.Damage0 = 38
-    aphelion_plasma_rocket_projectile.Damage1 = 70
-    aphelion_plasma_rocket_projectile.Damage2 = 95
-    aphelion_plasma_rocket_projectile.Damage3 = 55
-    aphelion_plasma_rocket_projectile.Damage4 = 60
-    aphelion_plasma_rocket_projectile.Acceleration = 20
-    aphelion_plasma_rocket_projectile.AccelerationUntil = 2f
-    aphelion_plasma_rocket_projectile.DamageAtEdge = .1f
-    aphelion_plasma_rocket_projectile.DamageRadius = 3f
-    aphelion_plasma_rocket_projectile.ProjectileDamageType = DamageType.Splash
-    aphelion_plasma_rocket_projectile.InitialVelocity = 75
-    aphelion_plasma_rocket_projectile.Lifespan = 5f
-    ProjectileDefinition.CalculateDerivedFields(aphelion_plasma_rocket_projectile)
-    aphelion_plasma_rocket_projectile.Modifiers = RadialDegrade
-
-    aphelion_ppa_projectile.Name = "aphelion_ppa_projectile"
-    // TODO for later, maybe : set_resource_parent aphelion_ppa_projectile game_objects ppa_projectile
-    aphelion_ppa_projectile.Damage0 = 31
-    aphelion_ppa_projectile.Damage1 = 84
-    aphelion_ppa_projectile.Damage2 = 58
-    aphelion_ppa_projectile.Damage3 = 57
-    aphelion_ppa_projectile.Damage4 = 60
-    aphelion_ppa_projectile.DamageAtEdge = 0.10f
-    aphelion_ppa_projectile.DamageRadius = 1f
-    aphelion_ppa_projectile.ProjectileDamageType = DamageType.Splash
-    aphelion_ppa_projectile.DegradeDelay = .5f
-    aphelion_ppa_projectile.DegradeMultiplier = 0.55f
-    aphelion_ppa_projectile.InitialVelocity = 350
-    aphelion_ppa_projectile.Lifespan = .7f
-    ProjectileDefinition.CalculateDerivedFields(aphelion_ppa_projectile)
-    aphelion_ppa_projectile.Modifiers = RadialDegrade
-
-    aphelion_starfire_projectile.Name = "aphelion_starfire_projectile"
-    // TODO for later, maybe : set_resource_parent aphelion_starfire_projectile game_objects starfire_projectile
-    aphelion_starfire_projectile.Damage0 = 12
-    aphelion_starfire_projectile.Damage1 = 20
-    aphelion_starfire_projectile.Damage2 = 15
-    aphelion_starfire_projectile.Damage3 = 19
-    aphelion_starfire_projectile.Damage4 = 17
-    aphelion_starfire_projectile.Acceleration = 11
-    aphelion_starfire_projectile.AccelerationUntil = 5f
-    aphelion_starfire_projectile.InitialVelocity = 45
-    aphelion_starfire_projectile.Lifespan = 7f
-    aphelion_starfire_projectile.ProjectileDamageType = DamageType.Aggravated
-    aphelion_starfire_projectile.Aggravated = AggravatedDamage(
-      AggravatedInfo(DamageType.Direct, 0.25f, 250),
-      Aura.None,
-      2000,
-      0f,
-      true,
-      List(TargetValidation(EffectTarget.Category.Aircraft, EffectTarget.Validation.Aircraft))
-    )
-    aphelion_starfire_projectile.ExistsOnRemoteClients = true
-    aphelion_starfire_projectile.RemoteClientData = (39577, 249) //starfire_projectile data
-    aphelion_starfire_projectile.AutoLock = true
-    aphelion_starfire_projectile.Packet = projectileConverter
-    ProjectileDefinition.CalculateDerivedFields(aphelion_starfire_projectile)
-
     bolt_projectile.Name = "bolt_projectile"
     bolt_projectile.Damage0 = 100
     bolt_projectile.Damage1 = 50
@@ -2715,83 +2686,6 @@ object GlobalDefinitions {
     chainblade_projectile.Lifespan = .02f
     ProjectileDefinition.CalculateDerivedFields(chainblade_projectile)
     chainblade_projectile.Modifiers = List(MeleeBoosted, MaxDistanceCutoff)
-
-    colossus_100mm_projectile.Name = "colossus_100mm_projectile"
-    colossus_100mm_projectile.Damage0 = 58
-    colossus_100mm_projectile.Damage1 = 330
-    colossus_100mm_projectile.Damage2 = 300
-    colossus_100mm_projectile.Damage3 = 165
-    colossus_100mm_projectile.Damage4 = 190
-    colossus_100mm_projectile.DamageAtEdge = 0.1f
-    colossus_100mm_projectile.DamageRadius = 5f
-    colossus_100mm_projectile.ProjectileDamageType = DamageType.Splash
-    colossus_100mm_projectile.InitialVelocity = 100
-    colossus_100mm_projectile.Lifespan = 4f
-    ProjectileDefinition.CalculateDerivedFields(colossus_100mm_projectile)
-    colossus_100mm_projectile.Modifiers = RadialDegrade
-
-    colossus_burster_projectile.Name = "colossus_burster_projectile"
-    // TODO for later, maybe : set_resource_parent colossus_burster_projectile game_objects burster_projectile
-    colossus_burster_projectile.Damage0 = 18
-    colossus_burster_projectile.Damage1 = 26
-    colossus_burster_projectile.Damage2 = 18
-    colossus_burster_projectile.Damage3 = 22
-    colossus_burster_projectile.Damage4 = 20
-    colossus_burster_projectile.DamageAtEdge = 0.1f
-    colossus_burster_projectile.DamageRadius = 7f
-    colossus_burster_projectile.ProjectileDamageType = DamageType.Direct
-    colossus_burster_projectile.ProjectileDamageTypeSecondary = DamageType.Splash
-    colossus_burster_projectile.InitialVelocity = 175
-    colossus_burster_projectile.Lifespan = 2.5f
-    ProjectileDefinition.CalculateDerivedFields(colossus_burster_projectile)
-    colossus_burster_projectile.Modifiers = List(
-      //FlakHit,
-      FlakBurst,
-      MaxDistanceCutoff
-    )
-
-    colossus_chaingun_projectile.Name = "colossus_chaingun_projectile"
-    // TODO for later, maybe : set_resource_parent colossus_chaingun_projectile game_objects 35mmbullet_projectile
-    colossus_chaingun_projectile.Damage0 = 15
-    colossus_chaingun_projectile.Damage1 = 14
-    colossus_chaingun_projectile.Damage2 = 15
-    colossus_chaingun_projectile.Damage3 = 13
-    colossus_chaingun_projectile.Damage4 = 11
-    colossus_chaingun_projectile.ProjectileDamageType = DamageType.Direct
-    colossus_chaingun_projectile.DegradeDelay = .100f
-    colossus_chaingun_projectile.DegradeMultiplier = 0.44f
-    colossus_chaingun_projectile.InitialVelocity = 500
-    colossus_chaingun_projectile.Lifespan = .50f
-    ProjectileDefinition.CalculateDerivedFields(colossus_chaingun_projectile)
-
-    colossus_cluster_bomb_projectile.Name = "colossus_cluster_bomb_projectile"
-    colossus_cluster_bomb_projectile.Damage0 = 40
-    colossus_cluster_bomb_projectile.Damage1 = 88
-    colossus_cluster_bomb_projectile.Damage2 = 100
-    colossus_cluster_bomb_projectile.Damage3 = 83
-    colossus_cluster_bomb_projectile.Damage4 = 88
-    colossus_cluster_bomb_projectile.DamageAtEdge = 0.1f
-    colossus_cluster_bomb_projectile.DamageRadius = 8f
-    colossus_cluster_bomb_projectile.ProjectileDamageType = DamageType.Splash
-    colossus_cluster_bomb_projectile.InitialVelocity = 75
-    colossus_cluster_bomb_projectile.Lifespan = 5f
-    ProjectileDefinition.CalculateDerivedFields(colossus_cluster_bomb_projectile)
-    colossus_cluster_bomb_projectile.Modifiers = RadialDegrade
-
-    colossus_tank_cannon_projectile.Name = "colossus_tank_cannon_projectile"
-    // TODO for later, maybe : set_resource_parent colossus_tank_cannon_projectile game_objects 75mmbullet_projectile
-    colossus_tank_cannon_projectile.Damage0 = 33
-    colossus_tank_cannon_projectile.Damage1 = 90
-    colossus_tank_cannon_projectile.Damage2 = 95
-    colossus_tank_cannon_projectile.Damage3 = 71
-    colossus_tank_cannon_projectile.Damage4 = 66
-    colossus_tank_cannon_projectile.DamageAtEdge = 0.1f
-    colossus_tank_cannon_projectile.DamageRadius = 2f
-    colossus_tank_cannon_projectile.ProjectileDamageType = DamageType.Splash
-    colossus_tank_cannon_projectile.InitialVelocity = 165
-    colossus_tank_cannon_projectile.Lifespan = 2f
-    ProjectileDefinition.CalculateDerivedFields(colossus_tank_cannon_projectile)
-    colossus_tank_cannon_projectile.Modifiers = RadialDegrade
 
     comet_projectile.Name = "comet_projectile"
     comet_projectile.Damage0 = 15
@@ -2965,6 +2859,33 @@ object GlobalDefinitions {
     flail_projectile.Modifiers = List(
       FlailDistanceDamageBoost,
       RadialDegrade
+    )
+
+    flamethrower_fire_cloud.Name = "flamethrower_fire_cloud"
+    flamethrower_fire_cloud.Damage0 = 2
+    flamethrower_fire_cloud.Damage1 = 0
+    flamethrower_fire_cloud.Damage2 = 0
+    flamethrower_fire_cloud.Damage3 = 1
+    flamethrower_fire_cloud.Damage4 = 0
+    flamethrower_fire_cloud.DamageAtEdge = 0.1f
+    flamethrower_fire_cloud.DamageRadius = 5f
+    flamethrower_fire_cloud.ProjectileDamageType = DamageType.Aggravated
+    flamethrower_fire_cloud.Aggravated = AggravatedDamage(
+      List(AggravatedInfo(DamageType.Direct, -1.5f, 500), AggravatedInfo(DamageType.Splash, -4.0f, 500)),
+      Aura.Fire,
+      AggravatedTiming(5000, 10),
+      2.5f,
+      false,
+      false,
+      List(TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player))
+    )
+    flamethrower_fire_cloud.Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(flamethrower_fire_cloud)
+    flamethrower_fire_cloud.Modifiers = List(
+      InfantryAggravatedDirect,
+      InfantryAggravatedSplash,
+      RadialDegrade,
+      FireballAggravatedBurn
     )
 
     flamethrower_fireball.Name = "flamethrower_fireball"
@@ -3248,6 +3169,7 @@ object GlobalDefinitions {
     hunter_seeker_missile_projectile.ProjectileDamageType = DamageType.Splash
     hunter_seeker_missile_projectile.InitialVelocity = 40
     hunter_seeker_missile_projectile.Lifespan = 6.3f
+    hunter_seeker_missile_projectile.registerAs = "rc-projectiles"
     hunter_seeker_missile_projectile.ExistsOnRemoteClients = true
     hunter_seeker_missile_projectile.RemoteClientData = (39577, 201)
     hunter_seeker_missile_projectile.Packet = projectileConverter
@@ -3510,6 +3432,10 @@ object GlobalDefinitions {
     ProjectileDefinition.CalculateDerivedFields(liberator_bomb_projectile)
     liberator_bomb_projectile.Modifiers = RadialDegrade
 
+    maelstrom_grenade_damager.Name = "maelstrom_grenade_damager"
+    maelstrom_grenade_damager.ProjectileDamageType = DamageType.Direct
+    //todo the maelstrom_grenade_damage is something of a broken entity atm
+
     maelstrom_grenade_projectile.Name = "maelstrom_grenade_projectile"
     maelstrom_grenade_projectile.Damage0 = 32
     maelstrom_grenade_projectile.Damage1 = 60
@@ -3519,7 +3445,7 @@ object GlobalDefinitions {
     maelstrom_grenade_projectile.ProjectileDamageType = DamageType.Direct
     maelstrom_grenade_projectile.InitialVelocity = 30
     maelstrom_grenade_projectile.Lifespan = 2f
-    maelstrom_grenade_projectile.DamageProxy = 464
+    maelstrom_grenade_projectile.DamageProxy = 464 //maelstrom_grenade_damager
     ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile)
     maelstrom_grenade_projectile.Modifiers = RadialDegrade
 
@@ -3533,7 +3459,7 @@ object GlobalDefinitions {
     maelstrom_grenade_projectile_contact.ProjectileDamageType = DamageType.Direct
     maelstrom_grenade_projectile_contact.InitialVelocity = 30
     maelstrom_grenade_projectile_contact.Lifespan = 15f
-    maelstrom_grenade_projectile_contact.DamageProxy = 464
+    maelstrom_grenade_projectile_contact.DamageProxy = 464 //maelstrom_grenade_damager
     ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile_contact)
     maelstrom_grenade_projectile_contact.Modifiers = RadialDegrade
 
@@ -3686,6 +3612,7 @@ object GlobalDefinitions {
     oicw_projectile.ProjectileDamageType = DamageType.Splash
     oicw_projectile.InitialVelocity = 5
     oicw_projectile.Lifespan = 6.1f
+    oicw_projectile.registerAs = "rc-projectiles"
     oicw_projectile.ExistsOnRemoteClients = true
     oicw_projectile.RemoteClientData = (13107, 195)
     oicw_projectile.Packet = projectileConverter
@@ -3715,82 +3642,6 @@ object GlobalDefinitions {
     pellet_gun_projectile.Lifespan = 0.1875f
     pellet_gun_projectile.UseDamage1Subtract = false
     ProjectileDefinition.CalculateDerivedFields(pellet_gun_projectile)
-
-    peregrine_dual_machine_gun_projectile.Name = "peregrine_dual_machine_gun_projectile"
-    // TODO for later, maybe : set_resource_parent peregrine_dual_machine_gun_projectile game_objects 35mmbullet_projectile
-    peregrine_dual_machine_gun_projectile.Damage0 = 16
-    peregrine_dual_machine_gun_projectile.Damage1 = 44
-    peregrine_dual_machine_gun_projectile.Damage2 = 30
-    peregrine_dual_machine_gun_projectile.Damage3 = 27
-    peregrine_dual_machine_gun_projectile.Damage4 = 32
-    peregrine_dual_machine_gun_projectile.ProjectileDamageType = DamageType.Direct
-    peregrine_dual_machine_gun_projectile.DegradeDelay = .25f
-    peregrine_dual_machine_gun_projectile.DegradeMultiplier = 0.65f
-    peregrine_dual_machine_gun_projectile.InitialVelocity = 250
-    peregrine_dual_machine_gun_projectile.Lifespan = 1.1f
-    ProjectileDefinition.CalculateDerivedFields(peregrine_dual_machine_gun_projectile)
-
-    peregrine_mechhammer_projectile.Name = "peregrine_mechhammer_projectile"
-    peregrine_mechhammer_projectile.Damage0 = 5
-    peregrine_mechhammer_projectile.Damage1 = 4
-    peregrine_mechhammer_projectile.Damage2 = 4
-    peregrine_mechhammer_projectile.Damage3 = 5
-    peregrine_mechhammer_projectile.Damage4 = 3
-    peregrine_mechhammer_projectile.ProjectileDamageType = DamageType.Direct
-    peregrine_mechhammer_projectile.InitialVelocity = 500
-    peregrine_mechhammer_projectile.Lifespan = 0.4f
-    ProjectileDefinition.CalculateDerivedFields(peregrine_mechhammer_projectile)
-
-    peregrine_particle_cannon_projectile.Name = "peregrine_particle_cannon_projectile"
-    peregrine_particle_cannon_projectile.Damage0 = 70
-    peregrine_particle_cannon_projectile.Damage1 = 525
-    peregrine_particle_cannon_projectile.Damage2 = 350
-    peregrine_particle_cannon_projectile.Damage3 = 318
-    peregrine_particle_cannon_projectile.Damage4 = 310
-    peregrine_particle_cannon_projectile.DamageAtEdge = 0.1f
-    peregrine_particle_cannon_projectile.DamageRadius = 3f
-    peregrine_particle_cannon_projectile.ProjectileDamageType = DamageType.Splash
-    peregrine_particle_cannon_projectile.InitialVelocity = 500
-    peregrine_particle_cannon_projectile.Lifespan = .6f
-    ProjectileDefinition.CalculateDerivedFields(peregrine_particle_cannon_projectile)
-    peregrine_particle_cannon_projectile.Modifiers = RadialDegrade
-
-    peregrine_rocket_pod_projectile.Name = "peregrine_rocket_pod_projectile"
-    peregrine_rocket_pod_projectile.Damage0 = 30
-    peregrine_rocket_pod_projectile.Damage1 = 50
-    peregrine_rocket_pod_projectile.Damage2 = 50
-    peregrine_rocket_pod_projectile.Damage3 = 45
-    peregrine_rocket_pod_projectile.Damage4 = 40
-    peregrine_rocket_pod_projectile.Acceleration = 10
-    peregrine_rocket_pod_projectile.AccelerationUntil = 2f
-    peregrine_rocket_pod_projectile.DamageAtEdge = 0.1f
-    peregrine_rocket_pod_projectile.DamageRadius = 3f
-    peregrine_rocket_pod_projectile.ProjectileDamageType = DamageType.Splash
-    peregrine_rocket_pod_projectile.InitialVelocity = 200
-    peregrine_rocket_pod_projectile.Lifespan = 1.85f
-    ProjectileDefinition.CalculateDerivedFields(peregrine_rocket_pod_projectile)
-    peregrine_rocket_pod_projectile.Modifiers = RadialDegrade
-
-    peregrine_sparrow_projectile.Name = "peregrine_sparrow_projectile"
-    // TODO for later, maybe : set_resource_parent peregrine_sparrow_projectile game_objects sparrow_projectile
-    peregrine_sparrow_projectile.Damage0 = 20
-    peregrine_sparrow_projectile.Damage1 = 40
-    peregrine_sparrow_projectile.Damage2 = 30
-    peregrine_sparrow_projectile.Damage3 = 30
-    peregrine_sparrow_projectile.Damage4 = 31
-    peregrine_sparrow_projectile.Acceleration = 12
-    peregrine_sparrow_projectile.AccelerationUntil = 5f
-    peregrine_sparrow_projectile.DamageAtEdge = 0.1f
-    peregrine_sparrow_projectile.DamageRadius = 2f
-    peregrine_sparrow_projectile.ProjectileDamageType = DamageType.Splash
-    peregrine_sparrow_projectile.InitialVelocity = 45
-    peregrine_sparrow_projectile.Lifespan = 7.5f
-    peregrine_sparrow_projectile.ExistsOnRemoteClients = true
-    peregrine_sparrow_projectile.RemoteClientData = (13107, 187) //sparrow_projectile data
-    peregrine_sparrow_projectile.AutoLock = true
-    peregrine_sparrow_projectile.Packet = projectileConverter
-    ProjectileDefinition.CalculateDerivedFields(peregrine_sparrow_projectile)
-    peregrine_sparrow_projectile.Modifiers = RadialDegrade
 
     phalanx_av_projectile.Name = "phalanx_av_projectile"
     phalanx_av_projectile.Damage0 = 60
@@ -3849,6 +3700,7 @@ object GlobalDefinitions {
     phoenix_missile_guided_projectile.InitialVelocity = 0
     phoenix_missile_guided_projectile.Lifespan = 3f
     //not naturally a remote projectile, but being governed as one for convenience
+    phoenix_missile_guided_projectile.registerAs = "rc-projectiles"
     phoenix_missile_guided_projectile.ExistsOnRemoteClients = true
     phoenix_missile_guided_projectile.RemoteClientData = (0, 63)
     phoenix_missile_guided_projectile.Packet = projectileConverter
@@ -4061,6 +3913,23 @@ object GlobalDefinitions {
     quasar_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(quasar_projectile)
 
+    radiator_cloud.Name = "radiator_cloud"
+    radiator_cloud.Damage0 = 2
+    radiator_cloud.DamageAtEdge = 1.0f
+    radiator_cloud.DamageRadius = 5f
+    radiator_cloud.radiation_cloud = true
+    radiator_cloud.ProjectileDamageType = DamageType.Radiation
+    radiator_cloud.Lifespan = 10.0f
+    ProjectileDefinition.CalculateDerivedFields(radiator_cloud)
+    radiator_cloud.registerAs = "rc-projectiles"
+    radiator_cloud.ExistsOnRemoteClients = true
+    radiator_cloud.Packet = radCloudConverter
+    radiator_cloud.Geometry = GeometryForm.representProjectileBySphere()
+    radiator_cloud.Modifiers = List(
+      MaxDistanceCutoff,
+      ShieldAgainstRadiation
+    )
+
     radiator_grenade_projectile.Name = "radiator_grenade_projectile" // Todo : Radiator damages ?
     radiator_grenade_projectile.GrenadeProjectile = true             //not really, but technically yes
     radiator_grenade_projectile.ProjectileDamageType = DamageType.Direct
@@ -4224,6 +4093,7 @@ object GlobalDefinitions {
     sparrow_projectile.ProjectileDamageType = DamageType.Splash
     sparrow_projectile.InitialVelocity = 60
     sparrow_projectile.Lifespan = 5.85f
+    sparrow_projectile.registerAs = "rc-projectiles"
     sparrow_projectile.ExistsOnRemoteClients = true
     sparrow_projectile.RemoteClientData = (13107, 187)
     sparrow_projectile.AutoLock = true
@@ -4243,6 +4113,7 @@ object GlobalDefinitions {
     sparrow_secondary_projectile.ProjectileDamageType = DamageType.Splash
     sparrow_secondary_projectile.InitialVelocity = 60
     sparrow_secondary_projectile.Lifespan = 5.85f
+    sparrow_secondary_projectile.registerAs = "rc-projectiles"
     sparrow_secondary_projectile.ExistsOnRemoteClients = true
     sparrow_secondary_projectile.RemoteClientData = (13107, 187)
     sparrow_secondary_projectile.AutoLock = true
@@ -4318,6 +4189,7 @@ object GlobalDefinitions {
     )
     starfire_projectile.InitialVelocity = 45
     starfire_projectile.Lifespan = 7.8f
+    starfire_projectile.registerAs = "rc-projectiles"
     starfire_projectile.ExistsOnRemoteClients = true
     starfire_projectile.RemoteClientData = (39577, 249)
     starfire_projectile.AutoLock = true
@@ -4358,6 +4230,7 @@ object GlobalDefinitions {
     striker_missile_targeting_projectile.ProjectileDamageType = DamageType.Splash
     striker_missile_targeting_projectile.InitialVelocity = 30
     striker_missile_targeting_projectile.Lifespan = 4.2f
+    striker_missile_targeting_projectile.registerAs = "rc-projectiles"
     striker_missile_targeting_projectile.ExistsOnRemoteClients = true
     striker_missile_targeting_projectile.RemoteClientData = (26214, 134)
     striker_missile_targeting_projectile.AutoLock = true
@@ -4455,6 +4328,7 @@ object GlobalDefinitions {
     wasp_rocket_projectile.ProjectileDamageType = DamageType.Splash
     wasp_rocket_projectile.InitialVelocity = 60
     wasp_rocket_projectile.Lifespan = 6.5f
+    wasp_rocket_projectile.registerAs = "rc-projectiles"
     wasp_rocket_projectile.ExistsOnRemoteClients = true
     wasp_rocket_projectile.RemoteClientData = (0, 208)
     wasp_rocket_projectile.AutoLock = true
@@ -4473,6 +4347,308 @@ object GlobalDefinitions {
     winchester_projectile.InitialVelocity = 500
     winchester_projectile.Lifespan = 0.6f
     ProjectileDefinition.CalculateDerivedFields(winchester_projectile)
+  }
+
+  /**
+    * Initialize `ProjectileDefinition` globals for projectiles utilized by battleframe robotics.
+    */
+  private def init_bfr_projectile(): Unit = {
+    val projectileConverter: ProjectileConverter = new ProjectileConverter
+    val radCloudConverter: RadiationCloudConverter = new RadiationCloudConverter
+
+    aphelion_immolation_cannon_projectile.Name = "aphelion_immolation_cannon_projectile"
+    aphelion_immolation_cannon_projectile.Damage0 = 55
+    aphelion_immolation_cannon_projectile.Damage1 = 225
+    aphelion_immolation_cannon_projectile.Damage2 = 210
+    aphelion_immolation_cannon_projectile.Damage3 = 135
+    aphelion_immolation_cannon_projectile.Damage4 = 140
+    aphelion_immolation_cannon_projectile.DamageAtEdge = 0.1f
+    aphelion_immolation_cannon_projectile.DamageRadius = 2.0f
+    aphelion_immolation_cannon_projectile.ProjectileDamageType = DamageType.Splash
+    aphelion_immolation_cannon_projectile.InitialVelocity = 250
+    aphelion_immolation_cannon_projectile.Lifespan = 1.4f
+    ProjectileDefinition.CalculateDerivedFields(aphelion_immolation_cannon_projectile)
+    aphelion_immolation_cannon_projectile.Modifiers = RadialDegrade
+
+    aphelion_laser_projectile.Name = "aphelion_laser_projectile"
+    aphelion_laser_projectile.Damage0 = 3
+    aphelion_laser_projectile.Damage1 = 5
+    aphelion_laser_projectile.Damage2 = 5
+    aphelion_laser_projectile.Damage3 = 4
+    aphelion_laser_projectile.Damage4 = 5
+    aphelion_laser_projectile.ProjectileDamageType = DamageType.Direct
+    aphelion_laser_projectile.DegradeDelay = .05f
+    aphelion_laser_projectile.DegradeMultiplier = 0.5f
+    aphelion_laser_projectile.InitialVelocity = 500
+    aphelion_laser_projectile.Lifespan = 0.35f
+    ProjectileDefinition.CalculateDerivedFields(aphelion_laser_projectile)
+
+    aphelion_plasma_cloud.Name = "aphelion_plasma_cloud"
+    aphelion_plasma_cloud.Damage0 = 3
+    aphelion_plasma_cloud.DamageAtEdge = 1.0f
+    aphelion_plasma_cloud.DamageRadius = 3f
+    aphelion_plasma_cloud.radiation_cloud = true
+    aphelion_plasma_cloud.ProjectileDamageType = DamageType.Aggravated
+    aphelion_plasma_cloud.Aggravated = AggravatedDamage(
+      AggravatedInfo(DamageType.Splash, 0.5f, 1000),
+      Aura.Napalm,
+      AggravatedTiming(10000, 2), //10000
+      10f, //aphelion_plasma_rocket_projectile.aggravated_damage_max_factor
+      true,
+      List(
+        TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player)
+      )
+    )
+    aphelion_plasma_cloud.Lifespan = 10.0f
+    ProjectileDefinition.CalculateDerivedFields(aphelion_plasma_cloud)
+    aphelion_plasma_cloud.registerAs = "rc-projectiles"
+    aphelion_plasma_cloud.ExistsOnRemoteClients = true
+    aphelion_plasma_cloud.Packet = radCloudConverter
+    aphelion_plasma_cloud.Geometry = GeometryForm.representProjectileBySphere()
+    aphelion_plasma_cloud.Modifiers = List( //TODO placeholder values
+      MaxDistanceCutoff,
+      InfantryAggravatedRadiation,
+      InfantryAggravatedRadiationBurn,
+      ShieldAgainstRadiation
+    )
+
+    aphelion_plasma_rocket_projectile.Name = "aphelion_plasma_rocket_projectile"
+    //has property aggravated_damage_max_factor, but it's the aphelion_plasma_cloud that performs aggravated damage
+    aphelion_plasma_rocket_projectile.Damage0 = 38
+    aphelion_plasma_rocket_projectile.Damage1 = 70
+    aphelion_plasma_rocket_projectile.Damage2 = 95
+    aphelion_plasma_rocket_projectile.Damage3 = 55
+    aphelion_plasma_rocket_projectile.Damage4 = 60
+    aphelion_plasma_rocket_projectile.Acceleration = 20
+    aphelion_plasma_rocket_projectile.AccelerationUntil = 2f
+    aphelion_plasma_rocket_projectile.DamageAtEdge = .1f
+    aphelion_plasma_rocket_projectile.DamageRadius = 3f
+    aphelion_plasma_rocket_projectile.ProjectileDamageType = DamageType.Splash
+    aphelion_plasma_rocket_projectile.DamageProxy = 96 //aphelion_plama_cloud
+    aphelion_plasma_rocket_projectile.InitialVelocity = 75
+    aphelion_plasma_rocket_projectile.Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(aphelion_plasma_rocket_projectile)
+    aphelion_plasma_rocket_projectile.Modifiers = RadialDegrade
+
+    aphelion_ppa_projectile.Name = "aphelion_ppa_projectile"
+    // TODO for later, maybe : set_resource_parent aphelion_ppa_projectile game_objects ppa_projectile
+    aphelion_ppa_projectile.Damage0 = 31
+    aphelion_ppa_projectile.Damage1 = 84
+    aphelion_ppa_projectile.Damage2 = 58
+    aphelion_ppa_projectile.Damage3 = 57
+    aphelion_ppa_projectile.Damage4 = 60
+    aphelion_ppa_projectile.DamageAtEdge = 0.10f
+    aphelion_ppa_projectile.DamageRadius = 1f
+    aphelion_ppa_projectile.ProjectileDamageType = DamageType.Splash
+    aphelion_ppa_projectile.DegradeDelay = .5f
+    aphelion_ppa_projectile.DegradeMultiplier = 0.55f
+    aphelion_ppa_projectile.InitialVelocity = 350
+    aphelion_ppa_projectile.Lifespan = .7f
+    ProjectileDefinition.CalculateDerivedFields(aphelion_ppa_projectile)
+    aphelion_ppa_projectile.Modifiers = RadialDegrade
+
+    aphelion_starfire_projectile.Name = "aphelion_starfire_projectile"
+    // TODO for later, maybe : set_resource_parent aphelion_starfire_projectile game_objects starfire_projectile
+    aphelion_starfire_projectile.Damage0 = 12
+    aphelion_starfire_projectile.Damage1 = 20
+    aphelion_starfire_projectile.Damage2 = 15
+    aphelion_starfire_projectile.Damage3 = 19
+    aphelion_starfire_projectile.Damage4 = 17
+    aphelion_starfire_projectile.Acceleration = 11
+    aphelion_starfire_projectile.AccelerationUntil = 5f
+    aphelion_starfire_projectile.InitialVelocity = 45
+    aphelion_starfire_projectile.Lifespan = 7f
+    aphelion_starfire_projectile.ProjectileDamageType = DamageType.Aggravated
+    aphelion_starfire_projectile.Aggravated = AggravatedDamage(
+      AggravatedInfo(DamageType.Direct, 0.25f, 250),
+      Aura.None,
+      2000,
+      0f,
+      true,
+      List(TargetValidation(EffectTarget.Category.Aircraft, EffectTarget.Validation.Aircraft))
+    )
+    aphelion_starfire_projectile.registerAs = "rc-projectiles"
+    aphelion_starfire_projectile.ExistsOnRemoteClients = true
+    aphelion_starfire_projectile.RemoteClientData = (39577, 249) //starfire_projectile data
+    aphelion_starfire_projectile.AutoLock = true
+    aphelion_starfire_projectile.Packet = projectileConverter
+    ProjectileDefinition.CalculateDerivedFields(aphelion_starfire_projectile)
+    aphelion_starfire_projectile.Modifiers = List(
+      StarfireAggravated,
+      StarfireAggravatedBurn
+    )
+
+    colossus_100mm_projectile.Name = "colossus_100mm_projectile"
+    colossus_100mm_projectile.Damage0 = 58
+    colossus_100mm_projectile.Damage1 = 330
+    colossus_100mm_projectile.Damage2 = 300
+    colossus_100mm_projectile.Damage3 = 165
+    colossus_100mm_projectile.Damage4 = 190
+    colossus_100mm_projectile.DamageAtEdge = 0.1f
+    colossus_100mm_projectile.DamageRadius = 5f
+    colossus_100mm_projectile.ProjectileDamageType = DamageType.Splash
+    colossus_100mm_projectile.InitialVelocity = 100
+    colossus_100mm_projectile.Lifespan = 4f
+    ProjectileDefinition.CalculateDerivedFields(colossus_100mm_projectile)
+    colossus_100mm_projectile.Modifiers = RadialDegrade
+
+    colossus_burster_projectile.Name = "colossus_burster_projectile"
+    // TODO for later, maybe : set_resource_parent colossus_burster_projectile game_objects burster_projectile
+    colossus_burster_projectile.Damage0 = 18
+    colossus_burster_projectile.Damage1 = 26
+    colossus_burster_projectile.Damage2 = 18
+    colossus_burster_projectile.Damage3 = 22
+    colossus_burster_projectile.Damage4 = 20
+    colossus_burster_projectile.DamageAtEdge = 0.1f
+    colossus_burster_projectile.DamageRadius = 7f
+    colossus_burster_projectile.ProjectileDamageType = DamageType.Direct
+    colossus_burster_projectile.ProjectileDamageTypeSecondary = DamageType.Splash
+    colossus_burster_projectile.InitialVelocity = 175
+    colossus_burster_projectile.Lifespan = 2.5f
+    ProjectileDefinition.CalculateDerivedFields(colossus_burster_projectile)
+    colossus_burster_projectile.Modifiers = List(
+      //FlakHit,
+      FlakBurst,
+      MaxDistanceCutoff
+    )
+
+    colossus_chaingun_projectile.Name = "colossus_chaingun_projectile"
+    // TODO for later, maybe : set_resource_parent colossus_chaingun_projectile game_objects 35mmbullet_projectile
+    colossus_chaingun_projectile.Damage0 = 15
+    colossus_chaingun_projectile.Damage1 = 14
+    colossus_chaingun_projectile.Damage2 = 15
+    colossus_chaingun_projectile.Damage3 = 13
+    colossus_chaingun_projectile.Damage4 = 11
+    colossus_chaingun_projectile.ProjectileDamageType = DamageType.Direct
+    colossus_chaingun_projectile.DegradeDelay = .100f
+    colossus_chaingun_projectile.DegradeMultiplier = 0.44f
+    colossus_chaingun_projectile.InitialVelocity = 500
+    colossus_chaingun_projectile.Lifespan = .50f
+    ProjectileDefinition.CalculateDerivedFields(colossus_chaingun_projectile)
+
+    colossus_cluster_bomb_projectile.Name = "colossus_cluster_bomb_projectile"
+    colossus_cluster_bomb_projectile.Damage0 = 40
+    colossus_cluster_bomb_projectile.Damage1 = 88
+    colossus_cluster_bomb_projectile.Damage2 = 100
+    colossus_cluster_bomb_projectile.Damage3 = 83
+    colossus_cluster_bomb_projectile.Damage4 = 88
+    colossus_cluster_bomb_projectile.DamageAtEdge = 0.1f
+    colossus_cluster_bomb_projectile.DamageRadius = 8f
+    colossus_cluster_bomb_projectile.ProjectileDamageType = DamageType.Splash
+    colossus_cluster_bomb_projectile.InitialVelocity = 75
+    colossus_cluster_bomb_projectile.Lifespan = 5f
+    ProjectileDefinition.CalculateDerivedFields(colossus_cluster_bomb_projectile)
+    colossus_cluster_bomb_projectile.Modifiers = RadialDegrade
+
+    colossus_tank_cannon_projectile.Name = "colossus_tank_cannon_projectile"
+    // TODO for later, maybe : set_resource_parent colossus_tank_cannon_projectile game_objects 75mmbullet_projectile
+    colossus_tank_cannon_projectile.Damage0 = 33
+    colossus_tank_cannon_projectile.Damage1 = 90
+    colossus_tank_cannon_projectile.Damage2 = 95
+    colossus_tank_cannon_projectile.Damage3 = 71
+    colossus_tank_cannon_projectile.Damage4 = 66
+    colossus_tank_cannon_projectile.DamageAtEdge = 0.1f
+    colossus_tank_cannon_projectile.DamageRadius = 2f
+    colossus_tank_cannon_projectile.ProjectileDamageType = DamageType.Splash
+    colossus_tank_cannon_projectile.InitialVelocity = 165
+    colossus_tank_cannon_projectile.Lifespan = 2f
+    ProjectileDefinition.CalculateDerivedFields(colossus_tank_cannon_projectile)
+    colossus_tank_cannon_projectile.Modifiers = RadialDegrade
+
+    peregrine_dual_machine_gun_projectile.Name = "peregrine_dual_machine_gun_projectile"
+    // TODO for later, maybe : set_resource_parent peregrine_dual_machine_gun_projectile game_objects 35mmbullet_projectile
+    peregrine_dual_machine_gun_projectile.Damage0 = 16
+    peregrine_dual_machine_gun_projectile.Damage1 = 44
+    peregrine_dual_machine_gun_projectile.Damage2 = 30
+    peregrine_dual_machine_gun_projectile.Damage3 = 27
+    peregrine_dual_machine_gun_projectile.Damage4 = 32
+    peregrine_dual_machine_gun_projectile.ProjectileDamageType = DamageType.Direct
+    peregrine_dual_machine_gun_projectile.DegradeDelay = .25f
+    peregrine_dual_machine_gun_projectile.DegradeMultiplier = 0.65f
+    peregrine_dual_machine_gun_projectile.InitialVelocity = 250
+    peregrine_dual_machine_gun_projectile.Lifespan = 1.1f
+    ProjectileDefinition.CalculateDerivedFields(peregrine_dual_machine_gun_projectile)
+
+    peregrine_mechhammer_projectile.Name = "peregrine_mechhammer_projectile"
+    peregrine_mechhammer_projectile.Damage0 = 5
+    peregrine_mechhammer_projectile.Damage1 = 4
+    peregrine_mechhammer_projectile.Damage2 = 4
+    peregrine_mechhammer_projectile.Damage3 = 5
+    peregrine_mechhammer_projectile.Damage4 = 3
+    peregrine_mechhammer_projectile.ProjectileDamageType = DamageType.Direct
+    peregrine_mechhammer_projectile.InitialVelocity = 500
+    peregrine_mechhammer_projectile.Lifespan = 0.4f
+    ProjectileDefinition.CalculateDerivedFields(peregrine_mechhammer_projectile)
+
+    peregrine_particle_cannon_projectile.Name = "peregrine_particle_cannon_projectile"
+    peregrine_particle_cannon_projectile.Damage0 = 70
+    peregrine_particle_cannon_projectile.Damage1 = 525
+    peregrine_particle_cannon_projectile.Damage2 = 350
+    peregrine_particle_cannon_projectile.Damage3 = 318
+    peregrine_particle_cannon_projectile.Damage4 = 310
+    peregrine_particle_cannon_projectile.DamageAtEdge = 0.1f
+    peregrine_particle_cannon_projectile.DamageRadius = 3f
+    peregrine_particle_cannon_projectile.ProjectileDamageType = DamageType.Splash
+    peregrine_particle_cannon_projectile.DamageProxy = 655 //peregrine_particle_cannon_radiation_cloud
+    peregrine_particle_cannon_projectile.InitialVelocity = 500
+    peregrine_particle_cannon_projectile.Lifespan = .6f
+    ProjectileDefinition.CalculateDerivedFields(peregrine_particle_cannon_projectile)
+    peregrine_particle_cannon_projectile.Modifiers = RadialDegrade
+
+    peregrine_particle_cannon_radiation_cloud.Name = "peregrine_particle_cannon_radiation_cloud"
+    peregrine_particle_cannon_radiation_cloud.Damage0 = 1
+    peregrine_particle_cannon_radiation_cloud.DamageAtEdge = 1.0f
+    peregrine_particle_cannon_radiation_cloud.DamageRadius = 3f
+    peregrine_particle_cannon_radiation_cloud.radiation_cloud = true
+    peregrine_particle_cannon_radiation_cloud.ProjectileDamageType = DamageType.Radiation
+    peregrine_particle_cannon_radiation_cloud.Lifespan = 5.0f
+    ProjectileDefinition.CalculateDerivedFields(peregrine_particle_cannon_radiation_cloud)
+    peregrine_particle_cannon_radiation_cloud.registerAs = "rc-projectiles"
+    peregrine_particle_cannon_radiation_cloud.ExistsOnRemoteClients = true
+    peregrine_particle_cannon_radiation_cloud.Packet = radCloudConverter
+    peregrine_particle_cannon_radiation_cloud.Geometry = GeometryForm.representProjectileBySphere()
+    peregrine_particle_cannon_radiation_cloud.Modifiers = List(
+      MaxDistanceCutoff,
+      ShieldAgainstRadiation
+    )
+
+    peregrine_rocket_pod_projectile.Name = "peregrine_rocket_pod_projectile"
+    peregrine_rocket_pod_projectile.Damage0 = 30
+    peregrine_rocket_pod_projectile.Damage1 = 50
+    peregrine_rocket_pod_projectile.Damage2 = 50
+    peregrine_rocket_pod_projectile.Damage3 = 45
+    peregrine_rocket_pod_projectile.Damage4 = 40
+    peregrine_rocket_pod_projectile.Acceleration = 10
+    peregrine_rocket_pod_projectile.AccelerationUntil = 2f
+    peregrine_rocket_pod_projectile.DamageAtEdge = 0.1f
+    peregrine_rocket_pod_projectile.DamageRadius = 3f
+    peregrine_rocket_pod_projectile.ProjectileDamageType = DamageType.Splash
+    peregrine_rocket_pod_projectile.InitialVelocity = 200
+    peregrine_rocket_pod_projectile.Lifespan = 1.85f
+    ProjectileDefinition.CalculateDerivedFields(peregrine_rocket_pod_projectile)
+    peregrine_rocket_pod_projectile.Modifiers = RadialDegrade
+
+    peregrine_sparrow_projectile.Name = "peregrine_sparrow_projectile"
+    // TODO for later, maybe : set_resource_parent peregrine_sparrow_projectile game_objects sparrow_projectile
+    peregrine_sparrow_projectile.Damage0 = 20
+    peregrine_sparrow_projectile.Damage1 = 40
+    peregrine_sparrow_projectile.Damage2 = 30
+    peregrine_sparrow_projectile.Damage3 = 30
+    peregrine_sparrow_projectile.Damage4 = 31
+    peregrine_sparrow_projectile.Acceleration = 12
+    peregrine_sparrow_projectile.AccelerationUntil = 5f
+    peregrine_sparrow_projectile.DamageAtEdge = 0.1f
+    peregrine_sparrow_projectile.DamageRadius = 2f
+    peregrine_sparrow_projectile.ProjectileDamageType = DamageType.Splash
+    peregrine_sparrow_projectile.InitialVelocity = 45
+    peregrine_sparrow_projectile.Lifespan = 7.5f
+    peregrine_sparrow_projectile.registerAs = "rc-projectiles"
+    peregrine_sparrow_projectile.ExistsOnRemoteClients = true
+    peregrine_sparrow_projectile.RemoteClientData = (13107, 187) //sparrow_projectile data
+    peregrine_sparrow_projectile.AutoLock = true
+    peregrine_sparrow_projectile.Packet = projectileConverter
+    ProjectileDefinition.CalculateDerivedFields(peregrine_sparrow_projectile)
+    peregrine_sparrow_projectile.Modifiers = RadialDegrade
 
     armor_siphon_projectile.Name = "armor_siphon_projectile"
     armor_siphon_projectile.Damage0 = 0
@@ -6145,7 +6321,7 @@ object GlobalDefinitions {
     aphelion_starfire_right.Name = "aphelion_starfire_right"
     aphelion_starfire_right.Size = EquipmentSize.BFRArmWeapon
     aphelion_starfire_right.AmmoTypes += aphelion_laser_ammo
-    aphelion_starfire_right.ProjectileTypes += aphelion_laser_projectile
+    aphelion_starfire_right.ProjectileTypes += aphelion_starfire_projectile
     aphelion_starfire_right.FireModes += new FireModeDefinition
     aphelion_starfire_right.FireModes.head.AmmoTypeIndices += 0
     aphelion_starfire_right.FireModes.head.AmmoSlotIndex = 0
@@ -6732,6 +6908,7 @@ object GlobalDefinitions {
     two_man_assault_buggy.TrunkLocation = Vector3(-2.5f, 0f, 0f)
     two_man_assault_buggy.AutoPilotSpeeds = (22, 8)
     two_man_assault_buggy.DestroyedModel = Some(DestroyedVehicle.TwoManAssaultBuggy)
+    two_man_assault_buggy.RadiationShielding = 0.5f
     two_man_assault_buggy.JackingDuration = Array(0, 15, 5, 3)
     two_man_assault_buggy.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -6771,6 +6948,7 @@ object GlobalDefinitions {
     skyguard.AutoPilotSpeeds = (22, 8)
     skyguard.DestroyedModel = Some(DestroyedVehicle.Skyguard)
     skyguard.JackingDuration = Array(0, 15, 5, 3)
+    skyguard.RadiationShielding = 0.5f
     skyguard.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -6849,6 +7027,7 @@ object GlobalDefinitions {
     twomanheavybuggy.TrunkLocation = Vector3(-0.23f, -2.05f, 0f)
     twomanheavybuggy.AutoPilotSpeeds = (22, 8)
     twomanheavybuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHeavyBuggy)
+    twomanheavybuggy.RadiationShielding = 0.5f
     twomanheavybuggy.Subtract.Damage1 = 5
     twomanheavybuggy.JackingDuration = Array(0, 20, 7, 5)
     twomanheavybuggy.innateDamage = new DamageWithPosition {
@@ -6887,6 +7066,7 @@ object GlobalDefinitions {
     twomanhoverbuggy.TrunkLocation = Vector3(-3.39f, 0f, 0f)
     twomanhoverbuggy.AutoPilotSpeeds = (22, 10)
     twomanhoverbuggy.DestroyedModel = Some(DestroyedVehicle.TwoManHoverBuggy)
+    twomanhoverbuggy.RadiationShielding = 0.5f
     twomanhoverbuggy.Subtract.Damage1 = 5
     twomanhoverbuggy.JackingDuration = Array(0, 20, 7, 5)
     twomanhoverbuggy.innateDamage = new DamageWithPosition {
@@ -7144,6 +7324,7 @@ object GlobalDefinitions {
     apc_tr.AutoPilotSpeeds = (16, 6)
     apc_tr.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_tr.JackingDuration = Array(0, 45, 15, 10)
+    apc_tr.RadiationShielding = 0.5f
     apc_tr.Subtract.Damage1 = 10
     apc_tr.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -7213,6 +7394,7 @@ object GlobalDefinitions {
     apc_nc.AutoPilotSpeeds = (16, 6)
     apc_nc.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_nc.JackingDuration = Array(0, 45, 15, 10)
+    apc_nc.RadiationShielding = 0.5f
     apc_nc.Subtract.Damage1 = 10
     apc_nc.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -7282,6 +7464,7 @@ object GlobalDefinitions {
     apc_vs.AutoPilotSpeeds = (16, 6)
     apc_vs.DestroyedModel = Some(DestroyedVehicle.Apc)
     apc_vs.JackingDuration = Array(0, 45, 15, 10)
+    apc_vs.RadiationShielding = 0.5f
     apc_vs.Subtract.Damage1 = 10
     apc_vs.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -7320,6 +7503,7 @@ object GlobalDefinitions {
     lightning.TrunkLocation = Vector3(-3f, 0f, 0f)
     lightning.AutoPilotSpeeds = (20, 8)
     lightning.DestroyedModel = Some(DestroyedVehicle.Lightning)
+    lightning.RadiationShielding = 0.5f
     lightning.Subtract.Damage1 = 7
     lightning.JackingDuration = Array(0, 20, 7, 5)
     lightning.innateDamage = new DamageWithPosition {
@@ -7362,6 +7546,7 @@ object GlobalDefinitions {
     prowler.TrunkLocation = Vector3(-4.71f, 0f, 0f)
     prowler.AutoPilotSpeeds = (14, 6)
     prowler.DestroyedModel = Some(DestroyedVehicle.Prowler)
+    prowler.RadiationShielding = 0.5f
     prowler.Subtract.Damage1 = 9
     prowler.JackingDuration = Array(0, 30, 10, 5)
     prowler.innateDamage = new DamageWithPosition {
@@ -7400,6 +7585,7 @@ object GlobalDefinitions {
     vanguard.TrunkLocation = Vector3(-4.84f, 0f, 0f)
     vanguard.AutoPilotSpeeds = (16, 6)
     vanguard.DestroyedModel = Some(DestroyedVehicle.Vanguard)
+    vanguard.RadiationShielding = 0.5f
     vanguard.Subtract.Damage1 = 9
     vanguard.JackingDuration = Array(0, 30, 10, 5)
     vanguard.innateDamage = new DamageWithPosition {
@@ -7440,6 +7626,7 @@ object GlobalDefinitions {
     magrider.TrunkLocation = Vector3(5.06f, 0f, 0f)
     magrider.AutoPilotSpeeds = (18, 6)
     magrider.DestroyedModel = Some(DestroyedVehicle.Magrider)
+    magrider.RadiationShielding = 0.5f
     magrider.Subtract.Damage1 = 9
     magrider.JackingDuration = Array(0, 30, 10, 5)
     magrider.innateDamage = new DamageWithPosition {
@@ -7478,6 +7665,7 @@ object GlobalDefinitions {
     ant.MaxNtuCapacitor = 1500
     ant.Packet = utilityConverter
     ant.DestroyedModel = Some(DestroyedVehicle.Ant)
+    ant.RadiationShielding = 0.5f
     ant.Subtract.Damage1 = 5
     ant.JackingDuration = Array(0, 60, 20, 15)
     ant.innateDamage = new DamageWithPosition {
@@ -7519,6 +7707,7 @@ object GlobalDefinitions {
     ams.AutoPilotSpeeds = (18, 6)
     ams.Packet = utilityConverter
     ams.DestroyedModel = Some(DestroyedVehicle.Ams)
+    ams.RadiationShielding = 0.5f
     ams.Subtract.Damage1 = 10
     ams.JackingDuration = Array(0, 60, 20, 15)
     ams.innateDamage = new DamageWithPosition {
@@ -7561,6 +7750,7 @@ object GlobalDefinitions {
     router.AutoPilotSpeeds = (16, 6)
     router.Packet = variantConverter
     router.DestroyedModel = Some(DestroyedVehicle.Router)
+    router.RadiationShielding = 0.5f
     router.Subtract.Damage1 = 5
     router.JackingDuration = Array(0, 20, 7, 5)
     router.innateDamage = new DamageWithPosition {
@@ -7602,6 +7792,7 @@ object GlobalDefinitions {
     switchblade.AutoPilotSpeeds = (22, 8)
     switchblade.Packet = variantConverter
     switchblade.DestroyedModel = Some(DestroyedVehicle.Switchblade)
+    switchblade.RadiationShielding = 0.5f
     switchblade.Subtract.Damage0 = 5
     switchblade.Subtract.Damage1 = 5
     switchblade.JackingDuration = Array(0, 20, 7, 5)
@@ -7647,6 +7838,7 @@ object GlobalDefinitions {
     flail.AutoPilotSpeeds = (14, 6)
     flail.Packet = variantConverter
     flail.DestroyedModel = Some(DestroyedVehicle.Flail)
+    flail.RadiationShielding = 0.5f
     flail.Subtract.Damage1 = 7
     flail.JackingDuration = Array(0, 20, 7, 5)
     flail.innateDamage = new DamageWithPosition {
@@ -7700,6 +7892,7 @@ object GlobalDefinitions {
     mosquito.Packet = variantConverter
     mosquito.DestroyedModel = Some(DestroyedVehicle.Mosquito)
     mosquito.JackingDuration = Array(0, 20, 7, 5)
+    mosquito.RadiationShielding = 0.5f
     mosquito.DamageUsing = DamageCalculations.AgainstAircraft
     mosquito.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -7737,6 +7930,7 @@ object GlobalDefinitions {
     lightgunship.AutoPilotSpeeds = (0, 4)
     lightgunship.Packet = variantConverter
     lightgunship.DestroyedModel = Some(DestroyedVehicle.LightGunship)
+    lightgunship.RadiationShielding = 0.5f
     lightgunship.Subtract.Damage1 = 3
     lightgunship.JackingDuration = Array(0, 30, 10, 5)
     lightgunship.DamageUsing = DamageCalculations.AgainstAircraft
@@ -7822,6 +8016,7 @@ object GlobalDefinitions {
     liberator.AutoPilotSpeeds = (0, 4)
     liberator.Packet = variantConverter
     liberator.DestroyedModel = Some(DestroyedVehicle.Liberator)
+    liberator.RadiationShielding = 0.5f
     liberator.Subtract.Damage1 = 5
     liberator.JackingDuration = Array(0, 30, 10, 5)
     liberator.DamageUsing = DamageCalculations.AgainstAircraft
@@ -7870,6 +8065,7 @@ object GlobalDefinitions {
     vulture.Packet = variantConverter
     vulture.DestroyedModel =
       Some(DestroyedVehicle.Liberator) //add_property vulture destroyedphysics liberator_destroyed
+    vulture.RadiationShielding = 0.5f
     vulture.Subtract.Damage1 = 5
     vulture.JackingDuration = Array(0, 30, 10, 5)
     vulture.DamageUsing = DamageCalculations.AgainstAircraft
@@ -7945,6 +8141,7 @@ object GlobalDefinitions {
     dropship.AutoPilotSpeeds = (0, 4)
     dropship.Packet = variantConverter
     dropship.DestroyedModel = Some(DestroyedVehicle.Dropship)
+    dropship.RadiationShielding = 0.5f
     dropship.Subtract.Damage1 = 7
     dropship.JackingDuration = Array(0, 60, 20, 10)
     dropship.DamageUsing = DamageCalculations.AgainstAircraft
@@ -8003,6 +8200,7 @@ object GlobalDefinitions {
     galaxy_gunship.Packet = variantConverter
     galaxy_gunship.DestroyedModel =
       Some(DestroyedVehicle.Dropship) //the adb calls out a galaxy_gunship_destroyed but no such asset exists
+    galaxy_gunship.RadiationShielding = 0.5f
     galaxy_gunship.Subtract.Damage1 = 7
     galaxy_gunship.JackingDuration = Array(0, 60, 20, 10)
     galaxy_gunship.DamageUsing = DamageCalculations.AgainstAircraft
@@ -8051,6 +8249,7 @@ object GlobalDefinitions {
     lodestar.AutoPilotSpeeds = (0, 4)
     lodestar.Packet = variantConverter
     lodestar.DestroyedModel = Some(DestroyedVehicle.Lodestar)
+    lodestar.RadiationShielding = 0.5f
     lodestar.Subtract.Damage1 = 7
     lodestar.JackingDuration = Array(0, 60, 20, 10)
     lodestar.DamageUsing = DamageCalculations.AgainstAircraft
@@ -8097,6 +8296,7 @@ object GlobalDefinitions {
     phantasm.Packet = variantConverter
     phantasm.DestroyedModel = None //the adb calls out a phantasm_destroyed but no such asset exists
     phantasm.JackingDuration = Array(0, 60, 20, 10)
+    phantasm.RadiationShielding = 0.5f
     phantasm.DamageUsing = DamageCalculations.AgainstAircraft
     phantasm.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -8213,6 +8413,7 @@ object GlobalDefinitions {
     aphelion_gunner.DestroyedModel = None
     aphelion_gunner.destructionDelay = Some(4000L)
     aphelion_gunner.JackingDuration = Array(0, 62, 60, 30)
+    aphelion_gunner.RadiationShielding = 0.5f
     aphelion_gunner.DamageUsing = DamageCalculations.AgainstBfr
     aphelion_gunner.Model = BfrResolutions.calculate
     aphelion_gunner.innateDamage = new DamageWithPosition {
@@ -8263,6 +8464,7 @@ object GlobalDefinitions {
     colossus_gunner.DestroyedModel = None
     colossus_gunner.destructionDelay = Some(4000L)
     colossus_gunner.JackingDuration = Array(0, 62, 60, 30)
+    colossus_gunner.RadiationShielding = 0.5f
     colossus_gunner.DamageUsing = DamageCalculations.AgainstBfr
     colossus_gunner.Model = BfrResolutions.calculate
     colossus_gunner.innateDamage = new DamageWithPosition {
@@ -8313,6 +8515,7 @@ object GlobalDefinitions {
     peregrine_gunner.DestroyedModel = None
     peregrine_gunner.destructionDelay = Some(4000L)
     peregrine_gunner.JackingDuration = Array(0, 62, 60, 30)
+    peregrine_gunner.RadiationShielding = 0.5f
     peregrine_gunner.DamageUsing = DamageCalculations.AgainstBfr
     peregrine_gunner.Model = BfrResolutions.calculate
     peregrine_gunner.innateDamage = new DamageWithPosition {
@@ -8362,6 +8565,7 @@ object GlobalDefinitions {
     aphelion_flight.DestroyedModel = None
     aphelion_flight.destructionDelay = Some(4000L)
     aphelion_flight.JackingDuration = Array(0, 62, 60, 30)
+    aphelion_flight.RadiationShielding = 0.5f
     aphelion_flight.DamageUsing = DamageCalculations.AgainstBfr
     aphelion_flight.Model = BfrResolutions.calculate
     aphelion_flight.innateDamage = new DamageWithPosition {
@@ -8414,6 +8618,7 @@ object GlobalDefinitions {
     colossus_flight.DestroyedModel = None
     colossus_flight.destructionDelay = Some(4000L)
     colossus_flight.JackingDuration = Array(0, 62, 60, 30)
+    colossus_flight.RadiationShielding = 0.5f
     colossus_flight.DamageUsing = DamageCalculations.AgainstBfr
     colossus_flight.Model = BfrResolutions.calculate
     colossus_flight.innateDamage = new DamageWithPosition {
@@ -8461,6 +8666,7 @@ object GlobalDefinitions {
     peregrine_flight.DestroyedModel = None
     peregrine_flight.destructionDelay = Some(4000L)
     peregrine_flight.JackingDuration = Array(0, 62, 60, 30)
+    peregrine_flight.RadiationShielding = 0.5f
     peregrine_flight.DamageUsing = DamageCalculations.AgainstBfr
     peregrine_flight.Model = BfrResolutions.calculate
     peregrine_flight.innateDamage = new DamageWithPosition {
@@ -8721,6 +8927,7 @@ object GlobalDefinitions {
     portable_manned_turret.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret.deployAnimation = DeployAnimation.Fdu
     portable_manned_turret.Model = ComplexDeployableResolutions.calculate
+    portable_manned_turret.RadiationShielding = 0.5f
     portable_manned_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150
@@ -8979,6 +9186,7 @@ object GlobalDefinitions {
     implant_terminal_mech.Repairable = true
     implant_terminal_mech.autoRepair = AutoRepairStats(1.6f, 5000, 2400, 0.5f)
     implant_terminal_mech.RepairIfDestroyed = true
+    implant_terminal_mech.RadiationShielding = 0.5f
     implant_terminal_mech.Geometry = GeometryForm.representByCylinder(radius = 2.7813f, height = 6.4375f)
 
     implant_terminal_interface.Name = "implant_terminal_interface"
@@ -9410,6 +9618,7 @@ object GlobalDefinitions {
     manned_turret.MountPoints += 1                          -> MountInfo(0)
     manned_turret.FactionLocked = true
     manned_turret.ReserveAmmunition = false
+    manned_turret.RadiationShielding = 0.5f
     manned_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150
