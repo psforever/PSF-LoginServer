@@ -151,7 +151,10 @@ object AvatarActor {
   /** Set the avatar's lookingForSquad */
   final case class SetLookingForSquad(lfs: Boolean) extends Command
 
-  /** Restore up to the given stamina amount */
+  /** Restore up to the given stamina amount due to natural recharge */
+  private case class RestoreStaminaPeriodically(stamina: Int) extends Command
+
+  /** Restore up to the given stamina amount for some reason */
   final case class RestoreStamina(stamina: Int) extends Command
 
   /** Consume up to the given stamina amount */
@@ -201,7 +204,7 @@ class AvatarActor(
   var account: Option[Account]                     = None
   var session: Option[Session]                     = None
   val implantTimers: mutable.Map[Int, Cancellable] = mutable.Map()
-  var staminaRegenTimer: Cancellable               = Cancellable.alreadyCancelled
+  var staminaRegenTimer: Cancellable               = Default.Cancellable
   var _avatar: Option[Avatar]                      = None
   var saveLockerFunc: () => Unit                   = storeNewLocker
   //val topic: ActorRef[Topic.Command[Avatar]]       = context.spawnAnonymous(Topic[Avatar]("avatar"))
@@ -257,7 +260,7 @@ class AvatarActor(
           Behaviors.same
 
         case SetLookingForSquad(lfs) =>
-          avatar = avatar.copy(lookingForSquad = lfs)
+          avatarCopy(avatar.copy(lookingForSquad = lfs))
           sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.get.player.GUID, 53, 0))
           session.get.zone.AvatarEvents ! AvatarServiceMessage(
             avatar.faction.toString,
@@ -366,16 +369,15 @@ class AvatarActor(
 
           result.onComplete {
             case Success((loadouts, implants, certs, locker)) =>
-              avatar = avatar.copy(
+              avatarCopy(avatar.copy(
                 loadouts = loadouts,
                 // make sure we always have the base certifications
                 certifications =
                   certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
                 implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
                 locker = locker
-              )
-              staminaRegenTimer.cancel()
-              staminaRegenTimer = defaultStaminaRegen()
+              ))
+              defaultStaminaRegen(initialDelay = 0.5f seconds)
               replyTo ! AvatarLoginResponse(avatar)
             case Failure(e) =>
               log.error(e)("db failure")
@@ -385,11 +387,11 @@ class AvatarActor(
         case ReplaceAvatar(newAvatar) =>
           replaceAvatar(newAvatar)
           staminaRegenTimer.cancel()
-          staminaRegenTimer = defaultStaminaRegen()
+          defaultStaminaRegen(initialDelay = 0.5f seconds)
           Behaviors.same
 
         case AddFirstTimeEvent(event) =>
-          avatar = avatar.copy(firstTimeEvents = avatar.firstTimeEvents ++ Set(event))
+          avatarCopy(avatar.copy(firstTimeEvents = avatar.firstTimeEvents ++ Set(event)))
           Behaviors.same
 
         case LearnCertification(terminalGuid, certification) =>
@@ -710,7 +712,7 @@ class AvatarActor(
           }
           result.onComplete {
             case Success(_) =>
-              replaceAvatar(avatar.copy(loadouts = avatar.loadouts.updated(lineNo, None)))
+              avatarCopy(avatar.copy(loadouts = avatar.loadouts.updated(lineNo, None)))
               sessionActor ! SessionActor.SendResponse(FavoritesMessage(loadoutType, player.GUID, number, ""))
             case Failure(exception) =>
               log.error(exception)("db failure (?)")
@@ -742,14 +744,14 @@ class AvatarActor(
                 case _ => ;
               }
           }
-          avatar = avatar.copy(purchaseTimes = newTimes)
+          avatarCopy(avatar.copy(purchaseTimes = newTimes))
           Behaviors.same
 
         case UpdateUseTime(definition, time) =>
           if (!Avatar.useCooldowns.contains(definition)) {
             log.warn(s"${avatar.name} is updating a use time for item '${definition.Name}' that has no cooldown")
           }
-          avatar = avatar.copy(useTimes = avatar.useTimes.updated(definition.Name, time))
+          avatarCopy(avatar.copy(useTimes = avatar.useTimes.updated(definition.Name, time)))
           sessionActor ! SessionActor.UseCooldownRenewed(definition, time)
           Behaviors.same
 
@@ -758,7 +760,7 @@ class AvatarActor(
           Behaviors.same
 
         case SetVehicle(vehicle) =>
-          avatar = avatar.copy(vehicle = vehicle)
+          avatarCopy(avatar.copy(vehicle = vehicle))
           Behaviors.same
 
         case ActivateImplant(implantType) =>
@@ -776,9 +778,9 @@ class AvatarActor(
               } else if (implant.definition.implantType.disabledFor.contains(session.get.player.ExoSuit)) {
                 // TODO can this really happen? can we prevent it?
               } else {
-                avatar = avatar.copy(
+                avatarCopy(avatar.copy(
                   implants = avatar.implants.updated(slot, Some(implant.copy(active = true)))
-                )
+                ))
                 sessionActor ! SessionActor.SendResponse(
                   AvatarImplantMessage(
                     session.get.player.GUID,
@@ -849,11 +851,11 @@ class AvatarActor(
               sessionActor ! SessionActor.SendResponse(
                 AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, index, 1)
               )
-              avatar = avatar.copy(implants = avatar.implants.map {
+              avatarCopy(avatar.copy(implants = avatar.implants.map {
                 case Some(implant) if implant.definition.implantType == implantType =>
                   Some(implant.copy(initialized = true))
                 case other => other
-              })
+              }))
 
             case None => log.error(s"set initialized called for unknown implant $implantType")
           }
@@ -875,30 +877,29 @@ class AvatarActor(
           Behaviors.same
 
         case RestoreStamina(stamina) =>
-          if (stamina > 0 && session.get.player.HasGUID) {
-            val totalStamina = math.min(avatar.maxStamina, avatar.stamina + stamina)
-            val fatigued = if (avatar.fatigued && totalStamina >= 20) {
-              avatar.implants.zipWithIndex.foreach {
-                case (Some(_), slot) =>
-                  sessionActor ! SessionActor.SendResponse(
-                    AvatarImplantMessage(session.get.player.GUID, ImplantAction.OutOfStamina, slot, 0)
-                  )
-                case _ => ()
-              }
-              false
-            } else {
-              avatar.fatigued
-            }
-            avatar = avatar.copy(stamina = totalStamina, fatigued = fatigued)
-            sessionActor ! SessionActor.SendResponse(
-              PlanetsideAttributeMessage(session.get.player.GUID, 2, avatar.stamina)
-            )
+          tryRestoreStaminaForSession(stamina) match {
+            case Some(sess) =>
+              actuallyRestoreStamina(stamina, sess)
+              defaultStaminaRegen(initialDelay = 0.5f seconds)
+            case _ => ;
           }
+          Behaviors.same
+
+        case RestoreStaminaPeriodically(stamina) =>
+          tryRestoreStaminaForSession(stamina) match {
+            case Some(sess) =>
+              actuallyRestoreStaminaIfStationary(stamina, sess)
+            case _ => ;
+          }
+          defaultStaminaRegen(initialDelay = 0.5f seconds)
           Behaviors.same
 
         case ConsumeStamina(stamina) =>
           if (stamina > 0) {
             consumeThisMuchStamina(stamina)
+            if(staminaRegenTimer.isCancelled) {
+              defaultStaminaRegen(initialDelay = 0.5f seconds)
+            }
           } else {
             log.warn(s"consumed stamina must be larger than 0, but is: $stamina")
           }
@@ -906,13 +907,7 @@ class AvatarActor(
 
         case SuspendStaminaRegeneration(duration) =>
           // TODO suspensions can overwrite each other with different durations
-          staminaRegenTimer.cancel()
-          staminaRegenTimer = context.system.scheduler.scheduleOnce(
-            duration,
-            () => {
-              staminaRegenTimer = defaultStaminaRegen()
-            }
-          )
+          defaultStaminaRegen(duration)
           Behaviors.same
 
         case InitializeImplants() =>
@@ -1018,8 +1013,13 @@ class AvatarActor(
     Future.failed(ex).asInstanceOf[Future[Loadout]]
   }
 
+  /**
+    * na
+    * @see `avatarCopy(Avatar)`
+    * @param newAvatar na
+    */
   def replaceAvatar(newAvatar: Avatar): Unit = {
-    avatar = newAvatar
+    avatarCopy(newAvatar)
     avatar.deployables.UpdateMaxCounts(avatar.certifications)
     updateDeployableUIElements(
       avatar.deployables.UpdateUI()
@@ -1038,7 +1038,7 @@ class AvatarActor(
       )
       .onComplete {
         case Success(_) =>
-          avatar = avatar.copy(cosmetics = Some(cosmetics))
+          avatarCopy(avatar.copy(cosmetics = Some(cosmetics)))
           session.get.zone.AvatarEvents ! AvatarServiceMessage(
             session.get.zone.id,
             AvatarAction
@@ -1052,13 +1052,45 @@ class AvatarActor(
     p.future
   }
 
+  def tryRestoreStaminaForSession(stamina: Int): Option[Session] = {
+    session match {
+      case out @ Some(_) if !avatar.staminaFull && stamina > 0 => out
+      case _                                                   => None
+    }
+  }
+
+  def actuallyRestoreStaminaIfStationary(stamina: Int, session: Session): Unit = {
+    if (session.player.VehicleSeated.nonEmpty || !(session.player.isMoving || session.player.Jumping)) {
+      actuallyRestoreStamina(stamina, session)
+    }
+  }
+
+  def actuallyRestoreStamina(stamina: Int, session: Session): Unit = {
+    val totalStamina = math.min(avatar.maxStamina, avatar.stamina + stamina)
+    val isFatigued = if (avatar.fatigued && totalStamina >= 20) {
+      val pguid = session.player.GUID
+      avatar.implants.zipWithIndex.foreach {
+        case (Some(_), slot) =>
+          sessionActor ! SessionActor.SendResponse(
+            AvatarImplantMessage(pguid, ImplantAction.OutOfStamina, slot, 0)
+          )
+        case _ => ()
+      }
+      false
+    } else {
+      avatar.fatigued
+    }
+    avatarCopy(avatar.copy(stamina = totalStamina, fatigued = isFatigued))
+    sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.player.GUID, 2, totalStamina))
+  }
+
   /**
     * Drain at most a given amount of stamina from the player's pool of stamina.
     * If the player's reserves become zero in the act, inform the player that he is fatigued
     * meaning that he will only be able to walk, all implants will deactivate,
     * and all exertion that require stamina use will become impossible until a threshold of stamina is regained.
     * @param stamina an amount to drain
-    * @return `true`, as long as the amount of stamina can be drained in total;
+    * @return `true`, as long as the requested amount of stamina can be drained in total;
     *        `false`, otherwise
     */
   def consumeThisMuchStamina(stamina: Int): Boolean = {
@@ -1069,7 +1101,7 @@ class AvatarActor(
       val totalStamina = math.max(0, resultingStamina)
       val alreadyFatigued = avatar.fatigued
       val becomeFatigued = !alreadyFatigued && totalStamina == 0
-      avatar = avatar.copy(stamina = totalStamina, fatigued = alreadyFatigued || becomeFatigued)
+      avatarCopy(avatar.copy(stamina = totalStamina, fatigued = alreadyFatigued || becomeFatigued))
       val player = session.get.player
       if (player.HasGUID) {
         if (becomeFatigued) {
@@ -1084,15 +1116,15 @@ class AvatarActor(
             case _ => ;
           }
         }
-        sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(player.GUID, 2, avatar.stamina))
+        sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(player.GUID, 2, totalStamina))
       } else if (becomeFatigued) {
-        avatar = avatar.copy(implants = avatar.implants.zipWithIndex.collect {
+        avatarCopy(avatar.copy(implants = avatar.implants.zipWithIndex.collect {
           case (Some(implant), slot) if implant.active =>
             implantTimers(slot).cancel()
             Some(implant.copy(active = false))
           case (out, _) =>
             out
-        })
+        }))
       }
       resultingStamina >= 0
     }
@@ -1133,7 +1165,7 @@ class AvatarActor(
   }
 
   def deinitializeImplants(): Unit = {
-    avatar = avatar.copy(implants = avatar.implants.zipWithIndex.map {
+    avatarCopy(avatar.copy(implants = avatar.implants.zipWithIndex.map {
       case (Some(implant), slot) =>
         if (implant.active) {
           deactivateImplant(implant.definition.implantType)
@@ -1147,7 +1179,7 @@ class AvatarActor(
         )
         Some(implant.copy(initialized = false, active = false))
       case (None, _) => None
-    })
+    }))
   }
 
   def resetAnImplant(implantType: ImplantType): Unit = {
@@ -1168,9 +1200,9 @@ class AvatarActor(
             AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, index, 0)
           )
         )
-        avatar = avatar.copy(
+        avatarCopy(avatar.copy(
           implants = avatar.implants.updated(index, Some(imp.copy(initialized = false, active = false)))
-        )
+        ))
         //restart initialization process
         implantTimers(index).cancel()
         implantTimers(index) = context.scheduleOnce(
@@ -1192,9 +1224,9 @@ class AvatarActor(
     } match {
       case Some((implant, slot)) =>
         implantTimers(slot).cancel()
-        avatar = avatar.copy(
+        avatarCopy(avatar.copy(
           implants = avatar.implants.updated(slot, Some(implant.copy(active = false)))
-        )
+        ))
 
         // Deactivation sound / effect
         session.get.zone.AvatarEvents ! AvatarServiceMessage(
@@ -1647,18 +1679,15 @@ class AvatarActor(
     }
   }
 
-  def defaultStaminaRegen(): Cancellable = {
-    context.system.scheduler.scheduleWithFixedDelay(0.5 seconds, 0.5 seconds)(() => {
-      (session, _avatar) match {
-        case (Some(_session), Some(_)) =>
-          if (
-            !avatar.staminaFull && (_session.player.VehicleSeated.nonEmpty || !_session.player.isMoving && !_session.player.Jumping)
-          ) {
-            context.self ! RestoreStamina(1)
-          }
-        case _ => ;
-      }
-    })
+  def defaultStaminaRegen(initialDelay: FiniteDuration): Unit = {
+    staminaRegenTimer.cancel()
+    staminaRegenTimer = if (!avatar.staminaFull) {
+      context.system.scheduler.scheduleWithFixedDelay(initialDelay, 0.5 seconds)(() => {
+        context.self ! RestoreStaminaPeriodically(1)
+      })
+    } else {
+      Default.Cancellable
+    }
   }
 
   // same as in SA, this really doesn't belong here
@@ -1731,7 +1760,7 @@ class AvatarActor(
       }
     }
     if (keysToDrop.nonEmpty) {
-      avatar = avatar.copy(purchaseTimes = avatar.purchaseTimes.removedAll(keysToDrop))
+      avatarCopy(avatar.copy(purchaseTimes = avatar.purchaseTimes.removedAll(keysToDrop)))
     }
   }
 
@@ -1740,5 +1769,19 @@ class AvatarActor(
     sessionActor ! SessionActor.SendResponse(
       AvatarVehicleTimerMessage(session.get.player.GUID, name, time, unk1 = true)
     )
+  }
+
+  /**
+    * na
+    * @see `replaceCopy(Avatar)`
+    * @param copyAvatar na
+    */
+  def avatarCopy(copyAvatar: Avatar): Unit = {
+    avatar = copyAvatar
+    session match {
+      case Some(sess) if sess.player != null =>
+        sess.player.avatar = copyAvatar
+      case _ => ;
+    }
   }
 }
