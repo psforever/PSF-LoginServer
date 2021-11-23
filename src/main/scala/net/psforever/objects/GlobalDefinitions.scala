@@ -439,7 +439,7 @@ object GlobalDefinitions {
 
   val armor_siphon_projectile = ProjectileDefinition(Projectiles.trek_projectile) //fake projectile for storing damage information
 
-  val ntu_siphon_projectile = ProjectileDefinition(Projectiles.trek_projectile) //fake projectile
+  val ntu_siphon_emp = ProjectileDefinition(Projectiles.ntu_siphon_emp)
   init_projectile()
 
   /*
@@ -2435,6 +2435,7 @@ object GlobalDefinitions {
     val radCloudConverter: RadiationCloudConverter = new RadiationCloudConverter
 
     no_projectile.Name = "no_projectile"
+    no_projectile.DamageRadiusMin = 0f
     ProjectileDefinition.CalculateDerivedFields(no_projectile)
     no_projectile.Modifiers = Nil
 
@@ -4665,10 +4666,38 @@ object GlobalDefinitions {
       ArmorSiphonRepairHost
     )
 
-    ntu_siphon_projectile.Name = "ntu_siphon_projectile"
-    ntu_siphon_projectile.DamageRadius = 35f
-    ntu_siphon_projectile.ProjectileDamageType = DamageType.Siphon
-    ProjectileDefinition.CalculateDerivedFields(ntu_siphon_projectile)
+    ntu_siphon_emp.Name = "ntu_siphon_emp"
+    ntu_siphon_emp.Damage0 = 1
+    ntu_siphon_emp.Damage1 = 1
+    ntu_siphon_emp.DamageAtEdge = 0.1f
+    ntu_siphon_emp.DamageRadius = 50f
+    ntu_siphon_emp.ProjectileDamageType = DamageType.Splash
+    ntu_siphon_emp.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Player,
+      EffectTarget.Validation.Player
+    ) -> 1000
+    ntu_siphon_emp.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.AMS
+    ) -> 5000
+    ntu_siphon_emp.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.MotionSensor
+    ) -> 30000
+    ntu_siphon_emp.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.Spitfire
+    ) -> 30000
+    ntu_siphon_emp.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Turret,
+      EffectTarget.Validation.Turret
+    ) -> 30000
+    ntu_siphon_emp.JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.VehicleNotAMS
+    ) -> 10000
+    ProjectileDefinition.CalculateDerivedFields(ntu_siphon_emp)
+    ntu_siphon_emp.Modifiers = MaxDistanceCutoff
   }
 
   /**
@@ -6233,33 +6262,63 @@ object GlobalDefinitions {
     aphelion_ntu_siphon.Name = "aphelion_ntu_siphon"
     aphelion_ntu_siphon.Size = EquipmentSize.BFRArmWeapon
     aphelion_ntu_siphon.AmmoTypes += ntu_siphon_ammo
-    aphelion_ntu_siphon.ProjectileTypes += ntu_siphon_projectile
-    aphelion_ntu_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_ntu_siphon.ProjectileTypes += no_projectile
+    aphelion_ntu_siphon.ProjectileTypes += ntu_siphon_emp
+    aphelion_ntu_siphon.FireModes += new FireModeDefinition
     aphelion_ntu_siphon.FireModes.head.AmmoTypeIndices += 0
     aphelion_ntu_siphon.FireModes.head.AmmoSlotIndex = 0
+    aphelion_ntu_siphon.FireModes.head.RoundsPerShot = 0
     aphelion_ntu_siphon.FireModes.head.Magazine = 150
+    aphelion_ntu_siphon.FireModes.head.DefaultMagazine = 100
+    aphelion_ntu_siphon.FireModes += new FireModeDefinition
+    aphelion_ntu_siphon.FireModes(1).AmmoTypeIndices += 0
+    aphelion_ntu_siphon.FireModes(1).AmmoSlotIndex = 0
+    aphelion_ntu_siphon.FireModes(1).ProjectileTypeIndices += 1
+    aphelion_ntu_siphon.FireModes(1).RoundsPerShot = 30
+    aphelion_ntu_siphon.FireModes(1).Magazine = 150
+    aphelion_ntu_siphon.FireModes(1).DefaultMagazine = 0
     aphelion_ntu_siphon.Packet = battleFrameToolConverter
     aphelion_ntu_siphon.Tile = InventoryTile.Tile48
 
     aphelion_ntu_siphon_left.Name = "aphelion_ntu_siphon_left"
     aphelion_ntu_siphon_left.Size = EquipmentSize.BFRArmWeapon
     aphelion_ntu_siphon_left.AmmoTypes += ntu_siphon_ammo
-    aphelion_ntu_siphon_left.ProjectileTypes += ntu_siphon_projectile
-    aphelion_ntu_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_ntu_siphon_left.ProjectileTypes += no_projectile
+    aphelion_ntu_siphon_left.ProjectileTypes += ntu_siphon_emp
+    aphelion_ntu_siphon_left.FireModes += new FireModeDefinition
     aphelion_ntu_siphon_left.FireModes.head.AmmoTypeIndices += 0
     aphelion_ntu_siphon_left.FireModes.head.AmmoSlotIndex = 0
+    aphelion_ntu_siphon_left.FireModes.head.RoundsPerShot = 0
     aphelion_ntu_siphon_left.FireModes.head.Magazine = 150
+    aphelion_ntu_siphon_left.FireModes.head.DefaultMagazine = 0
+    aphelion_ntu_siphon_left.FireModes += new FireModeDefinition
+    aphelion_ntu_siphon_left.FireModes(1).AmmoTypeIndices += 0
+    aphelion_ntu_siphon_left.FireModes(1).AmmoSlotIndex = 0
+    aphelion_ntu_siphon_left.FireModes(1).ProjectileTypeIndices += 1
+    aphelion_ntu_siphon_left.FireModes(1).RoundsPerShot = 30
+    aphelion_ntu_siphon_left.FireModes(1).Magazine = 150
+    aphelion_ntu_siphon_left.FireModes(1).DefaultMagazine = 0
     aphelion_ntu_siphon_left.Packet = battleFrameToolConverter
     aphelion_ntu_siphon_left.Tile = InventoryTile.Tile48
 
     aphelion_ntu_siphon_right.Name = "aphelion_ntu_siphon_right"
     aphelion_ntu_siphon_right.Size = EquipmentSize.BFRArmWeapon
     aphelion_ntu_siphon_right.AmmoTypes += ntu_siphon_ammo
-    aphelion_ntu_siphon_right.ProjectileTypes += ntu_siphon_projectile
-    aphelion_ntu_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_ntu_siphon_right.ProjectileTypes += no_projectile
+    aphelion_ntu_siphon_right.ProjectileTypes += ntu_siphon_emp
+    aphelion_ntu_siphon_right.FireModes += new FireModeDefinition
     aphelion_ntu_siphon_right.FireModes.head.AmmoTypeIndices += 0
     aphelion_ntu_siphon_right.FireModes.head.AmmoSlotIndex = 0
+    aphelion_ntu_siphon_right.FireModes.head.RoundsPerShot = 0
     aphelion_ntu_siphon_right.FireModes.head.Magazine = 150
+    aphelion_ntu_siphon_right.FireModes.head.DefaultMagazine = 0
+    aphelion_ntu_siphon_right.FireModes += new FireModeDefinition
+    aphelion_ntu_siphon_right.FireModes(1).AmmoTypeIndices += 0
+    aphelion_ntu_siphon_right.FireModes(1).AmmoSlotIndex = 0
+    aphelion_ntu_siphon_right.FireModes(1).ProjectileTypeIndices += 1
+    aphelion_ntu_siphon_right.FireModes(1).RoundsPerShot = 30
+    aphelion_ntu_siphon_right.FireModes(1).Magazine = 150
+    aphelion_ntu_siphon_right.FireModes(1).DefaultMagazine = 0
     aphelion_ntu_siphon_right.Packet = battleFrameToolConverter
     aphelion_ntu_siphon_right.Tile = InventoryTile.Tile48
 
@@ -6453,33 +6512,66 @@ object GlobalDefinitions {
     colossus_ntu_siphon.Name = "colossus_ntu_siphon"
     colossus_ntu_siphon.Size = EquipmentSize.BFRArmWeapon
     colossus_ntu_siphon.AmmoTypes += ntu_siphon_ammo
-    colossus_ntu_siphon.ProjectileTypes += ntu_siphon_projectile
-    colossus_ntu_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_ntu_siphon.ProjectileTypes += no_projectile
+    colossus_ntu_siphon.ProjectileTypes += ntu_siphon_emp
+    colossus_ntu_siphon.FireModes += new FireModeDefinition
     colossus_ntu_siphon.FireModes.head.AmmoTypeIndices += 0
     colossus_ntu_siphon.FireModes.head.AmmoSlotIndex = 0
+    colossus_ntu_siphon.FireModes.head.RoundsPerShot = 0
     colossus_ntu_siphon.FireModes.head.Magazine = 150
+    colossus_ntu_siphon.FireModes.head.DefaultMagazine = 0
+    colossus_ntu_siphon.FireModes += new FireModeDefinition
+    colossus_ntu_siphon.FireModes(1).AmmoTypeIndices += 0
+    colossus_ntu_siphon.FireModes(1).AmmoSlotIndex = 0
+    colossus_ntu_siphon.FireModes(1).ProjectileTypeIndices += 1
+    colossus_ntu_siphon.FireModes(1).RoundsPerShot = 30
+    colossus_ntu_siphon.FireModes(1).Magazine = 150
+    colossus_ntu_siphon.FireModes(1).DefaultMagazine = 0
+    colossus_ntu_siphon.FireModes(1).AmmoSlotIndex = 0
     colossus_ntu_siphon.Packet = battleFrameToolConverter
     colossus_ntu_siphon.Tile = InventoryTile.Tile48
 
     colossus_ntu_siphon_left.Name = "colossus_ntu_siphon_left"
     colossus_ntu_siphon_left.Size = EquipmentSize.BFRArmWeapon
     colossus_ntu_siphon_left.AmmoTypes += ntu_siphon_ammo
-    colossus_ntu_siphon_left.ProjectileTypes += ntu_siphon_projectile
-    colossus_ntu_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_ntu_siphon_left.ProjectileTypes += no_projectile
+    colossus_ntu_siphon_left.ProjectileTypes += ntu_siphon_emp
+    colossus_ntu_siphon_left.FireModes += new FireModeDefinition
     colossus_ntu_siphon_left.FireModes.head.AmmoTypeIndices += 0
     colossus_ntu_siphon_left.FireModes.head.AmmoSlotIndex = 0
+    colossus_ntu_siphon_left.FireModes.head.RoundsPerShot = 0
     colossus_ntu_siphon_left.FireModes.head.Magazine = 150
+    colossus_ntu_siphon_left.FireModes.head.DefaultMagazine = 0
+    colossus_ntu_siphon_left.FireModes += new FireModeDefinition
+    colossus_ntu_siphon_left.FireModes(1).AmmoTypeIndices += 0
+    colossus_ntu_siphon_left.FireModes(1).AmmoSlotIndex = 0
+    colossus_ntu_siphon_left.FireModes(1).ProjectileTypeIndices += 1
+    colossus_ntu_siphon_left.FireModes(1).RoundsPerShot = 30
+    colossus_ntu_siphon_left.FireModes(1).Magazine = 150
+    colossus_ntu_siphon_left.FireModes(1).DefaultMagazine = 0
+    colossus_ntu_siphon_left.FireModes(1).AmmoSlotIndex = 0
     colossus_ntu_siphon_left.Packet = battleFrameToolConverter
     colossus_ntu_siphon_left.Tile = InventoryTile.Tile48
 
     colossus_ntu_siphon_right.Name = "colossus_ntu_siphon_right"
     colossus_ntu_siphon_right.Size = EquipmentSize.BFRArmWeapon
     colossus_ntu_siphon_right.AmmoTypes += ntu_siphon_ammo
-    colossus_ntu_siphon_right.ProjectileTypes += ntu_siphon_projectile
-    colossus_ntu_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_ntu_siphon_right.ProjectileTypes += no_projectile
+    colossus_ntu_siphon_right.ProjectileTypes += ntu_siphon_emp
+    colossus_ntu_siphon_right.FireModes += new FireModeDefinition
     colossus_ntu_siphon_right.FireModes.head.AmmoTypeIndices += 0
     colossus_ntu_siphon_right.FireModes.head.AmmoSlotIndex = 0
+    colossus_ntu_siphon_right.FireModes.head.RoundsPerShot = 0
     colossus_ntu_siphon_right.FireModes.head.Magazine = 150
+    colossus_ntu_siphon_right.FireModes.head.DefaultMagazine = 0
+    colossus_ntu_siphon_right.FireModes += new FireModeDefinition
+    colossus_ntu_siphon_right.FireModes(1).AmmoTypeIndices += 0
+    colossus_ntu_siphon_right.FireModes(1).AmmoSlotIndex = 0
+    colossus_ntu_siphon_right.FireModes(1).ProjectileTypeIndices += 1
+    colossus_ntu_siphon_right.FireModes(1).RoundsPerShot = 30
+    colossus_ntu_siphon_right.FireModes(1).Magazine = 150
+    colossus_ntu_siphon_right.FireModes(1).DefaultMagazine = 0
+    colossus_ntu_siphon_right.FireModes(1).AmmoSlotIndex = 0
     colossus_ntu_siphon_right.Packet = battleFrameToolConverter
     colossus_ntu_siphon_right.Tile = InventoryTile.Tile48
 
@@ -6546,7 +6638,7 @@ object GlobalDefinitions {
     peregrine_armor_siphon.Size = EquipmentSize.BFRArmWeapon
     peregrine_armor_siphon.AmmoTypes += armor_siphon_ammo
     peregrine_armor_siphon.ProjectileTypes += armor_siphon_projectile
-    peregrine_armor_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_armor_siphon.FireModes += new FireModeDefinition
     peregrine_armor_siphon.FireModes.head.AmmoTypeIndices += 0
     peregrine_armor_siphon.FireModes.head.AmmoSlotIndex = 0
     peregrine_armor_siphon.FireModes.head.Magazine = 100
@@ -6557,7 +6649,7 @@ object GlobalDefinitions {
     peregrine_armor_siphon_left.Size = EquipmentSize.BFRArmWeapon
     peregrine_armor_siphon_left.AmmoTypes += armor_siphon_ammo
     peregrine_armor_siphon_left.ProjectileTypes += armor_siphon_projectile
-    peregrine_armor_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_armor_siphon_left.FireModes += new FireModeDefinition
     peregrine_armor_siphon_left.FireModes.head.AmmoTypeIndices += 0
     peregrine_armor_siphon_left.FireModes.head.AmmoSlotIndex = 0
     peregrine_armor_siphon_left.FireModes.head.Magazine = 100
@@ -6568,7 +6660,7 @@ object GlobalDefinitions {
     peregrine_armor_siphon_right.Size = EquipmentSize.BFRArmWeapon
     peregrine_armor_siphon_right.AmmoTypes += armor_siphon_ammo
     peregrine_armor_siphon_right.ProjectileTypes += armor_siphon_projectile
-    peregrine_armor_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_armor_siphon_right.FireModes += new FireModeDefinition
     peregrine_armor_siphon_right.FireModes.head.AmmoTypeIndices += 0
     peregrine_armor_siphon_right.FireModes.head.AmmoSlotIndex = 0
     peregrine_armor_siphon_right.FireModes.head.Magazine = 100
@@ -6662,33 +6754,66 @@ object GlobalDefinitions {
     peregrine_ntu_siphon.Name = "peregrine_ntu_siphon"
     peregrine_ntu_siphon.Size = EquipmentSize.BFRArmWeapon
     peregrine_ntu_siphon.AmmoTypes += ntu_siphon_ammo
-    peregrine_ntu_siphon.ProjectileTypes += ntu_siphon_projectile
-    peregrine_ntu_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_ntu_siphon.ProjectileTypes += no_projectile
+    peregrine_ntu_siphon.ProjectileTypes += ntu_siphon_emp
+    peregrine_ntu_siphon.FireModes += new FireModeDefinition
     peregrine_ntu_siphon.FireModes.head.AmmoTypeIndices += 0
     peregrine_ntu_siphon.FireModes.head.AmmoSlotIndex = 0
+    peregrine_ntu_siphon.FireModes.head.RoundsPerShot = 0
     peregrine_ntu_siphon.FireModes.head.Magazine = 150
+    peregrine_ntu_siphon.FireModes.head.DefaultMagazine = 0
+    peregrine_ntu_siphon.FireModes += new FireModeDefinition
+    peregrine_ntu_siphon.FireModes(1).AmmoTypeIndices += 0
+    peregrine_ntu_siphon.FireModes(1).AmmoSlotIndex = 0
+    peregrine_ntu_siphon.FireModes(1).ProjectileTypeIndices += 1
+    peregrine_ntu_siphon.FireModes(1).RoundsPerShot = 30
+    peregrine_ntu_siphon.FireModes(1).Magazine = 150
+    peregrine_ntu_siphon.FireModes(1).DefaultMagazine = 0
+    peregrine_ntu_siphon.FireModes(1).AmmoSlotIndex = 0
     peregrine_ntu_siphon.Packet = battleFrameToolConverter
     peregrine_ntu_siphon.Tile = InventoryTile.Tile48
 
     peregrine_ntu_siphon_left.Name = "peregrine_ntu_siphon_left"
     peregrine_ntu_siphon_left.Size = EquipmentSize.BFRArmWeapon
     peregrine_ntu_siphon_left.AmmoTypes += ntu_siphon_ammo
-    peregrine_ntu_siphon_left.ProjectileTypes += ntu_siphon_projectile
-    peregrine_ntu_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_ntu_siphon_left.ProjectileTypes += no_projectile
+    peregrine_ntu_siphon_left.ProjectileTypes += ntu_siphon_emp
+    peregrine_ntu_siphon_left.FireModes += new FireModeDefinition
     peregrine_ntu_siphon_left.FireModes.head.AmmoTypeIndices += 0
     peregrine_ntu_siphon_left.FireModes.head.AmmoSlotIndex = 0
+    peregrine_ntu_siphon_left.FireModes.head.RoundsPerShot = 0
     peregrine_ntu_siphon_left.FireModes.head.Magazine = 150
+    peregrine_ntu_siphon_left.FireModes.head.DefaultMagazine = 0
+    peregrine_ntu_siphon_left.FireModes += new FireModeDefinition
+    peregrine_ntu_siphon_left.FireModes(1).AmmoTypeIndices += 0
+    peregrine_ntu_siphon_left.FireModes(1).AmmoSlotIndex = 0
+    peregrine_ntu_siphon_left.FireModes(1).ProjectileTypeIndices += 1
+    peregrine_ntu_siphon_left.FireModes(1).RoundsPerShot = 30
+    peregrine_ntu_siphon_left.FireModes(1).Magazine = 150
+    peregrine_ntu_siphon_left.FireModes(1).DefaultMagazine = 0
+    peregrine_ntu_siphon_left.FireModes(1).AmmoSlotIndex = 0
     peregrine_ntu_siphon_left.Packet = battleFrameToolConverter
     peregrine_ntu_siphon_left.Tile = InventoryTile.Tile48
 
     peregrine_ntu_siphon_right.Name = "peregrine_ntu_siphon_right"
     peregrine_ntu_siphon_right.Size = EquipmentSize.BFRArmWeapon
     peregrine_ntu_siphon_right.AmmoTypes += ntu_siphon_ammo
-    peregrine_ntu_siphon_right.ProjectileTypes += ntu_siphon_projectile
-    peregrine_ntu_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    peregrine_ntu_siphon_right.ProjectileTypes += no_projectile
+    peregrine_ntu_siphon_right.ProjectileTypes += ntu_siphon_emp
+    peregrine_ntu_siphon_right.FireModes += new FireModeDefinition
     peregrine_ntu_siphon_right.FireModes.head.AmmoTypeIndices += 0
     peregrine_ntu_siphon_right.FireModes.head.AmmoSlotIndex = 0
+    peregrine_ntu_siphon_right.FireModes.head.RoundsPerShot = 0
     peregrine_ntu_siphon_right.FireModes.head.Magazine = 150
+    peregrine_ntu_siphon_right.FireModes.head.DefaultMagazine = 0
+    peregrine_ntu_siphon_right.FireModes += new FireModeDefinition
+    peregrine_ntu_siphon_right.FireModes(1).AmmoTypeIndices += 0
+    peregrine_ntu_siphon_right.FireModes(1).AmmoSlotIndex = 0
+    peregrine_ntu_siphon_right.FireModes(1).ProjectileTypeIndices += 1
+    peregrine_ntu_siphon_right.FireModes(1).RoundsPerShot = 30
+    peregrine_ntu_siphon_right.FireModes(1).Magazine = 150
+    peregrine_ntu_siphon_right.FireModes(1).DefaultMagazine = 0
+    peregrine_ntu_siphon_right.FireModes(1).AmmoSlotIndex = 0
     peregrine_ntu_siphon_right.Packet = battleFrameToolConverter
     peregrine_ntu_siphon_right.Tile = InventoryTile.Tile48
 
@@ -8372,15 +8497,22 @@ object GlobalDefinitions {
     }
     val normalSeat = new SeatDefinition()
     val bfrSubsystems = List(
-      VehicleSubsystemEntry.BattleframeLeftArm,
-      VehicleSubsystemEntry.BattleframeRightArm,
       VehicleSubsystemEntry.BattleframeMovementServo,
       VehicleSubsystemEntry.BattleframeWeaponry,
       VehicleSubsystemEntry.BattleframeSensorArray,
       VehicleSubsystemEntry.BattleframeShieldGenerator,
       VehicleSubsystemEntry.BattleframeTrunk
     )
-    val bfrFlightSubsystems = bfrSubsystems :+ VehicleSubsystemEntry.BattleframeFlightPod
+    val bfrGunnerSubsystems = List(
+      VehicleSubsystemEntry.BattleframeLeftArm,
+      VehicleSubsystemEntry.BattleframeRightArm
+    ) ++ bfrSubsystems
+    val bfrFlightSubsystems = List(
+      VehicleSubsystemEntry.BattleframeFlightLeftArm,
+      VehicleSubsystemEntry.BattleframeFlightRightArm
+    ) ++ bfrSubsystems ++ List(
+      VehicleSubsystemEntry.BattleframeFlightPod
+    )
 
     val battleFrameConverter = new BattleFrameRoboticsConverter
     aphelion_gunner.Name = "aphelion_gunner"
@@ -8404,7 +8536,7 @@ object GlobalDefinitions {
     aphelion_gunner.Weapons += 4     -> aphelion_plasma_rocket_pod
     aphelion_gunner.MountPoints += 1 -> MountInfo(0)
     aphelion_gunner.MountPoints += 2 -> MountInfo(1)
-    aphelion_gunner.subsystems = bfrSubsystems
+    aphelion_gunner.subsystems = bfrGunnerSubsystems
     aphelion_gunner.TrunkSize = InventoryTile.Tile1518
     aphelion_gunner.TrunkOffset = 30
     aphelion_gunner.TrunkLocation = Vector3(0f, -2f, 0f)
@@ -8455,7 +8587,7 @@ object GlobalDefinitions {
     colossus_gunner.Weapons += 4     -> colossus_dual_100mm_cannons
     colossus_gunner.MountPoints += 1 -> MountInfo(0)
     colossus_gunner.MountPoints += 2 -> MountInfo(1)
-    colossus_gunner.subsystems = bfrSubsystems
+    colossus_gunner.subsystems = bfrGunnerSubsystems
     colossus_gunner.TrunkSize = InventoryTile.Tile1518
     colossus_gunner.TrunkOffset = 30
     colossus_gunner.TrunkLocation = Vector3(0f, -5f, 0f)
@@ -8506,7 +8638,7 @@ object GlobalDefinitions {
     peregrine_gunner.Weapons += 4     -> peregrine_particle_cannon
     peregrine_gunner.MountPoints += 1 -> MountInfo(0)
     peregrine_gunner.MountPoints += 2 -> MountInfo(1)
-    peregrine_gunner.subsystems = bfrSubsystems
+    peregrine_gunner.subsystems = bfrGunnerSubsystems
     peregrine_gunner.TrunkSize = InventoryTile.Tile1518
     peregrine_gunner.TrunkOffset = 30
     peregrine_gunner.TrunkLocation = Vector3(0f, -5f, 0f)

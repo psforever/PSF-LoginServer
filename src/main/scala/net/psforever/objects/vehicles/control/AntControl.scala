@@ -21,9 +21,6 @@ class AntControl(vehicle: Vehicle)
     with AntTransferBehavior {
   def ChargeTransferObject = vehicle
 
-  findChargeTargetFunc = Vehicles.FindANTChargingSource
-  findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
-
   override def commonEnabledBehavior: Receive = super.commonEnabledBehavior.orElse(antBehavior)
 
   /**

@@ -236,7 +236,7 @@ object Tool {
     def MaxMagazine(): Int = {
       fdef.CustomMagazine.get(AmmoType) match {
         case Some(value) => value
-        case None        => fdef.Magazine
+        case None        => fdef.DefaultMagazine
       }
     }
 

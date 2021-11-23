@@ -4,8 +4,9 @@ package net.psforever.objects
 import net.psforever.objects.ce.TelepadLike
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.deploy.Deployment
+import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.transfer.TransferContainer
-import net.psforever.objects.serverobject.structures.{StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggeredSound
@@ -232,7 +233,7 @@ object Vehicles {
     log.info(s"${hacker.Name} has jacked a ${target.Definition.Name}")
     val zone = target.Zone
     // Forcefully dismount any cargo
-    target.CargoHolds.foreach { case (index, cargoHold) =>
+    target.CargoHolds.foreach { case (_, cargoHold) =>
       cargoHold.occupant match {
         case Some(cargo: Vehicle) =>
           cargo.Actor ! CargoBehavior.StartCargoDismounting(bailed = false)
@@ -339,33 +340,66 @@ object Vehicles {
   }
 
   def FindANTDischargingTarget(
-      obj: TransferContainer,
-      ntuChargingTarget: Option[TransferContainer]
-  ): Option[TransferContainer] = {
-    (ntuChargingTarget match {
-      case out @ Some(target: NtuContainer) if {
-            Vector3.DistanceSquared(obj.Position.xy, target.Position.xy) < 400 //20m is generous ...
-          } =>
+                                obj: TransferContainer,
+                                ntuChargingTarget: Option[TransferContainer]
+                              ): Option[TransferContainer] = {
+    FindResourceSiloToDischargeInto(obj, ntuChargingTarget, radius = 20)
+  }
+
+  def FindBfrChargingSource(
+                             obj: TransferContainer,
+                             ntuChargingTarget: Option[TransferContainer]
+                           ): Option[TransferContainer] = {
+    //determine if we are close enough to charge from something
+    val position = obj.Position.xy
+    ntuChargingTarget.orElse(
+      obj.Zone
+        .blockMap
+        .sector(position, range = 20f).buildingList
+        .sortBy { b => Vector3.DistanceSquared(position, b.Position.xy) }
+        .flatMap { _.NtuSource }
+        .headOption
+    ) match {
+      case out @ Some(_: WarpGate) =>
+        out
+      case Some(silo: ResourceSilo) if {
+        val radius = 20f//3.6135f
+        Vector3.DistanceSquared(position, silo.Position.xy) < radius * radius && obj.Faction != silo.Faction
+      } =>
+        Some(silo)
+      case _ =>
+        None
+    }
+  }
+
+  def FindBfrDischargingTarget(
+                                obj: TransferContainer,
+                                ntuChargingTarget: Option[TransferContainer]
+                              ): Option[TransferContainer] = {
+    FindResourceSiloToDischargeInto(obj, ntuChargingTarget, radius = 20) //3.6135f?
+  }
+
+  def FindResourceSiloToDischargeInto(
+                                obj: TransferContainer,
+                                ntuChargingTarget: Option[TransferContainer],
+                                radius: Float
+                              ): Option[TransferContainer] = {
+    //determine if we are close enough to charge from something
+    val position = obj.Position.xy
+    ntuChargingTarget.orElse(
+      obj.Zone
+        .blockMap
+        .sector(position, range = 20f)
+        .buildingList
+        .sortBy { b => Vector3.DistanceSquared(position, b.Position.xy) }
+        .flatMap { _.NtuSource }
+        .headOption
+    ) match {
+      case out @ Some(silo: ResourceSilo)
+        if Vector3.DistanceSquared(position, silo.Position.xy) < radius * radius && obj.Faction == silo.Faction =>
         out
       case _ =>
         None
-    }).orElse {
-      val position = obj.Position.xy
-      obj.Zone.Buildings.values
-        .find { building =>
-          building.BuildingType == StructureType.Facility && {
-            val soiRadius = building.Definition.SOIRadius
-            Vector3.DistanceSquared(position, building.Position.xy) < soiRadius * soiRadius
-          }
-        } match {
-        case Some(building) =>
-          building.Amenities
-            .collect { case obj: NtuContainer => obj }
-            .sortBy { o => Vector3.DistanceSquared(position, o.Position.xy) < 400 } //20m is generous ...
-            .headOption
-        case None =>
-          None
-      }
     }
   }
 

@@ -6,16 +6,17 @@ import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.{ArmorSiphonBehavior, Equipment, EquipmentHandiness, Handiness}
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.vehicles.{VehicleSubsystem, VehicleSubsystemEntry}
+import net.psforever.objects.serverobject.transfer.TransferBehavior
+import net.psforever.objects.vehicles.{BfrTransferBehavior, NtuSiphon, VehicleSubsystem, VehicleSubsystemEntry}
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.packet.game.GenericObjectActionMessage
+import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.{ChatMsg, GenericObjectActionMessage, TriggerEffectMessage, TriggeredEffectLocation}
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.types.{DriveState, PlanetSideGUID}
-//import net.psforever.objects.vehicles._
-//import net.psforever.types.DriveState
+import net.psforever.types.{ChatMessageType, DriveState, PlanetSideGUID}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -26,11 +27,14 @@ import scala.concurrent.duration._
   */
 class BfrControl(vehicle: Vehicle)
   extends VehicleControl(vehicle)
+  with BfrTransferBehavior
   with ArmorSiphonBehavior.SiphonOwner {
   /** shield-auto charge */
   var shieldCharge: Cancellable = Default.Cancellable
 
-  override def SiphoningObject: Vehicle = vehicle
+  def SiphoningObject = vehicle
+
+  def ChargeTransferObject = vehicle
 
   if (vehicle.Shields < vehicle.MaxShields) {
     chargeShields(amount = 0) //start charging if starts as uncharged
@@ -58,7 +62,21 @@ class BfrControl(vehicle: Vehicle)
 
   override def commonEnabledBehavior: Receive = super.commonEnabledBehavior
     .orElse(siphonRepairBehavior)
+    .orElse(bfrBehavior)
     .orElse(explosionBehavior)
+    .orElse {
+      case CommonMessages.Use(_, Some(item: Tool)) =>
+        if (GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition)) {
+          context.system.scheduler.scheduleOnce(
+            delay = 1000 milliseconds,
+            self,
+            TransferBehavior.Charging(Ntu.Nanites)
+          )
+        }
+
+      case SpecialEmp.Burst() =>
+        performEmpBurst()
+    }
 
   override def commonDisabledBehavior: Receive = super.commonDisabledBehavior.orElse(explosionBehavior)
 
@@ -108,8 +126,14 @@ class BfrControl(vehicle: Vehicle)
         )
       case None => ; //no dimorphic entry; place as-is
     }
-    //if the weapon arm is disabled, enable it before removing (makes life easy)
-    parseObjectAction(item.GUID, action = 38, None)
+    val guid0 = PlanetSideGUID(0)
+    //if the weapon arm is disabled, enable it for later (makes life easy)
+    parseObjectAction(guid0, BfrControl.ArmState.Enabled, Some(slot))
+    //enable the other arm weapon regardless
+    parseObjectAction(guid0, BfrControl.ArmState.Enabled, Some(
+      //budget logic: the arm weapons are "next to each other" index-wise
+      if (vehicle.Weapons.keys.min == slot) { slot + 1 } else { slot - 1 }
+    ))
     super.RemoveItemFromSlotCallback(item, slot)
   }
 
@@ -133,7 +157,7 @@ class BfrControl(vehicle: Vehicle)
         Handiness.Generic
     }
     super.PutItemInSlotCallback(item, slot)
-    specialArmWeaponEquipManagement(Some(item, slot, handiness))
+    specialArmWeaponEquipManagement(item, slot, handiness)
   }
 
   def disableShieldIfDrained(): Unit = {
@@ -211,40 +235,63 @@ class BfrControl(vehicle: Vehicle)
 
   override def parseObjectAction(guid: PlanetSideGUID, action: Int, other: Option[Any]): Unit = {
     super.parseObjectAction(guid, action, other)
-    if (action == 38 || action == 39) {
+    if (action == BfrControl.ArmState.Enabled || action == BfrControl.ArmState.Disabled) {
       //disable or enable fire control for the left arm weapon or for the right arm weapon
-      ((vehicle.Weapons.find { case (_, slot) => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid } match {
-        case Some((slot, _)) =>
-          bfrHandSubsystem(bfrHandiness(slot))
+      ((other match {
+        case Some(slot: Int)     => (slot, bfrHandSubsystem(bfrHandiness(slot)))
         case _ =>
-          None
-      }) match {
-        case subsys @ Some(subsystem) =>
-          if (action == 38 && !subsystem.enabled) {
-            subsystem.enabled = true
-            subsys
-          } else if (action == 39 && subsystem.enabled) {
-            subsystem.enabled = false
-            subsys
-          } else {
-            None
+          vehicle.Weapons.find { case (_, slot) => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid } match {
+            case Some((slot, _)) => (slot, bfrHandSubsystem(bfrHandiness(slot)))
+            case _               => (0, None)
           }
-        case None =>
-          None
       }) match {
-        case Some(_) =>
+        case out @ (_, Some(subsystem)) =>
+          if (action == BfrControl.ArmState.Enabled && !subsystem.enabled) {
+            //println(s"${subsystem.sys.value} turned on")
+            subsystem.enabled = true
+            out
+          } else if (action == BfrControl.ArmState.Disabled && subsystem.enabled) {
+            //println(s"${subsystem.sys.value} turned off")
+            subsystem.enabled = false
+            out
+          } else {
+            (0, None)
+          }
+        case _ =>
+          (0, None)
+      }) match {
+        case (slot, Some(_)) =>
+          specialArmWeaponActiveManagement(slot)
+          val guid0 = Service.defaultPlayerGUID
           val doNotSendTo = other match {
             case Some(pguid: PlanetSideGUID) => pguid
-            case _                           => Service.defaultPlayerGUID
+            case _                           => guid0
           }
-          val zone = vehicle.Zone
-          zone.VehicleEvents ! VehicleServiceMessage(
-            zone.id,
-            VehicleAction.GenericObjectAction(doNotSendTo, guid, action)
-          )
-        case None => ;
+          (if (guid == guid0) {
+            vehicle.Weapons(slot).Equipment match {
+              case Some(equip) => Some(equip.GUID)
+              case None        => None
+            }
+          } else {
+            Some(guid)
+          }) match {
+            case Some(useThisGuid) =>
+              val zone = vehicle.Zone
+              zone.VehicleEvents ! VehicleServiceMessage(
+                zone.id,
+                VehicleAction.GenericObjectAction(doNotSendTo, useThisGuid, action)
+              )
+            case _ => ;
+          }
+        case _ => ;
       }
     }
+  }
+
+  def bfrHandiness(side: equipment.Hand): Int = {
+    if (side == Handiness.Left) 2
+    else if (side == Handiness.Right) 3
+    else throw new Exception("no hand associated with this slot")
   }
 
   def bfrHandiness(slot: Int): equipment.Hand = {
@@ -255,83 +302,165 @@ class BfrControl(vehicle: Vehicle)
   def bfrHandSubsystem(side: equipment.Hand): Option[VehicleSubsystem] = {
     //for the benefit of BFR equipment slots interacting with MoveItemMessage
     side match {
-      case Handiness.Left => vehicle.Subsystems(VehicleSubsystemEntry.BattleframeLeftArm)
+      case Handiness.Left  => vehicle.Subsystems(VehicleSubsystemEntry.BattleframeLeftArm)
       case Handiness.Right => vehicle.Subsystems(VehicleSubsystemEntry.BattleframeRightArm)
-      case _              => None
+      case _               => None
     }
   }
 
-  def specialArmWeaponEquipManagement(params: Option[(Equipment, Int, equipment.Hand)]): Unit = {
+  def specialArmWeaponEquipManagement(item: Equipment, slot: Int, handiness: equipment.Hand): Unit = {
     val weapons = vehicle.Weapons
+    //budget logic: the arm weapons are "next to each other" index-wise
     val firstArmSlot = vehicle.Weapons.keys.min
-    val leftArm = bfrHandSubsystem(Handiness.Left).get
-    val rightArm = bfrHandSubsystem(Handiness.Right).get
-    params match {
-      case Some((item, slot, handiness)) if vehicle.VisibleSlots.contains(slot) =>
-        //budget logic: the arm weapons are "next to each other" index-wise
-        val otherArmEquipment = (if (firstArmSlot == slot) weapons(slot + 1) else weapons(slot - 1)).Equipment
-        val definition = item.Definition
-        if (
-          (GlobalDefinitions.isBattleFrameArmorSiphon(definition) ||
-           GlobalDefinitions.isBattleFrameNTUSiphon(definition)) &&
-          otherArmEquipment.nonEmpty
-        ) {
-          if ((handiness == Handiness.Left && rightArm.enabled) ||
-             (handiness == Handiness.Right && leftArm.enabled)
-          ) {
-            //there is active equipment attached to the other arm; this arm can safely be disabled
-            parseObjectAction(item.GUID, action = 39, None)
-          } else if (
-            ((handiness == Handiness.Left && !rightArm.enabled) ||
-             (handiness == Handiness.Right && !leftArm.enabled)) &&
-            {
-              val edef = otherArmEquipment.get.Definition
-              !(GlobalDefinitions.isBattleFrameArmorSiphon(edef) || GlobalDefinitions.isBattleFrameNTUSiphon(edef))
-            }
-          ) {
-            //there is non-siphon equipment attached to the other arm, but it needs to be re-enabled
-            parseObjectAction(otherArmEquipment.get.GUID, action = 38, None)
-            parseObjectAction(item.GUID, action = 39, None)
+    val otherArmSlot = if (firstArmSlot == slot) { slot + 1 } else { slot - 1 }
+    val otherArmEquipment = weapons(otherArmSlot).Equipment
+    if ({
+      val itemDef = item.Definition
+      GlobalDefinitions.isBattleFrameArmorSiphon(itemDef) || GlobalDefinitions.isBattleFrameNTUSiphon(itemDef)
+    } ||
+        (otherArmEquipment match {
+          case Some(thing) =>
+            //some equipment is attached to the other arm weapon mount
+            val otherDef = thing.Definition
+            GlobalDefinitions.isBattleFrameArmorSiphon(otherDef) || GlobalDefinitions.isBattleFrameNTUSiphon(otherDef)
+          case None =>
+            false
+        })
+    ) {
+      //installing a siphon; this siphon can safely be disabled
+      //alternately, installing normal equipment, but the other arm weapon is a siphon
+      parseObjectAction(PlanetSideGUID(0), BfrControl.ArmState.Enabled, Some(otherArmSlot)) //ensure enabled
+      parseObjectAction(item.GUID,  BfrControl.ArmState.Disabled, Some(slot))
+    }
+  }
+
+  /** since `specialArmWeaponActiveManagement` is called from `parseObjectAction`,
+    * and `parseObjectAction` gets called in `specialArmWeaponActiveManagement`,
+    * kill endless logic loops before they can happen */
+  var notSpecialManagingArmWeapon: Boolean = true
+  def specialArmWeaponActiveManagement(slotChanged: Int): Unit = {
+    if (notSpecialManagingArmWeapon) {
+      notSpecialManagingArmWeapon = false
+      val (thisArm, otherArm) = {
+        val pairedSystemsToSlots = pairedArmSlotSubsystems()
+        if (pairedSystemsToSlots.head._2._1 == slotChanged) {
+          (pairedSystemsToSlots.head, pairedSystemsToSlots(1))
+        }
+        else {
+          (pairedSystemsToSlots(1), pairedSystemsToSlots.head)
+        }
+      }
+      if (thisArm._1.enabled) {
+        //this arm weapon slot was enabled
+        if ({
+          val (thisArmExists, thisArmIsSiphon) = thisArm._2._2.Equipment match {
+            case Some(thing) =>
+              //some equipment is attached to the other arm weapon mount
+              val definition = thing.Definition
+              (
+                true,
+                GlobalDefinitions.isBattleFrameArmorSiphon(definition) || GlobalDefinitions.isBattleFrameNTUSiphon(definition)
+              )
+            case None =>
+              (false, false)
           }
+          val (otherArmExists, otherArmIsSiphon) = otherArm._2._2.Equipment match {
+            case Some(thing) =>
+              //some equipment is attached to the other arm weapon mount
+              val definition = thing.Definition
+              (
+                true,
+                GlobalDefinitions.isBattleFrameArmorSiphon(definition) || GlobalDefinitions.isBattleFrameNTUSiphon(definition)
+              )
+            case None =>
+              (false, false)
+          }
+          thisArmExists && otherArmExists && (thisArmIsSiphon || otherArmIsSiphon)
+        }) {
+          //both arms weapons are installed and at least one of them is a siphon
+          parseObjectAction(PlanetSideGUID(0), BfrControl.ArmState.Disabled, Some(otherArm._2._1))
         }
-      case _ =>
-        //if one arm is a siphon, only one arm on the BFR should be enabled at a time
-        (
-          weapons.get(firstArmSlot  ).map { _.Equipment }.head,
-          weapons.get(firstArmSlot+1).map { _.Equipment }.head
-        ) match {
-          case (Some(lequipment), Some(requipment)) =>
-            if (leftArm.enabled && rightArm.enabled) {
-              if ( {
-                val lEquipDef = lequipment.Definition
-                GlobalDefinitions.isBattleFrameArmorSiphon(lEquipDef) ||
-                GlobalDefinitions.isBattleFrameNTUSiphon(lEquipDef)
-              }) {
-                //disable left arm
-                parseObjectAction(lequipment.GUID, action = 39, None)
-              }
-              else if ( {
-                val rEquipDef = requipment.Definition
-                GlobalDefinitions.isBattleFrameArmorSiphon(rEquipDef) ||
-                GlobalDefinitions.isBattleFrameNTUSiphon(rEquipDef)
-              }) {
-                //disable right arm
-                parseObjectAction(requipment.GUID, action = 39, None)
-              }
-            }
-          case (Some(lequipment), None) =>
-            //make certain left arm is enabled
-            parseObjectAction(lequipment.GUID, action = 38, None)
-          case (None, Some(requipment)) =>
-            //make certain right arm is enabled
-            parseObjectAction(requipment.GUID, action = 38, None)
-          case _ => ;
+      }
+      else {
+        //this arm weapon slot was disabled
+        thisArm._2._2.Equipment match {
+          case Some(item) =>
+            parseObjectAction(item.GUID, BfrControl.ArmState.Enabled, Some(otherArm._2._1)) //other arm must be enabled
+          case None =>
+            parseObjectAction(PlanetSideGUID(0), BfrControl.ArmState.Enabled, Some(thisArm._2._1)) //must stay enabled
         }
+      }
+      notSpecialManagingArmWeapon = true
+    }
+  }
+
+  def performEmpBurst(): Unit = {
+    val now = System.currentTimeMillis()
+    val obj = ChargeTransferObject
+    val zone = obj.Zone
+    val events = zone.VehicleEvents
+    val GUID0 = Service.defaultPlayerGUID
+    getNtuContainer() match {
+      case Some(siphon : NtuSiphon)
+        if GlobalDefinitions.isBattleFrameNTUSiphon(siphon.equipment.Definition) &&
+           siphon.equipment.FireModeIndex == 1 &&
+           siphon.NtuCapacitor > 29 =>
+        val elapsedWait = now - siphon.equipment.lastDischarge
+        if (elapsedWait >= 30000) {
+          val pos = obj.Position
+          val emp = siphon.equipment.Projectile
+          val faction = obj.Faction
+          //need at least 30 ntu, so consume the charge
+          siphon.NtuCapacitor -= 30
+          UpdateNtuUI(obj, siphon)
+          //cause the emp
+          siphon.equipment.lastDischarge = now
+          //TODO this is the apc emp effect; is there an ntu siphon emp effect?
+          events ! VehicleServiceMessage(
+            zone.id,
+            VehicleAction.SendResponse(
+              GUID0,
+              TriggerEffectMessage(
+                GUID0,
+                s"apc_explosion_emp_${faction.toString.toLowerCase}",
+                None,
+                Some(TriggeredEffectLocation(pos, obj.Orientation))
+              )
+            )
+          )
+          //resolve what targets are affected by the emp
+          Zone.serverSideDamage(
+            zone,
+            obj,
+            emp,
+            SpecialEmp.createEmpInteraction(emp, pos),
+            ExplosiveDeployableControl.detectionForExplosiveSource(obj),
+            Zone.findAllTargets
+          )
+        } else {
+          //the siphon is not ready to dispatch another emp; chat message borrowed from kit use logic
+          //the client actually enforces a hard limit of 30s before it will react to use of the siphon emp mode
+          //it does not even dispatch the packet before that, making it rare if this precautionary message is seen
+          events ! VehicleServiceMessage(
+            obj.Seats(0).occupant.get.Name,
+            VehicleAction.SendResponse(
+              GUID0,
+              ChatMsg(ChatMessageType.UNK_225, wideContents = false, "", s"@TimeUntilNextUse^${30000 - elapsedWait}", None)
+            )
+          )
+        }
+      case _ => ;
     }
   }
 }
 
 object BfrControl {
+  /** arm state values related to the `GenericObjectActionMessage` action codes */
+  object ArmState extends Enumeration {
+    final val Enabled  = 38
+    final val Disabled = 39
+  }
+  
   private case object VehicleExplosion
 
   val dimorphics: List[EquipmentHandiness] = {

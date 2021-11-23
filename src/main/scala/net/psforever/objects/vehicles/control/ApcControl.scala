@@ -2,8 +2,12 @@
 package net.psforever.objects.vehicles.control
 
 import net.psforever.objects._
+import net.psforever.objects.equipment.{EffectTarget, TargetValidation}
 import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.projectile.MaxDistanceCutoff
+import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{TriggerEffectMessage, TriggeredEffectLocation}
 import net.psforever.services.Service
@@ -43,7 +47,7 @@ class ApcControl(vehicle: Vehicle)
       val events = zone.VehicleEvents
       val pos = obj.Position
       val GUID0 = Service.defaultPlayerGUID
-      val emp = obj.Definition.innateDamage.getOrElse { SpecialEmp.emp }
+      val emp = ApcControl.apc_emp
       val faction = obj.Faction
       //drain the capacitor
       capacitorCharge(-vehicle.Capacitor)
@@ -89,5 +93,41 @@ class ApcControl(vehicle: Vehicle)
     if (action == 55) {
       performEmpBurst()
     }
+  }
+}
+
+object ApcControl {
+  final val apc_emp = new DamageWithPosition {
+    CausesDamageType = DamageType.Splash
+    SympatheticExplosion = true
+    Damage0 = 0
+    DamageAtEdge = 1.0f
+    DamageRadius = 15f
+    AdditionalEffect = true
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Player,
+      EffectTarget.Validation.Player
+    ) -> 1000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.AMS
+    ) -> 5000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.MotionSensor
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.Spitfire
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Turret,
+      EffectTarget.Validation.Turret
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.VehicleNotAMS
+    ) -> 10000
+    Modifiers = MaxDistanceCutoff
   }
 }

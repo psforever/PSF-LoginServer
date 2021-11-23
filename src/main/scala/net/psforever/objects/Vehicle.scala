@@ -202,14 +202,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     Flying
   }
 
-  def NtuCapacitorScaled: Int = {
-    if (Definition.MaxNtuCapacitor > 0) {
-      scala.math.ceil((NtuCapacitor / Definition.MaxNtuCapacitor) * 10).toInt
-    } else {
-      0
-    }
-  }
-
   def Capacitor: Int = capacitor
 
   def Capacitor_=(value: Int): Int = {
@@ -547,6 +539,8 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   override def toString: String = {
     Vehicle.toString(this)
   }
+
+  def MaxNtuCapacitor: Float = Definition.MaxNtuCapacitor
 }
 
 object Vehicle {

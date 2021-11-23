@@ -25,6 +25,7 @@ class FireModeDefinition extends DamageModifiers {
 
   /** how many rounds are replenished each reload cycle */
   private var magazine: Int = 1
+  private var defaultMagazine: Option[Int] = None
 
   /** how many rounds are replenished each reload cycle, per type of ammunition loaded
     * key - ammo type index, value - magazine capacity
@@ -61,6 +62,15 @@ class FireModeDefinition extends DamageModifiers {
 
   def ProjectileTypeIndices_=(index: Int): mutable.ListBuffer[Int] = {
     projectileTypeIndices += index
+  }
+
+  def DefaultMagazine: Int = defaultMagazine.getOrElse(magazine)
+
+  def DefaultMagazine_=(inMagazine: Int): Int = DefaultMagazine_=(Some(inMagazine))
+
+  def DefaultMagazine_=(inMagazine: Option[Int]): Int = {
+    defaultMagazine = inMagazine
+    DefaultMagazine
   }
 
   def Magazine: Int = magazine

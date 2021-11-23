@@ -266,7 +266,7 @@ trait AmenityAutoRepair
     import scala.concurrent.ExecutionContext.Implicits.global
     autoRepairTimer.cancel()
     autoRepairQueueTask = Some(System.currentTimeMillis() + delay)
-    val modifiedDrain = drain * Config.app.game.amenityAutorepairDrainRate
+    val modifiedDrain = drain * 2 * Config.app.game.amenityAutorepairDrainRate //doubled intentionally
     autoRepairTimer = if(AutoRepairObject.Owner == Building.NoBuilding) {
       //without an owner, auto-repair freely
       context.system.scheduler.scheduleOnce(

@@ -3435,15 +3435,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ BeginZoningMessage() =>
         log.trace(s"BeginZoningMessage: ${player.Name} is reticulating ${continent.id}'s splines ...")
         zoneLoaded = None
+        val name = avatar.name
         val continentId    = continent.id
         val faction        = player.Faction
         val factionChannel = s"$faction"
         continent.AvatarEvents ! Service.Join(continentId)
         continent.AvatarEvents ! Service.Join(factionChannel)
-        continent.LocalEvents ! Service.Join(avatar.name)
+        continent.LocalEvents ! Service.Join(name)
         continent.LocalEvents ! Service.Join(continentId)
         continent.LocalEvents ! Service.Join(factionChannel)
-        continent.VehicleEvents ! Service.Join(avatar.name)
+        continent.VehicleEvents ! Service.Join(name)
         continent.VehicleEvents ! Service.Join(continentId)
         continent.VehicleEvents ! Service.Join(factionChannel)
         if (connectionState != 100) configZone(continent)
@@ -3637,6 +3638,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //our vehicle would have already been loaded; see NewPlayerLoaded/AvatarCreate
         usedVehicle.headOption match {
           case Some(vehicle) =>
+            //subsystems
+            vehicle.SubsystemMessages().foreach { SendResponse }
             //depict any other passengers already in this zone
             val vguid = vehicle.GUID
             vehicle.Seats
@@ -3718,7 +3721,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deployed, 0, false, Vector3.Zero))
           ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
         }
-        val name = avatar.name
         serviceManager
           .ask(Lookup("hart"))(Timeout(2 seconds))
           .onComplete {
@@ -3726,7 +3728,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               ref ! HartTimer.Update(continentId, name)
             case _ =>
           }
-
         //implant terminals
         continent.map.terminalToInterface.foreach({
           case (terminal_guid, interface_guid) =>
@@ -3763,8 +3764,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case _ => ;
             }
         })
-
-        //base turrets
+        //facility turrets
         continent.map.turretToWeapon
           .map { case (turret_guid: Int, _) => continent.GUID(turret_guid) }
           .collect {
@@ -3803,6 +3803,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case _ => ;
               }
           }
+        //remote projectiles and radiation clouds
+        continent.Projectiles.foreach { projectile =>
+          val definition = projectile.Definition
+          sendResponse(
+            ObjectCreateMessage(
+              definition.ObjectId,
+              projectile.GUID,
+              definition.Packet.ConstructorData(projectile).get
+            )
+          )
+        }
+        //spawn point update request
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
           VehicleAction.UpdateAmsSpawnPoint(continent)
@@ -4090,7 +4102,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             obj.Velocity = vel
 //            if (is_crouched && obj.DeploymentState != DriveState.Kneeling) {
 //              //dev stuff goes here
-//            } else if (!is_crouched && obj.DeploymentState == DriveState.Kneeling) {
+//            }
+//            else if (!is_crouched && obj.DeploymentState == DriveState.Kneeling) {
 //              //dev stuff goes here
 //            }
             obj.DeploymentState = if (is_crouched) DriveState.Kneeling else DriveState.Mobile
@@ -4280,7 +4293,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (shooting.isEmpty) {
           FindEquipment(item_guid) match {
             case Some(tool: Tool) =>
-              if (tool.Magazine > 0 || prefire.contains(item_guid)) {
+              if (tool.FireMode.RoundsPerShot == 0 || tool.Magazine > 0 || prefire.contains(item_guid)) {
                 prefire -= item_guid
                 shooting += item_guid
                 shootingStart += item_guid -> System.currentTimeMillis()
@@ -4725,7 +4738,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             door.Actor ! CommonMessages.Use(player)
 
           case Some(resourceSilo: ResourceSilo) =>
-            resourceSilo.Actor ! CommonMessages.Use(player)
+            CancelZoningProcessWithDescriptiveReason("cancel_use")
+            (continent.GUID(player.VehicleSeated), equipment) match {
+              case (Some(vehicle: Vehicle), Some(item))
+                if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) &&
+                   GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) =>
+                resourceSilo.Actor ! CommonMessages.Use(player, equipment)
+              case _ =>
+                resourceSilo.Actor ! CommonMessages.Use(player)
+            }
 
           case Some(panel: IFFLock) =>
             equipment match {
@@ -5096,6 +5117,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             }
 
+          case Some(gate: WarpGate) =>
+            CancelZoningProcessWithDescriptiveReason("cancel_use")
+            (continent.GUID(player.VehicleSeated), equipment) match {
+              case (Some(vehicle: Vehicle), Some(item))
+                if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) &&
+                   GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) =>
+                vehicle.Actor ! CommonMessages.Use(player, equipment)
+              case _ => ;
+            }
+
           case Some(obj) =>
             CancelZoningProcessWithDescriptiveReason("cancel_use")
             equipment match {
@@ -5191,8 +5222,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case _ => ;
         }
 
+      case msg @ GenericObjectActionAtPositionMessage(object_guid, _, _) =>
+        //log.info(s"$msg")
+        ValidObject(object_guid) match {
+          case Some(tool: Tool) if GlobalDefinitions.isBattleFrameNTUSiphon(tool.Definition) =>
+            FindContainedWeapon match {
+              case (Some(vehicle: Vehicle), weps) if weps.exists(_.GUID == object_guid) =>
+                vehicle.Actor ! SpecialEmp.Burst()
+              case _ => ;
+            }
+          case _ => ;
+        }
+
       case msg @ GenericObjectStateMsg(object_guid, unk1) =>
-        log.debug("GenericObjectState: " + msg)
+        log.debug(s"$msg")
 
       case msg @ GenericActionMessage(action) =>
         if (player == null) {
@@ -7084,12 +7127,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
         }
         Vehicles.ReloadAccessPermissions(vehicle, player.Name)
-        vehicle.SubsystemMessages().foreach { pkt =>
-          events ! VehicleServiceMessage(
-            continent.id,
-            VehicleAction.SendResponse(Service.defaultPlayerGUID, pkt)
-          )
-        }
         log.debug(s"AvatarCreate (vehicle): ${player.Name}'s ${vehicle.Definition.Name}")
         log.trace(s"AvatarCreate (vehicle): ${player.Name}'s ${vehicle.Definition.Name} - $vguid -> $vdata")
         AvatarCreateInVehicle(player, vehicle, seat)

@@ -4,7 +4,7 @@ package net.psforever.objects.vehicles.control
 import net.psforever.objects.equipment.Handiness
 import net.psforever.objects.{Vehicle, equipment}
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.vehicles.VehicleSubsystemEntry
+import net.psforever.objects.vehicles.{VehicleSubsystem, VehicleSubsystemEntry}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.types.Vector3
 
@@ -111,9 +111,24 @@ class BfrFlightControl(vehicle: Vehicle)
     }
   }
 
+  override def bfrHandiness(side: equipment.Hand): Int = {
+    if (side == Handiness.Left) 1
+    else if (side == Handiness.Right) 2
+    else throw new Exception("no hand associated with this slot")
+  }
+
   override def bfrHandiness(slot: Int): equipment.Hand = {
     //for the benefit of BFR equipment slots interacting with MoveItemMessage
     if (slot == 1) Handiness.Left else if (slot == 2) Handiness.Right else Handiness.Generic
+  }
+
+  override def bfrHandSubsystem(side: equipment.Hand): Option[VehicleSubsystem] = {
+    //for the benefit of BFR equipment slots interacting with MoveItemMessage
+    side match {
+      case Handiness.Left  => vehicle.Subsystems(VehicleSubsystemEntry.BattleframeFlightLeftArm)
+      case Handiness.Right => vehicle.Subsystems(VehicleSubsystemEntry.BattleframeFlightRightArm)
+      case _               => None
+    }
   }
 }
 

@@ -82,16 +82,28 @@ object VehicleSubsystemEntry extends StringEnum[VehicleSubsystemEntry] {
     inactive=48 //49
   )
   case object BattleframeLeftArm extends VehicleArmSubsystemEntry(
-    value = "BattleframeLeftArm",
+    value = "BattleframeLeftArmG",
     active=38,
     inactive=39,
     armSlot=2
   )
   case object BattleframeRightArm extends VehicleArmSubsystemEntry(
-    value = "BattleframeRightArm",
+    value = "BattleframeRightArmG",
     active=38,
     inactive=39,
     armSlot=3
+  )
+  case object BattleframeFlightLeftArm extends VehicleArmSubsystemEntry(
+    value = "BattleframeLeftArmF",
+    active=38,
+    inactive=39,
+    armSlot=1
+  )
+  case object BattleframeFlightRightArm extends VehicleArmSubsystemEntry(
+    value = "BattleframeRightArmF",
+    active=38,
+    inactive=39,
+    armSlot=2
   )
 }
 
