@@ -5,8 +5,10 @@ import akka.actor.Cancellable
 import net.psforever.objects._
 import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
-import net.psforever.objects.equipment.{ArmorSiphonBehavior, Equipment, EquipmentHandiness, Handiness}
+import net.psforever.objects.equipment._
+import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.vehicles.{BfrTransferBehavior, NtuSiphon, VehicleSubsystem, VehicleSubsystemEntry}
@@ -160,6 +162,76 @@ class BfrControl(vehicle: Vehicle)
     specialArmWeaponEquipManagement(item, slot, handiness)
   }
 
+  override
+
+  def handleTerminalMessageVehicleLoadout(
+                                           player: Player,
+                                           definition: VehicleDefinition,
+                                           weapons: List[InventoryItem],
+                                           inventory: List[InventoryItem]
+                                         ): (
+      List[(Equipment, PlanetSideGUID)],
+      List[InventoryItem],
+      List[(Equipment, PlanetSideGUID)],
+      List[InventoryItem]
+    ) = {
+    val vFaction = vehicle.Faction
+    val vWeapons = vehicle.Weapons
+    //remove old inventory
+    val oldInventory = vehicle.Inventory.Clear().map { case InventoryItem(obj, _) => (obj, obj.GUID) }
+    //"dropped" items are lost; if it doesn't go in the trunk, it vanishes into the nanite cloud
+    val (_, afterInventory) = inventory.partition(ContainableBehavior.DropPredicate(player))
+    val pairedArmSubsys = pairedArmSubsystems()
+    val (oldWeapons, newWeapons, finalInventory) = if (GlobalDefinitions.isBattleFrameVehicle(definition)) {
+      //vehicles are both battleframes; weapons must be swapped properly
+      if(vWeapons.size == 3 && GlobalDefinitions.isBattleFrameFlightVehicle(definition)) {
+        //battleframe is a gunner variant but loadout spec is for flight variant
+        // remap the hands, ignore the gunner weapon mount, and refit the trunk
+        val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory)
+        val afterWeapons = weapons
+          .map { item => item.start += 1; item }
+        (culledWeaponMounts(pairedArmSubsys.unzip._2), afterWeapons, stow)
+      } else if(vWeapons.size == 2 && GlobalDefinitions.isBattleFrameGunnerVehicle(definition)) {
+        //battleframe is a flight variant but loadout spec is for gunner variant
+        // remap the hands, shave the gunner mount from the spec, and refit the trunk
+        val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory)
+        val afterWeapons = weapons
+          .filterNot { _.obj.Size == EquipmentSize.BFRGunnerWeapon }
+          .map { item => item.start -= 1; item }
+        (culledWeaponMounts(vWeapons.values), afterWeapons, stow)
+      } else {
+        //same variant type of battleframe
+        // place as-is
+        (culledWeaponMounts(vWeapons.values), weapons, afterInventory)
+      }
+    }
+    else {
+      //vehicle loadout is not for this vehicle; do not transfer over weapon ammo
+      if (
+        vehicle.Definition.TrunkSize == definition.TrunkSize && vehicle.Definition.TrunkOffset == definition.TrunkOffset
+      ) {
+        (Nil, Nil, afterInventory) //trunk is the same dimensions, however
+      }
+      else {
+        //accommodate as much of inventory as possible
+        val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory)
+        (Nil, Nil, stow)
+      }
+    }
+    finalInventory.foreach {
+      _.obj.Faction = vFaction
+    }
+    (oldWeapons, newWeapons, oldInventory, finalInventory)
+  }
+
+  def culledWeaponMounts(values: Iterable[EquipmentSlot]): List[(Equipment, PlanetSideGUID)] = {
+    values.collect { case slot if slot.Equipment.nonEmpty =>
+      val obj = slot.Equipment.get
+      slot.Equipment = None
+      (obj, obj.GUID)
+    }.toList
+  }
+
   def disableShieldIfDrained(): Unit = {
     if (vehicle.Shields == 0) {
       disableShield()
@@ -309,28 +381,35 @@ class BfrControl(vehicle: Vehicle)
   }
 
   def specialArmWeaponEquipManagement(item: Equipment, slot: Int, handiness: equipment.Hand): Unit = {
-    val weapons = vehicle.Weapons
-    //budget logic: the arm weapons are "next to each other" index-wise
-    val firstArmSlot = vehicle.Weapons.keys.min
-    val otherArmSlot = if (firstArmSlot == slot) { slot + 1 } else { slot - 1 }
-    val otherArmEquipment = weapons(otherArmSlot).Equipment
-    if ({
-      val itemDef = item.Definition
-      GlobalDefinitions.isBattleFrameArmorSiphon(itemDef) || GlobalDefinitions.isBattleFrameNTUSiphon(itemDef)
-    } ||
-        (otherArmEquipment match {
-          case Some(thing) =>
-            //some equipment is attached to the other arm weapon mount
-            val otherDef = thing.Definition
-            GlobalDefinitions.isBattleFrameArmorSiphon(otherDef) || GlobalDefinitions.isBattleFrameNTUSiphon(otherDef)
-          case None =>
-            false
-        })
-    ) {
-      //installing a siphon; this siphon can safely be disabled
-      //alternately, installing normal equipment, but the other arm weapon is a siphon
-      parseObjectAction(PlanetSideGUID(0), BfrControl.ArmState.Enabled, Some(otherArmSlot)) //ensure enabled
-      parseObjectAction(item.GUID,  BfrControl.ArmState.Disabled, Some(slot))
+    if (item.Size == EquipmentSize.BFRArmWeapon && vehicle.VisibleSlots.contains(slot)) {
+      val weapons = vehicle.Weapons
+      //budget logic: the arm weapons are "next to each other" index-wise
+      val firstArmSlot = vehicle.Weapons.keys.min
+      val otherArmSlot = if (firstArmSlot == slot) {
+        slot + 1
+      }
+      else {
+        slot - 1
+      }
+      val otherArmEquipment = weapons(otherArmSlot).Equipment
+      if ( {
+             val itemDef = item.Definition
+             GlobalDefinitions.isBattleFrameArmorSiphon(itemDef) || GlobalDefinitions.isBattleFrameNTUSiphon(itemDef)
+           } ||
+           (otherArmEquipment match {
+             case Some(thing) =>
+               //some equipment is attached to the other arm weapon mount
+               val otherDef = thing.Definition
+               GlobalDefinitions.isBattleFrameArmorSiphon(otherDef) || GlobalDefinitions.isBattleFrameNTUSiphon(otherDef)
+             case None =>
+               false
+           })
+      ) {
+        //installing a siphon; this siphon can safely be disabled
+        //alternately, installing normal equipment, but the other arm weapon is a siphon
+        parseObjectAction(PlanetSideGUID(0), BfrControl.ArmState.Enabled, Some(otherArmSlot)) //ensure enabled
+        parseObjectAction(item.GUID, BfrControl.ArmState.Disabled, Some(slot))
+      }
     }
   }
 

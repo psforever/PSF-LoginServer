@@ -51,12 +51,13 @@ object Loadout {
     * @return a `VehicleLoadout` object populated with appropriate information about the current state of the vehicle
     */
   def Create(vehicle: Vehicle, label: String): Loadout = {
+    val (_, entries: List[Loadout.SimplifiedEntry]) = vehicle.Weapons.collect {
+      case (index, slot: EquipmentSlot) if slot.Equipment.nonEmpty =>
+        (index, SimplifiedEntry(buildSimplification(slot.Equipment.get), index))
+    }.unzip
     VehicleLoadout(
       label,
-      packageSimplifications(vehicle.Weapons.collect {
-        case (index, slot) if slot.Equipment.nonEmpty =>
-          InventoryItem(slot.Equipment.get, index)
-      }.toList),
+      entries,
       packageSimplifications(vehicle.Trunk.Items),
       vehicle.Definition
     )

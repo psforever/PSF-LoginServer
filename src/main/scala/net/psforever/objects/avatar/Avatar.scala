@@ -89,7 +89,7 @@ case class Avatar(
     fatigued: Boolean = false,
     cosmetics: Option[Set[Cosmetic]] = None,
     certifications: Set[Certification] = Set(),
-    loadouts: Seq[Option[Loadout]] = Seq.fill(15)(None),
+    loadouts: Seq[Option[Loadout]] = Seq.fill(20)(None),
     squadLoadouts: Seq[Option[SquadLoadout]] = Seq.fill(10)(None),
     implants: Seq[Option[Implant]] = Seq(None, None, None),
     locker: LockerContainer = Avatar.makeLocker(),

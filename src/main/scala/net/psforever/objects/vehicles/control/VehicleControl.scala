@@ -162,52 +162,14 @@ class VehicleControl(vehicle: Vehicle)
             org.log4s
               .getLogger(vehicle.Definition.Name)
               .info(s"changing vehicle equipment loadout to ${player.Name}'s option #${msg.unk1 + 1}")
-            //remove old inventory
-            val oldInventory = vehicle.Inventory.Clear().map { case InventoryItem(obj, _) => (obj, obj.GUID) }
-            //"dropped" items are lost; if it doesn't go in the trunk, it vanishes into the nanite cloud
-            val (_, afterInventory) = inventory.partition(ContainableBehavior.DropPredicate(player))
-            val (oldWeapons, newWeapons, finalInventory) = if (vehicle.Definition == definition) {
-              //vehicles are the same type
-              //TODO want to completely swap weapons, but holster icon vanishes temporarily after swap
-              //TODO BFR arms must be swapped properly
-              //              //remove old weapons
-              //              val oldWeapons = vehicle.Weapons.values.collect { case slot if slot.Equipment.nonEmpty =>
-              //                val obj = slot.Equipment.get
-              //                slot.Equipment = None
-              //                (obj, obj.GUID)
-              //              }.toList
-              //              (oldWeapons, weapons, afterInventory)
-              //TODO for now, just refill ammo; assume weapons stay the same
-              vehicle.Weapons
-                .collect { case (_, slot: EquipmentSlot) if slot.Equipment.nonEmpty => slot.Equipment.get }
-                .collect {
-                  case weapon: Tool =>
-                    weapon.AmmoSlots.foreach { ammo => ammo.Box.Capacity = ammo.MaxMagazine() }
-                }
-              (Nil, Nil, afterInventory)
-            }
-            else {
-              //vehicle loadout is not for this vehicle
-              //do not transfer over weapon ammo
-              if (
-                vehicle.Definition.TrunkSize == definition.TrunkSize && vehicle.Definition.TrunkOffset == definition.TrunkOffset
-              ) {
-                (Nil, Nil, afterInventory) //trunk is the same dimensions, however
-              }
-              else {
-                //accommodate as much of inventory as possible
-                val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory)
-                (Nil, Nil, stow)
-              }
-            }
-            finalInventory.foreach {
-              _.obj.Faction = vehicle.Faction
-            }
-            player.Zone.VehicleEvents ! VehicleServiceMessage(
-              player.Zone.id,
+            val (oldWeapons, newWeapons, oldInventory, finalInventory) =
+              handleTerminalMessageVehicleLoadout(player, definition, weapons, inventory)
+            val zone = vehicle.Zone
+            zone.VehicleEvents ! VehicleServiceMessage(
+              zone.id,
               VehicleAction.ChangeLoadout(vehicle.GUID, oldWeapons, newWeapons, oldInventory, finalInventory)
             )
-            player.Zone.AvatarEvents ! AvatarServiceMessage(
+            zone.AvatarEvents ! AvatarServiceMessage(
               player.Name,
               AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true)
             )
@@ -508,6 +470,50 @@ class VehicleControl(vehicle: Vehicle)
       toChannel,
       VehicleAction.ObjectDelete(item.GUID)
     )
+  }
+
+  def handleTerminalMessageVehicleLoadout(
+                                           player: Player,
+                                           definition: VehicleDefinition,
+                                           weapons: List[InventoryItem],
+                                           inventory: List[InventoryItem]
+                                         ): (
+      List[(Equipment, PlanetSideGUID)],
+      List[InventoryItem],
+      List[(Equipment, PlanetSideGUID)],
+      List[InventoryItem]
+    ) = {
+    //remove old inventory
+    val oldInventory = vehicle.Inventory.Clear().map { case InventoryItem(obj, _) => (obj, obj.GUID) }
+    //"dropped" items are lost; if it doesn't go in the trunk, it vanishes into the nanite cloud
+    val (_, afterInventory) = inventory.partition(ContainableBehavior.DropPredicate(player))
+    val (oldWeapons, newWeapons, finalInventory) = if (vehicle.Definition == definition) {
+      //vehicles are the same type; just refill ammo, assuming weapons stay the same
+      vehicle.Weapons
+        .collect { case (_, slot: EquipmentSlot) if slot.Equipment.nonEmpty => slot.Equipment.get }
+        .collect {
+          case weapon: Tool =>
+            weapon.AmmoSlots.foreach { ammo => ammo.Box.Capacity = ammo.MaxMagazine() }
+        }
+      (Nil, Nil, afterInventory)
+    }
+    else {
+      //vehicle loadout is not for this vehicle; do not transfer over weapon ammo
+      if (
+        vehicle.Definition.TrunkSize == definition.TrunkSize && vehicle.Definition.TrunkOffset == definition.TrunkOffset
+      ) {
+        (Nil, Nil, afterInventory) //trunk is the same dimensions, however
+      }
+      else {
+        //accommodate as much of inventory as possible
+        val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory)
+        (Nil, Nil, stow)
+      }
+    }
+    finalInventory.foreach {
+      _.obj.Faction = vehicle.Faction
+    }
+    (oldWeapons, newWeapons, oldInventory, finalInventory)
   }
 
   //make certain vehicles don't charge shields too quickly

@@ -334,9 +334,9 @@ object OrderTerminalDefinition {
     * @see `Loadout`
     * @see `VehicleLoadout`
     */
-  final case class VehicleLoadoutPage() extends LoadoutTab {
+  final case class VehicleLoadoutPage(lineOffset: Int) extends LoadoutTab {
     override def Buy(player: Player, msg: ItemTransactionMessage): Terminal.Exchange = {
-      player.avatar.loadouts(msg.unk1 + 10) match {
+      player.avatar.loadouts(msg.unk1 + lineOffset) match {
         case Some(loadout: VehicleLoadout) if !Exclude.contains(loadout.vehicle_definition) =>
           val weapons = loadout.visible_slots
             .map(entry => {
@@ -392,6 +392,43 @@ object OrderTerminalDefinition {
           }
           Terminal.BuyVehicle(vehicle(), weapons, inventory)
         case None =>
+          Terminal.NoDeal()
+      }
+    }
+
+    def Dispatch(sender: ActorRef, terminal: Terminal, msg: Terminal.TerminalMessage): Unit = {
+      sender ! msg
+    }
+  }
+
+  /**
+    * The special page used by the `bfr_terminal` to select a vehicle to be spawned
+    * based on the player's previous loadouts for battleframe vehicles.
+    * Vehicle loadouts are defined by a superfluous redefinition of the vehicle's mounted weapons
+    * and equipment in the trunk.
+    * @see `Equipment`
+    * @see `Loadout`
+    * @see `Vehicle`
+    * @see `VehicleLoadout`
+    */
+  final case class BattleframeSpawnLoadoutPage(vehicles: Map[String, () => Vehicle]) extends LoadoutTab {
+    override def Buy(player: Player, msg: ItemTransactionMessage): Terminal.Exchange = {
+      player.avatar.loadouts(msg.unk1 + 15) match {
+        case Some(loadout: VehicleLoadout) if !Exclude.contains(loadout.vehicle_definition) =>
+          vehicles.get(loadout.vehicle_definition.Name) match {
+            case Some(vehicle) =>
+              val weapons = loadout.visible_slots.map(entry => {
+                InventoryItem(EquipmentTerminalDefinition.BuildSimplifiedPattern(entry.item), entry.index)
+              })
+              val inventory = loadout.inventory.map(entry => {
+                InventoryItem(EquipmentTerminalDefinition.BuildSimplifiedPattern(entry.item), entry.index)
+              })
+              Terminal.BuyVehicle(vehicle(), weapons, inventory)
+            case None =>
+              Terminal.NoDeal()
+          }
+
+        case _ =>
           Terminal.NoDeal()
       }
     }

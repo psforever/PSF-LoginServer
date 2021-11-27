@@ -2033,7 +2033,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           //cleanup
           sendResponse(ObjectHeldMessage(target, Player.HandsDownSlot, false))
           (old_holsters ++ old_inventory ++ delete).foreach {
-            case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0))
+            case (_, dguid) => sendResponse(ObjectDeleteMessage(dguid, 0))
           }
           //functionally delete
           delete.foreach { case (obj, _) => TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj)) }
@@ -5365,13 +5365,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ FavoritesRequest(player_guid, loadoutType, action, line, label) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
         action match {
-          case FavoritesAction.Save   => avatarActor ! AvatarActor.SaveLoadout(player, loadoutType, label, line)
-          case FavoritesAction.Delete => avatarActor ! AvatarActor.DeleteLoadout(player, loadoutType, line)
+          case FavoritesAction.Save   =>
+            avatarActor ! AvatarActor.SaveLoadout(player, loadoutType, label, line)
+          case FavoritesAction.Delete =>
+            avatarActor ! AvatarActor.DeleteLoadout(player, loadoutType, line)
           case FavoritesAction.Unknown =>
             log.warn(s"FavoritesRequest: ${player.Name} requested an unknown favorites action")
         }
 
-      case msg @ WeaponDelayFireMessage(seq_time, weapon_guid) => ;
+      case msg @ WeaponDelayFireMessage(seq_time, weapon_guid) =>
+        log.info(s"$msg")
 
       case msg @ WeaponDryFireMessage(weapon_guid) =>
         FindWeapon

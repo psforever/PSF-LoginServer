@@ -672,6 +672,18 @@ class AvatarActor(
                     throwLoadoutFailure(s"no owned vehicle found for ${player.Name}")
                 }
               )
+
+            case LoadoutType.Battleframe =>
+              (
+                number + 15,
+                player.Zone.GUID(avatar.vehicle) match {
+                  case Some(vehicle: Vehicle)
+                    if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) =>
+                    storeVehicleLoadout(player, name, number + 5, vehicle)
+                  case _ =>
+                    throwLoadoutFailure(s"no owned battleframe found for ${player.Name}")
+                }
+              )
           }
           result.onComplete {
             case Success(loadout) =>
@@ -1501,7 +1513,7 @@ class AvatarActor(
       }
       vehicles <- loadVehicleLoadouts().andThen {
         case out @ Success(_) => out
-        case Failure(_) => Future(Array.fill[Option[Loadout]](5)(None).toSeq)
+        case Failure(_) => Future(Array.fill[Option[Loadout]](10)(None).toSeq)
       }
     } yield infantry ++ vehicles
   }
@@ -1533,7 +1545,8 @@ class AvatarActor(
       .run(query[persistence.Vehicleloadout].filter(_.avatarId == lift(avatar.id)))
       .map { loadouts =>
         loadouts.map { loadout =>
-          val toy = new Vehicle(DefinitionUtil.idToDefinition(loadout.vehicle).asInstanceOf[VehicleDefinition])
+          val definition = DefinitionUtil.idToDefinition(loadout.vehicle).asInstanceOf[VehicleDefinition]
+          val toy = new Vehicle(definition)
           buildContainedEquipmentFromClob(toy, loadout.items)
 
           val result = (loadout.loadoutNumber, Loadout.Create(toy, loadout.name))
@@ -1544,29 +1557,36 @@ class AvatarActor(
           result
         }
       }
-      .map { loadouts => (0 until 5).map { index => loadouts.find(_._1 == index).map(_._2) } }
+      .map { loadouts => (0 until 10).map { index => loadouts.find(_._1 == index).map(_._2) } }
   }
 
   def refreshLoadouts(loadouts: Iterable[(Option[Loadout], Int)]): Unit = {
     loadouts.map {
       case (Some(loadout: InfantryLoadout), index) =>
-        FavoritesMessage(
-          LoadoutType.Infantry,
+        FavoritesMessage.Infantry(
           session.get.player.GUID,
           index,
           loadout.label,
           InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)
         )
+      case (Some(loadout: VehicleLoadout), index)
+        if GlobalDefinitions.isBattleFrameVehicle(loadout.vehicle_definition) =>
+        FavoritesMessage.Battleframe(
+          session.get.player.GUID,
+          index - 15,
+          loadout.label,
+          VehicleLoadout.DetermineBattleframeSubtype(loadout.vehicle_definition)
+        )
       case (Some(loadout: VehicleLoadout), index) =>
-        FavoritesMessage(
-          LoadoutType.Vehicle,
+        FavoritesMessage.Vehicle(
           session.get.player.GUID,
           index - 10,
-          loadout.label,
-          0
+          loadout.label
         )
       case (_, index) =>
-        val (mtype, lineNo) = if (index < 10) {
+        val (mtype, lineNo) = if (index > 14) {
+          (LoadoutType.Battleframe, index - 15)
+        } else if (index < 10) {
           (LoadoutType.Infantry, index)
         } else {
           (LoadoutType.Vehicle, index - 10)
@@ -1585,29 +1605,38 @@ class AvatarActor(
     avatar.loadouts.lift(line) match {
       case Some(Some(loadout: InfantryLoadout)) =>
         sessionActor ! SessionActor.SendResponse(
-          FavoritesMessage(
-            LoadoutType.Infantry,
+          FavoritesMessage.Infantry(
             session.get.player.GUID,
             line,
             loadout.label,
             InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)
           )
         )
+      case Some(Some(loadout: VehicleLoadout))
+        if GlobalDefinitions.isBattleFrameVehicle(loadout.vehicle_definition) =>
+        sessionActor ! SessionActor.SendResponse(
+          FavoritesMessage.Battleframe(
+            session.get.player.GUID,
+            line - 15,
+            loadout.label,
+            VehicleLoadout.DetermineBattleframeSubtype(loadout.vehicle_definition)
+          )
+        )
       case Some(Some(loadout: VehicleLoadout)) =>
         sessionActor ! SessionActor.SendResponse(
-          FavoritesMessage(
-            LoadoutType.Vehicle,
+          FavoritesMessage.Vehicle(
             session.get.player.GUID,
             line - 10,
-            loadout.label,
-            0
+            loadout.label
           )
         )
       case Some(None) =>
-        val (mtype, lineNo) = if (line < 10) {
-          (LoadoutType.Infantry, line)
+        val (mtype, lineNo, subtype) = if (line > 14) {
+          (LoadoutType.Battleframe, line - 15, Some(0))
+        } else if (line < 10) {
+          (LoadoutType.Infantry, line, Some(0))
         } else {
-          (LoadoutType.Vehicle, line - 10)
+          (LoadoutType.Vehicle, line - 10, None)
         }
         sessionActor ! SessionActor.SendResponse(
           FavoritesMessage(
@@ -1615,7 +1644,7 @@ class AvatarActor(
             session.get.player.GUID,
             lineNo,
             "",
-            0
+            subtype
           )
         )
       case _ => ;

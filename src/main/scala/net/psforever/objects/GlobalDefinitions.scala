@@ -1901,13 +1901,38 @@ object GlobalDefinitions {
   }
 
   /**
-    * Using the definition for a `Vehicle` determine whether it is a frame vehicle, primarily a battleframe vehicle.
+    * Using the definition for a `Vehicle` determine whether it is a frame vehicle.
     * @param vdef the `VehicleDefinition` of the vehicle
     * @return `true`, if it is; `false`, otherwise
     */
   def isBattleFrameVehicle(vdef : VehicleDefinition) : Boolean = {
+    isBattleFrameGunnerVehicle(vdef) || isBattleFrameFlightVehicle(vdef)
+  }
+
+  /**
+    * Using the definition for a `Vehicle` determine whether it is a frame vehicle,
+    * primarily a gunner-variant battleframe vehicle.
+    * @param vdef the `VehicleDefinition` of the vehicle
+    * @return `true`, if it is; `false`, otherwise
+    */
+  def isBattleFrameGunnerVehicle(vdef: VehicleDefinition): Boolean = {
     vdef match {
-      case `colossus_gunner` | `colossus_flight` | `peregrine_gunner` | `peregrine_flight` | `aphelion_gunner` | `aphelion_flight` =>
+      case `colossus_gunner` | `peregrine_gunner` | `aphelion_gunner` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
+    * Using the definition for a `Vehicle` determine whether it is a frame vehicle,
+    * primarily a flight-variant battleframe vehicle.
+    * @param vdef the `VehicleDefinition` of the vehicle
+    * @return `true`, if it is; `false`, otherwise
+    */
+  def isBattleFrameFlightVehicle(vdef: VehicleDefinition): Boolean = {
+    vdef match {
+      case `colossus_flight` | `peregrine_flight` | `aphelion_flight` =>
         true
       case _ =>
         false
@@ -9336,7 +9361,7 @@ object GlobalDefinitions {
       VehicleTerminalDefinition.groundVehicles,
       VehicleTerminalDefinition.trunk
     )
-    ground_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    ground_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
     ground_vehicle_terminal.MaxHealth = 500
     ground_vehicle_terminal.Damageable = true
     ground_vehicle_terminal.Repairable = true
@@ -9350,7 +9375,7 @@ object GlobalDefinitions {
       VehicleTerminalDefinition.flight1Vehicles,
       VehicleTerminalDefinition.trunk
     )
-    air_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    air_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
     air_vehicle_terminal.MaxHealth = 500
     air_vehicle_terminal.Damageable = true
     air_vehicle_terminal.Repairable = true
@@ -9364,7 +9389,7 @@ object GlobalDefinitions {
       VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.flight2Vehicles,
       VehicleTerminalDefinition.trunk
     )
-    dropship_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    dropship_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
     dropship_vehicle_terminal.MaxHealth = 500
     dropship_vehicle_terminal.Damageable = true
     dropship_vehicle_terminal.Repairable = true
@@ -9378,7 +9403,7 @@ object GlobalDefinitions {
       VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.groundVehicles,
       VehicleTerminalDefinition.trunk
     )
-    vehicle_terminal_combined.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    vehicle_terminal_combined.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
     vehicle_terminal_combined.MaxHealth = 500
     vehicle_terminal_combined.Damageable = true
     vehicle_terminal_combined.Repairable = true
@@ -9392,7 +9417,7 @@ object GlobalDefinitions {
       VehicleTerminalDefinition.flight1Vehicles,
       VehicleTerminalDefinition.trunk
     )
-    vanu_air_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    vanu_air_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
     vanu_air_vehicle_term.MaxHealth = 500
     vanu_air_vehicle_term.Damageable = true
     vanu_air_vehicle_term.Repairable = true
@@ -9405,7 +9430,7 @@ object GlobalDefinitions {
       VehicleTerminalDefinition.groundVehicles,
       VehicleTerminalDefinition.trunk
     )
-    vanu_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    vanu_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
     vanu_vehicle_term.MaxHealth = 500
     vanu_vehicle_term.Damageable = true
     vanu_vehicle_term.Repairable = true
@@ -9418,9 +9443,15 @@ object GlobalDefinitions {
       VehicleTerminalDefinition.bfrVehicles,
       VehicleTerminalDefinition.trunk
     )
-    bfr_terminal.Tab += 1 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrArmWeapons) //inaccessible?
-    bfr_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrGunnerWeapons) //inaccessible?
-    bfr_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    bfr_terminal.Tab += 1 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrArmWeapons
+    ) //inaccessible?
+    bfr_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+      EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrGunnerWeapons
+    ) //inaccessible?
+    bfr_terminal.Tab += 3 -> OrderTerminalDefinition.BattleframeSpawnLoadoutPage(
+      VehicleTerminalDefinition.bfrVehicles
+    )
     bfr_terminal.MaxHealth = 500
     bfr_terminal.Damageable = true
     bfr_terminal.Repairable = true
@@ -9699,7 +9730,7 @@ object GlobalDefinitions {
     multivehicle_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(
       EquipmentTerminalDefinition.vehicleAmmunition
     )
-    multivehicle_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    multivehicle_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
     multivehicle_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     multivehicle_rearm_terminal.Damageable = false
     multivehicle_rearm_terminal.Repairable = false
@@ -9714,14 +9745,14 @@ object GlobalDefinitions {
     bfr_rearm_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
       EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrGunnerWeapons
     )
-    bfr_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    bfr_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.VehicleLoadoutPage(15)
     bfr_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     bfr_rearm_terminal.Damageable = false
     bfr_rearm_terminal.Repairable = false
 
     air_rearm_terminal.Name = "air_rearm_terminal"
     air_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    air_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    air_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
     air_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     air_rearm_terminal.Damageable = false
     air_rearm_terminal.Repairable = false
@@ -9730,7 +9761,7 @@ object GlobalDefinitions {
     ground_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(
       EquipmentTerminalDefinition.vehicleAmmunition
     )
-    ground_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage()
+    ground_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
     ground_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     ground_rearm_terminal.Damageable = false
     ground_rearm_terminal.Repairable = false
