@@ -3629,7 +3629,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   )
                 )
             }
-          vehicle.SubsystemMessages().foreach { SendResponse } //how many of these need to be loaded from our perspective?
+          vehicle.SubsystemMessages().foreach { SendResponse }
         }
         vehicles.collect {
           case vehicle if vehicle.Faction == faction =>
@@ -3639,7 +3639,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         usedVehicle.headOption match {
           case Some(vehicle) =>
             //subsystems
-            vehicle.SubsystemMessages().foreach { SendResponse }
+            vehicle.Actor ! Vehicle.UpdateSubsystemStates(player.Name, Some(false))
             //depict any other passengers already in this zone
             val vguid = vehicle.GUID
             vehicle.Seats

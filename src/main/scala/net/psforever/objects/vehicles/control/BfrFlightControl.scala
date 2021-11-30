@@ -61,6 +61,9 @@ class BfrFlightControl(vehicle: Vehicle)
               vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled = false
               vehicle.Shields -= drain
               showShieldCharge()
+            case None if localFlyingValue.isEmpty =>
+              disableShield()
+              vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled = false
             case Some(drain) =>
               vehicle.Shields -= drain
               showShieldCharge()

@@ -86,18 +86,21 @@ object TransferBehavior {
     Discharging
     = Value
   }
+
+  sealed trait Command
+
   /**
     * Message to cue a process of transferring into oneself.
     */
-  final case class Charging(transferMaterial : Any)
+  final case class Charging(transferMaterial : Any) extends Command
   /**
     * Message to cue a process of transferring from oneself.
     */
-  final case class Discharging(transferMaterial : Any)
+  final case class Discharging(transferMaterial : Any) extends Command
   /**
     * Message to cue a stopping the transfer process.
     */
-  final case class Stopping()
+  final case class Stopping() extends Command
 
   /**
     * A default search function that does not actually search for anything or ever find anything.

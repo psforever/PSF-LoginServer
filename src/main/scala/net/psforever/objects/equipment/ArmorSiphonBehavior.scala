@@ -9,7 +9,6 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.vital.RepairFromArmorSiphon
 import net.psforever.objects.vital.etc.{ArmorSiphonModifiers, ArmorSiphonReason}
 import net.psforever.objects.vital.interaction.DamageInteraction
-import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.QuantityUpdateMessage
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -30,21 +29,20 @@ object ArmorSiphonBehavior {
 
     val siphoningBehavior: Receive = {
       case CommonMessages.Use(player, Some(item : Tool))
-        if GlobalDefinitions.isBattleFrameArmorSiphon(item.Definition) /*&& player.Faction != DamageableObject.Faction*/ =>
+        if GlobalDefinitions.isBattleFrameArmorSiphon(item.Definition) && player.Faction != DamageableObject.Faction =>
         val obj = SiphonableObject
         val zone = obj.Zone
         val iguid = item.GUID
         //see Damageable.takesDamage
-        Zone.EquipmentIs.Where(item, item.GUID, zone) match {
-          case Some(Zone.EquipmentIs.InContainer(v : Vehicle, _)) if v.CanDamage =>
+        zone.Vehicles.find { v =>
+          v.Weapons.values.exists { slot => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == iguid}
+        } match {
+          case Some(v: Vehicle) if v.CanDamage =>
+            //remember: we are the vehicle being siphoned; we need the vehicle doing the siphoning
             val before = item.Magazine
             val after = item.Discharge()
             if (before > after) {
               v.Actor ! ArmorSiphonBehavior.Recharge(iguid)
-              zone.VehicleEvents ! VehicleServiceMessage(
-                zone.id,
-                VehicleAction.SendResponse(Service.defaultPlayerGUID, QuantityUpdateMessage(item.AmmoSlot.Box.GUID, after))
-              )
               PerformDamage(
                 obj,
                 DamageInteraction(
@@ -89,20 +87,32 @@ object ArmorSiphonBehavior {
         }
 
       case ArmorSiphonBehavior.Recharge(guid) =>
-        if (siphonRecharge.contains(guid)) {
-          siphonRecharge(guid).cancel()
+        siphonRecharge.remove(guid) match {
+          case Some(timer) => timer.cancel()
+          case None => ;
         }
-        siphonRecharge.put(guid, context.system.scheduler.scheduleWithFixedDelay(
-          initialDelay = 3000 milliseconds,
-          delay = 200 milliseconds,
-          self,
-          SiphonOwner.Recharge(guid)
-        ))
+        val obj = SiphoningObject
+        obj.Weapons.values.find { slot => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid } match {
+          case Some(siphonSlot) =>
+            val siphon = siphonSlot.Equipment.get.asInstanceOf[Tool]
+            val zone = obj.Zone
+            //update current charge level
+            zone.VehicleEvents ! VehicleServiceMessage(
+              obj.Actor.toString,
+              VehicleAction.SendResponse(Service.defaultPlayerGUID, QuantityUpdateMessage(siphon.AmmoSlot.Box.GUID, siphon.Magazine))
+            )
+            siphonRecharge.put(guid, context.system.scheduler.scheduleWithFixedDelay(
+              initialDelay = 3000 milliseconds,
+              delay = 200 milliseconds,
+              self,
+              SiphonOwner.Recharge(guid)
+            ))
+          case _ => ;
+        }
 
       case SiphonOwner.Recharge(guid) =>
         val obj = SiphoningObject
         val zone = obj.Zone
-        val zoneid = zone.id
         obj.Weapons.values.find { slot => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid } match {
           case Some(slot: EquipmentSlot) =>
             val siphon = slot.Equipment.get.asInstanceOf[Tool]
@@ -110,7 +120,7 @@ object ArmorSiphonBehavior {
             val after = siphon.Magazine = before + 1
             if (after > before) {
               zone.VehicleEvents ! VehicleServiceMessage(
-                zoneid,
+                obj.Actor.toString,
                 VehicleAction.SendResponse(Service.defaultPlayerGUID, QuantityUpdateMessage(siphon.AmmoSlot.Box.GUID, after))
               )
               if (after == siphon.MaxMagazine) {

@@ -118,7 +118,7 @@ trait BfrTransferBehavior
       case equip: NtuSiphon =>
         vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
           vehicle.Actor.toString,
-          VehicleAction.InventoryState2(PlanetSideGUID(0), equip.StorageGUID, siphon.GUID, siphon.NtuCapacitor.toInt)
+          VehicleAction.InventoryState2(PlanetSideGUID(0), equip.storageGUID, siphon.GUID, siphon.NtuCapacitor.toInt)
         )
       case _ => ;
     }
@@ -136,7 +136,7 @@ trait BfrTransferBehavior
   def HandleChargingOps(target: TransferContainer): Boolean = {
     ntuProcessingRequest = false
     getNtuContainer() match {
-      case Some(siphon)
+      case Some(siphon: NtuSiphon)
         if siphon.NtuCapacitor < siphon.MaxNtuCapacitor =>
         //charging
         transferTarget = Some(target)
@@ -145,9 +145,11 @@ trait BfrTransferBehavior
         val fromMax = siphon.MaxNtuCapacitor - max
         target match {
           case _: WarpGate =>
-            target.Actor ! BuildingActor.Ntu(NtuCommand.Request(scala.math.min(siphon.MaxNtuCapacitor / 75f, fromMax), context.self))
+            //siphon.drain -> math.min(math.min(siphon.MaxNtuCapacitor / 75f, fromMax)
+            target.Actor ! BuildingActor.Ntu(NtuCommand.Request(math.min(siphon.drain, fromMax), context.self))
           case silo: ResourceSilo =>
-            target.Actor ! NtuCommand.Request(scala.math.min(silo.MaxNtuCapacitor * 0.325f / max, fromMax), context.self)
+            //siphon.drain -> scala.math.min(silo.MaxNtuCapacitor * 0.325f / max, fromMax)
+            target.Actor ! NtuCommand.Request(scala.math.min(0.5f * siphon.drain, fromMax), context.self)
           case _ => ;
         }
         ntuProcessingTick.cancel()
@@ -229,9 +231,11 @@ trait BfrTransferBehavior
     ntuProcessingTick.cancel()
     ntuProcessingRequest = false
     transferTarget match {
+      case Some(target: WarpGate) =>
+        target.Actor ! BuildingActor.Ntu(NtuCommand.Grant(null, 0))
       case Some(target) =>
-        target.Actor ! TransferBehavior.Stopping()
-      case None => ;
+        target.Actor ! NtuCommand.Grant(null, 0)
+      case _ => ;
     }
     //cleanup
     val obj = ChargeTransferObject
@@ -291,7 +295,9 @@ class NtuSiphon(
                ) extends NtuContainer {
   def Faction: PlanetSideEmpire.Value = equipment.Faction
 
-  def StorageGUID: PlanetSideGUID = equipment.AmmoSlot.Box.GUID
+  def storageGUID: PlanetSideGUID = equipment.AmmoSlot.Box.GUID
+
+  def drain: Int = equipment.FireMode.RoundsPerShot
 
   def NtuCapacitor: Float = equipment.Magazine.toFloat
 

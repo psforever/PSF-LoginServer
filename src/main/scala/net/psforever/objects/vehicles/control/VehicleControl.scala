@@ -136,6 +136,21 @@ class VehicleControl(vehicle: Vehicle)
       case Vehicle.UpdateZoneInteractionProgressUI(player) =>
         updateZoneInteractionProgressUI(player)
 
+      case Vehicle.UpdateSubsystemStates(toChannel, stateToResolve) =>
+        val events = vehicle.Zone.VehicleEvents
+        val guid0 = Service.defaultPlayerGUID
+        (stateToResolve match {
+          case Some(state) =>
+            vehicle.Subsystems().filter { _.enabled == state } //only subsystems that are enabled or are disabled
+          case None =>
+            vehicle.Subsystems() //all subsystems
+        })
+          .map { _.getMessage(vehicle) }
+          .foreach { pkt =>
+            events ! VehicleServiceMessage(toChannel, VehicleAction.SendResponse(guid0, pkt))
+          }
+
+
       case FactionAffinity.ConvertFactionAffinity(faction) =>
         val originalAffinity = vehicle.Faction
         if (originalAffinity != (vehicle.Faction = faction)) {

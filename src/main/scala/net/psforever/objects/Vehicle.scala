@@ -585,6 +585,8 @@ object Vehicle {
     */
   final case class UpdateShieldsCharge(vehicle: Vehicle)
 
+  final case class UpdateSubsystemStates(toChannel: String, stateToUpdateFor: Option[Boolean] = None)
+
   /**
     * Change a vehicle's internal ownership property to match that of the target player.
     * @param player the person who will own the vehicle, or `None` if the vehicle will go unowned

@@ -6292,9 +6292,9 @@ object GlobalDefinitions {
     aphelion_ntu_siphon.FireModes += new FireModeDefinition
     aphelion_ntu_siphon.FireModes.head.AmmoTypeIndices += 0
     aphelion_ntu_siphon.FireModes.head.AmmoSlotIndex = 0
-    aphelion_ntu_siphon.FireModes.head.RoundsPerShot = 0
+    aphelion_ntu_siphon.FireModes.head.RoundsPerShot = 5
     aphelion_ntu_siphon.FireModes.head.Magazine = 150
-    aphelion_ntu_siphon.FireModes.head.DefaultMagazine = 100
+    aphelion_ntu_siphon.FireModes.head.DefaultMagazine = 0
     aphelion_ntu_siphon.FireModes += new FireModeDefinition
     aphelion_ntu_siphon.FireModes(1).AmmoTypeIndices += 0
     aphelion_ntu_siphon.FireModes(1).AmmoSlotIndex = 0
@@ -6313,7 +6313,7 @@ object GlobalDefinitions {
     aphelion_ntu_siphon_left.FireModes += new FireModeDefinition
     aphelion_ntu_siphon_left.FireModes.head.AmmoTypeIndices += 0
     aphelion_ntu_siphon_left.FireModes.head.AmmoSlotIndex = 0
-    aphelion_ntu_siphon_left.FireModes.head.RoundsPerShot = 0
+    aphelion_ntu_siphon_left.FireModes.head.RoundsPerShot = 5
     aphelion_ntu_siphon_left.FireModes.head.Magazine = 150
     aphelion_ntu_siphon_left.FireModes.head.DefaultMagazine = 0
     aphelion_ntu_siphon_left.FireModes += new FireModeDefinition
@@ -6334,7 +6334,7 @@ object GlobalDefinitions {
     aphelion_ntu_siphon_right.FireModes += new FireModeDefinition
     aphelion_ntu_siphon_right.FireModes.head.AmmoTypeIndices += 0
     aphelion_ntu_siphon_right.FireModes.head.AmmoSlotIndex = 0
-    aphelion_ntu_siphon_right.FireModes.head.RoundsPerShot = 0
+    aphelion_ntu_siphon_right.FireModes.head.RoundsPerShot = 5
     aphelion_ntu_siphon_right.FireModes.head.Magazine = 150
     aphelion_ntu_siphon_right.FireModes.head.DefaultMagazine = 0
     aphelion_ntu_siphon_right.FireModes += new FireModeDefinition
@@ -6542,7 +6542,7 @@ object GlobalDefinitions {
     colossus_ntu_siphon.FireModes += new FireModeDefinition
     colossus_ntu_siphon.FireModes.head.AmmoTypeIndices += 0
     colossus_ntu_siphon.FireModes.head.AmmoSlotIndex = 0
-    colossus_ntu_siphon.FireModes.head.RoundsPerShot = 0
+    colossus_ntu_siphon.FireModes.head.RoundsPerShot = 5
     colossus_ntu_siphon.FireModes.head.Magazine = 150
     colossus_ntu_siphon.FireModes.head.DefaultMagazine = 0
     colossus_ntu_siphon.FireModes += new FireModeDefinition
@@ -6564,7 +6564,7 @@ object GlobalDefinitions {
     colossus_ntu_siphon_left.FireModes += new FireModeDefinition
     colossus_ntu_siphon_left.FireModes.head.AmmoTypeIndices += 0
     colossus_ntu_siphon_left.FireModes.head.AmmoSlotIndex = 0
-    colossus_ntu_siphon_left.FireModes.head.RoundsPerShot = 0
+    colossus_ntu_siphon_left.FireModes.head.RoundsPerShot = 5
     colossus_ntu_siphon_left.FireModes.head.Magazine = 150
     colossus_ntu_siphon_left.FireModes.head.DefaultMagazine = 0
     colossus_ntu_siphon_left.FireModes += new FireModeDefinition
@@ -6586,7 +6586,7 @@ object GlobalDefinitions {
     colossus_ntu_siphon_right.FireModes += new FireModeDefinition
     colossus_ntu_siphon_right.FireModes.head.AmmoTypeIndices += 0
     colossus_ntu_siphon_right.FireModes.head.AmmoSlotIndex = 0
-    colossus_ntu_siphon_right.FireModes.head.RoundsPerShot = 0
+    colossus_ntu_siphon_right.FireModes.head.RoundsPerShot = 5
     colossus_ntu_siphon_right.FireModes.head.Magazine = 150
     colossus_ntu_siphon_right.FireModes.head.DefaultMagazine = 0
     colossus_ntu_siphon_right.FireModes += new FireModeDefinition
@@ -6784,7 +6784,7 @@ object GlobalDefinitions {
     peregrine_ntu_siphon.FireModes += new FireModeDefinition
     peregrine_ntu_siphon.FireModes.head.AmmoTypeIndices += 0
     peregrine_ntu_siphon.FireModes.head.AmmoSlotIndex = 0
-    peregrine_ntu_siphon.FireModes.head.RoundsPerShot = 0
+    peregrine_ntu_siphon.FireModes.head.RoundsPerShot = 5
     peregrine_ntu_siphon.FireModes.head.Magazine = 150
     peregrine_ntu_siphon.FireModes.head.DefaultMagazine = 0
     peregrine_ntu_siphon.FireModes += new FireModeDefinition
@@ -6806,7 +6806,7 @@ object GlobalDefinitions {
     peregrine_ntu_siphon_left.FireModes += new FireModeDefinition
     peregrine_ntu_siphon_left.FireModes.head.AmmoTypeIndices += 0
     peregrine_ntu_siphon_left.FireModes.head.AmmoSlotIndex = 0
-    peregrine_ntu_siphon_left.FireModes.head.RoundsPerShot = 0
+    peregrine_ntu_siphon_left.FireModes.head.RoundsPerShot = 5
     peregrine_ntu_siphon_left.FireModes.head.Magazine = 150
     peregrine_ntu_siphon_left.FireModes.head.DefaultMagazine = 0
     peregrine_ntu_siphon_left.FireModes += new FireModeDefinition
@@ -6828,7 +6828,7 @@ object GlobalDefinitions {
     peregrine_ntu_siphon_right.FireModes += new FireModeDefinition
     peregrine_ntu_siphon_right.FireModes.head.AmmoTypeIndices += 0
     peregrine_ntu_siphon_right.FireModes.head.AmmoSlotIndex = 0
-    peregrine_ntu_siphon_right.FireModes.head.RoundsPerShot = 0
+    peregrine_ntu_siphon_right.FireModes.head.RoundsPerShot = 5
     peregrine_ntu_siphon_right.FireModes.head.Magazine = 150
     peregrine_ntu_siphon_right.FireModes.head.DefaultMagazine = 0
     peregrine_ntu_siphon_right.FireModes += new FireModeDefinition
@@ -8760,6 +8760,7 @@ object GlobalDefinitions {
     colossus_flight.ShieldDamageDelay = 3500
     colossus_flight.ShieldAutoRecharge = 12 //12.5
     colossus_flight.ShieldAutoRechargeSpecial = 25
+    colossus_flight.ShieldDrain = 30
     colossus_flight.DefaultShields = colossus_flight.MaxShields
     colossus_flight.Seats += 0       -> driverSeat
     colossus_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
@@ -8790,6 +8791,11 @@ object GlobalDefinitions {
     colossus_flight.MaxDepth = 5.515625f
     colossus_flight.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
     colossus_flight.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 5.984375f)
+    colossus_flight.MaxCapacitor = 156
+    colossus_flight.DefaultCapacitor = aphelion_flight.MaxCapacitor
+    colossus_flight.CapacitorDrain = 16
+    colossus_flight.CapacitorDrainSpecial = 3
+    colossus_flight.CapacitorRecharge = 42
     colossus_flight.collision.avatarCollisionDamageMax = 300
     colossus_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     colossus_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
@@ -8808,6 +8814,7 @@ object GlobalDefinitions {
     peregrine_flight.ShieldDamageDelay = 3500
     peregrine_flight.ShieldAutoRecharge = 12 //12.5
     peregrine_flight.ShieldAutoRechargeSpecial = 25
+    peregrine_flight.ShieldDrain = 30
     peregrine_flight.DefaultShields = peregrine_flight.MaxShields
     peregrine_flight.Seats += 0       -> driverSeat
     peregrine_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
@@ -8838,6 +8845,11 @@ object GlobalDefinitions {
     peregrine_flight.MaxDepth = 6.03125f
     peregrine_flight.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
     peregrine_flight.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 6.421875f)
+    peregrine_flight.MaxCapacitor = 156
+    peregrine_flight.DefaultCapacitor = aphelion_flight.MaxCapacitor
+    peregrine_flight.CapacitorDrain = 16
+    peregrine_flight.CapacitorDrainSpecial = 3
+    peregrine_flight.CapacitorRecharge = 42
     peregrine_flight.collision.avatarCollisionDamageMax = 300
     peregrine_flight.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
     peregrine_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
