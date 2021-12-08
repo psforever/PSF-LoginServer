@@ -295,23 +295,33 @@ object Zones {
                     )
                   )
                 )
-
             }
-
+            val filteredZoneEntities =
+              data.filter { _.owner.contains(structure.id) } ++
+              {
+                val structurePosition = structure.position
+                if (structure.objectType.startsWith("orbital_building_")) {
+                  data.filter { entity =>
+                    entity.objectType.startsWith("bfr_") &&
+                    Vector3.DistanceSquared(entity.position, structurePosition) < 160000f
+                  }
+                } else {
+                  List()
+                }
+              }
             createObjects(
               zoneMap,
-              data.filter(_.owner.contains(structure.id)),
+              filteredZoneEntities,
               structure.guid,
               Some(structure),
               turretWeaponGuid
             )
-
           }
 
           createObjects(
             zoneMap,
-            zoneObjects,
-            0,
+            zoneObjects.filterNot { _.objectType.startsWith("bfr_") },
+            ownerGuid = 0,
             None,
             turretWeaponGuid
           )
@@ -444,11 +454,33 @@ object Zones {
             val closestSpawnPad =
               spawnPads.minBy(point => Vector3.DistanceSquared(point.position, obj.position))
 
-            // It appears that spawn pads have a default rotation that it +90 degrees from where it should be
-            // presumably the model is rotated differently to the expected orientation
-            // On top of that, some spawn pads also have an additional rotation (vehiclecreationzorientoffset)
-            // when spawning vehicles set in game_objects.adb.lst - this should be handled on the Scala side
-            val adjustedYaw = closestSpawnPad.yaw - 90
+            val adjustedYaw = structure match {
+              case Some(building)
+                if objectType.equals("bfr_terminal") =>
+                //bfr_terminal entities are paired with bfr_door entities
+                //rotations are not correctly set in the zone list, but assumptions can be made based on facility type
+                if (building.objectType.startsWith("orbital_building")) {
+                  //sanctuary bfr sheds actually have their rotation angle set correctly in the zone map
+                  obj.yaw + 45f
+                } else {
+                  //predictable angles based on the facility type
+                  building.yaw + (if (building.objectType.startsWith("comm_station")) { //includes comm_station_dsp
+                    45f //NE
+                  } else if (building.objectType.equals("tech_plant")) {
+                    135f //SE
+                  } else if (building.objectType.equals("cryo_facility")) {
+                    225f //SW
+                  } else if (building.objectType.equals("amp_station")) {
+                    315f //NW
+                  } else {
+                    0f
+                  })
+                }
+              case _ =>
+                //spawn pads have a default rotation that it +90 degrees from where it should be
+                //presumably the model is rotated differently to the expected orientation
+                closestSpawnPad.yaw - 90
+            }
 
             zoneMap.addLocalObject(
               closestSpawnPad.guid,

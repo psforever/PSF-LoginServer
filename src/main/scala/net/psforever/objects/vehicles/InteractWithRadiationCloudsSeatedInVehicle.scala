@@ -75,6 +75,16 @@ class InteractWithRadiationCloudsSeatedInVehicle(
         case _ => ;
       }
     }
+    obj.CargoHolds
+      .values
+      .collect {
+        case hold if hold.isOccupied =>
+          val target = hold.occupant.get
+          target.interaction().find { func => func.isInstanceOf[InteractWithRadiationCloudsSeatedInVehicle] } match {
+            case Some(func) => func.interaction(target)
+            case _ => ;
+          }
+      }
   }
 
   /**

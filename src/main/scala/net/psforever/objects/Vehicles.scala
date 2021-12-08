@@ -211,11 +211,12 @@ object Vehicles {
     * The orientation of a cargo vehicle as it is being loaded into and contained by a carrier vehicle.
     * The type of carrier is not an important consideration in determining the orientation, oddly enough.
     * @param vehicle the cargo vehicle
-    * @return the orientation as an `Integer` value;
-    *         `0` for almost all cases
+    * @return the orientation;
+    *         `1` is for unique sideways mounting;
+    *         `0` is or straight-on mounting, valid for almost all cases
     */
   def CargoOrientation(vehicle: Vehicle): Int = {
-    if (vehicle.Definition == GlobalDefinitions.router) {
+    if (vehicle.Definition == GlobalDefinitions.router || GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
       1
     } else {
       0

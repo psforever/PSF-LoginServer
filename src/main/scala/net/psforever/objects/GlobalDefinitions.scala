@@ -4683,6 +4683,7 @@ object GlobalDefinitions {
     armor_siphon_projectile.Damage3 = 0
     armor_siphon_projectile.Damage4 = 20 //bfr's, siphon drain
     armor_siphon_projectile.DamageToVehicleOnly = true
+    armor_siphon_projectile.DamageToBattleframeOnly = true
     armor_siphon_projectile.DamageRadius = 35f
     armor_siphon_projectile.ProjectileDamageType = DamageType.Siphon
     ProjectileDefinition.CalculateDerivedFields(armor_siphon_projectile)
@@ -8389,9 +8390,13 @@ object GlobalDefinitions {
     lodestar.Utilities += 3     -> UtilityType.lodestar_repair_terminal
     lodestar.UtilityOffset += 3 -> Vector3(0, -20, 0)
     lodestar.Utilities += 4     -> UtilityType.multivehicle_rearm_terminal
+    lodestar.UtilityOffset += 4 -> Vector3(0, 20, 0)
     lodestar.Utilities += 5     -> UtilityType.multivehicle_rearm_terminal
+    lodestar.UtilityOffset += 5 -> Vector3(0, -20, 0)
     lodestar.Utilities += 6     -> UtilityType.bfr_rearm_terminal
+    lodestar.UtilityOffset += 6 -> Vector3(0, 20, 0)
     lodestar.Utilities += 7     -> UtilityType.bfr_rearm_terminal
+    lodestar.UtilityOffset += 7 -> Vector3(0, -20, 0)
     lodestar.subsystems = flightSubsystems
     lodestar.TrunkSize = InventoryTile.Tile1612
     lodestar.TrunkOffset = 30
@@ -9659,8 +9664,11 @@ object GlobalDefinitions {
     bfr_door.Damageable = false
     bfr_door.Repairable = false
     //bfr_door.VehicleCreationZOffset = -4.5f
-    bfr_door.VehicleCreationZOrientOffset = 135f //90f
-    //bfr_door.killBox = ...
+    bfr_door.VehicleCreationZOrientOffset = 0f //90f
+    bfr_door.killBox = VehicleSpawnPadDefinition.prepareBfrShedKillBox(
+      radius = 10f,
+      aboveLimit = 10f
+    )
     bfr_door.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 99999
@@ -9748,9 +9756,6 @@ object GlobalDefinitions {
     multivehicle_rearm_terminal.Repairable = false
 
     bfr_rearm_terminal.Name = "bfr_rearm_terminal"
-    bfr_rearm_terminal.Tab += 0 -> OrderTerminalDefinition.VehiclePage(
-      VehicleTerminalDefinition.bfrVehicles, VehicleTerminalDefinition.trunk
-    ) //inaccessible?
     bfr_rearm_terminal.Tab += 1 -> OrderTerminalDefinition.EquipmentPage(
       EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrArmWeapons
     )

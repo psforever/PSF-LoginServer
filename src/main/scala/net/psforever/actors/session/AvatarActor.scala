@@ -709,9 +709,8 @@ class AvatarActor(
                 )
               )
             case LoadoutType.Vehicle if avatar.loadouts(number + 10).nonEmpty =>
-              val lineNo = number + 10
               (
-                lineNo,
+                number + 10,
                 ctx.run(
                   query[persistence.Vehicleloadout]
                     .filter(_.avatarId == lift(avatar.id))
@@ -719,8 +718,18 @@ class AvatarActor(
                     .delete
                 )
               )
+            case LoadoutType.Battleframe if avatar.loadouts(number + 15).nonEmpty =>
+              (
+                number + 15,
+                ctx.run(
+                  query[persistence.Vehicleloadout]
+                    .filter(_.avatarId == lift(avatar.id))
+                    .filter(_.loadoutNumber == lift(number + 5))
+                    .delete
+                )
+              )
             case _ =>
-              (number, throwLoadoutFailure("unhandled loadout type or no loadout"))
+              (number, throwLoadoutFailure(msg = "unhandled loadout type or no loadout"))
           }
           result.onComplete {
             case Success(_) =>

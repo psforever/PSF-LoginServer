@@ -228,18 +228,34 @@ object ResolutionCalculations {
     val targetBefore = SourceEntry(target)
     target match {
       case vehicle: Vehicle if CanDamage(vehicle, damage, data) =>
-        val shields = vehicle.Shields
-        if (shields > damage) {
-          vehicle.Shields = shields - damage
-        } else if (shields > 0) {
-          vehicle.Health = vehicle.Health - (damage - shields)
-          vehicle.Shields = 0
-        } else {
-          vehicle.Health = vehicle.Health - damage
-        }
+        vehicleDamageAfterShieldTest(
+          vehicle,
+          damage,
+          { vehicle.Shields == 0 || data.cause.source.DamageToVehicleOnly }
+        )
       case _ => ;
     }
     DamageResult(targetBefore, SourceEntry(target), data)
+  }
+
+  def vehicleDamageAfterShieldTest(
+                                    vehicle: Vehicle,
+                                    damage: Int,
+                                    ignoreShieldsDamage: Boolean
+                                  ): Unit = {
+    val shields = vehicle.Shields
+    if (ignoreShieldsDamage) {
+      vehicle.Health = vehicle.Health - damage
+    } else {
+      if (shields > damage) {
+        vehicle.Shields = shields - damage
+      } else if (shields > 0) {
+        vehicle.Health = vehicle.Health - (damage - shields)
+        vehicle.Shields = 0
+      } else {
+        vehicle.Health = vehicle.Health - damage
+      }
+    }
   }
 
   def SimpleApplication(damage: Int, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
@@ -329,20 +345,22 @@ object ResolutionCalculations {
 
   def BfrApplication(damage: Int, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
     val targetBefore = SourceEntry(target)
-    (target, data.cause) match {
-      case (obj: Vehicle, reason: ProjectileReason)
-        if CanDamage(obj, damage, data) &&
-           GlobalDefinitions.isBattleFrameVehicle(obj.Definition) &&
-           (
-             reason.projectile.profile.DamageToBattleframeOnly ||
-             reason.projectile.profile.DamageToVehicleOnly ||
-             !obj.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled
-             ) =>
-        obj.Health = obj.Health - damage
+    target match {
+      case obj: Vehicle
+        if CanDamage(obj, damage, data) && GlobalDefinitions.isBattleFrameVehicle(obj.Definition) =>
+        vehicleDamageAfterShieldTest(
+          obj,
+          damage,
+          {
+            data.cause.source.DamageToBattleframeOnly ||
+            data.cause.source.DamageToVehicleOnly ||
+            !obj.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled ||
+            obj.Shields == 0
+          }
+        )
         DamageResult(targetBefore, SourceEntry(target), data)
 
-      case (obj: Vehicle, _)
-        if CanDamage(obj, damage, data) =>
+      case _: Vehicle =>
         VehicleApplication(damage, data)(target)
 
       case _ =>

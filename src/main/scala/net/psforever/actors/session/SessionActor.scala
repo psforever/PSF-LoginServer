@@ -4088,34 +4088,42 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //we're driving the vehicle
             persist()
             turnCounterFunc(player.GUID)
-            val mountedState = obj.MountedIn.isEmpty
-            if (mountedState) {
-              updateBlockMap(obj, continent, pos)
+            val (position, angle, velocity, notMountedState) = continent.GUID(obj.MountedIn) match {
+              case Some(v: Vehicle) =>
+                updateBlockMap(obj, continent, pos)
+                (pos, v.Orientation - Vector3.z(value = 90f) * Vehicles.CargoOrientation(obj), v.Velocity, false)
+              case _ =>
+                (pos, ang, vel, true)
             }
-            val seat = obj.Seats(0)
-            player.Position = pos //convenient
-            if (obj.WeaponControlledFromSeat(0).isEmpty) {
+            player.Position = position //convenient
+            if (obj.WeaponControlledFromSeat(seatNumber = 0).isEmpty) {
               player.Orientation = Vector3.z(ang.z) //convenient
             }
-            obj.Position = pos
-            obj.Orientation = ang
-            obj.Velocity = vel
+            obj.Position = position
+            obj.Orientation = angle
+            obj.Velocity = velocity
 //            if (is_crouched && obj.DeploymentState != DriveState.Kneeling) {
 //              //dev stuff goes here
 //            }
 //            else if (!is_crouched && obj.DeploymentState == DriveState.Kneeling) {
 //              //dev stuff goes here
 //            }
-            obj.DeploymentState = if (is_crouched) DriveState.Kneeling else DriveState.Mobile
-            if (mountedState && obj.DeploymentState != DriveState.Kneeling) {
-              if (is_airborne) {
-                val flight = if (ascending_flight) flight_time else -flight_time
-                obj.Flying = Some(flight)
-                obj.Actor ! BfrFlight.Soaring(flight)
-              } else if (obj.Flying.nonEmpty) {
+            obj.DeploymentState = if (is_crouched || !notMountedState) DriveState.Kneeling else DriveState.Mobile
+            if (notMountedState) {
+              if (obj.DeploymentState != DriveState.Kneeling) {
+                if (is_airborne) {
+                  val flight = if (ascending_flight) flight_time else -flight_time
+                  obj.Flying = Some(flight)
+                  obj.Actor ! BfrFlight.Soaring(flight)
+                } else if (obj.Flying.nonEmpty) {
+                  obj.Flying = None
+                  obj.Actor ! BfrFlight.Landed
+                }
+              } else {
+                obj.Velocity = None
                 obj.Flying = None
-                obj.Actor ! BfrFlight.Landed
               }
+              obj.zoneInteractions()
             } else {
               obj.Velocity = None
               obj.Flying = None
@@ -4126,9 +4134,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 player.GUID,
                 vehicle_guid,
                 unk1,
-                pos,
-                ang,
-                vel,
+                position,
+                angle,
+                velocity,
                 unk2,
                 unk3,
                 unk4,
@@ -4141,7 +4149,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             )
             updateSquad()
-            obj.zoneInteractions()
           case (None, _) =>
           //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
           //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
