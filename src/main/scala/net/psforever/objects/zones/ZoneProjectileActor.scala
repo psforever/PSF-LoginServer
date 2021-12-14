@@ -26,11 +26,18 @@ class ZoneProjectileActor(
     * marking the maximum lifespan of the projectile */
   val projectileLifespan: mutable.HashMap[PlanetSideGUID, Cancellable] = new mutable.HashMap[PlanetSideGUID, Cancellable]
 
+  override def postStop() : Unit = {
+    projectileLifespan.values.foreach { _.cancel() }
+    projectileLifespan.clear()
+    projectileList.filter(_.HasGUID).foreach(p => cleanUpRemoteProjectile(p.GUID, p))
+    projectileList.clear()
+  }
+
   def receive: Receive = {
     case ZoneProjectile.Add(filterGuid, projectile) =>
       if (projectile.Definition.ExistsOnRemoteClients) {
         if (projectile.HasGUID) {
-          CleanUpRemoteProjectile(projectile.GUID, projectile)
+          cleanUpRemoteProjectile(projectile.GUID, projectile)
           TaskWorkflow.execute(reregisterProjectile(filterGuid, projectile))
         } else {
           TaskWorkflow.execute(registerProjectile(filterGuid, projectile))
@@ -40,12 +47,14 @@ class ZoneProjectileActor(
     case ZoneProjectile.Remove(guid) =>
       projectileList.find(_.GUID == guid) match {
         case Some(projectile) =>
-          CleanUpRemoteProjectile(guid, projectile)
+          cleanUpRemoteProjectile(guid, projectile)
           TaskWorkflow.execute(unregisterProjectile(projectile))
         case _ =>
           projectileLifespan.remove(guid)
-          //if we can't find this projectile by guid, filter on projectiles that are unregistered and remove those
-          projectileList.filter(!_.HasGUID).foreach(CleanUpRemoteProjectile(guid, _))
+          //if we can't find this projectile by guid, remove projectiles that are unregistered
+          val in = projectileList.filter(_.HasGUID)
+          projectileList.clear()
+          projectileList.addAll(in)
       }
 
     case _ => ;
@@ -63,7 +72,7 @@ class ZoneProjectileActor(
       new StraightforwardTask() {
         private val filter = filterGuid
         private val globalProjectile = obj
-        private val func: (PlanetSideGUID, PlanetSideGUID, Projectile) => Unit = LoadedRemoteProjectile
+        private val func: (PlanetSideGUID, PlanetSideGUID, Projectile) => Unit = loadedRemoteProjectile
 
         override def description(): String = s"register a ${globalProjectile.profile.Name}"
 
@@ -122,7 +131,7 @@ class ZoneProjectileActor(
     * @param projectileGuid the projectile unique identifier that was assigned by the zone's unique number system
     * @param projectile the projectile being included
     */
-  def LoadedRemoteProjectile(
+  def loadedRemoteProjectile(
                               filterGuid: PlanetSideGUID,
                               projectileGuid: PlanetSideGUID,
                               projectile: Projectile
@@ -131,18 +140,18 @@ class ZoneProjectileActor(
     projectileList.addOne(projectile)
     val clarifiedFilterGuid = if (definition.radiation_cloud) {
       zone.blockMap.addTo(projectile)
+      projectileLifespan.put(
+        projectileGuid,
+        context.system.scheduler.scheduleOnce(
+          projectile.profile.Lifespan seconds, /* cloud lifespan is in seconds */
+          self,
+          ZoneProjectile.Remove(projectileGuid)
+        )
+      )
       Service.defaultPlayerGUID
     } else {
       filterGuid
     }
-    projectileLifespan.put(
-      projectileGuid,
-      context.system.scheduler.scheduleOnce(
-        projectile.profile.Lifespan seconds, /* projectile lifespan is in seconds */
-        self,
-        ZoneProjectile.Remove(projectileGuid)
-      )
-    )
     zone.AvatarEvents ! AvatarServiceMessage(
       zone.id,
       AvatarAction.LoadProjectile(
@@ -167,20 +176,19 @@ class ZoneProjectileActor(
     * @param projectile_guid the globally unique identifier of the projectile
     * @param projectile the projectile
     */
-  def CleanUpRemoteProjectile(projectile_guid: PlanetSideGUID, projectile: Projectile): Unit = {
+  def cleanUpRemoteProjectile(projectile_guid: PlanetSideGUID, projectile: Projectile): Unit = {
     projectileLifespan.remove(projectile_guid) match {
       case Some(c) => c.cancel()
       case _ => ;
     }
+    projectileList.remove(projectileList.indexOf(projectile))
     if (projectile.Definition.radiation_cloud) {
       zone.blockMap.removeFrom(projectile)
-      projectileList.remove(projectileList.indexOf(projectile))
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
         AvatarAction.ObjectDelete(PlanetSideGUID(0), projectile_guid, 2)
       )
     } else {
-      projectileList.remove(projectileList.indexOf(projectile))
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
         AvatarAction.ProjectileExplodes(PlanetSideGUID(0), projectile_guid, projectile)

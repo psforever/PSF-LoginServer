@@ -4415,6 +4415,7 @@ object GlobalDefinitions {
     aphelion_plasma_cloud.DamageRadius = 3f
     aphelion_plasma_cloud.radiation_cloud = true
     aphelion_plasma_cloud.ProjectileDamageType = DamageType.Aggravated
+    aphelion_plasma_cloud.ProjectileDamageTypeSecondary = DamageType.Radiation
     aphelion_plasma_cloud.Aggravated = AggravatedDamage(
       AggravatedInfo(DamageType.Splash, 0.5f, 1000),
       Aura.Napalm,
@@ -6223,7 +6224,7 @@ object GlobalDefinitions {
     aphelion_armor_siphon.Size = EquipmentSize.BFRArmWeapon
     aphelion_armor_siphon.AmmoTypes += armor_siphon_ammo
     aphelion_armor_siphon.ProjectileTypes += armor_siphon_projectile
-    aphelion_armor_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_armor_siphon.FireModes += new FireModeDefinition
     aphelion_armor_siphon.FireModes.head.AmmoTypeIndices += 0
     aphelion_armor_siphon.FireModes.head.AmmoSlotIndex = 0
     aphelion_armor_siphon.FireModes.head.Magazine = 100
@@ -6234,7 +6235,7 @@ object GlobalDefinitions {
     aphelion_armor_siphon_left.Size = EquipmentSize.BFRArmWeapon
     aphelion_armor_siphon_left.AmmoTypes += armor_siphon_ammo
     aphelion_armor_siphon_left.ProjectileTypes += armor_siphon_projectile
-    aphelion_armor_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_armor_siphon_left.FireModes += new FireModeDefinition
     aphelion_armor_siphon_left.FireModes.head.AmmoTypeIndices += 0
     aphelion_armor_siphon_left.FireModes.head.AmmoSlotIndex = 0
     aphelion_armor_siphon_left.FireModes.head.Magazine = 100
@@ -6245,7 +6246,7 @@ object GlobalDefinitions {
     aphelion_armor_siphon_right.Size = EquipmentSize.BFRArmWeapon
     aphelion_armor_siphon_right.AmmoTypes += armor_siphon_ammo
     aphelion_armor_siphon_right.ProjectileTypes += armor_siphon_projectile
-    aphelion_armor_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_armor_siphon_right.FireModes += new FireModeDefinition
     aphelion_armor_siphon_right.FireModes.head.AmmoTypeIndices += 0
     aphelion_armor_siphon_right.FireModes.head.AmmoSlotIndex = 0
     aphelion_armor_siphon_right.FireModes.head.Magazine = 100
@@ -6256,7 +6257,7 @@ object GlobalDefinitions {
     aphelion_laser.Size = EquipmentSize.BFRArmWeapon
     aphelion_laser.AmmoTypes += aphelion_laser_ammo
     aphelion_laser.ProjectileTypes += aphelion_laser_projectile
-    aphelion_laser.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_laser.FireModes += new FireModeDefinition
     aphelion_laser.FireModes.head.AmmoTypeIndices += 0
     aphelion_laser.FireModes.head.AmmoSlotIndex = 0
     aphelion_laser.FireModes.head.Magazine = 350
@@ -6267,7 +6268,7 @@ object GlobalDefinitions {
     aphelion_laser_left.Size = EquipmentSize.BFRArmWeapon
     aphelion_laser_left.AmmoTypes += aphelion_laser_ammo
     aphelion_laser_left.ProjectileTypes += aphelion_laser_projectile
-    aphelion_laser_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_laser_left.FireModes += new FireModeDefinition
     aphelion_laser_left.FireModes.head.AmmoTypeIndices += 0
     aphelion_laser_left.FireModes.head.AmmoSlotIndex = 0
     aphelion_laser_left.FireModes.head.Magazine = 350
@@ -6278,7 +6279,7 @@ object GlobalDefinitions {
     aphelion_laser_right.Size = EquipmentSize.BFRArmWeapon
     aphelion_laser_right.AmmoTypes += aphelion_laser_ammo
     aphelion_laser_right.ProjectileTypes += aphelion_laser_projectile
-    aphelion_laser_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    aphelion_laser_right.FireModes += new FireModeDefinition
     aphelion_laser_right.FireModes.head.AmmoTypeIndices += 0
     aphelion_laser_right.FireModes.head.AmmoSlotIndex = 0
     aphelion_laser_right.FireModes.head.Magazine = 350
@@ -6440,7 +6441,7 @@ object GlobalDefinitions {
     colossus_armor_siphon.Size = EquipmentSize.BFRArmWeapon
     colossus_armor_siphon.AmmoTypes += armor_siphon_ammo
     colossus_armor_siphon.ProjectileTypes += armor_siphon_projectile
-    colossus_armor_siphon.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_armor_siphon.FireModes += new FireModeDefinition
     colossus_armor_siphon.FireModes.head.AmmoTypeIndices += 0
     colossus_armor_siphon.FireModes.head.AmmoSlotIndex = 0
     colossus_armor_siphon.FireModes.head.Magazine = 100
@@ -6451,7 +6452,7 @@ object GlobalDefinitions {
     colossus_armor_siphon_left.Size = EquipmentSize.BFRArmWeapon
     colossus_armor_siphon_left.AmmoTypes += armor_siphon_ammo
     colossus_armor_siphon_left.ProjectileTypes += armor_siphon_projectile
-    colossus_armor_siphon_left.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_armor_siphon_left.FireModes += new FireModeDefinition
     colossus_armor_siphon_left.FireModes.head.AmmoTypeIndices += 0
     colossus_armor_siphon_left.FireModes.head.AmmoSlotIndex = 0
     colossus_armor_siphon_left.FireModes.head.Magazine = 100
@@ -6462,7 +6463,7 @@ object GlobalDefinitions {
     colossus_armor_siphon_right.Size = EquipmentSize.BFRArmWeapon
     colossus_armor_siphon_right.AmmoTypes += armor_siphon_ammo
     colossus_armor_siphon_right.ProjectileTypes += armor_siphon_projectile
-    colossus_armor_siphon_right.FireModes += new FireModeDefinition //TODO will need a custom fire mode
+    colossus_armor_siphon_right.FireModes += new FireModeDefinition
     colossus_armor_siphon_right.FireModes.head.AmmoTypeIndices += 0
     colossus_armor_siphon_right.FireModes.head.AmmoSlotIndex = 0
     colossus_armor_siphon_right.FireModes.head.Magazine = 100

@@ -28,7 +28,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.zones.{MapInfo, Zone, ZoneInfo, ZoneMap}
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.{Angular, PlanetSideEmpire, Vector3}
 import net.psforever.util.DefinitionUtil
 
 import scala.io.Source
@@ -464,14 +464,12 @@ object Zones {
                   obj.yaw + 45f
                 } else {
                   //predictable angles based on the facility type
-                  building.yaw + (if (building.objectType.startsWith("comm_station")) { //includes comm_station_dsp
-                    45f //NE
-                  } else if (building.objectType.equals("tech_plant")) {
-                    135f //SE
-                  } else if (building.objectType.equals("cryo_facility")) {
-                    225f //SW
+                  Angular.flipClockwise(building.yaw) + (if (building.objectType.startsWith("comm_station")) { //includes comm_station_dsp
+                    -45f
+                  } else if (building.objectType.equals("cryo_facility") || building.objectType.equals("tech_plant")) {
+                    135f
                   } else if (building.objectType.equals("amp_station")) {
-                    315f //NW
+                    225f
                   } else {
                     0f
                   })

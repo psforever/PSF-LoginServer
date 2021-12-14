@@ -95,4 +95,39 @@ object Angular {
     }
     correctedAng
   }
+
+  /**
+    * Take an angle in counterclockwise unit circle rotation angles
+    * and convert it into clockwise compass rose direction angles;
+    * or, perform the reverse conversion, from clockwise to counterclockwise.
+    * The calling context must decide the original rotation direction and thus the resultant direction.
+    * This function can swap back and forth between the two directions by repeated application upon the output value.
+    * @param angle the original angle in degrees
+    * @return the rotation flipped angle in degrees within the range of 0 to 359
+    */
+  def flipClockwise(angle: Float): Float = {
+    //counterclockwise: 0-degrees starts at East Vector3(1,0,0)
+    //clockwise: 0-degrees starts at North Vector3(0,1,0)
+    val boundedAngle =  {
+      //the result will always be -1 < n < 360
+      var pos = angle
+      while (pos < 0) pos = pos + 360f
+      pos % 360f
+    }
+    if (boundedAngle < 91f) {
+      //1st quarter / quadrant maps 0-90 to 90-0
+      90f - boundedAngle
+    } else {
+      val resultingAngle = 450f - boundedAngle
+      if (boundedAngle < 181f) {
+        //2nd quarter / 4rd quadrant maps 90-180 to 0-270
+        // turn any 360 results into 0
+        resultingAngle % 360f
+      } else {
+        //3rd quarter / quadrant maps 180-270 to 270-180
+        //4th quarter / 2nd quadrant maps 270-0 to 180-90
+        resultingAngle
+      }
+    }
+  }
 }

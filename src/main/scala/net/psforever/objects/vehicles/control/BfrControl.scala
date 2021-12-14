@@ -319,11 +319,9 @@ class BfrControl(vehicle: Vehicle)
       }) match {
         case out @ (_, Some(subsystem)) =>
           if (action == BfrControl.ArmState.Enabled && !subsystem.enabled) {
-            //println(s"${subsystem.sys.value} turned on")
             subsystem.enabled = true
             out
           } else if (action == BfrControl.ArmState.Disabled && subsystem.enabled) {
-            //println(s"${subsystem.sys.value} turned off")
             subsystem.enabled = false
             out
           } else {
