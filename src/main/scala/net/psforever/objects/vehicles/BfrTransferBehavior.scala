@@ -23,8 +23,8 @@ trait BfrTransferBehavior
   var ntuProcessingRequest: Boolean = false
   var ntuProcessingTick             = Default.Cancellable
 
-  findChargeTargetFunc                = Vehicles.FindBfrChargingSource
-  findDischargeTargetFunc             = Vehicles.FindBfrDischargingTarget
+  findChargeTargetFunc              = Vehicles.FindBfrChargingSource
+  findDischargeTargetFunc           = Vehicles.FindBfrDischargingTarget
 
   def TransferMaterial = Ntu.Nanites
 
@@ -146,8 +146,8 @@ trait BfrTransferBehavior
         target match {
           case _: WarpGate =>
             //siphon.drain -> math.min(math.min(siphon.MaxNtuCapacitor / 75f, fromMax)
-            target.Actor ! BuildingActor.Ntu(NtuCommand.Request(math.min(siphon.drain, fromMax), context.self))
-          case silo: ResourceSilo =>
+            target.Actor ! BuildingActor.Ntu(NtuCommand.Request(math.min(siphon.drain.toFloat, fromMax), context.self))
+          case _: ResourceSilo =>
             //siphon.drain -> scala.math.min(silo.MaxNtuCapacitor * 0.325f / max, fromMax)
             target.Actor ! NtuCommand.Request(scala.math.min(0.5f * siphon.drain, fromMax), context.self)
           case _ => ;

@@ -30,7 +30,8 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   def antBehavior: Receive = storageBehavior.orElse(transferBehavior)
 
   def ActivatePanelsForChargingEvent(vehicle: NtuContainer): Unit = {
-    val zone = vehicle.Zone
+    val obj = ChargeTransferObject
+    val zone = obj.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
       VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vehicle.GUID, 52, 1L)
@@ -39,7 +40,8 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
 
   /** Charging */
   def StartNtuChargingEvent(vehicle: NtuContainer): Unit = {
-    val zone = vehicle.Zone
+    val obj = ChargeTransferObject
+    val zone = obj.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
       VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vehicle.GUID, 49, 1L)

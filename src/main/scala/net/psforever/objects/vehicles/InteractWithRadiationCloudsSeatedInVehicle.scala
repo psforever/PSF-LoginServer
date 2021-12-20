@@ -4,11 +4,14 @@ package net.psforever.objects.vehicles
 import net.psforever.objects.Vehicle
 import net.psforever.objects.ballistics.{Projectile, ProjectileQuality, SourceEntry}
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.vital.base.{DamageResolution, DamageType}
 import net.psforever.objects.vital.etc.RadiationReason
 import net.psforever.objects.vital.interaction.DamageInteraction
-import net.psforever.objects.zones.{InteractsWithZone, Zone, ZoneInteraction}
+import net.psforever.objects.zones.blockmap.SectorPopulation
+import net.psforever.objects.zones.{InteractsWithZone, Zone, ZoneInteraction, ZoneInteractionType}
 import net.psforever.types.PlanetSideGUID
+
+case object RadiationInVehicleInteraction extends ZoneInteractionType
 
 /**
   * This game entity may infrequently test whether it may interact with radiation cloud projectiles
@@ -17,7 +20,7 @@ import net.psforever.types.PlanetSideGUID
   */
 class InteractWithRadiationCloudsSeatedInVehicle(
                                                   private val obj: Vehicle,
-                                                  range: Float
+                                                  val range: Float
                                                 ) extends ZoneInteraction {
   /**
     * radiation clouds that, though detected, are skipped from affecting the target;
@@ -27,18 +30,23 @@ class InteractWithRadiationCloudsSeatedInVehicle(
     */
   private var skipTargets: List[PlanetSideGUID] = List()
 
+  def Type = RadiationInVehicleInteraction
+
   /**
     * Drive into a radiation cloud and all the vehicle's occupants suffer the consequences.
+    * @param sector the portion of the block map being tested
     * @param target the fixed element in this test
     */
-  override def interaction(target: InteractsWithZone): Unit = {
+  override def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit = {
     val position = target.Position
     //collect all projectiles in sector/range
-    val projectiles = target.Zone.blockMap
-      .sector(position, range)
+    val projectiles = sector
       .projectileList
       .filter { cloud =>
-        cloud.Definition.radiation_cloud && Zone.distanceCheck(target, cloud, cloud.Definition.DamageRadius)
+        val definition = cloud.Definition
+        definition.radiation_cloud &&
+        definition.AllDamageTypes.contains(DamageType.Radiation) &&
+        Zone.distanceCheck(target, cloud, definition.DamageRadius)
       }
       .distinct
     val notSkipped = projectiles.filterNot { t => skipTargets.contains(t.GUID) }
@@ -80,8 +88,8 @@ class InteractWithRadiationCloudsSeatedInVehicle(
       .collect {
         case hold if hold.isOccupied =>
           val target = hold.occupant.get
-          target.interaction().find { func => func.isInstanceOf[InteractWithRadiationCloudsSeatedInVehicle] } match {
-            case Some(func) => func.interaction(target)
+          target.interaction().find { _.Type == RadiationInVehicleInteraction } match {
+            case Some(func) => func.interaction(sector, target)
             case _ => ;
           }
       }

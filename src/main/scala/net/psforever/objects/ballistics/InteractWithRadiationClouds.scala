@@ -6,15 +6,18 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.etc.RadiationReason
 import net.psforever.objects.vital.interaction.DamageInteraction
-import net.psforever.objects.zones.{InteractsWithZone, Zone, ZoneInteraction}
+import net.psforever.objects.zones.blockmap.SectorPopulation
+import net.psforever.objects.zones.{InteractsWithZone, Zone, ZoneInteraction, ZoneInteractionType}
 import net.psforever.types.PlanetSideGUID
+
+case object RadiationInteraction extends ZoneInteractionType
 
 /**
   * This game entity may infrequently test whether it may interact with radiation cloud projectiles
   * that may be emitted in the game environment for a limited amount of time.
   */
 class InteractWithRadiationClouds(
-                                   range: Float,
+                                   val range: Float,
                                    private val user: Option[Player]
                                  ) extends ZoneInteraction {
   /**
@@ -25,17 +28,19 @@ class InteractWithRadiationClouds(
     */
   private var skipTargets: List[PlanetSideGUID] = List()
 
+  def Type = RadiationInteraction
+
   /**
     * Wander into a radiation cloud and suffer the consequences.
+    * @param sector the portion of the block map being tested
     * @param target the fixed element in this test
     */
-  def interaction(target: InteractsWithZone): Unit = {
+  def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit = {
     target match {
       case t: Vitality =>
         val position = target.Position
         //collect all projectiles in sector/range
-        val projectiles = target.Zone.blockMap
-          .sector(position, range)
+        val projectiles = sector
           .projectileList
           .filter { cloud =>
             cloud.Definition.radiation_cloud && Zone.distanceCheck(target, cloud, cloud.Definition.DamageRadius)

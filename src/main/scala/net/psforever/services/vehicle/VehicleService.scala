@@ -11,7 +11,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.services.vehicle.support.TurretUpgrader
-import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
+import net.psforever.types.{DriveState, PlanetSideGUID}
 import net.psforever.services.{GenericEventBus, Service}
 
 class VehicleService(zone: Zone) extends Actor {

@@ -2,6 +2,7 @@
 package net.psforever.objects.zones
 
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.zones.blockmap.SectorPopulation
 
 trait InteractsWithZone
   extends PlanetSideServerObject {
@@ -24,7 +25,7 @@ trait InteractsWithZone
     _allowInteraction = permit
     if (before != permit) {
       if (permit) {
-        interactions.foreach { _.interaction(target = this) }
+        doInteractions()
       } else {
         interactions.foreach ( _.resetInteraction(target = this) )
       }
@@ -41,9 +42,21 @@ trait InteractsWithZone
 
   def interaction(): List[ZoneInteraction] = interactions
 
+  def getInteractionSector(): SectorPopulation = {
+    this.Zone.blockMap.sector(
+      this.Position,
+      if (interactions.nonEmpty) interactions.maxBy { _.range }.range else 0.1f
+    )
+  }
+
+  def doInteractions(): Unit = {
+    val sector = getInteractionSector()
+    interactions.foreach { _.interaction(sector, target = this) }
+  }
+
   def zoneInteractions(): Unit = {
     if (_allowInteraction) {
-      interactions.foreach { _.interaction(target = this) }
+      doInteractions()
     }
   }
 
@@ -52,6 +65,8 @@ trait InteractsWithZone
   }
 }
 
+trait ZoneInteractionType
+
 /**
   * The basic behavior of an entity in a zone.
   * @see `InteractsWithZone`
@@ -59,11 +74,22 @@ trait InteractsWithZone
   */
 trait ZoneInteraction {
   /**
+    * A categorical descriptor for this interaction.
+    */
+  def Type: ZoneInteractionType
+
+  /**
+    * The anticipated (radial?) distance across which this interaction affects the zone's blockmap.
+    */
+  def range: Float
+
+  /**
     * The method by which zone interactions are tested.
     * How a target tests this interaction with elements of the target's zone.
+    * @param sector the portion of the block map being tested
     * @param target the fixed element in this test
     */
-  def interaction(target: InteractsWithZone): Unit
+  def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit
 
   /**
     * Suspend any current interaction procedures.

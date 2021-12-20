@@ -28,8 +28,7 @@ class ZoneProjectileActor(
 
   override def postStop() : Unit = {
     projectileLifespan.values.foreach { _.cancel() }
-    projectileLifespan.clear()
-    projectileList.filter(_.HasGUID).foreach(p => cleanUpRemoteProjectile(p.GUID, p))
+    projectileList.iterator.filter(_.HasGUID).foreach { p => cleanUpRemoteProjectile(p.GUID, p) }
     projectileList.clear()
   }
 
@@ -51,10 +50,13 @@ class ZoneProjectileActor(
           TaskWorkflow.execute(unregisterProjectile(projectile))
         case _ =>
           projectileLifespan.remove(guid)
-          //if we can't find this projectile by guid, remove projectiles that are unregistered
-          val in = projectileList.filter(_.HasGUID)
+          //if we can't find this projectile by guid, remove any projectiles that are unregistered
+          val (in, out) = projectileList.filter(_.HasGUID).partition { p => zone.GUID(p.GUID).nonEmpty }
           projectileList.clear()
           projectileList.addAll(in)
+          out.foreach { p =>
+            cleanUpRemoteProjectile(p.GUID, p)
+          }
       }
 
     case _ => ;
@@ -138,20 +140,18 @@ class ZoneProjectileActor(
                             ): Unit = {
     val definition = projectile.Definition
     projectileList.addOne(projectile)
-    val clarifiedFilterGuid = if (definition.radiation_cloud) {
+    val (clarifiedFilterGuid, duration) = if (definition.radiation_cloud) {
       zone.blockMap.addTo(projectile)
-      projectileLifespan.put(
-        projectileGuid,
-        context.system.scheduler.scheduleOnce(
-          projectile.profile.Lifespan seconds, /* cloud lifespan is in seconds */
-          self,
-          ZoneProjectile.Remove(projectileGuid)
-        )
-      )
-      Service.defaultPlayerGUID
+      (Service.defaultPlayerGUID, projectile.profile.Lifespan seconds)
     } else {
-      filterGuid
+      //remote projectiles that are not radiation clouds have lifespans controlled by the controller (user)
+      //if the controller fails, the projectile has a bit more than its normal lifespan before automatic clean up
+      (filterGuid, projectile.profile.Lifespan * 1.5f seconds)
     }
+    projectileLifespan.put(
+      projectileGuid,
+      context.system.scheduler.scheduleOnce(duration, self, ZoneProjectile.Remove(projectileGuid))
+    )
     zone.AvatarEvents ! AvatarServiceMessage(
       zone.id,
       AvatarAction.LoadProjectile(

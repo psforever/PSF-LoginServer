@@ -14,6 +14,8 @@ import scala.collection.mutable.ListBuffer
   * The collections of entities in a sector conglomerate.
   */
 trait SectorPopulation {
+  def range: Float
+
   def livePlayerList: List[Player]
 
   def corpseList: List[Player]
@@ -151,6 +153,8 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
     (a: Projectile, b: Projectile) => a.id == b.id
   )
 
+  def range: Float = span.toFloat
+
   def livePlayerList : List[Player] = livePlayers.list
 
   def corpseList: List[Player] = corpses.list
@@ -244,6 +248,7 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   * @param environmentList fields that represent the game world environment
   */
 class SectorGroup(
+                   val range: Float,
                    val livePlayerList: List[Player],
                    val corpseList: List[Player],
                    val vehicleList: List[Vehicle],
@@ -265,6 +270,7 @@ object SectorGroup {
     */
   def apply(sector: Sector): SectorGroup = {
     new SectorGroup(
+      sector.range,
       sector.livePlayerList,
       sector.corpseList,
       sector.vehicleList,
@@ -285,6 +291,7 @@ object SectorGroup {
     */
   def apply(sectors: Iterable[Sector]): SectorGroup = {
     new SectorGroup(
+      sectors.maxBy { _.range }.range,
       sectors.flatMap { _.livePlayerList }.toList.distinct,
       sectors.flatMap { _.corpseList }.toList.distinct,
       sectors.flatMap { _.vehicleList }.toList.distinct,

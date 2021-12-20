@@ -36,7 +36,7 @@ object Ntu {
 }
 
 trait NtuContainerOwner {
-  def getNtuContainer: NtuContainer
+  def getNtuContainer: Option[NtuContainer]
 }
 
 trait NtuContainer extends TransferContainer {

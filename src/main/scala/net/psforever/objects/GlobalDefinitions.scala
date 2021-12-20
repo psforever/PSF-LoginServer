@@ -4415,7 +4415,6 @@ object GlobalDefinitions {
     aphelion_plasma_cloud.DamageRadius = 3f
     aphelion_plasma_cloud.radiation_cloud = true
     aphelion_plasma_cloud.ProjectileDamageType = DamageType.Aggravated
-    aphelion_plasma_cloud.ProjectileDamageTypeSecondary = DamageType.Radiation
     aphelion_plasma_cloud.Aggravated = AggravatedDamage(
       AggravatedInfo(DamageType.Splash, 0.5f, 1000),
       Aura.Napalm,

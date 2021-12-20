@@ -90,6 +90,8 @@ class VehicleControl(vehicle: Vehicle)
   var decayTimer : Cancellable = Default.Cancellable
   /** becoming waterlogged, or drying out? */
   var submergedCondition : Option[OxygenState] = None
+  /** ... */
+  var passengerRadiationCloudTimer: Cancellable = Default.Cancellable
 
   def receive : Receive = Enabled
 
@@ -220,6 +222,11 @@ class VehicleControl(vehicle: Vehicle)
   final def Enabled: Receive =
     commonEnabledBehavior
       .orElse {
+        case VehicleControl.RadiationTick =>
+          vehicle.interaction().find { _.Type == RadiationInVehicleInteraction } match {
+            case Some(func) => func.interaction(vehicle.getInteractionSector(), vehicle)
+            case _ => ;
+          }
         case _ => ;
       }
 
@@ -295,8 +302,8 @@ class VehicleControl(vehicle: Vehicle)
               user.avatar.vehicle = None
           }
           GainOwnership(user) //gain new ownership
-        }
-        else {
+          passengerRadiationCloudTimer.cancel()
+        } else {
           decaying = false
           decayTimer.cancel()
         }
@@ -318,6 +325,14 @@ class VehicleControl(vehicle: Vehicle)
     // Reset velocity to zero when driver dismounts, to allow jacking/repair if vehicle was moving slightly before dismount
     if (!obj.Seats(0).isOccupied) {
       obj.Velocity = Some(Vector3.Zero)
+    }
+    if (seatBeingDismounted == 0) {
+      passengerRadiationCloudTimer = context.system.scheduler.scheduleWithFixedDelay(
+        250.milliseconds,
+        250.milliseconds,
+        self,
+        VehicleControl.RadiationTick
+      )
     }
     if (!obj.Seats(seatBeingDismounted).isOccupied) { //seat was vacated
       //we were only owning the vehicle while we sat in its driver seat
@@ -810,6 +825,8 @@ object VehicleControl {
   private case class Disable()
 
   private case class Deletion()
+
+  private case object RadiationTick
 
   final case class AssignOwnership(player: Option[Player])
 
