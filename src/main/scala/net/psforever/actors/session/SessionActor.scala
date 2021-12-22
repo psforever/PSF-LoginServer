@@ -425,8 +425,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
      */
 
     case SetAvatar(avatar) =>
-      if (session.player != null) session.player.avatar = avatar
       session = session.copy(avatar = avatar)
+      if (session.player != null) {
+        session.player.avatar = avatar
+      }
       LivePlayerList.Update(avatar.id, avatar)
 
     case AvatarActor.AvatarResponse(avatar) =>

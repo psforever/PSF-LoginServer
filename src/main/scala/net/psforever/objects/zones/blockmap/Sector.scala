@@ -290,17 +290,35 @@ object SectorGroup {
     * @return a `SectorGroup` object
     */
   def apply(sectors: Iterable[Sector]): SectorGroup = {
-    new SectorGroup(
-      sectors.maxBy { _.range }.range,
-      sectors.flatMap { _.livePlayerList }.toList.distinct,
-      sectors.flatMap { _.corpseList }.toList.distinct,
-      sectors.flatMap { _.vehicleList }.toList.distinct,
-      sectors.flatMap { _.equipmentOnGroundList }.toList.distinct,
-      sectors.flatMap { _.deployableList }.toList.distinct,
-      sectors.flatMap { _.buildingList }.toList.distinct,
-      sectors.flatMap { _.amenityList }.toList.distinct,
-      sectors.flatMap { _.environmentList }.toList.distinct,
-      sectors.flatMap { _.projectileList }.toList.distinct
-    )
+    if (sectors.isEmpty) {
+      new SectorGroup(range = 0, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil)
+    } else if (sectors.size == 1) {
+      val sector = sectors.head
+      new SectorGroup(
+        sector.range,
+        sector.livePlayerList,
+        sector.corpseList,
+        sector.vehicleList,
+        sector.equipmentOnGroundList,
+        sector.deployableList,
+        sector.buildingList,
+        sector.amenityList,
+        sector.environmentList,
+        sector.projectileList
+      )
+    } else {
+      new SectorGroup(
+        sectors.maxBy { _.range }.range,
+        sectors.flatMap { _.livePlayerList }.toList.distinct,
+        sectors.flatMap { _.corpseList }.toList.distinct,
+        sectors.flatMap { _.vehicleList }.toList.distinct,
+        sectors.flatMap { _.equipmentOnGroundList }.toList.distinct,
+        sectors.flatMap { _.deployableList }.toList.distinct,
+        sectors.flatMap { _.buildingList }.toList.distinct,
+        sectors.flatMap { _.amenityList }.toList.distinct,
+        sectors.flatMap { _.environmentList }.toList.distinct,
+        sectors.flatMap { _.projectileList }.toList.distinct
+      )
+    }
   }
 }

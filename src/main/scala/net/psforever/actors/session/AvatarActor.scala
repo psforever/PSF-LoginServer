@@ -377,7 +377,12 @@ class AvatarActor(
                 implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
                 locker = locker
               ))
-              defaultStaminaRegen(initialDelay = 0.5f seconds)
+              // if we need to start stamina regeneration
+              tryRestoreStaminaForSession(stamina = 1) match {
+                case Some(sess) =>
+                  defaultStaminaRegen(initialDelay = 0.5f seconds)
+                case _ => ;
+              }
               replyTo ! AvatarLoginResponse(avatar)
             case Failure(e) =>
               log.error(e)("db failure")
@@ -386,8 +391,7 @@ class AvatarActor(
 
         case ReplaceAvatar(newAvatar) =>
           replaceAvatar(newAvatar)
-          staminaRegenTimer.cancel()
-          defaultStaminaRegen(initialDelay = 0.5f seconds)
+          startIfStoppedStaminaRegen(initialDelay = 0.5f seconds)
           Behaviors.same
 
         case AddFirstTimeEvent(event) =>
@@ -803,14 +807,8 @@ class AvatarActor(
                   implants = avatar.implants.updated(slot, Some(implant.copy(active = true)))
                 ))
                 sessionActor ! SessionActor.SendResponse(
-                  AvatarImplantMessage(
-                    session.get.player.GUID,
-                    ImplantAction.Activation,
-                    slot,
-                    1
-                  )
+                  AvatarImplantMessage(session.get.player.GUID, ImplantAction.Activation, slot, 1)
                 )
-
                 // Activation sound / effect
                 session.get.zone.AvatarEvents ! AvatarServiceMessage(
                   session.get.zone.id,
@@ -820,9 +818,7 @@ class AvatarActor(
                     implant.definition.implantType.value * 2 + 1
                   )
                 )
-
                 implantTimers.get(slot).foreach(_.cancel())
-
                 val interval = implant.definition.GetCostIntervalByExoSuit(session.get.player.ExoSuit).milliseconds
                 // TODO costInterval should be an option ^
                 if (interval.toMillis > 0) {
@@ -901,26 +897,17 @@ class AvatarActor(
           tryRestoreStaminaForSession(stamina) match {
             case Some(sess) =>
               actuallyRestoreStamina(stamina, sess)
-              defaultStaminaRegen(initialDelay = 0.5f seconds)
             case _ => ;
           }
           Behaviors.same
 
         case RestoreStaminaPeriodically(stamina) =>
-          tryRestoreStaminaForSession(stamina) match {
-            case Some(sess) =>
-              actuallyRestoreStaminaIfStationary(stamina, sess)
-            case _ => ;
-          }
-          defaultStaminaRegen(initialDelay = 0.5f seconds)
+          restoreStaminaPeriodically(stamina)
           Behaviors.same
 
         case ConsumeStamina(stamina) =>
           if (stamina > 0) {
             consumeThisMuchStamina(stamina)
-            if(staminaRegenTimer.isCancelled) {
-              defaultStaminaRegen(initialDelay = 0.5f seconds)
-            }
           } else {
             log.warn(s"consumed stamina must be larger than 0, but is: $stamina")
           }
@@ -1074,35 +1061,52 @@ class AvatarActor(
   }
 
   def tryRestoreStaminaForSession(stamina: Int): Option[Session] = {
-    session match {
-      case out @ Some(_) if !avatar.staminaFull && stamina > 0 => out
-      case _                                                   => None
+    (session, _avatar) match {
+      case (out @ Some(_), Some(a)) if !a.staminaFull && stamina > 0 => out
+      case _                                                         => None
     }
   }
 
   def actuallyRestoreStaminaIfStationary(stamina: Int, session: Session): Unit = {
-    if (session.player.VehicleSeated.nonEmpty || !(session.player.isMoving || session.player.Jumping)) {
+    val player = session.player
+    if (player.VehicleSeated.nonEmpty || !(player.isMoving || player.Jumping)) {
       actuallyRestoreStamina(stamina, session)
     }
   }
 
   def actuallyRestoreStamina(stamina: Int, session: Session): Unit = {
-    val totalStamina = math.min(avatar.maxStamina, avatar.stamina + stamina)
-    val isFatigued = if (avatar.fatigued && totalStamina >= 20) {
-      val pguid = session.player.GUID
-      avatar.implants.zipWithIndex.foreach {
-        case (Some(_), slot) =>
-          sessionActor ! SessionActor.SendResponse(
-            AvatarImplantMessage(pguid, ImplantAction.OutOfStamina, slot, 0)
-          )
-        case _ => ()
+    val originalStamina = avatar.stamina
+    val maxStamina = avatar.maxStamina
+    val totalStamina = math.min(maxStamina, originalStamina + stamina)
+    if (originalStamina < totalStamina) {
+      val originalFatigued = avatar.fatigued
+      val isFatigued = totalStamina < 20
+      avatar = avatar.copy(stamina = totalStamina, fatigued = isFatigued)
+      if (totalStamina == maxStamina) {
+        staminaRegenTimer.cancel()
+        staminaRegenTimer = Default.Cancellable
       }
-      false
-    } else {
-      avatar.fatigued
+      if (session.player.HasGUID) {
+        val guid = session.player.GUID
+        if (originalFatigued && !isFatigued) {
+          avatar.implants.zipWithIndex.foreach {
+            case (Some(_), slot) =>
+              sessionActor ! SessionActor.SendResponse(AvatarImplantMessage(guid, ImplantAction.OutOfStamina, slot, 0))
+            case _ => ;
+          }
+        }
+        sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(guid, 2, totalStamina))
+      }
     }
-    avatarCopy(avatar.copy(stamina = totalStamina, fatigued = isFatigued))
-    sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.player.GUID, 2, totalStamina))
+  }
+
+  def restoreStaminaPeriodically(stamina: Int): Unit = {
+    tryRestoreStaminaForSession(stamina) match {
+      case Some(sess) =>
+        actuallyRestoreStaminaIfStationary(stamina, sess)
+      case _ => ;
+    }
+    startIfStoppedStaminaRegen(initialDelay = 0.5f seconds)
   }
 
   /**
@@ -1123,6 +1127,7 @@ class AvatarActor(
       val alreadyFatigued = avatar.fatigued
       val becomeFatigued = !alreadyFatigued && totalStamina == 0
       avatarCopy(avatar.copy(stamina = totalStamina, fatigued = alreadyFatigued || becomeFatigued))
+      startIfStoppedStaminaRegen(initialDelay = 0.5f seconds)
       val player = session.get.player
       if (player.HasGUID) {
         if (becomeFatigued) {
@@ -1248,20 +1253,13 @@ class AvatarActor(
         avatarCopy(avatar.copy(
           implants = avatar.implants.updated(slot, Some(implant.copy(active = false)))
         ))
-
         // Deactivation sound / effect
         session.get.zone.AvatarEvents ! AvatarServiceMessage(
           session.get.zone.id,
           AvatarAction.PlanetsideAttribute(session.get.player.GUID, 28, implant.definition.implantType.value * 2)
         )
-
         sessionActor ! SessionActor.SendResponse(
-          AvatarImplantMessage(
-            session.get.player.GUID,
-            ImplantAction.Activation,
-            slot,
-            0
-          )
+          AvatarImplantMessage(session.get.player.GUID, ImplantAction.Activation, slot, 0)
         )
       case None => log.error(s"requested deactivation of unknown implant $implantType")
     }
@@ -1717,15 +1715,18 @@ class AvatarActor(
     }
   }
 
+  def startIfStoppedStaminaRegen(initialDelay: FiniteDuration): Unit = {
+    if (staminaRegenTimer.isCancelled) {
+      defaultStaminaRegen(initialDelay)
+    }
+  }
+
   def defaultStaminaRegen(initialDelay: FiniteDuration): Unit = {
     staminaRegenTimer.cancel()
-    staminaRegenTimer = if (!avatar.staminaFull) {
-      context.system.scheduler.scheduleWithFixedDelay(initialDelay, 0.5 seconds)(() => {
-        context.self ! RestoreStaminaPeriodically(1)
-      })
-    } else {
-      Default.Cancellable
-    }
+    val restoreStaminaFunc: Int => Unit = restoreStaminaPeriodically
+    staminaRegenTimer = context.system.scheduler.scheduleWithFixedDelay(initialDelay, delay = 0.5 seconds)(() => {
+      restoreStaminaFunc(1)
+    })
   }
 
   // same as in SA, this really doesn't belong here
