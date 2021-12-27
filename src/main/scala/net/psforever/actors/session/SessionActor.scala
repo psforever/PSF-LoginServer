@@ -9298,9 +9298,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           } match {
             case Some((index, _)) =>
               val mountIsEnabled = v.Subsystems(if (v.Weapons.keys.min == index) {
-                VehicleSubsystemEntry.BattleframeFlightLeftArm
+                "BattleframeLeftArm"
               } else {
-                VehicleSubsystemEntry.BattleframeFlightRightArm
+                "BattleframeRightArm"
               }).get.enabled
               if (!mountIsEnabled) {
                 //can't stop the local discharge, but it will not actually shoot anything; assert the magazine

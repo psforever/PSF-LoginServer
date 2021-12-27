@@ -341,6 +341,8 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def Subsystems(sys: VehicleSubsystemEntry): Option[VehicleSubsystem] = subsystems.find { _.sys == sys }
 
+  def Subsystems(sys: String): Option[VehicleSubsystem] = subsystems.find { _.sys.value.contains(sys) }
+
   def SubsystemMessages(): List[PlanetSideGamePacket] =
     subsystems
       .filterNot { _.enabled }
