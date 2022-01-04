@@ -7,11 +7,11 @@ import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
-import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.transfer.TransferBehavior
-import net.psforever.objects.vehicles.{BfrTransferBehavior, NtuSiphon, VehicleSubsystem, VehicleSubsystemEntry}
+import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
@@ -160,16 +160,20 @@ class BfrControl(vehicle: Vehicle)
     }
     super.PutItemInSlotCallback(item, slot)
     specialArmWeaponEquipManagement(item, slot, handiness)
+    val vehicleJammered = vehicle.Jammed
+    item match {
+      case jamItem: JammableUnit if jamItem.Jammed != vehicleJammered =>
+        JammableMountedWeapons.JammedWeaponStatus(vehicle.Zone, jamItem, { if (vehicleJammered) 1 else 0 })
+      case _ => ;
+    }
   }
 
-  override
-
-  def handleTerminalMessageVehicleLoadout(
-                                           player: Player,
-                                           definition: VehicleDefinition,
-                                           weapons: List[InventoryItem],
-                                           inventory: List[InventoryItem]
-                                         ): (
+  override def handleTerminalMessageVehicleLoadout(
+                                                    player: Player,
+                                                    definition: VehicleDefinition,
+                                                    weapons: List[InventoryItem],
+                                                    inventory: List[InventoryItem]
+                                                  ): (
       List[(Equipment, PlanetSideGUID)],
       List[InventoryItem],
       List[(Equipment, PlanetSideGUID)],
@@ -246,6 +250,12 @@ class BfrControl(vehicle: Vehicle)
     )
   }
 
+  def enableShieldIfNotDrained(): Unit = {
+    if (vehicle.Shields > 0) {
+      enableShield()
+    }
+  }
+
   def enableShield(): Unit = {
     val zone = vehicle.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
@@ -284,7 +294,7 @@ class BfrControl(vehicle: Vehicle)
 
   def shieldCharge(after:Int, definition: VehicleDefinition, delay: Long): Unit = {
     shieldCharge.cancel()
-    if (after < definition.MaxShields) {
+    if (after < definition.MaxShields && !vehicle.Jammed) {
       shieldCharge = context.system.scheduler.scheduleOnce(
         delay = definition.ShieldPeriodicDelay + delay milliseconds,
         self,
@@ -305,6 +315,24 @@ class BfrControl(vehicle: Vehicle)
     )
   }
 
+  override def StartJammeredStatus(target: Any, dur: Int): Unit = {
+    super.StartJammeredStatus(target, dur)
+    //shields
+    disableShield()
+    shieldCharge(after = 0, vehicle.Definition, delay = 0) //cancels charge timer
+  }
+
+  override def CancelJammeredStatus(target: Any): Unit = {
+    super.CancelJammeredStatus(target)
+    //shields
+    enableShieldIfNotDrained()
+    shieldCharge(vehicle.Shields, vehicle.Definition, delay = 100) //restarts charge timer
+  }
+
+  override def JammableMountedWeaponsJammeredStatus(target: PlanetSideServerObject with MountedWeapons, statusCode: Int): Unit = {
+    /** bfr weapons do not jam the same way normal vehicle weapons do */
+  }
+
   override def parseObjectAction(guid: PlanetSideGUID, action: Int, other: Option[Any]): Unit = {
     super.parseObjectAction(guid, action, other)
     if (action == BfrControl.ArmState.Enabled || action == BfrControl.ArmState.Disabled) {
@@ -318,11 +346,11 @@ class BfrControl(vehicle: Vehicle)
           }
       }) match {
         case out @ (_, Some(subsystem)) =>
-          if (action == BfrControl.ArmState.Enabled && !subsystem.enabled) {
-            subsystem.enabled = true
+          if (action == BfrControl.ArmState.Enabled && !subsystem.Enabled) {
+            subsystem.Enabled = true
             out
-          } else if (action == BfrControl.ArmState.Disabled && subsystem.enabled) {
-            subsystem.enabled = false
+          } else if (action == BfrControl.ArmState.Disabled && subsystem.Enabled) {
+            subsystem.Enabled = false
             out
           } else {
             (0, None)
@@ -366,7 +394,9 @@ class BfrControl(vehicle: Vehicle)
 
   def bfrHandiness(slot: Int): equipment.Hand = {
     //for the benefit of BFR equipment slots interacting with MoveItemMessage
-    if (slot == 2) Handiness.Left else if (slot == 3) Handiness.Right else Handiness.Generic
+    if (slot == 2) Handiness.Left
+    else if (slot == 3) Handiness.Right
+    else Handiness.Generic
   }
 
   def bfrHandSubsystem(side: equipment.Hand): Option[VehicleSubsystem] = {
@@ -427,7 +457,7 @@ class BfrControl(vehicle: Vehicle)
           (pairedSystemsToSlots(1), pairedSystemsToSlots.head)
         }
       }
-      if (thisArm._1.enabled) {
+      if (thisArm._1.Enabled) {
         //this arm weapon slot was enabled
         if ({
           val (thisArmExists, thisArmIsSiphon) = thisArm._2._2.Equipment match {

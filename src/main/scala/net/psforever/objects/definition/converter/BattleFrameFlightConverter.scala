@@ -2,6 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
+import net.psforever.objects.vehicles.VehicleSubsystemEntry
 import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.types.PlanetSideGUID
 import net.psforever.packet.game.objectcreate._
@@ -40,7 +41,7 @@ class BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle]() {
           driveState = 60,
           proper_anim = true,
           unk3 = 0,
-          show_bfr_shield = obj.Shields > 0,
+          show_bfr_shield = showBfrShield(obj),
           unk4 = Some(false),
           Some(InventoryData(MakeDriverSeat(obj) ++ MakeUtilities(obj) ++ MakeMountings(obj)))
         )
@@ -106,5 +107,9 @@ class BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle]() {
           InventoryItemData(utilDef.ObjectId, util.GUID, index, utilDef.Packet.ConstructorData(util).get)
       })
       .toList
+  }
+
+  def showBfrShield(obj: Vehicle): Boolean = {
+    obj.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.Enabled && obj.Shields > 0
   }
 }

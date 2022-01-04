@@ -15,16 +15,16 @@ final case class DeployableSource(
     position: Vector3,
     orientation: Vector3
 ) extends SourceEntry {
-  override def Name                                              = SourceEntry.NameFormat(obj_def.Name)
-  override def Faction                                           = faction
+  override def Name                                   = obj_def.Descriptor
+  override def Faction                   = faction
   def Definition: ObjectDefinition with DeployableDefinition = obj_def
-  def Health                                                     = health
-  def Shields                                                    = shields
-  def OwnerName                                                  = owner.Name
-  def Position                                                   = position
-  def Orientation                                                = orientation
-  def Velocity                                                   = None
-  def Modifiers                                                  = obj_def.asInstanceOf[ResistanceProfile]
+  def Health                                            = health
+  def Shields                                           = shields
+  def OwnerName                                       = owner.Name
+  def Position                                       = position
+  def Orientation                                    = orientation
+  def Velocity                                               = None
+  def Modifiers                               = obj_def.asInstanceOf[ResistanceProfile]
 }
 
 object DeployableSource {

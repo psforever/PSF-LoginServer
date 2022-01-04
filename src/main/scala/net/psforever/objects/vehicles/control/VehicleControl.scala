@@ -143,7 +143,7 @@ class VehicleControl(vehicle: Vehicle)
         val guid0 = Service.defaultPlayerGUID
         (stateToResolve match {
           case Some(state) =>
-            vehicle.Subsystems().filter { _.enabled == state } //only subsystems that are enabled or are disabled
+            vehicle.Subsystems().filter { _.Enabled == state } //only subsystems that are enabled or are disabled
           case None =>
             vehicle.Subsystems() //all subsystems
         })
@@ -814,6 +814,42 @@ class VehicleControl(vehicle: Vehicle)
         s"parseAttributes: unsupported change on $vguid - $attribute, $dname"
       )
     }
+  }
+
+  override def StartJammeredStatus(target: Any, dur: Int): Unit = {
+    super.StartJammeredStatus(target, dur)
+    vehicleSubsystemAutomaticJammeringMessages()
+  }
+
+  override def CancelJammeredStatus(target: Any): Unit = {
+    super.CancelJammeredStatus(target)
+    vehicleSubsystemAutomaticJammeringMessages()
+  }
+
+  def vehicleSubsystemAutomaticJammering(): List[VehicleSubsystem] = {
+    val vehicleJammered = vehicle.Jammed
+    vehicle
+      .Subsystems()
+      .collect {
+        case sub if sub.sys.jammable && sub.Jammed != vehicleJammered =>
+          sub.Jammed = vehicleJammered
+          sub
+      }
+  }
+
+  def vehicleSubsystemAutomaticJammeringMessages(): Unit = {
+    val zone = vehicle.Zone
+    val zoneid = zone.id
+    val events = zone.VehicleEvents
+    val guid0 = Service.defaultPlayerGUID
+    vehicleSubsystemAutomaticJammering()
+      .filter { _.sys.automaticPublish }
+      .foreach { sub =>
+        events ! VehicleServiceMessage(
+          zoneid,
+          VehicleAction.SendResponse(guid0, sub.getMessage(vehicle))
+        )
+      }
   }
 }
 

@@ -2947,6 +2947,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj))
               }
               ApplyPurchaseTimersBeforePackingLoadout(player, vehicle, added_weapons ++ new_inventory)
+              //jammer or unjamm new weapons based on vehicle status
+              val vehicleJammered = vehicle.Jammed
+              added_weapons
+                .map { _.obj }
+                .collect {
+                  case jamItem: JammableUnit if jamItem.Jammed != vehicleJammered =>
+                    jamItem.Jammed = vehicleJammered
+                    JammableMountedWeapons.JammedWeaponStatus(vehicle.Zone, jamItem, vehicleJammered)
+                }
             } else if (accessedContainer.contains(target)) {
               //external participant: observe changes to equipment
               (old_weapons ++ old_inventory).foreach { case (_, eguid) => sendResponse(ObjectDeleteMessage(eguid, 0)) }
@@ -3594,7 +3603,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   )
                 )
             }
-          vehicle.SubsystemMessages().foreach { SendResponse }
+          vehicle.SubsystemMessages().foreach { sendResponse }
         }
         vehicles.collect {
           case vehicle if vehicle.Faction == faction =>
@@ -4064,9 +4073,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             obj.Position = position
             obj.Orientation = angle
             obj.Velocity = velocity
-//            if (is_crouched && obj.DeploymentState != DriveState.Kneeling) {
-//              //dev stuff goes here
-//            }
+            if (is_crouched && obj.DeploymentState != DriveState.Kneeling) {
+              //dev stuff goes here
+              val attribute = if (progressBarValue.isEmpty) {
+                progressBarValue = Some(255)
+                255
+              } else if (progressBarValue.contains(0)) {
+                0
+              } else {
+                val o = progressBarValue.get - 1f
+                progressBarValue = Some(o)
+                o.toInt
+              }
+              sendResponse(PlanetsideAttributeMessage(obj.GUID, attribute, 0))
+              log.info(s"pam=$attribute")
+            }
 //            else if (!is_crouched && obj.DeploymentState == DriveState.Kneeling) {
 //              //dev stuff goes here
 //            }
@@ -9301,7 +9322,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 "BattleframeLeftArm"
               } else {
                 "BattleframeRightArm"
-              }).get.enabled
+              }).get.Enabled
               if (!mountIsEnabled) {
                 //can't stop the local discharge, but it will not actually shoot anything; assert the magazine
                 sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))

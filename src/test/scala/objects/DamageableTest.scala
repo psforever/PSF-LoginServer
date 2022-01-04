@@ -1437,9 +1437,9 @@ class DamageableVehicleJammeringMountedTest extends FreedContextActorTest {
 
   "handle jammering with mounted vehicles" in {
     assert(lodestar.Health == lodestar.Definition.DefaultHealth)
-    assert(!lodestar.Jammered)
+    assert(!lodestar.Jammed)
     assert(atv.Health == atv.Definition.DefaultHealth)
-    assert(!atv.Jammered)
+    assert(!atv.Jammed)
 
     lodestar.Actor ! Vitality.Damage(applyDamageTo)
     val msg12 = vehicleProbe.receiveOne(500 milliseconds)
@@ -1684,11 +1684,11 @@ class DamageableVehicleDestroyMountedTest extends FreedContextActorTest {
     lodestar.Health = lodestar.Definition.DamageDestroysAt + 1 //initial state manip
     atv.Shields = 1                                            //initial state manip
     assert(lodestar.Health > lodestar.Definition.DamageDestroysAt)
-    assert(!lodestar.Jammered)
+    assert(!lodestar.Jammed)
     assert(!lodestar.Destroyed)
     assert(atv.Health == atv.Definition.DefaultHealth)
     assert(atv.Shields == 1)
-    assert(!atv.Jammered)
+    assert(!atv.Jammed)
     assert(!atv.Destroyed)
 
     lodestar.Actor ! Vitality.Damage(applyDamageToA)

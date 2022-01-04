@@ -173,12 +173,12 @@ object PainboxControl {
           val min = Vector3(
             nearbyAmenities.minBy(_.Position.x).Position.x - 0.5f,
             nearbyAmenities.minBy(_.Position.y).Position.y - 0.5f,
-            nearbyAmenities.minBy(_.Position.z).Position.z
+            nearbyAmenities.minBy(_.Position.z).Position.z - 0.5f
           )
           val max = Vector3(
             nearbyAmenities.maxBy(_.Position.x).Position.x + 0.5f,
             nearbyAmenities.maxBy(_.Position.y).Position.y + 0.5f,
-            painbox.Position.z
+            painbox.Position.z + 0.5f
           )
           (min, max, Vector3.midpoint(min, max))
         case _ =>

@@ -51,31 +51,34 @@ class BfrFlightControl(vehicle: Vehicle)
             false
           })
         }
-        //shields off
-        vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled = false
         //shield drain
         if (vehicle.Shields > 0) {
           vehicle.Definition.ShieldDrain match {
             case Some(drain) if localFlyingValue.isEmpty =>
+              //shields off
               disableShield()
-              vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled = false
+              vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.Enabled = false
               vehicle.Shields -= drain
               showShieldCharge()
             case None if localFlyingValue.isEmpty =>
+              //shields off
               disableShield()
-              vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled = false
+              vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.Enabled = false
             case Some(drain) =>
               vehicle.Shields -= drain
               showShieldCharge()
             case _ => ;
           }
         }
+        if (vehicle.Subsystems(VehicleSubsystemEntry.BattleframeFlightPod).get.Jammed) {
+
+        }
 
       case BfrFlight.Landed =>
         if (flying.nonEmpty) {
           flying = None
           vehicle.Flying = None
-          vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled = true
+          vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.Enabled = true
           if (vehicle.Shields > 0) {
             enableShield()
           }
@@ -117,12 +120,14 @@ class BfrFlightControl(vehicle: Vehicle)
   override def bfrHandiness(side: equipment.Hand): Int = {
     if (side == Handiness.Left) 1
     else if (side == Handiness.Right) 2
-    else throw new Exception("no hand associated with this slot")
+    else throw new Exception("no hand associated with this slot; caller screwed up")
   }
 
   override def bfrHandiness(slot: Int): equipment.Hand = {
     //for the benefit of BFR equipment slots interacting with MoveItemMessage
-    if (slot == 1) Handiness.Left else if (slot == 2) Handiness.Right else Handiness.Generic
+    if (slot == 1) Handiness.Left
+    else if (slot == 2) Handiness.Right
+    else Handiness.Generic
   }
 
   override def bfrHandSubsystem(side: equipment.Hand): Option[VehicleSubsystem] = {

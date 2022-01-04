@@ -8,6 +8,8 @@ trait InteractsWithZone
   extends PlanetSideServerObject {
   /** interactions for this particular entity is allowed */
   private var _allowInteraction: Boolean = true
+  /** maximum interaction range used to generate the commonly tested sector */
+  private var interactionRange: Float = 0.1f
 
   /**
     * If the interactive permissions of this entity change.
@@ -37,16 +39,16 @@ trait InteractsWithZone
 
   def interaction(func: ZoneInteraction): List[ZoneInteraction] = {
     interactions = interactions :+ func
+    if (func.range > interactionRange) {
+      interactionRange = func.range
+    }
     interactions
   }
 
   def interaction(): List[ZoneInteraction] = interactions
 
   def getInteractionSector(): SectorPopulation = {
-    this.Zone.blockMap.sector(
-      this.Position,
-      if (interactions.nonEmpty) interactions.maxBy { _.range }.range else 0.1f
-    )
+    this.Zone.blockMap.sector(this.Position, interactionRange)
   }
 
   def doInteractions(): Unit = {

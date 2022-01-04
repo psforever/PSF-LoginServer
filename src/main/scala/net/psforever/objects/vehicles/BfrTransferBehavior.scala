@@ -74,7 +74,7 @@ trait BfrTransferBehavior
         //find an active ntu siphon
         arm.Equipment.nonEmpty &&
         GlobalDefinitions.isBattleFrameNTUSiphon(arm.Equipment.get.Definition) &&
-        sub.enabled
+        sub.Enabled
       }
       .map { d => d._2.Equipment.get } match {
       case Some(equipment: Tool) =>

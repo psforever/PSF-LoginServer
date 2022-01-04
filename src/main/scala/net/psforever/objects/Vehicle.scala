@@ -98,7 +98,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   private var shields: Int                        = 0
   private var decal: Int                          = 0
   private var trunkAccess: Option[PlanetSideGUID] = None
-  private var jammered: Boolean                   = false
 
   private var cloaked: Boolean                    = false
   private var flying: Option[Int]                 = None
@@ -175,13 +174,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   def Decal_=(logo: Int): Int = {
     decal = logo
     Decal
-  }
-
-  def Jammered: Boolean = jammered
-
-  def Jammered_=(jamState: Boolean): Boolean = {
-    jammered = jamState
-    Jammered
   }
 
   def Cloaked: Boolean = cloaked
@@ -345,7 +337,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def SubsystemMessages(): List[PlanetSideGamePacket] =
     subsystems
-      .filterNot { _.enabled }
+      .filterNot { sub => sub.Enabled != sub.sys.defaultState }
       .map { _.getMessage(vehicle = this) }
 
   override def DeployTime = Definition.DeployTime

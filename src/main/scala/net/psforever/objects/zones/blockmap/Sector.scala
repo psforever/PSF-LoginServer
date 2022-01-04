@@ -284,6 +284,28 @@ object SectorGroup {
   }
 
   /**
+    * Overloaded constructor that takes a single sector
+    * and transfers the lists of entities into a single conglomeration of the sector populations.
+    * @param range a custom range value
+    * @param sector the sector to be counted
+    * @return a `SectorGroup` object
+    */
+  def apply(range: Float, sector: Sector): SectorGroup = {
+    new SectorGroup(
+      range,
+      sector.livePlayerList,
+      sector.corpseList,
+      sector.vehicleList,
+      sector.equipmentOnGroundList,
+      sector.deployableList,
+      sector.buildingList,
+      sector.amenityList,
+      sector.environmentList,
+      sector.projectileList
+    )
+  }
+
+  /**
     * Overloaded constructor that takes a group of sectors
     * and condenses all of the lists of entities into a single conglomeration of the sector populations.
     * @param sectors the series of sectors to be counted
@@ -291,11 +313,28 @@ object SectorGroup {
     */
   def apply(sectors: Iterable[Sector]): SectorGroup = {
     if (sectors.isEmpty) {
-      new SectorGroup(range = 0, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil)
+      SectorGroup(range = 0, sectors = Nil)
+    } else if (sectors.size == 1) {
+      SectorGroup(sectors.head.range, sectors)
+    } else {
+      SectorGroup(sectors.maxBy { _.range }.range, sectors)
+    }
+  }
+
+  /**
+    * Overloaded constructor that takes a group of sectors
+    * and condenses all of the lists of entities into a single conglomeration of the sector populations.
+    * @param range a custom range value
+    * @param sectors the series of sectors to be counted
+    * @return a `SectorGroup` object
+    */
+  def apply(range: Float, sectors: Iterable[Sector]): SectorGroup = {
+    if (sectors.isEmpty) {
+      new SectorGroup(range, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil)
     } else if (sectors.size == 1) {
       val sector = sectors.head
       new SectorGroup(
-        sector.range,
+        range,
         sector.livePlayerList,
         sector.corpseList,
         sector.vehicleList,
@@ -308,7 +347,7 @@ object SectorGroup {
       )
     } else {
       new SectorGroup(
-        sectors.maxBy { _.range }.range,
+        range,
         sectors.flatMap { _.livePlayerList }.toList.distinct,
         sectors.flatMap { _.corpseList }.toList.distinct,
         sectors.flatMap { _.vehicleList }.toList.distinct,

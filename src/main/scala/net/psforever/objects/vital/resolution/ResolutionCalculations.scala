@@ -354,7 +354,7 @@ object ResolutionCalculations {
           {
             data.cause.source.DamageToBattleframeOnly ||
             data.cause.source.DamageToVehicleOnly ||
-            !obj.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.enabled ||
+            !obj.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.Enabled ||
             obj.Shields == 0
           }
         )

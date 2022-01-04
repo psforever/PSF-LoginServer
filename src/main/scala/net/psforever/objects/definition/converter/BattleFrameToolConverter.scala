@@ -21,7 +21,7 @@ class BattleFrameToolConverter extends ObjectCreateConverter[Tool]() {
           alternate = false,
           true,
           None,
-          false,
+          obj.Jammed,
           Some(false),
           None,
           PlanetSideGUID(0)
