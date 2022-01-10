@@ -553,7 +553,7 @@ object GamePacketOpcode extends Enumeration {
       case 0xd0 => noDecoder(UnknownMessage208)
       case 0xd1 => game.DisplayedAwardMessage.decode
       case 0xd2 => game.RespawnAMSInfoMessage.decode
-      case 0xd3 => noDecoder(ComponentDamageMessage)
+      case 0xd3 => game.ComponentDamageMessage.decode
       case 0xd4 => game.GenericObjectActionAtPositionMessage.decode
       case 0xd5 => game.PropertyOverrideMessage.decode
       case 0xd6 => noDecoder(WarpgateLinkOverrideMessage)

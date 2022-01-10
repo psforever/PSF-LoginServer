@@ -4073,24 +4073,63 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             obj.Position = position
             obj.Orientation = angle
             obj.Velocity = velocity
-            if (is_crouched && obj.DeploymentState != DriveState.Kneeling) {
-              //dev stuff goes here
-              val attribute = if (progressBarValue.isEmpty) {
-                progressBarValue = Some(255)
-                255
-              } else if (progressBarValue.contains(0)) {
-                0
-              } else {
-                val o = progressBarValue.get - 1f
-                progressBarValue = Some(o)
-                o.toInt
-              }
-              sendResponse(PlanetsideAttributeMessage(obj.GUID, attribute, 0))
-              log.info(s"pam=$attribute")
-            }
-//            else if (!is_crouched && obj.DeploymentState == DriveState.Kneeling) {
+//            if (is_crouched && obj.DeploymentState != DriveState.Kneeling) {
 //              //dev stuff goes here
 //            }
+//            else
+            if (!is_crouched && obj.DeploymentState == DriveState.Kneeling) {
+              //dev stuff goes here
+              val o = List(
+                (0,Some(ComponentDamageField(4,1065353216,true))),
+//                (3,Some(ComponentDamageField(3,1061997772,true))), //FlightRecharge20
+//                (3,Some(ComponentDamageField(4,1058642329,true))), //FlightRecharge40
+//                (4,Some(ComponentDamageField(5,1077936128,true))), //FlightUseRate200
+//                (5,Some(ComponentDamageField(7,1065353216,false))), //FlightDestroyed
+//                (6,Some(ComponentDamageField(4,1058642329,true))), //FlightHorizontal40
+//                (7,Some(ComponentDamageField(4,1065353216,false))), //FlightOffline
+                (7,Some(ComponentDamageField(5,1065353216,false))),
+//                (8,Some(ComponentDamageField(3,1061997772,true))), //FlightVertical20
+//                (9,Some(ComponentDamageField(5,1065353216,true))), //MovementServoNoTransit
+//                (10,Some(ComponentDamageField(3,1061997772,true))), //MovementServoBackward20
+//                (10,Some(ComponentDamageField(4,1058642329,true))), //MovementServoBackward40
+//                (11,Some(ComponentDamageField(3,1061997772,true))), //MovementServoForward20
+//                (12,Some(ComponentDamageField(5,1053609164,true))), //MovementServoPivot60
+//                (17,Some(ComponentDamageField(4,1065353216,true))), //SensorsNoEnemies
+//                (18,Some(ComponentDamageField(4,1065353216,true))), //SensorsNoEnemyAircraft
+//                (19,Some(ComponentDamageField(4,1065353216,true))), //SensorNoEnemyGround
+//                (20,Some(ComponentDamageField(4,1065353216,true))), //SensorNoEnemyProjectiles
+//                (21,Some(ComponentDamageField(3,1061158912,true))), //SensorRange25
+//                (21,Some(ComponentDamageField(4,1056964608,true))), //SensorRange50
+                (26,Some(ComponentDamageField(3,1073741824,true))),
+                (26,Some(ComponentDamageField(4,1077936128,true))),
+                (26,Some(ComponentDamageField(4,1082130432,true))),
+                (27,Some(ComponentDamageField(3,1073741824,true))),
+                (27,Some(ComponentDamageField(4,1082130432,true))),
+                (27,Some(ComponentDamageField(5,1090519040,true))),
+                (31,Some(ComponentDamageField(3,1061158912,true))),
+                (31,Some(ComponentDamageField(4,1055286886,true))),
+                (31,Some(ComponentDamageField(5,1036831948,true))),
+                (34,Some(ComponentDamageField(3,1073741824,true))),
+                (35,Some(ComponentDamageField(3,1073741824,true))),
+                (35,Some(ComponentDamageField(4,1082130432,true))),
+                (35,Some(ComponentDamageField(5,1090519040,true)))
+              )
+              val (prev, index): (Float, Float) = if (progressBarValue.isEmpty) {
+                progressBarValue = Some(0f)
+                (0, 0)
+              } else if (progressBarValue.contains(o.length - 1f)) {
+                val a = o.length - 1f
+                (a, a)
+              } else {
+                val value = progressBarValue.get + 1.0f
+                progressBarValue = Some(value)
+                (value - 1, value)
+              }
+              val (a, _) = o(prev.toInt)
+              val (c, d) = o(index.toInt)
+              sendResponse(ComponentDamageMessage(obj.GUID, a.toLong, None))
+              sendResponse(ComponentDamageMessage(obj.GUID, c.toLong, d))
+            }
             obj.DeploymentState = if (is_crouched || !notMountedState) DriveState.Kneeling else DriveState.Mobile
             if (notMountedState) {
               if (obj.DeploymentState != DriveState.Kneeling) {
