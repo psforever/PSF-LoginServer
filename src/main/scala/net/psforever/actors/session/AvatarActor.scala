@@ -764,7 +764,7 @@ class AvatarActor(
               Avatar.purchaseCooldowns.get(item) match {
                 case Some(cooldown) =>
                   //only send for items with cooldowns
-                  newTimes = newTimes.updated(item.Name, time)
+                  newTimes = newTimes.updated(name, time)
                   updatePurchaseTimer(name, cooldown.toSeconds, unk1 = true)
                 case _ => ;
               }
@@ -1762,7 +1762,7 @@ class AvatarActor(
   }
 
   def resolveSharedPurchaseTimeNames(pair: (BasicDefinition, String)): Seq[(BasicDefinition, String)] = {
-    val (_, name) = pair
+    val (definition, name) = pair
     if (name.matches("(tr|nc|vs)hev_.+") && Config.app.game.sharedMaxCooldown) {
       val faction = name.take(2)
       (if (faction.equals("nc")) {
@@ -1777,7 +1777,22 @@ class AvatarActor(
         Seq(s"${faction}hev_antipersonnel", s"${faction}hev_antivehicular", s"${faction}hev_antiaircraft")
       )
     } else {
-      Seq(pair)
+      definition match {
+        case vdef: VehicleDefinition
+          if GlobalDefinitions.isBattleFrameFlightVehicle(vdef) =>
+          val bframe = name.substring(0, name.indexOf('_'))
+          val gunner = bframe+"_gunner"
+          Seq((DefinitionUtil.fromString(gunner), gunner), (vdef, name))
+
+        case vdef: VehicleDefinition
+          if GlobalDefinitions.isBattleFrameGunnerVehicle(vdef) =>
+          val bframe = name.substring(0, name.indexOf('_'))
+          val flight = bframe+"_flight"
+          Seq((vdef, name), (DefinitionUtil.fromString(flight), flight))
+
+        case _ =>
+          Seq(pair)
+      }
     }
   }
 

@@ -21,6 +21,7 @@ trait VehicleSubsystemStatusEffect extends VehicleSubsystemVulnerability {
   def state: String
   def priority: Int
   def jamState: Int
+  def getMessage(getState: Int, vehicle: Vehicle): List[PlanetSideGamePacket]
   def jammerMessages(toState: Int, vehicle: Vehicle): List[PlanetSideGamePacket]
   def clearJammerMessages(toState: Int, vehicle: Vehicle): List[PlanetSideGamePacket]
 }
@@ -29,7 +30,7 @@ trait VehicleSubsystemVariableEffectState {
   def getMessage(id:Long, vehicle: Vehicle): List[PlanetSideGamePacket]
 }
 
-sealed abstract class VehicleSubsystemEntry2(
+sealed abstract class VehicleSubsystemEntry(
                                               val value: String,
                                               val statuses: List[VehicleSubsystemStatusEffect],
                                               val startsEnabled: Boolean,
@@ -37,6 +38,8 @@ sealed abstract class VehicleSubsystemEntry2(
                                             ) extends StringEnumEntry /*with VehicleSubsystemVulnerability*/ {
   def this(value: String, statuses: List[VehicleSubsystemStatusEffect]) =
     this(value, statuses, startsEnabled = true, enabledStatus = Nil)
+
+  def defaultState: Boolean = startsEnabled
 
   def damageable: Boolean = statuses.exists { _.damageable }
 
@@ -56,6 +59,10 @@ final case class VehicleComponentEffects(
                                           priority: Int = 0
                                         ) extends VehicleSubsystemStatusEffect {
   def jammable: Boolean = jamState > 0
+
+  def getMessage(toState: Int, vehicle: Vehicle): List[PlanetSideGamePacket] = {
+    states(toState).getMessage(componentId, vehicle)
+  }
 
   def jammerMessages(toState: Int, vehicle: Vehicle): List[PlanetSideGamePacket] = {
     if (toState < jamState) {
@@ -87,7 +94,11 @@ final case class VehicleComponentProgressiveCondition(
 
 sealed abstract class BattleframeShieldGeneratorCondition(code: Int) extends VehicleSubsystemVariableEffectState {
   def getMessage(id: Long, vehicle: Vehicle): List[PlanetSideGamePacket] = {
-    List(GenericObjectActionMessage(vehicle.GUID, code))
+    if (vehicle.Shields > 0) {
+      List(GenericObjectActionMessage(vehicle.GUID, code))
+    } else {
+      Nil
+    }
   }
 }
 
@@ -101,7 +112,7 @@ sealed abstract class BattleframeArmMountCondition(code: Int) extends VehicleSub
   }
 }
 
-object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
+object VehicleSubsystemEntry extends StringEnum[VehicleSubsystemEntry] {
   val values = findValues
 
   private case object PlaceholderNormalReplaceLater extends VehicleSubsystemVariableEffectState {
@@ -122,15 +133,13 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
 
   private case object BattleframeArmInactive extends BattleframeArmMountCondition(code = 39)
 
-  private val bfrArmConditions = List(BattleframeArmActive, BattleframeArmInactive)
-
-  protected abstract class BattleframeArmMount(override val value: String, slot: Int) extends VehicleSubsystemEntry2(
+  protected abstract class BattleframeArmMount(override val value: String, slot: Int) extends VehicleSubsystemEntry(
     value,
     statuses = List(
       VehicleComponentEffects(
         "Toggle",
         slot,
-        bfrArmConditions,
+        List(BattleframeArmActive, BattleframeArmInactive),
         damageable = false,
         jamState = 0
       )
@@ -139,7 +148,7 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
     enabledStatus = List("Toggle")
   )
 
-  case object Controls extends VehicleSubsystemEntry2(
+  case object Controls extends VehicleSubsystemEntry(
     value = "Controls",
     statuses = List(
       VehicleComponentEffects(
@@ -151,10 +160,10 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
       )
     ),
     startsEnabled = true,
-    enabledStatus = List()
+    enabledStatus = List("Impaired")
   )
 
-  case object Ejection extends VehicleSubsystemEntry2(
+  case object Ejection extends VehicleSubsystemEntry(
     value = "Ejection",
     statuses = List(
       VehicleComponentEffects(
@@ -166,10 +175,10 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
       )
     ),
     startsEnabled = true,
-    enabledStatus = List()
+    enabledStatus = List("Offline")
   )
 
-  case object MosquitoRadar extends VehicleSubsystemEntry2(
+  case object MosquitoRadar extends VehicleSubsystemEntry(
     value = "MosquitoRadar",
     statuses = List(
       VehicleComponentEffects(
@@ -181,11 +190,11 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
       )
     ),
     startsEnabled = true,
-    List()
+    enabledStatus = List("Offline")
   )
 
-  case object BattleFrameMovementServos extends VehicleSubsystemEntry2(
-    value = "BattleFrameMovementServos",
+  case object BattleframeMovementServos extends VehicleSubsystemEntry(
+    value = "BattleframeMovementServos",
     statuses = List(
       VehicleComponentEffects(
         "Transit",
@@ -234,7 +243,7 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
     enabledStatus = Nil
   )
 
-  case object BattleframeSensorArray extends VehicleSubsystemEntry2(
+  case object BattleframeSensorArray extends VehicleSubsystemEntry(
     value = "BattleframeSensorArray",
     statuses = List(
       VehicleComponentEffects(
@@ -245,7 +254,8 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
           VehicleComponentProgressiveCondition(5, 1065353216, unk4 = true)
         ),
         damageable = true,
-        jamState = 1
+        jamState = 1,
+        priority = 1
       ),
       VehicleComponentEffects(
         "NoEnemyAircraft",
@@ -255,7 +265,7 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
           VehicleComponentProgressiveCondition(4, 1065353216, unk4 = true)
         ),
         damageable = true,
-        jamState = 1
+        jamState = 0
       ),
       VehicleComponentEffects(
         "NoEnemyGroundVehicles",
@@ -265,7 +275,7 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
           VehicleComponentProgressiveCondition(4, 1065353216, unk4 = true)
         ),
         damageable = true,
-        jamState = 1
+        jamState = 0
       ),
       VehicleComponentEffects(
         "NoEnemyProjectiles",
@@ -275,7 +285,7 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
           VehicleComponentProgressiveCondition(4, 1065353216, unk4 = true)
         ),
         damageable = true,
-        jamState = 1
+        jamState = 0
       ),
       VehicleComponentEffects(
         "SensorRange",
@@ -286,15 +296,15 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
           VehicleComponentProgressiveCondition(4, 1056964608, unk4 = true) //-50
         ),
         damageable = true,
-        jamState = 2
+        jamState = 0
       )
     ),
     startsEnabled = true,
     enabledStatus = Nil
   )
 
-  case object BattleFrameFlightPod extends VehicleSubsystemEntry2(
-    value = "BattleFrameFlightPod",
+  case object BattleframeFlightPod extends VehicleSubsystemEntry(
+    value = "BattleframeFlightPod",
     statuses = List(
       VehicleComponentEffects(
         "FlightRecharge",
@@ -358,7 +368,7 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
     enabledStatus = List("Offline", "Destroyed")
   )
 
-  case object BattleframeShieldGenerator extends VehicleSubsystemEntry2(
+  case object BattleframeShieldGenerator extends VehicleSubsystemEntry(
     value = "BattleFrameShieldGenerator",
     List(
       VehicleComponentEffects(
@@ -376,7 +386,7 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
     enabledStatus = List("Offline")
   )
 
-  case object BattleframeTrunk extends VehicleSubsystemEntry2(
+  case object BattleframeTrunk extends VehicleSubsystemEntry(
     value = "BattleframeTrunk",
     statuses = List(
       VehicleComponentEffects(
@@ -391,7 +401,7 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
     enabledStatus = Nil
   )
 
-  case object BattleframeWeaponry extends VehicleSubsystemEntry2(
+  case object BattleframeWeaponry extends VehicleSubsystemEntry(
     value = "BattleframeWeaponry",
     statuses = List(
       VehicleComponentEffects(
@@ -415,7 +425,17 @@ object VehicleSubsystemEntry2 extends StringEnum[VehicleSubsystemEntry2] {
   case object BattleframeFlightRightArm extends BattleframeArmMount(value = "BattleframeRightArmF", slot = 2)
 }
 
-class VehicleSubsystem2(sys: VehicleSubsystemEntry2)
+//class VehicleSubsystemSupervisor(subs: List[VehicleSubsystemEntry2]) {
+//  def Enabled: Boolean
+//  def Enabled_=(state: Boolean): Boolean
+//
+//  def jammerMessages(vehicle: Vehicle): List[PlanetSideGamePacket]
+//  def clearJammerMessages(vehicle: Vehicle): List[PlanetSideGamePacket]
+//
+//  def currentMessages(vehicle: Vehicle): List[PlanetSideGamePacket]
+//}
+
+class VehicleSubsystem(val sys: VehicleSubsystemEntry)
   extends JammableUnit {
   /** na */
   private val damageStates: Array[Int] = Array.fill[Int](sys.statuses.length)(elem = 0)
@@ -425,24 +445,27 @@ class VehicleSubsystem2(sys: VehicleSubsystemEntry2)
   private var changedWhilejammed: Array[Int] = Array.emptyIntArray
   /** whether this subsystem is currently active or inactive */
   private var enabled: Boolean = sys.startsEnabled
-  /** these statuses represent must be in good condition for the subsystem to be considered operational (enabled) */
+  /** these statuses must be in good condition for the subsystem to be considered operational (enabled) */
   private val enabledStatusIndices = sys.enabledStatus.map {
-    str => sys.statuses.indexOf { stat: VehicleSubsystemStatusEffect => stat.state.equals(str) }
+    str => sys.statuses.indexWhere { _.state.equals(str) }
   }
   //first enabled status condition defaults to a damaged state if the subsystem defaults to disabled
   if (!enabled && enabledStatusIndices.nonEmpty) {
     damageStates(enabledStatusIndices.head) = 1
   }
 
-  def Enabled: Boolean = !Jammed && (if (enabledStatusIndices.nonEmpty) {
-    enabledStatusIndices.forall { damageStates(_) == 0 }
-  } else {
-    enabled
-  })
+  def Enabled: Boolean = {
+    !Jammed && (if (enabledStatusIndices.nonEmpty) {
+      enabledStatusIndices.forall { damageStates(_) == 0 }
+    } else {
+      enabled
+    })
+  }
 
   def Enabled_=(state: Boolean): Boolean = {
     if (enabledStatusIndices.nonEmpty) {
-      val stateAsInt = if (state) { 1 } else { 0 }
+      //inactive = 1; active = 0; see VehicleSubsystemEvent.statuses
+      val stateAsInt = if (state) { 0 } else { 1 }
       if ((stateAsInt == 1 && damageStates(enabledStatusIndices.head) == 0) ||
           (stateAsInt == 0 && damageStates(enabledStatusIndices.head) > 0)) {
         damageStates(enabledStatusIndices.head) = stateAsInt
@@ -454,26 +477,32 @@ class VehicleSubsystem2(sys: VehicleSubsystemEntry2)
 
   def jammerMessages(vehicle: Vehicle): List[PlanetSideGamePacket] = {
     val statuses = sys.statuses
-    val indexed = statuses.indices.toList
-    //find the highest priority amongst the damaged status conditions
-    val highestPriorityDamagedStatus = indexed
-      .filter { i => damageStates(i) > 0 }
-      .maxByOption { i => statuses(i).priority } match {
-      case Some(i) => statuses(i).priority
-      case None    => 0
-    }
-    //find all jammable statuses with priority equal to or greater than the highest priority
-    //ignore all statuses where its current damage state is higher than its jam state (jamming does nothing)
-    //turn the resulting statuses into packets
-    val indices = indexed
-      .filter { i =>
-        val status = statuses(i)
-        status.jammable &&
-        status.priority >= highestPriorityDamagedStatus &&
-        status.jamState > damageStates(i)
+    val sysIndices = if (activeJammedMsgs.isEmpty) {
+      val indexed = statuses.indices.toList
+      //find the highest priority amongst the damaged status conditions
+      val highestPriorityDamagedStatus = indexed
+        .filter { i => damageStates(i) > 0 }
+        .maxByOption { i => statuses(i).priority } match {
+        case Some(i) => statuses(i).priority
+        case None    => 0
       }
-    val msgs = indices.flatMap { i => statuses(i).jammerMessages(toState = -1, vehicle) }
-    activeJammedMsgs = indices
+      //find all jammable statuses with priority equal to or greater than the highest priority
+      //ignore all statuses where its current damage state is higher than its jam state (jamming does nothing)
+      //turn the resulting statuses into packets
+      val indices = indexed
+        .filter { i =>
+          val status = statuses(i)
+          status.jammable &&
+          status.priority >= highestPriorityDamagedStatus &&
+          status.jamState > damageStates(i)
+        }
+      activeJammedMsgs = indices
+      indices
+    } else {
+      activeJammedMsgs
+    }
+    val msgs = sysIndices.flatMap { i => statuses(i).jammerMessages(toState = -1, vehicle) }
+    activeJammedMsgs = sysIndices
     Jammed = msgs.nonEmpty
     msgs
   }
@@ -483,7 +512,7 @@ class VehicleSubsystem2(sys: VehicleSubsystemEntry2)
     if (Jammed) {
       Jammed = false
       val statuses = sys.statuses
-      val clearMsgs = activeJammedMsgs.flatMap { i => statuses(i).clearJammerMessages(toState = -1, vehicle) }
+      val clearMsgs = activeJammedMsgs.flatMap { i => statuses(i).clearJammerMessages(damageStates(i), vehicle) }
       activeJammedMsgs = Nil
       changedWhilejammed = Array.emptyIntArray
       clearMsgs
@@ -492,11 +521,36 @@ class VehicleSubsystem2(sys: VehicleSubsystemEntry2)
     }
   }
 
-  def currentMessages(vehicle: Vehicle): List[PlanetSideGamePacket] = {
+  /**
+    * Produce packets that are tailored to the current active situation of the subsystem.
+    * When the subsystem is jammed, report packets that reflect the jammed conditions.
+    * When not jammed, report any condition that is not neutral / normal.
+    * @param vehicle the vehicle in which the subsystem module is operating
+    * @return game packets that reflect the condition
+    */
+  def getMessage(vehicle: Vehicle): List[PlanetSideGamePacket] = {
     if (Jammed) {
       jammerMessages(vehicle)
     } else {
-      Nil
+      damageStates
+        .zipWithIndex
+        .collect { case (state: Int, index) if state > 0 => sys.statuses(index).getMessage(state, vehicle) }
+        .flatten
+        .toList
     }
+  }
+
+  /**
+    * Regardless of meta-conditions surrounding the subsystem,
+    * always try to produce packets that report the current situation of the subsystem.
+    * May return a condition status "update" that does not actually change anything.
+    * @param vehicle the vehicle in which the subsystem module is operating
+    * @return game packets that reflect the condition
+    */
+  def currentMessages(vehicle: Vehicle): List[PlanetSideGamePacket] = {
+    damageStates
+      .zipWithIndex
+      .flatMap { case (state: Int, index) => sys.statuses(index).getMessage(state, vehicle) }
+      .toList
   }
 }

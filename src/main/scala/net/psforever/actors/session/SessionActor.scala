@@ -2414,7 +2414,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the ${obj.Definition.Name} in ${obj.SeatPermissionGroup(seat_number) match {
           case Some(AccessPermissionGroup.Driver) => "the driver seat"
-          case Some(seatType)                     => s"a $seatType seat, #$seat_number"
+          case Some(seatType)                     => s"a $seatType seat (#$seat_number)"
           case None                               => "a seat"
         }}")
         val obj_guid: PlanetSideGUID = obj.GUID
@@ -2523,9 +2523,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val player_guid: PlanetSideGUID = tplayer.GUID
         if (player_guid == player.GUID) {
           //disembarking self
-          log.info(
-            s"${tplayer.Name} dismounts a ${obj.Definition.asInstanceOf[ObjectDefinition].Name} from seat #$seat_num"
-          )
+          log.info(s"${player.Name} dismounts the ${obj.Definition.Name} from ${obj.SeatPermissionGroup(seat_num) match {
+            case Some(AccessPermissionGroup.Driver) => "the driver seat"
+            case Some(seatType)                     => s"a $seatType seat (#$seat_num)"
+            case None                               => "a seat"
+          }}")
           ConditionalDriverVehicleControl(obj)
           UnaccessContainer(obj)
           DismountAction(tplayer, obj, seat_num)

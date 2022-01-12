@@ -335,10 +335,11 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def Subsystems(sys: String): Option[VehicleSubsystem] = subsystems.find { _.sys.value.contains(sys) }
 
-  def SubsystemMessages(): List[PlanetSideGamePacket] =
+  def SubsystemMessages(): List[PlanetSideGamePacket] = {
     subsystems
-      .filterNot { sub => sub.Enabled != sub.sys.defaultState }
-      .map { _.getMessage(vehicle = this) }
+      .filter { sub => sub.Enabled != sub.sys.defaultState }
+      .flatMap { _.getMessage(vehicle = this) }
+  }
 
   override def DeployTime = Definition.DeployTime
 

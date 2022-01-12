@@ -6700,7 +6700,7 @@ object GlobalDefinitions {
     peregrine_dual_machine_gun.FireModes += new FireModeDefinition
     peregrine_dual_machine_gun.FireModes.head.AmmoTypeIndices += 0
     peregrine_dual_machine_gun.FireModes.head.AmmoSlotIndex = 0
-    peregrine_dual_machine_gun.FireModes.head.Magazine = 150
+    peregrine_dual_machine_gun.FireModes.head.Magazine = 55
     peregrine_dual_machine_gun.Packet = battleFrameToolConverter
     peregrine_dual_machine_gun.Tile = InventoryTile.Tile48
 
@@ -6711,7 +6711,7 @@ object GlobalDefinitions {
     peregrine_dual_machine_gun_left.FireModes += new FireModeDefinition
     peregrine_dual_machine_gun_left.FireModes.head.AmmoTypeIndices += 0
     peregrine_dual_machine_gun_left.FireModes.head.AmmoSlotIndex = 0
-    peregrine_dual_machine_gun_left.FireModes.head.Magazine = 150
+    peregrine_dual_machine_gun_left.FireModes.head.Magazine = 55
     peregrine_dual_machine_gun_left.Packet = battleFrameToolConverter
     peregrine_dual_machine_gun_left.Tile = InventoryTile.Tile48
 
@@ -6722,7 +6722,7 @@ object GlobalDefinitions {
     peregrine_dual_machine_gun_right.FireModes += new FireModeDefinition
     peregrine_dual_machine_gun_right.FireModes.head.AmmoTypeIndices += 0
     peregrine_dual_machine_gun_right.FireModes.head.AmmoSlotIndex = 0
-    peregrine_dual_machine_gun_right.FireModes.head.Magazine = 150
+    peregrine_dual_machine_gun_right.FireModes.head.Magazine = 55
     peregrine_dual_machine_gun_right.Packet = battleFrameToolConverter
     peregrine_dual_machine_gun_right.Tile = InventoryTile.Tile48
 
@@ -8525,9 +8525,13 @@ object GlobalDefinitions {
     val driverSeat = new SeatDefinition() {
       restriction = NoReinforcedOrMax
     }
+    val bailableSeat = new SeatDefinition() {
+      restriction = NoReinforcedOrMax
+      bailable = true
+    }
     val normalSeat = new SeatDefinition()
     val bfrSubsystems = List(
-      VehicleSubsystemEntry.BattleframeMovementServo,
+      VehicleSubsystemEntry.BattleframeMovementServos,
       VehicleSubsystemEntry.BattleframeWeaponry,
       VehicleSubsystemEntry.BattleframeSensorArray,
       VehicleSubsystemEntry.BattleframeShieldGenerator,
@@ -8713,7 +8717,7 @@ object GlobalDefinitions {
     aphelion_flight.ShieldAutoRechargeSpecial = 25
     aphelion_flight.ShieldDrain = 30
     aphelion_flight.DefaultShields = aphelion_flight.MaxShields
-    aphelion_flight.Seats += 0       -> driverSeat
+    aphelion_flight.Seats += 0       -> bailableSeat
     aphelion_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
     aphelion_flight.Weapons += 1     -> aphelion_ppa_left
     aphelion_flight.Weapons += 2     -> aphelion_ppa_right
@@ -8767,7 +8771,7 @@ object GlobalDefinitions {
     colossus_flight.ShieldAutoRechargeSpecial = 25
     colossus_flight.ShieldDrain = 30
     colossus_flight.DefaultShields = colossus_flight.MaxShields
-    colossus_flight.Seats += 0       -> driverSeat
+    colossus_flight.Seats += 0       -> bailableSeat
     colossus_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
     colossus_flight.Weapons += 1     -> colossus_tank_cannon_left
     colossus_flight.Weapons += 2     -> colossus_tank_cannon_right
@@ -8821,7 +8825,7 @@ object GlobalDefinitions {
     peregrine_flight.ShieldAutoRechargeSpecial = 25
     peregrine_flight.ShieldDrain = 30
     peregrine_flight.DefaultShields = peregrine_flight.MaxShields
-    peregrine_flight.Seats += 0       -> driverSeat
+    peregrine_flight.Seats += 0       -> bailableSeat
     peregrine_flight.controlledWeapons(seat = 0, weapons = Set(1, 2))
     peregrine_flight.Weapons += 1     -> peregrine_dual_machine_gun_left
     peregrine_flight.Weapons += 2     -> peregrine_dual_machine_gun_right

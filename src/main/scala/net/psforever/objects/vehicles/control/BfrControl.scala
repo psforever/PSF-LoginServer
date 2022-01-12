@@ -168,6 +168,30 @@ class BfrControl(vehicle: Vehicle)
     }
   }
 
+  override def dismountCleanup(seatBeingDismounted: Int): Unit = {
+    super.dismountCleanup(seatBeingDismounted)
+    if (seatBeingDismounted == 0) {
+      vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator) match {
+        case Some(subsys)
+          if subsys.Enabled && vehicle.Shields > 0 && !(subsys.Enabled = false) =>
+          vehicleSubsystemMessages(subsys.currentMessages(vehicle))
+        case _ => ;
+      }
+    }
+  }
+
+  override def mountCleanup(mount_point: Int, user: Player): Unit = {
+    super.mountCleanup(mount_point, user)
+    if (vehicle.PassengerInSeat(user).contains(0)) {
+      vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator) match {
+        case Some(subsys)
+          if !subsys.Enabled && (subsys.Enabled = true) =>
+          vehicleSubsystemMessages(subsys.currentMessages(vehicle))
+        case _ => ;
+      }
+    }
+  }
+
   override def handleTerminalMessageVehicleLoadout(
                                                     player: Player,
                                                     definition: VehicleDefinition,
@@ -317,16 +341,14 @@ class BfrControl(vehicle: Vehicle)
 
   override def StartJammeredStatus(target: Any, dur: Int): Unit = {
     super.StartJammeredStatus(target, dur)
-    //shields
-    disableShield()
-    shieldCharge(after = 0, vehicle.Definition, delay = 0) //cancels charge timer
+    //cancels shield charge timer
+    shieldCharge(after = 0, vehicle.Definition, delay = 0)
   }
 
   override def CancelJammeredStatus(target: Any): Unit = {
     super.CancelJammeredStatus(target)
-    //shields
-    enableShieldIfNotDrained()
-    shieldCharge(vehicle.Shields, vehicle.Definition, delay = 100) //restarts charge timer
+    //restarts shield charge timer
+    shieldCharge(vehicle.Shields, vehicle.Definition, delay = 100)
   }
 
   override def JammableMountedWeaponsJammeredStatus(target: PlanetSideServerObject with MountedWeapons, statusCode: Int): Unit = {

@@ -26,6 +26,7 @@ import net.psforever.objects.vital.{DamagingActivity, VehicleShieldCharge, Vital
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.zones._
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
@@ -147,7 +148,7 @@ class VehicleControl(vehicle: Vehicle)
           case None =>
             vehicle.Subsystems() //all subsystems
         })
-          .map { _.getMessage(vehicle) }
+          .flatMap { _.getMessage(vehicle) }
           .foreach { pkt =>
             events ! VehicleServiceMessage(toChannel, VehicleAction.SendResponse(guid0, pkt))
           }
@@ -818,15 +819,19 @@ class VehicleControl(vehicle: Vehicle)
 
   override def StartJammeredStatus(target: Any, dur: Int): Unit = {
     super.StartJammeredStatus(target, dur)
-    vehicleSubsystemAutomaticJammeringMessages()
+    vehicleSubsystemMessages(
+      toggleVehicleSubsystemJammering().flatMap { _.jammerMessages(vehicle) }
+    )
   }
 
   override def CancelJammeredStatus(target: Any): Unit = {
     super.CancelJammeredStatus(target)
-    vehicleSubsystemAutomaticJammeringMessages()
+    vehicleSubsystemMessages(
+      toggleVehicleSubsystemJammering().flatMap { _.clearJammerMessages(vehicle) }
+    )
   }
 
-  def vehicleSubsystemAutomaticJammering(): List[VehicleSubsystem] = {
+  def toggleVehicleSubsystemJammering(): List[VehicleSubsystem] = {
     val vehicleJammered = vehicle.Jammed
     vehicle
       .Subsystems()
@@ -837,19 +842,17 @@ class VehicleControl(vehicle: Vehicle)
       }
   }
 
-  def vehicleSubsystemAutomaticJammeringMessages(): Unit = {
+  def vehicleSubsystemMessages(messages: List[PlanetSideGamePacket]): Unit = {
     val zone = vehicle.Zone
     val zoneid = zone.id
     val events = zone.VehicleEvents
     val guid0 = Service.defaultPlayerGUID
-    vehicleSubsystemAutomaticJammering()
-      .filter { _.sys.automaticPublish }
-      .foreach { sub =>
-        events ! VehicleServiceMessage(
-          zoneid,
-          VehicleAction.SendResponse(guid0, sub.getMessage(vehicle))
-        )
-      }
+    messages.foreach { pkt =>
+      events ! VehicleServiceMessage(
+        zoneid,
+        VehicleAction.SendResponse(guid0, pkt)
+      )
+    }
   }
 }
 
