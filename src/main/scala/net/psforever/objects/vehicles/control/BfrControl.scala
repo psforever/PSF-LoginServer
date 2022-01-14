@@ -126,7 +126,7 @@ class BfrControl(vehicle: Vehicle)
           item.asInstanceOf[Tool],
           dimorph.transform(Handiness.Generic).asInstanceOf[ToolDefinition]
         )
-      case None => ; //no dimorphic entry; place as-is
+      case _ => ; //no dimorphic entry; place as-is
     }
     val guid0 = PlanetSideGUID(0)
     //if the weapon arm is disabled, enable it for later (makes life easy)
@@ -170,7 +170,7 @@ class BfrControl(vehicle: Vehicle)
 
   override def dismountCleanup(seatBeingDismounted: Int): Unit = {
     super.dismountCleanup(seatBeingDismounted)
-    if (seatBeingDismounted == 0) {
+    if (!vehicle.Seats.values.exists(_.isOccupied)) {
       vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator) match {
         case Some(subsys)
           if subsys.Enabled && vehicle.Shields > 0 && !(subsys.Enabled = false) =>
@@ -182,7 +182,7 @@ class BfrControl(vehicle: Vehicle)
 
   override def mountCleanup(mount_point: Int, user: Player): Unit = {
     super.mountCleanup(mount_point, user)
-    if (vehicle.PassengerInSeat(user).contains(0)) {
+    if (vehicle.Seats.values.exists(_.isOccupied)) {
       vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator) match {
         case Some(subsys)
           if !subsys.Enabled && (subsys.Enabled = true) =>

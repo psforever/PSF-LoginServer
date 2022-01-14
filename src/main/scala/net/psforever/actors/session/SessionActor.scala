@@ -2523,10 +2523,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val player_guid: PlanetSideGUID = tplayer.GUID
         if (player_guid == player.GUID) {
           //disembarking self
-          log.info(s"${player.Name} dismounts the ${obj.Definition.Name} from ${obj.SeatPermissionGroup(seat_num) match {
-            case Some(AccessPermissionGroup.Driver) => "the driver seat"
-            case Some(seatType)                     => s"a $seatType seat (#$seat_num)"
-            case None                               => "a seat"
+          log.info(s"${player.Name} dismounts the ${obj.Definition.Name}'s ${obj.SeatPermissionGroup(seat_num) match {
+            case Some(AccessPermissionGroup.Driver) => "driver seat"
+            case Some(seatType)                     => s"$seatType seat (#$seat_num)"
+            case None                               => "seat"
           }}")
           ConditionalDriverVehicleControl(obj)
           UnaccessContainer(obj)
@@ -5232,8 +5232,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             vehicle.Actor ! ServerObject.GenericObjectAction(object_guid, code, Some(player.GUID))
 
           case Some(tool: Tool) =>
-            if (tool.Definition == GlobalDefinitions.maelstrom && code == 35) {
-              //maelstrom primary fire mode effect (no target)
+            if (code == 35 &&
+                (tool.Definition == GlobalDefinitions.maelstrom || tool.Definition.Name.startsWith("aphelion_laser"))
+            ) {
+              //maelstrom primary fire mode discharge (no target)
+              //aphelion_laser discharge (no target)
               HandleWeaponFireAccountability(object_guid, PlanetSideGUID(Projectile.baseUID))
             } else {
               ValidObject(player.VehicleSeated, decorator = "GenericObjectAction/Vehicle") match {

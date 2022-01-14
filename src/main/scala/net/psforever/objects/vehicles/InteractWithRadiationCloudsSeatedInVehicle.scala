@@ -46,7 +46,10 @@ class InteractWithRadiationCloudsSeatedInVehicle(
         val definition = cloud.Definition
         definition.radiation_cloud &&
         definition.AllDamageTypes.contains(DamageType.Radiation) &&
-        Zone.distanceCheck(target, cloud, definition.DamageRadius)
+        {
+          val radius = definition.DamageRadius
+          Zone.distanceCheck(target, cloud, radius * radius)
+        }
       }
       .distinct
     val notSkipped = projectiles.filterNot { t => skipTargets.contains(t.GUID) }

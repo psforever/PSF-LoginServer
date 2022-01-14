@@ -131,7 +131,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     * @see `Vehicle.LoadDefinition`
     */
   protected def LoadDefinition(): Unit = {
-    Vehicle.LoadDefinition(this)
+    Vehicle.LoadDefinition(vehicle = this)
   }
 
   def Faction: PlanetSideEmpire.Value = {

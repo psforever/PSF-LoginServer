@@ -43,7 +43,8 @@ class InteractWithRadiationClouds(
         val projectiles = sector
           .projectileList
           .filter { cloud =>
-            cloud.Definition.radiation_cloud && Zone.distanceCheck(target, cloud, cloud.Definition.DamageRadius)
+            val radius = cloud.Definition.DamageRadius
+            cloud.Definition.radiation_cloud && Zone.distanceCheck(target, cloud, radius * radius)
           }
           .distinct
         val notSkipped = projectiles.filterNot { t => skipTargets.contains(t.GUID) }

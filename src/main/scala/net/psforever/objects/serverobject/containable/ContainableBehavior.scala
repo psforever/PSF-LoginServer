@@ -4,11 +4,11 @@ package net.psforever.objects.serverobject.containable
 import akka.actor.{Actor, ActorRef}
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
-import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{BoomerTrigger, GlobalDefinitions, Player}
+import net.psforever.objects._
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -440,7 +440,7 @@ object ContainableBehavior {
       item: Equipment,
       dest: Int
   ): Option[List[InventoryItem]] = {
-    if (ContainableBehavior.PermitEquipmentStow(destination, item)) {
+    if (ContainableBehavior.PermitEquipmentStow(destination, item, dest)) {
       val tile                     = item.Definition.Tile
       val destinationCollisionTest = destination.Collisions(dest, tile.Width, tile.Height)
       destinationCollisionTest match {
@@ -514,7 +514,7 @@ object ContainableBehavior {
   def TryPutItemAway(destination: PlanetSideServerObject with Container, item: Equipment): Option[Int] = {
     destination.Fit(item) match {
       case out @ Some(dest)
-          if ContainableBehavior.PermitEquipmentStow(destination, item) && (destination.Slot(dest).Equipment = item)
+          if ContainableBehavior.PermitEquipmentStow(destination, item, dest) && (destination.Slot(dest).Equipment = item)
             .contains(item) =>
         out
       case _ =>
@@ -590,13 +590,29 @@ object ContainableBehavior {
     * @return `true`, if the object is allowed to contain the type of equipment object;
     *        `false`, otherwise
     */
-  def PermitEquipmentStow(destination: PlanetSideServerObject with Container, equipment: Equipment): Boolean = {
+  def PermitEquipmentStow(
+                           destination: PlanetSideServerObject with Container,
+                           equipment: Equipment,
+                           dest: Int
+                         ): Boolean = {
     import net.psforever.objects.{BoomerTrigger, Player}
     equipment match {
-      case _: BoomerTrigger =>
+      case _ : BoomerTrigger =>
         //a BoomerTrigger can only be stowed in a player's holsters or inventory
         //this is only a requirement until they, and their Boomer explosive complement, are cleaned-up properly
         destination.isInstanceOf[Player]
+      case weapon : Tool
+        if weapon.Size == EquipmentSize.BFRArmWeapon || weapon.Size == EquipmentSize.BFRGunnerWeapon =>
+        //Battleframe weaponry must be placed in an appropriate equipment mount spot, or held in the player's free hand
+        destination match {
+          case v: Vehicle
+            if GlobalDefinitions.isBattleFrameVehicle(v.Definition) =>
+            v.VisibleSlots.contains(dest)
+          case p: Player =>
+            dest == Player.FreeHandSlot
+          case _ =>
+            false
+        }
       case _ =>
         true
     }

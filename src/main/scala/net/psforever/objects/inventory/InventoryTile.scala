@@ -25,14 +25,14 @@ object InventoryTile {
   final val Tile33   = InventoryTile(3, 3)   //ammo box, pistols, ace
   final val Tile42   = InventoryTile(4, 2)   //medkit
   final val Tile44   = InventoryTile(4, 4)   //large ammo box
-  final val Tile48   = InventoryTile(4, 8)   //bfr arm weapons
-  final val Tile410  = InventoryTile(4, 10)  //bfr gunner weapons
   final val Tile55   = InventoryTile(5, 5)   //bfr ammo box
   final val Tile66   = InventoryTile(6, 6)   //infiltration suit inventory
   final val Tile63   = InventoryTile(6, 3)   //rifles
   final val Tile93   = InventoryTile(9, 3)   //long-body weapons
+  final val Tile84   = InventoryTile(8, 4)   //bfr arm weapons
   final val Tile96   = InventoryTile(9, 6)   //standard exo-suit inventory
   final val Tile99   = InventoryTile(9, 9)   //agile exo-suit inventory
+  final val Tile1004 = InventoryTile(10, 4)  //bfr gunner weapons
   final val Tile1107 = InventoryTile(11, 7)  //uncommon small trunk capacity - phantasm
   final val Tile1111 = InventoryTile(11, 11) //common small trunk capacity
   final val Tile1209 = InventoryTile(12, 9)  //reinforced exo-suit inventory
