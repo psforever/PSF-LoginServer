@@ -13,14 +13,14 @@ import net.psforever.packet.game.DeployableIcon
 import net.psforever.types.PlanetSideEmpire
 
 trait BaseDeployable
-  extends PlanetSideServerObject
+    extends PlanetSideServerObject
     with FactionAffinity
     with BlockMapEntity
     with Vitality
     with OwnableByPlayer
     with ZoneAware {
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-  private var shields: Int = 0
+  private var shields: Int                    = 0
 
   def Shields: Int = shields
 
@@ -47,8 +47,7 @@ trait BaseDeployable
   def Definition: DeployableDefinition
 }
 
-abstract class Deployable(cdef: DeployableDefinition)
-  extends BaseDeployable {
+abstract class Deployable(cdef: DeployableDefinition) extends BaseDeployable {
   def Definition: DeployableDefinition = cdef
 }
 
@@ -88,7 +87,7 @@ object Deployable {
 
     private val deployablesToCategories: Map[DeployedItem.Value, DeployableCategory.Value] = Map(
       DeployedItem.boomer                      -> DeployableCategory.Boomers,
-      DeployedItem.he_mine                     -> DeployableCategory.Mines,
+      DeployedItem.high_explosive_mine         -> DeployableCategory.Mines,
       DeployedItem.jammer_mine                 -> DeployableCategory.Mines,
       DeployedItem.spitfire_turret             -> DeployableCategory.SmallTurrets,
       DeployedItem.motionalarmsensor           -> DeployableCategory.Sensors,
@@ -110,7 +109,7 @@ object Deployable {
 
     private val ceicon: Map[Int, DeployableIcon.Value] = Map(
       DeployedItem.boomer.id                      -> DeployableIcon.Boomer,
-      DeployedItem.he_mine.id                     -> DeployableIcon.HEMine,
+      DeployedItem.high_explosive_mine.id         -> DeployableIcon.HEMine,
       DeployedItem.jammer_mine.id                 -> DeployableIcon.DisruptorMine,
       DeployedItem.spitfire_turret.id             -> DeployableIcon.SpitfireTurret,
       DeployedItem.spitfire_cloaked.id            -> DeployableIcon.ShadowTurret,
@@ -138,7 +137,7 @@ object Deployable {
       */
     private val planetsideAttribute: Map[DeployedItem.Value, (Int, Int)] = Map(
       DeployedItem.boomer                      -> (94, 83),
-      DeployedItem.he_mine                     -> (95, 84),
+      DeployedItem.high_explosive_mine         -> (95, 84),
       DeployedItem.jammer_mine                 -> (96, 85),
       DeployedItem.spitfire_turret             -> (97, 86),
       DeployedItem.motionalarmsensor           -> (98, 87),
