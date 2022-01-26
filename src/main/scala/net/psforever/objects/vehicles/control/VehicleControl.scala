@@ -175,24 +175,29 @@ class VehicleControl(vehicle: Vehicle)
         }
 
       case Terminal.TerminalMessage(player, msg, reply) =>
-        reply match {
-          case Terminal.VehicleLoadout(definition, weapons, inventory) =>
-            org.log4s
-              .getLogger(vehicle.Definition.Name)
-              .info(s"changing vehicle equipment loadout to ${player.Name}'s option #${msg.unk1 + 1}")
-            val (oldWeapons, newWeapons, oldInventory, finalInventory) =
-              handleTerminalMessageVehicleLoadout(player, definition, weapons, inventory)
-            val zone = vehicle.Zone
-            zone.VehicleEvents ! VehicleServiceMessage(
-              zone.id,
-              VehicleAction.ChangeLoadout(vehicle.GUID, oldWeapons, newWeapons, oldInventory, finalInventory)
-            )
-            zone.AvatarEvents ! AvatarServiceMessage(
-              player.Name,
-              AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true)
-            )
+        val zone = vehicle.Zone
+        if (permitTerminalMessage(player, msg)) {
+          reply match {
+            case Terminal.VehicleLoadout(definition, weapons, inventory) =>
+              log.info(s"changing vehicle equipment loadout to ${player.Name}'s option #${msg.unk1 + 1}")
+              val (oldWeapons, newWeapons, oldInventory, finalInventory) =
+                handleTerminalMessageVehicleLoadout(player, definition, weapons, inventory)
+              zone.VehicleEvents ! VehicleServiceMessage(
+                zone.id,
+                VehicleAction.ChangeLoadout(vehicle.GUID, oldWeapons, newWeapons, oldInventory, finalInventory)
+              )
+              zone.AvatarEvents ! AvatarServiceMessage(
+                player.Name,
+                AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true)
+              )
 
-          case _ => ;
+            case _ => ;
+          }
+        } else {
+          zone.AvatarEvents ! AvatarServiceMessage(
+            player.Name,
+            AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, false)
+          )
         }
 
       case VehicleControl.Disable() =>
@@ -502,6 +507,8 @@ class VehicleControl(vehicle: Vehicle)
       VehicleAction.ObjectDelete(item.GUID)
     )
   }
+
+  def permitTerminalMessage(player: Player, msg: ItemTransactionMessage): Boolean = true
 
   def handleTerminalMessageVehicleLoadout(
                                            player: Player,
@@ -819,27 +826,20 @@ class VehicleControl(vehicle: Vehicle)
 
   override def StartJammeredStatus(target: Any, dur: Int): Unit = {
     super.StartJammeredStatus(target, dur)
-    vehicleSubsystemMessages(
-      toggleVehicleSubsystemJammering().flatMap { _.jammerMessages(vehicle) }
-    )
+    val subsystems = vehicle.Subsystems()
+    if (!subsystems.exists { _.Jammed }) {
+      subsystems.foreach { _.jam() }
+      vehicleSubsystemMessages(subsystems.flatMap { _.changedMessages(vehicle) })
+    }
   }
 
   override def CancelJammeredStatus(target: Any): Unit = {
     super.CancelJammeredStatus(target)
-    vehicleSubsystemMessages(
-      toggleVehicleSubsystemJammering().flatMap { _.clearJammerMessages(vehicle) }
-    )
-  }
-
-  def toggleVehicleSubsystemJammering(): List[VehicleSubsystem] = {
-    val vehicleJammered = vehicle.Jammed
-    vehicle
-      .Subsystems()
-      .collect {
-        case sub if sub.sys.jammable && sub.Jammed != vehicleJammered =>
-          sub.Jammed = vehicleJammered
-          sub
-      }
+    val subsystems = vehicle.Subsystems()
+    if (subsystems.exists { _.Jammed }) {
+      subsystems.foreach { _.unjam() }
+      vehicleSubsystemMessages(subsystems.flatMap { _.changedMessages(vehicle) })
+    }
   }
 
   def vehicleSubsystemMessages(messages: List[PlanetSideGamePacket]): Unit = {

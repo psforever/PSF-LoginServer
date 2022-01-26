@@ -41,7 +41,7 @@ trait BfrTransferBehavior
       val obj = ChargeTransferObject
       val pairs = obj.Subsystems()
         .filter { sub =>
-          sub.sys.value.startsWith("BattleframeLeftArm") || sub.sys.value.startsWith("BattleframeRightArm")
+          sub.sys.name.startsWith("BattleframeLeftArm") || sub.sys.name.startsWith("BattleframeRightArm")
         }
         .zip(
           obj.Weapons.filter { case (a, _) =>

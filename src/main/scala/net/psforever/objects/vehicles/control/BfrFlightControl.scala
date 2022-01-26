@@ -43,7 +43,8 @@ class BfrFlightControl(vehicle: Vehicle)
             (vdrain, vdrain + hdrain)
           }
           flying = Some(if (cdrain > 0) {
-            if (super.capacitorOnlyCharge(-cdrain) || vehicle.Capacitor < vehicle.Definition.MaxCapacitor) {
+            val modDrain = math.max(1, (cdrain * vehicle.SubsystemStatusMultiplier(sys = "BattleframeFlightPod.UseRate")).toInt)
+            if (super.capacitorOnlyCharge(-modDrain) || vehicle.Capacitor < vehicle.Definition.MaxCapacitor) {
               startCapacitorTimer()
             }
             true
@@ -111,7 +112,8 @@ class BfrFlightControl(vehicle: Vehicle)
 
   override protected def capacitorOnlyCharge(amount: Int): Boolean = {
     if (flying.isEmpty || flying.contains(false)) {
-      super.capacitorOnlyCharge(amount)
+      val mod = math.max(1, amount * vehicle.SubsystemStatusMultiplier(sys = "BattleframeFlightPod.RechargeRate").toInt)
+      super.capacitorOnlyCharge(mod)
     } else {
       false
     }

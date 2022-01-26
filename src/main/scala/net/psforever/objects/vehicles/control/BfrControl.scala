@@ -15,10 +15,10 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ChatMsg, GenericObjectActionMessage, TriggerEffectMessage, TriggeredEffectLocation}
+import net.psforever.packet.game._
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.types.{ChatMessageType, DriveState, PlanetSideGUID}
+import net.psforever.types._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -160,21 +160,28 @@ class BfrControl(vehicle: Vehicle)
     }
     super.PutItemInSlotCallback(item, slot)
     specialArmWeaponEquipManagement(item, slot, handiness)
-    val vehicleJammered = vehicle.Jammed
-    item match {
-      case jamItem: JammableUnit if jamItem.Jammed != vehicleJammered =>
-        JammableMountedWeapons.JammedWeaponStatus(vehicle.Zone, jamItem, { if (vehicleJammered) 1 else 0 })
-      case _ => ;
-    }
   }
 
   override def dismountCleanup(seatBeingDismounted: Int): Unit = {
     super.dismountCleanup(seatBeingDismounted)
     if (!vehicle.Seats.values.exists(_.isOccupied)) {
       vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator) match {
-        case Some(subsys)
-          if subsys.Enabled && vehicle.Shields > 0 && !(subsys.Enabled = false) =>
-          vehicleSubsystemMessages(subsys.currentMessages(vehicle))
+        case Some(subsys) =>
+            if (vehicle.Shields > 0) {
+              vehicleSubsystemMessages(
+                if (subsys.Enabled && !subsys.Enabled_=(state = false)) {
+                  //turn off shield visually
+                  subsys.changedMessages(vehicle)
+                } else if (subsys.Jammed || subsys.stateOfStatus(statusName = "Damaged").contains(false)) {
+                  //hard coded: shield is "off" functionally, turn off static effect and turn off standard shield swirl
+                  ComponentDamageMessage(vehicle.GUID, SubsystemComponent.ShieldGeneratorOffline, None) +:
+                  BattleframeShieldGeneratorOffline.getMessage(SubsystemComponent.ShieldGeneratorOffline, vehicle, vehicle.GUID)
+                } else {
+                  //shield is already off visually
+                  Nil
+                }
+              )
+            }
         case _ => ;
       }
     }
@@ -185,10 +192,19 @@ class BfrControl(vehicle: Vehicle)
     if (vehicle.Seats.values.exists(_.isOccupied)) {
       vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator) match {
         case Some(subsys)
-          if !subsys.Enabled && (subsys.Enabled = true) =>
-          vehicleSubsystemMessages(subsys.currentMessages(vehicle))
+          if !subsys.Enabled && vehicle.Shields > 0 && subsys.Enabled_=(state = true) =>
+          //if the shield is damaged, it does not turn on until the damaged is cleared
+          vehicleSubsystemMessages(subsys.changedMessages(vehicle))
         case _ => ;
       }
+    }
+  }
+
+  override def permitTerminalMessage(player: Player, msg: ItemTransactionMessage): Boolean = {
+    if (msg.transaction_type == TransactionType.Loadout) {
+      !vehicle.Jammed
+    } else {
+      true
     }
   }
 
@@ -297,14 +313,14 @@ class BfrControl(vehicle: Vehicle)
     val definition = vehicle.Definition
     val before = vehicle.Shields
     if (canChargeShields()) {
-      val chargeAmount = (if (vehicle.DeploymentState == DriveState.Kneeling || vehicle.Seats(0).occupant.nonEmpty) {
+      val chargeAmount = math.max(1, ((if (vehicle.DeploymentState == DriveState.Kneeling && vehicle.Seats(0).occupant.nonEmpty) {
         definition.ShieldAutoRechargeSpecial
       } else {
         definition.ShieldAutoRecharge
-      }).getOrElse(amount)
-      vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), chargeAmount))
+      }).getOrElse(amount) * vehicle.SubsystemStatusMultiplier(sys = "BattleframeShieldGenerator.RechargeRate")).toInt)
       vehicle.Shields = before + chargeAmount
       val after = vehicle.Shields
+      vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), after - before))
       showShieldCharge()
       if (before == 0 && after > 0) {
         enableShield()

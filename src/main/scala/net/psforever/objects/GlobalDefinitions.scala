@@ -8532,18 +8532,22 @@ object GlobalDefinitions {
     val normalSeat = new SeatDefinition()
     val bfrSubsystems = List(
       VehicleSubsystemEntry.BattleframeMovementServos,
-      VehicleSubsystemEntry.BattleframeWeaponry,
       VehicleSubsystemEntry.BattleframeSensorArray,
       VehicleSubsystemEntry.BattleframeShieldGenerator,
       VehicleSubsystemEntry.BattleframeTrunk
     )
     val bfrGunnerSubsystems = List(
       VehicleSubsystemEntry.BattleframeLeftArm,
-      VehicleSubsystemEntry.BattleframeRightArm
+      VehicleSubsystemEntry.BattleframeRightArm,
+      VehicleSubsystemEntry.BattleframeLeftWeapon,
+      VehicleSubsystemEntry.BattleframeRightWeapon,
+      VehicleSubsystemEntry.BattleframeGunnerWeapon
     ) ++ bfrSubsystems
     val bfrFlightSubsystems = List(
       VehicleSubsystemEntry.BattleframeFlightLeftArm,
-      VehicleSubsystemEntry.BattleframeFlightRightArm
+      VehicleSubsystemEntry.BattleframeFlightRightArm,
+      VehicleSubsystemEntry.BattleframeFlightLeftWeapon,
+      VehicleSubsystemEntry.BattleframeFlightRightWeapon
     ) ++ bfrSubsystems ++ List(
       VehicleSubsystemEntry.BattleframeFlightPod
     )

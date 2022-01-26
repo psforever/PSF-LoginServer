@@ -1,46 +1,72 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.packet.game
 
-import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import net.psforever.types.PlanetSideGUID
+import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.types.{PlanetSideGUID, SubsystemComponent}
 import scodec.codecs._
 import scodec.Codec
 
 /**
-  * na
-  * @param unk1 na;
-  *             usually, 3 to 7
-  * @param unk2 na
-  * @param unk3 na;
-  *             usually, `true`
+  * The status of the component's changing condition,
+  * including the level of alert the player experiences when the change occurs.
+  * @param alarm_level the klaxon sound effect associated with this damage
+  * @param damage the amount of damage (encoded ...)
+  * @param unk na;
+  *            usually, `true`;
+  *            known `false` states during shield generator offline and destruction conditions
   */
-final case class ComponentDamageField(unk1: Long, unk2: Long, unk3: Boolean)
+final case class ComponentDamageField(alarm_level: Long, damage: Long, unk: Boolean)
 
 object ComponentDamageField {
-  def apply(unk1: Long, unk2: Long): ComponentDamageField = ComponentDamageField(unk1, unk2, unk3 = false)
+  def apply(alarmLevel: Long, dam: Long): ComponentDamageField = ComponentDamageField(alarmLevel, dam, unk = true)
 }
 
 /**
-  * na
-  * @param guid the vehicle that owns this component
-  * @param unk1 na;
-  *             usually, 0 to 35
-  * @param unk2 specific about the component damage;
-  *             `None`, when damage issues are cleared
+  * Vehicles have aspects that are neither registered -
+  * do not necessarily represented unique entities of the vehicle -
+  * and are not statistical behaviors derived from the same level as the game files -
+  * modify vehicle stats but are not vehicle stats themselves.
+  * When these "components of the vehicle" are affected, however,
+  * such as when the vehicle has been jammed or when it has sustained damage,
+  * changes to the handling of the vehicle will occur through the said statistical mechanics.
+  * @see `VehicleSubsystem`
+  * @see `VehicleSubsystemEntity`
+  * @param guid the entity that owns this component, usually a vehicle
+  * @param component the subsystem, or part of the subsystem, being affected
+  * @param status specific about the component damage;
+  *               `None`, when damage issues are cleared
   */
-final case class ComponentDamageMessage(guid: PlanetSideGUID, unk1: Long, unk2: Option[ComponentDamageField])
-  extends PlanetSideGamePacket {
+final case class ComponentDamageMessage(
+                                         guid: PlanetSideGUID,
+                                         component: SubsystemComponent,
+                                         status: Option[ComponentDamageField]
+                                       ) extends PlanetSideGamePacket {
   type Packet = ComponentDamageMessage
   def opcode = GamePacketOpcode.ComponentDamageMessage
   def encode = ComponentDamageMessage.encode(this)
 }
 
 object ComponentDamageMessage extends Marshallable[ComponentDamageMessage] {
-  def apply(guid: PlanetSideGUID, unk: Long): ComponentDamageMessage =
-    ComponentDamageMessage(guid, unk, None)
+  /**
+    * Overloaded constructor where the component's current state is be cleared.
+    * @param guid the entity that owns this component, usually a vehicle
+    * @param component the subsystem, or part of the subsystem, being affected
+    * @return a `ComponentDamageMessage` packet
+    */
+  def apply(guid: PlanetSideGUID, component: SubsystemComponent): ComponentDamageMessage =
+    ComponentDamageMessage(guid, component, None)
 
-  def apply(guid: PlanetSideGUID, unk1: Long, unk2: ComponentDamageField): ComponentDamageMessage =
-    ComponentDamageMessage(guid, unk1, Some(unk2))
+  /**
+    * Overloaded constructor where the component's current state is always defined.
+    * @param guid the entity that owns this component, usually a vehicle
+    * @param component the subsystem, or part of the subsystem, being affected
+    * @param status specific about the component damage
+    * @return a `ComponentDamageMessage` packet
+    */
+  def apply(guid: PlanetSideGUID, component: SubsystemComponent, status: ComponentDamageField): ComponentDamageMessage =
+    ComponentDamageMessage(guid, component, Some(status))
+
+  private val subsystemComponentCodec = PacketHelpers.createLongIntEnumCodec(SubsystemComponent, uint32L)
 
   private val componentDamageFieldCodec: Codec[ComponentDamageField] = (
     ("unk1" | uint32L) ::
@@ -50,7 +76,7 @@ object ComponentDamageMessage extends Marshallable[ComponentDamageMessage] {
 
   implicit val codec: Codec[ComponentDamageMessage] = (
     ("guid" | PlanetSideGUID.codec) ::
-    ("unk1" | uint32L) ::
-    ("unk2" | optional(bool, componentDamageFieldCodec))
+    ("component" | subsystemComponentCodec) ::
+    ("status" | optional(bool, componentDamageFieldCodec))
     ).as[ComponentDamageMessage]
 }

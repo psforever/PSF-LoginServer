@@ -379,14 +379,15 @@ object ContainableBehavior {
       item: Equipment
   ): (Option[Int], Option[Equipment]) = {
     source.Find(item) match {
-      case slot @ Some(index) =>
+      case slot @ Some(index)
+        if ContainableBehavior.PermitEquipmentExtract(source, item, index)=>
         source.Slot(index).Equipment = None
         if (source.Slot(index).Equipment.isEmpty) {
           (slot, Some(item))
         } else {
           (None, None)
         }
-      case None =>
+      case _ =>
         (None, None)
     }
   }
@@ -408,14 +409,14 @@ object ContainableBehavior {
       source: PlanetSideServerObject with Container,
       slot: Int
   ): (Option[Int], Option[Equipment]) = {
-    val (item, outSlot) = source.Slot(slot).Equipment match {
-      case Some(thing) => (Some(thing), source.Find(thing))
-      case None        => (None, None)
-    }
-    source.Slot(slot).Equipment = None
-    item match {
-      case Some(_) if item.nonEmpty && source.Slot(slot).Equipment.isEmpty =>
-        (outSlot, item)
+    source.Slot(slot).Equipment match {
+      case Some(thing)
+        if ContainableBehavior.PermitEquipmentExtract(source, thing, slot) =>
+        if ((source.Slot(slot).Equipment = None).isEmpty) {
+          (Some(slot), Some(thing))
+        } else {
+          (None, None)
+        }
       case _ =>
         (None, None)
     }
@@ -581,10 +582,38 @@ object ContainableBehavior {
     }
   }
 
+  //TODO convert PermitEquipmentExtract and PermitEquipmentStow into instance methods?
+  /**
+    * Apply incontestable, arbitrary limitations
+    * whereby certain items are denied removal from certain containers
+    * for vaguely documented but assuredly fantastic excuses on the part of the developer.
+    * @see `ContainableBehavior.PermitEquipmentStow`
+    * @param source the container
+    * @param equipment the item to be removed
+    * @param slot where the equipment can be found
+    * @return `true`, if the type of equipment object is allowed to be removed from the containing entity;
+    *        `false`, otherwise
+    */
+  def PermitEquipmentExtract(
+                              source: PlanetSideServerObject with Container,
+                              equipment: Equipment,
+                              slot: Int
+                            ): Boolean = {
+    source match {
+      case v: Vehicle if v.VisibleSlots.contains(slot) =>
+        //can not remove equipment slot items if vehicle is jammed
+        //applies mostly to BFR's, but we do not need to filter
+        !v.Jammed
+      case _ =>
+        true
+    }
+  }
+
   /**
     * Apply incontestable, arbitrary limitations
     * whereby certain items are denied insertion into certain containers
     * for vaguely documented but assuredly fantastic excuses on the part of the developer.
+    * @see `ContainableBehavior.PermitEquipmentExtract`
     * @param destination the container
     * @param equipment the item to be inserted
     * @return `true`, if the object is allowed to contain the type of equipment object;
@@ -597,18 +626,19 @@ object ContainableBehavior {
                          ): Boolean = {
     import net.psforever.objects.{BoomerTrigger, Player}
     equipment match {
-      case _ : BoomerTrigger =>
+      case _: BoomerTrigger =>
         //a BoomerTrigger can only be stowed in a player's holsters or inventory
         //this is only a requirement until they, and their Boomer explosive complement, are cleaned-up properly
         destination.isInstanceOf[Player]
-      case weapon : Tool
+      case weapon: Tool
         if weapon.Size == EquipmentSize.BFRArmWeapon || weapon.Size == EquipmentSize.BFRGunnerWeapon =>
         //Battleframe weaponry must be placed in an appropriate equipment mount spot, or held in the player's free hand
+        //if in the vehicle slots, then the vehicle must not be jammed
         destination match {
           case v: Vehicle
             if GlobalDefinitions.isBattleFrameVehicle(v.Definition) =>
-            v.VisibleSlots.contains(dest)
-          case p: Player =>
+            v.VisibleSlots.contains(dest) && !v.Jammed
+          case _: Player =>
             dest == Player.FreeHandSlot
           case _ =>
             false
