@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.projectile.ProjectileReason
-import net.psforever.objects.zones.ZoneAware
+import net.psforever.objects.zones.{Zone, ZoneAware}
 import net.psforever.types.Vector3
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -254,7 +254,7 @@ trait JammableMountedWeapons extends JammableBehavior {
   override def StartJammeredStatus(target: Any, dur: Int): Unit = {
     target match {
       case obj: PlanetSideServerObject with MountedWeapons with JammableUnit if !obj.Jammed =>
-        JammableMountedWeapons.JammeredStatus(obj, 1)
+        JammableMountedWeaponsJammeredStatus(obj, statusCode = 1)
         super.StartJammeredStatus(target, dur)
       case _ => ;
     }
@@ -275,10 +275,14 @@ trait JammableMountedWeapons extends JammableBehavior {
   override def CancelJammeredStatus(target: Any): Unit = {
     target match {
       case obj: PlanetSideServerObject with MountedWeapons with JammableUnit if obj.Jammed =>
-        JammableMountedWeapons.JammeredStatus(obj, 0)
+        JammableMountedWeaponsJammeredStatus(obj, statusCode = 0)
       case _ => ;
     }
     super.CancelJammeredStatus(target)
+  }
+
+  def JammableMountedWeaponsJammeredStatus(target: PlanetSideServerObject with MountedWeapons, statusCode: Int): Unit = {
+    JammableMountedWeapons.JammeredStatus(target, statusCode)
   }
 }
 
@@ -292,17 +296,20 @@ object JammableMountedWeapons {
     *                   1 for activation
     */
   def JammeredStatus(target: PlanetSideServerObject with MountedWeapons, statusCode: Int): Unit = {
-    val zone   = target.Zone
-    val zoneId = zone.id
+    val zone = target.Zone
     target.Weapons.values
       .map { _.Equipment }
       .collect {
         case Some(item: Tool) =>
-          item.Jammed = statusCode == 1
-          zone.VehicleEvents ! VehicleServiceMessage(
-            zoneId,
-            VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, item.GUID, 27, statusCode)
-          )
+          JammedWeaponStatus(zone, item, statusCode)
       }
+  }
+
+  def JammedWeaponStatus(zone: Zone, target: Equipment with JammableUnit, statusCode: Int): Unit = {
+    target.Jammed = statusCode == 1
+    zone.VehicleEvents ! VehicleServiceMessage(
+      zone.id,
+      VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 27, statusCode)
+    )
   }
 }

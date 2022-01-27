@@ -2,6 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.avatar.{Avatar, LoadoutManager, SpecialCarry}
+import net.psforever.objects.ballistics.InteractWithRadiationClouds
 import net.psforever.objects.ce.{Deployable, InteractWithMines}
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
@@ -15,7 +16,7 @@ import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resolution.DamageResistanceModel
-import net.psforever.objects.zones.blockmap.BlockMapEntity
+import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorPopulation}
 import net.psforever.objects.zones.{InteractsWithZone, ZoneAware, Zoning}
 import net.psforever.types.{PlanetSideGUID, _}
 
@@ -36,6 +37,7 @@ class Player(var avatar: Avatar)
     with MountableEntity {
   interaction(new InteractWithEnvironment())
   interaction(new InteractWithMinesUnlessSpectating(obj = this, range = 10))
+  interaction(new InteractWithRadiationClouds(range = 10f, Some(this)))
 
   private var backpack: Boolean = false
   private var released: Boolean = false
@@ -599,11 +601,11 @@ object Player {
 
 private class InteractWithMinesUnlessSpectating(
                                                  private val obj: Player,
-                                                 range: Float
+                                                 override val range: Float
                                                ) extends InteractWithMines(range) {
-  override def interaction(target: InteractsWithZone): Unit = {
+  override def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit = {
     if (!obj.spectator) {
-      super.interaction(target)
+      super.interaction(sector, target)
     }
   }
 }

@@ -151,13 +151,13 @@ object WeaponData extends Marshallable[WeaponData] {
     )
   }
 
-  implicit val codec: Codec[WeaponData] = (
-    ("data" | CommonFieldData.codec) ::
-      ("fire_mode" | int8) ::
-      bool ::
-      optional(bool, "ammo" | InventoryData.codec) ::
-      ("unk" | bool)
-  ).exmap[WeaponData](
+  private def baseCodec(commonFieldCodec: Codec[CommonFieldData]): Codec[WeaponData] = (
+    ("data" | commonFieldCodec) ::
+    ("fire_mode" | int8) ::
+    bool ::
+    optional(bool, "ammo" | InventoryData.codec) ::
+    ("unk" | bool)
+    ).exmap[WeaponData](
     {
       case data :: fmode :: false :: Some(InventoryData(ammo)) :: unk :: HNil =>
         val magSize = ammo.size
@@ -186,4 +186,8 @@ object WeaponData extends Marshallable[WeaponData] {
         Attempt.failure(Err("invalid weapon data format"))
     }
   )
+
+  implicit val codec: Codec[WeaponData] = baseCodec(CommonFieldData.codec)
+
+  val codec2: Codec[WeaponData] = baseCodec(CommonFieldData.codec2)
 }

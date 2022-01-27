@@ -155,6 +155,10 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
 
   def NtuCapacitor_=(value: Float): Float = NtuCapacitor
 
+  def MaxNtuCapacitor : Float = Int.MaxValue
+
+  override def NtuSource: Option[NtuContainer] = Some(this)
+
   override def hasLatticeBenefit(wantedBenefit: ObjectDefinition): Boolean = false
 
   override def latticeConnectedFacilityBenefits(): Set[ObjectDefinition] = Set.empty

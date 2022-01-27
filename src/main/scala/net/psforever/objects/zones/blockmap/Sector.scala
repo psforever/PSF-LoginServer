@@ -1,6 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.zones.blockmap
 
+import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.environment.PieceOfEnvironment
@@ -13,6 +14,8 @@ import scala.collection.mutable.ListBuffer
   * The collections of entities in a sector conglomerate.
   */
 trait SectorPopulation {
+  def range: Float
+
   def livePlayerList: List[Player]
 
   def corpseList: List[Player]
@@ -29,6 +32,8 @@ trait SectorPopulation {
 
   def environmentList: List[PieceOfEnvironment]
 
+  def projectileList: List[Projectile]
+
   /**
     * A count of all the entities in all the lists.
     */
@@ -40,7 +45,8 @@ trait SectorPopulation {
     deployableList.size +
     buildingList.size +
     amenityList.size +
-    environmentList.size
+    environmentList.size +
+    projectileList.size
   }
 }
 
@@ -143,6 +149,12 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
     (a: PieceOfEnvironment, b: PieceOfEnvironment) => a eq b
   )
 
+  private val projectiles: SectorListOf[Projectile] = new SectorListOf[Projectile](
+    (a: Projectile, b: Projectile) => a.id == b.id
+  )
+
+  def range: Float = span.toFloat
+
   def livePlayerList : List[Player] = livePlayers.list
 
   def corpseList: List[Player] = corpses.list
@@ -158,6 +170,8 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   def amenityList : List[Amenity] = amenities.list
 
   def environmentList: List[PieceOfEnvironment] = environment.list
+
+  def projectileList: List[Projectile] = projectiles.list
 
   /**
     * Appropriate an entity added to this blockmap bucket
@@ -189,6 +203,8 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
         amenities.list.size < amenities.addTo(a).size
       case e: PieceOfEnvironment =>
         environment.list.size < environment.addTo(e).size
+      case p: Projectile =>
+        projectiles.list.size < projectiles.addTo(p).size
       case _ =>
         false
     }
@@ -211,6 +227,8 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
         equipmentOnGround.list.size > equipmentOnGround.removeFrom(e).size
       case d: Deployable =>
         deployables.list.size > deployables.removeFrom(d).size
+      case p: Projectile =>
+        projectiles.list.size > projectiles.removeFrom(p).size
       case _ =>
         false
     }
@@ -230,6 +248,7 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   * @param environmentList fields that represent the game world environment
   */
 class SectorGroup(
+                   val range: Float,
                    val livePlayerList: List[Player],
                    val corpseList: List[Player],
                    val vehicleList: List[Vehicle],
@@ -237,7 +256,8 @@ class SectorGroup(
                    val deployableList: List[Deployable],
                    val buildingList: List[Building],
                    val amenityList: List[Amenity],
-                   val environmentList: List[PieceOfEnvironment]
+                   val environmentList: List[PieceOfEnvironment],
+                   val projectileList: List[Projectile]
                  )
   extends SectorPopulation
 
@@ -250,6 +270,7 @@ object SectorGroup {
     */
   def apply(sector: Sector): SectorGroup = {
     new SectorGroup(
+      sector.range,
       sector.livePlayerList,
       sector.corpseList,
       sector.vehicleList,
@@ -257,7 +278,30 @@ object SectorGroup {
       sector.deployableList,
       sector.buildingList,
       sector.amenityList,
-      sector.environmentList
+      sector.environmentList,
+      sector.projectileList
+    )
+  }
+
+  /**
+    * Overloaded constructor that takes a single sector
+    * and transfers the lists of entities into a single conglomeration of the sector populations.
+    * @param range a custom range value
+    * @param sector the sector to be counted
+    * @return a `SectorGroup` object
+    */
+  def apply(range: Float, sector: Sector): SectorGroup = {
+    new SectorGroup(
+      range,
+      sector.livePlayerList,
+      sector.corpseList,
+      sector.vehicleList,
+      sector.equipmentOnGroundList,
+      sector.deployableList,
+      sector.buildingList,
+      sector.amenityList,
+      sector.environmentList,
+      sector.projectileList
     )
   }
 
@@ -268,15 +312,52 @@ object SectorGroup {
     * @return a `SectorGroup` object
     */
   def apply(sectors: Iterable[Sector]): SectorGroup = {
-    new SectorGroup(
-      sectors.flatMap { _.livePlayerList }.toList.distinct,
-      sectors.flatMap { _.corpseList }.toList.distinct,
-      sectors.flatMap { _.vehicleList }.toList.distinct,
-      sectors.flatMap { _.equipmentOnGroundList }.toList.distinct,
-      sectors.flatMap { _.deployableList }.toList.distinct,
-      sectors.flatMap { _.buildingList }.toList.distinct,
-      sectors.flatMap { _.amenityList }.toList.distinct,
-      sectors.flatMap { _.environmentList }.toList.distinct
-    )
+    if (sectors.isEmpty) {
+      SectorGroup(range = 0, sectors = Nil)
+    } else if (sectors.size == 1) {
+      SectorGroup(sectors.head.range, sectors)
+    } else {
+      SectorGroup(sectors.maxBy { _.range }.range, sectors)
+    }
+  }
+
+  /**
+    * Overloaded constructor that takes a group of sectors
+    * and condenses all of the lists of entities into a single conglomeration of the sector populations.
+    * @param range a custom range value
+    * @param sectors the series of sectors to be counted
+    * @return a `SectorGroup` object
+    */
+  def apply(range: Float, sectors: Iterable[Sector]): SectorGroup = {
+    if (sectors.isEmpty) {
+      new SectorGroup(range, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil)
+    } else if (sectors.size == 1) {
+      val sector = sectors.head
+      new SectorGroup(
+        range,
+        sector.livePlayerList,
+        sector.corpseList,
+        sector.vehicleList,
+        sector.equipmentOnGroundList,
+        sector.deployableList,
+        sector.buildingList,
+        sector.amenityList,
+        sector.environmentList,
+        sector.projectileList
+      )
+    } else {
+      new SectorGroup(
+        range,
+        sectors.flatMap { _.livePlayerList }.toList.distinct,
+        sectors.flatMap { _.corpseList }.toList.distinct,
+        sectors.flatMap { _.vehicleList }.toList.distinct,
+        sectors.flatMap { _.equipmentOnGroundList }.toList.distinct,
+        sectors.flatMap { _.deployableList }.toList.distinct,
+        sectors.flatMap { _.buildingList }.toList.distinct,
+        sectors.flatMap { _.amenityList }.toList.distinct,
+        sectors.flatMap { _.environmentList }.toList.distinct,
+        sectors.flatMap { _.projectileList }.toList.distinct
+      )
+    }
   }
 }

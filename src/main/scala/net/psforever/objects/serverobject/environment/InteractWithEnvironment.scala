@@ -4,7 +4,9 @@ package net.psforever.objects.serverobject.environment
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.zones._
-import net.psforever.objects.zones.blockmap.BlockMapEntity
+import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorPopulation}
+
+case object EnvironmentInteraction extends ZoneInteractionType
 
 /**
   * This game entity may infrequently test whether it may interact with game world environment.
@@ -13,6 +15,10 @@ class InteractWithEnvironment()
   extends ZoneInteraction {
   private var interactingWithEnvironment: (PlanetSideServerObject, Boolean) => Any =
     InteractWithEnvironment.onStableEnvironment()
+
+  def Type = EnvironmentInteraction
+
+  def range: Float = 0f
 
   /**
     * The method by which zone interactions are tested or a current interaction maintained.
@@ -24,8 +30,10 @@ class InteractWithEnvironment()
     * @see `InteractsWithEnvironment.blockedFromInteracting`
     * @see `InteractsWithEnvironment.onStableEnvironment`
     * @see `InteractsWithEnvironment.awaitOngoingInteraction`
+    * @param sector the portion of the block map being tested
+    * @param target the fixed element in this test
     */
-  def interaction(target: InteractsWithZone): Unit = {
+  def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit = {
     interactingWithEnvironment = interactingWithEnvironment(target, true)
       .asInstanceOf[(PlanetSideServerObject, Boolean) => Any]
   }

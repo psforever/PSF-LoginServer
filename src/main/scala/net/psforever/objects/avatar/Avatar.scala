@@ -15,15 +15,19 @@ import scala.concurrent.duration._
 object Avatar {
   val purchaseCooldowns: Map[BasicDefinition, FiniteDuration] = Map(
     GlobalDefinitions.ams                   -> 5.minutes,
-    GlobalDefinitions.ant                   -> 5.minutes,
+    GlobalDefinitions.ant                   -> 4.minutes,
     GlobalDefinitions.apc_nc                -> 5.minutes,
     GlobalDefinitions.apc_tr                -> 5.minutes,
     GlobalDefinitions.apc_vs                -> 5.minutes,
+    GlobalDefinitions.aphelion_flight       -> 15.minutes, //Temporarily - Default is 25 minutes
+    GlobalDefinitions.aphelion_gunner       -> 15.minutes, //Temporarily - Default is 25 minutes
     GlobalDefinitions.aurora                -> 5.minutes,
     GlobalDefinitions.battlewagon           -> 5.minutes,
+    GlobalDefinitions.colossus_flight       -> 15.minutes, //Temporarily - Default is 25 minutes
+    GlobalDefinitions.colossus_gunner       -> 15.minutes, //Temporarily - Default is 25 minutes
     GlobalDefinitions.dropship              -> 5.minutes,
     GlobalDefinitions.flail                 -> 5.minutes,
-    GlobalDefinitions.fury                  -> 5.minutes,
+    GlobalDefinitions.fury                  -> 2.minutes,
     GlobalDefinitions.galaxy_gunship        -> 15.minutes, //Temporary - Default is 10 minutes
     GlobalDefinitions.lodestar              -> 5.minutes,
     GlobalDefinitions.liberator             -> 5.minutes,
@@ -32,18 +36,20 @@ object Avatar {
     GlobalDefinitions.magrider              -> 5.minutes,
     GlobalDefinitions.mediumtransport       -> 5.minutes,
     GlobalDefinitions.mosquito              -> 5.minutes,
+    GlobalDefinitions.peregrine_flight      -> 15.minutes, //Temporarily - Default is 25 minutes
+    GlobalDefinitions.peregrine_gunner      -> 15.minutes, //Temporarily - Default is 25 minutes
     GlobalDefinitions.phantasm              -> 5.minutes,
     GlobalDefinitions.prowler               -> 5.minutes,
-    GlobalDefinitions.quadassault           -> 5.minutes,
-    GlobalDefinitions.quadstealth           -> 5.minutes,
+    GlobalDefinitions.quadassault           -> 2.minutes,
+    GlobalDefinitions.quadstealth           -> 2.minutes,
     GlobalDefinitions.router                -> 5.minutes,
     GlobalDefinitions.switchblade           -> 5.minutes,
-    GlobalDefinitions.skyguard              -> 5.minutes,
-    GlobalDefinitions.threemanheavybuggy    -> 5.minutes,
+    GlobalDefinitions.skyguard              -> 2.minutes,
+    GlobalDefinitions.threemanheavybuggy    -> 2.minutes,
     GlobalDefinitions.thunderer             -> 5.minutes,
-    GlobalDefinitions.two_man_assault_buggy -> 5.minutes,
-    GlobalDefinitions.twomanhoverbuggy      -> 5.minutes,
-    GlobalDefinitions.twomanheavybuggy      -> 5.minutes,
+    GlobalDefinitions.two_man_assault_buggy -> 2.minutes,
+    GlobalDefinitions.twomanhoverbuggy      -> 2.minutes,
+    GlobalDefinitions.twomanheavybuggy      -> 2.minutes,
     GlobalDefinitions.vanguard              -> 5.minutes,
     GlobalDefinitions.vulture               -> 5.minutes,
     GlobalDefinitions.wasp                  -> 5.minutes,
@@ -89,7 +95,7 @@ case class Avatar(
     fatigued: Boolean = false,
     cosmetics: Option[Set[Cosmetic]] = None,
     certifications: Set[Certification] = Set(),
-    loadouts: Seq[Option[Loadout]] = Seq.fill(15)(None),
+    loadouts: Seq[Option[Loadout]] = Seq.fill(20)(None),
     squadLoadouts: Seq[Option[SquadLoadout]] = Seq.fill(10)(None),
     implants: Seq[Option[Implant]] = Seq(None, None, None),
     locker: LockerContainer = Avatar.makeLocker(),

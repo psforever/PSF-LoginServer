@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.{ActorRef, Cancellable}
+import akka.actor.ActorRef
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.deploy.Deployment
@@ -18,8 +18,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
-  var ntuChargingTick: Cancellable   = Default.Cancellable
   var panelAnimationFunc: () => Unit = NoCharge
+  var ntuChargingTick     = Default.Cancellable
+  findChargeTargetFunc    = Vehicles.FindANTChargingSource
+  findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
 
   def TransferMaterial = Ntu.Nanites
 
@@ -28,7 +30,8 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   def antBehavior: Receive = storageBehavior.orElse(transferBehavior)
 
   def ActivatePanelsForChargingEvent(vehicle: NtuContainer): Unit = {
-    val zone = vehicle.Zone
+    val obj = ChargeTransferObject
+    val zone = obj.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
       VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vehicle.GUID, 52, 1L)
@@ -37,7 +40,8 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
 
   /** Charging */
   def StartNtuChargingEvent(vehicle: NtuContainer): Unit = {
-    val zone = vehicle.Zone
+    val obj = ChargeTransferObject
+    val zone = obj.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
       VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vehicle.GUID, 49, 1L)
@@ -190,7 +194,6 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
       } else {
         scala.math.min(min, chargeable.NtuCapacitor)
       }
-      //      var chargeToDeposit = Math.min(Math.min(chargeable.NtuCapacitor, 100), max)
       chargeable.NtuCapacitor -= chargeToDeposit
       UpdateNtuUI(chargeable)
       sender ! Ntu.Grant(chargeable, chargeToDeposit)

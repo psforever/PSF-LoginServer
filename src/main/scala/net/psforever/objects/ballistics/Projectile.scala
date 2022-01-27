@@ -9,6 +9,7 @@ import net.psforever.objects.entity.SimpleWorldEntity
 import net.psforever.objects.equipment.FireModeDefinition
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.base.DamageResolution
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.types.Vector3
 
 /**
@@ -47,7 +48,8 @@ final case class Projectile(
     quality: ProjectileQuality = ProjectileQuality.Normal,
     id: Long = Projectile.idGenerator.getAndIncrement(),
     fire_time: Long = System.currentTimeMillis()
-) extends PlanetSideGameObject {
+) extends PlanetSideGameObject
+  with BlockMapEntity {
   Position = shot_origin
   Orientation = shot_angle
   Velocity = shot_velocity.getOrElse {

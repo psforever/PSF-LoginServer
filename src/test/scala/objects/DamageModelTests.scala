@@ -61,7 +61,7 @@ class DamageCalculationsTests extends Specification {
     }
 
     "extract damage against battleframe robotics" in {
-      AgainstBFR(proj_prof) == proj_prof.Damage4 mustEqual true
+      AgainstBfr(proj_prof) == proj_prof.Damage4 mustEqual true
     }
 
     "no degrade damage modifier" in {

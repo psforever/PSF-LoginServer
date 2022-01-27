@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.loadouts
 
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.definition._
 
 /**
@@ -27,3 +28,24 @@ final case class VehicleLoadout(
     inventory: List[Loadout.SimplifiedEntry],
     vehicle_definition: VehicleDefinition
 ) extends EquipmentLoadout(label, visible_slots, inventory)
+
+object VehicleLoadout {
+  /**
+    * The variant of the battleframe vehicle.
+    * Why these numbers map to the specific type of battleframe is a mystery.
+    * @see `FavoritesMessage`
+    * @param definition the vehicle's definition
+    * @return a number directly indicative of the type
+    */
+  def DetermineBattleframeSubtype(definition: VehicleDefinition): Int = {
+    definition match {
+      case GlobalDefinitions.aphelion_flight  => 1
+      case GlobalDefinitions.aphelion_gunner  => 2
+      case GlobalDefinitions.colossus_flight  => 4
+      case GlobalDefinitions.colossus_gunner  => 5
+      case GlobalDefinitions.peregrine_flight => 7
+      case GlobalDefinitions.peregrine_gunner => 8
+      case _                                  => 0
+    }
+  }
+}

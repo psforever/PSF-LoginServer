@@ -874,7 +874,7 @@ class ConverterTest extends Specification {
       val fury_def = VehicleDefinition(ObjectClass.fury)
       fury_def.Seats += 0 -> new SeatDefinition()
       fury_def.Seats(0).bailable = true
-      fury_def.controlledWeapons += 0 -> 1
+      fury_def.controlledWeapons(0, 1)
       fury_def.MountPoints += 0 -> MountInfo(0)
       fury_def.MountPoints += 2 -> MountInfo(0)
       fury_def.Weapons += 1     -> fury_weapon_systema_def
@@ -889,8 +889,8 @@ class ConverterTest extends Specification {
       fury.Faction = PlanetSideEmpire.VS
       fury.Position = Vector3(3674.8438f, 2732f, 91.15625f)
       fury.Orientation = Vector3(0.0f, 0.0f, 90.0f)
-      fury.WeaponControlledFromSeat(0).get.GUID = PlanetSideGUID(400)
-      fury.WeaponControlledFromSeat(0).get.asInstanceOf[Tool].AmmoSlots.head.Box = hellfire_ammo_box
+      fury.WeaponControlledFromSeat(0).head.GUID = PlanetSideGUID(400)
+      fury.WeaponControlledFromSeat(0).head.asInstanceOf[Tool].AmmoSlots.head.Box = hellfire_ammo_box
 
       fury.Definition.Packet.ConstructorData(fury).isSuccess mustEqual true
       ok //TODO write more of this test

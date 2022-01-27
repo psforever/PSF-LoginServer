@@ -21,7 +21,7 @@ object DamageCalculations {
 
   def AgainstMaxSuit(profile : DamageProfile) : Int = profile.Damage3
 
-  def AgainstBFR(profile : DamageProfile) : Int = profile.Damage4
+  def AgainstBfr(profile : DamageProfile) : Int = profile.Damage4
 
   /**
     * Get the damage value.

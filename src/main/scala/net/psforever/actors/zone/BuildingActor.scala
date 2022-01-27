@@ -487,8 +487,9 @@ class BuildingActor(
 class FakeNtuSource(private val building: Building)
   extends PlanetSideServerObject
   with NtuContainer {
-  override def NtuCapacitor = Float.MaxValue
-  override def NtuCapacitor_=(a: Float) = Float.MaxValue
+  override def NtuCapacitor = Int.MaxValue.toFloat
+  override def NtuCapacitor_=(a: Float) = Int.MaxValue.toFloat
+  override def MaxNtuCapacitor = Int.MaxValue.toFloat
   override def Faction = building.Faction
   override def Zone = building.Zone
   override def Definition = null

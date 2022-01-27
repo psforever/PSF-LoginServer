@@ -3,11 +3,11 @@ package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.mount.Seat
-import net.psforever.packet.game.objectcreate.{InventoryItemData, ObjectClass, PlayerData, VehicleData}
+import net.psforever.packet.game.objectcreate._
 
 object SeatConverter {
   def MakeSeat(player: Player, offset: Long): PlayerData = {
-    VehicleData.PlayerData(
+    MountableInventory.PlayerData(
       AvatarConverter.MakeAppearanceData(player),
       AvatarConverter.MakeCharacterData(player),
       AvatarConverter.MakeInventoryData(player),

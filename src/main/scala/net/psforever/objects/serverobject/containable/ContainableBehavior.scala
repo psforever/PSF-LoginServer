@@ -4,11 +4,11 @@ package net.psforever.objects.serverobject.containable
 import akka.actor.{Actor, ActorRef}
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
-import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{BoomerTrigger, GlobalDefinitions, Player}
+import net.psforever.objects._
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -92,58 +92,7 @@ trait ContainableBehavior {
 
     case msg @ Containable.MoveItem(destination, equipment, destSlot) =>
       /* can be deferred */
-      if (ContainableBehavior.TestPutItemInSlot(destination, equipment, destSlot).nonEmpty) { //test early, before we try to move the item
-        val source = ContainerObject
-        val item   = equipment
-        val dest   = destSlot
-        LocalRemoveItemFromSlot(item) match {
-          case Containable.ItemFromSlot(_, Some(_), slot @ Some(originalSlot)) =>
-            if (source eq destination) {
-              //when source and destination are the same, moving the item can be performed in one pass
-              LocalPutItemInSlot(item, dest) match {
-                case Containable.ItemPutInSlot(_, _, _, None) => ; //success
-                case Containable.ItemPutInSlot(_, _, _, Some(swapItem)) => //success, but with swap item
-                  LocalPutItemInSlotOnlyOrAway(swapItem, slot) match {
-                    case Containable.ItemPutInSlot(_, _, _, None) => ;
-                    case _ =>
-                      source.Zone.Ground.tell(
-                        Zone.Ground.DropItem(swapItem, source.Position, Vector3.z(source.Orientation.z)),
-                        source.Actor
-                      ) //drop it
-                  }
-                case _: Containable.CanNotPutItemInSlot => //failure case ; try restore original item placement
-                  LocalPutItemInSlot(item, originalSlot)
-              }
-            } else {
-              //destination sync
-              destination.Actor ! ContainableBehavior.Wait()
-              implicit val timeout = new Timeout(1000 milliseconds)
-              val moveItemOver     = ask(destination.Actor, ContainableBehavior.MoveItemPutItemInSlot(item, dest))
-              moveItemOver.onComplete {
-                case Success(Containable.ItemPutInSlot(_, _, _, None)) => ; //successful
-
-                case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) => //successful, but with swap item
-                  PutItBackOrDropIt(source, swapItem, slot, destination.Actor)
-
-                case Success(_: Containable.CanNotPutItemInSlot) => //failure case ; try restore original item placement
-                  PutItBackOrDropIt(source, item, slot, source.Actor)
-
-                case Failure(_) => //failure case ; try restore original item placement
-                  PutItBackOrDropIt(source, item, slot, source.Actor)
-
-                case _ => ; //TODO what?
-              }
-              //always do this
-              moveItemOver
-                .recover { case _: AskTimeoutException => destination.Actor ! ContainableBehavior.Resume() }
-                .onComplete { _ => destination.Actor ! ContainableBehavior.Resume() }
-            }
-          case _ => ;
-          //we could not find the item to be moved in the source location; trying to act on old data?
-        }
-      } else {
-        MessageDeferredCallback(msg)
-      }
+      ContainableMoveItem(destination, equipment, destSlot, msg)
 
     case ContainableBehavior.MoveItemPutItemInSlot(item, dest) =>
       sender() ! LocalPutItemInSlot(item, dest)
@@ -187,6 +136,66 @@ trait ContainableBehavior {
   }
 
   /* Functions (item transfer) */
+
+  protected def ContainableMoveItem(
+                                   destination: PlanetSideServerObject with Container,
+                                   equipment: Equipment,
+                                   destSlot: Int,
+                                   msg: Any
+                                 ) : Unit = {
+    if (ContainableBehavior.TestPutItemInSlot(destination, equipment, destSlot).nonEmpty) { //test early, before we try to move the item
+      val source = ContainerObject
+      val item   = equipment
+      val dest   = destSlot
+      LocalRemoveItemFromSlot(item) match {
+        case Containable.ItemFromSlot(_, Some(_), slot @ Some(originalSlot)) =>
+          if (source eq destination) {
+            //when source and destination are the same, moving the item can be performed in one pass
+            LocalPutItemInSlot(item, dest) match {
+              case Containable.ItemPutInSlot(_, _, _, None) => ; //success
+              case Containable.ItemPutInSlot(_, _, _, Some(swapItem)) => //success, but with swap item
+                LocalPutItemInSlotOnlyOrAway(swapItem, slot) match {
+                  case Containable.ItemPutInSlot(_, _, _, None) => ;
+                  case _ =>
+                    source.Zone.Ground.tell(
+                      Zone.Ground.DropItem(swapItem, source.Position, Vector3.z(source.Orientation.z)),
+                      source.Actor
+                    ) //drop it
+                }
+              case _: Containable.CanNotPutItemInSlot => //failure case ; try restore original item placement
+                LocalPutItemInSlot(item, originalSlot)
+            }
+          } else {
+            //destination sync
+            destination.Actor ! ContainableBehavior.Wait()
+            implicit val timeout = new Timeout(1000 milliseconds)
+            val moveItemOver     = ask(destination.Actor, ContainableBehavior.MoveItemPutItemInSlot(item, dest))
+            moveItemOver.onComplete {
+              case Success(Containable.ItemPutInSlot(_, _, _, None)) => ; //successful
+
+              case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) => //successful, but with swap item
+                PutItBackOrDropIt(source, swapItem, slot, destination.Actor)
+
+              case Success(_: Containable.CanNotPutItemInSlot) => //failure case ; try restore original item placement
+                PutItBackOrDropIt(source, item, slot, source.Actor)
+
+              case Failure(_) => //failure case ; try restore original item placement
+                PutItBackOrDropIt(source, item, slot, source.Actor)
+
+              case _ => ; //TODO what?
+            }
+            //always do this
+            moveItemOver
+              .recover { case _: AskTimeoutException => destination.Actor ! ContainableBehavior.Resume() }
+              .onComplete { _ => destination.Actor ! ContainableBehavior.Resume() }
+          }
+        case _ => ;
+        //we could not find the item to be moved in the source location; trying to act on old data?
+      }
+    } else {
+      MessageDeferredCallback(msg)
+    }
+  }
 
   private def LocalRemoveItemFromSlot(slot: Int): Any = {
     val source          = ContainerObject
@@ -370,14 +379,15 @@ object ContainableBehavior {
       item: Equipment
   ): (Option[Int], Option[Equipment]) = {
     source.Find(item) match {
-      case slot @ Some(index) =>
+      case slot @ Some(index)
+        if ContainableBehavior.PermitEquipmentExtract(source, item, index)=>
         source.Slot(index).Equipment = None
         if (source.Slot(index).Equipment.isEmpty) {
           (slot, Some(item))
         } else {
           (None, None)
         }
-      case None =>
+      case _ =>
         (None, None)
     }
   }
@@ -399,14 +409,14 @@ object ContainableBehavior {
       source: PlanetSideServerObject with Container,
       slot: Int
   ): (Option[Int], Option[Equipment]) = {
-    val (item, outSlot) = source.Slot(slot).Equipment match {
-      case Some(thing) => (Some(thing), source.Find(thing))
-      case None        => (None, None)
-    }
-    source.Slot(slot).Equipment = None
-    item match {
-      case Some(_) if item.nonEmpty && source.Slot(slot).Equipment.isEmpty =>
-        (outSlot, item)
+    source.Slot(slot).Equipment match {
+      case Some(thing)
+        if ContainableBehavior.PermitEquipmentExtract(source, thing, slot) =>
+        if ((source.Slot(slot).Equipment = None).isEmpty) {
+          (Some(slot), Some(thing))
+        } else {
+          (None, None)
+        }
       case _ =>
         (None, None)
     }
@@ -431,7 +441,7 @@ object ContainableBehavior {
       item: Equipment,
       dest: Int
   ): Option[List[InventoryItem]] = {
-    if (ContainableBehavior.PermitEquipmentStow(destination, item)) {
+    if (ContainableBehavior.PermitEquipmentStow(destination, item, dest)) {
       val tile                     = item.Definition.Tile
       val destinationCollisionTest = destination.Collisions(dest, tile.Width, tile.Height)
       destinationCollisionTest match {
@@ -505,7 +515,7 @@ object ContainableBehavior {
   def TryPutItemAway(destination: PlanetSideServerObject with Container, item: Equipment): Option[Int] = {
     destination.Fit(item) match {
       case out @ Some(dest)
-          if ContainableBehavior.PermitEquipmentStow(destination, item) && (destination.Slot(dest).Equipment = item)
+          if ContainableBehavior.PermitEquipmentStow(destination, item, dest) && (destination.Slot(dest).Equipment = item)
             .contains(item) =>
         out
       case _ =>
@@ -572,22 +582,67 @@ object ContainableBehavior {
     }
   }
 
+  //TODO convert PermitEquipmentExtract and PermitEquipmentStow into instance methods?
+  /**
+    * Apply incontestable, arbitrary limitations
+    * whereby certain items are denied removal from certain containers
+    * for vaguely documented but assuredly fantastic excuses on the part of the developer.
+    * @see `ContainableBehavior.PermitEquipmentStow`
+    * @param source the container
+    * @param equipment the item to be removed
+    * @param slot where the equipment can be found
+    * @return `true`, if the type of equipment object is allowed to be removed from the containing entity;
+    *        `false`, otherwise
+    */
+  def PermitEquipmentExtract(
+                              source: PlanetSideServerObject with Container,
+                              equipment: Equipment,
+                              slot: Int
+                            ): Boolean = {
+    source match {
+      case v: Vehicle if v.VisibleSlots.contains(slot) =>
+        //can not remove equipment slot items if vehicle is jammed
+        //applies mostly to BFR's, but we do not need to filter
+        !v.Jammed
+      case _ =>
+        true
+    }
+  }
+
   /**
     * Apply incontestable, arbitrary limitations
     * whereby certain items are denied insertion into certain containers
     * for vaguely documented but assuredly fantastic excuses on the part of the developer.
+    * @see `ContainableBehavior.PermitEquipmentExtract`
     * @param destination the container
     * @param equipment the item to be inserted
     * @return `true`, if the object is allowed to contain the type of equipment object;
     *        `false`, otherwise
     */
-  def PermitEquipmentStow(destination: PlanetSideServerObject with Container, equipment: Equipment): Boolean = {
+  def PermitEquipmentStow(
+                           destination: PlanetSideServerObject with Container,
+                           equipment: Equipment,
+                           dest: Int
+                         ): Boolean = {
     import net.psforever.objects.{BoomerTrigger, Player}
     equipment match {
       case _: BoomerTrigger =>
         //a BoomerTrigger can only be stowed in a player's holsters or inventory
         //this is only a requirement until they, and their Boomer explosive complement, are cleaned-up properly
         destination.isInstanceOf[Player]
+      case weapon: Tool
+        if weapon.Size == EquipmentSize.BFRArmWeapon || weapon.Size == EquipmentSize.BFRGunnerWeapon =>
+        //Battleframe weaponry must be placed in an appropriate equipment mount spot, or held in the player's free hand
+        //if in the vehicle slots, then the vehicle must not be jammed
+        destination match {
+          case v: Vehicle
+            if GlobalDefinitions.isBattleFrameVehicle(v.Definition) =>
+            v.VisibleSlots.contains(dest) && !v.Jammed
+          case _: Player =>
+            dest == Player.FreeHandSlot
+          case _ =>
+            false
+        }
       case _ =>
         true
     }

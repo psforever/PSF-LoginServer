@@ -38,10 +38,11 @@ import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject, ServerObject}
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vehicles._
+import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.collision.{CollisionReason, CollisionWithReason}
@@ -158,8 +159,6 @@ object SessionActor {
       tool: ConstructionItem,
       index: Int
   )
-
-  private final case class LoadedRemoteProjectile(projectile_guid: PlanetSideGUID, projectile: Option[Projectile])
 }
 
 class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
@@ -181,10 +180,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var cluster: typed.ActorRef[ICS.Command]                           = Default.Actor
   var _session: Session                                              = Session()
   var progressBarValue: Option[Float]                                = None
-  var shooting: Option[PlanetSideGUID]                               = None //ChangeFireStateMessage_Start
-  var prefire: Option[PlanetSideGUID]                                = None //if WeaponFireMessage precedes ChangeFireStateMessage_Start
-  var shootingStart: Long                                            = 0
-  var shootingStop: Long                                             = 0
+  var shooting: mutable.Set[PlanetSideGUID]                          = mutable.Set.empty //ChangeFireStateMessage_Start
+  var prefire: mutable.Set[PlanetSideGUID]                           = mutable.Set.empty //if WeaponFireMessage precedes ChangeFireStateMessage_Start
+  var shootingStart: mutable.HashMap[PlanetSideGUID, Long]           = mutable.HashMap[PlanetSideGUID, Long]()
+  var shootingStop: mutable.HashMap[PlanetSideGUID, Long]            = mutable.HashMap[PlanetSideGUID, Long]()
   var shotsWhileDead: Int                                            = 0
   var accessedContainer: Option[PlanetSideGameObject with Container] = None
   var connectionState: Int                                           = 25
@@ -196,7 +195,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var deadState: DeadState.Value                                     = DeadState.Dead
   val projectiles: Array[Option[Projectile]] =
     Array.fill[Option[Projectile]](Projectile.rangeUID - Projectile.baseUID)(None)
-  val projectilesToCleanUp: Array[Boolean]                            = Array.fill[Boolean](Projectile.rangeUID - Projectile.baseUID)(false)
   var drawDeloyableIcon: PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
   var updateSquad: () => Unit                                         = NoSquadUpdates
   var recentTeleportAttempt: Long                                     = 0
@@ -331,13 +329,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       //TODO put any temporary values back into the avatar
       squadService ! Service.Leave(Some(s"${avatar.faction}"))
       if (player != null && player.HasGUID) {
-        prefire.orElse(shooting) match {
-          case Some(guid) =>
-            continent.AvatarEvents ! AvatarServiceMessage(
-              continent.id,
-              AvatarAction.ChangeFireState_Stop(player.GUID, guid)
-            )
-          case None => ;
+        (prefire ++ shooting).foreach { guid =>
+          continent.AvatarEvents ! AvatarServiceMessage(
+            continent.id,
+            AvatarAction.ChangeFireState_Stop(player.GUID, guid)
+          )
         }
       }
     }
@@ -346,16 +342,23 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     context.stop(chatActor)
   }
 
-  def ValidObject(id: Int): Option[PlanetSideGameObject] = ValidObject(Some(PlanetSideGUID(id)))
+  def ValidObject(id: Int): Option[PlanetSideGameObject] = ValidObject(Some(PlanetSideGUID(id)), decorator = "")
 
-  def ValidObject(id: PlanetSideGUID): Option[PlanetSideGameObject] = ValidObject(Some(id))
+  def ValidObject(id: Int, decorator: String): Option[PlanetSideGameObject] = ValidObject(Some(PlanetSideGUID(id)), decorator)
 
-  def ValidObject(id: Option[PlanetSideGUID]): Option[PlanetSideGameObject] = {
+  def ValidObject(id: PlanetSideGUID): Option[PlanetSideGameObject] = ValidObject(Some(id), decorator = "")
+
+  def ValidObject(id: PlanetSideGUID, decorator: String): Option[PlanetSideGameObject] = ValidObject(Some(id), decorator)
+
+  def ValidObject(id: Option[PlanetSideGUID]): Option[PlanetSideGameObject] = ValidObject(id, decorator = "")
+
+  def ValidObject(id: Option[PlanetSideGUID], decorator: String): Option[PlanetSideGameObject] = {
+    val elevatedDecorator = if (decorator.nonEmpty) decorator else "ValidObject"
     id match {
       case Some(guid) =>
         val hint = oldRefsMap.getOrElse(guid, "thing")
         continent.GUID(guid) match {
-          case Some(obj : LocalProjectile) =>
+          case Some(obj: LocalProjectile) =>
             FindProjectileEntry(guid)
 
           case Some(_: LocalLockerItem) =>
@@ -365,7 +368,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case None =>
                 //delete stale entity reference from client
                 log.warn(
-                  s"ValidObject: ${player.Name} is looking for an invalid GUID $guid, believing it a $hint in ${player.Sex.possessive} locker"
+                  s"$elevatedDecorator: ${player.Name} is looking for an invalid GUID $guid, believing it a $hint in ${player.Sex.possessive} locker"
                 )
                 sendResponse(ObjectDeleteMessage(guid, 0))
                 None
@@ -373,10 +376,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
           case Some(obj) if obj.HasGUID && obj.GUID != guid =>
             log.error(
-              s"ValidObject: ${player.Name} found a ${obj.Definition.Name} that isn't the $hint ${player.Sex.pronounSubject} thought it was in zone ${continent.id}"
+              s"$elevatedDecorator: ${player.Name} found a ${obj.Definition.Name} that isn't the $hint ${player.Sex.pronounSubject} thought it was in zone ${continent.id}"
             )
             log.debug(
-              s"ValidObject: potentially fatal error in ${continent.id} - requested $hint with $guid, got ${obj.Definition.Name} with ${obj.GUID}; mismatch"
+              s"$elevatedDecorator: potentially fatal error in ${continent.id} - requested $hint with $guid, got ${obj.Definition.Name} with ${obj.GUID}; mismatch"
             )
             None
 
@@ -385,7 +388,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
           case None if !id.contains(PlanetSideGUID(0)) =>
             //delete stale entity reference from client
-            log.error(s"${player.Name} has an invalid reference to $hint with GUID $guid in zone ${continent.id}")
+            log.error(s"$elevatedDecorator: ${player.Name} has an invalid reference to $hint with GUID $guid in zone ${continent.id}")
             sendResponse(ObjectDeleteMessage(guid, 0))
             None
 
@@ -422,8 +425,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
      */
 
     case SetAvatar(avatar) =>
-      if (session.player != null) session.player.avatar = avatar
       session = session.copy(avatar = avatar)
+      if (session.player != null) {
+        session.player.avatar = avatar
+      }
       LivePlayerList.Update(avatar.id, avatar)
 
     case AvatarActor.AvatarResponse(avatar) =>
@@ -1176,6 +1181,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case NewPlayerLoaded(tplayer) =>
       //new zone
       log.info(s"${tplayer.Name} has spawned into ${session.zone.id}")
+      oldRefsMap.clear()
       persist = UpdatePersistenceAndRefs
       tplayer.avatar = avatar
       session = session.copy(player = tplayer)
@@ -1346,40 +1352,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       log.trace(s"ReceiveAccountData $account")
       session = session.copy(account = account)
       avatarActor ! AvatarActor.SetAccount(account)
-
-    case LoadedRemoteProjectile(projectile_guid, Some(projectile)) =>
-      if (projectile.profile.ExistsOnRemoteClients) {
-        //spawn projectile on other clients
-        val definition = projectile.Definition
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.LoadProjectile(
-            player.GUID,
-            definition.ObjectId,
-            projectile_guid,
-            definition.Packet.ConstructorData(projectile).get
-          )
-        )
-      }
-      //immediately slated for deletion?
-      CleanUpRemoteProjectile(projectile.GUID, projectile)
-
-    case LoadedRemoteProjectile(projectile_guid, None) =>
-      continent.GUID(projectile_guid) match {
-        case Some(obj: Projectile) if obj.profile.ExistsOnRemoteClients =>
-          //spawn projectile on other clients
-          val definition = obj.Definition
-          continent.AvatarEvents ! AvatarServiceMessage(
-            continent.id,
-            AvatarAction.LoadProjectile(
-              player.GUID,
-              definition.ObjectId,
-              projectile_guid,
-              definition.Packet.ConstructorData(obj).get
-            )
-          )
-        case _ => ;
-      }
 
     case PlayerToken.LoginInfo(name, Zone.Nowhere, _) =>
       log.info(s"LoginInfo: player $name is considered a new character")
@@ -2026,7 +1998,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           //cleanup
           sendResponse(ObjectHeldMessage(target, Player.HandsDownSlot, false))
           (old_holsters ++ old_inventory ++ delete).foreach {
-            case (_, guid) => sendResponse(ObjectDeleteMessage(guid, 0))
+            case (_, dguid) => sendResponse(ObjectDeleteMessage(dguid, 0))
           }
           //functionally delete
           delete.foreach { case (obj, _) => TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj)) }
@@ -2401,9 +2373,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             case Some(vehicle: MountableWeapons) =>
               vehicle.PassengerInSeat(player) match {
                 case Some(seat_num: Int) =>
-                  vehicle.WeaponControlledFromSeat(seat_num) match {
-                    case Some(equipment) if equipment.GUID == weapon_guid =>
-                      val weapon = equipment.asInstanceOf[Tool]
+                  vehicle.WeaponControlledFromSeat(seat_num) foreach {
+                    case weapon: Tool if weapon.GUID == weapon_guid =>
                       sendResponse(InventoryStateMessage(weapon.AmmoSlot.Box.GUID, weapon.GUID, weapon.Magazine))
                     case _ => ;
                   }
@@ -2443,13 +2414,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the ${obj.Definition.Name} in ${obj.SeatPermissionGroup(seat_number) match {
           case Some(AccessPermissionGroup.Driver) => "the driver seat"
-          case Some(seatType)                     => s"a $seatType seat, #$seat_number"
+          case Some(seatType)                     => s"a $seatType seat (#$seat_number)"
           case None                               => "a seat"
         }}")
         val obj_guid: PlanetSideGUID = obj.GUID
         CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, 0, obj.Health))
-        sendResponse(PlanetsideAttributeMessage(obj_guid, 68, obj.Shields))
+        sendResponse(PlanetsideAttributeMessage(obj_guid, obj.Definition.shieldUiAttribute, obj.Shields))
         if (obj.Definition == GlobalDefinitions.ant) {
           sendResponse(PlanetsideAttributeMessage(obj_guid, 45, obj.NtuCapacitorScaled))
         }
@@ -2462,6 +2433,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //phantasm doesn't uncloak if the driver is uncloaked and no other vehicle cloaks
             obj.Cloaked = tplayer.Cloaked
           }
+          sendResponse(GenericObjectActionMessage(obj_guid, 11))
         } else if (obj.WeaponControlledFromSeat(seat_number).isEmpty) {
           keepAliveFunc = KeepAlivePersistence
         }
@@ -2551,9 +2523,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val player_guid: PlanetSideGUID = tplayer.GUID
         if (player_guid == player.GUID) {
           //disembarking self
-          log.info(
-            s"${tplayer.Name} dismounts a ${obj.Definition.asInstanceOf[ObjectDefinition].Name} from seat #$seat_num"
-          )
+          log.info(s"${player.Name} dismounts the ${obj.Definition.Name}'s ${obj.SeatPermissionGroup(seat_num) match {
+            case Some(AccessPermissionGroup.Driver) => "driver seat"
+            case Some(seatType)                     => s"$seatType seat (#$seat_num)"
+            case None                               => "seat"
+          }}")
           ConditionalDriverVehicleControl(obj)
           UnaccessContainer(obj)
           DismountAction(tplayer, obj, seat_num)
@@ -2603,11 +2577,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         tplayer.avatar.purchaseCooldown(item.Definition) match {
           case Some(_) =>
             lastTerminalOrderFulfillment = true
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, false))
+            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
           case None =>
             avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
             TaskWorkflow.execute(BuyNewEquipmentPutInInventory(
-              continent.GUID(tplayer.VehicleSeated) match { case Some(v : Vehicle) => v; case _ => player },
+              continent.GUID(tplayer.VehicleSeated) match { case Some(v: Vehicle) => v; case _ => player },
               tplayer,
               msg.terminal_guid
             )(item))
@@ -2670,7 +2644,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   vTrunk.InsertQuickly(entry.start, entry.obj)
                 })
                 TaskWorkflow.execute(registerVehicleFromSpawnPad(vehicle, pad, term))
-                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, true))
+                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = true))
+                if(GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
+                  sendResponse(UnuseItemMessage(player.GUID, msg.terminal_guid))
+                }
               case _ =>
                 log.error(
                   s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
@@ -2687,10 +2664,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           s"${msg.transaction_type} order"
         }
         log.warn(s"NoDeal: ${tplayer.Name} made a request but the terminal rejected the $order")
-        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, false))
+        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, success = false))
         lastTerminalOrderFulfillment = true
 
-      case _ => ;
+      case _ =>
+        val transaction = msg.transaction_type
+        log.warn(s"n/a: ${tplayer.Name} made a $transaction request but terminal#${msg.terminal_guid.guid} is missing or wrong")
+        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, transaction, success = false))
+        lastTerminalOrderFulfillment = true
     }
   }
 
@@ -2738,6 +2719,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case VehicleResponse.EquipmentInSlot(pkt) =>
         if (tplayer_guid != guid) {
           sendResponse(pkt)
+        }
+
+      case VehicleResponse.FrameVehicleState(vguid, u1, pos, oient, vel, u2, u3, u4, is_crouched, u6, u7, u8, u9, uA) =>
+        if (tplayer_guid != guid) {
+          sendResponse(FrameVehicleStateMessage(vguid, u1, pos, oient, vel, u2, u3, u4, is_crouched, u6, u7, u8, u9, uA))
+        }
+
+      case VehicleResponse.GenericObjectAction(object_guid, action) =>
+        if (tplayer_guid != guid) {
+          sendResponse(GenericObjectActionMessage(object_guid, action))
         }
 
       case VehicleResponse.HitHint(source_guid) =>
@@ -2958,6 +2949,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj))
               }
               ApplyPurchaseTimersBeforePackingLoadout(player, vehicle, added_weapons ++ new_inventory)
+              //jammer or unjamm new weapons based on vehicle status
+              val vehicleJammered = vehicle.Jammed
+              added_weapons
+                .map { _.obj }
+                .collect {
+                  case jamItem: JammableUnit if jamItem.Jammed != vehicleJammered =>
+                    jamItem.Jammed = vehicleJammered
+                    JammableMountedWeapons.JammedWeaponStatus(vehicle.Zone, jamItem, vehicleJammered)
+                }
             } else if (accessedContainer.contains(target)) {
               //external participant: observe changes to equipment
               (old_weapons ++ old_inventory).foreach { case (_, eguid) => sendResponse(ObjectDeleteMessage(eguid, 0)) }
@@ -3133,10 +3133,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(guid, 53, 1))
     }
     sendResponse(AvatarSearchCriteriaMessage(guid, List(0, 0, 0, 0, 0, 0)))
-    (1 to 73).foreach(i => {
-      // not all GUID's are set, and not all of the set ones will always be zero; what does this section do?
-      sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(i), 67, 0))
-    })
+    //these are facilities and towers and bunkers in the zone, but not necessarily all of them for some reason
+    //for standard zones, facilities are 1, towers and bunkers are 0
+    //for standard zone facilities in a position for valid vehicle gate shield benefits, 1 activates that shield
+    //for caverns, who knows what this does
+    //why is this all set in bulk?
+    continent.Buildings
+      .filter { case (_, building) =>
+        val buildingType = building.BuildingType
+        buildingType == StructureType.Facility ||
+        buildingType == StructureType.Tower ||
+        buildingType == StructureType.Bunker
+      }
+      .foreach { case (_, building) =>
+      sendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0/*building.BuildingType == StructureType.Facility*/))
+    }
     (0 to 30).foreach(i => {
       //TODO 30 for a new character only?
       sendResponse(AvatarStatisticsMessage(2, Statistics(0L)))
@@ -3194,7 +3205,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
         //positive shield strength
         if (vehicle.Definition.MaxShields > 0) {
-          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 68, vehicle.Shields))
+          sendResponse(PlanetsideAttributeMessage(vehicle.GUID, vehicle.Definition.shieldUiAttribute, vehicle.Shields))
         }
         // ANT capacitor
         if (vehicle.Definition == GlobalDefinitions.ant) {
@@ -3400,15 +3411,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ BeginZoningMessage() =>
         log.trace(s"BeginZoningMessage: ${player.Name} is reticulating ${continent.id}'s splines ...")
         zoneLoaded = None
+        val name = avatar.name
         val continentId    = continent.id
         val faction        = player.Faction
         val factionChannel = s"$faction"
         continent.AvatarEvents ! Service.Join(continentId)
         continent.AvatarEvents ! Service.Join(factionChannel)
-        continent.LocalEvents ! Service.Join(avatar.name)
+        continent.LocalEvents ! Service.Join(name)
         continent.LocalEvents ! Service.Join(continentId)
         continent.LocalEvents ! Service.Join(factionChannel)
-        continent.VehicleEvents ! Service.Join(avatar.name)
+        continent.VehicleEvents ! Service.Join(name)
         continent.VehicleEvents ! Service.Join(continentId)
         continent.VehicleEvents ! Service.Join(factionChannel)
         if (connectionState != 100) configZone(continent)
@@ -3563,7 +3575,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
         val allActiveVehicles = vehicles ++ usedVehicle
         //active vehicles (and some wreckage)
-        vehicles.foreach(vehicle => {
+        vehicles.foreach { vehicle =>
           val vguid       = vehicle.GUID
           val vdefinition = vehicle.Definition
           sendResponse(
@@ -3593,7 +3605,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   )
                 )
             }
-        })
+          vehicle.SubsystemMessages().foreach { sendResponse }
+        }
         vehicles.collect {
           case vehicle if vehicle.Faction == faction =>
             Vehicles.ReloadAccessPermissions(vehicle, player.Name)
@@ -3601,6 +3614,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //our vehicle would have already been loaded; see NewPlayerLoaded/AvatarCreate
         usedVehicle.headOption match {
           case Some(vehicle) =>
+            //subsystems
+            vehicle.Actor ! Vehicle.UpdateSubsystemStates(player.Name, Some(false))
             //depict any other passengers already in this zone
             val vguid = vehicle.GUID
             vehicle.Seats
@@ -3633,7 +3648,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }
             //positive shield strength
             if (vehicle.Shields > 0) {
-              sendResponse(PlanetsideAttributeMessage(vguid, 68, vehicle.Shields))
+              sendResponse(PlanetsideAttributeMessage(vguid, vehicle.Definition.shieldUiAttribute, vehicle.Shields))
             }
           case _ => ; //no vehicle
         }
@@ -3682,7 +3697,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deployed, 0, false, Vector3.Zero))
           ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
         }
-        val name = avatar.name
         serviceManager
           .ask(Lookup("hart"))(Timeout(2 seconds))
           .onComplete {
@@ -3690,7 +3704,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               ref ! HartTimer.Update(continentId, name)
             case _ =>
           }
-
         //implant terminals
         continent.map.terminalToInterface.foreach({
           case (terminal_guid, interface_guid) =>
@@ -3727,8 +3740,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case _ => ;
             }
         })
-
-        //base turrets
+        //facility turrets
         continent.map.turretToWeapon
           .map { case (turret_guid: Int, _) => continent.GUID(turret_guid) }
           .collect {
@@ -3736,8 +3748,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               val pguid = turret.GUID
               //attached weapon
               if (!turret.isUpgrading) {
-                turret.ControlledWeapon(wepNumber = 1) match {
-                  case Some(obj: Tool) =>
+                turret.ControlledWeapon(wepNumber = 1).foreach {
+                  case obj: Tool =>
                     val objDef = obj.Definition
                     sendResponse(
                       ObjectCreateMessage(
@@ -3767,6 +3779,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case _ => ;
               }
           }
+        //remote projectiles and radiation clouds
+        continent.Projectiles.foreach { projectile =>
+          val definition = projectile.Definition
+          sendResponse(
+            ObjectCreateMessage(
+              definition.ObjectId,
+              projectile.GUID,
+              definition.Packet.ConstructorData(projectile).get
+            )
+          )
+        }
+        //spawn point update request
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
           VehicleAction.UpdateAmsSpawnPoint(continent)
@@ -3876,37 +3900,33 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         player.zoneInteractions()
 
       case msg @ ChildObjectStateMessage(object_guid, pitch, yaw) =>
-        //the majority of the following check retrieves information to determine if we are in control of the child
-        FindContainedWeapon match {
-          case (Some(o), Some(tool)) =>
-            (o match {
-              case mount: Mountable => (o, mount.PassengerInSeat(player))
-              case _                => (None, None)
-            }) match {
-              case (None, None) | (_, None) | (_: Vehicle, Some(0)) => ;
-              case _ =>
-                persist()
-                turnCounterFunc(player.GUID)
-            }
-            if (tool.GUID == object_guid) {
-              //TODO set tool orientation?
-              player.Orientation = Vector3(0f, pitch, yaw)
-              continent.VehicleEvents ! VehicleServiceMessage(
-                continent.id,
-                VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw)
-              )
-            } else {
-              log.warn(
-                s"ChildObjectState: ${player.Name} is using a different controllable agent than entity ${object_guid.guid}"
-              )
-            }
-          case (Some(obj), None) =>
-            log.warn(
-              s"ChildObjectState: ${player.Name} can not find any controllable agent, let alone entity ${object_guid.guid}"
-            )
-          case (None, _) => ;
-          //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
+        val (o, tools) = FindContainedWeapon
+        //is COSM our primary upstream packet?
+        (o match {
+          case Some(mount: Mountable) => (o, mount.PassengerInSeat(player))
+          case _                      => (None, None)
+        }) match {
+          case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ;
+          case _ =>
+            persist()
+            turnCounterFunc(player.GUID)
         }
+        //the majority of the following check retrieves information to determine if we are in control of the child
+        tools.find { _.GUID == object_guid } match {
+          case None =>
+            //todo: old warning; this state is problematic, but can trigger in otherwise valid instances
+            //log.warn(
+            //  s"ChildObjectState: ${player.Name} is using a different controllable agent than entity ${object_guid.guid}"
+            //)
+          case Some(tool) =>
+            //TODO set tool orientation?
+            player.Orientation = Vector3(0f, pitch, yaw)
+            continent.VehicleEvents ! VehicleServiceMessage(
+              continent.id,
+              VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw)
+            )
+        }
+        //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
         if (player.death_by == -1) {
           KickedByAdministration()
         }
@@ -3917,7 +3937,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             pos,
             ang,
             vel,
-            flying,
+            is_flying,
             unk6,
             unk7,
             wheels,
@@ -3946,7 +3966,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 obj.Velocity = Some(Vector3.Zero)
               }
               if (obj.Definition.CanFly) {
-                obj.Flying = flying //usually Some(7)
+                obj.Flying = is_flying //usually Some(7)
               }
               obj.Cloaked = obj.Definition.CanCloak && is_cloaked
             } else {
@@ -3963,7 +3983,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 ang,
                 obj.Velocity,
                 if (obj.isFlying) {
-                  flying
+                  is_flying
                 } else {
                   None
                 },
@@ -3991,7 +4011,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ VehicleSubStateMessage(vehicle_guid, _, pos, ang, vel, unk1, unk2) =>
         //log.info(s"msg")
-        ValidObject(vehicle_guid) match {
+        ValidObject(vehicle_guid, decorator = "VehicleSubState") match {
           case Some(obj: Vehicle) =>
             obj.Position = pos
             obj.Orientation = ang
@@ -4016,10 +4036,104 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             )
 
-          case _ =>
-            log.warn(
-              s"VehicleSubState: ${player.Name} should not be dispatching this kind of packet for vehicle #${vehicle_guid.guid}"
+          case _ => ;
+        }
+
+      case msg @ FrameVehicleStateMessage(
+            vehicle_guid,
+            unk1,
+            pos,
+            ang,
+            vel,
+            unk2,
+            unk3,
+            unk4,
+            is_crouched,
+            is_airborne,
+            ascending_flight,
+            flight_time,
+            unk9,
+            unkA
+            ) =>
+        //log.info(s"$msg")
+        GetVehicleAndSeat() match {
+          case (Some(obj), Some(0)) =>
+            //we're driving the vehicle
+            persist()
+            turnCounterFunc(player.GUID)
+            val (position, angle, velocity, notMountedState) = continent.GUID(obj.MountedIn) match {
+              case Some(v: Vehicle) =>
+                updateBlockMap(obj, continent, pos)
+                (pos, v.Orientation - Vector3.z(value = 90f) * Vehicles.CargoOrientation(obj).toFloat, v.Velocity, false)
+              case _ =>
+                (pos, ang, vel, true)
+            }
+            player.Position = position //convenient
+            if (obj.WeaponControlledFromSeat(seatNumber = 0).isEmpty) {
+              player.Orientation = Vector3.z(ang.z) //convenient
+            }
+            obj.Position = position
+            obj.Orientation = angle
+            obj.Velocity = velocity
+//            if (is_crouched && obj.DeploymentState != DriveState.Kneeling) {
+//              //dev stuff goes here
+//            }
+//            else
+//            if (!is_crouched && obj.DeploymentState == DriveState.Kneeling) {
+//              //dev stuff goes here
+//            }
+            obj.DeploymentState = if (is_crouched || !notMountedState) DriveState.Kneeling else DriveState.Mobile
+            if (notMountedState) {
+              if (obj.DeploymentState != DriveState.Kneeling) {
+                if (is_airborne) {
+                  val flight = if (ascending_flight) flight_time else -flight_time
+                  obj.Flying = Some(flight)
+                  obj.Actor ! BfrFlight.Soaring(flight)
+                } else if (obj.Flying.nonEmpty) {
+                  obj.Flying = None
+                  obj.Actor ! BfrFlight.Landed
+                }
+              } else {
+                obj.Velocity = None
+                obj.Flying = None
+              }
+              obj.zoneInteractions()
+            } else {
+              obj.Velocity = None
+              obj.Flying = None
+            }
+            continent.VehicleEvents ! VehicleServiceMessage(
+              continent.id,
+              VehicleAction.FrameVehicleState(
+                player.GUID,
+                vehicle_guid,
+                unk1,
+                position,
+                angle,
+                velocity,
+                unk2,
+                unk3,
+                unk4,
+                is_crouched,
+                is_airborne,
+                ascending_flight,
+                flight_time,
+                unk9,
+                unkA
+              )
             )
+            updateSquad()
+          case (None, _) =>
+          //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
+          //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
+          case (_, Some(index)) =>
+            log.error(
+              s"VehicleState: ${player.Name} should not be dispatching this kind of packet from vehicle ${vehicle_guid.guid} when not the driver (actually, seat $index)"
+            )
+          case _ => ;
+        }
+        if (player.death_by == -1) {
+          KickedByAdministration()
         }
 
       case msg @ ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, seq, end, target_guid) =>
@@ -4044,7 +4158,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             )
           case _ if seq == 0 =>
-          /* missing the first packet in the sequence is permissible  */
+          /* missing the first packet in the sequence is permissible */
           case _ =>
             log.warn(s"ProjectileState: constructed projectile ${projectile_guid.guid} can not be found")
         }
@@ -4052,8 +4166,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ LongRangeProjectileInfoMessage(guid, _, _) =>
         //log.info(s"$msg")
         FindContainedWeapon match {
-          case (Some(vehicle: Vehicle), Some(weapon: Tool))
-            if weapon.GUID == guid => ; //now what?
+          case (Some(vehicle: Vehicle), weapons)
+            if weapons.exists { _.GUID == guid } => ; //now what?
           case _ => ;
         }
 
@@ -4098,24 +4212,32 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(VoiceHostKill())
 
       case msg @ ChangeAmmoMessage(item_guid, unk1) =>
-        FindContainedEquipment match {
-          case (Some(_), Some(obj: ConstructionItem)) =>
-            if (Deployables.performConstructionItemAmmoChange(player.avatar.certifications, obj, obj.AmmoTypeIndex)) {
-              log.info(
-                s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${obj.AmmoType} (option #${obj.FireModeIndex})"
-              )
-              sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
-            }
-          case (Some(obj: PlanetSideServerObject), Some(tool: Tool)) =>
-            PerformToolAmmoChange(tool, obj)
-          case (_, Some(obj)) =>
-            log.warn(s"ChangeAmmo: the ${obj.Definition.Name} in ${player.Name}'s hands does not contain ammunition")
-          case (_, None) =>
-            log.warn(s"ChangeAmmo: can not find $item_guid")
+        val (thing, equipment) = FindContainedEquipment()
+        if(equipment.isEmpty) {
+          log.warn(s"ChangeAmmo: either can not find $item_guid or the object found was not Equipment")
+        } else {
+          equipment foreach {
+            case obj : ConstructionItem =>
+              if (Deployables.performConstructionItemAmmoChange(player.avatar.certifications, obj, obj.AmmoTypeIndex)) {
+                log.info(
+                  s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${obj.AmmoType} (option #${obj.FireModeIndex})"
+                )
+                sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
+              }
+            case tool : Tool =>
+              thing match {
+                case Some(correctThing: PlanetSideServerObject with Container) =>
+                  PerformToolAmmoChange(tool, correctThing)
+                case _ =>
+                  log.warn(s"ChangeAmmo: the ${thing.get.Definition.Name} in ${player.Name}'s is not the correct type")
+              }
+            case obj =>
+              log.warn(s"ChangeAmmo: the ${obj.Definition.Name} in ${player.Name}'s hands does not contain ammunition")
+          }
         }
 
       case msg @ ChangeFireModeMessage(item_guid, fire_mode) =>
-        FindEquipment match {
+        FindEquipment(item_guid) match {
           case Some(obj: PlanetSideGameObject with FireModeSwitch[_]) =>
             val originalModeIndex = obj.FireModeIndex
             if (obj match {
@@ -4150,12 +4272,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ ChangeFireStateMessage_Start(item_guid) =>
         if (shooting.isEmpty) {
-          FindEquipment match {
+          FindEquipment(item_guid) match {
             case Some(tool: Tool) =>
-              if (tool.Magazine > 0 || prefire.contains(item_guid)) {
-                prefire = None
-                shooting = Some(item_guid)
-                shootingStart = System.currentTimeMillis()
+              if (tool.FireMode.RoundsPerShot == 0 || tool.Magazine > 0 || prefire.contains(item_guid)) {
+                prefire -= item_guid
+                shooting += item_guid
+                shootingStart += item_guid -> System.currentTimeMillis()
                 //special case - suppress the decimator's alternate fire mode, by projectile
                 if (tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
                   continent.AvatarEvents ! AvatarServiceMessage(
@@ -4181,9 +4303,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 EmptyMagazine(item_guid, tool)
               }
             case Some(_) => //permissible, for now
-              prefire = None
-              shooting = Some(item_guid)
-              shootingStart = System.currentTimeMillis()
+              prefire -= item_guid
+              shooting += item_guid
+              shootingStart += item_guid -> System.currentTimeMillis()
               continent.AvatarEvents ! AvatarServiceMessage(
                 continent.id,
                 AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
@@ -4194,13 +4316,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ ChangeFireStateMessage_Stop(item_guid) =>
-        prefire = None
-        shootingStop = System.currentTimeMillis()
-        if (shooting.contains(item_guid)) {
-          shooting = None
-        }
+        prefire -= item_guid
+        shootingStop += item_guid -> System.currentTimeMillis()
+        shooting -= item_guid
         val pguid = player.GUID
-        FindEquipment match {
+        FindEquipment(item_guid) match {
           case Some(tool: Tool) =>
             //the decimator does not send a ChangeFireState_Start on the last shot; heaven knows why
             if (
@@ -4212,7 +4332,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 continent.id,
                 AvatarAction.ChangeFireState_Start(pguid, item_guid)
               )
-              shootingStart = System.currentTimeMillis() - 1L
+              shootingStart += item_guid -> (System.currentTimeMillis() - 1L)
             }
             tool.FireMode match {
               case mode: ChargeFireModeDefinition =>
@@ -4248,7 +4368,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(EmoteMsg(avatar_guid, emote))
 
       case msg @ DropItemMessage(item_guid) =>
-        ValidObject(item_guid) match {
+        ValidObject(item_guid, decorator = "DropItem") match {
           case Some(anItem: Equipment) =>
             player.FreeHand.Equipment match {
               case Some(item) =>
@@ -4262,19 +4382,19 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                   }
                 }
               case None =>
-                log.warn(s"DropItem: ${player.Name} wanted to drop a $anItem, but it wasn't at hand")
+                continent.GUID(player.VehicleSeated) match {
+                  case Some(_) => ; //in a vehicle, suppress the warning message
+                  case None =>
+                    log.warn(s"DropItem: ${player.Name} wanted to drop a $anItem, but it wasn't at hand")
+                }
             }
           case Some(obj) =>
             log.warn(s"DropItem: ${player.Name} wanted to drop a $obj, but that isn't possible")
-          case None =>
-            sendResponse(ObjectDeleteMessage(item_guid, 0)) //this is fine; item doesn't exist to the server anyway
-            log.warn(
-              s"DropItem: ${player.Name} wanted to drop an item ${item_guid.guid}, but it was nowhere to be found"
-            )
+          case None => ;
         }
 
       case msg @ PickupItemMessage(item_guid, player_guid, unk1, unk2) =>
-        ValidObject(item_guid) match {
+        ValidObject(item_guid, decorator = "PickupItem") match {
           case Some(item: Equipment) =>
             player.Fit(item) match {
               case Some(_) =>
@@ -4283,63 +4403,61 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               case None => //skip
                 sendResponse(ActionResultMessage.Fail(16)) //error code?
             }
-          case _ =>
-            log.warn(
-              s"PickupItem: ${player.Name} requested an item ${item_guid.guid} that doesn't seem to exist"
-            )
+          case _ => ;
         }
 
       case msg @ ReloadMessage(item_guid, ammo_clip, unk1) =>
         FindContainedWeapon match {
-          case (Some(obj: PlanetSideServerObject with Container), Some(tool: Tool)) =>
-            val currentMagazine: Int = tool.Magazine
-            val magazineSize: Int    = tool.MaxMagazine
-            val reloadValue: Int     = magazineSize - currentMagazine
-            if (magazineSize > 0 && reloadValue > 0) {
-              FindEquipmentStock(obj, FindAmmoBoxThatUses(tool.AmmoType), reloadValue, CountAmmunition).reverse match {
-                case Nil => ;
-                case x :: xs =>
-                  val (deleteFunc, modifyFunc): (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
-                    case veh: Vehicle =>
-                      (RemoveOldEquipmentFromInventory(veh), ModifyAmmunitionInVehicle(veh))
-                    case _ =>
-                      (RemoveOldEquipmentFromInventory(obj), ModifyAmmunition(obj))
-                  }
-                  xs.foreach { item => deleteFunc(item.obj) }
-                  val box = x.obj.asInstanceOf[AmmoBox]
-                  val tailReloadValue: Int = if (xs.isEmpty) {
-                    0
-                  } else {
-                    xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum
-                  }
-                  val sumReloadValue: Int = box.Capacity + tailReloadValue
-                  val actualReloadValue = if (sumReloadValue <= reloadValue) {
-                    deleteFunc(box)
-                    sumReloadValue
-                  } else {
-                    modifyFunc(box, reloadValue - tailReloadValue)
-                    reloadValue
-                  }
-                  val finalReloadValue = actualReloadValue + currentMagazine
-                  log.info(
-                    s"${player.Name} successfully reloaded $reloadValue ${tool.AmmoType} into ${tool.Definition.Name}"
-                  )
-                  tool.Magazine = finalReloadValue
-                  sendResponse(ReloadMessage(item_guid, finalReloadValue, unk1))
-                  continent.AvatarEvents ! AvatarServiceMessage(
-                    continent.id,
-                    AvatarAction.Reload(player.GUID, item_guid)
-                  )
+          case (Some(obj: PlanetSideServerObject with Container), tools) =>
+            tools.filter { _.GUID == item_guid }.foreach { tool =>
+              val currentMagazine : Int = tool.Magazine
+              val magazineSize : Int = tool.MaxMagazine
+              val reloadValue : Int = magazineSize - currentMagazine
+              if (magazineSize > 0 && reloadValue > 0) {
+                FindEquipmentStock(obj, FindAmmoBoxThatUses(tool.AmmoType), reloadValue, CountAmmunition).reverse match {
+                  case Nil => ;
+                  case x :: xs =>
+                    val (deleteFunc, modifyFunc) : (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
+                      case veh : Vehicle =>
+                        (RemoveOldEquipmentFromInventory(veh), ModifyAmmunitionInVehicle(veh))
+                      case _ =>
+                        (RemoveOldEquipmentFromInventory(obj), ModifyAmmunition(obj))
+                    }
+                    xs.foreach { item => deleteFunc(item.obj) }
+                    val box = x.obj.asInstanceOf[AmmoBox]
+                    val tailReloadValue : Int = if (xs.isEmpty) {
+                      0
+                    }
+                    else {
+                      xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum
+                    }
+                    val sumReloadValue : Int = box.Capacity + tailReloadValue
+                    val actualReloadValue = if (sumReloadValue <= reloadValue) {
+                      deleteFunc(box)
+                      sumReloadValue
+                    }
+                    else {
+                      modifyFunc(box, reloadValue - tailReloadValue)
+                      reloadValue
+                    }
+                    val finalReloadValue = actualReloadValue + currentMagazine
+                    log.info(
+                      s"${player.Name} successfully reloaded $reloadValue ${tool.AmmoType} into ${tool.Definition.Name}"
+                    )
+                    tool.Magazine = finalReloadValue
+                    sendResponse(ReloadMessage(item_guid, finalReloadValue, unk1))
+                    continent.AvatarEvents ! AvatarServiceMessage(
+                      continent.id,
+                      AvatarAction.Reload(player.GUID, item_guid)
+                    )
+                }
+              } else {
+                //the weapon can not reload due to full magazine; the UI for the magazine is obvious bugged, so fix it
+                sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, magazineSize))
               }
-            } else {
-              log.warn(
-                s"ReloadMessage: the ${tool.Definition.Name} under ${player.Name}'s control can not reload (full=$magazineSize, want=$reloadValue)"
-              )
             }
-          case (_, Some(_)) =>
-            log.warn(s"ReloadMessage: the object that was found for $item_guid was not a Tool")
-          case (_, None) =>
-            log.warn(s"ReloadMessage: can not find $item_guid")
+          case (_, _) =>
+            log.warn(s"ReloadMessage: either can not find $item_guid or the object found was not a Tool")
         }
 
       case msg @ ObjectHeldMessage(avatar_guid, held_holsters, unk1) =>
@@ -4431,7 +4549,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ RequestDestroyMessage(object_guid) =>
         // TODO: Make sure this is the correct response for all cases
-        ValidObject(object_guid) match {
+        ValidObject(object_guid, decorator = "RequestDestroy") match {
           case Some(vehicle: Vehicle) =>
             /* line 1a: player is admin (and overrules other access requirements) */
             /* line 1b: vehicle and player (as the owner) acknowledge each other */
@@ -4452,20 +4570,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }
 
           case Some(obj: Projectile) =>
-            if (obj.isResolved) {
-              log.warn(
-                s"RequestDestroy: tried to clean up projectile ${object_guid.guid} but it was already resolved"
-              )
-            } else {
+            if (!obj.isResolved) {
               obj.Miss()
-              if (obj.profile.ExistsOnRemoteClients && obj.HasGUID) {
-                continent.AvatarEvents ! AvatarServiceMessage(
-                  continent.id,
-                  AvatarAction.ProjectileExplodes(player.GUID, obj.GUID, obj)
-                )
-                TaskWorkflow.execute(unregisterProjectile(obj))
-              }
             }
+            continent.Projectile ! ZoneProjectile.Remove(object_guid)
 
           case Some(obj: BoomerTrigger) =>
             if (FindEquipmentToDelete(object_guid, obj)) {
@@ -4492,21 +4600,24 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case Some(thing) =>
             log.warn(s"RequestDestroy: not allowed to delete this ${thing.Definition.Name}")
 
-          case None =>
-            log.warn(s"RequestDestroy: object ${object_guid.guid} not found")
+          case None => ;
         }
 
       case msg @ ObjectDeleteMessage(object_guid, unk1) =>
         sendResponse(ObjectDeleteMessage(object_guid, 0))
 
       case msg @ MoveItemMessage(item_guid, source_guid, destination_guid, dest, _) =>
-        (continent.GUID(source_guid), continent.GUID(destination_guid), ValidObject(item_guid)) match {
+        (
+          continent.GUID(source_guid),
+          continent.GUID(destination_guid),
+          ValidObject(item_guid, decorator = "MoveItem")
+        ) match {
           case (
                 Some(source: PlanetSideServerObject with Container),
                 Some(destination: PlanetSideServerObject with Container),
                 Some(item: Equipment)
               ) =>
-            ContainableMoveItem(player.Name, source, destination, item, dest)
+            ContainableMoveItem(player.Name, source, destination, item, destination.SlotMapResolution(dest))
           case (None, _, _) =>
             log.error(
               s"MoveItem: ${player.Name} wanted to move $item_guid from $source_guid, but could not find source object"
@@ -4515,8 +4626,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             log.error(
               s"MoveItem: ${player.Name} wanted to move $item_guid to $destination_guid, but could not find destination object"
             )
-          case (_, _, None) =>
-            log.error(s"MoveItem: ${player.Name} wanted to move $item_guid, but could not find it")
+          case (_, _, None) => ;
           case _ =>
             log.error(
               s"MoveItem: ${player.Name} wanted to move $item_guid from $source_guid to $destination_guid, but multiple problems were encountered"
@@ -4524,7 +4634,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ LootItemMessage(item_guid, target_guid) =>
-        (ValidObject(item_guid), continent.GUID(target_guid)) match {
+        (ValidObject(item_guid, decorator = "LootItem"), continent.GUID(target_guid)) match {
           case (Some(item: Equipment), Some(destination: PlanetSideServerObject with Container)) =>
             //figure out the source
             (
@@ -4556,8 +4666,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }
           case (Some(obj), _) =>
             log.error(s"LootItem: item $obj is (probably) not lootable to ${player.Name}")
-          case (None, _) =>
-            log.error(s"LootItem: ${player.Name} can not find $item_guid")
+          case (None, _) => ;
           case (_, None) =>
             log.error(s"LootItem: ${player.Name} can not find where to put $item_guid")
         }
@@ -4590,17 +4699,29 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             itemType
           ) =>
         // TODO: Not all fields in the response are identical to source in real packet logs (but seems to be ok)
-        // TODO: Not all incoming UseItemMessage's respond with another UseItemMessage (i.e. doors only send out GenericObjectStateMsg)
-        val equipment = player.Slot(player.DrawnSlot).Equipment match {
-          case out @ Some(item) if item.GUID == item_used_guid => out
-          case _                                               => None
+        val equipment = FindContainedEquipment(item_used_guid) match {
+          case (o @ Some(_), a)
+            if a.exists(_.isInstanceOf[Tool]) =>
+            FindEnabledWeaponsToHandleWeaponFireAccountability(o, a.collect { case w: Tool => w })._2.headOption
+          case (Some(_), a) =>
+            a.headOption
+          case _ =>
+            None
         }
-        ValidObject(object_guid) match {
+        ValidObject(object_guid, decorator = "UseItem") match {
           case Some(door: Door) =>
             door.Actor ! CommonMessages.Use(player)
 
           case Some(resourceSilo: ResourceSilo) =>
-            resourceSilo.Actor ! CommonMessages.Use(player)
+            CancelZoningProcessWithDescriptiveReason("cancel_use")
+            (continent.GUID(player.VehicleSeated), equipment) match {
+              case (Some(vehicle: Vehicle), Some(item))
+                if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) &&
+                   GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) =>
+                resourceSilo.Actor ! CommonMessages.Use(player, equipment)
+              case _ =>
+                resourceSilo.Actor ! CommonMessages.Use(player)
+            }
 
           case Some(panel: IFFLock) =>
             equipment match {
@@ -4971,12 +5092,29 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             }
 
+          case Some(gate: WarpGate) =>
+            CancelZoningProcessWithDescriptiveReason("cancel_use")
+            (continent.GUID(player.VehicleSeated), equipment) match {
+              case (Some(vehicle: Vehicle), Some(item))
+                if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) &&
+                   GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) =>
+                vehicle.Actor ! CommonMessages.Use(player, equipment)
+              case _ => ;
+            }
+
           case Some(obj) =>
             CancelZoningProcessWithDescriptiveReason("cancel_use")
-            log.warn(s"UseItem: ${player.Name} does not know how to handle $obj")
+            equipment match {
+              case Some(item)
+                if GlobalDefinitions.isBattleFrameArmorSiphon(item.Definition) ||
+                   GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) => ;
 
-          case None =>
-            log.error(s"UseItem: ${player.Name} can not find object $object_guid")
+              case _ =>
+                log.warn(s"UseItem: ${player.Name} does not know how to handle $obj")
+
+            }
+
+          case None => ;
         }
 
       case msg @ ProximityTerminalUseMessage(player_guid, object_guid, _) =>
@@ -4990,7 +5128,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ UnuseItemMessage(player_guid, object_guid) =>
-        ValidObject(object_guid) match {
+        ValidObject(object_guid, decorator = "UnuseItem") match {
           case Some(obj: Player) =>
             UnaccessContainer(obj)
             TryDisposeOfLootedCorpse(obj)
@@ -5037,23 +5175,44 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ GenericObjectActionMessage(object_guid, code) =>
-        log.debug(s"$msg")
-        ValidObject(object_guid) match {
-          case Some(vehicle: Vehicle) =>
-            if (code == 55) {
-              //apc emp
-              vehicle.Actor ! SpecialEmp.Burst()
-            }
+        //log.info(s"$msg")
+        ValidObject(object_guid, decorator = "GenericObjectAction") match {
+          case Some(vehicle: Vehicle)
+            if vehicle.OwnerName.contains(player.Name) =>
+            vehicle.Actor ! ServerObject.GenericObjectAction(object_guid, code, Some(player.GUID))
+
           case Some(tool: Tool) =>
-            if (tool.Definition == GlobalDefinitions.maelstrom && code == 35) {
-              //maelstrom primary fire mode effect (no target)
+            if (code == 35 &&
+                (tool.Definition == GlobalDefinitions.maelstrom || tool.Definition.Name.startsWith("aphelion_laser"))
+            ) {
+              //maelstrom primary fire mode discharge (no target)
+              //aphelion_laser discharge (no target)
               HandleWeaponFireAccountability(object_guid, PlanetSideGUID(Projectile.baseUID))
+            } else {
+              ValidObject(player.VehicleSeated, decorator = "GenericObjectAction/Vehicle") match {
+                case Some(vehicle: Vehicle)
+                  if vehicle.OwnerName.contains(player.Name) =>
+                  vehicle.Actor ! ServerObject.GenericObjectAction(object_guid, code, Some(tool))
+                case _ => ;
+              }
+            }
+          case _ => ;
+        }
+
+      case msg @ GenericObjectActionAtPositionMessage(object_guid, _, _) =>
+        //log.info(s"$msg")
+        ValidObject(object_guid, decorator = "GenericObjectActionAtPosition") match {
+          case Some(tool: Tool) if GlobalDefinitions.isBattleFrameNTUSiphon(tool.Definition) =>
+            FindContainedWeapon match {
+              case (Some(vehicle: Vehicle), weps) if weps.exists(_.GUID == object_guid) =>
+                vehicle.Actor ! SpecialEmp.Burst()
+              case _ => ;
             }
           case _ => ;
         }
 
       case msg @ GenericObjectStateMsg(object_guid, unk1) =>
-        log.debug("GenericObjectState: " + msg)
+        log.debug(s"$msg")
 
       case msg @ GenericActionMessage(action) =>
         if (player == null) {
@@ -5183,16 +5342,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case msg @ FavoritesRequest(player_guid, loadoutType, action, line, label) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
         action match {
-          case FavoritesAction.Save   => avatarActor ! AvatarActor.SaveLoadout(player, loadoutType, label, line)
-          case FavoritesAction.Delete => avatarActor ! AvatarActor.DeleteLoadout(player, loadoutType, line)
+          case FavoritesAction.Save   =>
+            avatarActor ! AvatarActor.SaveLoadout(player, loadoutType, label, line)
+          case FavoritesAction.Delete =>
+            avatarActor ! AvatarActor.DeleteLoadout(player, loadoutType, line)
           case FavoritesAction.Unknown =>
             log.warn(s"FavoritesRequest: ${player.Name} requested an unknown favorites action")
         }
 
-      case msg @ WeaponDelayFireMessage(seq_time, weapon_guid) => ;
+      case msg @ WeaponDelayFireMessage(seq_time, weapon_guid) =>
+        log.info(s"$msg")
 
       case msg @ WeaponDryFireMessage(weapon_guid) =>
-        FindWeapon.orElse { continent.GUID(weapon_guid) } match {
+        FindWeapon
+          .find { _.GUID == weapon_guid }
+          .orElse { continent.GUID(weapon_guid) } match {
           case Some(_: Equipment) =>
             continent.AvatarEvents ! AvatarServiceMessage(
               continent.id,
@@ -5230,8 +5394,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         log.info(s"${player.Name} is lazing a position$purpose")
 
       case msg @ ObjectDetectedMessage(guid1, guid2, unk, targets) =>
-        FindWeapon match {
-          case Some(weapon) if weapon.Projectile.AutoLock =>
+        FindWeapon.foreach {
+          case weapon if weapon.Projectile.AutoLock =>
             //projectile with auto-lock instigates a warning on the target
             val detectedTargets = FindDetectedProjectileTargets(targets)
             if (detectedTargets.nonEmpty) {
@@ -5260,7 +5424,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             (hit_info match {
               case Some(hitInfo) =>
                 val hitPos     = hitInfo.hit_pos
-                ValidObject(hitInfo.hitobject_guid) match {
+                ValidObject(hitInfo.hitobject_guid, decorator = "Hit/hitInfo") match {
                   case _ if projectile.profile == GlobalDefinitions.flail_projectile =>
                     val radius  = projectile.profile.DamageRadius * projectile.profile.DamageRadius
                     val targets = Zone.findAllTargets(hitPos)(continent, player, projectile.profile)
@@ -5269,43 +5433,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                       }
                     targets.map { target =>
                       CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
-                      (target, hitPos, target.Position)
+                      (target, projectile, hitPos, target.Position)
                     }
 
                   case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                     CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
-                    List((target, hitInfo.shot_origin, hitPos))
+                    List((target, projectile, hitInfo.shot_origin, hitPos))
 
-                  case None if projectile.profile.DamageProxy.getOrElse(0) > 0 =>
-                    //server-side maelstrom grenade target selection
-                    if (projectile.tool_def == GlobalDefinitions.maelstrom) {
-                      val shotOrigin = hitInfo.shot_origin
-                      val radius     = projectile.profile.LashRadius * projectile.profile.LashRadius
-                      val targets = continent.blockMap
-                        .sector(hitPos, projectile.profile.LashRadius)
-                        .livePlayerList
-                        .filter { target =>
-                          Vector3.DistanceSquared(target.Position, hitPos) <= radius
-                        }
-                      //chainlash is separated from the actual damage application for convenience
-                      continent.AvatarEvents ! AvatarServiceMessage(
-                        continent.id,
-                        AvatarAction.SendResponse(
-                          PlanetSideGUID(0),
-                          ChainLashMessage(
-                            hitPos,
-                            projectile.profile.ObjectId,
-                            targets.map { _.GUID }
-                          )
-                        )
-                      )
-                      targets.map { target =>
-                        CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
-                        (target, hitPos, target.Position)
-                      }
-                    } else {
-                      Nil
-                    }
+                  case None =>
+                    HandleDamageProxy(projectile, projectile_guid, hitPos)
 
                   case _ =>
                     Nil
@@ -5316,10 +5452,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               .foreach({
                 case (
                       target: PlanetSideGameObject with FactionAffinity with Vitality,
+                      proj: Projectile,
                       shotOrigin: Vector3,
                       hitPos: Vector3
                     ) =>
-                  ResolveProjectileInteraction(projectile, DamageResolution.Hit, target, hitPos) match {
+                  ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos) match {
                     case Some(resprojectile) =>
                       HandleDealingDamage(target, resprojectile)
                     case None => ;
@@ -5353,7 +5490,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 (DamageResolution.Splash, DamageResolution.Splash)
             }
             //direct_victim_uid
-            ValidObject(direct_victim_uid) match {
+            ValidObject(direct_victim_uid, decorator = "SplashHit/direct_victim") match {
               case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                 CheckForHitPositionDiscrepancy(projectile_guid, target.Position, target)
                 ResolveProjectileInteraction(projectile, resolution1, target, target.Position) match {
@@ -5365,7 +5502,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }
             //other victims
             targets.foreach(elem => {
-              ValidObject(elem.uid) match {
+              ValidObject(elem.uid, decorator = "SplashHit/other_victims") match {
                 case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
                   CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
                   ResolveProjectileInteraction(projectile, resolution2, target, explosion_pos) match {
@@ -5376,6 +5513,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 case _ => ;
               }
             })
+            //...
+            HandleDamageProxy(projectile, projectile_guid, explosion_pos)
             if (
               projectile.profile.HasJammedEffectDuration ||
               projectile.profile.JammerProjectile ||
@@ -5395,9 +5534,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               //cleanup
               val localIndex = projectile_guid.guid - Projectile.baseUID
               if (projectile.HasGUID) {
-                CleanUpRemoteProjectile(projectile.GUID, projectile, localIndex)
-              } else {
-                projectilesToCleanUp(localIndex) = true
+                continent.Projectile ! ZoneProjectile.Remove(projectile.GUID)
               }
             }
           case None => ;
@@ -5405,7 +5542,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ LashMessage(seq_time, killer_guid, victim_guid, projectile_guid, hit_pos, unk1) =>
         log.trace(s"${player.Name} lashes some targets - $msg")
-        ValidObject(victim_guid) match {
+        ValidObject(victim_guid, decorator = "Lash") match {
           case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
             CheckForHitPositionDiscrepancy(projectile_guid, hit_pos, target)
             ResolveProjectileInteraction(projectile_guid, DamageResolution.Lash, target, hit_pos) match {
@@ -5457,12 +5594,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ MountVehicleMsg(player_guid, mountable_guid, entry_point) =>
-        ValidObject(mountable_guid) match {
+        ValidObject(mountable_guid, decorator = "MountVehicle") match {
           case Some(obj: Mountable) =>
             obj.Actor ! Mountable.TryMount(player, entry_point)
-
-          case None | Some(_) =>
+          case Some(_) =>
             log.error(s"MountVehicleMsg: object ${mountable_guid.guid} not a mountable thing, ${player.Name}")
+          case None => ;
         }
 
       case msg @ DismountVehicleMsg(player_guid, bailType, wasKickedByDriver) =>
@@ -5526,7 +5663,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           //kicking someone else out of a mount; need to own that mount/mountable
           player.avatar.vehicle match {
             case Some(obj_guid) =>
-              ((ValidObject(obj_guid), ValidObject(player_guid)) match {
+              (
+                (
+                  ValidObject(obj_guid, decorator = "DismountVehicle/Vehicle"),
+                  ValidObject(player_guid, decorator = "DismountVehicle/Player")
+                ) match {
                 case (vehicle @ Some(obj: Vehicle), tplayer) =>
                   if (obj.MountedIn.isEmpty) (vehicle, tplayer) else (None, None)
                 case (mount @ Some(obj: Mountable), tplayer) =>
@@ -5618,7 +5759,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             0f
           }
         }
-        val (target1, target2, bailProtectStatus, velocity) = (ctype, ValidObject(p)) match {
+        val (target1, target2, bailProtectStatus, velocity) = (ctype, ValidObject(p, decorator = "GenericCollision/Primary")) match {
           case (CollisionIs.OfInfantry, out @ Some(user: Player))
             if user == player =>
             val bailStatus = session.flying || player.spectator || session.speed > 1f || player.BailProtection
@@ -5636,10 +5777,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             if v.Seats(0).occupant.contains(player) =>
             val bailStatus = v.BailProtection
             v.BailProtection = false
-            (out, ValidObject(t), bailStatus, pv)
+            (out, ValidObject(t, decorator = "GenericCollision/GroundVehicle"), bailStatus, pv)
           case (CollisionIs.OfAircraft, out @ Some(v: Vehicle))
             if v.Definition.CanFly && v.Seats(0).occupant.contains(player) =>
-            (out, ValidObject(t), false, pv)
+            (out, ValidObject(t, decorator = "GenericCollision/Aircraft"), false, pv)
+          case (CollisionIs.BetweenThings, o_) =>
+            log.warn("GenericCollision: CollisionIs.BetweenThings detected - no handling case")
+            (None, None, false, Vector3.Zero)
           case _ =>
             (None, None, false, Vector3.Zero)
         }
@@ -5725,61 +5869,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       //log.info("BindPlayerMessage: " + msg)
 
       case msg @ PlanetsideAttributeMessage(object_guid, attribute_type, attribute_value) =>
-        ValidObject(object_guid) match {
+        ValidObject(object_guid, decorator = "PlanetsideAttribute") match {
+          case Some(vehicle: Vehicle) if player.avatar.vehicle.contains(vehicle.GUID) =>
+            vehicle.Actor ! ServerObject.AttributeMsg(attribute_type, attribute_value)
           case Some(vehicle: Vehicle) =>
-            if (player.avatar.vehicle.contains(vehicle.GUID)) {
-              if (9 < attribute_type && attribute_type < 14) {
-                vehicle.PermissionGroup(attribute_type, attribute_value) match {
-                  case Some(allow) =>
-                    val group = AccessPermissionGroup(attribute_type - 10)
-                    log.info(s"${player.Name} changed ${vehicle.Definition.Name}'s access permission $group to $allow")
-                    continent.VehicleEvents ! VehicleServiceMessage(
-                      continent.id,
-                      VehicleAction.SeatPermissions(player.GUID, vehicle.GUID, attribute_type, attribute_value)
-                    )
-                    //kick players who should not be seated in the vehicle due to permission changes
-                    if (allow == VehicleLockState.Locked) { //TODO only important permission atm
-                      vehicle.Seats.foreach {
-                        case (seatIndex, seat) =>
-                          seat.occupant match {
-                            case Some(tplayer: Player) =>
-                              if (vehicle.SeatPermissionGroup(seatIndex).contains(group) && tplayer != player) { //can not kick self
-                                seat.unmount(tplayer)
-                                tplayer.VehicleSeated = None
-                                continent.VehicleEvents ! VehicleServiceMessage(
-                                  continent.id,
-                                  VehicleAction.KickPassenger(tplayer.GUID, 4, false, object_guid)
-                                )
-                              }
-                            case _ => ; // No player seated
-                          }
-                      }
-                      vehicle.CargoHolds.foreach {
-                        case (cargoIndex, hold) =>
-                          hold.occupant match {
-                            case Some(cargo) =>
-                              if (vehicle.SeatPermissionGroup(cargoIndex).contains(group)) {
-                                //todo: this probably doesn't work for passengers within the cargo vehicle
-                                // Instruct client to start bail dismount procedure
-                                self ! DismountVehicleCargoMsg(player.GUID, cargo.GUID, true, false, false)
-                              }
-                            case None => ; // No vehicle in cargo
-                          }
-                      }
-                    }
-                  case None => ;
-                }
-              } else {
-                log.warn(
-                  s"PlanetsideAttribute: vehicle attributes - unsupported change on vehicle $object_guid - $attribute_type, ${player.Name}"
-                )
-              }
-            } else {
-              log.warn(
-                s"PlanetsideAttribute: vehicle attributes - ${player.Name} does not own vehicle ${vehicle.GUID} and can not change it"
-              )
-            }
-
+            log.warn(
+              s"PlanetsideAttribute: ${player.Name} does not own vehicle ${vehicle.GUID} and can not change it"
+            )
           // Cosmetics options
           case Some(player: Player) if attribute_type == 106 =>
             avatarActor ! AvatarActor.SetCosmetics(Cosmetic.valuesFromAttributeValue(attribute_value))
@@ -5787,8 +5883,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case Some(obj) =>
             log.trace(s"PlanetsideAttribute: ${player.Name} does not know how to apply unknown attributes behavior $attribute_type to ${obj.Definition.Name}")
 
-          case _ =>
-            log.warn(s"PlanetsideAttribute: ${player.Name} does not know how to apply unknown attributes behavior $attribute_type")
+          case _ => ;
         }
 
       case msg @ FacilityBenefitShieldChargeRequestMessage(guid) =>
@@ -5872,8 +5967,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         progressBarUpdate.cancel()
         progressBarValue = None
 
-      case msg @ TradeMessage(_,_) =>
-        log.info(s"${player.Name} wants to trade, for some reason - $msg")
+      case TradeMessage(trade) =>
+        log.info(s"${player.Name} wants to trade, for some reason - $trade")
 
       case _ =>
         log.warn(s"Unhandled GamePacket $pkt")
@@ -6045,30 +6140,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     )
   }
 
-  /**
-    * Construct tasking that adds a completed but unregistered projectile into the scene.
-    * After the projectile is registered to the curent zone's global unique identifier system,
-    * all connected clients save for the one that registered it will be informed about the projectile's "creation."
-    * @param obj the projectile to be registered
-    * @return a `TaskBundle` message
-    */
-  private def registerProjectile(obj: Projectile): TaskBundle = {
-    TaskBundle(
-      new StraightforwardTask() {
-        private val globalProjectile = obj
-        private val localAnnounce    = self
-
-        override def description(): String = s"register a ${globalProjectile.profile.Name}"
-
-        def action(): Future[Any] = {
-          localAnnounce ! LoadedRemoteProjectile(globalProjectile.GUID, Some(globalProjectile))
-          Future(true)
-        }
-      },
-      List(GUIDTask.registerObject(continent.GUID, obj))
-    )
-  }
-
   private def unregisterDrivenVehicle(vehicle: Vehicle, driver: Player): TaskBundle = {
     TaskBundle(
       new StraightforwardTask() {
@@ -6084,54 +6155,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       },
       List(GUIDTask.unregisterAvatar(continent.GUID, driver), GUIDTask.unregisterVehicle(continent.GUID, vehicle))
     )
-  }
-
-  /**
-    * Construct tasking that removes a formerly complete and currently registered projectile from the scene.
-    * After the projectile is unregistered from the curent zone's global unique identifier system,
-    * all connected clients save for the one that registered it will be informed about the projectile's "destruction."
-    * @param obj the projectile to be unregistered
-    * @return a `TaskBundle` message
-    */
-  private def unregisterProjectile(obj: Projectile): TaskBundle = {
-    TaskBundle(
-      new StraightforwardTask() {
-        private val globalProjectile = obj
-        private val localAnnounce    = self
-        private val localMsg         = AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(player.GUID, obj.GUID, 2))
-
-        override def description(): String = s"unregister a ${globalProjectile.profile.Name}"
-
-        def action(): Future[Any] = {
-          localAnnounce ! localMsg
-          Future(true)
-        }
-      },
-      List(GUIDTask.unregisterObject(continent.GUID, obj))
-    )
-  }
-
-  /**
-    * If the projectile object is unregistered, register it.
-    * If the projectile object is already registered, unregister it and then register it again.
-    * @see `registerProjectile(Projectile)`
-    * @see `unregisterProjectile(Projectile)`
-    * @param obj the projectile to be registered (a second time?)
-    * @return a `TaskBundle` message
-    */
-  def reregisterProjectile(obj: Projectile): TaskBundle = {
-    val reg = registerProjectile(obj)
-    if (obj.HasGUID) {
-      TaskBundle(
-        reg.mainTask,
-        TaskBundle(
-          reg.subTasks(0).mainTask,
-          unregisterProjectile(obj)
-        )
-      )
-    } else {
-      reg
-    }
   }
 
   def AccessContainer(container: Container): Unit = {
@@ -6317,22 +6340,36 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     *         the first value is a `Container` object;
     *         the second value is an `Equipment` object in the former
     */
-  def FindContainedEquipment: (Option[PlanetSideGameObject with Container], Option[Equipment]) = {
-    player.VehicleSeated match {
-      case Some(vehicle_guid) => //weapon is vehicle turret?
-        continent.GUID(vehicle_guid) match {
-          case Some(vehicle: Mountable with MountableWeapons with Container) =>
-            vehicle.PassengerInSeat(player) match {
-              case Some(seat_num) =>
-                (Some(vehicle), vehicle.WeaponControlledFromSeat(seat_num))
-              case None => ;
-                (None, None)
-            }
-          case _ => ;
-            (None, None)
+  def FindContainedEquipment(): (Option[PlanetSideGameObject with Container], Set[Equipment]) = {
+    continent.GUID(player.VehicleSeated) match {
+      case Some(vehicle: Mountable with MountableWeapons with Container) =>
+        vehicle.PassengerInSeat(player) match {
+          case Some(seat_num) =>
+            (Some(vehicle), vehicle.WeaponControlledFromSeat(seat_num))
+          case None =>
+            (None, Set.empty)
         }
-      case None => //not in vehicle; weapon in hand?
-        (Some(player), player.Slot(player.DrawnSlot).Equipment)
+      case _ =>
+        player.Slot(player.DrawnSlot).Equipment match {
+          case Some(a) =>
+            (Some(player), Set(a))
+          case _ =>
+            (None, Set.empty)
+        }
+    }
+  }
+
+/**
+  * Check two locations for a controlled piece of equipment that is associated with the `player`
+  * and has the specified global unique identifier number.
+  */
+  def FindContainedEquipment(
+                              guid: PlanetSideGUID
+                            ): (Option[PlanetSideGameObject with Container], Set[Equipment]) = {
+    val (o, equipment) = FindContainedEquipment()
+    equipment.find { _.GUID == guid } match {
+      case Some(equip) => (o, Set(equip))
+      case None        => (None, Set.empty)
     }
   }
 
@@ -6340,7 +6377,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Runs `FindContainedEquipment` but ignores the `Container` object output.
     * @return an `Equipment` object
     */
-  def FindEquipment: Option[Equipment] = FindContainedEquipment._2
+  def FindEquipment(): Set[Equipment] = FindContainedEquipment()._2
+
+  /**
+    * Runs `FindContainedEquipment` but ignores the `Container` object output
+    * and only discovers `Equipment` with the specified global unique identifier number.
+    * @return an `Equipment` object
+    */
+  def FindEquipment(guid: PlanetSideGUID): Option[Equipment] = FindEquipment().find { _.GUID == guid }
 
   /**
     * Check two locations for a controlled piece of equipment that is associated with the `player`.
@@ -6349,12 +6393,29 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     *         the first value is a `Container` object;
     *         the second value is an `Tool` object in the former
     */
-  def FindContainedWeapon: (Option[PlanetSideGameObject with Container], Option[Tool]) = {
-    FindContainedEquipment match {
-      case (container, Some(tool: Tool)) =>
-        (container, Some(tool))
+  def FindContainedWeapon: (Option[PlanetSideGameObject with Container], Set[Tool]) = {
+    FindContainedEquipment() match {
+      case (container, equipment) =>
+        (container, equipment collect { case t: Tool => t })
       case _ =>
-        (None, None)
+        (None, Set.empty)
+    }
+  }
+
+  /**
+    * Check two locations for a controlled piece of equipment that is associated with the `player`.
+    * Filter for discovered `Tool`-type `Equipment` with a specific global unique identifier number.
+    * @return a `Tuple` of the returned values;
+    *         the first value is a `Container` object;
+    *         the second value is an `Tool` object in the former
+    */
+  def FindContainedWeapon(
+                           guid: PlanetSideGUID
+                         ): (Option[PlanetSideGameObject with Container], Set[Tool]) = {
+    val (o, equipment) = FindContainedWeapon
+    equipment.find { _.GUID == guid } match {
+      case Some(equip) => (o, Set(equip))
+      case None        => (None, Set.empty)
     }
   }
 
@@ -6362,7 +6423,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * Runs `FindContainedWeapon` but ignores the `Container` object output.
     * @return a `Tool` object
     */
-  def FindWeapon: Option[Tool] = FindContainedWeapon._2
+  def FindWeapon: Set[Tool] = FindContainedWeapon._2
 
   /**
     * Get the current `Vehicle` object that the player is riding/driving.
@@ -6907,6 +6968,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * This is not a complete list but, for the purpose of enforcement, some pointers will be documented here.
     */
   def PlayerActionsToCancel(): Unit = {
+    shootingStart.clear()
+    shootingStop.clear()
     progressBarUpdate.cancel()
     progressBarValue = None
     lastTerminalOrderFulfillment = true
@@ -6935,18 +6998,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case None => ;
     }
-    prefire.orElse(shooting) match {
-      case Some(guid) =>
-        sendResponse(ChangeFireStateMessage_Stop(guid))
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.ChangeFireState_Stop(player.GUID, guid)
-        )
-        prefire = None
-        shooting = None
-        shootingStop = System.currentTimeMillis()
-      case None => ;
+    val currTime = System.currentTimeMillis()
+    (prefire ++ shooting).foreach { guid =>
+      sendResponse(ChangeFireStateMessage_Stop(guid))
+      continent.AvatarEvents ! AvatarServiceMessage(
+        continent.id,
+        AvatarAction.ChangeFireState_Stop(player.GUID, guid)
+      )
     }
+    prefire.clear()
+    shooting.clear()
     if (session.flying) {
       chatActor ! ChatActor.Message(ChatMsg(ChatMessageType.CMT_FLY, false, "", "off", None))
     }
@@ -6971,6 +7032,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def AvatarCreate(): Unit = {
     val health = player.Health
     val armor  = player.Armor
+    val events = continent.VehicleEvents
+    val zoneid = continent.id
     avatarActor ! AvatarActor.ResetImplants()
     player.Spawn()
     if (health != 0) {
@@ -7009,8 +7072,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           vehicle.CargoHolds.values
             .collect { case hold if hold.isOccupied => hold.occupant.get }
             .foreach { _.MountedIn = vguid }
-          continent.VehicleEvents ! VehicleServiceMessage(
-            continent.id,
+          events ! VehicleServiceMessage(
+            zoneid,
             VehicleAction.LoadVehicle(player.GUID, vehicle, vdef.ObjectId, vguid, data)
           )
           carrierInfo match {
@@ -7059,7 +7122,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val guid   = player.GUID
         sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, guid, data))
         continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
+          zoneid,
           AvatarAction.LoadPlayer(guid, ObjectClass.avatar, guid, packet.ConstructorData(player).get, None)
         )
         log.debug(s"AvatarCreate: ${player.Name}")
@@ -7818,33 +7881,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       log.warn("expected projectile was already counted as a missed shot; can not resolve any further")
       None
     } else {
-      projectile.Resolve()
-      val outProjectile =
-        if (projectile.profile.ProjectileDamageTypes.contains(DamageType.Aggravated)) {
-          //aggravated
-          val quality = projectile.profile.Aggravated match {
-            case Some(aggravation)
-                if aggravation.targets.exists(validation => validation.test(target)) &&
-                  aggravation.info.exists(_.damage_type == AggravatedDamage.basicDamageType(resolution)) =>
-              ProjectileQuality.AggravatesTarget
-            case _ =>
-              ProjectileQuality.Normal
-          }
-          projectile.quality(quality)
-        } else if (projectile.tool_def.Size == EquipmentSize.Melee) {
-          //melee
-          val quality = player.avatar.implants.flatten.find { entry => entry.definition.implantType == ImplantType.MeleeBooster } match {
-            case Some(booster) if booster.active && player.avatar.stamina > 9 =>
-              avatarActor ! AvatarActor.ConsumeStamina(10)
-              ProjectileQuality.Modified(25f)
-            case _ =>
-              ProjectileQuality.Normal
-          }
-          projectile.quality(quality)
-        } else {
-          //normal
-          projectile
-        }
+      val outProjectile = ProjectileQuality.modifiers(projectile, resolution, target, pos, Some(player))
+      if (projectile.tool_def.Size == EquipmentSize.Melee && outProjectile.quality == ProjectileQuality.Modified(25)) {
+        avatarActor ! AvatarActor.ConsumeStamina(10)
+      }
       Some(DamageInteraction(SourceEntry(target), ProjectileReason(resolution, outProjectile, target.DamageModel), pos))
     }
   }
@@ -8123,8 +8163,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           continent.AvatarEvents ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
           true
         } else {
-          log.warn(s"RequestDestroy: equipment $obj exists, but ${player.Name} can not reach it to dispose of it")
-          false
+          Zone.EquipmentIs.Where(obj, object_guid, continent) match {
+            case None =>
+              true
+            case Some(Zone.EquipmentIs.Orphaned()) =>
+              if (obj.HasGUID) {
+                TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj))
+              }
+              true
+            case _ =>
+              log.warn(s"RequestDestroy: equipment $obj exists, but ${player.Name} can not reach it to dispose of it")
+              false
+          }
         }
     }
   }
@@ -8677,8 +8727,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param seatNum the mount
     */
   def UpdateWeaponAtSeatPosition(objWithSeat: MountableWeapons, seatNum: Int): Unit = {
-    objWithSeat.WeaponControlledFromSeat(seatNum) match {
-      case Some(weapon: Tool) =>
+    objWithSeat.WeaponControlledFromSeat(seatNum) foreach {
+      case weapon: Tool =>
         //update mounted weapon belonging to mount
         weapon.AmmoSlots.foreach(slot => {
           //update the magazine(s) in the weapon, specifically
@@ -8926,59 +8976,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       .flatMap {
         case Some(obj: Vehicle) if !obj.Cloaked =>
           //TODO hint: vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.ProjectileAutoLockAwareness(mode))
-          obj.Seats.values.flatMap { case seat => seat.occupants.map(_.Name) }
+          obj.Seats.values.flatMap { seat => seat.occupants.map(_.Name) }
         case Some(obj: Mountable) =>
-          obj.Seats.values.flatMap { case seat => seat.occupants.map(_.Name) }
+          obj.Seats.values.flatMap { seat => seat.occupants.map(_.Name) }
         case Some(obj: Player) if obj.ExoSuit == ExoSuitType.MAX =>
           Seq(obj.Name)
         case _ =>
           Seq.empty[String]
       }
-  }
-
-  /**
-    * For a given registered remote projectile, perform all the actions necessary to properly dispose of it.
-    * Those actions involve:
-    * informing that the projectile should explode,
-    * unregistering the projectile's globally unique identifier,
-    * and managing the projectiles's local status information.
-    * @see `CleanUpRemoteProjectile(PlanetSideGUID, Projectile, Int)`
-    * @param projectile_guid the globally unique identifier of the projectile
-    * @param projectile the projectile
-    */
-  def CleanUpRemoteProjectile(projectile_guid: PlanetSideGUID, projectile: Projectile): Unit = {
-    projectiles.indexWhere({
-      case Some(p) => p eq projectile
-      case None    => false
-    }) match {
-      case -1 => ; //required catch
-      case index if projectilesToCleanUp(index) =>
-        CleanUpRemoteProjectile(projectile_guid, projectile, index)
-      case _ => ;
-    }
-  }
-
-  /**
-    * For a given registered remote projectile, perform all the actions necessary to properly dispose of it.
-    * Those actions involve:
-    * informing that the projectile should explode,
-    * unregistering the projectile's globally unique identifier,
-    * and managing the projectiles's local status information.
-    * @param projectile_guid the globally unique identifier of the projectile
-    * @param projectile the projectile
-    * @param local_index an index of the absolute sequence of the projectile, for internal lists
-    */
-  def CleanUpRemoteProjectile(projectile_guid: PlanetSideGUID, projectile: Projectile, local_index: Int): Unit = {
-    continent.AvatarEvents ! AvatarServiceMessage(
-      continent.id,
-      AvatarAction.ProjectileExplodes(player.GUID, projectile_guid, projectile)
-    )
-    TaskWorkflow.execute(unregisterProjectile(projectile))
-    projectiles(local_index) match {
-      case Some(obj) if !obj.isResolved => obj.Miss()
-      case _                            => ;
-    }
-    projectilesToCleanUp(local_index) = false
   }
 
   def CheckForHitPositionDiscrepancy(
@@ -9212,27 +9217,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             )
           val initialQuality = tool.FireMode match {
             case mode: ChargeFireModeDefinition =>
-              ProjectileQuality.Modified((projectile.fire_time - shootingStart) / mode.Time.toFloat)
+              ProjectileQuality.Modified(
+                projectile.fire_time - shootingStart.getOrElse(tool.GUID, System.currentTimeMillis()) / mode.Time.toFloat
+              )
             case _ =>
               ProjectileQuality.Normal
           }
-          projectiles(projectileIndex) = Some(projectile.quality(initialQuality))
+          val qualityprojectile = projectile.quality(initialQuality)
+          projectiles(projectileIndex) = Some(qualityprojectile)
           if (projectile_info.ExistsOnRemoteClients) {
             log.trace(
               s"WeaponFireMessage: ${player.Name}'s ${projectile_info.Name} is a remote projectile"
             )
-            if (projectile.HasGUID) {
-              continent.AvatarEvents ! AvatarServiceMessage(
-                continent.id,
-                AvatarAction.ProjectileExplodes(player.GUID, projectile.GUID, projectile)
-              )
-              TaskWorkflow.execute(reregisterProjectile(projectile))
-            } else {
-              TaskWorkflow.execute(registerProjectile(projectile))
-            }
+            continent.Projectile ! ZoneProjectile.Add(player.GUID, qualityprojectile)
           }
-          projectilesToCleanUp(projectileIndex) = false
-
           obj match {
             case turret: FacilityTurret if turret.Definition == GlobalDefinitions.vanu_sentry_turret =>
               turret.Actor ! FacilityTurret.WeaponDischarged()
@@ -9257,33 +9255,136 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       // Cancel NC MAX shield if it's active
       ToggleMaxSpecialState(enable = false)
     }
-    FindContainedWeapon match {
-      case out @ (Some(_), Some(tool: Tool)) =>
-        if (tool.Magazine <= 0) { //safety: enforce ammunition depletion
-          prefire = None
-          EmptyMagazine(weaponGUID, tool)
-        } else if (!player.isAlive) { //proper internal accounting, but no projectile
-          prefire = shooting.orElse(Some(weaponGUID))
-          tool.Discharge()
-          projectiles(projectileGUID.guid - Projectile.baseUID) = None
-          shotsWhileDead += 1
-        } else { //shooting
-          if (
-            avatar.stamina > 0 &&
-            tool.FireModeIndex == 1 &&
-            (tool.Definition.Name == "anniversary_guna"
-            || tool.Definition.Name == "anniversary_gun"
-            || tool.Definition.Name == "anniversary_gunb")
-          ) {
-            avatarActor ! AvatarActor.ConsumeStamina(avatar.stamina)
+    val (o, tools) = FindContainedWeapon
+    val (_, enabledTools) = FindEnabledWeaponsToHandleWeaponFireAccountability(o, tools)
+    if (enabledTools.size != tools.size) {
+      o match {
+        case Some(v: Vehicle) =>
+          //assert subsystem states
+          v.SubsystemMessages().foreach { sendResponse }
+        case _ => ;
+      }
+    }
+    if (enabledTools.nonEmpty) {
+      val collectedTools = enabledTools.collect {
+        case tool: Tool if tool.GUID == weaponGUID =>
+          if (tool.Magazine <= 0) { //safety: enforce ammunition depletion
+            prefire -= weaponGUID
+            EmptyMagazine(weaponGUID, tool)
+          } else if (!player.isAlive) { //proper internal accounting, but no projectile
+            prefire += weaponGUID
+            tool.Discharge()
+            projectiles(projectileGUID.guid - Projectile.baseUID) = None
+            shotsWhileDead += 1
+          } else { //shooting
+            if (
+              avatar.stamina > 0 &&
+              tool.FireModeIndex == 1 &&
+              (tool.Definition.Name == "anniversary_guna"
+               || tool.Definition.Name == "anniversary_gun"
+               || tool.Definition.Name == "anniversary_gunb")
+            ) {
+              avatarActor ! AvatarActor.ConsumeStamina(avatar.stamina)
+            }
+            avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)
+            prefire += weaponGUID
+            tool.Discharge()
           }
-          avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)
-          prefire = shooting.orElse(Some(weaponGUID))
-          tool.Discharge()
+          (o, Some(tool))
+      }
+      collectedTools.headOption.getOrElse((None, None))
+    } else {
+      (None, None)
+    }
+  }
+
+  def FindEnabledWeaponsToHandleWeaponFireAccountability(
+                                                          o: Option[PlanetSideGameObject with Container],
+                                                          tools: Set[Tool]
+                                                        ): (Option[PlanetSideGameObject with Container], Set[Tool]) = {
+    val enabledTools = o match {
+      case Some(v: Vehicle)
+        if GlobalDefinitions.isBattleFrameVehicle(v.Definition) =>
+        val filteredTools = tools.filter { tool: Tool =>
+          v.Weapons.find {
+            case (index, slot) =>
+              //index = 2 or 3 for bfr_gunner; index = 1 or 2 for bfr_flight
+              index > 0 && index < 4 && slot.Equipment.nonEmpty && (tool eq slot.Equipment.get)
+          } match {
+            case Some((index, _)) =>
+              val mountIsEnabled = v.Subsystems(if (v.Weapons.keys.min == index) {
+                "BattleframeLeftArm"
+              } else {
+                "BattleframeRightArm"
+              }).get.Enabled
+              if (!mountIsEnabled) {
+                //can't stop the local discharge, but it will not actually shoot anything; assert the magazine
+                sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))
+              }
+              mountIsEnabled
+            case None =>
+              false
+          }
         }
-        out
+        filteredTools
+      case Some(_) =>
+        tools
+      case None =>
+        Set[Tool]()
+    }
+    (o, enabledTools)
+  }
+
+  /**
+    * Take a projectile that was introduced into the game world and
+    * determine if it generates a secondary damage projectile or
+    * an method of damage causation that requires additional management.
+    * @param projectile the projectile
+    * @param pguid the client-local projectile identifier
+    * @param hitPos the game world position where the projectile is being recorded
+    * @return a for all affected targets, a combination of projectiles, projectile location, and the target's location;
+    *         nothing if no targets were affected
+    */
+  def HandleDamageProxy(
+                         projectile: Projectile,
+                         pguid: PlanetSideGUID,
+                         hitPos: Vector3
+                       ): List[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile, Vector3, Vector3)] = {
+    GlobalDefinitions.getDamageProxy(projectile, hitPos) match {
+      case Some(proxy) if proxy.profile.ExistsOnRemoteClients =>
+        proxy.Position = hitPos
+        continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
+        Nil
+
+      case Some(proxy)
+        if proxy.tool_def == GlobalDefinitions.maelstrom =>
+        //server-side maelstrom grenade target selection
+        val radius = proxy.profile.LashRadius * proxy.profile.LashRadius
+        val targets = continent.blockMap
+          .sector(hitPos, proxy.profile.LashRadius)
+          .livePlayerList
+          .filter { target =>
+            Vector3.DistanceSquared(target.Position, hitPos) <= radius
+          }
+        //chainlash is separated from the actual damage application for convenience
+        continent.AvatarEvents ! AvatarServiceMessage(
+          continent.id,
+          AvatarAction.SendResponse(
+            PlanetSideGUID(0),
+            ChainLashMessage(
+              hitPos,
+              projectile.profile.ObjectId,
+              targets.map { _.GUID }
+            )
+          )
+        )
+        targets.map { target =>
+          CheckForHitPositionDiscrepancy(pguid, hitPos, target)
+          (target, proxy, hitPos, target.Position)
+        }
+
       case _ =>
-        (None, None)
+        Nil
     }
   }
 

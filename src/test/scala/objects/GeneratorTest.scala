@@ -861,7 +861,6 @@ object GeneratorTest {
     Repairable = true
     RepairDistance = 13.5f
     RepairIfDestroyed = true
-    explodes = true
     innateDamage = new DamageWithPosition {
       DamageRadius = 14
     }

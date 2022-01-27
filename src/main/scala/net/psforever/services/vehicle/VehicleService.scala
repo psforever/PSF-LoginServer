@@ -73,6 +73,53 @@ class VehicleService(zone: Zone) extends Actor {
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.EquipmentInSlot(pkt))
           )
+        case VehicleAction.FrameVehicleState(
+          player_guid,
+          vehicle_guid,
+          unk1,
+          pos,
+          orient,
+          vel,
+          unk2,
+          unk3,
+          unk4,
+          is_crouched,
+          unk6,
+          unk7,
+          unk8,
+          unk9,
+          unkA
+        ) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(
+              s"/$forChannel/Vehicle",
+              player_guid,
+              VehicleResponse.FrameVehicleState(
+                vehicle_guid,
+                unk1,
+                pos,
+                orient,
+                vel,
+                unk2,
+                unk3,
+                unk4,
+                is_crouched,
+                unk6,
+                unk7,
+                unk8,
+                unk9,
+                unkA
+              )
+            )
+          )
+        case VehicleAction.GenericObjectAction(player_guid, guid, code) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(
+              s"/$forChannel/Vehicle",
+              player_guid,
+              VehicleResponse.GenericObjectAction(guid, code)
+            )
+          )
         case VehicleAction.InventoryState(player_guid, obj, parent_guid, start, con_data) =>
           VehicleEvents.publish(
             VehicleServiceResponse(

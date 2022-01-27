@@ -3,6 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.equipment.{EffectTarget, TargetValidation}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.{Vitality, VitalityDefinition}
@@ -28,6 +29,30 @@ object SpecialEmp {
     DamageAtEdge = 1.0f
     DamageRadius = 5f
     AdditionalEffect = true
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Player,
+      EffectTarget.Validation.Player
+    ) -> 1000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.AMS
+    ) -> 5000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.MotionSensor
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.Spitfire
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Turret,
+      EffectTarget.Validation.Turret
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.VehicleNotAMS
+    ) -> 10000
     Modifiers = MaxDistanceCutoff
   }
 
@@ -37,7 +62,6 @@ object SpecialEmp {
     MaxHealth = 1
     Damageable = false
     Repairable = false
-    explodes = true
     innateDamage = emp
   }
 

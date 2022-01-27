@@ -97,25 +97,28 @@ class FacilityTurretControl(turret: FacilityTurret)
           )
 
         case FacilityTurret.RechargeAmmo() =>
-          val weapon = turret.ControlledWeapon(1).get.asInstanceOf[net.psforever.objects.Tool]
-          // recharge when last shot fired 3s delay, +1, 200ms interval
-          if (weapon.Magazine < weapon.MaxMagazine && System.nanoTime() - weapon.LastDischarge > 3000000000L) {
-            weapon.Magazine += 1
-            val seat = turret.Seat(0).get
-            seat.occupant match {
-              case Some(player: Player) =>
-                turret.Zone.LocalEvents ! LocalServiceMessage(
-                  turret.Zone.id,
-                  LocalAction.RechargeVehicleWeapon(player.GUID, turret.GUID, weapon.GUID)
-                )
-              case _ => ;
-            }
+          turret.ControlledWeapon(wepNumber = 1).foreach {
+            case weapon: Tool =>
+              // recharge when last shot fired 3s delay, +1, 200ms interval
+              if (weapon.Magazine < weapon.MaxMagazine && System.nanoTime() - weapon.LastDischarge > 3000000000L) {
+                weapon.Magazine += 1
+                val seat = turret.Seat(0).get
+                seat.occupant match {
+                  case Some(player : Player) =>
+                    turret.Zone.LocalEvents ! LocalServiceMessage(
+                      turret.Zone.id,
+                      LocalAction.RechargeVehicleWeapon(player.GUID, turret.GUID, weapon.GUID)
+                    )
+                  case _ => ;
+                }
+              }
+              else if (weapon.Magazine == weapon.MaxMagazine && weaponAmmoRechargeTimer != Default.Cancellable) {
+                weaponAmmoRechargeTimer.cancel()
+                weaponAmmoRechargeTimer = Default.Cancellable
+              }
+            case _ => ;
           }
 
-          if (weapon.Magazine == weapon.MaxMagazine && weaponAmmoRechargeTimer != Default.Cancellable) {
-            weaponAmmoRechargeTimer.cancel()
-            weaponAmmoRechargeTimer = Default.Cancellable
-          }
         case _ => ;
       }
 

@@ -28,7 +28,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.zones.{MapInfo, Zone, ZoneInfo, ZoneMap}
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.{Angular, PlanetSideEmpire, Vector3}
 import net.psforever.util.DefinitionUtil
 
 import scala.io.Source
@@ -106,8 +106,6 @@ object Zones {
   // Force domes have GUIDs but are currently classed as separate entities. The dome is controlled by sending GOAM 44 / 48 / 52 to the building GUID
   private val ignoredEntities = Seq(
     "monolith",
-    "bfr_door",
-    "bfr_terminal",
     "force_dome_dsp_physics",
     "force_dome_comm_physics",
     "force_dome_cryo_physics",
@@ -167,14 +165,16 @@ object Zones {
     "vehicle_terminal_combined",
     "dropship_vehicle_terminal",
     "vanu_air_vehicle_term",
-    "vanu_vehicle_term"
+    "vanu_vehicle_term",
+    "bfr_terminal"
   )
   private val terminalTypes = basicTerminalTypes ++ spawnPadTerminalTypes
 
   private val spawnPadTypes = Seq(
     "mb_pad_creation",
     "dropship_pad_doors",
-    "vanu_vehicle_creation_pad"
+    "vanu_vehicle_creation_pad",
+    "bfr_door"
   )
 
   private val doorTypes = Seq(
@@ -295,23 +295,33 @@ object Zones {
                     )
                   )
                 )
-
             }
-
+            val filteredZoneEntities =
+              data.filter { _.owner.contains(structure.id) } ++
+              {
+                val structurePosition = structure.position
+                if (structure.objectType.startsWith("orbital_building_")) {
+                  data.filter { entity =>
+                    entity.objectType.startsWith("bfr_") &&
+                    Vector3.DistanceSquared(entity.position, structurePosition) < 160000f
+                  }
+                } else {
+                  List()
+                }
+              }
             createObjects(
               zoneMap,
-              data.filter(_.owner.contains(structure.id)),
+              filteredZoneEntities,
               structure.guid,
               Some(structure),
               turretWeaponGuid
             )
-
           }
 
           createObjects(
             zoneMap,
-            zoneObjects,
-            0,
+            zoneObjects.filterNot { _.objectType.startsWith("bfr_") },
+            ownerGuid = 0,
             None,
             turretWeaponGuid
           )
@@ -444,11 +454,31 @@ object Zones {
             val closestSpawnPad =
               spawnPads.minBy(point => Vector3.DistanceSquared(point.position, obj.position))
 
-            // It appears that spawn pads have a default rotation that it +90 degrees from where it should be
-            // presumably the model is rotated differently to the expected orientation
-            // On top of that, some spawn pads also have an additional rotation (vehiclecreationzorientoffset)
-            // when spawning vehicles set in game_objects.adb.lst - this should be handled on the Scala side
-            val adjustedYaw = closestSpawnPad.yaw - 90
+            val adjustedYaw = structure match {
+              case Some(building)
+                if objectType.equals("bfr_terminal") =>
+                //bfr_terminal entities are paired with bfr_door entities
+                //rotations are not correctly set in the zone list, but assumptions can be made based on facility type
+                if (building.objectType.startsWith("orbital_building")) {
+                  //sanctuary bfr sheds actually have their rotation angle set correctly in the zone map
+                  obj.yaw + 45f
+                } else {
+                  //predictable angles based on the facility type
+                  Angular.flipClockwise(building.yaw) + (if (building.objectType.startsWith("comm_station")) { //includes comm_station_dsp
+                    -45f
+                  } else if (building.objectType.equals("cryo_facility") || building.objectType.equals("tech_plant")) {
+                    135f
+                  } else if (building.objectType.equals("amp_station")) {
+                    225f
+                  } else {
+                    0f
+                  })
+                }
+              case _ =>
+                //spawn pads have a default rotation that it +90 degrees from where it should be
+                //presumably the model is rotated differently to the expected orientation
+                closestSpawnPad.yaw - 90
+            }
 
             zoneMap.addLocalObject(
               closestSpawnPad.guid,
@@ -508,6 +538,11 @@ object Zones {
               zoneMap.addLocalObject(
                 obj.guid + 1,
                 Terminal.Constructor(obj.position, GlobalDefinitions.ground_rearm_terminal),
+                owningBuildingGuid = ownerGuid
+              )
+              zoneMap.addLocalObject(
+                obj.guid + 2,
+                Terminal.Constructor(obj.position, GlobalDefinitions.bfr_rearm_terminal),
                 owningBuildingGuid = ownerGuid
               )
               zoneMap.addLocalObject(

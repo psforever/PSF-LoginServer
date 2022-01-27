@@ -14,7 +14,7 @@ object FriendAction extends Enumeration {
   val InitializeFriendList, AddFriend, RemoveFriend, UpdateFriend, InitializeIgnoreList, AddIgnoredPlayer,
       RemoveIgnoredPlayer = Value
 
-  implicit val codec: Codec[FriendAction.Value] = PacketHelpers.createEnumerationCodec(this, uint(3))
+  implicit val codec: Codec[FriendAction.Value] = PacketHelpers.createEnumerationCodec(this, uint(bits = 3))
 }
 
 /**
@@ -42,16 +42,17 @@ final case class Friend(name: String, online: Boolean = false)
   * 5 - add entry to ignored players list<br>
   * 6 - remove entry from ignored players list<br>
   * @param action the purpose of the entry(s) in this packet
-  * @param unk1 na; always 0?
-  * @param unk2 na; always `true`?
-  * @param unk3 na; always `true`?
+  * @param unk1 na;
+  *             always 0?
+  * @param first_entry this is the first packet for this action
+  * @param last_entry this is the last packet for this action
   * @param friends a list of `Friend`s
   */
 final case class FriendsResponse(
     action: FriendAction.Value,
     unk1: Int,
-    unk2: Boolean,
-    unk3: Boolean,
+    first_entry: Boolean,
+    last_entry: Boolean,
     friends: List[Friend] = Nil
 ) extends PlanetSideGamePacket {
   type Packet = FriendsResponse
@@ -81,18 +82,18 @@ object FriendsResponse extends Marshallable[FriendsResponse] {
   implicit val codec: Codec[FriendsResponse] = (
     ("action" | FriendAction.codec) ::
       ("unk1" | uint4L) ::
-      ("unk2" | bool) ::
-      ("unk3" | bool) ::
+      ("first_entry" | bool) ::
+      ("last_entry" | bool) ::
       (("number_of_friends" | uint4L) >>:~ { len =>
       conditional(len > 0, "friend" | Friend.codec) ::
         ("friends" | PacketHelpers.listOfNSized(len - 1, Friend.codec_list))
     })
   ).xmap[FriendsResponse](
     {
-      case act :: u1 :: u2 :: u3 :: _ :: friend1 :: friends :: HNil =>
+      case act :: u1 :: first :: last :: _ :: friend1 :: friends :: HNil =>
         val friendList: List[Friend] = if (friend1.isDefined) { friend1.get +: friends }
         else { friends }
-        FriendsResponse(act, u1, u2, u3, friendList)
+        FriendsResponse(act, u1, first, last, friendList)
     },
     {
       case FriendsResponse(act, u1, u2, u3, friends) =>

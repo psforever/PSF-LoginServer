@@ -26,8 +26,8 @@ import scodec.codecs._
   * 16 - MAX Undeploy<br>
   * 22 - message: awarded a cavern capture (updates cavern capture status)<br>
   * 23 - award a cavern kill<br>
-  * 24 - message: you have been imprinted (updates imprinted status; does it?)<br>
-  * 25 - message: you are no longer imprinted (updates imprinted status; does it?)<br>
+  * 24 - message: you have been imprinted (updates imprinted status)<br>
+  * 25 - message: you are no longer imprinted (updates imprinted status)<br>
   * 27 - event: purchase timers reset (does it?)<br>
   * 31 - forced into first person view;
   *      in third person view, player character sinks into the ground; green deconstruction particle effect under feet<br>

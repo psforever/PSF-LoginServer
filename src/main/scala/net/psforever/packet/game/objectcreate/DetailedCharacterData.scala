@@ -47,10 +47,12 @@ final case class DCDExtra1(unk1: String, unk2: Int) extends StreamBitSize {
 
 /**
   * na
-  * @param unk1 an
-  * @param unk2 na
+  * @param cavern_captures the number of facility captures in a cavern zone;
+  *                        five are needed before imprinting in vanilla
+  * @param cavern_kills the number of unique player kills in a cavern zone;
+  *                     seventy-five are needed before imprinting in vanilla
   */
-final case class DCDExtra2(unk1: Int, unk2: Int) extends StreamBitSize {
+final case class ImprintingProgress(cavern_captures: Int, cavern_kills: Int) extends StreamBitSize {
   override def bitsize: Long = 13L
 }
 
@@ -118,22 +120,22 @@ final case class DetailedCharacterA(
   *                  these flags do not exist if they are not applicable
   */
 final case class DetailedCharacterB(
-    unk1: Option[Long],
-    implants: List[ImplantEntry],
-    unk2: List[DCDExtra1],
-    unk3: List[DCDExtra1],
-    firstTimeEvents: List[String],
-    tutorials: List[String],
-    unk4: Long,
-    unk5: Long,
-    unk6: Long,
-    unk7: Long,
-    unk8: Long,
-    unk9: Option[DCDExtra2],
-    unkA: List[Long],
-    unkB: List[String],
-    unkC: Boolean,
-    cosmetics: Option[Set[Cosmetic]]
+                                     unk1: Option[Long],
+                                     implants: List[ImplantEntry],
+                                     unk2: List[DCDExtra1],
+                                     unk3: List[DCDExtra1],
+                                     firstTimeEvents: List[String],
+                                     tutorials: List[String],
+                                     unk4: Long,
+                                     unk5: Long,
+                                     unk6: Long,
+                                     unk7: Long,
+                                     unk8: Long,
+                                     imprinting: Option[ImprintingProgress],
+                                     unkA: List[Long],
+                                     unkB: List[String],
+                                     unkC: Boolean,
+                                     cosmetics: Option[Set[Cosmetic]]
 )(
     bep: Long,
     pad_length: Option[Int]
@@ -158,7 +160,7 @@ final case class DetailedCharacterB(
       0L
     }
     //character is at least BR24
-    val unk9Size: Long = if (unk9.isEmpty) {
+    val imprintingSize: Long = if (imprinting.isEmpty) {
       0L
     } else {
       13L
@@ -180,12 +182,12 @@ final case class DetailedCharacterB(
         tutorials.size
       ) + /* tutorials */
       DetailedCharacterData.paddingCalculations(
-        DetailedCharacterData.displaceByUnk9(pad_length, unk9, 5),
+        DetailedCharacterData.displaceByOptionTest(pad_length, imprinting, 5),
         implants,
-        List(unk9.toList, tutorials, firstTimeEvents, unk3, unk2)
+        List(imprinting.toList, tutorials, firstTimeEvents, unk3, unk2)
       )(unkB.length)
     /* unkB */
-    275L + unk1Size + implantSize + eventListSize + unk2_3ListSize + tutorialListSize + unk9Size + unkASize + unkBSize + cosmeticsSize + paddingSize
+    275L + unk1Size + implantSize + eventListSize + unk2_3ListSize + tutorialListSize + imprintingSize + unkASize + unkBSize + cosmeticsSize + paddingSize
   }
 }
 
@@ -232,7 +234,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       health,
       unk4 = false,
       armor,
-      0L,
+      32831L,
       staminaMax,
       stamina,
       maxField,
@@ -254,7 +256,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       0L,
       0L,
       0L,
-      None,
+      Some(ImprintingProgress(0, 0)),
       Nil,
       Nil,
       unkC = false,
@@ -371,12 +373,12 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     )
 
   /**
-    * `Codec` for a `DCDExtra2` object.
+    * `Codec` for a `ImprintingProgress` object.
     */
-  private val dcd_extra2_codec: Codec[DCDExtra2] = (
+  private val imprint_progress_codec: Codec[ImprintingProgress] = (
     uint(5) ::
       uint8L
-  ).as[DCDExtra2]
+  ).as[ImprintingProgress]
 
   /**
     * `Codec` for a `List` of `String` objects.
@@ -426,7 +428,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     * @param value how much to add to `start`
     * @return the amount after testing
     */
-  def displaceByUnk9(start: Option[Int], test: Option[Any], value: Int): Option[Int] =
+  def displaceByOptionTest(start: Option[Int], test: Option[Any], value: Int): Option[Int] =
     test match {
       case Some(_) =>
         Some(start.getOrElse(0) + value)
@@ -439,7 +441,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     * in reverse order of encountered `String` fields (later to earlier).
     * The distances are not the actual lengths but are modulo eight.
     * Specific strings include (the contents of):<br>
-    * - `unk9` (as a `List` object)<br>
+    * - `imprinting` (as a `List` object)<br>
     * - `tutorials`<br>
     * - `firstTimeEvents`<br>
     * - `unk3`<br>
@@ -605,13 +607,13 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
                       ("unk6" | uint32L) ::
                       ("unk7" | uint32L) ::
                       ("unk8" | uint32L) ::
-                      (optional(isFalse, "unk9" | dcd_extra2_codec) >>:~ { unk9 =>
+                      (optional(isFalse, "imprinting" | imprint_progress_codec) >>:~ { imprinting =>
                       ("unkA" | listOfN(uint16L, uint32L)) ::
                         ("unkB" | unkBCodec(
                           paddingCalculations(
-                            displaceByUnk9(pad_length, unk9, 5),
+                            displaceByOptionTest(pad_length, imprinting, 5),
                             implants,
-                            List(unk9.toList, tut, fte, unk3, unk2)
+                            List(imprinting.toList, tut, fte, unk3, unk2)
                           )
                         )) ::
                         ("unkC" | bool) ::
@@ -624,16 +626,16 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
       })
     ).exmap[DetailedCharacterB](
       {
-        case u1 :: implants :: u2 :: u3 :: fte :: tut :: u4 :: u5 :: u6 :: u7 :: u8 :: u9 :: uA :: uB :: uC :: cosmetics :: HNil =>
+        case u1 :: implants :: u2 :: u3 :: fte :: tut :: u4 :: u5 :: u6 :: u7 :: u8 :: imprint :: uA :: uB :: uC :: cosmetics :: HNil =>
           Attempt.successful(
-            DetailedCharacterB(u1, implants, u2, u3, fte, tut, u4, u5, u6, u7, u8, u9, uA, uB, uC, cosmetics)(
+            DetailedCharacterB(u1, implants, u2, u3, fte, tut, u4, u5, u6, u7, u8, imprint, uA, uB, uC, cosmetics)(
               bep,
               pad_length
             )
           )
       },
       {
-        case DetailedCharacterB(u1, implants, u2, u3, fte, tut, u4, u5, u6, u7, u8, u9, uA, uB, uC, cosmetics) =>
+        case DetailedCharacterB(u1, implants, u2, u3, fte, tut, u4, u5, u6, u7, u8, imprint, uA, uB, uC, cosmetics) =>
           val implantList = (0 until BattleRank.withExperience(bep).implantSlots)
             .map(index => {
               implants.lift(index) match {
@@ -646,7 +648,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
             if (bep >= BattleRank.BR24.experience) cosmetics.orElse(Some(Set[Cosmetic]()))
             else None
           Attempt.successful(
-            u1 :: implantList :: u2 :: u3 :: fte :: tut :: u4 :: u5 :: u6 :: u7 :: u8 :: u9 :: uA :: uB :: uC :: cos :: HNil
+            u1 :: implantList :: u2 :: u3 :: fte :: tut :: u4 :: u5 :: u6 :: u7 :: u8 :: imprint :: uA :: uB :: uC :: cos :: HNil
           )
       }
     )

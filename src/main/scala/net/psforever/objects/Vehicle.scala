@@ -3,7 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.ce.InteractWithMines
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
-import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot, JammableUnit}
+import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
 import net.psforever.objects.serverobject.mount.{MountableEntity, Seat, SeatDefinition}
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -19,8 +19,10 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.objects.zones.InteractsWithZone
 import net.psforever.objects.zones.blockmap.BlockMapEntity
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
+import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Success, Try}
 
@@ -89,13 +91,13 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     with AuraContainer
     with MountableEntity {
   interaction(new InteractWithEnvironment())
-  interaction(new InteractWithMines(range = 30))
+  interaction(new InteractWithMines(range = 20))
+  interaction(new InteractWithRadiationCloudsSeatedInVehicle(obj = this, range = 20))
 
   private var faction: PlanetSideEmpire.Value     = PlanetSideEmpire.NEUTRAL
   private var shields: Int                        = 0
   private var decal: Int                          = 0
   private var trunkAccess: Option[PlanetSideGUID] = None
-  private var jammered: Boolean                   = false
 
   private var cloaked: Boolean                    = false
   private var flying: Option[Int]                 = None
@@ -107,9 +109,10 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     */
   private val groupPermissions: Array[VehicleLockState.Value] =
     Array(VehicleLockState.Locked, VehicleLockState.Empire, VehicleLockState.Empire, VehicleLockState.Locked)
-  private var cargoHolds: Map[Int, Cargo]      = Map.empty
-  private var utilities: Map[Int, Utility]     = Map()
-  private val trunk: GridInventory             = GridInventory()
+  private var cargoHolds: Map[Int, Cargo]        = Map.empty
+  private var utilities: Map[Int, Utility]       = Map.empty
+  private var subsystems: List[VehicleSubsystem] = Nil
+  private val trunk: GridInventory               = GridInventory()
 
   /*
     * Records the GUID of the cargo vehicle (galaxy/lodestar) this vehicle is stored in for DismountVehicleCargoMsg use
@@ -128,7 +131,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     * @see `Vehicle.LoadDefinition`
     */
   protected def LoadDefinition(): Unit = {
-    Vehicle.LoadDefinition(this)
+    Vehicle.LoadDefinition(vehicle = this)
   }
 
   def Faction: PlanetSideEmpire.Value = {
@@ -173,13 +176,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     Decal
   }
 
-  def Jammered: Boolean = jammered
-
-  def Jammered_=(jamState: Boolean): Boolean = {
-    jammered = jamState
-    Jammered
-  }
-
   def Cloaked: Boolean = cloaked
 
   def Cloaked_=(isCloaked: Boolean): Boolean = {
@@ -196,14 +192,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   def Flying_=(isFlying: Option[Int]): Option[Int] = {
     flying = isFlying
     Flying
-  }
-
-  def NtuCapacitorScaled: Int = {
-    if (Definition.MaxNtuCapacitor > 0) {
-      scala.math.ceil((NtuCapacitor / Definition.MaxNtuCapacitor) * 10).toInt
-    } else {
-      0
-    }
   }
 
   def Capacitor: Int = capacitor
@@ -291,7 +279,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     } else {
       Seat(seatNumber) match {
         case Some(_) =>
-          Definition.controlledWeapons.get(seatNumber) match {
+          Definition.controlledWeapons().get(seatNumber) match {
             case Some(_) =>
               Some(AccessPermissionGroup.Gunner)
             case None =>
@@ -341,6 +329,42 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     }
   }
 
+  def Subsystems(): List[VehicleSubsystem] = subsystems
+
+  def Subsystems(sys: VehicleSubsystemEntry): Option[VehicleSubsystem] = subsystems.find { _.sys == sys }
+
+  def Subsystems(sys: String): Option[VehicleSubsystem] = subsystems.find { _.sys.name.contains(sys) }
+
+  def SubsystemMessages(): List[PlanetSideGamePacket] = {
+    subsystems
+      .filter { sub => sub.Enabled != sub.sys.defaultState }
+      .flatMap { _.getMessage(vehicle = this) }
+  }
+
+  def SubsystemStatus(sys: String): Option[Boolean] = {
+    val elems = sys.split("\\.")
+    if (elems.length < 2) {
+      None
+    } else {
+      Subsystems(elems.head) match {
+        case Some(sub) => sub.stateOfStatus(elems(1))
+        case None      => Some(false)
+      }
+    }
+  }
+
+  def SubsystemStatusMultiplier(sys: String): Float = {
+    val elems = sys.split("\\.")
+    if (elems.length < 2) {
+      1f
+    } else {
+      Subsystems(elems.head) match {
+        case Some(sub) => sub.multiplierOfStatus(elems(1))
+        case None      => 1f
+      }
+    }
+  }
+
   override def DeployTime = Definition.DeployTime
 
   override def UndeployTime = Definition.UndeployTime
@@ -352,35 +376,58 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   override def Slot(slotNum: Int): EquipmentSlot = {
     weapons
       .get(slotNum)
-      //      .orElse(utilities.get(slotNum) match {
-      //        case Some(_) =>
-      //          //TODO what do now?
-      //          None
-      //        case None => ;
-      //          None
-      //      })
       .orElse(Some(Inventory.Slot(slotNum)))
       .get
+  }
+
+  override def SlotMapResolution(slot: Int): Int = {
+    if (GlobalDefinitions.isBattleFrameVehicle(vehicleDef)) {
+      //for the benefit of BFR equipment slots interacting with MoveItemMessage
+      if (VisibleSlots.size == 2) {
+        if (slot == 0) 1 else if (slot == 1) 2 else slot //*_flight
+      } else {
+        if (slot == 0) 2 else if (slot == 1) 3 else if (slot == 2) 4 else slot //*_gunner
+      }
+    } else {
+      slot
+    }
   }
 
   override def Find(guid: PlanetSideGUID): Option[Int] = {
     weapons.find({
       case (_, obj) =>
         obj.Equipment match {
-          case Some(item) =>
-            if (item.HasGUID && item.GUID == guid) {
-              true
-            } else {
-              false
-            }
-          case None =>
-            false
+          case Some(item) => item.HasGUID && item.GUID == guid
+          case None       => false
         }
     }) match {
-      case Some((index, _)) =>
+      case Some((index, _)) => Some(index)
+      case None             => Inventory.Find(guid)
+    }
+  }
+
+  override def Fit(obj: Equipment): Option[Int] = {
+    recursiveSlotFit(weapons.iterator, obj.Size) match {
+      case Some(index) =>
         Some(index)
       case None =>
-        Inventory.Find(guid)
+        trunk.Fit(obj.Definition.Tile)
+    }
+  }
+
+  @tailrec private def recursiveSlotFit(
+                                         iter: Iterator[(Int, EquipmentSlot)],
+                                         objSize: EquipmentSize.Value
+                                       ): Option[Int] = {
+    if (!iter.hasNext) {
+      None
+    } else {
+      val (index, slot) = iter.next()
+      if (slot.Equipment.isEmpty && slot.Size.equals(objSize)) {
+        Some(index)
+      } else {
+        recursiveSlotFit(iter, objSize)
+      }
     }
   }
 
@@ -388,13 +435,10 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     weapons.get(dest) match {
       case Some(slot) =>
         slot.Equipment match {
-          case Some(item) =>
-            Success(List(InventoryItem(item, dest)))
-          case None =>
-            Success(List())
+          case Some(item) => Success(List(InventoryItem(item, dest)))
+          case None       => Success(List())
         }
-      case None =>
-        super.Collisions(dest, width, height)
+      case None           => super.Collisions(dest, width, height)
     }
   }
 
@@ -514,6 +558,8 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   override def toString: String = {
     Vehicle.toString(this)
   }
+
+  def MaxNtuCapacitor: Float = Definition.MaxNtuCapacitor
 }
 
 object Vehicle {
@@ -557,6 +603,8 @@ object Vehicle {
     * @param vehicle the updated vehicle
     */
   final case class UpdateShieldsCharge(vehicle: Vehicle)
+
+  final case class UpdateSubsystemStates(toChannel: String, stateToUpdateFor: Option[Boolean] = None)
 
   /**
     * Change a vehicle's internal ownership property to match that of the target player.
@@ -602,10 +650,12 @@ object Vehicle {
     val vdef: VehicleDefinition = vehicle.Definition
     //general stuff
     vehicle.Health = vdef.DefaultHealth
+    vehicle.Shields = vdef.DefaultShields
+    vehicle.Capacitor = vdef.DefaultCapacitor
     //create weapons
     vehicle.weapons = vdef.Weapons.map[Int, EquipmentSlot] {
       case (num: Int, definition: ToolDefinition) =>
-        val slot = EquipmentSlot(EquipmentSize.VehicleWeapon)
+        val slot = EquipmentSlot(definition.Size)
         slot.Equipment = Tool(definition)
         num -> slot
     }.toMap
@@ -628,6 +678,8 @@ object Vehicle {
         utilObj.LocationOffset = vdef.UtilityOffset.get(num)
         num -> obj
     }.toMap
+    //subsystems
+    vehicle.subsystems = vdef.subsystems.map { entry => new VehicleSubsystem(entry) }
     //trunk
     vdef.TrunkSize match {
       case InventoryTile.None => ;

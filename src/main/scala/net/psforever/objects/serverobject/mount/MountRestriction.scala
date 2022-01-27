@@ -41,5 +41,7 @@ case object SmallCargo extends MountRestriction[Vehicle] {
 }
 
 case object LargeCargo extends MountRestriction[Vehicle] {
-  def test(target : Vehicle) : Boolean = !target.Definition.CanFly
+  def test(target: Vehicle): Boolean = {
+    GlobalDefinitions.isBattleFrameVehicle(target.Definition) || !target.Definition.CanFly
+  }
 }

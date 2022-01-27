@@ -160,7 +160,7 @@ class DetailedCharacterDataTest extends Specification {
                   b.unk6 mustEqual 0L
                   b.unk7 mustEqual 0L
                   b.unk8 mustEqual 0L
-                  b.unk9.contains(DCDExtra2(0, 0)) mustEqual true
+                  b.imprinting.contains(ImprintingProgress(0, 0)) mustEqual true
                   b.unkA mustEqual Nil
                   b.unkB mustEqual Nil
                   b.unkC mustEqual false
@@ -348,7 +348,7 @@ class DetailedCharacterDataTest extends Specification {
                   b.unk6 mustEqual 0L
                   b.unk7 mustEqual 0L
                   b.unk8 mustEqual 0L
-                  b.unk9.contains(DCDExtra2(0, 0)) mustEqual true
+                  b.imprinting.contains(ImprintingProgress(0, 0)) mustEqual true
                   b.unkA mustEqual Nil
                   b.unkB mustEqual Nil
                   b.unkC mustEqual false
@@ -575,7 +575,7 @@ class DetailedCharacterDataTest extends Specification {
                   b.unk6 mustEqual 0L
                   b.unk7 mustEqual 0L
                   b.unk8 mustEqual 0L
-                  b.unk9.contains(DCDExtra2(0, 0)) mustEqual true
+                  b.imprinting.contains(ImprintingProgress(0, 0)) mustEqual true
                   b.unkA mustEqual Nil
                   b.unkB mustEqual Nil
                   b.unkC mustEqual false
@@ -1073,7 +1073,7 @@ class DetailedCharacterDataTest extends Specification {
                   b.unk6 mustEqual 0L
                   b.unk7 mustEqual 0L
                   b.unk8 mustEqual 0L
-                  b.unk9.isEmpty mustEqual true
+                  b.imprinting.isEmpty mustEqual true
                   b.unkA mustEqual Nil
                   b.unkB mustEqual Nil
                   b.unkC mustEqual false
@@ -1294,7 +1294,7 @@ class DetailedCharacterDataTest extends Specification {
                   b.unk6 mustEqual 0L
                   b.unk7 mustEqual 0L
                   b.unk8 mustEqual 0L
-                  b.unk9.isEmpty mustEqual true
+                  b.imprinting.isEmpty mustEqual true
                   b.unkA.size mustEqual 86
                   b.unkA mustEqual List(
                     9, 10, 11, 16, 17, 18, 30, 31, 32, 37, 38, 52, 53, 57, 69, 92, 99, 100, 107, 108, 109, 110, 114,
@@ -1432,7 +1432,7 @@ class DetailedCharacterDataTest extends Specification {
                   b.unk6 mustEqual 0L
                   b.unk7 mustEqual 0L
                   b.unk8 mustEqual 0L
-                  b.unk9.isEmpty mustEqual true
+                  b.imprinting.isEmpty mustEqual true
                   b.unkA mustEqual List(
                     9, 16, 17, 69, 107, 108, 114, 115, 134, 171, 178, 196, 199, 222, 229, 283, 297, 347, 360, 391, 399,
                     421
@@ -1614,7 +1614,7 @@ class DetailedCharacterDataTest extends Specification {
         0L,
         0L,
         0L,
-        Some(DCDExtra2(0, 0)),
+        Some(ImprintingProgress(0, 0)),
         Nil,
         Nil,
         false,
@@ -1796,7 +1796,7 @@ class DetailedCharacterDataTest extends Specification {
         0L,
         0L,
         0L,
-        Some(DCDExtra2(0, 0)),
+        Some(ImprintingProgress(0, 0)),
         Nil,
         Nil,
         false,
@@ -2022,7 +2022,7 @@ class DetailedCharacterDataTest extends Specification {
         0L,
         0L,
         0L,
-        Some(DCDExtra2(0, 0)),
+        Some(ImprintingProgress(0, 0)),
         Nil,
         Nil,
         false,

@@ -40,5 +40,11 @@
     "Start": 37501,
     "Max": 40099,
     "Selector": "random"
+  },
+  {
+    "Name": "rc-projectiles",
+    "Start": 64001,
+    "Max": 64300,
+    "Selector": "random"
   }
 ]

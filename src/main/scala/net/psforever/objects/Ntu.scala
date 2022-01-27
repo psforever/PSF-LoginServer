@@ -3,6 +3,7 @@ package net.psforever.objects
 
 import akka.actor.{Actor, ActorRef}
 import net.psforever.actors.commands.NtuCommand
+import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
 
 object Ntu {
@@ -34,12 +35,26 @@ object Ntu {
   final case class Grant(src: NtuContainer, amount: Float)
 }
 
+trait NtuContainerOwner {
+  def getNtuContainer: Option[NtuContainer]
+}
+
 trait NtuContainer extends TransferContainer {
   def NtuCapacitor: Float
 
   def NtuCapacitor_=(value: Float): Float
 
-  def Definition: NtuContainerDefinition
+  def NtuCapacitorScaled: Int = {
+    if (Definition.MaxNtuCapacitor > 0) {
+      scala.math.ceil((NtuCapacitor / Definition.MaxNtuCapacitor) * 10).toInt
+    } else {
+      0
+    }
+  }
+
+  def MaxNtuCapacitor: Float
+
+  def Definition: ObjectDefinition with NtuContainerDefinition
 }
 
 trait CommonNtuContainer extends NtuContainer {
@@ -51,8 +66,6 @@ trait CommonNtuContainer extends NtuContainer {
     ntuCapacitor = scala.math.max(0, scala.math.min(value, Definition.MaxNtuCapacitor))
     NtuCapacitor
   }
-
-  def Definition: NtuContainerDefinition
 }
 
 trait NtuContainerDefinition {

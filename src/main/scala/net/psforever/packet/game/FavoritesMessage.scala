@@ -37,14 +37,16 @@ import shapeless.{::, HNil}
   * @param player_guid the player
   * @param line the zero-indexed line number of this entry in its list
   * @param label the identifier for this entry
-  * @param armor the type of exo-suit, if an Infantry loadout
+  * @param armor_type the type of exo-suit, if an Infantry loadout;
+  *                   the type of battleframe, if a Battleframe loadout;
+  *                   `None`, if just a Vehicle loadout
   */
 final case class FavoritesMessage(
     list: LoadoutType.Value,
     player_guid: PlanetSideGUID,
     line: Int,
     label: String,
-    armor: Option[Int]
+    armor_type: Option[Int]
 ) extends PlanetSideGamePacket {
   type Packet = FavoritesMessage
   def opcode = GamePacketOpcode.FavoritesMessage
@@ -52,9 +54,8 @@ final case class FavoritesMessage(
 }
 
 object FavoritesMessage extends Marshallable[FavoritesMessage] {
-
   /**
-    * Overloaded constructor, for infantry loadouts specifically.
+    * Overloaded constructor.
     * @param list the destination list
     * @param player_guid the player
     * @param line the zero-indexed line number of this entry in its list
@@ -83,11 +84,66 @@ object FavoritesMessage extends Marshallable[FavoritesMessage] {
   def apply(list: LoadoutType.Value, player_guid: PlanetSideGUID, line: Int, label: String): FavoritesMessage = {
     FavoritesMessage(list, player_guid, line, label, None)
   }
+
+  /**
+    * Overloaded constructor for infantry loadouts.
+    * @param player_guid the player
+    * @param line the zero-indexed line number of this entry in its list
+    * @param label the identifier for this entry
+    * @param armor the type of exo-suit
+    * @return a `FavoritesMessage` object
+    */
+  def Infantry(
+                player_guid: PlanetSideGUID,
+                line: Int,
+                label: String,
+                armor: Int
+              ): FavoritesMessage = {
+    FavoritesMessage(LoadoutType.Infantry, player_guid, line, label, Some(armor))
+  }
+
+  /**
+    * Overloaded constructor for vehicle loadouts.
+    * @param player_guid the player
+    * @param line the zero-indexed line number of this entry in its list
+    * @param label the identifier for this entry
+    * @return a `FavoritesMessage` object
+    */
+  def Vehicle(
+               player_guid: PlanetSideGUID,
+               line: Int,
+               label: String
+             ): FavoritesMessage = {
+    FavoritesMessage(LoadoutType.Vehicle, player_guid, line, label, None)
+  }
+
+  /**
+    * Overloaded constructor for battleframe loadouts.
+    * @param player_guid the player
+    * @param line the zero-indexed line number of this entry in its list
+    * @param label the identifier for this entry
+    * @param subtype the type of battleframe unit
+    * @return a `FavoritesMessage` object
+    */
+  def Battleframe(
+                   player_guid: PlanetSideGUID,
+                   line: Int,
+                   label: String,
+                   subtype: Int
+                 ): FavoritesMessage = {
+    FavoritesMessage(LoadoutType.Battleframe, player_guid, line, label, Some(subtype))
+  }
+
   implicit val codec: Codec[FavoritesMessage] = (("list" | LoadoutType.codec) >>:~ { value =>
     ("player_guid" | PlanetSideGUID.codec) ::
       ("line" | uint4L) ::
-      ("label" | PacketHelpers.encodedWideStringAligned(2)) ::
-      conditional(value == LoadoutType.Infantry, "armor" | uintL(3))
+      ("label" | PacketHelpers.encodedWideStringAligned(adjustment = 2)) ::
+      ("armor_type" | conditional(value != LoadoutType.Vehicle,
+        {
+          if (value == LoadoutType.Infantry) uint(bits = 3)
+          else uint4
+        }
+      ))
   }).xmap[FavoritesMessage](
     {
       case lst :: guid :: ln :: str :: arm :: HNil =>
@@ -95,8 +151,7 @@ object FavoritesMessage extends Marshallable[FavoritesMessage] {
     },
     {
       case FavoritesMessage(lst, guid, ln, str, arm) =>
-        val armset: Option[Int] = if (lst == LoadoutType.Infantry && arm.isEmpty) { Some(0) }
-        else { arm }
+        val armset = if (lst != LoadoutType.Vehicle && arm.isEmpty) { Some(0) } else { arm }
         lst :: guid :: ln :: str :: armset :: HNil
     }
   )

@@ -54,8 +54,7 @@ class HackClearActor() extends Actor {
       RestartTimer()
 
     case HackClearActor.ObjectIsResecured(target) =>
-      val obj = hackedObjects.filter(x => x.target == target).headOption
-      obj match {
+      hackedObjects.find { _.target == target } match {
         case Some(entry: HackClearActor.HackEntry) =>
           hackedObjects = hackedObjects.filterNot(x => x.target == target)
           entry.target.Actor ! CommonMessages.ClearHack()
@@ -68,16 +67,16 @@ class HackClearActor() extends Actor {
 
           // Restart the timer in case the object we just removed was the next one scheduled
           RestartTimer()
-        case None => ;
+        case _ => ;
       }
 
     case _ => ;
   }
 
   private def RestartTimer(): Unit = {
-    if (hackedObjects.length != 0) {
+    if (hackedObjects.nonEmpty) {
       val now                                 = System.nanoTime()
-      val (unhackObjects, stillHackedObjects) = PartitionEntries(hackedObjects, now)
+      val (_/*unhackObjects*/, stillHackedObjects) = PartitionEntries(hackedObjects, now)
 
       stillHackedObjects.headOption match {
         case Some(hackEntry) =>

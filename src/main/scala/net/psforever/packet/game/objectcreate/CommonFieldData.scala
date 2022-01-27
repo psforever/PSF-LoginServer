@@ -131,7 +131,7 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
       }
     )
 
-  implicit val codec: Codec[CommonFieldData] = codec(false)
+  implicit val codec: Codec[CommonFieldData] = codec(extra = false)
 
   def codec2(extra: Boolean): Codec[CommonFieldData] =
     (
@@ -139,7 +139,7 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
         ("bops" | bool) ::
         ("alternate" | bool) ::
         ("v1" | bool) :: //though the code path differs depending on the previous bit, this one gets read one way or another
-        conditional(extra, "v2" | CommonFieldDataExtra.codec(unk1 = false)) ::
+        conditional(extra, codec = "v2" | CommonFieldDataExtra.codec(unk1 = false)) ::
         ("jammered" | bool) ::
         optional(bool, "v5" | uint16L) ::
         ("v4" | bool) ::

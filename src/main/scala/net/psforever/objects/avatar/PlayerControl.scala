@@ -8,6 +8,7 @@ import net.psforever.objects.{Player, _}
 import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.DeployAnimation
+import net.psforever.objects.definition.converter.OCM
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
@@ -1111,7 +1112,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val zone       = obj.Zone
     val events     = zone.AvatarEvents
     val name       = player.Name
-    val definition = item.Definition
     val faction    = obj.Faction
     val toChannel = if (player.isBackpack) { self.toString } else { name }
     val willBeVisible = obj.VisibleSlots.contains(slot)
@@ -1143,12 +1143,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       toChannel,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
-        ObjectCreateDetailedMessage(
-          definition.ObjectId,
-          item.GUID,
-          ObjectCreateMessageParent(guid, slot),
-          definition.Packet.DetailedConstructorData(item).get
-        )
+        OCM.detailed(item, ObjectCreateMessageParent(guid, slot))
       )
     )
     if (!player.isBackpack && willBeVisible) {
@@ -1328,10 +1323,10 @@ object PlayerControl {
     */
   private def auraEffectToAttributeValue(effect: Aura): Int = effect match {
     case Aura.Plasma => 1
-    case Aura.Comet => 2
+    case Aura.Comet  => 2
     case Aura.Napalm => 4
-    case Aura.Fire => 8
-    case _ => 0
+    case Aura.Fire   => 8
+    case _           => 0
   }
 
   def sendResponse(zone: Zone, channel: String, msg: PlanetSideGamePacket): Unit = {

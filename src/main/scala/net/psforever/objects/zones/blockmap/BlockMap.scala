@@ -77,7 +77,7 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     * @return a conglomerate sector which lists all of the entities in the discovered sector(s)
     */
   def sector(p: Vector3, range: Float): SectorPopulation = {
-    BlockMap.quickToSectorGroup( BlockMap.findSectorIndices(blockMap = this, p, range).map { blocks } )
+    BlockMap.quickToSectorGroup(range, BlockMap.findSectorIndices(blockMap = this, p, range).map { blocks } )
   }
 
   /**
@@ -129,7 +129,7 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     val toSectors = to.toSet.map { blocks }
     toSectors.foreach { block => block.addTo(target) }
     target.blockMapEntry = Some(BlockMapEntry(toPosition, range, to.toSet))
-    BlockMap.quickToSectorGroup(toSectors)
+    BlockMap.quickToSectorGroup(range, toSectors)
   }
 
   /**
@@ -201,7 +201,7 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
         target.blockMapEntry = None
         val from = entry.sectors.map { blocks }
         from.foreach { block => block.removeFrom(target) }
-        BlockMap.quickToSectorGroup(from)
+        BlockMap.quickToSectorGroup(range, from)
       case None =>
         SectorGroup(Nil)
     }
@@ -262,7 +262,7 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
         to.diff(from).foreach { index => blocks(index).addTo(target) }
         from.diff(to).foreach { index => blocks(index).removeFrom(target) }
         target.blockMapEntry = Some(BlockMapEntry(toPosition, range, to))
-        BlockMap.quickToSectorGroup(to.map { blocks })
+        BlockMap.quickToSectorGroup(range, to.map { blocks })
       case None    =>
         SectorGroup(Nil)
     }
@@ -392,6 +392,21 @@ object BlockMap {
       SectorGroup(to.head)
     } else {
       SectorGroup(to)
+    }
+  }
+
+  /**
+    * If only one sector, just return that sector.
+    * If a group of sectors, organize them into a single referential sector.
+    * @param range a custom range value
+    * @param to all allocated sectors
+    * @return a conglomerate sector which lists all of the entities in the allocated sector(s)
+    */
+  def quickToSectorGroup(range: Float, to: Iterable[Sector]): SectorPopulation = {
+    if (to.size == 1) {
+      SectorGroup(range, to.head)
+    } else {
+      SectorGroup(range, to)
     }
   }
 }

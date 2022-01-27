@@ -31,6 +31,7 @@ object DamageResolution extends Enumeration {
   Explosion,            //area of effect damage caused by an internal mechanism; unrelated to Splash
   Environmental,        //died to environmental causes
   Suicide,              //i don't want to be the one the battles always choose
-  Collision             //went splat
+  Collision,            //went splat
+  Radiation             //it hurts to stand too close
   = Value
 }

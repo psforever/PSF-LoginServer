@@ -7,7 +7,7 @@ import scodec.codecs.uint2L
 object LoadoutType extends Enumeration {
   type Type = Value
 
-  val Infantry, Vehicle = Value
+  val Infantry, Vehicle, Battleframe = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(this, uint2L)
 }

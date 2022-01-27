@@ -18,28 +18,16 @@ class VehicleSpawnPadDefinition(objectId: Int) extends AmenityDefinition(objectI
   // However, it seems these values need to be reversed to turn CCW to CW rotation (e.g. +90 to -90)
   private var vehicle_creation_z_orient_offset = 0f
 
-  def VehicleCreationZOffset: Float       = vehicle_creation_z_offset
+  def VehicleCreationZOffset: Float = vehicle_creation_z_offset
   def VehicleCreationZOrientOffset: Float = vehicle_creation_z_orient_offset
 
-  objectId match {
-    case 141 =>
-      Name = "bfr_door"
-      vehicle_creation_z_offset = -4.5f
-      vehicle_creation_z_orient_offset = 90f
-    case 261 =>
-      Name = "dropship_pad_doors"
-      vehicle_creation_z_offset = 4.89507f
-      vehicle_creation_z_orient_offset = -90f
-    case 525 =>
-      Name = "mb_pad_creation"
-      vehicle_creation_z_offset = 2.52604f
-    case 615 => Name = "pad_create"
-    case 616 =>
-      Name = "pad_creation"
-      vehicle_creation_z_offset = 1.70982f
-    case 816 => Name = "spawnpoint_vehicle"
-    case 947 => Name = "vanu_vehicle_creation_pad"
-    case _   => throw new IllegalArgumentException("Not a valid object id with the type vehicle_creation_pad")
+  def VehicleCreationZOffset_=(offset: Float): Float = {
+    vehicle_creation_z_offset = offset
+    vehicle_creation_z_offset
+  }
+  def VehicleCreationZOrientOffset_=(offset: Float): Float = {
+    vehicle_creation_z_orient_offset = offset
+    vehicle_creation_z_orient_offset
   }
 
   /** The region surrounding a vehicle spawn pad that is cleared of damageable targets prior to a vehicle being spawned.
@@ -161,17 +149,44 @@ object VehicleSpawnPadDefinition {
                           flightVehicle: Boolean
                         ): (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = {
     if (flightVehicle) {
-      vanuKillBox(pad.Position, radius, aboveLimit * 2)
+      cylinderKillBox(pad.Position, radius, aboveLimit * 2)
     } else {
-      vanuKillBox(pad.Position, radius * 1.2f, aboveLimit)
+      cylinderKillBox(pad.Position, radius * 1.2f, aboveLimit)
     }
+  }
+
+  /**
+    * A function that sets up the region around a battleframe vehicle spawn chamber's doors
+    * to be cleared of damageable targets upon spawning of a vehicle.
+    * All measurements are provided in terms of distance from the middle of the door.
+    * Internally, the pad is referred to as `bfr_door`;
+    * colloquially, the pad is referred to as a "BFR shed".
+    * @param radius the distance from the middle of the spawn pad
+    * @param aboveLimit how far above the spawn pad is to be cleared
+    * @param pad he vehicle spawn pad in question
+    * @param requiredButUnused required by the function prototype
+    * @return a function that describes a region ahead of the battleframe vehicle spawn shed
+    */
+  def prepareBfrShedKillBox(
+                             radius: Float,
+                             aboveLimit: Float
+                           )
+                           (
+                             pad: VehicleSpawnPad,
+                             requiredButUnused: Boolean
+                           ): (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = {
+    cylinderKillBox(
+      Vector3(0,radius,0).Rz(pad.Orientation.z + pad.Definition.VehicleCreationZOrientOffset) + pad.Position,
+      radius,
+      aboveLimit
+    )
   }
 
   /**
     * A function that finalizes the detection for the region around a vehicle spawn pad
     * to be cleared of damageable targets upon spawning of a vehicle.
     * All measurements are provided in terms of distance from the center of the pad.
-    * These pads are only found in the cavern zones and are cylindrical in shape.
+    * These pads are cylindrical in shape.
     * @param origin the center of the spawn pad
     * @param radius the distance from the middle of the spawn pad
     * @param aboveLimit how far above the spawn pad is to be cleared
@@ -182,16 +197,16 @@ object VehicleSpawnPadDefinition {
     * @return `true`, if the two entities are near enough to each other;
     *        `false`, otherwise
     */
-  def vanuKillBox(
-                   origin: Vector3,
-                   radius: Float,
-                   aboveLimit: Float
-                 )
-                 (
-                   obj1: PlanetSideGameObject,
-                   obj2: PlanetSideGameObject,
-                   maxDistance: Float
-                 ): Boolean = {
+  def cylinderKillBox(
+                       origin: Vector3,
+                       radius: Float,
+                       aboveLimit: Float
+                     )
+                     (
+                       obj1: PlanetSideGameObject,
+                       obj2: PlanetSideGameObject,
+                       maxDistance: Float
+                     ): Boolean = {
     val dir: Vector3 = {
       val g2 = obj2.Definition.Geometry(obj2)
       val cdir = Vector3.Unit(origin - g2.center.asVector3)

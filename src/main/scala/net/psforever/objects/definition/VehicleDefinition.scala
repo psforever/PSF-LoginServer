@@ -6,7 +6,7 @@ import net.psforever.objects.{Default, NtuContainerDefinition, Vehicle}
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.vehicles.{DestroyedVehicle, MountableWeaponsDefinition, UtilityType}
+import net.psforever.objects.vehicles.{DestroyedVehicle, MountableWeaponsDefinition, UtilityType, VehicleSubsystemEntry}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
@@ -27,20 +27,39 @@ class VehicleDefinition(objectId: Int)
     with NtuContainerDefinition
     with ResistanceProfileMutators
     with DamageResistanceModel {
-  /** vehicle shields offered through amp station facility benefits (generally: 20% of health + 1) */
+  /** ... */
+  var shieldUiAttribute: Int = 68
+  /** how many points of shield the vehicle starts with (should default to 0 if unset through the accessor) */
+  private var defaultShields : Option[Int] = None
+  /** maximum vehicle shields (generally: 20% of health)
+    * for normal vehicles, offered through amp station facility benefits
+    * for BFR's, it charges naturally
+    **/
   private var maxShields: Int = 0
+  /** the minimum amount of time that must elapse in between damage and shield charge activities (ms) */
+  private var shieldChargeDamageCooldown : Long = 5000L
+  /** the minimum amount of time that must elapse in between distinct shield charge activities (ms) */
+  private var shieldChargePeriodicCooldown : Long = 1000L
+  /** if the shield recharges on its own, this value will be non-`None` and indicate by how much */
+  private var autoShieldRecharge : Option[Int] = None
+  private var autoShieldRechargeSpecial : Option[Int] = None
+  /** shield drain is what happens to the shield under special conditions, e.g., bfr flight;
+    * the drain interval is 250ms which is convenient for us
+    * we can skip needing to define is explicitly */
+  private var shieldDrain : Option[Int] = None
   private val cargo: mutable.HashMap[Int, CargoDefinition] = mutable.HashMap[Int, CargoDefinition]()
   private var deployment: Boolean                                = false
   private val utilities: mutable.HashMap[Int, UtilityType.Value] = mutable.HashMap()
   private val utilityOffsets: mutable.HashMap[Int, Vector3]      = mutable.HashMap()
+  var subsystems: List[VehicleSubsystemEntry]                    = Nil
   private var deploymentTime_Deploy: Int                         = 0 //ms
   private var deploymentTime_Undeploy: Int                       = 0 //ms
   private var trunkSize: InventoryTile                           = InventoryTile.None
   private var trunkOffset: Int                                   = 0
   /* The position offset of the trunk, orientation as East = 0 */
-  private var trunkLocation: Vector3                         = Vector3.Zero
-  private var canCloak: Boolean                              = false
-  private var canFly: Boolean                                = false
+  private var trunkLocation: Vector3                             = Vector3.Zero
+  private var canCloak: Boolean                                  = false
+  private var canFly: Boolean                                    = false
   /** whether the vehicle gains and/or maintains ownership based on access to the driver seat<br>
     * `Some(true)` - assign ownership upon the driver mount, maintains ownership after the driver dismounts<br>
     * `Some(false)` - assign ownership upon the driver mount, becomes unowned after the driver dismounts<br>
@@ -48,12 +67,22 @@ class VehicleDefinition(objectId: Int)
     * Be cautious about using `None` as the client tends to equate the driver seat as the owner's seat for many vehicles
     * and breaking from the client's convention either requires additional fields or just doesn't work.
     */
-  private var canBeOwned: Option[Boolean]                    = Some(true)
-  private var serverVehicleOverrideSpeeds: (Int, Int)        = (0, 0)
-  var undergoesDecay: Boolean                                = true
-  private var deconTime: Option[FiniteDuration]              = None
-  private var maxCapacitor: Int                              = 0
-  private var destroyedModel: Option[DestroyedVehicle.Value] = None
+  private var canBeOwned: Option[Boolean]                        = Some(true)
+  private var serverVehicleOverrideSpeeds: (Int, Int)            = (0, 0)
+  var undergoesDecay: Boolean                                    = true
+  private var deconTime: Option[FiniteDuration]                  = None
+  private var defaultCapacitor: Int                              = 0
+  private var maxCapacitor: Int                                  = 0
+  private var capacitorRecharge: Int                             = 0
+  private var capacitorDrain: Int                                = 0
+  private var capacitorDrainSpecial: Int                         = 0
+  /**
+    * extend the time of the final scrapping and explosion further beyond when the vehicle is functionally rendered destroyed;
+    * see `innateDamage` for explosion information;
+    * for BFR's, the ADB field is `death_large_explosion_interval`
+    */
+  var destructionDelay: Option[Long]                             = None
+  private var destroyedModel: Option[DestroyedVehicle.Value]     = None
   Name = "vehicle"
   Packet = VehicleDefinition.converter
   DamageUsing = DamageCalculations.AgainstVehicle
@@ -63,11 +92,61 @@ class VehicleDefinition(objectId: Int)
   RepairRestoresAt = 1
   registerAs = "vehicles"
 
+  def DefaultShields: Int = defaultShields.getOrElse(0)
+
+  def DefaultShields_=(shield: Int): Int = DefaultShields_=(Some(shield))
+
+  def DefaultShields_=(shield: Option[Int]): Int = {
+    defaultShields = shield
+    DefaultShields
+  }
+
   def MaxShields: Int = maxShields
 
   def MaxShields_=(shields: Int): Int = {
     maxShields = shields
     MaxShields
+  }
+
+  def ShieldPeriodicDelay : Long = shieldChargePeriodicCooldown
+
+  def ShieldPeriodicDelay_=(cooldown: Long): Long = {
+    shieldChargePeriodicCooldown = cooldown
+    ShieldPeriodicDelay
+  }
+
+  def ShieldDamageDelay: Long = shieldChargeDamageCooldown
+
+  def ShieldDamageDelay_=(cooldown: Long): Long = {
+    shieldChargeDamageCooldown = cooldown
+    ShieldDamageDelay
+  }
+
+  def ShieldAutoRecharge: Option[Int] = autoShieldRecharge
+
+  def ShieldAutoRecharge_=(charge: Int): Option[Int] = ShieldAutoRecharge_=(Some(charge))
+
+  def ShieldAutoRecharge_=(charge: Option[Int]): Option[Int] = {
+    autoShieldRecharge = charge
+    ShieldAutoRecharge
+  }
+
+  def ShieldAutoRechargeSpecial: Option[Int] = autoShieldRechargeSpecial.orElse(ShieldAutoRecharge)
+
+  def ShieldAutoRechargeSpecial_=(charge: Int): Option[Int] = ShieldAutoRechargeSpecial_=(Some(charge))
+
+  def ShieldAutoRechargeSpecial_=(charge: Option[Int]): Option[Int] = {
+    autoShieldRechargeSpecial = charge
+    ShieldAutoRechargeSpecial
+  }
+
+  def ShieldDrain: Option[Int] = shieldDrain
+
+  def ShieldDrain_=(drain: Int): Option[Int] = ShieldDrain_=(Some(drain))
+
+  def ShieldDrain_=(drain: Option[Int]): Option[Int] = {
+    shieldDrain = drain
+    ShieldDrain
   }
 
   def Cargo: mutable.HashMap[Int, CargoDefinition] = cargo
@@ -164,11 +243,39 @@ class VehicleDefinition(objectId: Int)
 
   def AutoPilotSpeed2: Int = serverVehicleOverrideSpeeds._2
 
+  def DefaultCapacitor: Int = defaultCapacitor
+
+  def DefaultCapacitor_=(defValue: Int): Int = {
+    defaultCapacitor = defValue
+    DefaultCapacitor
+  }
+
   def MaxCapacitor : Int = maxCapacitor
 
   def MaxCapacitor_=(max: Int) : Int = {
     maxCapacitor = max
     MaxCapacitor
+  }
+
+  def CapacitorRecharge: Int = capacitorRecharge
+
+  def CapacitorRecharge_=(charge: Int): Int = {
+    capacitorRecharge = charge
+    CapacitorRecharge
+  }
+
+  def CapacitorDrain: Int = capacitorDrain
+
+  def CapacitorDrain_=(charge: Int): Int = {
+    capacitorDrain = charge
+    CapacitorDrain
+  }
+
+  def CapacitorDrainSpecial: Int = capacitorDrainSpecial
+
+  def CapacitorDrainSpecial_=(charge: Int): Int = {
+    capacitorDrainSpecial = charge
+    CapacitorDrainSpecial
   }
 
   private var jackDuration        = Array(0, 0, 0, 0)
@@ -252,6 +359,36 @@ object VehicleDefinition {
     * @param objectId the object id that is associated with this sort of `Vehicle`
     */
   def Apc(objectId: Int): VehicleDefinition = new ApcDefinition(objectId)
+
+  protected class BfrDefinition(objectId: Int) extends VehicleDefinition(objectId) {
+    import net.psforever.objects.vehicles.control.BfrControl
+    override def Initialize(obj: Vehicle, context: ActorContext): Unit = {
+      obj.Actor = context.actorOf(
+        Props(classOf[BfrControl], obj),
+        PlanetSideServerObject.UniqueActorName(obj)
+      )
+    }
+  }
+  /**
+    * Vehicle definition(s) for the battle frame robotics vehicles.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
+  def Bfr(objectId: Int): VehicleDefinition = new BfrDefinition(objectId)
+
+  protected class BfrFlightDefinition(objectId: Int) extends VehicleDefinition(objectId) {
+    import net.psforever.objects.vehicles.control.BfrFlightControl
+    override def Initialize(obj: Vehicle, context: ActorContext): Unit = {
+      obj.Actor = context.actorOf(
+        Props(classOf[BfrFlightControl], obj),
+        PlanetSideServerObject.UniqueActorName(obj)
+      )
+    }
+  }
+  /**
+    * Vehicle definition(s) for the flight variant of the battle frame robotics vehicles.
+    * @param objectId the object id that is associated with this sort of `Vehicle`
+    */
+  def BfrFlight(objectId: Int): VehicleDefinition = new BfrFlightDefinition(objectId)
 
   protected class CarrierDefinition(objectId: Int) extends VehicleDefinition(objectId) {
     import net.psforever.objects.vehicles.control.CargoCarrierControl

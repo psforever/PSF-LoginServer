@@ -335,7 +335,7 @@ object GamePacketOpcode extends Enumeration {
       case 0x19 => game.ObjectDeleteMessage.decode
       case 0x1a => game.PingMsg.decode
       case 0x1b => game.VehicleStateMessage.decode
-      case 0x1c => noDecoder(FrameVehicleStateMessage)
+      case 0x1c => game.FrameVehicleStateMessage.decode
       case 0x1d => game.GenericObjectStateMsg.decode
       case 0x1e => game.ChildObjectStateMessage.decode
       case 0x1f => game.ActionResultMessage.decode
@@ -547,14 +547,14 @@ object GamePacketOpcode extends Enumeration {
       case 0xcc => noDecoder(ClockCalibrationMessage)
       case 0xcd => game.DensityLevelUpdateMessage.decode
       case 0xce => noDecoder(ActOfGodMessage)
-      case 0xcf => noDecoder(AvatarAwardMessage)
+      case 0xcf => game.AvatarAwardMessage.decode
 
       // OPCODES 0xd0-df
       case 0xd0 => noDecoder(UnknownMessage208)
       case 0xd1 => game.DisplayedAwardMessage.decode
       case 0xd2 => game.RespawnAMSInfoMessage.decode
-      case 0xd3 => noDecoder(ComponentDamageMessage)
-      case 0xd4 => noDecoder(GenericObjectActionAtPositionMessage)
+      case 0xd3 => game.ComponentDamageMessage.decode
+      case 0xd4 => game.GenericObjectActionAtPositionMessage.decode
       case 0xd5 => game.PropertyOverrideMessage.decode
       case 0xd6 => noDecoder(WarpgateLinkOverrideMessage)
       case 0xd7 => noDecoder(EmpireBenefitsMessage)

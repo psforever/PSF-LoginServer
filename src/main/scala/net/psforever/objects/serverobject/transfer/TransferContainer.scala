@@ -2,12 +2,17 @@
 package net.psforever.objects.serverobject.transfer
 
 import akka.actor.ActorRef
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.entity.{Identifiable, WorldEntity}
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.zones.ZoneAware
 
-trait TransferContainer extends Identifiable
+trait TransferContainer
+  extends PlanetSideGameObject
+  with Identifiable
   with ZoneAware
-  with WorldEntity {
+  with WorldEntity
+  with FactionAffinity {
   def Actor : ActorRef
 }
 

@@ -74,6 +74,7 @@ object NoResistanceSelection extends ResistanceSelection {
   def Splash: ResistanceSelection.Format     = NoResistance.Calculate
   def Lash: ResistanceSelection.Format       = NoResistance.Calculate
   def Aggravated: ResistanceSelection.Format = NoResistance.Calculate
+  def Radiation: ResistanceSelection.Format  = ResistanceSelection.None
 }
 
 object StandardInfantryResistance extends ResistanceSelection {
@@ -81,6 +82,7 @@ object StandardInfantryResistance extends ResistanceSelection {
   def Splash: ResistanceSelection.Format     = InfantrySplashResistance.Calculate
   def Lash: ResistanceSelection.Format       = InfantryLashResistance.Calculate
   def Aggravated: ResistanceSelection.Format = InfantryAggravatedResistance.Calculate
+  def Radiation: ResistanceSelection.Format  = InfantrySplashResistance.Calculate
 }
 
 object StandardVehicleResistance extends ResistanceSelection {
@@ -88,6 +90,7 @@ object StandardVehicleResistance extends ResistanceSelection {
   def Splash: ResistanceSelection.Format     = VehicleSplashResistance.Calculate
   def Lash: ResistanceSelection.Format       = VehicleLashResistance.Calculate
   def Aggravated: ResistanceSelection.Format = VehicleAggravatedResistance.Calculate
+  def Radiation: ResistanceSelection.Format  = ResistanceSelection.None
 }
 
 object StandardAmenityResistance extends ResistanceSelection {
@@ -95,4 +98,5 @@ object StandardAmenityResistance extends ResistanceSelection {
   def Splash: ResistanceSelection.Format     = AmenityHitResistance.Calculate
   def Lash: ResistanceSelection.Format       = ResistanceSelection.None
   def Aggravated: ResistanceSelection.Format = ResistanceSelection.None
+  def Radiation: ResistanceSelection.Format  = ResistanceSelection.None
 }

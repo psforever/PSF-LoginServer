@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.geometry
 
-import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
+import net.psforever.objects.ballistics.{PlayerSource, Projectile, SourceEntry}
 import net.psforever.objects.geometry.d3._
 import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player}
 import net.psforever.types.{ExoSuitType, Vector3}
@@ -77,6 +77,22 @@ object GeometryForm {
         Sphere(s.Position + Vector3.relativeUp(s.Orientation) * radius, radius)
       case _                       =>
         Sphere(invalidPoint, radius)
+    }
+  }
+
+  /**
+    * The geometric representation is a sphere around the entity's centroid
+    * positioned following the axis of rotation (the entity's base).
+    * The specific entity should be a projectile, else the result is invalid.
+    * @param o the entity
+    * @return the representation
+    */
+  def representProjectileBySphere()(o: Any): VolumetricGeometry = {
+    o match {
+      case p: Projectile =>
+        Sphere(p.Position, p.Definition.DamageRadius)
+      case _ =>
+        invalidPoint
     }
   }
 

@@ -77,6 +77,15 @@ trait Container {
   }
 
   /**
+    * When the slot reported is not the slot requested, change the slot.
+    * @param slot the original slot index
+    * @return the modified slot index
+    */
+  def SlotMapResolution(slot: Int): Int = {
+    slot
+  }
+
+  /**
     * Given a region of "searchable unit positions" considered as stowable,
     * determine if any previously stowed items are contained within that region.<br>
     * <br>

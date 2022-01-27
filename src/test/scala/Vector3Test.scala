@@ -1,6 +1,6 @@
 // Copyright (c) 2017 PSForever
 import org.specs2.mutable._
-import net.psforever.types.Vector3
+import net.psforever.types.{Angular, Vector3}
 
 class Vector3Test extends Specification {
   val vec = Vector3(1.3f, -2.6f, 3.9f)
@@ -319,6 +319,22 @@ class Vector3Test extends Specification {
       Vector3.relativeUp(Vector3(90, 90, 0)) mustEqual Vector3(-1,0,0) //west
       Vector3.relativeUp(Vector3(180, 90, 0)) mustEqual Vector3(0,1,0) //north
       Vector3.relativeUp(Vector3(270, 90, 0)) mustEqual Vector3(1,0,0) //east
+    }
+  }
+
+  "Angular" should {
+    "convert from clockwise to counterclockwise" in {
+      Angular.flipClockwise(angle = -45f) mustEqual 135f
+      Angular.flipClockwise(angle = 0f) mustEqual 90f
+      Angular.flipClockwise(angle = 45f) mustEqual 45f
+      Angular.flipClockwise(angle = 90f) mustEqual 0f
+      Angular.flipClockwise(angle = 135f) mustEqual 315f
+      Angular.flipClockwise(angle = 180f) mustEqual 270f
+      Angular.flipClockwise(angle = 225f) mustEqual 225f
+      Angular.flipClockwise(angle = 270f) mustEqual 180f
+      Angular.flipClockwise(angle = 315f) mustEqual 135f
+      Angular.flipClockwise(angle = 360f) mustEqual 90f
+      Angular.flipClockwise(angle = 405f) mustEqual 45f
     }
   }
 }

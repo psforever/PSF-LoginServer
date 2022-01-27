@@ -1,16 +1,19 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.ce
 
-import net.psforever.objects.zones.{InteractsWithZone, Zone, ZoneInteraction}
+import net.psforever.objects.zones.blockmap.SectorPopulation
+import net.psforever.objects.zones.{InteractsWithZone, Zone, ZoneInteraction, ZoneInteractionType}
 import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable}
 import net.psforever.types.PlanetSideGUID
+
+case object MineInteraction extends ZoneInteractionType
 
 /**
   * This game entity may infrequently test whether it may interact with game world deployable extra-territorial munitions.
   * "Interact", here, is a graceful word for "trample upon" and the consequence should be an explosion
   * and maybe death.
   */
-class InteractWithMines(range: Float)
+class InteractWithMines(val range: Float)
   extends ZoneInteraction {
   /**
     * mines that, though detected, are skipped from being alerted;
@@ -20,14 +23,16 @@ class InteractWithMines(range: Float)
     */
   private var skipTargets: List[PlanetSideGUID] = List()
 
+  def Type = MineInteraction
+
   /**
     * Trample upon active mines in our current detection sector and alert those mines.
+    * @param sector the portion of the block map being tested
     * @param target the fixed element in this test
     */
-  def interaction(target: InteractsWithZone): Unit = {
+  def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit = {
     val faction = target.Faction
-    val targets = target.Zone.blockMap
-      .sector(target.Position, range)
+    val targets = sector
       .deployableList
       .filter {
         case _: BoomerDeployable     => false //boomers are specific types of ExplosiveDeployable but do not count here

@@ -1,7 +1,7 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.damage
 
-import akka.actor.Actor
+import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.damage.Damageable.Target
@@ -30,6 +30,8 @@ trait DamageableVehicle
 
   /** whether or not the vehicle has been damaged directly, report that damage has occurred */
   protected var reportDamageToVehicle: Boolean = false
+  /** when the vehicle is destroyed, its major explosion is delayed */
+  protected var queuedDestruction: Option[Cancellable] = None
 
   def DamageableObject: Vehicle
   def AggravatedObject : Vehicle = DamageableObject
@@ -44,6 +46,7 @@ trait DamageableVehicle
 
       case DamageableVehicle.Destruction(cause) =>
         //cargo vehicles are destroyed when carrier is destroyed
+        //bfrs undergo a shiver spell before exploding
         val obj = DamageableObject
         obj.Health = 0
         obj.History(cause)
@@ -59,24 +62,28 @@ trait DamageableVehicle
       target: Damageable.Target,
       applyDamageTo: ResolutionCalculations.Output
   ): Unit = {
-    val obj             = DamageableObject
-    val originalHealth  = obj.Health
-    val originalShields = obj.Shields
-    val cause           = applyDamageTo(obj)
-    val health          = obj.Health
-    val shields         = obj.Shields
-    val damageToHealth  = originalHealth - health
-    val damageToShields = originalShields - shields
-    if (WillAffectTarget(target, damageToHealth + damageToShields, cause)) {
-      target.History(cause)
-      DamageLog(
-        target,
-        s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields"
-      )
-      HandleDamage(target, cause, (damageToHealth, damageToShields))
-    } else {
-      obj.Health = originalHealth
-      obj.Shields = originalShields
+    queuedDestruction match {
+      case Some(_) => ;
+      case None =>
+        val obj             = DamageableObject
+        val originalHealth  = obj.Health
+        val originalShields = obj.Shields
+        val cause           = applyDamageTo(obj)
+        val health          = obj.Health
+        val shields         = obj.Shields
+        val damageToHealth  = originalHealth - health
+        val damageToShields = originalShields - shields
+        if (WillAffectTarget(target, damageToHealth + damageToShields, cause)) {
+          target.History(cause)
+          DamageLog(
+            target,
+            s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields"
+          )
+          HandleDamage(target, cause, (damageToHealth, damageToShields))
+        } else {
+          obj.Health = originalHealth
+          obj.Shields = originalShields
+        }
     }
   }
 
@@ -127,7 +134,7 @@ trait DamageableVehicle
       if (damageToShields > 0) {
         events ! VehicleServiceMessage(
           vehicleChannel,
-          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 68, obj.Shields)
+          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, obj.Definition.shieldUiAttribute, obj.Shields)
         )
         announceConfrontation = true
       }
@@ -175,29 +182,60 @@ trait DamageableVehicle
     * @param cause historical information about the damage
     */
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
-    super.DestructionAwareness(target, cause)
-    val obj = DamageableObject
-    val zone = target.Zone
-    //aggravation cancel
-    EndAllAggravation()
-    //passengers die with us
-    DamageableMountable.DestructionAwareness(obj, cause)
-    //things positioned around us can get hurt from us
-    Zone.serverSideDamage(obj.Zone, target, Zone.explosionDamage(Some(cause)))
-    //special considerations for certain vehicles
-    Vehicles.BeforeUnloadVehicle(obj, zone)
-    //shields
-    if (obj.Shields > 0) {
-      obj.Shields = 0
-      zone.VehicleEvents ! VehicleServiceMessage(
-        zone.id,
-        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 68, 0)
-      )
+    (queuedDestruction, DamageableObject.Definition.destructionDelay) match {
+      case (None, Some(delay)) => //set a future explosion for later
+        destructionDelayed(delay, cause)
+      case (Some(_), _) | (None, None) => //explode now
+        super.DestructionAwareness(target, cause)
+        val obj = DamageableObject
+        val zone = target.Zone
+        //aggravation cancel
+        EndAllAggravation()
+        //passengers die with us
+        DamageableMountable.DestructionAwareness(obj, cause)
+        Zone.serverSideDamage(obj.Zone, target, Zone.explosionDamage(Some(cause)))
+        //special considerations for certain vehicles
+        Vehicles.BeforeUnloadVehicle(obj, zone)
+        //shields
+        if (obj.Shields > 0) {
+          obj.Shields = 0
+          zone.VehicleEvents ! VehicleServiceMessage(
+            zone.id,
+            VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, obj.Definition.shieldUiAttribute, 0)
+          )
+        }
+        //clean up
+        target.Actor ! Vehicle.Deconstruct(Some(1 minute))
+        target.ClearHistory()
+        DamageableWeaponTurret.DestructionAwareness(obj, cause)
+      case _ => ;
     }
-    //clean up
-    target.Actor ! Vehicle.Deconstruct(Some(1 minute))
-    target.ClearHistory()
-    DamageableWeaponTurret.DestructionAwareness(obj, cause)
+  }
+
+  def destructionDelayed(delay: Long, cause: DamageResult): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    import scala.concurrent.duration._
+    val obj = DamageableObject
+    //health to 1, shields to 0
+    obj.Health = 1
+    obj.Shields = 0
+    val guid = obj.GUID
+    val guid0 = Service.defaultPlayerGUID
+    val zone = obj.Zone
+    val zoneid = zone.id
+    val events = zone.VehicleEvents
+    events ! VehicleServiceMessage(
+      zoneid,
+      VehicleAction.PlanetsideAttribute(guid0, guid, 0, 1)
+    )
+    events ! VehicleServiceMessage(
+      zoneid,
+      VehicleAction.PlanetsideAttribute(guid0, guid, obj.Definition.shieldUiAttribute, 0)
+    )
+    //passengers die with us
+    DamageableMountable.DestructionAwareness(DamageableObject, cause)
+    //come back to this death later
+    queuedDestruction = Some(context.system.scheduler.scheduleOnce(delay milliseconds, self, DamageableVehicle.Destruction(cause)))
   }
 }
 

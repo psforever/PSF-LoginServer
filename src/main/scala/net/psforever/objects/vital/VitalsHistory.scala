@@ -2,7 +2,7 @@
 package net.psforever.objects.vital
 
 import net.psforever.objects.ballistics.{PlayerSource, VehicleSource}
-import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition}
+import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ToolDefinition}
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason}
@@ -15,7 +15,7 @@ trait VitalsActivity {
 }
 
 trait HealingActivity extends VitalsActivity {
-  def time: Long = System.currentTimeMillis()
+  val time: Long = System.currentTimeMillis()
 }
 
 trait DamagingActivity extends VitalsActivity {
@@ -52,6 +52,9 @@ final case class RepairFromEquipment(
 
 final case class RepairFromTerm(term_def: TerminalDefinition, amount: Int)
     extends HealingActivity
+
+final case class RepairFromArmorSiphon(siphon_def: ToolDefinition, amount: Int)
+  extends HealingActivity
 
 final case class VehicleShieldCharge(amount: Int)
   extends HealingActivity //TODO facility
