@@ -4698,6 +4698,8 @@ object GlobalDefinitions {
     ntu_siphon_emp.DamageAtEdge = 0.1f
     ntu_siphon_emp.DamageRadius = 50f
     ntu_siphon_emp.ProjectileDamageType = DamageType.Splash
+    ntu_siphon_emp.AdditionalEffect = true
+    ntu_siphon_emp.SympatheticExplosion = true
     ntu_siphon_emp.JammedEffectDuration += TargetValidation(
       EffectTarget.Category.Player,
       EffectTarget.Validation.Player

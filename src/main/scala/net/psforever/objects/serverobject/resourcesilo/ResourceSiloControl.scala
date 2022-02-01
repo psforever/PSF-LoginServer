@@ -60,8 +60,11 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
                 //bfr's discharge into friendly silos and charge from enemy and neutral silos
                 if (siloFaction == playerFaction) {
                   Some(TransferBehavior.Discharging(Ntu.Nanites))
-                } else {
+                } else if (resourceSilo.MaxNtuCapacitor * 0.4f < resourceSilo.NtuCapacitor) {
+                  //the bfr never drains below 40%
                   Some(TransferBehavior.Charging(Ntu.Nanites))
+                } else {
+                  None
                 }
               } else if(siloFaction == PlanetSideEmpire.NEUTRAL || siloFaction == playerFaction) {
                 //ants discharge into neutral and friendly silos

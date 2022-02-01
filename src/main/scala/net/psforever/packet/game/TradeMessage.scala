@@ -29,7 +29,7 @@ final case class TradeThree(value: Int, unk: PlanetSideGUID) extends Trade {
 
 final case class TradeFour(value: Int, unk: Int) extends Trade {
   assert(value == 9, s"TradeFour has wrong code value - $value not in [9]")
-  assert(unk < 0 || unk > 15, s"TradeFour value is out of bounds - $unk not in [0-f]")
+  assert(unk > -1 && unk < 16, s"TradeFour value is out of bounds - $unk not in [0-f]")
 }
 
 final case class TradeMessage(trade: Trade)
