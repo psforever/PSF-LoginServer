@@ -93,6 +93,11 @@ class BfrControl(vehicle: Vehicle)
     }
   }
 
+  override def damageChannels(obj: Vehicle): (String, String) = {
+    val channel = obj.Zone.id
+    (channel, channel)
+  }
+
   override def DamageAwareness(target: Target, cause: DamageResult, amount: Any) : Unit = {
     super.DamageAwareness(target, cause, amount)
     //manage shield display and charge
@@ -353,7 +358,7 @@ class BfrControl(vehicle: Vehicle)
     val zone = vehicle.Zone
     val shields = vehicle.Shields
     zone.VehicleEvents ! VehicleServiceMessage(
-      s"${vehicle.Actor}",
+      zone.id,
       VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vguid, vehicle.Definition.shieldUiAttribute, shields)
     )
   }

@@ -8435,7 +8435,7 @@ object GlobalDefinitions {
     phantasm.MaxShields = 500
     phantasm.CanCloak = true
     phantasm.CanFly = true
-    phantasm.Seats += 0       -> new SeatDefinition()
+    phantasm.Seats += 0       -> bailableSeat
     phantasm.Seats += 1       -> bailableSeat
     phantasm.Seats += 2       -> bailableSeat
     phantasm.Seats += 3       -> bailableSeat
