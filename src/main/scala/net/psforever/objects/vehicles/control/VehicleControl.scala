@@ -81,7 +81,8 @@ class VehicleControl(vehicle: Vehicle)
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
-  if (!vehicle.Definition.CanFly) { //can not recover from sinking disability
+  if (!vehicle.Definition.CanFly || GlobalDefinitions.isBattleFrameFlightVehicle(vehicle.Definition)) {
+    //can recover from sinking disability
     SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
   }
 
@@ -582,7 +583,7 @@ class VehicleControl(vehicle: Vehicle)
   def doInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     val (effect: Boolean, time: Long, percentage: Float) = {
       val (a, b, c) = RespondsToZoneEnvironment.drowningInWateryConditions(obj, submergedCondition, interactionTime)
-      if (a && vehicle.Definition.CanFly && !GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
+      if (a && vehicle.Definition.CanFly && !GlobalDefinitions.isBattleFrameFlightVehicle(vehicle.Definition)) {
         (true, 0L, 0f) //no progress bar
       } else {
         (a, b, c)
