@@ -9308,7 +9308,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val filteredTools = tools.filter { tool: Tool =>
           v.Weapons.find {
             case (index, slot) =>
-              //index = 2 or 3 for bfr_gunner; index = 1 or 2 for bfr_flight
+              //arm mounted weapon?
+              //index = 1 or 2 for bfr_flight; index = 2 3 or 4 for bfr_gunner
               index > 0 && index < 4 && slot.Equipment.nonEmpty && (tool eq slot.Equipment.get)
           } match {
             case Some((index, _)) =>
@@ -9323,7 +9324,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               }
               mountIsEnabled
             case None =>
-              false
+              //gunner mounted weapon?
+              tool.Size == EquipmentSize.BFRGunnerWeapon
           }
         }
         filteredTools

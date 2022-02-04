@@ -1146,7 +1146,7 @@ class AvatarActor(
       } else if (becomeFatigued) {
         avatarCopy(avatar.copy(implants = avatar.implants.zipWithIndex.collect {
           case (Some(implant), slot) if implant.active =>
-            implantTimers(slot).cancel()
+            implantTimers.get(slot).foreach(_.cancel())
             Some(implant.copy(active = false))
           case (out, _) =>
             out
@@ -1230,7 +1230,7 @@ class AvatarActor(
           implants = avatar.implants.updated(index, Some(imp.copy(initialized = false, active = false)))
         ))
         //restart initialization process
-        implantTimers(index).cancel()
+        implantTimers.get(index).foreach(_.cancel())
         implantTimers(index) = context.scheduleOnce(
           imp.definition.InitializationDuration.seconds,
           context.self,
@@ -1249,7 +1249,7 @@ class AvatarActor(
       case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
     } match {
       case Some((implant, slot)) =>
-        implantTimers(slot).cancel()
+        implantTimers.get(slot).foreach(_.cancel())
         avatarCopy(avatar.copy(
           implants = avatar.implants.updated(slot, Some(implant.copy(active = false)))
         ))

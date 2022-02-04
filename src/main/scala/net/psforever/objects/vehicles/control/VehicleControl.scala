@@ -81,7 +81,8 @@ class VehicleControl(vehicle: Vehicle)
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
-  if (!vehicle.Definition.CanFly) { //can not recover from sinking disability
+  if (!vehicle.Definition.CanFly || GlobalDefinitions.isBattleFrameFlightVehicle(vehicle.Definition)) {
+    //can recover from sinking disability
     SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
   }
 
@@ -188,7 +189,7 @@ class VehicleControl(vehicle: Vehicle)
               )
               zone.AvatarEvents ! AvatarServiceMessage(
                 player.Name,
-                AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true)
+                AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result = true)
               )
 
             case _ => ;
@@ -196,7 +197,7 @@ class VehicleControl(vehicle: Vehicle)
         } else {
           zone.AvatarEvents ! AvatarServiceMessage(
             player.Name,
-            AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, false)
+            AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result = false)
           )
         }
 
@@ -385,7 +386,7 @@ class VehicleControl(vehicle: Vehicle)
               zone.actor ! ZoneActor.AddToBlockMap(player, vehicle.Position)
             }
             if (player.HasGUID) {
-              events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, true, guid))
+              events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2 = true, guid))
             }
           case None => ;
         }
@@ -582,7 +583,7 @@ class VehicleControl(vehicle: Vehicle)
   def doInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     val (effect: Boolean, time: Long, percentage: Float) = {
       val (a, b, c) = RespondsToZoneEnvironment.drowningInWateryConditions(obj, submergedCondition, interactionTime)
-      if (a && vehicle.Definition.CanFly) {
+      if (a && vehicle.Definition.CanFly && !GlobalDefinitions.isBattleFrameFlightVehicle(vehicle.Definition)) {
         (true, 0L, 0f) //no progress bar
       } else {
         (a, b, c)
@@ -796,7 +797,7 @@ class VehicleControl(vehicle: Vehicle)
                       tplayer.VehicleSeated = None
                       zone.VehicleEvents ! VehicleServiceMessage(
                         zone.id,
-                        VehicleAction.KickPassenger(tplayer.GUID, 4, false, vguid)
+                        VehicleAction.KickPassenger(tplayer.GUID, 4, unk2 = false, vguid)
                       )
                     }
                   case _ => ; // No player seated
@@ -809,7 +810,7 @@ class VehicleControl(vehicle: Vehicle)
                     if (vehicle.SeatPermissionGroup(cargoIndex).contains(group)) {
                       //todo: this probably doesn't work for passengers within the cargo vehicle
                       // Instruct client to start bail dismount procedure
-                      self ! DismountVehicleCargoMsg(dguid, cargo.GUID, true, false, false)
+                      self ! DismountVehicleCargoMsg(dguid, cargo.GUID, bailed = true, requestedByPassenger = false, kicked = false)
                     }
                   case None => ; // No vehicle in cargo
                 }

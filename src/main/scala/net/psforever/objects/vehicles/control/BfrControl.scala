@@ -31,7 +31,10 @@ class BfrControl(vehicle: Vehicle)
   extends VehicleControl(vehicle)
   with BfrTransferBehavior
   with ArmorSiphonBehavior.SiphonOwner {
-  /** shield-auto charge */
+  /** shield-auto charge;
+    * active timer indicates a charging shield;
+    * `Default.Cancellable` indicates a technical pause in charging;
+    * `Cancellable.alreadyCancelled` indicates a permanant cessation of charging activity (vehicle destruction) */
   var shieldCharge: Cancellable = Default.Cancellable
 
   def SiphoningObject = vehicle
@@ -90,11 +93,16 @@ class BfrControl(vehicle: Vehicle)
     }
   }
 
+  override def damageChannels(obj: Vehicle): (String, String) = {
+    val channel = obj.Zone.id
+    (channel, channel)
+  }
+
   override def DamageAwareness(target: Target, cause: DamageResult, amount: Any) : Unit = {
     super.DamageAwareness(target, cause, amount)
     //manage shield display and charge
     disableShieldIfDrained()
-    if (shieldCharge != Default.Cancellable && vehicle.Shields < vehicle.MaxShields) {
+    if (shieldCharge != Cancellable.alreadyCancelled && vehicle.Shields < vehicle.MaxShields) {
       shieldCharge.cancel()
       shieldCharge = context.system.scheduler.scheduleOnce(
         delay = vehicle.Definition.ShieldDamageDelay milliseconds,
@@ -107,7 +115,7 @@ class BfrControl(vehicle: Vehicle)
   override def destructionDelayed(delay: Long, cause: DamageResult): Unit = {
     super.destructionDelayed(delay, cause)
     shieldCharge.cancel()
-    shieldCharge = Default.Cancellable
+    shieldCharge = Cancellable.alreadyCancelled
     //harmless boom boom's
     context.system.scheduler.scheduleOnce(delay = 0 milliseconds, self, BfrControl.VehicleExplosion)
   }
@@ -115,7 +123,7 @@ class BfrControl(vehicle: Vehicle)
   override def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     shieldCharge.cancel()
-    shieldCharge = Default.Cancellable
+    shieldCharge = Cancellable.alreadyCancelled
     disableShield()
   }
 
@@ -332,7 +340,7 @@ class BfrControl(vehicle: Vehicle)
     shieldCharge(vehicle.Shields, vehicle.Definition, delay)
   }
 
-  def shieldCharge(after:Int, definition: VehicleDefinition, delay: Long): Unit = {
+  def shieldCharge(after: Int, definition: VehicleDefinition, delay: Long): Unit = {
     shieldCharge.cancel()
     if (after < definition.MaxShields && !vehicle.Jammed) {
       shieldCharge = context.system.scheduler.scheduleOnce(
@@ -350,7 +358,7 @@ class BfrControl(vehicle: Vehicle)
     val zone = vehicle.Zone
     val shields = vehicle.Shields
     zone.VehicleEvents ! VehicleServiceMessage(
-      s"${vehicle.Actor}",
+      zone.id,
       VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vguid, vehicle.Definition.shieldUiAttribute, shields)
     )
   }

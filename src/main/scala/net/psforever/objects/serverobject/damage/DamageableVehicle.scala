@@ -88,6 +88,15 @@ trait DamageableVehicle
   }
 
   /**
+    * Produce the event system channel names required for updating helath and shield values.
+    * @param obj the vehicle
+    * @return the channel for updating health values, the channel for updating shield values
+    */
+  def damageChannels(obj: Vehicle): (String, String) = {
+    (obj.Zone.id, obj.Actor.toString)
+  }
+
+  /**
     * Most all vehicles and the weapons mounted to them can jam
     * if the projectile that strikes (near) them has jammering properties.
     * If this vehicle has shields that were affected by previous damage, that is also reported to the clients.
@@ -104,8 +113,7 @@ trait DamageableVehicle
     val zone           = target.Zone
     val events         = zone.VehicleEvents
     val targetGUID     = target.GUID
-    val zoneId         = zone.id
-    val vehicleChannel = s"${obj.Actor}"
+    val (healthChannel, shieldChannel) = damageChannels(obj)
     val (damageToHealth, damageToShields, totalDamage) = amount match {
       case (a: Int, b: Int) => (a, b, a+b)
       case _ => (0, 0, 0)
@@ -133,14 +141,14 @@ trait DamageableVehicle
       //stat changes
       if (damageToShields > 0) {
         events ! VehicleServiceMessage(
-          vehicleChannel,
+          shieldChannel,
           VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, obj.Definition.shieldUiAttribute, obj.Shields)
         )
         announceConfrontation = true
       }
       if (damageToHealth > 0) {
         events ! VehicleServiceMessage(
-          zoneId,
+          healthChannel,
           VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, obj.Health)
         )
         announceConfrontation = true
