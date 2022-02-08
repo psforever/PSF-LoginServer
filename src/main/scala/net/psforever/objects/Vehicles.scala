@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggeredSound
-import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
+import net.psforever.types.{DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -397,7 +397,8 @@ object Vehicles {
         .headOption
     ) match {
       case out @ Some(silo: ResourceSilo)
-        if Vector3.DistanceSquared(position, silo.Position.xy) < radius * radius && obj.Faction == silo.Faction =>
+        if Vector3.DistanceSquared(position, silo.Position.xy) < radius * radius &&
+           silo.Faction == PlanetSideEmpire.NEUTRAL || silo.Faction == obj.Faction =>
         out
       case _ =>
         None
