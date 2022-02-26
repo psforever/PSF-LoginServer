@@ -9,9 +9,9 @@ import java.security.SecureRandom
 case class DiffieHellman(p: Array[Byte], g: Array[Byte]) {
   import DiffieHellman._
 
-  private val _p                 = BigInt(1, p)
-  private val _g                 = BigInt(1, g)
-  private val privateKey: BigInt = BigInt(128, random)
+  private val _p         = BigInt(1, p)
+  private val _g         = BigInt(1, g)
+  private val privateKey = BigInt(128, random)
 
   val publicKey: Array[Byte] = bytes(_g.modPow(privateKey, _p))
 
