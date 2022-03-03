@@ -1,3 +1,4 @@
+// Copyright (c) 2017 PSForever
 package net.psforever.objects.avatar
 
 import net.psforever.objects.definition.{AvatarDefinition, BasicDefinition}
@@ -6,6 +7,7 @@ import net.psforever.objects.inventory.LocallyRegisteredInventory
 import net.psforever.objects.loadouts.{Loadout, SquadLoadout}
 import net.psforever.objects.locker.{LockerContainer, LockerEquipment}
 import net.psforever.objects.{GlobalDefinitions, OffhandEquipmentSlot}
+import net.psforever.packet.game.objectcreate.RibbonBars
 import net.psforever.types._
 import org.joda.time.{Duration, LocalDateTime, Seconds}
 
@@ -94,6 +96,7 @@ case class Avatar(
     stamina: Int = 100,
     fatigued: Boolean = false,
     cosmetics: Option[Set[Cosmetic]] = None,
+    ribbonBars: RibbonBars = RibbonBars(),
     certifications: Set[Certification] = Set(),
     loadouts: Seq[Option[Loadout]] = Seq.fill(20)(None),
     squadLoadouts: Seq[Option[SquadLoadout]] = Seq.fill(10)(None),

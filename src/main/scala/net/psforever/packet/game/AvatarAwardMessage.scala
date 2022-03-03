@@ -2,37 +2,54 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.MeritCommendation
 import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}
 
-import scala.annotation.switch
-
-abstract class AwardOption(val code: Int) {
-  def unk1: Long
-  def unk2: Long
+trait AwardOption {
+  def value: Long
+  def completion: Long
 }
-
-final case class AwardOptionZero(unk1: Long, unk2: Long) extends AwardOption(code = 0)
-
-final case class AwardOptionOne(unk1: Long) extends AwardOption(code = 1) {
-  def unk2: Long = 0L
+/**
+  * Display this award's progress.
+  * @param value the current count towards this award
+  * @param completion the target (maximum) count
+  */
+final case class AwardProgress(value: Long, completion: Long) extends AwardOption
+/**
+  * Display this award's qualification progress.
+  * The process is the penultimate conditions necessary for award completion,
+  * separate from the aforementioned progress.
+  * This is almost always a kill streak,
+  * where the user must terminate a certain numbers of enemies without dying.
+  * @param value the current count towards this award
+  */
+final case class AwardQualificationProgress(value: Long) extends AwardOption {
+  /** zero'd as the value is not reported here */
+  def completion: Long = 0L
 }
-
-final case class AwardOptionTwo(unk1: Long) extends AwardOption(code = 3) {
-  def unk2: Long = 0L
+/**
+  * Display this award as completed.
+  * @param value the date (mm/dd/yyyy) that the award was achieved in POSIX time
+  */
+final case class AwardCompletion(value: Long) extends AwardOption {
+  /** same as the parameter value */
+  def completion: Long = value
 }
 
 /**
   * na
-  * @param unk1 na
-  * @param unk2 na
-  * @param unk3 na
+  * @param merit_commendation na
+  * @param state na
+  * @param unk na;
+  *            0 and 1 are the possible values;
+  *            0 is the common value
   */
 final case class AvatarAwardMessage(
-                                     unk1: Long,
-                                     unk2: AwardOption,
-                                     unk3: Int
+                                     merit_commendation: MeritCommendation.Value,
+                                     state: AwardOption,
+                                     unk: Int
                                    )
   extends PlanetSideGamePacket {
   type Packet = AvatarAwardMessage
@@ -41,61 +58,67 @@ final case class AvatarAwardMessage(
 }
 
 object AvatarAwardMessage extends Marshallable[AvatarAwardMessage] {
-  private val codec_one: Codec[AwardOptionOne] = {
+  def apply(meritCommendation: MeritCommendation.Value, state: AwardOption):AvatarAwardMessage =
+    AvatarAwardMessage(meritCommendation, state, unk = 0)
+
+  private val codec_one: Codec[AwardOption] = {
     uint32L.hlist
-  }.xmap[AwardOptionOne](
+  }.xmap[AwardOption](
     {
-      case a :: HNil => AwardOptionOne(a)
+      case a :: HNil => AwardQualificationProgress(a)
     },
     {
-      case AwardOptionOne(a) => a :: HNil
+      case AwardQualificationProgress(a) => a :: HNil
     }
   )
 
-  private val codec_two: Codec[AwardOptionTwo] = {
+  private val codec_two: Codec[AwardOption] = {
     uint32L.hlist
-  }.xmap[AwardOptionTwo](
+  }.xmap[AwardOption](
     {
-      case a :: HNil => AwardOptionTwo(a)
+      case a :: HNil => AwardCompletion(a)
     },
     {
-      case AwardOptionTwo(a) => a :: HNil
+      case AwardCompletion(a) => a :: HNil
     }
   )
 
-  private val codec_zero: Codec[AwardOptionZero] = {
+  private val codec_zero: Codec[AwardOption] = {
     uint32L :: uint32L
-  }.xmap[AwardOptionZero](
+  }.xmap[AwardOption](
     {
-      case a :: b :: HNil => AwardOptionZero(a, b)
+      case a :: b :: HNil => AwardProgress(a, b)
     },
     {
-      case AwardOptionZero(a, b) => a :: b :: HNil
+      case AwardProgress(a, b) => a :: b :: HNil
     }
   )
-
-  private def selectAwardOption(code: Int): Codec[AwardOption] = {
-    ((code: @switch) match {
-      case 2 | 3 => codec_two
-      case 1     => codec_one
-      case 0     => codec_zero
-    }).asInstanceOf[Codec[AwardOption]]
-  }
 
   implicit val codec: Codec[AvatarAwardMessage] = (
-    ("unk1" | uint32L) ::
-    (uint2 >>:~ { code =>
-      ("unk2" | selectAwardOption(code)) ::
-      ("unk3" | uint8L)
-    })
-    ).xmap[AvatarAwardMessage](
-    {
-      case unk1 :: _ :: unk2 :: unk3 :: HNil =>
-        AvatarAwardMessage(unk1, unk2, unk3)
-    },
-    {
-      case AvatarAwardMessage(unk1, unk2, unk3) =>
-        unk1 :: unk2.code :: unk2 :: unk3 :: HNil
-    }
-  )
+    ("merit_commendation" | MeritCommendation.codec) ::
+    ("state" | either(bool,
+      either(bool, codec_zero, codec_one).xmap[AwardOption](
+        {
+          case Left(d)  => d
+          case Right(d) => d
+        },
+        {
+          case d: AwardProgress               => Left(d)
+          case d: AwardQualificationProgress  => Right(d)
+        }
+      ),
+      codec_two
+    ).xmap[AwardOption](
+      {
+        case Left(d)  => d
+        case Right(d) => d
+      },
+      {
+        case d: AwardProgress               => Left(d)
+        case d: AwardQualificationProgress  => Left(d)
+        case d: AwardCompletion             => Right(d)
+      }
+    )) ::
+    ("unk" | uint8L)
+  ).as[AvatarAwardMessage]
 }

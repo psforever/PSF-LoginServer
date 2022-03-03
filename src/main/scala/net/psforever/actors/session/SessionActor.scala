@@ -3157,8 +3157,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (tplayer.ExoSuit == ExoSuitType.MAX) {
       sendResponse(PlanetsideAttributeMessage(guid, 7, tplayer.Capacitor.toLong))
     }
-    //AvatarAwardMessage
-    //DisplayAwardMessage
+    // AvatarAwardMessage
+    Merit
+      .values
+      .filter { merit =>
+        val label = merit.value
+        if (label.contains("NC")) player.Faction == PlanetSideEmpire.NC
+        else if (label.contains("TR")) player.Faction == PlanetSideEmpire.TR
+        else if (label.contains("VS")) player.Faction == PlanetSideEmpire.VS
+        else if (label.contains("Male")) player.Sex == CharacterSex.Male
+        else if (label.contains("Female")) player.Sex == CharacterSex.Female
+        else true
+      }
+      .foreach { merit =>
+        sendResponse(AvatarAwardMessage(merit.progression.head.commendation, AwardProgress(0, 1)))
+      }
     sendResponse(PlanetsideStringAttributeMessage(guid, 0, "Outfit Name"))
     //squad stuff (loadouts, assignment)
     squadSetup()
@@ -5966,12 +5979,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             log.error(s"InvalidTerrain: ${player.Name} is complaining about a thing@$vehicle_guid that can not be found")
         }
 
-      case msg @ ActionCancelMessage(u1, u2, u3) =>
+      case ActionCancelMessage(_, _, _) =>
         progressBarUpdate.cancel()
         progressBarValue = None
 
       case TradeMessage(trade) =>
-        log.info(s"${player.Name} wants to trade, for some reason - $trade")
+        log.info(s"${player.Name} wants to trade for some reason - $trade")
+
+      case DisplayedAwardMessage(_, ribbon, bar) =>
+        log.info(s"${player.Name} changed a displayed award ribbon to $ribbon")
+        avatarActor ! AvatarActor.SetRibbon(ribbon, bar)
 
       case _ =>
         log.warn(s"Unhandled GamePacket $pkt")
