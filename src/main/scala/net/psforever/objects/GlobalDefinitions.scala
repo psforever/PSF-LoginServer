@@ -1981,7 +1981,7 @@ object GlobalDefinitions {
     * @param projectile the original projectile
     * @return the damage proxy projectile definition, if that can be produced
     */
-  def getDamageProxy(projectile: Projectile, hitPosition: Vector3): Option[Projectile] = {
+  def getDamageProxy(projectile: Projectile, hitPosition: Vector3): List[Projectile] = {
     projectile.Definition.DamageProxy match {
       case Some(uoid) =>
         ((uoid: @switch) match {
@@ -1994,9 +1994,9 @@ object GlobalDefinitions {
         }) match {
           case Some(proxy)
             if proxy eq projectile.profile =>
-            Some(projectile)
+            List(projectile)
           case Some(proxy) =>
-            Some(Projectile(
+            List(Projectile(
               proxy,
               projectile.tool_def,
               projectile.fire_mode,
@@ -2006,10 +2006,10 @@ object GlobalDefinitions {
               Vector3.Zero
             ))
           case None =>
-            None
+            Nil
         }
       case None =>
-        None
+        Nil
     }
   }
 
@@ -3638,6 +3638,7 @@ object GlobalDefinitions {
     oicw_projectile.ProjectileDamageType = DamageType.Splash
     oicw_projectile.InitialVelocity = 5
     oicw_projectile.Lifespan = 6.1f
+    oicw_projectile.DamageProxy = 601 //oicw_little_buddy
     oicw_projectile.registerAs = "rc-projectiles"
     oicw_projectile.ExistsOnRemoteClients = true
     oicw_projectile.RemoteClientData = (13107, 195)
@@ -3653,8 +3654,9 @@ object GlobalDefinitions {
     oicw_little_buddy.ProjectileDamageType = DamageType.Splash
     oicw_little_buddy.InitialVelocity = 40
     oicw_little_buddy.Lifespan = 0.5f
-    oicw_little_buddy.ExistsOnRemoteClients = false //TODO true
-    oicw_little_buddy.Packet = projectileConverter
+    oicw_little_buddy.registerAs = "rc-projectiles"
+    oicw_little_buddy.ExistsOnRemoteClients = true //does not use RemoteClientData
+    oicw_little_buddy.Packet = new LittleBuddyProjectileConverter
     //add_property oicw_little_buddy multi_stage_spawn_server_side true ...
     ProjectileDefinition.CalculateDerivedFields(oicw_little_buddy)
     oicw_little_buddy.Modifiers = RadialDegrade

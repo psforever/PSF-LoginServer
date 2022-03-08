@@ -9353,40 +9353,43 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                          hitPos: Vector3
                        ): List[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile, Vector3, Vector3)] = {
     GlobalDefinitions.getDamageProxy(projectile, hitPos) match {
-      case Some(proxy) if proxy.profile.ExistsOnRemoteClients =>
-        proxy.Position = hitPos
-        continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
+      case Nil =>
         Nil
-
-      case Some(proxy)
-        if proxy.tool_def == GlobalDefinitions.maelstrom =>
-        //server-side maelstrom grenade target selection
-        val radius = proxy.profile.LashRadius * proxy.profile.LashRadius
-        val targets = continent.blockMap
-          .sector(hitPos, proxy.profile.LashRadius)
-          .livePlayerList
-          .filter { target =>
-            Vector3.DistanceSquared(target.Position, hitPos) <= radius
-          }
-        //chainlash is separated from the actual damage application for convenience
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.SendResponse(
-            PlanetSideGUID(0),
-            ChainLashMessage(
-              hitPos,
-              projectile.profile.ObjectId,
-              targets.map { _.GUID }
+      case list =>
+        list.flatMap { proxy =>
+          if (proxy.profile.ExistsOnRemoteClients) {
+            proxy.Position = hitPos
+            continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
+            Nil
+          } else if (proxy.tool_def == GlobalDefinitions.maelstrom) {
+            //server-side maelstrom grenade target selection
+            val radius = proxy.profile.LashRadius * proxy.profile.LashRadius
+            val targets = continent.blockMap
+              .sector(hitPos, proxy.profile.LashRadius)
+              .livePlayerList
+              .filter { target =>
+                Vector3.DistanceSquared(target.Position, hitPos) <= radius
+              }
+            //chainlash is separated from the actual damage application for convenience
+            continent.AvatarEvents ! AvatarServiceMessage(
+              continent.id,
+              AvatarAction.SendResponse(
+                PlanetSideGUID(0),
+                ChainLashMessage(
+                  hitPos,
+                  projectile.profile.ObjectId,
+                  targets.map { _.GUID }
+                )
+              )
             )
-          )
-        )
-        targets.map { target =>
-          CheckForHitPositionDiscrepancy(pguid, hitPos, target)
-          (target, proxy, hitPos, target.Position)
+            targets.map { target =>
+              CheckForHitPositionDiscrepancy(pguid, hitPos, target)
+              (target, proxy, hitPos, target.Position)
+            }
+          } else {
+            Nil
+          }
         }
-
-      case _ =>
-        Nil
     }
   }
 
