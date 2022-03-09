@@ -3946,6 +3946,7 @@ object GlobalDefinitions {
     radiator_cloud.Damage0 = 2
     radiator_cloud.DamageAtEdge = 1.0f
     radiator_cloud.DamageRadius = 5f
+    radiator_cloud.DamageToHealthOnly = true
     radiator_cloud.radiation_cloud = true
     radiator_cloud.ProjectileDamageType = DamageType.Radiation
     radiator_cloud.Lifespan = 10.0f
@@ -3953,7 +3954,7 @@ object GlobalDefinitions {
     radiator_cloud.registerAs = "rc-projectiles"
     radiator_cloud.ExistsOnRemoteClients = true
     radiator_cloud.Packet = radCloudConverter
-    radiator_cloud.Geometry = GeometryForm.representProjectileBySphere()
+    //radiator_cloud.Geometry = GeometryForm.representProjectileBySphere()
     radiator_cloud.Modifiers = List(
       MaxDistanceCutoff,
       ShieldAgainstRadiation
@@ -3964,6 +3965,7 @@ object GlobalDefinitions {
     radiator_grenade_projectile.ProjectileDamageType = DamageType.Direct
     radiator_grenade_projectile.InitialVelocity = 30
     radiator_grenade_projectile.Lifespan = 3f
+    radiator_grenade_projectile.DamageProxy = 717 //radiator_cloud
     ProjectileDefinition.CalculateDerivedFields(radiator_grenade_projectile)
 
     radiator_sticky_projectile.Name = "radiator_sticky_projectile"
@@ -3972,6 +3974,7 @@ object GlobalDefinitions {
     radiator_sticky_projectile.ProjectileDamageType = DamageType.Direct
     radiator_sticky_projectile.InitialVelocity = 30
     radiator_sticky_projectile.Lifespan = 4f
+    radiator_sticky_projectile.DamageProxy = 717 //radiator_cloud
     ProjectileDefinition.CalculateDerivedFields(radiator_sticky_projectile)
 
     reaver_rocket_projectile.Name = "reaver_rocket_projectile"
@@ -4433,7 +4436,7 @@ object GlobalDefinitions {
     aphelion_plasma_cloud.registerAs = "rc-projectiles"
     aphelion_plasma_cloud.ExistsOnRemoteClients = true
     aphelion_plasma_cloud.Packet = radCloudConverter
-    aphelion_plasma_cloud.Geometry = GeometryForm.representProjectileBySphere()
+    //aphelion_plasma_cloud.Geometry = GeometryForm.representProjectileBySphere()
     aphelion_plasma_cloud.Modifiers = List( //TODO placeholder values
       MaxDistanceCutoff,
       InfantryAggravatedRadiation,
@@ -4635,7 +4638,7 @@ object GlobalDefinitions {
     peregrine_particle_cannon_radiation_cloud.registerAs = "rc-projectiles"
     peregrine_particle_cannon_radiation_cloud.ExistsOnRemoteClients = true
     peregrine_particle_cannon_radiation_cloud.Packet = radCloudConverter
-    peregrine_particle_cannon_radiation_cloud.Geometry = GeometryForm.representProjectileBySphere()
+    //peregrine_particle_cannon_radiation_cloud.Geometry = GeometryForm.representProjectileBySphere()
     peregrine_particle_cannon_radiation_cloud.Modifiers = List(
       MaxDistanceCutoff,
       ShieldAgainstRadiation
