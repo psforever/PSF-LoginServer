@@ -9356,6 +9356,24 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case Nil =>
         Nil
       case list =>
+        if (list.head.tool_def == GlobalDefinitions.oicw) {
+          val speed: Float = -144f
+          val dip: Float = 75f
+          val y: Float = 360f - dip
+          var z: Float = player.Orientation.z
+          val step: Float = 360f / list.size
+          val vel = Vector3(1,0,0).Ry(-dip)
+          list.foreach { proxy =>
+            val a = Vector3(0, y, z)
+            val vi = vel.Rz(z)
+            val v = vi * speed
+            val p = hitPos + vi * 0.25f
+            proxy.Position = p
+            proxy.Orientation = a
+            proxy.Velocity = v
+            z = (z + step) % 360f
+          }
+        }
         list.flatMap { proxy =>
           if (proxy.profile.ExistsOnRemoteClients) {
             proxy.Position = hitPos

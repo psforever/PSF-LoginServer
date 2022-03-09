@@ -1975,19 +1975,22 @@ object GlobalDefinitions {
   }
 
   /**
-    * Return a projectile that is the damage proxy of another projectile,
+    * Return projectiles that are the damage proxies of another projectile,
     * if such a damage proxy is defined in the appropriate field by its unique object identifier.
     * @see `ProjectileDefinition.DamageProxy`
     * @param projectile the original projectile
-    * @return the damage proxy projectile definition, if that can be produced
+    * @return the damage proxy projectiles, if they can be produced
     */
   def getDamageProxy(projectile: Projectile, hitPosition: Vector3): List[Projectile] = {
-    projectile.Definition.DamageProxy match {
-      case Some(uoid) =>
+    projectile
+      .Definition
+      .DamageProxy
+      .flatMap { uoid =>
         ((uoid: @switch) match {
           case 96 =>  Some(aphelion_plasma_cloud)
           case 301 => Some(projectile.profile) //'flamethrower_fire_cloud' can not be made into a packet
           case 464 => Some(projectile.profile) //'maelstrom_grenade_damager' can not be made into a packet
+          case 601 => Some(oicw_little_buddy)
           case 655 => Some(peregrine_particle_cannon_radiation_cloud)
           case 717 => Some(radiator_cloud)
           case _   => None
@@ -2008,9 +2011,7 @@ object GlobalDefinitions {
           case None =>
             Nil
         }
-      case None =>
-        Nil
-    }
+      }
   }
 
   /**
@@ -3638,7 +3639,7 @@ object GlobalDefinitions {
     oicw_projectile.ProjectileDamageType = DamageType.Splash
     oicw_projectile.InitialVelocity = 5
     oicw_projectile.Lifespan = 6.1f
-    oicw_projectile.DamageProxy = 601 //oicw_little_buddy
+    oicw_projectile.DamageProxy = List(601, 601, 601, 601, 601) //5 x oicw_little_buddy
     oicw_projectile.registerAs = "rc-projectiles"
     oicw_projectile.ExistsOnRemoteClients = true
     oicw_projectile.RemoteClientData = (13107, 195)

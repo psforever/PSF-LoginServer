@@ -143,6 +143,10 @@ class ZoneProjectileActor(
     val (clarifiedFilterGuid, duration) = if (definition.radiation_cloud) {
       zone.blockMap.addTo(projectile)
       (Service.defaultPlayerGUID, projectile.profile.Lifespan seconds)
+    } else if (definition.RemoteClientData == (0,0)) {
+      //remote projectiles that are not radiation clouds have lifespans controlled by the controller (user)
+      //this projectile has defaulted remote client data
+      (Service.defaultPlayerGUID, projectile.profile.Lifespan * 1.5f seconds)
     } else {
       //remote projectiles that are not radiation clouds have lifespans controlled by the controller (user)
       //if the controller fails, the projectile has a bit more than its normal lifespan before automatic clean up
