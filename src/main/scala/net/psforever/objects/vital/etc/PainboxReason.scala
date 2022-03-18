@@ -11,7 +11,7 @@ import net.psforever.objects.vital.resolution.{DamageAndResistance, DamageResist
 
 final case class PainboxReason(entity: Painbox) extends DamageReason {
   private val definition = entity.Definition
-  assert(definition.innateDamage.nonEmpty, "causal entity does not emit pain field")
+  assert(definition.innateDamage.nonEmpty, s"causal entity '${definition.Name}' does not emit pain field")
 
   def source: DamageWithPosition = definition.innateDamage.get
 

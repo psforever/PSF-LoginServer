@@ -9356,24 +9356,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case Nil =>
         Nil
       case list =>
-        if (list.head.tool_def == GlobalDefinitions.oicw) {
-          val speed: Float = -144f
-          val dip: Float = 75f
-          val y: Float = 360f - dip
-          var z: Float = player.Orientation.z
-          val step: Float = 360f / list.size
-          val vel = Vector3(1,0,0).Ry(-dip)
-          list.foreach { proxy =>
-            val a = Vector3(0, y, z)
-            val vi = vel.Rz(z)
-            val v = vi * speed
-            val p = hitPos + vi * 0.25f
-            proxy.Position = p
-            proxy.Orientation = a
-            proxy.Velocity = v
-            z = (z + step) % 360f
-          }
-        }
+        HandleDamageProxySetupLittleBuddy(list, hitPos)
         list.flatMap { proxy =>
           if (proxy.profile.ExistsOnRemoteClients) {
             proxy.Position = hitPos
@@ -9408,6 +9391,72 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             Nil
           }
         }
+    }
+  }
+
+  def HandleDamageProxySetupLittleBuddy(listOfProjectiles: List[Projectile], detonationPosition: Vector3): Boolean = {
+    val listOfLittleBuddies: List[Projectile] = listOfProjectiles.filter { _.tool_def == GlobalDefinitions.oicw }
+    val size: Int = listOfLittleBuddies.size
+    if (size > 0) {
+      val desiredDownwardsProjectiles: Int = 2
+      val firstHalf: Int = math.min(size, desiredDownwardsProjectiles) //number that fly straight down
+      val secondHalf: Int = math.max(size - firstHalf, 0) //number that are flared out
+      val z: Float = player.Orientation.z //player's standing direction
+      val north: Vector3 = Vector3(0,1,0) //map North
+      val speed: Float = 144f //speed (packet discovered)
+      val dist: Float = 25 //distance (client defined)
+      val downwardsAngle: Float = -85f
+      val flaredAngle: Float = -75f
+      //angle of separation for downwards, degrees from vertical for flared out
+      val (smallStep, smallAngle): (Float, Float) = if (firstHalf > 1) {
+        (360f / firstHalf, downwardsAngle)
+      } else {
+        (0f, 0f)
+      }
+      val (largeStep, largeAngle): (Float, Float) = if (secondHalf > 1) {
+        (360f / secondHalf, flaredAngle)
+      } else {
+        (0f, 0f)
+      }
+      val smallRotOffset: Float = z + 90f
+      val largeRotOffset: Float = z + math.random().toFloat * 45f
+      //downwards projectiles
+      var i: Int = 0
+      listOfLittleBuddies.take(firstHalf).foreach { proxy =>
+        val facing = (smallRotOffset + smallStep * i.toFloat) % 360
+        val dir = north.Rx(smallAngle).Rz(facing)
+        proxy.Position = detonationPosition + dir.xy +
+                         Vector3.z(dist - dist * math.sin(math.toRadians(90 - smallAngle + largeAngle)).toFloat)
+        proxy.Velocity = dir * speed
+        proxy.Orientation = Vector3(0, (360f + smallAngle) % 360, facing)
+        HandleDamageProxyLittleBuddyExplosion(proxy, dir, dist)
+        i += 1
+      }
+      //flared out projectiles
+      i = 0
+      listOfLittleBuddies.drop(firstHalf).foreach { proxy =>
+        val facing = (largeRotOffset + largeStep * i.toFloat) % 360
+        val dir = north.Rx(largeAngle).Rz(facing)
+        proxy.Position = detonationPosition + dir
+        proxy.Velocity = dir * speed
+        proxy.Orientation = Vector3(0, (360f + largeAngle) % 360, facing)
+        HandleDamageProxyLittleBuddyExplosion(proxy, dir, dist)
+        i += 1
+      }
+      true
+    } else {
+      false
+    }
+  }
+
+  def HandleDamageProxyLittleBuddyExplosion(proxy: Projectile, orientation: Vector3, distance: Float): Unit = {
+    //explosion
+    val obj = DummyExplodingEntity(proxy)
+    obj.Position = obj.Position + orientation * distance
+    context.system.scheduler.scheduleOnce(1.second) {
+      val c = continent
+      val o = obj
+      Zone.serverSideDamage(c, o, Zone.explosionDamage(None, o.Position))
     }
   }
 

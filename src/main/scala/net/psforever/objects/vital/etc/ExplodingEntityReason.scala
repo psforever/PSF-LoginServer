@@ -109,3 +109,13 @@ case object ExplodingRadialDegrade extends ExplodingDamageModifiers.Mod {
     }
   }
 }
+
+case object ExplosionDamagesOnlyAbove extends ExplodingDamageModifiers.Mod {
+  def calculate(damage: Int, data: DamageInteraction, cause: ExplodingEntityReason): Int = {
+    if (data.target.Position.z <= data.hitPos.z) {
+      damage
+    } else {
+      0
+    }
+  }
+}
