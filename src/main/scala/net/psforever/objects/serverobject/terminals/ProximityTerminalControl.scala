@@ -141,12 +141,12 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
       callbacks += callback
       //activation
       if (term.NumberUsers == 1 && hadNoUsers) {
-        val medDef = term.Definition.asInstanceOf[MedicalTerminalDefinition]
+        val tdef = term.Definition.asInstanceOf[ProximityDefinition]
         import scala.concurrent.ExecutionContext.Implicits.global
         terminalAction.cancel()
         terminalAction = context.system.scheduler.scheduleWithFixedDelay(
           500 milliseconds,
-          medDef.Interval,
+          tdef.Interval,
           self,
           ProximityTerminalControl.TerminalAction()
         )

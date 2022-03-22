@@ -295,6 +295,19 @@ object Zones {
                     )
                   )
                 )
+                if (facilityTypes.contains(structure.objectType)) {
+                  //major overworld facilities have an intrinsic terminal that occasionally recharges ancient weapons
+                  val buildingGuid = structure.guid
+                  val terminalGuid = buildingGuid + 1
+                  zoneMap.addLocalObject(
+                    buildingGuid + 1,
+                    ProximityTerminal.Constructor(
+                      structure.position,
+                      GlobalDefinitions.recharge_terminal_weapon_module
+                    ),
+                    owningBuildingGuid = buildingGuid
+                  )
+                }
             }
             val filteredZoneEntities =
               data.filter { _.owner.contains(structure.id) } ++

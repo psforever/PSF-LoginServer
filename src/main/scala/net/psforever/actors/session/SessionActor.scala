@@ -7535,7 +7535,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * Queue a proximity-base service.
+    * Queue a proximity-based service.
     * @param terminal the proximity-based unit
     * @param target the entity that is being considered for terminal operation
     */
@@ -7547,7 +7547,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         case _: Player =>
           terminal.Actor ! CommonMessages.Use(player, Some(target))
         case _: Vehicle =>
-          terminal.Actor ! CommonMessages.Use(player, Some((target, continent.VehicleEvents)))
+          terminal.Actor ! CommonMessages.Use(player, Some(target))
         case _ =>
           log.error(
             s"StartUsingProximityUnit: ${player.Name}, this ${terminal.Definition.Name} can not deal with target $target"
@@ -7568,9 +7568,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param target the object being affected by the unit
     */
   def SelectProximityUnitBehavior(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject): Unit = {
-    target match {
-      case o: Player =>
-        HealthAndArmorTerminal(terminal, o)
+    (terminal.Definition, target) match {
+      case (_: MedicalTerminalDefinition, p: Player)         => HealthAndArmorTerminal(terminal, p)
+      case (_: WeaponRechargeTerminalDefinition, p: Player)  => WeaponRechargeTerminal(terminal, p)
+      case (_: MedicalTerminalDefinition, v: Vehicle)        => VehicleRepairTerminal(terminal, v)
+      case (_: WeaponRechargeTerminalDefinition, v: Vehicle) => WeaponRechargeTerminal(terminal, v)
       case _ => ;
     }
   }
@@ -7625,7 +7627,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   /**
     * When standing on the platform of a(n advanced) medical terminal,
-    * resotre the player's health and armor points (when they need their health and armor points restored).
+    * restore the player's health and armor points (when they need their health and armor points restored).
     * If the player is both fully healed and fully repaired, stop using the terminal.
     * @param unit the medical terminal
     * @param target the player being healed
@@ -7687,6 +7689,115 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       AvatarAction.PlanetsideAttribute(player_guid, 4, tplayer.Armor)
     )
     tplayer.Armor == tplayer.MaxArmor
+  }
+
+  /**
+    * When driving a vehicle close to a rearm/repair silo,
+    * restore the vehicle's health points.
+    * If the vehicle is fully repaired, stop using the terminal.
+    * @param unit the terminal
+    * @param target the vehicle being repaired
+    */
+  def VehicleRepairTerminal(unit: Terminal with ProximityUnit, target: Vehicle): Unit = {
+    val medDef     = unit.Definition.asInstanceOf[MedicalTerminalDefinition]
+    val healAmount = medDef.HealAmount
+    val maxHealth = target.MaxHealth
+    val noMoreHeal = if (!target.Destroyed && unit.Validate(target)) {
+      //repair vehicle
+      if (healAmount > 0 && target.Health < maxHealth) {
+        target.Health = target.Health + healAmount
+        target.History(RepairFromTerm(VehicleSource(target), healAmount, medDef))
+        continent.VehicleEvents ! VehicleServiceMessage(
+          continent.id,
+          VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), target.GUID, 0, target.Health)
+        )
+        target.Health == maxHealth
+      } else {
+        true
+      }
+    } else {
+      true
+    }
+    if (noMoreHeal) {
+      StopUsingProximityUnit(unit)
+    }
+  }
+
+  /**
+    * When standing in a friendly SOI whose facility is under the influence of an Ancient Weapon Module benefit,
+    * and the player is in possession of Ancient weaponnry whose magazine is not full,
+    * restore some ammunition to its magazine.
+    * If no valid weapons are discovered or the discovered valid weapons have full magazines, stop using the terminal.
+    * @param unit the terminal
+    * @param target the player with weapons being recharged
+    */
+  def WeaponRechargeTerminal(unit: Terminal with ProximityUnit, target: Player): Unit = {
+    val result: Boolean = WeaponsBeingRechargedWithSomeAmmunition(
+      unit.Definition.asInstanceOf[WeaponRechargeTerminalDefinition].AmmoAmount,
+      target.Holsters().map { _.Equipment }.flatten.toIterable ++ target.Inventory.Items.map { _.obj }
+    )
+    if (result) {
+      StopUsingProximityUnit(unit)
+    }
+  }
+
+  /**
+    * When driving close to a rearm/repair silo whose facility is under the influence of an Ancient Weapon Module benefit,
+    * and the vehicle is an Ancient vehicle with mounted weaponry whose magazine(s) is not full,
+    * restore some ammunition to the magazine(s).
+    * If no valid weapons are discovered or the discovered valid weapons have full magazines, stop using the terminal.
+    * @param unit the terminal
+    * @param target the vehicle with weapons being recharged
+    */
+  def WeaponRechargeTerminal(unit: Terminal with ProximityUnit, target: Vehicle): Unit = {
+    val result: Boolean = WeaponsBeingRechargedWithSomeAmmunition(
+      unit.Definition.asInstanceOf[WeaponRechargeTerminalDefinition].AmmoAmount,
+      target.Weapons.values.collect { case e if e.Equipment.nonEmpty => e.Equipment.get }
+    )
+    if (result) {
+      StopUsingProximityUnit(unit)
+    }
+  }
+
+  /**
+    * Collect all weapons with magazines that need to have ammunition reloaded,
+    * and reload some ammunition into them.
+    * @param ammoAdded the amount of ammo to be added to a weapon
+    * @param equipment the equipment being considered;
+    *                  weapons whose ammo will be increased will be isolated
+    * @return `true`, if no more weapons need to be recharged;
+    *        `false`, if some weapons have not completely been recharged
+    */
+  def WeaponsBeingRechargedWithSomeAmmunition(ammoAdded: Int, equipment: Iterable[Equipment]): Boolean = {
+    equipment
+      .collect {
+        case weapon: Tool
+          if weapon.AmmoSlots.exists(slot => slot.Box.Capacity < slot.Definition.Magazine) =>
+          WeaponAmmoRecharge(ammoAdded, weapon, weapon.AmmoSlots)
+      }
+      .forall { !_ }
+  }
+
+  /**
+    * Collect all magazines from this weapon that need to have ammunition reloaded,
+    * and reload some ammunition into them.
+    * @param ammoAdded the amount of ammo to be added to a weapon
+    * @param weapon the weapon whose ammo will be increased
+    * @param slots the vehicle with weapons being recharged
+    * @return are any ammunition slots still unfilled
+    */
+  def WeaponAmmoRecharge(ammoAdded: Int, weapon: Tool, slots: List[Tool.FireModeSlot]): Boolean = {
+    val unfilledSlots = slots.filter { slot => slot.Magazine < slot.MaxMagazine() }
+    if (unfilledSlots.nonEmpty) {
+      unfilledSlots.foreach { slot =>
+        val capacity = slot.Box.Capacity + ammoAdded
+        slot.Box.Capacity = capacity
+        sendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, capacity))
+      }
+      slots.exists { slot => slot.Magazine < slot.MaxMagazine() }
+    } else {
+      false
+    }
   }
 
   /**

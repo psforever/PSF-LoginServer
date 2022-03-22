@@ -2,16 +2,12 @@
 package net.psforever.services.vehicle
 
 import akka.actor.{Actor, ActorRef, Props}
-import net.psforever.objects.{GlobalDefinitions, Tool, Vehicle}
-import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.terminals.{MedicalTerminalDefinition, ProximityUnit}
-import net.psforever.objects.vital.RepairFromTerm
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.services.vehicle.support.TurretUpgrader
-import net.psforever.types.{DriveState, PlanetSideGUID}
+import net.psforever.types.DriveState
 import net.psforever.services.{GenericEventBus, Service}
 
 class VehicleService(zone: Zone) extends Actor {
@@ -394,51 +390,6 @@ class VehicleService(zone: Zone) extends Actor {
           VehicleResponse.UpdateAmsSpawnPoint(AmsSpawnPoints(zone))
         )
       )
-
-    //from ProximityTerminalControl (?)
-    case ProximityUnit.Action(term, target: Vehicle) =>
-      val medDef     = term.Definition.asInstanceOf[MedicalTerminalDefinition]
-      val healAmount = medDef.HealAmount
-      if (!target.Destroyed && term.Validate(target)) {
-        //repair vehicle
-        if (healAmount > 0 && target.Health < target.MaxHealth) {
-          val healAmount = medDef.HealAmount
-          target.Health = target.Health + healAmount
-          target.History(RepairFromTerm(VehicleSource(target), healAmount, medDef))
-          VehicleEvents.publish(
-            VehicleServiceResponse(
-              s"/${term.Continent}/Vehicle",
-              PlanetSideGUID(0),
-              VehicleResponse.PlanetsideAttribute(target.GUID, 0, target.Health)
-            )
-          )
-        }
-        //recharge ammunition of cavern vehicles
-        if (GlobalDefinitions.isCavernVehicle(target.Definition) && term.Definition == GlobalDefinitions.recharge_terminal) {
-          //TODO check cavern module benefits on facility; unlike facility benefits, it's faked for now
-          val channel = s"/${target.Actor.toString}/Vehicle"
-          val parent = target.GUID
-          val excludeNone = Service.defaultPlayerGUID
-          target.Weapons.values
-            .map { _.Equipment }
-            .collect { case Some(weapon: Tool) =>
-              weapon.AmmoSlots
-                .foreach { slot =>
-                  val box = slot.Box
-                  if (box.Capacity < slot.Definition.Magazine) {
-                    val capacity = box.Capacity += 1
-                    VehicleEvents.publish(
-                      VehicleServiceResponse(
-                        channel,
-                        excludeNone,
-                        VehicleResponse.InventoryState2(box.GUID, parent, capacity)
-                      )
-                    )
-                  }
-              }
-            }
-        }
-      }
 
     case msg =>
       log.warn(s"Unhandled message $msg from ${sender()}")

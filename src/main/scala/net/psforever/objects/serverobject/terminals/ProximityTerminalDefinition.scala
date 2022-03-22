@@ -9,6 +9,8 @@ import net.psforever.objects.Player
   *
   * @param objectId the object's identifier number
   */
-class ProximityTerminalDefinition(objectId: Int) extends TerminalDefinition(objectId) with ProximityDefinition {
+class ProximityTerminalDefinition(objectId: Int)
+  extends TerminalDefinition(objectId)
+  with ProximityDefinition {
   def Request(player: Player, msg: Any): Terminal.Exchange = Terminal.NoDeal()
 }

@@ -9,6 +9,6 @@ package net.psforever.objects.vital.base
 object DamageType extends Enumeration(1) {
   type Type = Value
 
-  //"one" (numerical 1 in the ADB) corresponds to objects that explode
+  //"one" (numerical 1 in the ADB) corresponds to objects that explode and kill fields
   final val Direct, Splash, Lash, Radiation, Aggravated, One, Siphon, None = Value
 }

@@ -1180,7 +1180,9 @@ object GlobalDefinitions {
 
   val repair_silo = new MedicalTerminalDefinition(729)
 
-  val recharge_terminal = new MedicalTerminalDefinition(724)
+  val recharge_terminal = new WeaponRechargeTerminalDefinition(724)
+
+  val recharge_terminal_weapon_module = new WeaponRechargeTerminalDefinition(725)
 
   val mb_pad_creation = new VehicleSpawnPadDefinition(525)
 
@@ -9637,6 +9639,13 @@ object GlobalDefinitions {
     recharge_terminal.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.AncientVehicleWeaponRecharge
     recharge_terminal.Damageable = false
     recharge_terminal.Repairable = false
+
+    recharge_terminal_weapon_module.Name = "recharge_terminal_weapon_module"
+    recharge_terminal_weapon_module.Interval = 1000
+    recharge_terminal_weapon_module.UseRadius = 300
+    recharge_terminal_weapon_module.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.AncientWeaponRecharge
+    recharge_terminal_weapon_module.Damageable = false
+    recharge_terminal_weapon_module.Repairable = false
 
     mb_pad_creation.Name = "mb_pad_creation"
     mb_pad_creation.Damageable = false

@@ -42,7 +42,7 @@ object EffectTarget {
     def RepairSilo(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle =>
-          !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && v.History.exists(x => x.isInstanceOf[DamagingActivity] && x.time >= (System.currentTimeMillis() - 5000L))
+          !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && !v.History.takeWhile(System.currentTimeMillis() - _.time <= 5000L).exists(_.isInstanceOf[DamagingActivity])
         case _ =>
           false
       }
@@ -50,22 +50,7 @@ object EffectTarget {
     def PadLanding(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle =>
-          GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && v.History.exists(x => x.isInstanceOf[DamagingActivity] && x.time >= (System.currentTimeMillis() - 5000000000L))
-        case _ =>
-          false
-      }
-
-    def AncientVehicleWeaponRecharge(target: PlanetSideGameObject): Boolean =
-      target match {
-        case v: Vehicle =>
-          GlobalDefinitions.isCavernVehicle(v.Definition) && v.Health > 0 &&
-          v.Weapons.values
-            .map { _.Equipment }
-            .flatMap {
-              case Some(weapon: Tool) => weapon.AmmoSlots
-              case _                  => Nil
-            }
-            .exists { slot => slot.Box.Capacity < slot.Definition.Magazine }
+          GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && !v.History.takeWhile(System.currentTimeMillis() - _.time <= 5000L).exists(_.isInstanceOf[DamagingActivity])
         case _ =>
           false
       }
@@ -132,6 +117,35 @@ object EffectTarget {
       target match {
         case v: Vehicle =>
           GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0
+        case _ =>
+          false
+      }
+
+    def AncientWeaponRecharge(target: PlanetSideGameObject): Boolean = {
+      target match {
+        case p: Player =>
+          (p.Holsters().map { _.Equipment }.flatten.toIterable ++ p.Inventory.Items.map { _.obj })
+            .flatMap {
+              case weapon: Tool => weapon.AmmoSlots
+              case _            => Nil
+            }
+            .exists { slot => slot.Box.Capacity < slot.Definition.Magazine }
+        case _ =>
+          false
+      }
+    }
+
+    def AncientVehicleWeaponRecharge(target: PlanetSideGameObject): Boolean =
+      target match {
+        case v: Vehicle =>
+          GlobalDefinitions.isCavernVehicle(v.Definition) && v.Health > 0 &&
+          v.Weapons.values
+            .map { _.Equipment }
+            .flatMap {
+              case Some(weapon: Tool) => weapon.AmmoSlots
+              case _                  => Nil
+            }
+            .exists { slot => slot.Box.Capacity < slot.Definition.Magazine }
         case _ =>
           false
       }
