@@ -659,8 +659,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case Terminal.TerminalMessage(tplayer, msg, order) =>
       HandleTerminalMessage(tplayer, msg, order)
 
-    case ProximityUnit.Action(term, target) =>
-      SelectProximityUnitBehavior(term, target)
+    case ProximityUnit.Action(_, _) => ;
+
+    case ProximityUnit.StopAction(term, target) =>
+      LocalStopUsingProximityUnit(term, target)
 
     case VehicleServiceResponse(toChannel, guid, reply) =>
       HandleVehicleServiceResponse(toChannel, guid, reply)
@@ -7562,40 +7564,30 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * Determine which functionality to pursue by a generic proximity-functional unit given the target for its activity.
-    * @see `VehicleService:receive, ProximityUnit.Action`
+    * Stop using a proximity-base service.
+    * If the suggested terminal detects our player or our player's vehicle as a valid target for tis effect,
+    * inform it that we wish it stop affecting the discovered target(s).
     * @param terminal the proximity-based unit
-    * @param target the object being affected by the unit
     */
-  def SelectProximityUnitBehavior(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject): Unit = {
-    (terminal.Definition, target) match {
-      case (_: MedicalTerminalDefinition, p: Player)         => HealthAndArmorTerminal(terminal, p)
-      case (_: WeaponRechargeTerminalDefinition, p: Player)  => WeaponRechargeTerminal(terminal, p)
-      case (_: MedicalTerminalDefinition, v: Vehicle)        => VehicleRepairTerminal(terminal, v)
-      case (_: WeaponRechargeTerminalDefinition, v: Vehicle) => WeaponRechargeTerminal(terminal, v)
-      case _ => ;
+  def StopUsingProximityUnit(terminal: Terminal with ProximityUnit): Unit = {
+    FindProximityUnitTargetsInScope(terminal).foreach { target =>
+      LocalStopUsingProximityUnit(terminal, target)
+      terminal.Actor ! CommonMessages.Unuse(player, Some(target))
     }
   }
 
   /**
     * Stop using a proximity-base service.
+    * Callback to handle flags specific to `SessionActor`.
     * Special note is warranted when determining the identity of the proximity terminal.
     * Medical terminals of both varieties can be cancelled by movement.
     * Other sorts of proximity-based units are put on a timer.
     * @param terminal the proximity-based unit
     */
-  def StopUsingProximityUnit(terminal: Terminal with ProximityUnit): Unit = {
+  def LocalStopUsingProximityUnit(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject): Unit = {
     val term_guid = terminal.GUID
-    val targets   = FindProximityUnitTargetsInScope(terminal)
-    if (targets.nonEmpty) {
-      if (usingMedicalTerminal.contains(term_guid)) {
-        usingMedicalTerminal = None
-      }
-      targets.foreach(target => terminal.Actor ! CommonMessages.Unuse(player, Some(target)))
-    } else {
-      log.warn(
-        s"StopUsingProximityUnit: ${player.Name} could not find valid targets for proximity unit ${terminal.Definition.Name}@${term_guid.guid}"
-      )
+    if (usingMedicalTerminal.contains(term_guid)) {
+      usingMedicalTerminal = None
     }
   }
 
@@ -7622,181 +7614,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         )
         ForgetAllProximityTerminals(usingMedicalTerminal.get)
       case _ => ;
-    }
-  }
-
-  /**
-    * When standing on the platform of a(n advanced) medical terminal,
-    * restore the player's health and armor points (when they need their health and armor points restored).
-    * If the player is both fully healed and fully repaired, stop using the terminal.
-    * @param unit the medical terminal
-    * @param target the player being healed
-    */
-  def HealthAndArmorTerminal(unit: Terminal with ProximityUnit, target: Player): Unit = {
-    val medDef     = unit.Definition.asInstanceOf[MedicalTerminalDefinition]
-    val healAmount = medDef.HealAmount
-    val healthFull: Boolean = if (healAmount != 0 && target.Health < target.MaxHealth) {
-      target.History(HealFromTerm(PlayerSource(target), healAmount, 0, medDef))
-      HealAction(target, healAmount)
-    } else {
-      true
-    }
-    val repairAmount = medDef.ArmorAmount
-    val armorFull: Boolean = if (repairAmount != 0 && target.Armor < target.MaxArmor) {
-      target.History(HealFromTerm(PlayerSource(target), 0, repairAmount, medDef))
-      ArmorRepairAction(target, repairAmount)
-    } else {
-      true
-    }
-    if (healthFull && armorFull) {
-      StopUsingProximityUnit(unit)
-    }
-  }
-
-  /**
-    * Restore, at most, a specific amount of health points on a player.
-    * Send messages to connected client and to events system.
-    * @param tplayer the player
-    * @param healValue the amount to heal;
-    *                    10 by default
-    * @return whether the player can be repaired for any more health points
-    */
-  def HealAction(tplayer: Player, healValue: Int = 10): Boolean = {
-    val player_guid = tplayer.GUID
-    tplayer.Health = tplayer.Health + healValue
-    sendResponse(PlanetsideAttributeMessage(player_guid, 0, tplayer.Health))
-    continent.AvatarEvents ! AvatarServiceMessage(
-      continent.id,
-      AvatarAction.PlanetsideAttribute(player_guid, 0, tplayer.Health)
-    )
-    tplayer.Health == tplayer.MaxHealth
-  }
-
-  /**
-    * Restore, at most, a specific amount of personal armor points on a player.
-    * Send messages to connected client and to events system.
-    * @param tplayer the player
-    * @param repairValue the amount to repair;
-    *                    10 by default
-    * @return whether the player can be repaired for any more armor points
-    */
-  def ArmorRepairAction(tplayer: Player, repairValue: Int = 10): Boolean = {
-    val player_guid = tplayer.GUID
-    tplayer.Armor = tplayer.Armor + repairValue
-    sendResponse(PlanetsideAttributeMessage(player_guid, 4, tplayer.Armor))
-    continent.AvatarEvents ! AvatarServiceMessage(
-      continent.id,
-      AvatarAction.PlanetsideAttribute(player_guid, 4, tplayer.Armor)
-    )
-    tplayer.Armor == tplayer.MaxArmor
-  }
-
-  /**
-    * When driving a vehicle close to a rearm/repair silo,
-    * restore the vehicle's health points.
-    * If the vehicle is fully repaired, stop using the terminal.
-    * @param unit the terminal
-    * @param target the vehicle being repaired
-    */
-  def VehicleRepairTerminal(unit: Terminal with ProximityUnit, target: Vehicle): Unit = {
-    val medDef     = unit.Definition.asInstanceOf[MedicalTerminalDefinition]
-    val healAmount = medDef.HealAmount
-    val maxHealth = target.MaxHealth
-    val noMoreHeal = if (!target.Destroyed && unit.Validate(target)) {
-      //repair vehicle
-      if (healAmount > 0 && target.Health < maxHealth) {
-        target.Health = target.Health + healAmount
-        target.History(RepairFromTerm(VehicleSource(target), healAmount, medDef))
-        continent.VehicleEvents ! VehicleServiceMessage(
-          continent.id,
-          VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), target.GUID, 0, target.Health)
-        )
-        target.Health == maxHealth
-      } else {
-        true
-      }
-    } else {
-      true
-    }
-    if (noMoreHeal) {
-      StopUsingProximityUnit(unit)
-    }
-  }
-
-  /**
-    * When standing in a friendly SOI whose facility is under the influence of an Ancient Weapon Module benefit,
-    * and the player is in possession of Ancient weaponnry whose magazine is not full,
-    * restore some ammunition to its magazine.
-    * If no valid weapons are discovered or the discovered valid weapons have full magazines, stop using the terminal.
-    * @param unit the terminal
-    * @param target the player with weapons being recharged
-    */
-  def WeaponRechargeTerminal(unit: Terminal with ProximityUnit, target: Player): Unit = {
-    val result: Boolean = WeaponsBeingRechargedWithSomeAmmunition(
-      unit.Definition.asInstanceOf[WeaponRechargeTerminalDefinition].AmmoAmount,
-      target.Holsters().map { _.Equipment }.flatten.toIterable ++ target.Inventory.Items.map { _.obj }
-    )
-    if (result) {
-      StopUsingProximityUnit(unit)
-    }
-  }
-
-  /**
-    * When driving close to a rearm/repair silo whose facility is under the influence of an Ancient Weapon Module benefit,
-    * and the vehicle is an Ancient vehicle with mounted weaponry whose magazine(s) is not full,
-    * restore some ammunition to the magazine(s).
-    * If no valid weapons are discovered or the discovered valid weapons have full magazines, stop using the terminal.
-    * @param unit the terminal
-    * @param target the vehicle with weapons being recharged
-    */
-  def WeaponRechargeTerminal(unit: Terminal with ProximityUnit, target: Vehicle): Unit = {
-    val result: Boolean = WeaponsBeingRechargedWithSomeAmmunition(
-      unit.Definition.asInstanceOf[WeaponRechargeTerminalDefinition].AmmoAmount,
-      target.Weapons.values.collect { case e if e.Equipment.nonEmpty => e.Equipment.get }
-    )
-    if (result) {
-      StopUsingProximityUnit(unit)
-    }
-  }
-
-  /**
-    * Collect all weapons with magazines that need to have ammunition reloaded,
-    * and reload some ammunition into them.
-    * @param ammoAdded the amount of ammo to be added to a weapon
-    * @param equipment the equipment being considered;
-    *                  weapons whose ammo will be increased will be isolated
-    * @return `true`, if no more weapons need to be recharged;
-    *        `false`, if some weapons have not completely been recharged
-    */
-  def WeaponsBeingRechargedWithSomeAmmunition(ammoAdded: Int, equipment: Iterable[Equipment]): Boolean = {
-    equipment
-      .collect {
-        case weapon: Tool
-          if weapon.AmmoSlots.exists(slot => slot.Box.Capacity < slot.Definition.Magazine) =>
-          WeaponAmmoRecharge(ammoAdded, weapon, weapon.AmmoSlots)
-      }
-      .forall { !_ }
-  }
-
-  /**
-    * Collect all magazines from this weapon that need to have ammunition reloaded,
-    * and reload some ammunition into them.
-    * @param ammoAdded the amount of ammo to be added to a weapon
-    * @param weapon the weapon whose ammo will be increased
-    * @param slots the vehicle with weapons being recharged
-    * @return are any ammunition slots still unfilled
-    */
-  def WeaponAmmoRecharge(ammoAdded: Int, weapon: Tool, slots: List[Tool.FireModeSlot]): Boolean = {
-    val unfilledSlots = slots.filter { slot => slot.Magazine < slot.MaxMagazine() }
-    if (unfilledSlots.nonEmpty) {
-      unfilledSlots.foreach { slot =>
-        val capacity = slot.Box.Capacity + ammoAdded
-        slot.Box.Capacity = capacity
-        sendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, capacity))
-      }
-      slots.exists { slot => slot.Magazine < slot.MaxMagazine() }
-    } else {
-      false
     }
   }
 
@@ -9531,13 +9348,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       }
       val smallRotOffset: Float = z + 90f
       val largeRotOffset: Float = z + math.random().toFloat * 45f
+      val verticalCorrection = Vector3.z(dist - dist * math.sin(math.toRadians(90 - smallAngle + largeAngle)).toFloat)
       //downwards projectiles
       var i: Int = 0
       listOfLittleBuddies.take(firstHalf).foreach { proxy =>
         val facing = (smallRotOffset + smallStep * i.toFloat) % 360
         val dir = north.Rx(smallAngle).Rz(facing)
-        proxy.Position = detonationPosition + dir.xy +
-                         Vector3.z(dist - dist * math.sin(math.toRadians(90 - smallAngle + largeAngle)).toFloat)
+        proxy.Position = detonationPosition + dir.xy + verticalCorrection
         proxy.Velocity = dir * speed
         proxy.Orientation = Vector3(0, (360f + smallAngle) % 360, facing)
         HandleDamageProxyLittleBuddyExplosion(proxy, dir, dist)

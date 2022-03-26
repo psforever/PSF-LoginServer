@@ -81,7 +81,7 @@ trait ProximityUnit {
     * @return `true`, if the entity passes the validation tests;
     *        `false`, otherwise
     */
-  def Validate(radius: Float, validations: Seq[(PlanetSideGameObject) => Boolean])(
+  def Validate(radius: Float, validations: Seq[PlanetSideGameObject => Boolean])(
       target: PlanetSideGameObject
   ): Boolean = {
     //org.log4s.getLogger("ProximityUnit").info(s"vehicle: ${Owner.Position}, terminal: $Position, target: ${target.Position}, toOwner: ${Vector3.Distance(Position, Owner.Position)}, toTarget: ${Vector3.Distance(Position, target.Position)}")
@@ -93,4 +93,6 @@ trait ProximityUnit {
 
 object ProximityUnit {
   final case class Action(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject)
+
+  final case class StopAction(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject)
 }

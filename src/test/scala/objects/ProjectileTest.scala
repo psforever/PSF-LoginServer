@@ -84,7 +84,7 @@ class ProjectileTest extends Specification {
     }
 
     "define (failure)" in {
-      Projectiles(31) mustEqual Projectiles.Types.bullet_9mm_projectile
+      Projectiles.Types(31) mustEqual Projectiles.Types.bullet_9mm_projectile
       try {
         ProjectileDefinition(Projectiles.Types.bullet_9mm_projectile) //passes
       } catch {
