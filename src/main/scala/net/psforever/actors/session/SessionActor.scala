@@ -659,8 +659,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case Terminal.TerminalMessage(tplayer, msg, order) =>
       HandleTerminalMessage(tplayer, msg, order)
 
-    case ProximityUnit.Action(term, target) =>
-      SelectProximityUnitBehavior(term, target)
+    case ProximityUnit.Action(_, _) => ;
+
+    case ProximityUnit.StopAction(term, target) =>
+      LocalStopUsingProximityUnit(term, target)
 
     case VehicleServiceResponse(toChannel, guid, reply) =>
       HandleVehicleServiceResponse(toChannel, guid, reply)
@@ -5200,7 +5202,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ GenericObjectActionAtPositionMessage(object_guid, _, _) =>
-        //log.info(s"$msg")
         ValidObject(object_guid, decorator = "GenericObjectActionAtPosition") match {
           case Some(tool: Tool) if GlobalDefinitions.isBattleFrameNTUSiphon(tool.Definition) =>
             FindContainedWeapon match {
@@ -5208,7 +5209,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 vehicle.Actor ! SpecialEmp.Burst()
               case _ => ;
             }
-          case _ => ;
+          case _ =>
+            log.info(s"$msg")
         }
 
       case msg @ GenericObjectStateMsg(object_guid, unk1) =>
@@ -5381,6 +5383,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         _, //projectile_type,
         thrown_projectile_vel
       ) =>
+        log.info(s"$msg")
         HandleWeaponFire(weapon_guid, projectile_guid, shot_origin, thrown_projectile_vel.flatten)
 
       case WeaponLazeTargetPositionMessage(_, _, _) => ;
@@ -7535,7 +7538,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * Queue a proximity-base service.
+    * Queue a proximity-based service.
     * @param terminal the proximity-based unit
     * @param target the entity that is being considered for terminal operation
     */
@@ -7547,7 +7550,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         case _: Player =>
           terminal.Actor ! CommonMessages.Use(player, Some(target))
         case _: Vehicle =>
-          terminal.Actor ! CommonMessages.Use(player, Some((target, continent.VehicleEvents)))
+          terminal.Actor ! CommonMessages.Use(player, Some(target))
         case _ =>
           log.error(
             s"StartUsingProximityUnit: ${player.Name}, this ${terminal.Definition.Name} can not deal with target $target"
@@ -7562,38 +7565,30 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * Determine which functionality to pursue by a generic proximity-functional unit given the target for its activity.
-    * @see `VehicleService:receive, ProximityUnit.Action`
+    * Stop using a proximity-base service.
+    * If the suggested terminal detects our player or our player's vehicle as a valid target for its effect,
+    * inform it that we wish it stop affecting the discovered target(s).
     * @param terminal the proximity-based unit
-    * @param target the object being affected by the unit
     */
-  def SelectProximityUnitBehavior(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject): Unit = {
-    target match {
-      case o: Player =>
-        HealthAndArmorTerminal(terminal, o)
-      case _ => ;
+  def StopUsingProximityUnit(terminal: Terminal with ProximityUnit): Unit = {
+    FindProximityUnitTargetsInScope(terminal).foreach { target =>
+      LocalStopUsingProximityUnit(terminal, target)
+      terminal.Actor ! CommonMessages.Unuse(player, Some(target))
     }
   }
 
   /**
     * Stop using a proximity-base service.
+    * Callback to handle flags specific to `SessionActor`.
     * Special note is warranted when determining the identity of the proximity terminal.
     * Medical terminals of both varieties can be cancelled by movement.
     * Other sorts of proximity-based units are put on a timer.
     * @param terminal the proximity-based unit
     */
-  def StopUsingProximityUnit(terminal: Terminal with ProximityUnit): Unit = {
+  def LocalStopUsingProximityUnit(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject): Unit = {
     val term_guid = terminal.GUID
-    val targets   = FindProximityUnitTargetsInScope(terminal)
-    if (targets.nonEmpty) {
-      if (usingMedicalTerminal.contains(term_guid)) {
-        usingMedicalTerminal = None
-      }
-      targets.foreach(target => terminal.Actor ! CommonMessages.Unuse(player, Some(target)))
-    } else {
-      log.warn(
-        s"StopUsingProximityUnit: ${player.Name} could not find valid targets for proximity unit ${terminal.Definition.Name}@${term_guid.guid}"
-      )
+    if (usingMedicalTerminal.contains(term_guid)) {
+      usingMedicalTerminal = None
     }
   }
 
@@ -7621,72 +7616,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         ForgetAllProximityTerminals(usingMedicalTerminal.get)
       case _ => ;
     }
-  }
-
-  /**
-    * When standing on the platform of a(n advanced) medical terminal,
-    * resotre the player's health and armor points (when they need their health and armor points restored).
-    * If the player is both fully healed and fully repaired, stop using the terminal.
-    * @param unit the medical terminal
-    * @param target the player being healed
-    */
-  def HealthAndArmorTerminal(unit: Terminal with ProximityUnit, target: Player): Unit = {
-    val medDef     = unit.Definition.asInstanceOf[MedicalTerminalDefinition]
-    val healAmount = medDef.HealAmount
-    val healthFull: Boolean = if (healAmount != 0 && target.Health < target.MaxHealth) {
-      target.History(HealFromTerm(PlayerSource(target), healAmount, 0, medDef))
-      HealAction(target, healAmount)
-    } else {
-      true
-    }
-    val repairAmount = medDef.ArmorAmount
-    val armorFull: Boolean = if (repairAmount != 0 && target.Armor < target.MaxArmor) {
-      target.History(HealFromTerm(PlayerSource(target), 0, repairAmount, medDef))
-      ArmorRepairAction(target, repairAmount)
-    } else {
-      true
-    }
-    if (healthFull && armorFull) {
-      StopUsingProximityUnit(unit)
-    }
-  }
-
-  /**
-    * Restore, at most, a specific amount of health points on a player.
-    * Send messages to connected client and to events system.
-    * @param tplayer the player
-    * @param healValue the amount to heal;
-    *                    10 by default
-    * @return whether the player can be repaired for any more health points
-    */
-  def HealAction(tplayer: Player, healValue: Int = 10): Boolean = {
-    val player_guid = tplayer.GUID
-    tplayer.Health = tplayer.Health + healValue
-    sendResponse(PlanetsideAttributeMessage(player_guid, 0, tplayer.Health))
-    continent.AvatarEvents ! AvatarServiceMessage(
-      continent.id,
-      AvatarAction.PlanetsideAttribute(player_guid, 0, tplayer.Health)
-    )
-    tplayer.Health == tplayer.MaxHealth
-  }
-
-  /**
-    * Restore, at most, a specific amount of personal armor points on a player.
-    * Send messages to connected client and to events system.
-    * @param tplayer the player
-    * @param repairValue the amount to repair;
-    *                    10 by default
-    * @return whether the player can be repaired for any more armor points
-    */
-  def ArmorRepairAction(tplayer: Player, repairValue: Int = 10): Boolean = {
-    val player_guid = tplayer.GUID
-    tplayer.Armor = tplayer.Armor + repairValue
-    sendResponse(PlanetsideAttributeMessage(player_guid, 4, tplayer.Armor))
-    continent.AvatarEvents ! AvatarServiceMessage(
-      continent.id,
-      AvatarAction.PlanetsideAttribute(player_guid, 4, tplayer.Armor)
-    )
-    tplayer.Armor == tplayer.MaxArmor
   }
 
   /**
@@ -9353,40 +9282,110 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                          hitPos: Vector3
                        ): List[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile, Vector3, Vector3)] = {
     GlobalDefinitions.getDamageProxy(projectile, hitPos) match {
-      case Some(proxy) if proxy.profile.ExistsOnRemoteClients =>
-        proxy.Position = hitPos
-        continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
+      case Nil =>
         Nil
-
-      case Some(proxy)
-        if proxy.tool_def == GlobalDefinitions.maelstrom =>
-        //server-side maelstrom grenade target selection
-        val radius = proxy.profile.LashRadius * proxy.profile.LashRadius
-        val targets = continent.blockMap
-          .sector(hitPos, proxy.profile.LashRadius)
-          .livePlayerList
-          .filter { target =>
-            Vector3.DistanceSquared(target.Position, hitPos) <= radius
-          }
-        //chainlash is separated from the actual damage application for convenience
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.SendResponse(
-            PlanetSideGUID(0),
-            ChainLashMessage(
-              hitPos,
-              projectile.profile.ObjectId,
-              targets.map { _.GUID }
+      case list =>
+        HandleDamageProxySetupLittleBuddy(list, hitPos)
+        list.flatMap { proxy =>
+          if (proxy.profile.ExistsOnRemoteClients) {
+            proxy.Position = hitPos
+            continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
+            Nil
+          } else if (proxy.tool_def == GlobalDefinitions.maelstrom) {
+            //server-side maelstrom grenade target selection
+            val radius = proxy.profile.LashRadius * proxy.profile.LashRadius
+            val targets = continent.blockMap
+              .sector(hitPos, proxy.profile.LashRadius)
+              .livePlayerList
+              .filter { target =>
+                Vector3.DistanceSquared(target.Position, hitPos) <= radius
+              }
+            //chainlash is separated from the actual damage application for convenience
+            continent.AvatarEvents ! AvatarServiceMessage(
+              continent.id,
+              AvatarAction.SendResponse(
+                PlanetSideGUID(0),
+                ChainLashMessage(
+                  hitPos,
+                  projectile.profile.ObjectId,
+                  targets.map { _.GUID }
+                )
+              )
             )
-          )
-        )
-        targets.map { target =>
-          CheckForHitPositionDiscrepancy(pguid, hitPos, target)
-          (target, proxy, hitPos, target.Position)
+            targets.map { target =>
+              CheckForHitPositionDiscrepancy(pguid, hitPos, target)
+              (target, proxy, hitPos, target.Position)
+            }
+          } else {
+            Nil
+          }
         }
+    }
+  }
 
-      case _ =>
-        Nil
+  def HandleDamageProxySetupLittleBuddy(listOfProjectiles: List[Projectile], detonationPosition: Vector3): Boolean = {
+    val listOfLittleBuddies: List[Projectile] = listOfProjectiles.filter { _.tool_def == GlobalDefinitions.oicw }
+    val size: Int = listOfLittleBuddies.size
+    if (size > 0) {
+      val desiredDownwardsProjectiles: Int = 2
+      val firstHalf: Int = math.min(size, desiredDownwardsProjectiles) //number that fly straight down
+      val secondHalf: Int = math.max(size - firstHalf, 0) //number that are flared out
+      val z: Float = player.Orientation.z //player's standing direction
+      val north: Vector3 = Vector3(0,1,0) //map North
+      val speed: Float = 144f //speed (packet discovered)
+      val dist: Float = 25 //distance (client defined)
+      val downwardsAngle: Float = -85f
+      val flaredAngle: Float = -70f
+      //angle of separation for downwards, degrees from vertical for flared out
+      val (smallStep, smallAngle): (Float, Float) = if (firstHalf > 1) {
+        (360f / firstHalf, downwardsAngle)
+      } else {
+        (0f, 0f)
+      }
+      val (largeStep, largeAngle): (Float, Float) = if (secondHalf > 1) {
+        (360f / secondHalf, flaredAngle)
+      } else {
+        (0f, 0f)
+      }
+      val smallRotOffset: Float = z + 90f
+      val largeRotOffset: Float = z + math.random().toFloat * 45f
+      val verticalCorrection = Vector3.z(dist - dist * math.sin(math.toRadians(90 - smallAngle + largeAngle)).toFloat)
+      //downwards projectiles
+      var i: Int = 0
+      listOfLittleBuddies.take(firstHalf).foreach { proxy =>
+        val facing = (smallRotOffset + smallStep * i.toFloat) % 360
+        val dir = north.Rx(smallAngle).Rz(facing)
+        proxy.Position = detonationPosition + dir.xy + verticalCorrection
+        proxy.Velocity = dir * speed
+        proxy.Orientation = Vector3(0, (360f + smallAngle) % 360, facing)
+        HandleDamageProxyLittleBuddyExplosion(proxy, dir, dist)
+        i += 1
+      }
+      //flared out projectiles
+      i = 0
+      listOfLittleBuddies.drop(firstHalf).foreach { proxy =>
+        val facing = (largeRotOffset + largeStep * i.toFloat) % 360
+        val dir = north.Rx(largeAngle).Rz(facing)
+        proxy.Position = detonationPosition + dir
+        proxy.Velocity = dir * speed
+        proxy.Orientation = Vector3(0, (360f + largeAngle) % 360, facing)
+        HandleDamageProxyLittleBuddyExplosion(proxy, dir, dist)
+        i += 1
+      }
+      true
+    } else {
+      false
+    }
+  }
+
+  def HandleDamageProxyLittleBuddyExplosion(proxy: Projectile, orientation: Vector3, distance: Float): Unit = {
+    //explosion
+    val obj = DummyExplodingEntity(proxy)
+    obj.Position = obj.Position + orientation * distance
+    context.system.scheduler.scheduleOnce(500.milliseconds) {
+      val c = continent
+      val o = obj
+      Zone.serverSideDamage(c, o, Zone.explosionDamage(None, o.Position))
     }
   }
 

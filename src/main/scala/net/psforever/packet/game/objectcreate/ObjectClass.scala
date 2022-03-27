@@ -669,7 +669,8 @@ object ObjectClass {
   def selectDataDroppedDetailedCodec(objClass: Int): Codec[ConstructorData] =
     (objClass: @switch) match {
       //special cases
-      case ObjectClass.avatar => ConstructorData(DetailedPlayerData.codec(true), "avatar")
+      case ObjectClass.avatar            => ConstructorData(DetailedPlayerData.codec(position_defined = true), "avatar")
+      case ObjectClass.oicw_little_buddy => ConstructorData(LittleBuddyProjectileData.codec, "projectile")
       //defer to other codec selection
       case _ => selectDataDetailedCodec(objClass)
     }
@@ -1240,7 +1241,7 @@ object ObjectClass {
       case ObjectClass.meteor_projectile_small                   => ConstructorData(RemoteProjectileData.codec, "meteor")
       case ObjectClass.peregrine_particle_cannon_radiation_cloud => ConstructorData(RadiationCloudData.codec, "radiation cloud")
       case ObjectClass.phoenix_missile_guided_projectile         => ConstructorData(RemoteProjectileData.codec, "projectile")
-      case ObjectClass.oicw_little_buddy                         => ConstructorData(RemoteProjectileData.codec, "projectile")
+      case ObjectClass.oicw_little_buddy                         => ConstructorData(LittleBuddyProjectileData.codec, "projectile")
       case ObjectClass.oicw_projectile                           => ConstructorData(RemoteProjectileData.codec, "projectile")
       case ObjectClass.radiator_cloud                            => ConstructorData(RadiationCloudData.codec, "radiation cloud")
       case ObjectClass.sparrow_projectile                        => ConstructorData(RemoteProjectileData.codec, "projectile")

@@ -62,7 +62,7 @@ class InteractWithRadiationClouds(
                   RadiationReason(
                     ProjectileQuality.modifiers(projectile, DamageResolution.Radiation, t, t.Position, user),
                     t.DamageModel,
-                    1f
+                    0f
                   ),
                   position
                 ).calculate()

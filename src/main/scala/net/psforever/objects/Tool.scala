@@ -78,7 +78,7 @@ class Tool(private val toolDef: ToolDefinition)
     })
   }
 
-  def ProjectileType: Projectiles.Value = Projectile.ProjectileType
+  def ProjectileType: Projectiles.Types.Value = Projectile.ProjectileType
 
   def Magazine: Int = AmmoSlot.Magazine
 

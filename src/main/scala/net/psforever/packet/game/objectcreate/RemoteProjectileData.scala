@@ -9,14 +9,15 @@ import shapeless.{::, HNil}
 object RemoteProjectiles {
   abstract class Data(val a: Int, val b: Int)
 
-  final case object Meteor              extends Data(0, 32)
-  final case object Wasp                extends Data(0, 208)
-  final case object Sparrow             extends Data(13107, 187)
-  final case object OICW                extends Data(13107, 195)
-  final case object Striker             extends Data(26214, 134)
-  final case object HunterSeeker        extends Data(39577, 201)
-  final case object Starfire            extends Data(39577, 249)
-  class OICWLittleBuddy(x: Int, y: Int) extends Data(x, y)
+  final case object Meteor                          extends Data(0, 32)
+  final case object Wasp                            extends Data(0, 208)
+  final case object Sparrow                         extends Data(13107, 187)
+  final case object OICW                            extends Data(13107, 195)
+  final case object Striker                         extends Data(26214, 134)
+  final case object HunterSeeker                    extends Data(39577, 201)
+  final case object Starfire                        extends Data(39577, 249)
+
+  //the oicw_little_buddy is handled by its own transcoder
 }
 
 object FlightPhysics extends Enumeration {
@@ -67,7 +68,7 @@ object RemoteProjectileData extends Marshallable[RemoteProjectileData] {
       ("u1" | uint16) ::
       ("u2" | uint8) ::
       ("unk3" | FlightPhysics.codec) ::
-      ("unk4" | uint(3)) ::
+      ("unk4" | uint(bits = 3)) ::
       ("unk5" | uint2)
   ).exmap[RemoteProjectileData](
     {

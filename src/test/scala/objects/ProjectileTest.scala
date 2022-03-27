@@ -26,7 +26,7 @@ class ProjectileTest extends Specification {
     "define (default)" in {
       val obj = new ProjectileDefinition(31) //9mmbullet_projectile
 
-      obj.ProjectileType mustEqual Projectiles.bullet_9mm_projectile
+      obj.ProjectileType mustEqual Projectiles.Types.bullet_9mm_projectile
       obj.ObjectId mustEqual 31
       obj.Damage0 mustEqual 0
       obj.Damage1 mustEqual 0
@@ -84,9 +84,9 @@ class ProjectileTest extends Specification {
     }
 
     "define (failure)" in {
-      Projectiles(31) mustEqual Projectiles.bullet_9mm_projectile
+      Projectiles.Types(31) mustEqual Projectiles.Types.bullet_9mm_projectile
       try {
-        ProjectileDefinition(Projectiles.bullet_9mm_projectile) //passes
+        ProjectileDefinition(Projectiles.Types.bullet_9mm_projectile) //passes
       } catch {
         case _: NoSuchElementException =>
           ko

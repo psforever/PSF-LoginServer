@@ -330,7 +330,7 @@ case object FlailDistanceDamageBoost extends ProjectileDamageModifiers.Mod {
 }
 
 /**
-  * If the damge is caused by a projectile that emits a field that permeates vehicle armor,
+  * If the damge is caused by a projectile that emits a field that permeates armor,
   * determine by how much the traversed armor's shielding reduces the damage.
   * Infantry take damage, reduced only if one is equipped with a mechanized assault exo-suit.
   */

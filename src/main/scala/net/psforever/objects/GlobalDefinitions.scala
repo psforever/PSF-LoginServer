@@ -28,7 +28,7 @@ import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, Turr
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, UtilityType, VehicleSubsystemEntry}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
-import net.psforever.objects.vital.etc.{ArmorSiphonMaxDistanceCutoff, ExplodingRadialDegrade, InfantryAggravatedRadiation, InfantryAggravatedRadiationBurn}
+import net.psforever.objects.vital.etc.{ShieldAgainstRadiation => _, _}
 import net.psforever.objects.vital.projectile._
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital._
@@ -147,299 +147,299 @@ object GlobalDefinitions {
    */
   val no_projectile = new ProjectileDefinition(0) //also called none in ADB
 
-  val bullet_105mm_projectile = ProjectileDefinition(Projectiles.bullet_105mm_projectile)
+  val bullet_105mm_projectile = ProjectileDefinition(Projectiles.Types.bullet_105mm_projectile)
 
-  val bullet_12mm_projectile = ProjectileDefinition(Projectiles.bullet_12mm_projectile)
+  val bullet_12mm_projectile = ProjectileDefinition(Projectiles.Types.bullet_12mm_projectile)
 
-  val bullet_12mm_projectileb = ProjectileDefinition(Projectiles.bullet_12mm_projectileb)
+  val bullet_12mm_projectileb = ProjectileDefinition(Projectiles.Types.bullet_12mm_projectileb)
 
-  val bullet_150mm_projectile = ProjectileDefinition(Projectiles.bullet_150mm_projectile)
+  val bullet_150mm_projectile = ProjectileDefinition(Projectiles.Types.bullet_150mm_projectile)
 
-  val bullet_15mm_apc_projectile = ProjectileDefinition(Projectiles.bullet_15mm_apc_projectile)
+  val bullet_15mm_apc_projectile = ProjectileDefinition(Projectiles.Types.bullet_15mm_apc_projectile)
 
-  val bullet_15mm_projectile = ProjectileDefinition(Projectiles.bullet_15mm_projectile)
+  val bullet_15mm_projectile = ProjectileDefinition(Projectiles.Types.bullet_15mm_projectile)
 
-  val bullet_20mm_apc_projectile = ProjectileDefinition(Projectiles.bullet_20mm_apc_projectile)
+  val bullet_20mm_apc_projectile = ProjectileDefinition(Projectiles.Types.bullet_20mm_apc_projectile)
 
-  val bullet_20mm_projectile = ProjectileDefinition(Projectiles.bullet_20mm_projectile)
+  val bullet_20mm_projectile = ProjectileDefinition(Projectiles.Types.bullet_20mm_projectile)
 
-  val bullet_25mm_projectile = ProjectileDefinition(Projectiles.bullet_25mm_projectile)
+  val bullet_25mm_projectile = ProjectileDefinition(Projectiles.Types.bullet_25mm_projectile)
 
-  val bullet_35mm_projectile = ProjectileDefinition(Projectiles.bullet_35mm_projectile)
+  val bullet_35mm_projectile = ProjectileDefinition(Projectiles.Types.bullet_35mm_projectile)
 
-  val bullet_75mm_apc_projectile = ProjectileDefinition(Projectiles.bullet_75mm_apc_projectile)
+  val bullet_75mm_apc_projectile = ProjectileDefinition(Projectiles.Types.bullet_75mm_apc_projectile)
 
-  val bullet_75mm_projectile = ProjectileDefinition(Projectiles.bullet_75mm_projectile)
+  val bullet_75mm_projectile = ProjectileDefinition(Projectiles.Types.bullet_75mm_projectile)
 
-  val bullet_9mm_AP_projectile = ProjectileDefinition(Projectiles.bullet_9mm_AP_projectile)
+  val bullet_9mm_AP_projectile = ProjectileDefinition(Projectiles.Types.bullet_9mm_AP_projectile)
 
-  val bullet_9mm_projectile = ProjectileDefinition(Projectiles.bullet_9mm_projectile)
+  val bullet_9mm_projectile = ProjectileDefinition(Projectiles.Types.bullet_9mm_projectile)
 
-  val anniversary_projectilea = ProjectileDefinition(Projectiles.anniversary_projectilea)
+  val anniversary_projectilea = ProjectileDefinition(Projectiles.Types.anniversary_projectilea)
 
-  val anniversary_projectileb = ProjectileDefinition(Projectiles.anniversary_projectileb)
+  val anniversary_projectileb = ProjectileDefinition(Projectiles.Types.anniversary_projectileb)
 
-  val aphelion_immolation_cannon_projectile = ProjectileDefinition(Projectiles.aphelion_immolation_cannon_projectile)
+  val aphelion_immolation_cannon_projectile = ProjectileDefinition(Projectiles.Types.aphelion_immolation_cannon_projectile)
 
-  val aphelion_laser_projectile = ProjectileDefinition(Projectiles.aphelion_laser_projectile)
+  val aphelion_laser_projectile = ProjectileDefinition(Projectiles.Types.aphelion_laser_projectile)
 
-  val aphelion_plasma_cloud = ProjectileDefinition(Projectiles.aphelion_plasma_cloud)
+  val aphelion_plasma_cloud = ProjectileDefinition(Projectiles.Types.aphelion_plasma_cloud)
 
-  val aphelion_plasma_rocket_projectile = ProjectileDefinition(Projectiles.aphelion_plasma_rocket_projectile)
+  val aphelion_plasma_rocket_projectile = ProjectileDefinition(Projectiles.Types.aphelion_plasma_rocket_projectile)
 
-  val aphelion_ppa_projectile = ProjectileDefinition(Projectiles.aphelion_ppa_projectile)
+  val aphelion_ppa_projectile = ProjectileDefinition(Projectiles.Types.aphelion_ppa_projectile)
 
-  val aphelion_starfire_projectile = ProjectileDefinition(Projectiles.aphelion_starfire_projectile)
+  val aphelion_starfire_projectile = ProjectileDefinition(Projectiles.Types.aphelion_starfire_projectile)
 
-  val bolt_projectile = ProjectileDefinition(Projectiles.bolt_projectile)
+  val bolt_projectile = ProjectileDefinition(Projectiles.Types.bolt_projectile)
 
-  val burster_projectile = ProjectileDefinition(Projectiles.burster_projectile)
+  val burster_projectile = ProjectileDefinition(Projectiles.Types.burster_projectile)
 
-  val chainblade_projectile = ProjectileDefinition(Projectiles.chainblade_projectile)
+  val chainblade_projectile = ProjectileDefinition(Projectiles.Types.chainblade_projectile)
 
-  val colossus_100mm_projectile = ProjectileDefinition(Projectiles.colossus_100mm_projectile)
+  val colossus_100mm_projectile = ProjectileDefinition(Projectiles.Types.colossus_100mm_projectile)
 
-  val colossus_burster_projectile = ProjectileDefinition(Projectiles.colossus_burster_projectile)
+  val colossus_burster_projectile = ProjectileDefinition(Projectiles.Types.colossus_burster_projectile)
 
-  val colossus_chaingun_projectile = ProjectileDefinition(Projectiles.colossus_chaingun_projectile)
+  val colossus_chaingun_projectile = ProjectileDefinition(Projectiles.Types.colossus_chaingun_projectile)
 
-  val colossus_cluster_bomb_projectile = ProjectileDefinition(Projectiles.colossus_cluster_bomb_projectile)
+  val colossus_cluster_bomb_projectile = ProjectileDefinition(Projectiles.Types.colossus_cluster_bomb_projectile)
 
-  val colossus_tank_cannon_projectile = ProjectileDefinition(Projectiles.colossus_tank_cannon_projectile)
+  val colossus_tank_cannon_projectile = ProjectileDefinition(Projectiles.Types.colossus_tank_cannon_projectile)
 
-  val comet_projectile = ProjectileDefinition(Projectiles.comet_projectile)
+  val comet_projectile = ProjectileDefinition(Projectiles.Types.comet_projectile)
 
-  val dualcycler_projectile = ProjectileDefinition(Projectiles.dualcycler_projectile)
+  val dualcycler_projectile = ProjectileDefinition(Projectiles.Types.dualcycler_projectile)
 
-  val dynomite_projectile = ProjectileDefinition(Projectiles.dynomite_projectile)
+  val dynomite_projectile = ProjectileDefinition(Projectiles.Types.dynomite_projectile)
 
-  val energy_cell_projectile = ProjectileDefinition(Projectiles.energy_cell_projectile)
+  val energy_cell_projectile = ProjectileDefinition(Projectiles.Types.energy_cell_projectile)
 
-  val energy_gun_nc_projectile = ProjectileDefinition(Projectiles.energy_gun_nc_projectile)
+  val energy_gun_nc_projectile = ProjectileDefinition(Projectiles.Types.energy_gun_nc_projectile)
 
-  val energy_gun_tr_projectile = ProjectileDefinition(Projectiles.energy_gun_tr_projectile)
+  val energy_gun_tr_projectile = ProjectileDefinition(Projectiles.Types.energy_gun_tr_projectile)
 
-  val energy_gun_vs_projectile = ProjectileDefinition(Projectiles.energy_gun_vs_projectile)
+  val energy_gun_vs_projectile = ProjectileDefinition(Projectiles.Types.energy_gun_vs_projectile)
 
-  val enhanced_energy_cell_projectile = ProjectileDefinition(Projectiles.enhanced_energy_cell_projectile)
+  val enhanced_energy_cell_projectile = ProjectileDefinition(Projectiles.Types.enhanced_energy_cell_projectile)
 
-  val enhanced_quasar_projectile = ProjectileDefinition(Projectiles.enhanced_quasar_projectile)
+  val enhanced_quasar_projectile = ProjectileDefinition(Projectiles.Types.enhanced_quasar_projectile)
 
-  val falcon_projectile = ProjectileDefinition(Projectiles.falcon_projectile)
+  val falcon_projectile = ProjectileDefinition(Projectiles.Types.falcon_projectile)
 
-  val firebird_missile_projectile = ProjectileDefinition(Projectiles.firebird_missile_projectile)
+  val firebird_missile_projectile = ProjectileDefinition(Projectiles.Types.firebird_missile_projectile)
 
-  val flail_projectile = ProjectileDefinition(Projectiles.flail_projectile)
+  val flail_projectile = ProjectileDefinition(Projectiles.Types.flail_projectile)
 
-  val flamethrower_fire_cloud = ProjectileDefinition(Projectiles.flamethrower_fire_cloud)
+  val flamethrower_fire_cloud = ProjectileDefinition(Projectiles.Types.flamethrower_fire_cloud)
 
-  val flamethrower_fireball = ProjectileDefinition(Projectiles.flamethrower_fireball)
+  val flamethrower_fireball = ProjectileDefinition(Projectiles.Types.flamethrower_fireball)
 
-  val flamethrower_projectile = ProjectileDefinition(Projectiles.flamethrower_projectile)
+  val flamethrower_projectile = ProjectileDefinition(Projectiles.Types.flamethrower_projectile)
 
-  val flux_cannon_apc_projectile = ProjectileDefinition(Projectiles.flux_cannon_apc_projectile)
+  val flux_cannon_apc_projectile = ProjectileDefinition(Projectiles.Types.flux_cannon_apc_projectile)
 
-  val flux_cannon_thresher_projectile = ProjectileDefinition(Projectiles.flux_cannon_thresher_projectile)
+  val flux_cannon_thresher_projectile = ProjectileDefinition(Projectiles.Types.flux_cannon_thresher_projectile)
 
-  val fluxpod_projectile = ProjectileDefinition(Projectiles.fluxpod_projectile)
+  val fluxpod_projectile = ProjectileDefinition(Projectiles.Types.fluxpod_projectile)
 
-  val forceblade_projectile = ProjectileDefinition(Projectiles.forceblade_projectile)
+  val forceblade_projectile = ProjectileDefinition(Projectiles.Types.forceblade_projectile)
 
-  val frag_cartridge_projectile = ProjectileDefinition(Projectiles.frag_cartridge_projectile)
+  val frag_cartridge_projectile = ProjectileDefinition(Projectiles.Types.frag_cartridge_projectile)
 
-  val frag_cartridge_projectile_b = ProjectileDefinition(Projectiles.frag_cartridge_projectile_b)
+  val frag_cartridge_projectile_b = ProjectileDefinition(Projectiles.Types.frag_cartridge_projectile_b)
 
-  val frag_grenade_projectile = ProjectileDefinition(Projectiles.frag_grenade_projectile)
+  val frag_grenade_projectile = ProjectileDefinition(Projectiles.Types.frag_grenade_projectile)
 
-  val frag_grenade_projectile_enh = ProjectileDefinition(Projectiles.frag_grenade_projectile_enh)
+  val frag_grenade_projectile_enh = ProjectileDefinition(Projectiles.Types.frag_grenade_projectile_enh)
 
-  val galaxy_gunship_gun_projectile = ProjectileDefinition(Projectiles.galaxy_gunship_gun_projectile)
+  val galaxy_gunship_gun_projectile = ProjectileDefinition(Projectiles.Types.galaxy_gunship_gun_projectile)
 
-  val gauss_cannon_projectile = ProjectileDefinition(Projectiles.gauss_cannon_projectile)
+  val gauss_cannon_projectile = ProjectileDefinition(Projectiles.Types.gauss_cannon_projectile)
 
-  val grenade_projectile = ProjectileDefinition(Projectiles.grenade_projectile)
+  val grenade_projectile = ProjectileDefinition(Projectiles.Types.grenade_projectile)
 
-  val heavy_grenade_projectile = ProjectileDefinition(Projectiles.heavy_grenade_projectile)
+  val heavy_grenade_projectile = ProjectileDefinition(Projectiles.Types.heavy_grenade_projectile)
 
-  val heavy_rail_beam_projectile = ProjectileDefinition(Projectiles.heavy_rail_beam_projectile)
+  val heavy_rail_beam_projectile = ProjectileDefinition(Projectiles.Types.heavy_rail_beam_projectile)
 
-  val heavy_sniper_projectile = ProjectileDefinition(Projectiles.heavy_sniper_projectile)
+  val heavy_sniper_projectile = ProjectileDefinition(Projectiles.Types.heavy_sniper_projectile)
 
-  val hellfire_projectile = ProjectileDefinition(Projectiles.hellfire_projectile)
+  val hellfire_projectile = ProjectileDefinition(Projectiles.Types.hellfire_projectile)
 
-  val hunter_seeker_missile_dumbfire = ProjectileDefinition(Projectiles.hunter_seeker_missile_dumbfire)
+  val hunter_seeker_missile_dumbfire = ProjectileDefinition(Projectiles.Types.hunter_seeker_missile_dumbfire)
 
-  val hunter_seeker_missile_projectile = ProjectileDefinition(Projectiles.hunter_seeker_missile_projectile)
+  val hunter_seeker_missile_projectile = ProjectileDefinition(Projectiles.Types.hunter_seeker_missile_projectile)
 
-  val jammer_cartridge_projectile = ProjectileDefinition(Projectiles.jammer_cartridge_projectile)
+  val jammer_cartridge_projectile = ProjectileDefinition(Projectiles.Types.jammer_cartridge_projectile)
 
-  val jammer_cartridge_projectile_b = ProjectileDefinition(Projectiles.jammer_cartridge_projectile_b)
+  val jammer_cartridge_projectile_b = ProjectileDefinition(Projectiles.Types.jammer_cartridge_projectile_b)
 
-  val jammer_grenade_projectile = ProjectileDefinition(Projectiles.jammer_grenade_projectile)
+  val jammer_grenade_projectile = ProjectileDefinition(Projectiles.Types.jammer_grenade_projectile)
 
-  val jammer_grenade_projectile_enh = ProjectileDefinition(Projectiles.jammer_grenade_projectile_enh)
+  val jammer_grenade_projectile_enh = ProjectileDefinition(Projectiles.Types.jammer_grenade_projectile_enh)
 
-  val katana_projectile = ProjectileDefinition(Projectiles.katana_projectile)
+  val katana_projectile = ProjectileDefinition(Projectiles.Types.katana_projectile)
 
-  val katana_projectileb = ProjectileDefinition(Projectiles.katana_projectileb)
+  val katana_projectileb = ProjectileDefinition(Projectiles.Types.katana_projectileb)
 
-  val lancer_projectile = ProjectileDefinition(Projectiles.lancer_projectile)
+  val lancer_projectile = ProjectileDefinition(Projectiles.Types.lancer_projectile)
 
-  val lasher_projectile = ProjectileDefinition(Projectiles.lasher_projectile)
+  val lasher_projectile = ProjectileDefinition(Projectiles.Types.lasher_projectile)
 
-  val lasher_projectile_ap = ProjectileDefinition(Projectiles.lasher_projectile_ap)
+  val lasher_projectile_ap = ProjectileDefinition(Projectiles.Types.lasher_projectile_ap)
 
   val liberator_bomb_cluster_bomblet_projectile = ProjectileDefinition(
-    Projectiles.liberator_bomb_cluster_bomblet_projectile
+    Projectiles.Types.liberator_bomb_cluster_bomblet_projectile
   )
 
-  val liberator_bomb_cluster_projectile = ProjectileDefinition(Projectiles.liberator_bomb_cluster_projectile)
+  val liberator_bomb_cluster_projectile = ProjectileDefinition(Projectiles.Types.liberator_bomb_cluster_projectile)
 
-  val liberator_bomb_projectile = ProjectileDefinition(Projectiles.liberator_bomb_projectile)
+  val liberator_bomb_projectile = ProjectileDefinition(Projectiles.Types.liberator_bomb_projectile)
 
-  val maelstrom_grenade_damager = ProjectileDefinition(Projectiles.maelstrom_grenade_damager)
+  val maelstrom_grenade_damager = ProjectileDefinition(Projectiles.Types.maelstrom_grenade_damager)
 
-  val maelstrom_grenade_projectile = ProjectileDefinition(Projectiles.maelstrom_grenade_projectile)
+  val maelstrom_grenade_projectile = ProjectileDefinition(Projectiles.Types.maelstrom_grenade_projectile)
 
-  val maelstrom_grenade_projectile_contact = ProjectileDefinition(Projectiles.maelstrom_grenade_projectile_contact)
+  val maelstrom_grenade_projectile_contact = ProjectileDefinition(Projectiles.Types.maelstrom_grenade_projectile_contact)
 
-  val maelstrom_stream_projectile = ProjectileDefinition(Projectiles.maelstrom_stream_projectile)
+  val maelstrom_stream_projectile = ProjectileDefinition(Projectiles.Types.maelstrom_stream_projectile)
 
-  val magcutter_projectile = ProjectileDefinition(Projectiles.magcutter_projectile)
+  val magcutter_projectile = ProjectileDefinition(Projectiles.Types.magcutter_projectile)
 
-  val melee_ammo_projectile = ProjectileDefinition(Projectiles.melee_ammo_projectile)
+  val melee_ammo_projectile = ProjectileDefinition(Projectiles.Types.melee_ammo_projectile)
 
-  val meteor_common = ProjectileDefinition(Projectiles.meteor_common)
+  val meteor_common = ProjectileDefinition(Projectiles.Types.meteor_common)
 
-  val meteor_projectile_b_large = ProjectileDefinition(Projectiles.meteor_projectile_b_large)
+  val meteor_projectile_b_large = ProjectileDefinition(Projectiles.Types.meteor_projectile_b_large)
 
-  val meteor_projectile_b_medium = ProjectileDefinition(Projectiles.meteor_projectile_b_medium)
+  val meteor_projectile_b_medium = ProjectileDefinition(Projectiles.Types.meteor_projectile_b_medium)
 
-  val meteor_projectile_b_small = ProjectileDefinition(Projectiles.meteor_projectile_b_small)
+  val meteor_projectile_b_small = ProjectileDefinition(Projectiles.Types.meteor_projectile_b_small)
 
-  val meteor_projectile_large = ProjectileDefinition(Projectiles.meteor_projectile_large)
+  val meteor_projectile_large = ProjectileDefinition(Projectiles.Types.meteor_projectile_large)
 
-  val meteor_projectile_medium = ProjectileDefinition(Projectiles.meteor_projectile_medium)
+  val meteor_projectile_medium = ProjectileDefinition(Projectiles.Types.meteor_projectile_medium)
 
-  val meteor_projectile_small = ProjectileDefinition(Projectiles.meteor_projectile_small)
+  val meteor_projectile_small = ProjectileDefinition(Projectiles.Types.meteor_projectile_small)
 
-  val mine_projectile = ProjectileDefinition(Projectiles.mine_projectile)
+  val mine_projectile = ProjectileDefinition(Projectiles.Types.mine_projectile)
 
-  val mine_sweeper_projectile = ProjectileDefinition(Projectiles.mine_sweeper_projectile)
+  val mine_sweeper_projectile = ProjectileDefinition(Projectiles.Types.mine_sweeper_projectile)
 
-  val mine_sweeper_projectile_enh = ProjectileDefinition(Projectiles.mine_sweeper_projectile_enh)
+  val mine_sweeper_projectile_enh = ProjectileDefinition(Projectiles.Types.mine_sweeper_projectile_enh)
 
-  val oicw_projectile = ProjectileDefinition(Projectiles.oicw_projectile)
+  val oicw_projectile = ProjectileDefinition(Projectiles.Types.oicw_projectile)
 
-  val oicw_little_buddy = ProjectileDefinition(Projectiles.oicw_little_buddy)
+  val oicw_little_buddy = ProjectileDefinition(Projectiles.Types.oicw_little_buddy)
 
-  val pellet_gun_projectile = ProjectileDefinition(Projectiles.pellet_gun_projectile)
+  val pellet_gun_projectile = ProjectileDefinition(Projectiles.Types.pellet_gun_projectile)
 
-  val peregrine_dual_machine_gun_projectile = ProjectileDefinition(Projectiles.peregrine_dual_machine_gun_projectile)
+  val peregrine_dual_machine_gun_projectile = ProjectileDefinition(Projectiles.Types.peregrine_dual_machine_gun_projectile)
 
-  val peregrine_mechhammer_projectile = ProjectileDefinition(Projectiles.peregrine_mechhammer_projectile)
+  val peregrine_mechhammer_projectile = ProjectileDefinition(Projectiles.Types.peregrine_mechhammer_projectile)
 
-  val peregrine_particle_cannon_projectile = ProjectileDefinition(Projectiles.peregrine_particle_cannon_projectile)
+  val peregrine_particle_cannon_projectile = ProjectileDefinition(Projectiles.Types.peregrine_particle_cannon_projectile)
 
-  val peregrine_particle_cannon_radiation_cloud = ProjectileDefinition(Projectiles.peregrine_particle_cannon_radiation_cloud)
+  val peregrine_particle_cannon_radiation_cloud = ProjectileDefinition(Projectiles.Types.peregrine_particle_cannon_radiation_cloud)
 
-  val peregrine_rocket_pod_projectile = ProjectileDefinition(Projectiles.peregrine_rocket_pod_projectile)
+  val peregrine_rocket_pod_projectile = ProjectileDefinition(Projectiles.Types.peregrine_rocket_pod_projectile)
 
-  val peregrine_sparrow_projectile = ProjectileDefinition(Projectiles.peregrine_sparrow_projectile)
+  val peregrine_sparrow_projectile = ProjectileDefinition(Projectiles.Types.peregrine_sparrow_projectile)
 
-  val phalanx_av_projectile = ProjectileDefinition(Projectiles.phalanx_av_projectile)
+  val phalanx_av_projectile = ProjectileDefinition(Projectiles.Types.phalanx_av_projectile)
 
-  val phalanx_flak_projectile = ProjectileDefinition(Projectiles.phalanx_flak_projectile)
+  val phalanx_flak_projectile = ProjectileDefinition(Projectiles.Types.phalanx_flak_projectile)
 
-  val phalanx_projectile = ProjectileDefinition(Projectiles.phalanx_projectile)
+  val phalanx_projectile = ProjectileDefinition(Projectiles.Types.phalanx_projectile)
 
-  val phoenix_missile_guided_projectile = ProjectileDefinition(Projectiles.phoenix_missile_guided_projectile)
+  val phoenix_missile_guided_projectile = ProjectileDefinition(Projectiles.Types.phoenix_missile_guided_projectile)
 
-  val phoenix_missile_projectile = ProjectileDefinition(Projectiles.phoenix_missile_projectile)
+  val phoenix_missile_projectile = ProjectileDefinition(Projectiles.Types.phoenix_missile_projectile)
 
-  val plasma_cartridge_projectile = ProjectileDefinition(Projectiles.plasma_cartridge_projectile)
+  val plasma_cartridge_projectile = ProjectileDefinition(Projectiles.Types.plasma_cartridge_projectile)
 
-  val plasma_cartridge_projectile_b = ProjectileDefinition(Projectiles.plasma_cartridge_projectile_b)
+  val plasma_cartridge_projectile_b = ProjectileDefinition(Projectiles.Types.plasma_cartridge_projectile_b)
 
-  val plasma_grenade_projectile = ProjectileDefinition(Projectiles.plasma_grenade_projectile)
+  val plasma_grenade_projectile = ProjectileDefinition(Projectiles.Types.plasma_grenade_projectile)
 
-  val plasma_grenade_projectile_B = ProjectileDefinition(Projectiles.plasma_grenade_projectile_B)
+  val plasma_grenade_projectile_B = ProjectileDefinition(Projectiles.Types.plasma_grenade_projectile_B)
 
-  val pounder_projectile = ProjectileDefinition(Projectiles.pounder_projectile)
+  val pounder_projectile = ProjectileDefinition(Projectiles.Types.pounder_projectile)
 
-  val pounder_projectile_enh = ProjectileDefinition(Projectiles.pounder_projectile_enh)
+  val pounder_projectile_enh = ProjectileDefinition(Projectiles.Types.pounder_projectile_enh)
 
-  val ppa_projectile = ProjectileDefinition(Projectiles.ppa_projectile)
+  val ppa_projectile = ProjectileDefinition(Projectiles.Types.ppa_projectile)
 
-  val pulsar_ap_projectile = ProjectileDefinition(Projectiles.pulsar_ap_projectile)
+  val pulsar_ap_projectile = ProjectileDefinition(Projectiles.Types.pulsar_ap_projectile)
 
-  val pulsar_projectile = ProjectileDefinition(Projectiles.pulsar_projectile)
+  val pulsar_projectile = ProjectileDefinition(Projectiles.Types.pulsar_projectile)
 
-  val quasar_projectile = ProjectileDefinition(Projectiles.quasar_projectile)
+  val quasar_projectile = ProjectileDefinition(Projectiles.Types.quasar_projectile)
 
-  val radiator_cloud = ProjectileDefinition(Projectiles.radiator_cloud)
+  val radiator_cloud = ProjectileDefinition(Projectiles.Types.radiator_cloud)
 
-  val radiator_grenade_projectile = ProjectileDefinition(Projectiles.radiator_grenade_projectile)
+  val radiator_grenade_projectile = ProjectileDefinition(Projectiles.Types.radiator_grenade_projectile)
 
-  val radiator_sticky_projectile = ProjectileDefinition(Projectiles.radiator_sticky_projectile)
+  val radiator_sticky_projectile = ProjectileDefinition(Projectiles.Types.radiator_sticky_projectile)
 
-  val reaver_rocket_projectile = ProjectileDefinition(Projectiles.reaver_rocket_projectile)
+  val reaver_rocket_projectile = ProjectileDefinition(Projectiles.Types.reaver_rocket_projectile)
 
-  val rocket_projectile = ProjectileDefinition(Projectiles.rocket_projectile)
+  val rocket_projectile = ProjectileDefinition(Projectiles.Types.rocket_projectile)
 
-  val rocklet_flak_projectile = ProjectileDefinition(Projectiles.rocklet_flak_projectile)
+  val rocklet_flak_projectile = ProjectileDefinition(Projectiles.Types.rocklet_flak_projectile)
 
-  val rocklet_jammer_projectile = ProjectileDefinition(Projectiles.rocklet_jammer_projectile)
+  val rocklet_jammer_projectile = ProjectileDefinition(Projectiles.Types.rocklet_jammer_projectile)
 
-  val scattercannon_projectile = ProjectileDefinition(Projectiles.scattercannon_projectile)
+  val scattercannon_projectile = ProjectileDefinition(Projectiles.Types.scattercannon_projectile)
 
-  val scythe_projectile = ProjectileDefinition(Projectiles.scythe_projectile)
+  val scythe_projectile = ProjectileDefinition(Projectiles.Types.scythe_projectile)
 
-  val scythe_projectile_slave = ProjectileDefinition(Projectiles.scythe_projectile_slave)
+  val scythe_projectile_slave = ProjectileDefinition(Projectiles.Types.scythe_projectile_slave)
 
-  val shotgun_shell_AP_projectile = ProjectileDefinition(Projectiles.shotgun_shell_AP_projectile)
+  val shotgun_shell_AP_projectile = ProjectileDefinition(Projectiles.Types.shotgun_shell_AP_projectile)
 
-  val shotgun_shell_projectile = ProjectileDefinition(Projectiles.shotgun_shell_projectile)
+  val shotgun_shell_projectile = ProjectileDefinition(Projectiles.Types.shotgun_shell_projectile)
 
-  val six_shooter_projectile = ProjectileDefinition(Projectiles.six_shooter_projectile)
+  val six_shooter_projectile = ProjectileDefinition(Projectiles.Types.six_shooter_projectile)
 
-  val skyguard_flak_cannon_projectile = ProjectileDefinition(Projectiles.skyguard_flak_cannon_projectile)
+  val skyguard_flak_cannon_projectile = ProjectileDefinition(Projectiles.Types.skyguard_flak_cannon_projectile)
 
-  val sparrow_projectile = ProjectileDefinition(Projectiles.sparrow_projectile)
+  val sparrow_projectile = ProjectileDefinition(Projectiles.Types.sparrow_projectile)
 
-  val sparrow_secondary_projectile = ProjectileDefinition(Projectiles.sparrow_secondary_projectile)
+  val sparrow_secondary_projectile = ProjectileDefinition(Projectiles.Types.sparrow_secondary_projectile)
 
-  val spiker_projectile = ProjectileDefinition(Projectiles.spiker_projectile)
+  val spiker_projectile = ProjectileDefinition(Projectiles.Types.spiker_projectile)
 
-  val spitfire_aa_ammo_projectile = ProjectileDefinition(Projectiles.spitfire_aa_ammo_projectile)
+  val spitfire_aa_ammo_projectile = ProjectileDefinition(Projectiles.Types.spitfire_aa_ammo_projectile)
 
-  val spitfire_ammo_projectile = ProjectileDefinition(Projectiles.spitfire_ammo_projectile)
+  val spitfire_ammo_projectile = ProjectileDefinition(Projectiles.Types.spitfire_ammo_projectile)
 
-  val starfire_projectile = ProjectileDefinition(Projectiles.starfire_projectile)
+  val starfire_projectile = ProjectileDefinition(Projectiles.Types.starfire_projectile)
 
-  val striker_missile_projectile = ProjectileDefinition(Projectiles.striker_missile_projectile)
+  val striker_missile_projectile = ProjectileDefinition(Projectiles.Types.striker_missile_projectile)
 
-  val striker_missile_targeting_projectile = ProjectileDefinition(Projectiles.striker_missile_targeting_projectile)
+  val striker_missile_targeting_projectile = ProjectileDefinition(Projectiles.Types.striker_missile_targeting_projectile)
 
-  val trek_projectile = ProjectileDefinition(Projectiles.trek_projectile)
+  val trek_projectile = ProjectileDefinition(Projectiles.Types.trek_projectile)
 
-  val vanu_sentry_turret_projectile = ProjectileDefinition(Projectiles.vanu_sentry_turret_projectile)
+  val vanu_sentry_turret_projectile = ProjectileDefinition(Projectiles.Types.vanu_sentry_turret_projectile)
 
-  val vulture_bomb_projectile = ProjectileDefinition(Projectiles.vulture_bomb_projectile)
+  val vulture_bomb_projectile = ProjectileDefinition(Projectiles.Types.vulture_bomb_projectile)
 
-  val vulture_nose_bullet_projectile = ProjectileDefinition(Projectiles.vulture_nose_bullet_projectile)
+  val vulture_nose_bullet_projectile = ProjectileDefinition(Projectiles.Types.vulture_nose_bullet_projectile)
 
-  val vulture_tail_bullet_projectile = ProjectileDefinition(Projectiles.vulture_tail_bullet_projectile)
+  val vulture_tail_bullet_projectile = ProjectileDefinition(Projectiles.Types.vulture_tail_bullet_projectile)
 
-  val wasp_gun_projectile = ProjectileDefinition(Projectiles.wasp_gun_projectile)
+  val wasp_gun_projectile = ProjectileDefinition(Projectiles.Types.wasp_gun_projectile)
 
-  val wasp_rocket_projectile = ProjectileDefinition(Projectiles.wasp_rocket_projectile)
+  val wasp_rocket_projectile = ProjectileDefinition(Projectiles.Types.wasp_rocket_projectile)
 
-  val winchester_projectile = ProjectileDefinition(Projectiles.winchester_projectile)
+  val winchester_projectile = ProjectileDefinition(Projectiles.Types.winchester_projectile)
 
-  val armor_siphon_projectile = ProjectileDefinition(Projectiles.trek_projectile) //fake projectile for storing damage information
+  val armor_siphon_projectile = ProjectileDefinition(Projectiles.Types.trek_projectile) //fake projectile for storing damage information
 
-  val ntu_siphon_emp = ProjectileDefinition(Projectiles.ntu_siphon_emp)
+  val ntu_siphon_emp = ProjectileDefinition(Projectiles.Types.ntu_siphon_emp)
   init_projectile()
 
   /*
@@ -1180,7 +1180,9 @@ object GlobalDefinitions {
 
   val repair_silo = new MedicalTerminalDefinition(729)
 
-  val recharge_terminal = new MedicalTerminalDefinition(724)
+  val recharge_terminal = new WeaponRechargeTerminalDefinition(724)
+
+  val recharge_terminal_weapon_module = new WeaponRechargeTerminalDefinition(725)
 
   val mb_pad_creation = new VehicleSpawnPadDefinition(525)
 
@@ -1975,28 +1977,31 @@ object GlobalDefinitions {
   }
 
   /**
-    * Return a projectile that is the damage proxy of another projectile,
+    * Return projectiles that are the damage proxies of another projectile,
     * if such a damage proxy is defined in the appropriate field by its unique object identifier.
     * @see `ProjectileDefinition.DamageProxy`
     * @param projectile the original projectile
-    * @return the damage proxy projectile definition, if that can be produced
+    * @return the damage proxy projectiles, if they can be produced
     */
-  def getDamageProxy(projectile: Projectile, hitPosition: Vector3): Option[Projectile] = {
-    projectile.Definition.DamageProxy match {
-      case Some(uoid) =>
+  def getDamageProxy(projectile: Projectile, hitPosition: Vector3): List[Projectile] = {
+    projectile
+      .Definition
+      .DamageProxy
+      .flatMap { uoid =>
         ((uoid: @switch) match {
           case 96 =>  Some(aphelion_plasma_cloud)
           case 301 => Some(projectile.profile) //'flamethrower_fire_cloud' can not be made into a packet
           case 464 => Some(projectile.profile) //'maelstrom_grenade_damager' can not be made into a packet
+          case 601 => Some(oicw_little_buddy)
           case 655 => Some(peregrine_particle_cannon_radiation_cloud)
           case 717 => Some(radiator_cloud)
           case _   => None
         }) match {
           case Some(proxy)
             if proxy eq projectile.profile =>
-            Some(projectile)
+            List(projectile)
           case Some(proxy) =>
-            Some(Projectile(
+            List(Projectile(
               proxy,
               projectile.tool_def,
               projectile.fire_mode,
@@ -2006,11 +2011,9 @@ object GlobalDefinitions {
               Vector3.Zero
             ))
           case None =>
-            None
+            Nil
         }
-      case None =>
-        None
-    }
+      }
   }
 
   /**
@@ -3638,12 +3641,16 @@ object GlobalDefinitions {
     oicw_projectile.ProjectileDamageType = DamageType.Splash
     oicw_projectile.InitialVelocity = 5
     oicw_projectile.Lifespan = 6.1f
+    oicw_projectile.DamageProxy = List(601, 601, 601, 601, 601) //5 x oicw_little_buddy
     oicw_projectile.registerAs = "rc-projectiles"
     oicw_projectile.ExistsOnRemoteClients = true
     oicw_projectile.RemoteClientData = (13107, 195)
     oicw_projectile.Packet = projectileConverter
     ProjectileDefinition.CalculateDerivedFields(oicw_projectile)
-    oicw_projectile.Modifiers = RadialDegrade
+    oicw_projectile.Modifiers = List(
+      //ExplodingRadialDegrade,
+      RadialDegrade
+    )
 
     oicw_little_buddy.Name = "oicw_little_buddy"
     oicw_little_buddy.Damage0 = 75
@@ -3653,11 +3660,14 @@ object GlobalDefinitions {
     oicw_little_buddy.ProjectileDamageType = DamageType.Splash
     oicw_little_buddy.InitialVelocity = 40
     oicw_little_buddy.Lifespan = 0.5f
-    oicw_little_buddy.ExistsOnRemoteClients = false //TODO true
-    oicw_little_buddy.Packet = projectileConverter
+    oicw_little_buddy.registerAs = "rc-projectiles"
+    oicw_little_buddy.ExistsOnRemoteClients = true //does not use RemoteClientData
+    oicw_little_buddy.Packet = new LittleBuddyProjectileConverter
     //add_property oicw_little_buddy multi_stage_spawn_server_side true ...
     ProjectileDefinition.CalculateDerivedFields(oicw_little_buddy)
-    oicw_little_buddy.Modifiers = RadialDegrade
+    oicw_little_buddy.Modifiers = List(
+      ExplosionDamagesOnlyAbove
+    )
 
     pellet_gun_projectile.Name = "pellet_gun_projectile"
     // TODO for later, maybe : set_resource_parent pellet_gun_projectile game_objects shotgun_shell_projectile
@@ -3943,16 +3953,29 @@ object GlobalDefinitions {
     radiator_cloud.Damage0 = 2
     radiator_cloud.DamageAtEdge = 1.0f
     radiator_cloud.DamageRadius = 5f
+    radiator_cloud.DamageToHealthOnly = true
     radiator_cloud.radiation_cloud = true
     radiator_cloud.ProjectileDamageType = DamageType.Radiation
+    //custom aggravated information
+    radiator_cloud.ProjectileDamageTypeSecondary = DamageType.Aggravated
+    radiator_cloud.Aggravated = AggravatedDamage(
+      AggravatedInfo(DamageType.Splash, 1f, 80),
+      Aura.None,
+      AggravatedTiming(250, 2),
+      0f,
+      false,
+      List(TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player))
+    )
     radiator_cloud.Lifespan = 10.0f
     ProjectileDefinition.CalculateDerivedFields(radiator_cloud)
     radiator_cloud.registerAs = "rc-projectiles"
     radiator_cloud.ExistsOnRemoteClients = true
     radiator_cloud.Packet = radCloudConverter
-    radiator_cloud.Geometry = GeometryForm.representProjectileBySphere()
+    //radiator_cloud.Geometry = GeometryForm.representProjectileBySphere()
     radiator_cloud.Modifiers = List(
       MaxDistanceCutoff,
+      InfantryAggravatedRadiation,
+      InfantryAggravatedRadiationBurn,
       ShieldAgainstRadiation
     )
 
@@ -3961,6 +3984,7 @@ object GlobalDefinitions {
     radiator_grenade_projectile.ProjectileDamageType = DamageType.Direct
     radiator_grenade_projectile.InitialVelocity = 30
     radiator_grenade_projectile.Lifespan = 3f
+    radiator_grenade_projectile.DamageProxy = 717 //radiator_cloud
     ProjectileDefinition.CalculateDerivedFields(radiator_grenade_projectile)
 
     radiator_sticky_projectile.Name = "radiator_sticky_projectile"
@@ -3969,6 +3993,7 @@ object GlobalDefinitions {
     radiator_sticky_projectile.ProjectileDamageType = DamageType.Direct
     radiator_sticky_projectile.InitialVelocity = 30
     radiator_sticky_projectile.Lifespan = 4f
+    radiator_sticky_projectile.DamageProxy = 717 //radiator_cloud
     ProjectileDefinition.CalculateDerivedFields(radiator_sticky_projectile)
 
     reaver_rocket_projectile.Name = "reaver_rocket_projectile"
@@ -4430,7 +4455,7 @@ object GlobalDefinitions {
     aphelion_plasma_cloud.registerAs = "rc-projectiles"
     aphelion_plasma_cloud.ExistsOnRemoteClients = true
     aphelion_plasma_cloud.Packet = radCloudConverter
-    aphelion_plasma_cloud.Geometry = GeometryForm.representProjectileBySphere()
+    //aphelion_plasma_cloud.Geometry = GeometryForm.representProjectileBySphere()
     aphelion_plasma_cloud.Modifiers = List( //TODO placeholder values
       MaxDistanceCutoff,
       InfantryAggravatedRadiation,
@@ -4632,7 +4657,7 @@ object GlobalDefinitions {
     peregrine_particle_cannon_radiation_cloud.registerAs = "rc-projectiles"
     peregrine_particle_cannon_radiation_cloud.ExistsOnRemoteClients = true
     peregrine_particle_cannon_radiation_cloud.Packet = radCloudConverter
-    peregrine_particle_cannon_radiation_cloud.Geometry = GeometryForm.representProjectileBySphere()
+    //peregrine_particle_cannon_radiation_cloud.Geometry = GeometryForm.representProjectileBySphere()
     peregrine_particle_cannon_radiation_cloud.Modifiers = List(
       MaxDistanceCutoff,
       ShieldAgainstRadiation
@@ -9614,6 +9639,13 @@ object GlobalDefinitions {
     recharge_terminal.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.AncientVehicleWeaponRecharge
     recharge_terminal.Damageable = false
     recharge_terminal.Repairable = false
+
+    recharge_terminal_weapon_module.Name = "recharge_terminal_weapon_module"
+    recharge_terminal_weapon_module.Interval = 1000
+    recharge_terminal_weapon_module.UseRadius = 300
+    recharge_terminal_weapon_module.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.AncientWeaponRecharge
+    recharge_terminal_weapon_module.Damageable = false
+    recharge_terminal_weapon_module.Repairable = false
 
     mb_pad_creation.Name = "mb_pad_creation"
     mb_pad_creation.Damageable = false

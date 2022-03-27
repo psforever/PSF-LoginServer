@@ -1257,10 +1257,27 @@ object Zone {
                        source: PlanetSideGameObject with FactionAffinity with Vitality,
                        target: PlanetSideGameObject with FactionAffinity with Vitality
                      ): DamageInteraction = {
+    explosionDamage(instigation, target.Position)(source, target)
+  }/**
+    * na
+    * @param instigation what previous event happened, if any, that caused this explosion
+    * @param explosionPosition the coordinates of the detected explosion
+    * @param source a game object that represents the source of the explosion
+    * @param target a game object that is affected by the explosion
+    * @return a `DamageInteraction` object
+    */
+  def explosionDamage(
+                       instigation: Option[DamageResult],
+                       explosionPosition: Vector3
+                     )
+                     (
+                       source: PlanetSideGameObject with FactionAffinity with Vitality,
+                       target: PlanetSideGameObject with FactionAffinity with Vitality
+                     ): DamageInteraction = {
     DamageInteraction(
       SourceEntry(target),
       ExplodingEntityReason(source, target.DamageModel, instigation),
-      target.Position
+      explosionPosition
     )
   }
 

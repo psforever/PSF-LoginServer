@@ -11,7 +11,6 @@ import net.psforever.objects.vital.resolution.DamageAndResistance
 /**
   * A wrapper for a "damage source" in damage calculations
   * that parameterizes information necessary to explain a radiation cloud.
-  * @param resolution how the damage is processed
   * @param projectile the projectile that caused the damage
   * @param damageModel the model to be utilized in these calculations;
   *                    typically, but not always, defined by the target
@@ -55,9 +54,8 @@ object RadiationDamageModifiers {
 }
 
 /**
-  * If the damge is caused by a projectile that emits a field that permeates vehicle armor,
+  * If the damage is caused by a projectile that emits a field that permeates vehicle armor,
   * determine by how much the traversed armor's shielding reduces the damage.
-  * Infantry take damage, reduced only if one is equipped with a mechanized assault exo-suit.
   */
 case object ShieldAgainstRadiation extends RadiationDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: RadiationReason): Int = {

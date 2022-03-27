@@ -921,7 +921,7 @@ class DamageModelTests extends Specification {
 }
 
 object DamageModelTests {
-  final val projectile = new ProjectileDefinition(Projectiles.heavy_grenade_projectile.id) {
+  final val projectile = new ProjectileDefinition(Projectiles.Types.heavy_grenade_projectile.id) {
     Damage0 = 50
     Damage1 = 82
     Damage2 = 82

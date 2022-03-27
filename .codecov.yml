@@ -12,7 +12,7 @@ ignore:
   - "src/main/scala/net/psforever/objects/ObjectType.scala"
   - "src/main/scala/net/psforever/objects/avatar/Avatars.scala"
   - "src/main/scala/net/psforever/objects/ballistics/DamageResolution.scala"
-  - "src/main/scala/net/psforever/objects/ballistics/Projectiles.scala"
+  - "src/main/scala/net/psforever/objects/ballistics/Projectiles.Types.scala"
   - "src/main/scala/net/psforever/objects/equipment/Ammo.scala"
   - "src/main/scala/net/psforever/objects/equipment/CItem.scala"
   - "src/main/scala/net/psforever/objects/equipment/EquipmentSize.scala"
