@@ -241,6 +241,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
         )
       )
     avatar.Continent = "test"
+    avatar.Zone = zone
     avatar.Spawn()
     avatar.Health = 50
     val avatar2 =
@@ -249,12 +250,13 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
           ProximityTest.avatarId.getAndIncrement(),
           "TestCharacter2",
           PlanetSideEmpire.VS,
-          CharacterSex.Female,
+          CharacterSex.Male,
           1,
           CharacterVoice.Voice1
         )
       )
     avatar2.Continent = "test"
+    avatar2.Zone = zone
     avatar2.Spawn()
     avatar2.Health = 50
 
@@ -266,6 +268,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
     val probe1 = new TestProbe(system, "local-events")
     val probe2 = new TestProbe(system, "target-callback-1")
     val probe3 = new TestProbe(system, "target-callback-2")
+    zone.AvatarEvents = new TestProbe(system, "avatar-events-throwaway").ref
     zone.LocalEvents = probe1.ref
 
     "not send out a start message if not the first user" in {
@@ -274,7 +277,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
 
       terminal.Actor.tell(CommonMessages.Use(avatar, Some(avatar)), probe2.ref)
       probe1.expectMsgClass(1 second, classOf[Terminal.StartProximityEffect])
-      probe2.expectMsgClass(1 second, classOf[ProximityUnit.Action])
+      probe2.expectMsgClass(5 second, classOf[ProximityUnit.Action])
 
       terminal.Actor.tell(CommonMessages.Use(avatar2, Some(avatar2)), probe3.ref)
       probe1.expectNoMessage(1 second)
@@ -313,15 +316,17 @@ class ProximityTerminalControlStopTest extends ActorTest {
         )
       )
     avatar.Continent = "test"
+    avatar.Zone = zone
     avatar.Spawn()
-    avatar.Health = 50
+    avatar.Health = 1
 
     avatar.GUID = PlanetSideGUID(1)
     terminal.GUID = PlanetSideGUID(2)
     terminal.Actor ! Service.Startup()
     expectNoMessage(500 milliseconds) //spacer
     val probe1 = new TestProbe(system, "local-events")
-    val probe2 = new TestProbe(system, "target-callback-1")
+    val probe2 = new TestProbe(system, "target-callback")
+    zone.AvatarEvents = new TestProbe(system, "avatar-events-throwaway").ref
     zone.LocalEvents = probe1.ref
 
     "send out a stop message" in {
@@ -333,6 +338,14 @@ class ProximityTerminalControlStopTest extends ActorTest {
       probe2.expectMsgClass(1 second, classOf[ProximityUnit.Action])
 
       terminal.Actor ! CommonMessages.Unuse(avatar, Some(avatar))
+      probe2.fishForMessage(2.seconds, hint = "could not find StopAction") {
+        case _ : ProximityUnit.Action => false
+        case _                        => true
+      } match {
+        case _ : ProximityUnit.StopAction => ;
+        case out                            => assert(false, s"last message $out is not StopAction")
+      }
+      //probe2.expectMsgClass(1 second, classOf[ProximityUnit.StopAction])
       probe1.expectMsgClass(1 second, classOf[Terminal.StopProximityEffect])
       assert(terminal.NumberUsers == 0)
     }

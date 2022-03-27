@@ -5202,7 +5202,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
 
       case msg @ GenericObjectActionAtPositionMessage(object_guid, _, _) =>
-        //log.info(s"$msg")
         ValidObject(object_guid, decorator = "GenericObjectActionAtPosition") match {
           case Some(tool: Tool) if GlobalDefinitions.isBattleFrameNTUSiphon(tool.Definition) =>
             FindContainedWeapon match {
@@ -5210,7 +5209,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 vehicle.Actor ! SpecialEmp.Burst()
               case _ => ;
             }
-          case _ => ;
+          case _ =>
+            log.info(s"$msg")
         }
 
       case msg @ GenericObjectStateMsg(object_guid, unk1) =>
@@ -5383,6 +5383,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         _, //projectile_type,
         thrown_projectile_vel
       ) =>
+        log.info(s"$msg")
         HandleWeaponFire(weapon_guid, projectile_guid, shot_origin, thrown_projectile_vel.flatten)
 
       case WeaponLazeTargetPositionMessage(_, _, _) => ;
@@ -7565,7 +7566,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   /**
     * Stop using a proximity-base service.
-    * If the suggested terminal detects our player or our player's vehicle as a valid target for tis effect,
+    * If the suggested terminal detects our player or our player's vehicle as a valid target for its effect,
     * inform it that we wish it stop affecting the discovered target(s).
     * @param terminal the proximity-based unit
     */
@@ -9334,7 +9335,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       val speed: Float = 144f //speed (packet discovered)
       val dist: Float = 25 //distance (client defined)
       val downwardsAngle: Float = -85f
-      val flaredAngle: Float = -75f
+      val flaredAngle: Float = -70f
       //angle of separation for downwards, degrees from vertical for flared out
       val (smallStep, smallAngle): (Float, Float) = if (firstHalf > 1) {
         (360f / firstHalf, downwardsAngle)
@@ -9381,7 +9382,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     //explosion
     val obj = DummyExplodingEntity(proxy)
     obj.Position = obj.Position + orientation * distance
-    context.system.scheduler.scheduleOnce(1.second) {
+    context.system.scheduler.scheduleOnce(500.milliseconds) {
       val c = continent
       val o = obj
       Zone.serverSideDamage(c, o, Zone.explosionDamage(None, o.Position))
