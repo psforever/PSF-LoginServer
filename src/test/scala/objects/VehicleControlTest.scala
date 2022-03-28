@@ -14,7 +14,7 @@ import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.VehicleLockState
-import net.psforever.objects.vehicles.control.VehicleControl/*{CargoCarrierControl, VehicleControl}*/
+import net.psforever.objects.vehicles.control.{/*CargoCarrierControl, */VehicleControl}
 import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game._
