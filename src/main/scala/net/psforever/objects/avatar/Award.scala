@@ -2,20 +2,67 @@
 package net.psforever.objects.avatar
 
 import enumeratum.values.{StringEnum, StringEnumEntry}
-import net.psforever.types.MeritCommendation
+import net.psforever.types.{MeritCommendation, PlanetSideEmpire}
 
-sealed abstract class Merit(
+/**
+  * Awards organize merit commendations into an iterative series that have their own accomplishment statistics.
+  * @see `MeritCommendation.Value`
+  * @param commendation the merit commendation attached to this rank
+  */
+final case class CommendationRank(commendation: MeritCommendation.Value)
+
+/**
+  * A unique accomplishment that statuses positive player behavior and
+  * assigns classification and advancement metrics to the accomplishment.
+  * @param value the specific label that indicates this award
+  * @param category a generalization of the award's accreditation
+  * @param progression the iterative merit commendations associated with increasing ranks of this award
+  */
+sealed abstract class Award(
                              val value: String,
                              val category: AwardCategory.Value,
                              val progression: List[CommendationRank]
                            ) extends StringEnumEntry {
-  assert(Award.values.exists(_.toString().equals(value)), s"$value is not an award that came be found in the appropriate Enumeration")
-  assert(progression.nonEmpty, s"$value must have a base progression rank")
+  assert(
+    Merit.values.exists(_.toString().equals(value)),
+    s"$value is not a merit found in the appropriate Enumeration"
+  )
+  assert(
+    progression.nonEmpty,
+    s"$value must define a base progression rank"
+  )
+
+  def alignment: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
 }
 
-final case class CommendationRank(commendation: MeritCommendation.Value)
+sealed abstract class TerranRepublicAward(
+                                           override val value: String,
+                                           override val category: AwardCategory.Value,
+                                           override val progression: List[CommendationRank]
+                                         ) extends Award(value, category, progression) {
+  override def alignment: PlanetSideEmpire.Value = PlanetSideEmpire.TR
+}
 
-object Award extends Enumeration {
+sealed abstract class NewConglomerateAward(
+                                            override val value: String,
+                                            override val category: AwardCategory.Value,
+                                            override val progression: List[CommendationRank]
+                                          ) extends Award(value, category, progression) {
+  override def alignment: PlanetSideEmpire.Value = PlanetSideEmpire.NC
+}
+
+sealed abstract class VanuSovereigntyAward(
+                                            override val value: String,
+                                            override val category: AwardCategory.Value,
+                                            override val progression: List[CommendationRank]
+                                          ) extends Award(value, category, progression) {
+  override def alignment: PlanetSideEmpire.Value = PlanetSideEmpire.VS
+}
+
+/**
+  * A collection of all award labels.
+  */
+object Merit extends Enumeration {
   val AdvancedMedic = Value("AdvancedMedic")
   val AdvancedMedicAssists = Value("AdvancedMedicAssists")
   val AirDefender = Value("AirDefender")
@@ -91,6 +138,7 @@ object Award extends Enumeration {
   val Max = Value("Max")
   val MaxBuster = Value("MaxBuster")
   val MediumAssault = Value("MediumAssault")
+  val None = Value("None") //the no merit commendation award label
   val Orion = Value("Orion")
   val Osprey = Value("Osprey")
   val Phalanx = Value("Phalanx")
@@ -126,6 +174,9 @@ object Award extends Enumeration {
   val XmasSpirit = Value("XmasSpirit")
 }
 
+/**
+  * A collection of all award categories.
+  */
 object AwardCategory extends Enumeration {
   val
   Activity,
@@ -137,12 +188,12 @@ object AwardCategory extends Enumeration {
   = Value
 }
 
-object Merit extends StringEnum[Merit] {
+object Award extends StringEnum[Award] {
   import net.psforever.types.MeritCommendation._
 
   val values = findValues
 
-  case object AdvancedMedic extends Merit(
+  case object AdvancedMedic extends Award(
     value = "AdvancedMedic",
     AwardCategory.Support,
     List(
@@ -155,7 +206,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(AdvancedMedic7)
     )
   )
-  case object AdvancedMedicAssists extends Merit(
+  case object AdvancedMedicAssists extends Award(
     value = "AdvancedMedicAssists",
     AwardCategory.Support,
     List(
@@ -168,7 +219,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(AdvancedMedicAssists7)
     )
   )
-  case object AirDefender extends Merit(
+  case object AirDefender extends Award(
     value = "AirDefender",
     AwardCategory.Vehicular,
     List(
@@ -181,7 +232,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(AirDefender7)
     )
   )
-  case object AMSSupport extends Merit(
+  case object AMSSupport extends Award(
     value = "AMSSupport",
     AwardCategory.Support,
     List(
@@ -194,7 +245,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(AMSSupport7)
     )
   )
-  case object AntiVehicular extends Merit(
+  case object AntiVehicular extends Award(
     value = "AntiVehicular",
     AwardCategory.Weaponry,
     List(
@@ -207,7 +258,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(AntiVehicular7)
     )
   )
-  case object Avenger extends Merit(
+  case object Avenger extends TerranRepublicAward(
     value = "Avenger",
     AwardCategory.Weaponry,
     List(
@@ -220,17 +271,17 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Avenger7)
     )
   )
-  case object BendingMovieActor extends Merit(
+  case object BendingMovieActor extends Award(
     value = "BendingMovieActor",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.BendingMovieActor))
   )
-  case object BFRAdvanced extends Merit(
+  case object BFRAdvanced extends Award(
     value = "BFRAdvanced",
     AwardCategory.Vehicular,
     List(CommendationRank(MeritCommendation.BFRAdvanced))
   )
-  case object BFRBuster extends Merit(
+  case object BFRBuster extends Award(
     value = "BFRBuster",
     AwardCategory.Activity,
     List(
@@ -243,7 +294,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(BFRBuster7)
     )
   )
-  case object BlackOpsHunter extends Merit(
+  case object BlackOpsHunter extends Award(
     value = "BlackOpsHunter",
     AwardCategory.Activity,
     List(
@@ -254,17 +305,17 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(MeritCommendation.BlackOpsHunter5)
     )
   )
-  case object BlackOpsParticipant extends Merit(
+  case object BlackOpsParticipant extends Award(
     value = "BlackOpsParticipant",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.BlackOpsParticipant))
   )
-  case object BlackOpsVictory extends Merit(
+  case object BlackOpsVictory extends Award(
     value = "BlackOpsVictory",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.BlackOpsVictory))
   )
-  case object Bombadier extends Merit(
+  case object Bombadier extends Award(
     value = "Bombadier",
     AwardCategory.Vehicular,
     List(
@@ -277,7 +328,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Bombadier7)
     )
   )
-  case object BomberAce extends Merit(
+  case object BomberAce extends Award(
     value = "BomberAce",
     AwardCategory.Vehicular,
     List(
@@ -290,7 +341,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(BomberAce7)
     )
   )
-  case object Boomer extends Merit(
+  case object Boomer extends Award(
     value = "Boomer",
     AwardCategory.Weaponry,
     List(
@@ -303,7 +354,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Boomer7)
     )
   )
-  case object CalvaryDriver extends Merit(
+  case object CalvaryDriver extends Award(
     value = "CalvaryDriver",
     AwardCategory.Vehicular,
     List(
@@ -316,7 +367,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(CalvaryDriver7)
     )
   )
-  case object CalvaryPilot extends Merit(
+  case object CalvaryPilot extends Award(
     value = "CalvaryPilot",
     AwardCategory.Vehicular,
     List(
@@ -329,12 +380,12 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(CalvaryPilot7)
     )
   )
-  case object CMTopOutfit extends Merit(
+  case object CMTopOutfit extends Award(
     value = "CMTopOutfit",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.CMTopOutfit))
   )
-  case object CombatMedic extends Merit(
+  case object CombatMedic extends Award(
     value = "CombatMedic",
     AwardCategory.Support,
     List(
@@ -347,7 +398,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(CombatMedic7)
     )
   )
-  case object CombatRepair extends Merit(
+  case object CombatRepair extends Award(
     value = "CombatRepair",
     AwardCategory.Support,
     List(
@@ -360,37 +411,37 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(CombatRepair7)
     )
   )
-  case object ContestFirstBR40 extends Merit(
+  case object ContestFirstBR40 extends Award(
     value = "ContestFirstBR40",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.ContestFirstBR40))
   )
-  case object ContestMovieMaker extends Merit(
+  case object ContestMovieMaker extends Award(
     value = "ContestMovieMaker",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.ContestMovieMaker))
   )
-  case object ContestMovieMakerOutfit extends Merit(
+  case object ContestMovieMakerOutfit extends Award(
     value = "ContestMovieMakerOutfit",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.ContestMovieMakerOutfit))
   )
-  case object ContestPlayerOfTheMonth extends Merit(
+  case object ContestPlayerOfTheMonth extends Award(
     value = "ContestPlayerOfTheMonth",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.ContestPlayerOfTheMonth))
   )
-  case object ContestPlayerOfTheYear extends Merit(
+  case object ContestPlayerOfTheYear extends Award(
     value = "ContestPlayerOfTheYear",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.ContestPlayerOfTheYear))
   )
-  case object CSAppreciation extends Merit(
+  case object CSAppreciation extends Award(
     value = "CSAppreciation",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.CSAppreciation))
   )
-  case object DefenseNC extends Merit(
+  case object DefenseNC extends NewConglomerateAward(
     value = "DefenseNC",
     AwardCategory.Defense,
     List(
@@ -403,7 +454,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(DefenseNC7)
     )
   )
-  case object DefenseTR extends Merit(
+  case object DefenseTR extends TerranRepublicAward(
     value = "DefenseTR",
     AwardCategory.Defense,
     List(
@@ -416,7 +467,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(DefenseTR7)
     )
   )
-  case object DefenseVS extends Merit(
+  case object DefenseVS extends VanuSovereigntyAward(
     value = "DefenseVS",
     AwardCategory.Defense,
     List(
@@ -429,12 +480,12 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(DefenseVS7)
     )
   )
-  case object DevilDogsMovie extends Merit(
+  case object DevilDogsMovie extends Award(
     value = "DevilDogsMovie",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.DevilDogsMovie))
   )
-  case object DogFighter extends Merit(
+  case object DogFighter extends Award(
     value = "DogFighter",
     AwardCategory.Vehicular,
     List(
@@ -447,7 +498,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(DogFighter7)
     )
   )
-  case object DriverGunner extends Merit(
+  case object DriverGunner extends Award(
     value = "DriverGunner",
     AwardCategory.Vehicular,
     List(
@@ -460,7 +511,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(DriverGunner7)
     )
   )
-  case object EliteAssault extends Merit(
+  case object EliteAssault extends Award(
     value = "EliteAssault",
     AwardCategory.Weaponry,
     List(
@@ -473,12 +524,12 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(EliteAssault7)
     )
   )
-  case object EmeraldVeteran extends Merit(
+  case object EmeraldVeteran extends Award(
     value = "EmeraldVeteran",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.EmeraldVeteran))
   )
-  case object Engineer extends Merit(
+  case object Engineer extends Award(
     value = "Engineer",
     AwardCategory.Support,
     List(
@@ -490,7 +541,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Engineer6)
     )
   )
-  case object EquipmentSupport extends Merit(
+  case object EquipmentSupport extends Award(
     value = "EquipmentSupport",
     AwardCategory.Support,
     List(
@@ -503,52 +554,52 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(EquipmentSupport7)
     )
   )
-  case object EventNCCommander extends Merit(
+  case object EventNCCommander extends NewConglomerateAward(
     value = "EventNCCommander",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.EventNCCommander))
   )
-  case object EventNCElite extends Merit(
+  case object EventNCElite extends NewConglomerateAward(
     value = "EventNCElite",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.EventNCElite))
   )
-  case object EventNCSoldier extends Merit(
+  case object EventNCSoldier extends NewConglomerateAward(
     value = "EventNCSoldier",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.EventNCSoldier))
   )
-  case object EventTRCommander extends Merit(
+  case object EventTRCommander extends TerranRepublicAward(
     value = "EventTRCommander",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.EventTRCommander))
   )
-  case object EventTRElite extends Merit(
+  case object EventTRElite extends TerranRepublicAward(
     value = "EventTRElite",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.EventTRElite))
   )
-  case object EventTRSoldier extends Merit(
+  case object EventTRSoldier extends TerranRepublicAward(
     value = "EventTRSoldier",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.EventTRSoldier))
   )
-  case object EventVSCommander extends Merit(
+  case object EventVSCommander extends VanuSovereigntyAward(
     value = "EventVSCommander",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.EventVSCommander))
   )
-  case object EventVSElite extends Merit(
+  case object EventVSElite extends VanuSovereigntyAward(
     value = "EventVSElite",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.EventVSElite))
   )
-  case object EventVSSoldier extends Merit(
+  case object EventVSSoldier extends VanuSovereigntyAward(
     value = "EventVSSoldier",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.EventVSSoldier))
   )
-//  case object EventNC extends Merit(
+//  case object EventNC extends NewConglomerateAward(
 //    value = "EventNC",
 //    AwardCategory.Exclusive,
 //    List(
@@ -557,7 +608,7 @@ object Merit extends StringEnum[Merit] {
 //      CommendationRank(MeritCommendation.EventNCCommander)
 //    )
 //  )
-//  case object EventTR extends Merit(
+//  case object EventTR extends TerranRepublicAward(
 //    value = "EventTR",
 //    AwardCategory.Exclusive,
 //    List(
@@ -566,7 +617,7 @@ object Merit extends StringEnum[Merit] {
 //      CommendationRank(MeritCommendation.EventTRCommander)
 //    )
 //  )
-//  case object EventVS extends Merit(
+//  case object EventVS extends VanuSovereigntyAward(
 //    value = "EventVS",
 //    AwardCategory.Exclusive,
 //    List(
@@ -575,42 +626,42 @@ object Merit extends StringEnum[Merit] {
 //      CommendationRank(MeritCommendation.EventVSCommander)
 //    )
 //  )
-  case object Explorer extends Merit(
+  case object Explorer extends Award(
     value = "Explorer",
     AwardCategory.Activity,
     List(CommendationRank(MeritCommendation.Explorer1))
   )
-  case object FanFaire2005Commander extends Merit(
+  case object FanFaire2005Commander extends Award(
     value = "FanFaire2005Commander",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.FanFaire2005Commander))
   )
-  case object FanFaire2005Soldier extends Merit(
+  case object FanFaire2005Soldier extends Award(
     value = "FanFaire2005Soldier",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.FanFaire2005Soldier))
   )
-  case object FanFaire2006Atlanta extends Merit(
+  case object FanFaire2006Atlanta extends Award(
     value = "FanFaire2006Atlanta",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.FanFaire2006Atlanta))
   )
-  case object FanFaire2007 extends Merit(
+  case object FanFaire2007 extends Award(
     value = "FanFaire2007",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.FanFaire2007))
   )
-  case object FanFaire2008 extends Merit(
+  case object FanFaire2008 extends Award(
     value = "FanFaire2008",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.FanFaire2008))
   )
-  case object FanFaire2009 extends Merit(
+  case object FanFaire2009 extends Award(
     value = "FanFaire2009",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.FanFaire2009))
   )
-  case object GalaxySupport extends Merit(
+  case object GalaxySupport extends Award(
     value = "GalaxySupport",
     AwardCategory.Support,
     List(
@@ -623,7 +674,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(GalaxySupport7)
     )
   )
-  case object Grenade extends Merit(
+  case object Grenade extends Award(
     value = "Grenade",
     AwardCategory.Weaponry,
     List(
@@ -636,7 +687,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Grenade7)
     )
   )
-  case object GroundGunner extends Merit(
+  case object GroundGunner extends Award(
     value = "GroundGunner",
     AwardCategory.Vehicular,
     List(
@@ -649,7 +700,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(GroundGunner7)
     )
   )
-  case object HackingSupport extends Merit(
+  case object HackingSupport extends Award(
     value = "HackingSupport",
     AwardCategory.Support,
     List(
@@ -662,22 +713,22 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(HackingSupport7)
     )
   )
-  case object HalloweenMassacre2006NC extends Merit(
+  case object HalloweenMassacre2006NC extends NewConglomerateAward(
     value = "HalloweenMassacre2006NC",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.HalloweenMassacre2006NC))
   )
-  case object HalloweenMassacre2006TR extends Merit(
+  case object HalloweenMassacre2006TR extends TerranRepublicAward(
     value = "HalloweenMassacre2006TR",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.HalloweenMassacre2006TR))
   )
-  case object HalloweenMassacre2006VS extends Merit(
+  case object HalloweenMassacre2006VS extends VanuSovereigntyAward(
     value = "HalloweenMassacre2006VS",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.HalloweenMassacre2006VS))
   )
-  case object HeavyAssault extends Merit(
+  case object HeavyAssault extends Award(
     value = "HeavyAssault",
     AwardCategory.Weaponry,
     List(
@@ -690,7 +741,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(HeavyAssault7)
     )
   )
-  case object HeavyInfantry extends Merit(
+  case object HeavyInfantry extends Award(
     value = "HeavyInfantry",
     AwardCategory.Weaponry,
     List(
@@ -700,7 +751,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(HeavyInfantry4)
     )
   )
-  case object InfantryExpert extends Merit(
+  case object InfantryExpert extends Award(
     value = "InfantryExpert",
     AwardCategory.Weaponry,
     List(
@@ -709,7 +760,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(InfantryExpert3)
     )
   )
-  case object Jacking extends Merit(
+  case object Jacking extends Award(
     value = "Jacking",
     AwardCategory.Activity,
     List(
@@ -722,7 +773,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Jacking7)
     )
   )
-  case object KnifeCombat extends Merit(
+  case object KnifeCombat extends Award(
     value = "KnifeCombat",
     AwardCategory.Weaponry,
     List(
@@ -735,12 +786,12 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(KnifeCombat7)
     )
   )
-  case object LightInfantry extends Merit(
+  case object LightInfantry extends Award(
     value = "LightInfantry",
     AwardCategory.Weaponry,
     List(CommendationRank(MeritCommendation.LightInfantry))
   )
-  case object LockerCracker extends Merit(
+  case object LockerCracker extends Award(
     value = "LockerCracker",
     AwardCategory.Support,
     List(
@@ -753,7 +804,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(LockerCracker7)
     )
   )
-  case object LodestarSupport extends Merit(
+  case object LodestarSupport extends Award(
     value = "LodestarSupport",
     AwardCategory.Support,
     List(
@@ -766,7 +817,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(LodestarSupport7)
     )
   )
-  case object Loser extends Merit(
+  case object Loser extends Award(
     value = "Loser",
     AwardCategory.Exclusive,
     List(
@@ -776,12 +827,12 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(MeritCommendation.Loser4)
     )
   )
-  case object MarkovVeteran extends Merit(
+  case object MarkovVeteran extends Award(
     value = "MarkovVeteran",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.MarkovVeteran))
   )
-  case object Max extends Merit(
+  case object Max extends Award(
     value = "Max",
     AwardCategory.Vehicular,
     List(
@@ -793,7 +844,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Max6)
     )
   )
-  case object MaxBuster extends Merit(
+  case object MaxBuster extends Award(
     value = "MaxBuster",
     AwardCategory.Activity,
     List(
@@ -805,7 +856,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(MaxBuster6)
     )
   )
-  case object MediumAssault extends Merit(
+  case object MediumAssault extends Award(
     value = "MediumAssault",
     AwardCategory.Weaponry,
     List(
@@ -818,7 +869,14 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(MediumAssault7)
     )
   )
-  case object Orion extends Merit(
+  case object None extends Award(
+    value = "None",
+    AwardCategory.Exclusive,
+    List(
+      CommendationRank(MeritCommendation.None)
+    )
+  )
+  case object Orion extends VanuSovereigntyAward(
     value = "Orion",
     AwardCategory.Vehicular,
     List(
@@ -831,7 +889,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Orion7)
     )
   )
-  case object Osprey extends Merit(
+  case object Osprey extends NewConglomerateAward(
     value = "Osprey",
     AwardCategory.Vehicular,
     List(
@@ -844,7 +902,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Osprey7)
     )
   )
-  case object Phalanx extends Merit(
+  case object Phalanx extends Award(
     value = "Phalanx",
     AwardCategory.Weaponry,
     List(
@@ -857,42 +915,42 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Phalanx7)
     )
   )
-  case object PSUMaAttendee extends Merit(
+  case object PSUMaAttendee extends Award(
     value = "PSUMaAttendee",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.PSUMaAttendee))
   )
-  case object PSUMbAttendee extends Merit(
+  case object PSUMbAttendee extends Award(
     value = "PSUMbAttendee",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.PSUMbAttendee))
   )
-  case object QAAppreciation extends Merit(
+  case object QAAppreciation extends Award(
     value = "QAAppreciation",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.QAAppreciation))
   )
-  case object ReinforcementHackSpecialist extends Merit(
+  case object ReinforcementHackSpecialist extends Award(
     value = "ReinforcementHackSpecialist",
     AwardCategory.Support,
     List(CommendationRank(MeritCommendation.ReinforcementHackSpecialist))
   )
-  case object ReinforcementInfantrySpecialist extends Merit(
+  case object ReinforcementInfantrySpecialist extends Award(
     value = "ReinforcementInfantrySpecialist",
     AwardCategory.Support,
     List(CommendationRank(MeritCommendation.ReinforcementInfantrySpecialist))
   )
-  case object ReinforcementSpecialist extends Merit(
+  case object ReinforcementSpecialist extends Award(
     value = "ReinforcementSpecialist",
     AwardCategory.Support,
     List(CommendationRank(MeritCommendation.ReinforcementSpecialist))
   )
-  case object ReinforcementVehicleSpecialist extends Merit(
+  case object ReinforcementVehicleSpecialist extends Award(
     value = "ReinforcementVehicleSpecialist",
     AwardCategory.Support,
     List(CommendationRank(MeritCommendation.ReinforcementVehicleSpecialist))
   )
-  case object RouterSupport extends Merit(
+  case object RouterSupport extends Award(
     value = "RouterSupport",
     AwardCategory.Support,
     List(
@@ -905,7 +963,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(RouterSupport7)
     )
   )
-  case object RouterTelepadDeploy extends Merit(
+  case object RouterTelepadDeploy extends Award(
     value = "RouterTelepadDeploy",
     AwardCategory.Support,
     List(
@@ -918,7 +976,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(RouterTelepadDeploy7)
     )
   )
-  case object ScavengerNC extends Merit(
+  case object ScavengerNC extends NewConglomerateAward(
     value = "ScavengerNC",
     AwardCategory.Weaponry,
     List(
@@ -930,7 +988,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(ScavengerNC6)
     )
   )
-  case object ScavengerTR extends Merit(
+  case object ScavengerTR extends TerranRepublicAward(
     value = "ScavengerTR",
     AwardCategory.Weaponry,
     List(
@@ -942,7 +1000,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(ScavengerTR6)
     )
   )
-  case object ScavengerVS extends Merit(
+  case object ScavengerVS extends VanuSovereigntyAward(
     value = "ScavengerVS",
     AwardCategory.Weaponry,
     List(
@@ -954,7 +1012,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(ScavengerVS6)
     )
   )
-  case object Sniper extends Merit(
+  case object Sniper extends Award(
     value = "Sniper",
     AwardCategory.Weaponry,
     List(
@@ -967,7 +1025,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Sniper7)
     )
   )
-  case object SpecialAssault extends Merit(
+  case object SpecialAssault extends Award(
     value = "SpecialAssault",
     AwardCategory.Weaponry,
     List(
@@ -980,7 +1038,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(SpecialAssault7)
     )
   )
-  case object StandardAssault extends Merit(
+  case object StandardAssault extends Award(
     value = "StandardAssault",
     AwardCategory.Weaponry,
     List(
@@ -993,12 +1051,12 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(StandardAssault7)
     )
   )
-  case object StracticsHistorian extends Merit(
+  case object StracticsHistorian extends Award(
     value = "StracticsHistorian",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.StracticsHistorian))
   )
-  case object Supply extends Merit(
+  case object Supply extends Award(
     value = "Supply",
     AwardCategory.Activity,
     List(
@@ -1011,7 +1069,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Supply7)
     )
   )
-  case object TankBuster extends Merit(
+  case object TankBuster extends Award(
     value = "TankBuster",
     AwardCategory.Activity,
     List(
@@ -1024,9 +1082,9 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(TankBuster7)
     )
   )
-  case object TermOfServiceNC extends Merit(
+  case object TermOfServiceNC extends NewConglomerateAward(
     value = "TermOfServiceNC",
-    AwardCategory.Activity,
+    AwardCategory.Exclusive, //Activity,
     List(
       CommendationRank(OneYearNC),
       CommendationRank(TwoYearNC),
@@ -1036,9 +1094,9 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(SixYearNC)
     )
   )
-  case object TermOfServiceTR extends Merit(
+  case object TermOfServiceTR extends TerranRepublicAward(
     value = "TermOfServiceTR",
-    AwardCategory.Activity,
+    AwardCategory.Exclusive, //Activity,
     List(
       CommendationRank(OneYearTR),
       CommendationRank(TwoYearTR),
@@ -1048,9 +1106,9 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(SixYearTR)
     )
   )
-  case object TermOfServiceVS extends Merit(
+  case object TermOfServiceVS extends VanuSovereigntyAward(
     value = "TermOfServiceVS",
-    AwardCategory.Activity,
+    AwardCategory.Exclusive, //Activity,
     List(
       CommendationRank(OneYearVS),
       CommendationRank(TwoYearVS),
@@ -1060,7 +1118,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(SixYearVS)
     )
   )
-  case object TinyRoboticSupport extends Merit(
+  case object TinyRoboticSupport extends Award(
     value = "TinyRoboticSupport",
     AwardCategory.Support,
     List(
@@ -1073,7 +1131,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(TinyRoboticSupport7)
     )
   )
-  case object Transport extends Merit(
+  case object Transport extends Award(
     value = "Transport",
     AwardCategory.Activity,
     List(
@@ -1086,7 +1144,7 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(Transport7)
     )
   )
-  case object TransportationCitation extends Merit(
+  case object TransportationCitation extends Award(
     value = "TransportationCitation",
     AwardCategory.Activity,
     List(
@@ -1097,34 +1155,40 @@ object Merit extends StringEnum[Merit] {
       CommendationRank(TransportationCitation5)
     )
   )
-  case object ValentineFemale extends Merit(
+  case object ValentineFemale extends Award(
     value = "ValentineFemale",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.ValentineFemale))
   )
-  case object ValentineMale extends Merit(
+  case object ValentineMale extends Award(
     value = "ValentineMale",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.ValentineMale))
   )
-  case object WernerVeteran extends Merit(
+  case object WernerVeteran extends Award(
     value = "WernerVeteran",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.WernerVeteran))
   )
-  case object XmasGingerman extends Merit(
+  case object XmasGingerman extends Award(
     value = "XmasGingerman",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.XmasGingerman))
   )
-  case object XmasSnowman extends Merit(
+  case object XmasSnowman extends Award(
     value = "XmasSnowman",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.XmasSnowman))
   )
-  case object XmasSpirit extends Merit(
+  case object XmasSpirit extends Award(
     value = "XmasSpirit",
     AwardCategory.Exclusive,
     List(CommendationRank(MeritCommendation.XmasSpirit))
+  )
+
+  final val common: List[Award] = List(
+    AdvancedMedic, AdvancedMedicAssists, AirDefender, AMSSupport, AntiVehicular,
+    BFRAdvanced, BFRBuster, Bombadier, BomberAce, Boomer,
+    TankBuster, TinyRoboticSupport, Transport, TransportationCitation
   )
 }

@@ -193,10 +193,10 @@ object AvatarActor {
 
   def changeRibbons(ribbons: RibbonBars, ribbon: MeritCommendation.Value, bar: RibbonBarSlot.Value): RibbonBars = {
     bar match {
-      case RibbonBarSlot.Top           => ribbons.copy(upper = ribbon)
+      case RibbonBarSlot.Top           => ribbons.copy(upper  = ribbon)
       case RibbonBarSlot.Middle        => ribbons.copy(middle = ribbon)
-      case RibbonBarSlot.Bottom        => ribbons.copy(lower = ribbon)
-      case RibbonBarSlot.TermOfService => ribbons.copy(tos = ribbon)
+      case RibbonBarSlot.Bottom        => ribbons.copy(lower  = ribbon)
+      case RibbonBarSlot.TermOfService => ribbons.copy(tos    = ribbon)
     }
   }
 }
@@ -1016,7 +1016,13 @@ class AvatarActor(
           Behaviors.same
 
         case SetRibbon(ribbon, bar) =>
-          replaceAvatar(avatar.copy(ribbonBars = AvatarActor.changeRibbons(avatar.ribbonBars, ribbon, bar)))
+          val previousRibbonBars = avatar.ribbonBars
+          val useRibbonBars = Seq(previousRibbonBars.upper, previousRibbonBars.middle, previousRibbonBars.lower)
+            .indexWhere { _ == ribbon } match {
+            case -1 => previousRibbonBars
+            case n  => AvatarActor.changeRibbons(previousRibbonBars, MeritCommendation.None, RibbonBarSlot(n))
+          }
+          replaceAvatar(avatar.copy(ribbonBars = AvatarActor.changeRibbons(useRibbonBars, ribbon, bar)))
           val player = session.get.player
           val zone = player.Zone
           zone.AvatarEvents ! AvatarServiceMessage(

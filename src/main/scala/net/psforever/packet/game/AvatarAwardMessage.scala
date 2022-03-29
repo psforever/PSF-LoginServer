@@ -7,12 +7,15 @@ import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}
 
-trait AwardOption {
+/**
+  * Base class for all merit commendation advancement stages.
+  */
+sealed trait AwardOption {
   def value: Long
   def completion: Long
 }
 /**
-  * Display this award's progress.
+  * Display this award's development progress.
   * @param value the current count towards this award
   * @param completion the target (maximum) count
   */
@@ -31,7 +34,8 @@ final case class AwardQualificationProgress(value: Long) extends AwardOption {
 }
 /**
   * Display this award as completed.
-  * @param value the date (mm/dd/yyyy) that the award was achieved in POSIX time
+  * @param value the date (mm/dd/yyyy) that the award was achieved in POSIX seconds;
+  *              that's `System.currentTimeMillis() / 1000`
   */
 final case class AwardCompletion(value: Long) extends AwardOption {
   /** same as the parameter value */
@@ -39,9 +43,24 @@ final case class AwardCompletion(value: Long) extends AwardOption {
 }
 
 /**
-  * na
-  * @param merit_commendation na
-  * @param state na
+  * Dispatched from the server to load information about a character's merit commendation awards progress.<br>
+  * <br>
+  * The three stages of a merit commendation award are: progress, qualification, and completion.
+  * The progress stage and the qualification stage have their own development conditions.
+  * Ocassionally, the development is nonexistent and the award is merely an on/off switch.
+  * Occasionally, there is no qualification requirement and the award merely advances in the progress stage
+  * then transitions directly from progress to completion.
+  * Completion information is available from the character info / achievements tab
+  * and takes the form of ribbons associated with the merit commendation at a given rank
+  * and the date that rank was attained.
+  * Progress and qualification information are visible from the character info / achievements / award progress window
+  * and take the form of the name and rank of the merit commendation
+  * and two numbers that indicate the current and the goal towards the next stage.
+  * The completion stage is also visible from this window
+  * and will take the form of the same name and rank of the merit commendation indicated as "Completed" as of a date.
+  * @see `MeritCommendation.Value`
+  * @param merit_commendation the award and rank
+  * @param state the current state of the award advancement
   * @param unk na;
   *            0 and 1 are the possible values;
   *            0 is the common value
@@ -61,7 +80,7 @@ object AvatarAwardMessage extends Marshallable[AvatarAwardMessage] {
   def apply(meritCommendation: MeritCommendation.Value, state: AwardOption):AvatarAwardMessage =
     AvatarAwardMessage(meritCommendation, state, unk = 0)
 
-  private val codec_one: Codec[AwardOption] = {
+  private val qualification_codec: Codec[AwardOption] = {
     uint32L.hlist
   }.xmap[AwardOption](
     {
@@ -72,7 +91,7 @@ object AvatarAwardMessage extends Marshallable[AvatarAwardMessage] {
     }
   )
 
-  private val codec_two: Codec[AwardOption] = {
+  private val completion_codec: Codec[AwardOption] = {
     uint32L.hlist
   }.xmap[AwardOption](
     {
@@ -83,7 +102,7 @@ object AvatarAwardMessage extends Marshallable[AvatarAwardMessage] {
     }
   )
 
-  private val codec_zero: Codec[AwardOption] = {
+  private val progress_codec: Codec[AwardOption] = {
     uint32L :: uint32L
   }.xmap[AwardOption](
     {
@@ -97,7 +116,7 @@ object AvatarAwardMessage extends Marshallable[AvatarAwardMessage] {
   implicit val codec: Codec[AvatarAwardMessage] = (
     ("merit_commendation" | MeritCommendation.codec) ::
     ("state" | either(bool,
-      either(bool, codec_zero, codec_one).xmap[AwardOption](
+      either(bool, progress_codec, qualification_codec).xmap[AwardOption](
         {
           case Left(d)  => d
           case Right(d) => d
@@ -107,7 +126,7 @@ object AvatarAwardMessage extends Marshallable[AvatarAwardMessage] {
           case d: AwardQualificationProgress  => Right(d)
         }
       ),
-      codec_two
+      completion_codec
     ).xmap[AwardOption](
       {
         case Left(d)  => d
