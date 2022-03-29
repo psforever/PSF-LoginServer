@@ -35,20 +35,20 @@ sealed abstract class Award(
   def alignment: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
 }
 
-sealed abstract class TerranRepublicAward(
-                                           override val value: String,
-                                           override val category: AwardCategory.Value,
-                                           override val progression: List[CommendationRank]
-                                         ) extends Award(value, category, progression) {
-  override def alignment: PlanetSideEmpire.Value = PlanetSideEmpire.TR
-}
-
 sealed abstract class NewConglomerateAward(
                                             override val value: String,
                                             override val category: AwardCategory.Value,
                                             override val progression: List[CommendationRank]
                                           ) extends Award(value, category, progression) {
   override def alignment: PlanetSideEmpire.Value = PlanetSideEmpire.NC
+}
+
+sealed abstract class TerranRepublicAward(
+                                           override val value: String,
+                                           override val category: AwardCategory.Value,
+                                           override val progression: List[CommendationRank]
+                                         ) extends Award(value, category, progression) {
+  override def alignment: PlanetSideEmpire.Value = PlanetSideEmpire.TR
 }
 
 sealed abstract class VanuSovereigntyAward(
@@ -279,7 +279,13 @@ object Award extends StringEnum[Award] {
   case object BFRAdvanced extends Award(
     value = "BFRAdvanced",
     AwardCategory.Vehicular,
-    List(CommendationRank(MeritCommendation.BFRAdvanced))
+    List(
+      CommendationRank(MeritCommendation.BFRAdvanced),
+      CommendationRank(MeritCommendation.BFRAdvanced2),
+      CommendationRank(MeritCommendation.BFRAdvanced3),
+      CommendationRank(MeritCommendation.BFRAdvanced4),
+      CommendationRank(MeritCommendation.BFRAdvanced5)
+    )
   )
   case object BFRBuster extends Award(
     value = "BFRBuster",
@@ -515,6 +521,7 @@ object Award extends StringEnum[Award] {
     value = "EliteAssault",
     AwardCategory.Weaponry,
     List(
+      CommendationRank(EliteAssault0),
       CommendationRank(EliteAssault1),
       CommendationRank(EliteAssault2),
       CommendationRank(EliteAssault3),

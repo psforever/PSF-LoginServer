@@ -281,6 +281,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var heightTrend: Boolean = false //up = true, down = false
   var heightHistory: Float = 0f
   val collisionHistory: mutable.HashMap[ActorRef, Long] = mutable.HashMap()
+  var populateAvatarAwardRibbonsFunc: (Int, Long) => Unit = setupAvatarAwardMessageDelivery
 
   var clientKeepAlive: Cancellable   = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -3163,7 +3164,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sendResponse(PlanetsideAttributeMessage(guid, 7, tplayer.Capacitor.toLong))
     }
     // AvatarAwardMessage
-    setupAvatarAwardMessageDelivery(bundleSize = 1, delay = 20L)
+    populateAvatarAwardRibbonsFunc(1, 20L)
 
     sendResponse(PlanetsideStringAttributeMessage(guid, 0, "Outfit Name"))
     //squad stuff (loadouts, assignment)
@@ -3258,13 +3259,22 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
-    * Extract the merit commendation advancement information from a player character, and
+    * Don't extract the award advancement information from a player character upon respawning or zoning.
+    * You only need to perform that population once at login.
+    * @param bundleSize it doesn't matter
+    * @param delay it doesn't matter
+    */
+  def skipAvatarAwardMessageDelivery(bundleSize: Int, delay: Long): Unit = { }
+
+  /**
+    * Extract the award advancement information from a player character, and
     * coordinate timed dispatches of groups of packets.
     * @param bundleSize divide packets into groups of this size
     * @param delay dispatch packet divisions in intervals
     */
   def setupAvatarAwardMessageDelivery(bundleSize: Int, delay: Long): Unit = {
     setupAvatarAwardMessageDelivery(player, bundleSize, delay)
+    populateAvatarAwardRibbonsFunc = skipAvatarAwardMessageDelivery
   }
 
   /**
