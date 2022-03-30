@@ -3296,8 +3296,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           val alignment = merit.alignment
           if (merit.category == AwardCategory.Exclusive) false
           else if (alignment != PlanetSideEmpire.NEUTRAL && alignment != player.Faction) false
-          else if (label.contains("Male") && player.Sex == CharacterSex.Male) false
-          else if (label.contains("Female") && player.Sex == CharacterSex.Female) false
+          else if (label.contains("Male") && player.Sex != CharacterSex.Male) false
+          else if (label.contains("Female") && player.Sex != CharacterSex.Female) false
           else true
         }
         .flatMap { merit =>
@@ -3306,7 +3306,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
         }
         .grouped(bundleSize)
-        .iterator.to(Iterable),
+        .iterator
+        .to(Iterable),
       delay
     )
   }
