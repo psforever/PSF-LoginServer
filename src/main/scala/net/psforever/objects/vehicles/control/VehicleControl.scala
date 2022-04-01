@@ -81,6 +81,7 @@ class VehicleControl(vehicle: Vehicle)
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
+  SetInteraction(EnvironmentAttribute.MovementFieldTrigger, doInteractingWithMovementTrigger)
   if (!vehicle.Definition.CanFly || GlobalDefinitions.isBattleFrameFlightVehicle(vehicle.Definition)) {
     //can recover from sinking disability
     SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
@@ -671,6 +672,14 @@ class VehicleControl(vehicle: Vehicle)
         ).calculate()
       )
     }
+  }
+
+  def doInteractingWithMovementTrigger(
+                                        obj: PlanetSideServerObject,
+                                        body: PieceOfEnvironment,
+                                        data: Option[OxygenStateTarget]
+                                      ): Unit = {
+    body.asInstanceOf[GeneralMovementField].triggerAction(obj)
   }
 
   /**
