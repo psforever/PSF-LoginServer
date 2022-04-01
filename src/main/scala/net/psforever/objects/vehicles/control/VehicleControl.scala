@@ -674,6 +674,12 @@ class VehicleControl(vehicle: Vehicle)
     }
   }
 
+  /**
+    * The vehicle will be affected by this action.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable
+    */
   def doInteractingWithMovementTrigger(
                                         obj: PlanetSideServerObject,
                                         body: PieceOfEnvironment,

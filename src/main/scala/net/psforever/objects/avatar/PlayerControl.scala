@@ -1272,6 +1272,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     }
   }
 
+  /**
+    * The player will be affected by this action.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable
+    */
   def doInteractingWithMovementTrigger(
                                         obj: PlanetSideServerObject,
                                         body: PieceOfEnvironment,

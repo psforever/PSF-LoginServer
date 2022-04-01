@@ -3,7 +3,7 @@ package net.psforever.objects.zones
 import enumeratum.values.{StringEnum, StringEnumEntry}
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.serverobject.environment._
-import net.psforever.types.{PlanetSideGUID, Vector3}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 sealed abstract class MapInfo(
     val value: String,
@@ -443,6 +443,13 @@ object MapEnvironment {
     )
   }
 
+  /**
+    * Generate the bounded fields on the egde of the zone maps
+    * that kill players and vehicles the moment those game entities enter the region
+    * to disallow players from reaching and traversing the edge of the map.
+    * @param scale the scale of the map, indicating an outer perimeter
+    * @return a list of environmental representations
+    */
   def zoneMapEdgeKillPlane(scale: MapScale): List[PieceOfEnvironment] = {
     val killBoundingW = scale.width / 20f
     val killBoundingH = scale.height / 20f
@@ -456,17 +463,21 @@ object MapEnvironment {
   }
 
   /**
-    * Generate the bounded fields on the egde of the zone maps
+    * Generate the bounded regions along the edges of the zone maps
     * that kill players and vehicles the moment those game entities enter the region
     * to disallow players from reaching and traversing the edge of the map.
+    * Warn players who are getting too close to the kill regions that they should be cautious and turn back.
     * @param scale the scale of the map, indicating an outer perimeter
-    * @param span the distance of the kill plane to the closest parallel map edge
+    * @param killN distance of the kill field from the top edge of the zone map
+    * @param killE distance of the kill field from the right edge of the zone map
+    * @param killS distance of the kill field from the bottom edge of the zone map
+    * @param killW distance of the kill field from the left edge of the zone map
+    * @param warnN distance of the warning region from the top edge of the zone map to the kill field
+    * @param warnE distance of the warning region from the right edge of the zone map to the kill field
+    * @param warnS distance of the warning region from the bottom edge of the zone map to the kill field
+    * @param warnW distance of the warning region from the left edge of the zone map to the kill field
     * @return a list of environmental representations
     */
-  def zoneMapEdgeKillPlane(scale: MapScale, span: Float, span2: Float): List[PieceOfEnvironment] = {
-    zoneMapEdgeKillPlane(scale, span,span,span,span, span2,span2,span2,span2)
-  }
-
   def zoneMapEdgeKillPlane(
                             scale: MapScale,
                             killN: Float,
@@ -478,6 +489,10 @@ object MapEnvironment {
                             warnS: Float,
                             warnW: Float
                           ): List[PieceOfEnvironment] = {
+    assert(killN < warnN, "north side warn region closer to map edge than kill region")
+    assert(killE < warnE, "east side warn region closer to map edge than kill region")
+    assert(killS < warnS, "south side warn region closer to map edge than kill region")
+    assert(killW < warnW, "west side warn region closer to map edge than kill region")
     import net.psforever.objects.serverobject.environment.EnvironmentAttribute
     val height = scale.height
     val width = scale.width
@@ -515,11 +530,18 @@ object MapEnvironment {
     obj match {
       case p: Player =>
         val zone = p.Zone
+        val punishment = if (p.Faction == PlanetSideEmpire.VS) {
+          "r ongoing research venture will be defunded."
+        } else if (p.Faction == PlanetSideEmpire.NC) {
+          "r social credits will be liquidated."
+        } else {
+          " will be executed for desertion."
+        }
         zone.AvatarEvents ! AvatarServiceMessage(
           p.Name,
           AvatarAction.SendResponseTargeted(
             Service.defaultPlayerGUID,
-            ChatMsg(ChatMessageType.CMT_QUIT, false, "", s"$msg will executed for desertion.", None)
+            ChatMsg(ChatMessageType.CMT_QUIT, false, "", s"$msg$punishment", None)
           )
         )
       case v: Vehicle =>
@@ -528,7 +550,7 @@ object MapEnvironment {
           v.Actor.toString(),
           VehicleAction.SendResponse(
             Service.defaultPlayerGUID,
-            ChatMsg(ChatMessageType.CMT_QUIT, false, "",s"${msg}r transport will be destroyed.", None)
+            ChatMsg(ChatMessageType.CMT_QUIT, false, "",s"${msg}r ${v.Definition.Name} will be destroyed.", None)
           )
         )
       case _ => ;

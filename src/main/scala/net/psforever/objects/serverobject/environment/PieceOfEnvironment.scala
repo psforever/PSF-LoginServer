@@ -104,6 +104,7 @@ object EnvironmentAttribute extends Enum[EnvironmentTrait] {
 
   case object MovementFieldTrigger
     extends EnvironmentTrait {
+    /** only interact with living player characters or vehicles */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = {
       obj match {
         case p: Player  => p.isAlive && p.Position != Vector3.Zero
