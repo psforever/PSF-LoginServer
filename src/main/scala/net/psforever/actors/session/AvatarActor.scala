@@ -1,3 +1,4 @@
+// Copyright (c) 2019 PSForever
 package net.psforever.actors.session
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -16,7 +17,7 @@ import net.psforever.objects._
 import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.vital.HealFromImplant
-import net.psforever.packet.game.objectcreate.ObjectClass
+import net.psforever.packet.game.objectcreate.{ObjectClass, RibbonBars}
 import net.psforever.packet.game._
 import net.psforever.types._
 import net.psforever.util.Database._
@@ -178,6 +179,8 @@ object AvatarActor {
   /** Set cosmetics. Only allowed for BR24 or higher. */
   final case class SetCosmetics(personalStyles: Set[Cosmetic]) extends Command
 
+  final case class SetRibbon(ribbon: MeritCommendation.Value, bar: RibbonBarSlot.Value) extends Command
+
   private case class ServiceManagerLookupResult(result: ServiceManager.LookupResult) extends Command
 
   final case class SetStamina(stamina: Int) extends Command
@@ -188,6 +191,14 @@ object AvatarActor {
 
   final case class AvatarLoginResponse(avatar: Avatar)
 
+  def changeRibbons(ribbons: RibbonBars, ribbon: MeritCommendation.Value, bar: RibbonBarSlot.Value): RibbonBars = {
+    bar match {
+      case RibbonBarSlot.Top           => ribbons.copy(upper  = ribbon)
+      case RibbonBarSlot.Middle        => ribbons.copy(middle = ribbon)
+      case RibbonBarSlot.Bottom        => ribbons.copy(lower  = ribbon)
+      case RibbonBarSlot.TermOfService => ribbons.copy(tos    = ribbon)
+    }
+  }
 }
 
 class AvatarActor(
@@ -379,7 +390,7 @@ class AvatarActor(
               ))
               // if we need to start stamina regeneration
               tryRestoreStaminaForSession(stamina = 1) match {
-                case Some(sess) =>
+                case Some(_) =>
                   defaultStaminaRegen(initialDelay = 0.5f seconds)
                 case _ => ;
               }
@@ -1002,6 +1013,22 @@ class AvatarActor(
 
         case SetCosmetics(cosmetics) =>
           setCosmetics(cosmetics)
+          Behaviors.same
+
+        case SetRibbon(ribbon, bar) =>
+          val previousRibbonBars = avatar.ribbonBars
+          val useRibbonBars = Seq(previousRibbonBars.upper, previousRibbonBars.middle, previousRibbonBars.lower)
+            .indexWhere { _ == ribbon } match {
+            case -1 => previousRibbonBars
+            case n  => AvatarActor.changeRibbons(previousRibbonBars, MeritCommendation.None, RibbonBarSlot(n))
+          }
+          replaceAvatar(avatar.copy(ribbonBars = AvatarActor.changeRibbons(useRibbonBars, ribbon, bar)))
+          val player = session.get.player
+          val zone = player.Zone
+          zone.AvatarEvents ! AvatarServiceMessage(
+            zone.id,
+            AvatarAction.SendResponse(Service.defaultPlayerGUID, DisplayedAwardMessage(player.GUID, ribbon, bar))
+          )
           Behaviors.same
       }
       .receiveSignal {

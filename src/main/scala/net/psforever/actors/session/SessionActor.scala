@@ -159,6 +159,8 @@ object SessionActor {
       tool: ConstructionItem,
       index: Int
   )
+
+  private final case class AvatarAwardMessageBundle(bundle: Iterable[Iterable[PlanetSidePacket]], delay: Long)
 }
 
 class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
@@ -279,6 +281,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var heightTrend: Boolean = false //up = true, down = false
   var heightHistory: Float = 0f
   val collisionHistory: mutable.HashMap[ActorRef, Long] = mutable.HashMap()
+  var populateAvatarAwardRibbonsFunc: (Int, Long) => Unit = setupAvatarAwardMessageDelivery
 
   var clientKeepAlive: Cancellable   = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -1346,6 +1349,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
         }
       }
+
+    case SessionActor.AvatarAwardMessageBundle(pkts, delay) =>
+      performAvatarAwardMessageDelivery(pkts, delay)
 
     case ResponseToSelf(pkt) =>
       sendResponse(pkt)
@@ -3157,8 +3163,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (tplayer.ExoSuit == ExoSuitType.MAX) {
       sendResponse(PlanetsideAttributeMessage(guid, 7, tplayer.Capacitor.toLong))
     }
-    //AvatarAwardMessage
-    //DisplayAwardMessage
+    // AvatarAwardMessage
+    populateAvatarAwardRibbonsFunc(1, 20L)
+
     sendResponse(PlanetsideStringAttributeMessage(guid, 0, "Outfit Name"))
     //squad stuff (loadouts, assignment)
     squadSetup()
@@ -3249,6 +3256,83 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def SetCurrentAvatarNormally(tplayer: Player): Unit = {
     HandleSetCurrentAvatar(tplayer)
+  }
+
+  /**
+    * Don't extract the award advancement information from a player character upon respawning or zoning.
+    * You only need to perform that population once at login.
+    * @param bundleSize it doesn't matter
+    * @param delay it doesn't matter
+    */
+  def skipAvatarAwardMessageDelivery(bundleSize: Int, delay: Long): Unit = { }
+
+  /**
+    * Extract the award advancement information from a player character, and
+    * coordinate timed dispatches of groups of packets.
+    * @param bundleSize divide packets into groups of this size
+    * @param delay dispatch packet divisions in intervals
+    */
+  def setupAvatarAwardMessageDelivery(bundleSize: Int, delay: Long): Unit = {
+    setupAvatarAwardMessageDelivery(player, bundleSize, delay)
+    populateAvatarAwardRibbonsFunc = skipAvatarAwardMessageDelivery
+  }
+
+  /**
+    * Extract the merit commendation advancement information from a player character,
+    * filter unnecessary or not applicable statistics,
+    * translate the information into packet data, and
+    * coordinate timed dispatches of groups of packets.
+    * @param tplayer the player character
+    * @param bundleSize divide packets into groups of this size
+    * @param delay dispatch packet divisions in intervals
+    */
+  def setupAvatarAwardMessageDelivery(tplayer: Player, bundleSize: Int, delay: Long): Unit = {
+    val date: Int = (System.currentTimeMillis() / 1000L).toInt - 604800 //last week, in seconds
+    performAvatarAwardMessageDelivery(
+      Award
+        .values
+        .filter { merit =>
+          val label = merit.value
+          val alignment = merit.alignment
+          if (merit.category == AwardCategory.Exclusive) false
+          else if (alignment != PlanetSideEmpire.NEUTRAL && alignment != player.Faction) false
+          else if (label.contains("Male") && player.Sex != CharacterSex.Male) false
+          else if (label.contains("Female") && player.Sex != CharacterSex.Female) false
+          else true
+        }
+        .flatMap { merit =>
+          merit.progression.map { level =>
+            AvatarAwardMessage(level.commendation, AwardCompletion(date))
+          }
+        }
+        .grouped(bundleSize)
+        .iterator
+        .to(Iterable),
+      delay
+    )
+  }
+
+  /**
+    * Coordinate timed dispatches of groups of packets.
+    * @param messageBundles groups of packets to be dispatched
+    * @param delay dispatch packet divisions in intervals
+    */
+  def performAvatarAwardMessageDelivery(
+                                         messageBundles: Iterable[Iterable[PlanetSidePacket]],
+                                         delay: Long
+                                       ): Unit = {
+    messageBundles match {
+      case Nil => ;
+      case x :: Nil =>
+        x.foreach { sendResponse }
+      case x :: xs =>
+        x.foreach { sendResponse }
+        context.system.scheduler.scheduleOnce(
+          delay.milliseconds,
+          self,
+          SessionActor.AvatarAwardMessageBundle(xs, delay)
+        )
+    }
   }
 
   /**
@@ -5966,12 +6050,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             log.error(s"InvalidTerrain: ${player.Name} is complaining about a thing@$vehicle_guid that can not be found")
         }
 
-      case msg @ ActionCancelMessage(u1, u2, u3) =>
+      case ActionCancelMessage(_, _, _) =>
         progressBarUpdate.cancel()
         progressBarValue = None
 
       case TradeMessage(trade) =>
-        log.info(s"${player.Name} wants to trade, for some reason - $trade")
+        log.trace(s"${player.Name} wants to trade for some reason - $trade")
+
+      case DisplayedAwardMessage(_, ribbon, bar) =>
+        log.trace(s"${player.Name} changed the $bar displayed award ribbon to $ribbon")
+        avatarActor ! AvatarActor.SetRibbon(ribbon, bar)
 
       case _ =>
         log.warn(s"Unhandled GamePacket $pkt")

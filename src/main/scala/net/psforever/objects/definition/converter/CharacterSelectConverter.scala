@@ -79,7 +79,7 @@ class CharacterSelectConverter extends AvatarConverter {
       unk7 = false,
       on_zipline = None
     )
-    CharacterAppearanceData(aa, ab, RibbonBars())
+    CharacterAppearanceData(aa, ab, obj.avatar.ribbonBars)
   }
 
   private def MakeDetailedCharacterData(obj: Player): Option[Int] => DetailedCharacterData = {
