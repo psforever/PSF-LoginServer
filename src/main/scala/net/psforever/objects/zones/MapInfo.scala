@@ -1,8 +1,9 @@
 package net.psforever.objects.zones
 
 import enumeratum.values.{StringEnum, StringEnumEntry}
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.serverobject.environment._
-import net.psforever.types.{PlanetSideGUID, Vector3}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 sealed abstract class MapInfo(
     val value: String,
@@ -26,7 +27,7 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Water, 43.515625f, 4805.5f, 4324.3984f, 4727.867f, 4280.2188f), //north of hapi
           Pool(EnvironmentAttribute.Water, 43.0625f, 3313.1094f, 4746.4844f, 3259.4219f, 4691.2266f), //east of thoth
           Pool(EnvironmentAttribute.Water, 43.51f, 1917.1016f, 4086.8984f, 1893.4844f, 4038.2734f) //between horus and amun
-        )
+        ) ++ MapEnvironment.zoneMapEdgeKillPlane(MapScale.Dim8192, 100, 400, 400, 100, 200, 600, 600, 600)
       )
 
   case object Map02
@@ -54,7 +55,7 @@ case object MapInfo extends StringEnum[MapInfo] {
             Pool(EnvironmentAttribute.Water, 11, southNaum, eastNaum, 0, westNaum) //south of naum
             //TODO voltan Killplane
             //TODO naum Killplane
-          )
+          ) ++ MapEnvironment.zoneMapEdgeKillPlane(MapScale.Dim8192, 400, 400, 200, 400, 600, 600, 400, 600)
         }
       )
 
@@ -79,7 +80,7 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Water, 36.921875f, 3162.1094f, 1689.5703f, 3085.7422f, 1612.7734f), //north of nzame
           Pool(EnvironmentAttribute.Water, 36.390625f, 4143.797f, 4872.3906f, 4021.9766f, 4798.578f), //south of gunuku
           Pool(EnvironmentAttribute.Water, 35.71875f, 2591.336f, 1752.5938f, 2512.7578f, 1663.1172f) //south of nzame
-        )
+        ) ++ MapEnvironment.zoneMapEdgeKillPlane(MapScale.Dim8192, 200, 100, 100, 100, 400, 200, 200, 200)
       )
 
   case object Map04
@@ -87,7 +88,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map04",
         checksum = 2455050867L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 19.984375f))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 19.984375f)) ++
+                      MapEnvironment.zoneMapEdgeKillPlane(MapScale.Dim8192, 200, 10, 10, 10, 400, 200, 200, 200)
       )
 
   case object Map05
@@ -110,7 +112,7 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Water, 41.765625f, 2073.914f, 4982.5938f, 1995.4688f, 4899.086f), //L15-M16
           Pool(EnvironmentAttribute.Water, 41.3125f, 3761.1484f, 2616.75f, 3627.4297f, 2505.1328f), //G11, south
           Pool(EnvironmentAttribute.Water, 40.421875f, 4058.8281f, 2791.6562f, 3985.1016f, 2685.3672f) //G11, north
-        )
+        ) ++ MapEnvironment.zoneMapEdgeKillPlane(MapScale.Dim8192, 400, 10, 200, 400, 600, 100, 400, 600)
       )
 
   case object Map06
@@ -122,7 +124,7 @@ case object MapInfo extends StringEnum[MapInfo] {
           SeaLevel(EnvironmentAttribute.Water, 10.03125f),
           Pool(EnvironmentAttribute.Water, 213.03125f, 3116.7266f, 4724.414f, 2685.8281f, 4363.461f), //east side of southwest of tootega
           Pool(EnvironmentAttribute.Water, 213.03125f, 2994.2969f, 4363.461f, 2685.8281f, 4187.4375f), //west side of southwest of tootega
-        )
+        ) ++ MapEnvironment.zoneMapEdgeKillPlane(MapScale.Dim8192, 400, 400, 400, 400, 600, 600, 600, 600)
       )
 
   case object Map07
@@ -130,7 +132,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map07",
         checksum = 1564014762L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 29.984375f))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 29.984375f)) ++
+                      MapEnvironment.zoneMapEdgeKillPlane(MapScale.Dim8192, 10, 10, 10, 10, 200, 200, 200, 200)
       )
 
   case object Map08
@@ -138,7 +141,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map08",
         checksum = 0L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 26.078125f))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 26.078125f)) ++
+                      MapEnvironment.zoneMapEdgeKillPlane(MapScale.Dim8192, 200, 200, 200, 200, 400, 400, 400, 400)
       )
 
   case object Map09
@@ -156,7 +160,7 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Lava, DeepSurface(187.57812f, 4288.1484f, 4589.0703f, 3996.3125f, 4355.6406f)), //lower central lava pool
           Pool(EnvironmentAttribute.Lava, DeepSurface(181.45312f, 4635.1953f, 4579.3516f, 4406.3438f, 4303.828f)), //upper central lava pool
           Pool(EnvironmentAttribute.Lava, DeepSurface(176.64062f, 4274.8125f, 4969.9688f, 4101.7734f, 4766.3594f)) //east lava pool
-        )
+        ) ++ MapEnvironment.zoneMapEdgeKillPlane(MapScale.Dim8192, 200, 200, 200, 200, 400, 400, 400, 400)
       )
 
   case object Map10
@@ -164,7 +168,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map10",
         checksum = 230810349L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 28))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 28)) ++
+                      MapEnvironment.zoneMapEdgeKillPlane(MapScale.Dim8192, 200, 200, 200, 200, 400, 400, 400, 400)
       )
 
   case object Map11
@@ -181,7 +186,8 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Water, 34.96875f, 5899.367f, 3235.5781f, 5573.8516f, 2865.7812f), //northeast of hart c campus
           Pool(EnvironmentAttribute.Water, 34.328125f, 3880.7422f, 5261.508f, 3780.9219f, 5166.953f), //east of hart a campus
           Pool(EnvironmentAttribute.Water, 31.03125f, 4849.797f, 2415.4297f, 4731.8594f, 2252.1484f) //south of hart c campus
-        ) ++ MapEnvironment.map11Environment
+        ) ++ MapEnvironment.map11Environment ++
+        MapEnvironment.zoneMapEdgeKillPlane(MapScale.Dim8192, 200, 400, 400, 200, 600, 800, 800, 600)
       )
 
   case object Map12
@@ -190,7 +196,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 962888126L,
         scale = MapScale.Dim8192,
         environment = List(SeaLevel(EnvironmentAttribute.Water, 20.03125f)) ++
-                      MapEnvironment.map12Environment
+                      MapEnvironment.map12Environment ++
+                      MapEnvironment.dim8192MapEdgeKillPlanes
       )
 
   case object Map13
@@ -199,15 +206,17 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 3904659548L,
         scale = MapScale.Dim8192,
         environment = List(SeaLevel(EnvironmentAttribute.Water, 30)) ++
-                      MapEnvironment.map13Environment
+                      MapEnvironment.map13Environment ++
+                      MapEnvironment.dim8192MapEdgeKillPlanes
       )
 
   case object Map14
       extends MapInfo(
         value = "map14",
         checksum = 0L,
-        scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 0))
+        scale = MapScale.Dim1024,
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 0)) ++
+                      MapEnvironment.dim1024MapEdgeKillPlanes
       )
 
   case object Map15
@@ -215,15 +224,17 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map15",
         checksum = 0L,
         scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 0))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 0)) ++
+                      MapEnvironment.dim8192MapEdgeKillPlanes
       )
 
   case object Map16
       extends MapInfo(
         value = "map16",
         checksum = 0L,
-        scale = MapScale.Dim8192,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 0))
+        scale = MapScale.Dim1024,
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 0)) ++
+                      MapEnvironment.dim1024MapEdgeKillPlanes
       )
 
   case object Ugd01
@@ -286,7 +297,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map96",
         checksum = 846603446L,
         scale = MapScale.Dim4096,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 17.015625f))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 17.015625f)) ++
+                      MapEnvironment.dim4096MapEdgeKillPlanes
       )
 
   case object Map97
@@ -299,7 +311,7 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Water, 20.484375f, 2183.8203f, 2086.5078f, 2127.2266f, 1992.5f), //north
           Pool(EnvironmentAttribute.Water, 20.421875f, 1880.4375f, 1961.875f, 1816.1484f, 1915.0625f), //west
           Pool(EnvironmentAttribute.Water, 20.421875f, 2028.1172f, 2232.4375f, 1976.9141f, 2181.0312f) //east
-        )
+        ) ++ MapEnvironment.dim4096MapEdgeKillPlanes
       )
 
   case object Map98
@@ -307,7 +319,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map98",
         checksum = 3654267088L,
         scale = MapScale.Dim4096,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 3.5f))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 3.5f)) ++
+                      MapEnvironment.dim4096MapEdgeKillPlanes
       )
 
   case object Map99
@@ -315,7 +328,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "map99",
         checksum = 4113726460L,
         scale = MapScale.Dim4096,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 44.0625f))
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 44.0625f)) ++
+                      MapEnvironment.dim4096MapEdgeKillPlanes
       )
 
   val values: IndexedSeq[MapInfo] = findValues
@@ -348,6 +362,12 @@ object MapEnvironment {
     hartGantryDenialFields(PlanetSideGUID(786), Vector3(2978, 4834, 56.085392f), vsHartMountPoints) ++
     hartGantryDenialFields(PlanetSideGUID(787), Vector3(3688, 2808, 90.85312f), vsHartMountPoints) ++
     hartGantryDenialFields(PlanetSideGUID(788), Vector3(5610, 4238, 103.228859f), vsHartMountPoints)
+
+  /** common map edge kill planes */
+  final val dim1024MapEdgeKillPlanes: List[PieceOfEnvironment] = zoneMapEdgeKillPlane(MapScale.Dim1024)
+  final val dim2560MapEdgeKillPlanes: List[PieceOfEnvironment] = zoneMapEdgeKillPlane(MapScale.Dim2560)
+  final val dim4096MapEdgeKillPlanes: List[PieceOfEnvironment] = zoneMapEdgeKillPlane(MapScale.Dim4096)
+  final val dim8192MapEdgeKillPlanes: List[PieceOfEnvironment] = zoneMapEdgeKillPlane(MapScale.Dim8192)
 
   /**
     * Generate eight environmental representations that serve to eject players
@@ -422,5 +442,118 @@ object MapEnvironment {
       GantryDenialField(obbasemesh, 8, DeepCircularSurface(Vector3(4786f, 3464.4453f, upper), radius))  //S
     )
   }
-}
 
+  /**
+    * Generate the bounded fields on the egde of the zone maps
+    * that kill players and vehicles the moment those game entities enter the region
+    * to disallow players from reaching and traversing the edge of the map.
+    * @param scale the scale of the map, indicating an outer perimeter
+    * @return a list of environmental representations
+    */
+  def zoneMapEdgeKillPlane(scale: MapScale): List[PieceOfEnvironment] = {
+    val killBoundingW = scale.width / 20f
+    val killBoundingH = scale.height / 20f
+    val warnBoundingW = killBoundingW * 2f
+    val warnBoundingH = killBoundingH * 2f
+    zoneMapEdgeKillPlane(
+      scale,
+      killBoundingH, killBoundingW, killBoundingH, killBoundingW,
+      warnBoundingH, warnBoundingW, warnBoundingH, warnBoundingW
+    )
+  }
+
+  /**
+    * Generate the bounded regions along the edges of the zone maps
+    * that kill players and vehicles the moment those game entities enter the region
+    * to disallow players from reaching and traversing the edge of the map.
+    * Warn players who are getting too close to the kill regions that they should be cautious and turn back.
+    * @param scale the scale of the map, indicating an outer perimeter
+    * @param killN distance of the kill field from the top edge of the zone map
+    * @param killE distance of the kill field from the right edge of the zone map
+    * @param killS distance of the kill field from the bottom edge of the zone map
+    * @param killW distance of the kill field from the left edge of the zone map
+    * @param warnN distance of the warning region from the top edge of the zone map to the kill field
+    * @param warnE distance of the warning region from the right edge of the zone map to the kill field
+    * @param warnS distance of the warning region from the bottom edge of the zone map to the kill field
+    * @param warnW distance of the warning region from the left edge of the zone map to the kill field
+    * @return a list of environmental representations
+    */
+  def zoneMapEdgeKillPlane(
+                            scale: MapScale,
+                            killN: Float,
+                            killE: Float,
+                            killS: Float,
+                            killW: Float,
+                            warnN: Float,
+                            warnE: Float,
+                            warnS: Float,
+                            warnW: Float
+                          ): List[PieceOfEnvironment] = {
+    assert(killN < warnN, "north side warn region closer to map edge than kill region")
+    assert(killE < warnE, "east side warn region closer to map edge than kill region")
+    assert(killS < warnS, "south side warn region closer to map edge than kill region")
+    assert(killW < warnW, "west side warn region closer to map edge than kill region")
+    import net.psforever.objects.serverobject.environment.EnvironmentAttribute
+    val height = scale.height
+    val width = scale.width
+    val heightKillN = height - killN
+    val heightWarnN = height - warnN
+    val widthKillE = width - killE
+    val widthWarnE = width - warnE
+    List(
+      /*warnings*/
+      GeneralMovementField(warnCloseToEdgeOfMap(direction = "NW"), DeepSquare(1024, heightKillN, warnW, heightWarnN, killW)), //NW
+      GeneralMovementField(warnCloseToEdgeOfMap(direction = "N"), DeepSquare(1024, heightKillN, widthWarnE, heightWarnN, warnW)), //N
+      GeneralMovementField(warnCloseToEdgeOfMap(direction = "NE"), DeepSquare(1024, heightKillN, widthKillE, heightWarnN, widthWarnE)), //NE
+      GeneralMovementField(warnCloseToEdgeOfMap(direction = "E"), DeepSquare(1024, heightWarnN, widthKillE, warnS, widthWarnE)), //E
+      GeneralMovementField(warnCloseToEdgeOfMap(direction = "SE"), DeepSquare(1024, warnS, widthKillE, killS, widthWarnE)), //SE
+      GeneralMovementField(warnCloseToEdgeOfMap(direction = "S"), DeepSquare(1024, warnS, widthWarnE, killS, warnW)), //S
+      GeneralMovementField(warnCloseToEdgeOfMap(direction = "SW"), DeepSquare(1024, warnS, warnW, killS, killW)), //SW
+      GeneralMovementField(warnCloseToEdgeOfMap(direction = "W"), DeepSquare(1024, heightWarnN, warnW, warnS, killW)), //W
+      /*kill fields*/
+      Pool(EnvironmentAttribute.Death, 1024, height, width, heightKillN, 0), //N
+      Pool(EnvironmentAttribute.Death, 1024, height, width, 0, widthKillE), //E
+      Pool(EnvironmentAttribute.Death, 1024, killS, width, 0, 0), //S
+      Pool(EnvironmentAttribute.Death, 1024, height, killW, 0, 0) //W
+    )
+    Nil
+  }
+
+  private def warnCloseToEdgeOfMap(direction: String)(obj: PlanetSideGameObject): Unit = {
+    import net.psforever.objects.{Player, Vehicle}
+    import net.psforever.packet.game.ChatMsg
+    import net.psforever.services.Service
+    import net.psforever.services.avatar.{AvatarServiceMessage, AvatarAction}
+    import net.psforever.services.vehicle.{VehicleServiceMessage, VehicleAction}
+    import net.psforever.types.ChatMessageType
+    val msg = s"Do not travel any further $direction from the battlefield or you"
+    obj match {
+      case p: Player =>
+        val zone = p.Zone
+        val punishment = if (p.Faction == PlanetSideEmpire.VS) {
+          "r ongoing research venture will be defunded."
+        } else if (p.Faction == PlanetSideEmpire.NC) {
+          "r social credits will be liquidated."
+        } else {
+          " will be executed for desertion."
+        }
+        zone.AvatarEvents ! AvatarServiceMessage(
+          p.Name,
+          AvatarAction.SendResponseTargeted(
+            Service.defaultPlayerGUID,
+            ChatMsg(ChatMessageType.CMT_QUIT, false, "", s"$msg$punishment", None)
+          )
+        )
+      case v: Vehicle =>
+        val zone = v.Zone
+        zone.VehicleEvents ! VehicleServiceMessage(
+          v.Actor.toString(),
+          VehicleAction.SendResponse(
+            Service.defaultPlayerGUID,
+            ChatMsg(ChatMessageType.CMT_QUIT, false, "",s"${msg}r ${v.Definition.Name} will be destroyed.", None)
+          )
+        )
+      case _ => ;
+    }
+  }
+}

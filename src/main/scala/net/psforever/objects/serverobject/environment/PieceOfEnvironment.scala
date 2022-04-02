@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.environment
 
 import enumeratum.{Enum, EnumEntry}
-import net.psforever.objects.{PlanetSideGameObject, Player}
+import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.types.{PlanetSideGUID, Vector3}
@@ -101,6 +101,18 @@ object EnvironmentAttribute extends Enum[EnvironmentTrait] {
       }
     }
   }
+
+  case object MovementFieldTrigger
+    extends EnvironmentTrait {
+    /** only interact with living player characters or vehicles */
+    def canInteractWith(obj: PlanetSideGameObject): Boolean = {
+      obj match {
+        case p: Player  => p.isAlive && p.Position != Vector3.Zero
+        case v: Vehicle => !v.Destroyed && v.Position != Vector3.Zero
+        case _          => false
+      }
+    }
+  }
 }
 
 /**
@@ -156,6 +168,13 @@ final case class GantryDenialField(
                                     collision: EnvironmentCollision
                                   ) extends PieceOfEnvironment {
   def attribute = EnvironmentAttribute.GantryDenialField
+}
+
+final case class GeneralMovementField(
+                                       triggerAction: PlanetSideGameObject => Unit,
+                                       collision: EnvironmentCollision
+                                     ) extends PieceOfEnvironment {
+  def attribute = EnvironmentAttribute.MovementFieldTrigger
 }
 
 object PieceOfEnvironment {

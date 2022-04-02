@@ -69,6 +69,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
   SetInteraction(EnvironmentAttribute.GantryDenialField, doInteractingWithGantryField)
+  SetInteraction(EnvironmentAttribute.MovementFieldTrigger, doInteractingWithMovementTrigger)
   SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
   private[this] val log = org.log4s.getLogger(player.Name)
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
@@ -1269,6 +1270,20 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case _ => ;
         //something configured incorrectly; no need to keep checking
     }
+  }
+
+  /**
+    * The player will be affected by this action.
+    * @param obj the target
+    * @param body the environment
+    * @param data additional interaction information, if applicable
+    */
+  def doInteractingWithMovementTrigger(
+                                        obj: PlanetSideServerObject,
+                                        body: PieceOfEnvironment,
+                                        data: Option[OxygenStateTarget]
+                                      ): Unit = {
+    body.asInstanceOf[GeneralMovementField].triggerAction(obj)
   }
 
   /**
