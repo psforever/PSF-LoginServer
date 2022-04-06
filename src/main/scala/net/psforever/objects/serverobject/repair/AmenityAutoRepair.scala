@@ -87,7 +87,7 @@ trait AmenityAutoRepair
         val wholeRepairAmount = modifiedRepairAmount.toInt
         val overflowRepairAmount = modifiedRepairAmount - wholeRepairAmount
         val finalRepairAmount = if (autoRepairOverflow + overflowRepairAmount < 1) {
-          autoRepairOverflow += overflowRepairAmount
+          autoRepairOverflow = autoRepairOverflow + overflowRepairAmount
           wholeRepairAmount
         } else {
           val totalOverflow = autoRepairOverflow + overflowRepairAmount
