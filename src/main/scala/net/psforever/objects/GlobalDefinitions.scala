@@ -9300,7 +9300,7 @@ object GlobalDefinitions {
     spawn_terminal.Name = "spawn_terminal"
     spawn_terminal.Damageable = false
     spawn_terminal.Repairable = false
-    spawn_terminal.autoRepair = AutoRepairStats(1, 5000, 200, 1) //TODO amount and drain are default? undefined?
+    spawn_terminal.autoRepair = AutoRepairStats(1, 5000, 200, 1) //TODO amount and drain are default value?
 
     order_terminal.Name = "order_terminal"
     order_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(
@@ -9319,7 +9319,7 @@ object GlobalDefinitions {
     order_terminal.MaxHealth = 500
     order_terminal.Damageable = true
     order_terminal.Repairable = true
-    order_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f)
+    order_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.05f)
     order_terminal.RepairIfDestroyed = true
     order_terminal.Subtract.Damage1 = 8
     order_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.8438f, height = 1.3f)
@@ -9384,7 +9384,7 @@ object GlobalDefinitions {
     cert_terminal.MaxHealth = 500
     cert_terminal.Damageable = true
     cert_terminal.Repairable = true
-    cert_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f)
+    cert_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.05f)
     cert_terminal.RepairIfDestroyed = true
     cert_terminal.Subtract.Damage1 = 8
     cert_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.66405f, height = 1.09374f)
@@ -9393,7 +9393,7 @@ object GlobalDefinitions {
     implant_terminal_mech.MaxHealth = 1500 //TODO 1000; right now, 1000 (mech) + 500 (interface)
     implant_terminal_mech.Damageable = true
     implant_terminal_mech.Repairable = true
-    implant_terminal_mech.autoRepair = AutoRepairStats(1.6f, 5000, 2400, 0.5f)
+    implant_terminal_mech.autoRepair = AutoRepairStats(1.6f, 5000, 2400, 0.05f)
     implant_terminal_mech.RepairIfDestroyed = true
     implant_terminal_mech.RadiationShielding = 0.5f
     implant_terminal_mech.Geometry = GeometryForm.representByCylinder(radius = 2.7813f, height = 6.4375f)
@@ -9403,8 +9403,7 @@ object GlobalDefinitions {
     implant_terminal_interface.MaxHealth = 500
     implant_terminal_interface.Damageable = false //TODO true
     implant_terminal_interface.Repairable = true
-    implant_terminal_interface.autoRepair =
-      AutoRepairStats(1, 5000, 200, 1) //TODO amount and drain are default? undefined?
+    implant_terminal_interface.autoRepair = AutoRepairStats(1, 5000, 200, 1) //TODO amount and drain are default value?
     implant_terminal_interface.RepairIfDestroyed = true
     //TODO will need geometry when Damageable = true
 
@@ -9417,7 +9416,7 @@ object GlobalDefinitions {
     ground_vehicle_terminal.MaxHealth = 500
     ground_vehicle_terminal.Damageable = true
     ground_vehicle_terminal.Repairable = true
-    ground_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f)
+    ground_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.05f)
     ground_vehicle_terminal.RepairIfDestroyed = true
     ground_vehicle_terminal.Subtract.Damage1 = 8
     ground_vehicle_terminal.Geometry = vterm
@@ -9431,7 +9430,7 @@ object GlobalDefinitions {
     air_vehicle_terminal.MaxHealth = 500
     air_vehicle_terminal.Damageable = true
     air_vehicle_terminal.Repairable = true
-    air_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f)
+    air_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.05f)
     air_vehicle_terminal.RepairIfDestroyed = true
     air_vehicle_terminal.Subtract.Damage1 = 8
     air_vehicle_terminal.Geometry = vterm
@@ -9445,7 +9444,7 @@ object GlobalDefinitions {
     dropship_vehicle_terminal.MaxHealth = 500
     dropship_vehicle_terminal.Damageable = true
     dropship_vehicle_terminal.Repairable = true
-    dropship_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f)
+    dropship_vehicle_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.05f)
     dropship_vehicle_terminal.RepairIfDestroyed = true
     dropship_vehicle_terminal.Subtract.Damage1 = 8
     dropship_vehicle_terminal.Geometry = vterm
@@ -9459,7 +9458,7 @@ object GlobalDefinitions {
     vehicle_terminal_combined.MaxHealth = 500
     vehicle_terminal_combined.Damageable = true
     vehicle_terminal_combined.Repairable = true
-    vehicle_terminal_combined.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f)
+    vehicle_terminal_combined.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.05f)
     vehicle_terminal_combined.RepairIfDestroyed = true
     vehicle_terminal_combined.Subtract.Damage1 = 8
     vehicle_terminal_combined.Geometry = vterm
@@ -9473,7 +9472,7 @@ object GlobalDefinitions {
     vanu_air_vehicle_term.MaxHealth = 500
     vanu_air_vehicle_term.Damageable = true
     vanu_air_vehicle_term.Repairable = true
-    vanu_air_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f)
+    vanu_air_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.05f)
     vanu_air_vehicle_term.RepairIfDestroyed = true
     vanu_air_vehicle_term.Subtract.Damage1 = 8
 
@@ -9486,7 +9485,7 @@ object GlobalDefinitions {
     vanu_vehicle_term.MaxHealth = 500
     vanu_vehicle_term.Damageable = true
     vanu_vehicle_term.Repairable = true
-    vanu_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f)
+    vanu_vehicle_term.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.05f)
     vanu_vehicle_term.RepairIfDestroyed = true
     vanu_vehicle_term.Subtract.Damage1 = 8
 
@@ -9507,7 +9506,7 @@ object GlobalDefinitions {
     bfr_terminal.MaxHealth = 500
     bfr_terminal.Damageable = true
     bfr_terminal.Repairable = true
-    bfr_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f)
+    bfr_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.05f)
     bfr_terminal.RepairIfDestroyed = true
     bfr_terminal.Subtract.Damage1 = 8
     bfr_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.92185f, height = 2.64693f)
@@ -9519,7 +9518,7 @@ object GlobalDefinitions {
     respawn_tube.Damageable = true
     respawn_tube.DamageableByFriendlyFire = false
     respawn_tube.Repairable = true
-    respawn_tube.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1)
+    respawn_tube.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //TODO drain is default value?
     respawn_tube.RepairIfDestroyed = true
     respawn_tube.Subtract.Damage1 = 8
     respawn_tube.Geometry = GeometryForm.representByCylinder(radius = 0.9336f, height = 2.84375f)
@@ -9531,7 +9530,7 @@ object GlobalDefinitions {
     respawn_tube_sanctuary.Damageable = false //true?
     respawn_tube_sanctuary.DamageableByFriendlyFire = false
     respawn_tube_sanctuary.Repairable = true
-    respawn_tube_sanctuary.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1)
+    respawn_tube_sanctuary.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //TODO drain is default value?
     //TODO will need geometry when Damageable = true
 
     respawn_tube_tower.Name = "respawn_tube_tower"
@@ -9541,7 +9540,7 @@ object GlobalDefinitions {
     respawn_tube_tower.Damageable = true
     respawn_tube_tower.DamageableByFriendlyFire = false
     respawn_tube_tower.Repairable = true
-    respawn_tube_tower.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1)
+    respawn_tube_tower.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //TODO drain is default value?
     respawn_tube_tower.RepairIfDestroyed = true
     respawn_tube_tower.Subtract.Damage1 = 8
     respawn_tube_tower.Geometry = GeometryForm.representByCylinder(radius = 0.9336f, height = 2.84375f)
@@ -9565,7 +9564,7 @@ object GlobalDefinitions {
     medical_terminal.MaxHealth = 500
     medical_terminal.Damageable = true
     medical_terminal.Repairable = true
-    medical_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f)
+    medical_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.05f)
     medical_terminal.RepairIfDestroyed = true
     medical_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.711f, height = 1.75f)
 
@@ -9578,7 +9577,7 @@ object GlobalDefinitions {
     adv_med_terminal.MaxHealth = 750
     adv_med_terminal.Damageable = true
     adv_med_terminal.Repairable = true
-    adv_med_terminal.autoRepair = AutoRepairStats(1.57894f, 5000, 2400, 0.5f)
+    adv_med_terminal.autoRepair = AutoRepairStats(1.57894f, 5000, 2400, 0.05f)
     adv_med_terminal.RepairIfDestroyed = true
     adv_med_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.8662125f, height = 3.47f)
 
@@ -9607,7 +9606,7 @@ object GlobalDefinitions {
     portable_med_terminal.MaxHealth = 500
     portable_med_terminal.Damageable = false //TODO actually true
     portable_med_terminal.Repairable = false
-    portable_med_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.5f)
+    portable_med_terminal.autoRepair = AutoRepairStats(2.24215f, 5000, 3500, 0.05f)
 
     pad_landing_frame.Name = "pad_landing_frame"
     pad_landing_frame.Interval = 1000
@@ -9830,7 +9829,7 @@ object GlobalDefinitions {
     manned_turret.Damageable = true
     manned_turret.DamageDisablesAt = 0
     manned_turret.Repairable = true
-    manned_turret.autoRepair = AutoRepairStats(1.0909f, 10000, 1600, 0.5f)
+    manned_turret.autoRepair = AutoRepairStats(1.0909f, 10000, 1600, 0.05f)
     manned_turret.RepairIfDestroyed = true
     manned_turret.WeaponPaths += 1                          -> new mutable.HashMap()
     manned_turret.WeaponPaths(1) += TurretUpgrade.None      -> phalanx_sgl_hevgatcan
@@ -9856,7 +9855,7 @@ object GlobalDefinitions {
     vanu_sentry_turret.Damageable = true
     vanu_sentry_turret.DamageDisablesAt = 0
     vanu_sentry_turret.Repairable = true
-    vanu_sentry_turret.autoRepair = AutoRepairStats(3.27272f, 10000, 1000, 0.5f)
+    vanu_sentry_turret.autoRepair = AutoRepairStats(3.27272f, 10000, 1000, 0.05f)
     vanu_sentry_turret.RepairIfDestroyed = true
     vanu_sentry_turret.WeaponPaths += 1                     -> new mutable.HashMap()
     vanu_sentry_turret.WeaponPaths(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
@@ -9940,7 +9939,7 @@ object GlobalDefinitions {
     generator.Damageable = true
     generator.DamageableByFriendlyFire = false
     generator.Repairable = true
-    generator.autoRepair = AutoRepairStats(0.77775f, 5000, 875, 1)
+    generator.autoRepair = AutoRepairStats(0.77775f, 5000, 875, 1) //TODO drain is default value?
     generator.RepairDistance = 13.5f
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9

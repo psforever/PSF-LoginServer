@@ -17,9 +17,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 /**
-  * An `Actor` that handles messages being dispatched to a specific `Resource Silo`.
+  * An `Actor` that handles messages being dispatched to a specific `ResourceSilo` entity.
   *
-  * @param resourceSilo the `Resource Silo` object being governed
+  * @param resourceSilo the `ResourceSilo` entity being governed
   */
 class ResourceSiloControl(resourceSilo: ResourceSilo)
     extends Actor
