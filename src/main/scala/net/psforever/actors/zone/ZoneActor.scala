@@ -137,7 +137,7 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
         zone.blockMap.addTo(target, toPosition)
 
       case UpdateBlockMap(target, toPosition) =>
-        target.updateBlockMapEntry(toPosition)
+        zone.blockMap.move(target, toPosition)
 
       case RemoveFromBlockMap(target) =>
         zone.blockMap.removeFrom(target)

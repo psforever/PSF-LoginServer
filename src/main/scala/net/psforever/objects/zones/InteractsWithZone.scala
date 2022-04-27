@@ -53,6 +53,7 @@ trait InteractsWithZone
 
   def doInteractions(): Unit = {
     val sector = getInteractionSector()
+    //println(sector.environmentList.map { _.attribute }.mkString(" "))
     interactions.foreach { _.interaction(sector, target = this) }
   }
 

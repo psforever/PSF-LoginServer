@@ -14,7 +14,9 @@ import scala.collection.mutable.ListBuffer
   * The collections of entities in a sector conglomerate.
   */
 trait SectorPopulation {
-  def range: Float
+  def rangeX: Float
+
+  def rangeY: Float
 
   def livePlayerList: List[Player]
 
@@ -153,7 +155,9 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
     (a: Projectile, b: Projectile) => a.id == b.id
   )
 
-  def range: Float = span.toFloat
+  def rangeX: Float = span.toFloat
+
+  def rangeY: Float = span.toFloat
 
   def livePlayerList : List[Player] = livePlayers.list
 
@@ -248,7 +252,8 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   * @param environmentList fields that represent the game world environment
   */
 class SectorGroup(
-                   val range: Float,
+                   val rangeX: Float,
+                   val rangeY: Float,
                    val livePlayerList: List[Player],
                    val corpseList: List[Player],
                    val vehicleList: List[Vehicle],
@@ -269,18 +274,7 @@ object SectorGroup {
     * @return a `SectorGroup` object
     */
   def apply(sector: Sector): SectorGroup = {
-    new SectorGroup(
-      sector.range,
-      sector.livePlayerList,
-      sector.corpseList,
-      sector.vehicleList,
-      sector.equipmentOnGroundList,
-      sector.deployableList,
-      sector.buildingList,
-      sector.amenityList,
-      sector.environmentList,
-      sector.projectileList
-    )
+    SectorGroup(sector.rangeX, sector.rangeY, sector)
   }
 
   /**
@@ -291,8 +285,21 @@ object SectorGroup {
     * @return a `SectorGroup` object
     */
   def apply(range: Float, sector: Sector): SectorGroup = {
+    SectorGroup(range, range, sector)
+  }
+
+  /**
+    * Overloaded constructor that takes a single sector
+    * and transfers the lists of entities into a single conglomeration of the sector populations.
+    * @param rangeX a custom range value for the x-axis
+    * @param rangeY a custom range value for the y-axis
+    * @param sector the sector to be counted
+    * @return a `SectorGroup` object
+    */
+  def apply(rangeX: Float, rangeY: Float, sector: Sector): SectorGroup = {
     new SectorGroup(
-      range,
+      rangeX,
+      rangeY,
       sector.livePlayerList,
       sector.corpseList,
       sector.vehicleList,
@@ -315,9 +322,9 @@ object SectorGroup {
     if (sectors.isEmpty) {
       SectorGroup(range = 0, sectors = Nil)
     } else if (sectors.size == 1) {
-      SectorGroup(sectors.head.range, sectors)
+      SectorGroup(sectors.head.rangeX, sectors.head.rangeY, sectors)
     } else {
-      SectorGroup(sectors.maxBy { _.range }.range, sectors)
+      SectorGroup(sectors.maxBy { _.rangeX }.rangeX, sectors.maxBy { _.rangeY }.rangeY, sectors)
     }
   }
 
@@ -329,12 +336,25 @@ object SectorGroup {
     * @return a `SectorGroup` object
     */
   def apply(range: Float, sectors: Iterable[Sector]): SectorGroup = {
+    SectorGroup(range, range, sectors)
+  }
+
+  /**
+    * Overloaded constructor that takes a group of sectors
+    * and condenses all of the lists of entities into a single conglomeration of the sector populations.
+    * @param rangeX a custom range value for the x-axis
+    * @param rangeY a custom range value for the y-axis
+    * @param sectors the series of sectors to be counted
+    * @return a `SectorGroup` object
+    */
+  def apply(rangeX: Float, rangeY: Float, sectors: Iterable[Sector]): SectorGroup = {
     if (sectors.isEmpty) {
-      new SectorGroup(range, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil)
+      new SectorGroup(rangeX, rangeY, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil)
     } else if (sectors.size == 1) {
       val sector = sectors.head
       new SectorGroup(
-        range,
+        rangeX,
+        rangeY,
         sector.livePlayerList,
         sector.corpseList,
         sector.vehicleList,
@@ -347,7 +367,8 @@ object SectorGroup {
       )
     } else {
       new SectorGroup(
-        range,
+        rangeX,
+        rangeY,
         sectors.flatMap { _.livePlayerList }.toList.distinct,
         sectors.flatMap { _.corpseList }.toList.distinct,
         sectors.flatMap { _.vehicleList }.toList.distinct,
