@@ -460,7 +460,7 @@ object GamePacketOpcode extends Enumeration {
       case 0x82 => noDecoder(TriggerBotAction)
       case 0x83 => game.SquadWaypointRequest.decode
       case 0x84 => game.SquadWaypointEvent.decode
-      case 0x85 => noDecoder(OffshoreVehicleMessage)
+      case 0x85 => game.OffshoreVehicleMessage.decode
       case 0x86 => game.ObjectDeployedMessage.decode
       case 0x87 => noDecoder(ObjectDeployedCountMessage)
       // 0x88

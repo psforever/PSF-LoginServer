@@ -5,7 +5,7 @@ import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 
-sealed case class BlockMapEntry(coords: Vector3, range: Float, sectors: Set[Int])
+sealed case class BlockMapEntry(coords: Vector3, rangeX: Float, rangeY: Float, sectors: Set[Int])
 
 /**
   * An game object that can be represented on a blockmap.
@@ -65,6 +65,16 @@ trait BlockMapEntity
 
 object BlockMapEntity {
   /**
+    * Overloaded constructor that uses a single range to construct a block map entry.
+    * @param coords the absolute game world coordinates
+    * @param range the distance outwards from the game world coordinates along the major axes
+    * @param sectors the indices of sectors on the blockmap
+    * @return a `BlockMapEntry` entity
+    */
+  def apply(coords: Vector3, range: Float, sectors: Set[Int]): BlockMapEntry =
+    BlockMapEntry(coords, range, range, sectors)
+
+  /**
     * The entity is currently excluded from being represented on a blockmap structure.
     * There is no need to update.
     * @param target the entity on the blockmap
@@ -87,7 +97,7 @@ object BlockMapEntity {
   private def updateBlockMap(target: BlockMapEntity, newCoords: Vector3): Boolean = {
     target.blockMapEntry match {
       case Some(oldEntry) =>
-        target.blockMapEntry = Some(BlockMapEntry(newCoords, oldEntry.range, oldEntry.sectors))
+        target.blockMapEntry = Some(BlockMapEntry(newCoords, oldEntry.rangeX, oldEntry.rangeY, oldEntry.sectors))
         true
       case None =>
         false

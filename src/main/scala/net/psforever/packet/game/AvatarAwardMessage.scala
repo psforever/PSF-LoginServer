@@ -82,36 +82,36 @@ object AvatarAwardMessage extends Marshallable[AvatarAwardMessage] {
 
   private val qualification_codec: Codec[AwardOption] = {
     uint32L.hlist
-  }.xmap[AwardOption](
+  }.xmap[AwardQualificationProgress](
     {
       case a :: HNil => AwardQualificationProgress(a)
     },
     {
       case AwardQualificationProgress(a) => a :: HNil
     }
-  )
+  ).asInstanceOf[Codec[AwardOption]]
 
   private val completion_codec: Codec[AwardOption] = {
     uint32L.hlist
-  }.xmap[AwardOption](
+  }.xmap[AwardCompletion](
     {
       case a :: HNil => AwardCompletion(a)
     },
     {
       case AwardCompletion(a) => a :: HNil
     }
-  )
+  ).asInstanceOf[Codec[AwardOption]]
 
   private val progress_codec: Codec[AwardOption] = {
     uint32L :: uint32L
-  }.xmap[AwardOption](
+  }.xmap[AwardProgress](
     {
       case a :: b :: HNil => AwardProgress(a, b)
     },
     {
       case AwardProgress(a, b) => a :: b :: HNil
     }
-  )
+  ).asInstanceOf[Codec[AwardOption]]
 
   implicit val codec: Codec[AvatarAwardMessage] = (
     ("merit_commendation" | MeritCommendation.codec) ::
@@ -122,8 +122,8 @@ object AvatarAwardMessage extends Marshallable[AvatarAwardMessage] {
           case Right(d) => d
         },
         {
-          case d: AwardProgress               => Left(d)
-          case d: AwardQualificationProgress  => Right(d)
+          case d: AwardProgress => Left(d)
+          case d: AwardOption   => Right(d)
         }
       ),
       completion_codec
@@ -133,9 +133,8 @@ object AvatarAwardMessage extends Marshallable[AvatarAwardMessage] {
         case Right(d) => d
       },
       {
-        case d: AwardProgress               => Left(d)
-        case d: AwardQualificationProgress  => Left(d)
-        case d: AwardCompletion             => Right(d)
+        case d: AwardCompletion => Right(d)
+        case d: AwardOption     => Left(d)
       }
     )) ::
     ("unk" | uint8L)
