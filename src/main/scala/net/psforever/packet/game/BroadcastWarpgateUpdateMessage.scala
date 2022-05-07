@@ -2,6 +2,7 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import net.psforever.types.PlanetSideEmpire
 import scodec.Codec
 import scodec.codecs._
 
@@ -21,14 +22,40 @@ import scodec.codecs._
   * @param nc players belonging to the New Conglomerate interact with this warp gate as a "broadcast gate"
   * @param vs players belonging to the Vanu Sovereignty interact with this warp gate as a "broadcast gate"
   */
-final case class BroadcastWarpgateUpdateMessage(zone_id: Int, building_id: Int, tr: Boolean, nc: Boolean, vs: Boolean)
-    extends PlanetSideGamePacket {
+final case class BroadcastWarpgateUpdateMessage(
+                                                 zone_id: Int,
+                                                 building_id: Int,
+                                                 tr: Boolean,
+                                                 nc: Boolean,
+                                                 vs: Boolean
+                                               ) extends PlanetSideGamePacket {
   type Packet = BroadcastWarpgateUpdateMessage
   def opcode = GamePacketOpcode.BroadcastWarpgateUpdateMessage
   def encode = BroadcastWarpgateUpdateMessage.encode(this)
 }
 
 object BroadcastWarpgateUpdateMessage extends Marshallable[BroadcastWarpgateUpdateMessage] {
+  def apply(
+             zoneId: Int,
+             buildingId: Int,
+             faction: PlanetSideEmpire.Value
+           ): BroadcastWarpgateUpdateMessage = {
+    BroadcastWarpgateUpdateMessage(zoneId, buildingId, Set(faction))
+  }
+
+  def apply(
+             zoneId: Int,
+             buildingId: Int,
+             factions: Set[PlanetSideEmpire.Value]
+           ): BroadcastWarpgateUpdateMessage = {
+    val f = {
+      val out = Array.fill(PlanetSideEmpire.values.size)(false)
+      factions.map(_.id).foreach { i => out.update(i, true) }
+      out
+    }
+    BroadcastWarpgateUpdateMessage(zoneId, buildingId, f(0), f(1), f(2))
+  }
+
   implicit val codec: Codec[BroadcastWarpgateUpdateMessage] = (
     ("zone_id" | uint16L) ::
       ("building_id" | uint16L) ::

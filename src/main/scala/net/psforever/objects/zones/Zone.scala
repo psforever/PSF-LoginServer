@@ -51,6 +51,8 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.blockmap.BlockMap
 import net.psforever.services.Service
 
+import scala.concurrent.{Future, Promise}
+
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
   * <br>
@@ -168,6 +170,10 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     */
   private var vehicleEvents: ActorRef = Default.Actor
 
+  var zoneInitialized: Promise[Boolean] = Promise[Boolean]()
+
+  def ZoneInitialized(): Future[Boolean] = zoneInitialized.future
+
   /**
     * Establish the basic accessible conditions necessary for a functional `Zone`.<br>
     * <br>
@@ -213,8 +219,9 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       AssignAmenities()
       CreateSpawnGroups()
       PopulateBlockMap()
-
       validate()
+
+      zoneInitialized.success(true)
     }
   }
 
@@ -570,6 +577,13 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     lattice
   }
 
+  def AddIntercontinentalLatticeLink(bldgA: Building, bldgB: Building): Graph[Building, UnDiEdge] = {
+    if ((this eq bldgA.Zone) && (bldgA.Zone ne bldgB.Zone)) {
+      lattice ++= Set(bldgA ~ bldgB)
+    }
+    Lattice
+  }
+
   def zipLinePaths: List[ZipLinePath] = {
     map.zipLinePaths
   }
@@ -674,15 +688,19 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   }
 
   private def MakeLattice(): Unit = {
-    lattice ++= map.latticeLink.map {
-      case (source, target) =>
-        val (sourceBuilding, targetBuilding) = (Building(source), Building(target)) match {
-          case (Some(sBuilding), Some(tBuilding)) => (sBuilding, tBuilding)
-          case _ =>
-            throw new NoSuchElementException(s"Can't create lattice link between $source $target. Source is missing")
-        }
-        sourceBuilding ~ targetBuilding
-    }
+    lattice ++= map.latticeLink
+      .filterNot {
+        case (a, _) => a.contains("/") //ignore intercontinental lattice connections
+      }
+      .map {
+        case (source, target) =>
+          val (sourceBuilding, targetBuilding) = (Building(source), Building(target)) match {
+            case (Some(sBuilding), Some(tBuilding)) => (sBuilding, tBuilding)
+            case _ =>
+              throw new NoSuchElementException(s"Zone $id - can't create lattice link between $source and $target.")
+          }
+          sourceBuilding ~ targetBuilding
+      }
   }
 
   private def CreateSpawnGroups(): Unit = {

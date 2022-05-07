@@ -228,7 +228,8 @@ object Zones {
       }
       .map {
         case (info, data, zplData) =>
-          val zoneMap = new ZoneMap(info.value)
+          val mapid = info.value
+          val zoneMap = new ZoneMap(mapid)
 
           zoneMap.checksum = info.checksum
           zoneMap.scale = info.scale
@@ -298,7 +299,6 @@ object Zones {
                 if (facilityTypes.contains(structure.objectType)) {
                   //major overworld facilities have an intrinsic terminal that occasionally recharges ancient weapons
                   val buildingGuid = structure.guid
-                  val terminalGuid = buildingGuid + 1
                   zoneMap.addLocalObject(
                     buildingGuid + 1,
                     ProximityTerminal.Constructor(
@@ -346,13 +346,12 @@ object Zones {
             zoneMap.addLocalObject(_, LocalLockerItem.Constructor)
           }
 
-          lattice.asObject.get(info.value).foreach { obj =>
+          lattice.asObject.get(mapid).foreach { obj =>
             obj.asArray.get.foreach { entry =>
               val arr = entry.asArray.get
               zoneMap.addLatticeLink(arr(0).asString.get, arr(1).asString.get)
             }
           }
-
           zoneMap
       }
       .seq
@@ -654,6 +653,12 @@ object Zones {
   }
 
   lazy val zones: Seq[Zone] = {
+    //intercontinental lattice
+    val res  = Source.fromResource(s"zonemaps/lattice.json")
+    val json = res.mkString
+    res.close()
+    val intercontinentalLattice = parse(json).toOption.get.asObject.get("intercontinental")
+    //guid overrides
     val defaultGuids =
       try {
         val res  = Source.fromResource("guid-pools/default.json")
@@ -676,7 +681,7 @@ object Zones {
           case _: Exception => defaultGuids
         }
 
-      new Zone(info.id, zoneMaps.find(_.name.equals(info.map.value)).get, info.value) {
+      val zone = new Zone(info.id, zoneMaps.find(_.name.equals(info.map.value)).get, info.value) {
         private val addPoolsFunc: () => Unit = addPools(guids, zone = this)
 
         override def SetupNumberPools() : Unit = addPoolsFunc()
@@ -690,31 +695,70 @@ object Zones {
             Zones.initZoneAmenities(this)
           }
 
+          //special conditions
+          //1. sanctuaries are completely owned by a single faction
+          //2. set up the third warp gate on sanctuaries to be a broadcast warp gate
+          //3. set up sanctuary-linked warp gates on "home continents" (the names make no sense anymore, don't even ask)
+          //4. assign the caverns internally
+          val bldgs = Buildings.values
           info.id match {
-            case "home1" =>
-              this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.NC)
-            case "home2" =>
-              this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.TR)
-            case "home3" =>
-              this.Buildings.values.foreach(_.Faction = PlanetSideEmpire.VS)
-            case zoneid if zoneid.startsWith("c") =>
-              this.map.cavern = true
-            case _ => ;
-          }
-
-          // Set up warp gate factions aka "sanctuary link". Those names make no sense anymore, don't even ask.
-          this.Buildings.foreach {
-            case (_, building) if building.Name.startsWith("WG") =>
-              building.Name match {
-                case "WG_Amerish_to_Solsar" | "WG_Esamir_to_VSSanc"    => building.Faction = PlanetSideEmpire.NC
-                case "WG_Hossin_to_VSSanc" | "WG_Solsar_to_Amerish"    => building.Faction = PlanetSideEmpire.TR
-                case "WG_Ceryshen_to_Hossin" | "WG_Forseral_to_Solsar" => building.Faction = PlanetSideEmpire.VS
-                case _                                                 => ;
+            case "z1" =>
+              bldgs.find(_.Name.equals("WG_Solsar_to_Amerish")).map {
+                case gate: WarpGate => gate.Faction = PlanetSideEmpire.TR
               }
+            case "z2" =>
+              bldgs.find(_.Name.equals("WG_Hossin_to_VSSanc")).map {
+                case gate: WarpGate => gate.Faction = PlanetSideEmpire.TR
+              }
+            case "z5" =>
+              bldgs.find(_.Name.equals("WG_Forseral_to_Solsar")).map {
+                case gate: WarpGate => gate.Faction = PlanetSideEmpire.VS
+              }
+            case "z6" =>
+              bldgs.find(_.Name.equals("WG_Forseral_to_Solsar")).map {
+                case gate: WarpGate => gate.Faction = PlanetSideEmpire.VS
+              }
+            case "z7" =>
+              bldgs.find(_.Name.equals("WG_Esamir_to_VSSanc")).map {
+                case gate: WarpGate => gate.Faction = PlanetSideEmpire.NC
+              }
+            case "z10" =>
+              bldgs.find(_.Name.equals("WG_Amerish_to_Solsar")).map {
+                case gate: WarpGate => gate.Faction = PlanetSideEmpire.NC
+              }
+            case "home1" =>
+              bldgs.foreach(_.Faction = PlanetSideEmpire.NC)
+              bldgs.find(_.Name.equals("WG_NCSanc_to_Cyssor")).map {
+                case gate: WarpGate => gate.AllowBroadcastFor = PlanetSideEmpire.NC
+              }
+            case "home2" =>
+              bldgs.foreach(_.Faction = PlanetSideEmpire.TR)
+              bldgs.find(_.Name.equals("WG_TRSanc_to_Ishundar")).map {
+                case gate: WarpGate => gate.AllowBroadcastFor = PlanetSideEmpire.TR
+              }
+            case "home3" =>
+              bldgs.foreach(_.Faction = PlanetSideEmpire.VS)
+              bldgs.find(_.Name.equals("WG_VSSanc_to_Ishundar")).map {
+                case gate: WarpGate => gate.AllowBroadcastFor = PlanetSideEmpire.VS
+              }
+            case zoneId if zoneId.startsWith("c") =>
+              map.cavern = true
             case _ => ;
           }
         }
       }
+      val map = zone.map
+      val zoneid = zone.id
+      intercontinentalLattice.foreach { obj =>
+        obj.asArray.get.foreach { entry =>
+          val arr = entry.asArray.get
+          val arrHead = arr.head.asString.get
+          if (arrHead.startsWith(s"$zoneid/")) {
+            map.addLatticeLink(arrHead, arr(1).asString.get)
+          }
+        }
+      }
+      zone
     }
   }
 
@@ -743,7 +787,7 @@ object Zones {
             if wg.Definition == GlobalDefinitions.warpgate || wg.Definition == GlobalDefinitions.warpgate_small =>
           wg.Active = true
           wg.Faction = PlanetSideEmpire.NEUTRAL
-          wg.Broadcast = true
+          //wg.Broadcast = true
         case geowarp: WarpGate
             if geowarp.Definition == GlobalDefinitions.warpgate_cavern || geowarp.Definition == GlobalDefinitions.hst =>
           geowarp.Faction = PlanetSideEmpire.NEUTRAL

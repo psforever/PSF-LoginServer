@@ -41,6 +41,14 @@ class GalaxyService extends Actor {
             GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.MapUpdate(msg))
           )
 
+        case GalaxyAction.UpdateBroadcastPrivileges(zoneId, gateMapId, fromFactions, toFactions) =>
+          GalaxyEvents.publish(
+            GalaxyServiceResponse(
+              s"/$forChannel/Galaxy",
+              GalaxyResponse.UpdateBroadcastPrivileges(zoneId, gateMapId, fromFactions, toFactions)
+            )
+          )
+
         case GalaxyAction.FlagMapUpdate(msg) =>
           GalaxyEvents.publish(
             GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.FlagMapUpdate(msg))

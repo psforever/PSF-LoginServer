@@ -13,6 +13,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.collection.mutable.ListBuffer
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.actors.zone.building.MajorFacilityLogic
 import net.psforever.util.Database._
 import net.psforever.persistence
 
@@ -98,7 +99,7 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
         }
       }
       capitol match {
-        case Some(b) => b.ForceDomeActive = BuildingActor.checkForceDomeStatus(b).getOrElse(false)
+        case Some(b) => b.ForceDomeActive = MajorFacilityLogic.checkForceDomeStatus(b).getOrElse(false)
         case None    => ;
       }
     case Failure(e) => log.error(e.getMessage)

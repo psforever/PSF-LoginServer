@@ -601,6 +601,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         case GalaxyResponse.MapUpdate(msg) =>
           sendResponse(msg)
 
+        case GalaxyResponse.UpdateBroadcastPrivileges(zoneId, gateMapId, fromFactions, toFactions) =>
+          val faction = player.Faction
+          val from = fromFactions.contains(faction)
+          val to = toFactions.contains(faction)
+          if (from && !to) {
+            sendResponse(BroadcastWarpgateUpdateMessage(zoneId, gateMapId, PlanetSideEmpire.NEUTRAL))
+          } else if (!from && to) {
+            sendResponse(BroadcastWarpgateUpdateMessage(zoneId, gateMapId, faction))
+          }
+
         case GalaxyResponse.FlagMapUpdate(msg) =>
           sendResponse(msg)
 
@@ -1133,7 +1143,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
       //the following subscriptions last until character switch/logout
       galaxyService ! Service.Join("galaxy")             //for galaxy-wide messages
-      galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots
+      galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots, etc.
       squadService ! Service.Join(s"${avatar.faction}")  //channel will be player.Faction
       squadService ! Service.Join(s"${avatar.id}")       //channel will be player.CharId (in order to work with packets)
       player.Zone match {
@@ -3164,7 +3174,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sendResponse(PlanetsideAttributeMessage(guid, 7, tplayer.Capacitor.toLong))
     }
     // AvatarAwardMessage
-    populateAvatarAwardRibbonsFunc(1, 20L)
+    //populateAvatarAwardRibbonsFunc(1, 20L)
 
     sendResponse(PlanetsideStringAttributeMessage(guid, 0, "Outfit Name"))
     //squad stuff (loadouts, assignment)
@@ -6843,42 +6853,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def initGate(continentNumber: Int, buildingNumber: Int, building: Building): Unit = {
     building match {
       case wg: WarpGate =>
-        sendResponse(
-          BuildingInfoUpdateMessage(
-            building.Zone.Number,
-            building.MapId,
-            ntu_level = 0,
-            is_hacked = false,
-            empire_hack = PlanetSideEmpire.NEUTRAL,
-            hack_time_remaining = 0,
-            building.Faction,
-            unk1 = 0,
-            unk1x = None,
-            PlanetSideGeneratorState.Normal,
-            spawn_tubes_normal = true,
-            force_dome_active = false,
-            lattice_benefit = 0,
-            cavern_benefit = 0,
-            unk4 = Nil,
-            unk5 = 0,
-            unk6 = false,
-            unk7 = 8,
-            unk7x = None,
-            boost_spawn_pain = false,
-            boost_generator_pain = false
-          )
-        )
+        sendResponse(building.infoUpdateMessage())
         sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0, 0, 0, 0, 0, 0, 0, 0)))
-        //TODO one faction knows which gates are broadcast for another faction?
-        sendResponse(
-          BroadcastWarpgateUpdateMessage(
-            continentNumber,
-            buildingNumber,
-            wg.Broadcast(PlanetSideEmpire.TR),
-            wg.Broadcast(PlanetSideEmpire.NC),
-            wg.Broadcast(PlanetSideEmpire.VS)
+        if (wg.Broadcast(player.Faction)) {
+          sendResponse(
+            BroadcastWarpgateUpdateMessage(
+              continentNumber,
+              buildingNumber,
+              player.Faction
+            )
           )
-        )
+        }
       case _ => ;
     }
   }

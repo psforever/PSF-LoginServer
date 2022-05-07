@@ -14,7 +14,8 @@ import net.psforever.util.Config
 import net.psforever.zones.Zones
 
 import scala.collection.mutable
-import scala.util.Random
+import scala.concurrent.Future
+import scala.util.{Random, Success}
 
 object InterstellarClusterService {
   val InterstellarClusterServiceKey: ServiceKey[Command] =
@@ -89,19 +90,33 @@ object InterstellarClusterService {
 }
 
 class InterstellarClusterService(context: ActorContext[InterstellarClusterService.Command], _zones: Iterable[Zone])
-    extends AbstractBehavior[InterstellarClusterService.Command](context) {
+  extends AbstractBehavior[InterstellarClusterService.Command](context) {
 
   import InterstellarClusterService._
 
   private[this] val log = org.log4s.getLogger
+  var intercontinentalSetup: Boolean = false
 
-  val zoneActors: mutable.Map[String, (ActorRef[ZoneActor.Command], Zone)] = mutable.Map(
-    _zones.map {
-      zone =>
-        val zoneActor = context.spawn(ZoneActor(zone), s"zone-${zone.id}")
-        (zone.id, (zoneActor, zone))
-    }.toSeq: _*
-  )
+  val zoneActors: mutable.Map[String, (ActorRef[ZoneActor.Command], Zone)] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    //setup
+    val zoneLoadedList = _zones.map { _.ZoneInitialized() }
+    val continentLinkFunc: ()=>Unit = MakeIntercontinentalLattice(zoneLoadedList.toList)
+    zoneLoadedList.foreach {
+      _.onComplete({
+        case Success(true) => continentLinkFunc()
+        case _ => ;
+      })
+    }
+    //execute
+    mutable.Map(
+      _zones.map {
+        zone =>
+          val zoneActor = context.spawn(ZoneActor(zone), s"zone-${zone.id}")
+          (zone.id, (zoneActor, zone))
+      }.toSeq: _*
+    )
+  }
 
   val zones: Iterable[Zone] = zoneActors.map {
     case (_, (_, zone: Zone)) => zone
@@ -246,4 +261,34 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
     this
   }
 
+  private def MakeIntercontinentalLattice(flags: List[Future[Boolean]])(): Unit = {
+    if (flags.forall { _.value.contains(Success(true)) } && !intercontinentalSetup) {
+      intercontinentalSetup = true
+      //intercontinental lattice setup
+      _zones.foreach { zone =>
+        zone.map.latticeLink
+          .filter {
+            case (a, _) => a.contains("/") // only intercontinental lattice connections
+          }
+          .map {
+            case (source, target) =>
+              val thisBuilding = source.split("/")(1)
+              val (otherZone, otherBuilding) = target.split("/").take(2) match {
+                case Array(a: String, b: String) => (a, b)
+                case _ => ("", "")
+              }
+              (_zones.find { _.id.equals(otherZone) } match {
+                case Some(_otherZone) => (zone.Building(thisBuilding), _otherZone.Building(otherBuilding), _otherZone)
+                case None => (None, None, Zone.Nowhere)
+              }) match {
+                case (Some(sourceBuilding), Some(targetBuilding), _otherZone) =>
+                  zone.AddIntercontinentalLatticeLink(sourceBuilding, targetBuilding)
+                  _otherZone.AddIntercontinentalLatticeLink(targetBuilding, sourceBuilding)
+                case (a, b, _) =>
+                  println(s"InterstellarCluster: can't create lattice link between $source (${a.nonEmpty}) and $target (${b.nonEmpty}).")
+              }
+          }
+      }
+    }
+  }
 }
