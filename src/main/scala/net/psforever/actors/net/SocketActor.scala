@@ -43,6 +43,9 @@ object SocketActor {
     def receive: Receive = {
       case Udp.Bound(_) =>
         ref ! Bound(sender())
+
+      case Udp.CommandFailed(_:Udp.Bind) =>
+        context.system.terminate()
     }
   }
 
