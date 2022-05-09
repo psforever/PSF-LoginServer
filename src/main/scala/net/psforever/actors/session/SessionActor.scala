@@ -3164,7 +3164,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sendResponse(PlanetsideAttributeMessage(guid, 7, tplayer.Capacitor.toLong))
     }
     // AvatarAwardMessage
-    populateAvatarAwardRibbonsFunc(1, 20L)
+    //populateAvatarAwardRibbonsFunc(1, 20L)
 
     sendResponse(PlanetsideStringAttributeMessage(guid, 0, "Outfit Name"))
     //squad stuff (loadouts, assignment)
