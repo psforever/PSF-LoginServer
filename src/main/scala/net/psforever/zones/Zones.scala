@@ -704,45 +704,79 @@ object Zones {
           info.id match {
             case "z1" =>
               bldgs.find(_.Name.equals("WG_Solsar_to_Amerish")).map {
-                case gate: WarpGate => gate.Faction = PlanetSideEmpire.TR
+                case gate: WarpGate =>
+                  gate.Faction = PlanetSideEmpire.TR
+                  gate.AllowBroadcastFor = PlanetSideEmpire.TR
               }
+              deactivateGeoWarpGateOnContinent(bldgs)
             case "z2" =>
               bldgs.find(_.Name.equals("WG_Hossin_to_VSSanc")).map {
-                case gate: WarpGate => gate.Faction = PlanetSideEmpire.TR
+                case gate: WarpGate =>
+                  gate.Faction = PlanetSideEmpire.TR
+                  gate.AllowBroadcastFor = PlanetSideEmpire.TR
               }
+              deactivateGeoWarpGateOnContinent(bldgs)
+            case "z3" =>
+              deactivateGeoWarpGateOnContinent(bldgs)
+            case "z4" =>
+              deactivateGeoWarpGateOnContinent(bldgs)
             case "z5" =>
               bldgs.find(_.Name.equals("WG_Forseral_to_Solsar")).map {
-                case gate: WarpGate => gate.Faction = PlanetSideEmpire.VS
+                case gate: WarpGate =>
+                  gate.Faction = PlanetSideEmpire.VS
+                  gate.AllowBroadcastFor = PlanetSideEmpire.VS
               }
+              deactivateGeoWarpGateOnContinent(bldgs)
             case "z6" =>
               bldgs.find(_.Name.equals("WG_Forseral_to_Solsar")).map {
-                case gate: WarpGate => gate.Faction = PlanetSideEmpire.VS
+                case gate: WarpGate =>
+                  gate.Faction = PlanetSideEmpire.VS
+                  gate.AllowBroadcastFor = PlanetSideEmpire.VS
               }
+              deactivateGeoWarpGateOnContinent(bldgs)
             case "z7" =>
               bldgs.find(_.Name.equals("WG_Esamir_to_VSSanc")).map {
-                case gate: WarpGate => gate.Faction = PlanetSideEmpire.NC
+                case gate: WarpGate =>
+                  gate.Faction = PlanetSideEmpire.NC
+                  gate.AllowBroadcastFor = PlanetSideEmpire.NC
               }
+              deactivateGeoWarpGateOnContinent(bldgs)
+            case "z8" =>
+              bldgs.filter(_.Name.startsWith("WG_")).map {
+                case gate: WarpGate => gate.Active = false
+              }
+              deactivateGeoWarpGateOnContinent(bldgs)
+            case "z9" =>
+              deactivateGeoWarpGateOnContinent(bldgs)
             case "z10" =>
               bldgs.find(_.Name.equals("WG_Amerish_to_Solsar")).map {
-                case gate: WarpGate => gate.Faction = PlanetSideEmpire.NC
+                case gate: WarpGate =>
+                  gate.Faction = PlanetSideEmpire.NC
+                  gate.AllowBroadcastFor = PlanetSideEmpire.NC
               }
+              deactivateGeoWarpGateOnContinent(bldgs)
             case "home1" =>
               bldgs.foreach(_.Faction = PlanetSideEmpire.NC)
-              bldgs.find(_.Name.equals("WG_NCSanc_to_Cyssor")).map {
+              bldgs.filter(_.Name.startsWith("WG_")).map {
                 case gate: WarpGate => gate.AllowBroadcastFor = PlanetSideEmpire.NC
               }
             case "home2" =>
               bldgs.foreach(_.Faction = PlanetSideEmpire.TR)
-              bldgs.find(_.Name.equals("WG_TRSanc_to_Ishundar")).map {
+              bldgs.filter(_.Name.startsWith("WG_")).map {
                 case gate: WarpGate => gate.AllowBroadcastFor = PlanetSideEmpire.TR
               }
             case "home3" =>
               bldgs.foreach(_.Faction = PlanetSideEmpire.VS)
-              bldgs.find(_.Name.equals("WG_VSSanc_to_Ishundar")).map {
+              bldgs.filter(_.Name.startsWith("WG_")).map {
                 case gate: WarpGate => gate.AllowBroadcastFor = PlanetSideEmpire.VS
+              }
+            case "i4" =>
+              bldgs.find(_.Name.equals("Map96_Gate_Three")).map {
+                case gate: WarpGate => gate.Active = false
               }
             case zoneId if zoneId.startsWith("c") =>
               map.cavern = true
+              deactivateGeoWarpGateOnContinent(bldgs)
             case _ => ;
           }
         }
@@ -759,6 +793,12 @@ object Zones {
         }
       }
       zone
+    }
+  }
+
+  private def deactivateGeoWarpGateOnContinent(buildings: Iterable[Building]): Unit = {
+    buildings.filter(_.Name.startsWith(s"GW_")).map {
+      case gate: WarpGate => gate.Active = false
     }
   }
 

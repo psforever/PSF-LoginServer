@@ -19,7 +19,7 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
   private var active: Boolean = true
 
   /** what faction views this warp gate as a broadcast gate */
-  private var passageFor: Set[PlanetSideEmpire.Value] = Set.empty[PlanetSideEmpire.Value]
+  private var passageFor: Set[PlanetSideEmpire.Value] = Set(PlanetSideEmpire.NEUTRAL)
 
   override def infoUpdateMessage(): BuildingInfoUpdateMessage = {
     BuildingInfoUpdateMessage(
@@ -70,24 +70,23 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
   /**
     * Determine whether any faction interacts with this warp gate as "broadcast."
     * The gate must be active first.
+    * A broadcast gate allows specific factions only.
     * @return `true`, if some faction sees this warp gate as a "broadcast gate";
     *        `false`, otherwise
     */
-  def Broadcast: Boolean = Active && passageFor.size > 1
+  def Broadcast: Boolean = Active && !passageFor.contains(PlanetSideEmpire.NEUTRAL)
 
   /**
     * Determine whether a specific faction interacts with this warp gate as "broadcast."
-    * The warp gate being `NEUTRAL` should allow for any polled faction to interact.
-    * The gate must be active first.
     * @return `true`, if the given faction interacts with this warp gate as a "broadcast gate";
     *        `false`, otherwise
     */
   def Broadcast(faction: PlanetSideEmpire.Value): Boolean = {
-    Active && (passageFor.contains(faction) || passageFor.contains(PlanetSideEmpire.NEUTRAL))
+    Broadcast && passageFor.contains(faction)
   }
 
   /**
-    * Which factions interact with this warp gate as "broadcast?"
+    * Which factions interact with this warp gate as "broadcast"?
     * @return the set of all factions who interact with this warp gate as "broadcast"
     */
   def AllowBroadcastFor: Set[PlanetSideEmpire.Value] = passageFor
@@ -107,7 +106,11 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
     * @return the set of all factions who interact with this warp gate as "broadcast"
     */
   def AllowBroadcastFor_=(bcast: Set[PlanetSideEmpire.Value]): Set[PlanetSideEmpire.Value] = {
-    passageFor = bcast
+    passageFor = if (bcast.isEmpty) {
+      Set(PlanetSideEmpire.NEUTRAL)
+    } else {
+      bcast.filterNot(_ == PlanetSideEmpire.NEUTRAL)
+    }
     AllowBroadcastFor
   }
 

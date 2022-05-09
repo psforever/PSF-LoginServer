@@ -6,7 +6,7 @@ import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{Player, SpawnPoint, Vehicle}
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.DroppodError
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, SpawnGroup, Vector3}
@@ -52,6 +52,8 @@ object InterstellarClusterService {
       zoneNumber: Int,
       player: Player,
       target: PlanetSideGUID,
+      fromZoneNumber: Int,
+      fromGateGuid: PlanetSideGUID,
       replyTo: ActorRef[SpawnPointResponse]
   ) extends Command
 
@@ -209,9 +211,10 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
         }
         replyTo ! SpawnPointResponse(response)
 
-      case GetSpawnPoint(zoneNumber, player, target, replyTo) =>
+      case GetSpawnPoint(zoneNumber, player, target, fromZoneNumber, fromOriginGuid, replyTo) =>
         zones.find(_.Number == zoneNumber) match {
           case Some(zone) =>
+            //found target zone; find a spawn point in target zone
             zone.findSpawns(player.Faction, SpawnGroup.values).find {
               case (spawn: Building, spawnPoints) =>
                 spawn.MapId == target.guid || spawnPoints.exists(_.GUID == target)
@@ -220,12 +223,32 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
               case _ => false
             } match {
               case Some((_, spawnPoints)) =>
+                //spawn point selected
                 replyTo ! SpawnPointResponse(Some(zone, Random.shuffle(spawnPoints.toList).head))
               case _ =>
+                //no spawn point found
                 replyTo ! SpawnPointResponse(None)
             }
           case None =>
-            replyTo ! SpawnPointResponse(None)
+            //target zone not found; find origin and plot next immediate destination
+            //applies to transit across intercontinental lattice
+            (((zones.find(_.Number == fromZoneNumber) match {
+              case Some(zone) => zone.GUID(fromOriginGuid)
+              case _ => None
+            }) match {
+              case Some(warpGate: WarpGate) => warpGate.Neighbours //valid for warp gates only right now
+              case _ => None
+            }) match {
+              case Some(neighbors) => neighbors.find(_ match { case _: WarpGate => true; case _ => false })
+              case _ => None
+            }) match {
+              case Some(outputGate: WarpGate) =>
+                //destination (next direct stopping point) found
+                replyTo ! SpawnPointResponse(Some(outputGate.Zone, outputGate))
+              case _ =>
+                //no destination found
+                replyTo ! SpawnPointResponse(None)
+            }
         }
 
       case GetNearbySpawnPoint(zoneNumber, player, spawnGroups, replyTo) =>

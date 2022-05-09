@@ -43,20 +43,19 @@ case object WarpGateLogic
 
   def setFactionTo(details: BuildingControlDetails, faction: PlanetSideEmpire.Value): Behavior[Command] = {
     //don't set the faction manually, but determine what it should be by checking neighbor facilities
-    // rule: we have no neighbors -> complain, then use parameter faction
-    // rule: we have a neighboring warp gate of the prospective faction -> use parameter faction
-    // rule: all of our neighbors are warp gates -> use parameter faction
-    // rule: all of our neighbors are same faction -> use neighbor's faction
+    // rule: we have no neighbors, use parameter faction
+    // rule: we have a neighboring warp gate of the prospective faction, use parameter faction
+    // rule: all of our neighbors are warp gates, use parameter faction
+    // rule: all of our neighbors are same faction, use neighbor's faction
     val warpgate = details.building
     if (warpgate.Faction != faction) {
       val local = warpgate.Neighbours.getOrElse(Nil)
       BuildingActor.setFactionTo(details, faction, log)
-//      if (local.isEmpty) {
-//        log(details).error(s"isolated from neighborhood; check intercontinental json")
-//      } else {
-//        //BuildingActor.setFactionTo(details, faction, log)
-//        local.foreach { _.Actor ! BuildingActor.AlertToFactionChange(warpgate) }
-//      }
+      if (local.isEmpty) {
+        log(details).error(s"warp gate ${warpgate.Name} isolated from neighborhood; check intercontinental linkage")
+      } else {
+        local.foreach { _.Actor ! BuildingActor.AlertToFactionChange(warpgate) }
+      }
     }
     Behaviors.same
   }
@@ -136,13 +135,9 @@ case object WarpGateLogic
       warpgate.Faction = otherWarpgateFaction
       details.galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(warpgate.infoUpdateMessage()))
     }
-    //can not be considered broadcast
+    //can not be considered broadcast for other factions
     val wgBroadcastAllowances = warpgate.AllowBroadcastFor
-    if (
-      wgBroadcastAllowances.nonEmpty ||
-      (wgBroadcastAllowances.size == 1 && !wgBroadcastAllowances.contains(PlanetSideEmpire.NEUTRAL)) ||
-      wgBroadcastAllowances.size > 1
-    ) {
+    if (!wgBroadcastAllowances.contains(PlanetSideEmpire.NEUTRAL) || !wgBroadcastAllowances.contains(otherWarpgateFaction)) {
       updateBroadcastCapabilitiesOfWarpGate(details, warpgate, Set(PlanetSideEmpire.NEUTRAL))
     }
   }

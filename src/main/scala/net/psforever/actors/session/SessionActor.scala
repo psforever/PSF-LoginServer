@@ -5663,7 +5663,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           ) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
         if (deadState != DeadState.RespawnTime) {
-          continent.Buildings.values.find(building => building.GUID == building_guid) match {
+          continent.Buildings.values.find(_.GUID == building_guid) match {
             case Some(wg: WarpGate) if wg.Active && (GetKnownVehicleAndSeat() match {
                   case (Some(vehicle), _) =>
                     wg.Definition.VehicleAllowance && !wg.Definition.NoWarp.contains(vehicle.Definition)
@@ -5675,6 +5675,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 destinationZoneGuid.guid,
                 player,
                 destinationBuildingGuid,
+                continent.Number,
+                building_guid,
                 context.self
               )
               log.info(s"${player.Name} wants to use a warp gate")
