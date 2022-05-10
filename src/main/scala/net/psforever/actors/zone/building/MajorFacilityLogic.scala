@@ -18,16 +18,6 @@ case object MajorFacilityLogic
   extends BuildingLogic {
   import BuildingActor.Command
 
-  def updateForceDome(details: BuildingControlDetails, stateOpt: Option[Boolean]): Behavior[Command] = {
-    stateOpt match {
-      case Some(updatedStatus) if details.building.IsCapitol && updatedStatus != details.building.ForceDomeActive =>
-        updateForceDomeStatus(details, updatedStatus, mapUpdateOnChange = true)
-      case _ =>
-        alignForceDomeStatus(details)
-    }
-    Behaviors.same
-  }
-
   /**
     * Evaluate the conditions of the building
     * and determine if its capitol force dome state should be updated
@@ -42,15 +32,7 @@ case object MajorFacilityLogic
     checkForceDomeStatus(building) match {
       case Some(updatedStatus) if updatedStatus != building.ForceDomeActive =>
         updateForceDomeStatus(details, updatedStatus, mapUpdateOnChange)
-      case None if building.IsSubCapitol =>
-        building.Neighbours match {
-          case Some(buildings: Set[Building]) =>
-            buildings
-              .filter { _.IsCapitol }
-              .foreach { _.Actor ! BuildingActor.UpdateForceDome() }
-          case None => ;
-        }
-      case _ => ; //building is neither a capitol nor a subcapitol
+      case _ => ;
     }
     Behaviors.same
   }
@@ -266,6 +248,7 @@ case object MajorFacilityLogic
   }
 
   def alertToFactionChange(details: BuildingControlDetails, building: Building): Behavior[Command] = {
+    alignForceDomeStatus(details, mapUpdateOnChange = false)
     Behaviors.same
   }
 

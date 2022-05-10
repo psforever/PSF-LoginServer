@@ -1056,10 +1056,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 LoadZonePhysicalSpawnPoint(zone.id, pos, ori, CountSpawnDelay(zone.id, spawnPoint, continent.id), Some(spawnPoint))
             case None =>
               log.warn(
-                s"SpawnPointResponse: ${player.Name} received no spawn point response when asking InterstellarClusterService; sending home"
+                s"SpawnPointResponse: ${player.Name} received no spawn point response when asking InterstellarClusterService"
               )
-              //Thread.sleep(1000) // throttle in case of infinite loop
-              RequestSanctuaryZoneSpawn(player, currentZone = 0)
+              if (Config.app.game.warpGates.defaultToSanctuaryDestination) {
+                log.warn(s"SpawnPointResponse: sending ${player.Name} home")
+                RequestSanctuaryZoneSpawn(player, currentZone = 0)
+              }
           }
       }
 

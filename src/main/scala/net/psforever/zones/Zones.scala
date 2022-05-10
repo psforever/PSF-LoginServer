@@ -703,43 +703,23 @@ object Zones {
           val bldgs = Buildings.values
           info.id match {
             case "z1" =>
-              bldgs.find(_.Name.equals("WG_Solsar_to_Amerish")).map {
-                case gate: WarpGate =>
-                  gate.Faction = PlanetSideEmpire.TR
-                  gate.AllowBroadcastFor = PlanetSideEmpire.TR
-              }
+              setWarpGateToFactionOwnedAndBroadcast(bldgs, name = "WG_Solsar_to_Amerish", PlanetSideEmpire.TR)
               deactivateGeoWarpGateOnContinent(bldgs)
             case "z2" =>
-              bldgs.find(_.Name.equals("WG_Hossin_to_VSSanc")).map {
-                case gate: WarpGate =>
-                  gate.Faction = PlanetSideEmpire.TR
-                  gate.AllowBroadcastFor = PlanetSideEmpire.TR
-              }
+              setWarpGateToFactionOwnedAndBroadcast(bldgs, name = "WG_Hossin_to_VSSanc", PlanetSideEmpire.TR)
               deactivateGeoWarpGateOnContinent(bldgs)
             case "z3" =>
               deactivateGeoWarpGateOnContinent(bldgs)
             case "z4" =>
               deactivateGeoWarpGateOnContinent(bldgs)
             case "z5" =>
-              bldgs.find(_.Name.equals("WG_Forseral_to_Solsar")).map {
-                case gate: WarpGate =>
-                  gate.Faction = PlanetSideEmpire.VS
-                  gate.AllowBroadcastFor = PlanetSideEmpire.VS
-              }
+              setWarpGateToFactionOwnedAndBroadcast(bldgs, name = "WG_Forseral_to_Solsar", PlanetSideEmpire.VS)
               deactivateGeoWarpGateOnContinent(bldgs)
             case "z6" =>
-              bldgs.find(_.Name.equals("WG_Forseral_to_Solsar")).map {
-                case gate: WarpGate =>
-                  gate.Faction = PlanetSideEmpire.VS
-                  gate.AllowBroadcastFor = PlanetSideEmpire.VS
-              }
+              setWarpGateToFactionOwnedAndBroadcast(bldgs, name = "WG_Ceryshen_to_Hossin", PlanetSideEmpire.VS)
               deactivateGeoWarpGateOnContinent(bldgs)
             case "z7" =>
-              bldgs.find(_.Name.equals("WG_Esamir_to_VSSanc")).map {
-                case gate: WarpGate =>
-                  gate.Faction = PlanetSideEmpire.NC
-                  gate.AllowBroadcastFor = PlanetSideEmpire.NC
-              }
+              setWarpGateToFactionOwnedAndBroadcast(bldgs, name = "WG_Esamir_to_VSSanc", PlanetSideEmpire.NC)
               deactivateGeoWarpGateOnContinent(bldgs)
             case "z8" =>
               bldgs.filter(_.Name.startsWith("WG_")).map {
@@ -749,11 +729,7 @@ object Zones {
             case "z9" =>
               deactivateGeoWarpGateOnContinent(bldgs)
             case "z10" =>
-              bldgs.find(_.Name.equals("WG_Amerish_to_Solsar")).map {
-                case gate: WarpGate =>
-                  gate.Faction = PlanetSideEmpire.NC
-                  gate.AllowBroadcastFor = PlanetSideEmpire.NC
-              }
+              setWarpGateToFactionOwnedAndBroadcast(bldgs, name = "WG_Amerish_to_Solsar", PlanetSideEmpire.NC)
               deactivateGeoWarpGateOnContinent(bldgs)
             case "home1" =>
               bldgs.foreach(_.Faction = PlanetSideEmpire.NC)
@@ -799,6 +775,18 @@ object Zones {
   private def deactivateGeoWarpGateOnContinent(buildings: Iterable[Building]): Unit = {
     buildings.filter(_.Name.startsWith(s"GW_")).map {
       case gate: WarpGate => gate.Active = false
+    }
+  }
+
+  private def setWarpGateToFactionOwnedAndBroadcast(
+                                                      buildings: Iterable[Building],
+                                                      name: String,
+                                                      faction: PlanetSideEmpire.Value
+                                                    ) : Unit = {
+    buildings.find(_.Name.equals(name)).map {
+      case gate: WarpGate =>
+        gate.Faction = faction
+        gate.AllowBroadcastFor = faction
     }
   }
 

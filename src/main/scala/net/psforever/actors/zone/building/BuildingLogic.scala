@@ -15,19 +15,6 @@ trait BuildingLogic {
     org.log4s.getLogger(details.building.Name)
   }
 
-  def updateForceDome(details: BuildingControlDetails, stateOpt: Option[Boolean]): Behavior[Command]
-
-  /**
-    * Evaluate the conditions of the building
-    * and determine if its capitol force dome state should be updated
-    * to reflect the actual conditions of the base or its surrounding bases.
-    * If this building is considered a subcapitol facility to the zone's actual capitol facility,
-    * and has the capitol force dome has a dependency upon it,
-    * pass a message onto that facility that it should check its own state alignment.
-    * @param mapUpdateOnChange if `true`, dispatch a `MapUpdate` message for this building
-    */
-  def alignForceDomeStatus(details: BuildingControlDetails, mapUpdateOnChange: Boolean = true): Behavior[Command]
-
   def amenityStateChange(details: BuildingControlDetails, entity: Amenity, data: Option[Any]): Behavior[Command]
 
   def powerOff(details: BuildingControlDetails): Behavior[Command]

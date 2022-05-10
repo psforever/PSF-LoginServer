@@ -365,7 +365,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
         case (building, _) =>
           building match {
             case warpGate: WarpGate =>
-              warpGate.Faction == faction || warpGate.Faction == PlanetSideEmpire.NEUTRAL || warpGate.Broadcast
+              warpGate.Faction == faction || warpGate.Broadcast(faction)
             case _ =>
               building.Faction == faction
           }

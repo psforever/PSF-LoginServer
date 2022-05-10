@@ -187,18 +187,6 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
       case GetRandomSpawnPoint(zoneNumber, faction, spawnGroups, replyTo) =>
         val response = zones.find(_.Number == zoneNumber) match {
           case Some(zone: Zone) =>
-            /*
-            val location = math.abs(Random.nextInt() % 4) match {
-              case 0 => Vector3(sanctuary.map.Scale.width, sanctuary.map.Scale.height, 0) //NE
-              case 1 => Vector3(sanctuary.map.Scale.width, 0, 0)                          //SE
-              case 2 => Vector3.Zero                                                      //SW
-              case 3 => Vector3(0, sanctuary.map.Scale.height, 0)                         //NW
-            }
-            sanctuary.findNearestSpawnPoints(
-              faction,
-              location,
-              structures
-            ) */
             Random.shuffle(zone.findSpawns(faction, spawnGroups)).headOption match {
               case Some((_, spawnPoints)) if spawnPoints.nonEmpty =>
                 Some((zone, Random.shuffle(spawnPoints.toList).head))

@@ -23,7 +23,15 @@ object BuildingActor {
     Behaviors
       .supervise[Command] {
         Behaviors.withStash(100) { buffer =>
-          Behaviors.setup(context => new BuildingActor(context, buffer, zone, building).start())
+          val logic: BuildingLogic = building match {
+            case _: WarpGate =>
+              WarpGateLogic
+            case _ if building.BuildingType == StructureType.Tower || zone.map.cavern =>
+              FacilityLogic
+            case _ =>
+              MajorFacilityLogic
+          }
+          Behaviors.setup(context => new BuildingActor(context, buffer, zone, building, logic).start())
         }
       }
       .onFailure[Exception](SupervisorStrategy.restart)
@@ -37,14 +45,6 @@ object BuildingActor {
   final case class SetFaction(faction: PlanetSideEmpire.Value) extends Command
 
   final case class AlertToFactionChange(building: Building) extends Command
-
-  final case class UpdateForceDome(state: Option[Boolean]) extends Command
-
-  object UpdateForceDome {
-    def apply(): UpdateForceDome = UpdateForceDome(None)
-
-    def apply(state: Boolean): UpdateForceDome = UpdateForceDome(Some(state))
-  }
 
   // TODO remove
   // Changes to building objects should go through BuildingActor
@@ -72,6 +72,15 @@ object BuildingActor {
                     faction: PlanetSideEmpire.Value,
                     log: BuildingControlDetails => Logger
                   ): Unit = {
+    setFactionInDatabase(details, faction, log)
+    setFactionOnEntity(details, faction, log)
+  }
+
+  def setFactionInDatabase(
+                            details: BuildingControlDetails,
+                            faction: PlanetSideEmpire.Value,
+                            log: BuildingControlDetails => Logger
+                          ): Unit = {
     val building = details.building
     val zone = building.Zone
     import ctx._
@@ -114,6 +123,15 @@ object BuildingActor {
           }
         case Failure(e) => log(details).error(e.getMessage)
       }
+  }
+
+  def setFactionOnEntity(
+                          details: BuildingControlDetails,
+                          faction: PlanetSideEmpire.Value,
+                          log: BuildingControlDetails => Logger
+                        ): Unit = {
+    val building = details.building
+    val zone = building.Zone
     building.Faction = faction
     zone.actor ! ZoneActor.ZoneMapUpdate() // Update entire lattice to show lattice benefits
     zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(building.GUID, faction))
@@ -124,21 +142,13 @@ class BuildingActor(
     context: ActorContext[BuildingActor.Command],
     buffer: StashBuffer[BuildingActor.Command],
     zone: Zone,
-    building: Building
+    building: Building,
+    logic: BuildingLogic
 ) {
-
   import BuildingActor._
   var galaxyService: Option[classic.ActorRef]                                   = None
   var interstellarCluster: Option[ActorRef[InterstellarClusterService.Command]] = None
   var dets: Option[BuildingControlDetails] = None
-  var logic: BuildingLogic = building match {
-    case _: WarpGate =>
-      WarpGateLogic
-    case _ if building.BuildingType == StructureType.Tower || zone.map.cavern =>
-      FacilityLogic
-    case _ =>
-      MajorFacilityLogic
-  }
 
   context.system.receptionist ! Receptionist.Find(
     InterstellarClusterService.InterstellarClusterServiceKey,
@@ -193,9 +203,6 @@ class BuildingActor(
       case MapUpdate() =>
         details.galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(details.building.infoUpdateMessage()))
         Behaviors.same
-
-      case UpdateForceDome(stateOpt) =>
-        logic.updateForceDome(details, stateOpt)
 
       case AmenityStateChange(amenity, data) =>
         logic.amenityStateChange(details, amenity, data)

@@ -106,10 +106,11 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
     * @return the set of all factions who interact with this warp gate as "broadcast"
     */
   def AllowBroadcastFor_=(bcast: Set[PlanetSideEmpire.Value]): Set[PlanetSideEmpire.Value] = {
-    passageFor = if (bcast.isEmpty) {
+    val validFactions = bcast.filterNot(_ == PlanetSideEmpire.NEUTRAL)
+    passageFor = if (bcast.isEmpty || validFactions.isEmpty) {
       Set(PlanetSideEmpire.NEUTRAL)
     } else {
-      bcast.filterNot(_ == PlanetSideEmpire.NEUTRAL)
+      validFactions
     }
     AllowBroadcastFor
   }
@@ -121,6 +122,8 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
   def NtuCapacitor_=(value: Float): Float = NtuCapacitor
 
   def MaxNtuCapacitor : Float = Int.MaxValue
+
+  override def isOffline: Boolean = !Active
 
   override def NtuSource: Option[NtuContainer] = Some(this)
 

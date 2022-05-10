@@ -17,14 +17,6 @@ case object FacilityLogic
   extends BuildingLogic {
   import BuildingActor.Command
 
-  def updateForceDome(details: BuildingControlDetails, stateOpt: Option[Boolean]): Behavior[Command] = {
-    Behaviors.same
-  }
-
-  def alignForceDomeStatus(details: BuildingControlDetails, mapUpdateOnChange: Boolean): Behavior[Command] = {
-    Behaviors.same
-  }
-
   def amenityStateChange(details: BuildingControlDetails, entity: Amenity, data: Option[Any]): Behavior[Command] = {
     entity match {
       case terminal: CaptureTerminal =>

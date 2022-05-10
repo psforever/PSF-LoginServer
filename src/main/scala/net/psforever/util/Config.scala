@@ -156,7 +156,8 @@ case class GameConfig(
     newAvatar: NewAvatar,
     hart: HartConfig,
     sharedMaxCooldown: Boolean,
-    baseCertifications: Seq[Certification]
+    baseCertifications: Seq[Certification],
+    warpGates: WarpGateConfig
 )
 
 case class NewAvatar(
@@ -189,4 +190,9 @@ case class KamonConfig(
 case class SentryConfig(
     enable: Boolean,
     dsn: String
+)
+
+case class WarpGateConfig(
+    defaultToSanctuaryDestination: Boolean,
+    broadcastBetweenConflictedFactions: Boolean
 )
