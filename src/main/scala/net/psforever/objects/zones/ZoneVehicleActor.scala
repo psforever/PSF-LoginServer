@@ -4,6 +4,7 @@ package net.psforever.objects.zones
 import akka.actor.Actor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.{Default, Vehicle}
+import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -52,6 +53,7 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
         case Some(index) =>
           vehicleList.remove(index)
           vehicle.Definition.Uninitialize(vehicle, context)
+          vehicle.Position = Vector3.Zero
           zone.actor ! ZoneActor.RemoveFromBlockMap(vehicle)
           sender() ! Zone.Vehicle.HasDespawned(zone, vehicle)
         case None => ;

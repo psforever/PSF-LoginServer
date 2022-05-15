@@ -89,6 +89,8 @@ object InterstellarClusterService {
   final case class DroppodLaunchConfirmation(destination: Zone, position: Vector3) extends DroppodLaunchExchange
 
   final case class DroppodLaunchDenial(errorCode: DroppodError, data: Option[Any]) extends DroppodLaunchExchange
+
+  private case class ReceptionistListing(listing: Receptionist.Listing) extends Command
 }
 
 class InterstellarClusterService(context: ActorContext[InterstellarClusterService.Command], _zones: Iterable[Zone])
@@ -111,13 +113,19 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
       })
     }
     //execute
-    mutable.Map(
+    val out = mutable.Map(
       _zones.map {
         zone =>
           val zoneActor = context.spawn(ZoneActor(zone), s"zone-${zone.id}")
           (zone.id, (zoneActor, zone))
       }.toSeq: _*
     )
+    //manage
+    context.system.receptionist ! Receptionist.Find(
+      CavernRotationService.CavernRotationServiceKey,
+      context.messageAdapter[Receptionist.Listing](ReceptionistListing)
+    )
+    out
   }
 
   val zones: Iterable[Zone] = zoneActors.map {
@@ -126,8 +134,12 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
 
   override def onMessage(msg: Command): Behavior[Command] = {
     msg match {
+      case ReceptionistListing(CavernRotationService.CavernRotationServiceKey.Listing(listings)) =>
+        listings.head ! CavernRotationService.ManageCaverns(zones)
+
       case GetPlayers(replyTo) =>
         replyTo ! PlayersResponse(zones.flatMap(_.Players).toSeq)
+
       case FindZoneActor(predicate, replyTo) =>
         replyTo ! ZoneActorResponse(
           zoneActors.collectFirst {
@@ -298,6 +310,18 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
                 case (a, b, _) =>
                   println(s"InterstellarCluster: can't create lattice link between $source (${a.nonEmpty}) and $target (${b.nonEmpty}).")
               }
+          }
+      }
+      //error checking; almost all warp gates should be paired with at least one other gate
+      // exception: inactive warp gates are not guaranteed to be connected
+      // exception: the broadcast gates on sanctuary do not have partners
+      // exception: the cavern gates in a locked zone are not guaranteed to be connected
+      _zones.foreach { zone =>
+        zone.Buildings.values
+          .collect { case gate: WarpGate if gate.Active => gate }
+          .filterNot { gate => gate.AllNeighbours.getOrElse(Nil).exists(_.isInstanceOf[WarpGate]) || gate.Broadcast }
+          .foreach { gate =>
+            log.error(s"found degenerate intercontinental lattice link - no paired warp gate for ${zone.id} ${gate.Name}")
           }
       }
     }

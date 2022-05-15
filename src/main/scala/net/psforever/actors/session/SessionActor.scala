@@ -55,6 +55,7 @@ import net.psforever.packet._
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
+import net.psforever.services.CavernRotationService.SendCavernRotationUpdates
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
 import net.psforever.services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
@@ -66,7 +67,7 @@ import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
 import net.psforever.services.hart.HartTimer
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
-import net.psforever.services.{RemoverActor, Service, ServiceManager, InterstellarClusterService => ICS}
+import net.psforever.services.{CavernRotationService, RemoverActor, Service, ServiceManager, InterstellarClusterService => ICS}
 import net.psforever.types._
 import net.psforever.util.{Config, DefinitionUtil}
 import net.psforever.zones.Zones
@@ -419,6 +420,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case ICS.InterstellarClusterServiceKey.Listing(listings) =>
       cluster = listings.head
 
+    case CavernRotationService.CavernRotationServiceKey.Listing(listings) =>
+      listings.head ! SendCavernRotationUpdates(self)
+
     // Avatar subscription update
     case avatar: Avatar =>
     /*
@@ -661,6 +665,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 //wait patiently
               }
           }
+
+        case GalaxyResponse.LockedZoneUpdate(zone, time) =>
+          sendResponse(ZoneInfoMessage(zone.Number, empire_status=false, lock_time=time))
+
+        case GalaxyResponse.UnlockedZoneUpdate(zone) => ;
+          sendResponse(ZoneInfoMessage(zone.Number, empire_status=true, lock_time=0L))
+          val popBO = 0
+          val popTR = zone.Players.count(_.faction == PlanetSideEmpire.TR)
+          val popNC = zone.Players.count(_.faction == PlanetSideEmpire.NC)
+          val popVS = zone.Players.count(_.faction == PlanetSideEmpire.VS)
+          sendResponse(ZonePopulationUpdateMessage(zone.Number, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
+
+        case GalaxyResponse.SendResponse(msg) =>
+          sendResponse(msg)
       }
 
     case LocalServiceResponse(toChannel, guid, reply) =>
@@ -1129,6 +1147,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
         ) //normally set for all zones in bulk; should be fine manually updating per zone like this
       }
+      ServiceManager.receptionist ! Receptionist.Find(
+        CavernRotationService.CavernRotationServiceKey,
+        context.self
+      )
       LivePlayerList.Add(avatar.id, avatar)
       //PropertyOverrideMessage
 
@@ -3921,9 +3943,25 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
         fallHeightTracker(pos.z)
-//        if (is_crouching && !player.Crouching) {
-//          //dev stuff goes here
-//        }
+        if (is_crouching && !player.Crouching) {
+          //dev stuff goes here
+          sendResponse(ZoneInfoMessage(23,true,12600000))
+          sendResponse(ZoneInfoMessage(25,true,25200000))
+          sendResponse(ZoneInfoMessage(26,false,25200000))
+          sendResponse(ZoneInfoMessage(24,false,37800000))
+          sendResponse(ZoneInfoMessage(28,false,0))
+          sendResponse(ChatMsg(ChatMessageType.UNK_229, "@cavern_switched^@c3~^@c4~"))
+          sendResponse(BroadcastWarpgateUpdateMessage(1,19999,true,false,false))
+          sendResponse(BroadcastWarpgateUpdateMessage(1,19998,false,false,false))
+          sendResponse(BroadcastWarpgateUpdateMessage(3,25937,true,false,false))
+          sendResponse(BroadcastWarpgateUpdateMessage(3,25936,false,false,false))
+          sendResponse(BroadcastWarpgateUpdateMessage(6,18657,false,false,false))
+          sendResponse(BroadcastWarpgateUpdateMessage(10,20902,false,true,false))
+          sendResponse(BroadcastWarpgateUpdateMessage(7,21322,false,false,false))
+          sendResponse(BroadcastWarpgateUpdateMessage(7,21321,false,true,false))
+          sendResponse(BroadcastWarpgateUpdateMessage(9,23718,false,false,true))
+          sendResponse(BroadcastWarpgateUpdateMessage(9,23717,false,false,false))
+        }
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)

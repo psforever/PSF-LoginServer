@@ -61,6 +61,27 @@ class GalaxyService extends Actor {
               GalaxyResponse.TransferPassenger(temp_channel, vehicle, vehicle_to_delete, manifest)
             )
           )
+
+        case GalaxyAction.LockedZoneUpdate(zone, time) =>
+          GalaxyEvents.publish(
+            GalaxyServiceResponse(
+              s"/Galaxy",
+              GalaxyResponse.LockedZoneUpdate(zone, time)
+            )
+          )
+
+        case GalaxyAction.UnlockedZoneUpdate(zone) =>
+          GalaxyEvents.publish(
+            GalaxyServiceResponse(
+              s"/Galaxy",
+              GalaxyResponse.UnlockedZoneUpdate(zone)
+            )
+          )
+
+        case GalaxyAction.SendResponse(msg) =>
+          GalaxyEvents.publish(
+            GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.SendResponse(msg))
+          )
         case _ => ;
       }
 

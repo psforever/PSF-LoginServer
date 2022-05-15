@@ -3,7 +3,8 @@ package net.psforever.services.galaxy
 
 import net.psforever.objects.Vehicle
 import net.psforever.objects.vehicles.VehicleManifest
-import net.psforever.objects.zones.HotSpotInfo
+import net.psforever.objects.zones.{HotSpotInfo, Zone}
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{BuildingInfoUpdateMessage, CaptureFlagUpdateMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import net.psforever.services.GenericEventBusMsg
@@ -32,4 +33,10 @@ object GalaxyResponse {
                                               fromFactions: Set[PlanetSideEmpire.Value],
                                               toFactions: Set[PlanetSideEmpire.Value]
                                             ) extends Response
+
+  final case class LockedZoneUpdate(zone: Zone, timeUntilUnlock: Long) extends Response
+
+  final case class UnlockedZoneUpdate(zone: Zone) extends Response
+
+  final case class SendResponse(msg: PlanetSideGamePacket) extends Response
 }

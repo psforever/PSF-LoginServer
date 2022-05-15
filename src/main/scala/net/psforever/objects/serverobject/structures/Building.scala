@@ -88,10 +88,19 @@ class Building(
   }
 
   // Get all lattice neighbours
-  def Neighbours: Option[Set[Building]] = {
+  def AllNeighbours: Option[Set[Building]] = {
     zone.Lattice find this match {
       case Some(x) => Some(x.diSuccessors.map(x => x.toOuter))
-      case None    => None;
+      case None    => None
+    }
+  }
+
+  // Get all lattice neighbours that are active
+  // This is important because warp gates can be inactive
+  def Neighbours: Option[Set[Building]] = {
+    AllNeighbours collect {
+      case wg: WarpGate if wg.Active => wg
+      case b                         => b
     }
   }
 

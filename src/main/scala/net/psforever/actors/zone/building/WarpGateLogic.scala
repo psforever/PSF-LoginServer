@@ -108,22 +108,19 @@ case object WarpGateLogic
           case (None, Some(wg : WarpGate), Some(otherWg : WarpGate), Some(_)) =>
             handleWarpGateDeadendPair(details, otherWg, wg)
 
-          case (a, b, c, d) =>
-            //everything else is a degenerate pattern that should be reported
-            log(details).warn(
-              s"WarpGateLogic found degenerate intercontinental lattice link - $a <-> $b <=> $c <-> $d"
-            )
+          case _ => ;
+            //everything else is a degenerate pattern that should be reported at an earlier point
         }
       }
     }
     Behaviors.same
   }
 
-  private def findNeighborhoodWarpGate(neighborhood: Iterable[Building]): Option[Building] = {
+  def findNeighborhoodWarpGate(neighborhood: Iterable[Building]): Option[Building] = {
     neighborhood.find { _ match { case _: WarpGate => true; case _ => false } }
   }
 
-  private def findNeighborhoodNormalBuilding(neighborhood: Iterable[Building]): Option[Building] = {
+  def findNeighborhoodNormalBuilding(neighborhood: Iterable[Building]): Option[Building] = {
     neighborhood.find { _ match { case _: WarpGate => false; case _ => true } }
   }
 
