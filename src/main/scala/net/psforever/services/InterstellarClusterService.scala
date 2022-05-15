@@ -105,7 +105,11 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
     import scala.concurrent.ExecutionContext.Implicits.global
     //setup
     val zoneLoadedList = _zones.map { _.ZoneInitialized() }
-    val continentLinkFunc: ()=>Unit = MakeIntercontinentalLattice(zoneLoadedList.toList)
+    val continentLinkFunc: ()=>Unit = MakeIntercontinentalLattice(
+      zoneLoadedList.toList,
+      context.system.receptionist,
+      context.messageAdapter[Receptionist.Listing](ReceptionistListing)
+    )
     zoneLoadedList.foreach {
       _.onComplete({
         case Success(true) => continentLinkFunc()
@@ -120,11 +124,6 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
           (zone.id, (zoneActor, zone))
       }.toSeq: _*
     )
-    //manage
-    context.system.receptionist ! Receptionist.Find(
-      CavernRotationService.CavernRotationServiceKey,
-      context.messageAdapter[Receptionist.Listing](ReceptionistListing)
-    )
     out
   }
 
@@ -135,7 +134,15 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
   override def onMessage(msg: Command): Behavior[Command] = {
     msg match {
       case ReceptionistListing(CavernRotationService.CavernRotationServiceKey.Listing(listings)) =>
-        listings.head ! CavernRotationService.ManageCaverns(zones)
+        listings.headOption match {
+          case Some(ref) =>
+            ref ! CavernRotationService.ManageCaverns(zones)
+          case None =>
+            context.system.receptionist ! Receptionist.Find(
+              CavernRotationService.CavernRotationServiceKey,
+              context.messageAdapter[Receptionist.Listing](ReceptionistListing)
+            )
+        }
 
       case GetPlayers(replyTo) =>
         replyTo ! PlayersResponse(zones.flatMap(_.Players).toSeq)
@@ -284,7 +291,11 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
     this
   }
 
-  private def MakeIntercontinentalLattice(flags: List[Future[Boolean]])(): Unit = {
+  private def MakeIntercontinentalLattice(
+                                           flags: List[Future[Boolean]],
+                                           receptionist: ActorRef[Receptionist.Command],
+                                           adapter: ActorRef[Receptionist.Listing]
+                                         )(): Unit = {
     if (flags.forall { _.value.contains(Success(true)) } && !intercontinentalSetup) {
       intercontinentalSetup = true
       //intercontinental lattice setup
@@ -324,6 +335,8 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             log.error(s"found degenerate intercontinental lattice link - no paired warp gate for ${zone.id} ${gate.Name}")
           }
       }
+      //manage
+      receptionist ! Receptionist.Find(CavernRotationService.CavernRotationServiceKey, adapter)
     }
   }
 }
