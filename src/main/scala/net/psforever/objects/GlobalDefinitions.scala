@@ -1293,22 +1293,6 @@ object GlobalDefinitions {
   val ceiling_bldg_j = new BuildingDefinition(474) { Name = "ceiling_bldg_j" } //borrows object id of entity mainbase1
   val ceiling_bldg_z = new BuildingDefinition(474) { Name = "ceiling_bldg_z" } //borrows object id of entity mainbase1
 
-  val hst = new WarpGateDefinition(402)
-  hst.Name = "hst"
-  hst.UseRadius = 20.4810f
-  hst.SOIRadius = 21
-  hst.VehicleAllowance = true
-  hst.NoWarp += dropship
-  hst.NoWarp += galaxy_gunship
-  hst.NoWarp += lodestar
-  hst.NoWarp += aphelion_gunner
-  hst.NoWarp += aphelion_flight
-  hst.NoWarp += colossus_gunner
-  hst.NoWarp += colossus_flight
-  hst.NoWarp += peregrine_gunner
-  hst.NoWarp += peregrine_flight
-  hst.SpecificPointFunc = SpawnPoint.Gate
-
   val mainbase1            = new BuildingDefinition(474) { Name = "mainbase1" }
   val mainbase2            = new BuildingDefinition(475) { Name = "mainbase2" }
   val mainbase3            = new BuildingDefinition(476) { Name = "mainbase3" }
@@ -1325,6 +1309,22 @@ object GlobalDefinitions {
   val tower_c              = new BuildingDefinition(871) { Name = "tower_c"; SOIRadius = 50 }
   val vanu_control_point   = new BuildingDefinition(931) { Name = "vanu_control_point"; SOIRadius = 187 }
   val vanu_vehicle_station = new BuildingDefinition(948) { Name = "vanu_vehicle_station"; SOIRadius = 187 }
+
+  val hst = new WarpGateDefinition(402)
+  hst.Name = "hst"
+  hst.UseRadius = 20.4810f
+  hst.SOIRadius = 21
+  hst.VehicleAllowance = true
+  hst.NoWarp += dropship
+  hst.NoWarp += galaxy_gunship
+  hst.NoWarp += lodestar
+  hst.NoWarp += aphelion_gunner
+  hst.NoWarp += aphelion_flight
+  hst.NoWarp += colossus_gunner
+  hst.NoWarp += colossus_flight
+  hst.NoWarp += peregrine_gunner
+  hst.NoWarp += peregrine_flight
+  hst.SpecificPointFunc = SpawnPoint.Gate
 
   val warpgate = new WarpGateDefinition(993)
   warpgate.Name = "warpgate"

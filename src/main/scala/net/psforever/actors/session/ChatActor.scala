@@ -9,7 +9,7 @@ import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank, Cos
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.{Default, Player, Session}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
 import net.psforever.objects.zones.Zoning
 import net.psforever.packet.game.{ChatMsg, DeadState, RequestDestroyMessage, ZonePopulationUpdateMessage}
@@ -18,9 +18,11 @@ import net.psforever.util.{Config, PointOfInterest}
 import net.psforever.zones.Zones
 import net.psforever.services.chat.ChatService
 import net.psforever.services.chat.ChatService.ChatChannel
+
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.types.ChatMessageType.UNK_229
 
 object ChatActor {
   def apply(
@@ -44,6 +46,47 @@ object ChatActor {
 
   private case class ListingResponse(listing: Receptionist.Listing)                            extends Command
   private case class IncomingMessage(session: Session, message: ChatMsg, channel: ChatChannel) extends Command
+
+  private def setBaseResources(
+                                session: ActorRef[SessionActor.Command],
+                                resources: Option[Int],
+                                silos: Iterable[Amenity],
+                                debugContent: String
+                              ): Unit = {
+    if (silos.isEmpty) {
+      session ! SessionActor.SendResponse(
+        ChatMsg(UNK_229, true, "Server", s"no targets for ntu found with parameters $debugContent", None)
+      )
+    }
+    resources match {
+      // x = n0% of maximum capacitance
+      case Some(value) if value > -1 && value < 11 =>
+        silos.collect {
+          case silo: ResourceSilo =>
+            silo.Actor ! ResourceSilo.UpdateChargeLevel(
+              value * silo.MaxNtuCapacitor * 0.1f - silo.NtuCapacitor
+            )
+        }
+      // capacitance set to x (where x > 10) exactly, within limits
+      case Some(value) =>
+        silos.collect {
+          case silo: ResourceSilo =>
+            silo.Actor ! ResourceSilo.UpdateChargeLevel(value - silo.NtuCapacitor)
+        }
+      case None =>
+        // x >= n0% of maximum capacitance and x <= maximum capacitance
+        val rand = new scala.util.Random
+        silos.collect {
+          case silo: ResourceSilo =>
+            val a     = 7
+            val b     = 10 - a
+            val tenth = silo.MaxNtuCapacitor * 0.1f
+            silo.Actor ! ResourceSilo.UpdateChargeLevel(
+              a * tenth + rand.nextFloat() * b * tenth - silo.NtuCapacitor
+            )
+        }
+    }
+  }
 }
 
 class ChatActor(
@@ -275,6 +318,48 @@ class ChatActor(
               }
               sessionActor ! SessionActor.SendResponse(message)
 
+            case (CMT_SETBASERESOURCES, _, contents) if gmCommandAllowed =>
+              val buffer = contents.toLowerCase.split("\\s+")
+              val customNtuValue = buffer.lift(1) match {
+                case Some(x) if x.toIntOption.nonEmpty => Some(x.toInt)
+                case _                                 => None
+              }
+              val silos = {
+                val position = session.player.Position
+                session.zone.Buildings.values
+                  .filter { building =>
+                    val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
+                    Vector3.DistanceSquared(building.Position, position) < soi2
+                  }
+              }
+                .flatMap { building => building.Amenities.filter { _.isInstanceOf[ResourceSilo] } }
+              ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent="")
+
+            case (CMT_ZONELOCK, _, contents) if gmCommandAllowed =>
+              val buffer = contents.toLowerCase.split("\\s+")
+              val (zoneOpt, customNtuValue) = (buffer.lift(1), buffer.lift(2)) match {
+                case (Some(x), Some(y)) if y.toIntOption.nonEmpty =>
+                  val zone = if (x.toIntOption.nonEmpty) {
+                    val xInt = x.toInt
+                    Zones.zones.find(_.Number == xInt)
+                  } else {
+                    Zones.zones.find(z => z.id.equals(x))
+                  }
+                  (zone, Some(y.toInt))
+                case (None,    Some(y)) if y.toIntOption.nonEmpty =>
+                  (Some(session.player.Zone), Some(y.toInt))
+                case _ =>
+                  (None, None)
+              }
+              zoneOpt match {
+                case Some(zone) if zone.id.startsWith("c") =>
+                  //caverns must be rotated in an order
+                case Some(zone) =>
+                  //normal zones can lock when all facilities and towers on it belong to the same faction
+                  //normal zones can lock when ???
+                case _ => ;
+              }
+
             /** Messages starting with ! are custom chat commands */
             case (messageType, recipient, contents) if contents.startsWith("!") =>
               (messageType, recipient, contents) match {
@@ -363,39 +448,7 @@ class ChatActor(
                       session.zone.Buildings.values
                   })
                     .flatMap { building => building.Amenities.filter { _.isInstanceOf[ResourceSilo] } }
-                  if (silos.isEmpty) {
-                    sessionActor ! SessionActor.SendResponse(
-                      ChatMsg(UNK_229, true, "Server", s"no targets for ntu found with parameters $facility", None)
-                    )
-                  }
-                  customNtuValue match {
-                    // x = n0% of maximum capacitance
-                    case Some(value) if value > -1 && value < 11 =>
-                      silos.collect {
-                        case silo: ResourceSilo =>
-                          silo.Actor ! ResourceSilo.UpdateChargeLevel(
-                            value * silo.MaxNtuCapacitor * 0.1f - silo.NtuCapacitor
-                          )
-                      }
-                    // capacitance set to x (where x > 10) exactly, within limits
-                    case Some(value) =>
-                      silos.collect {
-                        case silo: ResourceSilo =>
-                          silo.Actor ! ResourceSilo.UpdateChargeLevel(value - silo.NtuCapacitor)
-                      }
-                    case None =>
-                      // x >= n0% of maximum capacitance and x <= maximum capacitance
-                      val rand = new scala.util.Random
-                      silos.collect {
-                        case silo: ResourceSilo =>
-                          val a     = 7
-                          val b     = 10 - a
-                          val tenth = silo.MaxNtuCapacitor * 0.1f
-                          silo.Actor ! ResourceSilo.UpdateChargeLevel(
-                            a * tenth + rand.nextFloat() * b * tenth - silo.NtuCapacitor
-                          )
-                      }
-                  }
+                  ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent=s"$facility")
 
                 case _ =>
                 // unknown ! commands are ignored

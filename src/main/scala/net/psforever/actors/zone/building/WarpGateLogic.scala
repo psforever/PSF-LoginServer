@@ -108,6 +108,12 @@ case object WarpGateLogic
           case (None, Some(wg : WarpGate), Some(otherWg : WarpGate), Some(_)) =>
             handleWarpGateDeadendPair(details, otherWg, wg)
 
+          case (_, Some(wg: WarpGate), None, None) if !wg.Active =>
+            updateBroadcastCapabilitiesOfWarpGate(details, wg, Set(PlanetSideEmpire.NEUTRAL))
+
+          case (None, None, Some(wg: WarpGate), _) if !wg.Active =>
+            updateBroadcastCapabilitiesOfWarpGate(details, wg, Set(PlanetSideEmpire.NEUTRAL))
+
           case _ => ;
             //everything else is a degenerate pattern that should be reported at an earlier point
         }

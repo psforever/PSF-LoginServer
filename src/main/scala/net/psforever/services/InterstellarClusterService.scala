@@ -84,6 +84,8 @@ object InterstellarClusterService {
                                          replyTo: ActorRef[DroppodLaunchExchange]
                                        ) extends Command
 
+  case object ForceCavernRotation extends Command
+
   trait DroppodLaunchExchange
 
   final case class DroppodLaunchConfirmation(destination: Zone, position: Vector3) extends DroppodLaunchExchange
@@ -100,6 +102,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
 
   private[this] val log = org.log4s.getLogger
   var intercontinentalSetup: Boolean = false
+  var cavernRotation: Option[ActorRef[CavernRotationService.Command]] = None
 
   val zoneActors: mutable.Map[String, (ActorRef[ZoneActor.Command], Zone)] = {
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -117,14 +120,13 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
       })
     }
     //execute
-    val out = mutable.Map(
+    mutable.Map(
       _zones.map {
         zone =>
           val zoneActor = context.spawn(ZoneActor(zone), s"zone-${zone.id}")
           (zone.id, (zoneActor, zone))
       }.toSeq: _*
     )
-    out
   }
 
   val zones: Iterable[Zone] = zoneActors.map {
@@ -136,6 +138,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
       case ReceptionistListing(CavernRotationService.CavernRotationServiceKey.Listing(listings)) =>
         listings.headOption match {
           case Some(ref) =>
+            cavernRotation = Some(ref)
             ref ! CavernRotationService.ManageCaverns(zones)
           case None =>
             context.system.receptionist ! Receptionist.Find(
@@ -285,6 +288,12 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             }
           case None =>
             replyTo ! DroppodLaunchDenial(DroppodError.InvalidLocation, None)
+        }
+
+      case ForceCavernRotation =>
+        cavernRotation match {
+          case Some(rotation) => rotation ! CavernRotationService.HurryNextRotation
+          case None => ;
         }
     }
 

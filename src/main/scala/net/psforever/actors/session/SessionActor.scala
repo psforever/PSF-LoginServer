@@ -3945,22 +3945,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         fallHeightTracker(pos.z)
         if (is_crouching && !player.Crouching) {
           //dev stuff goes here
-          sendResponse(ZoneInfoMessage(23,true,12600000))
-          sendResponse(ZoneInfoMessage(25,true,25200000))
-          sendResponse(ZoneInfoMessage(26,false,25200000))
-          sendResponse(ZoneInfoMessage(24,false,37800000))
-          sendResponse(ZoneInfoMessage(28,false,0))
-          sendResponse(ChatMsg(ChatMessageType.UNK_229, "@cavern_switched^@c3~^@c4~"))
-          sendResponse(BroadcastWarpgateUpdateMessage(1,19999,true,false,false))
-          sendResponse(BroadcastWarpgateUpdateMessage(1,19998,false,false,false))
-          sendResponse(BroadcastWarpgateUpdateMessage(3,25937,true,false,false))
-          sendResponse(BroadcastWarpgateUpdateMessage(3,25936,false,false,false))
-          sendResponse(BroadcastWarpgateUpdateMessage(6,18657,false,false,false))
-          sendResponse(BroadcastWarpgateUpdateMessage(10,20902,false,true,false))
-          sendResponse(BroadcastWarpgateUpdateMessage(7,21322,false,false,false))
-          sendResponse(BroadcastWarpgateUpdateMessage(7,21321,false,true,false))
-          sendResponse(BroadcastWarpgateUpdateMessage(9,23718,false,false,true))
-          sendResponse(BroadcastWarpgateUpdateMessage(9,23717,false,false,false))
+          cluster ! ICS.ForceCavernRotation
         }
         player.Position = pos
         player.Velocity = vel
@@ -6001,7 +5986,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             summary,
             desc
           ) =>
-        log.warn(s"${player.Name} filed a bug report")
+        log.warn(s"${player.Name} filed a bug report - it might be something important")
         log.debug(s"$msg")
 
       case msg @ BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
