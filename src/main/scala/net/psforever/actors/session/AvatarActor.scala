@@ -193,10 +193,10 @@ object AvatarActor {
 
   def changeRibbons(ribbons: RibbonBars, ribbon: MeritCommendation.Value, bar: RibbonBarSlot.Value): RibbonBars = {
     bar match {
-      case RibbonBarSlot.Top           => ribbons.copy(upper  = ribbon)
+      case RibbonBarSlot.Top           => ribbons.copy(upper = ribbon)
       case RibbonBarSlot.Middle        => ribbons.copy(middle = ribbon)
-      case RibbonBarSlot.Bottom        => ribbons.copy(lower  = ribbon)
-      case RibbonBarSlot.TermOfService => ribbons.copy(tos    = ribbon)
+      case RibbonBarSlot.Bottom        => ribbons.copy(lower = ribbon)
+      case RibbonBarSlot.TermOfService => ribbons.copy(tos = ribbon)
     }
   }
 }
@@ -380,14 +380,16 @@ class AvatarActor(
 
           result.onComplete {
             case Success((loadouts, implants, certs, locker)) =>
-              avatarCopy(avatar.copy(
-                loadouts = loadouts,
-                // make sure we always have the base certifications
-                certifications =
-                  certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
-                implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
-                locker = locker
-              ))
+              avatarCopy(
+                avatar.copy(
+                  loadouts = loadouts,
+                  // make sure we always have the base certifications
+                  certifications =
+                    certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
+                  implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
+                  locker = locker
+                )
+              )
               // if we need to start stamina regeneration
               tryRestoreStaminaForSession(stamina = 1) match {
                 case Some(_) =>
@@ -524,7 +526,8 @@ class AvatarActor(
                     if (certification == Certification.ReinforcedExoSuit) player.ExoSuit == ExoSuitType.Reinforced
                     else if (certification == Certification.InfiltrationSuit) player.ExoSuit == ExoSuitType.Infiltration
                     else if (player.ExoSuit == ExoSuitType.MAX) {
-                      lazy val subtype = InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, player.Slot(slot = 0).Equipment)
+                      lazy val subtype =
+                        InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, player.Slot(slot = 0).Equipment)
                       if (certification == Certification.UniMAX) true
                       else if (certification == Certification.AAMAX) subtype == 1
                       else if (certification == Certification.AIMAX) subtype == 2
@@ -598,7 +601,7 @@ class AvatarActor(
           // TODO there used to be a terminal check here, do we really need it?
           val index = avatar.implants.zipWithIndex.collectFirst {
             case (Some(implant), _index) if implant.definition.implantType == definition.implantType => _index
-            case (None, _index) if _index < avatar.br.implantSlots                                    => _index
+            case (None, _index) if _index < avatar.br.implantSlots                                   => _index
           }
           index match {
             case Some(_index) =>
@@ -668,7 +671,7 @@ class AvatarActor(
           Behaviors.same
 
         case SaveLoadout(player, loadoutType, label, number) =>
-          log.info(s"${player.Name} wishes to save a favorite $loadoutType loadout as #${number+1}")
+          log.info(s"${player.Name} wishes to save a favorite $loadoutType loadout as #${number + 1}")
           val name = label.getOrElse(s"missing_loadout_${number + 1}")
           val (lineNo, result): (Int, Future[Loadout]) = loadoutType match {
             case LoadoutType.Infantry =>
@@ -692,8 +695,7 @@ class AvatarActor(
               (
                 number + 15,
                 player.Zone.GUID(avatar.vehicle) match {
-                  case Some(vehicle: Vehicle)
-                    if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) =>
+                  case Some(vehicle: Vehicle) if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) =>
                     storeVehicleLoadout(player, name, number + 5, vehicle)
                   case _ =>
                     throwLoadoutFailure(s"no owned battleframe found for ${player.Name}")
@@ -710,7 +712,7 @@ class AvatarActor(
           Behaviors.same
 
         case DeleteLoadout(player, loadoutType, number) =>
-          log.info(s"${player.Name} wishes to delete a favorite $loadoutType loadout - #${number+1}")
+          log.info(s"${player.Name} wishes to delete a favorite $loadoutType loadout - #${number + 1}")
           import ctx._
           val (lineNo, result) = loadoutType match {
             case LoadoutType.Infantry if avatar.loadouts(number).nonEmpty =>
@@ -814,9 +816,11 @@ class AvatarActor(
               } else if (implant.definition.implantType.disabledFor.contains(session.get.player.ExoSuit)) {
                 // TODO can this really happen? can we prevent it?
               } else {
-                avatarCopy(avatar.copy(
-                  implants = avatar.implants.updated(slot, Some(implant.copy(active = true)))
-                ))
+                avatarCopy(
+                  avatar.copy(
+                    implants = avatar.implants.updated(slot, Some(implant.copy(active = true)))
+                  )
+                )
                 sessionActor ! SessionActor.SendResponse(
                   AvatarImplantMessage(session.get.player.GUID, ImplantAction.Activation, slot, 1)
                 )
@@ -835,32 +839,34 @@ class AvatarActor(
                 if (interval.toMillis > 0) {
                   implantTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(interval, interval)(() => {
                     val player = session.get.player
-                    if (implantType match {
-                      case ImplantType.AdvancedRegen =>
-                        //for every 1hp: 2sp (running), 1.5sp (standing), 1sp (crouched)
-                        // to simulate '1.5sp (standing)', find if 0.0...1.0 * 100 is an even number
-                        val cost = implant.definition.StaminaCost -
-                                   (if (player.Crouching || (!player.isMoving && (math.random() * 100) % 2 == 1)) 1 else 0)
-                        val aliveAndWounded = player.isAlive && player.Health < player.MaxHealth
-                        if (aliveAndWounded && consumeThisMuchStamina(cost)) {
-                          //heal
-                          val originalHealth = player.Health
-                          val zone = player.Zone
-                          val events = zone.AvatarEvents
-                          val guid = player.GUID
-                          val newHealth = player.Health = originalHealth + 1
-                          player.History(HealFromImplant(PlayerSource(player), 1, implantType))
-                          events ! AvatarServiceMessage(
-                            zone.id,
-                            AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth)
-                          )
-                          false
-                        } else {
-                          !aliveAndWounded
-                        }
-                      case _ =>
-                        !player.isAlive || !consumeThisMuchStamina(implant.definition.StaminaCost)
-                    }) {
+                    if (
+                      implantType match {
+                        case ImplantType.AdvancedRegen =>
+                          //for every 1hp: 2sp (running), 1.5sp (standing), 1sp (crouched)
+                          // to simulate '1.5sp (standing)', find if 0.0...1.0 * 100 is an even number
+                          val cost = implant.definition.StaminaCost -
+                            (if (player.Crouching || (!player.isMoving && (math.random() * 100) % 2 == 1)) 1 else 0)
+                          val aliveAndWounded = player.isAlive && player.Health < player.MaxHealth
+                          if (aliveAndWounded && consumeThisMuchStamina(cost)) {
+                            //heal
+                            val originalHealth = player.Health
+                            val zone           = player.Zone
+                            val events         = zone.AvatarEvents
+                            val guid           = player.GUID
+                            val newHealth      = player.Health = originalHealth + 1
+                            player.History(HealFromImplant(PlayerSource(player), 1, implantType))
+                            events ! AvatarServiceMessage(
+                              zone.id,
+                              AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth)
+                            )
+                            false
+                          } else {
+                            !aliveAndWounded
+                          }
+                        case _ =>
+                          !player.isAlive || !consumeThisMuchStamina(implant.definition.StaminaCost)
+                      }
+                    ) {
                       context.self ! DeactivateImplant(implantType)
                     }
                   })
@@ -1024,7 +1030,7 @@ class AvatarActor(
           }
           replaceAvatar(avatar.copy(ribbonBars = AvatarActor.changeRibbons(useRibbonBars, ribbon, bar)))
           val player = session.get.player
-          val zone = player.Zone
+          val zone   = player.Zone
           zone.AvatarEvents ! AvatarServiceMessage(
             zone.id,
             AvatarAction.SendResponse(Service.defaultPlayerGUID, DisplayedAwardMessage(player.GUID, ribbon, bar))
@@ -1103,11 +1109,11 @@ class AvatarActor(
 
   def actuallyRestoreStamina(stamina: Int, session: Session): Unit = {
     val originalStamina = avatar.stamina
-    val maxStamina = avatar.maxStamina
-    val totalStamina = math.min(maxStamina, originalStamina + stamina)
+    val maxStamina      = avatar.maxStamina
+    val totalStamina    = math.min(maxStamina, originalStamina + stamina)
     if (originalStamina < totalStamina) {
       val originalFatigued = avatar.fatigued
-      val isFatigued = totalStamina < 20
+      val isFatigued       = totalStamina < 20
       avatar = avatar.copy(stamina = totalStamina, fatigued = isFatigued)
       if (totalStamina == maxStamina) {
         staminaRegenTimer.cancel()
@@ -1150,9 +1156,9 @@ class AvatarActor(
       true
     } else {
       val resultingStamina = avatar.stamina - stamina
-      val totalStamina = math.max(0, resultingStamina)
-      val alreadyFatigued = avatar.fatigued
-      val becomeFatigued = !alreadyFatigued && totalStamina == 0
+      val totalStamina     = math.max(0, resultingStamina)
+      val alreadyFatigued  = avatar.fatigued
+      val becomeFatigued   = !alreadyFatigued && totalStamina == 0
       avatarCopy(avatar.copy(stamina = totalStamina, fatigued = alreadyFatigued || becomeFatigued))
       startIfStoppedStaminaRegen(initialDelay = 0.5f seconds)
       val player = session.get.player
@@ -1253,9 +1259,11 @@ class AvatarActor(
             AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, index, 0)
           )
         )
-        avatarCopy(avatar.copy(
-          implants = avatar.implants.updated(index, Some(imp.copy(initialized = false, active = false)))
-        ))
+        avatarCopy(
+          avatar.copy(
+            implants = avatar.implants.updated(index, Some(imp.copy(initialized = false, active = false)))
+          )
+        )
         //restart initialization process
         implantTimers.get(index).foreach(_.cancel())
         implantTimers(index) = context.scheduleOnce(
@@ -1277,9 +1285,11 @@ class AvatarActor(
     } match {
       case Some((implant, slot)) =>
         implantTimers.get(slot).foreach(_.cancel())
-        avatarCopy(avatar.copy(
-          implants = avatar.implants.updated(slot, Some(implant.copy(active = false)))
-        ))
+        avatarCopy(
+          avatar.copy(
+            implants = avatar.implants.updated(slot, Some(implant.copy(active = false)))
+          )
+        )
         // Deactivation sound / effect
         session.get.zone.AvatarEvents ! AvatarServiceMessage(
           session.get.zone.id,
@@ -1434,8 +1444,7 @@ class AvatarActor(
     val items: String = {
       val clobber: StringBuilder = new StringBuilder()
       //encode holsters
-      vehicle
-        .Weapons
+      vehicle.Weapons
         .collect {
           case (index, slot: EquipmentSlot) if slot.Equipment.nonEmpty =>
             clobber.append(encodeLoadoutClobFragment(slot.Equipment.get, index))
@@ -1477,8 +1486,8 @@ class AvatarActor(
 
   def storeNewLocker(): Unit = {
     if (_avatar.nonEmpty) {
-      val items : String = {
-        val clobber : StringBuilder = new StringBuilder()
+      val items: String = {
+        val clobber: StringBuilder = new StringBuilder()
         avatar.locker.Inventory.Items.foreach {
           case InventoryItem(obj, index) =>
             clobber.append(encodeLoadoutClobFragment(obj, index))
@@ -1488,18 +1497,20 @@ class AvatarActor(
       if (items.nonEmpty) {
         saveLockerFunc = storeLocker
         import ctx._
-        ctx.run(
-          query[persistence.Locker].insert(
-            _.avatarId -> lift(avatar.id),
-            _.items -> lift(items)
+        ctx
+          .run(
+            query[persistence.Locker].insert(
+              _.avatarId -> lift(avatar.id),
+              _.items    -> lift(items)
+            )
           )
-        ).onComplete {
-          case Success(_) =>
-            log.debug(s"saving locker contents belonging to ${avatar.name}")
-          case Failure(e) =>
-            saveLockerFunc = doNotStoreLocker
-            log.error(e)("db failure")
-        }
+          .onComplete {
+            case Success(_) =>
+              log.debug(s"saving locker contents belonging to ${avatar.name}")
+            case Failure(e) =>
+              saveLockerFunc = doNotStoreLocker
+              log.error(e)("db failure")
+          }
       }
     }
   }
@@ -1510,8 +1521,8 @@ class AvatarActor(
 
   def storeLocker(): Unit = {
     import ctx._
-    val items : String = {
-      val clobber : StringBuilder = new StringBuilder()
+    val items: String = {
+      val clobber: StringBuilder = new StringBuilder()
       avatar.locker.Inventory.Items.foreach {
         case InventoryItem(obj, index) =>
           clobber.append(encodeLoadoutClobFragment(obj, index))
@@ -1543,11 +1554,11 @@ class AvatarActor(
     for {
       infantry <- loadLoadouts().andThen {
         case out @ Success(_) => out
-        case Failure(_) => Future(Array.fill[Option[Loadout]](10)(None).toSeq)
+        case Failure(_)       => Future(Array.fill[Option[Loadout]](10)(None).toSeq)
       }
       vehicles <- loadVehicleLoadouts().andThen {
         case out @ Success(_) => out
-        case Failure(_) => Future(Array.fill[Option[Loadout]](10)(None).toSeq)
+        case Failure(_)       => Future(Array.fill[Option[Loadout]](10)(None).toSeq)
       }
     } yield infantry ++ vehicles
   }
@@ -1580,7 +1591,7 @@ class AvatarActor(
       .map { loadouts =>
         loadouts.map { loadout =>
           val definition = DefinitionUtil.idToDefinition(loadout.vehicle).asInstanceOf[VehicleDefinition]
-          val toy = new Vehicle(definition)
+          val toy        = new Vehicle(definition)
           buildContainedEquipmentFromClob(toy, loadout.items)
 
           val result = (loadout.loadoutNumber, Loadout.Create(toy, loadout.name))
@@ -1595,44 +1606,46 @@ class AvatarActor(
   }
 
   def refreshLoadouts(loadouts: Iterable[(Option[Loadout], Int)]): Unit = {
-    loadouts.map {
-      case (Some(loadout: InfantryLoadout), index) =>
-        FavoritesMessage.Infantry(
-          session.get.player.GUID,
-          index,
-          loadout.label,
-          InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)
-        )
-      case (Some(loadout: VehicleLoadout), index)
-        if GlobalDefinitions.isBattleFrameVehicle(loadout.vehicle_definition) =>
-        FavoritesMessage.Battleframe(
-          session.get.player.GUID,
-          index - 15,
-          loadout.label,
-          VehicleLoadout.DetermineBattleframeSubtype(loadout.vehicle_definition)
-        )
-      case (Some(loadout: VehicleLoadout), index) =>
-        FavoritesMessage.Vehicle(
-          session.get.player.GUID,
-          index - 10,
-          loadout.label
-        )
-      case (_, index) =>
-        val (mtype, lineNo) = if (index > 14) {
-          (LoadoutType.Battleframe, index - 15)
-        } else if (index < 10) {
-          (LoadoutType.Infantry, index)
-        } else {
-          (LoadoutType.Vehicle, index - 10)
-        }
-        FavoritesMessage(
-          mtype,
-          session.get.player.GUID,
-          lineNo,
-          "",
-          0
-        )
-    }.foreach { sessionActor ! SessionActor.SendResponse(_) }
+    loadouts
+      .map {
+        case (Some(loadout: InfantryLoadout), index) =>
+          FavoritesMessage.Infantry(
+            session.get.player.GUID,
+            index,
+            loadout.label,
+            InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)
+          )
+        case (Some(loadout: VehicleLoadout), index)
+            if GlobalDefinitions.isBattleFrameVehicle(loadout.vehicle_definition) =>
+          FavoritesMessage.Battleframe(
+            session.get.player.GUID,
+            index - 15,
+            loadout.label,
+            VehicleLoadout.DetermineBattleframeSubtype(loadout.vehicle_definition)
+          )
+        case (Some(loadout: VehicleLoadout), index) =>
+          FavoritesMessage.Vehicle(
+            session.get.player.GUID,
+            index - 10,
+            loadout.label
+          )
+        case (_, index) =>
+          val (mtype, lineNo) = if (index > 14) {
+            (LoadoutType.Battleframe, index - 15)
+          } else if (index < 10) {
+            (LoadoutType.Infantry, index)
+          } else {
+            (LoadoutType.Vehicle, index - 10)
+          }
+          FavoritesMessage(
+            mtype,
+            session.get.player.GUID,
+            lineNo,
+            "",
+            0
+          )
+      }
+      .foreach { sessionActor ! SessionActor.SendResponse(_) }
   }
 
   def refreshLoadout(line: Int): Unit = {
@@ -1646,8 +1659,7 @@ class AvatarActor(
             InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)
           )
         )
-      case Some(Some(loadout: VehicleLoadout))
-        if GlobalDefinitions.isBattleFrameVehicle(loadout.vehicle_definition) =>
+      case Some(Some(loadout: VehicleLoadout)) if GlobalDefinitions.isBattleFrameVehicle(loadout.vehicle_definition) =>
         sessionActor ! SessionActor.SendResponse(
           FavoritesMessage.Battleframe(
             session.get.player.GUID,
@@ -1698,47 +1710,49 @@ class AvatarActor(
   }
 
   def buildContainedEquipmentFromClob(container: Container, clob: String): Unit = {
-    clob.split("/").foreach {
-      value =>
-        val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
-          case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
-          case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
-        }
+    clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
+      val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
+        case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
+        case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
+        case _ =>
+          log.warn(s"ignoring invalid item string: '$value'")
+          return
+      }
 
-        objectType match {
-          case "Tool" =>
-            container.Slot(objectIndex).Equipment =
-              Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
-          case "AmmoBox" =>
-            container.Slot(objectIndex).Equipment =
-              AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
-          case "ConstructionItem" =>
-            container.Slot(objectIndex).Equipment = ConstructionItem(
-              DefinitionUtil.idToDefinition(objectId).asInstanceOf[ConstructionItemDefinition]
-            )
-          case "SimpleItem" =>
-            container.Slot(objectIndex).Equipment =
-              SimpleItem(DefinitionUtil.idToDefinition(objectId).asInstanceOf[SimpleItemDefinition])
-          case "Kit" =>
-            container.Slot(objectIndex).Equipment =
-              Kit(DefinitionUtil.idToDefinition(objectId).asInstanceOf[KitDefinition])
-          case "Telepad" | "BoomerTrigger" => ;
-          //special types of equipment that are not actually loaded
-          case name =>
-            log.error(s"failing to add unknown equipment to a locker - $name")
-        }
+      objectType match {
+        case "Tool" =>
+          container.Slot(objectIndex).Equipment =
+            Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
+        case "AmmoBox" =>
+          container.Slot(objectIndex).Equipment =
+            AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
+        case "ConstructionItem" =>
+          container.Slot(objectIndex).Equipment = ConstructionItem(
+            DefinitionUtil.idToDefinition(objectId).asInstanceOf[ConstructionItemDefinition]
+          )
+        case "SimpleItem" =>
+          container.Slot(objectIndex).Equipment =
+            SimpleItem(DefinitionUtil.idToDefinition(objectId).asInstanceOf[SimpleItemDefinition])
+        case "Kit" =>
+          container.Slot(objectIndex).Equipment =
+            Kit(DefinitionUtil.idToDefinition(objectId).asInstanceOf[KitDefinition])
+        case "Telepad" | "BoomerTrigger" => ;
+        //special types of equipment that are not actually loaded
+        case name =>
+          log.error(s"failing to add unknown equipment to a locker - $name")
+      }
 
-        toolAmmo foreach { toolAmmo =>
-          toolAmmo.toString.split("_").drop(1).foreach { value =>
-            val (ammoSlots, ammoTypeIndex, ammoBoxDefinition) = value.split("-") match {
-              case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt)
-            }
-            container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).AmmoTypeIndex =
-              ammoTypeIndex
-            container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).Box =
-              AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
+      toolAmmo foreach { toolAmmo =>
+        toolAmmo.split("_").drop(1).foreach { value =>
+          val (ammoSlots, ammoTypeIndex, ammoBoxDefinition) = value.split("-") match {
+            case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt)
           }
+          container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).AmmoTypeIndex =
+            ammoTypeIndex
+          container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).Box =
+            AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
         }
+      }
     }
   }
 
@@ -1768,21 +1782,16 @@ class AvatarActor(
   }
 
   def resolvePurchaseTimeName(faction: PlanetSideEmpire.Value, item: BasicDefinition): (BasicDefinition, String) = {
-    val factionName : String = faction.toString.toLowerCase
+    val factionName: String = faction.toString.toLowerCase
     val name = item match {
-      case GlobalDefinitions.trhev_dualcycler |
-           GlobalDefinitions.nchev_scattercannon |
-           GlobalDefinitions.vshev_quasar   =>
+      case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon |
+          GlobalDefinitions.vshev_quasar =>
         s"${factionName}hev_antipersonnel"
-      case GlobalDefinitions.trhev_pounder |
-           GlobalDefinitions.nchev_falcon |
-           GlobalDefinitions.vshev_comet    =>
+      case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon | GlobalDefinitions.vshev_comet =>
         s"${factionName}hev_antivehicular"
-      case GlobalDefinitions.trhev_burster |
-           GlobalDefinitions.nchev_sparrow |
-           GlobalDefinitions.vshev_starfire =>
+      case GlobalDefinitions.trhev_burster | GlobalDefinitions.nchev_sparrow | GlobalDefinitions.vshev_starfire =>
         s"${factionName}hev_antiaircraft"
-      case _                                =>
+      case _ =>
         item.Name
     }
     (item, name)
@@ -1793,28 +1802,24 @@ class AvatarActor(
     if (name.matches("(tr|nc|vs)hev_.+") && Config.app.game.sharedMaxCooldown) {
       val faction = name.take(2)
       (if (faction.equals("nc")) {
-        Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
-      }
-      else if (faction.equals("vs")) {
-        Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
-      }
-      else {
-        Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
-      }).zip(
+         Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
+       } else if (faction.equals("vs")) {
+         Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
+       } else {
+         Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
+       }).zip(
         Seq(s"${faction}hev_antipersonnel", s"${faction}hev_antivehicular", s"${faction}hev_antiaircraft")
       )
     } else {
       definition match {
-        case vdef: VehicleDefinition
-          if GlobalDefinitions.isBattleFrameFlightVehicle(vdef) =>
+        case vdef: VehicleDefinition if GlobalDefinitions.isBattleFrameFlightVehicle(vdef) =>
           val bframe = name.substring(0, name.indexOf('_'))
-          val gunner = bframe+"_gunner"
+          val gunner = bframe + "_gunner"
           Seq((DefinitionUtil.fromString(gunner), gunner), (vdef, name))
 
-        case vdef: VehicleDefinition
-          if GlobalDefinitions.isBattleFrameGunnerVehicle(vdef) =>
+        case vdef: VehicleDefinition if GlobalDefinitions.isBattleFrameGunnerVehicle(vdef) =>
           val bframe = name.substring(0, name.indexOf('_'))
-          val flight = bframe+"_flight"
+          val flight = bframe + "_flight"
           Seq((vdef, name), (DefinitionUtil.fromString(flight), flight))
 
         case _ =>
@@ -1835,7 +1840,7 @@ class AvatarActor(
               updatePurchaseTimer(name, cooldown.toSeconds - secondsSincePurchase, unk1 = true)
 
             case _ =>
-              keysToDrop = keysToDrop :+ key  //key has timed-out
+              keysToDrop = keysToDrop :+ key //key has timed-out
           }
         case _ => ;
       }
