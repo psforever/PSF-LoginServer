@@ -157,7 +157,8 @@ case class GameConfig(
     hart: HartConfig,
     sharedMaxCooldown: Boolean,
     baseCertifications: Seq[Certification],
-    warpGates: WarpGateConfig
+    warpGates: WarpGateConfig,
+    cavernRotation: CavernRotationConfig
 )
 
 case class NewAvatar(
@@ -195,4 +196,11 @@ case class SentryConfig(
 case class WarpGateConfig(
     defaultToSanctuaryDestination: Boolean,
     broadcastBetweenConflictedFactions: Boolean
+)
+
+case class CavernRotationConfig(
+    hoursBetweenRotation: Int,
+    simultaneousUnlockedZones: Int,
+    enhancedRotationOrder: Seq[Int],
+    forceRotationImmediately: Boolean
 )

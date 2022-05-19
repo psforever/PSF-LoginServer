@@ -3943,10 +3943,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
         fallHeightTracker(pos.z)
-        if (is_crouching && !player.Crouching) {
-          //dev stuff goes here
-          cluster ! ICS.ForceCavernRotation
-        }
+//        if (is_crouching && !player.Crouching) {
+//          //dev stuff goes here
+//        }
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)

@@ -128,9 +128,9 @@ object Server {
     serviceManager ! ServiceManager.Register(classic.Props[PropertyOverrideManager](), "propertyOverrideManager")
     serviceManager ! ServiceManager.Register(classic.Props[HartService](), "hart")
 
-    system.spawn(ChatService(), ChatService.ChatServiceKey.id)
     system.spawn(CavernRotationService(), CavernRotationService.CavernRotationServiceKey.id)
     system.spawn(InterstellarClusterService(zones), InterstellarClusterService.InterstellarClusterServiceKey.id)
+    system.spawn(ChatService(), ChatService.ChatServiceKey.id)
 
     system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.login.port), login), "login-socket")
     system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.world.port), session), "world-socket")

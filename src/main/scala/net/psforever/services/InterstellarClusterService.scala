@@ -84,7 +84,7 @@ object InterstellarClusterService {
                                          replyTo: ActorRef[DroppodLaunchExchange]
                                        ) extends Command
 
-  case object ForceCavernRotation extends Command
+  final case class CavernRotation(msg: CavernRotationService.Command) extends Command
 
   trait DroppodLaunchExchange
 
@@ -290,9 +290,9 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             replyTo ! DroppodLaunchDenial(DroppodError.InvalidLocation, None)
         }
 
-      case ForceCavernRotation =>
+      case CavernRotation(rotationMsg) =>
         cavernRotation match {
-          case Some(rotation) => rotation ! CavernRotationService.HurryNextRotation
+          case Some(rotation) => rotation ! rotationMsg
           case None => ;
         }
     }

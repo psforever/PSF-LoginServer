@@ -5,6 +5,7 @@ import akka.actor.{ActorRef, Cancellable}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{Behavior, SupervisorStrategy}
+import net.psforever.actors.session.SessionActor
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.actors.zone.building.WarpGateLogic
 import net.psforever.objects.Default
@@ -13,6 +14,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
 import net.psforever.types.ChatMessageType
+import net.psforever.util.Config
 
 import scala.concurrent.duration._
 
@@ -43,7 +45,17 @@ object CavernRotationService {
 
   final case class UnlockedZoneUpdate(zone: Zone)
 
-  case object HurryNextRotation extends Command
+  sealed trait HurryRotation extends Command {
+    def zoneid: String
+  }
+
+  case object HurryNextRotation extends HurryRotation { def zoneid = "" }
+
+  final case class HurryRotationToZoneLock(zoneid: String) extends HurryRotation
+
+  final case class HurryRotationToZoneUnlock(zoneid: String) extends HurryRotation
+
+  final case class ReportRotationOrder(sendToSession: ActorRef) extends Command
 
   private case object SwitchZone extends Command
 
@@ -66,7 +78,7 @@ object CavernRotationService {
     }
   }
 
-  private def toggleZoneWarpGateAccessibility(zone: Zone, lockState: Boolean): Iterable[WarpGate] = {
+  private def toggleZoneWarpGateAccessibility(zone: Zone, activeState: Boolean): Iterable[WarpGate] = {
     zone.Buildings.values
       .collect {
         case wg: WarpGate =>
@@ -76,10 +88,10 @@ object CavernRotationService {
             WarpGateLogic.findNeighborhoodNormalBuilding(neighborhood)
           ) match {
             case (Some(otherWg: WarpGate), Some(building)) =>
-              wg.Active = lockState
-              otherWg.Active = lockState
+              wg.Active = activeState
+              otherWg.Active = activeState
               wg.Actor ! BuildingActor.AlertToFactionChange(building)
-              if (!lockState) {
+              if (!activeState) {
                 //must trigger the connection test from the other side to equalize
                 WarpGateLogic.findNeighborhoodNormalBuilding(otherWg.Neighbours.getOrElse(Nil)) match {
                   case Some(b) => otherWg.Actor ! BuildingActor.AlertToFactionChange(b)
@@ -90,6 +102,21 @@ object CavernRotationService {
           }
           wg
       }
+  }
+
+  private def swapMonitors(list: List[ZoneMonitor], to: Int, from: Int): Unit = {
+    val toMonitor = list(to)
+    val fromMonitor = list(from)
+    list.updated(to, new ZoneMonitor(fromMonitor.zone) {
+      locked = toMonitor.locked
+      start = toMonitor.start
+      duration = toMonitor.duration
+    })
+    list.updated(from, new ZoneMonitor(toMonitor.zone) {
+      locked = fromMonitor.locked
+      start = fromMonitor.start
+      duration = fromMonitor.duration
+    })
   }
 }
 
@@ -109,9 +136,9 @@ class CavernRotationService(
   var nextToUnlock: Int = 0
   var lockTimer: Cancellable = Default.Cancellable
   var unlockTimer: Cancellable = Default.Cancellable
-  val hoursBetweenRotations: Int = 3
+  val hoursBetweenRotations: Int = Config.app.game.cavernRotation.hoursBetweenRotation
+  val simultaneousUnlockedZones: Int = Config.app.game.cavernRotation.simultaneousUnlockedZones
   var fullHoursBetweenRotations: Int = 0
-  val simultaneousOpenZones: Int = 2
   val firstClosingWarningAt: Int = 15
 
   def start(): Behavior[CavernRotationService.Command] = {
@@ -133,7 +160,11 @@ class CavernRotationService(
   def active(galaxyService: ActorRef): Behavior[CavernRotationService.Command] = {
     Behaviors.receiveMessage {
       case ManageCaverns(zones) =>
-        val collectedZones = zones.filter(_.map.cavern)
+        val onlyCaverns = zones.filter{ z => z.map.cavern }
+        val collectedZones = Config.app.game.cavernRotation.enhancedRotationOrder match {
+          case Nil  => onlyCaverns
+          case list => list.flatMap { index => onlyCaverns.find(_.Number == index ) }
+        }
         if (managedZones.isEmpty && collectedZones.nonEmpty) {
           managedZones = collectedZones.map(zone => new ZoneMonitor(zone)).toList
           val rotationSize = managedZones.size
@@ -143,17 +174,8 @@ class CavernRotationService(
           val fullDurationAsHours = fullHoursBetweenRotations.hours
           val fullDurationAsMillis = fullDurationAsHours.toMillis
           val startingInThePast = curr - fullDurationAsMillis
-          val (lockedZones, unlockedZones) = managedZones.splitAt(simultaneousOpenZones)
+          val (unlockedZones, lockedZones) = managedZones.splitAt(simultaneousUnlockedZones)
           var i = -1
-          //locked zones
-          lockedZones.foreach { z =>
-            i += 1
-            z.locked = true
-            z.start = startingInThePast + lockTimes(i)
-            z.duration = fullDurationAsMillis
-          }
-          nextToUnlock = simultaneousOpenZones
-          unlockTimerToSwitchZone(hoursBetweenRotations.hours)
           //unlocked zones
           unlockedZones.foreach { z =>
             i += 1
@@ -164,6 +186,15 @@ class CavernRotationService(
           }
           nextToLock = 0
           lockTimerToDisplayWarning(hoursBetweenRotations.hours - firstClosingWarningAt.minutes)
+          //locked zones
+          lockedZones.foreach { z =>
+            i += 1
+            z.locked = true
+            z.start = startingInThePast + lockTimes(i)
+            z.duration = fullDurationAsMillis
+          }
+          nextToUnlock = simultaneousUnlockedZones
+          unlockTimerToSwitchZone(hoursBetweenRotations.hours)
           //println(managedZones.flatMap { z => s"[${z.start + z.duration - curr}]"}.mkString(""))
         }
         Behaviors.same
@@ -180,29 +211,62 @@ class CavernRotationService(
         CavernRotationService.closedCavernWarning(managedZones(nextToLock), counter, galaxyService)
         Behaviors.same
 
+      case ReportRotationOrder(sendTo) =>
+        val zoneStates = managedZones.collect {
+          case zone =>
+            if (zone.locked) {
+              s"<${zone.zone.id}>"
+            } else {
+              s"${zone.zone.id}"
+            }
+        }.mkString(" ")
+        sendTo ! SessionActor.SendResponse(
+          ChatMsg(ChatMessageType.UNK_229, s"rotation=[$zoneStates]")
+        )
+        Behaviors.same
+
       case SwitchZone =>
         switchZoneFunc(galaxyService)
         Behaviors.same
 
       case HurryNextRotation =>
-        val curr = System.currentTimeMillis()
-        val locking = managedZones(nextToLock)
-        val timeToNextClosingEvent = locking.start + locking.duration - curr
-        val fiveMinutes = 5.minutes
-        val (excluded, correctionTime) = if (timeToNextClosingEvent > fiveMinutes.toMillis) {
-          //instead of transitioning immediately, jump to the 5 minute rotation warning for the benefit of players
-          lockTimer.cancel() //won't need to retime until zone change
-          CavernRotationService.closedCavernWarning(locking, counter=5, galaxyService)
-          unlockTimerToSwitchZone(fiveMinutes)
-          (Set.empty[Int], timeToNextClosingEvent.milliseconds - fiveMinutes)
-        } else {
-          //zone transition immediately
-          switchZoneFunc(galaxyService)
-          unlockTimer.cancel()
-          lockTimerToDisplayWarning(hoursBetweenRotations.hours - firstClosingWarningAt.minutes)
-          (Set(nextToUnlock, nextToLock), timeToNextClosingEvent.milliseconds)
+        hurryNextRotation(galaxyService)
+        Behaviors.same
+
+      case HurryRotationToZoneLock(zoneid) =>
+        if ((nextToLock until nextToLock + simultaneousUnlockedZones)
+          .map { i => managedZones(i % managedZones.size) }
+          .indexWhere { _.zone.id.equals(zoneid) } match {
+          case -1 =>
+            false
+          case  0 =>
+            true
+          case index =>
+            CavernRotationService.swapMonitors(managedZones, nextToLock, index)
+            true
+        }) {
+          hurryNextRotation(galaxyService, forcedRotationOverride=true)
         }
-        retimeLockedAndUnlockedZones(excluded, correctionTime, galaxyService)
+        Behaviors.same
+
+      case HurryRotationToZoneUnlock(zoneid) =>
+        if (!(nextToLock until nextToLock + simultaneousUnlockedZones)
+          .map { i => managedZones(i % managedZones.size) }
+          .exists { _.zone.id.equals(zoneid) }) {
+          if (managedZones(nextToUnlock).zone.id.equals(zoneid)) {
+            hurryNextRotation(galaxyService, forcedRotationOverride = true)
+          }
+          else {
+            //for unlocking E next, A [B C] D E F -> A [B C] E D F
+            //TODO, for unlocking F next, A [B C] D E F D -> A [B C] F E D D can not be allowed!
+            managedZones.indexWhere { z => z.zone.id.equals(zoneid) } match {
+              case -1 => ;
+              case index =>
+                CavernRotationService.swapMonitors(managedZones, nextToUnlock, index)
+                hurryNextRotation(galaxyService, forcedRotationOverride = true)
+            }
+          }
+        }
         Behaviors.same
 
       case SendCavernRotationUpdates(sendToSession) =>
@@ -228,6 +292,33 @@ class CavernRotationService(
     }
   }
 
+  def hurryNextRotation(
+                         galaxyService: ActorRef,
+                         forcedRotationOverride: Boolean = false
+                       ): Unit = {
+    val curr = System.currentTimeMillis()
+    val locking = managedZones(nextToLock)
+    val timeToNextClosingEvent = locking.start + locking.duration - curr
+    val fiveMinutes = 5.minutes
+    if (
+      forcedRotationOverride || Config.app.game.cavernRotation.forceRotationImmediately ||
+      timeToNextClosingEvent < fiveMinutes.toMillis
+    ) {
+      //zone transition immediately
+      lockTimer.cancel()
+      unlockTimer.cancel()
+      switchZoneFunc(galaxyService)
+      lockTimerToDisplayWarning(hoursBetweenRotations.hours - firstClosingWarningAt.minutes)
+      retimeZonesUponForcedRotation(galaxyService)
+    } else {
+      //instead of transitioning immediately, jump to the 5 minute rotation warning for the benefit of players
+      lockTimer.cancel() //won't need to retime until zone change
+      CavernRotationService.closedCavernWarning(locking, counter=5, galaxyService)
+      unlockTimerToSwitchZone(fiveMinutes)
+      retimeZonesUponForcedAdvancement(timeToNextClosingEvent.milliseconds - fiveMinutes, galaxyService)
+    }
+  }
+
   def switchZoneFunc(
                       galaxyService: ActorRef
                     ): Unit = {
@@ -248,6 +339,8 @@ class CavernRotationService(
     unlockTimerToSwitchZone(hoursBetweenRotationsAsHours)
     //this zone will be unlocked; alert the player that it will lock soon when the timer runs out
     unlocking.locked = false
+    unlocking.start = curr
+    unlocking.duration = fullHoursBetweenRotationsAsMillis
     lockTimerToDisplayWarning(hoursBetweenRotationsAsHours - firstClosingWarningAt.minutes)
     //alert clients
     galaxyService ! GalaxyServiceMessage(GalaxyAction.SendResponse(
@@ -256,28 +349,46 @@ class CavernRotationService(
     galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(locking.zone, fullHoursBetweenRotationsAsMillis))
     galaxyService ! GalaxyServiceMessage(GalaxyAction.UnlockedZoneUpdate(unlockingZone))
     //change warp gate statuses to reflect zone lock state
-    CavernRotationService.toggleZoneWarpGateAccessibility(lockingZone, lockState = false)
-    CavernRotationService.toggleZoneWarpGateAccessibility(unlockingZone, lockState = true)
+    CavernRotationService.toggleZoneWarpGateAccessibility(unlockingZone, activeState = true)
+    CavernRotationService.toggleZoneWarpGateAccessibility(lockingZone, activeState = false)
   }
 
-  def retimeLockedAndUnlockedZones(
-                                    excludedIndices: Set[Int],
-                                    advanceTimeBy: FiniteDuration,
-                                    galaxyService: ActorRef
-                                  ) : Unit = {
+  def retimeZonesUponForcedRotation(galaxyService: ActorRef) : Unit = {
     val curr = System.currentTimeMillis()
-    val advanceByTimeAsMillies = advanceTimeBy.toMillis
-    val (locked, unlocked) = managedZones
+    val rotationSize = managedZones.size
+    val lockTimes = (1 to rotationSize).map(i => (i * hoursBetweenRotations).hours.toMillis)
+    val fullDurationAsMillis = fullHoursBetweenRotations.hours.toMillis
+    val startingInThePast = curr - fullDurationAsMillis
+    ((nextToLock until managedZones.size) ++ (0 until nextToLock))
+      .map { managedZones(_) }
       .zipWithIndex
-      .filterNot { case (_, i) => excludedIndices.contains(i) }
-      .partition { case (z, _) => z.locked }
-    locked.foreach { case (zone, _) =>
-      zone.start = zone.start - advanceByTimeAsMillies
-      galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(zone.zone, zone.start + zone.duration - curr))
+      .drop(1)
+      .foreach { case(zone, index) =>
+        zone.start = startingInThePast + lockTimes(index)
+        zone.duration = fullDurationAsMillis
+      }
+    managedZones
+      .filter { _.locked }
+      .foreach { zone =>
+        galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(zone.zone, zone.start + zone.duration - curr))
+      }
+    //println(managedZones.flatMap { z => s"[${z.start + z.duration - curr}]"}.mkString(""))
+  }
+
+  def retimeZonesUponForcedAdvancement(
+                                        advanceTimeBy: FiniteDuration,
+                                        galaxyService: ActorRef
+                                      ) : Unit = {
+    val curr = System.currentTimeMillis()
+    val advanceByTimeAsMillis = advanceTimeBy.toMillis
+    managedZones.foreach { m =>
+      m.start = m.start - advanceByTimeAsMillis
     }
-    unlocked.foreach { case (zone, _) =>
-      zone.start = zone.start - advanceByTimeAsMillies
-    }
+    managedZones
+      .filter { _.locked }
+      .foreach { zone =>
+        galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(zone.zone, zone.start + zone.duration - curr))
+      }
     //println(managedZones.flatMap { z => s"[${z.start + z.duration - curr}]"}.mkString(""))
   }
 
