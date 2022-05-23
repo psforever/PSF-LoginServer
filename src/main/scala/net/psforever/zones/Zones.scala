@@ -772,6 +772,29 @@ object Zones {
     }
   }
 
+  lazy val cavernLattice = {
+    val res  = Source.fromResource(s"zonemaps/lattice.json")
+    val json = res.mkString
+    res.close()
+    val jsonObj = parse(json).toOption.get.asObject
+    val keys = jsonObj match {
+      case Some(jsonToObject) => jsonToObject.keys.filter { _.startsWith("caverns-") }
+      case _ => Nil
+    }
+    val pairs = keys.map { key =>
+      (
+        key,
+        jsonObj.get(key).map { obj =>
+          obj.asArray.get.map { entry =>
+            val array = entry.asArray.get
+            List(array.head.asString.get, array.last.asString.get)
+          }
+        }.get
+      )
+    }
+    pairs.toMap[String, Iterable[Iterable[String]]]
+  }
+
   private def deactivateGeoWarpGateOnContinent(buildings: Iterable[Building]): Unit = {
     buildings.filter(_.Name.startsWith(s"GW_")).map {
       case gate: WarpGate => gate.Active = false

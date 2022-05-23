@@ -584,6 +584,13 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     Lattice
   }
 
+  def RemoveIntercontinentalLatticeLink(bldgA: Building, bldgB: Building): Graph[Building, UnDiEdge] = {
+    if ((this eq bldgA.Zone) && (bldgA.Zone ne bldgB.Zone)) {
+      lattice --= Set(bldgA ~ bldgB)
+    }
+    Lattice
+  }
+
   def zipLinePaths: List[ZipLinePath] = {
     map.zipLinePaths
   }

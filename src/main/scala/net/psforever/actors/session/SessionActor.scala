@@ -1134,7 +1134,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //CaptureFlagUpdateMessage()
         //VanuModuleUpdateMessage()
         //ModuleLimitsMessage()
-        sendResponse(ZoneInfoMessage(continentNumber, true, 0))
+        val isCavern = continent.map.cavern
+        sendResponse(ZoneInfoMessage(continentNumber, true, if (isCavern) { Int.MaxValue.toLong } else { 0L }))
         sendResponse(ZoneLockInfoMessage(continentNumber, false, true))
         sendResponse(ZoneForcedCavernConnectionsMessage(continentNumber, 0))
         sendResponse(
@@ -9246,7 +9247,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           val initialQuality = tool.FireMode match {
             case mode: ChargeFireModeDefinition =>
               ProjectileQuality.Modified(
-                projectile.fire_time - shootingStart.getOrElse(tool.GUID, System.currentTimeMillis()) / mode.Time.toFloat
+                {
+                  val timeInterval = projectile.fire_time - shootingStart.getOrElse(tool.GUID, System.currentTimeMillis())
+                  timeInterval.toFloat / mode.Time.toFloat
+                }
               )
             case _ =>
               ProjectileQuality.Normal

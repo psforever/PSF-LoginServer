@@ -9,12 +9,13 @@ import net.psforever.actors.session.SessionActor
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.actors.zone.building.WarpGateLogic
 import net.psforever.objects.Default
-import net.psforever.objects.serverobject.structures.WarpGate
+import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
 import net.psforever.types.ChatMessageType
 import net.psforever.util.Config
+import net.psforever.zones.Zones
 
 import scala.concurrent.duration._
 
@@ -78,7 +79,114 @@ object CavernRotationService {
     }
   }
 
-  private def toggleZoneWarpGateAccessibility(zone: Zone, activeState: Boolean): Iterable[WarpGate] = {
+  private def activateLatticeLinksAndWarpGateAccessibility(zoneA: Zone, zoneB: Zone): Unit = {
+    establishLatticeLinksForUnlockedCavernPair(zoneA, zoneB)
+    openZoneWarpGateAccessibility(zoneA)
+    openZoneWarpGateAccessibility(zoneB)
+  }
+
+  private def disableLatticeLinksAndWarpGateAccessibility(zoneA: Zone, zoneB: Zone): Unit = {
+    closeZoneWarpGateAccessibility(zoneA)
+    closeZoneWarpGateAccessibility(zoneB)
+    revokeLatticeLinksForUnlockedCavernPair(zoneA, zoneB)
+  }
+
+  private def establishLatticeLinksForUnlockedCavernPair(zoneA: Zone, zoneB: Zone): Unit = {
+    val key = if (zoneA.Number < zoneB.Number) {
+      s"caverns-${zoneA.id}-${zoneB.id}"
+    } else {
+      s"caverns-${zoneB.id}-${zoneA.id}"
+    }
+    Zones.cavernLattice.get(key) match {
+      case Some(links) =>
+        links.foreach { link =>
+          val entryA = link.head
+          val entryB = link.last
+          val testA = entryA.split("/")
+          val testB = entryB.split("/")
+          (Zones.zones.find { _.id.equals(testB.head) } match {
+            case Some(zoneC) =>
+              (
+                if (testA.head.equals(zoneA.id)) {
+                  zoneA.Building(testA.last)
+                } else {
+                  zoneB.Building(testA.last)
+                },
+                zoneC.Building(testB.last)
+              )
+            case None =>
+              (None, None)
+          }) match {
+            case (Some(gate1), Some(gate2)) =>
+              gate1.Zone.AddIntercontinentalLatticeLink(gate1, gate2)
+              gate2.Zone.AddIntercontinentalLatticeLink(gate2, gate1)
+            case _ => ;
+          }
+        }
+      case _ => ;
+    }
+  }
+
+  private def revokeLatticeLinksForUnlockedCavernPair(zoneA: Zone, zoneB: Zone): Unit = {
+    val key = if (zoneA.Number < zoneB.Number) {
+      s"caverns-${zoneA.id}-${zoneB.id}"
+    } else {
+      s"caverns-${zoneB.id}-${zoneA.id}"
+    }
+    Zones.cavernLattice.get(key) match {
+      case Some(links) =>
+        links.foreach { link =>
+          val entryA = link.head
+          val entryB = link.last
+          val testA = entryA.split("/")
+          val testB = entryB.split("/")
+          (Zones.zones.find { _.id.equals(testB.head) } match {
+            case Some(zoneC) =>
+              (
+                if (testA.head.equals(zoneA.id)) {
+                  zoneA.Building(testA.last)
+                } else {
+                  zoneB.Building(testA.last)
+                },
+                zoneC.Building(testB.last)
+              )
+            case None =>
+              (None, None)
+          }) match {
+            case (Some(gate1), Some(gate2)) =>
+              gate1.Zone.RemoveIntercontinentalLatticeLink(gate1, gate2)
+              gate2.Zone.RemoveIntercontinentalLatticeLink(gate2, gate1)
+            case _ => ;
+          }
+        }
+      case _ => ;
+    }
+  }
+
+  private def openZoneWarpGateAccessibility(zone: Zone): Iterable[WarpGate] = {
+    findZoneWarpGatesForChangingAccessibility(zone).map { case (wg, otherWg, building) =>
+      wg.Active = true
+      otherWg.Active = true
+      wg.Actor ! BuildingActor.AlertToFactionChange(building)
+      wg
+    }
+  }
+
+  private def closeZoneWarpGateAccessibility(zone: Zone): Iterable[WarpGate] = {
+    findZoneWarpGatesForChangingAccessibility(zone).map { case (wg, otherWg, building) =>
+      wg.Active = false
+      otherWg.Active = false
+      wg.Actor ! BuildingActor.AlertToFactionChange(building)
+      //must trigger the connection test from the other side to equalize
+      WarpGateLogic.findNeighborhoodNormalBuilding(otherWg.Neighbours.getOrElse(Nil)) match {
+        case Some(b) => otherWg.Actor ! BuildingActor.AlertToFactionChange(b)
+        case None    => ;
+      }
+      wg
+    }
+  }
+
+  private def findZoneWarpGatesForChangingAccessibility(zone: Zone): Iterable[(WarpGate, WarpGate, Building)] = {
     zone.Buildings.values
       .collect {
         case wg: WarpGate =>
@@ -88,20 +196,11 @@ object CavernRotationService {
             WarpGateLogic.findNeighborhoodNormalBuilding(neighborhood)
           ) match {
             case (Some(otherWg: WarpGate), Some(building)) =>
-              wg.Active = activeState
-              otherWg.Active = activeState
-              wg.Actor ! BuildingActor.AlertToFactionChange(building)
-              if (!activeState) {
-                //must trigger the connection test from the other side to equalize
-                WarpGateLogic.findNeighborhoodNormalBuilding(otherWg.Neighbours.getOrElse(Nil)) match {
-                  case Some(b) => otherWg.Actor ! BuildingActor.AlertToFactionChange(b)
-                  case None => ;
-                }
-              }
-            case _ => ;
+              Some(wg, otherWg, building)
+            case _ =>
+              None
           }
-          wg
-      }
+      }.flatten
   }
 
   private def swapMonitors(list: List[ZoneMonitor], to: Int, from: Int): Unit = {
@@ -182,8 +281,8 @@ class CavernRotationService(
             z.locked = false
             z.start = startingInThePast + lockTimes(i)
             z.duration = fullDurationAsMillis
-            //CavernRotationService.toggleZoneWarpGateAccessibility(z.zone, lockState = true)
           }
+          CavernRotationService.activateLatticeLinksAndWarpGateAccessibility(unlockedZones.head.zone, unlockedZones.last.zone)
           nextToLock = 0
           lockTimerToDisplayWarning(hoursBetweenRotations.hours - firstClosingWarningAt.minutes)
           //locked zones
@@ -342,15 +441,19 @@ class CavernRotationService(
     unlocking.start = curr
     unlocking.duration = fullHoursBetweenRotationsAsMillis
     lockTimerToDisplayWarning(hoursBetweenRotationsAsHours - firstClosingWarningAt.minutes)
-    //alert clients
-    galaxyService ! GalaxyServiceMessage(GalaxyAction.SendResponse(
-      ChatMsg(ChatMessageType.UNK_229, s"@cavern_switched^@${lockingZone.id}~^@${unlockingZone.id}")
-    ))
+    //alert clients to changes
+    if (lockingZone ne unlockingZone) {
+      galaxyService ! GalaxyServiceMessage(GalaxyAction.SendResponse(
+        ChatMsg(ChatMessageType.UNK_229, s"@cavern_switched^@${lockingZone.id}~^@${unlockingZone.id}")
+      ))
+      galaxyService ! GalaxyServiceMessage(GalaxyAction.UnlockedZoneUpdate(unlockingZone))
+      //change warp gate statuses to reflect zone lock state
+      //TODO assumption that unlocked cavern zones are limited to 2; not a solution for 2+ simultaneous unlocks
+      val bridgeZone = managedZones(nextToLock).zone
+      CavernRotationService.disableLatticeLinksAndWarpGateAccessibility(lockingZone, bridgeZone)
+      CavernRotationService.activateLatticeLinksAndWarpGateAccessibility(bridgeZone, unlockingZone)
+    }
     galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(locking.zone, fullHoursBetweenRotationsAsMillis))
-    galaxyService ! GalaxyServiceMessage(GalaxyAction.UnlockedZoneUpdate(unlockingZone))
-    //change warp gate statuses to reflect zone lock state
-    CavernRotationService.toggleZoneWarpGateAccessibility(unlockingZone, activeState = true)
-    CavernRotationService.toggleZoneWarpGateAccessibility(lockingZone, activeState = false)
   }
 
   def retimeZonesUponForcedRotation(galaxyService: ActorRef) : Unit = {

@@ -305,7 +305,9 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
                                            receptionist: ActorRef[Receptionist.Command],
                                            adapter: ActorRef[Receptionist.Listing]
                                          )(): Unit = {
-    if (flags.forall { _.value.contains(Success(true)) } && !intercontinentalSetup) {
+    if (flags.forall {
+      _.value.contains(Success(true))
+    } && !intercontinentalSetup) {
       intercontinentalSetup = true
       //intercontinental lattice setup
       _zones.foreach { zone =>
@@ -317,10 +319,12 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             case (source, target) =>
               val thisBuilding = source.split("/")(1)
               val (otherZone, otherBuilding) = target.split("/").take(2) match {
-                case Array(a: String, b: String) => (a, b)
+                case Array(a : String, b : String) => (a, b)
                 case _ => ("", "")
               }
-              (_zones.find { _.id.equals(otherZone) } match {
+              (_zones.find {
+                _.id.equals(otherZone)
+              } match {
                 case Some(_otherZone) => (zone.Building(thisBuilding), _otherZone.Building(otherBuilding), _otherZone)
                 case None => (None, None, Zone.Nowhere)
               }) match {
@@ -328,24 +332,49 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
                   zone.AddIntercontinentalLatticeLink(sourceBuilding, targetBuilding)
                   _otherZone.AddIntercontinentalLatticeLink(targetBuilding, sourceBuilding)
                 case (a, b, _) =>
-                  println(s"InterstellarCluster: can't create lattice link between $source (${a.nonEmpty}) and $target (${b.nonEmpty}).")
+                  log.error(s"InterstellarCluster: can't create lattice link between $source (${a.nonEmpty}) and $target (${b.nonEmpty})")
               }
           }
       }
       //error checking; almost all warp gates should be paired with at least one other gate
       // exception: inactive warp gates are not guaranteed to be connected
       // exception: the broadcast gates on sanctuary do not have partners
-      // exception: the cavern gates in a locked zone are not guaranteed to be connected
+      // exception: the cavern gates are not be connected by default (see below)
       _zones.foreach { zone =>
         zone.Buildings.values
-          .collect { case gate: WarpGate if gate.Active => gate }
-          .filterNot { gate => gate.AllNeighbours.getOrElse(Nil).exists(_.isInstanceOf[WarpGate]) || gate.Broadcast }
+          .collect { case gate : WarpGate if gate.Active => gate }
+          .filterNot { gate => gate.AllNeighbours.getOrElse(Nil).exists(_.isInstanceOf[WarpGate]) || !gate.Active || gate.Broadcast }
           .foreach { gate =>
-            log.error(s"found degenerate intercontinental lattice link - no paired warp gate for ${zone.id} ${gate.Name}")
+            log.error(s"InterstellarCluster: found degenerate intercontinental lattice link - no paired warp gate for ${zone.id} ${gate.Name}")
           }
       }
-      //manage
-      receptionist ! Receptionist.Find(CavernRotationService.CavernRotationServiceKey, adapter)
+      //error checking: connections between above-ground geowarp gates and subterranean cavern gates should exist
+      if (Zones.cavernLattice.isEmpty) {
+        log.error("InterstellarCluster: did not parse lattice connections for caverns")
+      } else {
+        Zones.cavernLattice.values.flatten.foreach { pair =>
+          val a = pair.head
+          val b = pair.last
+          val (zone1: String, gate1: String) = {
+            val raw = a.split("/").take(2)
+            (raw.head, raw.last)
+          }
+          val (zone2: String, gate2: String) = {
+            val raw = b.split("/").take(2)
+            (raw.head, raw.last)
+          }
+          ((_zones.find(_.id.equals(zone1)), _zones.find(_.id.equals(zone2))) match {
+            case (Some(z1), Some(z2)) => (z1.Building(gate1), z2.Building(gate2))
+            case _ => (None, None)
+          }) match {
+            case (Some(_), Some(_)) => ;
+            case _ =>
+              log.error(s"InterstellarCluster: can't create cavern lattice link between $a and $b")
+          }
+        }
+        //manage
+        receptionist ! Receptionist.Find(CavernRotationService.CavernRotationServiceKey, adapter)
+      }
     }
   }
 }
