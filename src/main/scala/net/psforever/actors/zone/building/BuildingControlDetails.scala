@@ -8,11 +8,17 @@ import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.services.InterstellarClusterService
 
-final case class BuildingControlDetails(
-                                         building: Building,
-                                         context: ActorContext[BuildingActor.Command],
-                                         galaxyService: classic.ActorRef,
-                                         interstellarCluster: ActorRef[InterstellarClusterService.Command]
-                                       ) {
-  var hasNtuSupply: Boolean = true
+trait BuildingWrapper {
+  def building: Building
+  def context: ActorContext[BuildingActor.Command]
+  def galaxyService: classic.ActorRef
+  def interstellarCluster: ActorRef[InterstellarClusterService.Command]
 }
+
+final case class BasicBuildingWrapper(
+                                       building: Building,
+                                       context: ActorContext[BuildingActor.Command],
+                                       galaxyService: classic.ActorRef,
+                                       interstellarCluster: ActorRef[InterstellarClusterService.Command]
+                                     )
+  extends BuildingWrapper

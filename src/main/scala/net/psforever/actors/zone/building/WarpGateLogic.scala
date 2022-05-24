@@ -14,27 +14,27 @@ case object WarpGateLogic
   extends BuildingLogic {
   import BuildingActor.Command
 
-  def amenityStateChange(details: BuildingControlDetails, entity: Amenity, data: Option[Any]): Behavior[Command] = {
+  def amenityStateChange(details: BuildingWrapper, entity: Amenity, data: Option[Any]): Behavior[Command] = {
     Behaviors.same
   }
 
-  def powerOff(details: BuildingControlDetails): Behavior[Command] = {
+  def powerOff(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def powerOn(details: BuildingControlDetails): Behavior[Command] = {
+  def powerOn(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def ntuDepleted(details: BuildingControlDetails): Behavior[Command] = {
+  def ntuDepleted(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def suppliedWithNtu(details: BuildingControlDetails): Behavior[Command] = {
+  def suppliedWithNtu(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def setFactionTo(details: BuildingControlDetails, faction: PlanetSideEmpire.Value): Behavior[Command] = {
+  def setFactionTo(details: BuildingWrapper, faction: PlanetSideEmpire.Value): Behavior[Command] = {
     //in general, the faction set not be set manually, but instead determined by checking neighbor facilities
     val warpgate = details.building.asInstanceOf[WarpGate]
     if (warpgate.Active && warpgate.Faction != faction) {
@@ -49,7 +49,7 @@ case object WarpGateLogic
     Behaviors.same
   }
 
-  def alertToFactionChange(details: BuildingControlDetails, building: Building): Behavior[Command] = {
+  def alertToFactionChange(details: BuildingWrapper, building: Building): Behavior[Command] = {
     val warpgate = details.building.asInstanceOf[WarpGate]
     if (warpgate.Active) {
       val local = warpgate.Neighbours.getOrElse(Nil)
@@ -131,7 +131,7 @@ case object WarpGateLogic
   }
 
   private def handleWarpGateDeadendPair(
-                                         details: BuildingControlDetails,
+                                         details: BuildingWrapper,
                                          warpgate: WarpGate,
                                          otherWarpgate: WarpGate
                                        ): Unit = {
@@ -150,7 +150,7 @@ case object WarpGateLogic
   }
 
   private def updateBroadcastCapabilitiesOfWarpGate(
-                                                     details: BuildingControlDetails,
+                                                     details: BuildingWrapper,
                                                      warpgate: WarpGate,
                                                      setBroadcastTo: Set[PlanetSideEmpire.Value]
                                                    ) : Unit = {
@@ -165,15 +165,15 @@ case object WarpGateLogic
     }
   }
 
-  def powerLost(details: BuildingControlDetails): Behavior[Command] = {
+  def powerLost(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def powerRestored(details: BuildingControlDetails): Behavior[Command] = {
+  def powerRestored(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def ntu(details: BuildingControlDetails, msg: NtuCommand.Command): Behavior[Command] = {
+  def ntu(details: BuildingWrapper, msg: NtuCommand.Command): Behavior[Command] = {
     import NtuCommand._
     msg match {
       case Offer(_, _) =>

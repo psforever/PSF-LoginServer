@@ -1,22 +1,41 @@
 // Copyright (c) 2022 PSForever
 package net.psforever.actors.zone.building
 
-import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.Behaviors
+import akka.{actor => classic}
+import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import net.psforever.actors.commands.NtuCommand
-import net.psforever.actors.zone.{BuildingActor, ZoneActor}
+import net.psforever.actors.zone.{BuildingActor, BuildingControlDetails, ZoneActor}
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAware, CaptureTerminalAwareBehavior}
-import net.psforever.services.Service
+import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState}
 
+final case class MajorFacilityWrapper(
+                                       building: Building,
+                                       context: ActorContext[BuildingActor.Command],
+                                       galaxyService: classic.ActorRef,
+                                       interstellarCluster: ActorRef[InterstellarClusterService.Command]
+                                     )
+  extends BuildingWrapper {
+  var hasNtuSupply: Boolean = true
+}
+
 case object MajorFacilityLogic
   extends BuildingLogic {
   import BuildingActor.Command
+
+  override def wrapper(
+                        building: Building,
+                        context: ActorContext[BuildingActor.Command],
+                        details: BuildingControlDetails
+                      ): BuildingWrapper = {
+    MajorFacilityWrapper(building, context, details.galaxyService, details.interstellarCluster)
+  }
 
   /**
     * Evaluate the conditions of the building
@@ -27,7 +46,7 @@ case object MajorFacilityLogic
     * pass a message onto that facility that it should check its own state alignment.
     * @param mapUpdateOnChange if `true`, dispatch a `MapUpdate` message for this building
     */
-  def alignForceDomeStatus(details: BuildingControlDetails, mapUpdateOnChange: Boolean = true): Behavior[Command] = {
+  private def alignForceDomeStatus(details: BuildingWrapper, mapUpdateOnChange: Boolean = true): Behavior[Command] = {
     val building = details.building
     checkForceDomeStatus(building) match {
       case Some(updatedStatus) if updatedStatus != building.ForceDomeActive =>
@@ -42,11 +61,11 @@ case object MajorFacilityLogic
     * @param updatedStatus the new capitol force dome status
     * @param mapUpdateOnChange if `true`, dispatch a `MapUpdate` message for this building
     */
-  def updateForceDomeStatus(
-                             details: BuildingControlDetails,
-                             updatedStatus: Boolean,
-                             mapUpdateOnChange: Boolean
-                           ): Unit = {
+  private def updateForceDomeStatus(
+                                     details: BuildingWrapper,
+                                     updatedStatus: Boolean,
+                                     mapUpdateOnChange: Boolean
+                                   ): Unit = {
     val building = details.building
     val zone = building.Zone
     building.ForceDomeActive = updatedStatus
@@ -68,7 +87,7 @@ case object MajorFacilityLogic
     * @return `true`, if the conditions for capitol force dome are not met;
     *        `false`, otherwise
     */
-  def invalidBuildingCapitolForceDomeConditions(building: Building): Boolean = {
+  private def invalidBuildingCapitolForceDomeConditions(building: Building): Boolean = {
     building.Faction == PlanetSideEmpire.NEUTRAL ||
     building.NtuLevel == 0 ||
     (building.Generator match {
@@ -111,7 +130,7 @@ case object MajorFacilityLogic
     }
   }
 
-  def amenityStateChange(details: BuildingControlDetails, entity: Amenity, data: Option[Any]): Behavior[Command] = {
+  def amenityStateChange(details: BuildingWrapper, entity: Amenity, data: Option[Any]): Behavior[Command] = {
     entity match {
       case gen: Generator =>
         if (generatorStateChange(details, gen, data)) {
@@ -139,7 +158,7 @@ case object MajorFacilityLogic
     Behaviors.same
   }
 
-  def powerOff(details: BuildingControlDetails): Behavior[Command] = {
+  def powerOff(details: BuildingWrapper): Behavior[Command] = {
     details.building.Generator match {
       case Some(gen) => gen.Actor ! BuildingActor.NtuDepleted()
       case _ => powerLost(details)
@@ -147,7 +166,7 @@ case object MajorFacilityLogic
     Behaviors.same
   }
 
-  def powerOn(details: BuildingControlDetails): Behavior[Command] = {
+  def powerOn(details: BuildingWrapper): Behavior[Command] = {
     details.building.Generator match {
       case Some(gen) if details.building.NtuLevel > 0 => gen.Actor ! BuildingActor.SuppliedWithNtu()
       case _ => powerRestored(details)
@@ -155,26 +174,26 @@ case object MajorFacilityLogic
     Behaviors.same
   }
 
-  def ntuDepleted(details: BuildingControlDetails): Behavior[Command] = {
+  def ntuDepleted(details: BuildingWrapper): Behavior[Command] = {
     // Someone let the base run out of nanites. No one gets anything.
     details.building.Amenities.foreach { amenity =>
       amenity.Actor ! BuildingActor.NtuDepleted()
     }
     setFactionTo(details, PlanetSideEmpire.NEUTRAL)
-    details.hasNtuSupply = false
+    details.asInstanceOf[MajorFacilityWrapper].hasNtuSupply = false
     Behaviors.same
   }
 
-  def suppliedWithNtu(details: BuildingControlDetails): Behavior[Command] = {
+  def suppliedWithNtu(details: BuildingWrapper): Behavior[Command] = {
     // Auto-repair restart, mainly.  If the Generator works, power should be restored too.
-    details.hasNtuSupply = true
+    details.asInstanceOf[MajorFacilityWrapper].hasNtuSupply = true
     details.building.Amenities.foreach { amenity =>
       amenity.Actor ! BuildingActor.SuppliedWithNtu()
     }
     Behaviors.same
   }
 
-  def generatorStateChange(details: BuildingControlDetails, generator: Generator, event: Any): Boolean = {
+  private def generatorStateChange(details: BuildingWrapper, generator: Generator, event: Any): Boolean = {
     val building = details.building
     val zone = building.Zone
     event match {
@@ -235,10 +254,10 @@ case object MajorFacilityLogic
   }
 
   def setFactionTo(
-                    details: BuildingControlDetails,
+                    details: BuildingWrapper,
                     faction: PlanetSideEmpire.Value
                   ): Behavior[Command] = {
-    if (details.hasNtuSupply) {
+    if (details.asInstanceOf[MajorFacilityWrapper].hasNtuSupply) {
       BuildingActor.setFactionTo(details, faction, log)
       alignForceDomeStatus(details, mapUpdateOnChange = false)
       val building = details.building
@@ -247,7 +266,7 @@ case object MajorFacilityLogic
     Behaviors.same
   }
 
-  def alertToFactionChange(details: BuildingControlDetails, building: Building): Behavior[Command] = {
+  def alertToFactionChange(details: BuildingWrapper, building: Building): Behavior[Command] = {
     alignForceDomeStatus(details, mapUpdateOnChange = false)
     Behaviors.same
   }
@@ -258,7 +277,7 @@ case object MajorFacilityLogic
     * and are instructed to display their "unpowered" model.
     * Additionally, the facility is now rendered unspawnable regardless of its player spawning amenities.
     */
-  def powerLost(details: BuildingControlDetails): Behavior[Command] = {
+  def powerLost(details: BuildingWrapper): Behavior[Command] = {
     val building = details.building
     val zone = building.Zone
     val zoneId = zone.id
@@ -281,7 +300,7 @@ case object MajorFacilityLogic
     * and are instructed to display their "powered" model.
     * Additionally, the facility is now rendered spawnable if its player spawning amenities are online.
     */
-  def powerRestored(details: BuildingControlDetails): Behavior[Command] = {
+  def powerRestored(details: BuildingWrapper): Behavior[Command] = {
     val building = details.building
     val zone = building.Zone
     val zoneId = zone.id
@@ -298,7 +317,7 @@ case object MajorFacilityLogic
     Behaviors.same
   }
 
-  def ntu(details: BuildingControlDetails, msg: NtuCommand.Command): Behavior[Command] = {
+  def ntu(details: BuildingWrapper, msg: NtuCommand.Command): Behavior[Command] = {
     import NtuCommand._
     msg match {
       case Offer(_, _) =>

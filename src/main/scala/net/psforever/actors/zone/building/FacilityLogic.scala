@@ -1,23 +1,43 @@
 // Copyright (c) 2022 PSForever
 package net.psforever.actors.zone.building
 
-import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.Behaviors
+import akka.{actor => classic}
+import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import net.psforever.actors.commands.NtuCommand
-import net.psforever.actors.zone.BuildingActor
+import net.psforever.actors.zone.{BuildingActor, BuildingControlDetails}
 import net.psforever.objects.NtuContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAware, CaptureTerminalAwareBehavior}
+import net.psforever.services.InterstellarClusterService
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
+
+final case class FacilityWrapper(
+                                  building: Building,
+                                  context: ActorContext[BuildingActor.Command],
+                                  galaxyService: classic.ActorRef,
+                                  interstellarCluster: ActorRef[InterstellarClusterService.Command]
+                                )
+  extends BuildingWrapper {
+  val supplier = new FakeNtuSource(building)
+}
 
 case object FacilityLogic
   extends BuildingLogic {
   import BuildingActor.Command
 
-  def amenityStateChange(details: BuildingControlDetails, entity: Amenity, data: Option[Any]): Behavior[Command] = {
+  override def wrapper(
+                        building: Building,
+                        context: ActorContext[BuildingActor.Command],
+                        details: BuildingControlDetails
+                      ): BuildingWrapper = {
+    FacilityWrapper(building, context, details.galaxyService, details.interstellarCluster)
+  }
+
+  def amenityStateChange(details: BuildingWrapper, entity: Amenity, data: Option[Any]): Behavior[Command] = {
     entity match {
       case terminal: CaptureTerminal =>
         // Notify amenities that listen for CC hack state changes, e.g. wall turrets to dismount seated players
@@ -40,47 +60,47 @@ case object FacilityLogic
     Behaviors.same
   }
 
-  def powerOff(details: BuildingControlDetails): Behavior[Command] = {
+  def powerOff(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def powerOn(details: BuildingControlDetails): Behavior[Command] = {
+  def powerOn(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def ntuDepleted(details: BuildingControlDetails): Behavior[Command] = {
+  def ntuDepleted(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def suppliedWithNtu(details: BuildingControlDetails): Behavior[Command] = {
+  def suppliedWithNtu(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def setFactionTo(details: BuildingControlDetails, faction : PlanetSideEmpire.Value): Behavior[Command] = {
+  def setFactionTo(details: BuildingWrapper, faction : PlanetSideEmpire.Value): Behavior[Command] = {
     BuildingActor.setFactionTo(details, faction, log)
     Behaviors.same
   }
 
-  def alertToFactionChange(details: BuildingControlDetails, building: Building): Behavior[Command] = {
+  def alertToFactionChange(details: BuildingWrapper, building: Building): Behavior[Command] = {
     Behaviors.same
   }
 
-  def powerLost(details: BuildingControlDetails): Behavior[Command] = {
+  def powerLost(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def powerRestored(details: BuildingControlDetails): Behavior[Command] = {
+  def powerRestored(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
-  def ntu(details: BuildingControlDetails, msg: NtuCommand.Command): Behavior[Command] = {
+  def ntu(details: BuildingWrapper, msg: NtuCommand.Command): Behavior[Command] = {
     import NtuCommand._
     msg match {
       case Offer(_, _) =>
         Behaviors.same
       case Request(amount, replyTo) =>
         //towers and cavern stuff get free repairs
-        replyTo ! NtuCommand.Grant(new FakeNtuSource(details.building), amount)
+        replyTo ! NtuCommand.Grant(details.asInstanceOf[FacilityWrapper].supplier, amount)
         Behaviors.same
       case _ =>
         Behaviors.same
@@ -88,7 +108,7 @@ case object FacilityLogic
   }
 }
 
-private class FakeNtuSource(private val building: Building)
+protected class FakeNtuSource(private val building: Building)
   extends PlanetSideServerObject
     with NtuContainer {
   override def NtuCapacitor = Int.MaxValue.toFloat

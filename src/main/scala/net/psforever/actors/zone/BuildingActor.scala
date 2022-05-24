@@ -1,9 +1,9 @@
 package net.psforever.actors.zone
 
+import akka.{actor => classic}
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
-import akka.{actor => classic}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.building._
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
@@ -17,6 +17,11 @@ import net.psforever.util.Database.ctx
 import org.log4s.Logger
 
 import scala.util.{Failure, Success}
+
+final case class BuildingControlDetails(
+                                         galaxyService: classic.ActorRef = null,
+                                         interstellarCluster: ActorRef[InterstellarClusterService.Command] = null
+                                       )
 
 object BuildingActor {
   def apply(zone: Zone, building: Building): Behavior[Command] =
@@ -68,18 +73,18 @@ object BuildingActor {
   final case class PowerOff() extends Command
 
   def setFactionTo(
-                    details: BuildingControlDetails,
+                    details: BuildingWrapper,
                     faction: PlanetSideEmpire.Value,
-                    log: BuildingControlDetails => Logger
+                    log: BuildingWrapper => Logger
                   ): Unit = {
     setFactionInDatabase(details, faction, log)
     setFactionOnEntity(details, faction, log)
   }
 
   def setFactionInDatabase(
-                            details: BuildingControlDetails,
+                            details: BuildingWrapper,
                             faction: PlanetSideEmpire.Value,
-                            log: BuildingControlDetails => Logger
+                            log: BuildingWrapper => Logger
                           ): Unit = {
     val building = details.building
     val zone = building.Zone
@@ -126,9 +131,9 @@ object BuildingActor {
   }
 
   def setFactionOnEntity(
-                          details: BuildingControlDetails,
+                          details: BuildingWrapper,
                           faction: PlanetSideEmpire.Value,
-                          log: BuildingControlDetails => Logger
+                          log: BuildingWrapper => Logger
                         ): Unit = {
     val building = details.building
     val zone = building.Zone
@@ -146,52 +151,45 @@ class BuildingActor(
     logic: BuildingLogic
 ) {
   import BuildingActor._
-  var galaxyService: Option[classic.ActorRef]                                   = None
-  var interstellarCluster: Option[ActorRef[InterstellarClusterService.Command]] = None
-  var dets: Option[BuildingControlDetails] = None
-
-  context.system.receptionist ! Receptionist.Find(
-    InterstellarClusterService.InterstellarClusterServiceKey,
-    context.messageAdapter[Receptionist.Listing](ReceptionistListing)
-  )
-
-  ServiceManager.serviceManager ! ServiceManager.LookupFromTyped(
-    "galaxy",
-    context.messageAdapter[ServiceManager.LookupResult](ServiceManagerLookupResult)
-  )
 
   def start(): Behavior[Command] = {
+    context.system.receptionist ! Receptionist.Find(
+      InterstellarClusterService.InterstellarClusterServiceKey,
+      context.messageAdapter[Receptionist.Listing](ReceptionistListing)
+    )
+    ServiceManager.serviceManager ! ServiceManager.LookupFromTyped(
+      "galaxy",
+      context.messageAdapter[ServiceManager.LookupResult](ServiceManagerLookupResult)
+    )
+    setup(BuildingControlDetails())
+  }
+
+  def setup(details: BuildingControlDetails): Behavior[Command] = {
     Behaviors.receiveMessage {
       case ReceptionistListing(InterstellarClusterService.InterstellarClusterServiceKey.Listing(listings)) =>
-        interstellarCluster = listings.headOption
-        postStartBehaviour()
+        switchToBehavior(details.copy(interstellarCluster = listings.head))
 
       case ServiceManagerLookupResult(ServiceManager.LookupResult(request, endpoint)) =>
-        request match {
-          case "galaxy" => galaxyService = Some(endpoint)
-        }
-        postStartBehaviour()
+        switchToBehavior(request match {
+          case "galaxy" => details.copy(galaxyService = endpoint)
+          case _        => details
+        })
 
       case other =>
         buffer.stash(other)
-        Behaviors.same
+        setup(details)
     }
   }
 
-  def postStartBehaviour(): Behavior[Command] = {
-    (galaxyService, interstellarCluster) match {
-      case (Some(_galaxyService), Some(_interstellarCluster)) =>
-        val details = BuildingControlDetails(building, context, _galaxyService, _interstellarCluster)
-        dets = Some(details)
-        galaxyService = None
-        interstellarCluster = None
-        buffer.unstashAll(active(details))
-      case _ =>
-        Behaviors.same
+  def switchToBehavior(details: BuildingControlDetails): Behavior[Command] = {
+    if (details.galaxyService != null && details.interstellarCluster != null) {
+      buffer.unstashAll(active(logic.wrapper(building, context, details)))
+    } else {
+      setup(details)
     }
   }
 
-  def active(details: BuildingControlDetails): Behavior[Command] = {
+  def active(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.receiveMessagePartial {
       case SetFaction(faction) =>
         logic.setFactionTo(details, faction)
