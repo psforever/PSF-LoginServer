@@ -212,8 +212,12 @@ class Player(var avatar: Avatar)
   def HolsterItems(): List[InventoryItem] = holsters
     .zipWithIndex
     .collect {
-      case (slot: EquipmentSlot, index: Int) if slot.Equipment.nonEmpty => InventoryItem(slot.Equipment.get, index)
-    }.toList
+      case (slot: EquipmentSlot, index: Int) =>
+        slot.Equipment match {
+          case Some(item) => Some(InventoryItem(item, index))
+          case None => None
+        }
+    }.flatten.toList
 
   def Inventory: GridInventory = inventory
 

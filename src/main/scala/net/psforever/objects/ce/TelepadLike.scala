@@ -181,7 +181,7 @@ class TelepadControl(obj: InternalTelepad) extends akka.actor.Actor {
         zone.GUID(obj.Telepad) match {
           case Some(oldTpad: TelepadDeployable) if !obj.Active && !setup.isCancelled =>
             oldTpad.Actor ! TelepadLike.SeverLink(obj)
-          case None => ;
+          case _ => ;
         }
         obj.Telepad = tpad.GUID
         //zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.StartRouterInternalTelepad(obj.Owner.GUID, obj.GUID, obj))

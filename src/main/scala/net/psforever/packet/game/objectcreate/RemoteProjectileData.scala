@@ -12,10 +12,12 @@ object RemoteProjectiles {
   final case object Meteor                          extends Data(0, 32)
   final case object Wasp                            extends Data(0, 208)
   final case object Sparrow                         extends Data(13107, 187)
+  final case object PeregrineSparrow                extends Data(13107, 187)
   final case object OICW                            extends Data(13107, 195)
   final case object Striker                         extends Data(26214, 134)
   final case object HunterSeeker                    extends Data(39577, 201)
   final case object Starfire                        extends Data(39577, 249)
+  final case object AphelionStarfire                extends Data(39577, 249)
 
   //the oicw_little_buddy is handled by its own transcoder
 }

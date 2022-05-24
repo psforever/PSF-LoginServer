@@ -2,7 +2,7 @@ package net.psforever.actors.session
 
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
+import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, OneForOneStrategy, SupervisorStrategy, typed}
 import akka.pattern.ask
 import akka.util.Timeout
 import net.psforever.actors.net.MiddlewareActor
@@ -289,6 +289,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var reviveTimer: Cancellable       = Default.Cancellable
   var respawnTimer: Cancellable      = Default.Cancellable
   var zoningTimer: Cancellable       = Default.Cancellable
+
+  override def supervisorStrategy: SupervisorStrategy = {
+    import net.psforever.objects.inventory.InventoryDisarrayException
+    import java.io.{StringWriter, PrintWriter}
+    OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
+      case ide: InventoryDisarrayException =>
+        val sw = new StringWriter
+        ide.printStackTrace(new PrintWriter(sw))
+        log.error(sw.toString)
+        SupervisorStrategy.resume
+      case _                             =>
+        ImmediateDisconnect()
+        SupervisorStrategy.stop
+    }
+  }
 
   def session: Session = _session
 
@@ -7584,6 +7599,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (currentZone == Zones.sanctuaryZoneNumber(tplayer.Faction)) {
       log.error(s"RequestSanctuaryZoneSpawn: ${player.Name} is already in faction sanctuary zone.")
       sendResponse(DisconnectMessage("RequestSanctuaryZoneSpawn: player is already in sanctuary."))
+      ImmediateDisconnect()
     } else {
       continent.GUID(player.VehicleSeated) match {
         case Some(obj: Vehicle) if !obj.Destroyed =>
@@ -9141,7 +9157,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def KeepAlivePersistence(): Unit = {
     interimUngunnedVehicle = None
     persist()
-    turnCounterFunc(player.GUID)
+    if (player.HasGUID) {
+      turnCounterFunc(player.GUID)
+    } else {
+      turnCounterFunc(PlanetSideGUID(0))
+    }
   }
 
   /**

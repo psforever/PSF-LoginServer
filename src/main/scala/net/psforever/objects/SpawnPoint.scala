@@ -124,6 +124,11 @@ object SpawnPoint {
         Default(obj, target)
     }
   }
+
+  def HalfHighGate(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
+    val (a, b) = Gate(obj, target)
+    (a.xy + Vector3.z((target.Position.z + a.z) * 0.5f), b)
+  }
 }
 
 trait SpawnPointDefinition {

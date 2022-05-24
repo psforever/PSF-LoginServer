@@ -1338,7 +1338,7 @@ object GlobalDefinitions {
   warpgate_cavern.UseRadius = 51.0522f
   warpgate_cavern.SOIRadius = 52
   warpgate_cavern.VehicleAllowance = true
-  warpgate_cavern.SpecificPointFunc = SpawnPoint.Gate
+  warpgate_cavern.SpecificPointFunc = SpawnPoint.HalfHighGate
 
   val warpgate_small = new WarpGateDefinition(995)
   warpgate_small.Name = "warpgate_small"
