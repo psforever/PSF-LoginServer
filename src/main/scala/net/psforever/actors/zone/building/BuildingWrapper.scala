@@ -14,11 +14,3 @@ trait BuildingWrapper {
   def galaxyService: classic.ActorRef
   def interstellarCluster: ActorRef[InterstellarClusterService.Command]
 }
-
-final case class BasicBuildingWrapper(
-                                       building: Building,
-                                       context: ActorContext[BuildingActor.Command],
-                                       galaxyService: classic.ActorRef,
-                                       interstellarCluster: ActorRef[InterstellarClusterService.Command]
-                                     )
-  extends BuildingWrapper

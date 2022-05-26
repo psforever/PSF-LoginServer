@@ -4,7 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState}
+import net.psforever.types.{CavernBenefit, LatticeBenefit, PlanetSideEmpire, PlanetSideGeneratorState}
 import scodec.bits._
 
 class BuildingInfoUpdateMessageTest extends Specification {
@@ -26,7 +26,7 @@ class BuildingInfoUpdateMessageTest extends Specification {
             spawn_tubes_normal,
             force_dome_active,
             lattice_benefit,
-            unk3,
+            cavern_benefit,
             unk4,
             unk5,
             unk6,
@@ -43,18 +43,18 @@ class BuildingInfoUpdateMessageTest extends Specification {
         hack_time_remaining mustEqual 0
         empire_own mustEqual PlanetSideEmpire.NC
         unk1 mustEqual 0
-        unk1x mustEqual None
+        unk1x.isEmpty mustEqual true
         generator_state mustEqual PlanetSideGeneratorState.Normal
         spawn_tubes_normal mustEqual true
         force_dome_active mustEqual false
-        lattice_benefit mustEqual 28
-        unk3 mustEqual 0
+        lattice_benefit mustEqual Set(LatticeBenefit.TechnologyPlant, LatticeBenefit.InterlinkFacility, LatticeBenefit.BioLaboratory)
+        cavern_benefit mustEqual Set(CavernBenefit.None)
         unk4.size mustEqual 0
         unk4.isEmpty mustEqual true
         unk5 mustEqual 0
         unk6 mustEqual false
         unk7 mustEqual 8
-        unk7x mustEqual None
+        unk7x.isEmpty mustEqual true
         boost_spawn_pain mustEqual false
         boost_generator_pain mustEqual false
       case _ =>
@@ -76,8 +76,8 @@ class BuildingInfoUpdateMessageTest extends Specification {
       PlanetSideGeneratorState.Normal,
       true,
       false,
-      28,
-      0,
+      Set(LatticeBenefit.TechnologyPlant, LatticeBenefit.InterlinkFacility, LatticeBenefit.BioLaboratory),
+      Set(CavernBenefit.None),
       Nil,
       0,
       false,

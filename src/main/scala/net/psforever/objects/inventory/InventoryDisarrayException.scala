@@ -10,7 +10,11 @@ package net.psforever.objects.inventory
   * @param message the explanation of why the exception was thrown
   * @param cause any prior `Exception` that was thrown then wrapped in this one
   */
-final case class InventoryDisarrayException(private val message: String = "", private val cause: Throwable)
+final case class InventoryDisarrayException(
+                                             private val message: String,
+                                             private val cause: Throwable,
+                                             inventory: GridInventory
+                                           )
     extends Exception(message, cause)
 
 object InventoryDisarrayException {
@@ -21,6 +25,6 @@ object InventoryDisarrayException {
     * @param message the explanation of why the exception was thrown
     * @return an `InventoryDisarrayException` object
     */
-  def apply(message: String): InventoryDisarrayException =
-    InventoryDisarrayException(message, None.orNull)
+  def apply(message: String, inventory: GridInventory): InventoryDisarrayException =
+    InventoryDisarrayException(message, None.orNull, inventory)
 }

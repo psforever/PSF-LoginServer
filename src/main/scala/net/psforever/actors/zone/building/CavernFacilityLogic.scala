@@ -11,7 +11,7 @@ import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
-case object FacilityLogic
+case object CavernFacilityLogic
   extends BuildingLogic {
   import BuildingActor.Command
 
@@ -62,8 +62,13 @@ case object FacilityLogic
     Behaviors.same
   }
 
-  def setFactionTo(details: BuildingWrapper, faction : PlanetSideEmpire.Value): Behavior[Command] = {
+  def setFactionTo(
+                    details: BuildingWrapper,
+                    faction: PlanetSideEmpire.Value
+                  ): Behavior[Command] = {
     BuildingActor.setFactionTo(details, faction, log)
+    val building = details.building
+    building.Neighbours.getOrElse(Nil).foreach { _.Actor ! BuildingActor.AlertToFactionChange(building) }
     Behaviors.same
   }
 
@@ -71,10 +76,22 @@ case object FacilityLogic
     Behaviors.same
   }
 
+  /**
+    * Power has been severed.
+    * All installed amenities are distributed a `PowerOff` message
+    * and are instructed to display their "unpowered" model.
+    * Additionally, the facility is now rendered unspawnable regardless of its player spawning amenities.
+    */
   def powerLost(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
 
+  /**
+    * Power has been restored.
+    * All installed amenities are distributed a `PowerOn` message
+    * and are instructed to display their "powered" model.
+    * Additionally, the facility is now rendered spawnable if its player spawning amenities are online.
+    */
   def powerRestored(details: BuildingWrapper): Behavior[Command] = {
     Behaviors.same
   }
@@ -85,7 +102,7 @@ case object FacilityLogic
       case Offer(_, _) =>
         Behaviors.same
       case Request(amount, replyTo) =>
-        //towers and stuff stuff get free repairs
+        //cavern stuff get free repairs
         replyTo ! NtuCommand.Grant(details.asInstanceOf[FacilityWrapper].supplier, amount)
         Behaviors.same
       case _ =>

@@ -4,7 +4,7 @@ package net.psforever.actors.zone.building
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import net.psforever.actors.commands.NtuCommand
-import net.psforever.actors.zone.BuildingActor
+import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.types.PlanetSideEmpire
@@ -53,70 +53,69 @@ case object WarpGateLogic
     val warpgate = details.building.asInstanceOf[WarpGate]
     if (warpgate.Active) {
       val local = warpgate.Neighbours.getOrElse(Nil)
-      if (local.exists {
-        _ eq building
-      }) {
-        /*
+      /*
       output: Building, WarpGate:Us, WarpGate, Building
       where ":Us" means `details.building`, and ":Msg" means the caller `building`
       it could be "Building:Msg, WarpGate:Us, x, y" or "x, Warpgate:Us, Warpgate:Msg, y"
       */
-        val (thisBuilding, thisWarpGate, otherWarpGate, otherBuilding) = if (local.exists {
-          _ eq building
-        }) {
-          building match {
-            case _ : WarpGate =>
-              (
-                findNeighborhoodNormalBuilding(local), Some(warpgate),
-                Some(building), findNeighborhoodNormalBuilding(building.Neighbours.getOrElse(Nil))
-              )
-            case _ =>
-              findNeighborhoodWarpGate(local) match {
-                case out@Some(gate) =>
-                  (
-                    Some(building), Some(warpgate),
-                    out, findNeighborhoodNormalBuilding(gate.Neighbours.getOrElse(Nil))
-                  )
-                case None =>
-                  (Some(building), Some(warpgate), None, None)
-              }
+      val (thisBuilding, thisWarpGate, otherWarpGate, otherBuilding) = if (local.exists {
+        _ eq building
+      }) {
+        building match {
+          case _ : WarpGate =>
+            (
+              findNeighborhoodNormalBuilding(local), Some(warpgate),
+              Some(building), findNeighborhoodNormalBuilding(building.Neighbours.getOrElse(Nil))
+            )
+          case _ =>
+            findNeighborhoodWarpGate(local) match {
+              case out@Some(gate) =>
+                (
+                  Some(building), Some(warpgate),
+                  out, findNeighborhoodNormalBuilding(gate.Neighbours.getOrElse(Nil))
+                )
+              case None =>
+                (Some(building), Some(warpgate), None, None)
+            }
+        }
+      }
+      else {
+        (None, None, None, None)
+      }
+      (thisBuilding, thisWarpGate, otherWarpGate, otherBuilding) match {
+        case (Some(bldg), Some(wg : WarpGate), Some(otherWg : WarpGate), Some(otherBldg)) =>
+          //standard case where a building connected to a warp gate pair changes faction
+          val bldgFaction = bldg.Faction
+          val otherBldgFaction = otherBldg.Faction
+          val setBroadcastTo = if (Config.app.game.warpGates.broadcastBetweenConflictedFactions) {
+            Set(bldgFaction, otherBldgFaction)
           }
-        }
-        else {
-          (None, None, None, None)
-        }
-        (thisBuilding, thisWarpGate, otherWarpGate, otherBuilding) match {
-          case (Some(bldg), Some(wg : WarpGate), Some(otherWg : WarpGate), Some(otherBldg)) =>
-            //standard case where a building connected to a warp gate pair changes faction
-            val bldgFaction = bldg.Faction
-            val otherBldgFaction = otherBldg.Faction
-            val setBroadcastTo = if (Config.app.game.warpGates.broadcastBetweenConflictedFactions) {
-              Set(bldgFaction, otherBldgFaction)
-            }
-            else if (bldgFaction == otherBldgFaction) {
-              Set(bldgFaction)
-            }
-            else {
-              Set(PlanetSideEmpire.NEUTRAL)
-            }
-            updateBroadcastCapabilitiesOfWarpGate(details, wg, setBroadcastTo)
-            updateBroadcastCapabilitiesOfWarpGate(details, otherWg, setBroadcastTo)
+          else if (bldgFaction == otherBldgFaction) {
+            Set(bldgFaction)
+          }
+          else {
+            Set(PlanetSideEmpire.NEUTRAL)
+          }
+          updateBroadcastCapabilitiesOfWarpGate(details, wg, setBroadcastTo)
+          updateBroadcastCapabilitiesOfWarpGate(details, otherWg, setBroadcastTo)
+          if (wg.Zone.map.cavern && !otherWg.Zone.map.cavern) {
+            otherWg.Zone.actor ! ZoneActor.ZoneMapUpdate()
+          }
 
-          case (Some(_), Some(wg : WarpGate), Some(otherWg : WarpGate), None) =>
-            handleWarpGateDeadendPair(details, wg, otherWg)
+        case (Some(_), Some(wg : WarpGate), Some(otherWg : WarpGate), None) =>
+          handleWarpGateDeadendPair(details, wg, otherWg)
 
-          case (None, Some(wg : WarpGate), Some(otherWg : WarpGate), Some(_)) =>
-            handleWarpGateDeadendPair(details, otherWg, wg)
+        case (None, Some(wg : WarpGate), Some(otherWg : WarpGate), Some(_)) =>
+          handleWarpGateDeadendPair(details, otherWg, wg)
 
-          case (_, Some(wg: WarpGate), None, None) if !wg.Active =>
-            updateBroadcastCapabilitiesOfWarpGate(details, wg, Set(PlanetSideEmpire.NEUTRAL))
+        case (_, Some(wg: WarpGate), None, None) if !wg.Active =>
+          updateBroadcastCapabilitiesOfWarpGate(details, wg, Set(PlanetSideEmpire.NEUTRAL))
 
-          case (None, None, Some(wg: WarpGate), _) if !wg.Active =>
-            updateBroadcastCapabilitiesOfWarpGate(details, wg, Set(PlanetSideEmpire.NEUTRAL))
+        case (None, None, Some(wg: WarpGate), _) if !wg.Active =>
+          updateBroadcastCapabilitiesOfWarpGate(details, wg, Set(PlanetSideEmpire.NEUTRAL))
 
-          case _ => ;
-            //everything else is a degenerate pattern that should be reported at an earlier point
-        }
+        case _ => ;
+          //everything else is a degenerate pattern that should be reported at an earlier point
       }
     }
     Behaviors.same

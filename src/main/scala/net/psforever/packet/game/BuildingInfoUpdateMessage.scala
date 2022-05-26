@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
+import enumeratum.values.IntEnum
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState}
+import net.psforever.types._
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -112,8 +113,8 @@ final case class BuildingInfoUpdateMessage(
     generator_state: PlanetSideGeneratorState.Value,
     spawn_tubes_normal: Boolean,
     force_dome_active: Boolean,
-    lattice_benefit: Int,
-    cavern_benefit: Int,
+    lattice_benefit: Set[LatticeBenefit],
+    cavern_benefit: Set[CavernBenefit],
     unk4: List[Additional2],
     unk5: Long,
     unk6: Boolean,
@@ -154,6 +155,28 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
       ("unk2" | uint2L)
   ).as[Additional3]
 
+  private def benefitCodecFunc[T <: CaptureBenefit](bits: Int, objClass: IntEnum[T]): Codec[Set[T]] =
+    uintL(bits).xmap[Set[T]](
+      {
+        case 0 =>
+          Set(objClass.values.find(_.value == 0).get)
+        case n =>
+          val values = objClass.values.sortBy(_.value)(Ordering.Int.reverse)
+          var curr = n
+          values
+            .collect {
+              case benefit if benefit.value >= curr =>
+                curr = curr - benefit.value
+                benefit
+            }.toSet
+      },
+      benefits => benefits.foldLeft[Int](0)(_ + _.value)
+    )
+
+  private val latticeBenefitCodec: Codec[Set[LatticeBenefit]] = benefitCodecFunc(bits = 5, LatticeBenefit)
+
+  private val cavernBenefitCodec: Codec[Set[CavernBenefit]] = benefitCodecFunc(bits = 10, CavernBenefit)
+
   implicit val codec: Codec[BuildingInfoUpdateMessage] = (
     ("continent_id" | uint16L) ::
       ("building_id" | uint16L) ::
@@ -167,8 +190,8 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
         ("generator_state" | PlanetSideGeneratorState.codec) ::
         ("spawn_tubes_normal" | bool) ::
         ("force_dome_active" | bool) ::
-        ("lattice_benefit" | uintL(5)) ::
-        ("cavern_benefit" | uintL(10)) ::
+        ("lattice_benefit" | latticeBenefitCodec) ::
+        ("cavern_benefit" | cavernBenefitCodec) ::
         ("unk4" | listOfN(uint4L, additional2_codec)) ::
         ("unk5" | uint32L) ::
         ("unk6" | bool) ::

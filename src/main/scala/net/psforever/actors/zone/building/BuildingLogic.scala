@@ -47,6 +47,7 @@ trait BuildingLogic {
   def powerRestored(details: BuildingWrapper): Behavior[Command]
 
   def ntu(details: BuildingWrapper, msg: NtuCommand.Command): Behavior[Command]
+
   def wrapper(
                building: Building,
                context: ActorContext[BuildingActor.Command],

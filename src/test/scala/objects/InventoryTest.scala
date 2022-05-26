@@ -19,12 +19,12 @@ class InventoryTest extends Specification {
 
   "InventoryDisarrayException" should {
     "construct" in {
-      InventoryDisarrayException("slot out of bounds")
+      InventoryDisarrayException("slot out of bounds", GridInventory())
       ok
     }
 
     "construct (with Throwable)" in {
-      InventoryDisarrayException("slot out of bounds", new Throwable())
+      InventoryDisarrayException("slot out of bounds", new Throwable(), GridInventory())
       ok
     }
   }

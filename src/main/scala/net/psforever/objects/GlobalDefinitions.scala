@@ -1261,11 +1261,33 @@ object GlobalDefinitions {
   /*
   Buildings
    */
-  val building         = new BuildingDefinition(474) { Name = "building" } //borrows object id of entity mainbase1
-  val amp_station      = new BuildingDefinition(45) { Name = "amp_station"; SOIRadius = 300 }
-  val comm_station     = new BuildingDefinition(211) { Name = "comm_station"; SOIRadius = 300 }
-  val comm_station_dsp = new BuildingDefinition(212) { Name = "comm_station_dsp"; SOIRadius = 300 }
-  val cryo_facility    = new BuildingDefinition(215) { Name = "cryo_facility"; SOIRadius = 300 }
+  val amp_station = new BuildingDefinition(45) {
+    Name = "amp_station"
+    SOIRadius = 300
+    LatticeLinkBenefit = LatticeBenefit.AmpStation
+  }
+  val comm_station = new BuildingDefinition(211) {
+    Name = "comm_station"
+    SOIRadius = 300
+    LatticeLinkBenefit = LatticeBenefit.InterlinkFacility
+  }
+  val comm_station_dsp = new BuildingDefinition(212) {
+    Name = "comm_station_dsp"
+    SOIRadius = 300
+    LatticeLinkBenefit = LatticeBenefit.DropshipCenter
+  }
+  val cryo_facility = new BuildingDefinition(215) {
+    Name = "cryo_facility"
+    SOIRadius = 300
+    LatticeLinkBenefit = LatticeBenefit.BioLaboratory
+  }
+  val tech_plant = new BuildingDefinition(852) {
+    Name = "tech_plant"
+    SOIRadius = 300
+    LatticeLinkBenefit = LatticeBenefit.TechnologyPlant
+  }
+
+  val building = new BuildingDefinition(474) { Name = "building" } //borrows object id of entity mainbase1
 
   val vanu_core = new BuildingDefinition(932) { Name = "vanu_core" }
 
@@ -1303,7 +1325,6 @@ object GlobalDefinitions {
   val minibase2            = new BuildingDefinition(558) { Name = "minibase2" }
   val minibase3            = new BuildingDefinition(559) { Name = "minibase3" }
   val redoubt              = new BuildingDefinition(726) { Name = "redoubt"; SOIRadius = 187 }
-  val tech_plant           = new BuildingDefinition(852) { Name = "tech_plant"; SOIRadius = 300 }
   val tower_a              = new BuildingDefinition(869) { Name = "tower_a"; SOIRadius = 50 }
   val tower_b              = new BuildingDefinition(870) { Name = "tower_b"; SOIRadius = 50 }
   val tower_c              = new BuildingDefinition(871) { Name = "tower_c"; SOIRadius = 50 }

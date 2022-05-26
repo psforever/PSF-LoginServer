@@ -6,10 +6,9 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.{GlobalDefinitions, NtuContainer, SpawnPoint}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.BuildingInfoUpdateMessage
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState, Vector3}
+import net.psforever.types._
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.BuildingActor
-import net.psforever.objects.definition.ObjectDefinition
 
 class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildingDefinition: WarpGateDefinition)
     extends Building(name, building_guid, map_id, zone, StructureType.WarpGate, buildingDefinition)
@@ -26,24 +25,24 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
       Zone.Number,
       MapId,
       0,
-      false,
+      is_hacked = false,
       PlanetSideEmpire.NEUTRAL,
       0L,
       Faction, //should be neutral in most cases
-      0, //!! Field != 0 will cause malformed packet. See class def.
+      0, //Field != 0 will cause malformed packet. See class def.
       None,
       PlanetSideGeneratorState.Normal,
-      true,  //TODO?
-      false, //force_dome_active
-      0,     //lattice_benefit
-      0,     //cavern_benefit; !! Field > 0 will cause malformed packet. See class def.
+      spawn_tubes_normal = true,
+      force_dome_active = false,
+      Set(LatticeBenefit.None),
+      Set(CavernBenefit.None), //Field > 0 will cause malformed packet. See class def.
       Nil,
       0,
-      false,
+      unk6 = false,
       8, //!! Field != 8 will cause malformed packet. See class def.
       None,
-      false, //boost_spawn_pain
-      false  //boost_generator_pain
+      boost_spawn_pain = false,
+      boost_generator_pain = false
     )
   }
 
@@ -127,9 +126,9 @@ class WarpGate(name: String, building_guid: Int, map_id: Int, zone: Zone, buildi
 
   override def NtuSource: Option[NtuContainer] = Some(this)
 
-  override def hasLatticeBenefit(wantedBenefit: ObjectDefinition): Boolean = false
+  override def hasLatticeBenefit(wantedBenefit: LatticeBenefit): Boolean = false
 
-  override def latticeConnectedFacilityBenefits(): Set[ObjectDefinition] = Set.empty
+  override def latticeConnectedFacilityBenefits(): Set[LatticeBenefit] = Set.empty[LatticeBenefit]
 
   override def Definition: WarpGateDefinition = buildingDefinition
 }

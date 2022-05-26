@@ -267,7 +267,7 @@ case object MajorFacilityLogic
   }
 
   def alertToFactionChange(details: BuildingWrapper, building: Building): Behavior[Command] = {
-    alignForceDomeStatus(details, mapUpdateOnChange = false)
+    alignForceDomeStatus(details)
     Behaviors.same
   }
 

@@ -27,14 +27,16 @@ object BuildingActor {
   def apply(zone: Zone, building: Building): Behavior[Command] =
     Behaviors
       .supervise[Command] {
-        Behaviors.withStash(100) { buffer =>
+        Behaviors.withStash(capacity = 100) { buffer =>
           val logic: BuildingLogic = building match {
             case _: WarpGate =>
               WarpGateLogic
-            case _ if building.BuildingType == StructureType.Tower || zone.map.cavern =>
-              FacilityLogic
-            case _ =>
+            case _ if zone.map.cavern =>
+              CavernFacilityLogic
+            case _ if building.BuildingType == StructureType.Facility =>
               MajorFacilityLogic
+            case _ =>
+              FacilityLogic
           }
           Behaviors.setup(context => new BuildingActor(context, buffer, zone, building, logic).start())
         }

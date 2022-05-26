@@ -6,7 +6,6 @@ import java.util.concurrent.TimeUnit
 import akka.actor.ActorContext
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{GlobalDefinitions, NtuContainer, Player}
-import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.painbox.Painbox
@@ -15,7 +14,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.BuildingInfoUpdateMessage
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState, Vector3}
+import net.psforever.types._
 import scalax.collection.{Graph, GraphEdge}
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.serverobject.llu.{CaptureFlag, CaptureFlagSocket}
@@ -198,6 +197,15 @@ class Building(
       val o = Amenities.collect({ case tube: SpawnTube if !tube.Destroyed => tube })
       (o.nonEmpty, false) //TODO poll pain field strength
     }
+    val cavernBenefit: Set[CavernBenefit] = if (
+      generatorState != PlanetSideGeneratorState.Destroyed &&
+      faction != PlanetSideEmpire.NEUTRAL &&
+      connectedCavern().nonEmpty
+    ) {
+      Set(CavernBenefit.VehicleModule, CavernBenefit.EquipmentModule)
+    } else {
+      Set(CavernBenefit.None)
+    }
 
     BuildingInfoUpdateMessage(
       Zone.Number,
@@ -207,25 +215,29 @@ class Building(
       hackingFaction,
       hackTime,
       if (ntuLevel > 0) Faction else PlanetSideEmpire.NEUTRAL,
-      0, // unk1 Field != 0 will cause malformed packet
-      None, // unk1x
+      unk1 = 0, // unk1 != 0 will cause malformed packet
+      unk1x = None,
       generatorState,
       spawnTubesNormal,
       forceDomeActive,
-      if (generatorState != PlanetSideGeneratorState.Destroyed) latticeBenefitsValue() else 0,
-      if (generatorState != PlanetSideGeneratorState.Destroyed) 48 else 0,    // cavern benefit
-      Nil,   // unk4,
-      0,     // unk5
-      false, // unk6
-      8,     // unk7 Field != 8 will cause malformed packet
-      None,  // unk7x
+      latticeConnectedFacilityBenefits(),
+      cavernBenefit,
+      unk4 = Nil,
+      unk5 = 0,
+      unk6 = false,
+      unk7 = 8,     // unk7 != 8 will cause malformed packet
+      unk7x = None,
       boostSpawnPain,
       boostGeneratorPain
     )
   }
 
-  def hasLatticeBenefit(wantedBenefit: ObjectDefinition): Boolean = {
-    if (Faction == PlanetSideEmpire.NEUTRAL) {
+  def hasLatticeBenefit(wantedBenefit: LatticeBenefit): Boolean = {
+    val genState = Generator match {
+      case Some(obj) => obj.Condition != PlanetSideGeneratorState.Destroyed
+      case _         => false
+    }
+    if (genState || Faction == PlanetSideEmpire.NEUTRAL) {
       false
     } else {
       // Check this Building is on the lattice first
@@ -246,16 +258,16 @@ class Building(
   }
 
   private def findLatticeBenefit(
-                                  wantedBenefit: ObjectDefinition,
+                                  wantedBenefit: LatticeBenefit,
                                   subGraph: Graph[Building, GraphEdge.UnDiEdge]
                                 ): Boolean = {
     var found = false
     subGraph find this match {
       case Some(self) =>
-        if (this.Definition == wantedBenefit) {
+        if (this.Definition.LatticeLinkBenefit == wantedBenefit) {
           found = true
         } else {
-          self pathUntil (_.Definition == wantedBenefit) match {
+          self pathUntil (_.Definition.LatticeLinkBenefit == wantedBenefit) match {
             case Some(_) => found = true
             case None    => ;
           }
@@ -265,53 +277,59 @@ class Building(
     found
   }
 
-  def latticeConnectedFacilityBenefits(): Set[ObjectDefinition] = {
-    if (Faction == PlanetSideEmpire.NEUTRAL) {
-      Set.empty
+  def latticeConnectedFacilityBenefits(): Set[LatticeBenefit] = {
+    val genState = Generator match {
+      case Some(obj) => obj.Condition
+      case _         => PlanetSideGeneratorState.Normal
+    }
+    if (genState == PlanetSideGeneratorState.Destroyed || Faction == PlanetSideEmpire.NEUTRAL) {
+      Set.empty[LatticeBenefit]
     } else {
-      // Check this Building is on the lattice first
-      zone.Lattice find this match {
-        case Some(_) =>
-          val subGraph = Zone.Lattice filter ((b: Building) =>
-            b.Faction == this.Faction
-            && !b.CaptureTerminalIsHacked
-            && b.NtuLevel > 0
-            && (b.Generator.isEmpty || b.Generator.get.Condition != PlanetSideGeneratorState.Destroyed)
-            )
-
-          import scala.collection.mutable
-          var connectedBases: mutable.Set[ObjectDefinition] = mutable.Set()
-          if (findLatticeBenefit(GlobalDefinitions.amp_station, subGraph)) {
-            connectedBases.add(GlobalDefinitions.amp_station)
-          }
-          if (findLatticeBenefit(GlobalDefinitions.comm_station_dsp, subGraph)) {
-            connectedBases.add(GlobalDefinitions.comm_station_dsp)
-          }
-          if (findLatticeBenefit(GlobalDefinitions.cryo_facility, subGraph)) {
-            connectedBases.add(GlobalDefinitions.cryo_facility)
-          }
-          if (findLatticeBenefit(GlobalDefinitions.comm_station, subGraph)) {
-            connectedBases.add(GlobalDefinitions.comm_station)
-          }
-          if (findLatticeBenefit(GlobalDefinitions.tech_plant, subGraph)) {
-            connectedBases.add(GlobalDefinitions.tech_plant)
-          }
-          connectedBases.toSet
-        case None =>
-          Set.empty
-      }
+      friendlyFunctionalNeighborhood().map { _.Definition.LatticeLinkBenefit }
     }
   }
 
-  def latticeBenefitsValue(): Int = {
-    latticeConnectedFacilityBenefits().collect {
-      case GlobalDefinitions.amp_station => 1
-      case GlobalDefinitions.comm_station_dsp => 2
-      case GlobalDefinitions.cryo_facility => 4
-      case GlobalDefinitions.comm_station => 8
-      case GlobalDefinitions.tech_plant => 16
-    }.sum
+  def friendlyFunctionalNeighborhood(): Set[Building] = {
+    var (currBuilding, newNeighbors) = Neighbours(faction).getOrElse(Set.empty[Building]).toList.splitAt(1)
+    var visitedNeighbors: Set[Int] = Set(MapId)
+    var friendlyNeighborhood: List[Building] = List(this)
+    while (currBuilding.nonEmpty) {
+      val building = currBuilding.head
+      val neighborsToAdd = if (!visitedNeighbors.contains(building.MapId)
+                               && (building match { case _ : WarpGate => false;  case _ => true })
+                               && !building.CaptureTerminalIsHacked
+                               && building.NtuLevel > 0
+                               && (building.Generator match {
+        case Some(o) => o.Condition != PlanetSideGeneratorState.Destroyed
+        case _ => true
+      })
+      ) {
+        visitedNeighbors = visitedNeighbors ++ Set(building.MapId)
+        friendlyNeighborhood = friendlyNeighborhood :+ building
+        building.Neighbours(faction)
+          .getOrElse(Set.empty[Building])
+          .toList
+          .filterNot { b => visitedNeighbors.contains(b.MapId) }
+      } else {
+        Nil
+      }
+      val allocatedNeighbors = newNeighbors ++ neighborsToAdd
+      currBuilding = allocatedNeighbors.take(1)
+      newNeighbors = allocatedNeighbors.drop(1)
+    }
+    friendlyNeighborhood.toSet
   }
+
+  /**
+    * Starting from an overworld zone facility,
+    * find a lattice connected cavern facility that is the same faction as this starting building.
+    * Except for the necessary examination of the major facility on the other side of a warp gate pair,
+    * do not let the search escape the current zone into another.
+    * If we start in a cavern zone, do not continue a fruitless search;
+    * just fail.
+    * @return the discovered faction-aligned cavern facility
+    */
+  def connectedCavern(): Option[Building] = net.psforever.objects.zones.Zone.findConnectedCavernFacility(building = this)
 
   def BuildingType: StructureType = buildingType
 

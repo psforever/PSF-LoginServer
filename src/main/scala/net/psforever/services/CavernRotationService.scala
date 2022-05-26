@@ -6,7 +6,7 @@ import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{Behavior, SupervisorStrategy}
 import net.psforever.actors.session.SessionActor
-import net.psforever.actors.zone.BuildingActor
+import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.actors.zone.building.WarpGateLogic
 import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
@@ -168,6 +168,7 @@ object CavernRotationService {
       wg.Active = true
       otherWg.Active = true
       wg.Actor ! BuildingActor.AlertToFactionChange(building)
+      otherWg.Zone.actor ! ZoneActor.ZoneMapUpdate()
       wg
     }
   }
@@ -177,6 +178,7 @@ object CavernRotationService {
       wg.Active = false
       otherWg.Active = false
       wg.Actor ! BuildingActor.AlertToFactionChange(building)
+      otherWg.Zone.actor ! ZoneActor.ZoneMapUpdate()
       //must trigger the connection test from the other side to equalize
       WarpGateLogic.findNeighborhoodNormalBuilding(otherWg.Neighbours.getOrElse(Nil)) match {
         case Some(b) => otherWg.Actor ! BuildingActor.AlertToFactionChange(b)
@@ -236,7 +238,7 @@ class CavernRotationService(
   var lockTimer: Cancellable = Default.Cancellable
   var unlockTimer: Cancellable = Default.Cancellable
   val hoursBetweenRotations: Int = Config.app.game.cavernRotation.hoursBetweenRotation
-  val simultaneousUnlockedZones: Int = Config.app.game.cavernRotation.simultaneousUnlockedZones
+  val simultaneousUnlockedZones: Int = 2 //Config.app.game.cavernRotation.simultaneousUnlockedZones
   var fullHoursBetweenRotations: Int = 0
   val firstClosingWarningAt: Int = 15
 
@@ -333,39 +335,39 @@ class CavernRotationService(
         Behaviors.same
 
       case HurryRotationToZoneLock(zoneid) =>
-        if ((nextToLock until nextToLock + simultaneousUnlockedZones)
-          .map { i => managedZones(i % managedZones.size) }
-          .indexWhere { _.zone.id.equals(zoneid) } match {
-          case -1 =>
-            false
-          case  0 =>
-            true
-          case index =>
-            CavernRotationService.swapMonitors(managedZones, nextToLock, index)
-            true
-        }) {
-          hurryNextRotation(galaxyService, forcedRotationOverride=true)
-        }
+//        if ((nextToLock until nextToLock + simultaneousUnlockedZones)
+//          .map { i => managedZones(i % managedZones.size) }
+//          .indexWhere { _.zone.id.equals(zoneid) } match {
+//          case -1 =>
+//            false
+//          case  0 =>
+//            true
+//          case index =>
+//            CavernRotationService.swapMonitors(managedZones, nextToLock, index)
+//            true
+//        }) {
+//          hurryNextRotation(galaxyService, forcedRotationOverride=true)
+//        }
         Behaviors.same
 
       case HurryRotationToZoneUnlock(zoneid) =>
-        if (!(nextToLock until nextToLock + simultaneousUnlockedZones)
-          .map { i => managedZones(i % managedZones.size) }
-          .exists { _.zone.id.equals(zoneid) }) {
-          if (managedZones(nextToUnlock).zone.id.equals(zoneid)) {
-            hurryNextRotation(galaxyService, forcedRotationOverride = true)
-          }
-          else {
-            //for unlocking E next, A [B C] D E F -> A [B C] E D F
-            //TODO, for unlocking F next, A [B C] D E F D -> A [B C] F E D D can not be allowed!
-            managedZones.indexWhere { z => z.zone.id.equals(zoneid) } match {
-              case -1 => ;
-              case index =>
-                CavernRotationService.swapMonitors(managedZones, nextToUnlock, index)
-                hurryNextRotation(galaxyService, forcedRotationOverride = true)
-            }
-          }
-        }
+//        if (!(nextToLock until nextToLock + simultaneousUnlockedZones)
+//          .map { i => managedZones(i % managedZones.size) }
+//          .exists { _.zone.id.equals(zoneid) }) {
+//          if (managedZones(nextToUnlock).zone.id.equals(zoneid)) {
+//            hurryNextRotation(galaxyService, forcedRotationOverride = true)
+//          }
+//          else {
+//            //for unlocking E next, A [B C] D E F -> A [B C] E D F
+//            //TODO, for unlocking F next, A [B C] D E F D -> A [B C] F E D D can not be allowed!
+//            managedZones.indexWhere { z => z.zone.id.equals(zoneid) } match {
+//              case -1 => ;
+//              case index =>
+//                CavernRotationService.swapMonitors(managedZones, nextToUnlock, index)
+//                hurryNextRotation(galaxyService, forcedRotationOverride = true)
+//            }
+//          }
+//        }
         Behaviors.same
 
       case SendCavernRotationUpdates(sendToSession) =>

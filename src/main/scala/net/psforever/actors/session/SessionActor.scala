@@ -295,11 +295,39 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     import java.io.{StringWriter, PrintWriter}
     OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
       case ide: InventoryDisarrayException =>
-        val sw = new StringWriter
-        ide.printStackTrace(new PrintWriter(sw))
-        log.error(sw.toString)
+        val inv = ide.inventory
+        inv.ElementsInListCollideInGrid() match {
+          case Nil => ;
+          case overlaps =>
+            //attempt to resolve by eliminating common overlaps
+            var allEntries = overlaps.flatten.map { _.obj.GUID }
+            var removedEntries: List[PlanetSideGUID] = List()
+            allEntries.toSet[PlanetSideGUID].foreach { id =>
+              val updatedEntries = allEntries.filterNot { _ == id }
+              if (allEntries.size - updatedEntries.size > 1) {
+                inv.Remove(id)
+                removedEntries = removedEntries :+ id
+                sendResponse(ObjectDeleteMessage(id, 0))
+              }
+              allEntries = updatedEntries
+            }
+            //attempt to resolve by handling remainder overlaps
+            overlaps.foreach { overlap =>
+              overlap.filterNot { entry => removedEntries.contains(entry.obj.GUID) }.drop(1).foreach { entry =>
+                val id = entry.obj.GUID
+                inv.Remove(id)
+                removedEntries = removedEntries :+ id
+                sendResponse(ObjectDeleteMessage(id, 0))
+              }
+            }
+        }
+        if (inv.ElementsOnGridMatchList() > 0) {
+          val sw = new StringWriter
+          ide.printStackTrace(new PrintWriter(sw))
+          log.error(sw.toString)
+        }
         SupervisorStrategy.resume
-      case _                             =>
+      case _ =>
         ImmediateDisconnect()
         SupervisorStrategy.stop
     }
@@ -8804,8 +8832,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       //for other zones ...
       //biolabs have/grant benefits
       val cryoBenefit: Float = toSpawnPoint.Owner match {
-        case b: Building if b.hasLatticeBenefit(GlobalDefinitions.cryo_facility) => 0.5f
-        case _                                                                   => 1f
+        case b: Building if b.hasLatticeBenefit(LatticeBenefit.BioLaboratory) => 0.5f
+        case _                                                                => 1f
       }
       //TODO cumulative death penalty
       toSpawnPoint.Definition.Delay.toFloat * cryoBenefit seconds
