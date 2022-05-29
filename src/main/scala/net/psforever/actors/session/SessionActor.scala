@@ -2163,15 +2163,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(ObjectHeldMessage(target, Player.HandsDownSlot, false))
           //cleanup
           (old_holsters ++ old_inventory).foreach {
-            case (obj, guid) =>
-              sendResponse(ObjectDeleteMessage(guid, 0))
+            case (obj, objGuid) =>
+              sendResponse(ObjectDeleteMessage(objGuid, 0))
               TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj))
           }
           //redraw
           if (maxhand) {
             TaskWorkflow.execute(HoldNewEquipmentUp(player)(
               Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)),
-              0
+              slot = 0
             ))
           }
           ApplyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
@@ -2225,13 +2225,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
               case Some(carrier: Player) =>
                 log.warn(s"${player.toString} tried to drop LLU, but it is currently held by ${carrier.toString}")
-              case None =>
+              case _ =>
                 log.warn(s"${player.toString} tried to drop LLU, but nobody is holding it.")
             }
           case _ =>
             log.warn(s"${player.toString} Tried to drop a special item that wasn't recognized. GUID: $guid")
         }
-
       case _ => ; // Nothing to drop, do nothing.
     }
   }

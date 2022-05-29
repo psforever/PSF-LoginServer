@@ -35,6 +35,7 @@ import net.psforever.objects.vital._
 import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideEmpire, Vector3}
 import net.psforever.types._
 import net.psforever.objects.serverobject.llu.{CaptureFlagDefinition, CaptureFlagSocketDefinition}
+import net.psforever.objects.serverobject.terminals.tabs._
 import net.psforever.objects.vital.collision.TrapCollisionDamageMultiplier
 
 import scala.annotation.switch
@@ -3484,7 +3485,7 @@ object GlobalDefinitions {
 
     maelstrom_grenade_damager.Name = "maelstrom_grenade_damager"
     maelstrom_grenade_damager.ProjectileDamageType = DamageType.Direct
-    //todo the maelstrom_grenade_damage is something of a broken entity atm
+    //the maelstrom_grenade_damage is something of a broken entity atm
 
     maelstrom_grenade_projectile.Name = "maelstrom_grenade_projectile"
     maelstrom_grenade_projectile.Damage0 = 32
@@ -3971,7 +3972,7 @@ object GlobalDefinitions {
     ProjectileDefinition.CalculateDerivedFields(quasar_projectile)
 
     radiator_cloud.Name = "radiator_cloud"
-    radiator_cloud.Damage0 = 2
+    radiator_cloud.Damage0 = 1 //2
     radiator_cloud.DamageAtEdge = 1.0f
     radiator_cloud.DamageRadius = 5f
     radiator_cloud.DamageToHealthOnly = true
@@ -5124,7 +5125,6 @@ object GlobalDefinitions {
     spiker.FireModes.head.AmmoSlotIndex = 0
     spiker.FireModes.head.Magazine = 25
     spiker.Tile = InventoryTile.Tile33
-    //TODO the spiker is weird
 
     mini_chaingun.Name = "mini_chaingun"
     mini_chaingun.Size = EquipmentSize.Rifle
@@ -5200,7 +5200,6 @@ object GlobalDefinitions {
     maelstrom.FireModes(2).Magazine = 150
     maelstrom.FireModes(2).RoundsPerShot = 10
     maelstrom.Tile = InventoryTile.Tile93
-    //TODO the maelstrom is weird
 
     phoenix.Name = "phoenix"
     phoenix.Size = EquipmentSize.Rifle
@@ -8853,7 +8852,7 @@ object GlobalDefinitions {
     colossus_flight.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
     colossus_flight.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 5.984375f)
     colossus_flight.MaxCapacitor = 156
-    colossus_flight.DefaultCapacitor = aphelion_flight.MaxCapacitor
+    colossus_flight.DefaultCapacitor = colossus_flight.MaxCapacitor
     colossus_flight.CapacitorDrain = 16
     colossus_flight.CapacitorDrainSpecial = 3
     colossus_flight.CapacitorRecharge = 42
@@ -8907,7 +8906,7 @@ object GlobalDefinitions {
     peregrine_flight.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
     peregrine_flight.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 6.421875f)
     peregrine_flight.MaxCapacitor = 156
-    peregrine_flight.DefaultCapacitor = aphelion_flight.MaxCapacitor
+    peregrine_flight.DefaultCapacitor = peregrine_flight.MaxCapacitor
     peregrine_flight.CapacitorDrain = 16
     peregrine_flight.CapacitorDrainSpecial = 3
     peregrine_flight.CapacitorRecharge = 42
@@ -9321,21 +9320,29 @@ object GlobalDefinitions {
     spawn_terminal.Name = "spawn_terminal"
     spawn_terminal.Damageable = false
     spawn_terminal.Repairable = false
-    spawn_terminal.autoRepair = AutoRepairStats(1, 5000, 200, 1) //TODO amount and drain are default value?
+    spawn_terminal.autoRepair = AutoRepairStats(1, 5000, 200, 1)
 
     order_terminal.Name = "order_terminal"
-    order_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(
-      EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons
-    )
-    order_terminal.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(
+    order_terminal.Tab += 0 -> {
+      val tab = EquipmentPage(
+        EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons
+      )
+      tab.Exclude = List(CavernEquipmentQuestion)
+      tab
+    }
+    order_terminal.Tab += 1 -> ArmorWithAmmoPage(
       EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits,
       EquipmentTerminalDefinition.maxAmmo
     )
-    order_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+    order_terminal.Tab += 2 -> EquipmentPage(
       EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons
     )
-    order_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    order_terminal.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    order_terminal.Tab += 3 -> EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminal.Tab += 4 -> {
+      val tab = InfantryLoadoutPage()
+      tab.Exclude = List(CavernEquipmentQuestion)
+      tab
+    }
     order_terminal.SellEquipmentByDefault = true
     order_terminal.MaxHealth = 500
     order_terminal.Damageable = true
@@ -9346,61 +9353,75 @@ object GlobalDefinitions {
     order_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.8438f, height = 1.3f)
 
     order_terminala.Name = "order_terminala"
-    order_terminala.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(
-      EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons
-    )
-    order_terminala.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(
+    order_terminala.Tab += 0 -> {
+      val tab = EquipmentPage(
+        EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons
+      )
+      tab.Exclude = List(NoCavernEquipmentRule)
+      tab
+    }
+    order_terminala.Tab += 1 -> ArmorWithAmmoPage(
       EquipmentTerminalDefinition.suits,
       EquipmentTerminalDefinition.maxAmmo
     )
-    order_terminala.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+    order_terminala.Tab += 2 -> EquipmentPage(
       EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons
     )
-    order_terminala.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    order_terminala.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
-    order_terminala.Tab(4).asInstanceOf[OrderTerminalDefinition.InfantryLoadoutPage].Exclude = ExoSuitType.MAX
+    order_terminala.Tab += 3 -> EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminala.Tab += 4 -> {
+      val tab = InfantryLoadoutPage()
+      tab.Exclude = List(NoExoSuitRule(ExoSuitType.MAX), NoCavernEquipmentRule)
+      tab
+    }
     order_terminala.SellEquipmentByDefault = true
     order_terminala.Damageable = false
     order_terminala.Repairable = false
 
     order_terminalb.Name = "order_terminalb"
-    order_terminalb.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(
-      EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons
-    )
-    order_terminalb.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(
+    order_terminalb.Tab += 0 -> {
+      val tab = EquipmentPage(
+        EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons
+      )
+      tab.Exclude = List(NoCavernEquipmentRule)
+      tab
+    }
+    order_terminalb.Tab += 1 -> ArmorWithAmmoPage(
       EquipmentTerminalDefinition.suits,
       EquipmentTerminalDefinition.maxAmmo
     )
-    order_terminalb.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+    order_terminalb.Tab += 2 -> EquipmentPage(
       EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons
     )
-    order_terminalb.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    order_terminalb.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
-    order_terminalb.Tab(4).asInstanceOf[OrderTerminalDefinition.InfantryLoadoutPage].Exclude = ExoSuitType.MAX
+    order_terminalb.Tab += 3 -> EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    order_terminalb.Tab += 4 -> {
+      val tab = InfantryLoadoutPage()
+      tab.Exclude = List(NoExoSuitRule(ExoSuitType.MAX), NoCavernEquipmentRule)
+      tab
+    }
     order_terminalb.SellEquipmentByDefault = true
     order_terminalb.Damageable = false
     order_terminalb.Repairable = false
 
     vanu_equipment_term.Name = "vanu_equipment_term"
-    vanu_equipment_term.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(
+    vanu_equipment_term.Tab += 0 -> EquipmentPage(
       EquipmentTerminalDefinition.infantryAmmunition ++ EquipmentTerminalDefinition.infantryWeapons
     )
-    vanu_equipment_term.Tab += 1 -> OrderTerminalDefinition.ArmorWithAmmoPage(
+    vanu_equipment_term.Tab += 1 -> ArmorWithAmmoPage(
       EquipmentTerminalDefinition.suits ++ EquipmentTerminalDefinition.maxSuits,
       EquipmentTerminalDefinition.maxAmmo
     )
-    vanu_equipment_term.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+    vanu_equipment_term.Tab += 2 -> EquipmentPage(
       EquipmentTerminalDefinition.supportAmmunition ++ EquipmentTerminalDefinition.supportWeapons
     )
-    vanu_equipment_term.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    vanu_equipment_term.Tab += 4 -> OrderTerminalDefinition.InfantryLoadoutPage()
+    vanu_equipment_term.Tab += 3 -> EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    vanu_equipment_term.Tab += 4 -> InfantryLoadoutPage()
     vanu_equipment_term.SellEquipmentByDefault = true
     vanu_equipment_term.Damageable = false
     vanu_equipment_term.Repairable = false
 
     cert_terminal.Name = "cert_terminal"
     val certs = Certification.values.filter(_.cost != 0)
-    val page  = OrderTerminalDefinition.CertificationPage(certs)
+    val page  = CertificationPage(certs)
     cert_terminal.Tab += 0 -> page
     cert_terminal.MaxHealth = 500
     cert_terminal.Damageable = true
@@ -9420,20 +9441,28 @@ object GlobalDefinitions {
     implant_terminal_mech.Geometry = GeometryForm.representByCylinder(radius = 2.7813f, height = 6.4375f)
 
     implant_terminal_interface.Name = "implant_terminal_interface"
-    implant_terminal_interface.Tab += 0 -> OrderTerminalDefinition.ImplantPage(ImplantTerminalDefinition.implants)
+    implant_terminal_interface.Tab += 0 -> ImplantPage(ImplantTerminalDefinition.implants)
     implant_terminal_interface.MaxHealth = 500
     implant_terminal_interface.Damageable = false //TODO true
     implant_terminal_interface.Repairable = true
-    implant_terminal_interface.autoRepair = AutoRepairStats(1, 5000, 200, 1) //TODO amount and drain are default value?
+    implant_terminal_interface.autoRepair = AutoRepairStats(1, 5000, 200, 1)
     implant_terminal_interface.RepairIfDestroyed = true
     //TODO will need geometry when Damageable = true
 
     ground_vehicle_terminal.Name = "ground_vehicle_terminal"
-    ground_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
-      VehicleTerminalDefinition.groundVehicles,
-      VehicleTerminalDefinition.trunk
-    )
-    ground_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
+    ground_vehicle_terminal.Tab += 46769 -> {
+      val tab = VehiclePage(
+        VehicleTerminalDefinition.groundVehicles,
+        VehicleTerminalDefinition.trunk
+      )
+      tab.Exclude = List(CavernVehicleQuestion)
+      tab
+    }
+    ground_vehicle_terminal.Tab += 4 -> {
+      val tab = VehicleLoadoutPage(10)
+      tab.Exclude = List(CavernEquipmentQuestion)
+      tab
+    }
     ground_vehicle_terminal.MaxHealth = 500
     ground_vehicle_terminal.Damageable = true
     ground_vehicle_terminal.Repairable = true
@@ -9443,11 +9472,15 @@ object GlobalDefinitions {
     ground_vehicle_terminal.Geometry = vterm
 
     air_vehicle_terminal.Name = "air_vehicle_terminal"
-    air_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+    air_vehicle_terminal.Tab += 46769 -> VehiclePage(
       VehicleTerminalDefinition.flight1Vehicles,
       VehicleTerminalDefinition.trunk
     )
-    air_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
+    air_vehicle_terminal.Tab += 4 -> {
+      val tab = VehicleLoadoutPage(10)
+      tab.Exclude = List(CavernVehicleQuestion, CavernEquipmentQuestion)
+      tab
+    }
     air_vehicle_terminal.MaxHealth = 500
     air_vehicle_terminal.Damageable = true
     air_vehicle_terminal.Repairable = true
@@ -9457,11 +9490,15 @@ object GlobalDefinitions {
     air_vehicle_terminal.Geometry = vterm
 
     dropship_vehicle_terminal.Name = "dropship_vehicle_terminal"
-    dropship_vehicle_terminal.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+    dropship_vehicle_terminal.Tab += 46769 -> VehiclePage(
       VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.flight2Vehicles,
       VehicleTerminalDefinition.trunk
     )
-    dropship_vehicle_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
+    dropship_vehicle_terminal.Tab += 4 -> {
+      val tab = VehicleLoadoutPage(10)
+      tab.Exclude = List(CavernEquipmentQuestion)
+      tab
+    }
     dropship_vehicle_terminal.MaxHealth = 500
     dropship_vehicle_terminal.Damageable = true
     dropship_vehicle_terminal.Repairable = true
@@ -9471,11 +9508,19 @@ object GlobalDefinitions {
     dropship_vehicle_terminal.Geometry = vterm
 
     vehicle_terminal_combined.Name = "vehicle_terminal_combined"
-    vehicle_terminal_combined.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
-      VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.groundVehicles,
-      VehicleTerminalDefinition.trunk
-    )
-    vehicle_terminal_combined.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
+    vehicle_terminal_combined.Tab += 46769 -> {
+      val tab = VehiclePage(
+        VehicleTerminalDefinition.flight1Vehicles ++ VehicleTerminalDefinition.groundVehicles,
+        VehicleTerminalDefinition.trunk
+      )
+      tab.Exclude = List(CavernVehicleQuestion)
+      tab
+    }
+    vehicle_terminal_combined.Tab += 4 -> {
+      val tab = VehicleLoadoutPage(10)
+      tab.Exclude = List(CavernEquipmentQuestion)
+      tab
+    }
     vehicle_terminal_combined.MaxHealth = 500
     vehicle_terminal_combined.Damageable = true
     vehicle_terminal_combined.Repairable = true
@@ -9485,11 +9530,11 @@ object GlobalDefinitions {
     vehicle_terminal_combined.Geometry = vterm
 
     vanu_air_vehicle_term.Name = "vanu_air_vehicle_term"
-    vanu_air_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+    vanu_air_vehicle_term.Tab += 46769 -> VehiclePage(
       VehicleTerminalDefinition.flight1Vehicles,
       VehicleTerminalDefinition.trunk
     )
-    vanu_air_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
+    vanu_air_vehicle_term.Tab += 4 -> VehicleLoadoutPage(10)
     vanu_air_vehicle_term.MaxHealth = 500
     vanu_air_vehicle_term.Damageable = true
     vanu_air_vehicle_term.Repairable = true
@@ -9498,11 +9543,11 @@ object GlobalDefinitions {
     vanu_air_vehicle_term.Subtract.Damage1 = 8
 
     vanu_vehicle_term.Name = "vanu_vehicle_term"
-    vanu_vehicle_term.Tab += 46769 -> OrderTerminalDefinition.VehiclePage(
+    vanu_vehicle_term.Tab += 46769 -> VehiclePage(
       VehicleTerminalDefinition.groundVehicles,
       VehicleTerminalDefinition.trunk
     )
-    vanu_vehicle_term.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
+    vanu_vehicle_term.Tab += 4 -> VehicleLoadoutPage(10)
     vanu_vehicle_term.MaxHealth = 500
     vanu_vehicle_term.Damageable = true
     vanu_vehicle_term.Repairable = true
@@ -9511,19 +9556,21 @@ object GlobalDefinitions {
     vanu_vehicle_term.Subtract.Damage1 = 8
 
     bfr_terminal.Name = "bfr_terminal"
-    bfr_terminal.Tab += 0 -> OrderTerminalDefinition.VehiclePage(
+    bfr_terminal.Tab += 0 -> VehiclePage(
       VehicleTerminalDefinition.bfrVehicles,
       VehicleTerminalDefinition.trunk
     )
-    bfr_terminal.Tab += 1 -> OrderTerminalDefinition.EquipmentPage(
+    bfr_terminal.Tab += 1 -> EquipmentPage(
       EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrArmWeapons
     ) //inaccessible?
-    bfr_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+    bfr_terminal.Tab += 2 -> EquipmentPage(
       EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrGunnerWeapons
     ) //inaccessible?
-    bfr_terminal.Tab += 3 -> OrderTerminalDefinition.BattleframeSpawnLoadoutPage(
-      VehicleTerminalDefinition.bfrVehicles
-    )
+    bfr_terminal.Tab += 3 -> {
+      val tab = BattleframeSpawnLoadoutPage(VehicleTerminalDefinition.bfrVehicles)
+      tab.Exclude = List(CavernEquipmentQuestion)
+      tab
+    }
     bfr_terminal.MaxHealth = 500
     bfr_terminal.Damageable = true
     bfr_terminal.Repairable = true
@@ -9539,7 +9586,7 @@ object GlobalDefinitions {
     respawn_tube.Damageable = true
     respawn_tube.DamageableByFriendlyFire = false
     respawn_tube.Repairable = true
-    respawn_tube.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //TODO drain is default value?
+    respawn_tube.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1)
     respawn_tube.RepairIfDestroyed = true
     respawn_tube.Subtract.Damage1 = 8
     respawn_tube.Geometry = GeometryForm.representByCylinder(radius = 0.9336f, height = 2.84375f)
@@ -9551,7 +9598,7 @@ object GlobalDefinitions {
     respawn_tube_sanctuary.Damageable = false //true?
     respawn_tube_sanctuary.DamageableByFriendlyFire = false
     respawn_tube_sanctuary.Repairable = true
-    respawn_tube_sanctuary.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //TODO drain is default value?
+    respawn_tube_sanctuary.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1)
     //TODO will need geometry when Damageable = true
 
     respawn_tube_tower.Name = "respawn_tube_tower"
@@ -9561,18 +9608,18 @@ object GlobalDefinitions {
     respawn_tube_tower.Damageable = true
     respawn_tube_tower.DamageableByFriendlyFire = false
     respawn_tube_tower.Repairable = true
-    respawn_tube_tower.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1) //TODO drain is default value?
+    respawn_tube_tower.autoRepair = AutoRepairStats(1.6f, 10000, 2400, 1)
     respawn_tube_tower.RepairIfDestroyed = true
     respawn_tube_tower.Subtract.Damage1 = 8
     respawn_tube_tower.Geometry = GeometryForm.representByCylinder(radius = 0.9336f, height = 2.84375f)
 
     teleportpad_terminal.Name = "teleportpad_terminal"
-    teleportpad_terminal.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.routerTerminal)
+    teleportpad_terminal.Tab += 0 -> EquipmentPage(EquipmentTerminalDefinition.routerTerminal)
     teleportpad_terminal.Damageable = false
     teleportpad_terminal.Repairable = false
 
     targeting_laser_dispenser.Name = "targeting_laser_dispenser"
-    targeting_laser_dispenser.Tab += 0 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.flailTerminal)
+    targeting_laser_dispenser.Tab += 0 -> EquipmentPage(EquipmentTerminalDefinition.flailTerminal)
     targeting_laser_dispenser.Damageable = false
     targeting_laser_dispenser.Repairable = false
 
@@ -9809,38 +9856,54 @@ object GlobalDefinitions {
     lodestar_repair_terminal.Repairable = false
 
     multivehicle_rearm_terminal.Name = "multivehicle_rearm_terminal"
-    multivehicle_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(
+    multivehicle_rearm_terminal.Tab += 3 -> EquipmentPage(
       EquipmentTerminalDefinition.vehicleAmmunition
     )
-    multivehicle_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
+    multivehicle_rearm_terminal.Tab += 4 -> {
+      val tab = VehicleLoadoutPage(10)
+      tab.Exclude = List(CavernEquipmentQuestion)
+      tab
+    }
     multivehicle_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     multivehicle_rearm_terminal.Damageable = false
     multivehicle_rearm_terminal.Repairable = false
 
     bfr_rearm_terminal.Name = "bfr_rearm_terminal"
-    bfr_rearm_terminal.Tab += 1 -> OrderTerminalDefinition.EquipmentPage(
+    bfr_rearm_terminal.Tab += 1 -> EquipmentPage(
       EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrArmWeapons
     )
-    bfr_rearm_terminal.Tab += 2 -> OrderTerminalDefinition.EquipmentPage(
+    bfr_rearm_terminal.Tab += 2 -> EquipmentPage(
       EquipmentTerminalDefinition.bfrAmmunition ++ EquipmentTerminalDefinition.bfrGunnerWeapons
     )
-    bfr_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.VehicleLoadoutPage(15)
+    bfr_rearm_terminal.Tab += 3 -> {
+      val tab = VehicleLoadoutPage(15)
+      tab.Exclude = List(CavernEquipmentQuestion)
+      tab
+    }
     bfr_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     bfr_rearm_terminal.Damageable = false
     bfr_rearm_terminal.Repairable = false
 
     air_rearm_terminal.Name = "air_rearm_terminal"
-    air_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
-    air_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
+    air_rearm_terminal.Tab += 3 -> EquipmentPage(EquipmentTerminalDefinition.vehicleAmmunition)
+    air_rearm_terminal.Tab += 4 -> {
+      val tab = VehicleLoadoutPage(10)
+      tab.Exclude = List(CavernEquipmentQuestion)
+      tab
+    }
     air_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     air_rearm_terminal.Damageable = false
     air_rearm_terminal.Repairable = false
 
     ground_rearm_terminal.Name = "ground_rearm_terminal"
-    ground_rearm_terminal.Tab += 3 -> OrderTerminalDefinition.EquipmentPage(
+    ground_rearm_terminal.Tab += 3 -> EquipmentPage(
       EquipmentTerminalDefinition.vehicleAmmunition
     )
-    ground_rearm_terminal.Tab += 4 -> OrderTerminalDefinition.VehicleLoadoutPage(10)
+    ground_rearm_terminal.Tab += 4 -> {
+      val tab = VehicleLoadoutPage(10)
+      tab.Exclude = List(CavernEquipmentQuestion)
+      tab
+    }
     ground_rearm_terminal.SellEquipmentByDefault = true //TODO ?
     ground_rearm_terminal.Damageable = false
     ground_rearm_terminal.Repairable = false
@@ -9960,7 +10023,7 @@ object GlobalDefinitions {
     generator.Damageable = true
     generator.DamageableByFriendlyFire = false
     generator.Repairable = true
-    generator.autoRepair = AutoRepairStats(0.77775f, 5000, 875, 1) //TODO drain is default value?
+    generator.autoRepair = AutoRepairStats(0.77775f, 5000, 875, 1)
     generator.RepairDistance = 13.5f
     generator.RepairIfDestroyed = true
     generator.Subtract.Damage1 = 9
