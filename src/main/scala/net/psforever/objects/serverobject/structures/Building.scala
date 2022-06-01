@@ -283,7 +283,7 @@ class Building(
       case _         => PlanetSideGeneratorState.Normal
     }
     if (genState == PlanetSideGeneratorState.Destroyed || Faction == PlanetSideEmpire.NEUTRAL) {
-      Set.empty[LatticeBenefit]
+      Set(LatticeBenefit.None)
     } else {
       friendlyFunctionalNeighborhood().map { _.Definition.LatticeLinkBenefit }
     }

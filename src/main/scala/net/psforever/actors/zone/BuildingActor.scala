@@ -74,6 +74,12 @@ object BuildingActor {
 
   final case class PowerOff() extends Command
 
+  /**
+    * Set a facility affiliated to one faction to be affiliated to a different faction.
+    * @param details building and event system references
+    * @param faction faction to which the building is being set
+    * @param log wrapped-up log for customized debug information
+    */
   def setFactionTo(
                     details: BuildingWrapper,
                     faction: PlanetSideEmpire.Value,
@@ -83,6 +89,13 @@ object BuildingActor {
     setFactionOnEntity(details, faction, log)
   }
 
+  /**
+    * Set a facility affiliated to one faction to be affiliated to a different faction.
+    * Handle the database entry updates to reflect the proper faction affiliation.
+    * @param details building and event system references
+    * @param faction faction to which the building is being set
+    * @param log wrapped-up log for customized debug information
+    */
   def setFactionInDatabase(
                             details: BuildingWrapper,
                             faction: PlanetSideEmpire.Value,
@@ -132,6 +145,13 @@ object BuildingActor {
       }
   }
 
+  /**
+    * Set a facility affiliated to one faction to be affiliated to a different faction.
+    * Handle the facility entry to reflect the correct faction affiliation.
+    * @param details building and event system references
+    * @param faction faction to which the building is being set
+    * @param log wrapped-up log for customized debug information
+    */
   def setFactionOnEntity(
                           details: BuildingWrapper,
                           faction: PlanetSideEmpire.Value,

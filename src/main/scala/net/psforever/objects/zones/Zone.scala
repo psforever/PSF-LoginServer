@@ -172,8 +172,16 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     */
   private var vehicleEvents: ActorRef = Default.Actor
 
-  var zoneInitialized: Promise[Boolean] = Promise[Boolean]()
+  /**
+    * When the zone has completed initializing, fulfill this promise.
+    * @see `init(ActorContext)`
+    */
+  private var zoneInitialized: Promise[Boolean] = Promise[Boolean]()
 
+  /**
+    * When the zone has completed initializing, this will be the future.
+    * @see `init(ActorContext)`
+    */
   def ZoneInitialized(): Future[Boolean] = zoneInitialized.future
 
   /**

@@ -199,7 +199,7 @@ case class WarpGateConfig(
 )
 
 case class CavernRotationConfig(
-    hoursBetweenRotation: Int,
+    hoursBetweenRotation: Float,
     simultaneousUnlockedZones: Int,
     enhancedRotationOrder: Seq[Int],
     forceRotationImmediately: Boolean

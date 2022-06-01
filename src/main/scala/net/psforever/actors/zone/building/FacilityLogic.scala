@@ -11,6 +11,9 @@ import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
+/**
+  * The logic that governs standard facilities and structures.
+  */
 case object FacilityLogic
   extends BuildingLogic {
   import BuildingActor.Command
@@ -23,6 +26,15 @@ case object FacilityLogic
     FacilityWrapper(building, context, details.galaxyService, details.interstellarCluster)
   }
 
+  /**
+    * Although mundane facilities don't possess many amenities need to be statused on the continental map,
+    * the facilities can be captured and controlled by a particular empire
+    * and many amenities that can be abused by faction enemies.
+    * @param details package class that conveys the important information
+    * @param entity the installed `Amenity` entity
+    * @param data optional information
+    * @return the next behavior for this control agency messaging system
+    */
   def amenityStateChange(details: BuildingWrapper, entity: Amenity, data: Option[Any]): Behavior[Command] = {
     entity match {
       case terminal: CaptureTerminal =>
@@ -71,25 +83,21 @@ case object FacilityLogic
     Behaviors.same
   }
 
-  def powerLost(details: BuildingWrapper): Behavior[Command] = {
-    Behaviors.same
-  }
-
-  def powerRestored(details: BuildingWrapper): Behavior[Command] = {
-    Behaviors.same
-  }
-
+  /**
+    * Field towers and other structures that are considered off the grid get free auto-repairs and give out free nanites.
+    * @param details package class that conveys the important information
+    * @param msg the original message that instigated this upoate
+    * @return the next behavior for this control agency messaging system
+    */
   def ntu(details: BuildingWrapper, msg: NtuCommand.Command): Behavior[Command] = {
     import NtuCommand._
     msg match {
-      case Offer(_, _) =>
-        Behaviors.same
       case Request(amount, replyTo) =>
         //towers and stuff stuff get free repairs
         replyTo ! NtuCommand.Grant(details.asInstanceOf[FacilityWrapper].supplier, amount)
-        Behaviors.same
+
       case _ =>
-        Behaviors.same
     }
+    Behaviors.same
   }
 }

@@ -10,6 +10,9 @@ import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.types.PlanetSideEmpire
 import net.psforever.util.Config
 
+/**
+  * The logic that governs warp gates.
+  */
 case object WarpGateLogic
   extends BuildingLogic {
   import BuildingActor.Command
@@ -34,8 +37,22 @@ case object WarpGateLogic
     Behaviors.same
   }
 
+  /**
+    * Setting the faction on a warp gate is dicey at best
+    * since the formal logic that controls warp gate faction affiliation is entirely dependent on connectivity.
+    * The majority of warp gates are connected in pairs and both gates must possess the same faction affinity,
+    * @param details package class that conveys the important information
+    * @param faction the faction affiliation to which the facility will update
+    * @return the next behavior for this control agency messaging system
+    */
   def setFactionTo(details: BuildingWrapper, faction: PlanetSideEmpire.Value): Behavior[Command] = {
-    //in general, the faction set not be set manually, but instead determined by checking neighbor facilities
+    /*
+    in reality, the faction of most gates is neutral;
+    the ability to move through the gates is determined by empire-related broadcast settings;
+    the broadcast settings are dependent by the combined faction affiliations
+    of the normal facilities connected to either side of the gate pair;
+    if a faction is assigned to a gate, however, both gates in a pair must possess the same faction affinity
+     */
     val warpgate = details.building.asInstanceOf[WarpGate]
     if (warpgate.Active && warpgate.Faction != faction) {
       val local = warpgate.Neighbours.getOrElse(Nil)
@@ -49,6 +66,13 @@ case object WarpGateLogic
     Behaviors.same
   }
 
+  /**
+    * When a building adjacent to this gate changes its faction affiliation,
+    * the empire-related broadcast settings of this warp gate also update.
+    * @param details package class that conveys the important information
+    * @param building the neighbor facility that has had its faction changed
+    * @return the next behavior for this control agency messaging system
+    */
   def alertToFactionChange(details: BuildingWrapper, building: Building): Behavior[Command] = {
     val warpgate = details.building.asInstanceOf[WarpGate]
     if (warpgate.Active) {
@@ -115,20 +139,41 @@ case object WarpGateLogic
           updateBroadcastCapabilitiesOfWarpGate(details, wg, Set(PlanetSideEmpire.NEUTRAL))
 
         case _ => ;
-          //everything else is a degenerate pattern that should be reported at an earlier point
+          //everything else is a degenerate pattern that should have been reported at an earlier point
       }
     }
     Behaviors.same
   }
 
+  /**
+    * Do these buildings include a warp gate?
+    * @param neighborhood a series of buildings of various types
+    * @return the discovered warp gate
+    */
   def findNeighborhoodWarpGate(neighborhood: Iterable[Building]): Option[Building] = {
     neighborhood.find { _ match { case _: WarpGate => true; case _ => false } }
   }
 
+  /**
+    * Do these buildings include any facility that is not a warp gate?
+    * @param neighborhood a series of buildings of various types
+    * @return the discovered warp gate
+    */
   def findNeighborhoodNormalBuilding(neighborhood: Iterable[Building]): Option[Building] = {
     neighborhood.find { _ match { case _: WarpGate => false; case _ => true } }
   }
 
+  /**
+    * Normally, warp gates are connected to each other in a transcontinental pair.
+    * Onto either gate is a non-gate facility of some sort.
+    * The facilities on either side normally influence the gate pair; but,
+    * in this case, only one side of the pair has a facility connected to it.
+    * Some warp gates are directed to point to different destination warp gates based on the server's policies.
+    * Another exception to the gate pair rule is a pure broadcast warp gate.
+    * @param details package class that conveys the important information
+    * @param warpgate one side of the warp gate pair (usually "our" side)
+    * @param otherWarpgate the other side of the warp gate pair
+    */
   private def handleWarpGateDeadendPair(
                                          details: BuildingWrapper,
                                          warpgate: WarpGate,
@@ -148,6 +193,13 @@ case object WarpGateLogic
     }
   }
 
+  /**
+    * The broadcast settings of a warp gate are changing
+    * and updates must be provided to the affected factions.
+    * @param details package class that conveys the important information
+    * @param warpgate the warp gate entity
+    * @param setBroadcastTo factions(s) to which the warp gate is to broadcast going forward
+    */
   private def updateBroadcastCapabilitiesOfWarpGate(
                                                      details: BuildingWrapper,
                                                      warpgate: WarpGate,
@@ -164,26 +216,23 @@ case object WarpGateLogic
     }
   }
 
-  def powerLost(details: BuildingWrapper): Behavior[Command] = {
-    Behaviors.same
-  }
-
-  def powerRestored(details: BuildingWrapper): Behavior[Command] = {
-    Behaviors.same
-  }
-
+  /**
+    * Warp gates are limitless sources of nanite transfer units when they are active.
+    * They will always provide the amount specified.
+    * @param details package class that conveys the important information
+    * @param msg the original message that instigated this upoate
+    * @return the next behavior for this control agency messaging system
+    */
   def ntu(details: BuildingWrapper, msg: NtuCommand.Command): Behavior[Command] = {
     import NtuCommand._
     msg match {
-      case Offer(_, _) =>
-        Behaviors.same
       case Request(amount, replyTo) =>
         //warp gates are an infinite source of nanites
         val gate = details.building.asInstanceOf[WarpGate]
         replyTo ! Grant(gate, if (gate.Active) amount else 0)
-        Behaviors.same
-      case _ =>
-        Behaviors.same
+
+      case _ => ;
     }
+    Behaviors.same
   }
 }

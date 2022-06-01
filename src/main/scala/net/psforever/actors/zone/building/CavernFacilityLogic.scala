@@ -11,6 +11,9 @@ import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
+/**
+  * The logic that governs facilities and structures found in the cavern regions.
+  */
 case object CavernFacilityLogic
   extends BuildingLogic {
   import BuildingActor.Command
@@ -23,6 +26,15 @@ case object CavernFacilityLogic
     FacilityWrapper(building, context, details.galaxyService, details.interstellarCluster)
   }
 
+  /**
+    * Although cavern facilities don't possess many amenities that can be abused by faction enemies
+    * or need to be statused on the continental map,
+    * the facilities can be captured and controlled by a particular empire.
+    * @param details package class that conveys the important information
+    * @param entity the installed `Amenity` entity
+    * @param data optional information
+    * @return the next behavior for this control agency messaging system
+    */
   def amenityStateChange(details: BuildingWrapper, entity: Amenity, data: Option[Any]): Behavior[Command] = {
     entity match {
       case terminal: CaptureTerminal =>
@@ -77,36 +89,20 @@ case object CavernFacilityLogic
   }
 
   /**
-    * Power has been severed.
-    * All installed amenities are distributed a `PowerOff` message
-    * and are instructed to display their "unpowered" model.
-    * Additionally, the facility is now rendered unspawnable regardless of its player spawning amenities.
+    * Cavern facilities get free auto-repair and give out free nanites.
+    * Do they even care about nanites storage down there?
+    * @param details package class that conveys the important information
+    * @param msg the original message that instigated this upoate
+    * @return the next behavior for this control agency messaging system
     */
-  def powerLost(details: BuildingWrapper): Behavior[Command] = {
-    Behaviors.same
-  }
-
-  /**
-    * Power has been restored.
-    * All installed amenities are distributed a `PowerOn` message
-    * and are instructed to display their "powered" model.
-    * Additionally, the facility is now rendered spawnable if its player spawning amenities are online.
-    */
-  def powerRestored(details: BuildingWrapper): Behavior[Command] = {
-    Behaviors.same
-  }
-
   def ntu(details: BuildingWrapper, msg: NtuCommand.Command): Behavior[Command] = {
     import NtuCommand._
     msg match {
-      case Offer(_, _) =>
-        Behaviors.same
       case Request(amount, replyTo) =>
-        //cavern stuff get free repairs
         replyTo ! NtuCommand.Grant(details.asInstanceOf[FacilityWrapper].supplier, amount)
-        Behaviors.same
-      case _ =>
-        Behaviors.same
+
+      case _ => ;
     }
+    Behaviors.same
   }
 }

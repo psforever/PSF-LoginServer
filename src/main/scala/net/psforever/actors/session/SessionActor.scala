@@ -17,7 +17,8 @@ import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVeh
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid._
-import net.psforever.objects.inventory.{Container, InventoryItem}
+import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
+import net.psforever.objects.loadouts.InfantryLoadout
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.containable.Containable
@@ -295,41 +296,110 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     import java.io.{StringWriter, PrintWriter}
     OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
       case ide: InventoryDisarrayException =>
-        val inv = ide.inventory
-        inv.ElementsInListCollideInGrid() match {
-          case Nil => ;
-          case overlaps =>
-            //attempt to resolve by eliminating common overlaps
-            var allEntries = overlaps.flatten.map { _.obj.GUID }
-            var removedEntries: List[PlanetSideGUID] = List()
-            allEntries.toSet[PlanetSideGUID].foreach { id =>
-              val updatedEntries = allEntries.filterNot { _ == id }
-              if (allEntries.size - updatedEntries.size > 1) {
-                inv.Remove(id)
-                removedEntries = removedEntries :+ id
-                sendResponse(ObjectDeleteMessage(id, 0))
-              }
-              allEntries = updatedEntries
-            }
-            //attempt to resolve by handling remainder overlaps
-            overlaps.foreach { overlap =>
-              overlap.filterNot { entry => removedEntries.contains(entry.obj.GUID) }.drop(1).foreach { entry =>
-                val id = entry.obj.GUID
-                inv.Remove(id)
-                removedEntries = removedEntries :+ id
-                sendResponse(ObjectDeleteMessage(id, 0))
-              }
-            }
-        }
-        if (inv.ElementsOnGridMatchList() > 0) {
+        attemptRecoverFromInventoryDisarrayException(ide.inventory)
+        //re-evaluate results
+        if (ide.inventory.ElementsOnGridMatchList() > 0) {
           val sw = new StringWriter
           ide.printStackTrace(new PrintWriter(sw))
           log.error(sw.toString)
+          ImmediateDisconnect()
+          SupervisorStrategy.stop
+        } else {
+          SupervisorStrategy.resume
         }
-        SupervisorStrategy.resume
-      case _ =>
+
+      case e =>
+        val sw = new StringWriter
+        e.printStackTrace(new PrintWriter(sw))
+        log.error(sw.toString)
         ImmediateDisconnect()
         SupervisorStrategy.stop
+    }
+  }
+
+  def attemptRecoverFromInventoryDisarrayException(inv: GridInventory): Unit = {
+    inv.ElementsInListCollideInGrid() match {
+      case Nil => ;
+      case overlaps =>
+        val previousItems = inv.Clear()
+        val allOverlaps = overlaps.flatten.sortBy { entry =>
+          val tile = entry.obj.Definition.Tile
+          tile.Width * tile.Height
+        }.toSet
+        val notCollidingRemainder = previousItems.filterNot(allOverlaps.contains)
+        notCollidingRemainder.foreach { entry =>
+          inv.InsertQuickly(entry.start, entry.obj)
+        }
+        var didNotFit : List[Equipment] = Nil
+        allOverlaps.foreach { entry =>
+          inv.Fit(entry.obj.Definition.Tile) match {
+            case Some(newStart) =>
+              inv.InsertQuickly(newStart, entry.obj)
+            case None =>
+              didNotFit = didNotFit :+ entry.obj
+          }
+        }
+        //completely clear the inventory
+        val pguid = player.GUID
+        val equipmentInHand = player.Slot(player.DrawnSlot).Equipment
+        //redraw suit
+        sendResponse(ArmorChangedMessage(
+          pguid,
+          player.ExoSuit,
+          InfantryLoadout.DetermineSubtypeA(player.ExoSuit, equipmentInHand)
+        ))
+        //redraw item in free hand (if)
+        player.FreeHand.Equipment match {
+          case Some(item) =>
+            sendResponse(ObjectCreateDetailedMessage(
+              item.Definition.ObjectId,
+              item.GUID,
+              ObjectCreateMessageParent(pguid, Player.FreeHandSlot),
+              item.Definition.Packet.DetailedConstructorData(item).get
+            ))
+          case _ => ;
+        }
+        //redraw items in holsters
+        player.Holsters().zipWithIndex.foreach { case (slot, index) =>
+          slot.Equipment match {
+            case Some(item) =>
+              sendResponse(ObjectCreateDetailedMessage(
+                item.Definition.ObjectId,
+                item.GUID,
+                item.Definition.Packet.DetailedConstructorData(item).get
+              ))
+            case _ => ;
+          }
+        }
+        //redraw raised hand (if)
+        equipmentInHand match {
+          case Some(_) =>
+            sendResponse(ObjectHeldMessage(pguid, player.DrawnSlot, unk1 = true))
+          case _ => ;
+        }
+        //redraw inventory items
+        val recoveredItems = inv.Items
+        recoveredItems.foreach { entry =>
+          val item = entry.obj
+          sendResponse(ObjectCreateDetailedMessage(
+            item.Definition.ObjectId,
+            item.GUID,
+            ObjectCreateMessageParent(pguid, entry.start),
+            item.Definition.Packet.DetailedConstructorData(item).get
+          ))
+        }
+        //drop items that did not fit
+        val placementData = PlacementData(player.Position, Vector3.z(player.Orientation.z))
+        didNotFit.foreach { item =>
+          sendResponse(ObjectCreateMessage(
+            item.Definition.ObjectId,
+            item.GUID,
+            DroppedItemData(
+              placementData,
+              item.Definition.Packet.ConstructorData(item).get
+            )
+          ))
+        }
     }
   }
 

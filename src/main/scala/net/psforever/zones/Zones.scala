@@ -838,7 +838,6 @@ object Zones {
             if wg.Definition == GlobalDefinitions.warpgate || wg.Definition == GlobalDefinitions.warpgate_small =>
           wg.Active = true
           wg.Faction = PlanetSideEmpire.NEUTRAL
-          //wg.Broadcast = true
         case geowarp: WarpGate
             if geowarp.Definition == GlobalDefinitions.warpgate_cavern || geowarp.Definition == GlobalDefinitions.hst =>
           geowarp.Faction = PlanetSideEmpire.NEUTRAL

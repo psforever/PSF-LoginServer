@@ -48,6 +48,22 @@ object ChatActor {
   private case class ListingResponse(listing: Receptionist.Listing)                            extends Command
   private case class IncomingMessage(session: Session, message: ChatMsg, channel: ChatChannel) extends Command
 
+  /**
+    * For a provided number of facility nanite transfer unit resource silos,
+    * charge the facility's silo with an expected amount of nanite transfer units.
+    * @see `Amenity`
+    * @see `ChatMsg`
+    * @see `ResourceSilo`
+    * @see `ResourceSilo.UpdateChargeLevel`
+    * @see `SessionActor.Command`
+    * @see `SessionActor.SendResponse`
+    * @param session messaging reference back tothe target session
+    * @param resources the optional number of resources to set to each silo;
+    *                  different values provide different resources as indicated below;
+    *                  an undefined value also has a condition
+    * @param silos where to deposit the resources
+    * @param debugContent something for log output context
+    */
   private def setBaseResources(
                                 session: ActorRef[SessionActor.Command],
                                 resources: Option[Int],

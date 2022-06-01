@@ -106,7 +106,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
 
   val zoneActors: mutable.Map[String, (ActorRef[ZoneActor.Command], Zone)] = {
     import scala.concurrent.ExecutionContext.Implicits.global
-    //setup
+    //setup the callback upon each successful result
     val zoneLoadedList = _zones.map { _.ZoneInitialized() }
     val continentLinkFunc: ()=>Unit = MakeIntercontinentalLattice(
       zoneLoadedList.toList,
@@ -116,10 +116,10 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
     zoneLoadedList.foreach {
       _.onComplete({
         case Success(true) => continentLinkFunc()
-        case _ => ;
+        case _ => //log.error("")
       })
     }
-    //execute
+    //construct the zones, resulting in the callback
     mutable.Map(
       _zones.map {
         zone =>
@@ -293,13 +293,23 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
       case CavernRotation(rotationMsg) =>
         cavernRotation match {
           case Some(rotation) => rotation ! rotationMsg
-          case None => ;
+          case _ => ;
         }
     }
-
     this
   }
 
+  /**
+    * After evaluating that al zones have initialized,
+    * acquire information about the intercontinental lattice that connects each individual zone to another,
+    * divide the entries in their string formats,
+    * and allocate any discovered warp gates in the zones to each other's continental lattice.
+    * This only applies to fixed warp gate pairs on the standard intercontinental lattice and
+    * is not related to the variable lattice connections between geowarp gates and cavern zones.
+    * @param flags indications whether zones have finished initializing
+    * @param receptionist the typed actor receptionist
+    * @param adapter the callback for a particular typed actor resource request
+    */
   private def MakeIntercontinentalLattice(
                                            flags: List[Future[Boolean]],
                                            receptionist: ActorRef[Receptionist.Command],
