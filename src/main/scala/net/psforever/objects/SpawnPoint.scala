@@ -127,7 +127,12 @@ object SpawnPoint {
 
   def HalfHighGate(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
     val (a, b) = Gate(obj, target)
-    (a.xy + Vector3.z((target.Position.z + a.z) * 0.5f), b)
+    target match {
+      case v: Vehicle if GlobalDefinitions.isFlightVehicle(v.Definition) =>
+        (a.xy + Vector3.z((target.Position.z + a.z) * 0.5f), b)
+      case _ =>
+        (a, b)
+    }
   }
 }
 
