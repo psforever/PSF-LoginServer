@@ -82,7 +82,7 @@ class VehicleControl(vehicle: Vehicle)
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
   SetInteraction(EnvironmentAttribute.MovementFieldTrigger, doInteractingWithMovementTrigger)
-  if (!vehicle.Definition.CanFly || GlobalDefinitions.isBattleFrameFlightVehicle(vehicle.Definition)) {
+  if (!GlobalDefinitions.isFlightVehicle(vehicle.Definition)) {
     //can recover from sinking disability
     SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
   }
@@ -584,7 +584,7 @@ class VehicleControl(vehicle: Vehicle)
   def doInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     val (effect: Boolean, time: Long, percentage: Float) = {
       val (a, b, c) = RespondsToZoneEnvironment.drowningInWateryConditions(obj, submergedCondition, interactionTime)
-      if (a && vehicle.Definition.CanFly && !GlobalDefinitions.isBattleFrameFlightVehicle(vehicle.Definition)) {
+      if (a && GlobalDefinitions.isFlightVehicle(vehicle.Definition)) {
         (true, 0L, 0f) //no progress bar
       } else {
         (a, b, c)
@@ -594,7 +594,7 @@ class VehicleControl(vehicle: Vehicle)
       import scala.concurrent.ExecutionContext.Implicits.global
       submergedCondition = Some(OxygenState.Suffocation)
       interactionTime = System.currentTimeMillis() + time
-      interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, VehicleControl.Disable())
+      interactionTimer = context.system.scheduler.scheduleOnce(delay = time.milliseconds, self, VehicleControl.Disable())
       doInteractingWithWaterToTargets(
         percentage,
         body,
@@ -760,7 +760,7 @@ class VehicleControl(vehicle: Vehicle)
           case Some(body) =>
             val percentage: Float = {
               val (a, _, c) = RespondsToZoneEnvironment.drowningInWateryConditions(vehicle, submergedCondition, interactionTime)
-              if (a && vehicle.Definition.CanFly) {
+              if (a && GlobalDefinitions.isFlightVehicle(vehicle.Definition)) {
                 0f //no progress bar
               } else {
                 c

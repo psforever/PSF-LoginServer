@@ -1875,6 +1875,8 @@ object GlobalDefinitions {
 
   /**
     * Using the definition for a `Vehicle` determine whether it can fly.
+    * Does not count the flying battleframe robotics vehicles.
+    * @see `isBattleFrameFlightVehicle`
     * @param vdef the `VehicleDefinition` of the vehicle
     * @return `true`, if it is; `false`, otherwise
     */
@@ -1929,6 +1931,7 @@ object GlobalDefinitions {
   /**
     * Using the definition for a `Vehicle` determine whether it is a frame vehicle,
     * primarily a flight-variant battleframe vehicle.
+    * @see `isFlightVehicle`
     * @param vdef the `VehicleDefinition` of the vehicle
     * @return `true`, if it is; `false`, otherwise
     */
@@ -8623,7 +8626,7 @@ object GlobalDefinitions {
     }
     aphelion_gunner.DrownAtMaxDepth = true
     aphelion_gunner.MaxDepth = 5.09375f
-    aphelion_gunner.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
+    aphelion_gunner.UnderwaterLifespan(suffocation = 60000L, recovery = 30000L)
     aphelion_gunner.Geometry = GeometryForm.representByCylinder(radius = 1.2618f, height = 6.01562f)
     aphelion_gunner.collision.avatarCollisionDamageMax = 300
     aphelion_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
@@ -8674,7 +8677,7 @@ object GlobalDefinitions {
     }
     colossus_gunner.DrownAtMaxDepth = true
     colossus_gunner.MaxDepth = 5.515625f
-    colossus_gunner.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
+    colossus_gunner.UnderwaterLifespan(suffocation = 60000L, recovery = 30000L)
     colossus_gunner.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 5.984375f)
     colossus_gunner.collision.avatarCollisionDamageMax = 300
     colossus_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
@@ -8725,7 +8728,7 @@ object GlobalDefinitions {
     }
     peregrine_gunner.DrownAtMaxDepth = true
     peregrine_gunner.MaxDepth = 6.03125f
-    peregrine_gunner.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
+    peregrine_gunner.UnderwaterLifespan(suffocation = 60000L, recovery = 30000L)
     peregrine_gunner.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 6.421875f)
     peregrine_gunner.collision.avatarCollisionDamageMax = 300
     peregrine_gunner.collision.xy = CollisionXYData(Array((0.2f, 1), (0.35f, 5), (0.55f, 20), (0.75f, 40), (1f, 60)))
@@ -8775,7 +8778,7 @@ object GlobalDefinitions {
     }
     aphelion_flight.DrownAtMaxDepth = true
     aphelion_flight.MaxDepth = 5.09375f
-    aphelion_flight.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
+    aphelion_flight.UnderwaterLifespan(suffocation = 60000L, recovery = 30000L)
     aphelion_flight.Geometry = GeometryForm.representByCylinder(radius = 1.98045f, height = 6.03125f)
     aphelion_flight.MaxCapacitor = 156
     aphelion_flight.DefaultCapacitor = aphelion_flight.MaxCapacitor
@@ -8829,7 +8832,7 @@ object GlobalDefinitions {
     }
     colossus_flight.DrownAtMaxDepth = true
     colossus_flight.MaxDepth = 5.515625f
-    colossus_flight.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
+    colossus_flight.UnderwaterLifespan(suffocation = 60000L, recovery = 30000L)
     colossus_flight.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 5.984375f)
     colossus_flight.MaxCapacitor = 156
     colossus_flight.DefaultCapacitor = aphelion_flight.MaxCapacitor
@@ -8883,7 +8886,7 @@ object GlobalDefinitions {
     }
     peregrine_flight.DrownAtMaxDepth = true
     peregrine_flight.MaxDepth = 6.03125f
-    peregrine_flight.UnderwaterLifespan(suffocation = 6000L, recovery = 6000L)
+    peregrine_flight.UnderwaterLifespan(suffocation = 60000L, recovery = 30000L)
     peregrine_flight.Geometry = GeometryForm.representByCylinder(radius = 3.60935f, height = 6.421875f)
     peregrine_flight.MaxCapacitor = 156
     peregrine_flight.DefaultCapacitor = aphelion_flight.MaxCapacitor
