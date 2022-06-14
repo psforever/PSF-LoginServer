@@ -87,6 +87,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.unk9 mustEqual 0
                   a.unkA mustEqual 65535
 
+                  b.outfit_id mustEqual 0L
                   b.outfit_name mustEqual ""
                   b.outfit_logo mustEqual 0
                   b.backpack mustEqual false
@@ -97,7 +98,6 @@ class DetailedCharacterDataTest extends Specification {
                   b.is_cloaking mustEqual false
                   b.charging_pose mustEqual false
                   b.on_zipline.isEmpty mustEqual true
-                  b.unk0 mustEqual 0L
                   b.unk1 mustEqual false
                   b.unk2 mustEqual false
                   b.unk3 mustEqual false
@@ -275,6 +275,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.unk9 mustEqual 0
                   a.unkA mustEqual 0
 
+                  b.outfit_id mustEqual 0L
                   b.outfit_name mustEqual ""
                   b.outfit_logo mustEqual 0
                   b.backpack mustEqual false
@@ -285,7 +286,6 @@ class DetailedCharacterDataTest extends Specification {
                   b.is_cloaking mustEqual false
                   b.charging_pose mustEqual false
                   b.on_zipline.isEmpty mustEqual true
-                  b.unk0 mustEqual 0L
                   b.unk1 mustEqual false
                   b.unk2 mustEqual false
                   b.unk3 mustEqual false
@@ -460,6 +460,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.unk9 mustEqual 0
                   a.unkA mustEqual 65535
 
+                  b.outfit_id mustEqual 0L
                   b.outfit_name mustEqual ""
                   b.outfit_logo mustEqual 0
                   b.backpack mustEqual false
@@ -470,7 +471,6 @@ class DetailedCharacterDataTest extends Specification {
                   b.is_cloaking mustEqual false
                   b.charging_pose mustEqual false
                   b.on_zipline.isEmpty mustEqual true
-                  b.unk0 mustEqual 0L
                   b.unk1 mustEqual false
                   b.unk2 mustEqual false
                   b.unk3 mustEqual false
@@ -687,6 +687,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.unk9 mustEqual 0
                   a.unkA mustEqual 0
 
+                  b.outfit_id mustEqual 556539L
                   b.outfit_name mustEqual ""
                   b.outfit_logo mustEqual 14
                   b.backpack mustEqual false
@@ -697,7 +698,6 @@ class DetailedCharacterDataTest extends Specification {
                   b.is_cloaking mustEqual false
                   b.charging_pose mustEqual false
                   b.on_zipline.isEmpty mustEqual true
-                  b.unk0 mustEqual 556539L
                   b.unk1 mustEqual false
                   b.unk2 mustEqual false
                   b.unk3 mustEqual false
@@ -1208,7 +1208,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.unk9 mustEqual 10
                   a.unkA mustEqual 1
 
-                  b.unk0 mustEqual 25044L
+                  b.outfit_id mustEqual 25044L
                   b.outfit_name mustEqual "Black Armored Reapers"
                   b.outfit_logo mustEqual 15
                   b.unk1 mustEqual false
@@ -1355,7 +1355,7 @@ class DetailedCharacterDataTest extends Specification {
                   a.unk9 mustEqual 0
                   a.unkA mustEqual 0
 
-                  b.unk0 mustEqual 16507L
+                  b.outfit_id mustEqual 16507L
                   b.outfit_name mustEqual "Hooked On Insanity"
                   b.outfit_logo mustEqual 5
                   b.unk1 mustEqual false

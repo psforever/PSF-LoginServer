@@ -969,7 +969,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case SquadResponse.Membership(request_type, unk1, unk2, charId, opt_char_id, player_name, unk5, unk6) =>
             val name = request_type match {
               case SquadResponseType.Invite if unk5 =>
-                //player_name is our name; the name of the player indicated by unk3 is needed
+                //the name of the player indicated by unk3 is needed
                 LivePlayerList.WorldPopulation({ case (_, a: Avatar) => charId == a.id }).headOption match {
                   case Some(player) =>
                     player.name
@@ -1009,7 +1009,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                         index,
                         member.Name,
                         member.ZoneId,
-                        unk7 = 0
+                        outfit_id = 0
                       )
                     )
                     squadUI(member.CharId) =
@@ -1023,7 +1023,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     ourIndex,
                     ourMember.Name,
                     ourMember.ZoneId,
-                    unk7 = 0
+                    outfit_id = 0
                   )
                 )
                 val playerGuid = player.GUID
@@ -1052,7 +1052,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     case (member, index) =>
                       val charId = member.CharId
                       sendResponse(
-                        SquadMemberEvent.Add(squad_supplement_id, charId, index, member.Name, member.ZoneId, unk7 = 0)
+                        SquadMemberEvent.Add(squad_supplement_id, charId, index, member.Name, member.ZoneId, outfit_id = 0)
                       )
                       squadUI(charId) =
                         SquadUIElement(member.Name, index, member.ZoneId, member.Health, member.Armor, member.Position)
@@ -9071,7 +9071,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       val fromCharId = fromMember.CharId
       val toMember   = squad.Membership(fromIndex) //the players have already been swapped in the backend object
       val toCharId   = toMember.CharId
-      val id         = 11
+      val id         = squad_supplement_id
       if (toCharId > 0) {
         //toMember and fromMember have swapped places
         val fromElem = squadUI(fromCharId)
@@ -9080,8 +9080,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           SquadUIElement(fromElem.name, toIndex, fromElem.zone, fromElem.health, fromElem.armor, fromElem.position)
         squadUI(fromCharId) =
           SquadUIElement(toElem.name, fromIndex, toElem.zone, toElem.health, toElem.armor, toElem.position)
-        sendResponse(SquadMemberEvent.Add(id, toCharId, toIndex, fromElem.name, fromElem.zone, unk7 = 0))
-        sendResponse(SquadMemberEvent.Add(id, fromCharId, fromIndex, toElem.name, toElem.zone, unk7 = 0))
+        sendResponse(SquadMemberEvent.Add(id, toCharId, toIndex, fromElem.name, fromElem.zone, outfit_id = 0))
+        sendResponse(SquadMemberEvent.Add(id, fromCharId, fromIndex, toElem.name, toElem.zone, outfit_id = 0))
         sendResponse(
           SquadState(
             PlanetSideGUID(id),
@@ -9096,7 +9096,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         val elem = squadUI(fromCharId)
         squadUI(fromCharId) = SquadUIElement(elem.name, toIndex, elem.zone, elem.health, elem.armor, elem.position)
         sendResponse(SquadMemberEvent.Remove(id, fromCharId, fromIndex))
-        sendResponse(SquadMemberEvent.Add(id, fromCharId, toIndex, elem.name, elem.zone, unk7 = 0))
+        sendResponse(SquadMemberEvent.Add(id, fromCharId, toIndex, elem.name, elem.zone, outfit_id = 0))
         sendResponse(
           SquadState(
             PlanetSideGUID(id),

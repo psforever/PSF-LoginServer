@@ -148,7 +148,7 @@ final case class SquadPositionEntry(index: Int, info: Option[SquadPositionDetail
   * @param unk2 na;
   *             not associated with any fields during itemized parsing
   * @param leader_char_id he unique character identification number for the squad leader
-  * @param unk3 na
+  * @param outfit_id na
   * @param leader_name the name of the player who is the squad leader
   * @param task the suggested responsibilities or mission statement of the squad
   * @param zone_id the suggested area of engagement for this squad's activities;
@@ -160,7 +160,7 @@ final case class SquadDetail(
     unk1: Option[Int],
     unk2: Option[Int],
     leader_char_id: Option[Long],
-    unk3: Option[Long],
+    outfit_id: Option[Long],
     leader_name: Option[String],
     task: Option[String],
     zone_id: Option[PlanetSideZoneID],
@@ -179,7 +179,7 @@ final case class SquadDetail(
       unk1.orElse(info.unk1),
       unk2.orElse(info.unk2),
       leader_char_id.orElse(info.leader_char_id),
-      unk3.orElse(info.unk3),
+      outfit_id.orElse(info.outfit_id),
       leader_name.orElse(info.leader_name),
       task.orElse(info.task),
       zone_id.orElse(info.zone_id),
@@ -231,7 +231,7 @@ final case class SquadDetail(
       unk1.orElse(Some(1)),
       unk2.orElse(Some(0)),
       leader_char_id.orElse(Some(0L)),
-      unk3.orElse(Some(0L)),
+      outfit_id.orElse(Some(0L)),
       leader_name.orElse(Some("")),
       task.orElse(Some("")),
       zone_id.orElse(Some(PlanetSideZoneID(0))),
@@ -359,7 +359,7 @@ object SquadDetail {
       unk1: Int,
       unk2: Int,
       leader_char_id: Long,
-      unk3: Long,
+      outfit_id: Long,
       leader_name: String,
       task: String,
       zone_id: PlanetSideZoneID,
@@ -370,7 +370,7 @@ object SquadDetail {
       Some(unk1),
       Some(unk2),
       Some(leader_char_id),
-      Some(unk3),
+      Some(outfit_id),
       Some(leader_name),
       Some(task),
       Some(zone_id),
@@ -384,8 +384,8 @@ object SquadDetail {
     SquadDetail(Some(unk1), None, None, None, None, None, None, None, None)
   def LeaderCharId(char_id: Long): SquadDetail =
     SquadDetail(None, None, Some(char_id), None, None, None, None, None, None)
-  def Field3(char_id: Option[Long], unk3: Long): SquadDetail =
-    SquadDetail(None, None, None, Some(unk3), None, None, None, None, None)
+  def OutfitId(char_id: Option[Long], outfit_id: Long): SquadDetail =
+    SquadDetail(None, None, None, Some(outfit_id), None, None, None, None, None)
   def LeaderName(name: String): SquadDetail =
     SquadDetail(None, None, None, None, Some(name), None, None, None, None)
   def Leader(char_id: Long, name: String): SquadDetail =
@@ -544,7 +544,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
         ("unk1" | uint8) ::
           ("unk2" | uint24) :: //unknown, but can be 0'd
           ("leader_char_id" | uint32L) ::
-          ("unk3" | uint32L) :: //variable fields, but can be 0'd
+          ("outfit_id" | uint32L) :: //can be 0'd
           ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
           ("task" | PacketHelpers.encodedWideString) ::
           ("zone_id" | PlanetSideZoneID.codec) ::
@@ -552,13 +552,13 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
           optional(bool, "member_info" | initial_member_codec)
       ).exmap[SquadDetail](
         {
-          case u1 :: u2 :: char_id :: u3 :: leader :: task :: zone :: unk7 :: Some(member_list) :: HNil =>
+          case u1 :: u2 :: char_id :: outfit_id :: leader :: task :: zone :: unk7 :: Some(member_list) :: HNil =>
             Attempt.Successful(
               SquadDetail(
                 Some(u1),
                 Some(u2),
                 Some(char_id),
-                Some(u3),
+                Some(outfit_id),
                 Some(leader),
                 Some(task),
                 Some(zone),
@@ -576,7 +576,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
                 Some(u1),
                 Some(u2),
                 Some(char_id),
-                Some(u3),
+                Some(outfit_id),
                 Some(leader),
                 Some(task),
                 Some(zone),
@@ -584,7 +584,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
                 Some(member_list)
               ) =>
             Attempt.Successful(
-              math.max(u1, 1) :: u2 :: char_id :: u3 :: leader :: task :: zone :: unk7 ::
+              math.max(u1, 1) :: u2 :: char_id :: outfit_id :: leader :: task :: zone :: unk7 ::
                 Some(linkFields(member_list.collect { case SquadPositionEntry(_, Some(entry)) => entry }.reverse)) ::
                 HNil
             )
@@ -633,11 +633,11 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
     /**
       * A pattern for data related to "field3."
       */
-    private val field3Codec: Codec[SquadDetail] = uint32L.exmap[SquadDetail](
-      unk3 => Attempt.successful(SquadDetail(None, None, None, Some(unk3), None, None, None, None, None)),
+    private val outfitCodec: Codec[SquadDetail] = uint32L.exmap[SquadDetail](
+      outfit_id => Attempt.successful(SquadDetail(None, None, None, Some(outfit_id), None, None, None, None, None)),
       {
-        case SquadDetail(_, _, _, Some(unk3), _, _, _, _, _) =>
-          Attempt.successful(unk3)
+        case SquadDetail(_, _, _, Some(outfit_id), _, _, _, _, _) =>
+          Attempt.successful(outfit_id)
         case _ =>
           Attempt.failure(Err("failed to encode squad data for unknown field #3"))
       }
@@ -809,7 +809,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
       code match {
         case 1 => field1Codec
         case 2 => leaderCharIdCodec
-        case 3 => field3Codec
+        case 3 => outfitCodec
         case 4 => leaderNameCodec(bitsOverByte)
         case 5 => taskCodec(bitsOverByte)
         case 6 => zoneCodec
@@ -820,7 +820,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
     }
 
     /**
-      * Advance information about the current stream length because on which pattern was previously utilized.
+      * Advance information about the current stream length based on which pattern was previously utilized.
       * @see `selectCodedAction(Int, StreamLengthToken)`
       * @param code the action code, connecting to a field pattern
       * @param bitsOverByte a token maintaining stream misalignment for purposes of calculating string padding
@@ -834,7 +834,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
         case 4 => bitsOverByte.Length = 0            //byte-aligned string; padding zero'd
         case 5 => bitsOverByte.Length = 0            //byte-aligned string; padding zero'd
         case 6 => bitsOverByte                       //32u = no added padding
-        case 7 => bitsOverByte.Add(4)                //additional 4u
+        case 7 => bitsOverByte.Add(more = 4)         //additional 4u
         case 8 => bitsOverByte.Length = 0            //end of stream
         case _ => bitsOverByte.Length = Int.MinValue //wildly incorrect
       }
@@ -886,7 +886,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
         (6, SquadDetail(None, None, None, None, None, None, info.zone_id, None, None)),
         (5, SquadDetail(None, None, None, None, None, info.task, None, None, None)),
         (4, SquadDetail(None, None, None, None, info.leader_name, None, None, None, None)),
-        (3, SquadDetail(None, None, None, info.unk3, None, None, None, None, None)),
+        (3, SquadDetail(None, None, None, info.outfit_id, None, None, None, None, None)),
         (2, SquadDetail(None, None, info.leader_char_id, None, None, None, None, None, None)),
         (1, SquadDetail(info.unk1, None, None, None, None, None, None, None, None))
       ) //in reverse order so that the linked list is in the correct order
@@ -1590,7 +1590,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
             info.unk1,
             info.unk2,
             info.leader_char_id,
-            info.unk3,
+            info.outfit_id,
             info.leader_name,
             info.task,
             info.zone_id,

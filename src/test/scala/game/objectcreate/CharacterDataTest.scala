@@ -57,6 +57,7 @@ class CharacterDataTest extends Specification {
                   a.unk9 mustEqual 0
                   a.unkA mustEqual 0
 
+                  b.outfit_id mustEqual 316554L
                   b.outfit_name mustEqual "Black Beret Armoured Corps"
                   b.outfit_logo mustEqual 23
                   b.backpack mustEqual false
@@ -67,7 +68,6 @@ class CharacterDataTest extends Specification {
                   b.is_cloaking mustEqual false
                   b.charging_pose mustEqual false
                   b.on_zipline.isEmpty mustEqual true
-                  b.unk0 mustEqual 316554L
                   b.unk1 mustEqual false
                   b.unk2 mustEqual false
                   b.unk3 mustEqual false
@@ -174,6 +174,7 @@ class CharacterDataTest extends Specification {
                   a.unk9 mustEqual 0
                   a.unkA mustEqual 0
 
+                  b.outfit_id mustEqual 26L
                   b.outfit_name mustEqual "Black Beret Armoured Corps"
                   b.outfit_logo mustEqual 23
                   b.backpack mustEqual false
@@ -184,7 +185,6 @@ class CharacterDataTest extends Specification {
                   b.is_cloaking mustEqual false
                   b.charging_pose mustEqual false
                   b.on_zipline.isEmpty mustEqual true
-                  b.unk0 mustEqual 26L
                   b.unk1 mustEqual false
                   b.unk2 mustEqual false
                   b.unk3 mustEqual false
@@ -243,6 +243,7 @@ class CharacterDataTest extends Specification {
                   a.unk9 mustEqual 0
                   a.unkA mustEqual 0
 
+                  b.outfit_id mustEqual 529687L
                   b.outfit_name mustEqual "Original District"
                   b.outfit_logo mustEqual 23
                   b.backpack mustEqual true
@@ -253,7 +254,6 @@ class CharacterDataTest extends Specification {
                   b.is_cloaking mustEqual false
                   b.charging_pose mustEqual false
                   b.on_zipline.isEmpty mustEqual true
-                  b.unk0 mustEqual 529687L
                   b.unk1 mustEqual false
                   b.unk2 mustEqual false
                   b.unk3 mustEqual false

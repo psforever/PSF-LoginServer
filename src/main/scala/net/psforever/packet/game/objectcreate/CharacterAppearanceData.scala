@@ -68,7 +68,7 @@ final case class CharacterAppearanceA(
   * @param on_zipline player's model is changed into a faction-color ball of energy, as if on a zip line
   */
 final case class CharacterAppearanceB(
-    unk0: Long,
+    outfit_id: Long,
     outfit_name: String,
     outfit_logo: Int,
     unk1: Boolean,
@@ -394,7 +394,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     */
   def b_codec(alt_model: Boolean, name_padding: Int): Codec[CharacterAppearanceB] =
     (
-      ("unk0" | uint32L) :: //for outfit_name (below) to be visible in-game, this value should be non-zero
+      ("outfit_id" | uint32L) :: //for outfit_name (below) to be visible in-game, this value should be non-zero
         ("outfit_name" | PacketHelpers.encodedWideStringAligned(outfitNamePadding)) ::
         ("outfit_logo" | uint8L) ::
         ("unk1" | bool) ::                           //unknown
@@ -414,12 +414,12 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
         optional(bool, "on_zipline" | zipline_codec)
     ).exmap[CharacterAppearanceB](
       {
-        case u0 :: outfit :: logo :: u1 :: bpack :: u2 :: u3 :: u4 :: facingPitch :: facingYawUpper :: lfs :: gstate :: cloaking :: u5 :: u6 :: charging :: u7 :: zipline :: HNil =>
+        case outfit_id :: outfit :: logo :: u1 :: bpack :: u2 :: u3 :: u4 :: facingPitch :: facingYawUpper :: lfs :: gstate :: cloaking :: u5 :: u6 :: charging :: u7 :: zipline :: HNil =>
           val lfsBool   = if (lfs == 0) false else true
           val bpackBool = bpack match { case Some(_) => alt_model; case None => false }
           Attempt.successful(
             CharacterAppearanceB(
-              u0,
+              outfit_id,
               outfit,
               logo,
               u1,
@@ -442,7 +442,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
       },
       {
         case CharacterAppearanceB(
-              u0,
+        outfit_id,
               outfit,
               logo,
               u1,
@@ -461,10 +461,10 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
               u7,
               zipline
             ) =>
-          val u0Long = if (u0 == 0 && outfit.nonEmpty) {
+          val u0Long = if (outfit_id == 0 && outfit.nonEmpty) {
             outfit.length.toLong
           } else {
-            u0
+            outfit_id
           } //TODO this is a kludge; unk0 must be (some) non-zero if outfit_name is defined
           val (bpackOpt, zipOpt) = if (alt_model) {
             val bpackOpt = if (bpack) { Some(true) }

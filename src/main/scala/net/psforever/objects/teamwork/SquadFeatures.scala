@@ -2,9 +2,9 @@
 package net.psforever.objects.teamwork
 
 import akka.actor.{ActorContext, ActorRef, Props}
-import net.psforever.types.SquadWaypoint
-import net.psforever.services.teamwork.SquadService.WaypointData
-import net.psforever.services.teamwork.SquadSwitchboard
+import net.psforever.packet.game.WaypointInfo
+import net.psforever.types.{PlanetSideGUID, SquadWaypoint, Vector3}
+import net.psforever.services.teamwork.{SquadSubscriptionEntity, SquadSwitchboard}
 
 class SquadFeatures(val Squad: Squad) {
 
@@ -40,7 +40,11 @@ class SquadFeatures(val Squad: Squad) {
     * Waypoints manifest in the game world as a (usually far-off) beam of light that extends into the sky
     * and whose ground contact utilizes a downwards pulsating arrow.
     * On the continental map and deployment map, they appear as a diamond, with a different number where applicable.
-    * The squad leader experience rally, for example, does not have a number like the preceding four waypoints.
+    * The squad leader experience rally, for example, does not have a number like the preceding four waypoints.<br>
+    * <br>
+    * Laze waypoints are as numerous as the number of players in a squad and
+    * exist only for fifteen seconds at a time.
+    * They are not counted in this list.
     * @see `Start`
     */
   private var waypoints: Array[WaypointData] = Array[WaypointData]()
@@ -75,8 +79,8 @@ class SquadFeatures(val Squad: Squad) {
 
   private lazy val channel: String = s"${Squad.Faction}-Squad${Squad.GUID.guid}"
 
-  def Start(implicit context: ActorContext): SquadFeatures = {
-    switchboard = context.actorOf(Props[SquadSwitchboard](), s"squad_${Squad.GUID.guid}_${System.currentTimeMillis}")
+  def Start(implicit context: ActorContext, subs: SquadSubscriptionEntity): SquadFeatures = {
+    switchboard = context.actorOf(Props(classOf[SquadSwitchboard], this, subs), s"squad_${Squad.GUID.guid}_${System.currentTimeMillis}")
     waypoints = Array.fill[WaypointData](SquadWaypoint.values.size)(new WaypointData())
     this
   }
@@ -98,6 +102,58 @@ class SquadFeatures(val Squad: Squad) {
   def Switchboard: ActorRef = switchboard
 
   def Waypoints: Array[WaypointData] = waypoints
+
+
+
+  /**
+    * Display the indicated waypoint.<br>
+    * <br>
+    * Despite the name, no waypoints are actually "added."
+    * All of the waypoints constantly exist as long as the squad to which they are attached exists.
+    * They are merely "activated" and "deactivated."
+    * No waypoint is ever remembered for the laze-indicated target.
+    * @see `SquadWaypointRequest`
+    * @see `WaypointInfo`
+    * @param guid the squad's unique identifier
+    * @param waypointType the type of the waypoint
+    * @param info information about the waypoint, as was reported by the client's packet
+    * @return the waypoint data, if the waypoint type is changed
+    */
+  def AddWaypoint(
+                   guid: PlanetSideGUID,
+                   waypointType: SquadWaypoint,
+                   info: WaypointInfo
+                 ): Option[WaypointData] = {
+    waypoints.lift(waypointType.value) match {
+      case Some(point) =>
+        point.zone_number = info.zone_number
+        point.pos = info.pos
+        Some(point)
+      case None =>
+        None
+    }
+  }
+
+  /**
+    * Hide the indicated waypoint.
+    * Unused waypoints are marked by having a non-zero z-coordinate.<br>
+    * <br>
+    * Despite the name, no waypoints are actually "removed."
+    * All of the waypoints constantly exist as long as the squad to which they are attached exists.
+    * They are merely "activated" and "deactivated."
+    * @param guid the squad's unique identifier
+    * @param waypointType the type of the waypoint
+    */
+  def RemoveWaypoint(guid: PlanetSideGUID, waypointType: SquadWaypoint): Option[WaypointData] = {
+    waypoints.lift(waypointType.value) match {
+      case Some(point) =>
+        val oldWaypoint = WaypointData(point.zone_number, point.pos)
+        point.pos = Vector3.z(1)
+        Some(oldWaypoint)
+      case None =>
+        None
+    }
+  }
 
   def SearchForRole: Option[Int] = searchForRole
 
