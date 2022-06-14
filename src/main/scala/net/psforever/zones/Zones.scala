@@ -312,8 +312,8 @@ object Zones {
             val filteredZoneEntities =
               data.filter { _.owner.contains(structure.id) } ++
               {
-                val structurePosition = structure.position
                 if (structure.objectType.startsWith("orbital_building_")) {
+                  val structurePosition = structure.position
                   data.filter { entity =>
                     entity.objectType.startsWith("bfr_") &&
                     Vector3.DistanceSquared(entity.position, structurePosition) < 160000f
