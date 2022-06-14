@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.serverobject.structures.{Building, StructureType}
+import net.psforever.objects.serverobject.structures.{StructureType, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorGroup}
 import net.psforever.objects.{ConstructionItem, Player, Vehicle}
@@ -13,6 +13,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.collection.mutable.ListBuffer
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.actors.zone.building.MajorFacilityLogic
 import net.psforever.util.Database._
 import net.psforever.persistence
 
@@ -85,21 +86,18 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
 
   ctx.run(query[persistence.Building].filter(_.zoneId == lift(zone.Number))).onComplete {
     case Success(buildings) =>
-      var capitol: Option[Building] = None
       buildings.foreach { building =>
         zone.BuildingByMapId(building.localId) match {
+          case Some(_: WarpGate) => ;
+            //warp gates are controlled by game logic and are better off not restored via the database
           case Some(b) =>
-            b.Faction = PlanetSideEmpire(building.factionId)
-            if(b.IsCapitol) {
-              capitol = Some(b)
+            if ((b.Faction = PlanetSideEmpire(building.factionId)) != PlanetSideEmpire.NEUTRAL) {
+              b.ForceDomeActive = MajorFacilityLogic.checkForceDomeStatus(b).getOrElse(false)
+              b.Neighbours.getOrElse(Nil).foreach { _.Actor ! BuildingActor.AlertToFactionChange(b) }
             }
-          case None    =>
+          case None => ;
           // TODO this happens during testing, need a way to not always persist during tests
         }
-      }
-      capitol match {
-        case Some(b) => b.ForceDomeActive = BuildingActor.checkForceDomeStatus(b).getOrElse(false)
-        case None    => ;
       }
     case Failure(e) => log.error(e.getMessage)
   }
@@ -121,7 +119,7 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
       case PickupItem(guid) =>
         zone.Ground ! Zone.Ground.PickupItem(guid)
 
-      case BuildDeployable(obj, tool) =>
+      case BuildDeployable(obj, _) =>
         zone.Deployables ! Zone.Deployable.Build(obj)
 
       case DismissDeployable(obj) =>

@@ -253,7 +253,7 @@ class GridInventory extends Container {
         Success(collisions.toList)
       } catch {
         case e: NoSuchElementException =>
-          Failure(InventoryDisarrayException(s"inventory contained old item data", e))
+          Failure(InventoryDisarrayException(s"inventory contained old item data", e, this))
         case e: Exception =>
           Failure(e)
       }

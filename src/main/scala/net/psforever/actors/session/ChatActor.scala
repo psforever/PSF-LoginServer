@@ -9,7 +9,7 @@ import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank, Cos
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.{Default, Player, Session}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
 import net.psforever.objects.zones.Zoning
 import net.psforever.packet.game.{ChatMsg, DeadState, RequestDestroyMessage, ZonePopulationUpdateMessage}
@@ -18,9 +18,12 @@ import net.psforever.util.{Config, PointOfInterest}
 import net.psforever.zones.Zones
 import net.psforever.services.chat.ChatService
 import net.psforever.services.chat.ChatService.ChatChannel
+
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.services.{CavernRotationService, InterstellarClusterService}
+import net.psforever.types.ChatMessageType.UNK_229
 
 object ChatActor {
   def apply(
@@ -44,6 +47,63 @@ object ChatActor {
 
   private case class ListingResponse(listing: Receptionist.Listing)                            extends Command
   private case class IncomingMessage(session: Session, message: ChatMsg, channel: ChatChannel) extends Command
+
+  /**
+    * For a provided number of facility nanite transfer unit resource silos,
+    * charge the facility's silo with an expected amount of nanite transfer units.
+    * @see `Amenity`
+    * @see `ChatMsg`
+    * @see `ResourceSilo`
+    * @see `ResourceSilo.UpdateChargeLevel`
+    * @see `SessionActor.Command`
+    * @see `SessionActor.SendResponse`
+    * @param session messaging reference back tothe target session
+    * @param resources the optional number of resources to set to each silo;
+    *                  different values provide different resources as indicated below;
+    *                  an undefined value also has a condition
+    * @param silos where to deposit the resources
+    * @param debugContent something for log output context
+    */
+  private def setBaseResources(
+                                session: ActorRef[SessionActor.Command],
+                                resources: Option[Int],
+                                silos: Iterable[Amenity],
+                                debugContent: String
+                              ): Unit = {
+    if (silos.isEmpty) {
+      session ! SessionActor.SendResponse(
+        ChatMsg(UNK_229, true, "Server", s"no targets for ntu found with parameters $debugContent", None)
+      )
+    }
+    resources match {
+      // x = n0% of maximum capacitance
+      case Some(value) if value > -1 && value < 11 =>
+        silos.collect {
+          case silo: ResourceSilo =>
+            silo.Actor ! ResourceSilo.UpdateChargeLevel(
+              value * silo.MaxNtuCapacitor * 0.1f - silo.NtuCapacitor
+            )
+        }
+      // capacitance set to x (where x > 10) exactly, within limits
+      case Some(value) =>
+        silos.collect {
+          case silo: ResourceSilo =>
+            silo.Actor ! ResourceSilo.UpdateChargeLevel(value - silo.NtuCapacitor)
+        }
+      case None =>
+        // x >= n0% of maximum capacitance and x <= maximum capacitance
+        val rand = new scala.util.Random
+        silos.collect {
+          case silo: ResourceSilo =>
+            val a     = 7
+            val b     = 10 - a
+            val tenth = silo.MaxNtuCapacitor * 0.1f
+            silo.Actor ! ResourceSilo.UpdateChargeLevel(
+              a * tenth + rand.nextFloat() * b * tenth - silo.NtuCapacitor
+            )
+        }
+    }
+  }
 }
 
 class ChatActor(
@@ -57,14 +117,15 @@ class ChatActor(
 
   implicit val ec: ExecutionContextExecutor = context.executionContext
 
-  private[this] val log                                  = org.log4s.getLogger
-  var channels: List[ChatChannel]                        = List()
-  var session: Option[Session]                           = None
-  var chatService: Option[ActorRef[ChatService.Command]] = None
-  var silenceTimer: Cancellable                          = Default.Cancellable
+  private[this] val log                                             = org.log4s.getLogger
+  var channels: List[ChatChannel]                                   = List()
+  var session: Option[Session]                                      = None
+  var chatService: Option[ActorRef[ChatService.Command]]            = None
+  var cluster: Option[ActorRef[InterstellarClusterService.Command]] = None
+  var silenceTimer: Cancellable                                     = Default.Cancellable
 
   val chatServiceAdapter: ActorRef[ChatService.MessageResponse] = context.messageAdapter[ChatService.MessageResponse] {
-    case ChatService.MessageResponse(session, message, channel) => IncomingMessage(session, message, channel)
+    case ChatService.MessageResponse(_session, message, channel) => IncomingMessage(_session, message, channel)
   }
 
   context.system.receptionist ! Receptionist.Find(
@@ -72,43 +133,63 @@ class ChatActor(
     context.messageAdapter[Receptionist.Listing](ListingResponse)
   )
 
+  context.system.receptionist ! Receptionist.Find(
+    InterstellarClusterService.InterstellarClusterServiceKey,
+    context.messageAdapter[Receptionist.Listing](ListingResponse)
+  )
+
   def start(): Behavior[Command] = {
     Behaviors
       .receiveMessage[Command] {
-        case ListingResponse(ChatService.ChatServiceKey.Listing(listings)) =>
-          chatService = Some(listings.head)
-          channels ++= List(ChatChannel.Default())
-          postStartBehaviour()
+      case ListingResponse(InterstellarClusterService.InterstellarClusterServiceKey.Listing(listings)) =>
+        listings.headOption match {
+          case Some(ref) =>
+            cluster = Some(ref)
+            postStartBehaviour()
+          case None =>
+            context.system.receptionist ! Receptionist.Find(
+              InterstellarClusterService.InterstellarClusterServiceKey,
+              context.messageAdapter[Receptionist.Listing](ListingResponse)
+            )
+            Behaviors.same
+        }
 
-        case SetSession(newSession) =>
-          session = Some(newSession)
-          postStartBehaviour()
+      case ListingResponse(ChatService.ChatServiceKey.Listing(listings)) =>
+        chatService = Some(listings.head)
+        channels ++= List(ChatChannel.Default())
+        postStartBehaviour()
 
-        case other =>
-          buffer.stash(other)
-          Behaviors.same
-      }
+      case SetSession(newSession) =>
+        session = Some(newSession)
+        postStartBehaviour()
 
+      case other =>
+        buffer.stash(other)
+        Behaviors.same
+    }
   }
 
   def postStartBehaviour(): Behavior[Command] = {
-    (session, chatService) match {
-      case (Some(session), Some(chatService)) if session.player != null =>
-        chatService ! ChatService.JoinChannel(chatServiceAdapter, session, ChatChannel.Default())
-        buffer.unstashAll(active(session, chatService))
+    (session, chatService, cluster) match {
+      case (Some(_session), Some(_chatService), Some(_cluster)) if _session.player != null =>
+        _chatService ! ChatService.JoinChannel(chatServiceAdapter, _session, ChatChannel.Default())
+        buffer.unstashAll(active(_session, _chatService, _cluster))
       case _ =>
         Behaviors.same
     }
-
   }
 
-  def active(session: Session, chatService: ActorRef[ChatService.Command]): Behavior[Command] = {
+  def active(
+              session: Session,
+              chatService: ActorRef[ChatService.Command],
+              cluster: ActorRef[InterstellarClusterService.Command]
+            ): Behavior[Command] = {
     import ChatMessageType._
 
     Behaviors
       .receiveMessagePartial[Command] {
         case SetSession(newSession) =>
-          active(newSession, chatService)
+          active(newSession, chatService,cluster)
 
         case JoinChannel(channel) =>
           chatService ! ChatService.JoinChannel(chatServiceAdapter, session, channel)
@@ -275,10 +356,63 @@ class ChatActor(
               }
               sessionActor ! SessionActor.SendResponse(message)
 
+            case (CMT_SETBASERESOURCES, _, contents) if gmCommandAllowed =>
+              val buffer = contents.toLowerCase.split("\\s+")
+              val customNtuValue = buffer.lift(1) match {
+                case Some(x) if x.toIntOption.nonEmpty => Some(x.toInt)
+                case _                                 => None
+              }
+              val silos = {
+                val position = session.player.Position
+                session.zone.Buildings.values
+                  .filter { building =>
+                    val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
+                    Vector3.DistanceSquared(building.Position, position) < soi2
+                  }
+              }
+                .flatMap { building => building.Amenities.filter { _.isInstanceOf[ResourceSilo] } }
+              ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent="")
+
+            case (CMT_ZONELOCK, _, contents) if gmCommandAllowed =>
+              val buffer = contents.toLowerCase.split("\\s+")
+              val (zoneOpt, lockVal) = (buffer.lift(1), buffer.lift(2)) match {
+                case (Some(x), Some(y)) =>
+                  val zone = if (x.toIntOption.nonEmpty) {
+                    val xInt = x.toInt
+                    Zones.zones.find(_.Number == xInt)
+                  } else {
+                    Zones.zones.find(z => z.id.equals(x))
+                  }
+                  val value = if (y.toIntOption.nonEmpty && y.toInt == 0) {
+                    0
+                  } else {
+                    1
+                  }
+                  (zone, Some(value))
+                case _ =>
+                  (None, None)
+              }
+              (zoneOpt, lockVal) match {
+                case (Some(zone), Some(lock)) if zone.id.startsWith("c") =>
+                  //caverns must be rotated in an order
+                  if (lock == 0) {
+                    cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryRotationToZoneUnlock(zone.id))
+                  } else {
+                    cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryRotationToZoneLock(zone.id))
+                  }
+                case (Some(zone), Some(lock)) =>
+                  //normal zones can lock when all facilities and towers on it belong to the same faction
+                  //normal zones can lock when ???
+                case _ => ;
+              }
+
+            case (U_CMT_ZONEROTATE, _, contents) if gmCommandAllowed =>
+              cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryNextRotation)
+
             /** Messages starting with ! are custom chat commands */
             case (messageType, recipient, contents) if contents.startsWith("!") =>
               (messageType, recipient, contents) match {
-                case (_, _, contents) if contents.startsWith("!whitetext ") && session.account.gm =>
+                case (_, _, _contents) if _contents.startsWith("!whitetext ") && session.account.gm =>
                   chatService ! ChatService.Message(
                     session,
                     ChatMsg(UNK_227, true, "", contents.replace("!whitetext ", ""), None),
@@ -293,8 +427,8 @@ class ChatActor(
                   log.info(loc)
                   sessionActor ! SessionActor.SendResponse(message.copy(contents = loc))
 
-                case (_, _, contents) if contents.startsWith("!list") =>
-                  val zone = contents.split(" ").lift(1) match {
+                case (_, _, content) if content.startsWith("!list") =>
+                  val zone = content.split(" ").lift(1) match {
                     case None =>
                       Some(session.zone)
                     case Some(id) =>
@@ -302,7 +436,7 @@ class ChatActor(
                   }
 
                   zone match {
-                    case Some(zone) =>
+                    case Some(inZone) =>
                       sessionActor ! SessionActor.SendResponse(
                         ChatMsg(
                           CMT_GMOPEN,
@@ -313,7 +447,7 @@ class ChatActor(
                         )
                       )
 
-                      (zone.LivePlayers ++ zone.Corpses)
+                      (inZone.LivePlayers ++ inZone.Corpses)
                         .filter(_.CharId != session.player.CharId)
                         .sortBy(p => (p.Name, !p.isAlive))
                         .foreach(player => {
@@ -323,7 +457,7 @@ class ChatActor(
                               CMT_GMOPEN,
                               message.wideContents,
                               "Server",
-                              s"${color}${player.Name} (${player.Faction}) [${player.CharId}] at ${player.Position.x.toInt} ${player.Position.y.toInt} ${player.Position.z.toInt}",
+                              s"$color${player.Name} (${player.Faction}) [${player.CharId}] at ${player.Position.x.toInt} ${player.Position.y.toInt} ${player.Position.z.toInt}",
                               message.note
                             )
                           )
@@ -340,8 +474,8 @@ class ChatActor(
                       )
                   }
 
-                case (_, _, contents) if contents.startsWith("!ntu") && gmCommandAllowed =>
-                  val buffer = contents.toLowerCase.split("\\s+")
+                case (_, _, content) if content.startsWith("!ntu") && gmCommandAllowed =>
+                  val buffer = content.toLowerCase.split("\\s+")
                   val (facility, customNtuValue) = (buffer.lift(1), buffer.lift(2)) match {
                     case (Some(x), Some(y)) if y.toIntOption.nonEmpty => (Some(x), Some(y.toInt))
                     case (Some(x), None) if x.toIntOption.nonEmpty    => (None, Some(x.toInt))
@@ -363,39 +497,16 @@ class ChatActor(
                       session.zone.Buildings.values
                   })
                     .flatMap { building => building.Amenities.filter { _.isInstanceOf[ResourceSilo] } }
-                  if (silos.isEmpty) {
-                    sessionActor ! SessionActor.SendResponse(
-                      ChatMsg(UNK_229, true, "Server", s"no targets for ntu found with parameters $facility", None)
-                    )
-                  }
-                  customNtuValue match {
-                    // x = n0% of maximum capacitance
-                    case Some(value) if value > -1 && value < 11 =>
-                      silos.collect {
-                        case silo: ResourceSilo =>
-                          silo.Actor ! ResourceSilo.UpdateChargeLevel(
-                            value * silo.MaxNtuCapacitor * 0.1f - silo.NtuCapacitor
-                          )
-                      }
-                    // capacitance set to x (where x > 10) exactly, within limits
-                    case Some(value) =>
-                      silos.collect {
-                        case silo: ResourceSilo =>
-                          silo.Actor ! ResourceSilo.UpdateChargeLevel(value - silo.NtuCapacitor)
-                      }
-                    case None =>
-                      // x >= n0% of maximum capacitance and x <= maximum capacitance
-                      val rand = new scala.util.Random
-                      silos.collect {
-                        case silo: ResourceSilo =>
-                          val a     = 7
-                          val b     = 10 - a
-                          val tenth = silo.MaxNtuCapacitor * 0.1f
-                          silo.Actor ! ResourceSilo.UpdateChargeLevel(
-                            a * tenth + rand.nextFloat() * b * tenth - silo.NtuCapacitor
-                          )
-                      }
-                  }
+                  ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent=s"$facility")
+
+                case (_, _, content) if content.startsWith("!zonerotate") && gmCommandAllowed =>
+                  val buffer = contents.toLowerCase.split("\\s+")
+                  cluster ! InterstellarClusterService.CavernRotation(buffer.lift(1) match {
+                    case Some("-list") | Some("-l") =>
+                      CavernRotationService.ReportRotationOrder(sessionActor.toClassic)
+                    case _ =>
+                      CavernRotationService.HurryNextRotation
+                  })
 
                 case _ =>
                 // unknown ! commands are ignored

@@ -77,7 +77,12 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     * @return a conglomerate sector which lists all of the entities in the discovered sector(s)
     */
   def sector(p: Vector3, range: Float): SectorPopulation = {
-    BlockMap.quickToSectorGroup(range, BlockMap.findSectorIndices(blockMap = this, p, range).map { blocks } )
+    val indices = BlockMap.findSectorIndices(blockMap = this, p, range)
+    if (indices.max < blocks.size) {
+      BlockMap.quickToSectorGroup(range, indices.map { blocks } )
+    } else {
+      SectorGroup(Nil)
+    }
   }
 
   /**

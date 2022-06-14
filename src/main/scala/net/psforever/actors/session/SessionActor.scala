@@ -2,7 +2,7 @@ package net.psforever.actors.session
 
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
+import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, OneForOneStrategy, SupervisorStrategy, typed}
 import akka.pattern.ask
 import akka.util.Timeout
 import net.psforever.actors.net.MiddlewareActor
@@ -17,7 +17,8 @@ import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVeh
 import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid._
-import net.psforever.objects.inventory.{Container, InventoryItem}
+import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
+import net.psforever.objects.loadouts.InfantryLoadout
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.containable.Containable
@@ -55,6 +56,7 @@ import net.psforever.packet._
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
+import net.psforever.services.CavernRotationService.SendCavernRotationUpdates
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
 import net.psforever.services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage, AvatarServiceResponse}
@@ -66,7 +68,7 @@ import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
 import net.psforever.services.hart.HartTimer
 import net.psforever.services.vehicle.{VehicleAction, VehicleResponse, VehicleServiceMessage, VehicleServiceResponse}
-import net.psforever.services.{RemoverActor, Service, ServiceManager, InterstellarClusterService => ICS}
+import net.psforever.services.{CavernRotationService, RemoverActor, Service, ServiceManager, InterstellarClusterService => ICS}
 import net.psforever.types._
 import net.psforever.util.{Config, DefinitionUtil}
 import net.psforever.zones.Zones
@@ -289,6 +291,118 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var respawnTimer: Cancellable      = Default.Cancellable
   var zoningTimer: Cancellable       = Default.Cancellable
 
+  override def supervisorStrategy: SupervisorStrategy = {
+    import net.psforever.objects.inventory.InventoryDisarrayException
+    import java.io.{StringWriter, PrintWriter}
+    OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
+      case ide: InventoryDisarrayException =>
+        attemptRecoverFromInventoryDisarrayException(ide.inventory)
+        //re-evaluate results
+        if (ide.inventory.ElementsOnGridMatchList() > 0) {
+          val sw = new StringWriter
+          ide.printStackTrace(new PrintWriter(sw))
+          log.error(sw.toString)
+          ImmediateDisconnect()
+          SupervisorStrategy.stop
+        } else {
+          SupervisorStrategy.resume
+        }
+
+      case e =>
+        val sw = new StringWriter
+        e.printStackTrace(new PrintWriter(sw))
+        log.error(sw.toString)
+        ImmediateDisconnect()
+        SupervisorStrategy.stop
+    }
+  }
+
+  def attemptRecoverFromInventoryDisarrayException(inv: GridInventory): Unit = {
+    inv.ElementsInListCollideInGrid() match {
+      case Nil => ;
+      case overlaps =>
+        val previousItems = inv.Clear()
+        val allOverlaps = overlaps.flatten.sortBy { entry =>
+          val tile = entry.obj.Definition.Tile
+          tile.Width * tile.Height
+        }.toSet
+        val notCollidingRemainder = previousItems.filterNot(allOverlaps.contains)
+        notCollidingRemainder.foreach { entry =>
+          inv.InsertQuickly(entry.start, entry.obj)
+        }
+        var didNotFit : List[Equipment] = Nil
+        allOverlaps.foreach { entry =>
+          inv.Fit(entry.obj.Definition.Tile) match {
+            case Some(newStart) =>
+              inv.InsertQuickly(newStart, entry.obj)
+            case None =>
+              didNotFit = didNotFit :+ entry.obj
+          }
+        }
+        //completely clear the inventory
+        val pguid = player.GUID
+        val equipmentInHand = player.Slot(player.DrawnSlot).Equipment
+        //redraw suit
+        sendResponse(ArmorChangedMessage(
+          pguid,
+          player.ExoSuit,
+          InfantryLoadout.DetermineSubtypeA(player.ExoSuit, equipmentInHand)
+        ))
+        //redraw item in free hand (if)
+        player.FreeHand.Equipment match {
+          case Some(item) =>
+            sendResponse(ObjectCreateDetailedMessage(
+              item.Definition.ObjectId,
+              item.GUID,
+              ObjectCreateMessageParent(pguid, Player.FreeHandSlot),
+              item.Definition.Packet.DetailedConstructorData(item).get
+            ))
+          case _ => ;
+        }
+        //redraw items in holsters
+        player.Holsters().zipWithIndex.foreach { case (slot, index) =>
+          slot.Equipment match {
+            case Some(item) =>
+              sendResponse(ObjectCreateDetailedMessage(
+                item.Definition.ObjectId,
+                item.GUID,
+                item.Definition.Packet.DetailedConstructorData(item).get
+              ))
+            case _ => ;
+          }
+        }
+        //redraw raised hand (if)
+        equipmentInHand match {
+          case Some(_) =>
+            sendResponse(ObjectHeldMessage(pguid, player.DrawnSlot, unk1 = true))
+          case _ => ;
+        }
+        //redraw inventory items
+        val recoveredItems = inv.Items
+        recoveredItems.foreach { entry =>
+          val item = entry.obj
+          sendResponse(ObjectCreateDetailedMessage(
+            item.Definition.ObjectId,
+            item.GUID,
+            ObjectCreateMessageParent(pguid, entry.start),
+            item.Definition.Packet.DetailedConstructorData(item).get
+          ))
+        }
+        //drop items that did not fit
+        val placementData = PlacementData(player.Position, Vector3.z(player.Orientation.z))
+        didNotFit.foreach { item =>
+          sendResponse(ObjectCreateMessage(
+            item.Definition.ObjectId,
+            item.GUID,
+            DroppedItemData(
+              placementData,
+              item.Definition.Packet.ConstructorData(item).get
+            )
+          ))
+        }
+    }
+  }
+
   def session: Session = _session
 
   def session_=(session: Session): Unit = {
@@ -418,6 +532,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case ICS.InterstellarClusterServiceKey.Listing(listings) =>
       cluster = listings.head
+
+    case CavernRotationService.CavernRotationServiceKey.Listing(listings) =>
+      listings.head ! SendCavernRotationUpdates(self)
 
     // Avatar subscription update
     case avatar: Avatar =>
@@ -601,6 +718,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         case GalaxyResponse.MapUpdate(msg) =>
           sendResponse(msg)
 
+        case GalaxyResponse.UpdateBroadcastPrivileges(zoneId, gateMapId, fromFactions, toFactions) =>
+          val faction = player.Faction
+          val from = fromFactions.contains(faction)
+          val to = toFactions.contains(faction)
+          if (from && !to) {
+            sendResponse(BroadcastWarpgateUpdateMessage(zoneId, gateMapId, PlanetSideEmpire.NEUTRAL))
+          } else if (!from && to) {
+            sendResponse(BroadcastWarpgateUpdateMessage(zoneId, gateMapId, faction))
+          }
+
         case GalaxyResponse.FlagMapUpdate(msg) =>
           sendResponse(msg)
 
@@ -651,6 +778,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 //wait patiently
               }
           }
+
+        case GalaxyResponse.LockedZoneUpdate(zone, time) =>
+          sendResponse(ZoneInfoMessage(zone.Number, empire_status=false, lock_time=time))
+
+        case GalaxyResponse.UnlockedZoneUpdate(zone) => ;
+          sendResponse(ZoneInfoMessage(zone.Number, empire_status=true, lock_time=0L))
+          val popBO = 0
+          val popTR = zone.Players.count(_.faction == PlanetSideEmpire.TR)
+          val popNC = zone.Players.count(_.faction == PlanetSideEmpire.NC)
+          val popVS = zone.Players.count(_.faction == PlanetSideEmpire.VS)
+          sendResponse(ZonePopulationUpdateMessage(zone.Number, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
+
+        case GalaxyResponse.SendResponse(msg) =>
+          sendResponse(msg)
       }
 
     case LocalServiceResponse(toChannel, guid, reply) =>
@@ -1046,10 +1187,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 LoadZonePhysicalSpawnPoint(zone.id, pos, ori, CountSpawnDelay(zone.id, spawnPoint, continent.id), Some(spawnPoint))
             case None =>
               log.warn(
-                s"SpawnPointResponse: ${player.Name} received no spawn point response when asking InterstellarClusterService; sending home"
+                s"SpawnPointResponse: ${player.Name} received no spawn point response when asking InterstellarClusterService"
               )
-              //Thread.sleep(1000) // throttle in case of infinite loop
-              RequestSanctuaryZoneSpawn(player, currentZone = 0)
+              if (Config.app.game.warpGates.defaultToSanctuaryDestination) {
+                log.warn(s"SpawnPointResponse: sending ${player.Name} home")
+                RequestSanctuaryZoneSpawn(player, currentZone = 0)
+              }
           }
       }
 
@@ -1104,7 +1247,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //CaptureFlagUpdateMessage()
         //VanuModuleUpdateMessage()
         //ModuleLimitsMessage()
-        sendResponse(ZoneInfoMessage(continentNumber, true, 0))
+        val isCavern = continent.map.cavern
+        sendResponse(ZoneInfoMessage(continentNumber, true, if (isCavern) { Int.MaxValue.toLong } else { 0L }))
         sendResponse(ZoneLockInfoMessage(continentNumber, false, true))
         sendResponse(ZoneForcedCavernConnectionsMessage(continentNumber, 0))
         sendResponse(
@@ -1117,6 +1261,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           )
         ) //normally set for all zones in bulk; should be fine manually updating per zone like this
       }
+      ServiceManager.receptionist ! Receptionist.Find(
+        CavernRotationService.CavernRotationServiceKey,
+        context.self
+      )
       LivePlayerList.Add(avatar.id, avatar)
       //PropertyOverrideMessage
 
@@ -1133,7 +1281,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
       //the following subscriptions last until character switch/logout
       galaxyService ! Service.Join("galaxy")             //for galaxy-wide messages
-      galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots
+      galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots, etc.
       squadService ! Service.Join(s"${avatar.faction}")  //channel will be player.Faction
       squadService ! Service.Join(s"${avatar.id}")       //channel will be player.CharId (in order to work with packets)
       player.Zone match {
@@ -2085,15 +2233,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(ObjectHeldMessage(target, Player.HandsDownSlot, false))
           //cleanup
           (old_holsters ++ old_inventory).foreach {
-            case (obj, guid) =>
-              sendResponse(ObjectDeleteMessage(guid, 0))
+            case (obj, objGuid) =>
+              sendResponse(ObjectDeleteMessage(objGuid, 0))
               TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj))
           }
           //redraw
           if (maxhand) {
             TaskWorkflow.execute(HoldNewEquipmentUp(player)(
               Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)),
-              0
+              slot = 0
             ))
           }
           ApplyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
@@ -2147,13 +2295,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
               case Some(carrier: Player) =>
                 log.warn(s"${player.toString} tried to drop LLU, but it is currently held by ${carrier.toString}")
-              case None =>
+              case _ =>
                 log.warn(s"${player.toString} tried to drop LLU, but nobody is holding it.")
             }
           case _ =>
             log.warn(s"${player.toString} Tried to drop a special item that wasn't recognized. GUID: $guid")
         }
-
       case _ => ; // Nothing to drop, do nothing.
     }
   }
@@ -5653,7 +5800,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           ) =>
         CancelZoningProcessWithDescriptiveReason("cancel_use")
         if (deadState != DeadState.RespawnTime) {
-          continent.Buildings.values.find(building => building.GUID == building_guid) match {
+          continent.Buildings.values.find(_.GUID == building_guid) match {
             case Some(wg: WarpGate) if wg.Active && (GetKnownVehicleAndSeat() match {
                   case (Some(vehicle), _) =>
                     wg.Definition.VehicleAllowance && !wg.Definition.NoWarp.contains(vehicle.Definition)
@@ -5665,6 +5812,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 destinationZoneGuid.guid,
                 player,
                 destinationBuildingGuid,
+                continent.Number,
+                building_guid,
                 context.self
               )
               log.info(s"${player.Name} wants to use a warp gate")
@@ -5949,7 +6098,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             summary,
             desc
           ) =>
-        log.warn(s"${player.Name} filed a bug report")
+        log.warn(s"${player.Name} filed a bug report - it might be something important")
         log.debug(s"$msg")
 
       case msg @ BindPlayerMessage(action, bindDesc, unk1, logging, unk2, unk3, unk4, pos) =>
@@ -6843,42 +6992,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def initGate(continentNumber: Int, buildingNumber: Int, building: Building): Unit = {
     building match {
       case wg: WarpGate =>
-        sendResponse(
-          BuildingInfoUpdateMessage(
-            building.Zone.Number,
-            building.MapId,
-            ntu_level = 0,
-            is_hacked = false,
-            empire_hack = PlanetSideEmpire.NEUTRAL,
-            hack_time_remaining = 0,
-            building.Faction,
-            unk1 = 0,
-            unk1x = None,
-            PlanetSideGeneratorState.Normal,
-            spawn_tubes_normal = true,
-            force_dome_active = false,
-            lattice_benefit = 0,
-            cavern_benefit = 0,
-            unk4 = Nil,
-            unk5 = 0,
-            unk6 = false,
-            unk7 = 8,
-            unk7x = None,
-            boost_spawn_pain = false,
-            boost_generator_pain = false
-          )
-        )
+        sendResponse(building.infoUpdateMessage())
         sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0, 0, 0, 0, 0, 0, 0, 0)))
-        //TODO one faction knows which gates are broadcast for another faction?
-        sendResponse(
-          BroadcastWarpgateUpdateMessage(
-            continentNumber,
-            buildingNumber,
-            wg.Broadcast(PlanetSideEmpire.TR),
-            wg.Broadcast(PlanetSideEmpire.NC),
-            wg.Broadcast(PlanetSideEmpire.VS)
+        if (wg.Broadcast(player.Faction)) {
+          sendResponse(
+            BroadcastWarpgateUpdateMessage(
+              continentNumber,
+              buildingNumber,
+              player.Faction
+            )
           )
-        )
+        }
       case _ => ;
     }
   }
@@ -7572,6 +7696,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (currentZone == Zones.sanctuaryZoneNumber(tplayer.Faction)) {
       log.error(s"RequestSanctuaryZoneSpawn: ${player.Name} is already in faction sanctuary zone.")
       sendResponse(DisconnectMessage("RequestSanctuaryZoneSpawn: player is already in sanctuary."))
+      ImmediateDisconnect()
     } else {
       continent.GUID(player.VehicleSeated) match {
         case Some(obj: Vehicle) if !obj.Destroyed =>
@@ -8776,8 +8901,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       //for other zones ...
       //biolabs have/grant benefits
       val cryoBenefit: Float = toSpawnPoint.Owner match {
-        case b: Building if b.hasLatticeBenefit(GlobalDefinitions.cryo_facility) => 0.5f
-        case _                                                                   => 1f
+        case b: Building if b.hasLatticeBenefit(LatticeBenefit.BioLaboratory) => 0.5f
+        case _                                                                => 1f
       }
       //TODO cumulative death penalty
       toSpawnPoint.Definition.Delay.toFloat * cryoBenefit seconds
@@ -9129,7 +9254,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def KeepAlivePersistence(): Unit = {
     interimUngunnedVehicle = None
     persist()
-    turnCounterFunc(player.GUID)
+    if (player.HasGUID) {
+      turnCounterFunc(player.GUID)
+    } else {
+      turnCounterFunc(PlanetSideGUID(0))
+    }
   }
 
   /**
@@ -9235,7 +9364,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           val initialQuality = tool.FireMode match {
             case mode: ChargeFireModeDefinition =>
               ProjectileQuality.Modified(
-                projectile.fire_time - shootingStart.getOrElse(tool.GUID, System.currentTimeMillis()) / mode.Time.toFloat
+                {
+                  val timeInterval = projectile.fire_time - shootingStart.getOrElse(tool.GUID, System.currentTimeMillis())
+                  timeInterval.toFloat / mode.Time.toFloat
+                }
               )
             case _ =>
               ProjectileQuality.Normal

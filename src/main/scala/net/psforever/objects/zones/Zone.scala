@@ -33,6 +33,7 @@ import scala.util.Try
 import akka.actor.typed
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.actors.zone.building.WarpGateLogic
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.geometry.d3.VolumetricGeometry
 import net.psforever.objects.guid.pool.NumberPool
@@ -50,6 +51,9 @@ import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.blockmap.BlockMap
 import net.psforever.services.Service
+
+import scala.annotation.tailrec
+import scala.concurrent.{Future, Promise}
 
 /**
   * A server object representing the one-landmass planets as well as the individual subterranean caverns.<br>
@@ -169,6 +173,18 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   private var vehicleEvents: ActorRef = Default.Actor
 
   /**
+    * When the zone has completed initializing, fulfill this promise.
+    * @see `init(ActorContext)`
+    */
+  private var zoneInitialized: Promise[Boolean] = Promise[Boolean]()
+
+  /**
+    * When the zone has completed initializing, this will be the future.
+    * @see `init(ActorContext)`
+    */
+  def ZoneInitialized(): Future[Boolean] = zoneInitialized.future
+
+  /**
     * Establish the basic accessible conditions necessary for a functional `Zone`.<br>
     * <br>
     * Called from the `Actor` that governs this `Zone` when it is passed a constructor reference to the `Zone`.
@@ -213,8 +229,9 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       AssignAmenities()
       CreateSpawnGroups()
       PopulateBlockMap()
-
       validate()
+
+      zoneInitialized.success(true)
     }
   }
 
@@ -358,7 +375,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
         case (building, _) =>
           building match {
             case warpGate: WarpGate =>
-              warpGate.Faction == faction || warpGate.Faction == PlanetSideEmpire.NEUTRAL || warpGate.Broadcast
+              warpGate.Faction == faction || warpGate.Broadcast(faction)
             case _ =>
               building.Faction == faction
           }
@@ -570,6 +587,20 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     lattice
   }
 
+  def AddIntercontinentalLatticeLink(bldgA: Building, bldgB: Building): Graph[Building, UnDiEdge] = {
+    if ((this eq bldgA.Zone) && (bldgA.Zone ne bldgB.Zone)) {
+      lattice ++= Set(bldgA ~ bldgB)
+    }
+    Lattice
+  }
+
+  def RemoveIntercontinentalLatticeLink(bldgA: Building, bldgB: Building): Graph[Building, UnDiEdge] = {
+    if ((this eq bldgA.Zone) && (bldgA.Zone ne bldgB.Zone)) {
+      lattice --= Set(bldgA ~ bldgB)
+    }
+    Lattice
+  }
+
   def zipLinePaths: List[ZipLinePath] = {
     map.zipLinePaths
   }
@@ -674,15 +705,19 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   }
 
   private def MakeLattice(): Unit = {
-    lattice ++= map.latticeLink.map {
-      case (source, target) =>
-        val (sourceBuilding, targetBuilding) = (Building(source), Building(target)) match {
-          case (Some(sBuilding), Some(tBuilding)) => (sBuilding, tBuilding)
-          case _ =>
-            throw new NoSuchElementException(s"Can't create lattice link between $source $target. Source is missing")
-        }
-        sourceBuilding ~ targetBuilding
-    }
+    lattice ++= map.latticeLink
+      .filterNot {
+        case (a, _) => a.contains("/") //ignore intercontinental lattice connections
+      }
+      .map {
+        case (source, target) =>
+          val (sourceBuilding, targetBuilding) = (Building(source), Building(target)) match {
+            case (Some(sBuilding), Some(tBuilding)) => (sBuilding, tBuilding)
+            case _ =>
+              throw new NoSuchElementException(s"Zone $id - can't create lattice link between $source and $target.")
+          }
+          sourceBuilding ~ targetBuilding
+      }
   }
 
   private def CreateSpawnGroups(): Unit = {
@@ -1106,6 +1141,105 @@ object Zone {
         case None =>
           None
       }
+    }
+  }
+
+  /**
+    * Starting from an overworld zone facility,
+    * find a lattice connected cavern facility that is the same faction as this starting building.
+    * Except for the necessary examination of the major facility on the other side of a warp gate pair,
+    * do not let the search escape the current zone into another.
+    * If we start in a cavern zone, do not continue a fruitless search;
+    * just fail.
+    * @return the discovered faction-aligned cavern facility
+    */
+  def findConnectedCavernFacility(building: Building): Option[Building] = {
+    if (building.Zone.map.cavern) {
+      None
+    } else {
+      val neighbors = building.AllNeighbours.getOrElse(Set.empty[Building]).toList
+      recursiveFindConnectedCavernFacility(building.Faction, neighbors.headOption, neighbors.drop(1), Set(building.MapId))
+    }
+  }
+
+  /**
+    * Starting from an overworld zone facility,
+    * find a lattice connected cavern facility that is the same faction as this starting building.
+    * Except for the necessary examination of the major facility on the other side of a warp gate pair,
+    * do not let the search escape the current zone into another.
+    * @param currBuilding the proposed current facility to check
+    * @param nextNeighbors the facilities that are yet to be searched
+    * @param visitedNeighbors the facilities that have been searched already
+    * @return the discovered faction-aligned cavern facility
+    */
+  @tailrec
+  private def recursiveFindConnectedCavernFacility(
+                                                    sampleFaction: PlanetSideEmpire.Value,
+                                                    currBuilding: Option[Building],
+                                                    nextNeighbors: List[Building],
+                                                    visitedNeighbors: Set[Int]
+                                                  ): Option[Building] = {
+    if(currBuilding.isEmpty) {
+      None
+    } else {
+      val building = currBuilding.head
+      if (!visitedNeighbors.contains(building.MapId)
+          && (building match {
+        case wg: WarpGate => wg.Faction == sampleFaction || wg.Broadcast(sampleFaction)
+        case _            => building.Faction == sampleFaction
+      })
+          && !building.CaptureTerminalIsHacked
+          && building.NtuLevel > 0
+          && (building.Generator match {
+        case Some(o) => o.Condition != PlanetSideGeneratorState.Destroyed
+        case _       => true
+      })
+      ) {
+        (building match {
+          case wg: WarpGate => traverseWarpGateInSearchOfOwnedCavernFaciity(sampleFaction, wg)
+          case _ => None
+        }) match {
+          case out @ Some(_) =>
+            out
+          case _ =>
+            val newVisitedNeighbors = visitedNeighbors ++ Set(building.MapId)
+            val newNeighbors = nextNeighbors ++ building.AllNeighbours
+              .getOrElse(Set.empty[Building])
+              .toList
+              .filterNot { b => newVisitedNeighbors.contains(b.MapId) }
+            recursiveFindConnectedCavernFacility(
+              sampleFaction,
+              newNeighbors.headOption,
+              newNeighbors.drop(1),
+              newVisitedNeighbors
+            )
+        }
+      } else {
+        recursiveFindConnectedCavernFacility(
+          sampleFaction,
+          nextNeighbors.headOption,
+          nextNeighbors.drop(1),
+          visitedNeighbors ++ Set(building.MapId)
+        )
+      }
+    }
+  }
+
+  /**
+    * Trace the extended neighborhood of the warp gate to a cavern facility that has the same faction affinity.
+    * @param faction the faction that all connected factions must have affinity with
+    * @param target the warp gate from which to conduct a local search
+    * @return if discovered, the first faction affiliated facility in a connected cavern
+    */
+  private def traverseWarpGateInSearchOfOwnedCavernFaciity(
+                                                            faction: PlanetSideEmpire.Value,
+                                                            target: WarpGate
+                                                          ): Option[Building] = {
+    WarpGateLogic.findNeighborhoodWarpGate(target.Neighbours.getOrElse(Nil)) match {
+      case Some(gate) if gate.Zone.map.cavern =>
+        WarpGateLogic.findNeighborhoodNormalBuilding(gate.Neighbours(faction).getOrElse(Nil))
+      case _ =>
+        None
     }
   }
 

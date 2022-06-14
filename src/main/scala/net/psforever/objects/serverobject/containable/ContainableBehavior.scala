@@ -652,10 +652,11 @@ object ContainableBehavior {
     * A predicate used to determine if an `InventoryItem` object contains `Equipment` that should be dropped.
     * Used to filter through lists of object data before it is placed into a player's inventory.
     * Drop the item if:<br>
-    * - the item is cavern equipment<br>
     * - the item is a `BoomerTrigger` type object<br>
     * - the item is a `router_telepad` type object<br>
-    * - the item is another faction's exclusive equipment
+    * - the item is another faction's exclusive equipment<br>
+    * Additional equipment filtration information can be found attached to terminals.
+    * @see `ExclusionRule`
     * @param tplayer the player
     * @return true if the item is to be dropped; false, otherwise
     */
@@ -663,7 +664,6 @@ object ContainableBehavior {
     entry => {
       val objDef  = entry.obj.Definition
       val faction = GlobalDefinitions.isFactionEquipment(objDef)
-      GlobalDefinitions.isCavernEquipment(objDef) ||
       objDef == GlobalDefinitions.router_telepad ||
       entry.obj.isInstanceOf[BoomerTrigger] ||
       (faction != tplayer.Faction && faction != PlanetSideEmpire.NEUTRAL)

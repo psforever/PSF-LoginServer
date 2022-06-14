@@ -5,6 +5,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{CorpseControl, PlayerControl}
 import net.psforever.objects.{Default, Player}
+import net.psforever.types.Vector3
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
@@ -37,6 +38,7 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
           tplayer.Zone = Zone.Nowhere
           PlayerLeave(tplayer)
           if (tplayer.VehicleSeated.isEmpty) {
+            tplayer.Position = Vector3.Zero
             zone.actor ! ZoneActor.RemoveFromBlockMap(tplayer)
           }
           sender() ! Zone.Population.PlayerHasLeft(zone, player)
@@ -70,6 +72,7 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
         case Some(tplayer) =>
           PlayerLeave(tplayer)
           if (tplayer.VehicleSeated.isEmpty) {
+            tplayer.Position = Vector3.Zero
             zone.actor ! ZoneActor.RemoveFromBlockMap(tplayer)
           }
           sender() ! Zone.Population.PlayerHasLeft(zone, Some(tplayer))

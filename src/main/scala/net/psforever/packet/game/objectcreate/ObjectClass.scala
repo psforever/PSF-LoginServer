@@ -316,6 +316,7 @@ object ObjectClass {
   final val portable_manned_turret_vs   = 688
   //projectiles
   final val aphelion_plasma_cloud                     = 96
+  final val aphelion_starfire_projectile              = 108
   final val flamethrower_fire_cloud                   = 301
   final val hunter_seeker_missile_projectile          = 405  //phoenix projectile
   final val maelstrom_grenade_damager                 = 464
@@ -327,6 +328,7 @@ object ObjectClass {
   final val meteor_projectile_medium                  = 548
   final val meteor_projectile_small                   = 549
   final val peregrine_particle_cannon_radiation_cloud = 655
+  final val peregrine_sparrow_projectile              = 661
   final val phoenix_missile_guided_projectile         = 675  //decimator projectile
   final val oicw_little_buddy                         = 601  //scorpion projectile's projectiles
   final val oicw_projectile                           = 602  //scorpion projectile
@@ -1231,6 +1233,7 @@ object ObjectClass {
       case ObjectClass.router_telepad_deployable => DroppedItemData(TelepadDeployableData.codec, "telepad deployable")
       //projectiles
       case ObjectClass.aphelion_plasma_cloud                     => ConstructorData(RadiationCloudData.codec, "radiation cloud")
+      case ObjectClass.aphelion_starfire_projectile              => ConstructorData(RemoteProjectileData.codec, "projectile")
       case ObjectClass.hunter_seeker_missile_projectile          => ConstructorData(RemoteProjectileData.codec, "projectile")
       case ObjectClass.meteor_common                             => ConstructorData(RemoteProjectileData.codec, "meteor")
       case ObjectClass.meteor_projectile_b_large                 => ConstructorData(RemoteProjectileData.codec, "meteor")
@@ -1240,6 +1243,7 @@ object ObjectClass {
       case ObjectClass.meteor_projectile_medium                  => ConstructorData(RemoteProjectileData.codec, "meteor")
       case ObjectClass.meteor_projectile_small                   => ConstructorData(RemoteProjectileData.codec, "meteor")
       case ObjectClass.peregrine_particle_cannon_radiation_cloud => ConstructorData(RadiationCloudData.codec, "radiation cloud")
+      case ObjectClass.peregrine_sparrow_projectile              => ConstructorData(RemoteProjectileData.codec, "projectile")
       case ObjectClass.phoenix_missile_guided_projectile         => ConstructorData(RemoteProjectileData.codec, "projectile")
       case ObjectClass.oicw_little_buddy                         => ConstructorData(LittleBuddyProjectileData.codec, "projectile")
       case ObjectClass.oicw_projectile                           => ConstructorData(RemoteProjectileData.codec, "projectile")

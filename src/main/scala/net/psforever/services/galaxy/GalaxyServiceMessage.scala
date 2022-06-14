@@ -3,8 +3,10 @@ package net.psforever.services.galaxy
 
 import net.psforever.objects.Vehicle
 import net.psforever.objects.vehicles.VehicleManifest
+import net.psforever.objects.zones.Zone
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{BuildingInfoUpdateMessage, CaptureFlagUpdateMessage}
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 final case class GalaxyServiceMessage(forChannel: String, actionMessage: GalaxyAction.Action)
 
@@ -25,4 +27,17 @@ object GalaxyAction {
       vehicle_to_delete: PlanetSideGUID,
       manifest: VehicleManifest
   ) extends Action
+
+  final case class UpdateBroadcastPrivileges(
+                                              zoneId: Int,
+                                              gateMapId: Int,
+                                              fromFactions: Set[PlanetSideEmpire.Value],
+                                              toFactions: Set[PlanetSideEmpire.Value]
+                                            ) extends Action
+
+  final case class LockedZoneUpdate(zone: Zone, timeUntilUnlock: Long) extends Action
+
+  final case class UnlockedZoneUpdate(zone: Zone) extends Action
+
+  final case class SendResponse(msg: PlanetSideGamePacket) extends Action
 }

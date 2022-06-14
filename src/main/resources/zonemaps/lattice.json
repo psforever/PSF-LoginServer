@@ -1027,7 +1027,7 @@
       "Map99_Gate_Three"
     ]
   ],
-  "udg01": [
+  "ugd01": [
     [
       "N_Redoubt",
       "N_ATPlant"
@@ -1077,7 +1077,7 @@
       "S_ATPlant"
     ]
   ],
-  "udg02": [
+  "ugd02": [
     [
       "N_Redoubt",
       "N_ATPlant"
@@ -1127,7 +1127,7 @@
       "S_ATPlant"
     ]
   ],
-  "udg03": [
+  "ugd03": [
     [
       "NW_Redoubt",
       "NW_ATPlant"
@@ -1177,7 +1177,7 @@
       "SE_ATPlant"
     ]
   ],
-  "udg04": [
+  "ugd04": [
     [
       "N_Redoubt",
       "N_ATPlant"
@@ -1227,7 +1227,7 @@
       "S_ATPlant"
     ]
   ],
-  "udg05": [
+  "ugd05": [
     [
       "NW_Redoubt",
       "NW_ATPlant"
@@ -1281,7 +1281,7 @@
       "SE_ATPlant"
     ]
   ],
-  "udg06": [
+  "ugd06": [
     [
       "N_Redoubt",
       "N_ATPlant"
@@ -1329,6 +1329,424 @@
     [
       "GW_Cavern6_S",
       "S_ATPlant"
+    ]
+  ],
+  "intercontinental": [
+    [
+      "z1/WG_Solsar_to_Amerish",
+      "home2/WG_TRSanc_to_Cyssor"
+    ],
+    [
+      "z1/WG_Solsar_to_Cyssor",
+      "z3/WG_Cyssor_to_NCSanc"
+    ],
+    [
+      "z1/WG_Solsar_to_Hossin",
+      "z6/WG_Ceryshen_to_Forseral"
+    ],
+    [
+      "z1/WG_Solsar_to_Forseral",
+      "i3/Map97_Gate_One"
+    ],
+    [
+      "z2/WG_Hossin_to_VSSanc",
+      "home2/WG_TRSanc_to_Forseral"
+    ],
+    [
+      "z2/WG_Hossin_to_Solsar",
+      "z4/WG_Ishundar_to_Searhus"
+    ],
+    [
+      "z2/WG_Hossin_to_Ceryshen",
+      "z10/WG_Amerish_to_Ceryshen"
+    ],
+    [
+      "z2/WG_Hossin_to_Oshur",
+      "z9/WG_Searhus_to_Ishundar"
+    ],
+    [
+      "z3/WG_Cyssor_to_Searhus",
+      "z7/WG_Esamir_to_Oshur"
+    ],
+    [
+      "z3/WG_Cyssor_to_Solsar",
+      "z4/WG_Ishundar_to_VSSanc"
+    ],
+    [
+      "z3/WG_Cyssor_to_TRSanc",
+      "z6/WG_Ceryshen_to_Amerish"
+    ],
+    [
+      "z4/WG_Ishundar_to_TRSanc",
+      "z7/WG_Esamir_to_Searhus"
+    ],
+    [
+      "z4/WG_Ishundar_to_Ceryshen",
+      "z5/WG_Forseral_to_Ceryshen"
+    ],
+    [
+      "z5/WG_Forseral_to_TRSanc",
+      "i2/Map98_Gate_One"
+    ],
+    [
+      "z5/WG_Forseral_to_Solsar",
+      "home3/WG_VSSanc_to_Hossin"
+    ],
+    [
+      "z5/WG_Forseral_to_Oshur",
+      "z7/WG_Esamir_to_NCSanc"
+    ],
+    [
+      "z6/WG_Ceryshen_to_Ishundar",
+      "z9/WG_Searhus_to_Esamir"
+    ],
+    [
+      "z6/WG_Ceryshen_to_Hossin",
+      "home3/WG_VSSanc_to_Esamir"
+    ],
+    [
+      "z7/WG_Esamir_to_VSSanc",
+      "home1/WG_NCSanc_to_Esamir"
+    ],
+    [
+      "z9/WG_Searhus_to_Cyssor",
+      "z10/WG_Amerish_to_NCSanc"
+    ],
+    [
+      "z10/WG_Amerish_to_Solsar",
+      "home1/WG_NCSanc_to_Amerish"
+    ],
+    [
+      "z10/WG_Amerish_to_Oshur",
+      "i1/Map99_Gate_One"
+    ],
+    [
+      "i1/Map99_Gate_Two",
+      "i3/Map97_Gate_Three"
+    ],
+    [
+      "i2/Map98_Gate_Three",
+      "i3/Map97_Gate_Two"
+    ],
+    [
+      "i4/Map96_Gate_One",
+      "i2/Map98_Gate_Two"
+    ],
+    [
+      "i4/Map96_Gate_Two",
+      "i1/Map99_Gate_Three"
+    ]
+  ],
+  "caverns-c1": [
+    [
+      "c1/GW_Cavern1_N",
+      "z10/GW_Amerish_N"
+    ],
+    [
+      "c1/GW_Cavern1_S",
+      "z5/GW_Forseral_N"
+    ],
+    [
+      "c1/GW_Cavern1_E",
+      "z1/GW_Solsar_N"
+    ],
+    [
+      "c1/GW_Cavern1_W",
+      "z4/GW_Ishundar_N"
+    ]
+  ],
+  "caverns-c2": [
+    [
+      "c2/GW_Cavern2_N",
+      "z5/GW_Forseral_N"
+    ],
+    [
+      "c2/GW_Cavern2_S",
+      "z3/GW_Cyssor_S"
+    ],
+    [
+      "c2/GW_Cavern2_E",
+      "z6/GW_Ceryshen_S"
+    ],
+    [
+      "c2/GW_Cavern2_W",
+      "z7/GW_Esamir_S"
+    ]
+  ],
+  "caverns-c3": [
+    [
+      "c3/GW_Cavern3_N",
+      "z7/GW_Esamir_S"
+    ],
+    [
+      "c3/GW_Cavern3_S",
+      "z2/GW_Hossin_N"
+    ],
+    [
+      "c3/GW_Cavern3_E",
+      "z5/GW_Forseral_N"
+    ],
+    [
+      "c3/GW_Cavern3_W",
+      "z9/GW_Searhus_S"
+    ]
+  ],
+  "caverns-c4": [
+    [
+      "c4/GW_Cavern4_N",
+      "z5/GW_Forseral_N"
+    ],
+    [
+      "c4/GW_Cavern4_S",
+      "z10/GW_Amerish_N"
+    ],
+    [
+      "c4/GW_Cavern4_E",
+      "z7/GW_Esamir_S"
+    ],
+    [
+      "c4/GW_Cavern4_W",
+      "z3/GW_Cyssor_S"
+    ]
+  ],
+  "caverns-c5": [
+    [
+      "c5/GW_Cavern5_N",
+      "z2/GW_Hossin_N"
+    ],
+    [
+      "c5/GW_Cavern5_S",
+      "z1/GW_Solsar_N"
+    ],
+    [
+      "c5/GW_Cavern5_E",
+      "z3/GW_Cyssor_S"
+    ],
+    [
+      "c5/GW_Cavern5_W",
+      "z9/GW_Searhus_N"
+    ]
+  ],
+  "caverns-c6": [
+    [
+      "c6/GW_Cavern6_N",
+      "z5/GW_Forseral_S"
+    ],
+    [
+      "c6/GW_Cavern6_S",
+      "z2/GW_Hossin_S"
+    ],
+    [
+      "c6/GW_Cavern6_E",
+      "z4/GW_Ishundar_S"
+    ],
+    [
+      "c6/GW_Cavern6_W",
+      "z3/GW_Cyssor_S"
+    ]
+  ],
+  "caverns-c1-c2": [
+    [
+      "c1/GW_Cavern1_N",
+      "z9/GW_Searhus_N"
+    ],
+    [
+      "c1/GW_Cavern1_S",
+      "z6/GW_Ceryshen_N"
+    ],
+    [
+      "c1/GW_Cavern1_E",
+      "z1/GW_Solsar_S"
+    ],
+    [
+      "c1/GW_Cavern1_W",
+      "z3/GW_Cyssor_N"
+    ],
+    [
+      "c2/GW_Cavern2_N",
+      "z4/GW_Ishundar_S"
+    ],
+    [
+      "c2/GW_Cavern2_S",
+      "z2/GW_Hossin_N"
+    ],
+    [
+      "c2/GW_Cavern2_E",
+      "z7/GW_Esamir_S"
+    ],
+    [
+      "c2/GW_Cavern2_W",
+      "z10/GW_Amerish_S"
+    ]
+  ],
+  "caverns-c2-c3": [
+    [
+      "c2/GW_Cavern2_N",
+      "z7/GW_Esamir_N"
+    ],
+    [
+      "c2/GW_Cavern2_S",
+      "z4/GW_Ishundar_S"
+    ],
+    [
+      "c2/GW_Cavern2_E",
+      "z3/GW_Cyssor_S"
+    ],
+    [
+      "c2/GW_Cavern2_W",
+      "z2/GW_Hossin_N"
+    ],
+    [
+      "c3/GW_Cavern3_N",
+      "z10/GW_Amerish_N"
+    ],
+    [
+      "c3/GW_Cavern3_S",
+      "z1/GW_Solsar_N"
+    ],
+    [
+      "c3/GW_Cavern3_E",
+      "z6/GW_Ceryshen_N"
+    ],
+    [
+      "c3/GW_Cavern3_W",
+      "z5/GW_Forseral_S"
+    ]
+  ],
+  "caverns-c3-c4": [
+    [
+      "c3/GW_Cavern3_N",
+      "z6/GW_Ceryshen_N"
+    ],
+    [
+      "c3/GW_Cavern3_S",
+      "z4/GW_Ishundar_S"
+    ],
+    [
+      "c3/GW_Cavern3_E",
+      "z10/GW_Amerish_S"
+    ],
+    [
+      "c3/GW_Cavern3_W",
+      "z2/GW_Hossin_S"
+    ],
+    [
+      "c4/GW_Cavern4_N",
+      "z5/GW_Forseral_N"
+    ],
+    [
+      "c4/GW_Cavern4_S",
+      "z7/GW_Esamir_S"
+    ],
+    [
+      "c4/GW_Cavern4_E",
+      "z9/GW_Searhus_N"
+    ],
+    [
+      "c4/GW_Cavern4_W",
+      "z3/GW_Cyssor_N"
+    ]
+  ],
+  "caverns-c4-c5": [
+    [
+      "c4/GW_Cavern4_N",
+      "z4/GW_Ishundar_N"
+    ],
+    [
+      "c4/GW_Cavern4_S",
+      "z1/GW_Solsar_S"
+    ],
+    [
+      "c4/GW_Cavern4_E",
+      "z3/GW_Cyssor_N"
+    ],
+    [
+      "c4/GW_Cavern4_W",
+      "z2/GW_Hossin_N"
+    ],
+    [
+      "c5/GW_Cavern5_N",
+      "z10/GW_Amerish_N"
+    ],
+    [
+      "c5/GW_Cavern5_S",
+      "z6/GW_Ceryshen_N"
+    ],
+    [
+      "c5/GW_Cavern5_E",
+      "z7/GW_Esamir_S"
+    ],
+    [
+      "c5/GW_Cavern5_W",
+      "z9/GW_Searhus_N"
+    ]
+  ],
+  "caverns-c5-c6": [
+    [
+      "c5/GW_Cavern5_N",
+      "z10/GW_Amerish_S"
+    ],
+    [
+      "c5/GW_Cavern5_S",
+      "z7/GW_Esamir_S"
+    ],
+    [
+      "c5/GW_Cavern5_E",
+      "z2/GW_Hossin_S"
+    ],
+    [
+      "c5/GW_Cavern5_W",
+      "z1/GW_Solsar_N"
+    ],
+    [
+      "c6/GW_Cavern6_N",
+      "z5/GW_Forseral_N"
+    ],
+    [
+      "c6/GW_Cavern6_S",
+      "z3/GW_Cyssor_N"
+    ],
+    [
+      "c6/GW_Cavern6_E",
+      "z6/GW_Ceryshen_N"
+    ],
+    [
+      "c6/GW_Cavern6_W",
+      "z9/GW_Searhus_N"
+    ]
+  ],
+  "caverns-c1-c6": [
+    [
+      "c1/GW_Cavern1_N",
+      "z3/GW_Cyssor_S"
+    ],
+    [
+      "c1/GW_Cavern1_S",
+      "z1/GW_Solsar_S"
+    ],
+    [
+      "c1/GW_Cavern1_E",
+      "z6/GW_Ceryshen_S"
+    ],
+    [
+      "c1/GW_Cavern1_W",
+      "z5/GW_Forseral_N"
+    ],
+    [
+      "c6/GW_Cavern6_N",
+      "z2/GW_Hossin_S"
+    ],
+    [
+      "c6/GW_Cavern6_S",
+      "z10/GW_Amerish_N"
+    ],
+    [
+      "c6/GW_Cavern6_E",
+      "z9/GW_Searhus_N"
+    ],
+    [
+      "c6/GW_Cavern6_W",
+      "z4/GW_Ishundar_N"
     ]
   ]
 }

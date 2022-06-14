@@ -25,7 +25,7 @@ import net.psforever.services.chat.ChatService
 import net.psforever.services.galaxy.GalaxyService
 import net.psforever.services.properties.PropertyOverrideManager
 import net.psforever.services.teamwork.SquadService
-import net.psforever.services.{InterstellarClusterService, ServiceManager}
+import net.psforever.services.{CavernRotationService, InterstellarClusterService, ServiceManager}
 import net.psforever.util.Config
 import net.psforever.zones.Zones
 import org.apache.commons.io.FileUtils
@@ -120,10 +120,6 @@ object Server {
     }
 
     val zones = Zones.zones ++ Seq(Zone.Nowhere)
-
-    system.spawn(ChatService(), ChatService.ChatServiceKey.id)
-    system.spawn(InterstellarClusterService(zones), InterstellarClusterService.InterstellarClusterServiceKey.id)
-
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(classic.Props[AccountIntermediaryService](), "accountIntermediary")
     serviceManager ! ServiceManager.Register(classic.Props[GalaxyService](), "galaxy")
@@ -131,6 +127,10 @@ object Server {
     serviceManager ! ServiceManager.Register(classic.Props[AccountPersistenceService](), "accountPersistence")
     serviceManager ! ServiceManager.Register(classic.Props[PropertyOverrideManager](), "propertyOverrideManager")
     serviceManager ! ServiceManager.Register(classic.Props[HartService](), "hart")
+
+    system.spawn(CavernRotationService(), CavernRotationService.CavernRotationServiceKey.id)
+    system.spawn(InterstellarClusterService(zones), InterstellarClusterService.InterstellarClusterServiceKey.id)
+    system.spawn(ChatService(), ChatService.ChatServiceKey.id)
 
     system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.login.port), login), "login-socket")
     system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.world.port), session), "world-socket")

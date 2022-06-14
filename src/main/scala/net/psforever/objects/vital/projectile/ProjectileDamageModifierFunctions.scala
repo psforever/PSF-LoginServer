@@ -253,7 +253,9 @@ case object SpikerChargeDamage extends ProjectileDamageModifiers.Mod {
     (projectile.fire_mode, projectile.profile.Charging) match {
       case (_: ChargeFireModeDefinition, Some(info: ChargeDamage)) =>
         val chargeQuality = math.max(0f, math.min(projectile.quality.mod, 1f))
-        cause.damageModel.DamageUsing(info.min) + (damage * chargeQuality).toInt
+        val min = cause.damageModel.DamageUsing(info.min)
+        val range = if (damage > min) { damage - min } else { min - damage }
+        min + (range * chargeQuality).toInt
       case _ =>
         damage
     }

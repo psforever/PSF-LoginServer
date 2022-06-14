@@ -1,8 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
+import enumeratum.values.IntEnum
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState}
+import net.psforever.types._
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -47,28 +48,7 @@ final case class Additional3(unk1: Boolean, unk2: Int)
   * A parameter that is not applicable for a given asset, e.g., NTU for a field tower, will be ignored.
   * A collision between some parameters can occur.
   * For example, if `is_hacking` is `false`, the other hacking fields are considered invalid.
-  * If `is_hacking` is `true` but the hacking empire is also the owning empire, the `is_hacking` state is invalid.<br>
-  * <br>
-  * Lattice benefits: (stackable)<br>
-  * `
-  * 00 - None<br>
-  * 01 - Amp Station<br>
-  * 02 - Dropship Center<br>
-  * 04 - Bio Laboratory<br>
-  * 08 - Interlink Facility<br>
-  * 16 - Technology Plant<br>
-  * `
-  * <br>
-  * Cavern benefits: (stackable)<br>
-  * `
-  * 000 - None<br>
-  * 004 - Speed Module<br>
-  * 008 - Shield Module<br>
-  * 016 - Vehicle Module<br>
-  * 032 - Equipment Module<br>
-  * 064 - Health Module<br>
-  * 128 - Pain Module<br>
-  * `
+  * If `is_hacking` is `true` but the hacking empire is also the owning empire, the `is_hacking` state is invalid.
   * @param continent_id the continent (zone)
   * @param building_map_id the map id of this building from the MPO files
   * @param ntu_level if the building has a silo, the amount of NTU in that silo;
@@ -87,9 +67,9 @@ final case class Additional3(unk1: Boolean, unk2: Int)
   * @param force_dome_active if the building is a capitol facility, whether the force dome is active
   * @param lattice_benefit the benefits from other Lattice-linked bases does this building possess
   * @param cavern_benefit cavern benefits;
-  *                        any non-zero value will cause the cavern module icon (yellow) to appear;
-  *                        proper module values cause the cavern module icon to render green;
-  *                        all benefits will report as due to a "Cavern Lock"
+  *                       any non-zero value will cause the cavern module icon (yellow) to appear;
+  *                       proper module values cause the cavern module icon to render green;
+  *                       all benefits will report as due to a "Cavern Lock"
   * @param unk4 na
   * @param unk5 na
   * @param unk6 na
@@ -112,8 +92,8 @@ final case class BuildingInfoUpdateMessage(
     generator_state: PlanetSideGeneratorState.Value,
     spawn_tubes_normal: Boolean,
     force_dome_active: Boolean,
-    lattice_benefit: Int,
-    cavern_benefit: Int,
+    lattice_benefit: Set[LatticeBenefit],
+    cavern_benefit: Set[CavernBenefit],
     unk4: List[Additional2],
     unk5: Long,
     unk6: Boolean,
@@ -128,7 +108,6 @@ final case class BuildingInfoUpdateMessage(
 }
 
 object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage] {
-
   /**
     * A `Codec` for a set of additional fields.
     */
@@ -154,6 +133,45 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
       ("unk2" | uint2L)
   ).as[Additional3]
 
+  /**
+    * A `Codec` for the benefits tallies
+    * transforming between numeric value and a set of enum values.
+    * The type of benefit is capable of being passed into the function.
+    * @param bits number of bits for this field
+    * @param objClass the benefits enumeration
+    * @tparam T the type of benefit in the enumeration (passive type)
+    * @return a `Codec` for the benefits tallies
+    */
+  private def benefitCodecFunc[T <: CaptureBenefit](bits: Int, objClass: IntEnum[T]): Codec[Set[T]] = {
+    assert(
+      math.pow(2, bits) >= objClass.values.maxBy(data => data.value).value,
+      s"BuildingInfoUpdateMessage - $bits is not enough bits to represent ${objClass.getClass().getSimpleName()}"
+    )
+    uintL(bits).xmap[Set[T]](
+      {
+        case 0 =>
+          Set(objClass.values.find(_.value == 0).get)
+        case n =>
+          val values = objClass
+            .values
+            .sortBy(_.value)(Ordering.Int.reverse)
+            .dropRight(1) //drop value == 0
+        var curr = n
+          values
+            .collect {
+              case benefit if benefit.value <= curr =>
+                curr = curr - benefit.value
+                benefit
+            }.toSet
+      },
+      benefits => benefits.foldLeft[Int](0)(_ + _.value)
+    )
+  }
+
+  private val latticeBenefitCodec: Codec[Set[LatticeBenefit]] = benefitCodecFunc(bits = 5, LatticeBenefit)
+
+  private val cavernBenefitCodec: Codec[Set[CavernBenefit]] = benefitCodecFunc(bits = 10, CavernBenefit)
+
   implicit val codec: Codec[BuildingInfoUpdateMessage] = (
     ("continent_id" | uint16L) ::
       ("building_id" | uint16L) ::
@@ -163,17 +181,17 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
       ("hack_time_remaining" | uint32L) ::
       ("empire_own" | PlanetSideEmpire.codec) ::
       (("unk1" | uint32L) >>:~ { unk1 =>
-      conditional(unk1 != 0L, "unk1x" | additional1_codec) ::
+      conditional(unk1 != 0L, codec = "unk1x" | additional1_codec) ::
         ("generator_state" | PlanetSideGeneratorState.codec) ::
         ("spawn_tubes_normal" | bool) ::
         ("force_dome_active" | bool) ::
-        ("lattice_benefit" | uintL(5)) ::
-        ("cavern_benefit" | uintL(10)) ::
+        ("lattice_benefit" | latticeBenefitCodec) ::
+        ("cavern_benefit" | cavernBenefitCodec) ::
         ("unk4" | listOfN(uint4L, additional2_codec)) ::
         ("unk5" | uint32L) ::
         ("unk6" | bool) ::
         (("unk7" | uint4L) >>:~ { unk7 =>
-        conditional(unk7 != 8, "unk7x" | additional3_codec) ::
+        conditional(unk7 != 8, codec = "unk7x" | additional3_codec) ::
           ("boost_spawn_pain" | bool) ::
           ("boost_generator_pain" | bool)
       })
