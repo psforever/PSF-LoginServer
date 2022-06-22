@@ -651,7 +651,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
       val msg = SquadDetailDefinitionUpdateMessage(
         PlanetSideGUID(3),
         SquadDetail()
-          .Field1(0)
+          .Guid(0)
           .LeaderCharId(1221560L)
           .Members(
             List(
@@ -677,7 +677,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         PlanetSideGUID(3),
         SquadDetail()
           .Leader(42631712L, "Jaako")
-          .Field3(556403L)
+          .OutfitId(556403L)
           .Members(
             List(
               SquadPositionEntry(0, SquadPositionDetail().Player(0L, ""))

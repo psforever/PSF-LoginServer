@@ -4170,9 +4170,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
         fallHeightTracker(pos.z)
-//        if (is_crouching && !player.Crouching) {
-//          //dev stuff goes here
-//        }
+        if (is_crouching && !player.Crouching) {
+          //dev stuff goes here
+          sendResponse(
+            ReplicationStreamMessage(
+              Seq(
+                SquadInfo("GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideZoneID(4), 7, 10, PlanetSideGUID(6)),
+                SquadInfo("NIGHT88RAVEN", "All Welcome", PlanetSideZoneID(10), 4, 10, PlanetSideGUID(3)),
+                SquadInfo("KOKkiasMFCN", "Squad 2", PlanetSideZoneID(4), 6, 10, PlanetSideGUID(4))
+              )
+            )
+          )
+        }
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)

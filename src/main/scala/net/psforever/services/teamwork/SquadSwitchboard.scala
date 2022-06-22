@@ -17,10 +17,12 @@ import net.psforever.types.{PlanetSideGUID, SquadWaypoint, Vector3, WaypointSubt
 
 /**
   * The dedicated messaging switchboard for members and observers of a given squad.
-  * It almost always dispatches messages to `WorldSessionActor` instances, much like any other `Service`.
+  * It almost always dispatches messages to `SessionActor` instances, much like any other `Service`.
   * The sole purpose of this `ActorBus` container is to manage a subscription model
   * that can involuntarily drop subscribers without informing them explicitly
   * or can just vanish without having to properly clean itself up.
+  * @param features squad and associated information about the squad
+  * @param subscriptions individually-connected subscription service
   */
 class SquadSwitchboard(
                         features: SquadFeatures,
@@ -119,7 +121,7 @@ class SquadSwitchboard(
     * @see `InitSquadDetail`
     * @see `InitWaypoints`
     * @see `Publish`
-    * @see `RemoveAllInvitesWithPlayer`
+    * @see `CleanUpAllInvitesWithPlayer`
     * @see `SquadDetail`
     * @see `SquadInfo`
     * @see `SquadPositionDetail`
@@ -760,6 +762,9 @@ class SquadSwitchboard(
     val squad = features.Squad
     squad.Membership.find(_.CharId == charId) match {
       case Some(member) =>
+        if (member.ZoneId != zoneNumber) {
+          //TODO update zone
+        }
         member.Health = StatConverter.Health(health, maxHealth, min = 1, max = 64)
         member.Armor = StatConverter.Health(armor, maxArmor, min = 1, max = 64)
         member.Position = pos

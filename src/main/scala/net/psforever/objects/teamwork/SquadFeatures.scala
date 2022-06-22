@@ -171,15 +171,24 @@ class SquadFeatures(val Squad: Squad) {
     ProxyInvites
   }
 
-  def Refuse: List[Long] = refusedPlayers
+  def DeniedPlayers(): List[Long] = refusedPlayers
 
-  def Refuse_=(charId: Long): List[Long] = {
-    Refuse_=(List(charId))
+  def DeniedPlayers(charId: Long): List[Long] = {
+    DeniedPlayers(List(charId))
   }
 
-  def Refuse_=(list: List[Long]): List[Long] = {
+  def DeniedPlayers(list: List[Long]): List[Long] = {
     refusedPlayers = list ++ refusedPlayers
-    Refuse
+    DeniedPlayers()
+  }
+
+  def AllowedPlayers(charId: Long): List[Long] = {
+    AllowedPlayers(List(charId))
+  }
+
+  def AllowedPlayers(list: List[Long]): List[Long] = {
+    refusedPlayers = refusedPlayers.filterNot(list.contains)
+    DeniedPlayers()
   }
 
   def LocationFollowsSquadLead: Boolean = locationFollowsSquadLead

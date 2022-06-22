@@ -65,8 +65,8 @@ final case class SquadInfo(
     this And SquadInfo(None, None, Some(zone), None, None, None)
   def ZoneId(zone: Option[PlanetSideZoneID]): SquadInfo =
     zone match {
-      case Some(zoneId) => this And SquadInfo(None, None, zone, None, None, None)
-      case None         => SquadInfo(leader, task, zone, size, capacity, squad_guid)
+      case Some(_) => this And SquadInfo(None, None, zone, None, None, None)
+      case None    => SquadInfo(leader, task, zone, size, capacity, squad_guid)
     }
   def Size(sz: Int): SquadInfo =
     this And SquadInfo(None, None, None, Some(sz), None, None)
@@ -612,8 +612,8 @@ object SquadHeader {
     (bool >>:~ { unk1 =>
       uint8 >>:~ { unk2 =>
         conditional(!unk1 && unk2 == 1, removeCodec) ::
-          conditional(unk1 && unk2 == 6, providedCodec) ::
-          conditional(unk1 && unk2 != 6, listing_codec(unk2))
+        conditional(unk1 && unk2 == 6, providedCodec) ::
+        conditional(unk1 && unk2 != 6, listing_codec(unk2))
       }
     }).exmap[Option[SquadInfo]](
       {
@@ -691,10 +691,8 @@ object SquadListing {
   private def meta_codec(entryFunc: Int => Codec[Option[SquadInfo]]): Codec[SquadListing] =
     (("index" | uint8L) >>:~ { index =>
       conditional(index < 255, "listing" | entryFunc(index)) ::
-        conditional(
-          index == 255,
-          bits
-        ) //consume n < 8 bits after the tail entry, else vector will try to operate on invalid data
+        conditional(index == 255, bits)
+      //consume n < 8 bits after the tail entry, else vector will try to operate on invalid data
     }).xmap[SquadListing](
       {
         case ndx :: Some(lstng) :: _ :: HNil =>
@@ -717,7 +715,7 @@ object SquadListing {
     * `Codec` for branching types of `SquadListing` initializations.
     */
   val info_codec: Codec[SquadListing] = meta_codec({ index: Int =>
-    newcodecs.binary_choice(index == 0, "listing" | SquadHeader.info_codec, "listing" | SquadHeader.alt_info_codec)
+    newcodecs.binary_choice(index == 0, SquadHeader.info_codec, SquadHeader.alt_info_codec)
   })
 }
 
@@ -738,14 +736,15 @@ object ReplicationStreamMessage extends Marshallable[ReplicationStreamMessage] {
     )
   }
 
-  implicit val codec: Codec[ReplicationStreamMessage] = (("behavior" | uintL(3)) >>:~ { behavior =>
-    conditional(behavior == 5, "behavior2" | uintL(3)) ::
+  implicit val codec: Codec[ReplicationStreamMessage] = (
+    ("behavior" | uintL(bits = 3)) >>:~ { behavior =>
+      ("behavior2" | conditional(behavior == 5, uintL(bits = 3))) ::
       conditional(behavior != 1, bool) ::
-      newcodecs.binary_choice(
+      ("entries" | newcodecs.binary_choice(
         behavior != 5,
-        "entries" | vector(SquadListing.codec),
-        "entries" | vector(SquadListing.info_codec)
-      )
+        vector(SquadListing.codec),
+        vector(SquadListing.info_codec)
+      ))
   }).xmap[ReplicationStreamMessage](
     {
       case bhvr :: bhvr2 :: _ :: lst :: HNil =>

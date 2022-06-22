@@ -143,7 +143,7 @@ final case class SquadPositionEntry(index: Int, info: Option[SquadPositionDetail
   * All fields are optional for that reason.<br>
   * <br>
   * The squad leader does not necessarily have to be a person from the `member_info` list.
-  * @param unk1 na;
+  * @param guid na;
   *             must be non-zero when parsed in a FullSquad pattern
   * @param unk2 na;
   *             not associated with any fields during itemized parsing
@@ -157,7 +157,7 @@ final case class SquadPositionEntry(index: Int, info: Option[SquadPositionDetail
   * @param member_info a list of squad position data
   */
 final case class SquadDetail(
-    unk1: Option[Int],
+    guid: Option[Int],
     unk2: Option[Int],
     leader_char_id: Option[Long],
     outfit_id: Option[Long],
@@ -176,7 +176,7 @@ final case class SquadDetail(
     */
   def And(info: SquadDetail): SquadDetail = {
     SquadDetail(
-      unk1.orElse(info.unk1),
+      guid.orElse(info.guid),
       unk2.orElse(info.unk2),
       leader_char_id.orElse(info.leader_char_id),
       outfit_id.orElse(info.outfit_id),
@@ -202,12 +202,14 @@ final case class SquadDetail(
   }
 
   //methods intended to combine the fields of itself and another object
-  def Field1(value: Int): SquadDetail =
-    this And SquadDetail(Some(value), None, None, None, None, None, None, None, None)
+  def Guid(guid: Int): SquadDetail =
+    this And SquadDetail(Some(guid), None, None, None, None, None, None, None, None)
+  def Field2(value: Int): SquadDetail =
+    this And SquadDetail(None, Some(value), None, None, None, None, None, None, None)
   def LeaderCharId(char_id: Long): SquadDetail =
     this And SquadDetail(None, None, Some(char_id), None, None, None, None, None, None)
-  def Field3(value: Long): SquadDetail =
-    this And SquadDetail(None, None, None, Some(value), None, None, None, None, None)
+  def OutfitId(outfit: Long): SquadDetail =
+    this And SquadDetail(None, None, None, Some(outfit), None, None, None, None, None)
   def LeaderName(name: String): SquadDetail =
     this And SquadDetail(None, None, None, None, Some(name), None, None, None, None)
   def Leader(char_id: Long, name: String): SquadDetail =
@@ -228,14 +230,14 @@ final case class SquadDetail(
     */
   def Complete: SquadDetail =
     SquadDetail(
-      unk1.orElse(Some(1)),
+      guid.orElse(Some(1)),
       unk2.orElse(Some(0)),
       leader_char_id.orElse(Some(0L)),
       outfit_id.orElse(Some(0L)),
       leader_name.orElse(Some("")),
       task.orElse(Some("")),
       zone_id.orElse(Some(PlanetSideZoneID(0))),
-      unk7.orElse(Some(4983296)), //FullSquad value
+      unk7.orElse(Some(4983296)), //FullSquad value?
       {
         val complete = SquadPositionDetail().Complete
         Some(member_info match {
@@ -380,8 +382,8 @@ object SquadDetail {
   }
 
   //individual field overloaded constructors
-  def Field1(unk1: Int): SquadDetail =
-    SquadDetail(Some(unk1), None, None, None, None, None, None, None, None)
+  def Guid(guid: Int): SquadDetail =
+    SquadDetail(Some(guid), None, None, None, None, None, None, None, None)
   def LeaderCharId(char_id: Long): SquadDetail =
     SquadDetail(None, None, Some(char_id), None, None, None, None, None, None)
   def OutfitId(char_id: Option[Long], outfit_id: Long): SquadDetail =
@@ -400,9 +402,9 @@ object SquadDetail {
     SquadDetail(None, None, None, None, None, None, None, None, Some(list))
 
   object Fields {
-    final val Field1  = 1
+    final val Guid    = 1
     final val CharId  = 2
-    final val Field3  = 3
+    final val Outfit  = 3
     final val Leader  = 4
     final val Task    = 5
     final val ZoneId  = 6
@@ -541,8 +543,8 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
     val codec: Codec[SquadDetail] = {
       import shapeless.::
       (
-        ("unk1" | uint8) ::
-          ("unk2" | uint24) :: //unknown, but can be 0'd
+        ("guid" | uint16L) ::
+          ("unk2" | uint16L) :: //unknown, but can be 0'd
           ("leader_char_id" | uint32L) ::
           ("outfit_id" | uint32L) :: //can be 0'd
           ("leader" | PacketHelpers.encodedWideStringAligned(7)) ::
@@ -552,10 +554,10 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
           optional(bool, "member_info" | initial_member_codec)
       ).exmap[SquadDetail](
         {
-          case u1 :: u2 :: char_id :: outfit_id :: leader :: task :: zone :: unk7 :: Some(member_list) :: HNil =>
+          case guid :: u2 :: char_id :: outfit_id :: leader :: task :: zone :: unk7 :: Some(member_list) :: HNil =>
             Attempt.Successful(
               SquadDetail(
-                Some(u1),
+                Some(guid),
                 Some(u2),
                 Some(char_id),
                 Some(outfit_id),
@@ -573,7 +575,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
         },
         {
           case SquadDetail(
-                Some(u1),
+                Some(guid),
                 Some(u2),
                 Some(char_id),
                 Some(outfit_id),
@@ -584,7 +586,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
                 Some(member_list)
               ) =>
             Attempt.Successful(
-              math.max(u1, 1) :: u2 :: char_id :: outfit_id :: leader :: task :: zone :: unk7 ::
+              math.max(guid, 1) :: u2 :: char_id :: outfit_id :: leader :: task :: zone :: unk7 ::
                 Some(linkFields(member_list.collect { case SquadPositionEntry(_, Some(entry)) => entry }.reverse)) ::
                 HNil
             )
@@ -605,15 +607,15 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
   object ItemizedSquad {
 
     /**
-      * A pattern for data related to "field1."
+      * A pattern for data related to the `guid` field.
       */
-    private val field1Codec: Codec[SquadDetail] = uint16L.exmap[SquadDetail](
-      unk1 => Attempt.successful(SquadDetail(Some(unk1), None, None, None, None, None, None, None, None)),
+    private val guidCodec: Codec[SquadDetail] = uint16L.exmap[SquadDetail](
+      guid => Attempt.successful(SquadDetail(Some(guid), None, None, None, None, None, None, None, None)),
       {
-        case SquadDetail(Some(unk1), _, _, _, _, _, _, _, _) =>
-          Attempt.successful(unk1)
+        case SquadDetail(Some(guid), _, _, _, _, _, _, _, _) =>
+          Attempt.successful(guid)
         case _ =>
-          Attempt.failure(Err("failed to encode squad data for unknown field #1"))
+          Attempt.failure(Err("failed to encode squad data for the guid"))
       }
     )
 
@@ -631,7 +633,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
     )
 
     /**
-      * A pattern for data related to "field3."
+      * A pattern for data related to the "outfit id" field.
       */
     private val outfitCodec: Codec[SquadDetail] = uint32L.exmap[SquadDetail](
       outfit_id => Attempt.successful(SquadDetail(None, None, None, Some(outfit_id), None, None, None, None, None)),
@@ -807,7 +809,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
       */
     private def selectCodedAction(code: Int, bitsOverByte: StreamLengthToken): Codec[SquadDetail] = {
       code match {
-        case 1 => field1Codec
+        case 1 => guidCodec
         case 2 => leaderCharIdCodec
         case 3 => outfitCodec
         case 4 => leaderNameCodec(bitsOverByte)
@@ -888,7 +890,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
         (4, SquadDetail(None, None, None, None, info.leader_name, None, None, None, None)),
         (3, SquadDetail(None, None, None, info.outfit_id, None, None, None, None, None)),
         (2, SquadDetail(None, None, info.leader_char_id, None, None, None, None, None, None)),
-        (1, SquadDetail(info.unk1, None, None, None, None, None, None, None, None))
+        (1, SquadDetail(info.guid, None, None, None, None, None, None, None, None))
       ) //in reverse order so that the linked list is in the correct order
         .filterNot { case (_, sqInfo) => sqInfo == SquadDetail.Blank } match {
         case Nil =>
@@ -1102,12 +1104,12 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
       */
     private def modifyCodedPadValue(code: Int, bitsOverByte: StreamLengthToken): StreamLengthToken = {
       code match {
-        case 0 => bitsOverByte.Add(1)                //additional 1u
+        case 0 => bitsOverByte.Add(1)         //additional 1u
         case 1 => bitsOverByte.Length = 0            //byte-aligned string; padding zero'd
         case 2 => bitsOverByte.Length = 0            //byte-aligned string; padding zero'd
         case 3 => bitsOverByte                       //32u = no added padding
         case 4 => bitsOverByte.Length = 0            //byte-aligned string; padding zero'd
-        case 5 => bitsOverByte.Add(6)                //46u = 5*8u + 6u = additional 6u
+        case 5 => bitsOverByte.Add(6)         //46u = 5*8u + 6u = additional 6u
         case _ => bitsOverByte.Length = Int.MinValue //wildly incorrect
       }
     }
@@ -1587,7 +1589,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
       {
         case SquadDetailDefinitionUpdateMessage(guid, info) =>
           val occupiedSquadFieldCount = List(
-            info.unk1,
+            info.guid,
             info.unk2,
             info.leader_char_id,
             info.outfit_id,
