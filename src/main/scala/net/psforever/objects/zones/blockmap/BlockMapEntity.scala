@@ -5,7 +5,7 @@ import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 
-sealed case class BlockMapEntry(coords: Vector3, rangeX: Float, rangeY: Float, sectors: Set[Int])
+sealed case class BlockMapEntry(map: BlockMap, coords: Vector3, rangeX: Float, rangeY: Float, sectors: Set[Int])
 
 /**
   * An game object that can be represented on a blockmap.
@@ -71,8 +71,8 @@ object BlockMapEntity {
     * @param sectors the indices of sectors on the blockmap
     * @return a `BlockMapEntry` entity
     */
-  def apply(coords: Vector3, range: Float, sectors: Set[Int]): BlockMapEntry =
-    BlockMapEntry(coords, range, range, sectors)
+  def apply(blocks: BlockMap, coords: Vector3, range: Float, sectors: Set[Int]): BlockMapEntry =
+    BlockMapEntry(blocks, coords, range, range, sectors)
 
   /**
     * The entity is currently excluded from being represented on a blockmap structure.
@@ -97,7 +97,9 @@ object BlockMapEntity {
   private def updateBlockMap(target: BlockMapEntity, newCoords: Vector3): Boolean = {
     target.blockMapEntry match {
       case Some(oldEntry) =>
-        target.blockMapEntry = Some(BlockMapEntry(newCoords, oldEntry.rangeX, oldEntry.rangeY, oldEntry.sectors))
+        target.blockMapEntry = Some(
+          BlockMapEntry(oldEntry.map, newCoords, oldEntry.rangeX, oldEntry.rangeY, oldEntry.sectors)
+        )
         true
       case None =>
         false
