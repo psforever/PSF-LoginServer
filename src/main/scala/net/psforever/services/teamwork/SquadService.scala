@@ -327,7 +327,12 @@ class SquadService extends Actor {
                                 sender: ActorRef
                               ): Unit = {
     //send initial squad catalog
-    subs.Publish(sender, SquadResponse.InitList(PublishedLists(tplayer.Faction)))
+    val squads = PublishedLists(tplayer.Faction)
+    subs.Publish(sender, SquadResponse.InitList(squads))
+    squads.foreach { squad =>
+      val guid = squad.squad_guid.get
+      subs.Publish(sender, SquadResponse.SquadDecoration(guid, squadFeatures(guid).Squad))
+    }
   }
 
   def SquadActionInitCharId(tplayer: Player): Unit = {
@@ -1124,6 +1129,7 @@ class SquadService extends Actor {
       case _: LocationFollowsSquadLead =>                    GetOrCreateSquadOnlyIfLeader(tplayer)
       case _: AutoApproveInvitationRequests =>               GetOrCreateSquadOnlyIfLeader(tplayer)
       case _: RequestListSquad =>                            GetOrCreateSquadOnlyIfLeader(tplayer)
+      case _: StopListSquad =>                               GetLeadingSquad(tplayer, None)
         //the following actions cause changes with the squad composition or with invitations
       case CloseSquadMemberPosition(position) =>
         GetOrCreateSquadOnlyIfLeader(tplayer) match {
@@ -2960,6 +2966,7 @@ class SquadService extends Actor {
           case Some(changedFields) =>
             //squad information update
             subs.Publish(faction, SquadResponse.UpdateList(Seq((index, changedFields))))
+            subs.Publish(faction, SquadResponse.SquadDecoration(guid, squad))
           case None =>
             //remove squad from listing
             factionListings.remove(index)
@@ -2970,6 +2977,7 @@ class SquadService extends Actor {
         //first time being published
         factionListings += guid
         subs.Publish(faction, SquadResponse.InitList(PublishedLists(factionListings.flatMap { GetSquad })))
+        subs.Publish(faction, SquadResponse.SquadDecoration(guid, squad))
     }
   }
 

@@ -712,26 +712,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       zoningType = Zoning.Method.InstantAction
       zoningChatMessageType = ChatMessageType.CMT_INSTANTACTION
       zoningStatus = Zoning.Status.Request
-      /* TODO no ask or adapters from classic to typed so this logic is happening in SpawnPointResponse
-      implicit val timeout = Timeout(1 seconds)
-      val future =
-        ask(cluster.toClassic, ICS.GetInstantActionSpawnPoint(player.Faction, context.self))
-          .mapTo[ICS.SpawnPointResponse]
-      Await.result(future, 2 second) match {
-        case ICS.SpawnPointResponse(None) =>
-          sendResponse(
-            ChatMsg(ChatMessageType.CMT_INSTANTACTION, false, "", "@InstantActionNoHotspotsAvailable", None)
-          )
-        case ICS.SpawnPointResponse(Some(_)) =>
-          beginZoningCountdown(() => {
-            cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
-          })
-      }
-
-      beginZoningCountdown(() => {
-        cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
-      })
-       */
       cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
 
     case Quit() =>
@@ -956,6 +936,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 }.toVector
               )
             )
+
+          case SquadResponse.SquadDecoration(guid, squad) =>
+            val decoration = if (
+              squad.Size == squad.Capacity |
+              {
+                val offer = avatar.certifications
+                !squad.Membership.exists { _.isAvailable(offer) }
+              }
+            ) {
+              SquadListDecoration.NotAvailable
+            } else {
+              SquadListDecoration.Available
+            }
+            sendResponse(SquadDefinitionActionMessage(guid, 0, SquadAction.SquadListDecorator(decoration)))
 
           case SquadResponse.Detail(guid, detail) =>
             sendResponse(SquadDetailDefinitionUpdateMessage(guid, detail))
@@ -4170,18 +4164,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           CancelZoningProcessWithDescriptiveReason("cancel_motion")
         }
         fallHeightTracker(pos.z)
-        if (is_crouching && !player.Crouching) {
-          //dev stuff goes here
-          sendResponse(
-            ReplicationStreamMessage(
-              Seq(
-                SquadInfo("GeneralGorgutz", "FLY,All welcome,cn last night!!!!", PlanetSideZoneID(4), 7, 10, PlanetSideGUID(6)),
-                SquadInfo("NIGHT88RAVEN", "All Welcome", PlanetSideZoneID(10), 4, 10, PlanetSideGUID(3)),
-                SquadInfo("KOKkiasMFCN", "Squad 2", PlanetSideZoneID(4), 6, 10, PlanetSideGUID(4))
-              )
-            )
-          )
-        }
+//        if (is_crouching && !player.Crouching) {
+//          //dev stuff goes here
+//        }
         player.Position = pos
         player.Velocity = vel
         player.Orientation = Vector3(player.Orientation.x, pitch, yaw)

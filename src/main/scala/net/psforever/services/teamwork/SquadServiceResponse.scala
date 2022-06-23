@@ -60,4 +60,6 @@ object SquadResponse {
   ) extends Response
 
   final case class SquadSearchResults() extends Response
+
+  final case class SquadDecoration(guid: PlanetSideGUID, squad: Squad) extends Response
 }
