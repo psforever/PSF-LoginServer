@@ -1334,8 +1334,8 @@ object GlobalDefinitions {
 
   val hst = new WarpGateDefinition(402)
   hst.Name = "hst"
-  hst.UseRadius = 20.4810f
-  hst.SOIRadius = 21
+  hst.UseRadius = 64.96882005f
+  hst.SOIRadius = 82
   hst.VehicleAllowance = true
   hst.NoWarp += dropship
   hst.NoWarp += galaxy_gunship
@@ -1346,28 +1346,28 @@ object GlobalDefinitions {
   hst.NoWarp += colossus_flight
   hst.NoWarp += peregrine_gunner
   hst.NoWarp += peregrine_flight
-  hst.SpecificPointFunc = SpawnPoint.Gate
+  hst.SpecificPointFunc = SpawnPoint.SmallGate(innerRadius = 5f)
 
   val warpgate = new WarpGateDefinition(993)
   warpgate.Name = "warpgate"
-  warpgate.UseRadius = 301.8713f
+  warpgate.UseRadius = 67.81070029f //301.8713f
   warpgate.SOIRadius = 302
   warpgate.VehicleAllowance = true
   warpgate.SpecificPointFunc = SpawnPoint.Gate
 
   val warpgate_cavern = new WarpGateDefinition(994)
   warpgate_cavern.Name = "warpgate_cavern"
-  warpgate_cavern.UseRadius = 51.0522f
+  warpgate_cavern.UseRadius = 20.72639434f
   warpgate_cavern.SOIRadius = 52
   warpgate_cavern.VehicleAllowance = true
-  warpgate_cavern.SpecificPointFunc = SpawnPoint.HalfHighGate
+  warpgate_cavern.SpecificPointFunc = SpawnPoint.CavernGate
 
   val warpgate_small = new WarpGateDefinition(995)
   warpgate_small.Name = "warpgate_small"
-  warpgate_small.UseRadius = 103f
+  warpgate_small.UseRadius = 69.03687655f
   warpgate_small.SOIRadius = 103
   warpgate_small.VehicleAllowance = true
-  warpgate_small.SpecificPointFunc = SpawnPoint.Gate
+  warpgate_small.SpecificPointFunc = SpawnPoint.SmallGate(innerRadius = 27.60654127f)
 
   val bunker_gauntlet = new BuildingDefinition(150) { Name = "bunker_gauntlet" }
   val bunker_lg       = new BuildingDefinition(151) { Name = "bunker_lg" }
