@@ -532,7 +532,7 @@ object PointOfInterest {
       "geowarp1" -> Vector3(902, 1811, 93),
       "geowarp2" -> Vector3(185, 922, 113),
       "geowarp3" -> Vector3(1696, 1188, 92),
-      "geowarp4" -> Vector3(887, 227, 115)
+      "geowarp4" -> Vector3(887, 218, 117)
     )
     zones("c5").gates ++= Map(
       "geowarp1" -> Vector3(1195, 1752, 244),
@@ -541,10 +541,10 @@ object PointOfInterest {
       "geowarp4" -> Vector3(1042, 225, 246)
     )
     zones("c6").gates ++= Map(
-      "geowarp1" -> Vector3(1067, 2044, 95),
+      "geowarp1" -> Vector3(1066, 2053, 97),
       "geowarp2" -> Vector3(290, 693, 73),
       "geowarp3" -> Vector3(1922, 928, 33),
-      "geowarp4" -> Vector3(1174, 249, 114)
+      "geowarp4" -> Vector3(1172, 249, 114)
     )
     zones("i3").gates ++= Map(
       "gate1" -> Vector3(1219, 2580, 30),

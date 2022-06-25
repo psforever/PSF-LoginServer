@@ -353,7 +353,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "ugd03",
         checksum = 1673539651L,
         scale = MapScale.Dim2048,
-        environment = List(SeaLevel(EnvironmentAttribute.Death, 30)) //not actually lava, but a kill plane if you fall beneath the map
+        environment = List(SeaLevel(EnvironmentAttribute.Death, 10)) //not actually lava, but a kill plane if you fall beneath the map
       )
 
   case object Ugd04
@@ -361,7 +361,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "ugd04",
         checksum = 3797992164L,
         scale = MapScale.Dim2048,
-        environment = List(SeaLevel(EnvironmentAttribute.Death, 51.215f)) //ADB: 51.414f
+        environment = List(SeaLevel(EnvironmentAttribute.Death, 51f)) //ADB: 51.414f
       )
 
   case object Ugd05
@@ -377,7 +377,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         value = "ugd06",
         checksum = 4274683970L,
         scale = MapScale.Dim2560,
-        environment = List(SeaLevel(EnvironmentAttribute.Death, 55)) //not actually lava, but a kill plane if you fall beneath the map
+        environment = List(SeaLevel(EnvironmentAttribute.Death, 30)) //not actually lava, but a kill plane if you fall beneath the map
       )
 
   case object Map96

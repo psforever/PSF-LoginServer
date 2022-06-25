@@ -105,17 +105,17 @@ object SpawnPoint {
     )
   }
 
-  def Gate(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
+  private def metaGate(obj: SpawnPoint, target: PlanetSideGameObject, innerRadius: Float): (Vector3, Vector3) = {
     obj.Definition match {
       case d: SpawnPointDefinition =>
         val ori  = target.Orientation
         val zrad = math.toRadians(ori.z)
         val radius =
-          scala.math.random().toFloat * d.UseRadius / 2 + 20f //20 is definitely outside of the gating energy field
-        val shift = Vector3(math.sin(zrad).toFloat, math.cos(zrad).toFloat, 0) * radius
+          scala.math.random().toFloat * (d.UseRadius - innerRadius) + innerRadius
+      val shift = Vector3(math.sin(zrad).toFloat, math.cos(zrad).toFloat, 0) * radius
         val altitudeShift = target.Definition match {
           case vdef: VehicleDefinition if GlobalDefinitions.isFlightVehicle(vdef) =>
-            Vector3.z(scala.math.random().toFloat * d.UseRadius / 4 + 20f)
+            Vector3.z(scala.math.random().toFloat * d.UseRadius)
           case _ =>
             Vector3.Zero
         }
@@ -125,13 +125,34 @@ object SpawnPoint {
     }
   }
 
-  def HalfHighGate(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
-    val (a, b) = Gate(obj, target)
+  def Gate(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
+    val (pos, ori) = metaGate(obj, target, innerRadius = 10f)
+    (
+      target.Definition match {
+        case vdef: VehicleDefinition if GlobalDefinitions.isFlightVehicle(vdef) => pos
+        case _                                                                  => pos + Vector3.z(value = 9.328125f)
+      },
+      ori
+    )
+  }
+
+  def CavernGate(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
+    val (a, b) = metaGate(obj, target, innerRadius = 5f)
     target match {
       case v: Vehicle if GlobalDefinitions.isFlightVehicle(v.Definition) =>
         (a.xy + Vector3.z((target.Position.z + a.z) * 0.5f), b)
       case _ =>
-        (a, b)
+        (a + Vector3.z(value = 3f), b)
+    }
+  }
+
+  def SmallGate(innerRadius: Float)(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
+    val (a, b) = metaGate(obj, target, innerRadius)
+    target match {
+      case v: Vehicle if GlobalDefinitions.isFlightVehicle(v.Definition) =>
+        (a.xy + Vector3.z((target.Position.z + a.z) * 0.5f), b)
+      case _ =>
+        (a + Vector3.z(value = 0.5f), b)
     }
   }
 }

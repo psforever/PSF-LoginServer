@@ -239,6 +239,15 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   }
 }
 
+object Sector {
+  /**
+    * An sector that is empty forever.
+    */
+  final val Empty = new Sector(longitude = 0, latitude = 0, span = 0) {
+    override def addTo(o : BlockMapEntity): Boolean = false
+  }
+}
+
 /**
   * The specific datastructure that is mentioned when using the term "sector conglomerate".
   * Typically used to compose the lists of entities from various individual sectors.

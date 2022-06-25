@@ -62,8 +62,10 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     */
   def sector(entity: BlockMapEntity): SectorPopulation = {
     entity.blockMapEntry match {
-      case Some(entry) => BlockMap.quickToSectorGroup(entry.sectors.map { blocks })
-      case None        => SectorGroup(Nil)
+      case Some(entry) =>
+        BlockMap.quickToSectorGroup(BlockMap.sectorsOnlyWithinBlockStructure(entry.sectors, entry.map.blocks))
+      case None =>
+        SectorGroup(Nil)
     }
   }
 
@@ -78,8 +80,9 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     */
   def sector(p: Vector3, range: Float): SectorPopulation = {
     val indices = BlockMap.findSectorIndices(blockMap = this, p, range)
+
     if (indices.max < blocks.size) {
-      BlockMap.quickToSectorGroup(range, indices.map { blocks } )
+      BlockMap.quickToSectorGroup(range, BlockMap.sectorsOnlyWithinBlockStructure(indices, blocks) )
     } else {
       SectorGroup(Nil)
     }
@@ -146,9 +149,9 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     */
   def addTo(target: BlockMapEntity, toPosition: Vector3, rangeX: Float, rangeY: Float): SectorPopulation = {
     val to = BlockMap.findSectorIndices(blockMap = this, toPosition, rangeX, rangeY)
-    val toSectors = to.toSet.map { blocks }
+    val toSectors = BlockMap.sectorsOnlyWithinBlockStructure(to, blocks)
     toSectors.foreach { block => block.addTo(target) }
-    target.blockMapEntry = Some(BlockMapEntry(toPosition, rangeX, rangeY, to.toSet))
+    target.blockMapEntry = Some(BlockMapEntry(this, toPosition, rangeX, rangeY, to.toSet))
     BlockMap.quickToSectorGroup(rangeX, rangeY, toSectors)
   }
 
@@ -220,7 +223,7 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     target.blockMapEntry match {
       case Some(entry) =>
         target.blockMapEntry = None
-        val from = entry.sectors.map { blocks }
+        val from = BlockMap.sectorsOnlyWithinBlockStructure(entry.sectors, entry.map.blocks)
         from.foreach { block => block.removeFrom(target) }
         BlockMap.quickToSectorGroup(rangeX, rangeY, from)
       case None =>
@@ -293,10 +296,10 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
       case Some(entry) =>
         val from = entry.sectors
         val to = BlockMap.findSectorIndices(blockMap = this, toPosition, rangeX, rangeY).toSet
-        to.diff(from).foreach { index => blocks(index).addTo(target) }
-        from.diff(to).foreach { index => blocks(index).removeFrom(target) }
-        target.blockMapEntry = Some(BlockMapEntry(toPosition, rangeX, rangeY, to))
-        BlockMap.quickToSectorGroup(rangeX, rangeY, to.map { blocks })
+        to.diff(from).foreach { index => BlockMap.sectorOnlyWithinBlockStructure(index, blocks).addTo(target) }
+        from.diff(to).foreach { index => BlockMap.sectorOnlyWithinBlockStructure(index, entry.map.blocks).removeFrom(target) }
+        target.blockMapEntry = Some(BlockMapEntry(this, toPosition, rangeX, rangeY, to))
+        BlockMap.quickToSectorGroup(rangeX, rangeY, BlockMap.sectorsOnlyWithinBlockStructure(to, blocks))
       case None    =>
         SectorGroup(Nil)
     }
@@ -480,6 +483,42 @@ object BlockMap {
       SectorGroup(rangeX, rangeY, to.head)
     } else {
       SectorGroup(rangeX, rangeY, to)
+    }
+  }
+
+  /**
+    * Find a blockmap sector that most closely corresponds to the index.
+    * @see `sectorsOnlyWithinBlockStructure`
+    * @param index the index of the sector
+    * @param structure the collection of sectors
+    * @return the sector at the index position, or a blank sector
+    */
+  private def sectorOnlyWithinBlockStructure(
+                                              index: Int,
+                                              structure: Iterable[Sector]
+                                            ): Sector = {
+    if (index < structure.size) {
+      structure.toSeq(index)
+    } else {
+      Sector.Empty
+    }
+  }
+
+  /**
+    * Find a collection of blockmap sectors that most closely corresponds to the indices.
+    * @see `sectorOnlyWithinBlockStructure`
+    * @param list the indices of sectors
+    * @param structure the collection of sectors
+    * @return the collection of sectors at the index positions, or a blank collection
+    */
+  private def sectorsOnlyWithinBlockStructure(
+                                               list: Iterable[Int],
+                                               structure: Iterable[Sector]
+                                             ): Iterable[Sector] = {
+    if (list.max < structure.size) {
+      list.toSet.map { structure.toSeq }
+    } else {
+      List[Sector]()
     }
   }
 }
