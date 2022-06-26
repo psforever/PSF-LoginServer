@@ -1187,9 +1187,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             }
 
-          case SquadResponse.SquadSearchResults() =>
-            //I don't actually know how to return search results
-            sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.NoSquadSearchResults()))
+          case SquadResponse.SquadSearchResults(results) =>
+            //TODO positive squad search results message?
+            if(results.nonEmpty) {
+              results.foreach { guid =>
+                sendResponse(SquadDefinitionActionMessage(
+                  guid,
+                  0,
+                  SquadAction.SquadListDecorator(SquadListDecoration.SearchResult))
+                )
+              }
+            } else {
+              sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.NoSquadSearchResults()))
+            }
+            sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.CancelSquadSearch()))
 
           case SquadResponse.InitWaypoints(char_id, waypoints) =>
             waypoints.foreach {
@@ -2844,7 +2855,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case None =>
             avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
             TaskWorkflow.execute(BuyNewEquipmentPutInInventory(
-              continent.GUID(tplayer.VehicleSeated) match { case Some(v: Vehicle) => v; case _ => player },
+              continent.GUID(tplayer.VehicleSeated) match { case Some(v: Vehicle) => v; case _ => tplayer },
               tplayer,
               msg.terminal_guid
             )(item))
@@ -2855,10 +2866,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case Terminal.LearnCertification(cert) =>
         avatarActor ! AvatarActor.LearnCertification(msg.terminal_guid, cert)
+        squadService ! SquadServiceMessage(tplayer, continent, SquadServiceAction.ReloadDecoration())
         lastTerminalOrderFulfillment = true
 
       case Terminal.SellCertification(cert) =>
         avatarActor ! AvatarActor.SellCertification(msg.terminal_guid, cert)
+        squadService ! SquadServiceMessage(tplayer, continent, SquadServiceAction.ReloadDecoration())
         lastTerminalOrderFulfillment = true
 
       case Terminal.LearnImplant(implant) =>

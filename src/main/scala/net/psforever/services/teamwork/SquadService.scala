@@ -8,7 +8,7 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 import net.psforever.objects.{LivePlayerList, Player}
 import net.psforever.objects.teamwork.{Member, Squad, SquadFeatures}
-import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.definition.converter.StatConverter
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.SquadAction._
@@ -66,17 +66,20 @@ class SquadService extends Actor {
     * key - a unique character identifier number;
     * value - a list of unique character identifier numbers, squad leaders or once-squad leaders
     */
-  private val refused: mutable.LongMap[List[Long]] = mutable.LongMap[List[Long]]()
   /*
-  When a player refuses an invitation by a squad leader,
-  that squad leader will not be able to send further invitations (this field).
-  If the player submits an invitation request for that squad,
-  the current squad leader is cleared from the blocked list.
-  When a squad leader refuses an invitation by a player,
-  that player will not be able to send further invitations (field on sqaud's features).
-  If the squad leader sends an invitation request for that player,
-  the current player is cleared from the blocked list.
+    When a player refuses an invitation by a squad leader,
+    that squad leader will not be able to send further invitations (this field).
+    If the player submits an invitation request for that squad,
+    the current squad leader is cleared from the blocked list.
+    When a squad leader refuses an invitation by a player,
+    that player will not be able to send further invitations (field on sqaud's features).
+    If the squad leader sends an invitation request for that player,
+    the current player is cleared from the blocked list.
    */
+  private val refused: mutable.LongMap[List[Long]] = mutable.LongMap[List[Long]]()
+
+  private val searchData: mutable.LongMap[SquadService.SearchCriteria] =
+    mutable.LongMap[SquadService.SearchCriteria]()
 
   /**
     * A placeholder for an absent active invite that has not (yet) been accepted or rejected,
@@ -110,6 +113,7 @@ class SquadService extends Actor {
     memberToSquad.clear()
     publishedLists.clear()
     //misc
+    searchData.clear()
     subs.postStop()
   }
 
@@ -234,6 +238,9 @@ class SquadService extends Actor {
         case SquadAction.InitCharId() =>
           SquadActionInitCharId(tplayer)
 
+        case SquadAction.ReloadDecoration() =>
+          ApplySquadDecorationToEntriesForUser(tplayer.Faction, tplayer.CharId)
+
         case _: SquadAction.Membership =>
           SquadActionMembership(tplayer, zone, squad_action)
 
@@ -327,11 +334,12 @@ class SquadService extends Actor {
                                 sender: ActorRef
                               ): Unit = {
     //send initial squad catalog
-    val squads = PublishedLists(tplayer.Faction)
+    val faction = tplayer.Faction
+    val squads = PublishedLists(faction)
     subs.Publish(sender, SquadResponse.InitList(squads))
     squads.foreach { squad =>
       val guid = squad.squad_guid.get
-      subs.Publish(sender, SquadResponse.SquadDecoration(guid, squadFeatures(guid).Squad))
+      subs.Publish(tplayer.CharId, SquadResponse.SquadDecoration(guid, squadFeatures(guid).Squad))
     }
   }
 
@@ -342,6 +350,10 @@ class SquadService extends Actor {
       case Some(features) =>
         features.Switchboard ! SquadSwitchboard.Join(tplayer, 0, sender())
     }
+  }
+
+  def SquadServiceReloadSquadDecoration(faction: PlanetSideEmpire.Value, to: Long): Unit = {
+    ApplySquadDecorationToEntriesForUser(faction, to)
   }
 
   def SquadActionMembership(tplayer: Player, zone: Zone, action: Any): Unit = {
@@ -1165,8 +1177,11 @@ class SquadService extends Actor {
       case _: CancelSelectRoleForYourself =>
         SquadActionDefinitionCancelSelectRoleForYourself(tplayer, guid)
         None
-      case _: SearchForSquadsWithParticularRole =>
-        SquadActionDefinitionSearchForSquadsWithParticularRole(sendTo)
+      case search: SearchForSquadsWithParticularRole =>
+        SquadActionDefinitionSearchForSquadsWithParticularRole(tplayer, search)
+        None
+      case _: CancelSquadSearch =>
+        SquadActionDefinitionCancelSquadSearch(tplayer.CharId)
         None
       case _: DisplaySquad =>
         GetSquad(guid) match {
@@ -1472,10 +1487,79 @@ class SquadService extends Actor {
     }
   }
 
-  def SquadActionDefinitionSearchForSquadsWithParticularRole(sendTo: ActorRef): Unit = {
-    /*role*/ /*requirements*/ /*zone_id*/ /*search_mode*/
-    //I don't know how search results should be prioritized or even how to return search results to the user
-    subs.Publish(sendTo, SquadResponse.SquadSearchResults())
+  def SquadActionDefinitionSearchForSquadsWithParticularRole(
+                                                              tplayer: Player,
+                                                              criteria: SearchForSquadsWithParticularRole
+                                                            ): Unit = {
+    val charId = tplayer.CharId
+    searchData.get(charId) match {
+      case Some(_) => ;
+        //already searching, so do nothing(?)
+      case None =>
+        val data = SquadService.SearchCriteria(tplayer.Faction, criteria)
+        searchData.put(charId, data)
+        SquadActionDefinitionSearchForSquadsUsingCriteria(charId, data)
+    }
+  }
+
+  private def SquadActionDefinitionSearchForSquadsUsingCriteria(
+                                                                 charId: Long,
+                                                                 criteria: SquadService.SearchCriteria
+                                                               ): Unit = {
+    subs.Publish(
+      charId,
+      SquadResponse.SquadSearchResults(SearchForSquadsResults(criteria))
+    )
+  }
+
+  private def SearchForSquadsResults(criteria: SquadService.SearchCriteria): List[PlanetSideGUID] = {
+    publishedLists.get(criteria.faction) match {
+      case Some(squads) if squads.nonEmpty =>
+        squads.flatMap { guid => SearchForSquadsResults(criteria, guid, squadFeatures(guid).Squad) }.toList
+      case _ =>
+        Nil
+    }
+  }
+
+  def SquadActionDefinitionCancelSquadSearch(charId: Long): Unit = {
+    searchData.remove(charId) match {
+      case None => ;
+      case Some(data) =>
+        SearchForSquadsResults(data).foreach { guid =>
+          subs.Publish(charId, SquadResponse.SquadDecoration(guid, squadFeatures(guid).Squad))
+        }
+    }
+  }
+
+  private def SearchForSquadsResults(
+                                      criteria: SquadService.SearchCriteria,
+                                      guid: PlanetSideGUID,
+                                      squad: Squad
+                                    ): Option[PlanetSideGUID] = {
+    val squad = squadFeatures(guid).Squad
+    val positions = if (criteria.mode == SquadRequestAction.SearchMode.AnyPositions) {
+      //includes occupied positions and closed positions that retain assignment information
+      squad.Membership
+    } else {
+      squad.Membership.zipWithIndex.filter { case (_, b) => squad.Availability(b) }.unzip._1
+    }
+    if (
+      positions.nonEmpty &&
+      (criteria.zoneId == 0 || criteria.zoneId == squad.ZoneId) &&
+      (criteria.role.isEmpty || positions.exists(_.Role.equalsIgnoreCase(criteria.role))) &&
+      (criteria.requirements.isEmpty || positions.exists { p =>
+        val results = p.Requirements.intersect(criteria.requirements)
+        if (criteria.mode == SquadRequestAction.SearchMode.SomeCertifications) {
+          results.size > 1
+        } else {
+          results == criteria.requirements
+        }
+      })
+    ) {
+      Some(guid)
+    } else {
+      None
+    }
   }
 
   /** the following action can be performed by anyone */
@@ -2891,6 +2975,7 @@ class SquadService extends Actor {
         subs.UserEvents.remove(charId)
     }
     subs.SquadEvents.unsubscribe(sender) //just to make certain
+    searchData.remove(charId)
     TryResetSquadId()
   }
 
@@ -2966,7 +3051,7 @@ class SquadService extends Actor {
           case Some(changedFields) =>
             //squad information update
             subs.Publish(faction, SquadResponse.UpdateList(Seq((index, changedFields))))
-            subs.Publish(faction, SquadResponse.SquadDecoration(guid, squad))
+            ApplySquadDecorationToEntry(faction, guid, squad)
           case None =>
             //remove squad from listing
             factionListings.remove(index)
@@ -2977,7 +3062,7 @@ class SquadService extends Actor {
         //first time being published
         factionListings += guid
         subs.Publish(faction, SquadResponse.InitList(PublishedLists(factionListings.flatMap { GetSquad })))
-        subs.Publish(faction, SquadResponse.SquadDecoration(guid, squad))
+        ApplySquadDecorationToEntry(faction, guid, squad)
     }
   }
 
@@ -2998,6 +3083,55 @@ class SquadService extends Actor {
   def PublishedLists(squads: Iterable[SquadFeatures]): Vector[SquadInfo] = {
     squads.map { features => SquadService.PublishFullListing(features.Squad) }.toVector
   }
+
+  /**
+    * Squad decoration are the colors applied to entries in the squad listing based on individual assessments.
+    * Apply these colors to one squad at a time.
+    * This sends out the least amount of messages -
+    * one for the whole faction and one message for each search for which this squad is a positive result.
+    * @param faction empire whose squad is being decorated
+    * @param guid the squad's identifier
+    * @param squad the squad
+    */
+  def ApplySquadDecorationToEntry(
+                                   faction: PlanetSideEmpire.Value,
+                                   guid: PlanetSideGUID,
+                                   squad: Squad
+                                 ): Unit = {
+    //search result decoration (per user)
+    val result = SquadResponse.SquadSearchResults(List(guid))
+    val excluded = searchData.collect {
+      case (charId: Long, data: SearchCriteria)
+        if data.faction == faction && SearchForSquadsResults(data, guid, squad).nonEmpty =>
+        subs.Publish(charId, result)
+        (charId, charId)
+    }.unzip._1.toList
+    //normal decoration (whole faction, later excluding the former users)
+    subs.Publish(faction, SquadResponse.SquadDecoration(guid, squad), excluded)
+  }
+
+  def ApplySquadDecorationToEntriesForUser(
+                                          faction: PlanetSideEmpire.Value,
+                                          targetCharId: Long
+                                        ): Unit = {
+    publishedLists(faction)
+      .flatMap { GetSquad }
+      .foreach { features =>
+        val squad = features.Squad
+        val guid = squad.GUID
+        val result = SquadResponse.SquadSearchResults(List(guid))
+        if (searchData.get(targetCharId) match {
+          case Some(data)
+            if data.faction == faction && SearchForSquadsResults(data, guid, squad).nonEmpty =>
+            subs.Publish(targetCharId, result)
+            false
+          case _ =>
+            true
+        }) {
+          subs.Publish(targetCharId, SquadResponse.SquadDecoration(guid, squad))
+        }
+    }
+  }
 }
 
 object SquadService {
@@ -3014,6 +3148,22 @@ object SquadService {
     * @param changes the changes to the squad details
     */
   final case class UpdateSquadListWhenListed(features: SquadFeatures, changes: SquadInfo)
+
+  private case class SearchCriteria(
+                                     faction: PlanetSideEmpire.Value,
+                                     zoneId: Int,
+                                     role: String,
+                                     requirements: Set[Certification],
+                                     mode: SquadRequestAction.SearchMode.Value
+                                   )
+  private object SearchCriteria {
+    def apply(
+               faction: PlanetSideEmpire.Value,
+               criteria: SquadRequestAction.SearchForSquadsWithParticularRole
+             ): SearchCriteria = {
+      SearchCriteria(faction, criteria.zone_id, criteria.role, criteria.requirements, criteria.mode)
+    }
+  }
 
   /**
     * The base of all objects that exist for the purpose of communicating invitation from one player to the next.

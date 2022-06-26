@@ -16,8 +16,9 @@ object SquadServiceMessage {
 object SquadAction {
   sealed trait Action
 
-  final case class InitSquadList() extends Action
-  final case class InitCharId()    extends Action
+  final case class InitSquadList()    extends Action
+  final case class InitCharId()       extends Action
+  final case class ReloadDecoration() extends Action
 
   final case class Definition(guid: PlanetSideGUID, line: Int, action: PacketSquadAction) extends Action
   final case class Membership(

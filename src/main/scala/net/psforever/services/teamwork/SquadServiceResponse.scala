@@ -59,7 +59,7 @@ object SquadResponse {
       unk: Int
   ) extends Response
 
-  final case class SquadSearchResults() extends Response
-
   final case class SquadDecoration(guid: PlanetSideGUID, squad: Squad) extends Response
+
+  final case class SquadSearchResults(results: List[PlanetSideGUID]) extends Response
 }
