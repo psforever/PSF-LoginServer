@@ -140,6 +140,7 @@ commands in a command line tool with appropriate dependency visibility to start 
 ## Running the Server
 The initial compile may take some time.  Sbt is powerful but slow to wake up.
 
+### Startup
 To run a headless, non-interactive server, run
 ```
 sbt server/run
@@ -166,26 +167,26 @@ The REPL supports various useful commands. For example, to see the type of an ar
 foo`. To print all members of a type, run `:javap -p some-type`. You can run `:help` to see a full list of commands.
 ![image](https://cloud.githubusercontent.com/assets/16912082/18024371/e0b72f9e-6bcd-11e6-9de5-421ec3eff994.png)
 
-Tests that are packaged with the server project code can also be run using the command `sbt test`.  The anticipated
-`/test/` directory should be reachable under the `/src/` directory.  IntelliJ IDEA allows hinting of the directory from
-the context menu of the Project tab: `menu -> Mark Directory as -> Test Sources Root` or `Test Resources Root`.
-
 The game server will automatically apply the latest schema to the database, updating sequential entries found in
 `resources/db/migrations`. Migrations can also be applied manually using the
 [Flyway CLI](https://flywaydb.org/documentation/commandline/).
 Existing databases before the introduction of migrations must be baselined using the `flyway baseline` command.
 
-### Troubleshooting
-1. If dependency resolution results in certificate issues or generates a `/null/` directory into which some library
-files are placed, the Java versioning is incorrectly applied.  Your system's Java, via `JAVA_HOME` environment variable,
-must be advanced enough to operate the toolset and only the project itself requires JDK 8.  Check that project settings
-import and utilize Java 1.8_251.  Perform normal generated file cleanup, e.g., sbt's `clean`. 
-Any extraneous folders may also be deleted without issue.
-2. If the server repeatedly complains that "authentication method 10 not supported" during startup, your PostgreSQL
-database does not support [scram-sha-256](https://www.postgresql.org/docs/current/auth-password.html) authentication.
-Check in your database configuration file `postgresql.conf` that `password_encryption` is set correctly; or, upgrade
-your PostgreSQL version to one that supports scram-sha-256.  Whenever changing password encryption methods, all
-existing passwords FOR THE USERS AND ROLES should be rehashed for the new encryption.
+### Tests
+Tests that are packaged with the server project code can also be run using the command `sbt test`.  The anticipated
+`/test/` directory should be reachable under the `/src/` directory.  IntelliJ IDEA allows hinting of the directory from
+the context menu of the Project tab: `menu -> Mark Directory as -> Test Sources Root` or `Test Resources Root`.
+
+### GM
+By default users are not granted game moderator privileges, colloquially referred to as a customer service representative (CSR).
+To grant a created user GM, access execute the following query:
+```sql
+UPDATE account SET gm=true WHERE id=[your_id];
+```
+You can find your account id by viewing the accounts table.
+```sql
+SELECT id FROM account WHERE username=[your_username];
+```
 
 ### Creating a Release
 If you want to test the project without an IDE or deploy it to a server for run, you can use sbt-pack to create a
@@ -200,6 +201,18 @@ This will use the sbt-pack plugin to create a JAR file and some helper scripts t
 will be in the `PSF-LoginServer/target` directory. Now you can copy the ZIP file to a server you want to run it on. You
 will need the Java 8 runtime (JRE only) on the target to run this. In the ZIP file, there is a `bin/` directory with
 some helper scripts. Run the correct file for your platform (.BAT for Windows and shell script for Unix).
+
+## Troubleshooting
+1. If dependency resolution results in certificate issues or generates a `/null/` directory into which some library
+files are placed, the Java versioning is incorrectly applied.  Your system's Java, via `JAVA_HOME` environment variable,
+must be advanced enough to operate the toolset and only the project itself requires JDK 8.  Check that project settings
+import and utilize Java 1.8_251.  Perform normal generated file cleanup, e.g., sbt's `clean`. 
+Any extraneous folders may also be deleted without issue.
+2. If the server repeatedly complains that "authentication method 10 not supported" during startup, your PostgreSQL
+database does not support [scram-sha-256](https://www.postgresql.org/docs/current/auth-password.html) authentication.
+Check in your database configuration file `postgresql.conf` that `password_encryption` is set correctly; or, upgrade
+your PostgreSQL version to one that supports scram-sha-256.  Whenever changing password encryption methods, all
+existing passwords FOR THE USERS AND ROLES should be rehashed for the new encryption.
 
 ## Tools
 ### decodePackets
