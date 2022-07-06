@@ -81,6 +81,9 @@ lazy val psforeverSettings = Seq(
     "org.scala-lang.modules"     %% "scala-parallel-collections" % "1.0.4",
     "org.bouncycastle"            % "bcprov-jdk15on"             % "1.69"
   ),
+  dependencyOverrides ++= Seq(
+    "com.github.jasync-sql"       % "jasync-postgresql"          % "1.1.7"
+  ),
   // TODO(chord): remove exclusion when SessionActor is refactored: https://github.com/psforever/PSF-LoginServer/issues/279
   coverageExcludedPackages := "net\\.psforever\\.actors\\.session\\.SessionActor.*"
 )
