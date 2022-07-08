@@ -75,7 +75,6 @@ import net.psforever.zones.Zones
 import org.joda.time.LocalDateTime
 import org.log4s.MDC
 
-import java.io.{PrintWriter, StringWriter}
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -502,6 +501,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   def writeLogException(e: Throwable): Unit = {
+    import java.io.{PrintWriter, StringWriter}
     val sw = new StringWriter
     e.printStackTrace(new PrintWriter(sw))
     log.error(sw.toString)

@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
 import net.psforever.objects.zones.Zoning
-import net.psforever.packet.game.{AvatarDeadStateMessage, ChatMsg, DeadState, RequestDestroyMessage, ZonePopulationUpdateMessage}
+import net.psforever.packet.game.{ChatMsg, DeadState, RequestDestroyMessage, ZonePopulationUpdateMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.util.{Config, PointOfInterest}
 import net.psforever.zones.Zones
@@ -22,7 +22,6 @@ import net.psforever.services.chat.ChatService.ChatChannel
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 import akka.actor.typed.scaladsl.adapter._
-import net.psforever.objects.vital.PlayerSuicide
 import net.psforever.services.{CavernRotationService, InterstellarClusterService}
 import net.psforever.types.ChatMessageType.UNK_229
 
