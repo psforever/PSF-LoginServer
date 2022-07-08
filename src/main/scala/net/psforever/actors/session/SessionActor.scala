@@ -341,13 +341,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     }
                     SupervisorStrategy.resume
                   case _ =>
-                    writeLogException(nge)
-                    SupervisorStrategy.stop
+                    writeLogExceptionAndStop(nge)
                 }
               case _ =>
                 //did not discover or resolve the situation
-                writeLogException(nge)
-                SupervisorStrategy.stop
+                writeLogExceptionAndStop(nge)
             }
 
           case _ =>
@@ -359,14 +357,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //re-evaluate results
         if (ide.inventory.ElementsOnGridMatchList() > 0) {
           writeLogExceptionAndStop(ide)
-          SupervisorStrategy.stop
         } else {
           SupervisorStrategy.resume
         }
 
       case e =>
         writeLogExceptionAndStop(e)
-        SupervisorStrategy.stop
     }
   }
 
@@ -383,7 +379,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         attemptRecoveryFromNoGuidExceptionAsPlayer(player, e)
       case None =>
         writeLogException(e)
-        SupervisorStrategy.resume
     }
   }
 
@@ -407,7 +402,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           SupervisorStrategy.resume
         case _ =>
           writeLogExceptionAndStop(e)
-          SupervisorStrategy.stop
       }
     } else {
       SupervisorStrategy.resume
@@ -500,17 +494,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     }
   }
 
-  def writeLogException(e: Throwable): Unit = {
+  def writeLogException(e: Throwable): SupervisorStrategy.Directive = {
     import java.io.{PrintWriter, StringWriter}
     val sw = new StringWriter
     e.printStackTrace(new PrintWriter(sw))
     log.error(sw.toString)
-    ImmediateDisconnect()
+    SupervisorStrategy.Resume
   }
 
-  def writeLogExceptionAndStop(e: Throwable): Unit = {
+  def writeLogExceptionAndStop(e: Throwable): SupervisorStrategy.Directive = {
     writeLogException(e)
     ImmediateDisconnect()
+    SupervisorStrategy.stop
   }
 
   def session: Session = _session
