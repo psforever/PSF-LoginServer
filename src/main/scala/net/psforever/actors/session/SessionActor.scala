@@ -358,14 +358,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         attemptRecoveryFromInventoryDisarrayException(ide.inventory)
         //re-evaluate results
         if (ide.inventory.ElementsOnGridMatchList() > 0) {
-          writeLogException(ide)
+          writeLogExceptionAndStop(ide)
           SupervisorStrategy.stop
         } else {
           SupervisorStrategy.resume
         }
 
       case e =>
-        writeLogException(e)
+        writeLogExceptionAndStop(e)
         SupervisorStrategy.stop
     }
   }
@@ -406,7 +406,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
           SupervisorStrategy.resume
         case _ =>
-          writeLogException(e)
+          writeLogExceptionAndStop(e)
           SupervisorStrategy.stop
       }
     } else {
@@ -505,6 +505,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     val sw = new StringWriter
     e.printStackTrace(new PrintWriter(sw))
     log.error(sw.toString)
+    ImmediateDisconnect()
+  }
+
+  def writeLogExceptionAndStop(e: Throwable): Unit = {
+    writeLogException(e)
     ImmediateDisconnect()
   }
 
