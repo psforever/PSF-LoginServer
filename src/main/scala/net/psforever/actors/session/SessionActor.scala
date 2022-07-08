@@ -14,7 +14,7 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.ce._
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
-import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
+import net.psforever.objects.entity.{NoGUIDException, SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid._
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
@@ -75,6 +75,7 @@ import net.psforever.zones.Zones
 import org.joda.time.LocalDateTime
 import org.log4s.MDC
 
+import java.io.{PrintWriter, StringWriter}
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -293,31 +294,128 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   override def supervisorStrategy: SupervisorStrategy = {
     import net.psforever.objects.inventory.InventoryDisarrayException
-    import java.io.{StringWriter, PrintWriter}
-    OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
+    OneForOneStrategy(maxNrOfRetries = -1, withinTimeRange = 1 minute) {
+      case nge: NoGUIDException =>
+        nge.getEntity match {
+          case p: Player =>
+            continent.GUID(p.VehicleSeated) match {
+              case Some(v: Vehicle) =>
+                attemptRecoveryFromNoGuidExceptionAsVehicle(v, nge)
+              case _ =>
+                attemptRecoveryFromNoGuidExceptionAsPlayer(p, nge)
+            }
+
+          case v: Vehicle =>
+            attemptRecoveryFromNoGuidExceptionAsVehicle(v, nge)
+
+          case e: Equipment =>
+            (
+              player.Holsters().zipWithIndex.flatMap { case (o, i) =>
+                o.Equipment match {
+                  case Some(e) => Some((player, InventoryItem(e, i)))
+                  case None    => None
+                }
+              }.toList ++
+                player.Inventory.Items.map { o => (player, o) } ++
+                {
+                  player.FreeHand.Equipment match {
+                    case Some(o) => List((player, InventoryItem(e, Player.FreeHandSlot)))
+                    case _       => Nil
+                  }
+                } ++
+                (ValidObject(player.VehicleSeated) match {
+                  case Some(v: Vehicle) => v.Trunk.Items.map{ o => (v, o) }
+                  case _                => Nil
+                })
+              )
+              .find { case (_, InventoryItem(o, _)) => o eq e } match {
+              case Some((c: Container, InventoryItem(obj, index))) =>
+                if (!obj.HasGUID) {
+                  c.Slot(index).Equipment = None
+                }
+                c match {
+                  case _: Player =>
+                    attemptRecoveryFromNoGuidExceptionAsPlayer(player, nge)
+                  case v: Vehicle =>
+                    if (v.PassengerInSeat(player).contains(0)) {
+                      attemptRecoveryFromNoGuidExceptionAsPlayer(player, nge)
+                    }
+                    SupervisorStrategy.resume
+                  case _ =>
+                    writeLogException(nge)
+                    SupervisorStrategy.stop
+                }
+              case _ =>
+                //did not discover or resolve the situation
+                writeLogException(nge)
+                SupervisorStrategy.stop
+            }
+
+          case _ =>
+            SupervisorStrategy.resume
+        }
+
       case ide: InventoryDisarrayException =>
-        attemptRecoverFromInventoryDisarrayException(ide.inventory)
+        attemptRecoveryFromInventoryDisarrayException(ide.inventory)
         //re-evaluate results
         if (ide.inventory.ElementsOnGridMatchList() > 0) {
-          val sw = new StringWriter
-          ide.printStackTrace(new PrintWriter(sw))
-          log.error(sw.toString)
-          ImmediateDisconnect()
+          writeLogException(ide)
           SupervisorStrategy.stop
         } else {
           SupervisorStrategy.resume
         }
 
       case e =>
-        val sw = new StringWriter
-        e.printStackTrace(new PrintWriter(sw))
-        log.error(sw.toString)
-        ImmediateDisconnect()
+        writeLogException(e)
         SupervisorStrategy.stop
     }
   }
 
-  def attemptRecoverFromInventoryDisarrayException(inv: GridInventory): Unit = {
+  def attemptRecoveryFromNoGuidExceptionAsVehicle(v: Vehicle, e: Throwable): SupervisorStrategy.Directive = {
+    val entry = v.Seats.find { case (_, s) => s.occupants.contains(player) }
+    entry match {
+      case Some((index, _)) =>
+        player.VehicleSeated = None
+        v.Seats(0).unmount(player)
+        player.Position = v.Position
+        player.Orientation = v.Orientation
+        interstellarFerry = None
+        interstellarFerryTopLevelGUID = None
+        attemptRecoveryFromNoGuidExceptionAsPlayer(player, e)
+      case None =>
+        writeLogException(e)
+        SupervisorStrategy.resume
+    }
+  }
+
+  def attemptRecoveryFromNoGuidExceptionAsPlayer(p: Player, e: Throwable): SupervisorStrategy.Directive = {
+    if (p eq player) {
+      val hasGUID = p.HasGUID
+      zoneLoaded match {
+        case Some(true) if hasGUID =>
+          AvatarCreate() //this will probably work?
+          SupervisorStrategy.resume
+        case Some(false) =>
+          RequestSanctuaryZoneSpawn(p, continent.Number)
+          SupervisorStrategy.resume
+        case None =>
+          if (player.Zone eq Zone.Nowhere) {
+            RequestSanctuaryZoneSpawn(p, continent.Number)
+          } else {
+            zoneReload = true
+            LoadZoneAsPlayer(player, player.Zone.id)
+          }
+          SupervisorStrategy.resume
+        case _ =>
+          writeLogException(e)
+          SupervisorStrategy.stop
+      }
+    } else {
+      SupervisorStrategy.resume
+    }
+  }
+
+  def attemptRecoveryFromInventoryDisarrayException(inv: GridInventory): Unit = {
     inv.ElementsInListCollideInGrid() match {
       case Nil => ;
       case overlaps =>
@@ -401,6 +499,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           ))
         }
     }
+  }
+
+  def writeLogException(e: Throwable): Unit = {
+    val sw = new StringWriter
+    e.printStackTrace(new PrintWriter(sw))
+    log.error(sw.toString)
+    ImmediateDisconnect()
   }
 
   def session: Session = _session
