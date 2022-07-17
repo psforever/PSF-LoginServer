@@ -3,6 +3,7 @@ package net.psforever.objects
 
 import net.psforever.objects.definition.{ObjectDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.mount.MountableEntity
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
 import scala.collection.mutable
@@ -93,10 +94,10 @@ object SpawnPoint {
     ) * (3 * side).toFloat //x=sin, y=cos because compass-0 is East, not North
     (
       obj.Position + shift + (if (x >= 330) { //ams leaning to the left
-                                Vector3.z(xsin)
-                              } else { //ams leaning to the right
-                                Vector3.z(-xsin)
-                              }),
+        Vector3.z(xsin)
+      } else { //ams leaning to the right
+        Vector3.z(-xsin)
+      }),
       if (side == 1) {
         Vector3.z(zrot)
       } else {
@@ -111,8 +112,8 @@ object SpawnPoint {
         val ori  = target.Orientation
         val zrad = math.toRadians(ori.z)
         val radius =
-          scala.math.random().toFloat * (d.UseRadius - innerRadius) + innerRadius
-      val shift = Vector3(math.sin(zrad).toFloat, math.cos(zrad).toFloat, 0) * radius
+          scala.math.random().toFloat * 0.5f * (d.UseRadius - innerRadius) + innerRadius
+        val shift = Vector3(math.sin(zrad).toFloat, math.cos(zrad).toFloat, 0) * radius
         val altitudeShift = target.Definition match {
           case vdef: VehicleDefinition if GlobalDefinitions.isFlightVehicle(vdef) =>
             Vector3.z(scala.math.random().toFloat * d.UseRadius)
@@ -136,23 +137,26 @@ object SpawnPoint {
     )
   }
 
-  def CavernGate(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
-    val (a, b) = metaGate(obj, target, innerRadius = 5f)
+  def CavernGate(innerRadius: Float)(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
+    val (a, b) = metaGate(obj, target, innerRadius)
     target match {
       case v: Vehicle if GlobalDefinitions.isFlightVehicle(v.Definition) =>
         (a.xy + Vector3.z((target.Position.z + a.z) * 0.5f), b)
+      case m: MountableEntity =>
+        m.BailProtection = true
+        (a + Vector3.z(obj.Definition.UseRadius * 0.5f), b)
       case _ =>
-        (a + Vector3.z(value = 3f), b)
+        (a, b)
     }
   }
 
-  def SmallGate(innerRadius: Float)(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
+  def SmallGate(innerRadius: Float, flightlessZOffset: Float)(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
     val (a, b) = metaGate(obj, target, innerRadius)
     target match {
       case v: Vehicle if GlobalDefinitions.isFlightVehicle(v.Definition) =>
         (a.xy + Vector3.z((target.Position.z + a.z) * 0.5f), b)
       case _ =>
-        (a + Vector3.z(value = 0.5f), b)
+        (a + Vector3.z(flightlessZOffset), b)
     }
   }
 }

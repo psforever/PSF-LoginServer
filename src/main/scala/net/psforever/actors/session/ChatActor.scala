@@ -508,6 +508,12 @@ class ChatActor(
                       CavernRotationService.HurryNextRotation
                   })
 
+                case (_, _, content) if content.startsWith("!suicide") =>
+                  //this is like CMT_SUICIDE but it ignores checks and forces a suicide state
+                  val tplayer = session.player
+                  tplayer.Revive
+                  tplayer.Actor ! Player.Die()
+
                 case _ =>
                 // unknown ! commands are ignored
               }

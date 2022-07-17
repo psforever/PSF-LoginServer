@@ -1334,7 +1334,7 @@ object GlobalDefinitions {
 
   val hst = new WarpGateDefinition(402)
   hst.Name = "hst"
-  hst.UseRadius = 64.96882005f
+  hst.UseRadius = 44.96882005f
   hst.SOIRadius = 82
   hst.VehicleAllowance = true
   hst.NoWarp += dropship
@@ -1346,28 +1346,28 @@ object GlobalDefinitions {
   hst.NoWarp += colossus_flight
   hst.NoWarp += peregrine_gunner
   hst.NoWarp += peregrine_flight
-  hst.SpecificPointFunc = SpawnPoint.SmallGate(innerRadius = 5f)
+  hst.SpecificPointFunc = SpawnPoint.CavernGate(innerRadius = 6f)
 
   val warpgate = new WarpGateDefinition(993)
   warpgate.Name = "warpgate"
-  warpgate.UseRadius = 67.81070029f //301.8713f
-  warpgate.SOIRadius = 302
+  warpgate.UseRadius = 67.81070029f
+  warpgate.SOIRadius = 302 //301.8713f
   warpgate.VehicleAllowance = true
   warpgate.SpecificPointFunc = SpawnPoint.Gate
 
   val warpgate_cavern = new WarpGateDefinition(994)
   warpgate_cavern.Name = "warpgate_cavern"
-  warpgate_cavern.UseRadius = 20.72639434f
-  warpgate_cavern.SOIRadius = 52
+  warpgate_cavern.UseRadius = 19.72639434f
+  warpgate_cavern.SOIRadius = 41
   warpgate_cavern.VehicleAllowance = true
-  warpgate_cavern.SpecificPointFunc = SpawnPoint.CavernGate
+  warpgate_cavern.SpecificPointFunc = SpawnPoint.CavernGate(innerRadius = 4.5f)
 
   val warpgate_small = new WarpGateDefinition(995)
   warpgate_small.Name = "warpgate_small"
   warpgate_small.UseRadius = 69.03687655f
   warpgate_small.SOIRadius = 103
   warpgate_small.VehicleAllowance = true
-  warpgate_small.SpecificPointFunc = SpawnPoint.SmallGate(innerRadius = 27.60654127f)
+  warpgate_small.SpecificPointFunc = SpawnPoint.SmallGate(innerRadius = 27.60654127f, flightlessZOffset = 0.5f)
 
   val bunker_gauntlet = new BuildingDefinition(150) { Name = "bunker_gauntlet" }
   val bunker_lg       = new BuildingDefinition(151) { Name = "bunker_lg" }
@@ -1581,7 +1581,7 @@ object GlobalDefinitions {
   def isMaxArms(tdef: ToolDefinition): Boolean = {
     tdef match {
       case `trhev_dualcycler` | `nchev_scattercannon` | `vshev_quasar` | `trhev_pounder` | `nchev_falcon` |
-          `vshev_comet` | `trhev_burster` | `nchev_sparrow` | `vshev_starfire` =>
+           `vshev_comet` | `trhev_burster` | `nchev_sparrow` | `vshev_starfire` =>
         true
       case _ =>
         false
@@ -1691,13 +1691,13 @@ object GlobalDefinitions {
   def isFactionWeapon(edef: EquipmentDefinition): PlanetSideEmpire.Value = {
     edef match {
       case `chainblade` | `repeater` | `anniversary_guna` | `cycler` | `mini_chaingun` | `striker` |
-          `trhev_dualcycler` | `trhev_pounder` | `trhev_burster` =>
+           `trhev_dualcycler` | `trhev_pounder` | `trhev_burster` =>
         PlanetSideEmpire.TR
       case `magcutter` | `isp` | `anniversary_gun` | `gauss` | `r_shotgun` | `hunterseeker` | `nchev_scattercannon` |
-          `nchev_falcon` | `nchev_sparrow` =>
+           `nchev_falcon` | `nchev_sparrow` =>
         PlanetSideEmpire.NC
       case `forceblade` | `beamer` | `anniversary_gunb` | `pulsar` | `lasher` | `lancer` | `vshev_quasar` |
-          `vshev_comet` | `vshev_starfire` =>
+           `vshev_comet` | `vshev_starfire` =>
         PlanetSideEmpire.VS
       case _ =>
         PlanetSideEmpire.NEUTRAL
@@ -1713,16 +1713,16 @@ object GlobalDefinitions {
   def isFactionEquipment(edef: EquipmentDefinition): PlanetSideEmpire.Value = {
     edef match {
       case `chainblade` | `repeater` | `anniversary_guna` | `cycler` | `mini_chaingun` | `striker` |
-          `striker_missile_ammo` | `trhev_dualcycler` | `trhev_pounder` | `trhev_burster` | `dualcycler_ammo` |
-          `pounder_ammo` | `burster_ammo` =>
+           `striker_missile_ammo` | `trhev_dualcycler` | `trhev_pounder` | `trhev_burster` | `dualcycler_ammo` |
+           `pounder_ammo` | `burster_ammo` =>
         PlanetSideEmpire.TR
       case `magcutter` | `isp` | `anniversary_gun` | `gauss` | `r_shotgun` | `hunterseeker` | `hunter_seeker_missile` |
-          `nchev_scattercannon` | `nchev_falcon` | `nchev_sparrow` | `scattercannon_ammo` | `falcon_ammo` |
-          `sparrow_ammo` =>
+           `nchev_scattercannon` | `nchev_falcon` | `nchev_sparrow` | `scattercannon_ammo` | `falcon_ammo` |
+           `sparrow_ammo` =>
         PlanetSideEmpire.NC
       case `forceblade` | `beamer` | `anniversary_gunb` | `pulsar` | `lasher` | `lancer` | `energy_cell` |
-          `lancer_cartridge` | `vshev_quasar` | `vshev_comet` | `vshev_starfire` | `quasar_ammo` | `comet_ammo` |
-          `starfire_ammo` =>
+           `lancer_cartridge` | `vshev_quasar` | `vshev_comet` | `vshev_starfire` | `quasar_ammo` | `comet_ammo` |
+           `starfire_ammo` =>
         PlanetSideEmpire.VS
       case _ =>
         PlanetSideEmpire.NEUTRAL
@@ -1905,7 +1905,7 @@ object GlobalDefinitions {
   def isFlightVehicle(vdef: VehicleDefinition): Boolean = {
     vdef match {
       case `mosquito` | `lightgunship` | `wasp` | `liberator` | `vulture` | `phantasm` | `lodestar` | `dropship` |
-          `galaxy_gunship` =>
+           `galaxy_gunship` =>
         true
       case _ =>
         false
