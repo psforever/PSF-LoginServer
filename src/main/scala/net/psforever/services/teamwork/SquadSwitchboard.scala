@@ -10,7 +10,6 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.objects.definition.converter.StatConverter
 import net.psforever.objects.loadouts.SquadLoadout
 import net.psforever.objects.teamwork.{Member, Squad, SquadFeatures, WaypointData}
-import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{PlanetSideZoneID, SquadDetail, SquadInfo, SquadPositionDetail, SquadPositionEntry, WaypointEventAction, WaypointInfo, SquadAction => SquadRequestAction}
 import net.psforever.services.teamwork.SquadService.SwapMemberPosition
 import net.psforever.types.{PlanetSideGUID, SquadWaypoint, Vector3, WaypointSubtype}
@@ -59,7 +58,7 @@ class SquadSwitchboard(
           .collect { case (member, index) if member.CharId != 0 => index }
           .toList
         subscriptions.Publish(charId, SquadResponse.AssociateWithSquad(guid))
-        subscriptions.Publish(charId, SquadResponse.Join(squad, indices, toChannel))
+        subscriptions.Publish(charId, SquadResponse.Join(squad, indices, toChannel, self))
         subscriptions.InitSquadDetail(guid, Seq(charId), squad)
         InitWaypoints(charId, features)
       }
@@ -90,16 +89,16 @@ class SquadSwitchboard(
           actor ! msg
         }
 
-    case SquadServiceMessage(tplayer, zone, squad_action) =>
+    case SquadServiceMessage(tplayer, _, squad_action) =>
       squad_action match {
         case SquadAction.Definition(guid, line, action) =>
-          SquadActionDefinition(tplayer, zone, guid, line, action, sender())
+          SquadActionDefinition(tplayer, guid, line, action, sender())
 
         case SquadAction.Waypoint(_, wtype, _, info) =>
           SquadActionWaypoint(tplayer, wtype, info)
 
-        case SquadAction.Update(char_id, health, max_health, armor, max_armor, pos, zone_number) =>
-          SquadActionUpdate(char_id, health, max_health, armor, max_armor, pos, zone_number, sender())
+        case SquadAction.Update(char_id, guid, health, max_health, armor, max_armor, pos, zone_number) =>
+          SquadActionUpdate(char_id, guid, health, max_health, armor, max_armor, pos, zone_number, sender())
 
         case _ => ;
       }
@@ -145,39 +144,33 @@ class SquadSwitchboard(
     role.Health = StatConverter.Health(player.Health, player.MaxHealth, min = 1, max = 64)
     role.Armor = StatConverter.Health(player.Armor, player.MaxArmor, min = 1, max = 64)
     role.Position = player.Position
-    role.ZoneId = 1 //TODO why not 'player.Zone.Number'?
+    role.ZoneId = player.Zone.Number
 
-    subscriptions.MonitorSquadDetails.subtractOne(charId)
-    subscriptions.InitialAssociation(features)
-    subscriptions.Publish(charId, SquadResponse.AssociateWithSquad(squad.GUID))
+    val toChannel = features.ToChannel
     val size = squad.Size
+    subscriptions.MonitorSquadDetails.subtractOne(charId)
+    subscriptions.Publish(charId, SquadResponse.AssociateWithSquad(squad.GUID))
     if (size == 2) {
       //first squad member after leader; both members fully initialize
+      subscriptions.InitialAssociation(features)
       val (memberCharIds, indices) = squad.Membership.zipWithIndex
         .filterNot { case (member, _) => member.CharId == 0 }
         .toList
         .unzip { case (member, index) => (member.CharId, index) }
-      val toChannel = features.ToChannel
+      val organizedIndices = indices.filterNot(_ == position) :+ position
       memberCharIds
         .map { id => (id, subscriptions.UserEvents.get(id)) }
         .collect { case (id, Some(sub)) =>
-          subscriptions.SquadEvents.subscribe(sub, s"/$toChannel/Squad")
-          subscriptions.Publish(
-            id,
-            SquadResponse.Join(
-              squad,
-              indices.filterNot(_ == position) :+ position,
-              toChannel
-            )
-          )
+          subscriptions.InitSquadDetail(squad.GUID, Seq(id), squad)
+          subscriptions.Publish(id, SquadResponse.Join(squad, organizedIndices, toChannel, self))
           InitWaypoints(id, features)
+          subscriptions.SquadEvents.subscribe(sub, s"/$toChannel/Squad")
         }
-      //fully update for all users
-      subscriptions.InitSquadDetail(features)
+      //update for new user
     } else {
-      //joining an active squad; everybody updates differently
-      val toChannel = features.ToChannel
+      //joining an active squad; different people update differently
       //new member gets full squad UI updates
+      subscriptions.InitSquadDetail(squad.GUID, Seq(charId), squad)
       subscriptions.Publish(
         charId,
         SquadResponse.Join(
@@ -186,22 +179,27 @@ class SquadSwitchboard(
             .collect({ case (member, index) if member.CharId > 0 => index })
             .filterNot(_ == position)
             .toList,
-          toChannel
+          toChannel,
+          self
         )
       )
-      //other squad members see new member joining the squad
-      subscriptions.Publish(toChannel, SquadResponse.Join(squad, List(position), ""))
       InitWaypoints(charId, features)
-      subscriptions.InitSquadDetail(squad.GUID, Seq(charId), squad)
+      //other squad members see new member joining the squad
+      subscriptions.Publish(toChannel, SquadResponse.Join(squad, List(position), "", self), Seq(charId))
       subscriptions.UpdateSquadDetail(
-        features,
+        squad.GUID,
+        toChannel,
+        Seq(charId),
         SquadDetail().Members(
-          List(SquadPositionEntry(position, SquadPositionDetail().CharId(charId).Name(player.Name)))
+          List(SquadPositionEntry(position, SquadPositionDetail().Player(charId, player.Name)))
         )
       )
       subscriptions.SquadEvents.subscribe(sendTo, s"/$toChannel/Squad")
-      context.parent ! SquadService.UpdateSquadListWhenListed(features, SquadInfo().Size(size))
     }
+    context.parent ! SquadService.UpdateSquadListWhenListed(
+      features,
+      SquadInfo().Leader(squad.Leader.Name).Size(size)
+    )
   }
 
   /**
@@ -238,7 +236,6 @@ class SquadSwitchboard(
 
   def SquadActionDefinition(
                              tplayer: Player,
-                             zone: Zone,
                              guid: PlanetSideGUID,
                              line: Int,
                              action: SquadRequestAction,
@@ -297,10 +294,10 @@ class SquadSwitchboard(
         SquadActionDefinitionSelectRoleForYourself(tplayer, position)
 
       case AssignSquadMemberToRole(position, char_id) =>
-        SquadActionDefinitionAssignSquadMemberToRole(guid, char_id, position)
+        SquadActionDefinitionAssignSquadMemberToRole(char_id, position)
 
       case DisplaySquad() =>
-        SquadActionDefinitionDisplaySquad(tplayer, guid, sendTo)
+        SquadActionDefinitionDisplaySquad(sendTo)
 
       //the following message is feedback from a specific client, awaiting proper initialization
       // how to respond?
@@ -613,7 +610,6 @@ class SquadSwitchboard(
   }
 
   def SquadActionDefinitionAssignSquadMemberToRole(
-                                                    guid: PlanetSideGUID,
                                                     char_id: Long,
                                                     position: Int
                                                   ): Unit = {
@@ -629,8 +625,8 @@ class SquadSwitchboard(
           features,
           SquadDetail().Members(
             List(
-              SquadPositionEntry(position, SquadPositionDetail().CharId(fromMember.CharId).Name(fromMember.Name)),
-              SquadPositionEntry(fromPosition, SquadPositionDetail().CharId(char_id).Name(name))
+              SquadPositionEntry(position, SquadPositionDetail().Player(fromMember.CharId, fromMember.Name)),
+              SquadPositionEntry(fromPosition, SquadPositionDetail().Player(char_id, name))
             )
           )
         )
@@ -638,7 +634,7 @@ class SquadSwitchboard(
     }
   }
 
-  def SquadActionDefinitionDisplaySquad(tplayer: Player, guid: PlanetSideGUID, sendTo: ActorRef): Unit = {
+  def SquadActionDefinitionDisplaySquad(sendTo: ActorRef): Unit = {
     val squad = features.Squad
     subscriptions.Publish(sendTo, SquadResponse.Detail(squad.GUID, SquadService.PublishFullDetails(squad)))
   }
@@ -751,6 +747,7 @@ class SquadSwitchboard(
 
   def SquadActionUpdate(
                          charId: Long,
+                         guid: PlanetSideGUID,
                          health: Int,
                          maxHealth: Int,
                          armor: Int,
@@ -762,9 +759,7 @@ class SquadSwitchboard(
     val squad = features.Squad
     squad.Membership.find(_.CharId == charId) match {
       case Some(member) =>
-        if (member.ZoneId != zoneNumber) {
-          //TODO update zone
-        }
+        member.GUID = guid
         member.Health = StatConverter.Health(health, maxHealth, min = 1, max = 64)
         member.Armor = StatConverter.Health(armor, maxArmor, min = 1, max = 64)
         member.Position = pos
@@ -778,7 +773,7 @@ class SquadSwitchboard(
                 _.CharId == 0
               }
               .map { member =>
-                SquadAction.Update(member.CharId, member.Health, 0, member.Armor, 0, member.Position, member.ZoneId)
+                SquadAction.Update(member.CharId, PlanetSideGUID(0), member.Health, 0, member.Armor, 0, member.Position, member.ZoneId)
               }
               .toList
           )

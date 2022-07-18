@@ -36,6 +36,7 @@ object SquadAction {
   ) extends Action
   final case class Update(
       char_id: Long,
+      guid: PlanetSideGUID,
       health: Int,
       max_health: Int,
       armor: Int,

@@ -58,14 +58,16 @@ final case class SquadState(guid: PlanetSideGUID, info_list: List[SquadStateInfo
 }
 
 object SquadStateInfo {
-  def apply(unk1: Long, unk2: Int, unk3: Int, pos: Vector3, unk4: Int, unk5: Int, unk6: Boolean, unk7: Int)
-      : SquadStateInfo =
-    SquadStateInfo(unk1, unk2, unk3, pos, unk4, unk5, unk6, unk7, None, None)
+  def apply(charId: Long, health: Int, armor: Int, pos: Vector3): SquadStateInfo =
+    SquadStateInfo(charId, health, armor, pos, 2, 2, unk6=false, 429, None, None)
+
+  def apply(charId: Long, health: Int, armor: Int, pos: Vector3, unk4: Int, unk5: Int, unk6: Boolean, unk7: Int): SquadStateInfo =
+    SquadStateInfo(charId, health, armor, pos, unk4, unk5, unk6, unk7, None, None)
 
   def apply(
-      unk1: Long,
-      unk2: Int,
-      unk3: Int,
+      charId: Long,
+      health: Int,
+      armor: Int,
       pos: Vector3,
       unk4: Int,
       unk5: Int,
@@ -74,22 +76,22 @@ object SquadStateInfo {
       unk8: Int,
       unk9: Boolean
   ): SquadStateInfo =
-    SquadStateInfo(unk1, unk2, unk3, pos, unk4, unk5, unk6, unk7, Some(unk8), Some(unk9))
+    SquadStateInfo(charId, health, armor, pos, unk4, unk5, unk6, unk7, Some(unk8), Some(unk9))
 }
 
 object SquadState extends Marshallable[SquadState] {
   private val info_codec: Codec[SquadStateInfo] = (
     ("char_id" | uint32L) ::
-      ("health" | uint(7)) ::
-      ("armor" | uint(7)) ::
+      ("health" | uint(bits = 7)) ::
+      ("armor" | uint(bits = 7)) ::
       ("pos" | Vector3.codec_pos) ::
       ("unk4" | uint2) ::
       ("unk5" | uint2) ::
       ("unk6" | bool) ::
       ("unk7" | uint16L) ::
       (bool >>:~ { out =>
-      conditional(out, "unk8" | uint16L) ::
-        conditional(out, "unk9" | bool)
+        ("unk8" | conditional(out, uint16L)) ::
+          ("unk9" | conditional(out, bool))
     })
   ).exmap[SquadStateInfo](
     {

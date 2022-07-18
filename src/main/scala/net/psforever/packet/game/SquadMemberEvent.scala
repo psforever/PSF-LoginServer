@@ -9,7 +9,7 @@ import shapeless.{::, HNil}
 object MemberEvent extends Enumeration {
   type Type = Value
 
-  val Add, Remove, Promote, UpdateZone, UnknownOutfitManip = Value
+  val Add, Remove, Promote, UpdateZone, Outfit = Value
 
   implicit val codec = PacketHelpers.createEnumerationCodec(enum = this, uint(bits = 3))
 }
@@ -52,15 +52,15 @@ object SquadMemberEvent extends Marshallable[SquadMemberEvent] {
     SquadMemberEvent(MemberEvent.UpdateZone, unk2, char_id, position, None, Some(zone_number), None)
 
   def Unknown4(unk2: Int, char_id: Long, position: Int, outfit_id: Long): SquadMemberEvent =
-    SquadMemberEvent(MemberEvent.UnknownOutfitManip, unk2, char_id, position, None, None, Some(outfit_id))
+    SquadMemberEvent(MemberEvent.Outfit, unk2, char_id, position, None, None, Some(outfit_id))
 
   implicit val codec: Codec[SquadMemberEvent] = (("action" | MemberEvent.codec) >>:~ { action =>
     ("unk2" | uint16L) ::
       ("char_id" | uint32L) ::
       ("position" | uint4) ::
-      conditional(action == MemberEvent.Add, "player_name" | PacketHelpers.encodedWideStringAligned(1)) ::
+      conditional(action == MemberEvent.Add, "player_name" | PacketHelpers.encodedWideStringAligned(adjustment = 1)) ::
       conditional(action == MemberEvent.Add || action == MemberEvent.UpdateZone, "zone_number" | uint16L) ::
-      conditional(action == MemberEvent.Add || action == MemberEvent.UnknownOutfitManip, "outfit_id" | uint32L)
+      conditional(action == MemberEvent.Add || action == MemberEvent.Outfit, "outfit_id" | uint32L)
   }).exmap[SquadMemberEvent](
     {
       case action :: unk2 :: char_id :: member_position :: player_name :: zone_number :: outfit_id :: HNil =>
@@ -85,9 +85,9 @@ object SquadMemberEvent extends Marshallable[SquadMemberEvent] {
         Attempt.Successful(
           MemberEvent.UpdateZone :: unk2 :: char_id :: member_position :: None :: Some(zone_number) :: None :: HNil
         )
-      case SquadMemberEvent(MemberEvent.UnknownOutfitManip, unk2, char_id, member_position, None, None, Some(outfit_id)) =>
+      case SquadMemberEvent(MemberEvent.Outfit, unk2, char_id, member_position, None, None, Some(outfit_id)) =>
         Attempt.Successful(
-          MemberEvent.UnknownOutfitManip :: unk2 :: char_id :: member_position :: None :: None :: Some(outfit_id) :: HNil
+          MemberEvent.Outfit :: unk2 :: char_id :: member_position :: None :: None :: Some(outfit_id) :: HNil
         )
       case SquadMemberEvent(action, unk2, char_id, member_position, None, None, None) =>
         Attempt.Successful(action :: unk2 :: char_id :: member_position :: None :: None :: None :: HNil)
