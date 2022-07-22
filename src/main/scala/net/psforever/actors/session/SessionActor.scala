@@ -282,6 +282,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var heightLast: Float = 0f
   var heightTrend: Boolean = false //up = true, down = false
   var heightHistory: Float = 0f
+  var contextSafeEntity: PlanetSideGUID = PlanetSideGUID(0)
   val collisionHistory: mutable.HashMap[ActorRef, Long] = mutable.HashMap()
   var populateAvatarAwardRibbonsFunc: (Int, Long) => Unit = setupAvatarAwardMessageDelivery
 
@@ -586,7 +587,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           case Some(_: LocalLockerItem) =>
             player.avatar.locker.Inventory.hasItem(guid) match {
               case out @ Some(_) =>
+                contextSafeEntity = guid
                 out
+              case None if contextSafeEntity == guid =>
+                //safeguard
+                None
               case None =>
                 //delete stale entity reference from client
                 log.warn(
@@ -612,6 +617,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             //delete stale entity reference from client
             log.error(s"$elevatedDecorator: ${player.Name} has an invalid reference to $hint with GUID $guid in zone ${continent.id}")
             sendResponse(ObjectDeleteMessage(guid, 0))
+            None
+
+          case None if contextSafeEntity == guid =>
+            //safeguard
             None
 
           case _ =>
@@ -4951,10 +4960,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           ValidObject(item_guid, decorator = "MoveItem")
         ) match {
           case (
-                Some(source: PlanetSideServerObject with Container),
-                Some(destination: PlanetSideServerObject with Container),
-                Some(item: Equipment)
-              ) =>
+            Some(source: PlanetSideServerObject with Container),
+            Some(destination: PlanetSideServerObject with Container),
+            Some(item: Equipment)
+            ) =>
             ContainableMoveItem(player.Name, source, destination, item, destination.SlotMapResolution(dest))
           case (None, _, _) =>
             log.error(

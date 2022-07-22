@@ -339,13 +339,6 @@ object Zones {
             turretWeaponGuid
           )
 
-          (Projectile.baseUID until Projectile.rangeUID) foreach {
-            zoneMap.addLocalObject(_, LocalProjectile.Constructor)
-          }
-          40150 until 40450 foreach {
-            zoneMap.addLocalObject(_, LocalLockerItem.Constructor)
-          }
-
           lattice.asObject.get(mapid).foreach { obj =>
             obj.asArray.get.foreach { entry =>
               val arr = entry.asArray.get
@@ -687,6 +680,16 @@ object Zones {
         override def SetupNumberPools() : Unit = addPoolsFunc()
 
         override def init(implicit context: ActorContext): Unit = {
+          guids.find { pool => pool.name.equals("projectiles") } match {
+            case Some(pool) =>
+              (pool.start to pool.max).foreach { map.addLocalObject(_, LocalProjectile.Constructor) }
+            case None => ;
+          }
+          guids.find { pool => pool.name.equals("locker-contents") } match {
+            case Some(pool) =>
+              (pool.start to pool.max).foreach { map.addLocalObject(_, LocalLockerItem.Constructor) }
+            case None => ;
+          }
           super.init(context)
 
           if (!info.id.startsWith("tz")) {

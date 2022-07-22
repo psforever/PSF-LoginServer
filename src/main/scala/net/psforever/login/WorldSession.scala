@@ -3,7 +3,7 @@ package net.psforever.login
 import akka.actor.ActorRef
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
-import net.psforever.objects.equipment.{Ammo, Equipment}
+import net.psforever.objects.equipment.{Ammo, Equipment, EquipmentSize}
 import net.psforever.objects.guid._
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
@@ -653,39 +653,77 @@ object WorldSession {
                                           item: Equipment,
                                           dest: Int
                                         ): Unit = {
-    TaskWorkflow.execute(TaskBundle(
-      new StraightforwardTask() {
-        val localGUID        = item.GUID //original GUID
-        val localChannel     = toChannel
-        val localSource      = source
+    val (performSwap, swapItemGUID): (Boolean, Option[PlanetSideGUID]) = {
+      val destInv = destination.Inventory
+      if (destInv.Offset <= dest && destInv.Offset + destInv.TotalCapacity >= dest) {
+        val tile = item.Definition.Tile
+        destInv.CheckCollisionsVar(dest, tile.Width, tile.Height)
+      } else {
+        val slot = destination.Slot(dest)
+        if (slot.Size != EquipmentSize.Blocked) {
+          slot.Equipment match {
+            case Some(thing) => Success(List(InventoryItem(thing, dest)))
+            case None        => Success(Nil)
+          }
+        } else {
+          Failure(new Exception(""))
+        }
+      }
+    } match {
+      case Success(Nil) =>
+        //no swap item
+        (true, None)
+      case Success(List(swapEntry: InventoryItem)) =>
+        //the swap item is to be registered to the source's zone
+        (true, Some(swapEntry.obj.GUID))
+      case _ =>
+        //too many swap items or other error; this attempt will not execute
+        (false, None)
+    }
+    if (performSwap) {
+      def moveItemTaskFunc(toSlot: Int): Task = new StraightforwardTask() {
+        val localGUID = swapItemGUID //the swap item's original GUID, if any swap item
+        val localChannel = toChannel
+        val localSource = source
         val localDestination = destination
-        val localItem        = item
-        val localSlot        = dest
-        /*
-        source is a locker container that has its own internal unique number system
-        the item is currently registered to this system
-        the item will be moved into the system in which the destination operates
-        to facilitate the transfer, the item needs to be partially unregistered from the source's system
-        to facilitate the transfer, the item needs to be preemptively registered to the destination's system
-        invalidating the current unique number is sufficient for both of these steps
-         */
-        localItem.Invalidate()
-        localItem match {
-          case t: Tool => t.AmmoSlots.foreach { _.Box.Invalidate() }
-          case _       => ;
+        val localItem = item
+        val localDestSlot = dest
+        val localSrcSlot = toSlot
+        val localMoveOnComplete: Try[Any] => Unit = {
+          case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) =>
+            //swapItem is not registered right now, we can not drop the item without re-registering it
+            TaskWorkflow.execute(PutNewEquipmentInInventorySlot(localSource)(swapItem, localSrcSlot))
+          case _ => ;
         }
 
         override def description(): String = s"registering $localItem in ${localDestination.Zone.id} before removing from $localSource"
 
         def action(): Future[Any] = {
-          val zone = localSource.Zone
-          //see LockerContainerControl.RemoveItemFromSlotCallback
-          zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, localGUID))
-          ask(localSource.Actor, Containable.MoveItem(localDestination, localItem, localSlot))
+          localGUID match {
+            case Some(guid) =>
+              //see LockerContainerControl.RemoveItemFromSlotCallback
+              localSource.Zone.AvatarEvents ! AvatarServiceMessage(
+                localChannel,
+                AvatarAction.ObjectDelete(Service.defaultPlayerGUID, guid)
+              )
+            case None => ;
+          }
+          val moveResult = ask(localDestination.Actor, Containable.PutItemInSlotOrAway(localItem, Some(localDestSlot)))
+          moveResult.onComplete(localMoveOnComplete)
+          moveResult
         }
-      },
-      GUIDTask.registerEquipment(destination.Zone.GUID, item))
-    )
+      }
+      val resultOnComplete: Try[Any] => Unit = {
+        case Success(Containable.ItemFromSlot(fromSource, Some(itemToMove), Some(fromSlot))) =>
+          TaskWorkflow.execute(TaskBundle(
+            moveItemTaskFunc(fromSlot),
+            GUIDTask.registerEquipment(fromSource.Zone.GUID, itemToMove)
+          ))
+        case _ => ;
+      }
+      val result = ask(source.Actor, Containable.RemoveItemFromSlot(item))
+      result.onComplete(resultOnComplete)
+    }
   }
 
   /**
