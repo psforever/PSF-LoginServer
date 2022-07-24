@@ -2,7 +2,6 @@
 package net.psforever.actors.session
 
 import java.util.concurrent.atomic.AtomicInteger
-
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
@@ -22,7 +21,7 @@ import net.psforever.packet.game._
 import net.psforever.types._
 import net.psforever.util.Database._
 import net.psforever.persistence
-import net.psforever.util.{Config, DefinitionUtil}
+import net.psforever.util.{Config, Database, DefinitionUtil}
 import org.joda.time.{LocalDateTime, Seconds}
 import net.psforever.services.ServiceManager
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -32,6 +31,7 @@ import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
 import net.psforever.services.Service
+import org.log4s.Logger
 
 object AvatarActor {
   def apply(sessionActor: ActorRef[SessionActor.Command]): Behavior[Command] =
@@ -190,6 +190,122 @@ object AvatarActor {
   final case class AvatarResponse(avatar: Avatar)
 
   final case class AvatarLoginResponse(avatar: Avatar)
+
+  def buildContainedEquipmentFromClob(container: Container, clob: String, log: org.log4s.Logger): Unit = {
+    clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
+      val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
+        case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
+        case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
+        case _ =>
+          log.warn(s"ignoring invalid item string: '$value'")
+          return
+      }
+
+      objectType match {
+        case "Tool" =>
+          container.Slot(objectIndex).Equipment =
+            Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
+        case "AmmoBox" =>
+          container.Slot(objectIndex).Equipment =
+            AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
+        case "ConstructionItem" =>
+          container.Slot(objectIndex).Equipment = ConstructionItem(
+            DefinitionUtil.idToDefinition(objectId).asInstanceOf[ConstructionItemDefinition]
+          )
+        case "SimpleItem" =>
+          container.Slot(objectIndex).Equipment =
+            SimpleItem(DefinitionUtil.idToDefinition(objectId).asInstanceOf[SimpleItemDefinition])
+        case "Kit" =>
+          container.Slot(objectIndex).Equipment =
+            Kit(DefinitionUtil.idToDefinition(objectId).asInstanceOf[KitDefinition])
+        case "Telepad" | "BoomerTrigger" => ;
+        //special types of equipment that are not actually loaded
+        case name =>
+          log.error(s"failing to add unknown equipment to a locker - $name")
+      }
+
+      toolAmmo foreach { toolAmmo =>
+        toolAmmo.split("_").drop(1).foreach { value =>
+          val (ammoSlots, ammoTypeIndex, ammoBoxDefinition) = value.split("-") match {
+            case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt)
+          }
+          container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).AmmoTypeIndex =
+            ammoTypeIndex
+          container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).Box =
+            AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
+        }
+      }
+    }
+  }
+
+  def resolvePurchaseTimeName(faction: PlanetSideEmpire.Value, item: BasicDefinition): (BasicDefinition, String) = {
+    val factionName: String = faction.toString.toLowerCase
+    val name = item match {
+      case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon |
+           GlobalDefinitions.vshev_quasar =>
+        s"${factionName}hev_antipersonnel"
+      case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon | GlobalDefinitions.vshev_comet =>
+        s"${factionName}hev_antivehicular"
+      case GlobalDefinitions.trhev_burster | GlobalDefinitions.nchev_sparrow | GlobalDefinitions.vshev_starfire =>
+        s"${factionName}hev_antiaircraft"
+      case _ =>
+        item.Name
+    }
+    (item, name)
+  }
+
+  def resolveSharedPurchaseTimeNames(pair: (BasicDefinition, String)): Seq[(BasicDefinition, String)] = {
+    val (definition, name) = pair
+    if (name.matches("(tr|nc|vs)hev_.+") && Config.app.game.sharedMaxCooldown) {
+      val faction = name.take(2)
+      (if (faction.equals("nc")) {
+        Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
+      } else if (faction.equals("vs")) {
+        Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
+      } else {
+        Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
+      }).zip(
+        Seq(s"${faction}hev_antipersonnel", s"${faction}hev_antivehicular", s"${faction}hev_antiaircraft")
+      )
+    } else {
+      definition match {
+        case vdef: VehicleDefinition if GlobalDefinitions.isBattleFrameFlightVehicle(vdef) =>
+          val bframe = name.substring(0, name.indexOf('_'))
+          val gunner = bframe + "_gunner"
+          Seq((DefinitionUtil.fromString(gunner), gunner), (vdef, name))
+
+        case vdef: VehicleDefinition if GlobalDefinitions.isBattleFrameGunnerVehicle(vdef) =>
+          val bframe = name.substring(0, name.indexOf('_'))
+          val flight = bframe + "_flight"
+          Seq((vdef, name), (DefinitionUtil.fromString(flight), flight))
+
+        case _ =>
+          Seq(pair)
+      }
+    }
+  }
+
+  def encodeLockerClob(container: Container): String = {
+    val clobber: StringBuilder = new StringBuilder()
+    container.Inventory.Items.foreach {
+      case InventoryItem(obj, index) =>
+        clobber.append(encodeLoadoutClobFragment(obj, index))
+    }
+    clobber.mkString.drop(1)
+  }
+
+  def encodeLoadoutClobFragment(equipment: Equipment, index: Int): String = {
+    val ammoInfo: String = equipment match {
+      case tool: Tool =>
+        tool.AmmoSlots.zipWithIndex.collect {
+          case (ammoSlot, index2) if ammoSlot.AmmoTypeIndex != 0 =>
+            s"_$index2-${ammoSlot.AmmoTypeIndex}-${ammoSlot.AmmoType.id}"
+        }.mkString
+      case _ =>
+        ""
+    }
+    s"/${equipment.getClass.getSimpleName},$index,${equipment.Definition.ObjectId},$ammoInfo"
+  }
 
   def changeRibbons(ribbons: RibbonBars, ribbon: MeritCommendation.Value, bar: RibbonBarSlot.Value): RibbonBars = {
     bar match {
@@ -368,8 +484,7 @@ class AvatarActor(
 
           val result = for {
             _ <- ctx.run(
-              query[persistence.Avatar]
-                .filter(_.id == lift(avatar.id))
+              query[persistence.Avatar].filter(_.id == lift(avatar.id))
                 .update(_.lastLogin -> lift(LocalDateTime.now()))
             )
             loadouts <- initializeAllLoadouts()
@@ -422,14 +537,13 @@ class AvatarActor(
             val replace = certification.replaces.intersect(avatar.certifications)
             Future
               .sequence(replace.map(cert => {
-                ctx
-                  .run(
-                    query[persistence.Certification]
-                      .filter(_.avatarId == lift(avatar.id))
-                      .filter(_.id == lift(cert.value))
-                      .delete
-                  )
-                  .map(_ => cert)
+                ctx.run(
+                  query[persistence.Certification]
+                    .filter(_.avatarId == lift(avatar.id))
+                    .filter(_.id == lift(cert.value))
+                    .delete
+                )
+                .map(_ => cert)
               }))
               .onComplete {
                 case Failure(exception) =>
@@ -443,11 +557,10 @@ class AvatarActor(
                       PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
                     )
                   }
-                  ctx
-                    .run(
-                      query[persistence.Certification]
-                        .insert(_.id -> lift(certification.value), _.avatarId -> lift(avatar.id))
-                    )
+                  ctx.run(
+                    query[persistence.Certification]
+                      .insert(_.id -> lift(certification.value), _.avatarId -> lift(avatar.id))
+                  )
                     .onComplete {
                       case Failure(exception) =>
                         log.error(exception)("db failure")
@@ -494,14 +607,13 @@ class AvatarActor(
                 avatar.certifications
                   .intersect(requiredByCert)
                   .map(cert => {
-                    ctx
-                      .run(
-                        query[persistence.Certification]
-                          .filter(_.avatarId == lift(avatar.id))
-                          .filter(_.id == lift(cert.value))
-                          .delete
-                      )
-                      .map(_ => cert)
+                    ctx.run(
+                      query[persistence.Certification]
+                        .filter(_.avatarId == lift(avatar.id))
+                        .filter(_.id == lift(cert.value))
+                        .delete
+                    )
+                    .map(_ => cert)
                   })
               )
               .onComplete {
@@ -551,13 +663,12 @@ class AvatarActor(
                   sessionActor ! SessionActor.SendResponse(
                     PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
                   )
-                  ctx
-                    .run(
-                      query[persistence.Certification]
-                        .filter(_.avatarId == lift(avatar.id))
-                        .filter(_.id == lift(cert.value))
-                        .delete
-                    )
+                  ctx.run(
+                    query[persistence.Certification]
+                      .filter(_.avatarId == lift(avatar.id))
+                      .filter(_.id == lift(cert.value))
+                      .delete
+                  )
                 }) ++
                 certifications
                   .diff(avatar.certifications)
@@ -642,25 +753,24 @@ class AvatarActor(
           index match {
             case Some(_index) =>
               import ctx._
-              ctx
-                .run(
-                  query[persistence.Implant]
-                    .filter(_.name == lift(definition.Name))
-                    .filter(_.avatarId == lift(avatar.id))
-                    .delete
-                )
-                .onComplete {
-                  case Success(_) =>
-                    replaceAvatar(avatar.copy(implants = avatar.implants.updated(_index, None)))
-                    sessionActor ! SessionActor.SendResponse(
-                      AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, _index, 0)
-                    )
-                    sessionActor ! SessionActor.SendResponse(
-                      ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
-                    )
-                    context.self ! ResetImplants()
-                  case Failure(exception) => log.error(exception)("db failure")
-                }
+              ctx.run(
+                query[persistence.Implant]
+                  .filter(_.name == lift(definition.Name))
+                  .filter(_.avatarId == lift(avatar.id))
+                  .delete
+              )
+              .onComplete {
+                case Success(_) =>
+                  replaceAvatar(avatar.copy(implants = avatar.implants.updated(_index, None)))
+                  sessionActor ! SessionActor.SendResponse(
+                    AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, _index, 0)
+                  )
+                  sessionActor ! SessionActor.SendResponse(
+                    ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
+                  )
+                  context.self ! ResetImplants()
+                case Failure(exception) => log.error(exception)("db failure")
+              }
 
             case None =>
               log.warn("attempted to sell implant but could not find slot")
@@ -772,13 +882,17 @@ class AvatarActor(
         case UpdatePurchaseTime(definition, time) =>
           // TODO save to db
           var newTimes = avatar.purchaseTimes
-          resolveSharedPurchaseTimeNames(resolvePurchaseTimeName(avatar.faction, definition)).foreach {
+          AvatarActor.resolveSharedPurchaseTimeNames(AvatarActor.resolvePurchaseTimeName(avatar.faction, definition)).foreach {
             case (item, name) =>
               Avatar.purchaseCooldowns.get(item) match {
                 case Some(cooldown) =>
                   //only send for items with cooldowns
                   newTimes = newTimes.updated(name, time)
-                  updatePurchaseTimer(name, cooldown.toSeconds, unk1 = true)
+                  updatePurchaseTimer(
+                    name,
+                    cooldown.toSeconds,
+                    DefinitionUtil.fromString(name).isInstanceOf[VehicleDefinition]
+                  )
                 case _ => ;
               }
           }
@@ -976,13 +1090,12 @@ class AvatarActor(
               val implants = avatar.implants.zipWithIndex.map {
                 case (implant, index) =>
                   if (index >= BattleRank.withExperience(bep).implantSlots && implant.isDefined) {
-                    ctx
-                      .run(
-                        query[persistence.Implant]
-                          .filter(_.name == lift(implant.get.definition.Name))
-                          .filter(_.avatarId == lift(avatar.id))
-                          .delete
-                      )
+                    ctx.run(
+                      query[persistence.Implant]
+                        .filter(_.name == lift(implant.get.definition.Name))
+                        .filter(_.avatarId == lift(avatar.id))
+                        .delete
+                    )
                       .onComplete {
                         case Success(_) =>
                           sessionActor ! SessionActor.SendResponse(
@@ -1071,12 +1184,11 @@ class AvatarActor(
     val p = Promise[Unit]()
 
     import ctx._
-    ctx
-      .run(
-        query[persistence.Avatar]
-          .filter(_.id == lift(avatar.id))
-          .update(_.cosmetics -> lift(Some(Cosmetic.valuesToObjectCreateValue(cosmetics)): Option[Int]))
-      )
+    ctx.run(
+      query[persistence.Avatar]
+        .filter(_.id == lift(avatar.id))
+        .update(_.cosmetics -> lift(Some(Cosmetic.valuesToObjectCreateValue(cosmetics)): Option[Int]))
+    )
       .onComplete {
         case Success(_) =>
           avatarCopy(avatar.copy(cosmetics = Some(cosmetics)))
@@ -1089,7 +1201,6 @@ class AvatarActor(
         case Failure(exception) =>
           p.failure(exception)
       }
-
     p.future
   }
 
@@ -1343,9 +1454,7 @@ class AvatarActor(
               }
             )
           player.GUID = PlanetSideGUID(gen.getAndIncrement)
-
           player.Spawn()
-
           sessionActor ! SessionActor.SendResponse(
             ObjectCreateDetailedMessage(
               ObjectClass.avatar,
@@ -1353,7 +1462,6 @@ class AvatarActor(
               converter.DetailedConstructorData(player).get
             )
           )
-
           sessionActor ! SessionActor.SendResponse(
             CharacterInfoMessage(
               15,
@@ -1364,7 +1472,6 @@ class AvatarActor(
               secondsSinceLastLogin
             )
           )
-
           /** After the user has selected a character to load from the "character select screen,"
             * the temporary global unique identifiers used for that screen are stripped from the underlying `Player` object that was selected.
             * Characters that were not selected may  be destroyed along with their temporary GUIDs.
@@ -1385,7 +1492,6 @@ class AvatarActor(
             )
           player.Invalidate()
         }
-
         sessionActor ! SessionActor.SendResponse(
           CharacterInfoMessage(15, PlanetSideZoneID(0), 0, PlanetSideGUID(0), finished = true, 0)
         )
@@ -1404,16 +1510,15 @@ class AvatarActor(
         .zipWithIndex
         .collect {
           case (slot, index) if slot.Equipment.nonEmpty =>
-            clobber.append(encodeLoadoutClobFragment(slot.Equipment.get, index))
+            clobber.append(AvatarActor.encodeLoadoutClobFragment(slot.Equipment.get, index))
         }
       //encode inventory
       owner.Inventory.Items.foreach {
         case InventoryItem(obj, index) =>
-          clobber.append(encodeLoadoutClobFragment(obj, index))
+          clobber.append(AvatarActor.encodeLoadoutClobFragment(obj, index))
       }
       clobber.mkString.drop(1)
     }
-
     for {
       loadouts <- ctx.run(
         query[persistence.Loadout].filter(_.avatarId == lift(owner.CharId)).filter(_.loadoutNumber == lift(line))
@@ -1447,12 +1552,12 @@ class AvatarActor(
       vehicle.Weapons
         .collect {
           case (index, slot: EquipmentSlot) if slot.Equipment.nonEmpty =>
-            clobber.append(encodeLoadoutClobFragment(slot.Equipment.get, index))
+            clobber.append(AvatarActor.encodeLoadoutClobFragment(slot.Equipment.get, index))
         }
       //encode inventory
       vehicle.Inventory.Items.foreach {
         case InventoryItem(obj, index) =>
-          clobber.append(encodeLoadoutClobFragment(obj, index))
+          clobber.append(AvatarActor.encodeLoadoutClobFragment(obj, index))
       }
       clobber.mkString.drop(1)
     }
@@ -1486,32 +1591,15 @@ class AvatarActor(
 
   def storeNewLocker(): Unit = {
     if (_avatar.nonEmpty) {
-      val items: String = {
-        val clobber: StringBuilder = new StringBuilder()
-        avatar.locker.Inventory.Items.foreach {
-          case InventoryItem(obj, index) =>
-            clobber.append(encodeLoadoutClobFragment(obj, index))
+      pushLockerClobToDataBase(AvatarActor.encodeLockerClob(avatar.locker))
+        .onComplete {
+          case Success(_) =>
+            saveLockerFunc = storeLocker
+            log.debug(s"saving locker contents belonging to ${avatar.name}")
+          case Failure(e) =>
+            saveLockerFunc = doNotStoreLocker
+            log.error(e)("db failure")
         }
-        clobber.mkString.drop(1)
-      }
-      if (items.nonEmpty) {
-        saveLockerFunc = storeLocker
-        import ctx._
-        ctx
-          .run(
-            query[persistence.Locker].insert(
-              _.avatarId -> lift(avatar.id),
-              _.items    -> lift(items)
-            )
-          )
-          .onComplete {
-            case Success(_) =>
-              log.debug(s"saving locker contents belonging to ${avatar.name}")
-            case Failure(e) =>
-              saveLockerFunc = doNotStoreLocker
-              log.error(e)("db failure")
-          }
-      }
     }
   }
 
@@ -1520,34 +1608,17 @@ class AvatarActor(
   }
 
   def storeLocker(): Unit = {
-    import ctx._
-    val items: String = {
-      val clobber: StringBuilder = new StringBuilder()
-      avatar.locker.Inventory.Items.foreach {
-        case InventoryItem(obj, index) =>
-          clobber.append(encodeLoadoutClobFragment(obj, index))
-      }
-      clobber.mkString.drop(1)
-    }
     log.debug(s"saving locker contents belonging to ${avatar.name}")
+    pushLockerClobToDataBase(AvatarActor.encodeLockerClob(avatar.locker))
+  }
+
+  def pushLockerClobToDataBase(items: String): Database.ctx.Result[Database.ctx.RunActionResult] = {
+    import ctx._
     ctx.run(
       query[persistence.Locker]
         .filter(_.avatarId == lift(avatar.id))
         .update(_.items -> lift(items))
     )
-  }
-
-  def encodeLoadoutClobFragment(equipment: Equipment, index: Int): String = {
-    val ammoInfo: String = equipment match {
-      case tool: Tool =>
-        tool.AmmoSlots.zipWithIndex.collect {
-          case (ammoSlot, index2) if ammoSlot.AmmoTypeIndex != 0 =>
-            s"_$index2-${ammoSlot.AmmoTypeIndex}-${ammoSlot.AmmoType.id}"
-        }.mkString
-      case _ =>
-        ""
-    }
-    s"/${equipment.getClass.getSimpleName},$index,${equipment.Definition.ObjectId},$ammoInfo"
   }
 
   def initializeAllLoadouts(): Future[Seq[Option[Loadout]]] = {
@@ -1571,7 +1642,7 @@ class AvatarActor(
         loadouts.map { loadout =>
           val doll = new Player(Avatar(0, "doll", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
           doll.ExoSuit = ExoSuitType(loadout.exosuitId)
-          buildContainedEquipmentFromClob(doll, loadout.items)
+          AvatarActor.buildContainedEquipmentFromClob(doll, loadout.items, log)
 
           val result = (loadout.loadoutNumber, Loadout.Create(doll, loadout.name))
           (0 until 4).foreach(index => {
@@ -1592,7 +1663,7 @@ class AvatarActor(
         loadouts.map { loadout =>
           val definition = DefinitionUtil.idToDefinition(loadout.vehicle).asInstanceOf[VehicleDefinition]
           val toy        = new Vehicle(definition)
-          buildContainedEquipmentFromClob(toy, loadout.items)
+          AvatarActor.buildContainedEquipmentFromClob(toy, loadout.items, log)
 
           val result = (loadout.loadoutNumber, Loadout.Create(toy, loadout.name))
           toy.Weapons.values.foreach(slot => {
@@ -1699,61 +1770,34 @@ class AvatarActor(
 
   def loadLocker(): Future[LockerContainer] = {
     val locker = Avatar.makeLocker()
+    var notLoaded: Boolean = false
     import ctx._
-    ctx
-      .run(query[persistence.Locker].filter(_.avatarId == lift(avatar.id)))
+    val out = ctx.run(query[persistence.Locker]
+      .filter(_.avatarId == lift(avatar.id)))
       .map { entry =>
-        saveLockerFunc = storeLocker
-        entry.foreach { contents => buildContainedEquipmentFromClob(locker, contents.items) }
+        notLoaded = false
+        entry.foreach { contents => AvatarActor.buildContainedEquipmentFromClob(locker, contents.items, log) }
       }
       .map { _ => locker }
-  }
-
-  def buildContainedEquipmentFromClob(container: Container, clob: String): Unit = {
-    clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
-      val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
-        case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
-        case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
-        case _ =>
-          log.warn(s"ignoring invalid item string: '$value'")
-          return
-      }
-
-      objectType match {
-        case "Tool" =>
-          container.Slot(objectIndex).Equipment =
-            Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
-        case "AmmoBox" =>
-          container.Slot(objectIndex).Equipment =
-            AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
-        case "ConstructionItem" =>
-          container.Slot(objectIndex).Equipment = ConstructionItem(
-            DefinitionUtil.idToDefinition(objectId).asInstanceOf[ConstructionItemDefinition]
-          )
-        case "SimpleItem" =>
-          container.Slot(objectIndex).Equipment =
-            SimpleItem(DefinitionUtil.idToDefinition(objectId).asInstanceOf[SimpleItemDefinition])
-        case "Kit" =>
-          container.Slot(objectIndex).Equipment =
-            Kit(DefinitionUtil.idToDefinition(objectId).asInstanceOf[KitDefinition])
-        case "Telepad" | "BoomerTrigger" => ;
-        //special types of equipment that are not actually loaded
-        case name =>
-          log.error(s"failing to add unknown equipment to a locker - $name")
-      }
-
-      toolAmmo foreach { toolAmmo =>
-        toolAmmo.split("_").drop(1).foreach { value =>
-          val (ammoSlots, ammoTypeIndex, ammoBoxDefinition) = value.split("-") match {
-            case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt)
-          }
-          container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).AmmoTypeIndex =
-            ammoTypeIndex
-          container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).Box =
-            AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
-        }
-      }
+    out.onComplete {
+      case Success(_) =>
+        saveLockerFunc = storeLocker
+      case Failure(_) =>
+        notLoaded = true
     }
+    if (notLoaded) {
+      //default empty locker
+      ctx.run(query[persistence.Locker]
+        .insert(_.avatarId -> lift(avatar.id), _.items -> lift("")))
+        .onComplete {
+          case Success(_) =>
+            saveLockerFunc = storeLocker
+          case Failure(e) =>
+            saveLockerFunc = doNotStoreLocker
+            log.error(e)("db failure")
+        }
+    }
+    out
   }
 
   def startIfStoppedStaminaRegen(initialDelay: FiniteDuration): Unit = {
@@ -1781,53 +1825,6 @@ class AvatarActor(
     })
   }
 
-  def resolvePurchaseTimeName(faction: PlanetSideEmpire.Value, item: BasicDefinition): (BasicDefinition, String) = {
-    val factionName: String = faction.toString.toLowerCase
-    val name = item match {
-      case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon |
-          GlobalDefinitions.vshev_quasar =>
-        s"${factionName}hev_antipersonnel"
-      case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon | GlobalDefinitions.vshev_comet =>
-        s"${factionName}hev_antivehicular"
-      case GlobalDefinitions.trhev_burster | GlobalDefinitions.nchev_sparrow | GlobalDefinitions.vshev_starfire =>
-        s"${factionName}hev_antiaircraft"
-      case _ =>
-        item.Name
-    }
-    (item, name)
-  }
-
-  def resolveSharedPurchaseTimeNames(pair: (BasicDefinition, String)): Seq[(BasicDefinition, String)] = {
-    val (definition, name) = pair
-    if (name.matches("(tr|nc|vs)hev_.+") && Config.app.game.sharedMaxCooldown) {
-      val faction = name.take(2)
-      (if (faction.equals("nc")) {
-         Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
-       } else if (faction.equals("vs")) {
-         Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
-       } else {
-         Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
-       }).zip(
-        Seq(s"${faction}hev_antipersonnel", s"${faction}hev_antivehicular", s"${faction}hev_antiaircraft")
-      )
-    } else {
-      definition match {
-        case vdef: VehicleDefinition if GlobalDefinitions.isBattleFrameFlightVehicle(vdef) =>
-          val bframe = name.substring(0, name.indexOf('_'))
-          val gunner = bframe + "_gunner"
-          Seq((DefinitionUtil.fromString(gunner), gunner), (vdef, name))
-
-        case vdef: VehicleDefinition if GlobalDefinitions.isBattleFrameGunnerVehicle(vdef) =>
-          val bframe = name.substring(0, name.indexOf('_'))
-          val flight = bframe + "_flight"
-          Seq((vdef, name), (DefinitionUtil.fromString(flight), flight))
-
-        case _ =>
-          Seq(pair)
-      }
-    }
-  }
-
   def refreshPurchaseTimes(keys: Set[String]): Unit = {
     var keysToDrop: Seq[String] = Nil
     keys.foreach { key =>
@@ -1836,8 +1833,12 @@ class AvatarActor(
           val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
           Avatar.purchaseCooldowns.find(_._1.Name == name) match {
             case Some((obj, cooldown)) if cooldown.toSeconds - secondsSincePurchase > 0 =>
-              val (_, name) = resolvePurchaseTimeName(avatar.faction, obj)
-              updatePurchaseTimer(name, cooldown.toSeconds - secondsSincePurchase, unk1 = true)
+              val (_, name) = AvatarActor.resolvePurchaseTimeName(avatar.faction, obj)
+              updatePurchaseTimer(
+                name,
+                cooldown.toSeconds - secondsSincePurchase,
+                DefinitionUtil.fromString(name).isInstanceOf[VehicleDefinition]
+              )
 
             case _ =>
               keysToDrop = keysToDrop :+ key //key has timed-out
@@ -1850,10 +1851,9 @@ class AvatarActor(
     }
   }
 
-  def updatePurchaseTimer(name: String, time: Long, unk1: Boolean): Unit = {
-    //TODO? unk1 is: vehicles = true, everything else = false
+  def updatePurchaseTimer(name: String, time: Long, isActuallyAVehicle: Boolean): Unit = {
     sessionActor ! SessionActor.SendResponse(
-      AvatarVehicleTimerMessage(session.get.player.GUID, name, time, unk1 = true)
+      AvatarVehicleTimerMessage(session.get.player.GUID, name, time, isActuallyAVehicle)
     )
   }
 
