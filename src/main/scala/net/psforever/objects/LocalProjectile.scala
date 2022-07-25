@@ -22,7 +22,10 @@ class LocalProjectile extends PlanetSideServerObject {
 
 object LocalProjectile {
   import net.psforever.objects.definition.ObjectDefinition
-  def local = new ObjectDefinition(0) { Name = "projectile" }
+  def local = new ObjectDefinition(0) {
+    Name = "projectile"
+    registerAs = "projectiles"
+  }
 
   /**
     * Instantiate and configure a `LocalProjectile` object.

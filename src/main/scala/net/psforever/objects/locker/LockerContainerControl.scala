@@ -12,7 +12,7 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 /**
   * A control agency mainly for manipulating the equipment stowed by a player in a `LockerContainer`
-  * and reporting back to a specific xchannel in the event system about these changes.
+  * and reporting back to a specific channel in the event system about these changes.
   * @param locker the governed player-facing locker component
   * @param toChannel the channel to which to publish events, typically the owning player's name
   */
