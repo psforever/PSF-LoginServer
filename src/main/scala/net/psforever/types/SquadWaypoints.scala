@@ -37,7 +37,7 @@ sealed abstract class StandardWaypoint(override val value: Int) extends SquadWay
   * is indicated in the game world, on the proximity map, and on the continental map,
   * and is designated by the number of the squad member that produced it.
   * Only one laze waypoint may be made visible from any one squad member at any given time, overwritten when replaced.
-  * When viewed by a squad member seated in a Flail, the waypoint includes an elevation reticle for aiming purposes.
+  * When viewed by a squad member seated in a Flail, the waypoint includes an elevation reticule for aiming purposes.
   * YMMV.
   * @see `SquadWaypointEvent`
   * @see `SquadWaypointRequest`

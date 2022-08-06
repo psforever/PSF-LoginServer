@@ -33,7 +33,7 @@ class CharacterKnowledgeMessageTest extends Specification {
           ),
           15,
           0,
-          PlanetSideGUID(12)
+          12
         )
       case _ =>
         ko
@@ -61,7 +61,7 @@ class CharacterKnowledgeMessageTest extends Specification {
         ),
         15,
         0,
-        PlanetSideGUID(12)
+        12
       )
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector

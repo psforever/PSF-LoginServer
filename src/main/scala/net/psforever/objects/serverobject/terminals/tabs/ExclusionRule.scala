@@ -112,7 +112,8 @@ case object CavernVehicleQuestion extends ExclusionRule {
     obj match {
       case vehicle: Vehicle =>
         import net.psforever.objects.serverobject.structures.Building
-        if(GlobalDefinitions.isCavernVehicle(vehicle.Definition)) {
+        val definition = vehicle.Definition
+        if (definition == GlobalDefinitions.flail || definition == GlobalDefinitions.switchblade) {
           (player.Zone.GUID(msg.terminal_guid) match {
             case Some(term: Amenity) => Some(term.Owner)
             case _                   => None

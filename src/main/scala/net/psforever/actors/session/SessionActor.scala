@@ -145,8 +145,9 @@ object SessionActor {
 
   protected final case class SquadUIElement(
       name: String = "",
+      outfit: Long = 0,
       index: Int = -1,
-      zone: Int = -1,
+      zone: Int = 0,
       health: Int = 0,
       armor: Int = 0,
       position: Vector3 = Vector3.Zero
@@ -940,7 +941,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
           case SquadResponse.SquadDecoration(guid, squad) =>
             val decoration = if (
-              squad.Size == squad.Capacity |
+              squadUI.nonEmpty ||
+              squad.Size == squad.Capacity ||
               {
                 val offer = avatar.certifications
                 !squad.Membership.exists { _.isAvailable(offer) }
@@ -987,7 +989,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
             )
 
-          case SquadResponse.Join(squad, positionsToUpdate, toChannel, ref) =>
+          case SquadResponse.Join(squad, positionsToUpdate, _, ref) =>
             val leader              = squad.Leader
             val membershipPositions = positionsToUpdate map squad.Membership.zipWithIndex
             membershipPositions.find({ case (member, _) => member.CharId == avatar.id }) match {
@@ -1008,7 +1010,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                       )
                     )
                     squadUI(member.CharId) =
-                      SquadUIElement(member.Name, index, member.ZoneId, member.Health, member.Armor, member.Position)
+                      SquadUIElement(member.Name, outfit=0L, index, member.ZoneId, member.Health, member.Armor, member.Position)
                 }
                 //repeat our entry
                 sendResponse(
@@ -1021,12 +1023,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     outfit_id = 0
                   )
                 )
-                val playerGuid = player.GUID
                 //turn lfs off
-                val factionChannel = s"${player.Faction}"
                 if (avatar.lookingForSquad) {
                   avatarActor ! AvatarActor.SetLookingForSquad(false)
                 }
+                val playerGuid = player.GUID
+                val factionChannel = s"${player.Faction}"
                 //squad colors
                 GiveSquadColorsToMembers()
                 GiveSquadColorsForOthers(playerGuid, factionChannel, squad_supplement_id)
@@ -1034,6 +1036,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 sendResponse(PlanetsideAttributeMessage(playerGuid, 32, ourIndex))
                 //a finalization? what does this do?
                 sendResponse(SquadDefinitionActionMessage(squad.GUID, 0, SquadAction.Unknown(18)))
+                squadService ! SquadServiceMessage(player, continent, SquadServiceAction.ReloadDecoration())
                 updateSquadRef = ref
                 updateSquad = PeriodicUpdatesWhenEnrolledInSquad
                 chatActor ! ChatActor.JoinChannel(ChatService.ChatChannel.Squad(squad.GUID))
@@ -1048,7 +1051,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                         SquadMemberEvent.Add(squad_supplement_id, charId, index, member.Name, member.ZoneId, outfit_id = 0)
                       )
                       squadUI(charId) =
-                        SquadUIElement(member.Name, index, member.ZoneId, member.Health, member.Armor, member.Position)
+                        SquadUIElement(member.Name, outfit=0L, index, member.ZoneId, member.Health, member.Armor, member.Position)
                       charId
                   }
                 )
@@ -1084,6 +1087,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 sendResponse(PlanetsideAttributeMessage(playerGuid, 32, 0))           //disassociate with member position in squad?
                 sendResponse(PlanetsideAttributeMessage(playerGuid, 34, 4294967295L)) //unknown, perhaps unrelated?
                 lfsm = false
+                avatarActor ! AvatarActor.SetLookingForSquad(false)
                 //a finalization? what does this do?
                 sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
                 squad_supplement_id = 0
@@ -1112,16 +1116,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               val guid = player.GUID
               //demoted from leader; no longer lfsm
               if (lfsm) {
-                sendResponse(PlanetsideAttributeMessage(guid, 53, 0))
-                continent.AvatarEvents ! AvatarServiceMessage(
-                  s"${player.Faction}",
-                  AvatarAction.PlanetsideAttribute(guid, 53, 0)
-                )
+                avatarActor ! AvatarActor.SetLookingForSquad(false)
               }
               lfsm = false
             }
             //the players have already been swapped in the backend object
-            SwapSquadUIElements(squad, from_index, secondIndex = 0)
+            SwapSquadUIElements(squad, firstIndex = 0, from_index)
 
           case SquadResponse.UpdateMembers(_, positions) =>
             val pairedEntries = positions.collect {
@@ -1137,13 +1137,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     SquadMemberEvent.UpdateZone(squad_supplement_id, entry.char_id, element.index, entry.zone_number)
                   )
                   squadUI(entry.char_id) =
-                    SquadUIElement(element.name, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
+                    SquadUIElement(element.name, element.outfit, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
                   entry
                 case (entry, element)
                     if entry.health != element.health || entry.armor != element.armor || entry.pos != element.position =>
                   //other elements that need to be updated
                   squadUI(entry.char_id) =
-                    SquadUIElement(element.name, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
+                    SquadUIElement(element.name, element.outfit, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
                   entry
               })
               .filterNot(_.char_id == avatar.id) //we want to update our backend, but not our frontend
@@ -1157,6 +1157,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 )
               )
             }
+
+          case SquadResponse.CharacterKnowledge(charId, name, certs, u1, u2, zone) =>
+            sendResponse(CharacterKnowledgeMessage(charId, Some(CharacterKnowledgeInfo(name, certs, u1, u2, zone))))
 
           case SquadResponse.SquadSearchResults(results) =>
             //TODO positive squad search results message?
@@ -2837,12 +2840,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case Terminal.LearnCertification(cert) =>
         avatarActor ! AvatarActor.LearnCertification(msg.terminal_guid, cert)
-        squadService ! SquadServiceMessage(tplayer, continent, SquadServiceAction.ReloadDecoration())
         lastTerminalOrderFulfillment = true
 
       case Terminal.SellCertification(cert) =>
         avatarActor ! AvatarActor.SellCertification(msg.terminal_guid, cert)
-        squadService ! SquadServiceMessage(tplayer, continent, SquadServiceAction.ReloadDecoration())
         lastTerminalOrderFulfillment = true
 
       case Terminal.LearnImplant(implant) =>
@@ -3376,8 +3377,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, player.Faction, true))
     //looking for squad (members)
     if (tplayer.avatar.lookingForSquad || lfsm) {
-      sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
-      continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(guid, 53, 1))
+      avatarActor ! AvatarActor.SetLookingForSquad(true) //forces the state and employs callbacks
     }
     sendResponse(AvatarSearchCriteriaMessage(guid, List(0, 0, 0, 0, 0, 0)))
     //these are facilities and towers and bunkers in the zone, but not necessarily all of them for some reason
@@ -5592,11 +5592,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           } else if (action == 30) {
             log.info(s"${player.Name} is back")
             player.AwayFromKeyboard = false
-          }
-          if (action == GenericActionEnum.DropSpecialItem.id) {
+          } else if (action == GenericActionEnum.DropSpecialItem.id) {
             DropSpecialSlotItem()
-          }
-          if (action == 15) { //max deployment
+          } else if (action == 15) { //max deployment
             log.info(s"${player.Name} has anchored ${player.Sex.pronounObject}self to the ground")
             player.UsingSpecial = SpecialExoSuitDefinition.Mode.Anchored
             continent.AvatarEvents ! AvatarServiceMessage(
@@ -5655,32 +5653,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             } else {
               log.warn(s"GenericActionMessage: ${player.Name} can't handle action code 21")
             }
-          } else if (action == 36) { //Looking For Squad ON
-            if (squadUI.nonEmpty) {
-              if (!lfsm && squadUI(player.CharId).index == 0) {
-                lfsm = true
-                continent.AvatarEvents ! AvatarServiceMessage(
-                  s"${player.Faction}",
-                  AvatarAction.PlanetsideAttribute(player.GUID, 53, 1)
-                )
-              }
-            } else if (!avatar.lookingForSquad) {
-              avatarActor ! AvatarActor.SetLookingForSquad(true)
+          } else if (action == 36 || action == 37) { //Looking For Squad (Members) (on/off)
+            val state = if (action == 36) { true } else { false }
+            squadUI.get(player.CharId) match {
+              case Some(elem) if elem.index == 0 =>
+                lfsm = state
+              case _ =>
             }
-          } else if (action == 37) { //Looking For Squad OFF
-            if (squadUI.nonEmpty) {
-              if (lfsm && squadUI(player.CharId).index == 0) {
-                lfsm = false
-                continent.AvatarEvents ! AvatarServiceMessage(
-                  s"${player.Faction}",
-                  AvatarAction.PlanetsideAttribute(player.GUID, 53, 0)
-                )
-              }
-            } else if (avatar.lookingForSquad) {
-              avatarActor ! AvatarActor.SetLookingForSquad(false)
-            }
+            avatarActor ! AvatarActor.SetLookingForSquad(state)
           } else {
-            log.debug(s"$msg")
+            log.warn(s"GenericActionMessage: ${player.Name} can't handle $msg")
           }
         }
 
@@ -9078,42 +9060,63 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     }
   }
 
+  /**
+    * Swap the squad UI elements along the top of the screen
+    * (colloquially referred to as "cards")
+    * to match recently updated positions of the members in a squad.<br>
+    * <br>
+    * The squad membership structure should have already updated to the correct positions of the members.
+    * By referencing one of the indices in this structure,
+    * obtain the character identification number,
+    * use the character identification number to locate that member's card,
+    * and update the card index to match the squad position in which that member is discovered.
+    * @see `PlanetsideAttributeMessage`
+    * @see `Squad`
+    * @see `SquadMemberEvent.Add`
+    * @see `SquadMemberEvent.Remove`
+    * @see `SquadState`
+    * @see `SquadStateInfo`
+    * @param squad the squad that supports the membership structure
+    * @param firstIndex the index of a player in the squad's membership;
+    *                   the member position must be occupied
+    * @param secondIndex the optional index of a player in the squad's membership;
+    *                    if the member position is occupied,
+    *                    the member at the first index swaps with the member at this second index
+    */
   def SwapSquadUIElements(squad: Squad, firstIndex: Int, secondIndex: Int): Unit = {
     //the players should have already been swapped in the backend object
-    if (squadUI.nonEmpty) {
-      val firstMember  = squad.Membership(secondIndex)
-      val firstCharId  = firstMember.CharId
-      val secondMember = squad.Membership(firstIndex)
-      val secondCharId = secondMember.CharId
+    val firstMember = squad.Membership(firstIndex)
+    val firstCharId  = firstMember.CharId
+    if (squadUI.nonEmpty && firstCharId > 0) {
+      //the firstIndex should always point to a valid player in the squad
       val id           = squad_supplement_id
-      if (secondCharId > 0) {
+      val secondMember = squad.Membership(secondIndex)
+      val secondCharId = secondMember.CharId
+      if (secondCharId > 0 && firstCharId != secondCharId) {
         //secondMember and firstMember swap places
-        val secondElem = squadUI(firstCharId)
-        val firstElem  = squadUI(secondCharId)
-        squadUI(secondCharId) = secondElem.copy(index = secondIndex)
-        squadUI(firstCharId) = firstElem.copy(index = firstIndex)
-        sendResponse(SquadMemberEvent.Remove(id, firstCharId, secondIndex))
+        val newFirstElem  = squadUI(firstCharId).copy(index = firstIndex)
+        val newSecondElem = squadUI(secondCharId).copy(index = secondIndex)
+        squadUI.put(firstCharId, newFirstElem)
+        squadUI.put(secondCharId, newSecondElem)
         sendResponse(SquadMemberEvent.Remove(id, secondCharId, firstIndex))
-        sendResponse(SquadMemberEvent.Add(id, secondCharId, secondIndex, secondElem.name, secondElem.zone, outfit_id = 0))
-        sendResponse(SquadMemberEvent.Add(id, firstCharId, firstIndex, firstElem.name, firstElem.zone, outfit_id = 0))
-        sendResponse(PlanetsideAttributeMessage(secondMember.GUID, 32, secondIndex))
+        sendResponse(SquadMemberEvent.Remove(id, firstCharId, secondIndex))
+        sendResponse(SquadMemberEvent.Add(id, firstCharId, firstIndex, newFirstElem.name, newFirstElem.zone, outfit_id = 0))
+        sendResponse(SquadMemberEvent.Add(id, secondCharId, secondIndex, newSecondElem.name, newSecondElem.zone, outfit_id = 0))
         sendResponse(PlanetsideAttributeMessage(firstMember.GUID, 32, firstIndex))
+        sendResponse(PlanetsideAttributeMessage(secondMember.GUID, 32, secondIndex))
         sendResponse(
-          SquadState(
-            PlanetSideGUID(id),
-            List(
-              SquadStateInfo(firstCharId, firstElem.health, firstElem.armor, firstElem.position),
-              SquadStateInfo(secondCharId, secondElem.health, secondElem.armor, secondElem.position)
-            )
-          )
+          SquadState(PlanetSideGUID(id), List(
+            SquadStateInfo(firstCharId, newFirstElem.health, newFirstElem.armor, newFirstElem.position),
+            SquadStateInfo(secondCharId, newSecondElem.health, newSecondElem.armor, newSecondElem.position)
+          ))
         )
       } else {
-        //previous firstMember has moved secondMember
+        //firstMember has moved to a new position in squad
         val elem = squadUI(firstCharId)
-        squadUI(firstCharId) = elem.copy(index = secondIndex)
-        sendResponse(SquadMemberEvent.Remove(id, firstCharId, firstIndex))
-        sendResponse(SquadMemberEvent.Add(id, firstCharId, secondIndex, elem.name, elem.zone, outfit_id = 0))
-        sendResponse(PlanetsideAttributeMessage(firstMember.GUID, 32, secondIndex))
+        squadUI.put(firstCharId, elem.copy(index = firstIndex))
+        sendResponse(SquadMemberEvent.Remove(id, firstCharId, elem.index))
+        sendResponse(SquadMemberEvent.Add(id, firstCharId, firstIndex, elem.name, elem.zone, outfit_id = 0))
+        sendResponse(PlanetsideAttributeMessage(firstMember.GUID, 32, firstIndex))
         sendResponse(
           SquadState(PlanetSideGUID(id), List(SquadStateInfo(firstCharId, elem.health, elem.armor, elem.position)))
         )
@@ -9134,6 +9137,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         player.MaxHealth,
         player.Armor,
         player.MaxArmor,
+        avatar.certifications,
         player.Position,
         continent.Number
       )

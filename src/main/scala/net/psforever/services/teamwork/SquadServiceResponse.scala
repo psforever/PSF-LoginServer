@@ -2,6 +2,7 @@
 package net.psforever.services.teamwork
 
 import akka.actor.ActorRef
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
 import net.psforever.types.{PlanetSideGUID, SquadResponseType, SquadWaypoint}
@@ -63,4 +64,13 @@ object SquadResponse {
   final case class SquadDecoration(guid: PlanetSideGUID, squad: Squad) extends Response
 
   final case class SquadSearchResults(results: List[PlanetSideGUID]) extends Response
+
+  final case class CharacterKnowledge(
+                                       id: Long,
+                                       name: String,
+                                       certs: Set[Certification],
+                                       unk1: Int,
+                                       unk2: Int,
+                                       zoneNumber: Int
+                                     ) extends Response
 }

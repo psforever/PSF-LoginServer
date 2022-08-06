@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
 import net.psforever.services.Service
-import org.log4s.Logger
+//import org.log4s.Logger
 
 object AvatarActor {
   def apply(sessionActor: ActorRef[SessionActor.Command]): Behavior[Command] =
@@ -388,10 +388,10 @@ class AvatarActor(
 
         case SetLookingForSquad(lfs) =>
           avatarCopy(avatar.copy(lookingForSquad = lfs))
-          sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.get.player.GUID, 53, 0))
+          val lfsState = if (lfs) 1 else 0
           session.get.zone.AvatarEvents ! AvatarServiceMessage(
             avatar.faction.toString,
-            AvatarAction.PlanetsideAttribute(session.get.player.GUID, 53, if (lfs) 1 else 0)
+            AvatarAction.PlanetsideAttribute(session.get.player.GUID, 53, lfsState)
           )
           Behaviors.same
 

@@ -17,6 +17,7 @@ class Member {
   private var armor: Int        = 0
   private var zoneId: Int       = 0
   private var position: Vector3 = Vector3.Zero
+  private var certs: Set[Certification] = Set()
 
   def Role: String = role
 
@@ -90,6 +91,13 @@ class Member {
   def Position_=(pos: Vector3): Vector3 = {
     position = pos
     Position
+  }
+
+  def Certifications: Set[Certification] = certs
+
+  def Certifications_=(req: Set[Certification]): Set[Certification] = {
+    certs = req
+    Certifications
   }
 
   def isAvailable: Boolean = {

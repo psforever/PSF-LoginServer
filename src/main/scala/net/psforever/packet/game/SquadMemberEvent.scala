@@ -51,16 +51,16 @@ object SquadMemberEvent extends Marshallable[SquadMemberEvent] {
   def UpdateZone(unk2: Int, char_id: Long, position: Int, zone_number: Int): SquadMemberEvent =
     SquadMemberEvent(MemberEvent.UpdateZone, unk2, char_id, position, None, Some(zone_number), None)
 
-  def Unknown4(unk2: Int, char_id: Long, position: Int, outfit_id: Long): SquadMemberEvent =
+  def Outfit(unk2: Int, char_id: Long, position: Int, outfit_id: Long): SquadMemberEvent =
     SquadMemberEvent(MemberEvent.Outfit, unk2, char_id, position, None, None, Some(outfit_id))
 
   implicit val codec: Codec[SquadMemberEvent] = (("action" | MemberEvent.codec) >>:~ { action =>
     ("unk2" | uint16L) ::
       ("char_id" | uint32L) ::
       ("position" | uint4) ::
-      conditional(action == MemberEvent.Add, "player_name" | PacketHelpers.encodedWideStringAligned(adjustment = 1)) ::
-      conditional(action == MemberEvent.Add || action == MemberEvent.UpdateZone, "zone_number" | uint16L) ::
-      conditional(action == MemberEvent.Add || action == MemberEvent.Outfit, "outfit_id" | uint32L)
+      ("player_name" | conditional(action == MemberEvent.Add, PacketHelpers.encodedWideStringAligned(adjustment = 1))) ::
+      ("zone_number" | conditional(action == MemberEvent.Add || action == MemberEvent.UpdateZone, uint16L)) ::
+      ("outfit_id" | conditional(action == MemberEvent.Add || action == MemberEvent.Outfit, uint32L))
   }).exmap[SquadMemberEvent](
     {
       case action :: unk2 :: char_id :: member_position :: player_name :: zone_number :: outfit_id :: HNil =>

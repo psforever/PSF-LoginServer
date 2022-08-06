@@ -91,14 +91,14 @@ class SquadSwitchboard(
 
     case SquadServiceMessage(tplayer, _, squad_action) =>
       squad_action match {
-        case SquadAction.Definition(guid, line, action) =>
-          SquadActionDefinition(tplayer, guid, line, action, sender())
+        case SquadAction.Definition(_, line, action) =>
+          SquadActionDefinition(tplayer, line, action, sender())
 
         case SquadAction.Waypoint(_, wtype, _, info) =>
           SquadActionWaypoint(tplayer, wtype, info)
 
-        case SquadAction.Update(char_id, guid, health, max_health, armor, max_armor, pos, zone_number) =>
-          SquadActionUpdate(char_id, guid, health, max_health, armor, max_armor, pos, zone_number, sender())
+        case SquadAction.Update(char_id, guid, health, max_health, armor, max_armor, certs, pos, zone_number) =>
+          SquadActionUpdate(char_id, guid, health, max_health, armor, max_armor, certs, pos, zone_number, tplayer, sender())
 
         case _ => ;
       }
@@ -145,15 +145,17 @@ class SquadSwitchboard(
     role.Armor = StatConverter.Health(player.Armor, player.MaxArmor, min = 1, max = 64)
     role.Position = player.Position
     role.ZoneId = player.Zone.Number
+    role.Certifications = player.avatar.certifications
 
     val toChannel = features.ToChannel
     val size = squad.Size
-    subscriptions.MonitorSquadDetails.subtractOne(charId)
+    val leaderId = squad.Leader.CharId
+    val membership = squad.Membership
     subscriptions.Publish(charId, SquadResponse.AssociateWithSquad(squad.GUID))
     if (size == 2) {
       //first squad member after leader; both members fully initialize
       subscriptions.InitialAssociation(features)
-      val (memberCharIds, indices) = squad.Membership.zipWithIndex
+      val (memberCharIds, indices) = membership.zipWithIndex
         .filterNot { case (member, _) => member.CharId == 0 }
         .toList
         .unzip { case (member, index) => (member.CharId, index) }
@@ -161,12 +163,14 @@ class SquadSwitchboard(
       memberCharIds
         .map { id => (id, subscriptions.UserEvents.get(id)) }
         .collect { case (id, Some(sub)) =>
-          subscriptions.InitSquadDetail(squad.GUID, Seq(id), squad)
           subscriptions.Publish(id, SquadResponse.Join(squad, organizedIndices, toChannel, self))
           InitWaypoints(id, features)
           subscriptions.SquadEvents.subscribe(sub, s"/$toChannel/Squad")
         }
-      //update for new user
+      //update for leader
+      subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(charId, role.Name, role.Certifications, 40, 5, role.ZoneId))
+      //everyone
+      subscriptions.InitSquadDetail(features)
     } else {
       //joining an active squad; different people update differently
       //new member gets full squad UI updates
@@ -175,7 +179,7 @@ class SquadSwitchboard(
         charId,
         SquadResponse.Join(
           squad,
-          position +: squad.Membership.zipWithIndex
+          position +: membership.zipWithIndex
             .collect({ case (member, index) if member.CharId > 0 => index })
             .filterNot(_ == position)
             .toList,
@@ -194,6 +198,12 @@ class SquadSwitchboard(
           List(SquadPositionEntry(position, SquadPositionDetail().Player(charId, player.Name)))
         )
       )
+      membership.foreach { member =>
+        if (member.CharId != charId) {
+          val id = member.CharId
+          subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(id, member.Name, member.Certifications, 40, 5, member.ZoneId))
+        }
+      }
       subscriptions.SquadEvents.subscribe(sendTo, s"/$toChannel/Squad")
     }
     context.parent ! SquadService.UpdateSquadListWhenListed(
@@ -226,7 +236,11 @@ class SquadSwitchboard(
             }.toList
           )
         )
-        subscriptions.SquadEvents.unsubscribe(subscriptions.UserEvents(charId), s"/${features.ToChannel}/Squad")
+        subscriptions.UserEvents.remove(charId) match {
+          case Some(events) =>
+            subscriptions.SquadEvents.unsubscribe(events, s"/${features.ToChannel}/Squad")
+          case None => ;
+        }
         log.info(s"${us.Name} has left squad #${squad.GUID.guid}")
         true
       case _ =>
@@ -236,7 +250,6 @@ class SquadSwitchboard(
 
   def SquadActionDefinition(
                              tplayer: Player,
-                             guid: PlanetSideGUID,
                              line: Int,
                              action: SquadRequestAction,
                              sendTo: ActorRef
@@ -510,7 +523,10 @@ class SquadSwitchboard(
     }
   }
 
-  def SquadActionDefinitionStopListSquad(tplayer: Player, sendTo: ActorRef): Unit = {
+  def SquadActionDefinitionStopListSquad(
+                                          tplayer: Player,
+                                          sendTo: ActorRef
+                                        ): Unit = {
     val squad = features.Squad
     if (squad.Leader.CharId == tplayer.CharId) {
       if (features.Listed) {
@@ -548,7 +564,10 @@ class SquadSwitchboard(
     }
   }
 
-  def SquadActionDefinitionSelectRoleForYourself(tplayer: Player, position: Int): Unit = {
+  def SquadActionDefinitionSelectRoleForYourself(
+                                                  tplayer: Player,
+                                                  position: Int
+                                                ): Unit = {
     //no swap to squad leader position, ever
     val squad = features.Squad
     if (position != 0 && position < squad.Size && squad.Availability(position)) {
@@ -640,7 +659,10 @@ class SquadSwitchboard(
   }
 
   def SquadActionWaypoint(tplayer: Player, waypointType: SquadWaypoint, info: Option[WaypointInfo]): Unit = {
-    val playerCharId = tplayer.CharId
+    SquadActionWaypoint(tplayer.CharId, waypointType, info)
+  }
+
+  def SquadActionWaypoint(playerCharId: Long, waypointType: SquadWaypoint, info: Option[WaypointInfo]): Unit = {
     (if (waypointType.subtype == WaypointSubtype.Laze) {
       info match {
         case Some(winfo) =>
@@ -752,16 +774,25 @@ class SquadSwitchboard(
                          maxHealth: Int,
                          armor: Int,
                          maxArmor: Int,
+                         certifications: Set[Certification],
                          pos: Vector3,
                          zoneNumber: Int,
+                         player: Player,
                          sendTo: ActorRef
                        ): Unit = {
+    //squad members
     val squad = features.Squad
     squad.Membership.find(_.CharId == charId) match {
       case Some(member) =>
+        val healthBefore = member.Health
+        val healthAfter = StatConverter.Health(health, maxHealth, min = 1, max = 64)
+        val beforeZone = member.ZoneId
+        val certsBefore = member.Certifications
+        val zoneBefore = member.ZoneId
         member.GUID = guid
-        member.Health = StatConverter.Health(health, maxHealth, min = 1, max = 64)
+        member.Health = healthAfter
         member.Armor = StatConverter.Health(armor, maxArmor, min = 1, max = 64)
+        member.Certifications = certifications
         member.Position = pos
         member.ZoneId = zoneNumber
         subscriptions.Publish(
@@ -769,15 +800,57 @@ class SquadSwitchboard(
           SquadResponse.UpdateMembers(
             squad,
             squad.Membership
-              .filterNot {
-                _.CharId == 0
-              }
+              .filterNot { _.CharId == 0 }
               .map { member =>
-                SquadAction.Update(member.CharId, PlanetSideGUID(0), member.Health, 0, member.Armor, 0, member.Position, member.ZoneId)
+                SquadAction.Update(member.CharId, PlanetSideGUID(0), member.Health, 0, member.Armor, 0, member.Certifications, member.Position, member.ZoneId)
               }
               .toList
           )
         )
+        if ((healthBefore == 0 && healthAfter > 0) || beforeZone != zoneNumber) {
+          //resend the active invite
+          context.parent ! SquadService.ResendActiveInvite(charId)
+        }
+        val leader = squad.Leader
+        val leaderCharId = leader.CharId
+        if (!certsBefore.equals(certifications)) {
+          if (leaderCharId != charId) {
+            subscriptions.Publish(
+              leaderCharId,
+              SquadResponse.CharacterKnowledge(charId, member.Name, certifications, 40, 5, zoneNumber)
+            )
+          }
+          context.parent ! SquadServiceMessage(player, player.Zone, SquadAction.ReloadDecoration())
+        } else if (zoneBefore != zoneNumber && leaderCharId != charId) {
+          subscriptions.Publish(
+            leaderCharId,
+            SquadResponse.CharacterKnowledge(charId, member.Name, certifications, 40, 5, 0)
+          )
+          subscriptions.Publish(
+            leaderCharId,
+            SquadResponse.CharacterKnowledge(charId, member.Name, certifications, 40, 5, zoneNumber)
+          )
+        }
+        if (features.LocationFollowsSquadLead) {
+          //redraw squad experience waypoint
+          if (leaderCharId == charId) {
+            //update
+            features.AddWaypoint(squad.GUID, SquadWaypoint.ExperienceRally, WaypointInfo(zoneNumber, pos))
+          } else {
+            //show
+            subscriptions.Publish(
+              charId,
+              SquadResponse.WaypointEvent(
+                WaypointEventAction.Add,
+                charId,
+                SquadWaypoint.ExperienceRally,
+                None,
+                Some(WaypointInfo(leader.ZoneId, leader.Position)),
+                1
+              )
+            )
+          }
+        }
       case _ => ;
     }
   }
@@ -835,7 +908,6 @@ object SquadSwitchboard {
         log.info(s"${member.Name}-${squad.Faction} has left squad #${squad.GUID.guid} - ${squad.Task}")
         val entry = (charId, index)
         //member leaves the squad completely
-        //memberToSquad.remove(charId)
         member.Name = ""
         member.CharId = 0
         //other squad members see the member leaving

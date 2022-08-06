@@ -47,7 +47,7 @@ class SquadSubscriptionEntity {
     * though they may not be a member of the squad.<br>
     * key - unique character identifier number; value - a squad identifier number
     */
-  val MonitorSquadDetails: mutable.LongMap[PlanetSideGUID] = mutable.LongMap[PlanetSideGUID]()
+  val MonitorSquadDetails: mutable.LongMap[SquadSubscriptionEntity.MonitorEntry] = mutable.LongMap[SquadSubscriptionEntity.MonitorEntry]()
 
   def postStop(): Unit = {
     MonitorSquadDetails.clear()
@@ -300,10 +300,39 @@ class SquadSubscriptionEntity {
                        ): Unit = {
     val output = SquadResponse.Detail(guid, details)
     Publish(toChannel, output, excluding)
+    PublishToMonitorTargets(guid, excluding).foreach { charId => Publish(charId, output, Nil) }
+  }
+
+  /**
+    * na
+    * @see `LongMap.subtractOne`
+    * @see `SquadSubscriptionEntity.MonitorEntry`
+    * @param guid the unique squad identifier number to be used for the squad detail message
+    * @param excluding the explicit unique character identifier numbers of individuals who should not receive the message
+    */
+  def PublishToMonitorTargets(
+                               guid: PlanetSideGUID,
+                               excluding: Iterable[Long]
+                             ): Iterable[Long] = {
+    val curr = System.currentTimeMillis()
     MonitorSquadDetails
+      .toSeq
       .collect {
-        case (charId: Long, sguid: PlanetSideGUID) if sguid == guid && !excluding.exists(_ == charId) =>
-          Publish(charId, output, Nil)
+        case out @ (charId: Long, entry: SquadSubscriptionEntity.MonitorEntry)
+          if entry.squadGuid == guid && !excluding.exists(_ == charId) =>
+          if (curr - entry.time < 300000L) {
+            Some(out._1)
+          } else {
+            MonitorSquadDetails.subtractOne(charId)
+            None
+          }
       }
+      .flatten
+  }
+}
+
+object SquadSubscriptionEntity {
+  private[teamwork] case class MonitorEntry(squadGuid: PlanetSideGUID) {
+    val time: Long = System.currentTimeMillis()
   }
 }
