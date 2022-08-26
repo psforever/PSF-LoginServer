@@ -193,28 +193,6 @@ class SquadSubscriptionEntity {
   /* The following functions are related to common communications of squad information, mainly detail. */
 
   /**
-    * Pertains to the original message of squad synchronicity sent to the squad leader by the server under specific conditions.
-    * The initial formation of a squad of two players is the most common expected situation.
-    * While the underlying flag is normally only set once, its state can be reset and triggered anew if necessary.
-    * @see `Publish`
-    * @see `ResetAll`
-    * @see `SquadResponse.AssociateWithSquad`
-    * @see `SquadResponse.Detail`
-    * @see `SquadService.PublishFullDetails`
-    * @param features the squad
-    */
-  def InitialAssociation(features: SquadFeatures): Unit = {
-    val squad = features.Squad
-    val guid = squad.GUID
-    if (features.InitialAssociation) {
-      features.InitialAssociation = false
-      val charId = squad.Leader.CharId
-      Publish(charId, SquadResponse.AssociateWithSquad(guid))
-      Publish(charId, SquadResponse.Detail(guid, SquadService.PublishFullDetails(squad)))
-    }
-  }
-
-  /**
     * Dispatch a message entailing the composition of this squad.
     * This is considered the first time this information will be dispatched to any relevant observers
     * so the details of the squad will be updated in full and be sent to all relevant observers,

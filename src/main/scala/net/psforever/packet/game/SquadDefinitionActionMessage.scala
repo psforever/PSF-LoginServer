@@ -49,7 +49,7 @@ object SquadAction {
 
   final case class CancelSelectRoleForYourself(value: Long = 0) extends SquadAction(code = 15)
 
-  final case class AssociateWithSquad() extends SquadAction(code = 16)
+  final case class IdentifyAsSquadLeader() extends SquadAction(code = 16)
 
   final case class SetListSquad() extends SquadAction(code = 17)
 
@@ -181,10 +181,10 @@ object SquadAction {
       }
     )
 
-    val associateWithSquadCodec = everFailCondition.xmap[AssociateWithSquad](
-      _ => AssociateWithSquad(),
+    val identifyAsSquadLeaderCodec = everFailCondition.xmap[IdentifyAsSquadLeader](
+      _ => IdentifyAsSquadLeader(),
       {
-        case AssociateWithSquad() => None
+        case IdentifyAsSquadLeader() => None
       }
     )
 
@@ -403,7 +403,7 @@ object SquadAction {
   * &nbsp;&nbsp;&nbsp;&nbsp;`20` - (Squad leader) Change Squad Zone<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`21` - (Squad leader) Close Squad Member Position<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`22` - (Squad leader) Add Squad Member Position<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`33` - Decorator a Squad in the List of Squads with Color<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`33` - Decorate a Squad in the List of Squads with Color<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`40` - Find LFS Soldiers that Meet the Requirements for this Role<br>
   * &nbsp;&nbsp;`Long`<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`13` - UNKNOWN<br>
@@ -465,7 +465,7 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 13 => unknownCodec(action = 13)
       case 14 => unknownCodec(action = 14)
       case 15 => cancelSelectRoleForYourselfCodec
-      case 16 => associateWithSquadCodec
+      case 16 => identifyAsSquadLeaderCodec
       case 17 => setListSquadCodec
       case 18 => unknownCodec(action = 18)
       case 19 => changeSquadPurposeCodec

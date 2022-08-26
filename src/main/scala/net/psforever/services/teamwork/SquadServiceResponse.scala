@@ -28,7 +28,7 @@ object SquadResponse {
   final case class UpdateList(infos: Iterable[(Int, SquadInfo)]) extends Response
   final case class RemoveFromList(infos: Iterable[Int])          extends Response
 
-  final case class AssociateWithSquad(squad_guid: PlanetSideGUID) extends Response
+  final case class IdentifyAsSquadLeader(squad_guid: PlanetSideGUID) extends Response
   final case class SetListSquad(squad_guid: PlanetSideGUID)       extends Response
 
   final case class Membership(

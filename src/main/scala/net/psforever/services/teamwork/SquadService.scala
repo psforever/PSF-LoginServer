@@ -6,7 +6,7 @@ import java.io.{PrintWriter, StringWriter}
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 
-import net.psforever.objects.{LivePlayerList, Player}
+import net.psforever.objects.{Default, LivePlayerList, Player}
 import net.psforever.objects.teamwork.{Member, Squad, SquadFeatures}
 import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.definition.converter.StatConverter
@@ -71,11 +71,6 @@ class SquadService extends Actor {
     */
   private val previousInvites: mutable.LongMap[Invitation] = mutable.LongMap[Invitation]()
 
-  /**
-    * The given player has refused participation into this other player's squad.<br>
-    * key - a unique character identifier number;
-    * value - a list of unique character identifier numbers; squad leaders or once-squad leaders
-    */
   /*
     When a player refuses an invitation by a squad leader,
     that squad leader will not be able to send further invitations (this field).
@@ -86,6 +81,11 @@ class SquadService extends Actor {
     If the squad leader sends an invitation request for that player,
     the current player is cleared from the blocked list.
    */
+  /**
+    * The given player has refused participation into this other player's squad.<br>
+    * key - a unique character identifier number;
+    * value - a list of unique character identifier numbers; squad leaders or once-squad leaders
+    */
   private val refused: mutable.LongMap[List[Long]] = mutable.LongMap[List[Long]]()
 
   /**
@@ -96,6 +96,9 @@ class SquadService extends Actor {
   private val searchData: mutable.LongMap[SquadService.SearchCriteria] =
     mutable.LongMap[SquadService.SearchCriteria]()
 
+  /**
+    * A separate register to keep track of players to their client reference.
+    */
   private implicit val subs = new SquadSubscriptionEntity()
 
   private[this] val log = org.log4s.getLogger
@@ -250,7 +253,7 @@ class SquadService extends Actor {
           SquadActionMembership(tplayer, zone, squad_action)
 
         case sqd: SquadAction.Definition =>
-          SquadActionDefinition(message, sqd.action, sqd.guid)
+          SquadActionDefinition(message, sqd.action, sqd.guid, sender())
 
         case _: SquadAction.Waypoint =>
           SquadActionWaypoint(message, tplayer)
@@ -392,7 +395,7 @@ class SquadService extends Actor {
         SquadActionMembershipCancel(cancellingPlayer)
 
       case SquadAction.Membership(SquadRequestType.Promote, promotingPlayer, Some(_promotedPlayer), promotedName, _) =>
-        SquadActionMembershipPromote(promotingPlayer, _promotedPlayer, promotedName)
+        SquadActionMembershipPromote(promotingPlayer, _promotedPlayer, promotedName, SquadServiceMessage(tplayer, zone, action), sender())
 
       case SquadAction.Membership(event, _, _, _, _) =>
         debug(s"SquadAction.Membership: $event is not yet supported")
@@ -726,7 +729,7 @@ class SquadService extends Actor {
             val features = StartSquad(invitingPlayer)
             val squad = features.Squad
             squad.Task = s"${invitingPlayer.Name}'s Squad"
-            subs.Publish(invitingPlayerCharId, SquadResponse.AssociateWithSquad(squad.GUID))
+            subs.Publish(invitingPlayerCharId, SquadResponse.IdentifyAsSquadLeader(squad.GUID))
             Some(features)
         }) match {
           case Some(features) =>
@@ -1047,67 +1050,70 @@ class SquadService extends Actor {
   def SquadActionMembershipPromote(
                                     sponsoringPlayer: Long,
                                     promotionCandidatePlayer: Long,
-                                    promotionCandidateName: String
+                                    promotionCandidateName: String,
+                                    msg: SquadServiceMessage,
+                                    ref: ActorRef
                                   ): Unit = {
-    //sponsorPlayer is typically going to be squad leader
-    val promotedPlayer = (if (promotionCandidateName.nonEmpty) {
-      //validate player with name exists
+    val promotedPlayer: Long = subs.UserEvents.keys.find(_ == promotionCandidatePlayer).orElse({
       LivePlayerList
         .WorldPopulation({ case (_, a: Avatar) => a.name.equalsIgnoreCase(promotionCandidateName) })
         .headOption match {
-        case Some(a) => subs.UserEvents.keys.find(_ == a.id)
-        case None    => Some(promotionCandidatePlayer)
+        case Some(a) => Some(a.id)
+        case None    => None
       }
-    } else {
-      Some(promotionCandidatePlayer)
     }) match {
-      case Some(player) => player
-      case None         => -1L
+      case Some(player: Long) => player
+      case _                  => -1L
     }
-    SquadActionMembershipPromoteToLeader(sponsoringPlayer, promotedPlayer)
+    //sponsorPlayer should be squad leader
+    (GetLeadingSquad(sponsoringPlayer, None), GetParticipatingSquad(promotedPlayer)) match {
+      case (Some(features), Some(features2)) if features.Squad.GUID == features2.Squad.GUID =>
+        SquadActionMembershipPromote(sponsoringPlayer, promotedPlayer, features, msg, ref)
+      case _ => ;
+    }
   }
 
-  def SquadActionMembershipPromoteToLeader(
+  def SquadActionMembershipPromote(
+                                    sponsoringPlayer: Long,
+                                    promotedPlayer: Long,
+                                    features: SquadFeatures,
+                                    msg: SquadServiceMessage,
+                                    ref: ActorRef
+                                  ): Unit = {
+    features.Switchboard.tell(msg, ref)
+    ShiftInvitesToPromotedSquadLeader(sponsoringPlayer, promotedPlayer)
+  }
+
+  def ShiftInvitesToPromotedSquadLeader(
                                             sponsoringPlayer: Long,
                                             promotedPlayer: Long
-                                          ): Boolean = {
-    (GetLeadingSquad(sponsoringPlayer, None), GetParticipatingSquad(promotedPlayer)) match {
-      case (Some(features1), Some(features2)) if features1.Squad.GUID == features2.Squad.GUID =>
-        val squad     = features1.Squad
-        val member     = squad.Membership.find { _.CharId == promotedPlayer }.get
-        info(s"Promoting player ${member.Name} to be the leader of ${squad.Task}")
-        SquadService.PromoteToLeader(features1, subs, sponsoringPlayer, promotedPlayer)
-        //move around invites so that the proper squad leader deals with them
-        val leaderInvite        = invites.remove(sponsoringPlayer)
-        val leaderQueuedInvites = queuedInvites.remove(sponsoringPlayer).toList.flatten
-        val (invitesToConvert, invitesToAppend) = (invites.remove(promotedPlayer).orElse(previousInvites.get(promotedPlayer)), leaderInvite) match {
-          case (Some(activePromotedInvite), Some(outLeaderInvite)) =>
-            //the promoted player has an active invite; queue these
-            val promotedQueuedInvites = queuedInvites.remove(promotedPlayer).toList.flatten
-            NextInvite(promotedPlayer)
-            NextInvite(sponsoringPlayer)
-            (activePromotedInvite +: (outLeaderInvite +: leaderQueuedInvites), promotedQueuedInvites)
+                                          ): Unit = {
+    val leaderInvite        = invites.remove(sponsoringPlayer)
+    val leaderQueuedInvites = queuedInvites.remove(sponsoringPlayer).toList.flatten
+    val (invitesToConvert, invitesToAppend) = (invites.remove(promotedPlayer).orElse(previousInvites.get(promotedPlayer)), leaderInvite) match {
+      case (Some(activePromotedInvite), Some(outLeaderInvite)) =>
+        //the promoted player has an active invite; queue these
+        val promotedQueuedInvites = queuedInvites.remove(promotedPlayer).toList.flatten
+        NextInvite(promotedPlayer)
+        NextInvite(sponsoringPlayer)
+        (activePromotedInvite +: (outLeaderInvite +: leaderQueuedInvites), promotedQueuedInvites)
 
-          case (Some(activePromotedInvite), None) =>
-            //the promoted player has an active invite; queue these
-            val promotedQueuedInvites = queuedInvites.remove(promotedPlayer).toList.flatten
-            NextInvite(promotedPlayer)
-            (activePromotedInvite :: leaderQueuedInvites, promotedQueuedInvites)
+      case (Some(activePromotedInvite), None) =>
+        //the promoted player has an active invite; queue these
+        val promotedQueuedInvites = queuedInvites.remove(promotedPlayer).toList.flatten
+        NextInvite(promotedPlayer)
+        (activePromotedInvite :: leaderQueuedInvites, promotedQueuedInvites)
 
-          case (None, Some(outLeaderInvite)) =>
-            //no active invite for the promoted player, but the leader had an active invite; trade the queued invites
-            NextInvite(sponsoringPlayer)
-            (outLeaderInvite +: leaderQueuedInvites, queuedInvites.remove(promotedPlayer).toList.flatten)
+      case (None, Some(outLeaderInvite)) =>
+        //no active invite for the promoted player, but the leader had an active invite; trade the queued invites
+        NextInvite(sponsoringPlayer)
+        (outLeaderInvite +: leaderQueuedInvites, queuedInvites.remove(promotedPlayer).toList.flatten)
 
-          case (None, None) =>
-            //no active invites for anyone; assign the first queued invite from the promoting player, if available, and queue the rest
-            (leaderQueuedInvites, queuedInvites.remove(promotedPlayer).toList.flatten)
-        }
-        moveOverPromotedInvites(promotedPlayer, invitesToConvert, invitesToAppend)
-        true
-      case _ =>
-        false
+      case (None, None) =>
+        //no active invites for anyone; assign the first queued invite from the promoting player, if available, and queue the rest
+        (leaderQueuedInvites, queuedInvites.remove(promotedPlayer).toList.flatten)
     }
+    moveOverPromotedInvites(promotedPlayer, invitesToConvert, invitesToAppend)
   }
 
   def moveOverPromotedInvites(
@@ -1140,7 +1146,8 @@ class SquadService extends Actor {
   def SquadActionDefinition(
                              message: SquadServiceMessage,
                              action: SquadRequestAction,
-                             guid: PlanetSideGUID
+                             guid: PlanetSideGUID,
+                             from: ActorRef = ActorRef.noSender
                            ): Unit = {
     val tplayer = message.tplayer
     (action match {
@@ -1214,7 +1221,7 @@ class SquadService extends Actor {
       case _ =>
         GetSquad(guid)
     }) match {
-      case Some(features) => features.Switchboard.tell(message, sender())
+      case Some(features) => features.Switchboard.tell(message, from)
       case None => ;
     }
   }
@@ -2778,18 +2785,13 @@ class SquadService extends Actor {
     * This operation is fairly safe to call whenever a player is to be inducted into a squad.
     * The aforementioned player must have a callback retained in `subs.UserEvents`
     * and conditions imposed by both the role and the player must be satisfied.
-    * @see `InitialAssociation`
-    * @see `InitSquadDetail`
-    * @see `InitWaypoints`
     * @see `CleanUpAllInvitesWithPlayer`
-    * @see `SquadDetail`
-    * @see `SquadInfo`
-    * @see `SquadPositionDetail`
-    * @see `SquadPositionEntry`
-    * @see `SquadResponse.Join`
+    * @see `Squad.isAvailable`
+    * @see `Squad.Switchboard`
+    * @see `SquadSubscriptionEntity.MonitorSquadDetails`
     * @see `SquadSubscriptionEntity.Publish`
-    * @see `StatConverter.Health`
-    * @see `UpdateSquadListWhenListed`
+    * @see `SquadSubscriptionEntity.Join`
+    * @see `SquadSubscriptionEntity.UserEvents`
     * @param player the new squad member;
     *               this player is NOT the squad leader
     * @param features the squad the player is joining
@@ -2906,7 +2908,7 @@ class SquadService extends Actor {
               } :+ (charId, index) //we need to be last
             )
           )
-          subs.Publish(charId, SquadResponse.AssociateWithSquad(PlanetSideGUID(0)))
+          subs.Publish(charId, SquadResponse.IdentifyAsSquadLeader(PlanetSideGUID(0)))
           subs.Publish(charId, SquadResponse.Detail(PlanetSideGUID(0), completelyBlankSquadDetail))
       }
     UpdateSquadListWhenListed(features.Stop, None)
@@ -2996,9 +2998,15 @@ class SquadService extends Actor {
             case Some(_) =>
               //leader of a squad; search for a suitable substitute leader
               squad.Membership.drop(1).find { _.CharId > 0 } match {
-                case Some(member)
-                  if SquadActionMembershipPromoteToLeader(charId, member.CharId) =>
+                case Some(member) =>
                   //leader was shifted into a subordinate position and will retire from duty
+                  SquadActionMembershipPromote(
+                    charId,
+                    member.CharId,
+                    features,
+                    SquadServiceMessage(null, null, SquadAction.Membership(SquadRequestType.Promote, charId, Some(member.CharId), "", None)),
+                    Default.Actor
+                  )
                   LeaveSquad(charId, features)
                 case _ =>
                   //the squad will be disbanded
@@ -3359,49 +3367,6 @@ object SquadService {
     toMember.Armor = armor
   }
 
-  def PromoteToLeader(
-                                            features: SquadFeatures,
-                                            subscriptions: SquadSubscriptionEntity,
-                                            sponsoringPlayer: Long,
-                                            promotedPlayer: Long
-                                          ): Unit = {
-    val squad             = features.Squad
-    val leader            = squad.Leader
-    val membership        = squad.Membership
-    val membershipIndexed = membership.zipWithIndex
-    val (member, index)   = membershipIndexed.find {
-      case (_member, _) => _member.CharId == promotedPlayer
-    }.get
-    val memberName = member.Name
-    val originalLeaderName = leader.Name
-    SquadService.SwapMemberPosition(leader, member)
-    //TODO info(s"Promoting player $memberName to be the leader of ${squad1.Task}")
-    if (features.Listed) {
-      subscriptions.Publish(sponsoringPlayer, SquadResponse.SetListSquad(PlanetSideGUID(0)))
-      subscriptions.Publish(promotedPlayer, SquadResponse.SetListSquad(squad.GUID))
-      UpdateSquadList(features, Some(SquadInfo().Leader(memberName)))
-    }
-    subscriptions.UpdateSquadDetail(
-      features,
-      SquadDetail()
-        .LeaderCharId(promotedPlayer)
-        .LeaderName(memberName)
-        .Members(
-          List(
-            SquadPositionEntry(0, SquadPositionDetail().Player(promotedPlayer, memberName)),
-            SquadPositionEntry(index, SquadPositionDetail().Player(sponsoringPlayer, originalLeaderName))
-          )
-        )
-    )
-    subscriptions.Publish(features.ToChannel, SquadResponse.PromoteMember(squad, promotedPlayer, index))
-    //old leader forgets; new leader learns
-    membership
-      .filterNot { _.CharId == promotedPlayer }
-      .foreach { member =>
-        subscriptions.Publish(promotedPlayer, SquadResponse.CharacterKnowledge(member.CharId, member.Name, member.Certifications, 40, 5, member.ZoneId))
-      }
-  }
-
   /**
     * Produce complete squad information.
     * @see `SquadInfo`
@@ -3434,17 +3399,16 @@ object SquadService {
       .ZoneId(PlanetSideZoneID(squad.ZoneId))
       .Members(
         squad.Membership.zipWithIndex
-          .map({
-            case (p, index) =>
-              SquadPositionEntry(
-                index,
-                if (squad.Availability(index)) {
-                  SquadPositionDetail(p.Role, p.Orders, p.Requirements, p.CharId, p.Name)
-                } else {
-                  SquadPositionDetail.Closed
-                }
-              )
-          })
+          .map { case (p, index) =>
+            SquadPositionEntry(
+              index,
+              if (squad.Availability(index)) {
+                SquadPositionDetail(p.Role, p.Orders, p.Requirements, p.CharId, p.Name)
+              } else {
+                SquadPositionDetail.Closed
+              }
+            )
+          }
           .toList
       )
       .Complete
