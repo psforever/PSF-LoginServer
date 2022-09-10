@@ -315,6 +315,14 @@ object AvatarActor {
       case RibbonBarSlot.TermOfService => ribbons.copy(tos = ribbon)
     }
   }
+
+  def displayLookingForSquad(session: Session, state: Int): Unit = {
+    val player = session.player
+    session.zone.AvatarEvents ! AvatarServiceMessage(
+      player.Faction.toString,
+      AvatarAction.PlanetsideAttribute(player.GUID, 53, state)
+    )
+  }
 }
 
 class AvatarActor(
@@ -388,11 +396,7 @@ class AvatarActor(
 
         case SetLookingForSquad(lfs) =>
           avatarCopy(avatar.copy(lookingForSquad = lfs))
-          val lfsState = if (lfs) 1 else 0
-          session.get.zone.AvatarEvents ! AvatarServiceMessage(
-            avatar.faction.toString,
-            AvatarAction.PlanetsideAttribute(session.get.player.GUID, 53, lfsState)
-          )
+          AvatarActor.displayLookingForSquad(session.get, if (lfs) 1 else 0)
           Behaviors.same
 
         case CreateAvatar(name, head, voice, gender, empire) =>

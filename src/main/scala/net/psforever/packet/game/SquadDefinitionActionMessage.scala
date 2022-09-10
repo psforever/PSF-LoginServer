@@ -31,7 +31,7 @@ object SquadAction {
     * Dispatched from client to server to indicate a squad detail update that has no foundation entry to update?
     * Not dissimilar from `DisplaySquad`.
     */
-  final case class SquadMemberInitializationIssue() extends SquadAction(code = 1)
+  final case class SquadInitializationIssue() extends SquadAction(code = 1)
 
   final case class SaveSquadFavorite() extends SquadAction(code = 3)
 
@@ -116,10 +116,10 @@ object SquadAction {
       }
     )
 
-    val squadMemberInitializationIssueCodec = everFailCondition.xmap[SquadMemberInitializationIssue](
-      _ => SquadMemberInitializationIssue(),
+    val squadMemberInitializationIssueCodec = everFailCondition.xmap[SquadInitializationIssue](
+      _ => SquadInitializationIssue(),
       {
-        case SquadMemberInitializationIssue() => None
+        case SquadInitializationIssue() => None
       }
     )
 

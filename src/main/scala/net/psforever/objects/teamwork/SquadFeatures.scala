@@ -2,6 +2,7 @@
 package net.psforever.objects.teamwork
 
 import akka.actor.{ActorContext, ActorRef, Props}
+import net.psforever.objects.Default
 import net.psforever.packet.game.WaypointInfo
 import net.psforever.types.{PlanetSideGUID, SquadWaypoint, Vector3}
 import net.psforever.services.teamwork.{SquadSubscriptionEntity, SquadSwitchboard}
@@ -69,11 +70,11 @@ class SquadFeatures(val Squad: Squad) {
     * For the purposes of wide-searches for membership
     * such as Looking For Squad checks and proximity invitation,
     * the unique character identifier numbers in this list are skipped.
-    * Direct invitation requests from the non sqad member should remain functional.
+    * Direct invitation requests from the non squad member should remain functional.
     */
   private var refusedPlayers: List[Long]             = Nil
   private var autoApproveInvitationRequests: Boolean = false
-  private var locationFollowsSquadLead: Boolean      = true
+  private var locationFollowsSquadLead: Boolean      = true //TODO false
 
   private var listed: Boolean = false
 
@@ -87,7 +88,7 @@ class SquadFeatures(val Squad: Squad) {
 
   def Stop: SquadFeatures = {
     switchboard ! akka.actor.PoisonPill
-    switchboard = ActorRef.noSender
+    switchboard = Default.Actor
     waypoints = Array.empty
     this
   }

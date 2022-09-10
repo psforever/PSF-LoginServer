@@ -40,7 +40,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject, ServerObject}
-import net.psforever.objects.teamwork.Squad
+import net.psforever.objects.teamwork.{Member, Squad}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.control.BfrFlight
@@ -990,9 +990,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             )
 
           case SquadResponse.Join(squad, positionsToUpdate, _, ref) =>
-            val leader              = squad.Leader
-            val membershipPositions = positionsToUpdate map squad.Membership.zipWithIndex
-            membershipPositions.find({ case (member, _) => member.CharId == avatar.id }) match {
+            val avatarId = avatar.id
+            val membershipPositions = (positionsToUpdate map squad.Membership.zipWithIndex)
+              .filter { case (mem, index) =>
+                mem.CharId > 0 && positionsToUpdate.contains(index)
+              }
+            membershipPositions.find { case (mem, _) => mem.CharId == avatarId } match {
               case Some((ourMember, ourIndex)) =>
                 //we are joining the squad
                 //load each member's entry (our own too)
@@ -1112,9 +1115,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             if (promotedPlayer != player.CharId) {
               //demoted from leader; no longer lfsm
               if (lfsm) {
-                avatarActor ! AvatarActor.SetLookingForSquad(false)
+                lfsm = false
+                AvatarActor.displayLookingForSquad(session, state = 0)
               }
-              lfsm = false
             }
             sendResponse(SquadMemberEvent(MemberEvent.Promote, squad.GUID.guid, promotedPlayer, position = 0))
             //the players have already been swapped in the backend object
@@ -3374,7 +3377,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, player.Faction, true))
     //looking for squad (members)
     if (tplayer.avatar.lookingForSquad || lfsm) {
-      avatarActor ! AvatarActor.SetLookingForSquad(true) //forces the state and employs callbacks
+      AvatarActor.displayLookingForSquad(session, state = 1)
     }
     sendResponse(AvatarSearchCriteriaMessage(guid, List(0, 0, 0, 0, 0, 0)))
     //these are facilities and towers and bunkers in the zone, but not necessarily all of them for some reason
@@ -5655,9 +5658,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             squadUI.get(player.CharId) match {
               case Some(elem) if elem.index == 0 =>
                 lfsm = state
+                AvatarActor.displayLookingForSquad(session, boolToInt(state))
               case _ =>
+                avatarActor ! AvatarActor.SetLookingForSquad(state)
             }
-            avatarActor ! AvatarActor.SetLookingForSquad(state)
           } else {
             log.warn(s"GenericActionMessage: ${player.Name} can't handle $msg")
           }
@@ -9083,24 +9087,31 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def SwapSquadUIElements(squad: Squad, firstIndex: Int, secondIndex: Int): Unit = {
     //the players should have already been swapped in the backend object
     val firstMember = squad.Membership(firstIndex)
-    val firstCharId  = firstMember.CharId
+    val firstCharId = firstMember.CharId
     if (squadUI.nonEmpty && firstCharId > 0) {
       //the firstIndex should always point to a valid player in the squad
-      val id           = squad_supplement_id
-      val secondMember = squad.Membership(secondIndex)
-      val secondCharId = secondMember.CharId
+      val sguid         = squad.GUID
+      val id            = squad_supplement_id
+      val isFirstMoving = firstCharId == player.CharId
+      val secondMember  = squad.Membership(secondIndex)
+      val secondCharId  = secondMember.CharId
       if (secondCharId > 0 && firstCharId != secondCharId) {
         //secondMember and firstMember swap places
         val newFirstElem  = squadUI(firstCharId).copy(index = firstIndex)
         val newSecondElem = squadUI(secondCharId).copy(index = secondIndex)
         squadUI.put(firstCharId, newFirstElem)
         squadUI.put(secondCharId, newSecondElem)
-        sendResponse(SquadMemberEvent.Remove(id, secondCharId, firstIndex))
-        sendResponse(SquadMemberEvent.Remove(id, firstCharId, secondIndex))
+//        sendResponse(SquadMemberEvent.Remove(id, secondCharId, firstIndex))
+//        sendResponse(SquadMemberEvent.Remove(id, firstCharId, secondIndex))
         sendResponse(SquadMemberEvent.Add(id, firstCharId, firstIndex, newFirstElem.name, newFirstElem.zone, outfit_id = 0))
         sendResponse(SquadMemberEvent.Add(id, secondCharId, secondIndex, newSecondElem.name, newSecondElem.zone, outfit_id = 0))
-        sendResponse(PlanetsideAttributeMessage(firstMember.GUID, 32, firstIndex))
-        sendResponse(PlanetsideAttributeMessage(secondMember.GUID, 32, secondIndex))
+        if (isFirstMoving) {
+          sendResponse(PlanetsideAttributeMessage(firstMember.GUID, 32, firstIndex))
+          sendResponse(SquadDefinitionActionMessage(sguid, 0, SquadAction.Unknown(18)))
+        } else if (secondCharId == player.CharId) {
+          sendResponse(PlanetsideAttributeMessage(secondMember.GUID, 32, secondIndex))
+          sendResponse(SquadDefinitionActionMessage(sguid, 0, SquadAction.Unknown(18)))
+        }
         sendResponse(
           SquadState(PlanetSideGUID(id), List(
             SquadStateInfo(firstCharId, newFirstElem.health, newFirstElem.armor, newFirstElem.position),
@@ -9111,9 +9122,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         //firstMember has moved to a new position in squad
         val elem = squadUI(firstCharId)
         squadUI.put(firstCharId, elem.copy(index = firstIndex))
-        sendResponse(SquadMemberEvent.Remove(id, firstCharId, elem.index))
+//        sendResponse(SquadMemberEvent.Remove(id, firstCharId, elem.index))
         sendResponse(SquadMemberEvent.Add(id, firstCharId, firstIndex, elem.name, elem.zone, outfit_id = 0))
-        sendResponse(PlanetsideAttributeMessage(firstMember.GUID, 32, firstIndex))
+        if (firstCharId == player.CharId) {
+          sendResponse(PlanetsideAttributeMessage(firstMember.GUID, 32, firstIndex))
+          sendResponse(SquadDefinitionActionMessage(sguid, 0, SquadAction.Unknown(18)))
+        }
         sendResponse(
           SquadState(PlanetSideGUID(id), List(SquadStateInfo(firstCharId, elem.health, elem.armor, elem.position)))
         )
@@ -9134,20 +9148,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       val pguid           = player.GUID
       val sguid           = squad.GUID
       val id              = squad_supplement_id
-      val isBeingPromoted = firstCharId == charId
       //secondMember and firstMember swap places
       squadUI.put(firstCharId, newFirstElem)
       squadUI.put(secondCharId, newSecondElem)
       sendResponse(SquadMemberEvent(MemberEvent.Promote, id, firstCharId, position = 0))
-      if (isBeingPromoted || secondCharId == charId) {
-        //player is being either promoted or demoted
-        if (isBeingPromoted) {
-          sendResponse(PlanetsideAttributeMessage(pguid, 32, 0))
-          sendResponse(SquadDefinitionActionMessage(sguid, 0, SquadAction.IdentifyAsSquadLeader()))
-        } else {
-          sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.IdentifyAsSquadLeader()))
-          sendResponse(PlanetsideAttributeMessage(pguid, 32, fromIndex))
-        }
+      //player is being either promoted or demoted?
+      if (firstCharId == charId) {
+        sendResponse(PlanetsideAttributeMessage(pguid, 32, 0))
+        sendResponse(SquadDefinitionActionMessage(sguid, 0, SquadAction.IdentifyAsSquadLeader()))
+        sendResponse(SquadDefinitionActionMessage(sguid, 0, SquadAction.Unknown(18)))
+      } else if (secondCharId == charId) {
+        sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.IdentifyAsSquadLeader()))
+        sendResponse(PlanetsideAttributeMessage(pguid, 32, fromIndex))
         sendResponse(SquadDefinitionActionMessage(sguid, 0, SquadAction.Unknown(18)))
       }
       //seed updates (just for the swapped players)
