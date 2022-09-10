@@ -127,10 +127,10 @@ case object WarpGateLogic
           }
 
         case (Some(_), Some(wg : WarpGate), Some(otherWg : WarpGate), None) =>
-          handleWarpGateDeadendPair(details, wg, otherWg)
+          handleWarpGateDeadendPair(details, otherWg, wg)
 
         case (None, Some(wg : WarpGate), Some(otherWg : WarpGate), Some(_)) =>
-          handleWarpGateDeadendPair(details, otherWg, wg)
+          handleWarpGateDeadendPair(details, wg, otherWg)
 
         case (_, Some(wg: WarpGate), None, None) if !wg.Active =>
           updateBroadcastCapabilitiesOfWarpGate(details, wg, Set(PlanetSideEmpire.NEUTRAL))
@@ -188,8 +188,8 @@ case object WarpGateLogic
     }
     //can not be considered broadcast for other factions
     val wgBroadcastAllowances = warpgate.AllowBroadcastFor
-    if (!wgBroadcastAllowances.contains(PlanetSideEmpire.NEUTRAL) || !wgBroadcastAllowances.contains(otherWarpgateFaction)) {
-      updateBroadcastCapabilitiesOfWarpGate(details, warpgate, Set(PlanetSideEmpire.NEUTRAL))
+    if (!wgBroadcastAllowances.contains(otherWarpgateFaction)) {
+      updateBroadcastCapabilitiesOfWarpGate(details, warpgate, Set(otherWarpgateFaction))
     }
   }
 
