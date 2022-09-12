@@ -127,10 +127,10 @@ case object WarpGateLogic
           }
 
         case (Some(_), Some(wg : WarpGate), Some(otherWg : WarpGate), None) =>
-          handleWarpGateDeadendPair(details, wg, otherWg)
+          handleWarpGateDeadendPair(details, otherWg, wg)
 
         case (None, Some(wg : WarpGate), Some(otherWg : WarpGate), Some(_)) =>
-          handleWarpGateDeadendPair(details, otherWg, wg)
+          handleWarpGateDeadendPair(details, wg, otherWg)
 
         case (_, Some(wg: WarpGate), None, None) if !wg.Active =>
           updateBroadcastCapabilitiesOfWarpGate(details, wg, Set(PlanetSideEmpire.NEUTRAL))
@@ -171,25 +171,25 @@ case object WarpGateLogic
     * Some warp gates are directed to point to different destination warp gates based on the server's policies.
     * Another exception to the gate pair rule is a pure broadcast warp gate.
     * @param details package class that conveys the important information
-    * @param warpgate one side of the warp gate pair (usually "our" side)
-    * @param otherWarpgate the other side of the warp gate pair
+    * @param terminalWg unpaired side (terminal) of a warp gate pair
+    * @param pairedWg facility-paired (connected) side of a warp gate pair
     */
   private def handleWarpGateDeadendPair(
                                          details: BuildingWrapper,
-                                         warpgate: WarpGate,
-                                         otherWarpgate: WarpGate
+                                         terminalWg: WarpGate,
+                                         pairedWg: WarpGate
                                        ): Unit = {
     //either the terminal warp gate messaged its connected gate, or the connected gate messaged the terminal gate
     //make certain the connected gate matches the terminal gate's faction
-    val otherWarpgateFaction = otherWarpgate.Faction
-    if (warpgate.Faction != otherWarpgateFaction) {
-      warpgate.Faction = otherWarpgateFaction
-      details.galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(warpgate.infoUpdateMessage()))
+    val terminalWgFaction = terminalWg.Faction
+    val pairedWgFaction = pairedWg.Faction
+    if (pairedWgFaction != terminalWgFaction) {
+      pairedWg.Faction = terminalWgFaction
+      details.galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(pairedWg.infoUpdateMessage()))
     }
-    //can not be considered broadcast for other factions
-    val wgBroadcastAllowances = warpgate.AllowBroadcastFor
-    if (!wgBroadcastAllowances.contains(PlanetSideEmpire.NEUTRAL) || !wgBroadcastAllowances.contains(otherWarpgateFaction)) {
-      updateBroadcastCapabilitiesOfWarpGate(details, warpgate, Set(PlanetSideEmpire.NEUTRAL))
+    //the terminal warpgate can not be considered broadcast for other faction
+    if (terminalWg.AllowBroadcastFor.contains(pairedWgFaction)) {
+      updateBroadcastCapabilitiesOfWarpGate(details, terminalWg, Set(terminalWgFaction))
     }
   }
 
