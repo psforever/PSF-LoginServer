@@ -30,17 +30,7 @@ final case class Friend(name: String, online: Boolean = false)
   * <br>
   * Friends can be remembered and their current playing status can be reported.
   * Ignored players will have their comments stifled in the given player's chat window.
-  * This does not handle outfit member lists.<br>
-  * <br>
-  * Actions:<br>
-  * 0 - initialize friends list (no logging)<br>
-  * 1 - add entry to friends list<br>
-  * 2 - remove entry from friends list<br>
-  * 3 - update status of player in friends list;
-  *     if player is not listed, he is not added<br>
-  * 4 - initialize ignored players list (no logging)<br>
-  * 5 - add entry to ignored players list<br>
-  * 6 - remove entry from ignored players list<br>
+  * This does not handle outfit member lists.
   * @param action the purpose of the entry(s) in this packet
   * @param unk1 na;
   *             always 0?
@@ -79,6 +69,23 @@ object Friend extends Marshallable[Friend] {
 }
 
 object FriendsResponse extends Marshallable[FriendsResponse] {
+  def packets(action: FriendAction.Value, friends: List[Friend]): List[FriendsResponse] = {
+    val lists = friends.grouped(15)
+    val size = lists.size
+    if (size == 0) {
+      List.empty[FriendsResponse]
+    } else if (size == 1) {
+      List(FriendsResponse(action, unk1=0, first_entry=true, last_entry=true, friends))
+    } else {
+      val first = lists.take(1)
+      val rest = lists.drop(1)
+      val last = rest.drop(size - 2)
+      List(FriendsResponse(action, unk1=0, first_entry=true, last_entry=false, first.next())) ++
+        rest.map { FriendsResponse(action, unk1=0, first_entry=false, last_entry=false, _)} ++
+        List(FriendsResponse(action, unk1=0, first_entry=false, last_entry=true, last.next()))
+    }
+  }
+
   implicit val codec: Codec[FriendsResponse] = (
     ("action" | FriendAction.codec) ::
       ("unk1" | uint4L) ::

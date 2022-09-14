@@ -70,7 +70,7 @@ class CorpseConverter extends AvatarConverter {
       unk7 = false,
       on_zipline = None
     )
-    CharacterAppearanceData(aa, ab, obj.avatar.ribbonBars)
+    CharacterAppearanceData(aa, ab, obj.avatar.decoration.ribbonBars)
   }
 
   private def MakeDetailedCharacterData(obj: Player): Option[Int] => DetailedCharacterData = {

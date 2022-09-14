@@ -1,7 +1,7 @@
 package net.psforever.persistence
 
 import net.psforever.objects.avatar
-import net.psforever.objects.avatar.Cosmetic
+import net.psforever.objects.avatar.{Cosmetic, ProgressDecoration}
 import org.joda.time.LocalDateTime
 import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire}
 
@@ -32,6 +32,6 @@ case class Avatar(
       CharacterVoice(voiceId),
       bep,
       cep,
-      cosmetics = cosmetics.map(c => Cosmetic.valuesFromObjectCreateValue(c))
+      decoration = ProgressDecoration(cosmetics = cosmetics.map(c => Cosmetic.valuesFromObjectCreateValue(c)))
     )
 }

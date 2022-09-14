@@ -913,7 +913,7 @@ class ChatActor(
               }
 
             case (CMT_TOGGLE_HAT, _, contents) =>
-              val cosmetics = session.avatar.cosmetics.getOrElse(Set())
+              val cosmetics = session.avatar.decoration.cosmetics.getOrElse(Set())
               val nextCosmetics = contents match {
                 case "off" =>
                   cosmetics.diff(Set(Cosmetic.BrimmedCap, Cosmetic.Beret))
@@ -937,7 +937,7 @@ class ChatActor(
               )
 
             case (CMT_HIDE_HELMET | CMT_TOGGLE_SHADES | CMT_TOGGLE_EARPIECE, _, contents) =>
-              val cosmetics = session.avatar.cosmetics.getOrElse(Set())
+              val cosmetics = session.avatar.decoration.cosmetics.getOrElse(Set())
 
               val cosmetic = message.messageType match {
                 case CMT_HIDE_HELMET     => Cosmetic.NoHelmet

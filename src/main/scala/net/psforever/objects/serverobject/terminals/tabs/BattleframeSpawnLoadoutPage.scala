@@ -20,8 +20,9 @@ import net.psforever.packet.game.ItemTransactionMessage
   */
 final case class BattleframeSpawnLoadoutPage(vehicles: Map[String, () => Vehicle]) extends LoadoutTab {
   override def Buy(player: Player, msg: ItemTransactionMessage): Terminal.Exchange = {
-    player.avatar.loadouts(msg.unk1 + 15) match {
-      case Some(loadout: VehicleLoadout) if !Exclude.contains(loadout.vehicle_definition) =>
+    player.avatar.loadouts.suit(msg.unk1 + 15) match {
+      case Some(loadout: VehicleLoadout)
+        if !Exclude.exists(_.checkRule(player, msg, loadout.vehicle_definition)) =>
         vehicles.get(loadout.vehicle_definition.Name) match {
           case Some(vehicle) =>
             val weapons = loadout.visible_slots.map(entry => {

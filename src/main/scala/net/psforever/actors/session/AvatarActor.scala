@@ -5,7 +5,14 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
-import net.psforever.objects.avatar._
+import org.joda.time.{LocalDateTime, Seconds}
+//import org.log4s.Logger
+import scala.collection.mutable
+import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
+import scala.util.{Failure, Success}
+import scala.concurrent.duration._
+//
+import net.psforever.objects.avatar.{Friend => AvatarFriend, Ignored => AvatarIgnored, _}
 import net.psforever.objects.definition.converter.CharacterSelectConverter
 import net.psforever.objects.definition._
 import net.psforever.objects.inventory.Container
@@ -18,20 +25,12 @@ import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.vital.HealFromImplant
 import net.psforever.packet.game.objectcreate.{ObjectClass, RibbonBars}
 import net.psforever.packet.game._
-import net.psforever.types._
+import net.psforever.types.{PlanetSideEmpire, _}
 import net.psforever.util.Database._
 import net.psforever.persistence
 import net.psforever.util.{Config, Database, DefinitionUtil}
-import org.joda.time.{LocalDateTime, Seconds}
-import net.psforever.services.ServiceManager
+import net.psforever.services.{Service, ServiceManager}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-
-import scala.collection.mutable
-import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
-import scala.util.{Failure, Success}
-import scala.concurrent.duration._
-import net.psforever.services.Service
-import org.log4s.Logger
 
 object AvatarActor {
   def apply(sessionActor: ActorRef[SessionActor.Command]): Behavior[Command] =
@@ -286,7 +285,7 @@ object AvatarActor {
   }
 
   def encodeLockerClob(container: Container): String = {
-    val clobber: StringBuilder = new StringBuilder()
+    val clobber: mutable.StringBuilder = new StringBuilder()
     container.Inventory.Items.foreach {
       case InventoryItem(obj, index) =>
         clobber.append(encodeLoadoutClobFragment(obj, index))
@@ -487,22 +486,26 @@ class AvatarActor(
               query[persistence.Avatar].filter(_.id == lift(avatar.id))
                 .update(_.lastLogin -> lift(LocalDateTime.now()))
             )
+            avatarId = avatar.id
             loadouts <- initializeAllLoadouts()
-            implants <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatar.id)))
-            certs    <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatar.id)))
-            locker   <- loadLocker()
-          } yield (loadouts, implants, certs, locker)
+            implants <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatarId)))
+            certs    <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatarId)))
+            locker   <- loadLocker(avatarId)
+            friends  <- loadFriendList(avatarId)
+            ignored  <- loadIgnoredList(avatarId)
+          } yield (loadouts, implants, certs, locker, friends, ignored)
 
           result.onComplete {
-            case Success((loadouts, implants, certs, locker)) =>
+            case Success((_loadouts, implants, certs, locker, friendsList, ignoredList)) =>
               avatarCopy(
                 avatar.copy(
-                  loadouts = loadouts,
+                  loadouts = avatar.loadouts.copy(suit = _loadouts),
                   // make sure we always have the base certifications
                   certifications =
                     certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
                   implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
-                  locker = locker
+                  locker = locker,
+                  people = MemberLists(friendsList, ignoredList)
                 )
               )
               // if we need to start stamina regeneration
@@ -523,7 +526,8 @@ class AvatarActor(
           Behaviors.same
 
         case AddFirstTimeEvent(event) =>
-          avatarCopy(avatar.copy(firstTimeEvents = avatar.firstTimeEvents ++ Set(event)))
+          val decor = avatar.decoration
+          avatarCopy(avatar.copy(decoration = decor.copy(firstTimeEvents = decor.firstTimeEvents ++ Set(event))))
           Behaviors.same
 
         case LearnCertification(terminalGuid, certification) =>
@@ -814,7 +818,8 @@ class AvatarActor(
           }
           result.onComplete {
             case Success(loadout) =>
-              replaceAvatar(avatar.copy(loadouts = avatar.loadouts.updated(lineNo, Some(loadout))))
+              val ldouts = avatar.loadouts
+              replaceAvatar(avatar.copy(loadouts = ldouts.copy(suit = ldouts.suit.updated(lineNo, Some(loadout)))))
               refreshLoadout(lineNo)
             case Failure(exception) =>
               log.error(exception)("db failure (?)")
@@ -825,7 +830,7 @@ class AvatarActor(
           log.info(s"${player.Name} wishes to delete a favorite $loadoutType loadout - #${number + 1}")
           import ctx._
           val (lineNo, result) = loadoutType match {
-            case LoadoutType.Infantry if avatar.loadouts(number).nonEmpty =>
+            case LoadoutType.Infantry if avatar.loadouts.suit(number).nonEmpty =>
               (
                 number,
                 ctx.run(
@@ -835,7 +840,7 @@ class AvatarActor(
                     .delete
                 )
               )
-            case LoadoutType.Vehicle if avatar.loadouts(number + 10).nonEmpty =>
+            case LoadoutType.Vehicle if avatar.loadouts.suit(number + 10).nonEmpty =>
               (
                 number + 10,
                 ctx.run(
@@ -845,7 +850,7 @@ class AvatarActor(
                     .delete
                 )
               )
-            case LoadoutType.Battleframe if avatar.loadouts(number + 15).nonEmpty =>
+            case LoadoutType.Battleframe if avatar.loadouts.suit(number + 15).nonEmpty =>
               (
                 number + 15,
                 ctx.run(
@@ -860,7 +865,8 @@ class AvatarActor(
           }
           result.onComplete {
             case Success(_) =>
-              avatarCopy(avatar.copy(loadouts = avatar.loadouts.updated(lineNo, None)))
+              val ldouts = avatar.loadouts
+              avatarCopy(avatar.copy(loadouts = ldouts.copy(suit = ldouts.suit.updated(lineNo, None))))
               sessionActor ! SessionActor.SendResponse(FavoritesMessage(loadoutType, player.GUID, number, ""))
             case Failure(exception) =>
               log.error(exception)("db failure (?)")
@@ -872,16 +878,16 @@ class AvatarActor(
           Behaviors.same
 
         case InitialRefreshLoadouts() =>
-          refreshLoadouts(avatar.loadouts.zipWithIndex)
+          refreshLoadouts(avatar.loadouts.suit.zipWithIndex)
           Behaviors.same
 
         case RefreshLoadouts() =>
-          refreshLoadouts(avatar.loadouts.zipWithIndex.collect { case out @ (Some(_), _) => out })
+          refreshLoadouts(avatar.loadouts.suit.zipWithIndex.collect { case out @ (Some(_), _) => out })
           Behaviors.same
 
         case UpdatePurchaseTime(definition, time) =>
           // TODO save to db
-          var newTimes = avatar.purchaseTimes
+          var newTimes = avatar.cooldowns.purchase
           AvatarActor.resolveSharedPurchaseTimeNames(AvatarActor.resolvePurchaseTimeName(avatar.faction, definition)).foreach {
             case (item, name) =>
               Avatar.purchaseCooldowns.get(item) match {
@@ -896,19 +902,20 @@ class AvatarActor(
                 case _ => ;
               }
           }
-          avatarCopy(avatar.copy(purchaseTimes = newTimes))
+          avatarCopy(avatar.copy(cooldowns = avatar.cooldowns.copy(purchase = newTimes)))
           Behaviors.same
 
         case UpdateUseTime(definition, time) =>
           if (!Avatar.useCooldowns.contains(definition)) {
             log.warn(s"${avatar.name} is updating a use time for item '${definition.Name}' that has no cooldown")
           }
-          avatarCopy(avatar.copy(useTimes = avatar.useTimes.updated(definition.Name, time)))
+          val cdowns = avatar.cooldowns
+          avatarCopy(avatar.copy(cooldowns = cdowns.copy(use = cdowns.use.updated(definition.Name, time))))
           sessionActor ! SessionActor.UseCooldownRenewed(definition, time)
           Behaviors.same
 
         case RefreshPurchaseTimes() =>
-          refreshPurchaseTimes(avatar.purchaseTimes.keys.toSet)
+          refreshPurchaseTimes(avatar.cooldowns.purchase.keys.toSet)
           Behaviors.same
 
         case SetVehicle(vehicle) =>
@@ -1135,13 +1142,14 @@ class AvatarActor(
           Behaviors.same
 
         case SetRibbon(ribbon, bar) =>
-          val previousRibbonBars = avatar.ribbonBars
+          val decor = avatar.decoration
+          val previousRibbonBars = decor.ribbonBars
           val useRibbonBars = Seq(previousRibbonBars.upper, previousRibbonBars.middle, previousRibbonBars.lower)
             .indexWhere { _ == ribbon } match {
             case -1 => previousRibbonBars
             case n  => AvatarActor.changeRibbons(previousRibbonBars, MeritCommendation.None, RibbonBarSlot(n))
           }
-          replaceAvatar(avatar.copy(ribbonBars = AvatarActor.changeRibbons(useRibbonBars, ribbon, bar)))
+          replaceAvatar(avatar.copy(decoration = decor.copy(ribbonBars = AvatarActor.changeRibbons(useRibbonBars, ribbon, bar))))
           val player = session.get.player
           val zone   = player.Zone
           zone.AvatarEvents ! AvatarServiceMessage(
@@ -1191,7 +1199,7 @@ class AvatarActor(
     )
       .onComplete {
         case Success(_) =>
-          avatarCopy(avatar.copy(cosmetics = Some(cosmetics)))
+          avatarCopy(avatar.copy(decoration = avatar.decoration.copy(cosmetics = Some(cosmetics))))
           session.get.zone.AvatarEvents ! AvatarServiceMessage(
             session.get.zone.id,
             AvatarAction
@@ -1503,7 +1511,7 @@ class AvatarActor(
   def storeLoadout(owner: Player, label: String, line: Int): Future[Loadout] = {
     import ctx._
     val items: String = {
-      val clobber: StringBuilder = new StringBuilder()
+      val clobber: mutable.StringBuilder = new StringBuilder()
       //encode holsters
       owner
         .Holsters()
@@ -1547,7 +1555,7 @@ class AvatarActor(
   def storeVehicleLoadout(owner: Player, label: String, line: Int, vehicle: Vehicle): Future[Loadout] = {
     import ctx._
     val items: String = {
-      val clobber: StringBuilder = new StringBuilder()
+      val clobber: mutable.StringBuilder = new StringBuilder()
       //encode holsters
       vehicle.Weapons
         .collect {
@@ -1720,7 +1728,7 @@ class AvatarActor(
   }
 
   def refreshLoadout(line: Int): Unit = {
-    avatar.loadouts.lift(line) match {
+    avatar.loadouts.suit.lift(line) match {
       case Some(Some(loadout: InfantryLoadout)) =>
         sessionActor ! SessionActor.SendResponse(
           FavoritesMessage.Infantry(
@@ -1768,12 +1776,12 @@ class AvatarActor(
     }
   }
 
-  def loadLocker(): Future[LockerContainer] = {
+  def loadLocker(charId: Long): Future[LockerContainer] = {
     val locker = Avatar.makeLocker()
     var notLoaded: Boolean = false
     import ctx._
     val out = ctx.run(query[persistence.Locker]
-      .filter(_.avatarId == lift(avatar.id)))
+      .filter(_.avatarId == lift(charId)))
       .map { entry =>
         notLoaded = false
         entry.foreach { contents => AvatarActor.buildContainedEquipmentFromClob(locker, contents.items, log) }
@@ -1798,6 +1806,52 @@ class AvatarActor(
         }
     }
     out
+  }
+
+
+
+  def loadFriendList(avatarId: Long): Future[List[AvatarFriend]] = {
+    import ctx._
+    val out: Promise[List[AvatarFriend]] = Promise()
+
+    val queryResult = for {
+      a <- ctx.run(query[persistence.Friend].filter { _.avatarId == lift(avatarId) })
+      b <- ctx.run(query[persistence.Avatar])
+    } yield (a, b)
+    queryResult.onComplete {
+      case Success((acquaintances, avatars)) =>
+        val searchResult = for {
+          a <- acquaintances
+          b <- avatars
+          if a.charId == b.id
+        } yield (a.charId, b.name, b.factionId)
+        out.completeWith(Future(searchResult.map { i => AvatarFriend(i._1, i._2, PlanetSideEmpire(i._3)) }.toList))
+      case _ =>
+        out.completeWith(Future(List.empty[AvatarFriend]))
+    }
+    out.future
+  }
+
+  def loadIgnoredList(avatarId: Long): Future[List[AvatarIgnored]] = {
+    import ctx._
+    val out: Promise[List[AvatarIgnored]] = Promise()
+
+    val queryResult = for {
+      a <- ctx.run(query[persistence.Ignored].filter { _.avatarId == lift(avatarId) })
+      b <- ctx.run(query[persistence.Avatar])
+    } yield (a, b)
+    queryResult.onComplete {
+      case Success((acquaintances, avatars)) =>
+        val searchResult = for {
+          a <- acquaintances
+          b <- avatars
+          if a.charId == b.id
+        } yield (a.charId, b.name)
+        out.completeWith(Future(searchResult.map { i => AvatarIgnored(i._1, i._2) }.toList))
+      case _ =>
+        out.completeWith(Future(List.empty[AvatarIgnored]))
+    }
+    out.future
   }
 
   def startIfStoppedStaminaRegen(initialDelay: FiniteDuration): Unit = {
@@ -1828,7 +1882,7 @@ class AvatarActor(
   def refreshPurchaseTimes(keys: Set[String]): Unit = {
     var keysToDrop: Seq[String] = Nil
     keys.foreach { key =>
-      avatar.purchaseTimes.find { case (name, _) => name.equals(key) } match {
+      avatar.cooldowns.purchase.find { case (name, _) => name.equals(key) } match {
         case Some((name, purchaseTime)) =>
           val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
           Avatar.purchaseCooldowns.find(_._1.Name == name) match {
@@ -1847,7 +1901,8 @@ class AvatarActor(
       }
     }
     if (keysToDrop.nonEmpty) {
-      avatarCopy(avatar.copy(purchaseTimes = avatar.purchaseTimes.removedAll(keysToDrop)))
+      val cdown = avatar.cooldowns
+      avatarCopy(avatar.copy(cooldowns = cdown.copy(purchase = cdown.purchase.removedAll(keysToDrop))))
     }
   }
 

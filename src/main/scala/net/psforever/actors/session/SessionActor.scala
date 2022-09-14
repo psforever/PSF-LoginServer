@@ -3605,7 +3605,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
     sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(6)))
     //only need to load these once - they persist between zone transfers and respawns
-    avatar.squadLoadouts.zipWithIndex.foreach {
+    avatar.loadouts.squad.zipWithIndex.foreach {
       case (Some(loadout), index) =>
         sendResponse(
           SquadDefinitionActionMessage(PlanetSideGUID(0), index, SquadAction.ListSquadFavorite(loadout.task))
