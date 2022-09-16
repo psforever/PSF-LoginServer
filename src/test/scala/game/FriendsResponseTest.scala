@@ -4,6 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
+import net.psforever.types.MemberAction
 import scodec.bits._
 
 class FriendsResponseTest extends Specification {
@@ -15,7 +16,7 @@ class FriendsResponseTest extends Specification {
   "decode (one friend)" in {
     PacketCoding.decodePacket(stringOneFriend).require match {
       case FriendsResponse(action, unk2, unk3, unk4, list) =>
-        action mustEqual FriendAction.UpdateFriend
+        action mustEqual MemberAction.UpdateFriend
         unk2 mustEqual 0
         unk3 mustEqual true
         unk4 mustEqual true
@@ -30,7 +31,7 @@ class FriendsResponseTest extends Specification {
   "decode (multiple friends)" in {
     PacketCoding.decodePacket(stringManyFriends).require match {
       case FriendsResponse(action, unk2, unk3, unk4, list) =>
-        action mustEqual FriendAction.InitializeFriendList
+        action mustEqual MemberAction.InitializeFriendList
         unk2 mustEqual 0
         unk3 mustEqual true
         unk4 mustEqual true
@@ -53,7 +54,7 @@ class FriendsResponseTest extends Specification {
   "decode (short)" in {
     PacketCoding.decodePacket(stringShort).require match {
       case FriendsResponse(action, unk2, unk3, unk4, list) =>
-        action mustEqual FriendAction.InitializeIgnoreList
+        action mustEqual MemberAction.InitializeIgnoreList
         unk2 mustEqual 0
         unk3 mustEqual true
         unk4 mustEqual true
@@ -65,7 +66,7 @@ class FriendsResponseTest extends Specification {
 
   "encode (one friend)" in {
     val msg = FriendsResponse(
-      FriendAction.UpdateFriend,
+      MemberAction.UpdateFriend,
       0,
       true,
       true,
@@ -79,7 +80,7 @@ class FriendsResponseTest extends Specification {
 
   "encode (multiple friends)" in {
     val msg = FriendsResponse(
-      FriendAction.InitializeFriendList,
+      MemberAction.InitializeFriendList,
       0,
       true,
       true,
@@ -96,7 +97,7 @@ class FriendsResponseTest extends Specification {
   }
 
   "encode (short)" in {
-    val msg = FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true)
+    val msg = FriendsResponse(MemberAction.InitializeIgnoreList, 0, true, true)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringShort

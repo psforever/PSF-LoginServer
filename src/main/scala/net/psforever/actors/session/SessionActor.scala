@@ -829,6 +829,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               hot_spot_info.map { spot => PacketHotSpotInfo(spot.DisplayLocation.x, spot.DisplayLocation.y, 40) }
             )
           )
+
         case GalaxyResponse.MapUpdate(msg) =>
           sendResponse(msg)
 
@@ -903,6 +904,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           val popNC = zone.Players.count(_.faction == PlanetSideEmpire.NC)
           val popVS = zone.Players.count(_.faction == PlanetSideEmpire.VS)
           sendResponse(ZonePopulationUpdateMessage(zone.Number, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
+
+        case GalaxyResponse.LogStatusChange(name) =>
+          if (avatar.people.friend.exists { _.name.equals(name) }) {
+            avatarActor ! AvatarActor.MemberListRequest(MemberAction.UpdateFriend, name)
+          }
 
         case GalaxyResponse.SendResponse(msg) =>
           sendResponse(msg)
@@ -1380,6 +1386,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         context.self
       )
       LivePlayerList.Add(avatar.id, avatar)
+      galaxyService.tell(GalaxyServiceMessage(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
       //PropertyOverrideMessage
 
       implicit val timeout = Timeout(1 seconds)
@@ -1391,8 +1398,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty))    //clear squad list
-      sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
-      sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
+      def emptyFunc(a: Long, b: String, c: Int, d: Boolean): Unit = {}
+      (
+        //friend list (some might be online)
+        FriendsResponse.packetSequence(
+          MemberAction.InitializeFriendList,
+          avatar.people.friend
+            .map { f => game.Friend(f.name, AvatarActor.getLiveAvatarForFunc(f.name, emptyFunc).nonEmpty) }
+        ) ++
+        //ignored list (no one ever online)
+        FriendsResponse.packetSequence(
+          MemberAction.InitializeIgnoreList,
+          avatar.people.ignored.map { f => game.Friend(f.name) }
+        )
+      ).foreach { sendResponse }
       //the following subscriptions last until character switch/logout
       galaxyService ! Service.Join("galaxy")             //for galaxy-wide messages
       galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots, etc.
@@ -6260,7 +6279,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ CreateShortcutMessage(player_guid, slot, unk, add, shortcut) => ;
 
-      case msg @ FriendsRequest(action, friend) => ;
+      case FriendsRequest(action, name) =>
+        avatarActor ! AvatarActor.MemberListRequest(action, name)
 
       case msg @ HitHint(source_guid, player_guid) => ; //HitHint is manually distributed for proper operation
 

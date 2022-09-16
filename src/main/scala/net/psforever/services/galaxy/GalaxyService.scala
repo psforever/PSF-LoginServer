@@ -78,9 +78,20 @@ class GalaxyService extends Actor {
             )
           )
 
+        case GalaxyAction.LogStatusChange(name) =>
+          GalaxyEvents.publish(
+            GalaxyServiceResponse(
+              s"/Galaxy",
+              GalaxyResponse.LogStatusChange(name)
+            )
+          )
+
         case GalaxyAction.SendResponse(msg) =>
           GalaxyEvents.publish(
-            GalaxyServiceResponse(s"/Galaxy", GalaxyResponse.SendResponse(msg))
+            GalaxyServiceResponse(
+              s"/Galaxy",
+              GalaxyResponse.SendResponse(msg)
+            )
           )
         case _ => ;
       }

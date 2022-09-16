@@ -3,19 +3,11 @@ package net.psforever.packet.game
 
 import net.psforever.packet.GamePacketOpcode.Type
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.types.MemberAction
 import scodec.bits.BitVector
 import scodec.{Attempt, Codec}
 import scodec.codecs._
 import shapeless.{::, HNil}
-
-object FriendAction extends Enumeration {
-  type Type = Value
-
-  val InitializeFriendList, AddFriend, RemoveFriend, UpdateFriend, InitializeIgnoreList, AddIgnoredPlayer,
-      RemoveIgnoredPlayer = Value
-
-  implicit val codec: Codec[FriendAction.Value] = PacketHelpers.createEnumerationCodec(this, uint(bits = 3))
-}
 
 /**
   * An entry in the list of players known to and tracked by this player.
@@ -39,11 +31,11 @@ final case class Friend(name: String, online: Boolean = false)
   * @param friends a list of `Friend`s
   */
 final case class FriendsResponse(
-    action: FriendAction.Value,
-    unk1: Int,
-    first_entry: Boolean,
-    last_entry: Boolean,
-    friends: List[Friend] = Nil
+                                  action: MemberAction.Value,
+                                  unk1: Int,
+                                  first_entry: Boolean,
+                                  last_entry: Boolean,
+                                  friends: List[Friend] = Nil
 ) extends PlanetSideGamePacket {
   type Packet = FriendsResponse
 
@@ -69,17 +61,20 @@ object Friend extends Marshallable[Friend] {
 }
 
 object FriendsResponse extends Marshallable[FriendsResponse] {
-  def packets(action: FriendAction.Value, friends: List[Friend]): List[FriendsResponse] = {
+  def apply(action: MemberAction.Value, friend: Friend): FriendsResponse = {
+    FriendsResponse(action, unk1=0, first_entry=true, last_entry=true, List(friend))
+  }
+
+  def packetSequence(action: MemberAction.Value, friends: List[Friend]): List[FriendsResponse] = {
     val lists = friends.grouped(15)
     val size = lists.size
-    if (size == 0) {
-      List.empty[FriendsResponse]
-    } else if (size == 1) {
+    if (size <= 1) {
       List(FriendsResponse(action, unk1=0, first_entry=true, last_entry=true, friends))
     } else {
+      val size1 = size - 1
       val first = lists.take(1)
-      val rest = lists.drop(1)
-      val last = rest.drop(size - 2)
+      val rest = lists.slice(1, size1)
+      val last = lists.drop(size1)
       List(FriendsResponse(action, unk1=0, first_entry=true, last_entry=false, first.next())) ++
         rest.map { FriendsResponse(action, unk1=0, first_entry=false, last_entry=false, _)} ++
         List(FriendsResponse(action, unk1=0, first_entry=false, last_entry=true, last.next()))
@@ -87,7 +82,7 @@ object FriendsResponse extends Marshallable[FriendsResponse] {
   }
 
   implicit val codec: Codec[FriendsResponse] = (
-    ("action" | FriendAction.codec) ::
+    ("action" | MemberAction.codec) ::
       ("unk1" | uint4L) ::
       ("first_entry" | bool) ::
       ("last_entry" | bool) ::

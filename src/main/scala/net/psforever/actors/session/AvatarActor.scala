@@ -24,8 +24,8 @@ import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.vital.HealFromImplant
 import net.psforever.packet.game.objectcreate.{ObjectClass, RibbonBars}
-import net.psforever.packet.game._
-import net.psforever.types.{PlanetSideEmpire, _}
+import net.psforever.packet.game.{Friend => GameFriend, _}
+import net.psforever.types.{MemberAction, PlanetSideEmpire, _}
 import net.psforever.util.Database._
 import net.psforever.persistence
 import net.psforever.util.{Config, Database, DefinitionUtil}
@@ -186,6 +186,8 @@ object AvatarActor {
 
   private case class SetImplantInitialized(implantType: ImplantType) extends Command
 
+  final case class MemberListRequest(action: MemberAction.Value, name: String) extends Command
+
   final case class AvatarResponse(avatar: Avatar)
 
   final case class AvatarLoginResponse(avatar: Avatar)
@@ -313,6 +315,43 @@ object AvatarActor {
       case RibbonBarSlot.Bottom        => ribbons.copy(lower = ribbon)
       case RibbonBarSlot.TermOfService => ribbons.copy(tos = ribbon)
     }
+  }
+
+  def getLiveAvatarForFunc(name: String, func: (Long,String,Int,Boolean)=>Unit): Option[(Long, PlanetSideEmpire.Value)] = {
+    if (name.nonEmpty) {
+      LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(name) }).headOption match {
+        case Some(otherAvatar) =>
+          func(otherAvatar.id, name, otherAvatar.faction.id, true)
+          Some((otherAvatar.id.toLong, otherAvatar.faction))
+        case None =>
+          None
+      }
+    } else {
+      None
+    }
+  }
+
+  def getAvatarForFunc(name: String, func: (Long,String,Int,Boolean)=>Unit): Option[(Long, PlanetSideEmpire.Value)] = {
+    getLiveAvatarForFunc(name, func).orElse {
+      if (name.nonEmpty) {
+        import ctx._
+        import scala.concurrent.ExecutionContext.Implicits.global
+        ctx.run(query[persistence.Avatar].filter { _.name.equals(lift(name)) }).onComplete {
+          case Success(otherAvatar) =>
+            otherAvatar.headOption match {
+              case Some(a) =>
+                func(a.id, a.name, a.factionId, false)
+              case _ => ;
+            }
+          case _ => ;
+        }
+      }
+      None //satisfy the orElse
+    }
+  }
+
+  def formatForRemove(removeFunc: (Long,String)=>Unit)(charId: Long, name: String, faction: Int, isOnline: Boolean): Unit = {
+    removeFunc(charId, name)
   }
 }
 
@@ -1157,6 +1196,10 @@ class AvatarActor(
             AvatarAction.SendResponse(Service.defaultPlayerGUID, DisplayedAwardMessage(player.GUID, ribbon, bar))
           )
           Behaviors.same
+
+        case MemberListRequest(action, name) =>
+          memberListAction(action, name)
+          Behaviors.same
       }
       .receiveSignal {
         case (_, PostStop) =>
@@ -1924,5 +1967,116 @@ class AvatarActor(
         sess.player.avatar = copyAvatar
       case _ => ;
     }
+  }
+
+  def memberListAction(action: MemberAction.Value, name: String): Unit = {
+    if (!name.equals(avatar.name)) {
+      action match {
+        case MemberAction.UpdateFriend => memberActionUpdateFriend(name)
+        case MemberAction.AddFriend => getAvatarForFunc(name, memberActionAddFriend)
+        case MemberAction.RemoveFriend => getAvatarForFunc(name, formatForRemove(memberActionRemoveFriend))
+        case MemberAction.AddIgnoredPlayer => getAvatarForFunc(name, memberActionAddIgnored)
+        case MemberAction.RemoveIgnoredPlayer => getAvatarForFunc(name, formatForRemove(memberActionRemoveIgnored))
+        case _ => ;
+      }
+    }
+  }
+
+  def memberActionAddFriend(charId: Long, name: String, faction: Int, isOnline: Boolean): Unit = {
+    val people = avatar.people
+    people.friend.find { _.name.equals(name) } match {
+      case Some(_) => ;
+      case None =>
+        import ctx._
+        ctx.run(query[persistence.Friend]
+          .insert(
+            _.avatarId -> lift(avatar.id.toLong),
+            _.charId -> lift(charId)
+          )
+        )
+        replaceAvatar(avatar.copy(
+          people = people.copy(friend = people.friend :+ AvatarFriend(charId, name, PlanetSideEmpire(faction), isOnline))
+        ))
+        sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.AddFriend, GameFriend(name, isOnline)))
+    }
+  }
+
+  def memberActionRemoveFriend(charId: Long, name: String): Unit = {
+    import ctx._
+    val people = avatar.people
+    people.friend.find { _.name.equals(name) } match {
+      case Some(_) =>
+        replaceAvatar(
+          avatar.copy(people = people.copy(friend = people.friend.filterNot { _.charId == charId }))
+        )
+      case None => ;
+    }
+    ctx.run(query[persistence.Friend]
+      .filter(_.avatarId == lift(avatar.id))
+      .filter(_.charId == lift(charId))
+      .delete
+    )
+    sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.RemoveFriend, GameFriend(name)))
+  }
+
+  def memberActionUpdateFriend(name: String): Option[(Long, PlanetSideEmpire.Value)] = {
+    if (name.nonEmpty) {
+      val people = avatar.people
+      people.friend.find { _.name.equals(name) } match {
+        case Some(otherFriend) =>
+          val (out, online) = LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(name) }).headOption match {
+            case Some(otherAvatar) => (Some((otherAvatar.id.toLong, otherAvatar.faction)), true)
+            case None              => (None, false)
+          }
+          replaceAvatar(avatar.copy(
+            people = people.copy(
+              friend = people.friend.filterNot { _.name.equals(name) } :+ otherFriend.copy(online = online)
+            )
+          ))
+          sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.UpdateFriend, GameFriend(name, online)))
+          out
+        case None =>
+          None
+      }
+    } else {
+      None
+    }
+  }
+
+  def memberActionAddIgnored(charId: Long, name: String, faction: Int, isOnline: Boolean): Unit = {
+    val people = avatar.people
+    people.ignored.find { _.name.equals(name) } match {
+      case Some(_) => ;
+      case None =>
+        import ctx._
+        ctx.run(query[persistence.Ignored]
+          .insert(
+            _.avatarId -> lift(avatar.id.toLong),
+            _.charId -> lift(charId)
+          )
+        )
+        replaceAvatar(
+          avatar.copy(people = people.copy(ignored = people.ignored :+ AvatarIgnored(charId, name)))
+        )
+        sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.AddIgnoredPlayer, GameFriend(name, isOnline)))
+    }
+  }
+
+  def memberActionRemoveIgnored(charId: Long, name: String): Unit = {
+    import ctx._
+    val people = avatar.people
+    people.ignored.find { _.name.equals(name) } match {
+      case Some(_) =>
+        replaceAvatar(
+          avatar.copy(people = people.copy(ignored = people.ignored.filterNot { _.charId == charId }))
+        )
+      case None => ;
+    }
+    ctx.run(query[persistence.Ignored]
+      .filter(_.avatarId == lift(avatar.id.toLong))
+      .filter(_.charId == lift(charId))
+      .delete
+    )
+    sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.RemoveIgnoredPlayer, GameFriend(name)))
   }
 }
