@@ -97,7 +97,7 @@ class FriendsResponseTest extends Specification {
   }
 
   "encode (short)" in {
-    val msg = FriendsResponse(MemberAction.InitializeIgnoreList, 0, true, true)
+    val msg = FriendsResponse(MemberAction.InitializeIgnoreList, 0, true, true, Nil)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringShort

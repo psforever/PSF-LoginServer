@@ -4,6 +4,7 @@ package game
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game._
+import net.psforever.types.MemberAction
 import scodec.bits._
 
 class FriendsRequestTest extends Specification {
@@ -12,7 +13,7 @@ class FriendsRequestTest extends Specification {
   "decode" in {
     PacketCoding.decodePacket(string).require match {
       case FriendsRequest(action, friend) =>
-        action mustEqual 1
+        action mustEqual MemberAction.AddFriend
         friend.length mustEqual 5
         friend mustEqual "FJHNC"
       case _ =>
@@ -21,7 +22,7 @@ class FriendsRequestTest extends Specification {
   }
 
   "encode" in {
-    val msg = FriendsRequest(1, "FJHNC")
+    val msg = FriendsRequest(MemberAction.AddFriend, "FJHNC")
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
