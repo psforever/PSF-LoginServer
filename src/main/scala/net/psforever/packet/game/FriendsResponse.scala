@@ -35,7 +35,7 @@ final case class FriendsResponse(
                                   unk1: Int,
                                   first_entry: Boolean,
                                   last_entry: Boolean,
-                                  friends: List[Friend] = Nil
+                                  friends: List[Friend]
 ) extends PlanetSideGamePacket {
   type Packet = FriendsResponse
 
@@ -46,7 +46,7 @@ final case class FriendsResponse(
 
 object Friend extends Marshallable[Friend] {
   implicit val codec: Codec[Friend] = (
-    ("name" | PacketHelpers.encodedWideStringAligned(3)) ::
+    ("name" | PacketHelpers.encodedWideStringAligned(adjustment = 3)) ::
       ("online" | bool)
   ).as[Friend]
 
@@ -55,7 +55,7 @@ object Friend extends Marshallable[Friend] {
     * Initial byte-alignment creates padding differences which requires a second `Codec`.
     */
   implicit val codec_list: Codec[Friend] = (
-    ("name" | PacketHelpers.encodedWideStringAligned(7)) ::
+    ("name" | PacketHelpers.encodedWideStringAligned(adjustment = 7)) ::
       ("online" | bool)
   ).as[Friend]
 }
@@ -87,7 +87,7 @@ object FriendsResponse extends Marshallable[FriendsResponse] {
       ("first_entry" | bool) ::
       ("last_entry" | bool) ::
       (("number_of_friends" | uint4L) >>:~ { len =>
-      conditional(len > 0, "friend" | Friend.codec) ::
+      conditional(len > 0, codec = "friend" | Friend.codec) ::
         ("friends" | PacketHelpers.listOfNSized(len - 1, Friend.codec_list))
     })
   ).xmap[FriendsResponse](

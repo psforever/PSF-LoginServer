@@ -317,12 +317,19 @@ object AvatarActor {
     }
   }
 
-  def getLiveAvatarForFunc(name: String, func: (Long,String,Int,Boolean)=>Unit): Option[(Long, PlanetSideEmpire.Value)] = {
+  /**
+    * Check for an avatar being online at the moment by matching against their name.
+    * If discovered, run a function based on the avatar's characteristics.
+    * @param name name of a character being sought
+    * @param func functionality that is called upon discovery of the character
+    * @return if found, the discovered avatar, the avatar's account id, and the avatar's faction affiliation
+    */
+  def getLiveAvatarForFunc(name: String, func: (Long,String,Int)=>Unit): Option[(Avatar, Long, PlanetSideEmpire.Value)] = {
     if (name.nonEmpty) {
       LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(name) }).headOption match {
         case Some(otherAvatar) =>
-          func(otherAvatar.id, name, otherAvatar.faction.id, true)
-          Some((otherAvatar.id.toLong, otherAvatar.faction))
+          func(otherAvatar.id, name, otherAvatar.faction.id)
+          Some((otherAvatar, otherAvatar.id.toLong, otherAvatar.faction))
         case None =>
           None
       }
@@ -331,7 +338,16 @@ object AvatarActor {
     }
   }
 
-  def getAvatarForFunc(name: String, func: (Long,String,Int,Boolean)=>Unit): Option[(Long, PlanetSideEmpire.Value)] = {
+  /**
+    * Check for an avatar existing the database of avatars by matching against their name.
+    * If discovered, run a function based on the avatar's characteristics.
+    * @param name name of a character being sought
+    * @param func functionality that is called upon discovery of the character
+    * @return if found online, the discovered avatar, the avatar's account id, and the avatar's faction affiliation;
+    *         otherwise, always returns `None` as if no avatar was discovered
+    *         (the query is probably still in progress)
+    */
+  def getAvatarForFunc(name: String, func: (Long,String,Int)=>Unit): Option[(Avatar, Long, PlanetSideEmpire.Value)] = {
     getLiveAvatarForFunc(name, func).orElse {
       if (name.nonEmpty) {
         import ctx._
@@ -340,7 +356,7 @@ object AvatarActor {
           case Success(otherAvatar) =>
             otherAvatar.headOption match {
               case Some(a) =>
-                func(a.id, a.name, a.factionId, false)
+                func(a.id, a.name, a.factionId)
               case _ => ;
             }
           case _ => ;
@@ -350,8 +366,70 @@ object AvatarActor {
     }
   }
 
-  def formatForRemove(removeFunc: (Long,String)=>Unit)(charId: Long, name: String, faction: Int, isOnline: Boolean): Unit = {
-    removeFunc(charId, name)
+  /**
+    * Transform a `(Long, String, PlanetSideEmpire.Value)` function call
+    * into a `(Long, String)` function call.
+    * @param func replacement `(Long, String)` function call
+    * @param charId unique account identifier
+    * @param name unique character name
+    * @param faction the faction affiliation
+    */
+  def formatForOtherFunc(func: (Long,String)=>Unit)(charId: Long, name: String, faction: Int): Unit = {
+    func(charId, name)
+  }
+
+  /**
+    * Determine if one player considered online to the other person.
+    * @param onlinePlayerName name of a player to be determined if they are online
+    * @param observerName name of a player who might see the former and be seen by the former
+    * @return `true`, if one player is visible to the other
+    *         `false`, otherwise
+    */
+  def onlineIfNotIgnored(onlinePlayerName: String, observerName: String): Boolean = {
+    LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(onlinePlayerName) }).headOption match {
+      case Some(onlinePlayer) => onlineIfNotIgnored(onlinePlayer, observerName)
+      case _ => false
+    }
+  }
+
+  /**
+    * Determine if one player considered online to the other person.
+    * Neither player can be ignoring the other.
+    * @param onlinePlayerName name of a player to be determined if they are online
+    * @param observer player who might see the former and be seen by the former
+    * @return `true`, if one player is visible to the other
+    *         `false`, otherwise
+    */
+  def onlineIfNotIgnoredEitherWay(observer: Avatar, onlinePlayerName: String): Boolean = {
+    LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(onlinePlayerName) }) match {
+      case Nil => false //weird case, but ...
+      case onlinePlayer :: Nil => onlineIfNotIgnoredEitherWay(onlinePlayer, observer)
+      case _ => throw new Exception("only trying to find two players, but too many matching search results!")
+    }
+  }
+
+  /**
+    * Determine if one player considered online to the other person.
+    * Neither player can be ignoring the other.
+    * @param onlinePlayer player who is online
+    * @param observer player who might see the former
+    * @return `true`, if the other person is not ignoring us;
+    *         `false`, otherwise
+    */
+  def onlineIfNotIgnoredEitherWay(onlinePlayer: Avatar, observer: Avatar): Boolean = {
+    onlineIfNotIgnored(onlinePlayer, observer.name) && onlineIfNotIgnored(observer, onlinePlayer.name)
+  }
+
+  /**
+    * Determine if one player is considered online to the other person.
+    * The question is whether first player is ignoring the other player.
+    * @param onlinePlayer player who is online
+    * @param observedName name of the player who may be seen
+    * @return `true`, if the other person is visible;
+    *         `false`, otherwise
+    */
+  def onlineIfNotIgnored(onlinePlayer: Avatar, observedName: String): Boolean = {
+    !onlinePlayer.people.ignored.exists { f => f.name.equals(observedName) }
   }
 }
 
@@ -1969,20 +2047,61 @@ class AvatarActor(
     }
   }
 
+  /**
+    * Branch based on behavior of the request for the friends list or the ignored people list.
+    * @param action nature of the request
+    * @param name other player's name (can not be our name)
+    */
   def memberListAction(action: MemberAction.Value, name: String): Unit = {
     if (!name.equals(avatar.name)) {
       action match {
-        case MemberAction.UpdateFriend => memberActionUpdateFriend(name)
-        case MemberAction.AddFriend => getAvatarForFunc(name, memberActionAddFriend)
-        case MemberAction.RemoveFriend => getAvatarForFunc(name, formatForRemove(memberActionRemoveFriend))
-        case MemberAction.AddIgnoredPlayer => getAvatarForFunc(name, memberActionAddIgnored)
-        case MemberAction.RemoveIgnoredPlayer => getAvatarForFunc(name, formatForRemove(memberActionRemoveIgnored))
+        case MemberAction.InitializeFriendList => memberActionListManagement(action, transformFriendsList)
+        case MemberAction.InitializeIgnoreList => memberActionListManagement(action, transformIgnoredList)
+        case MemberAction.UpdateFriend         => memberActionUpdateFriend(name)
+        case MemberAction.AddFriend            => getAvatarForFunc(name, memberActionAddFriend)
+        case MemberAction.RemoveFriend         => getAvatarForFunc(name, formatForOtherFunc(memberActionRemoveFriend))
+        case MemberAction.AddIgnoredPlayer     => getAvatarForFunc(name, memberActionAddIgnored)
+        case MemberAction.RemoveIgnoredPlayer  => getAvatarForFunc(name, formatForOtherFunc(memberActionRemoveIgnored))
         case _ => ;
       }
     }
   }
 
-  def memberActionAddFriend(charId: Long, name: String, faction: Int, isOnline: Boolean): Unit = {
+  /**
+    * Transform the friends list in a list of packet entities.
+    * @return a list of `Friends` suitable for putting into a packet
+    */
+  def transformFriendsList(): List[GameFriend] = {
+    avatar.people.friend.map { f => GameFriend(f.name, f.online)}
+  }
+  /**
+    * Transform the ignored players list in a list of packet entities.
+    * @return a list of `Friends` suitable for putting into a packet
+    */
+  def transformIgnoredList(): List[GameFriend] = {
+    avatar.people.ignored.map { f => GameFriend(f.name, f.online)}
+  }
+  /**
+    * Reload the list of friend players or ignored players for the client.
+    * This does not update any player's online status, but merely reloads current states.
+    * @param action nature of the request
+    *               (either `InitializeFriendList` or `InitializeIgnoreList`, hopefully)
+    * @param listFunc transformation function that produces data suitable for a game paket
+    */
+  def memberActionListManagement(action: MemberAction.Value, listFunc: ()=>List[GameFriend]): Unit = {
+    FriendsResponse.packetSequence(action, listFunc()).foreach { msg =>
+      sessionActor ! SessionActor.SendResponse(msg)
+    }
+  }
+
+  /**
+    * Add another player's data to the list of friend players and report back whether or not that player is online.
+    * Update the database appropriately.
+    * @param charId unique account identifier
+    * @param name unique character name
+    * @param faction a faction affiliation
+    */
+  def memberActionAddFriend(charId: Long, name: String, faction: Int): Unit = {
     val people = avatar.people
     people.friend.find { _.name.equals(name) } match {
       case Some(_) => ;
@@ -1994,6 +2113,7 @@ class AvatarActor(
             _.charId -> lift(charId)
           )
         )
+        val isOnline = onlineIfNotIgnoredEitherWay(avatar, name)
         replaceAvatar(avatar.copy(
           people = people.copy(friend = people.friend :+ AvatarFriend(charId, name, PlanetSideEmpire(faction), isOnline))
         ))
@@ -2001,6 +2121,12 @@ class AvatarActor(
     }
   }
 
+  /**
+    * Remove another player's data from the list of friend players.
+    * Update the database appropriately.
+    * @param charId unique account identifier
+    * @param name unique character name
+    */
   def memberActionRemoveFriend(charId: Long, name: String): Unit = {
     import ctx._
     val people = avatar.people
@@ -2019,14 +2145,24 @@ class AvatarActor(
     sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.RemoveFriend, GameFriend(name)))
   }
 
+  /**
+    *
+    * @param name unique character name
+    * @return if the avatar is found, that avatar's unique identifier and the avatar's faction affiliation
+    */
   def memberActionUpdateFriend(name: String): Option[(Long, PlanetSideEmpire.Value)] = {
     if (name.nonEmpty) {
       val people = avatar.people
       people.friend.find { _.name.equals(name) } match {
         case Some(otherFriend) =>
           val (out, online) = LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(name) }).headOption match {
-            case Some(otherAvatar) => (Some((otherAvatar.id.toLong, otherAvatar.faction)), true)
-            case None              => (None, false)
+            case Some(otherAvatar) =>
+              (
+                Some((otherAvatar.id.toLong, otherAvatar.faction)),
+                onlineIfNotIgnoredEitherWay(otherAvatar, avatar)
+              )
+            case None =>
+              (None, false)
           }
           replaceAvatar(avatar.copy(
             people = people.copy(
@@ -2043,7 +2179,16 @@ class AvatarActor(
     }
   }
 
-  def memberActionAddIgnored(charId: Long, name: String, faction: Int, isOnline: Boolean): Unit = {
+  /**
+    * Add another player's data to the list of ignored players.
+    * Update the database appropriately.
+    * The change affects not only this player but also the player being ignored
+    * by denying online visibility of the former to the latter.
+    * @param charId unique account identifier
+    * @param name unique character name
+    * @param faction a faction affiliation
+    */
+  def memberActionAddIgnored(charId: Long, name: String, faction: Int): Unit = {
     val people = avatar.people
     people.ignored.find { _.name.equals(name) } match {
       case Some(_) => ;
@@ -2058,10 +2203,18 @@ class AvatarActor(
         replaceAvatar(
           avatar.copy(people = people.copy(ignored = people.ignored :+ AvatarIgnored(charId, name)))
         )
-        sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.AddIgnoredPlayer, GameFriend(name, isOnline)))
+        sessionActor ! SessionActor.UpdateIgnoredPlayers(FriendsResponse(MemberAction.AddIgnoredPlayer, GameFriend(name)))
     }
   }
 
+  /**
+    * Remove another player's data from the list of ignored players.
+    * Update the database appropriately.
+    * The change affects not only this player but also the player formerly being ignored
+    * by restoring online visibility of the former to the latter.
+    * @param charId unique account identifier
+    * @param name unique character name
+    */
   def memberActionRemoveIgnored(charId: Long, name: String): Unit = {
     import ctx._
     val people = avatar.people
@@ -2077,6 +2230,6 @@ class AvatarActor(
       .filter(_.charId == lift(charId))
       .delete
     )
-    sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.RemoveIgnoredPlayer, GameFriend(name)))
+    sessionActor ! SessionActor.UpdateIgnoredPlayers(FriendsResponse(MemberAction.RemoveIgnoredPlayer, GameFriend(name)))
   }
 }

@@ -124,6 +124,8 @@ object SessionActor {
 
   final case class UseCooldownRenewed(definition: BasicDefinition, time: LocalDateTime) extends Command
 
+  final case class UpdateIgnoredPlayers(msg: FriendsResponse) extends Command
+
   /**
     * The message that progresses some form of user-driven activity with a certain eventual outcome
     * and potential feedback per cycle.
@@ -680,6 +682,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case AvatarServiceResponse(toChannel, guid, reply) =>
       HandleAvatarServiceResponse(toChannel, guid, reply)
+
+    case UpdateIgnoredPlayers(msg) =>
+      sendResponse(msg)
+      msg.friends.foreach { f =>
+        galaxyService ! GalaxyServiceMessage(GalaxyAction.LogStatusChange(f.name))
+      }
 
     case SendResponse(packet) =>
       sendResponse(packet)
@@ -1398,13 +1406,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty))    //clear squad list
-      def emptyFunc(a: Long, b: String, c: Int, d: Boolean): Unit = {}
       (
         //friend list (some might be online)
         FriendsResponse.packetSequence(
           MemberAction.InitializeFriendList,
           avatar.people.friend
-            .map { f => game.Friend(f.name, AvatarActor.getLiveAvatarForFunc(f.name, emptyFunc).nonEmpty) }
+            .map { f =>
+              game.Friend(f.name, AvatarActor.onlineIfNotIgnoredEitherWay(avatar, f.name))
+            }
         ) ++
         //ignored list (no one ever online)
         FriendsResponse.packetSequence(
@@ -6878,7 +6887,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }
             val stowNewFunc: Equipment => TaskBundle = PutNewEquipmentInInventoryOrDrop(obj)
             val stowFunc: Equipment => Future[Any]   = PutEquipmentInInventoryOrDrop(obj)
-          
+
             xs.foreach(item => {
               obj.Inventory -= item.start
               sendResponse(ObjectDeleteMessage(item.obj.GUID, 0))
