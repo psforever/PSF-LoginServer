@@ -65,6 +65,14 @@ object FriendsResponse extends Marshallable[FriendsResponse] {
     FriendsResponse(action, unk1=0, first_entry=true, last_entry=true, List(friend))
   }
 
+  /**
+    * Take a list of members and construct appropriate packets by which they can be dispatched to the client.
+    * Attention needs to be paid to the number of entries in a single packet,
+    * and where the produced packets begin and end.
+    * @param action the purpose of the entry(s) in this packet
+    * @param friends a list of `Friend`s
+    * @return a list of `FriendResponse` packets
+    */
   def packetSequence(action: MemberAction.Value, friends: List[Friend]): List[FriendsResponse] = {
     val lists = friends.grouped(15)
     val size = lists.size

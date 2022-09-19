@@ -1935,18 +1935,17 @@ class AvatarActor(
     import ctx._
     val out: Promise[List[AvatarFriend]] = Promise()
 
-    val queryResult = for {
-      a <- ctx.run(query[persistence.Friend].filter { _.avatarId == lift(avatarId) })
-      b <- ctx.run(query[persistence.Avatar])
-    } yield (a, b)
+    val queryResult = ctx.run(
+      query[persistence.Friend].filter { _.avatarId == lift(avatarId) }
+        .join(query[persistence.Avatar])
+        .on { case (friend, avatar) => friend.charId == avatar.id }
+        .map { case (_, avatar) => (avatar.id, avatar.name, avatar.factionId) }
+    )
     queryResult.onComplete {
-      case Success((acquaintances, avatars)) =>
-        val searchResult = for {
-          a <- acquaintances
-          b <- avatars
-          if a.charId == b.id
-        } yield (a.charId, b.name, b.factionId)
-        out.completeWith(Future(searchResult.map { i => AvatarFriend(i._1, i._2, PlanetSideEmpire(i._3)) }.toList))
+      case Success(list) =>
+        out.completeWith(Future(
+          list.map { case (id, name, faction) => AvatarFriend(id, name, PlanetSideEmpire(faction)) }.toList
+        ))
       case _ =>
         out.completeWith(Future(List.empty[AvatarFriend]))
     }
@@ -1957,18 +1956,17 @@ class AvatarActor(
     import ctx._
     val out: Promise[List[AvatarIgnored]] = Promise()
 
-    val queryResult = for {
-      a <- ctx.run(query[persistence.Ignored].filter { _.avatarId == lift(avatarId) })
-      b <- ctx.run(query[persistence.Avatar])
-    } yield (a, b)
+    val queryResult = ctx.run(
+      query[persistence.Ignored].filter { _.avatarId == lift(avatarId) }
+        .join(query[persistence.Avatar])
+        .on { case (friend, avatar) => friend.charId == avatar.id }
+        .map { case (_, avatar) => (avatar.id, avatar.name) }
+    )
     queryResult.onComplete {
-      case Success((acquaintances, avatars)) =>
-        val searchResult = for {
-          a <- acquaintances
-          b <- avatars
-          if a.charId == b.id
-        } yield (a.charId, b.name)
-        out.completeWith(Future(searchResult.map { i => AvatarIgnored(i._1, i._2) }.toList))
+      case Success(list) =>
+        out.completeWith(Future(
+          list.map { case (id, name) => AvatarIgnored(id, name) }.toList
+        ))
       case _ =>
         out.completeWith(Future(List.empty[AvatarIgnored]))
     }
