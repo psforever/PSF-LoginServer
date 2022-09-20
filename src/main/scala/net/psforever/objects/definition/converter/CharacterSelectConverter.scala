@@ -79,7 +79,7 @@ class CharacterSelectConverter extends AvatarConverter {
       unk7 = false,
       on_zipline = None
     )
-    CharacterAppearanceData(aa, ab, obj.avatar.ribbonBars)
+    CharacterAppearanceData(aa, ab, obj.avatar.decoration.ribbonBars)
   }
 
   private def MakeDetailedCharacterData(obj: Player): Option[Int] => DetailedCharacterData = {
@@ -123,7 +123,7 @@ class CharacterSelectConverter extends AvatarConverter {
       Nil,
       Nil,
       unkC = false,
-      obj.avatar.cosmetics
+      obj.avatar.decoration.cosmetics
     )
     pad_length: Option[Int] => DetailedCharacterData(ba, bb(obj.avatar.bep, pad_length))(pad_length)
   }

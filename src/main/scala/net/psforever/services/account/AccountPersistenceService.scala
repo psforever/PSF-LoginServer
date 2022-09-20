@@ -14,6 +14,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 import net.psforever.services.{Service, ServiceManager}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 
 /**
   * A global service that manages user behavior as divided into the following three categories:
@@ -48,9 +49,11 @@ class AccountPersistenceService extends Actor {
 
   /** squad service event hook */
   var squad: ActorRef = ActorRef.noSender
+  /** galaxy service event hook */
+  var galaxy: ActorRef = ActorRef.noSender
 
   /** log, for trace and warnings only */
-  val log = org.log4s.getLogger
+  private val log = org.log4s.getLogger
 
   /**
     * Retrieve the required system event service hooks.
@@ -59,6 +62,7 @@ class AccountPersistenceService extends Actor {
     */
   override def preStart(): Unit = {
     ServiceManager.serviceManager ! ServiceManager.Lookup("squad")
+    ServiceManager.serviceManager ! ServiceManager.Lookup("galaxy")
   }
 
   override def postStop(): Unit = {
@@ -127,13 +131,22 @@ class AccountPersistenceService extends Actor {
   val Setup: Receive = {
     case ServiceManager.LookupResult("squad", endpoint) =>
       squad = endpoint
-      if (squad != ActorRef.noSender) {
-        log.trace("Service hooks obtained.  Continuing with standard operation.")
-        context.become(Started)
-      }
+      log.trace("Service hooks obtained.  Attempting standard operation.")
+      switchToStarted()
+
+    case ServiceManager.LookupResult("galaxy", endpoint) =>
+      galaxy = endpoint
+      log.trace("Service hooks obtained.  Attempting standard operation.")
+      switchToStarted()
 
     case msg =>
       log.warn(s"not yet started; received a $msg that will go unhandled")
+  }
+
+  def switchToStarted(): Unit = {
+    if (squad != ActorRef.noSender && galaxy != ActorRef.noSender) {
+      context.become(Started)
+    }
   }
 
   /**
@@ -143,7 +156,7 @@ class AccountPersistenceService extends Actor {
     */
   def CreateNewPlayerToken(name: String): ActorRef = {
     val ref =
-      context.actorOf(Props(classOf[PersistenceMonitor], name, squad), s"${NextPlayerIndex(name)}_${name.hashCode()}")
+      context.actorOf(Props(classOf[PersistenceMonitor], name, squad, galaxy), s"${NextPlayerIndex(name)}_${name.hashCode()}")
     accounts += name -> ref
     ref
   }
@@ -219,8 +232,11 @@ object AccountPersistenceService {
   * @param name the unique name of the player
   * @param squadService a hook into the `SquadService` event system
   */
-class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
-
+class PersistenceMonitor(
+                          name: String,
+                          squadService: ActorRef,
+                          galaxyService: ActorRef
+                        ) extends Actor {
   /** the last-reported zone of this player */
   var inZone: Zone = Zone.Nowhere
 
@@ -242,7 +258,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
   var timer: Cancellable = Default.Cancellable
 
   /** the sparingly-used log */
-  val log = org.log4s.getLogger
+  private val log = org.log4s.getLogger
 
   /**
     * Perform logout operations before the persistence monitor finally stops.
@@ -407,6 +423,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
   def AvatarLogout(avatar: Avatar): Unit = {
     LivePlayerList.Remove(avatar.id)
     squadService.tell(Service.Leave(Some(avatar.id.toString)), context.parent)
+    galaxyService.tell(GalaxyServiceMessage(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     Deployables.Disown(inZone, avatar, context.parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)
     TaskWorkflow.execute(GUIDTask.unregisterObject(inZone.GUID, avatar.locker))

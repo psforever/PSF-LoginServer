@@ -5,7 +5,14 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
-import net.psforever.objects.avatar._
+import org.joda.time.{LocalDateTime, Seconds}
+//import org.log4s.Logger
+import scala.collection.mutable
+import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
+import scala.util.{Failure, Success}
+import scala.concurrent.duration._
+//
+import net.psforever.objects.avatar.{Friend => AvatarFriend, Ignored => AvatarIgnored, _}
 import net.psforever.objects.definition.converter.CharacterSelectConverter
 import net.psforever.objects.definition._
 import net.psforever.objects.inventory.Container
@@ -17,21 +24,13 @@ import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.vital.HealFromImplant
 import net.psforever.packet.game.objectcreate.{ObjectClass, RibbonBars}
-import net.psforever.packet.game._
-import net.psforever.types._
+import net.psforever.packet.game.{Friend => GameFriend, _}
+import net.psforever.types.{MemberAction, PlanetSideEmpire, _}
 import net.psforever.util.Database._
 import net.psforever.persistence
 import net.psforever.util.{Config, Database, DefinitionUtil}
-import org.joda.time.{LocalDateTime, Seconds}
-import net.psforever.services.ServiceManager
+import net.psforever.services.{Service, ServiceManager}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-
-import scala.collection.mutable
-import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
-import scala.util.{Failure, Success}
-import scala.concurrent.duration._
-import net.psforever.services.Service
-import org.log4s.Logger
 
 object AvatarActor {
   def apply(sessionActor: ActorRef[SessionActor.Command]): Behavior[Command] =
@@ -187,6 +186,8 @@ object AvatarActor {
 
   private case class SetImplantInitialized(implantType: ImplantType) extends Command
 
+  final case class MemberListRequest(action: MemberAction.Value, name: String) extends Command
+
   final case class AvatarResponse(avatar: Avatar)
 
   final case class AvatarLoginResponse(avatar: Avatar)
@@ -286,7 +287,7 @@ object AvatarActor {
   }
 
   def encodeLockerClob(container: Container): String = {
-    val clobber: StringBuilder = new StringBuilder()
+    val clobber: mutable.StringBuilder = new StringBuilder()
     container.Inventory.Items.foreach {
       case InventoryItem(obj, index) =>
         clobber.append(encodeLoadoutClobFragment(obj, index))
@@ -314,6 +315,121 @@ object AvatarActor {
       case RibbonBarSlot.Bottom        => ribbons.copy(lower = ribbon)
       case RibbonBarSlot.TermOfService => ribbons.copy(tos = ribbon)
     }
+  }
+
+  /**
+    * Check for an avatar being online at the moment by matching against their name.
+    * If discovered, run a function based on the avatar's characteristics.
+    * @param name name of a character being sought
+    * @param func functionality that is called upon discovery of the character
+    * @return if found, the discovered avatar, the avatar's account id, and the avatar's faction affiliation
+    */
+  def getLiveAvatarForFunc(name: String, func: (Long,String,Int)=>Unit): Option[(Avatar, Long, PlanetSideEmpire.Value)] = {
+    if (name.nonEmpty) {
+      LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(name) }).headOption match {
+        case Some(otherAvatar) =>
+          func(otherAvatar.id, name, otherAvatar.faction.id)
+          Some((otherAvatar, otherAvatar.id.toLong, otherAvatar.faction))
+        case None =>
+          None
+      }
+    } else {
+      None
+    }
+  }
+
+  /**
+    * Check for an avatar existing the database of avatars by matching against their name.
+    * If discovered, run a function based on the avatar's characteristics.
+    * @param name name of a character being sought
+    * @param func functionality that is called upon discovery of the character
+    * @return if found online, the discovered avatar, the avatar's account id, and the avatar's faction affiliation;
+    *         otherwise, always returns `None` as if no avatar was discovered
+    *         (the query is probably still in progress)
+    */
+  def getAvatarForFunc(name: String, func: (Long,String,Int)=>Unit): Option[(Avatar, Long, PlanetSideEmpire.Value)] = {
+    getLiveAvatarForFunc(name, func).orElse {
+      if (name.nonEmpty) {
+        import ctx._
+        import scala.concurrent.ExecutionContext.Implicits.global
+        ctx.run(query[persistence.Avatar].filter { _.name.equals(lift(name)) }).onComplete {
+          case Success(otherAvatar) =>
+            otherAvatar.headOption match {
+              case Some(a) =>
+                func(a.id, a.name, a.factionId)
+              case _ => ;
+            }
+          case _ => ;
+        }
+      }
+      None //satisfy the orElse
+    }
+  }
+
+  /**
+    * Transform a `(Long, String, PlanetSideEmpire.Value)` function call
+    * into a `(Long, String)` function call.
+    * @param func replacement `(Long, String)` function call
+    * @param charId unique account identifier
+    * @param name unique character name
+    * @param faction the faction affiliation
+    */
+  def formatForOtherFunc(func: (Long,String)=>Unit)(charId: Long, name: String, faction: Int): Unit = {
+    func(charId, name)
+  }
+
+  /**
+    * Determine if one player considered online to the other person.
+    * @param onlinePlayerName name of a player to be determined if they are online
+    * @param observerName name of a player who might see the former and be seen by the former
+    * @return `true`, if one player is visible to the other
+    *         `false`, otherwise
+    */
+  def onlineIfNotIgnored(onlinePlayerName: String, observerName: String): Boolean = {
+    LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(onlinePlayerName) }).headOption match {
+      case Some(onlinePlayer) => onlineIfNotIgnored(onlinePlayer, observerName)
+      case _ => false
+    }
+  }
+
+  /**
+    * Determine if one player considered online to the other person.
+    * Neither player can be ignoring the other.
+    * @param onlinePlayerName name of a player to be determined if they are online
+    * @param observer player who might see the former and be seen by the former
+    * @return `true`, if one player is visible to the other
+    *         `false`, otherwise
+    */
+  def onlineIfNotIgnoredEitherWay(observer: Avatar, onlinePlayerName: String): Boolean = {
+    LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(onlinePlayerName) }) match {
+      case Nil => false //weird case, but ...
+      case onlinePlayer :: Nil => onlineIfNotIgnoredEitherWay(onlinePlayer, observer)
+      case _ => throw new Exception("only trying to find two players, but too many matching search results!")
+    }
+  }
+
+  /**
+    * Determine if one player considered online to the other person.
+    * Neither player can be ignoring the other.
+    * @param onlinePlayer player who is online
+    * @param observer player who might see the former
+    * @return `true`, if the other person is not ignoring us;
+    *         `false`, otherwise
+    */
+  def onlineIfNotIgnoredEitherWay(onlinePlayer: Avatar, observer: Avatar): Boolean = {
+    onlineIfNotIgnored(onlinePlayer, observer.name) && onlineIfNotIgnored(observer, onlinePlayer.name)
+  }
+
+  /**
+    * Determine if one player is considered online to the other person.
+    * The question is whether first player is ignoring the other player.
+    * @param onlinePlayer player who is online
+    * @param observedName name of the player who may be seen
+    * @return `true`, if the other person is visible;
+    *         `false`, otherwise
+    */
+  def onlineIfNotIgnored(onlinePlayer: Avatar, observedName: String): Boolean = {
+    !onlinePlayer.people.ignored.exists { f => f.name.equals(observedName) }
   }
 }
 
@@ -487,22 +603,26 @@ class AvatarActor(
               query[persistence.Avatar].filter(_.id == lift(avatar.id))
                 .update(_.lastLogin -> lift(LocalDateTime.now()))
             )
+            avatarId = avatar.id
             loadouts <- initializeAllLoadouts()
-            implants <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatar.id)))
-            certs    <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatar.id)))
-            locker   <- loadLocker()
-          } yield (loadouts, implants, certs, locker)
+            implants <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatarId)))
+            certs    <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatarId)))
+            locker   <- loadLocker(avatarId)
+            friends  <- loadFriendList(avatarId)
+            ignored  <- loadIgnoredList(avatarId)
+          } yield (loadouts, implants, certs, locker, friends, ignored)
 
           result.onComplete {
-            case Success((loadouts, implants, certs, locker)) =>
+            case Success((_loadouts, implants, certs, locker, friendsList, ignoredList)) =>
               avatarCopy(
                 avatar.copy(
-                  loadouts = loadouts,
+                  loadouts = avatar.loadouts.copy(suit = _loadouts),
                   // make sure we always have the base certifications
                   certifications =
                     certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
                   implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
-                  locker = locker
+                  locker = locker,
+                  people = MemberLists(friendsList, ignoredList)
                 )
               )
               // if we need to start stamina regeneration
@@ -523,7 +643,8 @@ class AvatarActor(
           Behaviors.same
 
         case AddFirstTimeEvent(event) =>
-          avatarCopy(avatar.copy(firstTimeEvents = avatar.firstTimeEvents ++ Set(event)))
+          val decor = avatar.decoration
+          avatarCopy(avatar.copy(decoration = decor.copy(firstTimeEvents = decor.firstTimeEvents ++ Set(event))))
           Behaviors.same
 
         case LearnCertification(terminalGuid, certification) =>
@@ -814,7 +935,8 @@ class AvatarActor(
           }
           result.onComplete {
             case Success(loadout) =>
-              replaceAvatar(avatar.copy(loadouts = avatar.loadouts.updated(lineNo, Some(loadout))))
+              val ldouts = avatar.loadouts
+              replaceAvatar(avatar.copy(loadouts = ldouts.copy(suit = ldouts.suit.updated(lineNo, Some(loadout)))))
               refreshLoadout(lineNo)
             case Failure(exception) =>
               log.error(exception)("db failure (?)")
@@ -825,7 +947,7 @@ class AvatarActor(
           log.info(s"${player.Name} wishes to delete a favorite $loadoutType loadout - #${number + 1}")
           import ctx._
           val (lineNo, result) = loadoutType match {
-            case LoadoutType.Infantry if avatar.loadouts(number).nonEmpty =>
+            case LoadoutType.Infantry if avatar.loadouts.suit(number).nonEmpty =>
               (
                 number,
                 ctx.run(
@@ -835,7 +957,7 @@ class AvatarActor(
                     .delete
                 )
               )
-            case LoadoutType.Vehicle if avatar.loadouts(number + 10).nonEmpty =>
+            case LoadoutType.Vehicle if avatar.loadouts.suit(number + 10).nonEmpty =>
               (
                 number + 10,
                 ctx.run(
@@ -845,7 +967,7 @@ class AvatarActor(
                     .delete
                 )
               )
-            case LoadoutType.Battleframe if avatar.loadouts(number + 15).nonEmpty =>
+            case LoadoutType.Battleframe if avatar.loadouts.suit(number + 15).nonEmpty =>
               (
                 number + 15,
                 ctx.run(
@@ -860,7 +982,8 @@ class AvatarActor(
           }
           result.onComplete {
             case Success(_) =>
-              avatarCopy(avatar.copy(loadouts = avatar.loadouts.updated(lineNo, None)))
+              val ldouts = avatar.loadouts
+              avatarCopy(avatar.copy(loadouts = ldouts.copy(suit = ldouts.suit.updated(lineNo, None))))
               sessionActor ! SessionActor.SendResponse(FavoritesMessage(loadoutType, player.GUID, number, ""))
             case Failure(exception) =>
               log.error(exception)("db failure (?)")
@@ -872,16 +995,16 @@ class AvatarActor(
           Behaviors.same
 
         case InitialRefreshLoadouts() =>
-          refreshLoadouts(avatar.loadouts.zipWithIndex)
+          refreshLoadouts(avatar.loadouts.suit.zipWithIndex)
           Behaviors.same
 
         case RefreshLoadouts() =>
-          refreshLoadouts(avatar.loadouts.zipWithIndex.collect { case out @ (Some(_), _) => out })
+          refreshLoadouts(avatar.loadouts.suit.zipWithIndex.collect { case out @ (Some(_), _) => out })
           Behaviors.same
 
         case UpdatePurchaseTime(definition, time) =>
           // TODO save to db
-          var newTimes = avatar.purchaseTimes
+          var newTimes = avatar.cooldowns.purchase
           AvatarActor.resolveSharedPurchaseTimeNames(AvatarActor.resolvePurchaseTimeName(avatar.faction, definition)).foreach {
             case (item, name) =>
               Avatar.purchaseCooldowns.get(item) match {
@@ -896,19 +1019,20 @@ class AvatarActor(
                 case _ => ;
               }
           }
-          avatarCopy(avatar.copy(purchaseTimes = newTimes))
+          avatarCopy(avatar.copy(cooldowns = avatar.cooldowns.copy(purchase = newTimes)))
           Behaviors.same
 
         case UpdateUseTime(definition, time) =>
           if (!Avatar.useCooldowns.contains(definition)) {
             log.warn(s"${avatar.name} is updating a use time for item '${definition.Name}' that has no cooldown")
           }
-          avatarCopy(avatar.copy(useTimes = avatar.useTimes.updated(definition.Name, time)))
+          val cdowns = avatar.cooldowns
+          avatarCopy(avatar.copy(cooldowns = cdowns.copy(use = cdowns.use.updated(definition.Name, time))))
           sessionActor ! SessionActor.UseCooldownRenewed(definition, time)
           Behaviors.same
 
         case RefreshPurchaseTimes() =>
-          refreshPurchaseTimes(avatar.purchaseTimes.keys.toSet)
+          refreshPurchaseTimes(avatar.cooldowns.purchase.keys.toSet)
           Behaviors.same
 
         case SetVehicle(vehicle) =>
@@ -1135,19 +1259,24 @@ class AvatarActor(
           Behaviors.same
 
         case SetRibbon(ribbon, bar) =>
-          val previousRibbonBars = avatar.ribbonBars
+          val decor = avatar.decoration
+          val previousRibbonBars = decor.ribbonBars
           val useRibbonBars = Seq(previousRibbonBars.upper, previousRibbonBars.middle, previousRibbonBars.lower)
             .indexWhere { _ == ribbon } match {
             case -1 => previousRibbonBars
             case n  => AvatarActor.changeRibbons(previousRibbonBars, MeritCommendation.None, RibbonBarSlot(n))
           }
-          replaceAvatar(avatar.copy(ribbonBars = AvatarActor.changeRibbons(useRibbonBars, ribbon, bar)))
+          replaceAvatar(avatar.copy(decoration = decor.copy(ribbonBars = AvatarActor.changeRibbons(useRibbonBars, ribbon, bar))))
           val player = session.get.player
           val zone   = player.Zone
           zone.AvatarEvents ! AvatarServiceMessage(
             zone.id,
             AvatarAction.SendResponse(Service.defaultPlayerGUID, DisplayedAwardMessage(player.GUID, ribbon, bar))
           )
+          Behaviors.same
+
+        case MemberListRequest(action, name) =>
+          memberListAction(action, name)
           Behaviors.same
       }
       .receiveSignal {
@@ -1191,7 +1320,7 @@ class AvatarActor(
     )
       .onComplete {
         case Success(_) =>
-          avatarCopy(avatar.copy(cosmetics = Some(cosmetics)))
+          avatarCopy(avatar.copy(decoration = avatar.decoration.copy(cosmetics = Some(cosmetics))))
           session.get.zone.AvatarEvents ! AvatarServiceMessage(
             session.get.zone.id,
             AvatarAction
@@ -1503,7 +1632,7 @@ class AvatarActor(
   def storeLoadout(owner: Player, label: String, line: Int): Future[Loadout] = {
     import ctx._
     val items: String = {
-      val clobber: StringBuilder = new StringBuilder()
+      val clobber: mutable.StringBuilder = new StringBuilder()
       //encode holsters
       owner
         .Holsters()
@@ -1547,7 +1676,7 @@ class AvatarActor(
   def storeVehicleLoadout(owner: Player, label: String, line: Int, vehicle: Vehicle): Future[Loadout] = {
     import ctx._
     val items: String = {
-      val clobber: StringBuilder = new StringBuilder()
+      val clobber: mutable.StringBuilder = new StringBuilder()
       //encode holsters
       vehicle.Weapons
         .collect {
@@ -1720,7 +1849,7 @@ class AvatarActor(
   }
 
   def refreshLoadout(line: Int): Unit = {
-    avatar.loadouts.lift(line) match {
+    avatar.loadouts.suit.lift(line) match {
       case Some(Some(loadout: InfantryLoadout)) =>
         sessionActor ! SessionActor.SendResponse(
           FavoritesMessage.Infantry(
@@ -1768,12 +1897,12 @@ class AvatarActor(
     }
   }
 
-  def loadLocker(): Future[LockerContainer] = {
+  def loadLocker(charId: Long): Future[LockerContainer] = {
     val locker = Avatar.makeLocker()
     var notLoaded: Boolean = false
     import ctx._
     val out = ctx.run(query[persistence.Locker]
-      .filter(_.avatarId == lift(avatar.id)))
+      .filter(_.avatarId == lift(charId)))
       .map { entry =>
         notLoaded = false
         entry.foreach { contents => AvatarActor.buildContainedEquipmentFromClob(locker, contents.items, log) }
@@ -1798,6 +1927,50 @@ class AvatarActor(
         }
     }
     out
+  }
+
+
+
+  def loadFriendList(avatarId: Long): Future[List[AvatarFriend]] = {
+    import ctx._
+    val out: Promise[List[AvatarFriend]] = Promise()
+
+    val queryResult = ctx.run(
+      query[persistence.Friend].filter { _.avatarId == lift(avatarId) }
+        .join(query[persistence.Avatar])
+        .on { case (friend, avatar) => friend.charId == avatar.id }
+        .map { case (_, avatar) => (avatar.id, avatar.name, avatar.factionId) }
+    )
+    queryResult.onComplete {
+      case Success(list) =>
+        out.completeWith(Future(
+          list.map { case (id, name, faction) => AvatarFriend(id, name, PlanetSideEmpire(faction)) }.toList
+        ))
+      case _ =>
+        out.completeWith(Future(List.empty[AvatarFriend]))
+    }
+    out.future
+  }
+
+  def loadIgnoredList(avatarId: Long): Future[List[AvatarIgnored]] = {
+    import ctx._
+    val out: Promise[List[AvatarIgnored]] = Promise()
+
+    val queryResult = ctx.run(
+      query[persistence.Ignored].filter { _.avatarId == lift(avatarId) }
+        .join(query[persistence.Avatar])
+        .on { case (friend, avatar) => friend.charId == avatar.id }
+        .map { case (_, avatar) => (avatar.id, avatar.name) }
+    )
+    queryResult.onComplete {
+      case Success(list) =>
+        out.completeWith(Future(
+          list.map { case (id, name) => AvatarIgnored(id, name) }.toList
+        ))
+      case _ =>
+        out.completeWith(Future(List.empty[AvatarIgnored]))
+    }
+    out.future
   }
 
   def startIfStoppedStaminaRegen(initialDelay: FiniteDuration): Unit = {
@@ -1828,7 +2001,7 @@ class AvatarActor(
   def refreshPurchaseTimes(keys: Set[String]): Unit = {
     var keysToDrop: Seq[String] = Nil
     keys.foreach { key =>
-      avatar.purchaseTimes.find { case (name, _) => name.equals(key) } match {
+      avatar.cooldowns.purchase.find { case (name, _) => name.equals(key) } match {
         case Some((name, purchaseTime)) =>
           val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
           Avatar.purchaseCooldowns.find(_._1.Name == name) match {
@@ -1847,7 +2020,8 @@ class AvatarActor(
       }
     }
     if (keysToDrop.nonEmpty) {
-      avatarCopy(avatar.copy(purchaseTimes = avatar.purchaseTimes.removedAll(keysToDrop)))
+      val cdown = avatar.cooldowns
+      avatarCopy(avatar.copy(cooldowns = cdown.copy(purchase = cdown.purchase.removedAll(keysToDrop))))
     }
   }
 
@@ -1869,5 +2043,191 @@ class AvatarActor(
         sess.player.avatar = copyAvatar
       case _ => ;
     }
+  }
+
+  /**
+    * Branch based on behavior of the request for the friends list or the ignored people list.
+    * @param action nature of the request
+    * @param name other player's name (can not be our name)
+    */
+  def memberListAction(action: MemberAction.Value, name: String): Unit = {
+    if (!name.equals(avatar.name)) {
+      action match {
+        case MemberAction.InitializeFriendList => memberActionListManagement(action, transformFriendsList)
+        case MemberAction.InitializeIgnoreList => memberActionListManagement(action, transformIgnoredList)
+        case MemberAction.UpdateFriend         => memberActionUpdateFriend(name)
+        case MemberAction.AddFriend            => getAvatarForFunc(name, memberActionAddFriend)
+        case MemberAction.RemoveFriend         => getAvatarForFunc(name, formatForOtherFunc(memberActionRemoveFriend))
+        case MemberAction.AddIgnoredPlayer     => getAvatarForFunc(name, memberActionAddIgnored)
+        case MemberAction.RemoveIgnoredPlayer  => getAvatarForFunc(name, formatForOtherFunc(memberActionRemoveIgnored))
+        case _ => ;
+      }
+    }
+  }
+
+  /**
+    * Transform the friends list in a list of packet entities.
+    * @return a list of `Friends` suitable for putting into a packet
+    */
+  def transformFriendsList(): List[GameFriend] = {
+    avatar.people.friend.map { f => GameFriend(f.name, f.online)}
+  }
+  /**
+    * Transform the ignored players list in a list of packet entities.
+    * @return a list of `Friends` suitable for putting into a packet
+    */
+  def transformIgnoredList(): List[GameFriend] = {
+    avatar.people.ignored.map { f => GameFriend(f.name, f.online)}
+  }
+  /**
+    * Reload the list of friend players or ignored players for the client.
+    * This does not update any player's online status, but merely reloads current states.
+    * @param action nature of the request
+    *               (either `InitializeFriendList` or `InitializeIgnoreList`, hopefully)
+    * @param listFunc transformation function that produces data suitable for a game paket
+    */
+  def memberActionListManagement(action: MemberAction.Value, listFunc: ()=>List[GameFriend]): Unit = {
+    FriendsResponse.packetSequence(action, listFunc()).foreach { msg =>
+      sessionActor ! SessionActor.SendResponse(msg)
+    }
+  }
+
+  /**
+    * Add another player's data to the list of friend players and report back whether or not that player is online.
+    * Update the database appropriately.
+    * @param charId unique account identifier
+    * @param name unique character name
+    * @param faction a faction affiliation
+    */
+  def memberActionAddFriend(charId: Long, name: String, faction: Int): Unit = {
+    val people = avatar.people
+    people.friend.find { _.name.equals(name) } match {
+      case Some(_) => ;
+      case None =>
+        import ctx._
+        ctx.run(query[persistence.Friend]
+          .insert(
+            _.avatarId -> lift(avatar.id.toLong),
+            _.charId -> lift(charId)
+          )
+        )
+        val isOnline = onlineIfNotIgnoredEitherWay(avatar, name)
+        replaceAvatar(avatar.copy(
+          people = people.copy(friend = people.friend :+ AvatarFriend(charId, name, PlanetSideEmpire(faction), isOnline))
+        ))
+        sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.AddFriend, GameFriend(name, isOnline)))
+    }
+  }
+
+  /**
+    * Remove another player's data from the list of friend players.
+    * Update the database appropriately.
+    * @param charId unique account identifier
+    * @param name unique character name
+    */
+  def memberActionRemoveFriend(charId: Long, name: String): Unit = {
+    import ctx._
+    val people = avatar.people
+    people.friend.find { _.name.equals(name) } match {
+      case Some(_) =>
+        replaceAvatar(
+          avatar.copy(people = people.copy(friend = people.friend.filterNot { _.charId == charId }))
+        )
+      case None => ;
+    }
+    ctx.run(query[persistence.Friend]
+      .filter(_.avatarId == lift(avatar.id))
+      .filter(_.charId == lift(charId))
+      .delete
+    )
+    sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.RemoveFriend, GameFriend(name)))
+  }
+
+  /**
+    *
+    * @param name unique character name
+    * @return if the avatar is found, that avatar's unique identifier and the avatar's faction affiliation
+    */
+  def memberActionUpdateFriend(name: String): Option[(Long, PlanetSideEmpire.Value)] = {
+    if (name.nonEmpty) {
+      val people = avatar.people
+      people.friend.find { _.name.equals(name) } match {
+        case Some(otherFriend) =>
+          val (out, online) = LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(name) }).headOption match {
+            case Some(otherAvatar) =>
+              (
+                Some((otherAvatar.id.toLong, otherAvatar.faction)),
+                onlineIfNotIgnoredEitherWay(otherAvatar, avatar)
+              )
+            case None =>
+              (None, false)
+          }
+          replaceAvatar(avatar.copy(
+            people = people.copy(
+              friend = people.friend.filterNot { _.name.equals(name) } :+ otherFriend.copy(online = online)
+            )
+          ))
+          sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.UpdateFriend, GameFriend(name, online)))
+          out
+        case None =>
+          None
+      }
+    } else {
+      None
+    }
+  }
+
+  /**
+    * Add another player's data to the list of ignored players.
+    * Update the database appropriately.
+    * The change affects not only this player but also the player being ignored
+    * by denying online visibility of the former to the latter.
+    * @param charId unique account identifier
+    * @param name unique character name
+    * @param faction a faction affiliation
+    */
+  def memberActionAddIgnored(charId: Long, name: String, faction: Int): Unit = {
+    val people = avatar.people
+    people.ignored.find { _.name.equals(name) } match {
+      case Some(_) => ;
+      case None =>
+        import ctx._
+        ctx.run(query[persistence.Ignored]
+          .insert(
+            _.avatarId -> lift(avatar.id.toLong),
+            _.charId -> lift(charId)
+          )
+        )
+        replaceAvatar(
+          avatar.copy(people = people.copy(ignored = people.ignored :+ AvatarIgnored(charId, name)))
+        )
+        sessionActor ! SessionActor.UpdateIgnoredPlayers(FriendsResponse(MemberAction.AddIgnoredPlayer, GameFriend(name)))
+    }
+  }
+
+  /**
+    * Remove another player's data from the list of ignored players.
+    * Update the database appropriately.
+    * The change affects not only this player but also the player formerly being ignored
+    * by restoring online visibility of the former to the latter.
+    * @param charId unique account identifier
+    * @param name unique character name
+    */
+  def memberActionRemoveIgnored(charId: Long, name: String): Unit = {
+    import ctx._
+    val people = avatar.people
+    people.ignored.find { _.name.equals(name) } match {
+      case Some(_) =>
+        replaceAvatar(
+          avatar.copy(people = people.copy(ignored = people.ignored.filterNot { _.charId == charId }))
+        )
+      case None => ;
+    }
+    ctx.run(query[persistence.Ignored]
+      .filter(_.avatarId == lift(avatar.id.toLong))
+      .filter(_.charId == lift(charId))
+      .delete
+    )
+    sessionActor ! SessionActor.UpdateIgnoredPlayers(FriendsResponse(MemberAction.RemoveIgnoredPlayer, GameFriend(name)))
   }
 }

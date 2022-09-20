@@ -124,6 +124,8 @@ object SessionActor {
 
   final case class UseCooldownRenewed(definition: BasicDefinition, time: LocalDateTime) extends Command
 
+  final case class UpdateIgnoredPlayers(msg: FriendsResponse) extends Command
+
   /**
     * The message that progresses some form of user-driven activity with a certain eventual outcome
     * and potential feedback per cycle.
@@ -681,6 +683,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case AvatarServiceResponse(toChannel, guid, reply) =>
       HandleAvatarServiceResponse(toChannel, guid, reply)
 
+    case UpdateIgnoredPlayers(msg) =>
+      sendResponse(msg)
+      msg.friends.foreach { f =>
+        galaxyService ! GalaxyServiceMessage(GalaxyAction.LogStatusChange(f.name))
+      }
+
     case SendResponse(packet) =>
       sendResponse(packet)
 
@@ -829,6 +837,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               hot_spot_info.map { spot => PacketHotSpotInfo(spot.DisplayLocation.x, spot.DisplayLocation.y, 40) }
             )
           )
+
         case GalaxyResponse.MapUpdate(msg) =>
           sendResponse(msg)
 
@@ -903,6 +912,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           val popNC = zone.Players.count(_.faction == PlanetSideEmpire.NC)
           val popVS = zone.Players.count(_.faction == PlanetSideEmpire.VS)
           sendResponse(ZonePopulationUpdateMessage(zone.Number, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
+
+        case GalaxyResponse.LogStatusChange(name) =>
+          if (avatar.people.friend.exists { _.name.equals(name) }) {
+            avatarActor ! AvatarActor.MemberListRequest(MemberAction.UpdateFriend, name)
+          }
 
         case GalaxyResponse.SendResponse(msg) =>
           sendResponse(msg)
@@ -1380,6 +1394,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         context.self
       )
       LivePlayerList.Add(avatar.id, avatar)
+      galaxyService.tell(GalaxyServiceMessage(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
       //PropertyOverrideMessage
 
       implicit val timeout = Timeout(1 seconds)
@@ -1391,8 +1406,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
       sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty))    //clear squad list
-      sendResponse(FriendsResponse(FriendAction.InitializeFriendList, 0, true, true, Nil))
-      sendResponse(FriendsResponse(FriendAction.InitializeIgnoreList, 0, true, true, Nil))
+      (
+        //friend list (some might be online)
+        FriendsResponse.packetSequence(
+          MemberAction.InitializeFriendList,
+          avatar.people.friend
+            .map { f =>
+              game.Friend(f.name, AvatarActor.onlineIfNotIgnoredEitherWay(avatar, f.name))
+            }
+        ) ++
+        //ignored list (no one ever online)
+        FriendsResponse.packetSequence(
+          MemberAction.InitializeIgnoreList,
+          avatar.people.ignored.map { f => game.Friend(f.name) }
+        )
+      ).foreach { sendResponse }
       //the following subscriptions last until character switch/logout
       galaxyService ! Service.Join("galaxy")             //for galaxy-wide messages
       galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots, etc.
@@ -3605,7 +3633,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
     sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(6)))
     //only need to load these once - they persist between zone transfers and respawns
-    avatar.squadLoadouts.zipWithIndex.foreach {
+    avatar.loadouts.squad.zipWithIndex.foreach {
       case (Some(loadout), index) =>
         sendResponse(
           SquadDefinitionActionMessage(PlanetSideGUID(0), index, SquadAction.ListSquadFavorite(loadout.task))
@@ -6260,7 +6288,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
       case msg @ CreateShortcutMessage(player_guid, slot, unk, add, shortcut) => ;
 
-      case msg @ FriendsRequest(action, friend) => ;
+      case FriendsRequest(action, name) =>
+        avatarActor ! AvatarActor.MemberListRequest(action, name)
 
       case msg @ HitHint(source_guid, player_guid) => ; //HitHint is manually distributed for proper operation
 
@@ -6858,7 +6887,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }
             val stowNewFunc: Equipment => TaskBundle = PutNewEquipmentInInventoryOrDrop(obj)
             val stowFunc: Equipment => Future[Any]   = PutEquipmentInInventoryOrDrop(obj)
-          
+
             xs.foreach(item => {
               obj.Inventory -= item.start
               sendResponse(ObjectDeleteMessage(item.obj.GUID, 0))

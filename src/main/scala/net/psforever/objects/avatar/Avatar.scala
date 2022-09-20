@@ -11,7 +11,6 @@ import net.psforever.packet.game.objectcreate.RibbonBars
 import net.psforever.types._
 import org.joda.time.{Duration, LocalDateTime, Seconds}
 
-import scala.collection.immutable.Seq
 import scala.concurrent.duration._
 
 object Avatar {
@@ -83,6 +82,33 @@ object Avatar {
   }
 }
 
+case class Cooldowns(
+                      /** Timestamps of when a vehicle or equipment was last purchased */
+                      purchase: Map[String, LocalDateTime] = Map(),
+                      /** Timestamps of when a vehicle or equipment was last purchased */
+                      use: Map[String, LocalDateTime] = Map()
+                    )
+
+case class Loadouts(
+                     suit: Seq[Option[Loadout]] = Seq.fill(20)(None),
+                     squad: Seq[Option[SquadLoadout]] = Seq.fill(10)(None)
+                   )
+
+case class ProgressDecoration(
+                               cosmetics: Option[Set[Cosmetic]] = None,
+                               ribbonBars: RibbonBars = RibbonBars(),
+                               firstTimeEvents: Set[String] =
+                               FirstTimeEvents.Maps ++ FirstTimeEvents.Monoliths ++
+                                 FirstTimeEvents.Standard.All ++ FirstTimeEvents.Cavern.All ++
+                                 FirstTimeEvents.TR.All ++ FirstTimeEvents.NC.All ++ FirstTimeEvents.VS.All ++
+                                 FirstTimeEvents.Generic
+                             )
+
+case class MemberLists(
+                        friend: List[Friend] = List[Friend](),
+                        ignored: List[Ignored] = List[Ignored]()
+                      )
+
 case class Avatar(
     /** unique identifier corresponding to a database table row index */
     id: Int,
@@ -95,25 +121,16 @@ case class Avatar(
     cep: Long = 0,
     stamina: Int = 100,
     fatigued: Boolean = false,
-    cosmetics: Option[Set[Cosmetic]] = None,
-    ribbonBars: RibbonBars = RibbonBars(),
     certifications: Set[Certification] = Set(),
-    loadouts: Seq[Option[Loadout]] = Seq.fill(20)(None),
-    squadLoadouts: Seq[Option[SquadLoadout]] = Seq.fill(10)(None),
     implants: Seq[Option[Implant]] = Seq(None, None, None),
     locker: LockerContainer = Avatar.makeLocker(),
-    deployables: DeployableToolbox = new DeployableToolbox(), // TODO var bad
+    deployables: DeployableToolbox = new DeployableToolbox(),
     lookingForSquad: Boolean = false,
     var vehicle: Option[PlanetSideGUID] = None, // TODO var bad
-    firstTimeEvents: Set[String] =
-      FirstTimeEvents.Maps ++ FirstTimeEvents.Monoliths ++
-        FirstTimeEvents.Standard.All ++ FirstTimeEvents.Cavern.All ++
-        FirstTimeEvents.TR.All ++ FirstTimeEvents.NC.All ++ FirstTimeEvents.VS.All ++
-        FirstTimeEvents.Generic,
-    /** Timestamps of when a vehicle or equipment was last purchased */
-    purchaseTimes: Map[String, LocalDateTime] = Map(),
-    /** Timestamps of when a vehicle or equipment was last purchased */
-    useTimes: Map[String, LocalDateTime] = Map()
+    decoration: ProgressDecoration = ProgressDecoration(),
+    loadouts: Loadouts = Loadouts(),
+    cooldowns: Cooldowns = Cooldowns(),
+    people: MemberLists = MemberLists()
 ) {
   assert(bep >= 0)
   assert(cep >= 0)
@@ -141,12 +158,12 @@ case class Avatar(
 
   /** Returns the remaining purchase cooldown or None if an object is not on cooldown */
   def purchaseCooldown(definition: BasicDefinition): Option[Duration] = {
-    cooldown(purchaseTimes, Avatar.purchaseCooldowns, definition)
+    cooldown(cooldowns.purchase, Avatar.purchaseCooldowns, definition)
   }
 
   /** Returns the remaining use cooldown or None if an object is not on cooldown */
   def useCooldown(definition: BasicDefinition): Option[Duration] = {
-    cooldown(useTimes, Avatar.useCooldowns, definition)
+    cooldown(cooldowns.use, Avatar.useCooldowns, definition)
   }
 
   def fifthSlot(): EquipmentSlot = {

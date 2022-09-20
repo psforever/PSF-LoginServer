@@ -25,6 +25,8 @@ import akka.actor.typed.scaladsl.adapter._
 import net.psforever.services.{CavernRotationService, InterstellarClusterService}
 import net.psforever.types.ChatMessageType.UNK_229
 
+import scala.collection.mutable
+
 object ChatActor {
   def apply(
       sessionActor: ActorRef[SessionActor.Command],
@@ -123,6 +125,13 @@ class ChatActor(
   var chatService: Option[ActorRef[ChatService.Command]]            = None
   var cluster: Option[ActorRef[InterstellarClusterService.Command]] = None
   var silenceTimer: Cancellable                                     = Default.Cancellable
+  /**
+    * when another player is listed as one of our ignored players,
+    * and that other player sends an emote,
+    * that player is assigned a cooldown and only one emote per period will be seen<br>
+    * key - character unique avatar identifier, value - when the current cooldown period will end
+    */
+  var ignoredEmoteCooldown: mutable.LongMap[Long]                   = mutable.LongMap[Long]()
 
   val chatServiceAdapter: ActorRef[ChatService.MessageResponse] = context.messageAdapter[ChatService.MessageResponse] {
     case ChatService.MessageResponse(_session, message, channel) => IncomingMessage(_session, message, channel)
@@ -699,11 +708,21 @@ class ChatActor(
               }
 
             case (CMT_TELL, _, _) if !session.player.silenced =>
-              chatService ! ChatService.Message(
-                session,
-                message,
-                ChatChannel.Default()
-              )
+              if (AvatarActor.onlineIfNotIgnored(message.recipient, session.avatar.name)) {
+                chatService ! ChatService.Message(
+                  session,
+                  message,
+                  ChatChannel.Default()
+                )
+              } else if (AvatarActor.getLiveAvatarForFunc(message.recipient, (_,_,_)=>{}).isEmpty) {
+                sessionActor ! SessionActor.SendResponse(
+                  ChatMsg(ChatMessageType.UNK_45, false, "none", "@notell_target", None)
+                )
+              } else {
+                sessionActor ! SessionActor.SendResponse(
+                  ChatMsg(ChatMessageType.UNK_45, false, "none", "@notell_ignore", None)
+                )
+              }
 
             case (CMT_BROADCAST, _, _) if !session.player.silenced =>
               chatService ! ChatService.Message(
@@ -913,7 +932,7 @@ class ChatActor(
               }
 
             case (CMT_TOGGLE_HAT, _, contents) =>
-              val cosmetics = session.avatar.cosmetics.getOrElse(Set())
+              val cosmetics = session.avatar.decoration.cosmetics.getOrElse(Set())
               val nextCosmetics = contents match {
                 case "off" =>
                   cosmetics.diff(Set(Cosmetic.BrimmedCap, Cosmetic.Beret))
@@ -937,7 +956,7 @@ class ChatActor(
               )
 
             case (CMT_HIDE_HELMET | CMT_TOGGLE_SHADES | CMT_TOGGLE_EARPIECE, _, contents) =>
-              val cosmetics = session.avatar.cosmetics.getOrElse(Set())
+              val cosmetics = session.avatar.decoration.cosmetics.getOrElse(Set())
 
               val cosmetic = message.messageType match {
                 case CMT_HIDE_HELMET     => Cosmetic.NoHelmet
@@ -1055,25 +1074,47 @@ class ChatActor(
 
         case IncomingMessage(fromSession, message, channel) =>
           message.messageType match {
-            case CMT_TELL | U_CMT_TELLFROM | CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | UNK_45 | UNK_71 |
-                CMT_NOTE | CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_TR | CMT_GMBROADCAST_VS |
-                CMT_GMBROADCASTPOPUP | CMT_GMTELL | U_CMT_GMTELLFROM | UNK_227 | UNK_229 =>
-              sessionActor ! SessionActor.SendResponse(message)
+            case CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | CMT_NOTE =>
+              if (AvatarActor.onlineIfNotIgnored(session.avatar, message.recipient)) {
+                sessionActor ! SessionActor.SendResponse(message)
+              }
             case CMT_OPEN =>
               if (
                 session.zone == fromSession.zone &&
-                Vector3.Distance(session.player.Position, fromSession.player.Position) < 25 &&
-                session.player.Faction == fromSession.player.Faction
+                  Vector3.DistanceSquared(session.player.Position, fromSession.player.Position) < 625 &&
+                  session.player.Faction == fromSession.player.Faction &&
+                  AvatarActor.onlineIfNotIgnored(session.avatar, message.recipient)
               ) {
                 sessionActor ! SessionActor.SendResponse(message)
               }
+            case CMT_TELL | U_CMT_TELLFROM |
+                 CMT_GMOPEN | CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_TR | CMT_GMBROADCAST_VS |
+                 CMT_GMBROADCASTPOPUP | CMT_GMTELL | U_CMT_GMTELLFROM | UNK_45 | UNK_71 | UNK_227 | UNK_229 =>
+              sessionActor ! SessionActor.SendResponse(message)
             case CMT_VOICE =>
               if (
                 session.zone == fromSession.zone &&
-                Vector3.Distance(session.player.Position, fromSession.player.Position) < 25 ||
+                Vector3.DistanceSquared(session.player.Position, fromSession.player.Position) < 625 ||
                 message.contents.startsWith("SH") // tactical squad voice macro
               ) {
-                sessionActor ! SessionActor.SendResponse(message)
+                val name = fromSession.avatar.name
+                if (!session.avatar.people.ignored.exists { f => f.name.equals(name) } ||
+                  {
+                    val id = fromSession.avatar.id.toLong
+                    val curr = System.currentTimeMillis()
+                    ignoredEmoteCooldown.get(id) match {
+                    case None =>
+                      ignoredEmoteCooldown.put(id, curr + 15000L)
+                      true
+                    case Some(time) if time < curr =>
+                      ignoredEmoteCooldown.put(id, curr + 15000L)
+                      true
+                    case _ =>
+                      false
+                  }}
+                ) {
+                  sessionActor ! SessionActor.SendResponse(message)
+                }
               }
             case CMT_SILENCE =>
               val args = message.contents.split(" ")
