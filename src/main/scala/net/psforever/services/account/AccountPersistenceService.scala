@@ -2,6 +2,7 @@
 package net.psforever.services.account
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import net.psforever.actors.session.AvatarActor
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -11,10 +12,13 @@ import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.zones.Zone
+import net.psforever.persistence
 import net.psforever.types.Vector3
 import net.psforever.services.{Service, ServiceManager}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
+import net.psforever.zones.Zones
+import scala.util.Success
 
 /**
   * A global service that manages user behavior as divided into the following three categories:
@@ -79,7 +83,7 @@ class AccountPersistenceService extends Actor {
     * but, updating should be reserved for individual persistence monitor callback (by the user who is being monitored).
     */
   val Started: Receive = {
-    case msg @ AccountPersistenceService.Login(name) =>
+    case msg @ AccountPersistenceService.Login(name, _) =>
       (accounts.get(name) match {
         case Some(ref) => ref
         case None      => CreateNewPlayerToken(name)
@@ -189,7 +193,7 @@ object AccountPersistenceService {
     * If the persistence monitor already exists, use that instead and synchronize the data.
     * @param name the unique name of the player
     */
-  final case class Login(name: String)
+  final case class Login(name: String, charId: Long)
 
   /**
     * Update the persistence monitor that was setup for a user with the given text descriptor (player name).
@@ -269,13 +273,31 @@ class PersistenceMonitor(
   }
 
   def receive: Receive = {
-    case AccountPersistenceService.Login(_) =>
-      sender() ! (if (kicked) {
-                    PlayerToken.CanNotLogin(name, PlayerToken.DeniedLoginReason.Kicked)
-                  } else {
-                    UpdateTimer()
-                    PlayerToken.LoginInfo(name, inZone, lastPosition)
-                  })
+    case AccountPersistenceService.Login(_, charId) =>
+      UpdateTimer() //longer!
+      if (kicked) {
+        //persistence hasn't ended yet, but we were kicked out of the game
+        sender() ! PlayerToken.CanNotLogin(name, PlayerToken.DeniedLoginReason.Kicked)
+      } else {
+        if (inZone != Zone.Nowhere) {
+          //persistence hasn't ended yet
+          sender() ! PlayerToken.RestoreInfo(name, inZone, lastPosition)
+        } else {
+          val replyTo = sender()
+          //proper login; what was our last position according to the database?
+          AvatarActor.loadSavedPlayerData(charId).onComplete {
+            case Success(results) =>
+              Zones.zones.find(zone => zone.Number == results.zoneNum) match {
+                case Some(zone) =>
+                  replyTo ! PlayerToken.LoginInfo(name, zone, Some(results))
+                case _ =>
+                  replyTo ! PlayerToken.LoginInfo(name, inZone, None)
+              }
+            case _ =>
+              replyTo ! PlayerToken.LoginInfo(name, inZone, None)
+          }
+        }
+      }
 
     case AccountPersistenceService.Update(_, z, p) if !kicked =>
       inZone = z
@@ -451,9 +473,22 @@ object PlayerToken {
     * ("Exists" does not imply an ongoing process and can also mean "just joined the game" here.)
     * @param name the name of the player
     * @param zone the zone in which the player is location
+    * @param optionalSavedData additional information about the last time the player was in the game
+    */
+  final case class LoginInfo(name: String, zone: Zone, optionalSavedData: Option[persistence.Savedplayer])
+
+  /**
+    * ...
+    * @param name the name of the player
+    * @param zone the zone in which the player is location
     * @param position where in the zone the player is located
     */
-  final case class LoginInfo(name: String, zone: Zone, position: Vector3)
+  final case class RestoreInfo(name: String, zone: Zone, position: Vector3)
 
+  /**
+    * ...
+    * @param name the name of the player
+    * @param reason why the player can not log into the game
+    */
   final case class CanNotLogin(name: String, reason: DeniedLoginReason.Value)
 }

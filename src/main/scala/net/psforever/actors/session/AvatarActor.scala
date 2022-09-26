@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
+import io.getquill.EntityQuery
 import org.joda.time.{LocalDateTime, Seconds}
 //import org.log4s.Logger
 import scala.collection.mutable
@@ -239,6 +240,24 @@ object AvatarActor {
     }
   }
 
+  def buildCooldownsFromClob(clob: String, log: org.log4s.Logger): Map[String, LocalDateTime] = {
+    val now = LocalDateTime.now()
+    val cooldowns: mutable.Map[String, LocalDateTime] = mutable.Map()
+    clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
+      val (name, cooldown) = value.split(",") match {
+        case Array(a: String, b: String) =>
+          (a, LocalDateTime.parse(b))
+        case _ =>
+          log.warn(s"ignoring invalid cooldown string: '$value'")
+          ("", now)
+      }
+      if(now.compareTo(cooldown) == -1) {
+        cooldowns.put(name, cooldown)
+      }
+    }
+    cooldowns.toMap
+  }
+
   def resolvePurchaseTimeName(faction: PlanetSideEmpire.Value, item: BasicDefinition): (BasicDefinition, String) = {
     val factionName: String = faction.toString.toLowerCase
     val name = item match {
@@ -431,6 +450,34 @@ object AvatarActor {
   def onlineIfNotIgnored(onlinePlayer: Avatar, observedName: String): Boolean = {
     !onlinePlayer.people.ignored.exists { f => f.name.equals(observedName) }
   }
+
+  def loadSavedPlayerData(avatarId: Long): Future[persistence.Savedplayer] = {
+    import ctx._ //not unused; for ctx.run
+    import scala.concurrent.ExecutionContext.Implicits.global //not used; for Future
+    val out: Promise[persistence.Savedplayer] = Promise()
+    val queryResult = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
+    queryResult.onComplete {
+      case Success(data) if data.nonEmpty =>
+        out.completeWith(Future(data.head))
+      case _ =>
+        out.completeWith(Future(persistence.Savedplayer(0, avatarId, 0, 0, 0, 0, 0, 0, 0, 0, "")))
+    }
+    out.future
+  }
+
+  def loadSavedAvatarData(avatarId: Long): Future[persistence.Savedavatar] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global //not used; for Future
+    val out: Promise[persistence.Savedavatar] = Promise()
+    val queryResult = ctx.run(query[persistence.Savedavatar].filter { _.avatarId == lift(avatarId) })
+    queryResult.onComplete {
+      case Success(data) if data.nonEmpty =>
+        out.completeWith(Future(data.head))
+      case _ =>
+        out.completeWith(Future(persistence.Savedavatar(0, avatarId, LocalDateTime.now(), "", "")))
+    }
+    out.future
+  }
 }
 
 class AvatarActor(
@@ -568,14 +615,30 @@ class AvatarActor(
           val result = for {
             _ <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Loadout].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Locker].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(id)).delete)
-            r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Friend].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Ignored].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Savedavatar].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Savedplayer].filter(_.avatarId == lift(id)).delete)
+            r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(id)))
           } yield r
 
           result.onComplete {
-            case Success(_) =>
-              log.debug(s"AvatarActor: avatar $id deleted")
-              sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
+            case Success(deleted) =>
+              deleted.headOption match {
+                case Some(a) if !a.deleted =>
+                  ctx.run(query[persistence.Avatar]
+                    .filter(_.id == lift(id))
+                    .update(
+                      _.deleted -> lift(true),
+                      _.lastModified -> lift(LocalDateTime.now())
+                    )
+                  )
+                  log.debug(s"AvatarActor: avatar $id deleted")
+                  sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
+                case _ => ;
+              }
               sendAvatars(account)
             case Failure(e) => log.error(e)("db failure")
           }
@@ -597,23 +660,28 @@ class AvatarActor(
 
         case LoginAvatar(replyTo) =>
           import ctx._
+          val avatarId = avatar.id
 
           val result = for {
-            _ <- ctx.run(
-              query[persistence.Avatar].filter(_.id == lift(avatar.id))
-                .update(_.lastLogin -> lift(LocalDateTime.now()))
+            //log this login
+            _ <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId))
+              .update(_.lastLogin -> lift(LocalDateTime.now()))
             )
-            avatarId = avatar.id
+            //log this choice of faction (no empire switching)
+            _ <- ctx.run(query[persistence.Account].filter(_.id == lift(account.id))
+              .update(_.lastFactionId -> lift(avatar.faction.id))
+            )
+            //retrieve avatar data
             loadouts <- initializeAllLoadouts()
             implants <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatarId)))
             certs    <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatarId)))
             locker   <- loadLocker(avatarId)
             friends  <- loadFriendList(avatarId)
             ignored  <- loadIgnoredList(avatarId)
-          } yield (loadouts, implants, certs, locker, friends, ignored)
-
+            saved    <- AvatarActor.loadSavedAvatarData(avatarId)
+          } yield (loadouts, implants, certs, locker, friends, ignored, saved)
           result.onComplete {
-            case Success((_loadouts, implants, certs, locker, friendsList, ignoredList)) =>
+            case Success((_loadouts, implants, certs, locker, friendsList, ignoredList, saved)) =>
               avatarCopy(
                 avatar.copy(
                   loadouts = avatar.loadouts.copy(suit = _loadouts),
@@ -622,7 +690,14 @@ class AvatarActor(
                     certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
                   implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
                   locker = locker,
-                  people = MemberLists(friendsList, ignoredList)
+                  people = MemberLists(
+                    friend = friendsList,
+                    ignored = ignoredList
+                  ),
+                  cooldowns = Cooldowns(
+                    purchase = AvatarActor.buildCooldownsFromClob(saved.purchaseCooldowns, log),
+                    use = AvatarActor.buildCooldownsFromClob(saved.useCooldowns, log)
+                  )
                 )
               )
               // if we need to start stamina regeneration
@@ -946,7 +1021,7 @@ class AvatarActor(
         case DeleteLoadout(player, loadoutType, number) =>
           log.info(s"${player.Name} wishes to delete a favorite $loadoutType loadout - #${number + 1}")
           import ctx._
-          val (lineNo, result) = loadoutType match {
+          val (lineNo: Int, result) = loadoutType match {
             case LoadoutType.Infantry if avatar.loadouts.suit(number).nonEmpty =>
               (
                 number,

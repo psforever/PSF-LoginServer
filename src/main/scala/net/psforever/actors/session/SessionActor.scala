@@ -32,6 +32,7 @@ import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
+import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
@@ -669,7 +670,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case AvatarActor.AvatarResponse(avatar) =>
       session = session.copy(avatar = avatar)
-      accountPersistence ! AccountPersistenceService.Login(avatar.name)
+      accountPersistence ! AccountPersistenceService.Login(avatar.name, avatar.id)
 
     case AvatarActor.AvatarLoginResponse(avatar) =>
       avatarLoginResponse(avatar)
@@ -1651,25 +1652,65 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       session = session.copy(account = account)
       avatarActor ! AvatarActor.SetAccount(account)
 
-    case PlayerToken.LoginInfo(name, Zone.Nowhere, _) =>
-      log.info(s"LoginInfo: player $name is considered a new character")
-      //TODO poll the database for saved zone and coordinates?
+    case PlayerToken.LoginInfo(name, inZone, optionalSavedData) =>
+      log.info(s"LoginInfo: player $name is considered a fresh character")
       persistFunc = UpdatePersistence(sender())
       deadState = DeadState.RespawnTime
-
       session = session.copy(player = new Player(avatar))
-      //xy-coordinates indicate sanctuary spawn bias:
-      player.Position = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 4) match {
-        case 0 => Vector3(8192, 8192, 0) //NE
-        case 1 => Vector3(8192, 0, 0)    //SE
-        case 2 => Vector3(0, 0, 0)       //SW
-        case 3 => Vector3(0, 8192, 0)    //NW
+      if (inZone == Zone.Nowhere) {
+        //actual zone is undefined; going to our sanctuary
+        //xy-coordinates indicate spawn bias:
+        val harts = Zones.zones.find(zone => zone.Number == Zones.sanctuaryZoneNumber(avatar.faction)) match {
+          case Some(zone) => zone.Buildings
+            .values
+            .filter(b => b.Amenities.exists { a: Amenity => a.isInstanceOf[OrbitalShuttlePad] })
+            .toSeq
+          case None =>
+            Nil
+        }
+        //compass directions to modify spawn destination
+        val directionBias = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 8) match {
+          case 0 => Vector3(-1, 1,0) //NW
+          case 1 => Vector3( 0, 1,0) //N
+          case 2 => Vector3( 1, 1,0) //NE
+          case 3 => Vector3( 1, 0,0) //E
+          case 4 => Vector3( 1,-1,0) //SE
+          case 5 => Vector3( 0,-1,0) //S
+          case 6 => Vector3(-1,-1,0) //SW
+          case 7 => Vector3(-1, 0,0) //W
+        }
+        if (harts.nonEmpty) {
+          //get a hart building and select one of the spawn facilities surrounding it
+          val campusLocation = harts(math.floor(math.abs(math.random()) * harts.size).toInt).Position
+          player.Position = campusLocation + directionBias
+        } else {
+          //weird issue here; should we log?
+          //select closest spawn point based on global cardinal or ordinal direction bias
+          player.Position = directionBias * 8192f
+        }
+        DefinitionUtil.applyDefaultLoadout(player)
+      } else {
+        player.Zone = inZone
+        optionalSavedData match {
+          case Some(results) =>
+            player.Position = Vector3(results.px * 0.001f, results.py * 0.001f, results.pz * 0.001f)
+            player.Orientation = Vector3(0f,0f, results.orientation * 0.001f)
+            player.Health = results.health
+            player.Armor = results.armor
+            if (results.health > 0) {
+              player.ExoSuit = ExoSuitType(results.exosuitNum)
+              AvatarActor.buildContainedEquipmentFromClob(player, results.loadout, log)
+            } else {
+              player.ExoSuit = ExoSuitType.Standard
+              DefinitionUtil.applyDefaultLoadout(player)
+            }
+          case None => ;
+        }
       }
-      DefinitionUtil.applyDefaultLoadout(player)
       avatarActor ! AvatarActor.LoginAvatar(context.self)
 
-    case PlayerToken.LoginInfo(playerName, inZone, pos) =>
-      log.info(s"LoginInfo: player $playerName is already logged in zone ${inZone.id}; rejoining that character")
+    case PlayerToken.RestoreInfo(playerName, inZone, pos) =>
+      log.info(s"RestoreInfo: player $playerName is already logged in zone ${inZone.id}; rejoining that character")
       persistFunc = UpdatePersistence(sender())
       //tell the old WorldSessionActor to kill itself by using its own subscriptions against itself
       inZone.AvatarEvents ! AvatarServiceMessage(playerName, AvatarAction.TeardownConnection())
@@ -1684,7 +1725,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         case (Some(a), Some(p)) if p.isAlive =>
           //rejoin current avatar/player
-          log.info(s"LoginInfo: player $playerName is alive")
+          log.info(s"RestoreInfo: player $playerName is alive")
           deadState = DeadState.Alive
           session = session.copy(player = p, avatar = a)
           persist()
@@ -1694,7 +1735,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         case (Some(a), Some(p)) =>
           //convert player to a corpse (unless in vehicle); automatic recall to closest spawn point
-          log.info(s"LoginInfo: player $playerName is dead")
+          log.info(s"RestoreInfo: player $playerName is dead")
           deadState = DeadState.Dead
           session = session.copy(player = p, avatar = a)
           persist()
@@ -1705,7 +1746,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         case (Some(a), None) =>
           //respawn avatar as a new player; automatic recall to closest spawn point
-          log.info(s"LoginInfo: player $playerName had released recently")
+          log.info(s"RestoreInfo: player $playerName had released recently")
           deadState = DeadState.RespawnTime
           session = session.copy(
             player = inZone.Corpses.findLast(c => c.Name == playerName) match {
@@ -1724,8 +1765,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         case _ =>
           //fall back to sanctuary/prior?
-          log.info(s"LoginInfo: player $playerName could not be found in game world")
-          self.forward(PlayerToken.LoginInfo(playerName, Zone.Nowhere, pos))
+          log.info(s"RestoreInfo: player $playerName could not be found in game world")
+          self.forward(PlayerToken.LoginInfo(playerName, Zone.Nowhere, None))
       }
 
     case PlayerToken.CanNotLogin(playerName, reason) =>
