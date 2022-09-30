@@ -1441,8 +1441,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           oldZone.AvatarEvents ! Service.Leave()
           oldZone.LocalEvents ! Service.Leave()
           oldZone.VehicleEvents ! Service.Leave()
+
           if (player.isAlive) {
-            self ! NewPlayerLoaded(player)
+            if (player.HasGUID) {
+              HandleNewPlayerLoaded(player)
+            } else {
+              //alive but doesn't have a GUID; probably logging in?
+              _session = _session.copy(zone = Zone.Nowhere)
+              self ! ICS.ZoneResponse(Some(player.Zone))
+            }
           } else {
             zoneReload = true
             cluster ! ICS.GetNearbySpawnPoint(
@@ -1454,71 +1461,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
       }
 
-    case ICS.ZoneResponse(zone) =>
-      log.trace(s"ZoneResponse: zone ${zone.get.id} will now load for ${player.Name}")
-      loadConfZone = true
-      val oldZone = session.zone
-      session = session.copy(zone = zone.get)
-      //the only zone-level event system subscription necessary before BeginZoningMessage (for persistence purposes)
-      continent.AvatarEvents ! Service.Join(player.Name)
-      persist()
-      oldZone.AvatarEvents ! Service.Leave()
-      oldZone.LocalEvents ! Service.Leave()
-      oldZone.VehicleEvents ! Service.Leave()
-      continent.Population ! Zone.Population.Join(avatar)
-      player.avatar = avatar
-      interstellarFerry match {
-        case Some(vehicle) if vehicle.PassengerInSeat(player).contains(0) =>
-          TaskWorkflow.execute(registerDrivenVehicle(vehicle, player))
-        case _ =>
-          TaskWorkflow.execute(registerNewAvatar(player))
-      }
+    case ICS.ZoneResponse(Some(zone)) =>
+      HandleZoneResponse(zone)
 
     case NewPlayerLoaded(tplayer) =>
-      //new zone
-      log.info(s"${tplayer.Name} has spawned into ${session.zone.id}")
-      oldRefsMap.clear()
-      persist = UpdatePersistenceAndRefs
-      tplayer.avatar = avatar
-      session = session.copy(player = tplayer)
-      avatarActor ! AvatarActor.CreateImplants()
-      avatarActor ! AvatarActor.InitializeImplants()
-      //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
-      val weaponsEnabled =
-        session.zone.map.name != "map11" && session.zone.map.name != "map12" && session.zone.map.name != "map13"
-      sendResponse(
-        LoadMapMessage(
-          session.zone.map.name,
-          session.zone.id,
-          40100,
-          25,
-          weaponsEnabled,
-          session.zone.map.checksum
-        )
-      )
-      if (isAcceptableNextSpawnPoint()) {
-        //important! the LoadMapMessage must be processed by the client before the avatar is created
-        setupAvatarFunc()
-        //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
-        turnCounterFunc = interimUngunnedVehicle match {
-          case Some(_) =>
-            TurnCounterDuringInterimWhileInPassengerSeat
-          case None =>
-            TurnCounterDuringInterim
-        }
-        keepAliveFunc = NormalKeepAlive
-        upstreamMessageCount = 0
-        setAvatar = false
-        persist()
-      } else {
-        //look for different spawn point in same zone
-        cluster ! ICS.GetNearbySpawnPoint(
-          session.zone.Number,
-          tplayer,
-          Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
-          context.self
-        )
-      }
+      HandleNewPlayerLoaded(tplayer)
 
     case PlayerLoaded(tplayer) =>
       //same zone
@@ -1652,60 +1599,71 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       session = session.copy(account = account)
       avatarActor ! AvatarActor.SetAccount(account)
 
+    case PlayerToken.LoginInfo(name, Zone.Nowhere, _) =>
+      log.info(s"LoginInfo: player $name is considered a fresh character")
+      persistFunc = UpdatePersistence(sender())
+      deadState = DeadState.RespawnTime
+      session = session.copy(player = new Player(avatar))
+      //actual zone is undefined; going to our sanctuary
+      //xy-coordinates indicate spawn bias:
+      val sanctuaryNum = Zones.sanctuaryZoneNumber(avatar.faction)
+      val harts = Zones.zones.find(zone => zone.Number == sanctuaryNum) match {
+        case Some(zone) => zone.Buildings
+          .values
+          .filter(b => b.Amenities.exists { a: Amenity => a.isInstanceOf[OrbitalShuttlePad] })
+          .toSeq
+        case None =>
+          Nil
+      }
+      //compass directions to modify spawn destination
+      val directionBias = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 8) match {
+        case 0 => Vector3(-1, 1,0) //NW
+        case 1 => Vector3( 0, 1,0) //N
+        case 2 => Vector3( 1, 1,0) //NE
+        case 3 => Vector3( 1, 0,0) //E
+        case 4 => Vector3( 1,-1,0) //SE
+        case 5 => Vector3( 0,-1,0) //S
+        case 6 => Vector3(-1,-1,0) //SW
+        case 7 => Vector3(-1, 0,0) //W
+      }
+      if (harts.nonEmpty) {
+        //get a hart building and select one of the spawn facilities surrounding it
+        val campusLocation = harts(math.floor(math.abs(math.random()) * harts.size).toInt).Position
+        player.Position = campusLocation + directionBias
+      } else {
+        //weird issue here; should we log?
+        //select closest spawn point based on global cardinal or ordinal direction bias
+        player.Position = directionBias * 8192f
+      }
+      DefinitionUtil.applyDefaultLoadout(player)
+      avatarActor ! AvatarActor.LoginAvatar(context.self)
+
     case PlayerToken.LoginInfo(name, inZone, optionalSavedData) =>
       log.info(s"LoginInfo: player $name is considered a fresh character")
       persistFunc = UpdatePersistence(sender())
       deadState = DeadState.RespawnTime
       session = session.copy(player = new Player(avatar))
-      if (inZone == Zone.Nowhere) {
-        //actual zone is undefined; going to our sanctuary
-        //xy-coordinates indicate spawn bias:
-        val harts = Zones.zones.find(zone => zone.Number == Zones.sanctuaryZoneNumber(avatar.faction)) match {
-          case Some(zone) => zone.Buildings
-            .values
-            .filter(b => b.Amenities.exists { a: Amenity => a.isInstanceOf[OrbitalShuttlePad] })
-            .toSeq
-          case None =>
-            Nil
-        }
-        //compass directions to modify spawn destination
-        val directionBias = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 8) match {
-          case 0 => Vector3(-1, 1,0) //NW
-          case 1 => Vector3( 0, 1,0) //N
-          case 2 => Vector3( 1, 1,0) //NE
-          case 3 => Vector3( 1, 0,0) //E
-          case 4 => Vector3( 1,-1,0) //SE
-          case 5 => Vector3( 0,-1,0) //S
-          case 6 => Vector3(-1,-1,0) //SW
-          case 7 => Vector3(-1, 0,0) //W
-        }
-        if (harts.nonEmpty) {
-          //get a hart building and select one of the spawn facilities surrounding it
-          val campusLocation = harts(math.floor(math.abs(math.random()) * harts.size).toInt).Position
-          player.Position = campusLocation + directionBias
-        } else {
-          //weird issue here; should we log?
-          //select closest spawn point based on global cardinal or ordinal direction bias
-          player.Position = directionBias * 8192f
-        }
-        DefinitionUtil.applyDefaultLoadout(player)
-      } else {
-        player.Zone = inZone
-        optionalSavedData match {
-          case Some(results) =>
-            player.Position = Vector3(results.px * 0.001f, results.py * 0.001f, results.pz * 0.001f)
-            player.Orientation = Vector3(0f,0f, results.orientation * 0.001f)
-            player.Health = results.health
+      player.Zone = inZone
+      optionalSavedData match {
+        case Some(results) =>
+          val health = results.health
+          val hasHealthUponLogin = health > 0
+          player.Position = Vector3(results.px * 0.001f, results.py * 0.001f, results.pz * 0.001f)
+          player.Orientation = Vector3(0f, 0f, results.orientation * 0.001f)
+          if (hasHealthUponLogin) {
+            player.Spawn()
+            player.Health = health
             player.Armor = results.armor
-            if (results.health > 0) {
-              player.ExoSuit = ExoSuitType(results.exosuitNum)
-              AvatarActor.buildContainedEquipmentFromClob(player, results.loadout, log)
-            } else {
-              player.ExoSuit = ExoSuitType.Standard
-              DefinitionUtil.applyDefaultLoadout(player)
-            }
-          case None => ;
-        }
+            player.ExoSuit = ExoSuitType(results.exosuitNum)
+            AvatarActor.buildContainedEquipmentFromClob(player, results.loadout, log)
+          } else {
+            player.ExoSuit = ExoSuitType.Standard
+            DefinitionUtil.applyDefaultLoadout(player)
+          }
+        case None =>
+          player.Spawn()
+          player.ExoSuit = ExoSuitType.Standard
+          DefinitionUtil.applyDefaultLoadout(player)
       }
       avatarActor ! AvatarActor.LoginAvatar(context.self)
 
@@ -1966,6 +1924,74 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     zoningCounter = 0
     //instant action exclusive field
     instantActionFallbackDestination = None
+  }
+
+  def HandleNewPlayerLoaded(tplayer: Player): Unit = {
+    //new zone
+    log.info(s"${tplayer.Name} has spawned into ${session.zone.id}")
+    oldRefsMap.clear()
+    persist = UpdatePersistenceAndRefs
+    tplayer.avatar = avatar
+    session = session.copy(player = tplayer)
+    avatarActor ! AvatarActor.CreateImplants()
+    avatarActor ! AvatarActor.InitializeImplants()
+    //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
+    val weaponsEnabled =
+      session.zone.map.name != "map11" && session.zone.map.name != "map12" && session.zone.map.name != "map13"
+    sendResponse(
+      LoadMapMessage(
+        session.zone.map.name,
+        session.zone.id,
+        40100,
+        25,
+        weaponsEnabled,
+        session.zone.map.checksum
+      )
+    )
+    if (isAcceptableNextSpawnPoint()) {
+      //important! the LoadMapMessage must be processed by the client before the avatar is created
+      setupAvatarFunc()
+      //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
+      turnCounterFunc = interimUngunnedVehicle match {
+        case Some(_) =>
+          TurnCounterDuringInterimWhileInPassengerSeat
+        case None =>
+          TurnCounterDuringInterim
+      }
+      keepAliveFunc = NormalKeepAlive
+      upstreamMessageCount = 0
+      setAvatar = false
+      persist()
+    } else {
+      //look for different spawn point in same zone
+      cluster ! ICS.GetNearbySpawnPoint(
+        session.zone.Number,
+        tplayer,
+        Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
+        context.self
+      )
+    }
+  }
+
+  def HandleZoneResponse(foundZone: Zone): Unit = {
+    log.trace(s"ZoneResponse: zone ${foundZone.id} will now load for ${player.Name}")
+    loadConfZone = true
+    val oldZone = session.zone
+    session = session.copy(zone = foundZone)
+    //the only zone-level event system subscription necessary before BeginZoningMessage (for persistence purposes)
+    continent.AvatarEvents ! Service.Join(player.Name)
+    persist()
+    oldZone.AvatarEvents ! Service.Leave()
+    oldZone.LocalEvents ! Service.Leave()
+    oldZone.VehicleEvents ! Service.Leave()
+    continent.Population ! Zone.Population.Join(avatar)
+    player.avatar = avatar
+    interstellarFerry match {
+      case Some(vehicle) if vehicle.PassengerInSeat(player).contains(0) =>
+        TaskWorkflow.execute(registerDrivenVehicle(vehicle, player))
+      case _ =>
+        TaskWorkflow.execute(registerNewAvatar(player))
+    }
   }
 
   /**
@@ -7352,7 +7378,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param tplayer the player to be killed
     */
   def suicide(tplayer: Player): Unit = {
-    tplayer.History(PlayerSuicide())
+    tplayer.History(PlayerSuicide(PlayerSource(tplayer)))
     tplayer.Actor ! Player.Die()
   }
 
@@ -8576,7 +8602,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * If the player is alive and mounted in a vehicle, a different can of worms is produced.
     * The ramifications of these conditions are not fully satisfied until the player loads into the new zone.
     * Even then, the conclusion becomes delayed while a slightly lagged mechanism hoists players between zones.
-    *
     * @param zoneId      the zone in which the player will be placed
     * @param pos         the game world coordinates where the player will be positioned
     * @param ori         the direction in which the player will be oriented
@@ -8639,7 +8664,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
       }
     }
-
   }
 
   /**
@@ -8671,15 +8695,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         session = session.copy(player = targetPlayer)
         TaskWorkflow.execute(taskThenZoneChange(
           GUIDTask.unregisterObject(continent.GUID, original.avatar.locker),
-          ICS.FindZone(_.id == zoneId, context.self)
+          ICS.FindZone(_.id.equals(zoneId), context.self)
         ))
       } else if (player.HasGUID) {
         TaskWorkflow.execute(taskThenZoneChange(
           GUIDTask.unregisterAvatar(continent.GUID, original),
-          ICS.FindZone(_.id == zoneId, context.self)
+          ICS.FindZone(_.id.equals(zoneId), context.self)
         ))
       } else {
-        cluster ! ICS.FindZone(_.id == zoneId, context.self)
+        cluster ! ICS.FindZone(_.id.equals(zoneId), context.self)
       }
 
     }

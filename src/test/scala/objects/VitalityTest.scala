@@ -42,7 +42,7 @@ class VitalityTest extends Specification {
       player.History(HealFromExoSuitChange(pSource, ExoSuitType.Standard))
       player.History(RepairFromTerm(vSource, 10, GlobalDefinitions.order_terminal))
       player.History(VehicleShieldCharge(vSource, 10))
-      player.History(PlayerSuicide())
+      player.History(PlayerSuicide(PlayerSource(player)))
       ok
     }
 
@@ -56,7 +56,7 @@ class VitalityTest extends Specification {
       player.History(HealFromExoSuitChange(pSource, ExoSuitType.Standard))
       player.History(RepairFromTerm(vSource, 10, GlobalDefinitions.order_terminal))
       player.History(VehicleShieldCharge(vSource, 10))
-      player.History(PlayerSuicide())
+      player.History(PlayerSuicide(PlayerSource(player)))
       player.History.size mustEqual 7
 
       val list = player.ClearHistory()
@@ -92,7 +92,7 @@ class VitalityTest extends Specification {
       player.History(HealFromExoSuitChange(pSource, ExoSuitType.Standard))
       player.History(RepairFromTerm(vSource, 10, GlobalDefinitions.order_terminal))
       player.History(VehicleShieldCharge(vSource, 10))
-      player.History(PlayerSuicide())
+      player.History(PlayerSuicide(PlayerSource(player)))
 
       player.LastShot match {
         case Some(resolved_projectile) =>

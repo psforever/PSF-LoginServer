@@ -4,7 +4,6 @@ package net.psforever.persistence
 import org.joda.time.LocalDateTime
 
 case class Savedplayer(
-                        id: Long,
                         avatarId: Long,
                         px: Int, //Position.x * 1000
                         py: Int, //Position.y * 1000
@@ -18,7 +17,6 @@ case class Savedplayer(
                       )
 
 case class Savedavatar(
-                        id: Long,
                         avatarId: Long,
                         forgetCooldown: LocalDateTime,
                         purchaseCooldowns: String,

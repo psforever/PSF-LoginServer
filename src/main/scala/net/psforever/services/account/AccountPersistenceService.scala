@@ -366,7 +366,8 @@ class PersistenceMonitor(
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
         //alive or dead in a vehicle
         //if the avatar is dead while in a vehicle, they haven't released yet
-        //TODO perform any last minute saving now ...
+        AvatarActor.saveAvatarData(avatar)
+        AvatarActor.finalSavePlayerData(player)
         (inZone.GUID(player.VehicleSeated) match {
           case Some(obj: Mountable) =>
             (Some(obj), obj.Seat(obj.PassengerInSeat(player).getOrElse(-1)))
@@ -380,13 +381,14 @@ class PersistenceMonitor(
 
       case (Some(avatar), Some(player)) =>
         //alive or dead, as standard Infantry
-        //TODO perform any last minute saving now ...
+        AvatarActor.saveAvatarData(avatar)
+        AvatarActor.finalSavePlayerData(player)
         PlayerAvatarLogout(avatar, player)
 
       case (Some(avatar), None) =>
         //player has released
         //our last body was turned into a corpse; just the avatar remains
-        //TODO perform any last minute saving now ...
+        AvatarActor.saveAvatarData(avatar)
         inZone.GUID(avatar.vehicle) match {
           case Some(obj: Vehicle) if obj.OwnerName.contains(avatar.name) =>
             obj.Actor ! Vehicle.Ownership(None)
@@ -395,7 +397,7 @@ class PersistenceMonitor(
         AvatarLogout(avatar)
 
       case _ =>
-      //user stalled during initial session, or was caught in between zone transfer
+        //user stalled during initial session, or was caught in between zone transfer
     }
   }
 
