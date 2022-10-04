@@ -1,19 +1,32 @@
+// Copyright (c) 2020 PSForever
 package net.psforever.objects.zones
 
+import enumeratum.values.{StringEnum, StringEnumEntry}
 import net.psforever.objects.SpawnPoint
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 object Zoning {
-  object Method extends Enumeration {
-    type Type = Value
+  sealed abstract class Method(val value: String) extends StringEnumEntry
+  sealed abstract class Status(val value: String) extends StringEnumEntry
 
-    val None, InstantAction, OutfitRecall, Recall, Quit = Value
+  object Method extends StringEnum[Method] {
+    val values: IndexedSeq[Method] = findValues
+
+    case object None extends Method(value = "None")
+    case object InstantAction extends Method(value = "InstantAction")
+    case object OutfitRecall extends Method(value = "OutfitRecall")
+    case object Recall extends Method(value = "Recall")
+    case object Quit extends Method(value = "Quit")
+    case object Login extends Method(value = "Login")
+    case object Reset extends Method(value = "Reset")
   }
 
-  object Status extends Enumeration {
-    type Type = Value
+  object Status extends StringEnum[Status] {
+    val values: IndexedSeq[Status] = findValues
 
-    val None, Request, Countdown = Value
+    case object None extends Status(value = "None")
+    case object Request extends Status(value = "Request")
+    case object Countdown extends Status(value = "Countdown")
   }
 
   object Time {

@@ -62,7 +62,7 @@ class Player(var avatar: Avatar)
   private var jumping: Boolean            = false
   private var cloaked: Boolean            = false
   private var afk: Boolean                = false
-  private var zoning: Zoning.Method.Value = Zoning.Method.None
+  private var zoning: Zoning.Method       = Zoning.Method.None
 
   private var vehicleSeated: Option[PlanetSideGUID] = None
 
@@ -526,9 +526,9 @@ class Player(var avatar: Avatar)
     Carrying
   }
 
-  def ZoningRequest: Zoning.Method.Value = zoning
+  def ZoningRequest: Zoning.Method = zoning
 
-  def ZoningRequest_=(request: Zoning.Method.Value): Zoning.Method.Value = {
+  def ZoningRequest_=(request: Zoning.Method): Zoning.Method = {
     zoning = request
     ZoningRequest
   }

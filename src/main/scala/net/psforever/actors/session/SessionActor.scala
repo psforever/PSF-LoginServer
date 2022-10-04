@@ -258,11 +258,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second
     */
   var upstreamMessageCount: Int                                              = 0
-  var zoningType: Zoning.Method.Value                                        = Zoning.Method.None
+  var zoningType: Zoning.Method                                              = Zoning.Method.None
   var zoningChatMessageType: ChatMessageType                                 = ChatMessageType.CMT_QUIT
-  var zoningStatus: Zoning.Status.Value                                      = Zoning.Status.None
+  var zoningStatus: Zoning.Status                                            = Zoning.Status.None
   var zoningCounter: Int                                                     = 0
   var instantActionFallbackDestination: Option[Zoning.InstantAction.Located] = None
+  var loginChatMessage: String                                               = ""
   lazy val unsignedIntMaxValue: Long                                         = Int.MaxValue.toLong * 2L + 1L
   var serverTime: Long                                                       = 0
   var amsSpawnPoints: List[SpawnPoint]                                       = Nil
@@ -1291,38 +1292,35 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
           })
 
+        case Zoning.Method.Reset =>
+          player.ZoningRequest = Zoning.Method.Login
+          zoningType = Zoning.Method.Login
+          response match {
+            case Some((zone, spawnPoint)) =>
+              loginChatMessage = "@login_reposition_to_friendly_facility" //Your previous location was held by the enemy. You have been moved to the nearest friendly facility.
+              val (pos, ori) = spawnPoint.SpecificPoint(player)
+              LoadZonePhysicalSpawnPoint(zone.id, pos, ori, respawnTime = 0 seconds, Some(spawnPoint))
+            case _ =>
+              loginChatMessage = "@login_reposition_to_sanctuary" //Your previous location was held by the enemy.  As there were no operational friendly facilities on that continent, you have been brought back to your Sanctuary.
+              RequestSanctuaryZoneSpawn(player, player.Zone.Number)
+          }
+
+        case Zoning.Method.Login =>
+          resolveZoningSpawnPointLoad(response, Zoning.Method.Login)
+
         case ztype =>
           if (ztype != Zoning.Method.None) {
             log.warn(
               s"SpawnPointResponse: ${player.Name}'s zoning was not in order at the time a response was received; attempting to guess what ${player.Sex.pronounSubject} wants to do"
             )
           }
-          val previousZoningType = zoningType
+          val previousZoningType = ztype
           CancelZoningProcess()
           PlayerActionsToCancel()
           CancelAllProximityUnits()
           DropSpecialSlotItem()
           continent.Population ! Zone.Population.Release(avatar)
-          response match {
-            case Some((zone, spawnPoint)) =>
-              val obj = continent.GUID(player.VehicleSeated) match {
-                case Some(obj: Vehicle) if !obj.Destroyed => obj
-                case _                                    => player
-              }
-              val (pos, ori) = spawnPoint.SpecificPoint(obj)
-              if (previousZoningType == Zoning.Method.InstantAction)
-                LoadZonePhysicalSpawnPoint(zone.id, pos, ori, respawnTime = 0 seconds, Some(spawnPoint))
-              else
-                LoadZonePhysicalSpawnPoint(zone.id, pos, ori, CountSpawnDelay(zone.id, spawnPoint, continent.id), Some(spawnPoint))
-            case None =>
-              log.warn(
-                s"SpawnPointResponse: ${player.Name} received no spawn point response when asking InterstellarClusterService"
-              )
-              if (Config.app.game.warpGates.defaultToSanctuaryDestination) {
-                log.warn(s"SpawnPointResponse: sending ${player.Name} home")
-                RequestSanctuaryZoneSpawn(player, currentZone = 0)
-              }
-          }
+          resolveZoningSpawnPointLoad(response, previousZoningType)
       }
 
     case ICS.DroppodLaunchDenial(errorCode, _) =>
@@ -1442,7 +1440,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           oldZone.LocalEvents ! Service.Leave()
           oldZone.VehicleEvents ! Service.Leave()
 
-          if (player.isAlive) {
+          if (player.isAlive && zoningType != Zoning.Method.Reset) {
             if (player.HasGUID) {
               HandleNewPlayerLoaded(player)
             } else {
@@ -1648,8 +1646,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         case Some(results) =>
           val health = results.health
           val hasHealthUponLogin = health > 0
-          player.Position = Vector3(results.px * 0.001f, results.py * 0.001f, results.pz * 0.001f)
+          val position = Vector3(results.px * 0.001f, results.py * 0.001f, results.pz * 0.001f)
+          player.Position = position
           player.Orientation = Vector3(0f, 0f, results.orientation * 0.001f)
+          /*
+          @reset_sanctuary=You have been returned to the sanctuary because you played another character.
+           */
           if (hasHealthUponLogin) {
             player.Spawn()
             player.Health = health
@@ -1660,6 +1662,45 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             player.ExoSuit = ExoSuitType.Standard
             DefinitionUtil.applyDefaultLoadout(player)
           }
+          if (player.isAlive) {
+            val pfaction = player.Faction
+            val buildings = inZone.Buildings.values
+            val ourBuildings = buildings.filter { _.Faction == pfaction }.toSeq
+            val playersInZone = inZone.Players
+            zoningType = Zoning.Method.Login
+            player.ZoningRequest = Zoning.Method.Login
+            zoningChatMessageType = ChatMessageType.UNK_227
+            if (Zones.sanctuaryZoneNumber(player.Faction) != inZone.Number) {
+              if (ourBuildings.isEmpty) {
+                loginChatMessage = "@reset_sanctuary_locked"
+                //You have been returned to the sanctuary because the location you logged out is not available.
+                player.Zone = Zone.Nowhere
+              } else if (playersInZone.size > 413 || playersInZone.count { _.faction == pfaction } > 137) {
+                loginChatMessage = "@reset_sanctuary_full"
+                //You have been returned to the sanctuary because the zone you logged out on is full.
+                player.Zone = Zone.Nowhere
+              } else {
+                val inBuildingSOI = buildings.filter { b =>
+                  val soi2 = b.Definition.SOIRadius * b.Definition.SOIRadius
+                  Vector3.DistanceSquared(b.Position, position) < soi2
+                }
+                if (inBuildingSOI.nonEmpty) {
+                  if (!inBuildingSOI.exists { ourBuildings.contains }) {
+                    zoningType = Zoning.Method.Reset
+                    player.ZoningRequest = Zoning.Method.Reset
+                    zoningChatMessageType = ChatMessageType.UNK_228
+                  }
+                } else {
+                  if (playersInZone.isEmpty) {
+                    loginChatMessage = "@reset_sanctuary_inactive"
+                    //You have been returned to the sanctuary because the location you logged out is not available.
+                    player.Zone = Zone.Nowhere
+                  }
+                }
+              }
+            }
+          }
+
         case None =>
           player.Spawn()
           player.ExoSuit = ExoSuitType.Standard
@@ -1863,6 +1904,45 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
+    * Process recovered spawn request information to start the process of spawning an avatar player entity
+    * in a specific zone in a specific place in that zone after a certain amount of time has elapsed.<br>
+    * <br>
+    * To load: a zone, a spawn point, a spawning target entity, and the time it takes to spawn are required.
+    * Everything but the spawn point can be determined from the information already available to the context
+    * (does not need to be passed in as a parameter).
+    * The zone is more reliable when passed in as a parameter since local references may have changed.
+    * The spawn point defines the spawn position as well as the spawn orientation.
+    * Any of information provided can be used to calculate the time to spawn.
+    * The session's knowledge of the zoning event is also used to assist with the spawning event.<br>
+    * <br>
+    * If no spawn information has been provided, abort the whole process (unsafe!).
+    * @param spawnPointTarget an optional paired zone entity and a spawn point within the zone
+    * @param zoningType a token that references the manner of zone transfer
+    */
+  def resolveZoningSpawnPointLoad(spawnPointTarget: Option[(Zone, SpawnPoint)], zoningType: Zoning.Method): Unit = {
+    spawnPointTarget match {
+      case Some((zone, spawnPoint)) =>
+        val obj = continent.GUID(player.VehicleSeated) match {
+          case Some(obj: Vehicle) if !obj.Destroyed => obj
+          case _                                    => player
+        }
+        val (pos, ori) = spawnPoint.SpecificPoint(obj)
+        if (zoningType == Zoning.Method.InstantAction)
+          LoadZonePhysicalSpawnPoint(zone.id, pos, ori, respawnTime = 0 seconds, Some(spawnPoint))
+        else
+          LoadZonePhysicalSpawnPoint(zone.id, pos, ori, CountSpawnDelay(zone.id, spawnPoint, continent.id), Some(spawnPoint))
+      case None =>
+        log.warn(
+          s"SpawnPointResponse: ${player.Name} received no spawn point response when asking InterstellarClusterService"
+        )
+        if (Config.app.game.warpGates.defaultToSanctuaryDestination) {
+          log.warn(s"SpawnPointResponse: sending ${player.Name} home")
+          RequestSanctuaryZoneSpawn(player, currentZone = 0)
+        }
+    }
+  }
+
+  /**
     * Attach the player to a droppod vehicle and hurtle them through the stratosphere in some far off world.
     * Perform all normal operation standardization (state cancels) as if any of form of zoning was being performed,
     * then assemble the vehicle and work around some inconvenient setup requirements for vehicle gating.
@@ -1899,14 +1979,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   /**
     * The user no longer expects to perform a zoning event for this reason.
-    *
     * @param msg     the message to the user
     * @param msgType the type of message, influencing how it is presented to the user;
-    *                normally, this message uses the same value as `zoningChatMessageType`s
+    *                normally, this message uses the same value as `zoningChatMessageType`;
     *                defaults to `None`
     */
   def CancelZoningProcessWithReason(msg: String, msgType: Option[ChatMessageType] = None): Unit = {
-    if (zoningStatus > Zoning.Status.None) {
+    if (zoningStatus != Zoning.Status.None) {
       sendResponse(ChatMsg(msgType.getOrElse(zoningChatMessageType), false, "", msg, None))
     }
     CancelZoningProcess()
@@ -1955,6 +2034,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       turnCounterFunc = interimUngunnedVehicle match {
         case Some(_) =>
           TurnCounterDuringInterimWhileInPassengerSeat
+        case None if zoningType == Zoning.Method.Login || zoningType == Zoning.Method.Reset =>
+          TurnCounterLogin
         case None =>
           TurnCounterDuringInterim
       }
@@ -9436,6 +9517,22 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       interimUngunnedVehicleSeat = None
       turnCounterFunc = NormalTurnCounter
     }
+  }
+  /**
+    * The upstream counter accumulates when the server receives specific messages from the client.<br>
+    * <br>
+    * This accumulator is assigned after a login event.
+    * The main purpose is to display any messages to the client regarding
+    * if their previous log-out location and their current log-in location are different.
+    * Hereafter, the normal accumulator will be referenced.
+    * @param guid the player's globally unique identifier number
+    */
+  def TurnCounterLogin(guid: PlanetSideGUID): Unit = {
+    NormalTurnCounter(guid)
+    sendResponse(ChatMsg(zoningChatMessageType, false, "", loginChatMessage, None))
+    CancelZoningProcess()
+    loginChatMessage = ""
+    turnCounterFunc = NormalTurnCounter
   }
 
   /**
