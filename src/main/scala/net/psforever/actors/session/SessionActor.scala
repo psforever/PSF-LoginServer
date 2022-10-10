@@ -127,6 +127,10 @@ object SessionActor {
 
   final case class UpdateIgnoredPlayers(msg: FriendsResponse) extends Command
 
+  final case object CharSaved extends Command
+
+  private case object CharSavedMsg extends Command
+
   /**
     * The message that progresses some form of user-driven activity with a certain eventual outcome
     * and potential feedback per cycle.
@@ -295,6 +299,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var reviveTimer: Cancellable       = Default.Cancellable
   var respawnTimer: Cancellable      = Default.Cancellable
   var zoningTimer: Cancellable       = Default.Cancellable
+  var charSavedTimer: Cancellable    = Default.Cancellable
 
   override def supervisorStrategy: SupervisorStrategy = {
     import net.psforever.objects.inventory.InventoryDisarrayException
@@ -543,6 +548,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   override def postStop(): Unit = {
     //normally, the player avatar persists a minute or so after disconnect; we are subject to the SessionReaper
+    charSavedTimer.cancel()
     clientKeepAlive.cancel()
     progressBarUpdate.cancel()
     reviveTimer.cancel()
@@ -662,6 +668,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       session = session.copy(avatar = avatar)
      */
 
+    case CharSaved =>
+      renewCharSavedTimer(fixedLen=15L, varLen=30L)
+
+    case CharSavedMsg =>
+      displayCharSavedMsgThenRenewTimer(fixedLen=300L, varLen=600L)
+
     case SetAvatar(avatar) =>
       session = session.copy(avatar = avatar)
       if (session.player != null) {
@@ -690,6 +702,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       msg.friends.foreach { f =>
         galaxyService ! GalaxyServiceMessage(GalaxyAction.LogStatusChange(f.name))
       }
+      charSaved()
 
     case SendResponse(packet) =>
       sendResponse(packet)
@@ -2258,6 +2271,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         } else {
           HandleReleaseAvatar(player, continent)
         }
+        AvatarActor.savePlayerLocation(player)
 
       case AvatarResponse.LoadPlayer(pkt) =>
         if (tplayer_guid != guid) {
@@ -2422,6 +2436,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case AvatarResponse.TerminalOrderResult(terminal_guid, action, result) =>
         sendResponse(ItemTransactionResultMessage(terminal_guid, action, result))
         lastTerminalOrderFulfillment = true
+        if (result &&
+          (action == TransactionType.Buy || action == TransactionType.Loadout)) {
+          AvatarActor.savePlayerData(player)
+          renewCharSavedTimer(fixedLen=10L, varLen=5L)
+        }
 
       case AvatarResponse.ChangeExosuit(
             target,
@@ -2483,6 +2502,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
           }
           DropLeftovers(player)(drop)
+          renewCharSavedTimer(fixedLen=15L, varLen=15L)
         } else {
           //happening to some other player
           sendResponse(ObjectHeldMessage(target, slot, false))
@@ -2536,6 +2556,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
           ApplyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
           DropLeftovers(player)(drops)
+          renewCharSavedTimer(fixedLen=15L, varLen=15L)
         } else {
           //happening to some other player
           sendResponse(ObjectHeldMessage(target, slot, false))
@@ -3682,6 +3703,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       //killed during spawn setup or possibly a relog into a corpse (by accident?)
       player.Actor ! Player.Die()
     }
+    AvatarActor.savePlayerData(player)
+    displayCharSavedMsgThenRenewTimer(fixedLen=10L, varLen=10L)
     upstreamMessageCount = 0
     setAvatar = true
   }
@@ -5751,10 +5774,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
           if (action == 29) {
             log.info(s"${player.Name} is AFK")
+            AvatarActor.savePlayerLocation(player)
+            displayCharSavedMsgThenRenewTimer(fixedLen=1799L, varLen=2L)
             player.AwayFromKeyboard = true
           } else if (action == 30) {
             log.info(s"${player.Name} is back")
             player.AwayFromKeyboard = false
+            renewCharSavedTimer(fixedLen=300L, varLen=600L)
           }
           if (action == GenericActionEnum.DropSpecialItem.id) {
             DropSpecialSlotItem()
@@ -10013,6 +10039,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     session = session.copy(avatar = avatar)
     Deployables.InitializeDeployableQuantities(avatar)
     cluster ! ICS.FilterZones(_ => true, context.self)
+  }
+
+  def displayCharSavedMsgThenRenewTimer(fixedLen: Long, varLen: Long): Unit = {
+    charSaved()
+    renewCharSavedTimer(fixedLen, varLen)
+  }
+
+  def renewCharSavedTimer(fixedLen: Long, varLen: Long): Unit = {
+    charSavedTimer.cancel()
+    val delay = (fixedLen + (varLen * scala.math.random()).toInt).seconds
+    charSavedTimer = context.system.scheduler.scheduleOnce(delay, self, SessionActor.CharSavedMsg)
+  }
+
+  def charSaved(): Unit = {
+    sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@charsaved", None))
   }
 
   def failWithError(error: String) = {

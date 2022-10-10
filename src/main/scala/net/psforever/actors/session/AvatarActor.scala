@@ -573,6 +573,32 @@ object AvatarActor {
     out.future
   }
 
+  def savePlayerLocation(player: Player): Future[Int] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[Int] = Promise()
+    val avatarId = player.avatar.id
+    val position = player.Position
+    val queryResult = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
+    queryResult.onComplete {
+      case Success(results) if results.nonEmpty =>
+        val res=ctx.run(query[persistence.Savedplayer]
+          .filter { _.avatarId == lift(avatarId) }
+          .update(
+            _.px -> lift((position.x * 1000).toInt),
+            _.py -> lift((position.y * 1000).toInt),
+            _.pz -> lift((position.z * 1000).toInt),
+            _.orientation -> lift((player.Orientation.z * 1000).toInt),
+            _.zoneNum -> lift(player.Zone.Number)
+          )
+        )
+        out.completeWith(Future(0))
+      case _ =>
+        out.completeWith(Future(1))
+    }
+    out.future
+  }
+
   def loadSavedAvatarData(avatarId: Long): Future[persistence.Savedavatar] = {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -910,6 +936,7 @@ class AvatarActor(
                         sessionActor ! SessionActor.SendResponse(
                           ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
                         )
+                        sessionActor ! SessionActor.CharSaved
                     }
 
               }
@@ -965,6 +992,7 @@ class AvatarActor(
                   sessionActor ! SessionActor.SendResponse(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
                   )
+                  sessionActor ! SessionActor.CharSaved
                   //wearing invalid armor?
                   if (
                     if (certification == Certification.ReinforcedExoSuit) player.ExoSuit == ExoSuitType.Reinforced
@@ -1018,6 +1046,7 @@ class AvatarActor(
             .onComplete {
               case Success(_) =>
                 replaceAvatar(avatar.copy(certifications = certifications))
+                sessionActor ! SessionActor.CharSaved
               case Failure(exception) =>
                 log.error(exception)("db failure")
             }
@@ -1066,6 +1095,7 @@ class AvatarActor(
                       ItemTransactionResultMessage(terminalGuid, TransactionType.Learn, success = true)
                     )
                     context.self ! ResetImplants()
+                    sessionActor ! SessionActor.CharSaved
                   case Failure(exception) => log.error(exception)("db failure")
                 }
 
@@ -1101,6 +1131,7 @@ class AvatarActor(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
                   )
                   context.self ! ResetImplants()
+                  sessionActor ! SessionActor.CharSaved
                 case Failure(exception) => log.error(exception)("db failure")
               }
 
@@ -1148,6 +1179,7 @@ class AvatarActor(
             case Success(loadout) =>
               val ldouts = avatar.loadouts
               replaceAvatar(avatar.copy(loadouts = ldouts.copy(suit = ldouts.suit.updated(lineNo, Some(loadout)))))
+              sessionActor ! SessionActor.CharSaved
               refreshLoadout(lineNo)
             case Failure(exception) =>
               log.error(exception)("db failure (?)")
@@ -1195,6 +1227,7 @@ class AvatarActor(
             case Success(_) =>
               val ldouts = avatar.loadouts
               avatarCopy(avatar.copy(loadouts = ldouts.copy(suit = ldouts.suit.updated(lineNo, None))))
+              sessionActor ! SessionActor.CharSaved
               sessionActor ! SessionActor.SendResponse(FavoritesMessage(loadoutType, player.GUID, number, ""))
             case Failure(exception) =>
               log.error(exception)("db failure (?)")
@@ -1845,6 +1878,7 @@ class AvatarActor(
 
   def storeLoadout(owner: Player, label: String, line: Int): Future[Loadout] = {
     import ctx._
+    sessionActor ! SessionActor.CharSaved
     val items: String = AvatarActor.buildClobFromPlayerLoadout(owner)
     for {
       loadouts <- ctx.run(
@@ -1889,6 +1923,7 @@ class AvatarActor(
       clobber.mkString.drop(1)
     }
 
+    sessionActor ! SessionActor.CharSaved
     for {
       loadouts <- ctx.run(
         query[persistence.Vehicleloadout]
@@ -1921,6 +1956,7 @@ class AvatarActor(
       pushLockerClobToDataBase(AvatarActor.encodeLockerClob(avatar.locker))
         .onComplete {
           case Success(_) =>
+            sessionActor ! SessionActor.CharSaved
             saveLockerFunc = storeLocker
             log.debug(s"saving locker contents belonging to ${avatar.name}")
           case Failure(e) =>
@@ -1941,6 +1977,7 @@ class AvatarActor(
 
   def pushLockerClobToDataBase(items: String): Database.ctx.Result[Database.ctx.RunActionResult] = {
     import ctx._
+    sessionActor ! SessionActor.CharSaved
     ctx.run(
       query[persistence.Locker]
         .filter(_.avatarId == lift(avatar.id))
@@ -2314,6 +2351,7 @@ class AvatarActor(
           people = people.copy(friend = people.friend :+ AvatarFriend(charId, name, PlanetSideEmpire(faction), isOnline))
         ))
         sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.AddFriend, GameFriend(name, isOnline)))
+        sessionActor ! SessionActor.CharSaved
     }
   }
 
@@ -2339,6 +2377,7 @@ class AvatarActor(
       .delete
     )
     sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.RemoveFriend, GameFriend(name)))
+    sessionActor ! SessionActor.CharSaved
   }
 
   /**
