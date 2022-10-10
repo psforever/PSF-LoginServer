@@ -193,6 +193,17 @@ object AvatarActor {
 
   final case class AvatarLoginResponse(avatar: Avatar)
 
+  /**
+    * A player loadout represents all of the items in the player's hands (equipment slots)
+    * and all of the items in the player's backpack (inventory)
+    * with items separated by meaningful punctuation marks.
+    * The CLOB - character large object - is a string of such item data
+    * that can be translated back into the original items
+    * and placed back in the same places in the inventory from which they were extracted.
+    * Together, these are occasionally referred to as an "inventory".
+    * @param owner the player whose inventory is being transcribed
+    * @return the resulting text data that represents an inventory
+    */
   def buildClobFromPlayerLoadout(owner: Player): String = {
     val clobber: mutable.StringBuilder = new mutable.StringBuilder()
     //encode holsters
@@ -208,9 +219,22 @@ object AvatarActor {
       case InventoryItem(obj, index) =>
         clobber.append(encodeLoadoutClobFragment(obj, index))
     }
-    clobber.mkString.drop(1)
+    clobber.mkString.drop(1) //drop leading punctuation
   }
 
+  /**
+    * Transform from encoded inventory data as a CLOB - character large object - into individual items.
+    * Install those items into positions in a target container
+    * in the same positions in which they were previously recorded.<br>
+    * <br>
+    * There is no guarantee that the structure of the retained container data encoded in the CLOB
+    * will fit the current dimensions of the container.
+    * No tests are performed.
+    * A partial decompression of the CLOB may occur.
+    * @param container the container in which to place the pieces of equipment produced from the CLOB
+    * @param clob the inventory data in string form
+    * @param log a reference to a logging context
+    */
   def buildContainedEquipmentFromClob(container: Container, clob: String, log: org.log4s.Logger): Unit = {
     clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
       val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
@@ -241,7 +265,7 @@ object AvatarActor {
         case "Telepad" | "BoomerTrigger" => ;
         //special types of equipment that are not actually loaded
         case name =>
-          log.error(s"failing to add unknown equipment to a locker - $name")
+          log.error(s"failing to add unknown equipment to a container - $name")
       }
 
       toolAmmo foreach { toolAmmo =>
@@ -258,6 +282,15 @@ object AvatarActor {
     }
   }
 
+  /**
+    * Transform the encoded object to time data
+    * into proper object to proper time references
+    * and filter out mappings that have exceeded the sample duration.
+    * @param clob the entity to time data in string form
+    * @param cooldownDurations a base reference for entity to time comparison
+    * @param log a reference to a logging context
+    * @return the resulting text data that represents object to time mappings
+    */
   def buildCooldownsFromClob(
                               clob: String,
                               cooldownDurations: Map[BasicDefinition,FiniteDuration],
@@ -266,28 +299,32 @@ object AvatarActor {
     val now = LocalDateTime.now()
     val cooldowns: mutable.Map[String, LocalDateTime] = mutable.Map()
     clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
-      val (name, cooldown) = value.split(",") match {
-        case Array(a: String, b: String) =>
-          (a, LocalDateTime.parse(b))
+      value.split(",") match {
+        case Array(name: String, b: String) =>
+          try {
+            val cooldown = LocalDateTime.parse(b)
+            cooldownDurations.get(DefinitionUtil.fromString(name)) match {
+              case Some(duration) if now.compareTo(cooldown.plusMillis(duration.toMillis.toInt)) == -1 =>
+                cooldowns.put(name, cooldown)
+              case _ => ;
+            }
+          } catch {
+            case _: Exception => ;
+          }
         case _ =>
           log.warn(s"ignoring invalid cooldown string: '$value'")
-          ("", now)
-      }
-      val duration = try {
-        cooldownDurations.get(DefinitionUtil.fromString(name)) match {
-          case Some(t) => t
-          case None    => 0.seconds
-        }
-      } catch {
-        case _: Exception => 5.minutes
-      }
-      if(now.compareTo(cooldown.plusMillis(duration.toMillis.toInt)) == -1) {
-        cooldowns.put(name, cooldown)
       }
     }
     cooldowns.toMap
   }
 
+  /**
+    * Transform the proper object to proper time references
+    * into encoded object to time data in a string format
+    * and filter out mappings that have exceeded the current time.
+    * @param cooldowns a base reference for entity to time comparison
+    * @return the resulting map that represents object to time string data
+    */
   def buildClobfromCooldowns(cooldowns: Map[String, LocalDateTime]): String = {
     val now = LocalDateTime.now()
     cooldowns
@@ -489,6 +526,13 @@ object AvatarActor {
     !onlinePlayer.people.ignored.exists { f => f.name.equals(observedName) }
   }
 
+  /**
+    * Query the database on information retained in regards to a certain character
+    * when that character had last logged out of the game.
+    * Dummy the data if no entries are found.
+    * @param avatarId the unique character identifier number
+    * @return when completed, a copy of data on that character from the database
+    */
   def loadSavedPlayerData(avatarId: Long): Future[persistence.Savedplayer] = {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -502,11 +546,28 @@ object AvatarActor {
     }
     out.future
   }
-
+//TODO should return number of rows inserted?
+  /**
+    * Query the database on information retained in regards to a certain character
+    * when that character had last logged out of the game.
+    * If that character is found in the database, update the data for that character.
+    * @param player the player character
+    * @return when completed, return the number of rows inserted
+    */
   def savePlayerData(player: Player): Future[Int] = {
     savePlayerData(player, player.Health)
   }
 
+  /**
+    * Query the database on information retained in regards to a certain character
+    * when that character had last logged out of the game.
+    * If that character is found in the database, update the data for that character.
+    * Determine if the player's previous health information is valid
+    * by comparing historical information about the player character's campaign.
+    * (This ignored the official health value attached to the character.)
+    * @param player the player character
+    * @return when completed, return the number of rows inserted
+    */
   def finalSavePlayerData(player: Player): Future[Int] = {
     val health = (
       player.History.find(_.isInstanceOf[DamagingActivity]),
@@ -529,6 +590,15 @@ object AvatarActor {
     savePlayerData(player, health)
   }
 
+  /**
+    * Query the database on information retained in regards to a certain character
+    * when that character had last logged out of the game.
+    * If that character is found in the database, update the data for that character.
+    * If no entries for that character are found, insert a new default-data entry.
+    * @param player the player character
+    * @param health a custom health value to assign the player character's information in the database
+    * @return when completed, return the number of rows inserted
+    */
   def savePlayerData(player: Player, health: Int): Future[Int] = {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -573,6 +643,14 @@ object AvatarActor {
     out.future
   }
 
+  /**
+    * Query the database on information retained in regards to a certain character
+    * when that character had last logged out of the game.
+    * If that character is found in the database, update only specific fields for that character
+    * related to the character's physical location in the game world.
+    * @param player the player character
+    * @return when completed, return the number of rows updated
+    */
   def savePlayerLocation(player: Player): Future[Int] = {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -592,13 +670,22 @@ object AvatarActor {
             _.zoneNum -> lift(player.Zone.Number)
           )
         )
-        out.completeWith(Future(0))
-      case _ =>
         out.completeWith(Future(1))
+      case _ =>
+        out.completeWith(Future(0))
     }
     out.future
   }
 
+  /**
+    * Query the database on information retained in regards to a certain player avatar
+    * when a character associated with the avatar had last logged out of the game.
+    * If that player avatar is found in the database, recover the retained information.
+    * If no entries for that avatar are found, dummy an entry.
+    * Useful mainly for player avatar login evaluations.
+    * @param avatarId a unique identifier number associated with the player avatar
+    * @return when completed, return the persisted data
+    */
   def loadSavedAvatarData(avatarId: Long): Future[persistence.Savedavatar] = {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -613,6 +700,15 @@ object AvatarActor {
     out.future
   }
 
+  /**
+    * Query the database on information retained in regards to a certain player avatar
+    * when a character associated with the avatar had last logged out of the game.
+    * If that player avatar is found in the database, update important information.
+    * If no entries for that avatar are found, insert a new default-data entry.
+    * Useful mainly for player avatar login evaluations.
+    * @param avatar a unique player avatar
+    * @return when completed, return the number of rows inserted
+    */
   def saveAvatarData(avatar: Avatar): Future[Int] = {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global

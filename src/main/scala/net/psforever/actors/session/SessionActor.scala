@@ -669,10 +669,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
      */
 
     case CharSaved =>
-      renewCharSavedTimer(fixedLen=15L, varLen=30L)
+      renewCharSavedTimer(
+        Config.app.game.savedMsg.interruptedByAction.fixed,
+        Config.app.game.savedMsg.interruptedByAction.variable
+      )
 
     case CharSavedMsg =>
-      displayCharSavedMsgThenRenewTimer(fixedLen=300L, varLen=600L)
+      displayCharSavedMsgThenRenewTimer(
+        Config.app.game.savedMsg.renewal.fixed,
+        Config.app.game.savedMsg.renewal.variable
+      )
 
     case SetAvatar(avatar) =>
       session = session.copy(avatar = avatar)
@@ -2272,6 +2278,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           HandleReleaseAvatar(player, continent)
         }
         AvatarActor.savePlayerLocation(player)
+        renewCharSavedTimer(fixedLen=1800L, varLen=0L)
 
       case AvatarResponse.LoadPlayer(pkt) =>
         if (tplayer_guid != guid) {
@@ -2439,7 +2446,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         if (result &&
           (action == TransactionType.Buy || action == TransactionType.Loadout)) {
           AvatarActor.savePlayerData(player)
-          renewCharSavedTimer(fixedLen=10L, varLen=5L)
+          renewCharSavedTimer(
+            Config.app.game.savedMsg.interruptedByAction.fixed,
+            Config.app.game.savedMsg.interruptedByAction.variable
+          )
         }
 
       case AvatarResponse.ChangeExosuit(
@@ -2502,7 +2512,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
               )
           }
           DropLeftovers(player)(drop)
-          renewCharSavedTimer(fixedLen=15L, varLen=15L)
         } else {
           //happening to some other player
           sendResponse(ObjectHeldMessage(target, slot, false))
@@ -2556,7 +2565,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
           ApplyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
           DropLeftovers(player)(drops)
-          renewCharSavedTimer(fixedLen=15L, varLen=15L)
         } else {
           //happening to some other player
           sendResponse(ObjectHeldMessage(target, slot, false))
@@ -3704,7 +3712,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       player.Actor ! Player.Die()
     }
     AvatarActor.savePlayerData(player)
-    displayCharSavedMsgThenRenewTimer(fixedLen=10L, varLen=10L)
+    displayCharSavedMsgThenRenewTimer(
+      Config.app.game.savedMsg.short.fixed,
+      Config.app.game.savedMsg.short.variable
+    )
     upstreamMessageCount = 0
     setAvatar = true
   }
@@ -5775,12 +5786,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           if (action == 29) {
             log.info(s"${player.Name} is AFK")
             AvatarActor.savePlayerLocation(player)
-            displayCharSavedMsgThenRenewTimer(fixedLen=1799L, varLen=2L)
+            displayCharSavedMsgThenRenewTimer(fixedLen=1800L, varLen=0L) //~30min
             player.AwayFromKeyboard = true
           } else if (action == 30) {
             log.info(s"${player.Name} is back")
             player.AwayFromKeyboard = false
-            renewCharSavedTimer(fixedLen=300L, varLen=600L)
+            renewCharSavedTimer(
+              Config.app.game.savedMsg.renewal.fixed,
+              Config.app.game.savedMsg.renewal.variable
+            )
           }
           if (action == GenericActionEnum.DropSpecialItem.id) {
             DropSpecialSlotItem()
