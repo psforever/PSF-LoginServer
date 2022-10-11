@@ -158,7 +158,8 @@ case class GameConfig(
     sharedMaxCooldown: Boolean,
     baseCertifications: Seq[Certification],
     warpGates: WarpGateConfig,
-    cavernRotation: CavernRotationConfig
+    cavernRotation: CavernRotationConfig,
+    savedMsg: SavedMessageEvents
 )
 
 case class NewAvatar(
@@ -203,4 +204,15 @@ case class CavernRotationConfig(
     simultaneousUnlockedZones: Int,
     enhancedRotationOrder: Seq[Int],
     forceRotationImmediately: Boolean
+)
+
+case class SavedMessageEvents(
+    short: SavedMessageTimings,
+    renewal: SavedMessageTimings,
+    interruptedByAction: SavedMessageTimings
+)
+
+case class SavedMessageTimings(
+    fixed: Long,
+    variable: Long
 )

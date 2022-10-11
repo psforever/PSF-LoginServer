@@ -32,6 +32,7 @@ import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
+import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
@@ -125,6 +126,10 @@ object SessionActor {
   final case class UseCooldownRenewed(definition: BasicDefinition, time: LocalDateTime) extends Command
 
   final case class UpdateIgnoredPlayers(msg: FriendsResponse) extends Command
+
+  final case object CharSaved extends Command
+
+  private case object CharSavedMsg extends Command
 
   /**
     * The message that progresses some form of user-driven activity with a certain eventual outcome
@@ -257,11 +262,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second
     */
   var upstreamMessageCount: Int                                              = 0
-  var zoningType: Zoning.Method.Value                                        = Zoning.Method.None
+  var zoningType: Zoning.Method                                              = Zoning.Method.None
   var zoningChatMessageType: ChatMessageType                                 = ChatMessageType.CMT_QUIT
-  var zoningStatus: Zoning.Status.Value                                      = Zoning.Status.None
+  var zoningStatus: Zoning.Status                                            = Zoning.Status.None
   var zoningCounter: Int                                                     = 0
   var instantActionFallbackDestination: Option[Zoning.InstantAction.Located] = None
+  var loginChatMessage: String                                               = ""
   lazy val unsignedIntMaxValue: Long                                         = Int.MaxValue.toLong * 2L + 1L
   var serverTime: Long                                                       = 0
   var amsSpawnPoints: List[SpawnPoint]                                       = Nil
@@ -293,6 +299,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var reviveTimer: Cancellable       = Default.Cancellable
   var respawnTimer: Cancellable      = Default.Cancellable
   var zoningTimer: Cancellable       = Default.Cancellable
+  var charSavedTimer: Cancellable    = Default.Cancellable
 
   override def supervisorStrategy: SupervisorStrategy = {
     import net.psforever.objects.inventory.InventoryDisarrayException
@@ -541,6 +548,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   override def postStop(): Unit = {
     //normally, the player avatar persists a minute or so after disconnect; we are subject to the SessionReaper
+    charSavedTimer.cancel()
     clientKeepAlive.cancel()
     progressBarUpdate.cancel()
     reviveTimer.cancel()
@@ -660,6 +668,18 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       session = session.copy(avatar = avatar)
      */
 
+    case CharSaved =>
+      renewCharSavedTimer(
+        Config.app.game.savedMsg.interruptedByAction.fixed,
+        Config.app.game.savedMsg.interruptedByAction.variable
+      )
+
+    case CharSavedMsg =>
+      displayCharSavedMsgThenRenewTimer(
+        Config.app.game.savedMsg.renewal.fixed,
+        Config.app.game.savedMsg.renewal.variable
+      )
+
     case SetAvatar(avatar) =>
       session = session.copy(avatar = avatar)
       if (session.player != null) {
@@ -669,7 +689,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case AvatarActor.AvatarResponse(avatar) =>
       session = session.copy(avatar = avatar)
-      accountPersistence ! AccountPersistenceService.Login(avatar.name)
+      accountPersistence ! AccountPersistenceService.Login(avatar.name, avatar.id)
 
     case AvatarActor.AvatarLoginResponse(avatar) =>
       avatarLoginResponse(avatar)
@@ -1290,38 +1310,35 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
           })
 
+        case Zoning.Method.Reset =>
+          player.ZoningRequest = Zoning.Method.Login
+          zoningType = Zoning.Method.Login
+          response match {
+            case Some((zone, spawnPoint)) =>
+              loginChatMessage = "@login_reposition_to_friendly_facility" //Your previous location was held by the enemy. You have been moved to the nearest friendly facility.
+              val (pos, ori) = spawnPoint.SpecificPoint(player)
+              LoadZonePhysicalSpawnPoint(zone.id, pos, ori, respawnTime = 0 seconds, Some(spawnPoint))
+            case _ =>
+              loginChatMessage = "@login_reposition_to_sanctuary" //Your previous location was held by the enemy.  As there were no operational friendly facilities on that continent, you have been brought back to your Sanctuary.
+              RequestSanctuaryZoneSpawn(player, player.Zone.Number)
+          }
+
+        case Zoning.Method.Login =>
+          resolveZoningSpawnPointLoad(response, Zoning.Method.Login)
+
         case ztype =>
           if (ztype != Zoning.Method.None) {
             log.warn(
               s"SpawnPointResponse: ${player.Name}'s zoning was not in order at the time a response was received; attempting to guess what ${player.Sex.pronounSubject} wants to do"
             )
           }
-          val previousZoningType = zoningType
+          val previousZoningType = ztype
           CancelZoningProcess()
           PlayerActionsToCancel()
           CancelAllProximityUnits()
           DropSpecialSlotItem()
           continent.Population ! Zone.Population.Release(avatar)
-          response match {
-            case Some((zone, spawnPoint)) =>
-              val obj = continent.GUID(player.VehicleSeated) match {
-                case Some(obj: Vehicle) if !obj.Destroyed => obj
-                case _                                    => player
-              }
-              val (pos, ori) = spawnPoint.SpecificPoint(obj)
-              if (previousZoningType == Zoning.Method.InstantAction)
-                LoadZonePhysicalSpawnPoint(zone.id, pos, ori, respawnTime = 0 seconds, Some(spawnPoint))
-              else
-                LoadZonePhysicalSpawnPoint(zone.id, pos, ori, CountSpawnDelay(zone.id, spawnPoint, continent.id), Some(spawnPoint))
-            case None =>
-              log.warn(
-                s"SpawnPointResponse: ${player.Name} received no spawn point response when asking InterstellarClusterService"
-              )
-              if (Config.app.game.warpGates.defaultToSanctuaryDestination) {
-                log.warn(s"SpawnPointResponse: sending ${player.Name} home")
-                RequestSanctuaryZoneSpawn(player, currentZone = 0)
-              }
-          }
+          resolveZoningSpawnPointLoad(response, previousZoningType)
       }
 
     case ICS.DroppodLaunchDenial(errorCode, _) =>
@@ -1428,6 +1445,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       squadService ! Service.Join(s"${avatar.id}")       //channel will be player.CharId (in order to work with packets)
       player.Zone match {
         case Zone.Nowhere =>
+          RandomSanctuarySpawnPosition(player)
           RequestSanctuaryZoneSpawn(player, currentZone = 0)
         case zone =>
           log.trace(s"ZoneResponse: zone ${zone.id} will now load for ${player.Name}")
@@ -1440,8 +1458,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           oldZone.AvatarEvents ! Service.Leave()
           oldZone.LocalEvents ! Service.Leave()
           oldZone.VehicleEvents ! Service.Leave()
-          if (player.isAlive) {
-            self ! NewPlayerLoaded(player)
+
+          if (player.isAlive && zoningType != Zoning.Method.Reset) {
+            if (player.HasGUID) {
+              HandleNewPlayerLoaded(player)
+            } else {
+              //alive but doesn't have a GUID; probably logging in?
+              _session = _session.copy(zone = Zone.Nowhere)
+              self ! ICS.ZoneResponse(Some(player.Zone))
+            }
           } else {
             zoneReload = true
             cluster ! ICS.GetNearbySpawnPoint(
@@ -1453,71 +1478,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
       }
 
-    case ICS.ZoneResponse(zone) =>
-      log.trace(s"ZoneResponse: zone ${zone.get.id} will now load for ${player.Name}")
-      loadConfZone = true
-      val oldZone = session.zone
-      session = session.copy(zone = zone.get)
-      //the only zone-level event system subscription necessary before BeginZoningMessage (for persistence purposes)
-      continent.AvatarEvents ! Service.Join(player.Name)
-      persist()
-      oldZone.AvatarEvents ! Service.Leave()
-      oldZone.LocalEvents ! Service.Leave()
-      oldZone.VehicleEvents ! Service.Leave()
-      continent.Population ! Zone.Population.Join(avatar)
-      player.avatar = avatar
-      interstellarFerry match {
-        case Some(vehicle) if vehicle.PassengerInSeat(player).contains(0) =>
-          TaskWorkflow.execute(registerDrivenVehicle(vehicle, player))
-        case _ =>
-          TaskWorkflow.execute(registerNewAvatar(player))
-      }
+    case ICS.ZoneResponse(Some(zone)) =>
+      HandleZoneResponse(zone)
 
     case NewPlayerLoaded(tplayer) =>
-      //new zone
-      log.info(s"${tplayer.Name} has spawned into ${session.zone.id}")
-      oldRefsMap.clear()
-      persist = UpdatePersistenceAndRefs
-      tplayer.avatar = avatar
-      session = session.copy(player = tplayer)
-      avatarActor ! AvatarActor.CreateImplants()
-      avatarActor ! AvatarActor.InitializeImplants()
-      //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
-      val weaponsEnabled =
-        session.zone.map.name != "map11" && session.zone.map.name != "map12" && session.zone.map.name != "map13"
-      sendResponse(
-        LoadMapMessage(
-          session.zone.map.name,
-          session.zone.id,
-          40100,
-          25,
-          weaponsEnabled,
-          session.zone.map.checksum
-        )
-      )
-      if (isAcceptableNextSpawnPoint()) {
-        //important! the LoadMapMessage must be processed by the client before the avatar is created
-        setupAvatarFunc()
-        //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
-        turnCounterFunc = interimUngunnedVehicle match {
-          case Some(_) =>
-            TurnCounterDuringInterimWhileInPassengerSeat
-          case None =>
-            TurnCounterDuringInterim
-        }
-        keepAliveFunc = NormalKeepAlive
-        upstreamMessageCount = 0
-        setAvatar = false
-        persist()
-      } else {
-        //look for different spawn point in same zone
-        cluster ! ICS.GetNearbySpawnPoint(
-          session.zone.Number,
-          tplayer,
-          Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
-          context.self
-        )
-      }
+      HandleNewPlayerLoaded(tplayer)
 
     case PlayerLoaded(tplayer) =>
       //same zone
@@ -1652,24 +1617,101 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       avatarActor ! AvatarActor.SetAccount(account)
 
     case PlayerToken.LoginInfo(name, Zone.Nowhere, _) =>
-      log.info(s"LoginInfo: player $name is considered a new character")
-      //TODO poll the database for saved zone and coordinates?
+      log.info(s"LoginInfo: player $name is considered a fresh character")
       persistFunc = UpdatePersistence(sender())
       deadState = DeadState.RespawnTime
-
-      session = session.copy(player = new Player(avatar))
-      //xy-coordinates indicate sanctuary spawn bias:
-      player.Position = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 4) match {
-        case 0 => Vector3(8192, 8192, 0) //NE
-        case 1 => Vector3(8192, 0, 0)    //SE
-        case 2 => Vector3(0, 0, 0)       //SW
-        case 3 => Vector3(0, 8192, 0)    //NW
-      }
-      DefinitionUtil.applyDefaultLoadout(player)
+      val tplayer = new Player(avatar)
+      session = session.copy(player = tplayer)
+      //actual zone is undefined; going to our sanctuary
+      RandomSanctuarySpawnPosition(tplayer)
+      DefinitionUtil.applyDefaultLoadout(tplayer)
       avatarActor ! AvatarActor.LoginAvatar(context.self)
 
-    case PlayerToken.LoginInfo(playerName, inZone, pos) =>
-      log.info(s"LoginInfo: player $playerName is already logged in zone ${inZone.id}; rejoining that character")
+    case PlayerToken.LoginInfo(name, inZone, optionalSavedData) =>
+      log.info(s"LoginInfo: player $name is considered a fresh character")
+      persistFunc = UpdatePersistence(sender())
+      deadState = DeadState.RespawnTime
+      session = session.copy(player = new Player(avatar))
+      player.Zone = inZone
+      optionalSavedData match {
+        case Some(results) =>
+          val health = results.health
+          val hasHealthUponLogin = health > 0
+          val position = Vector3(results.px * 0.001f, results.py * 0.001f, results.pz * 0.001f)
+          player.Position = position
+          player.Orientation = Vector3(0f, 0f, results.orientation * 0.001f)
+          /*
+          @reset_sanctuary=You have been returned to the sanctuary because you played another character.
+           */
+          if (hasHealthUponLogin) {
+            player.Spawn()
+            player.Health = health
+            player.Armor = results.armor
+            player.ExoSuit = ExoSuitType(results.exosuitNum)
+            AvatarActor.buildContainedEquipmentFromClob(player, results.loadout, log)
+          } else {
+            player.ExoSuit = ExoSuitType.Standard
+            DefinitionUtil.applyDefaultLoadout(player)
+          }
+          if (player.isAlive) {
+            zoningType = Zoning.Method.Login
+            player.ZoningRequest = Zoning.Method.Login
+            zoningChatMessageType = ChatMessageType.UNK_227
+            if (Zones.sanctuaryZoneNumber(player.Faction) != inZone.Number) {
+              val pfaction = player.Faction
+              val buildings = inZone.Buildings.values
+              val ourBuildings = buildings.filter { _.Faction == pfaction }.toSeq
+              val playersInZone = inZone.Players
+              val friendlyPlayersInZone = playersInZone.count { _.faction == pfaction }
+              val noFriendlyPlayersInZone = friendlyPlayersInZone == 0
+              if (inZone.map.cavern) {
+                loginChatMessage = "@reset_sanctuary_locked"
+                //You have been returned to the sanctuary because the location you logged out is not available.
+                player.Zone = Zone.Nowhere
+              } else if (ourBuildings.isEmpty && (amsSpawnPoints.isEmpty || noFriendlyPlayersInZone)) {
+                loginChatMessage = "@reset_sanctuary_locked"
+                //You have been returned to the sanctuary because the location you logged out is not available.
+                player.Zone = Zone.Nowhere
+              } else if (friendlyPlayersInZone > 137 || playersInZone.size > 413) {
+                loginChatMessage = "@reset_sanctuary_full"
+                //You have been returned to the sanctuary because the zone you logged out on is full.
+                player.Zone = Zone.Nowhere
+              } else {
+                val inBuildingSOI = buildings.filter { b =>
+                  val soi2 = b.Definition.SOIRadius * b.Definition.SOIRadius
+                  Vector3.DistanceSquared(b.Position, position) < soi2
+                }
+                if (inBuildingSOI.nonEmpty) {
+                  if (!inBuildingSOI.exists { ourBuildings.contains }) {
+                    zoningType = Zoning.Method.Reset
+                    player.ZoningRequest = Zoning.Method.Reset
+                    zoningChatMessageType = ChatMessageType.UNK_228
+                  }
+                } else {
+                  if (noFriendlyPlayersInZone) {
+                    loginChatMessage = "@reset_sanctuary_inactive"
+                    //You have been returned to the sanctuary because the location you logged out is not available.
+                    player.Zone = Zone.Nowhere
+                  }
+                }
+              }
+            }
+          } else {
+            //player is dead; go back to sanctuary
+            loginChatMessage = "@reset_sanctuary_inactive"
+            //You have been returned to the sanctuary because the location you logged out is not available.
+            player.Zone = Zone.Nowhere
+          }
+
+        case None =>
+          player.Spawn()
+          player.ExoSuit = ExoSuitType.Standard
+          DefinitionUtil.applyDefaultLoadout(player)
+      }
+      avatarActor ! AvatarActor.LoginAvatar(context.self)
+
+    case PlayerToken.RestoreInfo(playerName, inZone, pos) =>
+      log.info(s"RestoreInfo: player $playerName is already logged in zone ${inZone.id}; rejoining that character")
       persistFunc = UpdatePersistence(sender())
       //tell the old WorldSessionActor to kill itself by using its own subscriptions against itself
       inZone.AvatarEvents ! AvatarServiceMessage(playerName, AvatarAction.TeardownConnection())
@@ -1684,7 +1726,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         case (Some(a), Some(p)) if p.isAlive =>
           //rejoin current avatar/player
-          log.info(s"LoginInfo: player $playerName is alive")
+          log.info(s"RestoreInfo: player $playerName is alive")
           deadState = DeadState.Alive
           session = session.copy(player = p, avatar = a)
           persist()
@@ -1694,7 +1736,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         case (Some(a), Some(p)) =>
           //convert player to a corpse (unless in vehicle); automatic recall to closest spawn point
-          log.info(s"LoginInfo: player $playerName is dead")
+          log.info(s"RestoreInfo: player $playerName is dead")
           deadState = DeadState.Dead
           session = session.copy(player = p, avatar = a)
           persist()
@@ -1705,7 +1747,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         case (Some(a), None) =>
           //respawn avatar as a new player; automatic recall to closest spawn point
-          log.info(s"LoginInfo: player $playerName had released recently")
+          log.info(s"RestoreInfo: player $playerName had released recently")
           deadState = DeadState.RespawnTime
           session = session.copy(
             player = inZone.Corpses.findLast(c => c.Name == playerName) match {
@@ -1724,8 +1766,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
         case _ =>
           //fall back to sanctuary/prior?
-          log.info(s"LoginInfo: player $playerName could not be found in game world")
-          self.forward(PlayerToken.LoginInfo(playerName, Zone.Nowhere, pos))
+          log.info(s"RestoreInfo: player $playerName could not be found in game world")
+          self.forward(PlayerToken.LoginInfo(playerName, Zone.Nowhere, None))
       }
 
     case PlayerToken.CanNotLogin(playerName, reason) =>
@@ -1748,6 +1790,39 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case default =>
       log.warn(s"Invalid packet class received: $default from ${sender()}")
+  }
+
+  def RandomSanctuarySpawnPosition(target: Player): Unit = {
+    //xy-coordinates indicate spawn bias:
+    val sanctuaryNum = Zones.sanctuaryZoneNumber(target.Faction)
+    val harts = Zones.zones.find(zone => zone.Number == sanctuaryNum) match {
+      case Some(zone) => zone.Buildings
+        .values
+        .filter(b => b.Amenities.exists { a: Amenity => a.isInstanceOf[OrbitalShuttlePad] })
+        .toSeq
+      case None =>
+        Nil
+    }
+    //compass directions to modify spawn destination
+    val directionBias = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 8) match {
+      case 0 => Vector3(-1, 1,0) //NW
+      case 1 => Vector3( 0, 1,0) //N
+      case 2 => Vector3( 1, 1,0) //NE
+      case 3 => Vector3( 1, 0,0) //E
+      case 4 => Vector3( 1,-1,0) //SE
+      case 5 => Vector3( 0,-1,0) //S
+      case 6 => Vector3(-1,-1,0) //SW
+      case 7 => Vector3(-1, 0,0) //W
+    }
+    if (harts.nonEmpty) {
+      //get a hart building and select one of the spawn facilities surrounding it
+      val campusLocation = harts(math.floor(math.abs(math.random()) * harts.size).toInt).Position
+      target.Position = campusLocation + directionBias
+    } else {
+      //weird issue here; should we log?
+      //select closest spawn point based on global cardinal or ordinal direction bias
+      target.Position = directionBias * 8192f
+    }
   }
 
   /**
@@ -1864,6 +1939,45 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   /**
+    * Process recovered spawn request information to start the process of spawning an avatar player entity
+    * in a specific zone in a specific place in that zone after a certain amount of time has elapsed.<br>
+    * <br>
+    * To load: a zone, a spawn point, a spawning target entity, and the time it takes to spawn are required.
+    * Everything but the spawn point can be determined from the information already available to the context
+    * (does not need to be passed in as a parameter).
+    * The zone is more reliable when passed in as a parameter since local references may have changed.
+    * The spawn point defines the spawn position as well as the spawn orientation.
+    * Any of information provided can be used to calculate the time to spawn.
+    * The session's knowledge of the zoning event is also used to assist with the spawning event.<br>
+    * <br>
+    * If no spawn information has been provided, abort the whole process (unsafe!).
+    * @param spawnPointTarget an optional paired zone entity and a spawn point within the zone
+    * @param zoningType a token that references the manner of zone transfer
+    */
+  def resolveZoningSpawnPointLoad(spawnPointTarget: Option[(Zone, SpawnPoint)], zoningType: Zoning.Method): Unit = {
+    spawnPointTarget match {
+      case Some((zone, spawnPoint)) =>
+        val obj = continent.GUID(player.VehicleSeated) match {
+          case Some(obj: Vehicle) if !obj.Destroyed => obj
+          case _                                    => player
+        }
+        val (pos, ori) = spawnPoint.SpecificPoint(obj)
+        if (zoningType == Zoning.Method.InstantAction)
+          LoadZonePhysicalSpawnPoint(zone.id, pos, ori, respawnTime = 0 seconds, Some(spawnPoint))
+        else
+          LoadZonePhysicalSpawnPoint(zone.id, pos, ori, CountSpawnDelay(zone.id, spawnPoint, continent.id), Some(spawnPoint))
+      case None =>
+        log.warn(
+          s"SpawnPointResponse: ${player.Name} received no spawn point response when asking InterstellarClusterService"
+        )
+        if (Config.app.game.warpGates.defaultToSanctuaryDestination) {
+          log.warn(s"SpawnPointResponse: sending ${player.Name} home")
+          RequestSanctuaryZoneSpawn(player, currentZone = 0)
+        }
+    }
+  }
+
+  /**
     * Attach the player to a droppod vehicle and hurtle them through the stratosphere in some far off world.
     * Perform all normal operation standardization (state cancels) as if any of form of zoning was being performed,
     * then assemble the vehicle and work around some inconvenient setup requirements for vehicle gating.
@@ -1900,14 +2014,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   /**
     * The user no longer expects to perform a zoning event for this reason.
-    *
     * @param msg     the message to the user
     * @param msgType the type of message, influencing how it is presented to the user;
-    *                normally, this message uses the same value as `zoningChatMessageType`s
+    *                normally, this message uses the same value as `zoningChatMessageType`;
     *                defaults to `None`
     */
   def CancelZoningProcessWithReason(msg: String, msgType: Option[ChatMessageType] = None): Unit = {
-    if (zoningStatus > Zoning.Status.None) {
+    if (zoningStatus != Zoning.Status.None) {
       sendResponse(ChatMsg(msgType.getOrElse(zoningChatMessageType), false, "", msg, None))
     }
     CancelZoningProcess()
@@ -1925,6 +2038,76 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     zoningCounter = 0
     //instant action exclusive field
     instantActionFallbackDestination = None
+  }
+
+  def HandleNewPlayerLoaded(tplayer: Player): Unit = {
+    //new zone
+    log.info(s"${tplayer.Name} has spawned into ${session.zone.id}")
+    oldRefsMap.clear()
+    persist = UpdatePersistenceAndRefs
+    tplayer.avatar = avatar
+    session = session.copy(player = tplayer)
+    avatarActor ! AvatarActor.CreateImplants()
+    avatarActor ! AvatarActor.InitializeImplants()
+    //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
+    val weaponsEnabled =
+      session.zone.map.name != "map11" && session.zone.map.name != "map12" && session.zone.map.name != "map13"
+    sendResponse(
+      LoadMapMessage(
+        session.zone.map.name,
+        session.zone.id,
+        40100,
+        25,
+        weaponsEnabled,
+        session.zone.map.checksum
+      )
+    )
+    if (isAcceptableNextSpawnPoint()) {
+      //important! the LoadMapMessage must be processed by the client before the avatar is created
+      setupAvatarFunc()
+      //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
+      turnCounterFunc = interimUngunnedVehicle match {
+        case Some(_) =>
+          TurnCounterDuringInterimWhileInPassengerSeat
+        case None if zoningType == Zoning.Method.Login || zoningType == Zoning.Method.Reset =>
+          TurnCounterLogin
+        case None =>
+          TurnCounterDuringInterim
+      }
+      keepAliveFunc = NormalKeepAlive
+      upstreamMessageCount = 0
+      setAvatar = false
+      persist()
+    } else {
+      //look for different spawn point in same zone
+      cluster ! ICS.GetNearbySpawnPoint(
+        session.zone.Number,
+        tplayer,
+        Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
+        context.self
+      )
+    }
+  }
+
+  def HandleZoneResponse(foundZone: Zone): Unit = {
+    log.trace(s"ZoneResponse: zone ${foundZone.id} will now load for ${player.Name}")
+    loadConfZone = true
+    val oldZone = session.zone
+    session = session.copy(zone = foundZone)
+    //the only zone-level event system subscription necessary before BeginZoningMessage (for persistence purposes)
+    continent.AvatarEvents ! Service.Join(player.Name)
+    persist()
+    oldZone.AvatarEvents ! Service.Leave()
+    oldZone.LocalEvents ! Service.Leave()
+    oldZone.VehicleEvents ! Service.Leave()
+    continent.Population ! Zone.Population.Join(avatar)
+    player.avatar = avatar
+    interstellarFerry match {
+      case Some(vehicle) if vehicle.PassengerInSeat(player).contains(0) =>
+        TaskWorkflow.execute(registerDrivenVehicle(vehicle, player))
+      case _ =>
+        TaskWorkflow.execute(registerNewAvatar(player))
+    }
   }
 
   /**
@@ -2110,6 +2293,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         } else {
           HandleReleaseAvatar(player, continent)
         }
+        AvatarActor.savePlayerLocation(player)
+        renewCharSavedTimer(fixedLen=1800L, varLen=0L)
 
       case AvatarResponse.LoadPlayer(pkt) =>
         if (tplayer_guid != guid) {
@@ -2274,6 +2459,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case AvatarResponse.TerminalOrderResult(terminal_guid, action, result) =>
         sendResponse(ItemTransactionResultMessage(terminal_guid, action, result))
         lastTerminalOrderFulfillment = true
+        if (result &&
+          (action == TransactionType.Buy || action == TransactionType.Loadout)) {
+          AvatarActor.savePlayerData(player)
+          renewCharSavedTimer(
+            Config.app.game.savedMsg.interruptedByAction.fixed,
+            Config.app.game.savedMsg.interruptedByAction.variable
+          )
+        }
 
       case AvatarResponse.ChangeExosuit(
             target,
@@ -3534,6 +3727,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       //killed during spawn setup or possibly a relog into a corpse (by accident?)
       player.Actor ! Player.Die()
     }
+    AvatarActor.savePlayerData(player)
+    displayCharSavedMsgThenRenewTimer(
+      Config.app.game.savedMsg.short.fixed,
+      Config.app.game.savedMsg.short.variable
+    )
     upstreamMessageCount = 0
     setAvatar = true
   }
@@ -5603,10 +5801,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           }
           if (action == 29) {
             log.info(s"${player.Name} is AFK")
+            AvatarActor.savePlayerLocation(player)
+            displayCharSavedMsgThenRenewTimer(fixedLen=1800L, varLen=0L) //~30min
             player.AwayFromKeyboard = true
           } else if (action == 30) {
             log.info(s"${player.Name} is back")
             player.AwayFromKeyboard = false
+            renewCharSavedTimer(
+              Config.app.game.savedMsg.renewal.fixed,
+              Config.app.game.savedMsg.renewal.variable
+            )
           }
           if (action == GenericActionEnum.DropSpecialItem.id) {
             DropSpecialSlotItem()
@@ -7311,7 +7515,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * @param tplayer the player to be killed
     */
   def suicide(tplayer: Player): Unit = {
-    tplayer.History(PlayerSuicide())
+    tplayer.History(PlayerSuicide(PlayerSource(tplayer)))
     tplayer.Actor ! Player.Die()
   }
 
@@ -8535,7 +8739,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     * If the player is alive and mounted in a vehicle, a different can of worms is produced.
     * The ramifications of these conditions are not fully satisfied until the player loads into the new zone.
     * Even then, the conclusion becomes delayed while a slightly lagged mechanism hoists players between zones.
-    *
     * @param zoneId      the zone in which the player will be placed
     * @param pos         the game world coordinates where the player will be positioned
     * @param ori         the direction in which the player will be oriented
@@ -8598,7 +8801,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         }
       }
     }
-
   }
 
   /**
@@ -8630,15 +8832,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         session = session.copy(player = targetPlayer)
         TaskWorkflow.execute(taskThenZoneChange(
           GUIDTask.unregisterObject(continent.GUID, original.avatar.locker),
-          ICS.FindZone(_.id == zoneId, context.self)
+          ICS.FindZone(_.id.equals(zoneId), context.self)
         ))
       } else if (player.HasGUID) {
         TaskWorkflow.execute(taskThenZoneChange(
           GUIDTask.unregisterAvatar(continent.GUID, original),
-          ICS.FindZone(_.id == zoneId, context.self)
+          ICS.FindZone(_.id.equals(zoneId), context.self)
         ))
       } else {
-        cluster ! ICS.FindZone(_.id == zoneId, context.self)
+        cluster ! ICS.FindZone(_.id.equals(zoneId), context.self)
       }
 
     }
@@ -9372,6 +9574,22 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       turnCounterFunc = NormalTurnCounter
     }
   }
+  /**
+    * The upstream counter accumulates when the server receives specific messages from the client.<br>
+    * <br>
+    * This accumulator is assigned after a login event.
+    * The main purpose is to display any messages to the client regarding
+    * if their previous log-out location and their current log-in location are different.
+    * Hereafter, the normal accumulator will be referenced.
+    * @param guid the player's globally unique identifier number
+    */
+  def TurnCounterLogin(guid: PlanetSideGUID): Unit = {
+    NormalTurnCounter(guid)
+    sendResponse(ChatMsg(zoningChatMessageType, false, "", loginChatMessage, None))
+    CancelZoningProcess()
+    loginChatMessage = ""
+    turnCounterFunc = NormalTurnCounter
+  }
 
   /**
     * The normal response to receiving a `KeepAliveMessage` packet from the client.<br>
@@ -9851,6 +10069,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     session = session.copy(avatar = avatar)
     Deployables.InitializeDeployableQuantities(avatar)
     cluster ! ICS.FilterZones(_ => true, context.self)
+  }
+
+  def displayCharSavedMsgThenRenewTimer(fixedLen: Long, varLen: Long): Unit = {
+    charSaved()
+    renewCharSavedTimer(fixedLen, varLen)
+  }
+
+  def renewCharSavedTimer(fixedLen: Long, varLen: Long): Unit = {
+    charSavedTimer.cancel()
+    val delay = (fixedLen + (varLen * scala.math.random()).toInt).seconds
+    charSavedTimer = context.system.scheduler.scheduleOnce(delay, self, SessionActor.CharSavedMsg)
+  }
+
+  def charSaved(): Unit = {
+    sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@charsaved", None))
   }
 
   def failWithError(error: String) = {

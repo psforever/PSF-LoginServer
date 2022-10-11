@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
+import net.psforever.objects.vital.{DamagingActivity, HealingActivity}
 import org.joda.time.{LocalDateTime, Seconds}
 //import org.log4s.Logger
 import scala.collection.mutable
@@ -192,6 +193,48 @@ object AvatarActor {
 
   final case class AvatarLoginResponse(avatar: Avatar)
 
+  /**
+    * A player loadout represents all of the items in the player's hands (equipment slots)
+    * and all of the items in the player's backpack (inventory)
+    * with items separated by meaningful punctuation marks.
+    * The CLOB - character large object - is a string of such item data
+    * that can be translated back into the original items
+    * and placed back in the same places in the inventory from which they were extracted.
+    * Together, these are occasionally referred to as an "inventory".
+    * @param owner the player whose inventory is being transcribed
+    * @return the resulting text data that represents an inventory
+    */
+  def buildClobFromPlayerLoadout(owner: Player): String = {
+    val clobber: mutable.StringBuilder = new mutable.StringBuilder()
+    //encode holsters
+    owner
+      .Holsters()
+      .zipWithIndex
+      .collect {
+        case (slot, index) if slot.Equipment.nonEmpty =>
+          clobber.append(encodeLoadoutClobFragment(slot.Equipment.get, index))
+      }
+    //encode inventory
+    owner.Inventory.Items.foreach {
+      case InventoryItem(obj, index) =>
+        clobber.append(encodeLoadoutClobFragment(obj, index))
+    }
+    clobber.mkString.drop(1) //drop leading punctuation
+  }
+
+  /**
+    * Transform from encoded inventory data as a CLOB - character large object - into individual items.
+    * Install those items into positions in a target container
+    * in the same positions in which they were previously recorded.<br>
+    * <br>
+    * There is no guarantee that the structure of the retained container data encoded in the CLOB
+    * will fit the current dimensions of the container.
+    * No tests are performed.
+    * A partial decompression of the CLOB may occur.
+    * @param container the container in which to place the pieces of equipment produced from the CLOB
+    * @param clob the inventory data in string form
+    * @param log a reference to a logging context
+    */
   def buildContainedEquipmentFromClob(container: Container, clob: String, log: org.log4s.Logger): Unit = {
     clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
       val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
@@ -222,7 +265,7 @@ object AvatarActor {
         case "Telepad" | "BoomerTrigger" => ;
         //special types of equipment that are not actually loaded
         case name =>
-          log.error(s"failing to add unknown equipment to a locker - $name")
+          log.error(s"failing to add unknown equipment to a container - $name")
       }
 
       toolAmmo foreach { toolAmmo =>
@@ -237,6 +280,57 @@ object AvatarActor {
         }
       }
     }
+  }
+
+  /**
+    * Transform the encoded object to time data
+    * into proper object to proper time references
+    * and filter out mappings that have exceeded the sample duration.
+    * @param clob the entity to time data in string form
+    * @param cooldownDurations a base reference for entity to time comparison
+    * @param log a reference to a logging context
+    * @return the resulting text data that represents object to time mappings
+    */
+  def buildCooldownsFromClob(
+                              clob: String,
+                              cooldownDurations: Map[BasicDefinition,FiniteDuration],
+                              log: org.log4s.Logger
+                            ): Map[String, LocalDateTime] = {
+    val now = LocalDateTime.now()
+    val cooldowns: mutable.Map[String, LocalDateTime] = mutable.Map()
+    clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
+      value.split(",") match {
+        case Array(name: String, b: String) =>
+          try {
+            val cooldown = LocalDateTime.parse(b)
+            cooldownDurations.get(DefinitionUtil.fromString(name)) match {
+              case Some(duration) if now.compareTo(cooldown.plusMillis(duration.toMillis.toInt)) == -1 =>
+                cooldowns.put(name, cooldown)
+              case _ => ;
+            }
+          } catch {
+            case _: Exception => ;
+          }
+        case _ =>
+          log.warn(s"ignoring invalid cooldown string: '$value'")
+      }
+    }
+    cooldowns.toMap
+  }
+
+  /**
+    * Transform the proper object to proper time references
+    * into encoded object to time data in a string format
+    * and filter out mappings that have exceeded the current time.
+    * @param cooldowns a base reference for entity to time comparison
+    * @return the resulting map that represents object to time string data
+    */
+  def buildClobfromCooldowns(cooldowns: Map[String, LocalDateTime]): String = {
+    val now = LocalDateTime.now()
+    cooldowns
+      .filter { case (_, cd) => cd.compareTo(now) == -1 }
+      .map { case (name, cd) => s"$name,$cd" }
+      .mkString("/")
   }
 
   def resolvePurchaseTimeName(faction: PlanetSideEmpire.Value, item: BasicDefinition): (BasicDefinition, String) = {
@@ -431,6 +525,219 @@ object AvatarActor {
   def onlineIfNotIgnored(onlinePlayer: Avatar, observedName: String): Boolean = {
     !onlinePlayer.people.ignored.exists { f => f.name.equals(observedName) }
   }
+
+  /**
+    * Query the database on information retained in regards to a certain character
+    * when that character had last logged out of the game.
+    * Dummy the data if no entries are found.
+    * @param avatarId the unique character identifier number
+    * @return when completed, a copy of data on that character from the database
+    */
+  def loadSavedPlayerData(avatarId: Long): Future[persistence.Savedplayer] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[persistence.Savedplayer] = Promise()
+    val queryResult = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
+    queryResult.onComplete {
+      case Success(data) if data.nonEmpty =>
+        out.completeWith(Future(data.head))
+      case _ =>
+        ctx.run(query[persistence.Savedplayer]
+          .insert(
+            _.avatarId -> lift(avatarId),
+            _.px -> lift(0),
+            _.py -> lift(0),
+            _.pz -> lift(0),
+            _.orientation -> lift(0),
+            _.zoneNum -> lift(0),
+            _.health -> lift(0),
+            _.armor -> lift(0),
+            _.exosuitNum -> lift(0),
+            _.loadout -> lift("")
+          )
+        )
+        out.completeWith(Future(persistence.Savedplayer(avatarId, 0, 0, 0, 0, 0, 0, 0, 0, "")))
+    }
+    out.future
+  }
+//TODO should return number of rows inserted?
+  /**
+    * Query the database on information retained in regards to a certain character
+    * when that character had last logged out of the game.
+    * If that character is found in the database, update the data for that character.
+    * @param player the player character
+    * @return when completed, return the number of rows updated
+    */
+  def savePlayerData(player: Player): Future[Int] = {
+    savePlayerData(player, player.Health)
+  }
+
+  /**
+    * Query the database on information retained in regards to a certain character
+    * when that character had last logged out of the game.
+    * If that character is found in the database, update the data for that character.
+    * Determine if the player's previous health information is valid
+    * by comparing historical information about the player character's campaign.
+    * (This ignored the official health value attached to the character.)
+    * @param player the player character
+    * @return when completed, return the number of rows updated
+    */
+  def finalSavePlayerData(player: Player): Future[Int] = {
+    val health = (
+      player.History.find(_.isInstanceOf[DamagingActivity]),
+      player.History.find(_.isInstanceOf[HealingActivity])
+    ) match {
+      case (Some(damage), Some(heal)) =>
+        //between damage and potential healing, which came last?
+        if (damage.time < heal.time) {
+          heal.asInstanceOf[HealingActivity].amount % player.MaxHealth
+        } else {
+          damage.asInstanceOf[DamagingActivity].data.targetAfter.asInstanceOf[PlayerSource].health
+        }
+      case (Some(damage), None) =>
+        damage.asInstanceOf[DamagingActivity].data.targetAfter.asInstanceOf[PlayerSource].health
+      case (None, Some(heal)) =>
+        heal.asInstanceOf[HealingActivity].amount % player.MaxHealth
+      case _ =>
+        player.MaxHealth
+    }
+    savePlayerData(player, health)
+  }
+
+  /**
+    * Query the database on information retained in regards to a certain character
+    * when that character had last logged out of the game.
+    * If that character is found in the database, update the data for that character.
+    * If no entries for that character are found, insert a new default-data entry.
+    * @param player the player character
+    * @param health a custom health value to assign the player character's information in the database
+    * @return when completed, return the number of rows updated
+    */
+  def savePlayerData(player: Player, health: Int): Future[Int] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[Int] = Promise()
+    val avatarId = player.avatar.id
+    val position = player.Position
+    val queryResult = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
+    queryResult.onComplete {
+      case Success(results) if results.nonEmpty =>
+        ctx.run(query[persistence.Savedplayer]
+          .filter { _.avatarId == lift(avatarId) }
+          .update(
+            _.px -> lift((position.x * 1000).toInt),
+            _.py -> lift((position.y * 1000).toInt),
+            _.pz -> lift((position.z * 1000).toInt),
+            _.orientation -> lift((player.Orientation.z * 1000).toInt),
+            _.zoneNum -> lift(player.Zone.Number),
+            _.health -> lift(health),
+            _.armor -> lift(player.Armor),
+            _.exosuitNum -> lift(player.ExoSuit.id),
+            _.loadout -> lift(buildClobFromPlayerLoadout(player))
+          )
+        )
+        out.completeWith(Future(1))
+      case _ =>
+        out.completeWith(Future(0))
+    }
+    out.future
+  }
+
+  /**
+    * Query the database on information retained in regards to a certain character
+    * when that character had last logged out of the game.
+    * If that character is found in the database, update only specific fields for that character
+    * related to the character's physical location in the game world.
+    * @param player the player character
+    * @return when completed, return the number of rows updated
+    */
+  def savePlayerLocation(player: Player): Future[Int] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[Int] = Promise()
+    val avatarId = player.avatar.id
+    val position = player.Position
+    val queryResult = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
+    queryResult.onComplete {
+      case Success(results) if results.nonEmpty =>
+        val res=ctx.run(query[persistence.Savedplayer]
+          .filter { _.avatarId == lift(avatarId) }
+          .update(
+            _.px -> lift((position.x * 1000).toInt),
+            _.py -> lift((position.y * 1000).toInt),
+            _.pz -> lift((position.z * 1000).toInt),
+            _.orientation -> lift((player.Orientation.z * 1000).toInt),
+            _.zoneNum -> lift(player.Zone.Number)
+          )
+        )
+        out.completeWith(Future(1))
+      case _ =>
+        out.completeWith(Future(0))
+    }
+    out.future
+  }
+
+  /**
+    * Query the database on information retained in regards to a certain player avatar
+    * when a character associated with the avatar had last logged out of the game.
+    * If that player avatar is found in the database, recover the retained information.
+    * If no entries for that avatar are found, insert a new default-data entry and dummy an entry for use.
+    * Useful mainly for player avatar login evaluations.
+    * @param avatarId a unique identifier number associated with the player avatar
+    * @return when completed, return the persisted data
+    */
+  def loadSavedAvatarData(avatarId: Long): Future[persistence.Savedavatar] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[persistence.Savedavatar] = Promise()
+    val queryResult = ctx.run(query[persistence.Savedavatar].filter { _.avatarId == lift(avatarId) })
+    queryResult.onComplete {
+      case Success(data) if data.nonEmpty =>
+        out.completeWith(Future(data.head))
+      case _ =>
+        val now = LocalDateTime.now()
+        ctx.run(query[persistence.Savedavatar]
+          .insert(
+            _.avatarId -> lift(avatarId),
+            _.forgetCooldown -> lift(now),
+            _.purchaseCooldowns -> lift(""),
+            _.useCooldowns -> lift("")
+          )
+        )
+        out.completeWith(Future(persistence.Savedavatar(avatarId, now, "", "")))
+    }
+    out.future
+  }
+
+  /**
+    * Query the database on information retained in regards to a certain player avatar
+    * when a character associated with the avatar had last logged out of the game.
+    * If that player avatar is found in the database, update important information.
+    * Useful mainly for player avatar login evaluations.
+    * @param avatar a unique player avatar
+    * @return when completed, return the number of rows updated
+    */
+  def saveAvatarData(avatar: Avatar): Future[Int] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[Int] = Promise()
+    val avatarId = avatar.id
+    val queryResult = ctx.run(query[persistence.Savedavatar].filter { _.avatarId == lift(avatarId) })
+    queryResult.onComplete {
+      case Success(results) if results.nonEmpty =>
+        ctx.run(query[persistence.Savedavatar]
+          .filter { _.avatarId == lift(avatarId) }
+          .update(
+            _.purchaseCooldowns -> lift(buildClobfromCooldowns(avatar.cooldowns.purchase)),
+            _.useCooldowns -> lift(buildClobfromCooldowns(avatar.cooldowns.use))
+          )
+        )
+        out.completeWith(Future(1))
+      case _ =>
+        out.completeWith(Future(0))
+    }
+    out.future
+  }
 }
 
 class AvatarActor(
@@ -568,14 +875,30 @@ class AvatarActor(
           val result = for {
             _ <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Loadout].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Locker].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(id)).delete)
-            r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Friend].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Ignored].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Savedavatar].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Savedplayer].filter(_.avatarId == lift(id)).delete)
+            r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(id)))
           } yield r
 
           result.onComplete {
-            case Success(_) =>
-              log.debug(s"AvatarActor: avatar $id deleted")
-              sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
+            case Success(deleted) =>
+              deleted.headOption match {
+                case Some(a) if !a.deleted =>
+                  ctx.run(query[persistence.Avatar]
+                    .filter(_.id == lift(id))
+                    .update(
+                      _.deleted -> lift(true),
+                      _.lastModified -> lift(LocalDateTime.now())
+                    )
+                  )
+                  log.debug(s"AvatarActor: avatar $id deleted")
+                  sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
+                case _ => ;
+              }
               sendAvatars(account)
             case Failure(e) => log.error(e)("db failure")
           }
@@ -597,32 +920,42 @@ class AvatarActor(
 
         case LoginAvatar(replyTo) =>
           import ctx._
-
+          val avatarId = avatar.id
           val result = for {
-            _ <- ctx.run(
-              query[persistence.Avatar].filter(_.id == lift(avatar.id))
-                .update(_.lastLogin -> lift(LocalDateTime.now()))
+            //log this login
+            _ <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId))
+              .update(_.lastLogin -> lift(LocalDateTime.now()))
             )
-            avatarId = avatar.id
+            //log this choice of faction (no empire switching)
+            _ <- ctx.run(query[persistence.Account].filter(_.id == lift(account.id))
+              .update(_.lastFactionId -> lift(avatar.faction.id))
+            )
+            //retrieve avatar data
             loadouts <- initializeAllLoadouts()
             implants <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatarId)))
             certs    <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatarId)))
             locker   <- loadLocker(avatarId)
             friends  <- loadFriendList(avatarId)
             ignored  <- loadIgnoredList(avatarId)
-          } yield (loadouts, implants, certs, locker, friends, ignored)
-
+            saved    <- AvatarActor.loadSavedAvatarData(avatarId)
+          } yield (loadouts, implants, certs, locker, friends, ignored, saved)
           result.onComplete {
-            case Success((_loadouts, implants, certs, locker, friendsList, ignoredList)) =>
+            case Success((_loadouts, implants, certs, locker, friendsList, ignoredList, saved)) =>
               avatarCopy(
                 avatar.copy(
                   loadouts = avatar.loadouts.copy(suit = _loadouts),
-                  // make sure we always have the base certifications
                   certifications =
                     certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
                   implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
                   locker = locker,
-                  people = MemberLists(friendsList, ignoredList)
+                  people = MemberLists(
+                    friend = friendsList,
+                    ignored = ignoredList
+                  ),
+                  cooldowns = Cooldowns(
+                    purchase = AvatarActor.buildCooldownsFromClob(saved.purchaseCooldowns, Avatar.purchaseCooldowns, log),
+                    use = AvatarActor.buildCooldownsFromClob(saved.useCooldowns, Avatar.useCooldowns, log)
+                  )
                 )
               )
               // if we need to start stamina regeneration
@@ -699,6 +1032,7 @@ class AvatarActor(
                         sessionActor ! SessionActor.SendResponse(
                           ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
                         )
+                        sessionActor ! SessionActor.CharSaved
                     }
 
               }
@@ -754,6 +1088,7 @@ class AvatarActor(
                   sessionActor ! SessionActor.SendResponse(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
                   )
+                  sessionActor ! SessionActor.CharSaved
                   //wearing invalid armor?
                   if (
                     if (certification == Certification.ReinforcedExoSuit) player.ExoSuit == ExoSuitType.Reinforced
@@ -807,6 +1142,7 @@ class AvatarActor(
             .onComplete {
               case Success(_) =>
                 replaceAvatar(avatar.copy(certifications = certifications))
+                sessionActor ! SessionActor.CharSaved
               case Failure(exception) =>
                 log.error(exception)("db failure")
             }
@@ -855,6 +1191,7 @@ class AvatarActor(
                       ItemTransactionResultMessage(terminalGuid, TransactionType.Learn, success = true)
                     )
                     context.self ! ResetImplants()
+                    sessionActor ! SessionActor.CharSaved
                   case Failure(exception) => log.error(exception)("db failure")
                 }
 
@@ -890,6 +1227,7 @@ class AvatarActor(
                     ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
                   )
                   context.self ! ResetImplants()
+                  sessionActor ! SessionActor.CharSaved
                 case Failure(exception) => log.error(exception)("db failure")
               }
 
@@ -937,6 +1275,7 @@ class AvatarActor(
             case Success(loadout) =>
               val ldouts = avatar.loadouts
               replaceAvatar(avatar.copy(loadouts = ldouts.copy(suit = ldouts.suit.updated(lineNo, Some(loadout)))))
+              sessionActor ! SessionActor.CharSaved
               refreshLoadout(lineNo)
             case Failure(exception) =>
               log.error(exception)("db failure (?)")
@@ -946,7 +1285,7 @@ class AvatarActor(
         case DeleteLoadout(player, loadoutType, number) =>
           log.info(s"${player.Name} wishes to delete a favorite $loadoutType loadout - #${number + 1}")
           import ctx._
-          val (lineNo, result) = loadoutType match {
+          val (lineNo: Int, result) = loadoutType match {
             case LoadoutType.Infantry if avatar.loadouts.suit(number).nonEmpty =>
               (
                 number,
@@ -984,6 +1323,7 @@ class AvatarActor(
             case Success(_) =>
               val ldouts = avatar.loadouts
               avatarCopy(avatar.copy(loadouts = ldouts.copy(suit = ldouts.suit.updated(lineNo, None))))
+              sessionActor ! SessionActor.CharSaved
               sessionActor ! SessionActor.SendResponse(FavoritesMessage(loadoutType, player.GUID, number, ""))
             case Failure(exception) =>
               log.error(exception)("db failure (?)")
@@ -1003,7 +1343,6 @@ class AvatarActor(
           Behaviors.same
 
         case UpdatePurchaseTime(definition, time) =>
-          // TODO save to db
           var newTimes = avatar.cooldowns.purchase
           AvatarActor.resolveSharedPurchaseTimeNames(AvatarActor.resolvePurchaseTimeName(avatar.faction, definition)).foreach {
             case (item, name) =>
@@ -1281,6 +1620,7 @@ class AvatarActor(
       }
       .receiveSignal {
         case (_, PostStop) =>
+          AvatarActor.saveAvatarData(avatar)
           staminaRegenTimer.cancel()
           implantTimers.values.foreach(_.cancel())
           saveLockerFunc()
@@ -1323,8 +1663,11 @@ class AvatarActor(
           avatarCopy(avatar.copy(decoration = avatar.decoration.copy(cosmetics = Some(cosmetics))))
           session.get.zone.AvatarEvents ! AvatarServiceMessage(
             session.get.zone.id,
-            AvatarAction
-              .PlanetsideAttributeToAll(session.get.player.GUID, 106, Cosmetic.valuesToAttributeValue(cosmetics))
+            AvatarAction.PlanetsideAttributeToAll(
+              session.get.player.GUID,
+              106,
+              Cosmetic.valuesToAttributeValue(cosmetics)
+            )
           )
           p.success(())
         case Failure(exception) =>
@@ -1631,23 +1974,8 @@ class AvatarActor(
 
   def storeLoadout(owner: Player, label: String, line: Int): Future[Loadout] = {
     import ctx._
-    val items: String = {
-      val clobber: mutable.StringBuilder = new StringBuilder()
-      //encode holsters
-      owner
-        .Holsters()
-        .zipWithIndex
-        .collect {
-          case (slot, index) if slot.Equipment.nonEmpty =>
-            clobber.append(AvatarActor.encodeLoadoutClobFragment(slot.Equipment.get, index))
-        }
-      //encode inventory
-      owner.Inventory.Items.foreach {
-        case InventoryItem(obj, index) =>
-          clobber.append(AvatarActor.encodeLoadoutClobFragment(obj, index))
-      }
-      clobber.mkString.drop(1)
-    }
+    sessionActor ! SessionActor.CharSaved
+    val items: String = AvatarActor.buildClobFromPlayerLoadout(owner)
     for {
       loadouts <- ctx.run(
         query[persistence.Loadout].filter(_.avatarId == lift(owner.CharId)).filter(_.loadoutNumber == lift(line))
@@ -1691,6 +2019,7 @@ class AvatarActor(
       clobber.mkString.drop(1)
     }
 
+    sessionActor ! SessionActor.CharSaved
     for {
       loadouts <- ctx.run(
         query[persistence.Vehicleloadout]
@@ -1743,6 +2072,7 @@ class AvatarActor(
 
   def pushLockerClobToDataBase(items: String): Database.ctx.Result[Database.ctx.RunActionResult] = {
     import ctx._
+    sessionActor ! SessionActor.CharSaved
     ctx.run(
       query[persistence.Locker]
         .filter(_.avatarId == lift(avatar.id))
@@ -2116,6 +2446,7 @@ class AvatarActor(
           people = people.copy(friend = people.friend :+ AvatarFriend(charId, name, PlanetSideEmpire(faction), isOnline))
         ))
         sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.AddFriend, GameFriend(name, isOnline)))
+        sessionActor ! SessionActor.CharSaved
     }
   }
 
@@ -2141,6 +2472,7 @@ class AvatarActor(
       .delete
     )
     sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.RemoveFriend, GameFriend(name)))
+    sessionActor ! SessionActor.CharSaved
   }
 
   /**
@@ -2202,6 +2534,7 @@ class AvatarActor(
           avatar.copy(people = people.copy(ignored = people.ignored :+ AvatarIgnored(charId, name)))
         )
         sessionActor ! SessionActor.UpdateIgnoredPlayers(FriendsResponse(MemberAction.AddIgnoredPlayer, GameFriend(name)))
+        sessionActor ! SessionActor.CharSaved
     }
   }
 
@@ -2229,5 +2562,6 @@ class AvatarActor(
       .delete
     )
     sessionActor ! SessionActor.UpdateIgnoredPlayers(FriendsResponse(MemberAction.RemoveIgnoredPlayer, GameFriend(name)))
+    sessionActor ! SessionActor.CharSaved
   }
 }
