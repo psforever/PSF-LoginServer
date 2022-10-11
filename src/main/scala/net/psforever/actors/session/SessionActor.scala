@@ -1445,6 +1445,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       squadService ! Service.Join(s"${avatar.id}")       //channel will be player.CharId (in order to work with packets)
       player.Zone match {
         case Zone.Nowhere =>
+          RandomSanctuarySpawnPosition(player)
           RequestSanctuaryZoneSpawn(player, currentZone = 0)
         case zone =>
           log.trace(s"ZoneResponse: zone ${zone.id} will now load for ${player.Name}")
@@ -1619,39 +1620,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       log.info(s"LoginInfo: player $name is considered a fresh character")
       persistFunc = UpdatePersistence(sender())
       deadState = DeadState.RespawnTime
-      session = session.copy(player = new Player(avatar))
+      val tplayer = new Player(avatar)
+      session = session.copy(player = tplayer)
       //actual zone is undefined; going to our sanctuary
-      //xy-coordinates indicate spawn bias:
-      val sanctuaryNum = Zones.sanctuaryZoneNumber(avatar.faction)
-      val harts = Zones.zones.find(zone => zone.Number == sanctuaryNum) match {
-        case Some(zone) => zone.Buildings
-          .values
-          .filter(b => b.Amenities.exists { a: Amenity => a.isInstanceOf[OrbitalShuttlePad] })
-          .toSeq
-        case None =>
-          Nil
-      }
-      //compass directions to modify spawn destination
-      val directionBias = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 8) match {
-        case 0 => Vector3(-1, 1,0) //NW
-        case 1 => Vector3( 0, 1,0) //N
-        case 2 => Vector3( 1, 1,0) //NE
-        case 3 => Vector3( 1, 0,0) //E
-        case 4 => Vector3( 1,-1,0) //SE
-        case 5 => Vector3( 0,-1,0) //S
-        case 6 => Vector3(-1,-1,0) //SW
-        case 7 => Vector3(-1, 0,0) //W
-      }
-      if (harts.nonEmpty) {
-        //get a hart building and select one of the spawn facilities surrounding it
-        val campusLocation = harts(math.floor(math.abs(math.random()) * harts.size).toInt).Position
-        player.Position = campusLocation + directionBias
-      } else {
-        //weird issue here; should we log?
-        //select closest spawn point based on global cardinal or ordinal direction bias
-        player.Position = directionBias * 8192f
-      }
-      DefinitionUtil.applyDefaultLoadout(player)
+      RandomSanctuarySpawnPosition(tplayer)
+      DefinitionUtil.applyDefaultLoadout(tplayer)
       avatarActor ! AvatarActor.LoginAvatar(context.self)
 
     case PlayerToken.LoginInfo(name, inZone, optionalSavedData) =>
@@ -1723,6 +1696,11 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                 }
               }
             }
+          } else {
+            //player is dead; go back to sanctuary
+            loginChatMessage = "@reset_sanctuary_inactive"
+            //You have been returned to the sanctuary because the location you logged out is not available.
+            player.Zone = Zone.Nowhere
           }
 
         case None =>
@@ -1812,6 +1790,39 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case default =>
       log.warn(s"Invalid packet class received: $default from ${sender()}")
+  }
+
+  def RandomSanctuarySpawnPosition(target: Player): Unit = {
+    //xy-coordinates indicate spawn bias:
+    val sanctuaryNum = Zones.sanctuaryZoneNumber(target.Faction)
+    val harts = Zones.zones.find(zone => zone.Number == sanctuaryNum) match {
+      case Some(zone) => zone.Buildings
+        .values
+        .filter(b => b.Amenities.exists { a: Amenity => a.isInstanceOf[OrbitalShuttlePad] })
+        .toSeq
+      case None =>
+        Nil
+    }
+    //compass directions to modify spawn destination
+    val directionBias = math.abs(scala.util.Random.nextInt() % avatar.name.hashCode % 8) match {
+      case 0 => Vector3(-1, 1,0) //NW
+      case 1 => Vector3( 0, 1,0) //N
+      case 2 => Vector3( 1, 1,0) //NE
+      case 3 => Vector3( 1, 0,0) //E
+      case 4 => Vector3( 1,-1,0) //SE
+      case 5 => Vector3( 0,-1,0) //S
+      case 6 => Vector3(-1,-1,0) //SW
+      case 7 => Vector3(-1, 0,0) //W
+    }
+    if (harts.nonEmpty) {
+      //get a hart building and select one of the spawn facilities surrounding it
+      val campusLocation = harts(math.floor(math.abs(math.random()) * harts.size).toInt).Position
+      target.Position = campusLocation + directionBias
+    } else {
+      //weird issue here; should we log?
+      //select closest spawn point based on global cardinal or ordinal direction bias
+      target.Position = directionBias * 8192f
+    }
   }
 
   /**
