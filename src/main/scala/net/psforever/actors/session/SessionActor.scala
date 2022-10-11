@@ -708,7 +708,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       msg.friends.foreach { f =>
         galaxyService ! GalaxyServiceMessage(GalaxyAction.LogStatusChange(f.name))
       }
-      charSaved()
 
     case SendResponse(packet) =>
       sendResponse(packet)
@@ -1682,19 +1681,25 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             DefinitionUtil.applyDefaultLoadout(player)
           }
           if (player.isAlive) {
-            val pfaction = player.Faction
-            val buildings = inZone.Buildings.values
-            val ourBuildings = buildings.filter { _.Faction == pfaction }.toSeq
-            val playersInZone = inZone.Players
             zoningType = Zoning.Method.Login
             player.ZoningRequest = Zoning.Method.Login
             zoningChatMessageType = ChatMessageType.UNK_227
             if (Zones.sanctuaryZoneNumber(player.Faction) != inZone.Number) {
-              if (ourBuildings.isEmpty) {
+              val pfaction = player.Faction
+              val buildings = inZone.Buildings.values
+              val ourBuildings = buildings.filter { _.Faction == pfaction }.toSeq
+              val playersInZone = inZone.Players
+              val friendlyPlayersInZone = playersInZone.count { _.faction == pfaction }
+              val noFriendlyPlayersInZone = friendlyPlayersInZone == 0
+              if (inZone.map.cavern) {
                 loginChatMessage = "@reset_sanctuary_locked"
                 //You have been returned to the sanctuary because the location you logged out is not available.
                 player.Zone = Zone.Nowhere
-              } else if (playersInZone.size > 413 || playersInZone.count { _.faction == pfaction } > 137) {
+              } else if (ourBuildings.isEmpty && (amsSpawnPoints.isEmpty || noFriendlyPlayersInZone)) {
+                loginChatMessage = "@reset_sanctuary_locked"
+                //You have been returned to the sanctuary because the location you logged out is not available.
+                player.Zone = Zone.Nowhere
+              } else if (friendlyPlayersInZone > 137 || playersInZone.size > 413) {
                 loginChatMessage = "@reset_sanctuary_full"
                 //You have been returned to the sanctuary because the zone you logged out on is full.
                 player.Zone = Zone.Nowhere
@@ -1710,7 +1715,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                     zoningChatMessageType = ChatMessageType.UNK_228
                   }
                 } else {
-                  if (playersInZone.isEmpty) {
+                  if (noFriendlyPlayersInZone) {
                     loginChatMessage = "@reset_sanctuary_inactive"
                     //You have been returned to the sanctuary because the location you logged out is not available.
                     player.Zone = Zone.Nowhere

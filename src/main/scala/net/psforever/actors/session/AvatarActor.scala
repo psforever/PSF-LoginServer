@@ -542,6 +542,20 @@ object AvatarActor {
       case Success(data) if data.nonEmpty =>
         out.completeWith(Future(data.head))
       case _ =>
+        ctx.run(query[persistence.Savedplayer]
+          .insert(
+            _.avatarId -> lift(avatarId),
+            _.px -> lift(0),
+            _.py -> lift(0),
+            _.pz -> lift(0),
+            _.orientation -> lift(0),
+            _.zoneNum -> lift(0),
+            _.health -> lift(0),
+            _.armor -> lift(0),
+            _.exosuitNum -> lift(0),
+            _.loadout -> lift("")
+          )
+        )
         out.completeWith(Future(persistence.Savedplayer(avatarId, 0, 0, 0, 0, 0, 0, 0, 0, "")))
     }
     out.future
@@ -552,7 +566,7 @@ object AvatarActor {
     * when that character had last logged out of the game.
     * If that character is found in the database, update the data for that character.
     * @param player the player character
-    * @return when completed, return the number of rows inserted
+    * @return when completed, return the number of rows updated
     */
   def savePlayerData(player: Player): Future[Int] = {
     savePlayerData(player, player.Health)
@@ -566,7 +580,7 @@ object AvatarActor {
     * by comparing historical information about the player character's campaign.
     * (This ignored the official health value attached to the character.)
     * @param player the player character
-    * @return when completed, return the number of rows inserted
+    * @return when completed, return the number of rows updated
     */
   def finalSavePlayerData(player: Player): Future[Int] = {
     val health = (
@@ -597,7 +611,7 @@ object AvatarActor {
     * If no entries for that character are found, insert a new default-data entry.
     * @param player the player character
     * @param health a custom health value to assign the player character's information in the database
-    * @return when completed, return the number of rows inserted
+    * @return when completed, return the number of rows updated
     */
   def savePlayerData(player: Player, health: Int): Future[Int] = {
     import ctx._
@@ -622,23 +636,9 @@ object AvatarActor {
             _.loadout -> lift(buildClobFromPlayerLoadout(player))
           )
         )
-        out.completeWith(Future(0))
-      case _ =>
-        ctx.run(query[persistence.Savedplayer]
-          .insert(
-            _.avatarId -> lift(avatarId.toLong),
-            _.px -> lift((position.x * 1000).toInt),
-            _.py -> lift((position.y * 1000).toInt),
-            _.pz -> lift((position.z * 1000).toInt),
-            _.orientation -> lift((player.Orientation.z * 1000).toInt),
-            _.zoneNum -> lift(player.Zone.Number),
-            _.health -> lift(health),
-            _.armor -> lift(player.Armor),
-            _.exosuitNum -> lift(player.ExoSuit.id),
-            _.loadout -> lift(buildClobFromPlayerLoadout(player))
-          )
-        )
         out.completeWith(Future(1))
+      case _ =>
+        out.completeWith(Future(0))
     }
     out.future
   }
@@ -681,7 +681,7 @@ object AvatarActor {
     * Query the database on information retained in regards to a certain player avatar
     * when a character associated with the avatar had last logged out of the game.
     * If that player avatar is found in the database, recover the retained information.
-    * If no entries for that avatar are found, dummy an entry.
+    * If no entries for that avatar are found, insert a new default-data entry and dummy an entry for use.
     * Useful mainly for player avatar login evaluations.
     * @param avatarId a unique identifier number associated with the player avatar
     * @return when completed, return the persisted data
@@ -695,7 +695,16 @@ object AvatarActor {
       case Success(data) if data.nonEmpty =>
         out.completeWith(Future(data.head))
       case _ =>
-        out.completeWith(Future(persistence.Savedavatar(avatarId, LocalDateTime.now(), "", "")))
+        val now = LocalDateTime.now()
+        ctx.run(query[persistence.Savedavatar]
+          .insert(
+            _.avatarId -> lift(avatarId),
+            _.forgetCooldown -> lift(now),
+            _.purchaseCooldowns -> lift(""),
+            _.useCooldowns -> lift("")
+          )
+        )
+        out.completeWith(Future(persistence.Savedavatar(avatarId, now, "", "")))
     }
     out.future
   }
@@ -704,10 +713,9 @@ object AvatarActor {
     * Query the database on information retained in regards to a certain player avatar
     * when a character associated with the avatar had last logged out of the game.
     * If that player avatar is found in the database, update important information.
-    * If no entries for that avatar are found, insert a new default-data entry.
     * Useful mainly for player avatar login evaluations.
     * @param avatar a unique player avatar
-    * @return when completed, return the number of rows inserted
+    * @return when completed, return the number of rows updated
     */
   def saveAvatarData(avatar: Avatar): Future[Int] = {
     import ctx._
@@ -724,17 +732,9 @@ object AvatarActor {
             _.useCooldowns -> lift(buildClobfromCooldowns(avatar.cooldowns.use))
           )
         )
-        out.completeWith(Future(0))
-      case _ =>
-        ctx.run(query[persistence.Savedavatar]
-          .insert(
-            _.avatarId -> lift(avatar.id.toLong),
-            _.forgetCooldown -> lift(LocalDateTime.now()),
-            _.purchaseCooldowns -> lift(buildClobfromCooldowns(avatar.cooldowns.purchase)),
-            _.useCooldowns -> lift(buildClobfromCooldowns(avatar.cooldowns.use))
-          )
-        )
         out.completeWith(Future(1))
+      case _ =>
+        out.completeWith(Future(0))
     }
     out.future
   }
@@ -2052,7 +2052,6 @@ class AvatarActor(
       pushLockerClobToDataBase(AvatarActor.encodeLockerClob(avatar.locker))
         .onComplete {
           case Success(_) =>
-            sessionActor ! SessionActor.CharSaved
             saveLockerFunc = storeLocker
             log.debug(s"saving locker contents belonging to ${avatar.name}")
           case Failure(e) =>
@@ -2535,6 +2534,7 @@ class AvatarActor(
           avatar.copy(people = people.copy(ignored = people.ignored :+ AvatarIgnored(charId, name)))
         )
         sessionActor ! SessionActor.UpdateIgnoredPlayers(FriendsResponse(MemberAction.AddIgnoredPlayer, GameFriend(name)))
+        sessionActor ! SessionActor.CharSaved
     }
   }
 
@@ -2562,5 +2562,6 @@ class AvatarActor(
       .delete
     )
     sessionActor ! SessionActor.UpdateIgnoredPlayers(FriendsResponse(MemberAction.RemoveIgnoredPlayer, GameFriend(name)))
+    sessionActor ! SessionActor.CharSaved
   }
 }
