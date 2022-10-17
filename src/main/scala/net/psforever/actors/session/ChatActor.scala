@@ -1,31 +1,33 @@
 package net.psforever.actors.session
 
 import akka.actor.Cancellable
-import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
+import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
+import akka.actor.typed.scaladsl.adapter._
+import net.psforever.packet.game.objectcreate.DrawnSlot
+
+import scala.collection.mutable
+import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.duration._
+//
 import net.psforever.actors.zone.BuildingActor
+import net.psforever.login.WorldSession
+import net.psforever.objects.{Default, Player, Session}
 import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank, Cosmetic}
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
-import net.psforever.objects.{Default, Player, Session}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
 import net.psforever.objects.zones.Zoning
 import net.psforever.packet.game.{ChatMsg, DeadState, RequestDestroyMessage, ZonePopulationUpdateMessage}
+import net.psforever.services.{CavernRotationService, InterstellarClusterService}
+import net.psforever.services.chat.ChatService
+import net.psforever.services.chat.ChatService.ChatChannel
+import net.psforever.types.ChatMessageType.UNK_229
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.util.{Config, PointOfInterest}
 import net.psforever.zones.Zones
-import net.psforever.services.chat.ChatService
-import net.psforever.services.chat.ChatService.ChatChannel
-
-import scala.concurrent.ExecutionContextExecutor
-import scala.concurrent.duration._
-import akka.actor.typed.scaladsl.adapter._
-import net.psforever.services.{CavernRotationService, InterstellarClusterService}
-import net.psforever.types.ChatMessageType.UNK_229
-
-import scala.collection.mutable
 
 object ChatActor {
   def apply(
@@ -522,6 +524,9 @@ class ChatActor(
                   val tplayer = session.player
                   tplayer.Revive
                   tplayer.Actor ! Player.Die()
+
+                case (_, _, content) if content.startsWith("!grenade") =>
+                  WorldSession.QuickSwapToAGrenade(session.player, DrawnSlot.Pistol1.id, log)
 
                 case _ =>
                 // unknown ! commands are ignored

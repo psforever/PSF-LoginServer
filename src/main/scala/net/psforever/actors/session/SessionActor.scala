@@ -1649,6 +1649,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             player.Armor = results.armor
             player.ExoSuit = ExoSuitType(results.exosuitNum)
             AvatarActor.buildContainedEquipmentFromClob(player, results.loadout, log)
+            if (player.ExoSuit == ExoSuitType.MAX) {
+              player.DrawnSlot = 0
+              player.ResistArmMotion(PlayerControl.maxRestriction)
+            }
           } else {
             player.ExoSuit = ExoSuitType.Standard
             DefinitionUtil.applyDefaultLoadout(player)
@@ -2311,9 +2315,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(ObjectDeleteMessage(item_guid, unk))
         }
 
-      case AvatarResponse.ObjectHeld(slot) =>
-        if (tplayer_guid != guid) {
-          sendResponse(ObjectHeldMessage(guid, slot, false))
+      case AvatarResponse.ObjectHeld(slot, previousSLot) =>
+        if (tplayer_guid == guid) {
+          if (slot > -1) {
+            sendResponse(ObjectHeldMessage(guid, slot, unk1=true))
+            //Stop using proximity terminals if player unholsters a weapon
+            if (player.VisibleSlots.contains(slot)) {
+              continent.GUID(usingMedicalTerminal) match {
+                case Some(term: Terminal with ProximityUnit) =>
+                  StopUsingProximityUnit(term)
+                case _ => ;
+              }
+            }
+          }
+        } else {
+          sendResponse(ObjectHeldMessage(guid, previousSLot, unk1=false))
         }
 
       case AvatarResponse.OxygenState(player, vehicle) =>
@@ -2565,7 +2581,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(PlanetsideAttributeMessage(target, 4, armor))
         if (tplayer_guid == target) {
           //happening to this player
-          sendResponse(ObjectHeldMessage(target, Player.HandsDownSlot, false))
+          sendResponse(ObjectHeldMessage(target, Player.HandsDownSlot, true))
           //cleanup
           (old_holsters ++ old_inventory).foreach {
             case (obj, objGuid) =>
@@ -3382,10 +3398,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         CancelAllProximityUnits()
         if (player.VisibleSlots.contains(player.DrawnSlot)) {
           player.DrawnSlot = Player.HandsDownSlot
-          sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, true))
+          sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, unk1=true))
           continent.AvatarEvents ! AvatarServiceMessage(
             continent.id,
-            AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot)
+            AvatarAction.SendResponse(player.GUID, ObjectHeldMessage(player.GUID, player.LastDrawnSlot, unk1=false))
           )
         }
         sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L))          //mount points off
@@ -5033,54 +5049,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             log.warn(s"ReloadMessage: either can not find $item_guid or the object found was not a Tool")
         }
 
-      case msg @ ObjectHeldMessage(avatar_guid, held_holsters, unk1) =>
-        val before = player.DrawnSlot
-        if (before != held_holsters) {
-          if (player.ExoSuit == ExoSuitType.MAX && held_holsters != 0) {
-            log.warn(s"ObjectHeld: ${player.Name} is denied changing hands to $held_holsters as a MAX")
-            player.DrawnSlot = 0
-            sendResponse(ObjectHeldMessage(avatar_guid, 0, true))
-          } else if ((player.DrawnSlot = held_holsters) != before) {
-            continent.AvatarEvents ! AvatarServiceMessage(
-              player.Continent,
-              AvatarAction.ObjectHeld(player.GUID, player.LastDrawnSlot)
-            )
-            // Ignore non-equipment holsters
-            //todo: check current suit holster slots?
-            val isHolsters = held_holsters >= 0 && held_holsters < 5
-            val equipment = player.Slot(held_holsters).Equipment.orElse { player.Slot(before).Equipment }
-            if (isHolsters) {
-              equipment match {
-                case Some(unholsteredItem: Equipment) =>
-                  log.info(s"${player.Name} has drawn a $unholsteredItem from its holster")
-                  if (unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
-                    //rek beam/icon colour must match the player's correct hack level
-                    continent.AvatarEvents ! AvatarServiceMessage(
-                      player.Continent,
-                      AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, player.avatar.hackingSkillLevel())
-                    )
-                  }
-                case None => ;
-              }
-            } else {
-              equipment match {
-                case Some(holsteredEquipment) =>
-                  log.info(s"${player.Name} has put ${player.Sex.possessive} ${holsteredEquipment.Definition.Name} down")
-                case None =>
-                  log.info(s"${player.Name} lowers ${player.Sex.possessive} hand")
-              }
-            }
-
-            // Stop using proximity terminals if player unholsters a weapon (which should re-trigger the proximity effect and re-holster the weapon)
-            if (player.VisibleSlots.contains(held_holsters)) {
-              continent.GUID(usingMedicalTerminal) match {
-                case Some(term: Terminal with ProximityUnit) =>
-                  StopUsingProximityUnit(term)
-                case _ => ;
-              }
-            }
-          }
-        }
+      case ObjectHeldMessage(_, held_holsters, _) =>
+        player.Actor ! PlayerControl.ObjectHeld(held_holsters)
 
       case msg @ AvatarJumpMessage(state) =>
         avatarActor ! AvatarActor.ConsumeStamina(10)

@@ -1353,7 +1353,7 @@ class AvatarActor(
                   updatePurchaseTimer(
                     name,
                     cooldown.toSeconds,
-                    DefinitionUtil.fromString(name).isInstanceOf[VehicleDefinition]
+                    item.isInstanceOf[VehicleDefinition]
                   )
                 case _ => ;
               }

@@ -47,7 +47,7 @@ object AvatarResponse {
   final case class LoadPlayer(pkt: ObjectCreateMessage)                                            extends Response
   final case class LoadProjectile(pkt: ObjectCreateMessage)                                        extends Response
   final case class ObjectDelete(item_guid: PlanetSideGUID, unk: Int)                               extends Response
-  final case class ObjectHeld(slot: Int)                                                           extends Response
+  final case class ObjectHeld(slot: Int, previousSLot: Int)                                        extends Response
   final case class OxygenState(player: OxygenStateTarget, vehicle: Option[OxygenStateTarget])      extends Response
   final case class PlanetsideAttribute(attribute_type: Int, attribute_value: Long)                 extends Response
   final case class PlanetsideAttributeToAll(attribute_type: Int, attribute_value: Long)            extends Response
