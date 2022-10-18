@@ -56,7 +56,7 @@ import net.psforever.objects.zones.blockmap.{BlockMap, BlockMapEntity}
 import net.psforever.packet._
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.objectcreate._
-import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
+import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, Shortcut => GameShortcut, _}
 import net.psforever.services.CavernRotationService.SendCavernRotationUpdates
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
 import net.psforever.services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
@@ -3624,15 +3624,23 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
     //TODO if Medkit does not have shortcut, add to a free slot or write over slot 64
-    sendResponse(CreateShortcutMessage(guid, 1, 0, true, Shortcut.Medkit))
+    avatar.shortcuts
+      .zipWithIndex
+      .collect { case (Some(shortcut), index) =>
+        sendResponse(CreateShortcutMessage(
+          guid,
+          index + 1,
+          Some(GameShortcut(shortcut.purpose, shortcut.tile, shortcut.effect1, shortcut.effect2))
+        ))
+      }
     sendResponse(ChangeShortcutBankMessage(guid, 0))
     //Favorites lists
     avatarActor ! AvatarActor.InitialRefreshLoadouts()
 
     sendResponse(
-      SetChatFilterMessage(ChatChannel.Platoon, false, ChatChannel.values.toList)
+      SetChatFilterMessage(ChatChannel.Platoon, origin=false, ChatChannel.values.toList)
     ) //TODO will not always be "on" like this
-    sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, player.Faction, true))
+    sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, player.Faction, unk5=true))
     //looking for squad (members)
     if (tplayer.avatar.lookingForSquad || lfsm) {
       sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
@@ -6460,7 +6468,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         log.info(lament)
         log.debug(s"Battleplan: $lament - $msg")
 
-      case msg @ CreateShortcutMessage(player_guid, slot, unk, add, shortcut) => ;
+      case CreateShortcutMessage(_, slot, Some(shortcut)) =>
+        avatarActor ! AvatarActor.AddShortcut(slot - 1, shortcut)
+
+      case CreateShortcutMessage(_, slot, None) =>
+        avatarActor ! AvatarActor.RemoveShortcut(slot - 1)
+
+      case ChangeShortcutBankMessage(_, bank) =>
+        log.info(s"${player.Name} referencing hotbar bank $bank")
 
       case FriendsRequest(action, name) =>
         avatarActor ! AvatarActor.MemberListRequest(action, name)

@@ -123,6 +123,7 @@ case class Avatar(
     fatigued: Boolean = false,
     certifications: Set[Certification] = Set(),
     implants: Seq[Option[Implant]] = Seq(None, None, None),
+    shortcuts: Array[Option[Shortcut]] = Array.fill[Option[Shortcut]](64)(None),
     locker: LockerContainer = Avatar.makeLocker(),
     deployables: DeployableToolbox = new DeployableToolbox(),
     lookingForSquad: Boolean = false,

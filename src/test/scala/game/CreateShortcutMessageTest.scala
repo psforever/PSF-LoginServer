@@ -15,11 +15,9 @@ class CreateShortcutMessageTest extends Specification {
 
   "decode (medkit)" in {
     PacketCoding.decodePacket(stringMedkit).require match {
-      case CreateShortcutMessage(player_guid, slot, unk, addShortcut, shortcut) =>
+      case CreateShortcutMessage(player_guid, slot, shortcut) =>
         player_guid mustEqual PlanetSideGUID(4210)
         slot mustEqual 1
-        unk mustEqual 0
-        addShortcut mustEqual true
         shortcut.isDefined mustEqual true
         shortcut.get.purpose mustEqual 0
         shortcut.get.tile mustEqual "medkit"
@@ -32,11 +30,9 @@ class CreateShortcutMessageTest extends Specification {
 
   "decode (macro)" in {
     PacketCoding.decodePacket(stringMacro).require match {
-      case CreateShortcutMessage(player_guid, slot, unk, addShortcut, shortcut) =>
+      case CreateShortcutMessage(player_guid, slot, shortcut) =>
         player_guid mustEqual PlanetSideGUID(1356)
         slot mustEqual 8
-        unk mustEqual 0
-        addShortcut mustEqual true
         shortcut.isDefined mustEqual true
         shortcut.get.purpose mustEqual 1
         shortcut.get.tile mustEqual "shortcut_macro"
@@ -49,11 +45,9 @@ class CreateShortcutMessageTest extends Specification {
 
   "decode (remove)" in {
     PacketCoding.decodePacket(stringRemove).require match {
-      case CreateShortcutMessage(player_guid, slot, unk, addShortcut, shortcut) =>
+      case CreateShortcutMessage(player_guid, slot, shortcut) =>
         player_guid mustEqual PlanetSideGUID(1356)
         slot mustEqual 1
-        unk mustEqual 0
-        addShortcut mustEqual false
         shortcut.isDefined mustEqual false
       case _ =>
         ko
@@ -61,7 +55,7 @@ class CreateShortcutMessageTest extends Specification {
   }
 
   "encode (medkit)" in {
-    val msg = CreateShortcutMessage(PlanetSideGUID(4210), 1, 0, true, Some(Shortcut(0, "medkit")))
+    val msg = CreateShortcutMessage(PlanetSideGUID(4210), 1, Some(Shortcut(0, "medkit")))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringMedkit
@@ -71,8 +65,6 @@ class CreateShortcutMessageTest extends Specification {
     val msg = CreateShortcutMessage(
       PlanetSideGUID(1356),
       8,
-      0,
-      true,
       Some(Shortcut(1, "shortcut_macro", "NTU", "/platoon Incoming NTU spam!"))
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
@@ -81,7 +73,7 @@ class CreateShortcutMessageTest extends Specification {
   }
 
   "encode (remove)" in {
-    val msg = CreateShortcutMessage(PlanetSideGUID(1356), 1, 0, false)
+    val msg = CreateShortcutMessage(PlanetSideGUID(1356), 1, None)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringRemove

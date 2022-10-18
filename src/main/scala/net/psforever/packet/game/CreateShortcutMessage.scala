@@ -5,6 +5,37 @@ import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, Plan
 import net.psforever.types.PlanetSideGUID
 import scodec.Codec
 import scodec.codecs._
+import enumeratum.values.{StringEnum, StringEnumEntry}
+
+sealed abstract class ShortcutPurpose(val value: String, val purpose: Int) extends StringEnumEntry
+
+object ShortcutPurpose extends StringEnum[ShortcutPurpose] {
+  def values: IndexedSeq[ShortcutPurpose] = findValues
+
+  case object Medkit extends ShortcutPurpose(value = "medkit", purpose = 0)
+
+  case object ShortcutMacro extends ShortcutPurpose(value = "shortcut_macro", purpose = 1)
+
+  case object AdvancedRegen extends ShortcutPurpose(value = "advanced_regen", purpose = 2)
+
+  case object AudioAmplifier extends ShortcutPurpose(value = "audio_amplifier", purpose = 2)
+
+  case object DarklightVision extends ShortcutPurpose(value = "darklight_vision", purpose = 2)
+
+  case object MeleeBooster extends ShortcutPurpose(value = "melee_booster", purpose = 2)
+
+  case object PersonalShield extends ShortcutPurpose(value = "personal_shield", purpose = 2)
+
+  case object RangeMagnifier extends ShortcutPurpose(value = "range_magnifier", purpose = 2)
+
+  case object SecondWind extends ShortcutPurpose(value = "second_wind", purpose = 2)
+
+  case object SilentRun extends ShortcutPurpose(value = "silent_run", purpose = 2)
+
+  case object Surge extends ShortcutPurpose(value = "surge", purpose = 2)
+
+  case object Targeting extends ShortcutPurpose(value = "targeting", purpose = 2)
+}
 
 /**
   * Details regarding this shortcut.<br>
@@ -64,17 +95,13 @@ final case class Shortcut(purpose: Int, tile: String, effect1: String = "", effe
   * The prior functionality will rarely be appreciated, however, as players rarely never have their medkit shortcut unbound.
   * @param player_guid the player
   * @param slot the hotbar slot number (one-indexed)
-  * @param unk na; always zero?
-  * @param addShortcut true, if we are adding a shortcut; false, if we are removing any current shortcut
   * @param shortcut optional; details about the shortcut to be created
-  * @see ChangeShortcutBankMessage
+  * @see `ChangeShortcutBankMessage`
   */
 final case class CreateShortcutMessage(
     player_guid: PlanetSideGUID,
     slot: Int,
-    unk: Int,
-    addShortcut: Boolean,
-    shortcut: Option[Shortcut] = None
+    shortcut: Option[Shortcut]
 ) extends PlanetSideGamePacket {
   type Packet = CreateShortcutMessage
   def opcode = GamePacketOpcode.CreateShortcutMessage
@@ -82,6 +109,15 @@ final case class CreateShortcutMessage(
 }
 
 object Shortcut extends Marshallable[Shortcut] {
+  def apply(purpose: ShortcutPurpose): Shortcut = {
+    assert(purpose.purpose != 1, "can not define effects for the macro")
+    Shortcut(purpose.purpose, purpose.value, "", "")
+  }
+
+  def apply(purpose: ShortcutPurpose, effect1: String, effect2: String): Shortcut = {
+    assert(purpose.purpose == 1 && (effect1.isEmpty || effect2.isEmpty), "macro without effects defined")
+    Shortcut(purpose.purpose, purpose.value, effect1, effect2)
+  }
 
   /** Preset for the medkit quick-use option. */
   final val Medkit: Some[Shortcut] = Some(Shortcut(0, "medkit"))
@@ -105,10 +141,7 @@ object Shortcut extends Marshallable[Shortcut] {
 object CreateShortcutMessage extends Marshallable[CreateShortcutMessage] {
   implicit val codec: Codec[CreateShortcutMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
-      ("slot" | uint8L) ::
-      ("unk" | uint8L) ::
-      (("addShortcut" | bool) >>:~ { value =>
-      conditional(value, "shortcut" | Shortcut.codec).hlist
-    })
+      ("slot" | uint16L) ::
+      ("shortcut" | optional(bool, Shortcut.codec))
   ).as[CreateShortcutMessage]
 }
