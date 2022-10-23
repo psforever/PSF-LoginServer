@@ -5,7 +5,11 @@ import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.objects.avatar.{Shortcut => AvatarShortcut}
+import net.psforever.objects.definition.ImplantDefinition
+import net.psforever.packet.game.{CreateShortcutMessage, Shortcut}
 import net.psforever.packet.game.objectcreate.DrawnSlot
+import net.psforever.types.ImplantType
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContextExecutor
@@ -432,7 +436,7 @@ class ChatActor(
 
                 case (_, _, "!loc") =>
                   val continent = session.zone
-                  val player    = session.player
+                  val player = session.player
                   val loc =
                     s"zone=${continent.id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
                   log.info(loc)
@@ -489,8 +493,8 @@ class ChatActor(
                   val buffer = content.toLowerCase.split("\\s+")
                   val (facility, customNtuValue) = (buffer.lift(1), buffer.lift(2)) match {
                     case (Some(x), Some(y)) if y.toIntOption.nonEmpty => (Some(x), Some(y.toInt))
-                    case (Some(x), None) if x.toIntOption.nonEmpty    => (None, Some(x.toInt))
-                    case _                                            => (None, None)
+                    case (Some(x), None) if x.toIntOption.nonEmpty => (None, Some(x.toInt))
+                    case _ => (None, None)
                   }
                   val silos = (facility match {
                     case Some(cur) if cur.toLowerCase().startsWith("curr") =>
@@ -503,12 +507,17 @@ class ChatActor(
                     case Some(all) if all.toLowerCase.startsWith("all") =>
                       session.zone.Buildings.values
                     case Some(x) =>
-                      session.zone.Buildings.values.find { _.Name.equalsIgnoreCase(x) }.toList
+                      session.zone.Buildings.values.find {
+                        _.Name.equalsIgnoreCase(x)
+                      }.toList
                     case _ =>
                       session.zone.Buildings.values
                   })
-                    .flatMap { building => building.Amenities.filter { _.isInstanceOf[ResourceSilo] } }
-                  ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent=s"$facility")
+                    .flatMap { building => building.Amenities.filter {
+                      _.isInstanceOf[ResourceSilo]
+                    }
+                    }
+                  ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent = s"$facility")
 
                 case (_, _, content) if content.startsWith("!zonerotate") && gmCommandAllowed =>
                   val buffer = contents.toLowerCase.split("\\s+")
@@ -528,8 +537,50 @@ class ChatActor(
                 case (_, _, content) if content.startsWith("!grenade") =>
                   WorldSession.QuickSwapToAGrenade(session.player, DrawnSlot.Pistol1.id, log)
 
-                case _ =>
-                // unknown ! commands are ignored
+                case (_, _, content) if content.startsWith("!macro") =>
+                  val avatar = session.avatar
+                  val args = contents.split(" ").filter(_ != "")
+                  (args.lift(1), args.lift(2)) match {
+                    case (Some(cmd), other) =>
+                      cmd.toLowerCase() match {
+                        case "medkit" =>
+                          medkitSanityTest(session.player.GUID, avatar.shortcuts)
+
+                        case "implants" =>
+                          //implant shortcut sanity test
+                          implantSanityTest(
+                            session.player.GUID,
+                            avatar.implants.collect {
+                              case Some(implant) if implant.definition.implantType != ImplantType.None => implant.definition
+                            },
+                            avatar.shortcuts
+                          )
+
+                        case name
+                          if ImplantType.values.exists { a => a.shortcut.tile.equals(name) } =>
+                          avatar.implants.find {
+                            case Some(implant) => implant.definition.Name.equalsIgnoreCase(name)
+                            case None => false
+                          } match {
+                            case Some(Some(implant)) =>
+                              //specific implant shortcut sanity test
+                              implantSanityTest(session.player.GUID, Seq(implant.definition), avatar.shortcuts)
+                            case _ if other.nonEmpty =>
+                              //add macro?
+                              macroSanityTest(session.player.GUID, name, args.drop(2).mkString(" "), avatar.shortcuts)
+                            case _ => ;
+                          }
+
+                        case name
+                          if name.nonEmpty && other.nonEmpty =>
+                          //add macro
+                          macroSanityTest(session.player.GUID, name, args.drop(2).mkString(" "), avatar.shortcuts)
+
+                        case _ => ;
+                      }
+                    case _ => ;
+                      // unknown ! commands are ignored
+                  }
               }
 
             case (CMT_CAPTUREBASE, _, contents) if gmCommandAllowed =>
@@ -1173,7 +1224,107 @@ class ChatActor(
         case _ =>
           Behaviors.same
       }
-
   }
 
+  /**
+   * Create a medkit shortcut if there is no medkit shortcut on the hotbar.
+   * Bounce the packet to the client and the client will bounce it back to the server to continue the setup,
+   * or cancel / invalidate the shortcut creation.
+   * @see `Array::indexWhere`
+   * @see `CreateShortcutMessage`
+   * @see `net.psforever.objects.avatar.Shortcut`
+   * @see `net.psforever.packet.game.Shortcut.Medkit`
+   * @see `SessionActor.SendResponse`
+   * @param guid current player unique identifier for the target client
+   * @param shortcuts list of all existing shortcuts, used for early validation
+   */
+  def medkitSanityTest(
+                        guid: PlanetSideGUID,
+                        shortcuts: Array[Option[AvatarShortcut]]
+                      ): Unit = {
+    if (!shortcuts.exists {
+      case Some(a) => a.purpose == 0
+      case None    => false
+    }) {
+      shortcuts.indexWhere(_.isEmpty) match {
+        case -1 => ;
+        case index =>
+          //new shortcut
+          sessionActor ! SessionActor.SendResponse(CreateShortcutMessage(
+            guid,
+            index + 1,
+            Some(Shortcut.Medkit())
+          ))
+      }
+    }
+  }
+
+  /**
+   * Create all implant macro shortcuts for all implants whose shortcuts have been removed from the hotbar.
+   * Bounce the packet to the client and the client will bounce it back to the server to continue the setup,
+   * or cancel / invalidate the shortcut creation.
+   * @see `CreateShortcutMessage`
+   * @see `ImplantDefinition`
+   * @see `net.psforever.objects.avatar.Shortcut`
+   * @see `SessionActor.SendResponse`
+   * @param guid current player unique identifier for the target client
+   * @param haveImplants list of implants the player possesses
+   * @param shortcuts list of all existing shortcuts, used for early validation
+   */
+  def implantSanityTest(
+                         guid: PlanetSideGUID,
+                         haveImplants: Iterable[ImplantDefinition],
+                         shortcuts: Array[Option[AvatarShortcut]]
+                       ): Unit = {
+    val haveImplantShortcuts = shortcuts.collect {
+      case Some(shortcut) if shortcut.purpose == 2 => shortcut.tile
+    }
+    var start: Int = 0
+    haveImplants.filterNot { imp => haveImplantShortcuts.contains(imp.Name) }
+      .foreach { implant =>
+        shortcuts.indexWhere(_.isEmpty, start) match {
+          case -1 => ;
+          case index => ;
+            //new shortcut
+            start = index + 1
+            sessionActor ! SessionActor.SendResponse(CreateShortcutMessage(
+              guid,
+              start,
+              Some(implant.implantType.shortcut)
+            ))
+        }
+      }
+  }
+
+  /**
+   * Create a text chat macro shortcut if it doesn't already exist.
+   * Bounce the packet to the client and the client will bounce it back to the server to continue the setup,
+   * or cancel / invalidate the shortcut creation.
+   * @see `Array::indexWhere`
+   * @see `CreateShortcutMessage`
+   * @see `net.psforever.objects.avatar.Shortcut`
+   * @see `net.psforever.packet.game.Shortcut.Macro`
+   * @see `SessionActor.SendResponse`
+   * @param guid current player unique identifier for the target client
+   * @param acronym three letters emblazoned on the shortcut icon
+   * @param msg the message published to text chat
+   * @param shortcuts a list of all existing shortcuts, used for early validation
+   */
+  def macroSanityTest(
+                        guid: PlanetSideGUID,
+                        acronym: String,
+                        msg: String,
+                        shortcuts: Array[Option[AvatarShortcut]]
+                      ): Unit = {
+    shortcuts.indexWhere(_.isEmpty) match {
+      case -1 => ;
+      case index => ;
+        //new shortcut
+        sessionActor ! SessionActor.SendResponse(CreateShortcutMessage(
+          guid,
+          index + 1,
+          Some(Shortcut.Macro(acronym, msg))
+        ))
+    }
+  }
 }

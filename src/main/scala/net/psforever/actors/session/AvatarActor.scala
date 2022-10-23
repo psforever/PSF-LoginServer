@@ -1606,79 +1606,71 @@ class AvatarActor(
 
         case AddShortcut(slot, shortcut) =>
           import ctx._
-          val targetShortcut = avatar.shortcuts.lift(slot).flatten
-          //short-circuit if the shortcut already exists at the given location
-          val isDifferentShortcut = !(targetShortcut match {
-            case Some(target) =>
-              target.purpose.equals(shortcut.purpose) &&
-              (if (target.purpose != 1) {
-                target.tile == shortcut.tile
-              } else {
-                target.effect1.equals(shortcut.effect1) && target.effect2.equals(shortcut.effect2)
-              })
-            case _ =>
-              false
-          })
-          if (isDifferentShortcut) {
-            if (shortcut.purpose != 1 && avatar.shortcuts.exists {
-              case Some(a) => a.tile.equals(shortcut.tile)
-              case None    => false
-            }) {
-              //duplicate implant or medkit found
-              if (shortcut.purpose == 2) {
-                //duplicate implant
-                targetShortcut match {
-                  case Some(existingShortcut) =>
-                    //redraw redundant shortcut slot with existing shortcut
-                    sessionActor ! SessionActor.SendResponse(
-                      CreateShortcutMessage(
-                        session.get.player.GUID,
-                        slot + 1,
-                        Some(Shortcut(existingShortcut.purpose, existingShortcut.tile, existingShortcut.effect1, existingShortcut.effect2))
+          if (slot > -1) {
+            val targetShortcut = avatar.shortcuts.lift(slot).flatten
+            //short-circuit if the shortcut already exists at the given location
+            val isMacroShortcut = shortcut.isInstanceOf[Shortcut.Macro]
+            val isDifferentShortcut = !(targetShortcut match {
+              case Some(target) => AvatarShortcut.equals(shortcut, target)
+              case _            => false
+            })
+            if (isDifferentShortcut) {
+              if (!isMacroShortcut && avatar.shortcuts.flatten.exists {
+                a => AvatarShortcut.equals(shortcut, a)
+              }) {
+                //duplicate implant or medkit found
+                if (shortcut.isInstanceOf[Shortcut.Implant]) {
+                  //duplicate implant
+                  targetShortcut match {
+                    case Some(existingShortcut) =>
+                      //redraw redundant shortcut slot with existing shortcut
+                      sessionActor ! SessionActor.SendResponse(
+                        CreateShortcutMessage(session.get.player.GUID, slot + 1, Some(AvatarShortcut.convert(existingShortcut)))
                       )
+                    case _ =>
+                      //blank shortcut slot
+                      sessionActor ! SessionActor.SendResponse(CreateShortcutMessage(session.get.player.GUID, slot + 1, None))
+                  }
+                }
+              } else {
+                //macro, or implant or medkit
+                val (optEffect1, optEffect2, optShortcut) = shortcut match {
+                  case Shortcut.Macro(acro, msg) =>
+                    (
+                      acro,
+                      msg,
+                      Some(AvatarShortcut(shortcut.code, shortcut.tile, acro, msg))
                     )
                   case _ =>
-                    //blank shortcut slot
-                    sessionActor ! SessionActor.SendResponse(CreateShortcutMessage(session.get.player.GUID, slot + 1, None))
+                    (null, null, Some(AvatarShortcut(shortcut.code, shortcut.tile)))
                 }
-              }
-            } else {
-              //macro, or implant or medkit
-              val (optEffect1, optEffect2, optShortcut) = if (shortcut.purpose == 1) {
-                (
-                  shortcut.effect1,
-                  shortcut.effect2,
-                  Some(AvatarShortcut(shortcut.purpose, shortcut.tile, shortcut.effect1, shortcut.effect2))
-                )
-              } else {
-                (null, null, Some(AvatarShortcut(shortcut.purpose, shortcut.tile)))
-              }
-              targetShortcut match {
-                case Some(_) =>
-                  ctx.run(
-                    query[persistence.Shortcut]
-                      .filter(_.avatarId == lift(avatar.id.toLong))
-                      .filter(_.slot == lift(slot))
-                      .update(
-                        _.purpose -> lift(shortcut.purpose),
+                targetShortcut match {
+                  case Some(_) =>
+                    ctx.run(
+                      query[persistence.Shortcut]
+                        .filter(_.avatarId == lift(avatar.id.toLong))
+                        .filter(_.slot == lift(slot))
+                        .update(
+                          _.purpose -> lift(shortcut.code),
+                          _.tile -> lift(shortcut.tile),
+                          _.effect1 -> Option(lift(optEffect1)),
+                          _.effect2 -> Option(lift(optEffect2))
+                        )
+                    )
+                  case None =>
+                    ctx.run(
+                      query[persistence.Shortcut].insert(
+                        _.avatarId -> lift(avatar.id.toLong),
+                        _.slot -> lift(slot),
+                        _.purpose -> lift(shortcut.code),
                         _.tile -> lift(shortcut.tile),
                         _.effect1 -> Option(lift(optEffect1)),
                         _.effect2 -> Option(lift(optEffect2))
                       )
-                  )
-                case None =>
-                  ctx.run(
-                    query[persistence.Shortcut].insert(
-                      _.avatarId -> lift(avatar.id.toLong),
-                      _.slot -> lift(slot),
-                      _.purpose -> lift(shortcut.purpose),
-                      _.tile -> lift(shortcut.tile),
-                      _.effect1 -> Option(lift(optEffect1)),
-                      _.effect2 -> Option(lift(optEffect2))
                     )
-                  )
+                }
+                avatar.shortcuts.update(slot, optShortcut)
               }
-              avatar.shortcuts.update(slot, optShortcut)
             }
           }
           Behaviors.same

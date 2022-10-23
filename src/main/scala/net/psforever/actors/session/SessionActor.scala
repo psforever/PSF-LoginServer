@@ -9,7 +9,7 @@ import net.psforever.actors.net.MiddlewareActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.login.WorldSession._
 import net.psforever.objects._
-import net.psforever.objects.avatar._
+import net.psforever.objects.avatar.{Shortcut => AvatarShortcut, _}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.ce._
 import net.psforever.objects.definition._
@@ -56,7 +56,7 @@ import net.psforever.objects.zones.blockmap.{BlockMap, BlockMapEntity}
 import net.psforever.packet._
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.objectcreate._
-import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, Shortcut => GameShortcut, _}
+import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
 import net.psforever.services.CavernRotationService.SendCavernRotationUpdates
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
 import net.psforever.services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
@@ -3630,7 +3630,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sendResponse(CreateShortcutMessage(
           guid,
           index + 1,
-          Some(GameShortcut(shortcut.purpose, shortcut.tile, shortcut.effect1, shortcut.effect2))
+          Some(AvatarShortcut.convert(shortcut))
         ))
       }
     sendResponse(ChangeShortcutBankMessage(guid, 0))
