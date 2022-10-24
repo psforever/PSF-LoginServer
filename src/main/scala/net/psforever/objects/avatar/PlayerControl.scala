@@ -306,10 +306,53 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case PlayerControl.SetExoSuit(exosuit: ExoSuitType.Value, subtype: Int) =>
           setExoSuit(exosuit, subtype)
 
+        case PlayerControl.ObjectHeld(slot, updateMyHolsterArm) =>
+          val before = player.DrawnSlot
+          val events = player.Zone.AvatarEvents
+          val resistance = player.TestArmMotion(slot)
+          if (resistance && !updateMyHolsterArm) {
+            events ! AvatarServiceMessage(
+              player.Name,
+              AvatarAction.ObjectHeld(player.GUID, before, -1)
+            )
+          } else if (!resistance && before != slot && (player.DrawnSlot = slot) != before) {
+            val mySlot = if (updateMyHolsterArm) slot else -1 //use as a short-circuit
+            events ! AvatarServiceMessage(
+              player.Continent,
+              AvatarAction.ObjectHeld(player.GUID, mySlot, player.LastDrawnSlot)
+            )
+            val isHolsters = player.VisibleSlots.contains(slot)
+            val equipment = player.Slot(slot).Equipment.orElse { player.Slot(before).Equipment }
+            if (isHolsters) {
+              equipment match {
+                case Some(unholsteredItem: Equipment) =>
+                  log.info(s"${player.Name} has drawn a ${unholsteredItem.Definition.Name} from its holster")
+                  if (unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
+                    //rek beam/icon colour must match the player's correct hack level
+                    events ! AvatarServiceMessage(
+                      player.Continent,
+                      AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, player.avatar.hackingSkillLevel())
+                    )
+                  }
+                case None => ;
+              }
+            } else {
+              equipment match {
+                case Some(holsteredEquipment) =>
+                  log.info(s"${player.Name} has put ${player.Sex.possessive} ${holsteredEquipment.Definition.Name} down")
+                case None =>
+                  log.info(s"${player.Name} lowers ${player.Sex.possessive} hand")
+              }
+            }
+          }
+
         case Terminal.TerminalMessage(_, msg, order) =>
           order match {
             case Terminal.BuyExosuit(exosuit, subtype) =>
               val result = setExoSuit(exosuit, subtype)
+              if (exosuit == ExoSuitType.MAX) {
+                player.ResistArmMotion(PlayerControl.maxRestriction)
+              }
               player.Zone.AvatarEvents ! AvatarServiceMessage(
                 player.Name,
                 AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result)
@@ -345,6 +388,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               if (
                 Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
                 (if (exosuit == ExoSuitType.MAX) {
+                  player.ResistArmMotion(PlayerControl.maxRestriction)
                   val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
                   player.avatar.purchaseCooldown(weapon) match {
                     case Some(_) => false
@@ -353,6 +397,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                       true
                   }
                 } else {
+                  player.ResistArmMotion(Player.neverRestrict)
                   true
                 })
               ) {
@@ -1329,6 +1374,12 @@ object PlayerControl {
   /** na */
   final case class SetExoSuit(exosuit: ExoSuitType.Value, subtype: Int)
 
+  /** na */
+  final case class ObjectHeld(slot: Int, updateMyHolsterArm: Boolean)
+  object ObjectHeld {
+    def apply(slot: Int): ObjectHeld = ObjectHeld(slot, updateMyHolsterArm=false)
+  }
+
   /**
     * Transform an applicable Aura effect into its `PlanetsideAttributeMessage` value.
     * @see `Aura`
@@ -1346,5 +1397,14 @@ object PlayerControl {
 
   def sendResponse(zone: Zone, channel: String, msg: PlanetSideGamePacket): Unit = {
     zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.SendResponse(Service.defaultPlayerGUID, msg))
+  }
+
+  def maxRestriction(player: Player, slot: Int): Boolean = {
+    if (player.ExoSuit == ExoSuitType.MAX) {
+      slot != 0
+    } else {
+      player.ResistArmMotion(Player.neverRestrict) //reset
+      false
+    }
   }
 }

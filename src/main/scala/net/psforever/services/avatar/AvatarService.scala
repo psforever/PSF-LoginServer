@@ -173,9 +173,9 @@ class AvatarService(zone: Zone) extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ObjectDelete(item_guid, unk))
           )
-        case AvatarAction.ObjectHeld(player_guid, slot) =>
+        case AvatarAction.ObjectHeld(player_guid, slot, previousSlot) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ObjectHeld(slot))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ObjectHeld(slot, previousSlot))
           )
         case AvatarAction.OxygenState(player, vehicle) =>
           AvatarEvents.publish(

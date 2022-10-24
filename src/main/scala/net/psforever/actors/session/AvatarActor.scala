@@ -13,7 +13,7 @@ import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
 //
-import net.psforever.objects.avatar.{Friend => AvatarFriend, Ignored => AvatarIgnored, _}
+import net.psforever.objects.avatar.{Friend => AvatarFriend, Ignored => AvatarIgnored, Shortcut => AvatarShortcut, _}
 import net.psforever.objects.definition.converter.CharacterSelectConverter
 import net.psforever.objects.definition._
 import net.psforever.objects.inventory.Container
@@ -188,6 +188,10 @@ object AvatarActor {
   private case class SetImplantInitialized(implantType: ImplantType) extends Command
 
   final case class MemberListRequest(action: MemberAction.Value, name: String) extends Command
+
+  final case class AddShortcut(slot: Int, shortcut: Shortcut) extends Command
+
+  final case class RemoveShortcut(slot: Int) extends Command
 
   final case class AvatarResponse(avatar: Avatar)
 
@@ -826,7 +830,7 @@ class AvatarActor(
               characters.headOption match {
                 case None =>
                   val result = for {
-                    id <- ctx.run(
+                    _ <- ctx.run(
                       query[persistence.Avatar]
                         .insert(
                           _.name      -> lift(name),
@@ -838,17 +842,6 @@ class AvatarActor(
                           _.bep       -> lift(Config.app.game.newAvatar.br.experience),
                           _.cep       -> lift(Config.app.game.newAvatar.cr.experience)
                         )
-                        .returningGenerated(_.id)
-                    )
-                    _ <- ctx.run(
-                      liftQuery(
-                        List(
-                          persistence.Certification(Certification.MediumAssault.value, id),
-                          persistence.Certification(Certification.ReinforcedExoSuit.value, id),
-                          persistence.Certification(Certification.ATV.value, id),
-                          persistence.Certification(Certification.Harasser.value, id)
-                        )
-                      ).foreach(c => query[persistence.Certification].insert(c))
                     )
                   } yield ()
 
@@ -921,53 +914,46 @@ class AvatarActor(
         case LoginAvatar(replyTo) =>
           import ctx._
           val avatarId = avatar.id
-          val result = for {
-            //log this login
-            _ <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId))
-              .update(_.lastLogin -> lift(LocalDateTime.now()))
-            )
-            //log this choice of faction (no empire switching)
-            _ <- ctx.run(query[persistence.Account].filter(_.id == lift(account.id))
-              .update(_.lastFactionId -> lift(avatar.faction.id))
-            )
-            //retrieve avatar data
-            loadouts <- initializeAllLoadouts()
-            implants <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatarId)))
-            certs    <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatarId)))
-            locker   <- loadLocker(avatarId)
-            friends  <- loadFriendList(avatarId)
-            ignored  <- loadIgnoredList(avatarId)
-            saved    <- AvatarActor.loadSavedAvatarData(avatarId)
-          } yield (loadouts, implants, certs, locker, friends, ignored, saved)
-          result.onComplete {
-            case Success((_loadouts, implants, certs, locker, friendsList, ignoredList, saved)) =>
-              avatarCopy(
-                avatar.copy(
-                  loadouts = avatar.loadouts.copy(suit = _loadouts),
-                  certifications =
-                    certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
-                  implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
-                  locker = locker,
-                  people = MemberLists(
-                    friend = friendsList,
-                    ignored = ignoredList
-                  ),
-                  cooldowns = Cooldowns(
-                    purchase = AvatarActor.buildCooldownsFromClob(saved.purchaseCooldowns, Avatar.purchaseCooldowns, log),
-                    use = AvatarActor.buildCooldownsFromClob(saved.useCooldowns, Avatar.useCooldowns, log)
-                  )
-                )
-              )
-              // if we need to start stamina regeneration
-              tryRestoreStaminaForSession(stamina = 1) match {
-                case Some(_) =>
-                  defaultStaminaRegen(initialDelay = 0.5f seconds)
-                case _ => ;
-              }
-              replyTo ! AvatarLoginResponse(avatar)
-            case Failure(e) =>
-              log.error(e)("db failure")
-          }
+          ctx.run(
+            query[persistence.Avatar]
+              .filter(_.id == lift(avatarId))
+              .map { c => (c.created, c.lastLogin) }
+          )
+            .onComplete {
+              case Success(value) if value.nonEmpty =>
+                val (created, lastLogin) = value.head
+                if (created.equals(lastLogin)) {
+                  //first login
+                  //initialize default values that would be compromised during login if blank
+                  val inits = for {
+                    _ <- ctx.run(
+                      liftQuery(
+                        List(
+                          persistence.Certification(Certification.StandardExoSuit.value, avatarId),
+                          persistence.Certification(Certification.AgileExoSuit.value, avatarId),
+                          persistence.Certification(Certification.ReinforcedExoSuit.value, avatarId),
+                          persistence.Certification(Certification.StandardAssault.value, avatarId),
+                          persistence.Certification(Certification.MediumAssault.value, avatarId),
+                          persistence.Certification(Certification.ATV.value, avatarId),
+                          persistence.Certification(Certification.Harasser.value, avatarId)
+                        )
+                      ).foreach(c => query[persistence.Certification].insert(c))
+                    )
+                    _ <- ctx.run(
+                      liftQuery(
+                        List(persistence.Shortcut(avatarId, 0, 0, "medkit"))
+                      ).foreach(c => query[persistence.Shortcut].insert(c))
+                    )
+                  } yield true
+                  inits.onComplete {
+                    case Success(_) => performAvatarLogin(avatarId, account.id, replyTo)
+                    case Failure(e) => log.error(e)("db failure")
+                  }
+                } else {
+                  performAvatarLogin(avatarId, account.id, replyTo)
+                }
+              case Failure(e) => log.error(e)("db failure")
+            }
           Behaviors.same
 
         case ReplaceAvatar(newAvatar) =>
@@ -1353,7 +1339,7 @@ class AvatarActor(
                   updatePurchaseTimer(
                     name,
                     cooldown.toSeconds,
-                    DefinitionUtil.fromString(name).isInstanceOf[VehicleDefinition]
+                    item.isInstanceOf[VehicleDefinition]
                   )
                 case _ => ;
               }
@@ -1617,6 +1603,91 @@ class AvatarActor(
         case MemberListRequest(action, name) =>
           memberListAction(action, name)
           Behaviors.same
+
+        case AddShortcut(slot, shortcut) =>
+          import ctx._
+          if (slot > -1) {
+            val targetShortcut = avatar.shortcuts.lift(slot).flatten
+            //short-circuit if the shortcut already exists at the given location
+            val isMacroShortcut = shortcut.isInstanceOf[Shortcut.Macro]
+            val isDifferentShortcut = !(targetShortcut match {
+              case Some(target) => AvatarShortcut.equals(shortcut, target)
+              case _            => false
+            })
+            if (isDifferentShortcut) {
+              if (!isMacroShortcut && avatar.shortcuts.flatten.exists {
+                a => AvatarShortcut.equals(shortcut, a)
+              }) {
+                //duplicate implant or medkit found
+                if (shortcut.isInstanceOf[Shortcut.Implant]) {
+                  //duplicate implant
+                  targetShortcut match {
+                    case Some(existingShortcut) =>
+                      //redraw redundant shortcut slot with existing shortcut
+                      sessionActor ! SessionActor.SendResponse(
+                        CreateShortcutMessage(session.get.player.GUID, slot + 1, Some(AvatarShortcut.convert(existingShortcut)))
+                      )
+                    case _ =>
+                      //blank shortcut slot
+                      sessionActor ! SessionActor.SendResponse(CreateShortcutMessage(session.get.player.GUID, slot + 1, None))
+                  }
+                }
+              } else {
+                //macro, or implant or medkit
+                val (optEffect1, optEffect2, optShortcut) = shortcut match {
+                  case Shortcut.Macro(acro, msg) =>
+                    (
+                      acro,
+                      msg,
+                      Some(AvatarShortcut(shortcut.code, shortcut.tile, acro, msg))
+                    )
+                  case _ =>
+                    (null, null, Some(AvatarShortcut(shortcut.code, shortcut.tile)))
+                }
+                targetShortcut match {
+                  case Some(_) =>
+                    ctx.run(
+                      query[persistence.Shortcut]
+                        .filter(_.avatarId == lift(avatar.id.toLong))
+                        .filter(_.slot == lift(slot))
+                        .update(
+                          _.purpose -> lift(shortcut.code),
+                          _.tile -> lift(shortcut.tile),
+                          _.effect1 -> Option(lift(optEffect1)),
+                          _.effect2 -> Option(lift(optEffect2))
+                        )
+                    )
+                  case None =>
+                    ctx.run(
+                      query[persistence.Shortcut].insert(
+                        _.avatarId -> lift(avatar.id.toLong),
+                        _.slot -> lift(slot),
+                        _.purpose -> lift(shortcut.code),
+                        _.tile -> lift(shortcut.tile),
+                        _.effect1 -> Option(lift(optEffect1)),
+                        _.effect2 -> Option(lift(optEffect2))
+                      )
+                    )
+                }
+                avatar.shortcuts.update(slot, optShortcut)
+              }
+            }
+          }
+          Behaviors.same
+
+        case RemoveShortcut(slot) =>
+          import ctx._
+          avatar.shortcuts.lift(slot).flatten match {
+            case None => ;
+            case Some(_) =>
+              ctx.run(query[persistence.Shortcut]
+                .filter(_.avatarId == lift(avatar.id.toLong))
+                .filter(_.slot == lift(slot))
+                .delete
+              )
+              avatar.shortcuts.update(slot, None)
+          }
+          Behaviors.same
       }
       .receiveSignal {
         case (_, PostStop) =>
@@ -1634,6 +1705,78 @@ class AvatarActor(
 
   def throwLoadoutFailure(ex: Throwable): Future[Loadout] = {
     Future.failed(ex).asInstanceOf[Future[Loadout]]
+  }
+
+  def performAvatarLogin(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
+    import ctx._
+
+    val result = for {
+      //log this login
+      _ <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId))
+        .update(_.lastLogin -> lift(LocalDateTime.now()))
+      )
+      //log this choice of faction (no empire switching)
+      _ <- ctx.run(query[persistence.Account].filter(_.id == lift(accountId))
+        .update(_.lastFactionId -> lift(avatar.faction.id))
+      )
+      //retrieve avatar data
+      loadouts  <- initializeAllLoadouts()
+      implants  <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatarId)))
+      certs     <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatarId)))
+      locker    <- loadLocker(avatarId)
+      friends   <- loadFriendList(avatarId)
+      ignored   <- loadIgnoredList(avatarId)
+      shortcuts <- loadShortcuts(avatarId)
+      saved     <- AvatarActor.loadSavedAvatarData(avatarId)
+    } yield (loadouts, implants, certs, locker, friends, ignored, shortcuts, saved)
+    result.onComplete {
+      case Success((_loadouts, implants, certs, locker, friendsList, ignoredList, shortcutList, saved)) =>
+        //shortcuts must have a hotbar option for each implant
+//        val implantShortcuts = shortcutList.filter {
+//          case Some(e) => e.purpose == 0
+//          case None    => false
+//        }
+//        implants.filterNot { implant =>
+//          implantShortcuts.exists {
+//            case Some(a) => a.tile.equals(implant.name)
+//            case None    => false
+//          }
+//        }.foreach { c =>
+//          shortcutList.indexWhere { _.isEmpty } match {
+//            case -1 => ;
+//            case index =>
+//              shortcutList.update(index, Some(AvatarShortcut(2, c.name)))
+//          }
+//        }
+        //
+        avatarCopy(
+          avatar.copy(
+            loadouts = avatar.loadouts.copy(suit = _loadouts),
+            certifications =
+              certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
+            implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
+            shortcuts = shortcutList,
+            locker = locker,
+            people = MemberLists(
+              friend = friendsList,
+              ignored = ignoredList
+            ),
+            cooldowns = Cooldowns(
+              purchase = AvatarActor.buildCooldownsFromClob(saved.purchaseCooldowns, Avatar.purchaseCooldowns, log),
+              use = AvatarActor.buildCooldownsFromClob(saved.useCooldowns, Avatar.useCooldowns, log)
+            )
+          )
+        )
+        // if we need to start stamina regeneration
+        tryRestoreStaminaForSession(stamina = 1) match {
+          case Some(_) =>
+            defaultStaminaRegen(initialDelay = 0.5f seconds)
+          case _ => ;
+        }
+        replyTo ! AvatarLoginResponse(avatar)
+      case Failure(e) =>
+        log.error(e)("db failure")
+    }
   }
 
   /**
@@ -1781,8 +1924,6 @@ class AvatarActor(
           CreateShortcutMessage(
             session.get.player.GUID,
             slot + 2,
-            0,
-            addShortcut = true,
             Some(implant.definition.implantType.shortcut)
           )
         )
@@ -2299,6 +2440,30 @@ class AvatarActor(
         ))
       case _ =>
         out.completeWith(Future(List.empty[AvatarIgnored]))
+    }
+    out.future
+  }
+
+  def loadShortcuts(avatarId: Long): Future[Array[Option[AvatarShortcut]]] = {
+    import ctx._
+    val out: Promise[Array[Option[AvatarShortcut]]] = Promise()
+
+    val queryResult = ctx.run(
+      query[persistence.Shortcut].filter { _.avatarId == lift(avatarId) }
+        .map { shortcut => (shortcut.slot, shortcut.purpose, shortcut.tile, shortcut.effect1, shortcut.effect2) }
+    )
+    val output = Array.fill[Option[AvatarShortcut]](64)(None)
+    queryResult.onComplete {
+      case Success(list) =>
+        list.foreach { case (slot, purpose, tile, effect1, effect2) =>
+          output.update(slot, Some(AvatarShortcut(purpose, tile, effect1.getOrElse(""), effect2.getOrElse(""))))
+        }
+        out.completeWith(Future(output))
+      case Failure(e) =>
+        //something went wrong, but we can recover
+        log.warn(e)("db failure")
+        //output.update(0, Some(AvatarShortcut(0, "medkit")))
+        out.completeWith(Future(output))
     }
     out.future
   }

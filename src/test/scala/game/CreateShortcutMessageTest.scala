@@ -15,16 +15,13 @@ class CreateShortcutMessageTest extends Specification {
 
   "decode (medkit)" in {
     PacketCoding.decodePacket(stringMedkit).require match {
-      case CreateShortcutMessage(player_guid, slot, unk, addShortcut, shortcut) =>
+      case CreateShortcutMessage(player_guid, slot, shortcut) =>
         player_guid mustEqual PlanetSideGUID(4210)
         slot mustEqual 1
-        unk mustEqual 0
-        addShortcut mustEqual true
-        shortcut.isDefined mustEqual true
-        shortcut.get.purpose mustEqual 0
-        shortcut.get.tile mustEqual "medkit"
-        shortcut.get.effect1 mustEqual ""
-        shortcut.get.effect2 mustEqual ""
+        shortcut match {
+          case Some(Shortcut.Medkit()) => ok
+          case _ => ko
+        }
       case _ =>
         ko
     }
@@ -32,16 +29,13 @@ class CreateShortcutMessageTest extends Specification {
 
   "decode (macro)" in {
     PacketCoding.decodePacket(stringMacro).require match {
-      case CreateShortcutMessage(player_guid, slot, unk, addShortcut, shortcut) =>
+      case CreateShortcutMessage(player_guid, slot, shortcut) =>
         player_guid mustEqual PlanetSideGUID(1356)
         slot mustEqual 8
-        unk mustEqual 0
-        addShortcut mustEqual true
-        shortcut.isDefined mustEqual true
-        shortcut.get.purpose mustEqual 1
-        shortcut.get.tile mustEqual "shortcut_macro"
-        shortcut.get.effect1 mustEqual "NTU"
-        shortcut.get.effect2 mustEqual "/platoon Incoming NTU spam!"
+        shortcut match {
+          case Some(Shortcut.Macro("NTU", "/platoon Incoming NTU spam!")) => ok
+          case _ => ko
+        }
       case _ =>
         ko
     }
@@ -49,11 +43,9 @@ class CreateShortcutMessageTest extends Specification {
 
   "decode (remove)" in {
     PacketCoding.decodePacket(stringRemove).require match {
-      case CreateShortcutMessage(player_guid, slot, unk, addShortcut, shortcut) =>
+      case CreateShortcutMessage(player_guid, slot, shortcut) =>
         player_guid mustEqual PlanetSideGUID(1356)
         slot mustEqual 1
-        unk mustEqual 0
-        addShortcut mustEqual false
         shortcut.isDefined mustEqual false
       case _ =>
         ko
@@ -61,7 +53,7 @@ class CreateShortcutMessageTest extends Specification {
   }
 
   "encode (medkit)" in {
-    val msg = CreateShortcutMessage(PlanetSideGUID(4210), 1, 0, true, Some(Shortcut(0, "medkit")))
+    val msg = CreateShortcutMessage(PlanetSideGUID(4210), 1, Some(Shortcut.Medkit()))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringMedkit
@@ -71,9 +63,7 @@ class CreateShortcutMessageTest extends Specification {
     val msg = CreateShortcutMessage(
       PlanetSideGUID(1356),
       8,
-      0,
-      true,
-      Some(Shortcut(1, "shortcut_macro", "NTU", "/platoon Incoming NTU spam!"))
+      Some(Shortcut.Macro("NTU", "/platoon Incoming NTU spam!"))
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -81,42 +71,40 @@ class CreateShortcutMessageTest extends Specification {
   }
 
   "encode (remove)" in {
-    val msg = CreateShortcutMessage(PlanetSideGUID(1356), 1, 0, false)
+    val msg = CreateShortcutMessage(PlanetSideGUID(1356), 1, None)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringRemove
   }
 
   "macro" in {
-    val MACRO: Some[Shortcut] = Shortcut.MACRO("NTU", "/platoon Incoming NTU spam!")
-    MACRO.get.purpose mustEqual 1
-    MACRO.get.tile mustEqual "shortcut_macro"
-    MACRO.get.effect1 mustEqual "NTU"
-    MACRO.get.effect2 mustEqual "/platoon Incoming NTU spam!"
+    val MACRO: Shortcut.Macro = Shortcut.Macro("NTU", "/platoon Incoming NTU spam!")
+    MACRO.acronym mustEqual "NTU"
+    MACRO.msg mustEqual "/platoon Incoming NTU spam!"
   }
 
   "presets" in {
-    ImplantType.AudioAmplifier.shortcut.purpose mustEqual 2
+    ImplantType.AudioAmplifier.shortcut.code mustEqual 2
     ImplantType.AudioAmplifier.shortcut.tile mustEqual "audio_amplifier"
-    ImplantType.DarklightVision.shortcut.purpose mustEqual 2
+    ImplantType.DarklightVision.shortcut.code mustEqual 2
     ImplantType.DarklightVision.shortcut.tile mustEqual "darklight_vision"
-    ImplantType.Targeting.shortcut.purpose mustEqual 2
+    ImplantType.Targeting.shortcut.code mustEqual 2
     ImplantType.Targeting.shortcut.tile mustEqual "targeting"
-    Shortcut.Medkit.get.purpose mustEqual 0
-    Shortcut.Medkit.get.tile mustEqual "medkit"
-    ImplantType.MeleeBooster.shortcut.purpose mustEqual 2
+    Shortcut.Medkit().code mustEqual 0
+    Shortcut.Medkit().tile mustEqual "medkit"
+    ImplantType.MeleeBooster.shortcut.code mustEqual 2
     ImplantType.MeleeBooster.shortcut.tile mustEqual "melee_booster"
-    ImplantType.PersonalShield.shortcut.purpose mustEqual 2
+    ImplantType.PersonalShield.shortcut.code mustEqual 2
     ImplantType.PersonalShield.shortcut.tile mustEqual "personal_shield"
-    ImplantType.RangeMagnifier.shortcut.purpose mustEqual 2
+    ImplantType.RangeMagnifier.shortcut.code mustEqual 2
     ImplantType.RangeMagnifier.shortcut.tile mustEqual "range_magnifier"
-    ImplantType.AdvancedRegen.shortcut.purpose mustEqual 2
+    ImplantType.AdvancedRegen.shortcut.code mustEqual 2
     ImplantType.AdvancedRegen.shortcut.tile mustEqual "advanced_regen"
-    ImplantType.SecondWind.shortcut.purpose mustEqual 2
+    ImplantType.SecondWind.shortcut.code mustEqual 2
     ImplantType.SecondWind.shortcut.tile mustEqual "second_wind"
-    ImplantType.SilentRun.shortcut.purpose mustEqual 2
+    ImplantType.SilentRun.shortcut.code mustEqual 2
     ImplantType.SilentRun.shortcut.tile mustEqual "silent_run"
-    ImplantType.Surge.shortcut.purpose mustEqual 2
+    ImplantType.Surge.shortcut.code mustEqual 2
     ImplantType.Surge.shortcut.tile mustEqual "surge"
   }
 }
