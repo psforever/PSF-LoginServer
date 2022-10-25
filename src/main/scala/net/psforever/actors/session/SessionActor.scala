@@ -2315,7 +2315,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           sendResponse(ObjectDeleteMessage(item_guid, unk))
         }
 
-      case AvatarResponse.ObjectHeld(slot, previousSLot) =>
+      case AvatarResponse.ObjectHeld(slot, previousSlot) =>
         if (tplayer_guid == guid) {
           if (slot > -1) {
             sendResponse(ObjectHeldMessage(guid, slot, unk1=true))
@@ -2329,7 +2329,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
             }
           }
         } else {
-          sendResponse(ObjectHeldMessage(guid, previousSLot, unk1=false))
+          sendResponse(ObjectHeldMessage(guid, previousSlot, unk1=false))
         }
 
       case AvatarResponse.OxygenState(player, vehicle) =>

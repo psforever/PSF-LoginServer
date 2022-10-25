@@ -806,12 +806,14 @@ object WorldSession {
       }
       optGrenadeInSlot match {
         case Some((grenade, slotNum)) =>
-          tplayer.ResistArmMotion(countRestrictAttempts(count=1))
           val itemInPreviouslyDrawnSlotToDrop = if (equipSlot != previouslyDrawnSlot) {
             forcedTolowerRaisedArm(tplayer, tplayer.GUID, tplayer.Zone)
             tplayer.Slot(previouslyDrawnSlot).Equipment match {
-              case out @ Some(_) => out
-              case _             => None
+              case out @ Some(_) =>
+                tplayer.ResistArmMotion(countRestrictAttempts(count=1))
+                out
+              case _ =>
+                None
             }
           } else {
             None
