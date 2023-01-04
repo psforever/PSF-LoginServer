@@ -12,9 +12,8 @@ class ActionResultMessageTest extends Specification {
 
   "decode (pass)" in {
     PacketCoding.decodePacket(string_pass).require match {
-      case ActionResultMessage(okay, code) =>
-        okay mustEqual true
-        code mustEqual None
+      case ActionResultMessage(code) =>
+        code.isEmpty mustEqual true
       case _ =>
         ko
     }
@@ -22,16 +21,15 @@ class ActionResultMessageTest extends Specification {
 
   "decode (fail)" in {
     PacketCoding.decodePacket(string_fail).require match {
-      case ActionResultMessage(okay, code) =>
-        okay mustEqual false
-        code mustEqual Some(1)
+      case ActionResultMessage(code) =>
+        code.contains(1) mustEqual true
       case _ =>
         ko
     }
   }
 
   "encode (pass, full)" in {
-    val msg = ActionResultMessage(true, None)
+    val msg = ActionResultMessage(None)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_pass
@@ -45,7 +43,7 @@ class ActionResultMessageTest extends Specification {
   }
 
   "encode (fail, full)" in {
-    val msg = ActionResultMessage(false, Some(1))
+    val msg = ActionResultMessage(Some(1))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_fail

@@ -7,15 +7,26 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import net.psforever.objects.vital.{DamagingActivity, HealingActivity}
 import org.joda.time.{LocalDateTime, Seconds}
-//import org.log4s.Logger
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
 //
-import net.psforever.objects.avatar.{Friend => AvatarFriend, Ignored => AvatarIgnored, Shortcut => AvatarShortcut, _}
-import net.psforever.objects.definition.converter.CharacterSelectConverter
+import net.psforever.objects.avatar.{
+  Avatar,
+  BattleRank,
+  Certification,
+  Cooldowns,
+  Cosmetic,
+  Friend => AvatarFriend,
+  Ignored => AvatarIgnored,
+  Implant,
+  MemberLists,
+  PlayerControl,
+  Shortcut => AvatarShortcut
+}
 import net.psforever.objects.definition._
+import net.psforever.objects.definition.converter.CharacterSelectConverter
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.inventory.InventoryItem
@@ -26,19 +37,30 @@ import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.vital.HealFromImplant
 import net.psforever.packet.game.objectcreate.{ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
-import net.psforever.types.{MemberAction, PlanetSideEmpire, _}
+import net.psforever.types.{
+  CharacterVoice,
+  CharacterSex,
+  ExoSuitType,
+  ImplantType,
+  LoadoutType,
+  MemberAction,
+  MeritCommendation,
+  PlanetSideEmpire,
+  PlanetSideGUID,
+  TransactionType
+}
 import net.psforever.util.Database._
 import net.psforever.persistence
 import net.psforever.util.{Config, Database, DefinitionUtil}
-import net.psforever.services.{Service, ServiceManager}
+import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 object AvatarActor {
   def apply(sessionActor: ActorRef[SessionActor.Command]): Behavior[Command] =
     Behaviors
       .supervise[Command] {
-        Behaviors.withStash(100) { buffer =>
-          Behaviors.setup(context => new AvatarActor(context, buffer, sessionActor).start())
+        Behaviors.withStash(capacity = 100) { buffer =>
+          Behaviors.setup(context => new AvatarActor(context, buffer, sessionActor).login())
         }
       }
       .onFailure[Exception](SupervisorStrategy.restart)
@@ -75,7 +97,7 @@ object AvatarActor {
   /** Log in the currently selected avatar. Must have first sent SelectAvatar. */
   final case class LoginAvatar(replyTo: ActorRef[AvatarLoginResponse]) extends Command
 
-  /** Send implants to client - TODO this can be done better using a event system on SessionActor */
+  /** Send implants to client */
   final case class CreateImplants() extends Command
 
   /** Replace avatar instance with the provided one */
@@ -180,8 +202,6 @@ object AvatarActor {
   final case class SetCosmetics(personalStyles: Set[Cosmetic]) extends Command
 
   final case class SetRibbon(ribbon: MeritCommendation.Value, bar: RibbonBarSlot.Value) extends Command
-
-  private case class ServiceManagerLookupResult(result: ServiceManager.LookupResult) extends Command
 
   final case class SetStamina(stamina: Int) extends Command
 
@@ -385,7 +405,7 @@ object AvatarActor {
   }
 
   def encodeLockerClob(container: Container): String = {
-    val clobber: mutable.StringBuilder = new StringBuilder()
+    val clobber: mutable.StringBuilder = new mutable.StringBuilder()
     container.Inventory.Items.foreach {
       case InventoryItem(obj, index) =>
         clobber.append(encodeLoadoutClobFragment(obj, index))
@@ -564,7 +584,7 @@ object AvatarActor {
     }
     out.future
   }
-//TODO should return number of rows inserted?
+
   /**
     * Query the database on information retained in regards to a certain character
     * when that character had last logged out of the game.
@@ -664,7 +684,7 @@ object AvatarActor {
     val queryResult = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
     queryResult.onComplete {
       case Success(results) if results.nonEmpty =>
-        val res=ctx.run(query[persistence.Savedplayer]
+        ctx.run(query[persistence.Savedplayer]
           .filter { _.avatarId == lift(avatarId) }
           .update(
             _.px -> lift((position.x * 1000).toInt),
@@ -771,7 +791,7 @@ class AvatarActor(
     sessionActor ! SessionActor.SetAvatar(avatar)
   }
 
-  def start(): Behavior[Command] = {
+  def login(): Behavior[Command] = {
     Behaviors
       .receiveMessage[Command] {
         case SetAccount(newAccount) =>
@@ -785,11 +805,11 @@ class AvatarActor(
               }
             case Failure(e) => log.error(e)("db failure")
           }
-          postStartBehaviour()
+          postLoginBehaviour()
 
         case SetSession(newSession) =>
           session = Some(newSession)
-          postStartBehaviour()
+          postLoginBehaviour()
 
         case other =>
           buffer.stash(other)
@@ -797,34 +817,22 @@ class AvatarActor(
       }
   }
 
-  def postStartBehaviour(): Behavior[Command] = {
-    account match {
-      case Some(_account) =>
-        buffer.unstashAll(active(_account))
-      case _ =>
-        Behaviors.same
+  def postLoginBehaviour(): Behavior[Command] = {
+    (account, session) match {
+      case (Some(_account), Some(_)) => characterSelect(_account)
+      case _                         => Behaviors.same
     }
   }
 
-  def active(account: Account): Behavior[Command] = {
+  def characterSelect(account: Account): Behavior[Command] = {
     Behaviors
-      .receiveMessagePartial[Command] {
+      .receiveMessage[Command] {
         case SetSession(newSession) =>
           session = Some(newSession)
           Behaviors.same
 
-        case SetLookingForSquad(lfs) =>
-          avatarCopy(avatar.copy(lookingForSquad = lfs))
-          sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.get.player.GUID, 53, 0))
-          session.get.zone.AvatarEvents ! AvatarServiceMessage(
-            avatar.faction.toString,
-            AvatarAction.PlanetsideAttribute(session.get.player.GUID, 53, if (lfs) 1 else 0)
-          )
-          Behaviors.same
-
         case CreateAvatar(name, head, voice, gender, empire) =>
           import ctx._
-
           ctx.run(query[persistence.Avatar].filter(_.name ilike lift(name)).filter(!_.deleted)).onComplete {
             case Success(characters) =>
               characters.headOption match {
@@ -844,12 +852,11 @@ class AvatarActor(
                         )
                     )
                   } yield ()
-
                   result.onComplete {
                     case Success(_) =>
                       log.debug(s"AvatarActor: created character $name for account ${account.name}")
                       sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
-                      sendAvatars(account)
+                      //sendAvatars(account)
                     case Failure(e) => log.error(e)("db failure")
                   }
                 case Some(_) =>
@@ -858,14 +865,14 @@ class AvatarActor(
               }
             case Failure(e) =>
               log.error(e)("db failure")
-              sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(4))
+              sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(3))
               sendAvatars(account)
           }
           Behaviors.same
 
         case DeleteAvatar(id) =>
           import ctx._
-          val result = for {
+          val performDeletion = for {
             _ <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Loadout].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Locker].filter(_.avatarId == lift(id)).delete)
@@ -876,24 +883,36 @@ class AvatarActor(
             _ <- ctx.run(query[persistence.Savedplayer].filter(_.avatarId == lift(id)).delete)
             r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(id)))
           } yield r
-
-          result.onComplete {
+          performDeletion.onComplete {
             case Success(deleted) =>
               deleted.headOption match {
                 case Some(a) if !a.deleted =>
-                  ctx.run(query[persistence.Avatar]
-                    .filter(_.id == lift(id))
-                    .update(
-                      _.deleted -> lift(true),
-                      _.lastModified -> lift(LocalDateTime.now())
+                  val flagDeletion = for {
+                    _ <- ctx.run(query[persistence.Avatar]
+                      .filter(_.id == lift(id))
+                      .update(
+                        _.deleted -> lift(true),
+                        _.lastModified -> lift(LocalDateTime.now())
+                      )
                     )
-                  )
-                  log.debug(s"AvatarActor: avatar $id deleted")
-                  sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
-                case _ => ;
+                  } yield ()
+                  flagDeletion.onComplete {
+                    case Success(_) =>
+                      log.debug(s"AvatarActor: avatar $id deleted")
+                      sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
+                      sendAvatars(account)
+                    case Failure(e) =>
+                      log.error(e)("db failure")
+                      sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 4))
+                      sendAvatars(account)
+                  }
+                case _ =>
+                  sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 4))
+                  sendAvatars(account)
               }
-              sendAvatars(account)
-            case Failure(e) => log.error(e)("db failure")
+            case Failure(e) =>
+              log.error(e)("db failure")
+              sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 4))
           }
           Behaviors.same
 
@@ -905,9 +924,13 @@ class AvatarActor(
                 case Some(character) =>
                   avatar = character.toAvatar
                   replyTo ! AvatarResponse(avatar)
-                case None => log.error(s"selected character $charId not found")
+                case None =>
+                  log.error(s"selected character $charId not found")
+                  sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 5))
               }
-            case Failure(e) => log.error(e)("db failure")
+            case Failure(e) =>
+              log.error(e)("db failure")
+              sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 5))
           }
           Behaviors.same
 
@@ -946,19 +969,57 @@ class AvatarActor(
                     )
                   } yield true
                   inits.onComplete {
-                    case Success(_) => performAvatarLogin(avatarId, account.id, replyTo)
-                    case Failure(e) => log.error(e)("db failure")
+                    case Success(_) =>
+                      performAvatarLogin(avatarId, account.id, replyTo)
+                    case Failure(e) =>
+                      log.error(e)("db failure")
+                      sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 6))
                   }
                 } else {
                   performAvatarLogin(avatarId, account.id, replyTo)
                 }
-              case Failure(e) => log.error(e)("db failure")
+              case Failure(e) =>
+                log.error(e)("db failure")
+                sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 6))
             }
+          postCharacterSelectBehaviour()
+
+        case ReplaceAvatar(newAvatar) =>
+          replaceAvatar(newAvatar)
+          postCharacterSelectBehaviour()
+
+        case other =>
+          buffer.stash(other)
+          Behaviors.same
+      }
+  }
+
+  def postCharacterSelectBehaviour(): Behavior[Command] = {
+    _avatar match {
+      case Some(_) => buffer.unstashAll(gameplay)
+      case _       => Behaviors.same
+    }
+  }
+
+  def gameplay: Behavior[Command] = {
+    Behaviors
+      .receiveMessagePartial[Command] {
+        case SetSession(newSession) =>
+          session = Some(newSession)
           Behaviors.same
 
         case ReplaceAvatar(newAvatar) =>
           replaceAvatar(newAvatar)
           startIfStoppedStaminaRegen(initialDelay = 0.5f seconds)
+          Behaviors.same
+
+        case SetLookingForSquad(lfs) =>
+          avatarCopy(avatar.copy(lookingForSquad = lfs))
+          sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.get.player.GUID, 53, 0))
+          session.get.zone.AvatarEvents ! AvatarServiceMessage(
+            avatar.faction.toString,
+            AvatarAction.PlanetsideAttribute(session.get.player.GUID, 53, if (lfs) 1 else 0)
+          )
           Behaviors.same
 
         case AddFirstTimeEvent(event) =>
@@ -1405,7 +1466,7 @@ class AvatarActor(
                     if (
                       implantType match {
                         case ImplantType.AdvancedRegen =>
-                          //for every 1hp: 2sp (running), 1.5sp (standing), 1sp (crouched)
+                          // for every 1hp: 2sp (running), 1.5sp (standing), 1sp (crouched)
                           // to simulate '1.5sp (standing)', find if 0.0...1.0 * 100 is an even number
                           val cost = implant.definition.StaminaCost -
                             (if (player.Crouching || (!player.isMoving && (math.random() * 100) % 2 == 1)) 1 else 0)
@@ -1521,7 +1582,6 @@ class AvatarActor(
 
         case SetBep(bep) =>
           import ctx._
-
           val result = for {
             _ <-
               if (BattleRank.withExperience(bep).value < BattleRank.BR24.value) setCosmetics(Set())
@@ -2145,7 +2205,7 @@ class AvatarActor(
   def storeVehicleLoadout(owner: Player, label: String, line: Int, vehicle: Vehicle): Future[Loadout] = {
     import ctx._
     val items: String = {
-      val clobber: mutable.StringBuilder = new StringBuilder()
+      val clobber: mutable.StringBuilder = new mutable.StringBuilder()
       //encode holsters
       vehicle.Weapons
         .collect {
