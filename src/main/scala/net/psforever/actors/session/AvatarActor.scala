@@ -856,7 +856,7 @@ class AvatarActor(
                     case Success(_) =>
                       log.debug(s"AvatarActor: created character $name for account ${account.name}")
                       sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
-                      //sendAvatars(account)
+                      sendAvatars(account)
                     case Failure(e) => log.error(e)("db failure")
                   }
                 case Some(_) =>
