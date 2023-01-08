@@ -1453,7 +1453,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           val oldZone = continent
           session = session.copy(zone = zone)
           //the only zone-level event system subscription necessary before BeginZoningMessage (for persistence purposes)
-          continent.AvatarEvents ! Service.Join(player.Name)
+          zone.AvatarEvents ! Service.Join(player.Name)
           persist()
           oldZone.AvatarEvents ! Service.Leave()
           oldZone.LocalEvents ! Service.Leave()
@@ -1470,7 +1470,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           } else {
             zoneReload = true
             cluster ! ICS.GetNearbySpawnPoint(
-              continent.Number,
+              zone.Number,
               player,
               Seq(SpawnGroup.Facility, SpawnGroup.Tower),
               context.self
@@ -1744,7 +1744,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
           deadState = DeadState.Dead
           session = session.copy(player = p, avatar = a)
           persist()
-          player.Zone = inZone
           HandleReleaseAvatar(p, inZone)
           avatarActor ! AvatarActor.ReplaceAvatar(a)
           avatarLoginResponse(a)
@@ -2098,13 +2097,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     loadConfZone = true
     val oldZone = session.zone
     session = session.copy(zone = foundZone)
-    //the only zone-level event system subscription necessary before BeginZoningMessage (for persistence purposes)
-    continent.AvatarEvents ! Service.Join(player.Name)
     persist()
     oldZone.AvatarEvents ! Service.Leave()
     oldZone.LocalEvents ! Service.Leave()
     oldZone.VehicleEvents ! Service.Leave()
-    continent.Population ! Zone.Population.Join(avatar)
+    //the only zone-level event system subscription necessary before BeginZoningMessage (for persistence purposes)
+    foundZone.AvatarEvents ! Service.Join(player.Name)
+    foundZone.Population ! Zone.Population.Join(avatar)
     player.avatar = avatar
     interstellarFerry match {
       case Some(vehicle) if vehicle.PassengerInSeat(player).contains(0) =>
@@ -9513,7 +9512,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     */
   def TurnCounterDuringInterim(guid: PlanetSideGUID): Unit = {
     upstreamMessageCount = 0
-    if (player != null && player.GUID == guid && player.Zone == continent) {
+    if (player != null && player.HasGUID && player.GUID == guid && player.Zone == continent) {
       turnCounterFunc = NormalTurnCounter
     }
   }
