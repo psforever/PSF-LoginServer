@@ -203,11 +203,13 @@ class CaptureFlagManager(zone: Zone) extends Actor{
 }
 
 object CaptureFlagManager {
-  final case class SpawnCaptureFlag(capture_terminal: CaptureTerminal, target: Building, hackingFaction: PlanetSideEmpire.Value)
-  final case class PickupFlag(flag: CaptureFlag, player: Player)
-  final case class DropFlag(flag: CaptureFlag)
-  final case class Captured(flag: CaptureFlag)
-  final case class Lost(flag: CaptureFlag, reason: CaptureFlagLostReasonEnum)
+  sealed trait Command
+
+  final case class SpawnCaptureFlag(capture_terminal: CaptureTerminal, target: Building, hackingFaction: PlanetSideEmpire.Value) extends Command
+  final case class PickupFlag(flag: CaptureFlag, player: Player) extends Command
+  final case class DropFlag(flag: CaptureFlag) extends Command
+  final case class Captured(flag: CaptureFlag) extends Command
+  final case class Lost(flag: CaptureFlag, reason: CaptureFlagLostReasonEnum) extends Command
   final case class MapUpdate()
 }
 

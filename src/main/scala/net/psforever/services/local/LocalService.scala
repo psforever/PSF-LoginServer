@@ -306,6 +306,13 @@ class LocalService(zone: Zone) extends Actor {
     //response from HackClearActor
     case HackClearActor.SendHackMessageHackCleared(target_guid, _, unk1, unk2) =>
       log.info(s"Clearing hack for $target_guid")
+      LocalEvents.publish(
+        LocalServiceResponse(
+          s"/${zone.id}/Local",
+          Service.defaultPlayerGUID,
+          LocalResponse.SendHackMessageHackCleared(target_guid, unk1, unk2)
+        )
+      )
 
     //message from ProximityTerminalControl
     case Terminal.StartProximityEffect(terminal) =>
@@ -326,9 +333,7 @@ class LocalService(zone: Zone) extends Actor {
       )
 
     // Forward all CaptureFlagManager messages
-    case msg @ (CaptureFlagManager.SpawnCaptureFlag(_, _, _) | CaptureFlagManager.PickupFlag(_, _) |
-        CaptureFlagManager.DropFlag(_) | CaptureFlagManager.Captured(_) | CaptureFlagManager.Lost(_, _) |
-        CaptureFlagManager) =>
+    case msg: CaptureFlagManager.Command =>
       captureFlagManager.forward(msg)
 
     case msg =>
