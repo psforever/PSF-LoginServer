@@ -38,5 +38,7 @@ object GalaxyResponse {
 
   final case class UnlockedZoneUpdate(zone: Zone) extends Response
 
+  final case class LogStatusChange(name: String) extends Response
+
   final case class SendResponse(msg: PlanetSideGamePacket) extends Response
 }

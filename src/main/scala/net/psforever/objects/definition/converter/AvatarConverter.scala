@@ -105,7 +105,7 @@ object AvatarConverter {
       unk7 = false,
       on_zipline = None
     )
-    CharacterAppearanceData(aa, ab, obj.avatar.ribbonBars)
+    CharacterAppearanceData(aa, ab, obj.avatar.decoration.ribbonBars)
   }
 
   def MakeCharacterData(obj: Player): (Boolean, Boolean) => CharacterData = {
@@ -121,7 +121,7 @@ object AvatarConverter {
       0,
       obj.avatar.cr.value,
       obj.avatar.implants.flatten.filter(_.active).flatMap(_.definition.implantType.effect).toList,
-      obj.avatar.cosmetics
+      obj.avatar.decoration.cosmetics
     )
   }
 
@@ -153,7 +153,7 @@ object AvatarConverter {
       obj.avatar.implants.flatten.map(_.toEntry).toList,
       Nil,
       Nil,
-      obj.avatar.firstTimeEvents.toList,
+      obj.avatar.decoration.firstTimeEvents.toList,
       tutorials = List.empty[String], //TODO tutorial list
       0L,
       0L,
@@ -164,7 +164,7 @@ object AvatarConverter {
       Nil,
       Nil,
       unkC = false,
-      obj.avatar.cosmetics
+      obj.avatar.decoration.cosmetics
     )
     pad_length: Option[Int] => DetailedCharacterData(ba, bb(obj.avatar.bep, pad_length))(pad_length)
   }

@@ -27,7 +27,7 @@ import net.psforever.packet.game.ItemTransactionMessage
   */
 final case class InfantryLoadoutPage() extends LoadoutTab {
   override def Buy(player: Player, msg: ItemTransactionMessage): Terminal.Exchange = {
-    player.avatar.loadouts(msg.unk1) match {
+    player.avatar.loadouts.suit(msg.unk1) match {
       case Some(loadout: InfantryLoadout)
         if !Exclude.exists(_.checkRule(player, msg, loadout.exosuit)) &&
            !Exclude.exists(_.checkRule(player, msg, (loadout.exosuit, loadout.subtype))) =>

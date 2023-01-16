@@ -1,12 +1,13 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital
 
+import net.psforever.objects.Player
 import net.psforever.objects.ballistics.{PlayerSource, VehicleSource}
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ToolDefinition}
 import net.psforever.objects.serverobject.terminals.TerminalDefinition
 import net.psforever.objects.vital.environment.EnvironmentReason
-import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason}
-import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason, SuicideReason}
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types.{ExoSuitType, ImplantType}
 
@@ -15,6 +16,7 @@ trait VitalsActivity {
 }
 
 trait HealingActivity extends VitalsActivity {
+  def amount: Int
   val time: Long = System.currentTimeMillis()
 }
 
@@ -33,13 +35,19 @@ final case class HealFromEquipment(
 ) extends HealingActivity
 
 final case class HealFromTerm(term_def: TerminalDefinition, health: Int, armor: Int)
-  extends HealingActivity
+  extends HealingActivity {
+  def amount: Int = health + armor
+}
 
 final case class HealFromImplant(implant: ImplantType, health: Int)
-  extends HealingActivity
+  extends HealingActivity {
+  def amount: Int = health
+}
 
 final case class HealFromExoSuitChange(exosuit: ExoSuitType.Value)
-  extends HealingActivity
+  extends HealingActivity {
+  def amount: Int = 0
+}
 
 final case class RepairFromKit(kit_def: KitDefinition, amount: Int)
     extends HealingActivity()
@@ -71,9 +79,17 @@ final case class DamageFromPainbox(data: DamageResult)
 final case class DamageFromEnvironment(data: DamageResult)
   extends DamagingActivity
 
-final case class PlayerSuicide()
+final case class PlayerSuicide(player: PlayerSource)
   extends DamagingActivity {
-  def data: DamageResult = null //TODO do something
+  private lazy val result = {
+    val out = DamageResult(
+      player,
+      player.copy(health = 0),
+      DamageInteraction(player, SuicideReason(), player.Position)
+    )
+    out
+  }
+  def data: DamageResult = result
 }
 
 final case class DamageFromExplodingEntity(data: DamageResult)

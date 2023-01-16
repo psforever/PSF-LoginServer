@@ -3,6 +3,7 @@ package net.psforever.login
 import akka.actor.ActorRef
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
+import net.psforever.objects._
 import net.psforever.objects.equipment.{Ammo, Equipment, EquipmentSize}
 import net.psforever.objects.guid._
 import net.psforever.objects.inventory.{Container, InventoryItem}
@@ -10,9 +11,7 @@ import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.zones.Zone
-import net.psforever.objects._
-import net.psforever.packet.game.ObjectHeldMessage
-import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
+import net.psforever.types.{ExoSuitType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -35,7 +34,7 @@ object WorldSession {
   private implicit val timeout            = new Timeout(5000 milliseconds)
 
   /**
-    * Use this for placing equipment that has yet to be registered into a container,
+    * Use this for placing equipment that has already been registered into a container,
     * such as in support of changing ammunition types in `Tool` objects (weapons).
     * If the object can not be placed into the container, it will be dropped onto the ground.
     * It will also be dropped if it takes too long to be placed.
@@ -299,46 +298,38 @@ object WorldSession {
     if (player.VisibleSlots.contains(slot)) {
       val localZone = player.Zone
       TaskBundle(
-        new StraightforwardTask() {
-          private val localPlayer   = player
-          private val localGUID     = player.GUID
-          private val localItem     = item
-          private val localSlot     = slot
-
-          def action(): Future[Any] = {
-            ask(localPlayer.Actor, Containable.PutItemInSlotOnly(localItem, localSlot))
-              .onComplete {
-                case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
-                  TaskWorkflow.execute(GUIDTask.unregisterEquipment(localZone.GUID, localItem))
-                case _ =>
-                  if (localPlayer.DrawnSlot != Player.HandsDownSlot) {
-                    localPlayer.DrawnSlot = Player.HandsDownSlot
-                    localZone.AvatarEvents ! AvatarServiceMessage(
-                      localPlayer.Name,
-                      AvatarAction.SendResponse(
-                        Service.defaultPlayerGUID,
-                        ObjectHeldMessage(localGUID, Player.HandsDownSlot, false)
-                      )
-                    )
-                    localZone.AvatarEvents ! AvatarServiceMessage(
-                      localZone.id,
-                      AvatarAction.ObjectHeld(localGUID, localPlayer.LastDrawnSlot)
-                    )
-                  }
-                  localPlayer.DrawnSlot = localSlot
-                  localZone.AvatarEvents ! AvatarServiceMessage(
-                    localZone.id,
-                    AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(localGUID, localSlot, false))
-                  )
-              }
-            Future(this)
-          }
-        },
+        TaskToHoldEquipmentUp(player)(item, slot),
         GUIDTask.registerEquipment(localZone.GUID, item)
       )
     } else {
       //TODO log.error
       throw new RuntimeException(s"provided slot $slot is not a player visible slot (holsters)")
+    }
+  }
+
+  def TaskToHoldEquipmentUp(player: Player)(item: Equipment, slot: Int): Task = {
+    new StraightforwardTask() {
+      private val localPlayer = player
+      private val localGUID   = player.GUID
+      private val localItem   = item
+      private val localSlot   = slot
+      private val localZone   = player.Zone
+
+      def action(): Future[Any] = {
+        ask(localPlayer.Actor, Containable.PutItemInSlotOnly(localItem, localSlot))
+          .onComplete {
+            case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
+              TaskWorkflow.execute(GUIDTask.unregisterEquipment(localZone.GUID, localItem))
+            case _ =>
+              forcedTolowerRaisedArm(localPlayer, localPlayer.GUID, localZone)
+              localPlayer.DrawnSlot = localSlot
+              localZone.AvatarEvents ! AvatarServiceMessage(
+                localZone.id,
+                AvatarAction.ObjectHeld(localGUID, localSlot, localSlot)
+              )
+          }
+        Future(this)
+      }
     }
   }
 
@@ -723,6 +714,196 @@ object WorldSession {
       }
       val result = ask(source.Actor, Containable.RemoveItemFromSlot(item))
       result.onComplete(resultOnComplete)
+    }
+  }
+
+  /**
+   * Quickly draw a grenade from anywhere on the player's person and place it into a certain hand
+   * at the ready to be used as a weapon.
+   * Soldiers in mechanized assault exo-suits can not perform this action.<br>
+   * <br>
+   * This is not vanilla behavior.<br>
+   * <br>
+   * Search for a grenade of either fragmentation- or plasma-type in the hands (holsters) or backpack (inventory)
+   * and bring it to hand and draw that grenade as a weapon as quickly as possible.
+   * If the player has a weapon already drawn, remove it from his active hand quickly.
+   * It may be placed back into the slot once the hand is / will be occupied by a grenade.
+   * For anything in the first sidearm weapon slot, where the grenade will be placed,
+   * either find room in the backpack for it or drop it on the ground.
+   * If the player's already-drawn hand is the same as the one that will hold the grenade (first sidearm holster),
+   * treat it like the sidearm occupier rather than the already-drawn weapon -
+   * the old weapon goes into the backpack or onto the ground.
+   * @see `AvatarAction.ObjectHeld`
+   * @see `AvatarServiceMessage`
+   * @see `Containable.RemoveItemFromSlot`
+   * @see `countRestrictAttempts`
+   * @see `forcedTolowerRaisedArm`
+   * @see `GlobalDefinitions.isGrenade`
+   * @see `InventoryItem`
+   * @see `Player.DrawnSlot`
+   * @see `Player.HandsDownSlot`
+   * @see `Player.Holsters`
+   * @see `Player.ResistArmMotion`
+   * @see `Player.Slot`
+   * @see `PutEquipmentInInventoryOrDrop`
+   * @see `PutEquipmentInInventorySlot`
+   * @see `TaskBundle`
+   * @see `TaskToHoldEquipmentUp`
+   * @see `TaskWorkflow.execute`
+   * @param tplayer player who wants to draw a grenade
+   * @param equipSlot slot being used as the final destination for any discovered grenade
+   * @param log reference to the messaging protocol
+   * @return if there was a discovered grenade
+   */
+  def QuickSwapToAGrenade(
+                           tplayer: Player,
+                           equipSlot: Int,
+                           log: org.log4s.Logger): Boolean = {
+    if (tplayer.ExoSuit != ExoSuitType.MAX) {
+      val previouslyDrawnSlot = tplayer.DrawnSlot
+      val optGrenadeInSlot = {
+        tplayer.Holsters().zipWithIndex.find { case (slot, _) =>
+          slot.Equipment match {
+            case Some(equipment) =>
+              val definition = equipment.Definition
+              val name = definition.Name
+              GlobalDefinitions.isGrenade(definition) && (name.contains("frag") || name.contains("plasma"))
+            case _ =>
+              false
+          }
+        } match {
+          case Some((_, slotNum)) if slotNum == previouslyDrawnSlot =>
+            //grenade already in hand; do nothing
+            None
+          case Some((grenadeSlot, slotNum)) =>
+            //grenade is holstered in some other slot; just extend it (or swap hands)
+            val guid = tplayer.GUID
+            val zone = tplayer.Zone
+            val grenade = grenadeSlot.Equipment.get
+            val drawnSlotItem = tplayer.Slot(tplayer.DrawnSlot).Equipment
+            if (forcedTolowerRaisedArm(tplayer, guid, zone)) {
+              log.info(s"${tplayer.Name} has dropped ${tplayer.Sex.possessive} ${drawnSlotItem.get.Definition.Name}")
+            }
+            //put up hand with grenade in it
+            tplayer.DrawnSlot = slotNum
+            zone.AvatarEvents ! AvatarServiceMessage(
+              zone.id,
+              AvatarAction.ObjectHeld(guid, slotNum, slotNum)
+            )
+            log.info(s"${tplayer.Name} has quickly drawn a ${grenade.Definition.Name}")
+            None
+          case None =>
+            //check inventory for a grenade
+            tplayer.Inventory.Items.find { case InventoryItem(equipment, _) =>
+              val definition = equipment.Definition
+              val name = definition.Name
+              GlobalDefinitions.isGrenade(definition) && (name.contains("frag") || name.contains("plasma"))
+            } match {
+              case Some(InventoryItem(equipment, slotNum)) =>Some(equipment.asInstanceOf[Tool], slotNum)
+              case None                                    => None
+            }
+        }
+      }
+      optGrenadeInSlot match {
+        case Some((grenade, slotNum)) =>
+          val itemInPreviouslyDrawnSlotToDrop = if (equipSlot != previouslyDrawnSlot) {
+            forcedTolowerRaisedArm(tplayer, tplayer.GUID, tplayer.Zone)
+            tplayer.Slot(previouslyDrawnSlot).Equipment match {
+              case out @ Some(_) =>
+                tplayer.ResistArmMotion(countRestrictAttempts(count=1))
+                out
+              case _ =>
+                None
+            }
+          } else {
+            None
+          }
+          val itemPreviouslyInPistolSlot = tplayer.Slot(equipSlot).Equipment
+          val result = for {
+            //remove grenade from inventory
+            a <- ask(tplayer.Actor, Containable.RemoveItemFromSlot(slotNum))
+            //remove equipment from pistol slot, where grenade will go
+            b <- itemPreviouslyInPistolSlot match {
+              case Some(_) => ask(tplayer.Actor, Containable.RemoveItemFromSlot(equipSlot))
+              case _       => Future(true)
+            }
+            //remove held equipment (if any)
+            c <- itemInPreviouslyDrawnSlotToDrop match {
+              case Some(_) => ask(tplayer.Actor, Containable.RemoveItemFromSlot(previouslyDrawnSlot))
+              case _       => Future(false)
+            }
+          } yield (a, b, c)
+          result.onComplete {
+            case Success((_, _, _)) =>
+              //put equipment in hand and hold grenade up
+              TaskWorkflow.execute(TaskBundle(TaskToHoldEquipmentUp(tplayer)(grenade, equipSlot)))
+              //what to do with the equipment that was removed for the grenade
+              itemPreviouslyInPistolSlot match {
+                case Some(e) =>
+                  log.info(s"${tplayer.Name} has dropped ${tplayer.Sex.possessive} ${e.Definition.Name}")
+                  PutEquipmentInInventoryOrDrop(tplayer)(e)
+                case _ => ;
+              }
+              //restore previously-held-up equipment
+              itemInPreviouslyDrawnSlotToDrop match {
+                case Some(e) => PutEquipmentInInventorySlot(tplayer)(e, previouslyDrawnSlot)
+                case _ => ;
+              }
+              log.info(s"${tplayer.Name} has quickly drawn a ${grenade.Definition.Name}")
+            case _ => ;
+          }
+        case None => ;
+      }
+      optGrenadeInSlot.nonEmpty
+    } else {
+      false
+    }
+  }
+
+  /**
+   * If the player has a raised arm, lower it.
+   * Do it manually, bypassing the checks in the normal procedure.
+   * @see `AvatarAction.ObjectHeld`
+   * @see `AvatarServiceMessage`
+   * @see `Player.DrawnSlot`
+   * @see `Player.HandsDownSlot`
+   * @param tplayer the player
+   * @param guid target guid (usually the player)
+   * @param zone the zone of reporting
+   * @return if the hand has a drawn equipment in it and tries to lower
+   */
+  private def forcedTolowerRaisedArm(tplayer: Player, guid:PlanetSideGUID, zone: Zone): Boolean = {
+    val slot = tplayer.DrawnSlot
+    if (slot != Player.HandsDownSlot) {
+      tplayer.DrawnSlot = Player.HandsDownSlot
+      zone.AvatarEvents ! AvatarServiceMessage(
+        zone.id,
+        AvatarAction.ObjectHeld(guid, Player.HandsDownSlot, slot)
+      )
+      true
+    } else {
+      false
+    }
+  }
+
+  /**
+   * Restriction logic that stops the player
+   * from lowering or raising any drawn equipment a certain number of times.
+   * Reset to default restriction behavior when no longer valid.
+   * @see `Player.neverRestrict`
+   * @see `Player.ResistArmMotion`
+   * @param count number of times to stop the player from adjusting their arm
+   * @param player target player
+   * @param slot slot being switched to (unused here)
+   * @return if the motion is restricted
+   */
+  def countRestrictAttempts(count: Int)(player: Player, slot: Int): Boolean = {
+    if (count > 0) {
+      player.ResistArmMotion(countRestrictAttempts(count - 1))
+      true
+    } else {
+      player.ResistArmMotion(Player.neverRestrict) //reset
+      false
     }
   }
 

@@ -440,12 +440,8 @@ object Players {
             if (player.DrawnSlot == Player.HandsDownSlot) {
               player.DrawnSlot = index
               events ! AvatarServiceMessage(
-                name,
-                AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectHeldMessage(pguid, index, true))
-              )
-              events ! AvatarServiceMessage(
                 zone.id,
-                AvatarAction.ObjectHeld(pguid, index)
+                AvatarAction.ObjectHeld(pguid, index, index)
               )
             }
           }

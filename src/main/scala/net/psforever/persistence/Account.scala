@@ -9,5 +9,6 @@ case class Account(
     created: LocalDateTime = LocalDateTime.now(),
     lastModified: LocalDateTime = LocalDateTime.now(),
     inactive: Boolean = false,
-    gm: Boolean = false
+    gm: Boolean = false,
+    lastFactionId: Int = 3
 )

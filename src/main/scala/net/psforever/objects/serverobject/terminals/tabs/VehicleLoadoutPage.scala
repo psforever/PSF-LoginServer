@@ -23,7 +23,7 @@ import net.psforever.packet.game.ItemTransactionMessage
   */
 final case class VehicleLoadoutPage(lineOffset: Int) extends LoadoutTab {
   override def Buy(player: Player, msg: ItemTransactionMessage): Terminal.Exchange = {
-    player.avatar.loadouts(msg.unk1 + lineOffset) match {
+    player.avatar.loadouts.suit(msg.unk1 + lineOffset) match {
       case Some(loadout: VehicleLoadout) =>
         val weapons = loadout.visible_slots
           .map(entry => {

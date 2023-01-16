@@ -297,12 +297,20 @@ class MiddlewareActor(
                 send(ServerStart(nonce, serverNonce), None, None)
                 cryptoSetup()
 
-              /** Unknown30 is used to reuse an existing crypto session when switching from login to world
-                * When not handling it, it appears that the client will fall back to using ClientStart
-                * TODO implement this
-                */
               case (Unknown30(nonce), _) =>
+                /*
+                Unknown30 is used to reuse an existing crypto session when switching from login to world
+                When not handling it, it appears that the client will fall back to using ClientStart
+                Do we need to implement this?
+                */
                 connectionClose()
+
+              case (ConnectionClose(), _) =>
+                /*
+                indicates the user has willingly quit the game world
+                we do not need to implement this
+                */
+                Behaviors.same
 
               // TODO ResetSequence
               case _ =>

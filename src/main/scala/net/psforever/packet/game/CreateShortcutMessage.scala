@@ -2,9 +2,10 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.PlanetSideGUID
-import scodec.Codec
+import net.psforever.types.{ImplantType, PlanetSideGUID}
+import scodec.{Codec, TransformSyntax}
 import scodec.codecs._
+import shapeless.{::, HNil}
 
 /**
   * Details regarding this shortcut.<br>
@@ -18,33 +19,24 @@ import scodec.codecs._
   * The `shortcut_macro` setting displays a word bubble superimposed by the (first three letters of) `effect1` text.<br>
   * Implants and the medkit should have self-explanatory graphics.
   * <br>
-  * Purpose:<br>
-  * `0 - Medkit`<br>
-  * `1 - Macro`<br>
-  * `2 - Implant`<br>
-  * <br>
-  * Tile:<br>
-  * `advanced_regen` (regeneration)<br>
-  * `audio_amplifier`<br>
-  * `darklight_vision`<br>
-  * `medkit`<br>
-  * `melee_booster`<br>
-  * `personal_shield`<br>
-  * `range_magnifier`<br>
-  * `second_wind`<br>
-  * `shortcut_macro`<br>
-  * `silent_run` (sensor shield)<br>
-  * `surge`<br>
-  * `targeting` (enhanced targetting)<br>
-  * <br>
-  * Exploration:<br>
-  * What is `purpose` when 3?
-  * @param purpose the primary use of this shortcut
-  * @param tile the visual element of the shortcut
-  * @param effect1 for macros, a three letter acronym displayed in the hotbar
-  * @param effect2 for macros, the chat message content
+  * Tile - Code<br>
+  * `advanced_regen` (regeneration) - 2<br>
+  * `audio_amplifier` - 2<br>
+  * `darklight_vision` - 2<br>
+  * `medkit` - 0<br>
+  * `melee_booster` - 2<br>
+  * `personal_shield` - 2<br>
+  * `range_magnifier` - 2<br>
+  * `second_wind` - 2<br>
+  * `shortcut_macro` - 1<br>
+  * `silent_run` (sensor shield) - 2<br>
+  * `surge` - 2<br>
+  * `targeting` (enhanced targeting) - 2
+  * @param code the primary use of this shortcut
   */
-final case class Shortcut(purpose: Int, tile: String, effect1: String = "", effect2: String = "")
+abstract class Shortcut(val code: Int) {
+  def tile: String
+}
 
 /**
   * Facilitate a quick-use button for the hotbar.<br>
@@ -64,17 +56,13 @@ final case class Shortcut(purpose: Int, tile: String, effect1: String = "", effe
   * The prior functionality will rarely be appreciated, however, as players rarely never have their medkit shortcut unbound.
   * @param player_guid the player
   * @param slot the hotbar slot number (one-indexed)
-  * @param unk na; always zero?
-  * @param addShortcut true, if we are adding a shortcut; false, if we are removing any current shortcut
   * @param shortcut optional; details about the shortcut to be created
-  * @see ChangeShortcutBankMessage
+  * @see `ChangeShortcutBankMessage`
   */
 final case class CreateShortcutMessage(
     player_guid: PlanetSideGUID,
     slot: Int,
-    unk: Int,
-    addShortcut: Boolean,
-    shortcut: Option[Shortcut] = None
+    shortcut: Option[Shortcut]
 ) extends PlanetSideGamePacket {
   type Packet = CreateShortcutMessage
   def opcode = GamePacketOpcode.CreateShortcutMessage
@@ -82,33 +70,110 @@ final case class CreateShortcutMessage(
 }
 
 object Shortcut extends Marshallable[Shortcut] {
-
   /** Preset for the medkit quick-use option. */
-  final val Medkit: Some[Shortcut] = Some(Shortcut(0, "medkit"))
+  final case class Medkit() extends Shortcut(code=0) {
+    def tile = "medkit"
+  }
 
   /**
-    * Converter for text macro parameters that acts like a preset.
-    * @param effect1 a three letter acronym displayed in the hotbar
-    * @param effect2 the chat message content
-    * @return `Some` shortcut that represents a voice macro command
-    */
-  def MACRO(effect1: String, effect2: String): Some[Shortcut] = Some(Shortcut(1, "shortcut_macro", effect1, effect2))
+   * Converter for text macro parameters that acts like a preset.
+   * @param acronym a three letter acronym displayed in the hotbar
+   * @param msg the chat message content
+   * @return `Some` shortcut that represents a voice macro command
+   */
+  final case class Macro(acronym: String, msg: String) extends Shortcut(code=1) {
+    override val tile: String = "shortcut_macro"
+  }
 
-  implicit val codec: Codec[Shortcut] = (
-    ("purpose" | uint2L) ::
-      ("tile" | PacketHelpers.encodedStringAligned(5)) ::
+  /**
+   * Converter for an implant name token that acts like a preset.
+   * @param tile implant name
+   * @return `Some` shortcut that represents an implant
+   * @throws `AssertionError` if an implant is not named
+   */
+  final case class Implant(tile: String) extends Shortcut(code=2) {
+    assert(ImplantType.names.exists(_.equals(tile)), s"not an implant - $tile")
+  }
+
+  /**
+   * Main transcoder for medkit shortcuts.
+   */
+  val medkitCodec: Codec[Medkit] = (
+    ("tile" | PacketHelpers.encodedStringAligned(adjustment=5)) ::
       ("effect1" | PacketHelpers.encodedWideString) ::
       ("effect2" | PacketHelpers.encodedWideString)
-  ).as[Shortcut]
+    ).xmap[Medkit](
+    _ => Medkit(),
+    {
+      case Medkit() => "medkit" :: "" :: "" :: HNil
+    }
+  )
+
+  /**
+   * Main transcoder for text chat macro shortcuts.
+   * All strings transcoders are utilized.
+   */
+  val macroCodec: Codec[Macro] = (
+    ("tile" | PacketHelpers.encodedStringAligned(adjustment=5)) ::
+      ("effect1" | PacketHelpers.encodedWideString) ::
+      ("effect2" | PacketHelpers.encodedWideString)
+    ).xmap[Macro](
+    {
+      case _ :: acronym :: msg :: HNil => Macro(acronym, msg)
+    },
+    {
+      case Macro(acronym, msg) => "shortcut_macro" :: acronym :: msg :: HNil
+    }
+  )
+
+  /**
+   * Main transcoder for implant quick-use shortcuts.
+   */
+  val implantCodec: Codec[Implant] = (
+    ("tile" | PacketHelpers.encodedStringAligned(adjustment=5)) ::
+      ("effect1" | PacketHelpers.encodedWideString) ::
+      ("effect2" | PacketHelpers.encodedWideString)
+    ).xmap[Implant](
+    {
+      case implant :: _ :: _ :: HNil => Implant(implant)
+    },
+    {
+      case Implant(implant) => implant :: "" :: "" :: HNil
+    }
+  )
+
+  /**
+   * Convert the numeric flag for a specific kind of shortcut into the transcoder for that kind of shortcut.
+   * @param code numeric code for shortcut type
+   * @return transcoder for that shortcut type
+   * @throws IllegalArgumentException if the numeric code does not map to any valid transcoders
+   */
+  def shortcutSwitch(code: Int): Codec[Shortcut] = {
+    (code match {
+      case 0 => medkitCodec
+      case 1 => macroCodec
+      case 2 => implantCodec
+      case _ => throw new IllegalArgumentException(s"code not associated with shortcut type - $code")
+    }).asInstanceOf[Codec[Shortcut]]
+  }
+
+  implicit val codec: Codec[Shortcut] = (
+    uint(bits=2) >>:~ { code =>
+      shortcutSwitch(code).hlist
+    }).xmap[Shortcut](
+    {
+      case _ :: shortcut :: HNil => shortcut
+    },
+    {
+      shortcut => shortcut.code :: shortcut :: HNil
+    }
+  )
 }
 
 object CreateShortcutMessage extends Marshallable[CreateShortcutMessage] {
   implicit val codec: Codec[CreateShortcutMessage] = (
     ("player_guid" | PlanetSideGUID.codec) ::
-      ("slot" | uint8L) ::
-      ("unk" | uint8L) ::
-      (("addShortcut" | bool) >>:~ { value =>
-      conditional(value, "shortcut" | Shortcut.codec).hlist
-    })
+      ("slot" | uint16L) ::
+      ("shortcut" | optional(bool, Shortcut.codec))
   ).as[CreateShortcutMessage]
 }

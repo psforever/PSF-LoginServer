@@ -14,6 +14,7 @@ import net.psforever.objects.serverobject.environment.InteractWithEnvironment
 import net.psforever.objects.serverobject.mount.MountableEntity
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.damage.DamageProfile
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorPopulation}
@@ -62,7 +63,7 @@ class Player(var avatar: Avatar)
   private var jumping: Boolean            = false
   private var cloaked: Boolean            = false
   private var afk: Boolean                = false
-  private var zoning: Zoning.Method.Value = Zoning.Method.None
+  private var zoning: Zoning.Method       = Zoning.Method.None
 
   private var vehicleSeated: Option[PlanetSideGUID] = None
 
@@ -78,6 +79,8 @@ class Player(var avatar: Avatar)
   var PlanetsideAttribute: Array[Long] = Array.ofDim(120)
 
   val squadLoadouts = new LoadoutManager(10)
+
+  var resistArmMotion: (Player,Int)=>Boolean = Player.neverRestrict
 
   //init
   Health = 0       //player health is artificially managed as a part of their lifecycle; start entity as dead
@@ -176,8 +179,8 @@ class Player(var avatar: Avatar)
     capacitorState
   }
 
-  def CapacitorLastUsedMillis    = capacitorLastUsedMillis
-  def CapacitorLastChargedMillis = capacitorLastChargedMillis
+  def CapacitorLastUsedMillis: Long    = capacitorLastUsedMillis
+  def CapacitorLastChargedMillis: Long = capacitorLastChargedMillis
 
   def VisibleSlots: Set[Int] =
     if (exosuit.SuitType == ExoSuitType.MAX) {
@@ -253,7 +256,7 @@ class Player(var avatar: Avatar)
     }
   }
 
-  def FreeHand = freeHand
+  def FreeHand: EquipmentSlot = freeHand
 
   def FreeHand_=(item: Option[Equipment]): Option[Equipment] = {
     if (freeHand.Equipment.isEmpty || item.isEmpty) {
@@ -313,6 +316,18 @@ class Player(var avatar: Avatar)
     }
   }
 
+  def ResistArmMotion(func: (Player,Int)=>Boolean): Unit = {
+    resistArmMotion = func
+  }
+
+  def TestArmMotion(): Boolean = {
+    resistArmMotion(this, drawnSlot)
+  }
+
+  def TestArmMotion(slot: Int): Boolean = {
+    resistArmMotion(this, slot)
+  }
+
   def DrawnSlot: Int = drawnSlot
 
   def DrawnSlot_=(slot: Int): Int = {
@@ -339,15 +354,15 @@ class Player(var avatar: Avatar)
     ChangeSpecialAbility()
   }
 
-  def Subtract = exosuit.Subtract
+  def Subtract: DamageProfile = exosuit.Subtract
 
-  def ResistanceDirectHit = exosuit.ResistanceDirectHit
+  def ResistanceDirectHit: Int = exosuit.ResistanceDirectHit
 
-  def ResistanceSplash = exosuit.ResistanceSplash
+  def ResistanceSplash: Int = exosuit.ResistanceSplash
 
-  def ResistanceAggravated = exosuit.ResistanceAggravated
+  def ResistanceAggravated: Int = exosuit.ResistanceAggravated
 
-  def RadiationShielding = exosuit.RadiationShielding
+  def RadiationShielding: Float = exosuit.RadiationShielding
 
   def FacingYawUpper: Float = facingYawUpper
 
@@ -526,14 +541,14 @@ class Player(var avatar: Avatar)
     Carrying
   }
 
-  def ZoningRequest: Zoning.Method.Value = zoning
+  def ZoningRequest: Zoning.Method = zoning
 
-  def ZoningRequest_=(request: Zoning.Method.Value): Zoning.Method.Value = {
+  def ZoningRequest_=(request: Zoning.Method): Zoning.Method = {
     zoning = request
     ZoningRequest
   }
 
-  def DamageModel = exosuit.asInstanceOf[DamageResistanceModel]
+  def DamageModel: DamageResistanceModel = exosuit.asInstanceOf[DamageResistanceModel]
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Player]
 
@@ -600,6 +615,10 @@ object Player {
     } else {
       player
     }
+  }
+
+  def neverRestrict(player: Player, slot: Int): Boolean = {
+    false
   }
 }
 

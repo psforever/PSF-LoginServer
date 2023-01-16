@@ -2,6 +2,7 @@
 package net.psforever.services.account
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import net.psforever.actors.session.AvatarActor
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -11,9 +12,14 @@ import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.zones.Zone
+import net.psforever.persistence
 import net.psforever.types.Vector3
 import net.psforever.services.{Service, ServiceManager}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
+import net.psforever.zones.Zones
+
+import scala.util.Success
 
 /**
   * A global service that manages user behavior as divided into the following three categories:
@@ -48,9 +54,11 @@ class AccountPersistenceService extends Actor {
 
   /** squad service event hook */
   var squad: ActorRef = ActorRef.noSender
+  /** galaxy service event hook */
+  var galaxy: ActorRef = ActorRef.noSender
 
   /** log, for trace and warnings only */
-  val log = org.log4s.getLogger
+  private val log = org.log4s.getLogger
 
   /**
     * Retrieve the required system event service hooks.
@@ -59,6 +67,7 @@ class AccountPersistenceService extends Actor {
     */
   override def preStart(): Unit = {
     ServiceManager.serviceManager ! ServiceManager.Lookup("squad")
+    ServiceManager.serviceManager ! ServiceManager.Lookup("galaxy")
   }
 
   override def postStop(): Unit = {
@@ -75,7 +84,7 @@ class AccountPersistenceService extends Actor {
     * but, updating should be reserved for individual persistence monitor callback (by the user who is being monitored).
     */
   val Started: Receive = {
-    case msg @ AccountPersistenceService.Login(name) =>
+    case msg @ AccountPersistenceService.Login(name, _) =>
       (accounts.get(name) match {
         case Some(ref) => ref
         case None      => CreateNewPlayerToken(name)
@@ -127,13 +136,22 @@ class AccountPersistenceService extends Actor {
   val Setup: Receive = {
     case ServiceManager.LookupResult("squad", endpoint) =>
       squad = endpoint
-      if (squad != ActorRef.noSender) {
-        log.trace("Service hooks obtained.  Continuing with standard operation.")
-        context.become(Started)
-      }
+      log.trace("Service hooks obtained.  Attempting standard operation.")
+      switchToStarted()
+
+    case ServiceManager.LookupResult("galaxy", endpoint) =>
+      galaxy = endpoint
+      log.trace("Service hooks obtained.  Attempting standard operation.")
+      switchToStarted()
 
     case msg =>
       log.warn(s"not yet started; received a $msg that will go unhandled")
+  }
+
+  def switchToStarted(): Unit = {
+    if (squad != ActorRef.noSender && galaxy != ActorRef.noSender) {
+      context.become(Started)
+    }
   }
 
   /**
@@ -143,7 +161,7 @@ class AccountPersistenceService extends Actor {
     */
   def CreateNewPlayerToken(name: String): ActorRef = {
     val ref =
-      context.actorOf(Props(classOf[PersistenceMonitor], name, squad), s"${NextPlayerIndex(name)}_${name.hashCode()}")
+      context.actorOf(Props(classOf[PersistenceMonitor], name, squad, galaxy), s"${NextPlayerIndex(name)}_${name.hashCode()}")
     accounts += name -> ref
     ref
   }
@@ -176,7 +194,7 @@ object AccountPersistenceService {
     * If the persistence monitor already exists, use that instead and synchronize the data.
     * @param name the unique name of the player
     */
-  final case class Login(name: String)
+  final case class Login(name: String, charId: Long)
 
   /**
     * Update the persistence monitor that was setup for a user with the given text descriptor (player name).
@@ -219,8 +237,11 @@ object AccountPersistenceService {
   * @param name the unique name of the player
   * @param squadService a hook into the `SquadService` event system
   */
-class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
-
+class PersistenceMonitor(
+                          name: String,
+                          squadService: ActorRef,
+                          galaxyService: ActorRef
+                        ) extends Actor {
   /** the last-reported zone of this player */
   var inZone: Zone = Zone.Nowhere
 
@@ -242,7 +263,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
   var timer: Cancellable = Default.Cancellable
 
   /** the sparingly-used log */
-  val log = org.log4s.getLogger
+  private val log = org.log4s.getLogger
 
   /**
     * Perform logout operations before the persistence monitor finally stops.
@@ -253,13 +274,31 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
   }
 
   def receive: Receive = {
-    case AccountPersistenceService.Login(_) =>
-      sender() ! (if (kicked) {
-                    PlayerToken.CanNotLogin(name, PlayerToken.DeniedLoginReason.Kicked)
-                  } else {
-                    UpdateTimer()
-                    PlayerToken.LoginInfo(name, inZone, lastPosition)
-                  })
+    case AccountPersistenceService.Login(_, charId) =>
+      UpdateTimer() //longer!
+      if (kicked) {
+        //persistence hasn't ended yet, but we were kicked out of the game
+        sender() ! PlayerToken.CanNotLogin(name, PlayerToken.DeniedLoginReason.Kicked)
+      } else {
+        if (inZone != Zone.Nowhere) {
+          //persistence hasn't ended yet
+          sender() ! PlayerToken.RestoreInfo(name, inZone, lastPosition)
+        } else {
+          val replyTo = sender()
+          //proper login; what was our last position according to the database?
+          AvatarActor.loadSavedPlayerData(charId).onComplete {
+            case Success(results) =>
+              Zones.zones.find(zone => zone.Number == results.zoneNum) match {
+                case Some(zone) =>
+                  replyTo ! PlayerToken.LoginInfo(name, zone, Some(results))
+                case _ =>
+                  replyTo ! PlayerToken.LoginInfo(name, inZone, None)
+              }
+            case _ =>
+              replyTo ! PlayerToken.LoginInfo(name, inZone, None)
+          }
+        }
+      }
 
     case AccountPersistenceService.Update(_, z, p) if !kicked =>
       inZone = z
@@ -328,7 +367,8 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
         //alive or dead in a vehicle
         //if the avatar is dead while in a vehicle, they haven't released yet
-        //TODO perform any last minute saving now ...
+        AvatarActor.saveAvatarData(avatar)
+        AvatarActor.finalSavePlayerData(player)
         (inZone.GUID(player.VehicleSeated) match {
           case Some(obj: Mountable) =>
             (Some(obj), obj.Seat(obj.PassengerInSeat(player).getOrElse(-1)))
@@ -342,13 +382,14 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
 
       case (Some(avatar), Some(player)) =>
         //alive or dead, as standard Infantry
-        //TODO perform any last minute saving now ...
+        AvatarActor.saveAvatarData(avatar)
+        AvatarActor.finalSavePlayerData(player)
         PlayerAvatarLogout(avatar, player)
 
       case (Some(avatar), None) =>
         //player has released
         //our last body was turned into a corpse; just the avatar remains
-        //TODO perform any last minute saving now ...
+        AvatarActor.saveAvatarData(avatar)
         inZone.GUID(avatar.vehicle) match {
           case Some(obj: Vehicle) if obj.OwnerName.contains(avatar.name) =>
             obj.Actor ! Vehicle.Ownership(None)
@@ -357,7 +398,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
         AvatarLogout(avatar)
 
       case _ =>
-      //user stalled during initial session, or was caught in between zone transfer
+        //user stalled during initial session, or was caught in between zone transfer
     }
   }
 
@@ -407,6 +448,7 @@ class PersistenceMonitor(name: String, squadService: ActorRef) extends Actor {
   def AvatarLogout(avatar: Avatar): Unit = {
     LivePlayerList.Remove(avatar.id)
     squadService.tell(Service.Leave(Some(avatar.id.toString)), context.parent)
+    galaxyService.tell(GalaxyServiceMessage(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     Deployables.Disown(inZone, avatar, context.parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)
     TaskWorkflow.execute(GUIDTask.unregisterObject(inZone.GUID, avatar.locker))
@@ -434,9 +476,22 @@ object PlayerToken {
     * ("Exists" does not imply an ongoing process and can also mean "just joined the game" here.)
     * @param name the name of the player
     * @param zone the zone in which the player is location
+    * @param optionalSavedData additional information about the last time the player was in the game
+    */
+  final case class LoginInfo(name: String, zone: Zone, optionalSavedData: Option[persistence.Savedplayer])
+
+  /**
+    * ...
+    * @param name the name of the player
+    * @param zone the zone in which the player is location
     * @param position where in the zone the player is located
     */
-  final case class LoginInfo(name: String, zone: Zone, position: Vector3)
+  final case class RestoreInfo(name: String, zone: Zone, position: Vector3)
 
+  /**
+    * ...
+    * @param name the name of the player
+    * @param reason why the player can not log into the game
+    */
   final case class CanNotLogin(name: String, reason: DeniedLoginReason.Value)
 }

@@ -67,7 +67,7 @@ object AvatarAction {
       cdata: ConstructorData
   )                                                                                                   extends Action
   final case class ObjectDelete(player_guid: PlanetSideGUID, item_guid: PlanetSideGUID, unk: Int = 0) extends Action
-  final case class ObjectHeld(player_guid: PlanetSideGUID, slot: Int)                                 extends Action
+  final case class ObjectHeld(player_guid: PlanetSideGUID, slot: Int, previousSLot: Int)              extends Action
   final case class OxygenState(player: OxygenStateTarget, vehicle: Option[OxygenStateTarget])         extends Action
   final case class PlanetsideAttribute(player_guid: PlanetSideGUID, attribute_type: Int, attribute_value: Long)
       extends Action
