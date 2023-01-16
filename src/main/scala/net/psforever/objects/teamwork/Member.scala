@@ -2,7 +2,7 @@
 package net.psforever.objects.teamwork
 
 import net.psforever.objects.avatar.Certification
-import net.psforever.types.Vector3
+import net.psforever.types.{PlanetSideGUID, Vector3}
 
 class Member {
   //about the position to be filled
@@ -12,10 +12,12 @@ class Member {
   //about the individual filling the position
   private var name: String      = ""
   private var charId: Long      = 0L
+  private var guid: Int         = 0
   private var health: Int       = 0
   private var armor: Int        = 0
   private var zoneId: Int       = 0
   private var position: Vector3 = Vector3.Zero
+  private var certs: Set[Certification] = Set()
 
   def Role: String = role
 
@@ -52,6 +54,17 @@ class Member {
     CharId
   }
 
+  def GUID: PlanetSideGUID = PlanetSideGUID(guid)
+
+  def GUID_=(guid: PlanetSideGUID): PlanetSideGUID = {
+    GUID_=(guid.guid)
+  }
+
+  def GUID_=(thisGuid: Int): PlanetSideGUID = {
+    guid = thisGuid
+    GUID
+  }
+
   def Health: Int = health
 
   def Health_=(red: Int): Int = {
@@ -78,6 +91,13 @@ class Member {
   def Position_=(pos: Vector3): Vector3 = {
     position = pos
     Position
+  }
+
+  def Certifications: Set[Certification] = certs
+
+  def Certifications_=(req: Set[Certification]): Set[Certification] = {
+    certs = req
+    Certifications
   }
 
   def isAvailable: Boolean = {

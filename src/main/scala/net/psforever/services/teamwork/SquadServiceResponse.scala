@@ -1,6 +1,8 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.services.teamwork
 
+import akka.actor.ActorRef
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
 import net.psforever.types.{PlanetSideGUID, SquadResponseType, SquadWaypoint}
@@ -26,7 +28,7 @@ object SquadResponse {
   final case class UpdateList(infos: Iterable[(Int, SquadInfo)]) extends Response
   final case class RemoveFromList(infos: Iterable[Int])          extends Response
 
-  final case class AssociateWithSquad(squad_guid: PlanetSideGUID) extends Response
+  final case class IdentifyAsSquadLeader(squad_guid: PlanetSideGUID) extends Response
   final case class SetListSquad(squad_guid: PlanetSideGUID)       extends Response
 
   final case class Membership(
@@ -40,11 +42,11 @@ object SquadResponse {
       unk6: Option[Option[String]]
   )                                                                                           extends Response //see SquadMembershipResponse
   final case class WantsSquadPosition(leader_char_id: Long, bid_name: String)                 extends Response
-  final case class Join(squad: Squad, positionsToUpdate: List[Int], channel: String)          extends Response
+  final case class Join(squad: Squad, positionsToUpdate: List[Int], channel: String, ref: ActorRef) extends Response
   final case class Leave(squad: Squad, positionsToUpdate: List[(Long, Int)])                  extends Response
   final case class UpdateMembers(squad: Squad, update_info: List[SquadAction.Update])         extends Response
   final case class AssignMember(squad: Squad, from_index: Int, to_index: Int)                 extends Response
-  final case class PromoteMember(squad: Squad, char_id: Long, from_index: Int, to_index: Int) extends Response
+  final case class PromoteMember(squad: Squad, char_id: Long, from_index: Int)                extends Response
 
   final case class Detail(guid: PlanetSideGUID, squad_detail: SquadDetail) extends Response
 
@@ -59,5 +61,16 @@ object SquadResponse {
       unk: Int
   ) extends Response
 
-  final case class SquadSearchResults() extends Response
+  final case class SquadDecoration(guid: PlanetSideGUID, squad: Squad) extends Response
+
+  final case class SquadSearchResults(results: List[PlanetSideGUID]) extends Response
+
+  final case class CharacterKnowledge(
+                                       id: Long,
+                                       name: String,
+                                       certs: Set[Certification],
+                                       unk1: Int,
+                                       unk2: Int,
+                                       zoneNumber: Int
+                                     ) extends Response
 }
