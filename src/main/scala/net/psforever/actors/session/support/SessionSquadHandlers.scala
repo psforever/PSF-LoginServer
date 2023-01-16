@@ -1,0 +1,535 @@
+// Copyright (c) 2023 PSForever
+package net.psforever.actors.session.support
+
+import akka.actor.{ActorContext, ActorRef, typed}
+import net.psforever.actors.session.{AvatarActor, ChatActor}
+import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.teamwork.Squad
+import net.psforever.objects.{LivePlayerList, Player}
+import net.psforever.packet.game._
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.chat.ChatService
+import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadAction => SquadServiceAction}
+import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadResponseType, Vector3}
+
+import scala.collection.mutable
+
+object SessionSquadHandlers {
+  protected final case class SquadUIElement(
+                                             name: String,
+                                             index: Int,
+                                             zone: Int,
+                                             health: Int,
+                                             armor: Int,
+                                             position: Vector3
+                                           )
+}
+
+class SessionSquadHandlers(
+                            val sessionData: SessionData,
+                            avatarActor: typed.ActorRef[AvatarActor.Command],
+                            chatActor: typed.ActorRef[ChatActor.Command],
+                            squadService: ActorRef,
+                            implicit val context: ActorContext
+                          ) extends CommonSessionInterfacingFuncs {
+  import SessionSquadHandlers._
+
+  val squadUI: mutable.LongMap[SquadUIElement] = new mutable.LongMap[SquadUIElement]()
+  var squad_supplement_id: Int = 0
+  /**
+   * When joining or creating a squad, the original state of the avatar's internal LFS variable is blanked.
+   * This `WorldSessionActor`-local variable is then used to indicate the ongoing state of the LFS UI component,
+   * now called "Looking for Squad Member."
+   * Only the squad leader may toggle the LFSM marquee.
+   * Upon leaving or disbanding a squad, this value is made false.
+   * Control switching between the `Avatar`-local and the `WorldSessionActor`-local variable is contingent on `squadUI` being populated.
+   */
+  var lfsm: Boolean = false
+  var squadSetup: () => Unit = FirstTimeSquadSetup
+  var squadUpdateCounter: Int = 0
+  val queuedSquadActions: Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
+  var updateSquad: () => Unit = NoSquadUpdates
+
+  /*  */
+
+  def handle(response: SquadResponse.Response, excluded: Iterable[Long]): Unit = {
+    if (!excluded.exists(_ == avatar.id)) {
+      response match {
+        case SquadResponse.ListSquadFavorite(line, task) =>
+          sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), line, SquadAction.ListSquadFavorite(task)))
+
+        case SquadResponse.InitList(infos) =>
+          sendResponse(ReplicationStreamMessage(infos))
+
+        case SquadResponse.UpdateList(infos) if infos.nonEmpty =>
+          sendResponse(
+            ReplicationStreamMessage(
+              6,
+              None,
+              infos.map {
+                case (index, squadInfo) =>
+                  SquadListing(index, squadInfo)
+              }.toVector
+            )
+          )
+
+        case SquadResponse.RemoveFromList(infos) if infos.nonEmpty =>
+          sendResponse(
+            ReplicationStreamMessage(
+              1,
+              None,
+              infos.map { index =>
+                SquadListing(index, None)
+              }.toVector
+            )
+          )
+
+        case SquadResponse.Detail(guid, detail) =>
+          sendResponse(SquadDetailDefinitionUpdateMessage(guid, detail))
+
+        case SquadResponse.AssociateWithSquad(squad_guid) =>
+          sendResponse(SquadDefinitionActionMessage(squad_guid, 0, SquadAction.AssociateWithSquad()))
+
+        case SquadResponse.SetListSquad(squad_guid) =>
+          sendResponse(SquadDefinitionActionMessage(squad_guid, 0, SquadAction.SetListSquad()))
+
+        case SquadResponse.Membership(request_type, unk1, unk2, charId, opt_char_id, player_name, unk5, unk6) =>
+          val name = request_type match {
+            case SquadResponseType.Invite if unk5 =>
+              //player_name is our name; the name of the player indicated by unk3 is needed
+              LivePlayerList.WorldPopulation({ case (_, a: Avatar) => charId == a.id }).headOption match {
+                case Some(player) =>
+                  player.name
+                case None =>
+                  player_name
+              }
+            case _ =>
+              player_name
+          }
+          sendResponse(SquadMembershipResponse(request_type, unk1, unk2, charId, opt_char_id, name, unk5, unk6))
+
+        case SquadResponse.WantsSquadPosition(_, name) =>
+          sendResponse(
+            ChatMsg(
+              ChatMessageType.CMT_SQUAD,
+              wideContents=true,
+              name,
+              s"\\#6 would like to join your squad. (respond with \\#3/accept\\#6 or \\#3/reject\\#6)",
+              None
+            )
+          )
+
+        case SquadResponse.Join(squad, positionsToUpdate, _) =>
+          val membershipPositions = positionsToUpdate map squad.Membership.zipWithIndex
+          membershipPositions.find({ case (member, _) => member.CharId == avatar.id }) match {
+            case Some((ourMember, ourIndex)) =>
+              //we are joining the squad
+              //load each member's entry (our own too)
+              squad_supplement_id = squad.GUID.guid + 1
+              membershipPositions.foreach {
+                case (member, index) =>
+                  sendResponse(
+                    SquadMemberEvent.Add(
+                      squad_supplement_id,
+                      member.CharId,
+                      index,
+                      member.Name,
+                      member.ZoneId,
+                      unk7 = 0
+                    )
+                  )
+                  squadUI(member.CharId) =
+                    SquadUIElement(member.Name, index, member.ZoneId, member.Health, member.Armor, member.Position)
+              }
+              //repeat our entry
+              sendResponse(
+                SquadMemberEvent.Add(
+                  squad_supplement_id,
+                  ourMember.CharId,
+                  ourIndex,
+                  ourMember.Name,
+                  ourMember.ZoneId,
+                  unk7 = 0
+                )
+              )
+              val playerGuid = player.GUID
+              //turn lfs off
+              val factionChannel = s"${player.Faction}"
+              if (avatar.lookingForSquad) {
+                avatarActor ! AvatarActor.SetLookingForSquad(false)
+              }
+              //squad colors
+              GiveSquadColorsInZone()
+              continent.AvatarEvents ! AvatarServiceMessage(
+                factionChannel,
+                AvatarAction.PlanetsideAttribute(playerGuid, 31, squad_supplement_id)
+              )
+              //associate with member position in squad
+              sendResponse(PlanetsideAttributeMessage(playerGuid, 32, ourIndex))
+              //a finalization? what does this do?
+              sendResponse(SquadDefinitionActionMessage(squad.GUID, 0, SquadAction.Unknown(18)))
+              updateSquad = PeriodicUpdatesWhenEnrolledInSquad
+              chatActor ! ChatActor.JoinChannel(ChatService.ChatChannel.Squad(squad.GUID))
+            case _ =>
+              //other player is joining our squad
+              //load each member's entry
+              GiveSquadColorsInZone(
+                membershipPositions.map {
+                  case (member, index) =>
+                    val charId = member.CharId
+                    sendResponse(
+                      SquadMemberEvent.Add(squad_supplement_id, charId, index, member.Name, member.ZoneId, unk7 = 0)
+                    )
+                    squadUI(charId) =
+                      SquadUIElement(member.Name, index, member.ZoneId, member.Health, member.Armor, member.Position)
+                    charId
+                }
+              )
+          }
+          //send an initial dummy update for map icon(s)
+          sendResponse(
+            SquadState(
+              PlanetSideGUID(squad_supplement_id),
+              membershipPositions
+                .filterNot { case (member, _) => member.CharId == avatar.id }
+                .map {
+                  case (member, _) =>
+                    SquadStateInfo(
+                      member.CharId,
+                      member.Health,
+                      member.Armor,
+                      member.Position,
+                      2,
+                      2,
+                      unk6=false,
+                      429,
+                      None,
+                      None
+                    )
+                }
+            )
+          )
+
+        case SquadResponse.Leave(squad, positionsToUpdate) =>
+          positionsToUpdate.find({ case (member, _) => member == avatar.id }) match {
+            case Some((ourMember, ourIndex)) =>
+              //we are leaving the squad
+              //remove each member's entry (our own too)
+              positionsToUpdate.foreach {
+                case (member, index) =>
+                  sendResponse(SquadMemberEvent.Remove(squad_supplement_id, member, index))
+                  squadUI.remove(member)
+              }
+              //uninitialize
+              val playerGuid = player.GUID
+              sendResponse(SquadMemberEvent.Remove(squad_supplement_id, ourMember, ourIndex)) //repeat of our entry
+              sendResponse(PlanetsideAttributeMessage(playerGuid, 31, 0)) //disassociate with squad?
+              continent.AvatarEvents ! AvatarServiceMessage(
+                s"${player.Faction}",
+                AvatarAction.PlanetsideAttribute(playerGuid, 31, 0)
+              )
+              sendResponse(
+                PlanetsideAttributeMessage(playerGuid, 32, 0)
+              ) //disassociate with member position in squad?
+              sendResponse(PlanetsideAttributeMessage(playerGuid, 34, 4294967295L)) //unknown, perhaps unrelated?
+              lfsm = false
+              //a finalization? what does this do?
+              sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
+              squad_supplement_id = 0
+              squadUpdateCounter = 0
+              updateSquad = NoSquadUpdates
+              chatActor ! ChatActor.LeaveChannel(ChatService.ChatChannel.Squad(squad.GUID))
+            case _ =>
+              //remove each member's entry
+              GiveSquadColorsInZone(
+                positionsToUpdate.map {
+                  case (member, index) =>
+                    sendResponse(SquadMemberEvent.Remove(squad_supplement_id, member, index))
+                    squadUI.remove(member)
+                    member
+                },
+                value = 0
+              )
+          }
+
+        case SquadResponse.AssignMember(squad, from_index, to_index) =>
+          //we've already swapped position internally; now we swap the cards
+          SwapSquadUIElements(squad, from_index, to_index)
+
+        case SquadResponse.PromoteMember(squad, char_id, from_index, to_index) =>
+          val charId = player.CharId
+          val guid = player.GUID
+          lazy val factionChannel = s"${player.Faction}"
+          //are we being demoted?
+          if (squadUI(charId).index == 0) {
+            //lfsm -> lfs
+            if (lfsm) {
+              sendResponse(PlanetsideAttributeMessage(guid, 53, 0))
+              continent.AvatarEvents ! AvatarServiceMessage(
+                factionChannel,
+                AvatarAction.PlanetsideAttribute(guid, 53, 0)
+              )
+            }
+            lfsm = false
+            sendResponse(PlanetsideAttributeMessage(guid, 32, from_index)) //associate with member position in squad
+          }
+          //are we being promoted?
+          else if (charId == char_id) {
+            sendResponse(PlanetsideAttributeMessage(guid, 32, 0)) //associate with member position in squad
+          }
+          continent.AvatarEvents ! AvatarServiceMessage(
+            factionChannel,
+            AvatarAction.PlanetsideAttribute(guid, 31, squad_supplement_id)
+          )
+          //we must fix the squad cards backend
+          SwapSquadUIElements(squad, from_index, to_index)
+
+        case SquadResponse.UpdateMembers(_, positions) =>
+          val pairedEntries = positions.collect {
+            case entry if squadUI.contains(entry.char_id) =>
+              (entry, squadUI(entry.char_id))
+          }
+          //prune entries
+          val updatedEntries = pairedEntries
+            .collect({
+              case (entry, element) if entry.zone_number != element.zone =>
+                //zone gets updated for these entries
+                sendResponse(
+                  SquadMemberEvent.UpdateZone(squad_supplement_id, entry.char_id, element.index, entry.zone_number)
+                )
+                squadUI(entry.char_id) =
+                  SquadUIElement(element.name, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
+                entry
+              case (entry, element)
+                if entry.health != element.health || entry.armor != element.armor || entry.pos != element.position =>
+                //other elements that need to be updated
+                squadUI(entry.char_id) =
+                  SquadUIElement(element.name, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
+                entry
+            })
+            .filterNot(_.char_id == avatar.id) //we want to update our backend, but not our frontend
+          if (updatedEntries.nonEmpty) {
+            sendResponse(
+              SquadState(
+                PlanetSideGUID(squad_supplement_id),
+                updatedEntries.map { entry =>
+                  SquadStateInfo(entry.char_id, entry.health, entry.armor, entry.pos, 2, 2, unk6=false, 429, None, None)
+                }
+              )
+            )
+          }
+
+        case SquadResponse.SquadSearchResults() =>
+          //I don't actually know how to return search results
+          sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.NoSquadSearchResults()))
+
+        case SquadResponse.InitWaypoints(char_id, waypoints) =>
+          waypoints.foreach {
+            case (waypoint_type, info, unk) =>
+              sendResponse(
+                SquadWaypointEvent.Add(
+                  squad_supplement_id,
+                  char_id,
+                  waypoint_type,
+                  WaypointEvent(info.zone_number, info.pos, unk)
+                )
+              )
+          }
+
+        case SquadResponse.WaypointEvent(WaypointEventAction.Add, char_id, waypoint_type, _, Some(info), unk) =>
+          sendResponse(
+            SquadWaypointEvent.Add(
+              squad_supplement_id,
+              char_id,
+              waypoint_type,
+              WaypointEvent(info.zone_number, info.pos, unk)
+            )
+          )
+
+        case SquadResponse.WaypointEvent(WaypointEventAction.Remove, char_id, waypoint_type, _, _, _) =>
+          sendResponse(SquadWaypointEvent.Remove(squad_supplement_id, char_id, waypoint_type))
+
+        case _ => ;
+      }
+    }
+  }
+
+  /**
+   * These messages are dispatched when first starting up the client and connecting to the server for the first time.
+   * While many of these messages will be reused for other situations, they appear in this order only during startup.
+   */
+  def FirstTimeSquadSetup(): Unit = {
+    sendResponse(SquadDetailDefinitionUpdateMessage.Init)
+    sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
+    sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(6)))
+    //only need to load these once - they persist between zone transfers and respawns
+    avatar.loadouts.squad.zipWithIndex.foreach {
+      case (Some(loadout), index) =>
+        sendResponse(
+          SquadDefinitionActionMessage(PlanetSideGUID(0), index, SquadAction.ListSquadFavorite(loadout.task))
+        )
+      case (None, _) => ;
+    }
+    //non-squad GUID-0 counts as the settings when not joined with a squad
+    sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.AssociateWithSquad()))
+    sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.SetListSquad()))
+    sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
+    squadService ! SquadServiceMessage(player, continent, SquadServiceAction.InitSquadList())
+    squadService ! SquadServiceMessage(player, continent, SquadServiceAction.InitCharId())
+    squadSetup = RespawnSquadSetup
+  }
+
+  /**
+   * These messages are used during each subsequent respawn to reset the squad colors on player nameplates and marquees.
+   * By using `squadUI` to maintain relevant information about squad members,
+   * especially the unique character identifier number,
+   * only the zone-specific squad members will receive the important messages about their squad member's spawn.
+   */
+  def RespawnSquadSetup(): Unit = {
+    if (squad_supplement_id > 0) {
+      squadUI.get(player.CharId) match {
+        case Some(elem) =>
+          sendResponse(PlanetsideAttributeMessage(player.GUID, 31, squad_supplement_id))
+          continent.AvatarEvents ! AvatarServiceMessage(
+            s"${player.Faction}",
+            AvatarAction.PlanetsideAttribute(player.GUID, 31, squad_supplement_id)
+          )
+          sendResponse(PlanetsideAttributeMessage(player.GUID, 32, elem.index))
+        case _ =>
+          log.warn(s"RespawnSquadSetup: asked to redraw squad information, but ${player.Name} has no squad element for squad $squad_supplement_id")
+      }
+    }
+  }
+
+  /**
+   * These messages are used during each subsequent respawn to reset the squad colors on player nameplates and marquees.
+   * During a zone change,
+   * on top of other squad mates in the zone needing to have their knowledge of this player's squad colors changed,
+   * the player must also set squad colors for each other squad members.
+   * Default respawn functionality may resume afterwards.
+   */
+  def ZoneChangeSquadSetup(): Unit = {
+    RespawnSquadSetup()
+    squadService ! SquadServiceMessage(player, continent, SquadServiceAction.InitSquadList())
+    GiveSquadColorsInZone()
+    squadSetup = RespawnSquadSetup
+  }
+
+  def NoSquadUpdates(): Unit = {}
+
+  def SquadUpdates(): Unit = {
+    squadService ! SquadServiceMessage(
+      player,
+      continent,
+      SquadServiceAction.Update(
+        player.CharId,
+        player.Health,
+        player.MaxHealth,
+        player.Armor,
+        player.MaxArmor,
+        player.Position,
+        continent.Number
+      )
+    )
+  }
+
+  def PeriodicUpdatesWhenEnrolledInSquad(): Unit = {
+    queuedSquadActions(squadUpdateCounter)()
+    squadUpdateCounter = (squadUpdateCounter + 1) % queuedSquadActions.length
+  }
+
+  /**
+   * Allocate all squad members in zone and give their nameplates and their marquees the appropriate squad color.
+   */
+  def GiveSquadColorsInZone(): Unit = {
+    GiveSquadColorsInZone(squadUI.keys, squad_supplement_id)
+  }
+
+  /**
+   * Allocate the listed squad members in zone and give their nameplates and their marquees the appropriate squad color.
+   *
+   * @param members members of the squad to target
+   */
+  def GiveSquadColorsInZone(members: Iterable[Long]): Unit = {
+    GiveSquadColorsInZone(members, squad_supplement_id)
+  }
+
+  /**
+   * Allocate the listed squad members in zone and give their nameplates and their marquees the appropriate squad color.
+   *
+   * @see `PlanetsideAttributeMessage`
+   * @param members members of the squad to target
+   * @param value   the assignment value
+   */
+  def GiveSquadColorsInZone(members: Iterable[Long], value: Long): Unit = {
+    SquadMembersInZone(members).foreach { members =>
+      sendResponse(PlanetsideAttributeMessage(members.GUID, 31, value))
+    }
+  }
+
+  /**
+   * For the listed squad member unique character identifier numbers,
+   * find and return all squad members in the current zone.
+   *
+   * @param members members of the squad to target
+   * @return a list of `Player` objects
+   */
+  def SquadMembersInZone(members: Iterable[Long]): Iterable[Player] = {
+    val players = continent.LivePlayers
+    for {
+      charId <- members
+      player = players.find {
+        _.CharId == charId
+      }
+      if player.nonEmpty
+    } yield player.get
+  }
+
+  def SwapSquadUIElements(squad: Squad, fromIndex: Int, toIndex: Int): Unit = {
+    if (squadUI.nonEmpty) {
+      val fromMember = squad.Membership(toIndex)   //the players have already been swapped in the backend object
+      val fromCharId = fromMember.CharId
+      val toMember   = squad.Membership(fromIndex) //the players have already been swapped in the backend object
+      val toCharId   = toMember.CharId
+      val id         = 11
+      if (toCharId > 0) {
+        //toMember and fromMember have swapped places
+        val fromElem = squadUI(fromCharId)
+        val toElem   = squadUI(toCharId)
+        squadUI(toCharId) =
+          SquadUIElement(fromElem.name, toIndex, fromElem.zone, fromElem.health, fromElem.armor, fromElem.position)
+        squadUI(fromCharId) =
+          SquadUIElement(toElem.name, fromIndex, toElem.zone, toElem.health, toElem.armor, toElem.position)
+        sendResponse(SquadMemberEvent.Add(id, toCharId, toIndex, fromElem.name, fromElem.zone, unk7 = 0))
+        sendResponse(SquadMemberEvent.Add(id, fromCharId, fromIndex, toElem.name, toElem.zone, unk7 = 0))
+        sendResponse(
+          SquadState(
+            PlanetSideGUID(id),
+            List(
+              SquadStateInfo(fromCharId, toElem.health, toElem.armor, toElem.position, 2, 2, unk6=false, 429, None, None),
+              SquadStateInfo(toCharId, fromElem.health, fromElem.armor, fromElem.position, 2, 2, unk6=false, 429, None, None)
+            )
+          )
+        )
+      } else {
+        //previous fromMember has moved toMember
+        val elem = squadUI(fromCharId)
+        squadUI(fromCharId) = SquadUIElement(elem.name, toIndex, elem.zone, elem.health, elem.armor, elem.position)
+        sendResponse(SquadMemberEvent.Remove(id, fromCharId, fromIndex))
+        sendResponse(SquadMemberEvent.Add(id, fromCharId, toIndex, elem.name, elem.zone, unk7 = 0))
+        sendResponse(
+          SquadState(
+            PlanetSideGUID(id),
+            List(SquadStateInfo(fromCharId, elem.health, elem.armor, elem.position, 2, 2, unk6=false, 429, None, None))
+          )
+        )
+      }
+      val charId = avatar.id
+      if (toCharId == charId) {
+        sendResponse(PlanetsideAttributeMessage(player.GUID, 32, toIndex))
+      } else if (fromCharId == charId) {
+        sendResponse(PlanetsideAttributeMessage(player.GUID, 32, fromIndex))
+      }
+    }
+  }
+}

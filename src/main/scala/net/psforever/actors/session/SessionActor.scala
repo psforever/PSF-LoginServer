@@ -2,10 +2,11 @@ package net.psforever.actors.session
 
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, OneForOneStrategy, SupervisorStrategy, typed}
+import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, SupervisorStrategy, typed}
 import akka.pattern.ask
 import akka.util.Timeout
 import net.psforever.actors.net.MiddlewareActor
+import net.psforever.actors.session.support.SessionData
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.login.WorldSession._
 import net.psforever.objects._
@@ -14,11 +15,10 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.ce._
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
-import net.psforever.objects.entity.{NoGUIDException, SimpleWorldEntity, WorldEntity}
+import net.psforever.objects.entity.{SimpleWorldEntity, WorldEntity}
 import net.psforever.objects.equipment._
 import net.psforever.objects.guid._
-import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
-import net.psforever.objects.loadouts.InfantryLoadout
+import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.containable.Containable
@@ -87,13 +87,13 @@ object SessionActor {
 
   final case class ResponseToSelf(pkt: PlanetSideGamePacket)
 
-  private final case class PokeClient()
-  private final case class ServerLoaded()
-  private final case class NewPlayerLoaded(tplayer: Player)
-  private final case class PlayerLoaded(tplayer: Player)
-  private final case class PlayerFailedToLoad(tplayer: Player)
+  private[session] final case class PokeClient()
+  private[session] final case class ServerLoaded()
+  private[session] final case class NewPlayerLoaded(tplayer: Player)
+  private[session] final case class PlayerLoaded(tplayer: Player)
+  private[session] final case class PlayerFailedToLoad(tplayer: Player)
 
-  private final case class SetCurrentAvatar(tplayer: Player, max_attempts: Int, attempt: Int = 0)
+  private[session] final case class SetCurrentAvatar(tplayer: Player, max_attempts: Int, attempt: Int = 0)
 
   final case class SendResponse(packet: PlanetSidePacket) extends Command
 
@@ -129,7 +129,7 @@ object SessionActor {
 
   final case object CharSaved extends Command
 
-  private case object CharSavedMsg extends Command
+  private[session] case object CharSavedMsg extends Command
 
   /**
     * The message that progresses some form of user-driven activity with a certain eventual outcome
@@ -141,7 +141,7 @@ object SessionActor {
     * @param tickTime how long between each `tickAction` (ms);
     *                 defaults to 250 milliseconds
     */
-  final case class ProgressEvent(
+  private[session] final case class ProgressEvent(
       delta: Float,
       completionAction: () => Unit,
       tickAction: Float => Boolean,
@@ -169,7 +169,7 @@ object SessionActor {
       index: Int
   )
 
-  private final case class AvatarAwardMessageBundle(bundle: Iterable[Iterable[PlanetSidePacket]], delay: Long)
+  private[session] final case class AvatarAwardMessageBundle(bundle: Iterable[Iterable[PlanetSidePacket]], delay: Long)
 }
 
 class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
@@ -301,222 +301,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   var zoningTimer: Cancellable       = Default.Cancellable
   var charSavedTimer: Cancellable    = Default.Cancellable
 
-  override def supervisorStrategy: SupervisorStrategy = {
-    import net.psforever.objects.inventory.InventoryDisarrayException
-    OneForOneStrategy(maxNrOfRetries = -1, withinTimeRange = 1 minute) {
-      case nge: NoGUIDException =>
-        nge.getEntity match {
-          case p: Player =>
-            continent.GUID(p.VehicleSeated) match {
-              case Some(v: Vehicle) =>
-                attemptRecoveryFromNoGuidExceptionAsVehicle(v, nge)
-              case _ =>
-                attemptRecoveryFromNoGuidExceptionAsPlayer(p, nge)
-            }
+  val sess: SessionData = new SessionData(middlewareActor, avatarActor, chatActor, context)
 
-          case v: Vehicle =>
-            attemptRecoveryFromNoGuidExceptionAsVehicle(v, nge)
-
-          case e: Equipment =>
-            (
-              player.Holsters().zipWithIndex.flatMap { case (o, i) =>
-                o.Equipment match {
-                  case Some(e) => Some((player, InventoryItem(e, i)))
-                  case None    => None
-                }
-              }.toList ++
-                player.Inventory.Items.map { o => (player, o) } ++
-                {
-                  player.FreeHand.Equipment match {
-                    case Some(o) => List((player, InventoryItem(e, Player.FreeHandSlot)))
-                    case _       => Nil
-                  }
-                } ++
-                (ValidObject(player.VehicleSeated) match {
-                  case Some(v: Vehicle) => v.Trunk.Items.map{ o => (v, o) }
-                  case _                => Nil
-                })
-              )
-              .find { case (_, InventoryItem(o, _)) => o eq e } match {
-              case Some((c: Container, InventoryItem(obj, index))) =>
-                if (!obj.HasGUID) {
-                  c.Slot(index).Equipment = None
-                }
-                c match {
-                  case _: Player =>
-                    attemptRecoveryFromNoGuidExceptionAsPlayer(player, nge)
-                  case v: Vehicle =>
-                    if (v.PassengerInSeat(player).contains(0)) {
-                      attemptRecoveryFromNoGuidExceptionAsPlayer(player, nge)
-                    }
-                    SupervisorStrategy.resume
-                  case _ =>
-                    writeLogExceptionAndStop(nge)
-                }
-              case _ =>
-                //did not discover or resolve the situation
-                writeLogExceptionAndStop(nge)
-            }
-
-          case _ =>
-            SupervisorStrategy.resume
-        }
-
-      case ide: InventoryDisarrayException =>
-        attemptRecoveryFromInventoryDisarrayException(ide.inventory)
-        //re-evaluate results
-        if (ide.inventory.ElementsOnGridMatchList() > 0) {
-          writeLogExceptionAndStop(ide)
-        } else {
-          SupervisorStrategy.resume
-        }
-
-      case e =>
-        writeLogExceptionAndStop(e)
-    }
-  }
-
-  def attemptRecoveryFromNoGuidExceptionAsVehicle(v: Vehicle, e: Throwable): SupervisorStrategy.Directive = {
-    val entry = v.Seats.find { case (_, s) => s.occupants.contains(player) }
-    entry match {
-      case Some((index, _)) =>
-        player.VehicleSeated = None
-        v.Seats(0).unmount(player)
-        player.Position = v.Position
-        player.Orientation = v.Orientation
-        interstellarFerry = None
-        interstellarFerryTopLevelGUID = None
-        attemptRecoveryFromNoGuidExceptionAsPlayer(player, e)
-      case None =>
-        writeLogException(e)
-    }
-  }
-
-  def attemptRecoveryFromNoGuidExceptionAsPlayer(p: Player, e: Throwable): SupervisorStrategy.Directive = {
-    if (p eq player) {
-      val hasGUID = p.HasGUID
-      zoneLoaded match {
-        case Some(true) if hasGUID =>
-          AvatarCreate() //this will probably work?
-          SupervisorStrategy.resume
-        case Some(false) =>
-          RequestSanctuaryZoneSpawn(p, continent.Number)
-          SupervisorStrategy.resume
-        case None =>
-          if (player.Zone eq Zone.Nowhere) {
-            RequestSanctuaryZoneSpawn(p, continent.Number)
-          } else {
-            zoneReload = true
-            LoadZoneAsPlayer(player, player.Zone.id)
-          }
-          SupervisorStrategy.resume
-        case _ =>
-          writeLogExceptionAndStop(e)
-      }
-    } else {
-      SupervisorStrategy.resume
-    }
-  }
-
-  def attemptRecoveryFromInventoryDisarrayException(inv: GridInventory): Unit = {
-    inv.ElementsInListCollideInGrid() match {
-      case Nil => ;
-      case overlaps =>
-        val previousItems = inv.Clear()
-        val allOverlaps = overlaps.flatten.sortBy { entry =>
-          val tile = entry.obj.Definition.Tile
-          tile.Width * tile.Height
-        }.toSet
-        val notCollidingRemainder = previousItems.filterNot(allOverlaps.contains)
-        notCollidingRemainder.foreach { entry =>
-          inv.InsertQuickly(entry.start, entry.obj)
-        }
-        var didNotFit : List[Equipment] = Nil
-        allOverlaps.foreach { entry =>
-          inv.Fit(entry.obj.Definition.Tile) match {
-            case Some(newStart) =>
-              inv.InsertQuickly(newStart, entry.obj)
-            case None =>
-              didNotFit = didNotFit :+ entry.obj
-          }
-        }
-        //completely clear the inventory
-        val pguid = player.GUID
-        val equipmentInHand = player.Slot(player.DrawnSlot).Equipment
-        //redraw suit
-        sendResponse(ArmorChangedMessage(
-          pguid,
-          player.ExoSuit,
-          InfantryLoadout.DetermineSubtypeA(player.ExoSuit, equipmentInHand)
-        ))
-        //redraw item in free hand (if)
-        player.FreeHand.Equipment match {
-          case Some(item) =>
-            sendResponse(ObjectCreateDetailedMessage(
-              item.Definition.ObjectId,
-              item.GUID,
-              ObjectCreateMessageParent(pguid, Player.FreeHandSlot),
-              item.Definition.Packet.DetailedConstructorData(item).get
-            ))
-          case _ => ;
-        }
-        //redraw items in holsters
-        player.Holsters().zipWithIndex.foreach { case (slot, index) =>
-          slot.Equipment match {
-            case Some(item) =>
-              sendResponse(ObjectCreateDetailedMessage(
-                item.Definition.ObjectId,
-                item.GUID,
-                item.Definition.Packet.DetailedConstructorData(item).get
-              ))
-            case _ => ;
-          }
-        }
-        //redraw raised hand (if)
-        equipmentInHand match {
-          case Some(_) =>
-            sendResponse(ObjectHeldMessage(pguid, player.DrawnSlot, unk1 = true))
-          case _ => ;
-        }
-        //redraw inventory items
-        val recoveredItems = inv.Items
-        recoveredItems.foreach { entry =>
-          val item = entry.obj
-          sendResponse(ObjectCreateDetailedMessage(
-            item.Definition.ObjectId,
-            item.GUID,
-            ObjectCreateMessageParent(pguid, entry.start),
-            item.Definition.Packet.DetailedConstructorData(item).get
-          ))
-        }
-        //drop items that did not fit
-        val placementData = PlacementData(player.Position, Vector3.z(player.Orientation.z))
-        didNotFit.foreach { item =>
-          sendResponse(ObjectCreateMessage(
-            item.Definition.ObjectId,
-            item.GUID,
-            DroppedItemData(
-              placementData,
-              item.Definition.Packet.ConstructorData(item).get
-            )
-          ))
-        }
-    }
-  }
-
-  def writeLogException(e: Throwable): SupervisorStrategy.Directive = {
-    import java.io.{PrintWriter, StringWriter}
-    val sw = new StringWriter
-    e.printStackTrace(new PrintWriter(sw))
-    log.error(sw.toString)
-    SupervisorStrategy.Resume
-  }
-
-  def writeLogExceptionAndStop(e: Throwable): SupervisorStrategy.Directive = {
-    writeLogException(e)
-    ImmediateDisconnect()
-    SupervisorStrategy.stop
-  }
+  override val supervisorStrategy: SupervisorStrategy = sess.sessionSupervisorStrategy
 
   def session: Session = _session
 
