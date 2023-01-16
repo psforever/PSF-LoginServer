@@ -3,7 +3,7 @@ package net.psforever.packet.game
 
 import net.psforever.objects.avatar.Certification
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{PlanetSideGUID, SquadListDecoration}
 import scodec.bits.BitVector
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
@@ -25,71 +25,73 @@ object SquadAction {
     implicit val codec: Codec[SearchMode.Value] = PacketHelpers.createEnumerationCodec(enum = this, uint(bits = 3))
   }
 
-  final case class DisplaySquad() extends SquadAction(0)
+  final case class DisplaySquad() extends SquadAction(code = 0)
 
   /**
     * Dispatched from client to server to indicate a squad detail update that has no foundation entry to update?
     * Not dissimilar from `DisplaySquad`.
     */
-  final case class SquadMemberInitializationIssue() extends SquadAction(1)
+  final case class SquadInitializationIssue() extends SquadAction(code = 1)
 
-  final case class SaveSquadFavorite() extends SquadAction(3)
+  final case class SaveSquadFavorite() extends SquadAction(code = 3)
 
-  final case class LoadSquadFavorite() extends SquadAction(4)
+  final case class LoadSquadFavorite() extends SquadAction(code = 4)
 
-  final case class DeleteSquadFavorite() extends SquadAction(5)
+  final case class DeleteSquadFavorite() extends SquadAction(code = 5)
 
-  final case class ListSquadFavorite(name: String) extends SquadAction(7)
+  final case class ListSquadFavorite(name: String) extends SquadAction(code = 7)
 
-  final case class RequestListSquad() extends SquadAction(8)
+  final case class RequestListSquad() extends SquadAction(code = 8)
 
-  final case class StopListSquad() extends SquadAction(9)
+  final case class StopListSquad() extends SquadAction(code = 9)
 
-  final case class SelectRoleForYourself(state: Int) extends SquadAction(10)
+  final case class SelectRoleForYourself(state: Int) extends SquadAction(code = 10)
 
-  final case class CancelSelectRoleForYourself(value: Long = 0) extends SquadAction(15)
+  final case class CancelSelectRoleForYourself(value: Long = 0) extends SquadAction(code = 15)
 
-  final case class AssociateWithSquad() extends SquadAction(16)
+  final case class IdentifyAsSquadLeader() extends SquadAction(code = 16)
 
-  final case class SetListSquad() extends SquadAction(17)
+  final case class SetListSquad() extends SquadAction(code = 17)
 
-  final case class ChangeSquadPurpose(purpose: String) extends SquadAction(19)
+  final case class ChangeSquadPurpose(purpose: String) extends SquadAction(code = 19)
 
-  final case class ChangeSquadZone(zone: PlanetSideZoneID) extends SquadAction(20)
+  final case class ChangeSquadZone(zone: PlanetSideZoneID) extends SquadAction(code = 20)
 
-  final case class CloseSquadMemberPosition(position: Int) extends SquadAction(21)
+  final case class CloseSquadMemberPosition(position: Int) extends SquadAction(code = 21)
 
-  final case class AddSquadMemberPosition(position: Int) extends SquadAction(22)
+  final case class AddSquadMemberPosition(position: Int) extends SquadAction(code = 22)
 
-  final case class ChangeSquadMemberRequirementsRole(u1: Int, role: String) extends SquadAction(23)
+  final case class ChangeSquadMemberRequirementsRole(u1: Int, role: String) extends SquadAction(code = 23)
 
-  final case class ChangeSquadMemberRequirementsDetailedOrders(u1: Int, orders: String) extends SquadAction(24)
+  final case class ChangeSquadMemberRequirementsDetailedOrders(u1: Int, orders: String) extends SquadAction(code = 24)
 
   final case class ChangeSquadMemberRequirementsCertifications(u1: Int, certs: Set[Certification])
-      extends SquadAction(25)
+      extends SquadAction(code = 25)
 
-  final case class ResetAll() extends SquadAction(26)
+  final case class ResetAll() extends SquadAction(code = 26)
 
-  final case class AutoApproveInvitationRequests(state: Boolean) extends SquadAction(28)
+  final case class AutoApproveInvitationRequests(state: Boolean) extends SquadAction(code = 28)
 
-  final case class LocationFollowsSquadLead(state: Boolean) extends SquadAction(31)
+  final case class LocationFollowsSquadLead(state: Boolean) extends SquadAction(code = 31)
+
+  final case class SquadListDecorator(state: SquadListDecoration.Value) extends SquadAction(code = 33)
 
   final case class SearchForSquadsWithParticularRole(
       role: String,
       requirements: Set[Certification],
       zone_id: Int,
       mode: SearchMode.Value
-  ) extends SquadAction(34)
+  ) extends SquadAction(code = 34)
 
-  final case class CancelSquadSearch() extends SquadAction(35)
+  final case class CancelSquadSearch() extends SquadAction(code = 35)
 
-  final case class AssignSquadMemberToRole(position: Int, char_id: Long) extends SquadAction(38)
+  final case class AssignSquadMemberToRole(position: Int, char_id: Long) extends SquadAction(code = 38)
 
-  final case class NoSquadSearchResults() extends SquadAction(39)
+  final case class NoSquadSearchResults() extends SquadAction(code = 39)
 
-  final case class FindLfsSoldiersForRole(state: Int) extends SquadAction(40)
+  final case class FindLfsSoldiersForRole(state: Int) extends SquadAction(code = 40)
 
-  final case class CancelFind() extends SquadAction(41)
+  final case class CancelFind() extends SquadAction(code = 41)
 
   final case class Unknown(badCode: Int, data: BitVector) extends SquadAction(badCode)
 
@@ -114,10 +116,10 @@ object SquadAction {
       }
     )
 
-    val squadMemberInitializationIssueCodec = everFailCondition.xmap[SquadMemberInitializationIssue](
-      _ => SquadMemberInitializationIssue(),
+    val squadMemberInitializationIssueCodec = everFailCondition.xmap[SquadInitializationIssue](
+      _ => SquadInitializationIssue(),
       {
-        case SquadMemberInitializationIssue() => None
+        case SquadInitializationIssue() => None
       }
     )
 
@@ -179,10 +181,10 @@ object SquadAction {
       }
     )
 
-    val associateWithSquadCodec = everFailCondition.xmap[AssociateWithSquad](
-      _ => AssociateWithSquad(),
+    val identifyAsSquadLeaderCodec = everFailCondition.xmap[IdentifyAsSquadLeader](
+      _ => IdentifyAsSquadLeader(),
       {
-        case AssociateWithSquad() => None
+        case IdentifyAsSquadLeader() => None
       }
     )
 
@@ -273,6 +275,18 @@ object SquadAction {
       state => LocationFollowsSquadLead(state),
       {
         case LocationFollowsSquadLead(state) => state
+      }
+    )
+
+    val squadListDecoratorCodec = (
+      SquadListDecoration.codec ::
+      ignore(size = 3)
+    ).xmap[SquadListDecorator](
+      {
+        case value :: _ :: HNil => SquadListDecorator(value)
+      },
+      {
+        case SquadListDecorator(value) => value :: () :: HNil
       }
     )
 
@@ -389,7 +403,7 @@ object SquadAction {
   * &nbsp;&nbsp;&nbsp;&nbsp;`20` - (Squad leader) Change Squad Zone<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`21` - (Squad leader) Close Squad Member Position<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`22` - (Squad leader) Add Squad Member Position<br>
-  * &nbsp;&nbsp;&nbsp;&nbsp;`33` - UNKNOWN<br>
+  * &nbsp;&nbsp;&nbsp;&nbsp;`33` - Decorate a Squad in the List of Squads with Color<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`40` - Find LFS Soldiers that Meet the Requirements for this Role<br>
   * &nbsp;&nbsp;`Long`<br>
   * &nbsp;&nbsp;&nbsp;&nbsp;`13` - UNKNOWN<br>
@@ -451,7 +465,7 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 13 => unknownCodec(action = 13)
       case 14 => unknownCodec(action = 14)
       case 15 => cancelSelectRoleForYourselfCodec
-      case 16 => associateWithSquadCodec
+      case 16 => identifyAsSquadLeaderCodec
       case 17 => setListSquadCodec
       case 18 => unknownCodec(action = 18)
       case 19 => changeSquadPurposeCodec
@@ -468,7 +482,7 @@ object SquadDefinitionActionMessage extends Marshallable[SquadDefinitionActionMe
       case 30 => unknownCodec(action = 30)
       case 31 => locationFollowsSquadLeadCodec
       case 32 => unknownCodec(action = 32)
-      case 33 => unknownCodec(action = 33)
+      case 33 => squadListDecoratorCodec
       case 34 => searchForSquadsWithParticularRoleCodec
       case 35 => cancelSquadSearchCodec
       case 36 => unknownCodec(action = 36)

@@ -2,6 +2,7 @@
 package net.psforever.services.teamwork
 
 import net.psforever.objects.Player
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{WaypointEventAction, WaypointInfo, SquadAction => PacketSquadAction}
 import net.psforever.types.{PlanetSideGUID, SquadRequestType, SquadWaypoint, Vector3}
@@ -16,8 +17,9 @@ object SquadServiceMessage {
 object SquadAction {
   sealed trait Action
 
-  final case class InitSquadList() extends Action
-  final case class InitCharId()    extends Action
+  final case class InitSquadList()    extends Action
+  final case class InitCharId()       extends Action
+  final case class ReloadDecoration() extends Action
 
   final case class Definition(guid: PlanetSideGUID, line: Int, action: PacketSquadAction) extends Action
   final case class Membership(
@@ -35,10 +37,12 @@ object SquadAction {
   ) extends Action
   final case class Update(
       char_id: Long,
+      guid: PlanetSideGUID,
       health: Int,
       max_health: Int,
       armor: Int,
       max_armor: Int,
+      certifications: Set[Certification],
       pos: Vector3,
       zone_number: Int
   ) extends Action

@@ -823,20 +823,26 @@ class ChatActor(
               val popTR    = players.count(_.faction == PlanetSideEmpire.TR)
               val popNC    = players.count(_.faction == PlanetSideEmpire.NC)
               val popVS    = players.count(_.faction == PlanetSideEmpire.VS)
-              val contName = session.zone.map.name
 
-              sessionActor ! SessionActor.SendResponse(
-                ChatMsg(ChatMessageType.CMT_WHO, true, "", "That command doesn't work for now, but : ", None)
-              )
-              sessionActor ! SessionActor.SendResponse(
-                ChatMsg(ChatMessageType.CMT_WHO, true, "", "NC online : " + popNC + " on " + contName, None)
-              )
-              sessionActor ! SessionActor.SendResponse(
-                ChatMsg(ChatMessageType.CMT_WHO, true, "", "TR online : " + popTR + " on " + contName, None)
-              )
-              sessionActor ! SessionActor.SendResponse(
-                ChatMsg(ChatMessageType.CMT_WHO, true, "", "VS online : " + popVS + " on " + contName, None)
-              )
+              if (popNC + popTR + popVS == 0) {
+                sessionActor ! SessionActor.SendResponse(
+                  ChatMsg(ChatMessageType.CMT_WHO, false, "", "@Nomatches", None)
+                )
+              } else {
+                val contName = session.zone.map.name
+                sessionActor ! SessionActor.SendResponse(
+                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "That command doesn't work for now, but : ", None)
+                )
+                sessionActor ! SessionActor.SendResponse(
+                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "NC online : " + popNC + " on " + contName, None)
+                )
+                sessionActor ! SessionActor.SendResponse(
+                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "TR online : " + popTR + " on " + contName, None)
+                )
+                sessionActor ! SessionActor.SendResponse(
+                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "VS online : " + popVS + " on " + contName, None)
+                )
+              }
 
             case (CMT_ZONE, _, contents) if gmCommandAllowed =>
               val buffer = contents.toLowerCase.split("\\s+")

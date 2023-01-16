@@ -62,7 +62,7 @@ class SquadMembershipResponseTest extends Specification {
     "decode (1-1)" in {
       PacketCoding.decodePacket(string_11).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Unk01
+          unk1 mustEqual SquadResponseType.ProximityInvite
           unk2 mustEqual 19
           unk3 mustEqual 0
           unk4 mustEqual 41530025L
@@ -78,7 +78,7 @@ class SquadMembershipResponseTest extends Specification {
     "decode (1-2)" in {
       PacketCoding.decodePacket(string_12).require match {
         case SquadMembershipResponse(unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8) =>
-          unk1 mustEqual SquadResponseType.Unk01
+          unk1 mustEqual SquadResponseType.ProximityInvite
           unk2 mustEqual 18
           unk3 mustEqual 0
           unk4 mustEqual 41578085L
@@ -315,14 +315,14 @@ class SquadMembershipResponseTest extends Specification {
     }
 
     "encode (1-1)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Unk01, 19, 0, 41530025L, Some(0L), "", true, Some(None))
+      val msg = SquadMembershipResponse(SquadResponseType.ProximityInvite, 19, 0, 41530025L, Some(0L), "", true, Some(None))
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_11
     }
 
     "encode (1-2)" in {
-      val msg = SquadMembershipResponse(SquadResponseType.Unk01, 18, 0, 41578085L, Some(0L), "", true, Some(None))
+      val msg = SquadMembershipResponse(SquadResponseType.ProximityInvite, 18, 0, 41578085L, Some(0L), "", true, Some(None))
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
       pkt mustEqual string_12

@@ -10,10 +10,10 @@ import shapeless.{::, HNil}
 
 final case class CharacterKnowledgeInfo(
     name: String,
-    permissions: Set[Certification],
+    certifications: Set[Certification],
     unk1: Int,
     unk2: Int,
-    unk3: PlanetSideGUID
+    zoneNumber: Int
 )
 
 final case class CharacterKnowledgeMessage(char_id: Long, info: Option[CharacterKnowledgeInfo])
@@ -30,25 +30,22 @@ object CharacterKnowledgeMessage extends Marshallable[CharacterKnowledgeMessage]
   def apply(char_id: Long, info: CharacterKnowledgeInfo): CharacterKnowledgeMessage =
     CharacterKnowledgeMessage(char_id, Some(info))
 
-  private val inverter: Codec[Boolean] = bool.xmap[Boolean](
-    state => !state,
-    state => !state
-  )
+  private val inverter: Codec[Boolean] = bool.xmap[Boolean](state => !state, state => !state)
 
   private val info_codec: Codec[CharacterKnowledgeInfo] = (
     ("name" | PacketHelpers.encodedWideStringAligned(adjustment = 7)) ::
-      ("permissions" | ulongL(bits = 46)) ::
+      ("certifications" | ulongL(bits = 46)) ::
       ("unk1" | uint(bits = 6)) ::
       ("unk2" | uint(bits = 3)) ::
-      ("unk3" | PlanetSideGUID.codec)
+      ("zone" | uint16L)
   ).xmap[CharacterKnowledgeInfo](
     {
-      case name :: permissions :: u1 :: u2 :: u3 :: HNil =>
-        CharacterKnowledgeInfo(name, Certification.fromEncodedLong(permissions), u1, u2, u3)
+      case name :: certs :: u1 :: u2 :: zone :: HNil =>
+        CharacterKnowledgeInfo(name, Certification.fromEncodedLong(certs), u1, u2, zone)
     },
     {
-      case CharacterKnowledgeInfo(name, permissions, u1, u2, u3) =>
-        name :: Certification.toEncodedLong(permissions) :: u1 :: u2 :: u3 :: HNil
+      case CharacterKnowledgeInfo(name, certs, u1, u2, zone) =>
+        name :: Certification.toEncodedLong(certs) :: u1 :: u2 :: zone :: HNil
     }
   )
 

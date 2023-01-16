@@ -6,7 +6,7 @@ import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game.SquadAction._
 import net.psforever.packet.game._
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{PlanetSideGUID, SquadListDecoration}
 import scodec.bits._
 
 class SquadDefinitionActionMessageTest extends Specification {
@@ -29,6 +29,7 @@ class SquadDefinitionActionMessageTest extends Specification {
   val string_26 = hex"E7 68 000000"
   val string_28 = hex"E7 70 000020"             //On
   val string_31 = hex"E7 7c 000020"             //On
+  val string_33 = hex"E7 84 0C0008"
   val string_34a =
     hex"E7 88 00002180420061006400610073007300000000000000040000" //"Badass", Solsar, Any matching position
   val string_34b =
@@ -219,6 +220,17 @@ class SquadDefinitionActionMessageTest extends Specification {
         unk1 mustEqual PlanetSideGUID(0)
         unk2 mustEqual 0
         action mustEqual LocationFollowsSquadLead(true)
+      case _ =>
+        ko
+    }
+  }
+
+  "decode (33)" in {
+    PacketCoding.decodePacket(string_33).require match {
+      case SquadDefinitionActionMessage(unk1, unk2, action) =>
+        unk1 mustEqual PlanetSideGUID(3)
+        unk2 mustEqual 0
+        action mustEqual SquadListDecorator(SquadListDecoration.Available)
       case _ =>
         ko
     }
@@ -458,6 +470,13 @@ class SquadDefinitionActionMessageTest extends Specification {
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string_31
+  }
+
+  "encode (33)" in {
+    val msg = SquadDefinitionActionMessage(PlanetSideGUID(3), 0, SquadAction.SquadListDecorator(SquadListDecoration.Available))
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
+
+    pkt mustEqual string_33
   }
 
   "encode (34a)" in {

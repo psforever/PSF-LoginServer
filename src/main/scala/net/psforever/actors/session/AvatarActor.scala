@@ -53,6 +53,7 @@ import net.psforever.util.Database._
 import net.psforever.persistence
 import net.psforever.util.{Config, Database, DefinitionUtil}
 import net.psforever.services.Service
+//import org.log4s.Logger
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 object AvatarActor {
@@ -433,6 +434,15 @@ object AvatarActor {
       case RibbonBarSlot.Bottom        => ribbons.copy(lower = ribbon)
       case RibbonBarSlot.TermOfService => ribbons.copy(tos = ribbon)
     }
+  }
+
+
+  def displayLookingForSquad(session: Session, state: Int): Unit = {
+    val player = session.player
+    session.zone.AvatarEvents ! AvatarServiceMessage(
+      player.Faction.toString,
+      AvatarAction.PlanetsideAttribute(player.GUID, 53, state)
+    )
   }
 
   /**
@@ -829,6 +839,11 @@ class AvatarActor(
       .receiveMessage[Command] {
         case SetSession(newSession) =>
           session = Some(newSession)
+          Behaviors.same
+
+        case SetLookingForSquad(lfs) =>
+          avatarCopy(avatar.copy(lookingForSquad = lfs))
+          AvatarActor.displayLookingForSquad(session.get, if (lfs) 1 else 0)
           Behaviors.same
 
         case CreateAvatar(name, head, voice, gender, empire) =>

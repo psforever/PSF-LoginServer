@@ -26,7 +26,7 @@ import scodec.codecs._
   *  - `Invite` (0)<br>
   * false => [PROMPT] "`player_name` has invited you into a squad." [YES/NO]<br>
   * true => "You have invited `player_name` to join your squad."<br>
-  *  - `Unk01` (1)<br>
+  *  - `ProximityInvite` (1)<br>
   * false => n/a<br>
   * true => n/a<br>
   *  - `Accept` (2)<br>
