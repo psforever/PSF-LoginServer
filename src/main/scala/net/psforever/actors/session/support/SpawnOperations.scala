@@ -3,6 +3,8 @@ package net.psforever.actors.session.support
 
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
+import net.psforever.objects.avatar.{Award, AwardCategory}
+import net.psforever.services.account.AccountPersistenceService
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 //
@@ -34,7 +36,7 @@ class SpawnOperations(
                                  avatarActor: typed.ActorRef[AvatarActor.Command],
                                  cluster: typed.ActorRef[ICS.Command],
                                  implicit val context: ActorContext
-                               ) extends CommonSessionInterfacingFuncs {
+                               ) extends CommonSessionInterfacingFunctionality {
   var deadState: DeadState.Value = DeadState.Dead
   var loginChatMessage: String = ""
   var amsSpawnPoints: List[SpawnPoint] = Nil
@@ -56,8 +58,8 @@ class SpawnOperations(
   var shiftPosition: Option[Vector3] = None
   var shiftOrientation: Option[Vector3] = None
   var drawDeloyableIcon: PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
+  var populateAvatarAwardRibbonsFunc: (Int, Long) => Unit = setupAvatarAwardMessageDelivery
   var setAvatar: Boolean = false
-  var turnCounterFunc: PlanetSideGUID => Unit = TurnCounterDuringInterim
   var reviveTimer: Cancellable = Default.Cancellable
   var respawnTimer: Cancellable = Default.Cancellable
 
@@ -65,7 +67,7 @@ class SpawnOperations(
 
   def handleLoginInfoNowhere(name: String, from: ActorRef): Unit = {
     log.info(s"LoginInfo: player $name is considered a fresh character")
-    sessionData.persistFunc = sessionData.UpdatePersistence(from)
+    sessionData.persistFunc = UpdatePersistence(from)
     deadState = DeadState.RespawnTime
     val tplayer = new Player(avatar)
     session = session.copy(player = tplayer)
@@ -77,7 +79,7 @@ class SpawnOperations(
 
   def handleLoginInfoSomewhere(name: String, inZone: Zone, optionalSavedData: Option[Savedplayer], from: ActorRef): Unit = {
     log.info(s"LoginInfo: player $name is considered a fresh character")
-    sessionData.persistFunc = sessionData.UpdatePersistence(from)
+    sessionData.persistFunc = UpdatePersistence(from)
     deadState = DeadState.RespawnTime
     session = session.copy(player = new Player(avatar))
     player.Zone = inZone
@@ -171,7 +173,7 @@ class SpawnOperations(
 
   def handleLoginInfoRestore(name: String, inZone: Zone, pos: Vector3, from: ActorRef): Unit = {
     log.info(s"RestoreInfo: player $name is already logged in zone ${inZone.id}; rejoining that character")
-    sessionData.persistFunc = sessionData.UpdatePersistence(from)
+    sessionData.persistFunc = UpdatePersistence(from)
     //tell the old WorldSessionActor to kill itself by using its own subscriptions against itself
     inZone.AvatarEvents ! AvatarServiceMessage(name, AvatarAction.TeardownConnection())
     //find and reload previous player
@@ -318,7 +320,7 @@ class SpawnOperations(
     //new zone
     log.info(s"${tplayer.Name} has spawned into ${session.zone.id}")
     sessionData.oldRefsMap.clear()
-    sessionData.persist = sessionData.UpdatePersistenceAndRefs
+    sessionData.persist = UpdatePersistenceAndRefs
     tplayer.avatar = avatar
     session = session.copy(player = tplayer)
     avatarActor ! AvatarActor.CreateImplants()
@@ -340,7 +342,7 @@ class SpawnOperations(
       //important! the LoadMapMessage must be processed by the client before the avatar is created
       setupAvatarFunc()
       //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
-      turnCounterFunc = interimUngunnedVehicle match {
+      sessionData.turnCounterFunc = interimUngunnedVehicle match {
         case Some(_) =>
           TurnCounterDuringInterimWhileInPassengerSeat
         case None if sessionData.zoning.zoningType == Zoning.Method.Login || sessionData.zoning.zoningType == Zoning.Method.Reset =>
@@ -372,7 +374,7 @@ class SpawnOperations(
       //try this spawn point
       setupAvatarFunc()
       //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
-      turnCounterFunc = interimUngunnedVehicle match {
+      sessionData.turnCounterFunc = interimUngunnedVehicle match {
         case Some(_) =>
           TurnCounterDuringInterimWhileInPassengerSeat
         case None =>
@@ -1455,7 +1457,7 @@ class SpawnOperations(
       }
       interimUngunnedVehicle = None
       interimUngunnedVehicleSeat = None
-      turnCounterFunc = NormalTurnCounter
+      sessionData.turnCounterFunc = NormalTurnCounter
     }
   }
   /**
@@ -1472,7 +1474,7 @@ class SpawnOperations(
     sendResponse(ChatMsg(sessionData.zoning.zoningChatMessageType, wideContents=false, "", loginChatMessage, None))
     sessionData.zoning.CancelZoningProcess()
     loginChatMessage = ""
-    turnCounterFunc = NormalTurnCounter
+    sessionData.turnCounterFunc = NormalTurnCounter
   }
 
   /**
@@ -1520,5 +1522,108 @@ class SpawnOperations(
                              ): Unit = {
     sendResponse(attachMessage)
     sendResponse(mountPointStatusMessage)
+  }
+
+  /**
+   * Don't extract the award advancement information from a player character upon respawning or zoning.
+   * You only need to perform that population once at login.
+   *
+   * @param bundleSize it doesn't matter
+   * @param delay      it doesn't matter
+   */
+  def skipAvatarAwardMessageDelivery(bundleSize: Int, delay: Long): Unit = {}
+
+  /**
+   * Extract the award advancement information from a player character, and
+   * coordinate timed dispatches of groups of packets.
+   *
+   * @param bundleSize divide packets into groups of this size
+   * @param delay      dispatch packet divisions in intervals
+   */
+  def setupAvatarAwardMessageDelivery(bundleSize: Int, delay: Long): Unit = {
+    setupAvatarAwardMessageDelivery(player, bundleSize, delay)
+    populateAvatarAwardRibbonsFunc = skipAvatarAwardMessageDelivery
+  }
+
+  /**
+   * Extract the merit commendation advancement information from a player character,
+   * filter unnecessary or not applicable statistics,
+   * translate the information into packet data, and
+   * coordinate timed dispatches of groups of packets.
+   *
+   * @param tplayer    the player character
+   * @param bundleSize divide packets into groups of this size
+   * @param delay      dispatch packet divisions in intervals
+   */
+  def setupAvatarAwardMessageDelivery(tplayer: Player, bundleSize: Int, delay: Long): Unit = {
+    val date: Int = (System.currentTimeMillis() / 1000L).toInt - 604800 //last week, in seconds
+    performAvatarAwardMessageDelivery(
+      Award
+        .values
+        .filter { merit =>
+          val label = merit.value
+          val alignment = merit.alignment
+          if (merit.category == AwardCategory.Exclusive) false
+          else if (alignment != PlanetSideEmpire.NEUTRAL && alignment != player.Faction) false
+          else if (label.contains("Male") && player.Sex != CharacterSex.Male) false
+          else if (label.contains("Female") && player.Sex != CharacterSex.Female) false
+          else true
+        }
+        .flatMap { merit =>
+          merit.progression.map { level =>
+            AvatarAwardMessage(level.commendation, AwardCompletion(date))
+          }
+        }
+        .grouped(bundleSize)
+        .iterator
+        .to(Iterable),
+      delay
+    )
+  }
+
+  /**
+   * Coordinate timed dispatches of groups of packets.
+   *
+   * @param messageBundles groups of packets to be dispatched
+   * @param delay          dispatch packet divisions in intervals
+   */
+  def performAvatarAwardMessageDelivery(
+                                         messageBundles: Iterable[Iterable[PlanetSideGamePacket]],
+                                         delay: Long
+                                       ): Unit = {
+    messageBundles match {
+      case Nil => ;
+      case x :: Nil =>
+        x.foreach {
+          sendResponse
+        }
+      case x :: xs =>
+        x.foreach {
+          sendResponse
+        }
+        context.system.scheduler.scheduleOnce(
+          delay.milliseconds,
+          context.self,
+          SessionActor.AvatarAwardMessageBundle(xs, delay)
+        )
+    }
+  }
+
+  /**
+   * Update this player avatar for persistence.
+   * Set to `persist` when (new) player is loaded.
+   */
+  def UpdatePersistenceAndRefs(): Unit = {
+    sessionData.persistFunc()
+    sessionData.updateOldRefsMap()
+  }
+
+  /**
+   * Update this player avatar for persistence.
+   * Set this to `persistFunc` when persistence is ready.
+   * @param persistRef reference to the persistence monitor
+   */
+  def UpdatePersistence(persistRef: ActorRef)(): Unit = {
+    persistRef ! AccountPersistenceService.Update(player.Name, continent, player.Position)
   }
 }

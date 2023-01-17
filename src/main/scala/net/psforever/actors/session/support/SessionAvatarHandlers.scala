@@ -3,6 +3,9 @@ package net.psforever.actors.session.support
 
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, typed}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+//
 import net.psforever.actors.session.{AvatarActor, ChatActor}
 import net.psforever.login.WorldSession.{DropEquipmentFromInventory, DropLeftovers, HoldNewEquipmentUp}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
@@ -20,15 +23,12 @@ import net.psforever.types._
 import net.psforever.util.Config
 import net.psforever.zones.Zones
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-
 class SessionAvatarHandlers(
                              val sessionData: SessionData,
                              avatarActor: typed.ActorRef[AvatarActor.Command],
                              chatActor: typed.ActorRef[ChatActor.Command],
                              implicit val context: ActorContext
-                           ) extends CommonSessionInterfacingFuncs {
+                           ) extends CommonSessionInterfacingFunctionality {
   /**
    * na
    *
@@ -162,7 +162,6 @@ class SessionAvatarHandlers(
             DropEquipmentFromInventory(player)(item)
           case None => ;
         }
-
         sessionData.DropSpecialSlotItem()
         sessionData.ToggleMaxSpecialState(enable = false)
         if (player.LastDamage match {
@@ -175,11 +174,9 @@ class SessionAvatarHandlers(
           //also, @SVCP_Killed_TooCloseToPadOnCreate^n~ or "... within n meters of pad ..."
           sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@SVCP_Killed_OnPadOnCreate", None))
         }
-
         sessionData.keepAliveFunc = sessionData.spawn.NormalKeepAlive
         sessionData.zoning.zoningStatus = Zoning.Status.None
         sessionData.spawn.deadState = DeadState.Dead
-
         continent.GUID(mount) match {
           case Some(obj: Vehicle) =>
             sessionData.vehicles.ConditionalDriverVehicleControl(obj)
@@ -187,18 +184,15 @@ class SessionAvatarHandlers(
             sessionData.UnaccessContainer(obj)
           case _ => ;
         }
-
         sessionData.PlayerActionsToCancel()
         sessionData.terminals.CancelAllProximityUnits()
         sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel")
-
         if (sessionData.weaponsAndProjectiles.shotsWhileDead > 0) {
           log.warn(
             s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired ${sessionData.weaponsAndProjectiles.shotsWhileDead} rounds while character was dead on server"
           )
           sessionData.weaponsAndProjectiles.shotsWhileDead = 0
         }
-
         sessionData.spawn.reviveTimer.cancel()
         if (player.death_by == 0) {
           sessionData.spawn.reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer) {
@@ -209,7 +203,6 @@ class SessionAvatarHandlers(
               context.self
             )
           }
-
         } else {
           sessionData.spawn.HandleReleaseAvatar(player, continent)
         }

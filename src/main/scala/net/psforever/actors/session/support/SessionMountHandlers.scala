@@ -22,7 +22,7 @@ class SessionMountHandlers(
                             val sessionData: SessionData,
                             avatarActor: typed.ActorRef[AvatarActor.Command],
                             implicit val context: ActorContext
-                          ) extends CommonSessionInterfacingFuncs {
+                          ) extends CommonSessionInterfacingFunctionality {
   /**
    * na
    *

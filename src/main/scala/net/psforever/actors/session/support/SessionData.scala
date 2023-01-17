@@ -1,10 +1,8 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, OneForOneStrategy, SupervisorStrategy, typed}
-import org.joda.time.LocalDateTime
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -26,7 +24,6 @@ import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem}
 import net.psforever.objects.loadouts.InfantryLoadout
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
@@ -53,86 +50,19 @@ import net.psforever.objects.zones.blockmap.{BlockMap, BlockMapEntity}
 import net.psforever.packet._
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.objectcreate._
-import net.psforever.packet.game.{HotSpotInfo => PacketHotSpotInfo, _}
-import net.psforever.services.CavernRotationService.SendCavernRotationUpdates
-import net.psforever.services.ServiceManager.{Lookup, LookupResult}
-import net.psforever.services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData, RetrieveAccountData}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage, AvatarServiceResponse}
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage, GalaxyServiceResponse}
+import net.psforever.packet.game._
+import net.psforever.services.account.{AccountPersistenceService, RetrieveAccountData}
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.support.CaptureFlagManager
-import net.psforever.services.local.{LocalAction, LocalServiceMessage, LocalServiceResponse}
-import net.psforever.services.teamwork.{SquadServiceMessage, SquadServiceResponse, SquadAction => SquadServiceAction}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage, VehicleServiceResponse}
-import net.psforever.services.{CavernRotationService, RemoverActor, Service, ServiceManager, InterstellarClusterService => ICS}
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.teamwork.{SquadServiceMessage, SquadAction => SquadServiceAction}
+import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.{RemoverActor, Service, InterstellarClusterService => ICS}
 import net.psforever.types._
 import net.psforever.util.Config
 
 object SessionData {
-  sealed trait Command
-
-  final case class ResponseToSelf(pkt: PlanetSideGamePacket)
-
-  private final case class PokeClient()
-  final case class NewPlayerLoaded(tplayer: Player)
-  final case class PlayerLoaded(tplayer: Player)
-  final case class PlayerFailedToLoad(tplayer: Player)
-
-  //TODO replace with SessionActor.SetCurrentAvatar
-  private[session] final case class SetCurrentAvatar(tplayer: Player, max_attempts: Int, attempt: Int = 0)
-
-  final case class SendResponse(packet: PlanetSidePacket) extends Command
-
-  final case class SetSpeed(speed: Float) extends Command
-
-  final case class SetFlying(flying: Boolean) extends Command
-
-  final case class SetSpectator(spectator: Boolean) extends Command
-
-  final case class SetZone(zoneId: String, position: Vector3) extends Command
-
-  final case class SetPosition(position: Vector3) extends Command
-
-  final case class SetConnectionState(connectionState: Int) extends Command
-
-  final case class SetSilenced(silenced: Boolean) extends Command
-
-  final case class SetAvatar(avatar: Avatar) extends Command
-
-  final case class Recall() extends Command
-
-  final case class InstantAction() extends Command
-
-  final case class Quit() extends Command
-
-  final case class Suicide() extends Command
-
-  final case class Kick(player: Player, time: Option[Long] = None) extends Command
-
-  final case class UseCooldownRenewed(definition: BasicDefinition, time: LocalDateTime) extends Command
-
-  final case class UpdateIgnoredPlayers(msg: FriendsResponse) extends Command
-
-  final case object CharSaved extends Command
-
-  private case object CharSavedMsg extends Command
-
-  /**
-   * The message that progresses some form of user-driven activity with a certain eventual outcome
-   * and potential feedback per cycle.
-   * @param delta how much the progress value changes each tick, which will be treated as a percentage;
-   *              must be a positive value
-   * @param completionAction a finalizing action performed once the progress reaches 100(%)
-   * @param tickAction an action that is performed for each increase of progress
-   * @param tickTime how long between each `tickAction` (ms);
-   *                 defaults to 250 milliseconds
-   */
-  //TODO replace with SessionActor.ProgressEvent
-  private [session] final case class ProgressEvent(
-                                                    delta: Float,
-                                                    completionAction: () => Unit,
-                                                    tickAction: Float => Boolean,
-                                                    tickTime: Long = 250
-                                                  )
+  private def NoTurnCounterYet(guid: PlanetSideGUID): Unit = { }
 }
 
 class SessionData(
@@ -141,28 +71,34 @@ class SessionData(
                    chatActor: typed.ActorRef[ChatActor.Command],
                    implicit val context: ActorContext
                  ) {
-
-  import SessionData._
+  /**
+   * Hardwire an implicit `sender` to be the same as `context.self` of the `SessionActor` actor class
+   * for which this support class was initialized.
+   * Allows for proper use for `ActorRef.tell` or an actor's `!` in the support class,
+   * one where the result is always directed back to the same `SessionActor` instance.
+   * If there is a different packet "sender" that has to be respected by a given method,
+   * pass that `ActorRef` into the method as a parameter.
+   * @see `ActorRef.!(Any)(ActorRef)`
+   * @see `ActorRef.tell(Any)(ActorRef)`
+   */
+  private[this] implicit val sender: ActorRef = context.self
 
   private[session] val log = org.log4s.getLogger
+  var _session: Session = Session()
   var accountIntermediary: ActorRef = Default.Actor
   var accountPersistence: ActorRef = Default.Actor
   var galaxyService: ActorRef = Default.Actor
   var squadService: ActorRef = Default.Actor
-  var propertyOverrideManager: ActorRef = Default.Actor
-  var cluster: typed.ActorRef[ICS.Command] = Default.Actor
-  var _session: Session = Session()
+  var cluster: typed.ActorRef[ICS.Command] = Default.typed.Actor
   var progressBarValue: Option[Float] = None
   var accessedContainer: Option[PlanetSideGameObject with Container] = None
   var connectionState: Int = 25
-  var flying: Boolean = false
   var recentTeleportAttempt: Long = 0
   var kitToBeUsed: Option[PlanetSideGUID] = None
   var persistFunc: () => Unit = NoPersistence
   var persist: () => Unit = UpdatePersistenceOnly
   var specialItemSlotGuid: Option[PlanetSideGUID] =
     None // If a special item (e.g. LLU) has been attached to the player the GUID should be stored here, or cleared when dropped, since the drop hotkey doesn't send the GUID of the object to be dropped.
-
   /**
    * When joining or creating a squad, the original state of the avatar's internal LFS variable is blanked.
    * This `SessionActor`-local variable is then used to indicate the ongoing state of the LFS UI component,
@@ -174,14 +110,13 @@ class SessionData(
   var lfsm: Boolean = false
   var serverTime: Long = 0
   var keepAliveFunc: () => Unit = KeepAlivePersistenceInitial
-  var turnCounterFunc: PlanetSideGUID => Unit = spawn.TurnCounterDuringInterim
+  var turnCounterFunc: PlanetSideGUID => Unit = SessionData.NoTurnCounterYet
   var waypointCooldown: Long = 0L
   var heightLast: Float = 0f
   var heightTrend: Boolean = false //up = true, down = false
   var heightHistory: Float = 0f
   var contextSafeEntity: PlanetSideGUID = PlanetSideGUID(0)
   val collisionHistory: mutable.HashMap[ActorRef, Long] = mutable.HashMap()
-  var populateAvatarAwardRibbonsFunc: (Int, Long) => Unit = setupAvatarAwardMessageDelivery
 
   var clientKeepAlive: Cancellable = Default.Cancellable
   var progressBarUpdate: Cancellable = Default.Cancellable
@@ -200,10 +135,12 @@ class SessionData(
   val terminals: SessionTerminalHandlers =
     new SessionTerminalHandlers(sessionData=this, avatarActor, context)
   private var _vehicleResponseOperations: Option[SessionVehicleHandlers] = None
+  private var _galaxyResponseHanders: Option[SessionGalaxyHandlers] = None
   private var _squadResponseHandlers: Option[SessionSquadHandlers] = None
   private var _zoning: Option[ZoningOperations] = None
   private var _spawn: Option[SpawnOperations] = None
   def vehicleResponseOperations: SessionVehicleHandlers = _vehicleResponseOperations.orNull
+  def galaxyResponseHanders: SessionGalaxyHandlers = _galaxyResponseHanders.orNull
   def squadResponseHandlers: SessionSquadHandlers = _squadResponseHandlers.orNull
   def zoning: ZoningOperations = _zoning.orNull
   def spawn: SpawnOperations = _spawn.orNull
@@ -440,45 +377,6 @@ class SessionData(
 
   def avatar: Avatar = _session.avatar
 
-  implicit val serviceManager: ActorRef = ServiceManager.serviceManager
-  serviceManager ! Lookup("accountIntermediary")
-  serviceManager ! Lookup("accountPersistence")
-  serviceManager ! Lookup("galaxy")
-  serviceManager ! Lookup("squad")
-  serviceManager ! Lookup("propertyOverrideManager")
-
-  ServiceManager.receptionist ! Receptionist.Find(
-    ICS.InterstellarClusterServiceKey,
-    context.self
-  )
-
-  def postStop(): Unit = {
-    //normally, the player avatar persists a minute or so after disconnect; we are subject to the SessionReaper
-    charSavedTimer.cancel()
-    clientKeepAlive.cancel()
-    progressBarUpdate.cancel()
-    spawn.reviveTimer.cancel()
-    spawn.respawnTimer.cancel()
-    zoning.zoningTimer.cancel()
-    galaxyService ! Service.Leave()
-    continent.AvatarEvents ! Service.Leave()
-    continent.LocalEvents ! Service.Leave()
-    continent.VehicleEvents ! Service.Leave()
-
-    if (avatar != null) {
-      //TODO put any temporary values back into the avatar
-      squadService ! Service.Leave(Some(s"${avatar.faction}"))
-      if (player != null && player.HasGUID) {
-        (weaponsAndProjectiles.prefire ++ weaponsAndProjectiles.shooting).foreach { guid =>
-          continent.AvatarEvents ! AvatarServiceMessage(
-            continent.id,
-            AvatarAction.ChangeFireState_Stop(player.GUID, guid)
-          )
-        }
-      }
-    }
-  }
-
   def ValidObject(id: Int): Option[PlanetSideGameObject] = ValidObject(Some(PlanetSideGUID(id)), decorator = "")
 
   def ValidObject(id: Int, decorator: String): Option[PlanetSideGameObject] = ValidObject(Some(PlanetSideGUID(id)), decorator)
@@ -546,334 +444,31 @@ class SessionData(
     }
   }
 
-  def buildDependentOperations1(): Unit = {
-    if (_vehicleResponseOperations.isEmpty && galaxyService != Default.Actor && cluster != Default.Actor) {
-      _vehicleResponseOperations = Some(new SessionVehicleHandlers(sessionData=this, avatarActor, galaxyService, context))
-      _zoning = Some(new ZoningOperations(sessionData=this, avatarActor, galaxyService, cluster, context))
-      _spawn = Some(new SpawnOperations(sessionData=this, avatarActor, cluster, context))
+  def buildDependentOperationsForGalaxy(galaxyActor: ActorRef): Unit = {
+    if (_vehicleResponseOperations.isEmpty && galaxyActor != Default.Actor) {
+      _galaxyResponseHanders = Some(new SessionGalaxyHandlers(sessionData=this, avatarActor, galaxyActor, context))
+      _vehicleResponseOperations = Some(new SessionVehicleHandlers(sessionData=this, avatarActor, galaxyActor, context))
     }
   }
 
-  def buildDependentOperations2(): Unit = {
-    if (_squadResponseHandlers.isEmpty && squadService != Default.Actor) {
-      _squadResponseHandlers = Some(new SessionSquadHandlers(sessionData=this, avatarActor, chatActor, squadService, context))
+  def buildDependentOperationsForSpawn(clusterActor: typed.ActorRef[ICS.Command]): Unit = {
+    if (_spawn.isEmpty && clusterActor != Default.typed.Actor) {
+      val spawnOps = new SpawnOperations(sessionData=this, avatarActor, clusterActor, context)
+      _spawn = Some(spawnOps)
+      turnCounterFunc = spawnOps.TurnCounterDuringInterim
     }
   }
 
-  def receive(msg: Any): Unit = msg match {
-    case LookupResult("accountIntermediary", endpoint) =>
-      accountIntermediary = endpoint
-    case LookupResult("accountPersistence", endpoint) =>
-      accountPersistence = endpoint
-    case LookupResult("galaxy", endpoint) =>
-      galaxyService = endpoint
-      buildDependentOperations1()
-    case LookupResult("squad", endpoint) =>
-      squadService = endpoint
-      buildDependentOperations2()
-    case LookupResult("propertyOverrideManager", endpoint) =>
-      propertyOverrideManager = endpoint
-    case ICS.InterstellarClusterServiceKey.Listing(listings) =>
-      cluster = listings.head
-      buildDependentOperations1()
-    case CavernRotationService.CavernRotationServiceKey.Listing(listings) =>
-      listings.head ! SendCavernRotationUpdates(context.self)
-
-    // Avatar subscription update
-    case _: Avatar =>
-    /*
-      log.info(s"new Avatar ${avatar.id}")
-      if (session.player != null) session.player.avatar = avatar
-      session = session.copy(avatar = avatar)
-     */
-
-    case CharSaved =>
-      renewCharSavedTimer(
-        Config.app.game.savedMsg.interruptedByAction.fixed,
-        Config.app.game.savedMsg.interruptedByAction.variable
-      )
-
-    case CharSavedMsg =>
-      displayCharSavedMsgThenRenewTimer(
-        Config.app.game.savedMsg.renewal.fixed,
-        Config.app.game.savedMsg.renewal.variable
-      )
-
-    case SetAvatar(avatar) =>
-      session = session.copy(avatar = avatar)
-      if (session.player != null) {
-        session.player.avatar = avatar
-      }
-      LivePlayerList.Update(avatar.id, avatar)
-
-    case AvatarActor.AvatarResponse(avatar) =>
-      session = session.copy(avatar = avatar)
-      accountPersistence ! AccountPersistenceService.Login(avatar.name, avatar.id)
-
-    case AvatarActor.AvatarLoginResponse(avatar) =>
-      spawn.avatarLoginResponse(avatar)
-
-    case packet: PlanetSideGamePacket =>
-      handleGamePkt(packet)
-
-    case PokeClient() =>
-      sendResponse(KeepAliveMessage())
-
-    case AvatarServiceResponse(toChannel, guid, reply) =>
-      avatarResponseHandlers.handle(toChannel, guid, reply)
-
-    case UpdateIgnoredPlayers(msg) =>
-      sendResponse(msg)
-      msg.friends.foreach { f =>
-        galaxyService ! GalaxyServiceMessage(GalaxyAction.LogStatusChange(f.name))
-      }
-
-    case SendResponse(packet) =>
-      sendResponse(packet)
-
-    case SetSpeed(speed) =>
-      session = session.copy(speed = speed)
-
-    case SetFlying(_flying) =>
-      session = session.copy(flying = _flying)
-
-    case SetSpectator(spectator) =>
-      session.player.spectator = spectator
-
-    case Recall() =>
-      zoning.handleRecall()
-
-    case InstantAction() =>
-      zoning.handleInstantAction()
-
-    case Quit() =>
-      zoning.handleQuit()
-
-    case Suicide() =>
-      suicide(player)
-
-    case Kick(player, time) =>
-      AdministrativeKick(player)
-      accountPersistence ! AccountPersistenceService.Kick(player.Name, time)
-
-    case SetZone(zoneId, position) =>
-      zoning.handleSetZone(zoneId, position)
-
-    case SetPosition(position) =>
-      spawn.handleSetPosition(position)
-
-    case SetConnectionState(state) =>
-      connectionState = state
-
-    case SetSilenced(silenced) =>
-      player.silenced = silenced
-
-    case UseCooldownRenewed(definition, _) =>
-      definition match {
-        case _: KitDefinition =>
-          kitToBeUsed = None
-        case _ => ;
-      }
-
-    case CommonMessages.Progress(rate, finishedAction, stepAction) =>
-      if (progressBarValue.isEmpty) {
-        progressBarValue = Some(-rate)
-        context.self ! ProgressEvent(rate, finishedAction, stepAction)
-      }
-
-    case ProgressEvent(delta, finishedAction, stepAction, tick) =>
-      HandleProgressChange(delta, finishedAction, stepAction, tick)
-
-    case GalaxyServiceResponse(_, reply) =>
-      reply match {
-        case GalaxyResponse.HotSpotUpdate(zone_index, priority, hot_spot_info) =>
-          sendResponse(
-            HotSpotUpdateMessage(
-              zone_index,
-              priority,
-              hot_spot_info.map { spot => PacketHotSpotInfo(spot.DisplayLocation.x, spot.DisplayLocation.y, 40) }
-            )
-          )
-
-        case GalaxyResponse.MapUpdate(msg) =>
-          sendResponse(msg)
-
-        case GalaxyResponse.UpdateBroadcastPrivileges(zoneId, gateMapId, fromFactions, toFactions) =>
-          val faction = player.Faction
-          val from = fromFactions.contains(faction)
-          val to = toFactions.contains(faction)
-          if (from && !to) {
-            sendResponse(BroadcastWarpgateUpdateMessage(zoneId, gateMapId, PlanetSideEmpire.NEUTRAL))
-          } else if (!from && to) {
-            sendResponse(BroadcastWarpgateUpdateMessage(zoneId, gateMapId, faction))
-          }
-
-        case GalaxyResponse.FlagMapUpdate(msg) =>
-          sendResponse(msg)
-
-        case GalaxyResponse.TransferPassenger(temp_channel, vehicle, _, manifest) =>
-          zoning.handleTransferPassenger(temp_channel, vehicle, manifest)
-
-        case GalaxyResponse.LockedZoneUpdate(zone, time) =>
-          sendResponse(ZoneInfoMessage(zone.Number, empire_status = false, lock_time = time))
-
-        case GalaxyResponse.UnlockedZoneUpdate(zone) => ;
-          sendResponse(ZoneInfoMessage(zone.Number, empire_status = true, lock_time = 0L))
-          val popBO = 0
-          val popTR = zone.Players.count(_.faction == PlanetSideEmpire.TR)
-          val popNC = zone.Players.count(_.faction == PlanetSideEmpire.NC)
-          val popVS = zone.Players.count(_.faction == PlanetSideEmpire.VS)
-          sendResponse(ZonePopulationUpdateMessage(zone.Number, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
-
-        case GalaxyResponse.LogStatusChange(name) =>
-          if (avatar.people.friend.exists {
-            _.name.equals(name)
-          }) {
-            avatarActor ! AvatarActor.MemberListRequest(MemberAction.UpdateFriend, name)
-          }
-
-        case GalaxyResponse.SendResponse(msg) =>
-          sendResponse(msg)
-      }
-
-    case LocalServiceResponse(toChannel, guid, reply) =>
-      localResponseHandlers.handle(toChannel, guid, reply)
-
-    case Mountable.MountMessages(tplayer, reply) =>
-      mountResponseHandlers.handle(tplayer, reply)
-
-    case Terminal.TerminalMessage(tplayer, msg, order) =>
-      terminals.handle(tplayer, msg, order)
-
-    case ProximityUnit.Action(_, _) => ;
-
-    case ProximityUnit.StopAction(term, target) =>
-      terminals.LocalStopUsingProximityUnit(term, target)
-
-    case VehicleServiceResponse(toChannel, guid, reply) =>
-      vehicleResponseOperations.handle(toChannel, guid, reply)
-
-    case SquadServiceResponse(_, excluded, response) =>
-      squadResponseHandlers.handle(response, excluded)
-
-    case Deployment.CanDeploy(obj, state) =>
-      if (state == DriveState.Deploying) {
-        log.trace(s"DeployRequest: $obj transitioning to deploy state")
-      } else if (state == DriveState.Deployed) {
-        log.trace(s"DeployRequest: $obj has been Deployed")
-      } else {
-        CanNotChangeDeployment(obj, state, "incorrect deploy state")
-      }
-
-    case Deployment.CanUndeploy(obj, state) =>
-      if (state == DriveState.Undeploying) {
-        log.trace(s"DeployRequest: $obj transitioning to undeploy state")
-      } else if (state == DriveState.Mobile) {
-        log.trace(s"DeployRequest: $obj is Mobile")
-      } else {
-        CanNotChangeDeployment(obj, state, "incorrect undeploy state")
-      }
-
-    case Deployment.CanNotChangeDeployment(obj, state, reason) =>
-      if (Deployment.CheckForDeployState(state) && !Deployment.AngleCheck(obj)) {
-        CanNotChangeDeployment(obj, state, reason = "ground too steep")
-      } else {
-        CanNotChangeDeployment(obj, state, reason)
-      }
-
-    case Zone.Population.PlayerHasLeft(zone, None) =>
-      log.trace(s"PlayerHasLeft: ${avatar.name} does not have a body on ${zone.id}")
-
-    case Zone.Population.PlayerHasLeft(zone, Some(tplayer)) =>
-      if (tplayer.isAlive) {
-        log.info(s"${tplayer.Name} has left zone ${zone.id}")
-      }
-
-    case Zone.Population.PlayerCanNotSpawn(zone, tplayer) =>
-      log.warn(s"${tplayer.Name} can not spawn in zone ${zone.id}; why?")
-
-    case Zone.Population.PlayerAlreadySpawned(zone, tplayer) =>
-      log.warn(s"${tplayer.Name} is already spawned on zone ${zone.id}; is this a clerical error?")
-
-    case ICS.SpawnPointResponse(response) =>
-      zoning.handleSpawnPointResponse(response)
-
-    case ICS.DroppodLaunchDenial(errorCode, _) =>
-      zoning.handleDroppodLaunchDenial(errorCode)
-
-    case ICS.DroppodLaunchConfirmation(zone, position) =>
-      zoning.LoadZoneLaunchDroppod(zone, position)
-
-    case _: Zone.Vehicle.HasSpawned => ;
-
-    case Zone.Vehicle.CanNotSpawn(zone, vehicle, reason) =>
-      log.warn(s"${player.Name}'s ${vehicle.Definition.Name} can not spawn in ${zone.id} because $reason")
-
-    case _: Zone.Vehicle.HasDespawned => ;
-
-    case Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
-      log.warn(s"${player.Name}'s ${vehicle.Definition.Name} can not deconstruct in ${zone.id} because $reason")
-
-    //!!only dispatched to SessionActor as cleanup if the target deployable was never fully introduced
-    case Zone.Deployable.IsDismissed(obj: TurretDeployable) =>
-      TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(continent.GUID, obj))
-
-    //!!only dispatched to SessionActor as cleanup if the target deployable was never fully introduced
-    case Zone.Deployable.IsDismissed(obj) =>
-      TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, obj))
-
-    case ICS.ZonesResponse(zones) =>
-      zoning.handleZonesResponse(zones, propertyOverrideManager)
-
-    case ICS.ZoneResponse(Some(zone)) =>
-      zoning.handleZoneResponse(zone)
-
-    case NewPlayerLoaded(tplayer) =>
-      spawn.handleNewPlayerLoaded(tplayer)
-
-    case PlayerLoaded(tplayer) =>
-      spawn.handlePlayerLoaded(tplayer)
-
-    case PlayerFailedToLoad(tplayer) =>
-      player.Continent match {
-        case _ =>
-          failWithError(s"${tplayer.Name} failed to load anywhere")
-      }
-
-    case SetCurrentAvatar(tplayer, max_attempts, attempt) =>
-      spawn.ReadyToSetCurrentAvatar(tplayer, max_attempts, attempt)
-
-    case SessionActor.AvatarAwardMessageBundle(pkts, delay) =>
-      performAvatarAwardMessageDelivery(pkts, delay)
-
-    case ResponseToSelf(pkt) =>
-      sendResponse(pkt)
-
-    case ReceiveAccountData(account) =>
-      log.trace(s"ReceiveAccountData $account")
-      session = session.copy(account = account)
-      avatarActor ! AvatarActor.SetAccount(account)
-
-    case PlayerToken.LoginInfo(name, Zone.Nowhere, _) =>
-      spawn.handleLoginInfoNowhere(name, sender())
-
-    case PlayerToken.LoginInfo(name, inZone, optionalSavedData) =>
-      spawn.handleLoginInfoSomewhere(name, inZone, optionalSavedData, sender())
-
-    case PlayerToken.RestoreInfo(playerName, inZone, pos) =>
-      spawn.handleLoginInfoRestore(playerName, inZone, pos, sender())
-
-    case PlayerToken.CanNotLogin(playerName, reason) =>
-      spawn.handleLoginCanNot(playerName, reason)
-
-    case msg: Containable.ItemPutInSlot =>
-      log.debug(s"ItemPutInSlot: $msg")
-
-    case msg: Containable.CanNotPutItemInSlot =>
-      log.debug(s"CanNotPutItemInSlot: $msg")
-
-    case _ =>
-    //log.warn(s"Invalid packet class received: $default from ${sender()}")
+  def buildDependentOperations(galaxyActor: ActorRef, clusterActor: typed.ActorRef[ICS.Command]): Unit = {
+    if (_zoning.isEmpty && galaxyActor != Default.Actor && clusterActor != Default.typed.Actor) {
+      _zoning = Some(new ZoningOperations(sessionData=this, avatarActor, galaxyActor, clusterActor, context))
+    }
+  }
+
+  def buildDependentOperationsForSquad(squadActor: ActorRef): Unit = {
+    if (_squadResponseHandlers.isEmpty && squadActor != Default.Actor) {
+      _squadResponseHandlers = Some(new SessionSquadHandlers(sessionData=this, avatarActor, chatActor, squadActor, context))
+    }
   }
 
   /**
@@ -885,29 +480,10 @@ class SessionData(
   }
 
   /**
-   * Update this player avatar for persistence.
-   * Set to `persist` when (new) player is loaded.
-   */
-  def UpdatePersistenceAndRefs(): Unit = {
-    persistFunc()
-    updateOldRefsMap()
-  }
-
-  /**
    * Do not update this player avatar for persistence.
    * Set to `persistFunc` initially.
    */
-  def NoPersistence(): Unit = {}
-
-  /**
-   * Update this player avatar for persistence.
-   * Set this to `persistFunc` when persistence is ready.
-   *
-   * @param persistRef reference to the persistence monitor
-   */
-  def UpdatePersistence(persistRef: ActorRef)(): Unit = {
-    persistRef ! AccountPersistenceService.Update(player.Name, continent, player.Position)
-  }
+  def NoPersistence(): Unit = { }
 
   def DropSpecialSlotItem(): Unit = {
     specialItemSlotGuid match {
@@ -935,7 +511,6 @@ class SessionData(
    * Enforce constraints on bulk purchases as determined by a given player's previous purchase times and hard acquisition delays.
    * Intended to assist in sanitizing loadout information from the perspective of the player, or target owner.
    * The equipment is expected to be unregistered and already fitted to their ultimate slot in the target container.
-   *
    * @param player the player whose purchasing constraints are to be tested
    * @param target the location in which the equipment will be stowed
    * @param slots  the equipment, in the standard object-slot format container
@@ -957,6 +532,13 @@ class SessionData(
     }
   }
 
+  def SetupProgressChange(rate: Float, finishedAction: () => Unit, stepAction: Float => Boolean): Unit = {
+    if (progressBarValue.isEmpty) {
+      progressBarValue = Some(-rate)
+      context.self ! SessionActor.ProgressEvent(rate, finishedAction, stepAction)
+    }
+  }
+
   /**
    * Handle the message that indicates the level of completion of a process.
    * The process is any form of user-driven activity with a certain eventual outcome
@@ -972,10 +554,9 @@ class SessionData(
    * If the background process recording value is never set before running the initial operation
    * or gets unset by failing a `tickAction` check
    * the process is stopped.
-   *
    * @see `progressBarUpdate`
    * @see `progressBarValue`
-   * @see `WorldSessionActor.Progress`
+   * @see `essionActor.Progress`
    * @param delta            how much the progress changes each tick
    * @param completionAction a custom action performed once the process is completed
    * @param tickAction       an optional action is is performed for each tick of progress;
@@ -1004,7 +585,7 @@ class SessionData(
             progressBarUpdate = context.system.scheduler.scheduleOnce(
               100 milliseconds,
               context.self,
-              ProgressEvent(delta, completionAction, tickAction)
+              SessionActor.ProgressEvent(delta, completionAction, tickAction)
             )
           } else {
             progressBarValue = None
@@ -1017,98 +598,13 @@ class SessionData(
             progressBarUpdate = context.system.scheduler.scheduleOnce(
               tick milliseconds,
               context.self,
-              ProgressEvent(delta, completionAction, tickAction, tick)
+              SessionActor.ProgressEvent(delta, completionAction, tickAction, tick)
             )
           } else {
             progressBarValue = None
           }
         }
       case None => ;
-    }
-  }
-
-  /**
-   * Don't extract the award advancement information from a player character upon respawning or zoning.
-   * You only need to perform that population once at login.
-   *
-   * @param bundleSize it doesn't matter
-   * @param delay      it doesn't matter
-   */
-  def skipAvatarAwardMessageDelivery(bundleSize: Int, delay: Long): Unit = {}
-
-  /**
-   * Extract the award advancement information from a player character, and
-   * coordinate timed dispatches of groups of packets.
-   *
-   * @param bundleSize divide packets into groups of this size
-   * @param delay      dispatch packet divisions in intervals
-   */
-  def setupAvatarAwardMessageDelivery(bundleSize: Int, delay: Long): Unit = {
-    setupAvatarAwardMessageDelivery(player, bundleSize, delay)
-    populateAvatarAwardRibbonsFunc = skipAvatarAwardMessageDelivery
-  }
-
-  /**
-   * Extract the merit commendation advancement information from a player character,
-   * filter unnecessary or not applicable statistics,
-   * translate the information into packet data, and
-   * coordinate timed dispatches of groups of packets.
-   *
-   * @param tplayer    the player character
-   * @param bundleSize divide packets into groups of this size
-   * @param delay      dispatch packet divisions in intervals
-   */
-  def setupAvatarAwardMessageDelivery(tplayer: Player, bundleSize: Int, delay: Long): Unit = {
-    val date: Int = (System.currentTimeMillis() / 1000L).toInt - 604800 //last week, in seconds
-    performAvatarAwardMessageDelivery(
-      Award
-        .values
-        .filter { merit =>
-          val label = merit.value
-          val alignment = merit.alignment
-          if (merit.category == AwardCategory.Exclusive) false
-          else if (alignment != PlanetSideEmpire.NEUTRAL && alignment != player.Faction) false
-          else if (label.contains("Male") && player.Sex != CharacterSex.Male) false
-          else if (label.contains("Female") && player.Sex != CharacterSex.Female) false
-          else true
-        }
-        .flatMap { merit =>
-          merit.progression.map { level =>
-            AvatarAwardMessage(level.commendation, AwardCompletion(date))
-          }
-        }
-        .grouped(bundleSize)
-        .iterator
-        .to(Iterable),
-      delay
-    )
-  }
-
-  /**
-   * Coordinate timed dispatches of groups of packets.
-   *
-   * @param messageBundles groups of packets to be dispatched
-   * @param delay          dispatch packet divisions in intervals
-   */
-  def performAvatarAwardMessageDelivery(
-                                         messageBundles: Iterable[Iterable[PlanetSidePacket]],
-                                         delay: Long
-                                       ): Unit = {
-    messageBundles match {
-      case Nil => ;
-      case x :: Nil =>
-        x.foreach {
-          sendResponse
-        }
-      case x :: xs =>
-        x.foreach {
-          sendResponse
-        }
-        context.system.scheduler.scheduleOnce(
-          delay.milliseconds,
-          context.self,
-          SessionActor.AvatarAwardMessageBundle(xs, delay)
-        )
     }
   }
 
@@ -1122,7 +618,7 @@ class SessionData(
         import scala.concurrent.ExecutionContext.Implicits.global
         clientKeepAlive.cancel()
         clientKeepAlive =
-          context.system.scheduler.scheduleWithFixedDelay(0 seconds, 500 milliseconds, context.self, PokeClient())
+          context.system.scheduler.scheduleWithFixedDelay(0 seconds, 500 milliseconds, context.self, SessionActor.PokeClient())
         accountIntermediary ! RetrieveAccountData(token)
       case _ => ;
     }
@@ -1136,7 +632,7 @@ class SessionData(
     }
   }
 
-  def handleCharacterRequest(pkt: PlanetSideGamePacket)(implicit context: ActorContext): Unit = {
+  def handleCharacterRequest(pkt: PlanetSideGamePacket): Unit = {
     pkt match {
       case CharacterRequestMessage(charId, action) =>
         action match {
@@ -1273,6 +769,17 @@ class SessionData(
   def handleVoiceHostRequest(pkt: PlanetSideGamePacket): Unit = {
     pkt match {
       case _: VoiceHostRequest =>
+        sendResponse(VoiceHostKill())
+        sendResponse(
+          ChatMsg(ChatMessageType.CMT_OPEN, wideContents=false, "", "Try our Discord at https://discord.gg/0nRe5TNbTYoUruA4", None)
+        )
+      case _ => ;
+    }
+  }
+
+  def handleVoiceHostInfo(pkt: PlanetSideGamePacket): Unit = {
+    pkt match {
+      case _: VoiceHostInfo =>
         sendResponse(VoiceHostKill())
         sendResponse(
           ChatMsg(ChatMessageType.CMT_OPEN, wideContents=false, "", "Try our Discord at https://discord.gg/0nRe5TNbTYoUruA4", None)
@@ -2506,27 +2013,7 @@ class SessionData(
     }
   }
 
-  def handleHitHint(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case HitHint(_, _) => ; //HitHint is manually distributed for proper operation
-      case _ => ;
-    }
-  }
-
-  def handleDroppodLaunchRequest(pkt: PlanetSideGamePacket)(implicit context: ActorContext): Unit = {
-    pkt match {
-      case DroppodLaunchRequestMessage(info, _) =>
-        cluster ! ICS.DroppodLaunchRequest(
-          info.zone_number,
-          info.xypos,
-          player.Faction,
-          context.self.toTyped[ICS.DroppodLaunchExchange]
-        )
-      case _ => ;
-    }
-  }
-
-  def handcleInvalidTerrain(pkt: PlanetSideGamePacket): Unit = {
+  def handleInvalidTerrain(pkt: PlanetSideGamePacket): Unit = {
     pkt match {
       case InvalidTerrainMessage(_, vehicle_guid, alert, _) =>
         (continent.GUID(vehicle_guid), continent.GUID(player.VehicleSeated)) match {
@@ -2566,7 +2053,7 @@ class SessionData(
     }
   }
 
-  def handleAwardDisplay(pkt: PlanetSideGamePacket): Unit = {
+  def handleDisplayedAward(pkt: PlanetSideGamePacket): Unit = {
     pkt match {
       case DisplayedAwardMessage(_, ribbon, bar) =>
         log.trace(s"${player.Name} changed the $bar displayed award ribbon to $ribbon")
@@ -2620,6 +2107,13 @@ class SessionData(
     }
   }
 
+  def handleHitHint(pkt: PlanetSideGamePacket): Unit = {
+    pkt match {
+      case HitHint(_, _) => ; //HitHint is manually distributed for proper operation
+      case _ => ;
+    }
+  }
+
   /**
    * Construct tasking that registers all aspects of a `Player` avatar
    * as if that player is only just being introduced.
@@ -2636,7 +2130,7 @@ class SessionData(
         override def description(): String = s"register new player avatar ${localPlayer.Name}"
 
         def action(): Future[Any] = {
-          localAnnounce ! NewPlayerLoaded(localPlayer)
+          localAnnounce ! SessionActor.NewPlayerLoaded(localPlayer)
           Future(true)
         }
       },
@@ -2660,7 +2154,7 @@ class SessionData(
         override def description(): String = s"register player avatar ${localPlayer.Name}"
 
         def action(): Future[Any] = {
-          localAnnounce ! PlayerLoaded(localPlayer)
+          localAnnounce ! SessionActor.PlayerLoaded(localPlayer)
           Future(true)
         }
       },
@@ -2702,7 +2196,7 @@ class SessionData(
         def action(): Future[Any] = {
           localDriver.VehicleSeated = localVehicle.GUID
           Vehicles.Own(localVehicle, localDriver)
-          localAnnounce ! NewPlayerLoaded(localDriver)
+          localAnnounce ! SessionActor.NewPlayerLoaded(localDriver)
           Future(true)
         }
       },
@@ -3698,13 +3192,5 @@ class SessionData(
 
   def sendResponse(packet: PlanetSidePacket): Unit = {
     middlewareActor ! MiddlewareActor.Send(packet)
-  }
-
-  def sender(): ActorRef = ActorRef.noSender //TODO placeholder
-
-  def handleGamePkt(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case _ => ;
-    }
   }
 }

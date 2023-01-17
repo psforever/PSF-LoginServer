@@ -22,7 +22,7 @@ class SessionVehicleHandlers(
                               avatarActor: typed.ActorRef[AvatarActor.Command],
                               galaxyService: ActorRef,
                               implicit val context: ActorContext
-                            ) extends CommonSessionInterfacingFuncs {
+                            ) extends CommonSessionInterfacingFunctionality {
   /**
    * na
    *

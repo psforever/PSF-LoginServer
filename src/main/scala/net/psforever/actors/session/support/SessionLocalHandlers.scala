@@ -13,7 +13,7 @@ import net.psforever.types.{ChatMessageType, PlanetSideGUID, Vector3}
 class SessionLocalHandlers(
                             val sessionData: SessionData,
                             implicit val context: ActorContext
-                          ) extends CommonSessionInterfacingFuncs {
+                          ) extends CommonSessionInterfacingFunctionality {
   /**
    * na
    * @param toChannel na
@@ -30,7 +30,7 @@ class SessionLocalHandlers(
         }
 
       case LocalResponse.DeployableUIFor(item) =>
-        UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
+        sessionData.UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
 
       case LocalResponse.Detonate(dguid, _: BoomerDeployable) =>
         sendResponse(TriggerEffectMessage(dguid, "detonate_boomer"))
@@ -223,32 +223,6 @@ class SessionLocalHandlers(
 
       case _ => ;
     }
-  }
-
-  /**
-   * Initialize the deployables user interface elements.<br>
-   * <br>
-   * All element initializations require both the maximum deployable amount and the current deployables active counts.
-   * Until initialized, all elements will be RED 0/0 as if the corresponding certification were not `learn`ed.
-   * The respective element will become a pair of numbers, the second always being non-zero, when properly initialized.
-   * The numbers will appear GREEN when more deployables of that type can be placed.
-   * The numbers will appear RED if the player can not place any more of that type of deployable.
-   * The numbers will appear YELLOW if the current deployable count is greater than the maximum count of that type
-   * such as may be the case when a player `forget`s a certification.
-   * @param list a tuple of each UI element with four numbers;
-   *             even numbers are attribute ids;
-   *             odd numbers are quantities;
-   *             first pair is current quantity;
-   *             second pair is maximum quantity
-   */
-  def UpdateDeployableUIElements(list: List[(Int, Int, Int, Int)]): Unit = {
-    val guid = PlanetSideGUID(0)
-    list.foreach({
-      case (currElem, curr, maxElem, max) =>
-        //fields must update in ordered pairs: max, curr
-        sendResponse(PlanetsideAttributeMessage(guid, maxElem, max))
-        sendResponse(PlanetsideAttributeMessage(guid, currElem, curr))
-    })
   }
 
   /**

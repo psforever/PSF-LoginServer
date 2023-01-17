@@ -35,7 +35,7 @@ class WeaponAndProjectileOperations(
                                      avatarActor: typed.ActorRef[AvatarActor.Command],
                                      chatActor: typed.ActorRef[ChatActor.Command],
                                      implicit val context: ActorContext
-                                   ) extends CommonSessionInterfacingFuncs {
+                                   ) extends CommonSessionInterfacingFunctionality {
   var shooting: mutable.Set[PlanetSideGUID] = mutable.Set.empty //ChangeFireStateMessage_Start
   var prefire: mutable.Set[PlanetSideGUID] = mutable.Set.empty //if WeaponFireMessage precedes ChangeFireStateMessage_Start
   var shootingStart: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
@@ -956,7 +956,7 @@ class WeaponAndProjectileOperations(
    */
   def FindDetectedProjectileTargets(targets: Iterable[PlanetSideGUID]): Iterable[String] = {
     targets
-      .map { sessionData.ValidObject }
+      .map { sessionData.ValidObject(_, decorator="FindDetectedProjectileTargets") }
       .flatMap {
         case Some(obj: Vehicle) if !obj.Cloaked =>
           //TODO hint: vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.ProjectileAutoLockAwareness(mode))

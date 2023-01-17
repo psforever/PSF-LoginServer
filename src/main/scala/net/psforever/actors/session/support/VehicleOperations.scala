@@ -9,6 +9,7 @@ import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.objects.vehicles.{AccessPermissionGroup, CargoBehavior}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects._
+import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -18,7 +19,7 @@ class VehicleOperations(
                          val sessionData: SessionData,
                          avatarActor: typed.ActorRef[AvatarActor.Command],
                          implicit val context: ActorContext
-                       ) extends CommonSessionInterfacingFuncs {
+                       ) extends CommonSessionInterfacingFunctionality {
   var serverVehicleControlVelocity: Option[Int] = None
 
   /* case handling code */
@@ -454,6 +455,34 @@ class VehicleOperations(
     }
   }
 
+  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
+    if (state == DriveState.Deploying) {
+      log.trace(s"DeployRequest: $obj transitioning to deploy state")
+    } else if (state == DriveState.Deployed) {
+      log.trace(s"DeployRequest: $obj has been Deployed")
+    } else {
+      CanNotChangeDeployment(obj, state, "incorrect deploy state")
+    }
+  }
+
+  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
+    if (state == DriveState.Undeploying) {
+      log.trace(s"DeployRequest: $obj transitioning to undeploy state")
+    } else if (state == DriveState.Mobile) {
+      log.trace(s"DeployRequest: $obj is Mobile")
+    } else {
+      CanNotChangeDeployment(obj, state, "incorrect undeploy state")
+    }
+  }
+
+  def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState.Value, reason: String): Unit = {
+    if (Deployment.CheckForDeployState(state) && !Deployment.AngleCheck(obj)) {
+      CanNotChangeDeployment(obj, state, reason = "ground too steep")
+    } else {
+      CanNotChangeDeployment(obj, state, reason)
+    }
+  }
+
   /* support code */
 
   /**
@@ -655,5 +684,30 @@ class VehicleOperations(
   def TotalDriverVehicleControl(vehicle: Vehicle): Unit = {
     serverVehicleControlVelocity = None
     sendResponse(ServerVehicleOverrideMsg(lock_accelerator=false, lock_wheel=false, reverse=false, unk4=false, 0, 0, 0, None))
+  }
+
+  /**
+   * Common reporting behavior when a `Deployment` object fails to properly transition between states.
+   * @param obj the game object that could not
+   * @param state the `DriveState` that could not be promoted
+   * @param reason a string explaining why the state can not or will not change
+   */
+  def CanNotChangeDeployment(
+                              obj: PlanetSideServerObject with Deployment,
+                              state: DriveState.Value,
+                              reason: String
+                            ): Unit = {
+    val mobileShift: String = if (obj.DeploymentState != DriveState.Mobile) {
+      obj.DeploymentState = DriveState.Mobile
+      sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Mobile, 0, unk3=false, Vector3.Zero))
+      continent.VehicleEvents ! VehicleServiceMessage(
+        continent.id,
+        VehicleAction.DeployRequest(player.GUID, obj.GUID, DriveState.Mobile, 0, unk2=false, Vector3.Zero)
+      )
+      "; enforcing Mobile deployment state"
+    } else {
+      ""
+    }
+    log.error(s"DeployRequest: ${player.Name} can not transition $obj to $state - $reason$mobileShift")
   }
 }

@@ -6,9 +6,9 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.Success
 //
 import net.psforever.actors.session.{AvatarActor, SessionActor}
@@ -35,7 +35,7 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.objects._
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectCreateMessageParent, PlacementData}
-import net.psforever.packet.game.{AvatarDeadStateMessage, BeginZoningMessage, BroadcastWarpgateUpdateMessage, ChatMsg, ContinentalLockUpdateMessage, DeadState, DensityLevelUpdateMessage, DeployRequestMessage, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, ObjectAttachMessage, ObjectCreateMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PropertyOverrideMessage, ReplicationStreamMessage, SetEmpireMessage, TimeOfDayMessage, TriggerEffectMessage, WarpgateRequest, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
+import net.psforever.packet.game.{AvatarDeadStateMessage, BeginZoningMessage, BroadcastWarpgateUpdateMessage, ChatMsg, ContinentalLockUpdateMessage, DeadState, DensityLevelUpdateMessage, DeployRequestMessage, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodLaunchRequestMessage, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, ObjectAttachMessage, ObjectCreateMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PropertyOverrideMessage, ReplicationStreamMessage, SetEmpireMessage, TimeOfDayMessage, TriggerEffectMessage, WarpgateRequest, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.packet.{PlanetSideGamePacket, game}
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
@@ -58,7 +58,7 @@ class ZoningOperations(
                         galaxyService: ActorRef,
                         cluster: typed.ActorRef[ICS.Command],
                         implicit val context: ActorContext
-                      ) extends CommonSessionInterfacingFuncs {
+                      ) extends CommonSessionInterfacingFunctionality {
   var zoningType: Zoning.Method = Zoning.Method.None
   var zoningChatMessageType: ChatMessageType = ChatMessageType.CMT_QUIT
   var zoningStatus: Zoning.Status = Zoning.Status.None
@@ -129,7 +129,7 @@ class ZoningOperations(
     }
   }
 
-  def handleZonesResponse(zones: Iterable[Zone], propertyOverrideManager: ActorRef): Unit = {
+  def handleZonesResponse(zones: Iterable[Zone]): Unit = {
     zones.foreach { zone =>
       val continentNumber = zone.Number
       val popBO = 0
@@ -181,14 +181,7 @@ class ZoningOperations(
     LivePlayerList.Add(avatar.id, avatar)
     galaxyService.tell(GalaxyServiceMessage(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     //PropertyOverrideMessage
-
-    implicit val timeout: Timeout = Timeout(1 seconds)
-    val future = ask(propertyOverrideManager, PropertyOverrideManager.GetOverridesMessage)
-      .mapTo[List[PropertyOverrideMessage.GamePropertyScope]]
-    val overrides = Await.result(future, 1 second)
-
-    sendResponse(PropertyOverrideMessage(overrides))
-
+    ServiceManager.serviceManager ! Lookup("propertyOverrideManager")
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
     (
@@ -368,11 +361,24 @@ class ZoningOperations(
     }
   }
 
+  def handleDroppodLaunchRequest(pkt: PlanetSideGamePacket)(implicit context: ActorContext): Unit = {
+    pkt match {
+      case DroppodLaunchRequestMessage(info, _) =>
+        cluster ! ICS.DroppodLaunchRequest(
+          info.zone_number,
+          info.xypos,
+          player.Faction,
+          context.self.toTyped[ICS.DroppodLaunchExchange]
+        )
+      case _ => ;
+    }
+  }
+
   def handleDroppodLaunchDenial(errorCode: DroppodError): Unit = {
     sendResponse(DroppodLaunchResponseMessage(errorCode, player.GUID))
   }
 
-  def handleBeginZoning(pkt: PlanetSideGamePacket)(implicit serviceManager: ActorRef): Unit = {
+  def handleBeginZoning(pkt: PlanetSideGamePacket): Unit = {
     pkt match {
       case BeginZoningMessage() =>
         log.trace(s"BeginZoningMessage: ${player.Name} is reticulating ${continent.id}'s splines ...")
@@ -662,7 +668,7 @@ class ZoningOperations(
           sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deployed, 0, unk3=false, Vector3.Zero))
           sessionData.ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
         }
-        serviceManager
+        ServiceManager.serviceManager
           .ask(Lookup("hart"))(Timeout(2 seconds))
           .onComplete {
             case Success(LookupResult("hart", ref)) =>
@@ -1567,5 +1573,13 @@ class ZoningOperations(
       },
       List(GUIDTask.registerObject(continent.GUID, vehicle))
     )
+  }
+
+  def propertyOverrideManagerLoadOverrides(manager: ActorRef): Unit = {
+    ask(manager, PropertyOverrideManager.GetOverridesMessage)(Timeout(2.seconds)).onComplete {
+      case Success(overrides: List[PropertyOverrideMessage.GamePropertyScope]) =>
+        sendResponse(PropertyOverrideMessage(overrides))
+      case _ => ;
+    }
   }
 }

@@ -22,7 +22,7 @@ class SessionTerminalHandlers(
                                val sessionData: SessionData,
                                avatarActor: typed.ActorRef[AvatarActor.Command],
                                implicit val context: ActorContext
-                             ) extends CommonSessionInterfacingFuncs {
+                             ) extends CommonSessionInterfacingFunctionality {
   var lastTerminalOrderFulfillment: Boolean = true
   var usingMedicalTerminal: Option[PlanetSideGUID] = None
 
