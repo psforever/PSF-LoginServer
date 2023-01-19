@@ -13,9 +13,11 @@ trait CommonSessionInterfacingFunctionality {
    * Hardwire an implicit `sender` to be the same as `context.self` of the `SessionActor` actor class
    * for which this support class was initialized.
    * Allows for proper use for `ActorRef.tell` or an actor's `!` in the support class,
-   * one where the result is always directed back to the same `SessionActor` instance, if applicable.
+   * one where the result is always directed back to the same `SessionActor` instance.
    * If there is a different packet "sender" that has to be respected by a given method,
-   * pass that `ActorRef` into the method as a parameter instead.
+   * pass that `ActorRef` into the method as a parameter.
+   * @see `ActorRef.!(Any)(ActorRef)`
+   * @see `ActorRef.tell(Any)(ActorRef)`
    */
   protected implicit val sender: ActorRef = context.self
 
@@ -38,4 +40,6 @@ trait CommonSessionInterfacingFunctionality {
   def log: Logger = sessionData.log
 
   def sendResponse(pkt: PlanetSideGamePacket): Unit = sessionData.sendResponse(pkt)
+
+  def stop(): Unit = { /* to override */ }
 }

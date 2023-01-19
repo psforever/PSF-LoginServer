@@ -148,7 +148,7 @@ class SessionMountHandlers(
             VehicleAction.SendResponse(pguid, GenericObjectActionMessage(pguid, 9)) //conceal the player
           )
         }
-        sessionData.keepAliveFunc = sessionData.spawn.NormalKeepAlive
+        sessionData.keepAliveFunc = sessionData.zoning.NormalKeepAlive
 
       case Mountable.CanDismount(obj: Vehicle, seat_num, _) if obj.Definition == GlobalDefinitions.droppod =>
         log.info(s"${tplayer.Name} has landed on ${continent.id}")
@@ -231,7 +231,7 @@ class SessionMountHandlers(
    */
   def DismountAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
     val player_guid: PlanetSideGUID = tplayer.GUID
-    sessionData.keepAliveFunc = sessionData.spawn.NormalKeepAlive
+    sessionData.keepAliveFunc = sessionData.zoning.NormalKeepAlive
     val bailType = if (tplayer.BailProtection) {
       BailType.Bailed
     } else {

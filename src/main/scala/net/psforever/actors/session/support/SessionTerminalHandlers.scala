@@ -23,8 +23,8 @@ class SessionTerminalHandlers(
                                avatarActor: typed.ActorRef[AvatarActor.Command],
                                implicit val context: ActorContext
                              ) extends CommonSessionInterfacingFunctionality {
-  var lastTerminalOrderFulfillment: Boolean = true
-  var usingMedicalTerminal: Option[PlanetSideGUID] = None
+  private[support] var lastTerminalOrderFulfillment: Boolean = true
+  private[support] var usingMedicalTerminal: Option[PlanetSideGUID] = None
 
   /* */
 

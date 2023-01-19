@@ -3,7 +3,7 @@ package net.psforever.actors.session
 
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{Actor, Cancellable, MDCContextAware, SupervisorStrategy, typed}
+import akka.actor.{Actor, MDCContextAware, SupervisorStrategy, typed}
 import org.joda.time.LocalDateTime
 import org.log4s.MDC
 import scala.collection.mutable
@@ -24,13 +24,13 @@ import net.psforever.packet._
 import net.psforever.packet.game._
 import net.psforever.services.CavernRotationService.SendCavernRotationUpdates
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
-import net.psforever.services.account.{AccountPersistenceService, PlayerToken, ReceiveAccountData}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage, AvatarServiceResponse}
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage, GalaxyServiceResponse}
+import net.psforever.services.account.{PlayerToken, ReceiveAccountData}
+import net.psforever.services.avatar.AvatarServiceResponse
+import net.psforever.services.galaxy.GalaxyServiceResponse
 import net.psforever.services.local.LocalServiceResponse
 import net.psforever.services.teamwork.SquadServiceResponse
 import net.psforever.services.vehicle.VehicleServiceResponse
-import net.psforever.services.{CavernRotationService, Service, ServiceManager, InterstellarClusterService => ICS}
+import net.psforever.services.{CavernRotationService, ServiceManager, InterstellarClusterService => ICS}
 import net.psforever.types._
 import net.psforever.util.Config
 
@@ -99,7 +99,7 @@ object SessionActor {
       delta: Float,
       completionAction: () => Unit,
       tickAction: Float => Boolean,
-      tickTime: Long = 250
+      tickTime: Long = 250L
   )
 
   private[session] final case class AvatarAwardMessageBundle(bundle: Iterable[Iterable[PlanetSideGamePacket]], delay: Long)
@@ -110,15 +110,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     with MDCContextAware {
   MDC("connectionId") = connectionId
 
-  private[this] val log                                              = org.log4s.getLogger
-  var avatarActor: typed.ActorRef[AvatarActor.Command]               = context.spawnAnonymous(AvatarActor(context.self))
-  var chatActor: typed.ActorRef[ChatActor.Command]                   = context.spawnAnonymous(ChatActor(context.self, avatarActor))
-  var kitToBeUsed: Option[PlanetSideGUID]                            = None
-  var clientKeepAlive: Cancellable   = Default.Cancellable
-  var charSavedTimer: Cancellable    = Default.Cancellable
-  val sessionFuncs = new SessionData(middlewareActor, avatarActor, chatActor, context)
-
-  val buffer: mutable.ListBuffer[Any] = new mutable.ListBuffer[Any]()
+  private[this] val log = org.log4s.getLogger
+  private[this] val buffer: mutable.ListBuffer[Any] = new mutable.ListBuffer[Any]()
+  private[this] val sessionFuncs = new SessionData(middlewareActor, context)
 
   override val supervisorStrategy: SupervisorStrategy = sessionFuncs.sessionSupervisorStrategy
 
@@ -126,105 +120,25 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   ServiceManager.serviceManager ! Lookup("accountPersistence")
   ServiceManager.serviceManager ! Lookup("galaxy")
   ServiceManager.serviceManager ! Lookup("squad")
-  ServiceManager.receptionist ! Receptionist.Find(
-    ICS.InterstellarClusterServiceKey,
-    context.self
-  )
-
-  def session: Session = sessionFuncs.session
-
-  def session_=(session: Session): Unit = {
-    chatActor ! ChatActor.SetSession(session)
-    avatarActor ! AvatarActor.SetSession(session)
-    sessionFuncs.session = session
-  }
-
-  def account: Account = sessionFuncs.session.account
-
-  def continent: Zone = sessionFuncs.session.zone
-
-  def player: Player  = sessionFuncs.session.player
-
-  def avatar: Avatar = sessionFuncs.session.avatar
+  ServiceManager.receptionist ! Receptionist.Find(ICS.InterstellarClusterServiceKey, context.self)
 
   override def postStop(): Unit = {
     //normally, the player avatar persists a minute or so after disconnect; we are subject to the SessionReaper
-    charSavedTimer.cancel()
-    clientKeepAlive.cancel()
-    sessionFuncs.progressBarUpdate.cancel()
-    sessionFuncs.spawn.reviveTimer.cancel()
-    sessionFuncs.spawn.respawnTimer.cancel()
-    sessionFuncs.zoning.zoningTimer.cancel()
-    sessionFuncs.galaxyService ! Service.Leave()
-    continent.AvatarEvents ! Service.Leave()
-    continent.LocalEvents ! Service.Leave()
-    continent.VehicleEvents ! Service.Leave()
-
-    if (avatar != null) {
-      //TODO put any temporary values back into the avatar
-      sessionFuncs.squadService ! Service.Leave(Some(s"${avatar.faction}"))
-      if (player != null && player.HasGUID) {
-        (sessionFuncs.weaponsAndProjectiles.prefire ++ sessionFuncs.weaponsAndProjectiles.shooting).foreach { guid =>
-          continent.AvatarEvents ! AvatarServiceMessage(
-            continent.id,
-            AvatarAction.ChangeFireState_Stop(player.GUID, guid)
-          )
-        }
-      }
-    }
+    //TODO put any temporary values back into the avatar
+    sessionFuncs.stop()
   }
 
   def receive: Receive = startup
 
   def startup: Receive = {
     case msg =>
-      if (assignEventBus(msg)) {
-        whenAllEventBusesLoaded()
-      }
-  }
-
-  def assignEventBus(msg: Any): Boolean = {
-    msg match {
-      case LookupResult("accountIntermediary", endpoint) =>
-        sessionFuncs.accountIntermediary = endpoint
-        true
-      case LookupResult("accountPersistence", endpoint) =>
-        sessionFuncs.accountPersistence = endpoint
-        true
-      case LookupResult("galaxy", endpoint) =>
-        sessionFuncs.galaxyService = endpoint
-        sessionFuncs.buildDependentOperationsForGalaxy(endpoint)
-        sessionFuncs.buildDependentOperations(endpoint, sessionFuncs.cluster)
-        true
-      case LookupResult("squad", endpoint) =>
-        sessionFuncs.squadService = endpoint
-        sessionFuncs.buildDependentOperationsForSquad(endpoint)
-        true
-      case ICS.InterstellarClusterServiceKey.Listing(listings) =>
-        sessionFuncs.cluster = listings.head
-        sessionFuncs.buildDependentOperationsForSpawn(sessionFuncs.cluster)
-        sessionFuncs.buildDependentOperations(sessionFuncs.galaxyService, sessionFuncs.cluster)
-        true
-
-      case _ =>
+      if (!sessionFuncs.assignEventBus(msg)) {
         buffer.addOne(msg)
-        false
-    }
-  }
-
-  def whenAllEventBusesLoaded(): Unit = {
-    if (sessionFuncs.accountIntermediary != Default.Actor &&
-      sessionFuncs.accountPersistence != Default.Actor &&
-      sessionFuncs.vehicleResponseOperations != null &&
-      sessionFuncs.galaxyResponseHanders != null &&
-      sessionFuncs.squadResponseHandlers != null &&
-      sessionFuncs.spawn != null &&
-      sessionFuncs.zoning != null) {
-      //all events loaded; move to game
-      context.become(inTheGame)
-      buffer.foreach { self.tell(_, self) }
-      buffer.clear()
-    }
+      } else if (sessionFuncs.whenAllEventBusesLoaded()) {
+        context.become(inTheGame)
+        buffer.foreach { self.tell(_, self) }
+        buffer.clear()
+      }
   }
 
   def inTheGame: Receive = {
@@ -233,16 +147,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       handleGamePkt(packet)
 
     case AvatarServiceResponse(toChannel, guid, reply) =>
-      sessionFuncs.avatarResponseHandlers.handle(toChannel, guid, reply)
+      sessionFuncs.avatarResponse.handle(toChannel, guid, reply)
 
     case GalaxyServiceResponse(_, reply) =>
       sessionFuncs.galaxyResponseHanders.handle(reply)
 
     case LocalServiceResponse(toChannel, guid, reply) =>
-      sessionFuncs.localResponseHandlers.handle(toChannel, guid, reply)
+      sessionFuncs.localResponse.handle(toChannel, guid, reply)
 
     case Mountable.MountMessages(tplayer, reply) =>
-      sessionFuncs.mountResponseHandlers.handle(tplayer, reply)
+      sessionFuncs.mountResponse.handle(tplayer, reply)
 
     case SquadServiceResponse(_, excluded, response) =>
       sessionFuncs.squadResponseHandlers.handle(response, excluded)
@@ -254,10 +168,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sessionFuncs.vehicleResponseOperations.handle(toChannel, guid, reply)
 
     case SessionActor.PokeClient() =>
-      sendResponse(KeepAliveMessage())
+      sessionFuncs.sendResponse(KeepAliveMessage())
 
     case SessionActor.SendResponse(packet) =>
-      sendResponse(packet)
+      sessionFuncs.sendResponse(packet)
 
     case SessionActor.CharSaved =>
       sessionFuncs.renewCharSavedTimer(
@@ -276,13 +190,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sessionFuncs.zoning.handleSpawnPointResponse(response)
 
     case SessionActor.NewPlayerLoaded(tplayer) =>
-      sessionFuncs.spawn.handleNewPlayerLoaded(tplayer)
+      sessionFuncs.zoning.spawn.handleNewPlayerLoaded(tplayer)
 
     case SessionActor.PlayerLoaded(tplayer) =>
-      sessionFuncs.spawn.handlePlayerLoaded(tplayer)
+      sessionFuncs.zoning.spawn.handlePlayerLoaded(tplayer)
 
     case Zone.Population.PlayerHasLeft(zone, None) =>
-      log.trace(s"PlayerHasLeft: ${avatar.name} does not have a body on ${zone.id}")
+      log.trace(s"PlayerHasLeft: ${sessionFuncs.player.Name} does not have a body on ${zone.id}")
 
     case Zone.Population.PlayerHasLeft(zone, Some(tplayer)) =>
       if (tplayer.isAlive) {
@@ -296,10 +210,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       log.warn(s"${tplayer.Name} is already spawned on zone ${zone.id}; is this a clerical error?")
 
     case Zone.Vehicle.CanNotSpawn(zone, vehicle, reason) =>
-      log.warn(s"${player.Name}'s ${vehicle.Definition.Name} can not spawn in ${zone.id} because $reason")
+      log.warn(s"${sessionFuncs.player.Name}'s ${vehicle.Definition.Name} can not spawn in ${zone.id} because $reason")
 
     case Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
-      log.warn(s"${player.Name}'s ${vehicle.Definition.Name} can not deconstruct in ${zone.id} because $reason")
+      log.warn(s"${sessionFuncs.player.Name}'s ${vehicle.Definition.Name} can not deconstruct in ${zone.id} because $reason")
 
     case ICS.ZoneResponse(Some(zone)) =>
       sessionFuncs.zoning.handleZoneResponse(zone)
@@ -309,51 +223,38 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sessionFuncs.zoning.handleZonesResponse(zones)
 
     case SessionActor.SetAvatar(avatar) =>
-      session = session.copy(avatar = avatar)
-      if (session.player != null) {
-        session.player.avatar = avatar
-      }
-      LivePlayerList.Update(avatar.id, avatar)
+      sessionFuncs.handleSetAvatar(avatar)
 
     case PlayerToken.LoginInfo(name, Zone.Nowhere, _) =>
-      sessionFuncs.spawn.handleLoginInfoNowhere(name, sender())
+      sessionFuncs.zoning.spawn.handleLoginInfoNowhere(name, sender())
 
     case PlayerToken.LoginInfo(name, inZone, optionalSavedData) =>
-      sessionFuncs.spawn.handleLoginInfoSomewhere(name, inZone, optionalSavedData, sender())
+      sessionFuncs.zoning.spawn.handleLoginInfoSomewhere(name, inZone, optionalSavedData, sender())
 
     case PlayerToken.RestoreInfo(playerName, inZone, pos) =>
-      sessionFuncs.spawn.handleLoginInfoRestore(playerName, inZone, pos, sender())
+      sessionFuncs.zoning.spawn.handleLoginInfoRestore(playerName, inZone, pos, sender())
 
     case PlayerToken.CanNotLogin(playerName, reason) =>
-      sessionFuncs.spawn.handleLoginCanNot(playerName, reason)
+      sessionFuncs.zoning.spawn.handleLoginCanNot(playerName, reason)
 
     case ReceiveAccountData(account) =>
-      log.trace(s"ReceiveAccountData $account")
-      session = session.copy(account = account)
-      avatarActor ! AvatarActor.SetAccount(account)
+      sessionFuncs.handleReceiveAccountData(account)
 
     case AvatarActor.AvatarResponse(avatar) =>
-      session = session.copy(avatar = avatar)
-      sessionFuncs.accountPersistence ! AccountPersistenceService.Login(avatar.name, avatar.id)
+      sessionFuncs.handleAvatarResponse(avatar)
 
     case AvatarActor.AvatarLoginResponse(avatar) =>
-      sessionFuncs.spawn.avatarLoginResponse(avatar)
-
-    case SessionActor.PlayerFailedToLoad(tplayer) =>
-      player.Continent match {
-        case _ =>
-          sessionFuncs.failWithError(s"${tplayer.Name} failed to load anywhere")
-      }
+      sessionFuncs.zoning.spawn.avatarLoginResponse(avatar)
 
     case SessionActor.SetCurrentAvatar(tplayer, max_attempts, attempt) =>
-      sessionFuncs.spawn.ReadyToSetCurrentAvatar(tplayer, max_attempts, attempt)
+      sessionFuncs.zoning.spawn.ReadyToSetCurrentAvatar(tplayer, max_attempts, attempt)
 
     case SessionActor.SetConnectionState(state) =>
       sessionFuncs.connectionState = state
 
     /* uncommon messages (utility, or once in a while) */
     case SessionActor.AvatarAwardMessageBundle(pkts, delay) =>
-      sessionFuncs.spawn.performAvatarAwardMessageDelivery(pkts, delay)
+      sessionFuncs.zoning.spawn.performAvatarAwardMessageDelivery(pkts, delay)
 
     case CommonMessages.Progress(rate, finishedAction, stepAction) =>
       sessionFuncs.SetupProgressChange(rate, finishedAction, stepAction)
@@ -368,16 +269,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sessionFuncs.zoning.propertyOverrideManagerLoadOverrides(endpoint)
 
     case SessionActor.UpdateIgnoredPlayers(msg) =>
-      sendResponse(msg)
-      msg.friends.foreach { f =>
-        sessionFuncs.galaxyService ! GalaxyServiceMessage(GalaxyAction.LogStatusChange(f.name))
-      }
+      sessionFuncs.handleUpdateIgnoredPlayers(msg)
 
     case SessionActor.UseCooldownRenewed(definition, _) =>
-      definition match {
-        case _: KitDefinition => sessionFuncs.kitToBeUsed = None
-        case _ => ;
-      }
+      sessionFuncs.handleUseCooldownRenew(definition)
 
     case Deployment.CanDeploy(obj, state) =>
       sessionFuncs.vehicles.handleCanDeploy(obj, state)
@@ -393,7 +288,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sessionFuncs.terminals.LocalStopUsingProximityUnit(term, target)
 
     case SessionActor.Suicide() =>
-      sessionFuncs.suicide(player)
+      sessionFuncs.suicide(sessionFuncs.player)
 
     case SessionActor.Recall() =>
       sessionFuncs.zoning.handleRecall()
@@ -410,28 +305,30 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case ICS.DroppodLaunchConfirmation(zone, position) =>
       sessionFuncs.zoning.LoadZoneLaunchDroppod(zone, position)
 
+    case SessionActor.PlayerFailedToLoad(tplayer) =>
+      sessionFuncs.failWithError(s"${tplayer.Name} failed to load anywhere")
+
     /* csr only */
     case SessionActor.SetSpeed(speed) =>
-      session = session.copy(speed = speed)
+      sessionFuncs.handleSetSpeed(speed)
 
-    case SessionActor.SetFlying(_flying) =>
-      session = session.copy(flying = _flying)
+    case SessionActor.SetFlying(isFlying) =>
+      sessionFuncs.handleSetFlying(isFlying)
 
-    case SessionActor.SetSpectator(spectator) =>
-      session.player.spectator = spectator
+    case SessionActor.SetSpectator(isSpectator) =>
+      sessionFuncs.handleSetSpectator(isSpectator)
 
     case SessionActor.Kick(player, time) =>
-      sessionFuncs.AdministrativeKick(player)
-      sessionFuncs.accountPersistence ! AccountPersistenceService.Kick(player.Name, time)
+      sessionFuncs.handleKick(player, time)
 
     case SessionActor.SetZone(zoneId, position) =>
       sessionFuncs.zoning.handleSetZone(zoneId, position)
 
     case SessionActor.SetPosition(position) =>
-      sessionFuncs.spawn.handleSetPosition(position)
+      sessionFuncs.zoning.spawn.handleSetPosition(position)
 
     case SessionActor.SetSilenced(silenced) =>
-      player.silenced = silenced
+      sessionFuncs.handleSilenced(silenced)
 
     /* catch these messages */
     case _: ProximityUnit.Action => ;
@@ -441,10 +338,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case _: Zone.Vehicle.HasDespawned => ;
 
     case Zone.Deployable.IsDismissed(obj: TurretDeployable) => //only if target deployable was never fully introduced
-      TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(continent.GUID, obj))
+      TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(sessionFuncs.continent.GUID, obj))
 
     case Zone.Deployable.IsDismissed(obj) => //only if target deployable was never fully introduced
-      TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, obj))
+      TaskWorkflow.execute(GUIDTask.unregisterObject(sessionFuncs.continent.GUID, obj))
 
     case msg: Containable.ItemPutInSlot =>
       log.debug(s"ItemPutInSlot: $msg")
@@ -495,16 +392,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sessionFuncs.vehicles.handleFrameVehicleState(pkt)
 
       case _: ProjectileStateMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleProjectileState(pkt)
+        sessionFuncs.shooting.handleProjectileState(pkt)
 
       case _: LongRangeProjectileInfoMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleLongRangeProjectileState(pkt)
+        sessionFuncs.shooting.handleLongRangeProjectileState(pkt)
 
       case _: ReleaseAvatarRequestMessage =>
-        sessionFuncs.spawn.handleReleaseAvatarRequest(pkt)
+        sessionFuncs.zoning.spawn.handleReleaseAvatarRequest(pkt)
 
       case _: SpawnRequestMessage =>
-        sessionFuncs.spawn.handleSpawnRequest(pkt)
+        sessionFuncs.zoning.spawn.handleSpawnRequest(pkt)
 
       case _: ChatMsg =>
         sessionFuncs.handleChat(pkt)
@@ -519,16 +416,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sessionFuncs.handleVoiceHostInfo(pkt)
 
       case _: ChangeAmmoMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleChangeAmmo(pkt)
+        sessionFuncs.shooting.handleChangeAmmo(pkt)
 
       case _: ChangeFireModeMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleChangeFireMode(pkt)
+        sessionFuncs.shooting.handleChangeFireMode(pkt)
 
       case _: ChangeFireStateMessage_Start =>
-        sessionFuncs.weaponsAndProjectiles.handleChangeFireStateStart(pkt)
+        sessionFuncs.shooting.handleChangeFireStateStart(pkt)
 
       case _: ChangeFireStateMessage_Stop =>
-        sessionFuncs.weaponsAndProjectiles.handleChangeFireStateStop(pkt)
+        sessionFuncs.shooting.handleChangeFireStateStop(pkt)
 
       case _: EmoteMsg =>
         sessionFuncs.handleEmote(pkt)
@@ -540,7 +437,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sessionFuncs.handlePickupItem(pkt)
 
       case _: ReloadMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleReload(pkt)
+        sessionFuncs.shooting.handleReload(pkt)
 
       case _: ObjectHeldMessage =>
         sessionFuncs.handleObjectHeld(pkt)
@@ -594,25 +491,25 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sessionFuncs.handleFavoritesRequest(pkt)
 
       case _: WeaponDelayFireMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleWeaponDelayFire(pkt)
+        sessionFuncs.shooting.handleWeaponDelayFire(pkt)
 
       case _: WeaponDryFireMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleWeaponDryFire(pkt)
+        sessionFuncs.shooting.handleWeaponDryFire(pkt)
 
       case _: WeaponFireMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleWeaponFire(pkt)
+        sessionFuncs.shooting.handleWeaponFire(pkt)
 
       case _: WeaponLazeTargetPositionMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleWeaponLazeTargetPosition(pkt)
+        sessionFuncs.shooting.handleWeaponLazeTargetPosition(pkt)
 
       case _: HitMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleDirectHit(pkt)
+        sessionFuncs.shooting.handleDirectHit(pkt)
 
       case _: SplashHitMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleSplashHit(pkt)
+        sessionFuncs.shooting.handleSplashHit(pkt)
 
       case _: LashMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleLashHit(pkt)
+        sessionFuncs.shooting.handleLashHit(pkt)
 
       case _: AvatarFirstTimeEventMessage =>
         sessionFuncs.handleAvatarFirstTimeEvent(pkt)
@@ -630,7 +527,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         sessionFuncs.vehicles.handleDeployRequest(pkt)
 
       case _: AvatarGrenadeStateMessage =>
-        sessionFuncs.weaponsAndProjectiles.handleAvatarGrenadeState(pkt)
+        sessionFuncs.shooting.handleAvatarGrenadeState(pkt)
 
       case _: SquadDefinitionActionMessage =>
         sessionFuncs.handleSquadDefinitionAction(pkt)
@@ -699,9 +596,5 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case _ =>
         log.warn(s"Unhandled GamePacket $pkt")
     }
-  }
-
-  def sendResponse(packet: PlanetSidePacket): Unit = {
-    sessionFuncs.sendResponse(packet)
   }
 }

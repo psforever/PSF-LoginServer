@@ -56,8 +56,8 @@ class SessionAvatarHandlers(
       case AvatarResponse.Revive(target_guid) =>
         if (tplayer_guid == target_guid) {
           log.info(s"No time for rest, ${player.Name}.  Back on your feet!")
-          sessionData.spawn.reviveTimer.cancel()
-          sessionData.spawn.deadState = DeadState.Alive
+          sessionData.zoning.spawn.reviveTimer.cancel()
+          sessionData.zoning.spawn.deadState = DeadState.Alive
           player.Revive
           val health = player.Health
           sendResponse(PlanetsideAttributeMessage(target_guid, 0, health))
@@ -174,9 +174,9 @@ class SessionAvatarHandlers(
           //also, @SVCP_Killed_TooCloseToPadOnCreate^n~ or "... within n meters of pad ..."
           sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@SVCP_Killed_OnPadOnCreate", None))
         }
-        sessionData.keepAliveFunc = sessionData.spawn.NormalKeepAlive
+        sessionData.keepAliveFunc = sessionData.zoning.NormalKeepAlive
         sessionData.zoning.zoningStatus = Zoning.Status.None
-        sessionData.spawn.deadState = DeadState.Dead
+        sessionData.zoning.spawn.deadState = DeadState.Dead
         continent.GUID(mount) match {
           case Some(obj: Vehicle) =>
             sessionData.vehicles.ConditionalDriverVehicleControl(obj)
@@ -187,15 +187,15 @@ class SessionAvatarHandlers(
         sessionData.PlayerActionsToCancel()
         sessionData.terminals.CancelAllProximityUnits()
         sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel")
-        if (sessionData.weaponsAndProjectiles.shotsWhileDead > 0) {
+        if (sessionData.shooting.shotsWhileDead > 0) {
           log.warn(
-            s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired ${sessionData.weaponsAndProjectiles.shotsWhileDead} rounds while character was dead on server"
+            s"KillPlayer/SHOTS_WHILE_DEAD: client of ${avatar.name} fired ${sessionData.shooting.shotsWhileDead} rounds while character was dead on server"
           )
-          sessionData.weaponsAndProjectiles.shotsWhileDead = 0
+          sessionData.shooting.shotsWhileDead = 0
         }
-        sessionData.spawn.reviveTimer.cancel()
+        sessionData.zoning.spawn.reviveTimer.cancel()
         if (player.death_by == 0) {
-          sessionData.spawn.reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer) {
+          sessionData.zoning.spawn.reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer) {
             sessionData.cluster ! ICS.GetRandomSpawnPoint(
               Zones.sanctuaryZoneNumber(player.Faction),
               player.Faction,
@@ -204,7 +204,7 @@ class SessionAvatarHandlers(
             )
           }
         } else {
-          sessionData.spawn.HandleReleaseAvatar(player, continent)
+          sessionData.zoning.spawn.HandleReleaseAvatar(player, continent)
         }
         AvatarActor.savePlayerLocation(player)
         sessionData.renewCharSavedTimer(fixedLen = 1800L, varLen = 0L)
@@ -340,7 +340,7 @@ class SessionAvatarHandlers(
 
       case AvatarResponse.Release(tplayer) =>
         if (tplayer_guid != guid) {
-          sessionData.spawn.DepictPlayerAsCorpse(tplayer)
+          sessionData.zoning.spawn.DepictPlayerAsCorpse(tplayer)
         }
 
       case AvatarResponse.Reload(item_guid) =>

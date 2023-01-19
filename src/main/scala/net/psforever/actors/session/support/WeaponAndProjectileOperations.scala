@@ -22,6 +22,7 @@ import net.psforever.objects._
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{ExoSuitType, PlanetSideGUID, Vector3}
 import net.psforever.util.Config
 
@@ -30,7 +31,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class WeaponAndProjectileOperations(
+private[support] class WeaponAndProjectileOperations(
                                      val sessionData: SessionData,
                                      avatarActor: typed.ActorRef[AvatarActor.Command],
                                      chatActor: typed.ActorRef[ChatActor.Command],
@@ -38,10 +39,10 @@ class WeaponAndProjectileOperations(
                                    ) extends CommonSessionInterfacingFunctionality {
   var shooting: mutable.Set[PlanetSideGUID] = mutable.Set.empty //ChangeFireStateMessage_Start
   var prefire: mutable.Set[PlanetSideGUID] = mutable.Set.empty //if WeaponFireMessage precedes ChangeFireStateMessage_Start
-  var shootingStart: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
-  var shootingStop: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
-  var shotsWhileDead: Int = 0
-  val projectiles: Array[Option[Projectile]] =
+  private[support] var shootingStart: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
+  private[support] var shootingStop: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
+  private[support] var shotsWhileDead: Int = 0
+  private val projectiles: Array[Option[Projectile]] =
     Array.fill[Option[Projectile]](Projectile.rangeUID - Projectile.baseUID)(None)
 
   /* case handling code */
@@ -237,7 +238,7 @@ class WeaponAndProjectileOperations(
                   case x :: xs =>
                     val (deleteFunc, modifyFunc) : (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
                       case veh : Vehicle =>
-                        (RemoveOldEquipmentFromInventory(veh)(_), sessionData.vehicles.ModifyAmmunitionInVehicle(veh)(_, _))
+                        (RemoveOldEquipmentFromInventory(veh)(_), ModifyAmmunitionInVehicle(veh)(_, _))
                       case _ =>
                         (RemoveOldEquipmentFromInventory(obj)(_), ModifyAmmunition(obj)(_, _))
                     }
@@ -820,6 +821,32 @@ class WeaponAndProjectileOperations(
   }
 
   /**
+   * Given a vehicle that contains a box of ammunition in its `Trunk` at a certain location,
+   * change the amount of ammunition within that box.
+   * @param obj the `Container`
+   * @param box an `AmmoBox` to modify
+   * @param reloadValue the value to modify the `AmmoBox`;
+   *                    subtracted from the current `Capacity` of `Box`
+   */
+  def ModifyAmmunitionInVehicle(obj: Vehicle)(box: AmmoBox, reloadValue: Int): Unit = {
+    ModifyAmmunition(obj)(box, reloadValue)
+    obj.Find(box) match {
+      case Some(index) =>
+        continent.VehicleEvents ! VehicleServiceMessage(
+          s"${obj.Actor}",
+          VehicleAction.InventoryState(
+            player.GUID,
+            box,
+            obj.GUID,
+            index,
+            box.Definition.Packet.DetailedConstructorData(box).get
+          )
+        )
+      case None => ;
+    }
+  }
+
+  /**
    * na
    * @param tool na
    * @param obj na
@@ -834,7 +861,7 @@ class WeaponAndProjectileOperations(
           case Nil => ;
           case x :: xs =>
             val modifyFunc: (AmmoBox, Int) => Unit = obj match {
-              case veh: Vehicle => sessionData.vehicles.ModifyAmmunitionInVehicle(veh)
+              case veh: Vehicle => ModifyAmmunitionInVehicle(veh)
               case _ =>            ModifyAmmunition(obj)
             }
             val stowNewFunc: Equipment => TaskBundle = PutNewEquipmentInInventoryOrDrop(obj)
@@ -1230,4 +1257,16 @@ class WeaponAndProjectileOperations(
    * @return a `Tool` object
    */
   def FindWeapon: Set[Tool] = FindContainedWeapon._2
+
+  override def stop(): Unit = {
+    if (player != null && player.HasGUID) {
+      (prefire ++ shooting).foreach { guid =>
+        continent.AvatarEvents ! AvatarServiceMessage(
+          continent.id,
+          AvatarAction.ChangeFireState_Stop(player.GUID, guid)
+        )
+      }
+      projectiles.indices.foreach { projectiles.update(_, None) }
+    }
+  }
 }

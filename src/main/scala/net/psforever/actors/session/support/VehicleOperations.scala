@@ -20,7 +20,7 @@ class VehicleOperations(
                          avatarActor: typed.ActorRef[AvatarActor.Command],
                          implicit val context: ActorContext
                        ) extends CommonSessionInterfacingFunctionality {
-  var serverVehicleControlVelocity: Option[Int] = None
+  private[support] var serverVehicleControlVelocity: Option[Int] = None
 
   /* case handling code */
 
@@ -211,7 +211,7 @@ class VehicleOperations(
   def handleChildObjectState(pkt: PlanetSideGamePacket): Unit = {
     pkt match {
       case ChildObjectStateMessage(object_guid, pitch, yaw) =>
-        val (o, tools) = sessionData.weaponsAndProjectiles.FindContainedWeapon
+        val (o, tools) = sessionData.shooting.FindContainedWeapon
         //is COSM our primary upstream packet?
         (o match {
           case Some(mount: Mountable) => (o, mount.PassengerInSeat(player))
@@ -544,32 +544,6 @@ class VehicleOperations(
       case (Some(v: Vehicle), Some(seat)) => (Some(v), Some(seat))
       case _                              => (None, None)
     }
-
-  /**
-   * Given a vehicle that contains a box of ammunition in its `Trunk` at a certain location,
-   * change the amount of ammunition within that box.
-   * @param obj the `Container`
-   * @param box an `AmmoBox` to modify
-   * @param reloadValue the value to modify the `AmmoBox`;
-   *                    subtracted from the current `Capacity` of `Box`
-   */
-  def ModifyAmmunitionInVehicle(obj: Vehicle)(box: AmmoBox, reloadValue: Int): Unit = {
-    sessionData.weaponsAndProjectiles.ModifyAmmunition(obj)(box, reloadValue)
-    obj.Find(box) match {
-      case Some(index) =>
-        continent.VehicleEvents ! VehicleServiceMessage(
-          s"${obj.Actor}",
-          VehicleAction.InventoryState(
-            player.GUID,
-            box,
-            obj.GUID,
-            index,
-            box.Definition.Packet.DetailedConstructorData(box).get
-          )
-        )
-      case None => ;
-    }
-  }
 
   /**
    * This function is applied to vehicles that are leaving a cargo vehicle's cargo hold to auto reverse them out

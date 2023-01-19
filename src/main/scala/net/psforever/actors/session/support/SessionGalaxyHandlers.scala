@@ -79,10 +79,10 @@ class SessionGalaxyHandlers(
         } match {
           case Some(v: Vehicle) =>
             galaxyService ! Service.Leave(Some(temp_channel)) //temporary vehicle-specific channel (see above)
-            sessionData.spawn.deadState = DeadState.Release
+            sessionData.zoning.spawn.deadState = DeadState.Release
             sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, unk5=true))
             sessionData.zoning.interstellarFerry = Some(v) //on the other continent and registered to that continent's GUID system
-            sessionData.spawn.LoadZonePhysicalSpawnPoint(v.Continent, v.Position, v.Orientation, 1 seconds, None)
+            sessionData.zoning.spawn.LoadZonePhysicalSpawnPoint(v.Continent, v.Position, v.Orientation, 1 seconds, None)
           case _ =>
             sessionData.zoning.interstellarFerry match {
               case None =>

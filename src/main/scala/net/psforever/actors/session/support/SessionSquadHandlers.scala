@@ -45,12 +45,12 @@ class SessionSquadHandlers(
    * Upon leaving or disbanding a squad, this value is made false.
    * Control switching between the `Avatar`-local and the `WorldSessionActor`-local variable is contingent on `squadUI` being populated.
    */
-  var lfsm: Boolean = false
-  var squadSetup: () => Unit = FirstTimeSquadSetup
-  var squadUpdateCounter: Int = 0
-  val queuedSquadActions: Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
-  var updateSquad: () => Unit = NoSquadUpdates
-  var updateSquadRef: ActorRef                                       = Default.Actor
+  private[support] var lfsm: Boolean = false
+  private[support] var squadSetup: () => Unit = FirstTimeSquadSetup
+  private var squadUpdateCounter: Int = 0
+  private val queuedSquadActions: Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
+  private[support] var updateSquad: () => Unit = NoSquadUpdates
+  private var updateSquadRef: ActorRef                                       = Default.Actor
 
   /*  */
 

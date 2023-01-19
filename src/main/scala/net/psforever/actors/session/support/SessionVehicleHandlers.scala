@@ -196,8 +196,8 @@ class SessionVehicleHandlers(
         sendResponse(msg)
 
       case VehicleResponse.UpdateAmsSpawnPoint(list) =>
-        sessionData.spawn.amsSpawnPoints = list.filter(tube => tube.Faction == player.Faction)
-        sessionData.spawn.DrawCurrentAmsSpawnPoint()
+        sessionData.zoning.spawn.amsSpawnPoints = list.filter(tube => tube.Faction == player.Faction)
+        sessionData.zoning.spawn.DrawCurrentAmsSpawnPoint()
 
       case VehicleResponse.TransferPassengerChannel(old_channel, temp_channel, vehicle, vehicle_to_delete) =>
         if (tplayer_guid != guid) {
@@ -211,7 +211,7 @@ class SessionVehicleHandlers(
         }
 
       case VehicleResponse.KickCargo(vehicle, speed, delay) =>
-        if (player.VehicleSeated.nonEmpty && sessionData.spawn.deadState == DeadState.Alive) {
+        if (player.VehicleSeated.nonEmpty && sessionData.zoning.spawn.deadState == DeadState.Alive) {
           if (speed > 0) {
             val strafe =
               if (Vehicles.CargoOrientation(vehicle) == 1) 2

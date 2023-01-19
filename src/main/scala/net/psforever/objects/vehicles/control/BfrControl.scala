@@ -320,7 +320,7 @@ class BfrControl(vehicle: Vehicle)
   def chargeShieldsOnly(amount: Int): Unit = {
     val definition = vehicle.Definition
     val before = vehicle.Shields
-    if (canChargeShields()) {
+    if (canChargeShields) {
       val chargeAmount = math.max(1, ((if (vehicle.DeploymentState == DriveState.Kneeling && vehicle.Seats(0).occupant.nonEmpty) {
         definition.ShieldAutoRechargeSpecial
       } else {
