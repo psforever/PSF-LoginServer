@@ -14,7 +14,6 @@ import net.psforever.objects.equipment.EffectTarget
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.{ProximityDefinition, ProximityUnit, Terminal}
-import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{ItemTransactionMessage, ItemTransactionResultMessage,ProximityTerminalUseMessage, UnuseItemMessage}
 import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
 
@@ -26,42 +25,38 @@ class SessionTerminalHandlers(
   private[support] var lastTerminalOrderFulfillment: Boolean = true
   private[support] var usingMedicalTerminal: Option[PlanetSideGUID] = None
 
-  /* */
+  /* packets */
 
-  def handleItemTransaction(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case msg: ItemTransactionMessage =>
-        continent.GUID(msg.terminal_guid) match {
-          case Some(term: Terminal) =>
-            if (lastTerminalOrderFulfillment) {
-              log.trace(s"ItemTransactionMessage: ${player.Name} is submitting an order")
-              lastTerminalOrderFulfillment = false
-              sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
-              term.Actor ! Terminal.Request(player, msg)
-            }
-          case Some(obj: PlanetSideGameObject) =>
-            log.error(s"ItemTransaction: $obj is not a terminal, ${player.Name}")
-          case _ =>
-            log.error(s"ItemTransaction: ${msg.terminal_guid} does not exist, ${player.Name}")
+  def handleItemTransaction(pkt: ItemTransactionMessage): Unit = {
+    val ItemTransactionMessage(terminalGuid, _, _, _, _, _) = pkt
+    continent.GUID(terminalGuid) match {
+      case Some(term: Terminal) =>
+        if (lastTerminalOrderFulfillment) {
+          log.trace(s"ItemTransactionMessage: ${player.Name} is submitting an order")
+          lastTerminalOrderFulfillment = false
+          sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+          term.Actor ! Terminal.Request(player, pkt)
         }
-      case _ => ;
+      case Some(obj: PlanetSideGameObject) =>
+        log.error(s"ItemTransaction: $obj is not a terminal, ${player.Name}")
+      case _ =>
+        log.error(s"ItemTransaction: $terminalGuid does not exist, ${player.Name}")
     }
   }
 
-  def handleProximityTerminalUse(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case ProximityTerminalUseMessage(_, object_guid, _) =>
-        continent.GUID(object_guid) match {
-          case Some(obj: Terminal with ProximityUnit) =>
-            HandleProximityTerminalUse(obj)
-          case Some(obj) =>
-            log.warn(s"ProximityTerminalUse: $obj does not have proximity effects for ${player.Name}")
-          case None =>
-            log.error(s"ProximityTerminalUse: ${player.Name} can not find an object with guid $object_guid")
-        }
-      case _ => ;
+  def handleProximityTerminalUse(pkt: ProximityTerminalUseMessage): Unit = {
+    val ProximityTerminalUseMessage(_, object_guid, _) = pkt
+    continent.GUID(object_guid) match {
+      case Some(obj: Terminal with ProximityUnit) =>
+        HandleProximityTerminalUse(obj)
+      case Some(obj) =>
+        log.warn(s"ProximityTerminalUse: $obj does not have proximity effects for ${player.Name}")
+      case None =>
+        log.error(s"ProximityTerminalUse: ${player.Name} can not find an object with guid $object_guid")
     }
   }
+
+  /* response handler */
 
   /**
    * na

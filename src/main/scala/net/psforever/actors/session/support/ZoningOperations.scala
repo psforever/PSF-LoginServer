@@ -6,7 +6,6 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
-
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -40,8 +39,9 @@ import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.objects._
 import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectCreateMessageParent, PlacementData}
-import net.psforever.packet.game.{AvatarAwardMessage, AvatarSearchCriteriaMessage, AvatarStatisticsMessage, AwardCompletion, BindPlayerMessage, BindStatus, CargoMountPointStatusMessage, ChangeShortcutBankMessage, ChatChannel, CreateShortcutMessage, DroppodFreefallingMessage, LoadMapMessage, ObjectCreateDetailedMessage, ObjectDeleteMessage, PlanetsideStringAttributeMessage, PlayerStateShiftMessage, ReleaseAvatarRequestMessage, SetChatFilterMessage, SetCurrentAvatarMessage, ShiftState, SpawnRequestMessage, Statistics}
-import net.psforever.packet.game.{AvatarDeadStateMessage, BeginZoningMessage, BroadcastWarpgateUpdateMessage, ChatMsg, ContinentalLockUpdateMessage, DeadState, DensityLevelUpdateMessage, DeployRequestMessage, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodLaunchRequestMessage, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, ObjectAttachMessage, ObjectCreateMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PropertyOverrideMessage, ReplicationStreamMessage, SetEmpireMessage, TimeOfDayMessage, TriggerEffectMessage, WarpgateRequest, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
+import net.psforever.packet.game.{BeginZoningMessage, DroppodLaunchRequestMessage, ReleaseAvatarRequestMessage, SpawnRequestMessage, WarpgateRequest}
+import net.psforever.packet.game.{AvatarAwardMessage, AvatarSearchCriteriaMessage, AvatarStatisticsMessage, AwardCompletion, BindPlayerMessage, BindStatus, CargoMountPointStatusMessage, ChangeShortcutBankMessage, ChatChannel, CreateShortcutMessage, DroppodFreefallingMessage, LoadMapMessage, ObjectCreateDetailedMessage, ObjectDeleteMessage, PlanetsideStringAttributeMessage, PlayerStateShiftMessage, SetChatFilterMessage, SetCurrentAvatarMessage, ShiftState, Statistics}
+import net.psforever.packet.game.{AvatarDeadStateMessage, BroadcastWarpgateUpdateMessage, ChatMsg, ContinentalLockUpdateMessage, DeadState, DensityLevelUpdateMessage, DeployRequestMessage, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, ObjectAttachMessage, ObjectCreateMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PropertyOverrideMessage, ReplicationStreamMessage, SetEmpireMessage, TimeOfDayMessage, TriggerEffectMessage, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.packet.{PlanetSideGamePacket, game}
 import net.psforever.persistence.Savedplayer
 import net.psforever.services.RemoverActor
@@ -103,44 +103,444 @@ class ZoningOperations(
 
   private[session] val spawn: SpawnOperations = new SpawnOperations()
 
-  /* */
+  /* packets */
 
-  def handleWarpgateRequest(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case WarpgateRequest(_, building_guid, destinationBuildingGuid, destinationZoneGuid, _, _) =>
-        CancelZoningProcessWithDescriptiveReason("cancel_use")
-        if (spawn.deadState != DeadState.RespawnTime) {
-          continent.Buildings.values.find(_.GUID == building_guid) match {
-            case Some(wg: WarpGate) if wg.Active && (sessionData.vehicles.GetKnownVehicleAndSeat() match {
-              case (Some(vehicle), _) =>
-                wg.Definition.VehicleAllowance && !wg.Definition.NoWarp.contains(vehicle.Definition)
-              case _ =>
-                true
-            }) =>
-              spawn.deadState = DeadState.RespawnTime
-              cluster ! ICS.GetSpawnPoint(
-                destinationZoneGuid.guid,
-                player,
-                destinationBuildingGuid,
-                continent.Number,
-                building_guid,
-                context.self
-              )
-              log.info(s"${player.Name} wants to use a warp gate")
+  def handleWarpgateRequest(pkt: WarpgateRequest): Unit = {
+    val WarpgateRequest(_, building_guid, destinationBuildingGuid, destinationZoneGuid, _, _) = pkt
+    CancelZoningProcessWithDescriptiveReason("cancel_use")
+    if (spawn.deadState != DeadState.RespawnTime) {
+      continent.Buildings.values.find(_.GUID == building_guid) match {
+        case Some(wg: WarpGate) if wg.Active && (sessionData.vehicles.GetKnownVehicleAndSeat() match {
+          case (Some(vehicle), _) =>
+            wg.Definition.VehicleAllowance && !wg.Definition.NoWarp.contains(vehicle.Definition)
+          case _ =>
+            true
+        }) =>
+          spawn.deadState = DeadState.RespawnTime
+          cluster ! ICS.GetSpawnPoint(
+            destinationZoneGuid.guid,
+            player,
+            destinationBuildingGuid,
+            continent.Number,
+            building_guid,
+            context.self
+          )
+          log.info(s"${player.Name} wants to use a warp gate")
 
-            case Some(wg: WarpGate) if !wg.Active =>
-              log.warn(s"WarpgateRequest: ${player.Name} is knocking on an inactive warp gate")
+        case Some(wg: WarpGate) if !wg.Active =>
+          log.warn(s"WarpgateRequest: ${player.Name} is knocking on an inactive warp gate")
 
-            case _ =>
-              spawn.deadState = DeadState.RespawnTime
-              RequestSanctuaryZoneSpawn(player, continent.Number)
-          }
-        } else {
-          log.debug(s"WarpgateRequest: your request was already consumed, ${player.Name}; already working on it ...")
-        }
-      case _ => ;
+        case _ =>
+          spawn.deadState = DeadState.RespawnTime
+          RequestSanctuaryZoneSpawn(player, continent.Number)
+      }
+    } else {
+      log.debug(s"WarpgateRequest: your request was already consumed, ${player.Name}; already working on it ...")
     }
   }
+
+  def handleDroppodLaunchRequest(pkt: DroppodLaunchRequestMessage)(implicit context: ActorContext): Unit = {
+    val DroppodLaunchRequestMessage(info, _) = pkt
+    cluster ! ICS.DroppodLaunchRequest(
+      info.zone_number,
+      info.xypos,
+      player.Faction,
+      context.self.toTyped[ICS.DroppodLaunchExchange]
+    )
+  }
+
+  def handleBeginZoning(pkt: BeginZoningMessage): Unit = {
+    val BeginZoningMessage() = pkt
+    log.trace(s"BeginZoningMessage: ${player.Name} is reticulating ${continent.id}'s splines ...")
+    zoneLoaded = None
+    val name = avatar.name
+    val continentId    = continent.id
+    val faction        = player.Faction
+    val factionChannel = s"$faction"
+    continent.AvatarEvents ! Service.Join(continentId)
+    continent.AvatarEvents ! Service.Join(factionChannel)
+    continent.LocalEvents ! Service.Join(name)
+    continent.LocalEvents ! Service.Join(continentId)
+    continent.LocalEvents ! Service.Join(factionChannel)
+    continent.VehicleEvents ! Service.Join(name)
+    continent.VehicleEvents ! Service.Join(continentId)
+    continent.VehicleEvents ! Service.Join(factionChannel)
+    if (sessionData.connectionState != 100) configZone(continent)
+    sendResponse(TimeOfDayMessage(1191182336))
+    //custom
+    sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty))    //clear squad list
+    sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
+
+    //find and reclaim own deployables, if any
+    val foundDeployables =
+      continent.DeployableList.filter(obj => obj.OwnerName.contains(player.Name) && obj.Health > 0)
+    foundDeployables.foreach(obj => {
+      if (avatar.deployables.AddOverLimit(obj)) {
+        obj.Actor ! Deployable.Ownership(player)
+      }
+    })
+    //render deployable objects
+    val (turrets, normal) = continent.DeployableList.partition(obj =>
+      DeployableToolbox.UnifiedType(obj.Definition.Item) == DeployedItem.portable_manned_turret
+    )
+    normal.foreach(obj => {
+      val definition = obj.Definition
+      sendResponse(
+        ObjectCreateMessage(
+          definition.ObjectId,
+          obj.GUID,
+          definition.Packet.ConstructorData(obj).get
+        )
+      )
+    })
+    turrets.foreach(obj => {
+      val objGUID    = obj.GUID
+      val definition = obj.Definition
+      sendResponse(
+        ObjectCreateMessage(
+          definition.ObjectId,
+          objGUID,
+          definition.Packet.ConstructorData(obj).get
+        )
+      )
+      //seated players
+      obj
+        .asInstanceOf[Mountable]
+        .Seats
+        .values
+        .map(_.occupant)
+        .collect {
+          case Some(occupant) =>
+            if (occupant.isAlive) {
+              val targetDefinition = occupant.avatar.definition
+              sendResponse(
+                ObjectCreateMessage(
+                  targetDefinition.ObjectId,
+                  occupant.GUID,
+                  ObjectCreateMessageParent(objGUID, 0),
+                  targetDefinition.Packet.ConstructorData(occupant).get
+                )
+              )
+            }
+        }
+    })
+    //sensor animation
+    normal
+      .filter(obj =>
+        obj.Definition.DeployCategory == DeployableCategory.Sensors &&
+          !obj.Destroyed &&
+          (obj match {
+            case jObj: JammableUnit => !jObj.Jammed;
+            case _                  => true
+          })
+      )
+      .foreach(obj => {
+        sendResponse(TriggerEffectMessage(obj.GUID, "on", unk1=true, 1000))
+      })
+    //update the health of our faction's deployables (if necessary)
+    //draw our faction's deployables on the map
+    continent.DeployableList
+      .filter(obj => obj.Faction == faction && !obj.Destroyed)
+      .foreach(obj => {
+        if (obj.Health != obj.DefaultHealth) {
+          sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
+        }
+        val deployInfo = DeployableInfo(
+          obj.GUID,
+          Deployable.Icon(obj.Definition.Item),
+          obj.Position,
+          obj.Owner.getOrElse(PlanetSideGUID(0))
+        )
+        sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
+      })
+    //render Equipment that was dropped into zone before the player arrived
+    continent.EquipmentOnGround.foreach(item => {
+      val definition = item.Definition
+      sendResponse(
+        ObjectCreateMessage(
+          definition.ObjectId,
+          item.GUID,
+          DroppedItemData(
+            PlacementData(item.Position, item.Orientation),
+            definition.Packet.ConstructorData(item).get
+          )
+        )
+      )
+    })
+    //load active players in zone (excepting players who are seated or players who are us)
+    val live = continent.LivePlayers
+    live
+      .filterNot(tplayer => {
+        tplayer.GUID == player.GUID || tplayer.VehicleSeated.nonEmpty
+      })
+      .foreach(targetPlayer => {
+        val targetDefinition = player.avatar.definition
+        sendResponse(
+          ObjectCreateMessage(
+            targetDefinition.ObjectId,
+            targetPlayer.GUID,
+            targetDefinition.Packet.ConstructorData(targetPlayer).get
+          )
+        )
+        if (targetPlayer.UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored) {
+          sendResponse(PlanetsideAttributeMessage(targetPlayer.GUID, 19, 1))
+        }
+      })
+    //load corpses in zone
+    continent.Corpses.foreach {
+      spawn.DepictPlayerAsCorpse
+    }
+    //load vehicles in zone (put separate the one we may be using)
+    val (wreckages, (vehicles, usedVehicle)) = {
+      val (a, b) = continent.Vehicles.partition(vehicle => {
+        vehicle.Destroyed && vehicle.Definition.DestroyedModel.nonEmpty
+      })
+      (
+        a,
+        continent.GUID(player.VehicleSeated) match {
+          case Some(vehicle: Vehicle) if vehicle.PassengerInSeat(player).isDefined =>
+            b.partition {
+              _.GUID != vehicle.GUID
+            }
+          case Some(_) =>
+            log.warn(
+              s"BeginZoningMessage: ${player.Name} thought ${player.Sex.pronounSubject} was sitting in a vehicle, but it just evaporated around ${player.Sex.pronounObject}"
+            )
+            player.VehicleSeated = None
+            (b, List.empty[Vehicle])
+          case None =>
+            player.VehicleSeated = None
+            (b, List.empty[Vehicle])
+        }
+      )
+    }
+    val allActiveVehicles = vehicles ++ usedVehicle
+    //active vehicles (and some wreckage)
+    vehicles.foreach { vehicle =>
+      val vguid       = vehicle.GUID
+      val vdefinition = vehicle.Definition
+      sendResponse(
+        ObjectCreateMessage(vdefinition.ObjectId, vguid, vdefinition.Packet.ConstructorData(vehicle).get)
+      )
+      //occupants other than driver (with exceptions)
+      vehicle.Seats
+        .filter {
+          case (index, seat) =>
+            seat.isOccupied &&
+              live.contains(seat.occupant.get) &&
+              (vehicle.Definition match {
+                case GlobalDefinitions.orbital_shuttle | GlobalDefinitions.droppod => true
+                case _                                                             => index > 0
+              })
+        }
+        .foreach {
+          case (index, seat) =>
+            val targetPlayer    = seat.occupant.get
+            val targetDefiniton = targetPlayer.avatar.definition
+            sendResponse(
+              ObjectCreateMessage(
+                targetDefiniton.ObjectId,
+                targetPlayer.GUID,
+                ObjectCreateMessageParent(vguid, index),
+                targetDefiniton.Packet.ConstructorData(targetPlayer).get
+              )
+            )
+        }
+      vehicle.SubsystemMessages().foreach { sendResponse }
+    }
+    vehicles.collect {
+      case vehicle if vehicle.Faction == faction =>
+        Vehicles.ReloadAccessPermissions(vehicle, player.Name)
+    }
+    //our vehicle would have already been loaded; see NewPlayerLoaded/AvatarCreate
+    usedVehicle.headOption match {
+      case Some(vehicle) =>
+        //subsystems
+        vehicle.Actor ! Vehicle.UpdateSubsystemStates(player.Name, Some(false))
+        //depict any other passengers already in this zone
+        val vguid = vehicle.GUID
+        vehicle.Seats
+          .filter {
+            case (index, seat) =>
+              seat.isOccupied &&
+                !seat.occupant.contains(player) &&
+                live.contains(seat.occupant.get) &&
+                (vehicle.Definition match {
+                  case GlobalDefinitions.orbital_shuttle => true
+                  case _                                 => index > 0
+                })
+          }
+          .foreach {
+            case (index, seat) =>
+              val targetPlayer     = seat.occupant.get
+              val targetDefinition = targetPlayer.avatar.definition
+              sendResponse(
+                ObjectCreateMessage(
+                  targetDefinition.ObjectId,
+                  targetPlayer.GUID,
+                  ObjectCreateMessageParent(vguid, index),
+                  targetDefinition.Packet.ConstructorData(targetPlayer).get
+                )
+              )
+          }
+        //since we would have only subscribed recently, we need to reload mount access states
+        (0 to 3).foreach { group =>
+          sendResponse(PlanetsideAttributeMessage(vguid, group + 10, vehicle.PermissionGroup(group).get.id))
+        }
+        //positive shield strength
+        if (vehicle.Shields > 0) {
+          sendResponse(PlanetsideAttributeMessage(vguid, vehicle.Definition.shieldUiAttribute, vehicle.Shields))
+        }
+      case _ => ; //no vehicle
+    }
+    //vehicle wreckages
+    wreckages.foreach(vehicle => {
+      sendResponse(
+        ObjectCreateMessage(
+          vehicle.Definition.DestroyedModel.get.id,
+          vehicle.GUID,
+          DestroyedVehicleConverter.converter.ConstructorData(vehicle).get
+        )
+      )
+    })
+    //cargo occupants (including our own vehicle as cargo)
+    allActiveVehicles.collect {
+      case vehicle if vehicle.CargoHolds.nonEmpty =>
+        vehicle.CargoHolds.collect {
+          case (_index, hold: Cargo) if hold.isOccupied =>
+            CarrierBehavior.CargoMountBehaviorForAll(
+              vehicle,
+              hold.occupant.get,
+              _index
+            ) //CargoMountBehaviorForUs can fail to attach the cargo vehicle on some clients
+        }
+    }
+    //special deploy states
+    val deployedVehicles = allActiveVehicles.filter(_.DeploymentState == DriveState.Deployed)
+    deployedVehicles.filter(_.Definition == GlobalDefinitions.ams).foreach { obj =>
+      //???
+      sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
+    }
+    deployedVehicles.filter(_.Definition == GlobalDefinitions.ant).foreach { obj =>
+      //special effects
+      sendResponse(PlanetsideAttributeMessage(obj.GUID, 52, 1)) // ant panel glow
+      Vehicles.FindANTChargingSource(obj, None).orElse(Vehicles.FindANTDischargingTarget(obj, None)) match {
+        case Some(silo: ResourceSilo) =>
+          sendResponse(PlanetsideAttributeMessage(silo.GUID, 49, 1)) // silo orb particle effect
+        case Some(_: WarpGate) =>
+          sendResponse(PlanetsideAttributeMessage(obj.GUID, 49, 1)) // ant orb particle effect
+        case _ => ;
+      }
+    }
+    deployedVehicles.filter(_.Definition == GlobalDefinitions.router).foreach { obj =>
+      //the router won't work if it doesn't completely deploy
+      sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deploying, 0, unk3=false, Vector3.Zero))
+      sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deployed, 0, unk3=false, Vector3.Zero))
+      sessionData.ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
+    }
+    ServiceManager.serviceManager
+      .ask(Lookup("hart"))(Timeout(2 seconds))
+      .onComplete {
+        case Success(LookupResult("hart", ref)) =>
+          ref ! HartTimer.Update(continentId, name)
+        case _ =>
+      }
+    //implant terminals
+    continent.map.terminalToInterface.foreach({
+      case (terminal_guid, interface_guid) =>
+        val parent_guid = PlanetSideGUID(terminal_guid)
+        continent.GUID(interface_guid) match {
+          case Some(obj: Terminal) =>
+            val objDef = obj.Definition
+            sendResponse(
+              ObjectCreateMessage(
+                objDef.ObjectId,
+                PlanetSideGUID(interface_guid),
+                ObjectCreateMessageParent(parent_guid, 1),
+                objDef.Packet.ConstructorData(obj).get
+              )
+            )
+          case _ => ;
+        }
+        //mount terminal occupants
+        continent.GUID(terminal_guid) match {
+          case Some(obj: Mountable) =>
+            obj.Seats(0).occupant match {
+              case Some(targetPlayer: Player) =>
+                val targetDefinition = targetPlayer.avatar.definition
+                sendResponse(
+                  ObjectCreateMessage(
+                    targetDefinition.ObjectId,
+                    targetPlayer.GUID,
+                    ObjectCreateMessageParent(parent_guid, 0),
+                    targetDefinition.Packet.ConstructorData(targetPlayer).get
+                  )
+                )
+              case _ => ;
+            }
+          case _ => ;
+        }
+    })
+    //facility turrets
+    continent.map.turretToWeapon
+      .map { case (turret_guid: Int, _) => continent.GUID(turret_guid) }
+      .collect {
+        case Some(turret: FacilityTurret) =>
+          val pguid = turret.GUID
+          //attached weapon
+          if (!turret.isUpgrading) {
+            turret.ControlledWeapon(wepNumber = 1).foreach {
+              case obj: Tool =>
+                val objDef = obj.Definition
+                sendResponse(
+                  ObjectCreateMessage(
+                    objDef.ObjectId,
+                    obj.GUID,
+                    ObjectCreateMessageParent(pguid, 1),
+                    objDef.Packet.ConstructorData(obj).get
+                  )
+                )
+              case _ => ;
+            }
+          }
+          //reserved ammunition?
+          //TODO need to register if it exists
+          //mount turret occupant
+          turret.Seats(0).occupant match {
+            case Some(targetPlayer: Player) =>
+              val targetDefinition = targetPlayer.avatar.definition
+              sendResponse(
+                ObjectCreateMessage(
+                  targetDefinition.ObjectId,
+                  targetPlayer.GUID,
+                  ObjectCreateMessageParent(pguid, 0),
+                  targetDefinition.Packet.ConstructorData(targetPlayer).get
+                )
+              )
+            case _ => ;
+          }
+      }
+    //remote projectiles and radiation clouds
+    continent.Projectiles.foreach { projectile =>
+      val definition = projectile.Definition
+      sendResponse(
+        ObjectCreateMessage(
+          definition.ObjectId,
+          projectile.GUID,
+          definition.Packet.ConstructorData(projectile).get
+        )
+      )
+    }
+    //spawn point update request
+    continent.VehicleEvents ! VehicleServiceMessage(
+      continent.id,
+      VehicleAction.UpdateAmsSpawnPoint(continent)
+    )
+    spawn.upstreamMessageCount = 0
+    zoneLoaded = Some(true)
+  }
+
+  /* messages */
 
   def handleZonesResponse(zones: Iterable[Zone]): Unit = {
     zones.foreach { zone =>
@@ -374,415 +774,8 @@ class ZoningOperations(
     }
   }
 
-  def handleDroppodLaunchRequest(pkt: PlanetSideGamePacket)(implicit context: ActorContext): Unit = {
-    pkt match {
-      case DroppodLaunchRequestMessage(info, _) =>
-        cluster ! ICS.DroppodLaunchRequest(
-          info.zone_number,
-          info.xypos,
-          player.Faction,
-          context.self.toTyped[ICS.DroppodLaunchExchange]
-        )
-      case _ => ;
-    }
-  }
-
   def handleDroppodLaunchDenial(errorCode: DroppodError): Unit = {
     sendResponse(DroppodLaunchResponseMessage(errorCode, player.GUID))
-  }
-
-  def handleBeginZoning(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case BeginZoningMessage() =>
-        log.trace(s"BeginZoningMessage: ${player.Name} is reticulating ${continent.id}'s splines ...")
-        zoneLoaded = None
-        val name = avatar.name
-        val continentId    = continent.id
-        val faction        = player.Faction
-        val factionChannel = s"$faction"
-        continent.AvatarEvents ! Service.Join(continentId)
-        continent.AvatarEvents ! Service.Join(factionChannel)
-        continent.LocalEvents ! Service.Join(name)
-        continent.LocalEvents ! Service.Join(continentId)
-        continent.LocalEvents ! Service.Join(factionChannel)
-        continent.VehicleEvents ! Service.Join(name)
-        continent.VehicleEvents ! Service.Join(continentId)
-        continent.VehicleEvents ! Service.Join(factionChannel)
-        if (sessionData.connectionState != 100) configZone(continent)
-        sendResponse(TimeOfDayMessage(1191182336))
-        //custom
-        sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty))    //clear squad list
-        sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
-
-        //find and reclaim own deployables, if any
-        val foundDeployables =
-          continent.DeployableList.filter(obj => obj.OwnerName.contains(player.Name) && obj.Health > 0)
-        foundDeployables.foreach(obj => {
-          if (avatar.deployables.AddOverLimit(obj)) {
-            obj.Actor ! Deployable.Ownership(player)
-          }
-        })
-        //render deployable objects
-        val (turrets, normal) = continent.DeployableList.partition(obj =>
-          DeployableToolbox.UnifiedType(obj.Definition.Item) == DeployedItem.portable_manned_turret
-        )
-        normal.foreach(obj => {
-          val definition = obj.Definition
-          sendResponse(
-            ObjectCreateMessage(
-              definition.ObjectId,
-              obj.GUID,
-              definition.Packet.ConstructorData(obj).get
-            )
-          )
-        })
-        turrets.foreach(obj => {
-          val objGUID    = obj.GUID
-          val definition = obj.Definition
-          sendResponse(
-            ObjectCreateMessage(
-              definition.ObjectId,
-              objGUID,
-              definition.Packet.ConstructorData(obj).get
-            )
-          )
-          //seated players
-          obj
-            .asInstanceOf[Mountable]
-            .Seats
-            .values
-            .map(_.occupant)
-            .collect {
-              case Some(occupant) =>
-                if (occupant.isAlive) {
-                  val targetDefinition = occupant.avatar.definition
-                  sendResponse(
-                    ObjectCreateMessage(
-                      targetDefinition.ObjectId,
-                      occupant.GUID,
-                      ObjectCreateMessageParent(objGUID, 0),
-                      targetDefinition.Packet.ConstructorData(occupant).get
-                    )
-                  )
-                }
-            }
-        })
-        //sensor animation
-        normal
-          .filter(obj =>
-            obj.Definition.DeployCategory == DeployableCategory.Sensors &&
-              !obj.Destroyed &&
-              (obj match {
-                case jObj: JammableUnit => !jObj.Jammed;
-                case _                  => true
-              })
-          )
-          .foreach(obj => {
-            sendResponse(TriggerEffectMessage(obj.GUID, "on", unk1=true, 1000))
-          })
-        //update the health of our faction's deployables (if necessary)
-        //draw our faction's deployables on the map
-        continent.DeployableList
-          .filter(obj => obj.Faction == faction && !obj.Destroyed)
-          .foreach(obj => {
-            if (obj.Health != obj.DefaultHealth) {
-              sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
-            }
-            val deployInfo = DeployableInfo(
-              obj.GUID,
-              Deployable.Icon(obj.Definition.Item),
-              obj.Position,
-              obj.Owner.getOrElse(PlanetSideGUID(0))
-            )
-            sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
-          })
-        //render Equipment that was dropped into zone before the player arrived
-        continent.EquipmentOnGround.foreach(item => {
-          val definition = item.Definition
-          sendResponse(
-            ObjectCreateMessage(
-              definition.ObjectId,
-              item.GUID,
-              DroppedItemData(
-                PlacementData(item.Position, item.Orientation),
-                definition.Packet.ConstructorData(item).get
-              )
-            )
-          )
-        })
-        //load active players in zone (excepting players who are seated or players who are us)
-        val live = continent.LivePlayers
-        live
-          .filterNot(tplayer => {
-            tplayer.GUID == player.GUID || tplayer.VehicleSeated.nonEmpty
-          })
-          .foreach(targetPlayer => {
-            val targetDefinition = player.avatar.definition
-            sendResponse(
-              ObjectCreateMessage(
-                targetDefinition.ObjectId,
-                targetPlayer.GUID,
-                targetDefinition.Packet.ConstructorData(targetPlayer).get
-              )
-            )
-            if (targetPlayer.UsingSpecial == SpecialExoSuitDefinition.Mode.Anchored) {
-              sendResponse(PlanetsideAttributeMessage(targetPlayer.GUID, 19, 1))
-            }
-          })
-        //load corpses in zone
-        continent.Corpses.foreach {
-          spawn.DepictPlayerAsCorpse
-        }
-        //load vehicles in zone (put separate the one we may be using)
-        val (wreckages, (vehicles, usedVehicle)) = {
-          val (a, b) = continent.Vehicles.partition(vehicle => {
-            vehicle.Destroyed && vehicle.Definition.DestroyedModel.nonEmpty
-          })
-          (
-            a,
-            continent.GUID(player.VehicleSeated) match {
-              case Some(vehicle: Vehicle) if vehicle.PassengerInSeat(player).isDefined =>
-                b.partition {
-                  _.GUID != vehicle.GUID
-                }
-              case Some(_) =>
-                log.warn(
-                  s"BeginZoningMessage: ${player.Name} thought ${player.Sex.pronounSubject} was sitting in a vehicle, but it just evaporated around ${player.Sex.pronounObject}"
-                )
-                player.VehicleSeated = None
-                (b, List.empty[Vehicle])
-              case None =>
-                player.VehicleSeated = None
-                (b, List.empty[Vehicle])
-            }
-          )
-        }
-        val allActiveVehicles = vehicles ++ usedVehicle
-        //active vehicles (and some wreckage)
-        vehicles.foreach { vehicle =>
-          val vguid       = vehicle.GUID
-          val vdefinition = vehicle.Definition
-          sendResponse(
-            ObjectCreateMessage(vdefinition.ObjectId, vguid, vdefinition.Packet.ConstructorData(vehicle).get)
-          )
-          //occupants other than driver (with exceptions)
-          vehicle.Seats
-            .filter {
-              case (index, seat) =>
-                seat.isOccupied &&
-                  live.contains(seat.occupant.get) &&
-                  (vehicle.Definition match {
-                    case GlobalDefinitions.orbital_shuttle | GlobalDefinitions.droppod => true
-                    case _                                                             => index > 0
-                  })
-            }
-            .foreach {
-              case (index, seat) =>
-                val targetPlayer    = seat.occupant.get
-                val targetDefiniton = targetPlayer.avatar.definition
-                sendResponse(
-                  ObjectCreateMessage(
-                    targetDefiniton.ObjectId,
-                    targetPlayer.GUID,
-                    ObjectCreateMessageParent(vguid, index),
-                    targetDefiniton.Packet.ConstructorData(targetPlayer).get
-                  )
-                )
-            }
-          vehicle.SubsystemMessages().foreach { sendResponse }
-        }
-        vehicles.collect {
-          case vehicle if vehicle.Faction == faction =>
-            Vehicles.ReloadAccessPermissions(vehicle, player.Name)
-        }
-        //our vehicle would have already been loaded; see NewPlayerLoaded/AvatarCreate
-        usedVehicle.headOption match {
-          case Some(vehicle) =>
-            //subsystems
-            vehicle.Actor ! Vehicle.UpdateSubsystemStates(player.Name, Some(false))
-            //depict any other passengers already in this zone
-            val vguid = vehicle.GUID
-            vehicle.Seats
-              .filter {
-                case (index, seat) =>
-                  seat.isOccupied &&
-                    !seat.occupant.contains(player) &&
-                    live.contains(seat.occupant.get) &&
-                    (vehicle.Definition match {
-                      case GlobalDefinitions.orbital_shuttle => true
-                      case _                                 => index > 0
-                    })
-              }
-              .foreach {
-                case (index, seat) =>
-                  val targetPlayer     = seat.occupant.get
-                  val targetDefinition = targetPlayer.avatar.definition
-                  sendResponse(
-                    ObjectCreateMessage(
-                      targetDefinition.ObjectId,
-                      targetPlayer.GUID,
-                      ObjectCreateMessageParent(vguid, index),
-                      targetDefinition.Packet.ConstructorData(targetPlayer).get
-                    )
-                  )
-              }
-            //since we would have only subscribed recently, we need to reload mount access states
-            (0 to 3).foreach { group =>
-              sendResponse(PlanetsideAttributeMessage(vguid, group + 10, vehicle.PermissionGroup(group).get.id))
-            }
-            //positive shield strength
-            if (vehicle.Shields > 0) {
-              sendResponse(PlanetsideAttributeMessage(vguid, vehicle.Definition.shieldUiAttribute, vehicle.Shields))
-            }
-          case _ => ; //no vehicle
-        }
-        //vehicle wreckages
-        wreckages.foreach(vehicle => {
-          sendResponse(
-            ObjectCreateMessage(
-              vehicle.Definition.DestroyedModel.get.id,
-              vehicle.GUID,
-              DestroyedVehicleConverter.converter.ConstructorData(vehicle).get
-            )
-          )
-        })
-        //cargo occupants (including our own vehicle as cargo)
-        allActiveVehicles.collect {
-          case vehicle if vehicle.CargoHolds.nonEmpty =>
-            vehicle.CargoHolds.collect {
-              case (_index, hold: Cargo) if hold.isOccupied =>
-                CarrierBehavior.CargoMountBehaviorForAll(
-                  vehicle,
-                  hold.occupant.get,
-                  _index
-                ) //CargoMountBehaviorForUs can fail to attach the cargo vehicle on some clients
-            }
-        }
-        //special deploy states
-        val deployedVehicles = allActiveVehicles.filter(_.DeploymentState == DriveState.Deployed)
-        deployedVehicles.filter(_.Definition == GlobalDefinitions.ams).foreach { obj =>
-          //???
-          sendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
-        }
-        deployedVehicles.filter(_.Definition == GlobalDefinitions.ant).foreach { obj =>
-          //special effects
-          sendResponse(PlanetsideAttributeMessage(obj.GUID, 52, 1)) // ant panel glow
-          Vehicles.FindANTChargingSource(obj, None).orElse(Vehicles.FindANTDischargingTarget(obj, None)) match {
-            case Some(silo: ResourceSilo) =>
-              sendResponse(PlanetsideAttributeMessage(silo.GUID, 49, 1)) // silo orb particle effect
-            case Some(_: WarpGate) =>
-              sendResponse(PlanetsideAttributeMessage(obj.GUID, 49, 1)) // ant orb particle effect
-            case _ => ;
-          }
-        }
-        deployedVehicles.filter(_.Definition == GlobalDefinitions.router).foreach { obj =>
-          //the router won't work if it doesn't completely deploy
-          sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deploying, 0, unk3=false, Vector3.Zero))
-          sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Deployed, 0, unk3=false, Vector3.Zero))
-          sessionData.ToggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
-        }
-        ServiceManager.serviceManager
-          .ask(Lookup("hart"))(Timeout(2 seconds))
-          .onComplete {
-            case Success(LookupResult("hart", ref)) =>
-              ref ! HartTimer.Update(continentId, name)
-            case _ =>
-          }
-        //implant terminals
-        continent.map.terminalToInterface.foreach({
-          case (terminal_guid, interface_guid) =>
-            val parent_guid = PlanetSideGUID(terminal_guid)
-            continent.GUID(interface_guid) match {
-              case Some(obj: Terminal) =>
-                val objDef = obj.Definition
-                sendResponse(
-                  ObjectCreateMessage(
-                    objDef.ObjectId,
-                    PlanetSideGUID(interface_guid),
-                    ObjectCreateMessageParent(parent_guid, 1),
-                    objDef.Packet.ConstructorData(obj).get
-                  )
-                )
-              case _ => ;
-            }
-            //mount terminal occupants
-            continent.GUID(terminal_guid) match {
-              case Some(obj: Mountable) =>
-                obj.Seats(0).occupant match {
-                  case Some(targetPlayer: Player) =>
-                    val targetDefinition = targetPlayer.avatar.definition
-                    sendResponse(
-                      ObjectCreateMessage(
-                        targetDefinition.ObjectId,
-                        targetPlayer.GUID,
-                        ObjectCreateMessageParent(parent_guid, 0),
-                        targetDefinition.Packet.ConstructorData(targetPlayer).get
-                      )
-                    )
-                  case _ => ;
-                }
-              case _ => ;
-            }
-        })
-        //facility turrets
-        continent.map.turretToWeapon
-          .map { case (turret_guid: Int, _) => continent.GUID(turret_guid) }
-          .collect {
-            case Some(turret: FacilityTurret) =>
-              val pguid = turret.GUID
-              //attached weapon
-              if (!turret.isUpgrading) {
-                turret.ControlledWeapon(wepNumber = 1).foreach {
-                  case obj: Tool =>
-                    val objDef = obj.Definition
-                    sendResponse(
-                      ObjectCreateMessage(
-                        objDef.ObjectId,
-                        obj.GUID,
-                        ObjectCreateMessageParent(pguid, 1),
-                        objDef.Packet.ConstructorData(obj).get
-                      )
-                    )
-                  case _ => ;
-                }
-              }
-              //reserved ammunition?
-              //TODO need to register if it exists
-              //mount turret occupant
-              turret.Seats(0).occupant match {
-                case Some(targetPlayer: Player) =>
-                  val targetDefinition = targetPlayer.avatar.definition
-                  sendResponse(
-                    ObjectCreateMessage(
-                      targetDefinition.ObjectId,
-                      targetPlayer.GUID,
-                      ObjectCreateMessageParent(pguid, 0),
-                      targetDefinition.Packet.ConstructorData(targetPlayer).get
-                    )
-                  )
-                case _ => ;
-              }
-          }
-        //remote projectiles and radiation clouds
-        continent.Projectiles.foreach { projectile =>
-          val definition = projectile.Definition
-          sendResponse(
-            ObjectCreateMessage(
-              definition.ObjectId,
-              projectile.GUID,
-              definition.Packet.ConstructorData(projectile).get
-            )
-          )
-        }
-        //spawn point update request
-        continent.VehicleEvents ! VehicleServiceMessage(
-          continent.id,
-          VehicleAction.UpdateAmsSpawnPoint(continent)
-        )
-        spawn.upstreamMessageCount = 0
-        zoneLoaded = Some(true)
-      case _ => ;
-    }
   }
 
   def handleRecall(): Unit = {
@@ -845,7 +838,7 @@ class ZoningOperations(
     }
   }
 
-  /* support code */
+  /* support functions */
 
   /**
    * A zoning message was received.
@@ -864,7 +857,6 @@ class ZoningOperations(
    *
    * @param runnable execute for the next step of the zoning process
    */
-
   def beginZoningCountdown(runnable: Runnable): Unit = {
     val descriptor = zoningType.toString.toLowerCase
     if (zoningStatus == Zoning.Status.Request) {
@@ -1443,7 +1435,7 @@ class ZoningOperations(
     })
     Deployables.Disown(continent, avatar, context.self)
     spawn.drawDeloyableIcon = spawn.RedrawDeployableIcons //important for when SetCurrentAvatar initializes the UI next zone
-    sessionData.squadResponseHandlers.squadSetup = sessionData.squadResponseHandlers.ZoneChangeSquadSetup
+    sessionData.squad.squadSetup = sessionData.squad.ZoneChangeSquadSetup
   }
 
   /**
@@ -1637,7 +1629,38 @@ class ZoningOperations(
     private[support] var reviveTimer: Cancellable = Default.Cancellable
     private[support] var respawnTimer: Cancellable = Default.Cancellable
 
-    /* */
+    /* packets */
+
+    def handleReleaseAvatarRequest(pkt: ReleaseAvatarRequestMessage): Unit = {
+      val ReleaseAvatarRequestMessage() = pkt
+      log.info(s"${player.Name} on ${continent.id} has released")
+      reviveTimer.cancel()
+      GoToDeploymentMap()
+      HandleReleaseAvatar(player, continent)
+    }
+
+    def handleSpawnRequest(pkt: SpawnRequestMessage)(implicit context: ActorContext): Unit = {
+      val SpawnRequestMessage(_, spawnGroup, _, _, zoneNumber) = pkt
+      log.info(s"${player.Name} on ${continent.id} wants to respawn in zone #$zoneNumber")
+      if (deadState != DeadState.RespawnTime) {
+        deadState = DeadState.RespawnTime
+        cluster ! ICS.GetNearbySpawnPoint(
+          spawnGroup match {
+            case SpawnGroup.Sanctuary =>
+              Zones.sanctuaryZoneNumber(player.Faction)
+            case _ =>
+              zoneNumber
+          },
+          player,
+          Seq(spawnGroup),
+          context.self
+        )
+      } else {
+        log.warn(s"SpawnRequestMessage: request consumed because ${player.Name} is already respawning ...")
+      }
+    }
+
+    /* messages */
 
     def handleLoginInfoNowhere(name: String, from: ActorRef): Unit = {
       log.info(s"LoginInfo: player $name is considered a fresh character")
@@ -1813,41 +1836,6 @@ class ZoningOperations(
       }
     }
 
-    def handleReleaseAvatarRequest(pkt: PlanetSideGamePacket): Unit = {
-      pkt match {
-        case ReleaseAvatarRequestMessage() =>
-          log.info(s"${player.Name} on ${continent.id} has released")
-          reviveTimer.cancel()
-          GoToDeploymentMap()
-          HandleReleaseAvatar(player, continent)
-        case _ => ;
-      }
-    }
-
-    def handleSpawnRequest(pkt: PlanetSideGamePacket)(implicit context: ActorContext): Unit = {
-      pkt match {
-        case SpawnRequestMessage(_, spawnGroup, _, _, zoneNumber) =>
-          log.info(s"${player.Name} on ${continent.id} wants to respawn in zone #$zoneNumber")
-          if (deadState != DeadState.RespawnTime) {
-            deadState = DeadState.RespawnTime
-            cluster ! ICS.GetNearbySpawnPoint(
-              spawnGroup match {
-                case SpawnGroup.Sanctuary =>
-                  Zones.sanctuaryZoneNumber(player.Faction)
-                case _ =>
-                  zoneNumber
-              },
-              player,
-              Seq(spawnGroup),
-              context.self
-            )
-          } else {
-            log.warn(s"SpawnRequestMessage: request consumed because ${player.Name} is already respawning ...")
-          }
-        case _ => ;
-      }
-    }
-
     def handleSpawnPointResponse(response: Option[(Zone, SpawnPoint)]): Unit = {
       zoningType match {
         case Zoning.Method.InstantAction if response.isEmpty =>
@@ -1969,7 +1957,7 @@ class ZoningOperations(
       }
     }
 
-    /* */
+    /* support functions */
 
     def isAcceptableNextSpawnPoint: Boolean = isAcceptableSpawnPoint(nextSpawnPoint)
 
@@ -2729,7 +2717,7 @@ class ZoningOperations(
       ) //TODO will not always be "on" like this
       sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, player.Faction, unk5 = true))
       //looking for squad (members)
-      if (tplayer.avatar.lookingForSquad || sessionData.squadResponseHandlers.lfsm) {
+      if (tplayer.avatar.lookingForSquad || sessionData.squad.lfsm) {
         sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
         continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(guid, 53, 1))
       }
@@ -2761,7 +2749,7 @@ class ZoningOperations(
 
       sendResponse(PlanetsideStringAttributeMessage(guid, 0, "Outfit Name"))
       //squad stuff (loadouts, assignment)
-      sessionData.squadResponseHandlers.squadSetup()
+      sessionData.squad.squadSetup()
       //MapObjectStateBlockMessage and ObjectCreateMessage?
       //TacticsMessage?
       //change the owner on our deployables (re-draw the icons for our deployables too)

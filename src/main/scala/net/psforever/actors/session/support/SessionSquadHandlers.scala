@@ -2,6 +2,8 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, typed}
+import scala.collection.mutable
+//
 import net.psforever.actors.session.{AvatarActor, ChatActor}
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.teamwork.Squad
@@ -10,9 +12,7 @@ import net.psforever.packet.game._
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.chat.ChatService
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadAction => SquadServiceAction}
-import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, SquadListDecoration, SquadResponseType, Vector3}
-
-import scala.collection.mutable
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, SquadListDecoration, SquadResponseType, Vector3, WaypointSubtype}
 
 object SessionSquadHandlers {
   protected final case class SquadUIElement(
@@ -35,6 +35,7 @@ class SessionSquadHandlers(
                           ) extends CommonSessionInterfacingFunctionality {
   import SessionSquadHandlers._
 
+  private var waypointCooldown: Long = 0L
   val squadUI: mutable.LongMap[SquadUIElement] = new mutable.LongMap[SquadUIElement]()
   var squad_supplement_id: Int = 0
   /**
@@ -52,7 +53,36 @@ class SessionSquadHandlers(
   private[support] var updateSquad: () => Unit = NoSquadUpdates
   private var updateSquadRef: ActorRef                                       = Default.Actor
 
-  /*  */
+  /* packet */
+
+  def handleSquadDefinitionAction(pkt: SquadDefinitionActionMessage): Unit = {
+    val SquadDefinitionActionMessage(u1, u2, action) = pkt
+    squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Definition(u1, u2, action))
+  }
+
+  def handleSquadMemberRequest(pkt: SquadMembershipRequest): Unit = {
+    val SquadMembershipRequest(request_type, char_id, unk3, player_name, unk5) = pkt
+    squadService ! SquadServiceMessage(
+      player,
+      continent,
+      SquadServiceAction.Membership(request_type, char_id, unk3, player_name, unk5)
+    )
+  }
+
+  def handleSquadWaypointRequest(pkt: SquadWaypointRequest): Unit = {
+    val SquadWaypointRequest(request, _, wtype, unk, info) = pkt
+    val time = System.currentTimeMillis()
+    val subtype = wtype.subtype
+    if(subtype == WaypointSubtype.Squad) {
+      squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+    } else if (subtype == WaypointSubtype.Laze && time - waypointCooldown > 1000) {
+      //guarding against duplicating laze waypoints
+      waypointCooldown = time
+      squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+    }
+  }
+
+  /* response handlers */
 
   def handle(response: SquadResponse.Response, excluded: Iterable[Long]): Unit = {
     if (!excluded.exists(_ == avatar.id)) {

@@ -159,7 +159,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sessionFuncs.mountResponse.handle(tplayer, reply)
 
     case SquadServiceResponse(_, excluded, response) =>
-      sessionFuncs.squadResponseHandlers.handle(response, excluded)
+      sessionFuncs.squad.handle(response, excluded)
 
     case Terminal.TerminalMessage(tplayer, msg, order) =>
       sessionFuncs.terminals.handle(tplayer, msg, order)
@@ -355,243 +355,239 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   def handleGamePkt(pkt: PlanetSideGamePacket): Unit = {
     pkt match {
-      case _: ConnectToWorldRequestMessage =>
-        sessionFuncs.handleConnectToWorldRequest(pkt)
+      case packet: ConnectToWorldRequestMessage =>
+        sessionFuncs.handleConnectToWorldRequest(packet)
 
-      case _: MountVehicleCargoMsg =>
-        sessionFuncs.vehicles.handleDismountVehicleCargo(pkt)
+      case packet: MountVehicleCargoMsg =>
+        sessionFuncs.vehicles.handleMountVehicleCargo(packet)
 
-      case _: DismountVehicleCargoMsg =>
-        sessionFuncs.vehicles.handleDismountVehicleCargo(pkt)
+      case packet: DismountVehicleCargoMsg =>
+        sessionFuncs.vehicles.handleDismountVehicleCargo(packet)
 
-      case _: CharacterCreateRequestMessage =>
-       sessionFuncs.handleCharacterCreateRequest(pkt)
+      case packet: CharacterCreateRequestMessage =>
+       sessionFuncs.handleCharacterCreateRequest(packet)
 
-      case _: CharacterRequestMessage =>
-        sessionFuncs.handleCharacterRequest(pkt)
+      case packet: CharacterRequestMessage =>
+        sessionFuncs.handleCharacterRequest(packet)
 
       case _: KeepAliveMessage =>
         sessionFuncs.keepAliveFunc()
 
-      case _: BeginZoningMessage =>
-        sessionFuncs.zoning.handleBeginZoning(pkt)
+      case packet: BeginZoningMessage =>
+        sessionFuncs.zoning.handleBeginZoning(packet)
 
-      case _: PlayerStateMessageUpstream =>
-        sessionFuncs.handlePlayerStateUpstream(pkt)
+      case packet: PlayerStateMessageUpstream =>
+        sessionFuncs.handlePlayerStateUpstream(packet)
 
-      case _: ChildObjectStateMessage =>
-        sessionFuncs.vehicles.handleChildObjectState(pkt)
+      case packet: ChildObjectStateMessage =>
+        sessionFuncs.vehicles.handleChildObjectState(packet)
 
-      case _: VehicleStateMessage =>
-        sessionFuncs.vehicles.handleVehicleState(pkt)
+      case packet: VehicleStateMessage =>
+        sessionFuncs.vehicles.handleVehicleState(packet)
 
-      case _: VehicleSubStateMessage =>
-        sessionFuncs.vehicles.handleVehicleSubState(pkt)
+      case packet: VehicleSubStateMessage =>
+        sessionFuncs.vehicles.handleVehicleSubState(packet)
 
-      case _: FrameVehicleStateMessage =>
-        sessionFuncs.vehicles.handleFrameVehicleState(pkt)
+      case packet: FrameVehicleStateMessage =>
+        sessionFuncs.vehicles.handleFrameVehicleState(packet)
 
-      case _: ProjectileStateMessage =>
-        sessionFuncs.shooting.handleProjectileState(pkt)
+      case packet: ProjectileStateMessage =>
+        sessionFuncs.shooting.handleProjectileState(packet)
 
-      case _: LongRangeProjectileInfoMessage =>
-        sessionFuncs.shooting.handleLongRangeProjectileState(pkt)
+      case packet: LongRangeProjectileInfoMessage =>
+        sessionFuncs.shooting.handleLongRangeProjectileState(packet)
 
-      case _: ReleaseAvatarRequestMessage =>
-        sessionFuncs.zoning.spawn.handleReleaseAvatarRequest(pkt)
+      case packet: ReleaseAvatarRequestMessage =>
+        sessionFuncs.zoning.spawn.handleReleaseAvatarRequest(packet)
 
-      case _: SpawnRequestMessage =>
-        sessionFuncs.zoning.spawn.handleSpawnRequest(pkt)
+      case packet: SpawnRequestMessage =>
+        sessionFuncs.zoning.spawn.handleSpawnRequest(packet)
 
-      case _: ChatMsg =>
-        sessionFuncs.handleChat(pkt)
+      case packet: ChatMsg =>
+        sessionFuncs.handleChat(packet)
 
-      case _: SetChatFilterMessage =>
-        sessionFuncs.handleChatFilter(pkt)
+      case packet: SetChatFilterMessage =>
+        sessionFuncs.handleChatFilter(packet)
 
-      case _: VoiceHostRequest =>
-        sessionFuncs.handleVoiceHostRequest(pkt)
+      case packet: VoiceHostRequest =>
+        sessionFuncs.handleVoiceHostRequest(packet)
 
-      case _: VoiceHostInfo =>
-        sessionFuncs.handleVoiceHostInfo(pkt)
+      case packet: VoiceHostInfo =>
+        sessionFuncs.handleVoiceHostInfo(packet)
 
-      case _: ChangeAmmoMessage =>
-        sessionFuncs.shooting.handleChangeAmmo(pkt)
+      case packet: ChangeAmmoMessage =>
+        sessionFuncs.shooting.handleChangeAmmo(packet)
 
-      case _: ChangeFireModeMessage =>
-        sessionFuncs.shooting.handleChangeFireMode(pkt)
+      case packet: ChangeFireModeMessage =>
+        sessionFuncs.shooting.handleChangeFireMode(packet)
 
-      case _: ChangeFireStateMessage_Start =>
-        sessionFuncs.shooting.handleChangeFireStateStart(pkt)
+      case packet: ChangeFireStateMessage_Start =>
+        sessionFuncs.shooting.handleChangeFireStateStart(packet)
 
-      case _: ChangeFireStateMessage_Stop =>
-        sessionFuncs.shooting.handleChangeFireStateStop(pkt)
+      case packet: ChangeFireStateMessage_Stop =>
+        sessionFuncs.shooting.handleChangeFireStateStop(packet)
 
-      case _: EmoteMsg =>
-        sessionFuncs.handleEmote(pkt)
+      case packet: EmoteMsg =>
+        sessionFuncs.handleEmote(packet)
 
-      case _: DropItemMessage =>
-        sessionFuncs.handleDropItem(pkt)
+      case packet: DropItemMessage =>
+        sessionFuncs.handleDropItem(packet)
 
-      case _: PickupItemMessage =>
-        sessionFuncs.handlePickupItem(pkt)
+      case packet: PickupItemMessage =>
+        sessionFuncs.handlePickupItem(packet)
 
-      case _: ReloadMessage =>
-        sessionFuncs.shooting.handleReload(pkt)
+      case packet: ReloadMessage =>
+        sessionFuncs.shooting.handleReload(packet)
 
-      case _: ObjectHeldMessage =>
-        sessionFuncs.handleObjectHeld(pkt)
+      case packet: ObjectHeldMessage =>
+        sessionFuncs.handleObjectHeld(packet)
 
-      case _: AvatarJumpMessage =>
-        sessionFuncs.handleAvatarJump(pkt)
+      case packet: AvatarJumpMessage =>
+        sessionFuncs.handleAvatarJump(packet)
 
-      case _: ZipLineMessage =>
-        sessionFuncs.handleZipLine(pkt)
+      case packet: ZipLineMessage =>
+        sessionFuncs.handleZipLine(packet)
 
-      case _: RequestDestroyMessage =>
-        sessionFuncs.handleRequestDestroy(pkt)
+      case packet: RequestDestroyMessage =>
+        sessionFuncs.handleRequestDestroy(packet)
 
-      case _: MoveItemMessage =>
-        sessionFuncs.handleMoveItem(pkt)
+      case packet: MoveItemMessage =>
+        sessionFuncs.handleMoveItem(packet)
 
-      case _: LootItemMessage =>
-        sessionFuncs.handleLootItem(pkt)
+      case packet: LootItemMessage =>
+        sessionFuncs.handleLootItem(packet)
 
-      case _: AvatarImplantMessage =>
-        sessionFuncs.handleAvatarImplant(pkt)
+      case packet: AvatarImplantMessage =>
+        sessionFuncs.handleAvatarImplant(packet)
 
-      case _: UseItemMessage =>
-        sessionFuncs.handleUseItem(pkt)
+      case packet: UseItemMessage =>
+        sessionFuncs.handleUseItem(packet)
 
-      case _: UnuseItemMessage =>
-        sessionFuncs.handleUnuseItem(pkt)
+      case packet: UnuseItemMessage =>
+        sessionFuncs.handleUnuseItem(packet)
 
-      case _: ProximityTerminalUseMessage =>
-        sessionFuncs.terminals.handleProximityTerminalUse(pkt)
+      case packet: ProximityTerminalUseMessage =>
+        sessionFuncs.terminals.handleProximityTerminalUse(packet)
 
-      case _: DeployObjectMessage =>
-        sessionFuncs.handleDeployObject(pkt)
+      case packet: DeployObjectMessage =>
+        sessionFuncs.handleDeployObject(packet)
 
-      case _: GenericObjectActionMessage =>
-        sessionFuncs.handleGenericObjectAction(pkt)
+      case packet: GenericObjectActionMessage =>
+        sessionFuncs.handleGenericObjectAction(packet)
 
-      case _: GenericObjectActionAtPositionMessage =>
-        sessionFuncs.handleGenericObjectActionAtPosition(pkt)
+      case packet: GenericObjectActionAtPositionMessage =>
+        sessionFuncs.handleGenericObjectActionAtPosition(packet)
 
-      case _: GenericObjectStateMsg =>
-        sessionFuncs.handleGenericObjectState(pkt)
+      case packet: GenericObjectStateMsg =>
+        sessionFuncs.handleGenericObjectState(packet)
 
-      case _: GenericActionMessage =>
-        sessionFuncs.handleGenericAction(pkt)
+      case packet: GenericActionMessage =>
+        sessionFuncs.handleGenericAction(packet)
 
-      case _: ItemTransactionMessage =>
-        sessionFuncs.terminals.handleItemTransaction(pkt)
+      case packet: ItemTransactionMessage =>
+        sessionFuncs.terminals.handleItemTransaction(packet)
 
-      case _: FavoritesRequest =>
-        sessionFuncs.handleFavoritesRequest(pkt)
+      case packet: FavoritesRequest =>
+        sessionFuncs.handleFavoritesRequest(packet)
 
-      case _: WeaponDelayFireMessage =>
-        sessionFuncs.shooting.handleWeaponDelayFire(pkt)
+      case packet: WeaponDelayFireMessage =>
+        sessionFuncs.shooting.handleWeaponDelayFire(packet)
 
-      case _: WeaponDryFireMessage =>
-        sessionFuncs.shooting.handleWeaponDryFire(pkt)
+      case packet: WeaponDryFireMessage =>
+        sessionFuncs.shooting.handleWeaponDryFire(packet)
 
-      case _: WeaponFireMessage =>
-        sessionFuncs.shooting.handleWeaponFire(pkt)
+      case packet: WeaponFireMessage =>
+        sessionFuncs.shooting.handleWeaponFire(packet)
 
-      case _: WeaponLazeTargetPositionMessage =>
-        sessionFuncs.shooting.handleWeaponLazeTargetPosition(pkt)
+      case packet: WeaponLazeTargetPositionMessage =>
+        sessionFuncs.shooting.handleWeaponLazeTargetPosition(packet)
 
-      case _: HitMessage =>
-        sessionFuncs.shooting.handleDirectHit(pkt)
+      case packet: HitMessage =>
+        sessionFuncs.shooting.handleDirectHit(packet)
 
-      case _: SplashHitMessage =>
-        sessionFuncs.shooting.handleSplashHit(pkt)
+      case packet: SplashHitMessage =>
+        sessionFuncs.shooting.handleSplashHit(packet)
 
-      case _: LashMessage =>
-        sessionFuncs.shooting.handleLashHit(pkt)
+      case packet: LashMessage =>
+        sessionFuncs.shooting.handleLashHit(packet)
 
-      case _: AvatarFirstTimeEventMessage =>
-        sessionFuncs.handleAvatarFirstTimeEvent(pkt)
+      case packet: AvatarFirstTimeEventMessage =>
+        sessionFuncs.handleAvatarFirstTimeEvent(packet)
 
-      case _: WarpgateRequest =>
-        sessionFuncs.zoning.handleWarpgateRequest(pkt)
+      case packet: WarpgateRequest =>
+        sessionFuncs.zoning.handleWarpgateRequest(packet)
 
-      case _: MountVehicleMsg =>
-        sessionFuncs.vehicles.handleMountVehicle(pkt)
+      case packet: MountVehicleMsg =>
+        sessionFuncs.vehicles.handleMountVehicle(packet)
 
-      case _: DismountVehicleMsg =>
-        sessionFuncs.vehicles.handleDismountVehicle(pkt)
+      case packet: DismountVehicleMsg =>
+        sessionFuncs.vehicles.handleDismountVehicle(packet)
 
-      case _: DeployRequestMessage =>
-        sessionFuncs.vehicles.handleDeployRequest(pkt)
+      case packet: DeployRequestMessage =>
+        sessionFuncs.vehicles.handleDeployRequest(packet)
 
-      case _: AvatarGrenadeStateMessage =>
-        sessionFuncs.shooting.handleAvatarGrenadeState(pkt)
+      case packet: AvatarGrenadeStateMessage =>
+        sessionFuncs.shooting.handleAvatarGrenadeState(packet)
 
-      case _: SquadDefinitionActionMessage =>
-        sessionFuncs.handleSquadDefinitionAction(pkt)
+      case packet: SquadDefinitionActionMessage =>
+        sessionFuncs.squad.handleSquadDefinitionAction(packet)
 
-      case _: SquadMembershipRequest =>
-        sessionFuncs.handleSquadMemberRequest(pkt)
+      case packet: SquadMembershipRequest =>
+        sessionFuncs.squad.handleSquadMemberRequest(packet)
 
-      case _: SquadWaypointRequest =>
-        sessionFuncs.handleSquadWaypointRequest(pkt)
+      case packet: SquadWaypointRequest =>
+        sessionFuncs.squad.handleSquadWaypointRequest(packet)
 
-      case _: GenericCollisionMsg =>
-        sessionFuncs.handleGenericCollision(pkt)
+      case packet: GenericCollisionMsg =>
+        sessionFuncs.handleGenericCollision(packet)
 
-      case _: BugReportMessage =>
-        sessionFuncs.handleBugReport(pkt)
+      case packet: BugReportMessage =>
+        sessionFuncs.handleBugReport(packet)
 
-      case _: BindPlayerMessage =>
-        sessionFuncs.handleBindPlayer(pkt)
+      case packet: BindPlayerMessage =>
+        sessionFuncs.handleBindPlayer(packet)
 
-      case _: PlanetsideAttributeMessage =>
-        sessionFuncs.handlePlanetsideAttribute(pkt)
+      case packet: PlanetsideAttributeMessage =>
+        sessionFuncs.handlePlanetsideAttribute(packet)
 
-      case _: FacilityBenefitShieldChargeRequestMessage =>
-        sessionFuncs.handleFacilityBenefitShieldChargeRequest(pkt)
+      case packet: FacilityBenefitShieldChargeRequestMessage =>
+        sessionFuncs.handleFacilityBenefitShieldChargeRequest(packet)
 
-      case _: BattleplanMessage =>
-        sessionFuncs.handleBattleplan(pkt)
+      case packet: BattleplanMessage =>
+        sessionFuncs.handleBattleplan(packet)
 
-      case msg: CreateShortcutMessage =>
-        if (msg.shortcut.nonEmpty) {
-          sessionFuncs.handleAddShortcut(pkt)
-        } else {
-          sessionFuncs.handleRemoveShortcut(pkt)
-        }
+      case packet: CreateShortcutMessage =>
+        sessionFuncs.handleCreateShortcut(packet)
 
-      case _: ChangeShortcutBankMessage =>
-        sessionFuncs.handleChangeShortcutBank(pkt)
+      case packet: ChangeShortcutBankMessage =>
+        sessionFuncs.handleChangeShortcutBank(packet)
 
-      case _: FriendsRequest =>
-        sessionFuncs.handleFriendRequest(pkt)
+      case packet: FriendsRequest =>
+        sessionFuncs.handleFriendRequest(packet)
 
-      case _: DroppodLaunchRequestMessage =>
-        sessionFuncs.zoning.handleDroppodLaunchRequest(pkt)
+      case packet: DroppodLaunchRequestMessage =>
+        sessionFuncs.zoning.handleDroppodLaunchRequest(packet)
 
-      case _: InvalidTerrainMessage =>
-        sessionFuncs.handleInvalidTerrain(pkt)
+      case packet: InvalidTerrainMessage =>
+        sessionFuncs.handleInvalidTerrain(packet)
 
-      case _: ActionCancelMessage =>
-        sessionFuncs.handleActionCancel(pkt)
+      case packet: ActionCancelMessage =>
+        sessionFuncs.handleActionCancel(packet)
 
-      case _: TradeMessage =>
-        sessionFuncs.handleTrade(pkt)
+      case packet: TradeMessage =>
+        sessionFuncs.handleTrade(packet)
 
-      case _: DisplayedAwardMessage =>
-        sessionFuncs.handleDisplayedAward(pkt)
+      case packet: DisplayedAwardMessage =>
+        sessionFuncs.handleDisplayedAward(packet)
 
-      case _: ObjectDetectedMessage =>
-        sessionFuncs.handleObjectDetected(pkt)
+      case packet: ObjectDetectedMessage =>
+        sessionFuncs.handleObjectDetected(packet)
 
-      case _: TargetingImplantRequest =>
-        sessionFuncs.handleTargetingImplantRequest(pkt)
+      case packet: TargetingImplantRequest =>
+        sessionFuncs.handleTargetingImplantRequest(packet)
 
-      case _: HitHint =>
-        sessionFuncs.handleHitHint(pkt)
+      case packet: HitHint =>
+        sessionFuncs.handleHitHint(packet)
 
       case _ =>
         log.warn(s"Unhandled GamePacket $pkt")

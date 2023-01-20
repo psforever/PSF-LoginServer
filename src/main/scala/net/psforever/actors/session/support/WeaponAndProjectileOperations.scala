@@ -2,6 +2,11 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration._
+//
 import net.psforever.actors.session.{AvatarActor, ChatActor, SessionActor}
 import net.psforever.login.WorldSession.{CountAmmunition, CountGrenades, FindAmmoBoxThatUses, FindEquipmentStock, FindToolThatUses, PutEquipmentInInventoryOrDrop, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
 import net.psforever.objects.ballistics.{PlayerSource, Projectile, ProjectileQuality, SourceEntry}
@@ -19,17 +24,11 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneProjectile}
 import net.psforever.objects._
-import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game._
+import net.psforever.packet.game.{AvatarGrenadeStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, LashMessage, LongRangeProjectileInfoMessage, ProjectileStateMessage, ReloadMessage, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponLazeTargetPositionMessage, _}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{ExoSuitType, PlanetSideGUID, Vector3}
 import net.psforever.util.Config
-
-import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.concurrent.duration._
 
 private[support] class WeaponAndProjectileOperations(
                                      val sessionData: SessionData,
@@ -45,511 +44,463 @@ private[support] class WeaponAndProjectileOperations(
   private val projectiles: Array[Option[Projectile]] =
     Array.fill[Option[Projectile]](Projectile.rangeUID - Projectile.baseUID)(None)
 
-  /* case handling code */
+  /* packets */
 
-  def handleWeaponFire(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case WeaponFireMessage(
-      _,
-      weapon_guid,
-      projectile_guid,
-      shot_origin,
-      _,
-      _,
-      _,
-      _, //max_distance,
-      _,
-      _, //projectile_type,
-      thrown_projectile_vel
-      ) =>
-        HandleWeaponFireOperations(weapon_guid, projectile_guid, shot_origin, thrown_projectile_vel.flatten)
-      case _ => ;
+  def handleWeaponFire(pkt: WeaponFireMessage): Unit = {
+    val WeaponFireMessage(
+    _,
+    weapon_guid,
+    projectile_guid,
+    shot_origin,
+    _,
+    _,
+    _,
+    _/*max_distance,*/,
+    _,
+    _/*projectile_type,*/,
+    thrown_projectile_vel
+    ) = pkt
+    HandleWeaponFireOperations(weapon_guid, projectile_guid, shot_origin, thrown_projectile_vel.flatten)
+  }
+
+  def handleWeaponDelayFire(pkt: WeaponDelayFireMessage): Unit = {
+    val WeaponDelayFireMessage(_, _) = pkt
+    log.info(s"${player.Name} - $pkt")
+  }
+
+  def handleWeaponDryFire(pkt: WeaponDryFireMessage): Unit = {
+    val WeaponDryFireMessage(weapon_guid) = pkt
+    FindWeapon
+      .find { _.GUID == weapon_guid }
+      .orElse { continent.GUID(weapon_guid) } match {
+      case Some(_: Equipment) =>
+        continent.AvatarEvents ! AvatarServiceMessage(
+          continent.id,
+          AvatarAction.WeaponDryFire(player.GUID, weapon_guid)
+        )
+      case _ =>
+        log.warn(
+          s"WeaponDryFire: ${player.Name}'s weapon ${weapon_guid.guid} is either not a weapon or does not exist"
+        )
     }
   }
 
-  def handleWeaponDelayFire(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case msg @ WeaponDelayFireMessage(_, _) =>
-        log.info(s"${player.Name} - $msg")
-      case _ => ;
+  def handleWeaponLazeTargetPosition(pkt: WeaponLazeTargetPositionMessage): Unit = {
+    val WeaponLazeTargetPositionMessage(_, _, _) = pkt
+    //do not need to handle the progress bar animation/state on the server
+    //laze waypoint is requested by client upon completion (see SquadWaypointRequest)
+    val purpose = if (sessionData.squad.squad_supplement_id > 0) {
+      s" for ${player.Sex.possessive} squad (#${sessionData.squad.squad_supplement_id -1})"
+    } else {
+      " ..."
     }
+    log.info(s"${player.Name} is lazing a position$purpose")
   }
 
-  def handleWeaponDryFire(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case WeaponDryFireMessage(weapon_guid) =>
-        FindWeapon
-          .find { _.GUID == weapon_guid }
-          .orElse { continent.GUID(weapon_guid) } match {
-          case Some(_: Equipment) =>
-            continent.AvatarEvents ! AvatarServiceMessage(
-              continent.id,
-              AvatarAction.WeaponDryFire(player.GUID, weapon_guid)
-            )
-          case _ =>
-            log.warn(
-              s"WeaponDryFire: ${player.Name}'s weapon ${weapon_guid.guid} is either not a weapon or does not exist"
-            )
-        }
-      case _ => ;
-    }
+  def handleAvatarGrenadeState(pkt: AvatarGrenadeStateMessage): Unit = {
+    val AvatarGrenadeStateMessage(_, state) = pkt
+    //TODO I thought I had this working?
+    log.info(s"${player.Name} has $state ${player.Sex.possessive} grenade")
   }
 
-  def handleWeaponLazeTargetPosition(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case WeaponLazeTargetPositionMessage(_, _, _) => ;
-        //do not need to handle the progress bar animation/state on the server
-        //laze waypoint is requested by client upon completion (see SquadWaypointRequest)
-        val purpose = if (sessionData.squadResponseHandlers.squad_supplement_id > 0) {
-          s" for ${player.Sex.possessive} squad (#${sessionData.squadResponseHandlers.squad_supplement_id -1})"
-        } else {
-          " ..."
-        }
-        log.info(s"${player.Name} is lazing a position$purpose")
-      case _ => ;
-    }
-  }
-
-  def handleAvatarGrenadeState(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case AvatarGrenadeStateMessage(_, state) =>
-        //TODO I thought I had this working?
-        log.info(s"${player.Name} has $state ${player.Sex.possessive} grenade")
-      case _ => ;
-    }
-  }
-
-  def handleChangeFireStateStart(pkt: PlanetSideGamePacket)(implicit context: ActorContext): Unit = {
-    pkt match {
-      case ChangeFireStateMessage_Start(item_guid) =>
-        if (shooting.isEmpty) {
-          sessionData.FindEquipment(item_guid) match {
-            case Some(tool: Tool) =>
-              if (tool.FireMode.RoundsPerShot == 0 || tool.Magazine > 0 || prefire.contains(item_guid)) {
-                prefire -= item_guid
-                shooting += item_guid
-                shootingStart += item_guid -> System.currentTimeMillis()
-                //special case - suppress the decimator's alternate fire mode, by projectile
-                if (tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
-                  continent.AvatarEvents ! AvatarServiceMessage(
-                    continent.id,
-                    AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
-                  )
-                }
-                //charge ammunition drain
-                tool.FireMode match {
-                  case mode: ChargeFireModeDefinition =>
-                    sessionData.progressBarValue = Some(0f)
-                    sessionData.progressBarUpdate = context.system.scheduler.scheduleOnce(
-                      (mode.Time + mode.DrainInterval) milliseconds,
-                      context.self,
-                      SessionActor.ProgressEvent(1f, () => {}, Tools.ChargeFireMode(player, tool), mode.DrainInterval)
-                    )
-                  case _ => ;
-                }
-              } else {
-                log.warn(
-                  s"ChangeFireState_Start: ${player.Name}'s ${tool.Definition.Name} magazine was empty before trying to shoot"
-                )
-                EmptyMagazine(item_guid, tool)
-              }
-            case Some(_) => //permissible, for now
-              prefire -= item_guid
-              shooting += item_guid
-              shootingStart += item_guid -> System.currentTimeMillis()
+  def handleChangeFireStateStart(pkt: ChangeFireStateMessage_Start)(implicit context: ActorContext): Unit = {
+    val ChangeFireStateMessage_Start(item_guid) = pkt
+    if (shooting.isEmpty) {
+      sessionData.FindEquipment(item_guid) match {
+        case Some(tool: Tool) =>
+          if (tool.FireMode.RoundsPerShot == 0 || tool.Magazine > 0 || prefire.contains(item_guid)) {
+            prefire -= item_guid
+            shooting += item_guid
+            shootingStart += item_guid -> System.currentTimeMillis()
+            //special case - suppress the decimator's alternate fire mode, by projectile
+            if (tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
               continent.AvatarEvents ! AvatarServiceMessage(
                 continent.id,
                 AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
               )
-            case None =>
-              log.warn(s"ChangeFireState_Start: can not find $item_guid")
-          }
-        }
-      case _ => ;
-    }
-  }
-
-  def handleChangeFireStateStop(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case ChangeFireStateMessage_Stop(item_guid) =>
-        prefire -= item_guid
-        shootingStop += item_guid -> System.currentTimeMillis()
-        shooting -= item_guid
-        val pguid = player.GUID
-        sessionData.FindEquipment(item_guid) match {
-          case Some(tool: Tool) =>
-            //the decimator does not send a ChangeFireState_Start on the last shot; heaven knows why
-            if (
-              tool.Definition == GlobalDefinitions.phoenix &&
-                tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile
-            ) {
-              //suppress the decimator's alternate fire mode, however
-              continent.AvatarEvents ! AvatarServiceMessage(
-                continent.id,
-                AvatarAction.ChangeFireState_Start(pguid, item_guid)
-              )
-              shootingStart += item_guid -> (System.currentTimeMillis() - 1L)
             }
+            //charge ammunition drain
             tool.FireMode match {
-              case _: ChargeFireModeDefinition =>
-                sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))
+              case mode: ChargeFireModeDefinition =>
+                sessionData.progressBarValue = Some(0f)
+                sessionData.progressBarUpdate = context.system.scheduler.scheduleOnce(
+                  (mode.Time + mode.DrainInterval) milliseconds,
+                  context.self,
+                  SessionActor.ProgressEvent(1f, () => {}, Tools.ChargeFireMode(player, tool), mode.DrainInterval)
+                )
               case _ => ;
             }
-            if (tool.Magazine == 0) {
-              FireCycleCleanup(tool)
-            }
-            continent.AvatarEvents ! AvatarServiceMessage(
-              continent.id,
-              AvatarAction.ChangeFireState_Stop(pguid, item_guid)
+          } else {
+            log.warn(
+              s"ChangeFireState_Start: ${player.Name}'s ${tool.Definition.Name} magazine was empty before trying to shoot"
             )
+            EmptyMagazine(item_guid, tool)
+          }
+        case Some(_) => //permissible, for now
+          prefire -= item_guid
+          shooting += item_guid
+          shootingStart += item_guid -> System.currentTimeMillis()
+          continent.AvatarEvents ! AvatarServiceMessage(
+            continent.id,
+            AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
+          )
+        case None =>
+          log.warn(s"ChangeFireState_Start: can not find $item_guid")
+      }
+    }
+  }
 
-          case Some(trigger: BoomerTrigger) =>
-            continent.AvatarEvents ! AvatarServiceMessage(
-              continent.id,
-              AvatarAction.ChangeFireState_Start(pguid, item_guid)
-            )
-            continent.GUID(trigger.Companion) match {
-              case Some(boomer: BoomerDeployable) =>
-                boomer.Actor ! CommonMessages.Use(player, Some(trigger))
-              case Some(_) | None => ;
-            }
-
+  def handleChangeFireStateStop(pkt: ChangeFireStateMessage_Stop): Unit = {
+    val ChangeFireStateMessage_Stop(item_guid) = pkt
+    prefire -= item_guid
+    shootingStop += item_guid -> System.currentTimeMillis()
+    shooting -= item_guid
+    val pguid = player.GUID
+    sessionData.FindEquipment(item_guid) match {
+      case Some(tool: Tool) =>
+        //the decimator does not send a ChangeFireState_Start on the last shot; heaven knows why
+        if (
+          tool.Definition == GlobalDefinitions.phoenix &&
+            tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile
+        ) {
+          //suppress the decimator's alternate fire mode, however
+          continent.AvatarEvents ! AvatarServiceMessage(
+            continent.id,
+            AvatarAction.ChangeFireState_Start(pguid, item_guid)
+          )
+          shootingStart += item_guid -> (System.currentTimeMillis() - 1L)
+        }
+        tool.FireMode match {
+          case _: ChargeFireModeDefinition =>
+            sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))
           case _ => ;
-          //log.warn(s"ChangeFireState_Stop: ${player.Name} never started firing item ${item_guid.guid} in the first place?")
         }
-        sessionData.progressBarUpdate.cancel()
-        sessionData.progressBarValue = None
+        if (tool.Magazine == 0) {
+          FireCycleCleanup(tool)
+        }
+        continent.AvatarEvents ! AvatarServiceMessage(
+          continent.id,
+          AvatarAction.ChangeFireState_Stop(pguid, item_guid)
+        )
+
+      case Some(trigger: BoomerTrigger) =>
+        continent.AvatarEvents ! AvatarServiceMessage(
+          continent.id,
+          AvatarAction.ChangeFireState_Start(pguid, item_guid)
+        )
+        continent.GUID(trigger.Companion) match {
+          case Some(boomer: BoomerDeployable) =>
+            boomer.Actor ! CommonMessages.Use(player, Some(trigger))
+          case Some(_) | None => ;
+        }
+
       case _ => ;
+      //log.warn(s"ChangeFireState_Stop: ${player.Name} never started firing item ${item_guid.guid} in the first place?")
     }
+    sessionData.progressBarUpdate.cancel()
+    sessionData.progressBarValue = None
   }
 
-  def handleReload(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case _ @ ReloadMessage(item_guid, _, unk1) =>
-        FindContainedWeapon match {
-          case (Some(obj: PlanetSideServerObject with Container), tools) =>
-            tools.filter { _.GUID == item_guid }.foreach { tool =>
-              val currentMagazine : Int = tool.Magazine
-              val magazineSize : Int = tool.MaxMagazine
-              val reloadValue : Int = magazineSize - currentMagazine
-              if (magazineSize > 0 && reloadValue > 0) {
-                FindEquipmentStock(obj, FindAmmoBoxThatUses(tool.AmmoType), reloadValue, CountAmmunition).reverse match {
-                  case Nil => ;
-                  case x :: xs =>
-                    val (deleteFunc, modifyFunc) : (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
-                      case veh : Vehicle =>
-                        (RemoveOldEquipmentFromInventory(veh)(_), ModifyAmmunitionInVehicle(veh)(_, _))
-                      case _ =>
-                        (RemoveOldEquipmentFromInventory(obj)(_), ModifyAmmunition(obj)(_, _))
-                    }
-                    xs.foreach { item => deleteFunc(item.obj) }
-                    val box = x.obj.asInstanceOf[AmmoBox]
-                    val tailReloadValue : Int = if (xs.isEmpty) {
-                      0
-                    }
-                    else {
-                      xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum
-                    }
-                    val sumReloadValue : Int = box.Capacity + tailReloadValue
-                    val actualReloadValue = if (sumReloadValue <= reloadValue) {
-                      deleteFunc(box)
-                      sumReloadValue
-                    }
-                    else {
-                      modifyFunc(box, reloadValue - tailReloadValue)
-                      reloadValue
-                    }
-                    val finalReloadValue = actualReloadValue + currentMagazine
-                    log.info(
-                      s"${player.Name} successfully reloaded $reloadValue ${tool.AmmoType} into ${tool.Definition.Name}"
-                    )
-                    tool.Magazine = finalReloadValue
-                    sendResponse(ReloadMessage(item_guid, finalReloadValue, unk1))
-                    continent.AvatarEvents ! AvatarServiceMessage(
-                      continent.id,
-                      AvatarAction.Reload(player.GUID, item_guid)
-                    )
+  def handleReload(pkt: ReloadMessage): Unit = {
+    val ReloadMessage(item_guid, _, unk1) = pkt
+    FindContainedWeapon match {
+      case (Some(obj: PlanetSideServerObject with Container), tools) =>
+        tools.filter { _.GUID == item_guid }.foreach { tool =>
+          val currentMagazine : Int = tool.Magazine
+          val magazineSize : Int = tool.MaxMagazine
+          val reloadValue : Int = magazineSize - currentMagazine
+          if (magazineSize > 0 && reloadValue > 0) {
+            FindEquipmentStock(obj, FindAmmoBoxThatUses(tool.AmmoType), reloadValue, CountAmmunition).reverse match {
+              case Nil => ;
+              case x :: xs =>
+                val (deleteFunc, modifyFunc) : (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
+                  case veh : Vehicle =>
+                    (RemoveOldEquipmentFromInventory(veh)(_), ModifyAmmunitionInVehicle(veh)(_, _))
+                  case _ =>
+                    (RemoveOldEquipmentFromInventory(obj)(_), ModifyAmmunition(obj)(_, _))
                 }
-              } else {
-                //the weapon can not reload due to full magazine; the UI for the magazine is obvious bugged, so fix it
-                sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, magazineSize))
-              }
-            }
-          case (_, _) =>
-            log.warn(s"ReloadMessage: either can not find $item_guid or the object found was not a Tool")
-        }
-      case _ => ;
-    }
-  }
-
-  def handleChangeAmmo(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case ChangeAmmoMessage(item_guid, _) =>
-        val (thing, equipment) = sessionData.FindContainedEquipment()
-        if(equipment.isEmpty) {
-          log.warn(s"ChangeAmmo: either can not find $item_guid or the object found was not Equipment")
-        } else {
-          equipment foreach {
-            case obj : ConstructionItem =>
-              if (Deployables.performConstructionItemAmmoChange(player.avatar.certifications, obj, obj.AmmoTypeIndex)) {
+                xs.foreach { item => deleteFunc(item.obj) }
+                val box = x.obj.asInstanceOf[AmmoBox]
+                val tailReloadValue : Int = if (xs.isEmpty) {
+                  0
+                }
+                else {
+                  xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum
+                }
+                val sumReloadValue : Int = box.Capacity + tailReloadValue
+                val actualReloadValue = if (sumReloadValue <= reloadValue) {
+                  deleteFunc(box)
+                  sumReloadValue
+                }
+                else {
+                  modifyFunc(box, reloadValue - tailReloadValue)
+                  reloadValue
+                }
+                val finalReloadValue = actualReloadValue + currentMagazine
                 log.info(
-                  s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${obj.AmmoType} (option #${obj.FireModeIndex})"
+                  s"${player.Name} successfully reloaded $reloadValue ${tool.AmmoType} into ${tool.Definition.Name}"
                 )
-                sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
-              }
-            case tool : Tool =>
-              thing match {
-                case Some(correctThing: PlanetSideServerObject with Container) =>
-                  PerformToolAmmoChange(tool, correctThing)
-                case _ =>
-                  log.warn(s"ChangeAmmo: the ${thing.get.Definition.Name} in ${player.Name}'s is not the correct type")
-              }
-            case obj =>
-              log.warn(s"ChangeAmmo: the ${obj.Definition.Name} in ${player.Name}'s hands does not contain ammunition")
+                tool.Magazine = finalReloadValue
+                sendResponse(ReloadMessage(item_guid, finalReloadValue, unk1))
+                continent.AvatarEvents ! AvatarServiceMessage(
+                  continent.id,
+                  AvatarAction.Reload(player.GUID, item_guid)
+                )
+            }
+          } else {
+            //the weapon can not reload due to full magazine; the UI for the magazine is obvious bugged, so fix it
+            sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, magazineSize))
           }
         }
-      case _ => ;
+      case (_, _) =>
+        log.warn(s"ReloadMessage: either can not find $item_guid or the object found was not a Tool")
     }
   }
 
-  def handleChangeFireMode(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case ChangeFireModeMessage(item_guid, _/*fire_mode*/) =>
-        sessionData.FindEquipment(item_guid) match {
-          case Some(obj: PlanetSideGameObject with FireModeSwitch[_]) =>
-            val originalModeIndex = obj.FireModeIndex
-            if (obj match {
-              case citem: ConstructionItem =>
-                val modeChanged = Deployables.performConstructionItemFireModeChange(
-                  player.avatar.certifications,
-                  citem,
-                  originalModeIndex
-                )
-                modeChanged
-              case _ =>
-                obj.NextFireMode == originalModeIndex
-            }) {
-              val modeIndex = obj.FireModeIndex
-              obj match {
-                case citem: ConstructionItem =>
-                  log.info(s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${citem.AmmoType} (mode #$modeIndex)")
-                case _ =>
-                  log.info(s"${player.Name} changed ${player.Sex.possessive} her ${obj.Definition.Name}'s fire mode to #$modeIndex")
-              }
-              sendResponse(ChangeFireModeMessage(item_guid, modeIndex))
-              continent.AvatarEvents ! AvatarServiceMessage(
-                continent.id,
-                AvatarAction.ChangeFireMode(player.GUID, item_guid, modeIndex)
-              )
-            }
-          case Some(_) =>
-            log.warn(s"ChangeFireMode: the object that was found for $item_guid does not possess fire modes")
-          case None =>
-            log.warn(s"ChangeFireMode: can not find $item_guid")
-        }
-      case _ => ;
-    }
-  }
-
-  def handleProjectileState(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, seq, end, target_guid) =>
-        val index = projectile_guid.guid - Projectile.baseUID
-        projectiles(index) match {
-          case Some(projectile) if projectile.HasGUID =>
-            val projectileGlobalUID = projectile.GUID
-            projectile.Position = shot_pos
-            projectile.Orientation = shot_orient
-            projectile.Velocity = shot_vel
-            continent.AvatarEvents ! AvatarServiceMessage(
-              continent.id,
-              AvatarAction.ProjectileState(
-                player.GUID,
-                projectileGlobalUID,
-                shot_pos,
-                shot_vel,
-                shot_orient,
-                seq,
-                end,
-                target_guid
-              )
+  def handleChangeAmmo(pkt: ChangeAmmoMessage): Unit = {
+    val ChangeAmmoMessage(item_guid, _) = pkt
+    val (thing, equipment) = sessionData.FindContainedEquipment()
+    if (equipment.isEmpty) {
+      log.warn(s"ChangeAmmo: either can not find $item_guid or the object found was not Equipment")
+    } else {
+      equipment foreach {
+        case obj : ConstructionItem =>
+          if (Deployables.performConstructionItemAmmoChange(player.avatar.certifications, obj, obj.AmmoTypeIndex)) {
+            log.info(
+              s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${obj.AmmoType} (option #${obj.FireModeIndex})"
             )
-          case _ if seq == 0 =>
-          /* missing the first packet in the sequence is permissible */
+            sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
+          }
+        case tool : Tool =>
+          thing match {
+            case Some(correctThing: PlanetSideServerObject with Container) =>
+              PerformToolAmmoChange(tool, correctThing)
+            case _ =>
+              log.warn(s"ChangeAmmo: the ${thing.get.Definition.Name} in ${player.Name}'s is not the correct type")
+          }
+        case obj =>
+          log.warn(s"ChangeAmmo: the ${obj.Definition.Name} in ${player.Name}'s hands does not contain ammunition")
+      }
+    }
+  }
+
+  def handleChangeFireMode(pkt: ChangeFireModeMessage): Unit = {
+    val ChangeFireModeMessage(item_guid, _/*fire_mode*/) = pkt
+    sessionData.FindEquipment(item_guid) match {
+      case Some(obj: PlanetSideGameObject with FireModeSwitch[_]) =>
+        val originalModeIndex = obj.FireModeIndex
+        if (obj match {
+          case citem: ConstructionItem =>
+            val modeChanged = Deployables.performConstructionItemFireModeChange(
+              player.avatar.certifications,
+              citem,
+              originalModeIndex
+            )
+            modeChanged
           case _ =>
-            log.warn(s"ProjectileState: constructed projectile ${projectile_guid.guid} can not be found")
+            obj.NextFireMode == originalModeIndex
+        }) {
+          val modeIndex = obj.FireModeIndex
+          obj match {
+            case citem: ConstructionItem =>
+              log.info(s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${citem.AmmoType} (mode #$modeIndex)")
+            case _ =>
+              log.info(s"${player.Name} changed ${player.Sex.possessive} her ${obj.Definition.Name}'s fire mode to #$modeIndex")
+          }
+          sendResponse(ChangeFireModeMessage(item_guid, modeIndex))
+          continent.AvatarEvents ! AvatarServiceMessage(
+            continent.id,
+            AvatarAction.ChangeFireMode(player.GUID, item_guid, modeIndex)
+          )
         }
+      case Some(_) =>
+        log.warn(s"ChangeFireMode: the object that was found for $item_guid does not possess fire modes")
+      case None =>
+        log.warn(s"ChangeFireMode: can not find $item_guid")
+    }
+  }
+
+  def handleProjectileState(pkt: ProjectileStateMessage): Unit = {
+    val ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, seq, end, target_guid) = pkt
+    val index = projectile_guid.guid - Projectile.baseUID
+    projectiles(index) match {
+      case Some(projectile) if projectile.HasGUID =>
+        val projectileGlobalUID = projectile.GUID
+        projectile.Position = shot_pos
+        projectile.Orientation = shot_orient
+        projectile.Velocity = shot_vel
+        continent.AvatarEvents ! AvatarServiceMessage(
+          continent.id,
+          AvatarAction.ProjectileState(
+            player.GUID,
+            projectileGlobalUID,
+            shot_pos,
+            shot_vel,
+            shot_orient,
+            seq,
+            end,
+            target_guid
+          )
+        )
+      case _ if seq == 0 =>
+      /* missing the first packet in the sequence is permissible */
+      case _ =>
+        log.warn(s"ProjectileState: constructed projectile ${projectile_guid.guid} can not be found")
+    }
+  }
+
+  def handleLongRangeProjectileState(pkt: LongRangeProjectileInfoMessage): Unit = {
+    val LongRangeProjectileInfoMessage(guid, _, _) = pkt
+    FindContainedWeapon match {
+      case (Some(_: Vehicle), weapons)
+        if weapons.exists { _.GUID == guid } => ; //now what?
       case _ => ;
     }
   }
 
-  def handleLongRangeProjectileState(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case LongRangeProjectileInfoMessage(guid, _, _) =>
-        FindContainedWeapon match {
-          case (Some(_: Vehicle), weapons)
-            if weapons.exists { _.GUID == guid } => ; //now what?
-          case _ => ;
-        }
-      case _ => ;
-    }
-  }
-
-  def handleDirectHit(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case msg @ HitMessage(
-      _,
-      projectile_guid,
-      _,
-      hit_info,
-      _,
-      _,
-      _
-      ) =>
-        log.trace(s"${player.Name} lands a hit - $msg")
-        //find defined projectile
-        FindProjectileEntry(projectile_guid) match {
-          case Some(projectile) =>
-            //find target(s)
-            (hit_info match {
-              case Some(hitInfo) =>
-                val hitPos     = hitInfo.hit_pos
-                sessionData.ValidObject(hitInfo.hitobject_guid, decorator = "Hit/hitInfo") match {
-                  case _ if projectile.profile == GlobalDefinitions.flail_projectile =>
-                    val radius  = projectile.profile.DamageRadius * projectile.profile.DamageRadius
-                    val targets = Zone.findAllTargets(hitPos)(continent, player, projectile.profile)
-                      .filter { target =>
-                        Vector3.DistanceSquared(target.Position, hitPos) <= radius
-                      }
-                    targets.map { target =>
-                      CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
-                      (target, projectile, hitPos, target.Position)
-                    }
-
-                  case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-                    CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
-                    List((target, projectile, hitInfo.shot_origin, hitPos))
-
-                  case None =>
-                    HandleDamageProxy(projectile, projectile_guid, hitPos)
-
-                  case _ =>
-                    Nil
-                }
-              case None =>
-                Nil
-            })
-              .foreach({
-                case (
-                  target: PlanetSideGameObject with FactionAffinity with Vitality,
-                  proj: Projectile,
-                  _: Vector3,
-                  hitPos: Vector3
-                  ) =>
-                  ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos) match {
-                    case Some(resprojectile) =>
-                      sessionData.HandleDealingDamage(target, resprojectile)
-                    case None => ;
+  def handleDirectHit(pkt: HitMessage): Unit = {
+    val HitMessage(
+    _,
+    projectile_guid,
+    _,
+    hit_info,
+    _,
+    _,
+    _
+    ) = pkt
+    //find defined projectile
+    FindProjectileEntry(projectile_guid) match {
+      case Some(projectile) =>
+        //find target(s)
+        (hit_info match {
+          case Some(hitInfo) =>
+            val hitPos     = hitInfo.hit_pos
+            sessionData.ValidObject(hitInfo.hitobject_guid, decorator = "Hit/hitInfo") match {
+              case _ if projectile.profile == GlobalDefinitions.flail_projectile =>
+                val radius  = projectile.profile.DamageRadius * projectile.profile.DamageRadius
+                val targets = Zone.findAllTargets(hitPos)(continent, player, projectile.profile)
+                  .filter { target =>
+                    Vector3.DistanceSquared(target.Position, hitPos) <= radius
                   }
-                case _ => ;
-              })
-          case None =>
-            log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
-        }
-      case _ => ;
-    }
-  }
+                targets.map { target =>
+                  CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
+                  (target, projectile, hitPos, target.Position)
+                }
 
-  def handleSplashHit(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case msg @ SplashHitMessage(
-      _,
-      projectile_guid,
-      explosion_pos,
-      direct_victim_uid,
-      _,
-      projectile_vel,
-      _,
-      targets
-      ) =>
-        log.trace(s"${player.Name} splashes some targets - $msg")
-        FindProjectileEntry(projectile_guid) match {
-          case Some(projectile) =>
-            val profile = projectile.profile
-            projectile.Position = explosion_pos
-            projectile.Velocity = projectile_vel
-            val (resolution1, resolution2) = profile.Aggravated match {
-              case Some(_) if profile.ProjectileDamageTypes.contains(DamageType.Aggravated) =>
-                (DamageResolution.AggravatedDirect, DamageResolution.AggravatedSplash)
-              case _ =>
-                (DamageResolution.Splash, DamageResolution.Splash)
-            }
-            //direct_victim_uid
-            sessionData.ValidObject(direct_victim_uid, decorator = "SplashHit/direct_victim") match {
               case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-                CheckForHitPositionDiscrepancy(projectile_guid, target.Position, target)
-                ResolveProjectileInteraction(projectile, resolution1, target, target.Position) match {
-                  case Some(_projectile) =>
-                    sessionData.HandleDealingDamage(target, _projectile)
-                  case None => ;
-                }
-              case _ => ;
+                CheckForHitPositionDiscrepancy(projectile_guid, hitPos, target)
+                List((target, projectile, hitInfo.shot_origin, hitPos))
+
+              case None =>
+                HandleDamageProxy(projectile, projectile_guid, hitPos)
+
+              case _ =>
+                Nil
             }
-            //other victims
-            targets.foreach(elem => {
-              sessionData.ValidObject(elem.uid, decorator = "SplashHit/other_victims") match {
-                case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-                  CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
-                  ResolveProjectileInteraction(projectile, resolution2, target, explosion_pos) match {
-                    case Some(_projectile) =>
-                      sessionData.HandleDealingDamage(target, _projectile)
-                    case None => ;
-                  }
-                case _ => ;
+          case None =>
+            Nil
+        })
+          .foreach {
+            case (
+              target: PlanetSideGameObject with FactionAffinity with Vitality,
+              proj: Projectile,
+              _: Vector3,
+              hitPos: Vector3
+              ) =>
+              ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos) match {
+                case Some(resprojectile) =>
+                  sessionData.HandleDealingDamage(target, resprojectile)
+                case None => ;
               }
-            })
-            //...
-            HandleDamageProxy(projectile, projectile_guid, explosion_pos)
-            if (
-              projectile.profile.HasJammedEffectDuration ||
-                projectile.profile.JammerProjectile ||
-                projectile.profile.SympatheticExplosion
-            ) {
-              //can also substitute 'projectile.profile' for 'SpecialEmp.emp'
-              Zone.serverSideDamage(
-                continent,
-                player,
-                SpecialEmp.emp,
-                SpecialEmp.createEmpInteraction(SpecialEmp.emp, explosion_pos),
-                SpecialEmp.prepareDistanceCheck(player, explosion_pos, player.Faction),
-                SpecialEmp.findAllBoomers(profile.DamageRadius)
-              )
-            }
-            if (profile.ExistsOnRemoteClients && projectile.HasGUID) {
-              //cleanup
-              if (projectile.HasGUID) {
-                continent.Projectile ! ZoneProjectile.Remove(projectile.GUID)
-              }
-            }
-          case None => ;
-        }
-      case _ => ;
+            case _ => ;
+          }
+      case None =>
+        log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
     }
   }
 
-  def handleLashHit(pkt: PlanetSideGamePacket): Unit = {
-    pkt match {
-      case msg @ LashMessage(_, _, victim_guid, projectile_guid, hit_pos, _) =>
-        log.trace(s"${player.Name} lashes some targets - $msg")
-        sessionData.ValidObject(victim_guid, decorator = "Lash") match {
+  def handleSplashHit(pkt: SplashHitMessage): Unit = {
+    val SplashHitMessage(
+    _,
+    projectile_guid,
+    explosion_pos,
+    direct_victim_uid,
+    _,
+    projectile_vel,
+    _,
+    targets
+    ) = pkt
+    FindProjectileEntry(projectile_guid) match {
+      case Some(projectile) =>
+        val profile = projectile.profile
+        projectile.Position = explosion_pos
+        projectile.Velocity = projectile_vel
+        val (resolution1, resolution2) = profile.Aggravated match {
+          case Some(_) if profile.ProjectileDamageTypes.contains(DamageType.Aggravated) =>
+            (DamageResolution.AggravatedDirect, DamageResolution.AggravatedSplash)
+          case _ =>
+            (DamageResolution.Splash, DamageResolution.Splash)
+        }
+        //direct_victim_uid
+        sessionData.ValidObject(direct_victim_uid, decorator = "SplashHit/direct_victim") match {
           case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-            CheckForHitPositionDiscrepancy(projectile_guid, hit_pos, target)
-            ResolveProjectileInteraction(projectile_guid, DamageResolution.Lash, target, hit_pos) match {
-              case Some(projectile) =>
-                sessionData.HandleDealingDamage(target, projectile)
+            CheckForHitPositionDiscrepancy(projectile_guid, target.Position, target)
+            ResolveProjectileInteraction(projectile, resolution1, target, target.Position) match {
+              case Some(_projectile) =>
+                sessionData.HandleDealingDamage(target, _projectile)
               case None => ;
             }
           case _ => ;
+        }
+        //other victims
+        targets.foreach(elem => {
+          sessionData.ValidObject(elem.uid, decorator = "SplashHit/other_victims") match {
+            case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
+              CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
+              ResolveProjectileInteraction(projectile, resolution2, target, explosion_pos) match {
+                case Some(_projectile) =>
+                  sessionData.HandleDealingDamage(target, _projectile)
+                case None => ;
+              }
+            case _ => ;
+          }
+        })
+        //...
+        HandleDamageProxy(projectile, projectile_guid, explosion_pos)
+        if (
+          projectile.profile.HasJammedEffectDuration ||
+            projectile.profile.JammerProjectile ||
+            projectile.profile.SympatheticExplosion
+        ) {
+          //can also substitute 'projectile.profile' for 'SpecialEmp.emp'
+          Zone.serverSideDamage(
+            continent,
+            player,
+            SpecialEmp.emp,
+            SpecialEmp.createEmpInteraction(SpecialEmp.emp, explosion_pos),
+            SpecialEmp.prepareDistanceCheck(player, explosion_pos, player.Faction),
+            SpecialEmp.findAllBoomers(profile.DamageRadius)
+          )
+        }
+        if (profile.ExistsOnRemoteClients && projectile.HasGUID) {
+          //cleanup
+          if (projectile.HasGUID) {
+            continent.Projectile ! ZoneProjectile.Remove(projectile.GUID)
+          }
+        }
+      case None => ;
+    }
+  }
+
+  def handleLashHit(pkt: LashMessage): Unit = {
+    val LashMessage(_, _, victim_guid, projectile_guid, hit_pos, _) = pkt
+    sessionData.ValidObject(victim_guid, decorator = "Lash") match {
+      case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
+        CheckForHitPositionDiscrepancy(projectile_guid, hit_pos, target)
+        ResolveProjectileInteraction(projectile_guid, DamageResolution.Lash, target, hit_pos) match {
+          case Some(projectile) =>
+            sessionData.HandleDealingDamage(target, projectile)
+          case None => ;
         }
       case _ => ;
     }

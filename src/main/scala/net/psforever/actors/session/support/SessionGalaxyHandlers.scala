@@ -2,7 +2,6 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, typed}
-
 import scala.concurrent.duration._
 //
 import net.psforever.actors.session.AvatarActor
