@@ -113,6 +113,7 @@ class SessionTerminalHandlers(
               }
               .get match {
               case (Some(term: Terminal), Some(pad: VehicleSpawnPad)) =>
+                avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
                 vehicle.Faction = tplayer.Faction
                 vehicle.Position = pad.Position
                 vehicle.Orientation = pad.Orientation + Vector3.z(pad.Definition.VehicleCreationZOrientOffset)

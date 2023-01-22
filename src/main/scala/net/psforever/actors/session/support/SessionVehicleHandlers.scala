@@ -249,7 +249,6 @@ class SessionVehicleHandlers(
         }
         sendResponse(PlanetsideAttributeMessage(vehicle_guid, 22, 1L)) //mount points off
         sendResponse(PlanetsideAttributeMessage(player.GUID, 21, vehicle_guid)) //ownership
-        avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
         vehicle.MountPoints.find { case (_, mp) => mp.seatIndex == 0 } match {
           case Some((mountPoint, _)) => vehicle.Actor ! Mountable.TryMount(player, mountPoint)
           case _ => ;
@@ -266,6 +265,7 @@ class SessionVehicleHandlers(
         sessionData.vehicles.ServerVehicleOverride(vehicle, vdef.AutoPilotSpeed1, if (GlobalDefinitions.isFlightVehicle(vdef)) 1 else 0)
 
       case VehicleResponse.ServerVehicleOverrideEnd(vehicle, _) =>
+        session = session.copy(avatar = avatar.copy(vehicle = Some(vehicle.GUID)))
         sessionData.vehicles.DriverVehicleControl(vehicle, vehicle.Definition.AutoPilotSpeed2)
 
       case VehicleResponse.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, data) =>
