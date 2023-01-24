@@ -298,7 +298,8 @@ private[support] class WeaponAndProjectileOperations(
             )
             modeChanged
           case _ =>
-            obj.NextFireMode == originalModeIndex
+            obj.NextFireMode
+            obj.FireModeIndex != originalModeIndex
         }) {
           val modeIndex = obj.FireModeIndex
           obj match {
