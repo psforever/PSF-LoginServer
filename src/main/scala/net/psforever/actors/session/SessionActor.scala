@@ -131,14 +131,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   def receive: Receive = startup
 
   def startup: Receive = {
-    case msg =>
-      if (!sessionFuncs.assignEventBus(msg)) {
-        buffer.addOne(msg)
-      } else if (sessionFuncs.whenAllEventBusesLoaded()) {
-        context.become(inTheGame)
-        buffer.foreach { self.tell(_, self) }
-        buffer.clear()
-      }
+    case msg if !sessionFuncs.assignEventBus(msg) =>
+      buffer.addOne(msg)
+    case _ if sessionFuncs.whenAllEventBusesLoaded() =>
+      context.become(inTheGame)
+      buffer.foreach { self.tell(_, self) } //we forget the original sender, shouldn't be doing callbacks at this point
+      buffer.clear()
   }
 
   def inTheGame: Receive = {
@@ -185,7 +183,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         Config.app.game.savedMsg.renewal.variable
       )
 
-    /* common messages (once every respawn) */
+    /* common messages (maybe once every respawn) */
     case ICS.SpawnPointResponse(response) =>
       sessionFuncs.zoning.handleSpawnPointResponse(response)
 
