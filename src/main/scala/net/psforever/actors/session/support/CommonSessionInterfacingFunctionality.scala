@@ -21,25 +21,25 @@ trait CommonSessionInterfacingFunctionality {
    */
   protected implicit val sender: ActorRef = context.self
 
-  def context: ActorContext
+  protected def context: ActorContext
 
-  def sessionData: SessionData
+  protected def sessionData: SessionData
 
-  def session: Session = sessionData.session
+  protected def session: Session = sessionData.session
 
-  def session_=(newsession: Session): Unit = sessionData.session_=(newsession)
+  protected def session_=(newsession: Session): Unit = sessionData.session_=(newsession)
 
-  def account: Account = sessionData.account
+  protected def account: Account = sessionData.account
 
-  def continent: Zone = sessionData.continent
+  protected def continent: Zone = sessionData.continent
 
-  def player: Player = sessionData.player
+  protected def player: Player = sessionData.player
 
-  def avatar: Avatar = sessionData.avatar
+  protected def avatar: Avatar = sessionData.avatar
 
-  def log: Logger = sessionData.log
+  protected def log: Logger = sessionData.log
 
-  def sendResponse(pkt: PlanetSideGamePacket): Unit = sessionData.sendResponse(pkt)
+  protected def sendResponse(pkt: PlanetSideGamePacket): Unit = sessionData.sendResponse(pkt)
 
-  def stop(): Unit = { /* to override */ }
+  protected[session] def stop(): Unit = { /* to override */ }
 }

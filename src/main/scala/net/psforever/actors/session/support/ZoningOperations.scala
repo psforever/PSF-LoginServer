@@ -3178,7 +3178,7 @@ class ZoningOperations(
     }
   }
 
-  override def stop(): Unit = {
+  override protected[session] def stop(): Unit = {
     zoningTimer.cancel()
     spawn.respawnTimer.cancel()
     spawn.reviveTimer.cancel()

@@ -1210,7 +1210,7 @@ private[support] class WeaponAndProjectileOperations(
    */
   def FindWeapon: Set[Tool] = FindContainedWeapon._2
 
-  override def stop(): Unit = {
+  override protected[session] def stop(): Unit = {
     if (player != null && player.HasGUID) {
       (prefire ++ shooting).foreach { guid =>
         continent.AvatarEvents ! AvatarServiceMessage(
