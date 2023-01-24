@@ -137,6 +137,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       context.become(inTheGame)
       buffer.foreach { self.tell(_, self) } //we forget the original sender, shouldn't be doing callbacks at this point
       buffer.clear()
+    case _ => ()
   }
 
   def inTheGame: Receive = {
