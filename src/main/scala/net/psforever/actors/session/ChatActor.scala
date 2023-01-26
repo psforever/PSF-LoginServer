@@ -9,6 +9,7 @@ import net.psforever.objects.avatar.{Shortcut => AvatarShortcut}
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.packet.game.{CreateShortcutMessage, Shortcut}
 import net.psforever.packet.game.objectcreate.DrawnSlot
+import net.psforever.types.ChatMessageType.{CMT_GMOPEN, UNK_227}
 import net.psforever.types.ImplantType
 
 import scala.collection.mutable
@@ -425,167 +426,11 @@ class ChatActor(
               cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryNextRotation)
 
             /** Messages starting with ! are custom chat commands */
-            case (messageType, recipient, contents) if contents.startsWith("!") =>
-              (messageType, recipient, contents) match {
-                case (_, _, _contents) if _contents.startsWith("!whitetext ") && session.account.gm =>
-                  chatService ! ChatService.Message(
-                    session,
-                    ChatMsg(UNK_227, true, "", contents.replace("!whitetext ", ""), None),
-                    ChatChannel.Default()
-                  )
-
-                case (_, _, "!loc") =>
-                  val continent = session.zone
-                  val player = session.player
-                  val loc =
-                    s"zone=${continent.id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
-                  log.info(loc)
-                  sessionActor ! SessionActor.SendResponse(message.copy(contents = loc))
-
-                case (_, _, content) if content.startsWith("!list") =>
-                  val zone = content.split(" ").lift(1) match {
-                    case None =>
-                      Some(session.zone)
-                    case Some(id) =>
-                      Zones.zones.find(_.id == id)
-                  }
-
-                  zone match {
-                    case Some(inZone) =>
-                      sessionActor ! SessionActor.SendResponse(
-                        ChatMsg(
-                          CMT_GMOPEN,
-                          message.wideContents,
-                          "Server",
-                          "\\#8Name (Faction) [ID] at PosX PosY PosZ",
-                          message.note
-                        )
-                      )
-
-                      (inZone.LivePlayers ++ inZone.Corpses)
-                        .filter(_.CharId != session.player.CharId)
-                        .sortBy(p => (p.Name, !p.isAlive))
-                        .foreach(player => {
-                          val color = if (!player.isAlive) "\\#7" else ""
-                          sessionActor ! SessionActor.SendResponse(
-                            ChatMsg(
-                              CMT_GMOPEN,
-                              message.wideContents,
-                              "Server",
-                              s"$color${player.Name} (${player.Faction}) [${player.CharId}] at ${player.Position.x.toInt} ${player.Position.y.toInt} ${player.Position.z.toInt}",
-                              message.note
-                            )
-                          )
-                        })
-                    case None =>
-                      sessionActor ! SessionActor.SendResponse(
-                        ChatMsg(
-                          CMT_GMOPEN,
-                          message.wideContents,
-                          "Server",
-                          "Invalid zone ID",
-                          message.note
-                        )
-                      )
-                  }
-
-                case (_, _, content) if content.startsWith("!ntu") && gmCommandAllowed =>
-                  val buffer = content.toLowerCase.split("\\s+")
-                  val (facility, customNtuValue) = (buffer.lift(1), buffer.lift(2)) match {
-                    case (Some(x), Some(y)) if y.toIntOption.nonEmpty => (Some(x), Some(y.toInt))
-                    case (Some(x), None) if x.toIntOption.nonEmpty => (None, Some(x.toInt))
-                    case _ => (None, None)
-                  }
-                  val silos = (facility match {
-                    case Some(cur) if cur.toLowerCase().startsWith("curr") =>
-                      val position = session.player.Position
-                      session.zone.Buildings.values
-                        .filter { building =>
-                          val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
-                          Vector3.DistanceSquared(building.Position, position) < soi2
-                        }
-                    case Some(all) if all.toLowerCase.startsWith("all") =>
-                      session.zone.Buildings.values
-                    case Some(x) =>
-                      session.zone.Buildings.values.find {
-                        _.Name.equalsIgnoreCase(x)
-                      }.toList
-                    case _ =>
-                      session.zone.Buildings.values
-                  })
-                    .flatMap { building => building.Amenities.filter {
-                      _.isInstanceOf[ResourceSilo]
-                    }
-                    }
-                  ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent = s"$facility")
-
-                case (_, _, content) if content.startsWith("!zonerotate") && gmCommandAllowed =>
-                  val buffer = contents.toLowerCase.split("\\s+")
-                  cluster ! InterstellarClusterService.CavernRotation(buffer.lift(1) match {
-                    case Some("-list") | Some("-l") =>
-                      CavernRotationService.ReportRotationOrder(sessionActor.toClassic)
-                    case _ =>
-                      CavernRotationService.HurryNextRotation
-                  })
-
-                case (_, _, content) if content.startsWith("!suicide") =>
-                  //this is like CMT_SUICIDE but it ignores checks and forces a suicide state
-                  val tplayer = session.player
-                  tplayer.Revive
-                  tplayer.Actor ! Player.Die()
-
-                case (_, _, content) if content.startsWith("!grenade") =>
-                  WorldSession.QuickSwapToAGrenade(session.player, DrawnSlot.Pistol1.id, log)
-
-                case (_, _, content) if content.startsWith("!macro") =>
-                  val avatar = session.avatar
-                  val args = contents.split(" ").filter(_ != "")
-                  (args.lift(1), args.lift(2)) match {
-                    case (Some(cmd), other) =>
-                      cmd.toLowerCase() match {
-                        case "medkit" =>
-                          medkitSanityTest(session.player.GUID, avatar.shortcuts)
-
-                        case "implants" =>
-                          //implant shortcut sanity test
-                          implantSanityTest(
-                            session.player.GUID,
-                            avatar.implants.collect {
-                              case Some(implant) if implant.definition.implantType != ImplantType.None => implant.definition
-                            },
-                            avatar.shortcuts
-                          )
-
-                        case name
-                          if ImplantType.values.exists { a => a.shortcut.tile.equals(name) } =>
-                          avatar.implants.find {
-                            case Some(implant) => implant.definition.Name.equalsIgnoreCase(name)
-                            case None => false
-                          } match {
-                            case Some(Some(implant)) =>
-                              //specific implant shortcut sanity test
-                              implantSanityTest(session.player.GUID, Seq(implant.definition), avatar.shortcuts)
-                            case _ if other.nonEmpty =>
-                              //add macro?
-                              macroSanityTest(session.player.GUID, name, args.drop(2).mkString(" "), avatar.shortcuts)
-                            case _ => ;
-                          }
-
-                        case name
-                          if name.nonEmpty && other.nonEmpty =>
-                          //add macro
-                          macroSanityTest(session.player.GUID, name, args.drop(2).mkString(" "), avatar.shortcuts)
-
-                        case _ => ;
-                      }
-                    case _ => ;
-                      // unknown ! commands are ignored
-                  }
-              }
+            case (_, _, contents) if contents.startsWith("!") &&
+                customCommandMessages(message, session, chatService, cluster, gmCommandAllowed) => ;
 
             case (CMT_CAPTUREBASE, _, contents) if gmCommandAllowed =>
               val args = contents.split(" ").filter(_ != "")
-
               val (faction, factionPos): (PlanetSideEmpire.Value, Option[Int]) = args.zipWithIndex
                 .map { case (factionName, pos) => (factionName.toLowerCase, pos) }
                 .flatMap {
@@ -601,7 +446,6 @@ class ChatActor(
                 case Some((isFaction, pos)) => (isFaction, Some(pos))
                 case None                   => (session.player.Faction, None)
               }
-
               val (buildingsOption, buildingPos): (Option[Seq[Building]], Option[Int]) = args.zipWithIndex.flatMap {
                 case (_, pos) if factionPos.isDefined && factionPos.get == pos => None
                 case ("all", pos) =>
@@ -635,7 +479,6 @@ class ChatActor(
                 case Some((buildings, pos)) => (buildings, pos)
                 case None                   => (None, None)
               }
-
               val (timerOption, timerPos): (Option[Int], Option[Int]) = args.zipWithIndex.flatMap {
                 case (_, pos)
                     if factionPos.isDefined && factionPos.get == pos || buildingPos.isDefined && buildingPos.get == pos =>
@@ -1331,6 +1174,192 @@ class ChatActor(
           index + 1,
           Some(Shortcut.Macro(acronym, msg))
         ))
+    }
+  }
+
+  def customCommandMessages(
+                             message: ChatMsg,
+                             session: Session,
+                             chatService: ActorRef[ChatService.Command],
+                             cluster: ActorRef[InterstellarClusterService.Command],
+                             gmCommandAllowed: Boolean
+                           ): Boolean = {
+//    val messageType = message.messageType
+//    val recipient = message.recipient
+    val contents = message.contents
+    if (contents.startsWith("!")) {
+      if (contents.startsWith("!whitetext ") && gmCommandAllowed) {
+        chatService ! ChatService.Message(
+          session,
+          ChatMsg(UNK_227, true, "", contents.replace("!whitetext ", ""), None),
+          ChatChannel.Default()
+        )
+        true
+
+      } else if (contents.startsWith("!loc ")) {
+        val continent = session.zone
+        val player = session.player
+        val loc =
+          s"zone=${continent.id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
+        log.info(loc)
+        sessionActor ! SessionActor.SendResponse(message.copy(contents = loc))
+        true
+
+      } else if (contents.startsWith("!list")) {
+        val zone = contents.split(" ").lift(1) match {
+          case None =>
+            Some(session.zone)
+          case Some(id) =>
+            Zones.zones.find(_.id == id)
+        }
+        zone match {
+          case Some(inZone) =>
+            sessionActor ! SessionActor.SendResponse(
+              ChatMsg(
+                CMT_GMOPEN,
+                message.wideContents,
+                "Server",
+                "\\#8Name (Faction) [ID] at PosX PosY PosZ",
+                message.note
+              )
+            )
+            (inZone.LivePlayers ++ inZone.Corpses)
+              .filter(_.CharId != session.player.CharId)
+              .sortBy(p => (p.Name, !p.isAlive))
+              .foreach(player => {
+                val color = if (!player.isAlive) "\\#7" else ""
+                sessionActor ! SessionActor.SendResponse(
+                  ChatMsg(
+                    CMT_GMOPEN,
+                    message.wideContents,
+                    "Server",
+                    s"$color${player.Name} (${player.Faction}) [${player.CharId}] at ${player.Position.x.toInt} ${player.Position.y.toInt} ${player.Position.z.toInt}",
+                    message.note
+                  )
+                )
+              })
+          case None =>
+            sessionActor ! SessionActor.SendResponse(
+              ChatMsg(
+                CMT_GMOPEN,
+                message.wideContents,
+                "Server",
+                "Invalid zone ID",
+                message.note
+              )
+            )
+        }
+        true
+
+      } else if (contents.startsWith("!ntu") && gmCommandAllowed) {
+        val buffer = contents.toLowerCase.split("\\s+")
+        val (facility, customNtuValue) = (buffer.lift(1), buffer.lift(2)) match {
+          case (Some(x), Some(y)) if y.toIntOption.nonEmpty => (Some(x), Some(y.toInt))
+          case (Some(x), None) if x.toIntOption.nonEmpty => (None, Some(x.toInt))
+          case _ => (None, None)
+        }
+        val silos = (facility match {
+          case Some(cur) if cur.toLowerCase().startsWith("curr") =>
+            val position = session.player.Position
+            session.zone.Buildings.values
+              .filter { building =>
+                val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
+                Vector3.DistanceSquared(building.Position, position) < soi2
+              }
+          case Some(all) if all.toLowerCase.startsWith("all") =>
+            session.zone.Buildings.values
+          case Some(x) =>
+            session.zone.Buildings.values.find {
+              _.Name.equalsIgnoreCase(x)
+            }.toList
+          case _ =>
+            session.zone.Buildings.values
+        })
+          .flatMap { building =>
+            building.Amenities.filter {
+              _.isInstanceOf[ResourceSilo]
+            }
+          }
+        ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent = s"$facility")
+        true
+
+      } else if (contents.startsWith("!zonerotate") && gmCommandAllowed) {
+        val buffer = contents.toLowerCase.split("\\s+")
+        cluster ! InterstellarClusterService.CavernRotation(buffer.lift(1) match {
+          case Some("-list") | Some("-l") =>
+            CavernRotationService.ReportRotationOrder(sessionActor.toClassic)
+          case _ =>
+            CavernRotationService.HurryNextRotation
+        })
+        true
+
+      } else if (contents.startsWith("!suicide")) {
+        //this is like CMT_SUICIDE but it ignores checks and forces a suicide state
+        val tplayer = session.player
+        tplayer.Revive
+        tplayer.Actor ! Player.Die()
+        true
+
+      } else if (contents.startsWith("!grenade")) {
+        WorldSession.QuickSwapToAGrenade(session.player, DrawnSlot.Pistol1.id, log)
+        true
+
+      } else if (contents.startsWith("!macro")) {
+        val avatar = session.avatar
+        val args = contents.split(" ").filter(_ != "")
+        (args.lift(1), args.lift(2)) match {
+          case (Some(cmd), other) =>
+            cmd.toLowerCase() match {
+              case "medkit" =>
+                medkitSanityTest(session.player.GUID, avatar.shortcuts)
+                true
+
+              case "implants" =>
+                //implant shortcut sanity test
+                implantSanityTest(
+                  session.player.GUID,
+                  avatar.implants.collect {
+                    case Some(implant) if implant.definition.implantType != ImplantType.None => implant.definition
+                  },
+                  avatar.shortcuts
+                )
+                true
+
+              case name
+                if ImplantType.values.exists { a => a.shortcut.tile.equals(name) } =>
+                avatar.implants.find {
+                  case Some(implant) => implant.definition.Name.equalsIgnoreCase(name)
+                  case None => false
+                } match {
+                  case Some(Some(implant)) =>
+                    //specific implant shortcut sanity test
+                    implantSanityTest(session.player.GUID, Seq(implant.definition), avatar.shortcuts)
+                    true
+                  case _ if other.nonEmpty =>
+                    //add macro?
+                    macroSanityTest(session.player.GUID, name, args.drop(2).mkString(" "), avatar.shortcuts)
+                    true
+                  case _ =>
+                    false
+                }
+
+              case name
+                if name.nonEmpty && other.nonEmpty =>
+                //add macro
+                macroSanityTest(session.player.GUID, name, args.drop(2).mkString(" "), avatar.shortcuts)
+                true
+
+              case _ =>
+                false
+            }
+          case _ =>
+            false
+        }
+      } else {
+        false // unknown ! commands are ignored
+      }
+    } else {
+      false // unknown ! commands are ignored
     }
   }
 }

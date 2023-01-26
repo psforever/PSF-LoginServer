@@ -19,7 +19,7 @@ object Default {
   final def Cancellable: Cancellable = cancellable
 
   //actor
-  import akka.actor.{Actor => AkkaActor, ActorRef, ActorSystem, DeadLetter, Props}
+  import akka.actor.{Actor => AkkaActor, ActorRef, ActorSystem, DeadLetter, Props, typed => Typed}
 
   /**
     * An actor designed to wrap around `deadLetters` and redirect all normal messages to it.
@@ -47,4 +47,15 @@ object Default {
   }
 
   final def Actor: ActorRef = defaultRef
+
+  object typed {
+    import akka.actor.typed.scaladsl.adapter._
+    private val defaultTypedRef: Typed.ActorRef[Any] = defaultRef.toTyped[Any]
+
+    /**
+     * A copy of the default actor
+     * but promoted into a typed actor that accepts any kind of message.
+     */
+    final def Actor: Typed.ActorRef[Any] = defaultTypedRef
+  }
 }

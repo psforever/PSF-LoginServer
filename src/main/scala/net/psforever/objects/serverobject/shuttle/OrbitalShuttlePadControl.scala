@@ -114,10 +114,22 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
       newShuttle.Position = position + Vector3(0, -8.25f, 0).Rz(pad.Orientation.z) //magic offset number
       newShuttle.Orientation = pad.Orientation
       newShuttle.Faction = pad.Faction
-      TaskWorkflow.execute(OrbitalShuttlePadControl.registerShuttle(zone, newShuttle, self))
+      shuttleRegistration(zone, newShuttle, self)
       context.become(shuttleTime)
 
     case _ => ;
+  }
+
+  /**
+   * If the new shuttle fails to register the nth time, try again.
+   * Don't take "no" for an answer.
+   */
+  def shuttleRegistration(zone: Zone, newShuttle: OrbitalShuttle, to: ActorRef): Future[Any] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    TaskWorkflow.execute(OrbitalShuttlePadControl.registerShuttle(zone, newShuttle, to)).recover({
+      case _: Exception =>
+        if (!newShuttle.HasGUID) shuttleRegistration(zone, newShuttle, to)
+    })
   }
 }
 
@@ -182,7 +194,7 @@ object OrbitalShuttlePadControl {
           p.Name,
           AvatarAction.SendResponse(
             Service.defaultPlayerGUID,
-            ChatMsg(ChatMessageType.UNK_225, false, "", "@DoorWillOpenWhenShuttleReturns", None)
+            ChatMsg(ChatMessageType.UNK_225, wideContents=false, "", "@DoorWillOpenWhenShuttleReturns", None)
           )
         )
         p.Name

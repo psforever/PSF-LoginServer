@@ -103,6 +103,7 @@ class VehicleControl(vehicle: Vehicle)
     damageableVehiclePostStop()
     decaying = false
     decayTimer.cancel()
+    passengerRadiationCloudTimer.cancel()
     vehicle.Utilities.values.foreach { util =>
       context.stop(util().Actor)
       util().Actor = Default.Actor
@@ -557,14 +558,14 @@ class VehicleControl(vehicle: Vehicle)
   }
 
   //make certain vehicles don't charge shields too quickly
-  def canChargeShields(): Boolean = {
+  def canChargeShields: Boolean = {
     val func: VitalsActivity => Boolean = VehicleControl.LastShieldChargeOrDamage(System.currentTimeMillis(), vehicle.Definition)
     vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
     !vehicle.History.exists(func)
   }
 
   def chargeShields(amount: Int): Unit = {
-    if (canChargeShields()) {
+    if (canChargeShields) {
       vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), amount))
       vehicle.Shields = vehicle.Shields + amount
       vehicle.Zone.VehicleEvents ! VehicleServiceMessage(

@@ -3,7 +3,6 @@ package net.psforever.packet.game
 
 import net.psforever.objects.avatar.Certification
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.PlanetSideGUID
 import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}
