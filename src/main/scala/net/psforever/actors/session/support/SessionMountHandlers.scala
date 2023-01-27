@@ -36,14 +36,14 @@ class SessionMountHandlers(
         log.info(s"${player.Name} mounts an implant terminal")
         sessionData.terminals.CancelAllProximityUnits()
         MountingAction(tplayer, obj, seat_number)
-        sessionData.keepAliveFunc = sessionData.KeepAlivePersistence
+        sessionData.keepAliveFunc = sessionData.keepAlivePersistence
 
       case Mountable.CanMount(obj: Vehicle, seat_number, _) if obj.Definition == GlobalDefinitions.orbital_shuttle =>
         sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the orbital shuttle")
         sessionData.terminals.CancelAllProximityUnits()
         MountingAction(tplayer, obj, seat_number)
-        sessionData.keepAliveFunc = sessionData.KeepAlivePersistence
+        sessionData.keepAliveFunc = sessionData.keepAlivePersistence
 
       case Mountable.CanMount(obj: Vehicle, seat_number, _) =>
         sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
@@ -72,10 +72,10 @@ class SessionMountHandlers(
           }
           sendResponse(GenericObjectActionMessage(obj_guid, 11))
         } else if (obj.WeaponControlledFromSeat(seat_number).isEmpty) {
-          sessionData.keepAliveFunc = sessionData.KeepAlivePersistence
+          sessionData.keepAliveFunc = sessionData.keepAlivePersistence
         }
-        sessionData.AccessContainer(obj)
-        sessionData.UpdateWeaponAtSeatPosition(obj, seat_number)
+        sessionData.accessContainer(obj)
+        sessionData.updateWeaponAtSeatPosition(obj, seat_number)
         MountingAction(tplayer, obj, seat_number)
 
       case Mountable.CanMount(obj: FacilityTurret, seat_number, _) =>
@@ -86,7 +86,7 @@ class SessionMountHandlers(
             obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.id, LocalAction.SetEmpire(obj.GUID, player.Faction))
           }
           sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
-          sessionData.UpdateWeaponAtSeatPosition(obj, seat_number)
+          sessionData.updateWeaponAtSeatPosition(obj, seat_number)
           MountingAction(tplayer, obj, seat_number)
         } else {
           log.warn(
@@ -98,7 +98,7 @@ class SessionMountHandlers(
         sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the ${obj.Definition.asInstanceOf[BasicDefinition].Name}")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, 0, obj.Health))
-        sessionData.UpdateWeaponAtSeatPosition(obj, seat_number)
+        sessionData.updateWeaponAtSeatPosition(obj, seat_number)
         MountingAction(tplayer, obj, seat_number)
 
       case Mountable.CanMount(obj: Mountable, _, _) =>
@@ -152,7 +152,7 @@ class SessionMountHandlers(
 
       case Mountable.CanDismount(obj: Vehicle, seat_num, _) if obj.Definition == GlobalDefinitions.droppod =>
         log.info(s"${tplayer.Name} has landed on ${continent.id}")
-        sessionData.UnaccessContainer(obj)
+        sessionData.unaccessContainer(obj)
         DismountAction(tplayer, obj, seat_num)
         obj.Actor ! Vehicle.Deconstruct()
 
@@ -168,7 +168,7 @@ class SessionMountHandlers(
             }
           }")
           sessionData.vehicles.ConditionalDriverVehicleControl(obj)
-          sessionData.UnaccessContainer(obj)
+          sessionData.unaccessContainer(obj)
           DismountAction(tplayer, obj, seat_num)
         } else {
           continent.VehicleEvents ! VehicleServiceMessage(
@@ -213,7 +213,7 @@ class SessionMountHandlers(
   def MountingAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
     val player_guid: PlanetSideGUID = tplayer.GUID
     val obj_guid: PlanetSideGUID    = obj.GUID
-    sessionData.PlayerActionsToCancel()
+    sessionData.playerActionsToCancel()
     avatarActor ! AvatarActor.DeactivateActiveImplants()
     avatarActor ! AvatarActor.SuspendStaminaRegeneration(3 seconds)
     sendResponse(ObjectAttachMessage(obj_guid, player_guid, seatNum))

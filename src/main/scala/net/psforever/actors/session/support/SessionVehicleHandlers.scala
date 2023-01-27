@@ -107,7 +107,7 @@ class SessionVehicleHandlers(
         if (tplayer_guid == guid) {
           val typeOfRide = continent.GUID(vehicle_guid) match {
             case Some(obj: Vehicle) =>
-              sessionData.UnaccessContainer(obj)
+              sessionData.unaccessContainer(obj)
               s"the ${obj.Definition.Name}'s seat by ${obj.OwnerName.getOrElse("the pilot")}"
             case _ =>
               s"${player.Sex.possessive} ride"
@@ -236,7 +236,7 @@ class SessionVehicleHandlers(
 
       case VehicleResponse.StartPlayerSeatedInVehicle(vehicle, _) =>
         val vehicle_guid = vehicle.GUID
-        sessionData.PlayerActionsToCancel()
+        sessionData.playerActionsToCancel()
         sessionData.vehicles.serverVehicleControlVelocity = Some(0)
         sessionData.terminals.CancelAllProximityUnits()
         if (player.VisibleSlots.contains(player.DrawnSlot)) {
@@ -298,7 +298,7 @@ class SessionVehicleHandlers(
                   sendResponse(ObjectDeleteMessage(eguid, 0))
                   TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj))
               }
-              sessionData.ApplyPurchaseTimersBeforePackingLoadout(player, vehicle, added_weapons ++ new_inventory)
+              sessionData.applyPurchaseTimersBeforePackingLoadout(player, vehicle, added_weapons ++ new_inventory)
               //jammer or unjamm new weapons based on vehicle status
               val vehicleJammered = vehicle.Jammed
               added_weapons
@@ -320,7 +320,7 @@ class SessionVehicleHandlers(
                 (old_weapons ++ old_inventory).foreach {
                   case (_, eguid) => sendResponse(ObjectDeleteMessage(eguid, 0))
                 }
-                sessionData.UpdateWeaponAtSeatPosition(vehicle, seatNum)
+                sessionData.updateWeaponAtSeatPosition(vehicle, seatNum)
               case None =>
                 //observer: observe changes to external equipment
                 old_weapons.foreach { case (_, eguid) => sendResponse(ObjectDeleteMessage(eguid, 0)) }

@@ -99,7 +99,7 @@ class VehicleOperations(
       case _ => ;
     }
     if (player.death_by == -1) {
-      sessionData.KickedByAdministration()
+      sessionData.kickedByAdministration()
     }
   }
 
@@ -197,7 +197,7 @@ class VehicleOperations(
       case _ => ;
     }
     if (player.death_by == -1) {
-      sessionData.KickedByAdministration()
+      sessionData.kickedByAdministration()
     }
   }
 
@@ -231,13 +231,13 @@ class VehicleOperations(
     }
     //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
     if (player.death_by == -1) {
-      sessionData.KickedByAdministration()
+      sessionData.kickedByAdministration()
     }
   }
 
   def handleVehicleSubState(pkt: VehicleSubStateMessage): Unit = {
     val VehicleSubStateMessage(vehicle_guid, _, pos, ang, vel, unk1, _) = pkt
-    sessionData.ValidObject(vehicle_guid, decorator = "VehicleSubState") match {
+    sessionData.validObject(vehicle_guid, decorator = "VehicleSubState") match {
       case Some(obj: Vehicle) =>
         import net.psforever.login.WorldSession.boolToInt
         obj.Position = pos
@@ -268,7 +268,7 @@ class VehicleOperations(
 
   def handleMountVehicle(pkt: MountVehicleMsg): Unit = {
     val MountVehicleMsg(_, mountable_guid, entry_point) = pkt
-    sessionData.ValidObject(mountable_guid, decorator = "MountVehicle") match {
+    sessionData.validObject(mountable_guid, decorator = "MountVehicle") match {
       case Some(obj: Mountable) =>
         obj.Actor ! Mountable.TryMount(player, entry_point)
       case Some(_) =>
@@ -341,8 +341,8 @@ class VehicleOperations(
         case Some(obj_guid) =>
           (
             (
-              sessionData.ValidObject(obj_guid, decorator = "DismountVehicle/Vehicle"),
-              sessionData.ValidObject(player_guid, decorator = "DismountVehicle/Player")
+              sessionData.validObject(obj_guid, decorator = "DismountVehicle/Vehicle"),
+              sessionData.validObject(player_guid, decorator = "DismountVehicle/Player")
             ) match {
               case (vehicle @ Some(obj: Vehicle), tplayer) =>
                 if (obj.MountedIn.isEmpty) (vehicle, tplayer) else (None, None)

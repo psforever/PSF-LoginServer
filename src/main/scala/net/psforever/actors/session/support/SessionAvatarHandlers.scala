@@ -114,7 +114,7 @@ class SessionAvatarHandlers(
         sendResponse(DestroyMessage(victim, killer, weapon, pos))
 
       case AvatarResponse.DestroyDisplay(killer, victim, method, unk) =>
-        sendResponse(sessionData.DestroyDisplayMessage(killer, victim, method, unk))
+        sendResponse(sessionData.destroyDisplayMessage(killer, victim, method, unk))
         // TODO Temporary thing that should go somewhere else and use proper xp values
         if (killer.CharId == avatar.id && killer.Faction != victim.Faction) {
           avatarActor ! AvatarActor.AwardBep((1000 * Config.app.game.bepRate).toLong)
@@ -143,7 +143,7 @@ class SessionAvatarHandlers(
         }
 
       case AvatarResponse.DropSpecialItem() =>
-        sessionData.DropSpecialSlotItem()
+        sessionData.dropSpecialSlotItem()
 
       case AvatarResponse.Killed(mount) =>
         val cause = (player.LastDamage match {
@@ -162,8 +162,8 @@ class SessionAvatarHandlers(
             DropEquipmentFromInventory(player)(item)
           case None => ;
         }
-        sessionData.DropSpecialSlotItem()
-        sessionData.ToggleMaxSpecialState(enable = false)
+        sessionData.dropSpecialSlotItem()
+        sessionData.toggleMaxSpecialState(enable = false)
         if (player.LastDamage match {
           case Some(damage) => damage.interaction.cause match {
             case cause: ExplodingEntityReason => cause.entity.isInstanceOf[VehicleSpawnPad]
@@ -181,10 +181,10 @@ class SessionAvatarHandlers(
           case Some(obj: Vehicle) =>
             sessionData.vehicles.ConditionalDriverVehicleControl(obj)
             sessionData.vehicles.serverVehicleControlVelocity = None
-            sessionData.UnaccessContainer(obj)
+            sessionData.unaccessContainer(obj)
           case _ => ;
         }
-        sessionData.PlayerActionsToCancel()
+        sessionData.playerActionsToCancel()
         sessionData.terminals.CancelAllProximityUnits()
         sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel")
         if (sessionData.shooting.shotsWhileDead > 0) {
@@ -504,7 +504,7 @@ class SessionAvatarHandlers(
               slot = 0
             ))
           }
-          sessionData.ApplyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
+          sessionData.applyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
           DropLeftovers(player)(drops)
         } else {
           //happening to some other player
