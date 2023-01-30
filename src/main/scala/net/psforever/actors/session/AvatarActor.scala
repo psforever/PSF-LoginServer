@@ -1415,7 +1415,11 @@ class AvatarActor(
                   updatePurchaseTimer(
                     name,
                     cooldown.toSeconds,
-                    item.isInstanceOf[VehicleDefinition]
+                    item match {
+                      case t: ToolDefinition => GlobalDefinitions.isMaxArms(t)
+                      case _: VehicleDefinition => true
+                      case _ => false
+                    }
                   )
                 case _ => ;
               }
@@ -2574,13 +2578,17 @@ class AvatarActor(
       avatar.cooldowns.purchase.find { case (name, _) => name.equals(key) } match {
         case Some((name, purchaseTime)) =>
           val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
-          Avatar.purchaseCooldowns.find(_._1.Name == name) match {
+          Avatar.purchaseCooldowns.find(_._1.Name.equals(name)) match {
             case Some((obj, cooldown)) if cooldown.toSeconds - secondsSincePurchase > 0 =>
               val (_, name) = AvatarActor.resolvePurchaseTimeName(avatar.faction, obj)
               updatePurchaseTimer(
                 name,
                 cooldown.toSeconds - secondsSincePurchase,
-                DefinitionUtil.fromString(name).isInstanceOf[VehicleDefinition]
+                obj match {
+                  case t: ToolDefinition => GlobalDefinitions.isMaxArms(t)
+                  case _: VehicleDefinition => true
+                  case _ => false
+                }
               )
 
             case _ =>
@@ -2595,9 +2603,9 @@ class AvatarActor(
     }
   }
 
-  def updatePurchaseTimer(name: String, time: Long, isActuallyAVehicle: Boolean): Unit = {
+  def updatePurchaseTimer(name: String, time: Long, isActuallyAMachine: Boolean): Unit = {
     sessionActor ! SessionActor.SendResponse(
-      AvatarVehicleTimerMessage(session.get.player.GUID, name, time, isActuallyAVehicle)
+      AvatarVehicleTimerMessage(session.get.player.GUID, name, time, isActuallyAMachine)
     )
   }
 

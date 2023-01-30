@@ -2,76 +2,69 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
+import enumeratum.values.{IntEnum, IntEnumEntry}
 import scodec.Codec
 import scodec.codecs._
 
+sealed abstract class GenericAction(val value: Int) extends IntEnumEntry
+
+object GenericAction extends IntEnum[GenericAction] {
+  val values: IndexedSeq[GenericAction] = findValues
+
+  final case object ShowMosquitoRadar extends GenericAction(value = 3)
+  final case object HideMosquitoRadar extends GenericAction(value = 4)
+  final case object MissileLock extends GenericAction(value = 7)
+  final case object WaspMissileLock extends GenericAction(value = 8)
+  final case object TRekLock extends GenericAction(value = 9)
+  final case object DropSpecialItem extends GenericAction(value = 10)
+  final case object FacilityCaptureFanfare extends GenericAction(value = 12)
+  final case object NewCharacterBasicTraining extends GenericAction(value = 14)
+  final case object MaxAnchorsExtend extends GenericAction(value = 15)
+  final case object MaxAnchorsRelease extends GenericAction(value = 16)
+  final case object MaxSpecialEffect extends GenericAction(value = 20)
+  final case object StopMaxSpecialEffect extends GenericAction(value = 21)
+  final case object CavernFacilityCapture extends GenericAction(value = 22)
+  final case object CavernFacilityKill extends GenericAction(value = 23)
+  final case object Imprinted extends GenericAction(value = 24)
+  final case object NoLongerImprinted extends GenericAction(value = 25)
+  final case object PurchaseTimersReset extends GenericAction(value = 27)
+  final case object LeaveWarpQueue extends GenericAction(value = 28)
+  final case object AwayFromKeyboard extends GenericAction(value = 29)
+  final case object BackInGame extends GenericAction(value = 30)
+  final case object FirstPersonViewWithEffect extends GenericAction(value = 31)
+  final case object FirstPersonViewFailToDeconstruct extends GenericAction(value = 32)
+  final case object FailToDeconstruct extends GenericAction(value = 33)
+  final case object LookingForSquad extends GenericAction(value = 36)
+  final case object NotLookingForSquad extends GenericAction(value = 37)
+  final case object Unknown45 extends GenericAction(value = 45)
+
+  final case class Unknown(override val value: Int) extends GenericAction(value)
+}
+
 /**
-  * Reports that something has happened, or makes something happen.<br>
-  * <br>
-  * When sent from the server to a client, there are twenty-seven individual actions caused by this packet.
-  * They are only vaguely organized by behavior and some numbers may not be associated with an action.
-  * When sent by the client to the server, an unknown number of actions are available.
-  * The highest known action is a server-sent 45.<br>
-  * <br>
-  * Actions (when sent from server):<br>
-  * 03 - symbol: show Mosquito radar<br>
-  * 04 - symbol: hide Mosquito radar<br>
-  * 07 - warning: missile lock<br>
-  * 08 - warning: Wasp missile lock<br>
-  * 09 - warning: T-REK lock<br>
-  * 11 - Drop special item e.g. LLU<br>
-  * 12 - sound: base captured fanfare<br>
-  * 14 - prompt: new character basic training<br>
-  * 15 - MAX Deploy<br>
-  * 16 - MAX Undeploy<br>
-  * 22 - message: awarded a cavern capture (updates cavern capture status)<br>
-  * 23 - award a cavern kill<br>
-  * 24 - message: you have been imprinted (updates imprinted status)<br>
-  * 25 - message: you are no longer imprinted (updates imprinted status)<br>
-  * 27 - event: purchase timers reset (does it?)<br>
-  * 31 - forced into first person view;
-  *      in third person view, player character sinks into the ground; green deconstruction particle effect under feet<br>
-  * 32 - forced into first person view, attempt to deconstruct but fail;
-  *      event: fail to deconstruct due to having a "parent vehicle"<br>
-  * 33 - event: fail to deconstruct<br>
-  * 43 - prompt: friendly fire in virtual reality zone<br>
-  * 45 - ?<br>
-  * <br>
-  * Actions (when sent from client):<br>
-  * 15 - Max anchor
-  * 16 - Max unanchor
-  * 20 - Client requests MAX special effect (NC shield and TR overdrive. VS jump jets are handled by the jump_thrust boolean on PlayerStateMessageUpstream)
-  * 21 - Disable MAX special effect (NC shield)
-  * 28 - Cancel warp queue (see: `DroppodLaunchResponseMessage`)<br>
-  * 29 - AFK<br>
-  * 30 - back in game<br>
-  * 36 - turn on "Looking for Squad"<br>
-  * 37 - turn off "Looking for Squad"
-  *
+  * Reports that something has happened, or makes something happen.
   * @param action what this packet does
   */
-final case class GenericActionMessage(action: Int) extends PlanetSideGamePacket {
+final case class GenericActionMessage(action: GenericAction) extends PlanetSideGamePacket {
   type Packet = GenericActionMessage
   def opcode = GamePacketOpcode.GenericActionMessage
   def encode = GenericActionMessage.encode(this)
 }
 
 object GenericActionMessage extends Marshallable[GenericActionMessage] {
-  def apply(action: GenericActionEnum.GenericActionEnum): GenericActionMessage = {
-    GenericActionMessage(action.id)
+  def apply(i: Int): GenericActionMessage = {
+    GenericActionMessage(GenericAction.values.find { _.value == i } match {
+      case Some(enum) => enum
+      case None => GenericAction.Unknown(i)
+    })
   }
 
-  implicit val codec: Codec[GenericActionMessage] = (
-    "action" | uint(6)
-  ).as[GenericActionMessage]
-}
+  private val genericActionCodec = uint(bits = 6).xmap[GenericAction]({
+    i => GenericAction.values.find { _.value == i } match {
+      case Some(enum) => enum
+      case None => GenericAction.Unknown(i)
+    }
+  }, enum => enum.value)
 
-object GenericActionEnum extends Enumeration {
-  type GenericActionEnum = Value
-
-  /** Drop special item e.g. LLU */
-  val DropSpecialItem = Value(11)
-
-  /** Plays the base capture fanfare sound */
-  val BaseCaptureFanfare = Value(12)
+  implicit val codec: Codec[GenericActionMessage] = ("action" | genericActionCodec).as[GenericActionMessage]
 }

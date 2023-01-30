@@ -6,7 +6,6 @@ import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
-import net.psforever.packet.game.GenericActionEnum.GenericActionEnum
 import net.psforever.packet.game.GenericObjectActionEnum.GenericObjectActionEnum
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.PlanetSideGamePacket
@@ -44,7 +43,7 @@ object LocalResponse {
   final case class SendGenericObjectActionMessage(target_guid: PlanetSideGUID, action_number: GenericObjectActionEnum)
     extends Response
   final case class SendChatMsg(msg: ChatMsg) extends Response
-  final case class SendGenericActionMessage(action_num: GenericActionEnum) extends Response
+  final case class SendGenericActionMessage(action_num: GenericAction) extends Response
 
   final case class LluSpawned(llu: CaptureFlag) extends Response
   final case class LluDespawned(llu: CaptureFlag) extends Response

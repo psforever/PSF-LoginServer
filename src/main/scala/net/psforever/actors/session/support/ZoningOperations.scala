@@ -2717,7 +2717,7 @@ class ZoningOperations(
       ) //TODO will not always be "on" like this
       sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, player.Faction, unk5 = true))
       //looking for squad (members)
-      if (tplayer.avatar.lookingForSquad || sessionData.squad.lfsm) {
+      if (tplayer.avatar.lookingForSquad) {
         sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
         continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(guid, 53, 1))
       }

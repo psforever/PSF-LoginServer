@@ -12,14 +12,14 @@ class GenericActionMessageTest extends Specification {
   "decode" in {
     PacketCoding.decodePacket(string).require match {
       case GenericActionMessage(action) =>
-        action mustEqual 37
+        action mustEqual GenericAction.NotLookingForSquad
       case _ =>
         ko
     }
   }
 
   "encode" in {
-    val msg = GenericActionMessage(37)
+    val msg = GenericActionMessage(GenericAction.NotLookingForSquad)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string

@@ -7,12 +7,12 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * @param player_guid player guid !
-  * @param text name of the item or vehicle name (ex : medkit, fury ...)
-  * @param time in seconds
-  * @param unk1 NA - Seems to be false when it's for medkit, true for vehicles
+  * @param player_guid player guid
+  * @param text internal name of the item or vehicle name, e.g., medkit, fury, trhev_antipersonnel
+  * @param time cooldown/delay in seconds
+  * @param unk `true` for vehicles and max exo-suits; `false` for other items
   */
-final case class AvatarVehicleTimerMessage(player_guid: PlanetSideGUID, text: String, time: Long, unk1: Boolean)
+final case class AvatarVehicleTimerMessage(player_guid: PlanetSideGUID, text: String, time: Long, unk: Boolean)
     extends PlanetSideGamePacket {
   type Packet = AvatarVehicleTimerMessage
   def opcode = GamePacketOpcode.AvatarVehicleTimerMessage
@@ -24,6 +24,6 @@ object AvatarVehicleTimerMessage extends Marshallable[AvatarVehicleTimerMessage]
     ("player_guid" | PlanetSideGUID.codec) ::
       ("text" | PacketHelpers.encodedString) ::
       ("time" | uint32L) ::
-      ("unk1" | bool)
+      ("unk" | bool)
   ).as[AvatarVehicleTimerMessage]
 }
