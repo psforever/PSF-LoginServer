@@ -2,6 +2,8 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.types.{StatisticalCategory, StatisticalElement}
+import scodec.Attempt.{Failure, Successful}
 import scodec.{Attempt, Codec, Err}
 import scodec.codecs._
 import shapeless.{::, HNil}
@@ -9,93 +11,153 @@ import shapeless.{::, HNil}
 import scala.annotation.switch
 
 /**
-  * na
-  * @param unk1 na
-  * @param unk2 na
-  * @param unk3 na
-  */
-final case class Statistics(unk1: Option[Int], unk2: Option[Int], unk3: List[Long])
+ * na
+ */
+sealed abstract class Statistic(val code: Int)
+/**
+ * na
+ */
+sealed trait ComplexStatistic {
+  def category: StatisticalCategory
+  def unk: StatisticalElement
+  def fields: List[Long]
+}
+/**
+ * na
+ */
+sealed case class IntermediateStatistic(
+                                         category: StatisticalCategory,
+                                         unk: StatisticalElement,
+                                         fields: List[Long]
+                                       ) extends ComplexStatistic
 
 /**
-  * na
-  * @param unk na
-  * @param stats na
-  */
-final case class AvatarStatisticsMessage(unk: Int, stats: Statistics) extends PlanetSideGamePacket {
+ *
+ * @param category na
+ * @param unk na
+ * @param fields four pairs of values that add together to produce the first columns on the statistics spreadsheet;
+ *             organized as TR, NC, VS, BO (PS)
+ */
+final case class InitStatistic(
+                                category: StatisticalCategory,
+                                unk: StatisticalElement,
+                                fields: List[Long]
+                              ) extends Statistic(code = 0) with ComplexStatistic
+
+/**
+ *
+ * @param category na
+ * @param unk na
+ * @param fields four pairs of values that add together to produce the first column(s) on the statistics spreadsheet;
+ *               organized as TR, NC, VS, BO (PS)
+ */
+final case class UpdateStatistic(
+                                  category: StatisticalCategory,
+                                  unk: StatisticalElement,
+                                  fields: List[Long]
+                                ) extends Statistic(code = 1) with ComplexStatistic
+
+/**
+ *
+ * @param deaths how badly you suck, quantitatively analyzed
+ */
+final case class DeathStatistic(deaths: Long) extends Statistic(code = 2)
+
+/**
+ * na
+ * @param stats na
+ */
+final case class AvatarStatisticsMessage(stats: Statistic) extends PlanetSideGamePacket {
   type Packet = AvatarStatisticsMessage
   def opcode = GamePacketOpcode.AvatarStatisticsMessage
   def encode = AvatarStatisticsMessage.encode(this)
 }
 
 object AvatarStatisticsMessage extends Marshallable[AvatarStatisticsMessage] {
-
   /**
-    * na
-    */
-  private val longCodec: Codec[Statistics] = ulong(32).hlist.exmap(
-    {
-      case n :: HNil =>
-        Attempt.Successful(Statistics(None, None, List(n)))
-    },
-    {
-      case Statistics(_, _, Nil) =>
-        Attempt.Failure(Err("missing value (32-bit)"))
-
-      case Statistics(_, _, n) =>
-        Attempt.Successful(n.head :: HNil)
-    }
-  )
-
-  /**
-    * na
-    */
-  private val complexCodec: Codec[Statistics] = (
-    uint(5) ::
-      uintL(11) ::
-      PacketHelpers.listOfNSized(8, uint32L)
-  ).exmap[Statistics](
+   * na
+   */
+  private val complexCodec: Codec[IntermediateStatistic] = (
+    PacketHelpers.createIntEnumCodec(StatisticalCategory, uint(bits = 5)) ::
+      PacketHelpers.createIntEnumCodec(StatisticalElement, uint(bits = 11)) ::
+      PacketHelpers.listOfNSized(size = 8, uint32L)
+    ).exmap[IntermediateStatistic](
     {
       case a :: b :: c :: HNil =>
-        Attempt.Successful(Statistics(Some(a), Some(b), c))
+        Attempt.Successful(IntermediateStatistic(a, b, c))
     },
     {
-      case Statistics(None, _, _) =>
-        Attempt.Failure(Err("missing value (5-bit)"))
-
-      case Statistics(_, None, _) =>
-        Attempt.Failure(Err("missing value (11-bit)"))
-
-      case Statistics(a, b, c) =>
+      case IntermediateStatistic(a, b, c) =>
         if (c.length != 8) {
           Attempt.Failure(Err("list must have 8 entries"))
         } else {
-          Attempt.Successful(a.get :: b.get :: c :: HNil)
+          Attempt.Successful(a :: b :: c :: HNil)
         }
+      case _ =>
+        Attempt.Failure(Err("wrong type of statistic object or missing values (5-bit, 11-bit, 8 x 32-bit)"))
     }
   )
 
   /**
-    * na
-    * @param n na
-    * @return na
-    */
-  private def selectCodec(n: Int): Codec[Statistics] =
+   * na
+   */
+  private val initCodec: Codec[Statistic] = complexCodec.exmap[Statistic](
+    {
+      case IntermediateStatistic(a, b, c) => Successful(InitStatistic(a, b, c))
+    },
+    {
+      case InitStatistic(a, b, c) => Successful(IntermediateStatistic(a, b, c))
+      case _ => Failure(Err("expected initializing statistic, but found something else"))
+    }
+  )
+  /**
+   * na
+   */
+  private val updateCodec: Codec[Statistic] = complexCodec.exmap[Statistic](
+    {
+      case IntermediateStatistic(a, b, c) => Successful(UpdateStatistic(a, b, c))
+    },
+    {
+      case UpdateStatistic(a, b, c) => Successful(IntermediateStatistic(a, b, c))
+      case _ => Failure(Err("expected updating statistic, but found something else"))
+    }
+  )
+  /**
+   * na
+   */
+  private val deathCodec: Codec[Statistic] = ulongL(bits = 32).hlist.exmap[Statistic](
+    {
+      case n :: HNil => Successful(DeathStatistic(n))
+    },
+    {
+      case DeathStatistic(n) => Successful(n :: HNil)
+      case _ => Failure(Err("wrong type of statistics object or missing value (32-bit)"))
+    }
+  )
+
+  /**
+   * na
+   * @param n na
+   * @return na
+   */
+  private def selectCodec(n: Int): Codec[Statistic]
+  =
     (n: @switch) match {
-      case 2 | 3 =>
-        longCodec
-      case _ =>
-        complexCodec
+      case 2 => deathCodec
+      case 1 => updateCodec
+      case _ => initCodec
     }
 
-  implicit val codec: Codec[AvatarStatisticsMessage] = (("unk" | uint(3)) >>:~ { unk =>
-    ("stats" | selectCodec(unk)).hlist
-  }).as[AvatarStatisticsMessage]
-}
-
-object Statistics {
-  def apply(unk: Long): Statistics =
-    Statistics(None, None, List(unk))
-
-  def apply(unk1: Int, unk2: Int, unk3: List[Long]): Statistics =
-    Statistics(Some(unk1), Some(unk2), unk3)
+  implicit val codec: Codec[AvatarStatisticsMessage] = (
+    uint(bits = 3) >>:~ { code =>
+      ("stats" | selectCodec(code)).hlist
+    }
+    ).xmap[AvatarStatisticsMessage](
+    {
+      case _ :: stat :: HNil => AvatarStatisticsMessage(stat)
+    },
+    {
+      case AvatarStatisticsMessage(stat) => stat.code :: stat :: HNil
+    }
+  )
 }

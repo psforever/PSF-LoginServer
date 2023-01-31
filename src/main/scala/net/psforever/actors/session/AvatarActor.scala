@@ -6,7 +6,9 @@ import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import net.psforever.objects.vital.{DamagingActivity, HealingActivity}
+import net.psforever.types.ExperienceType
 import org.joda.time.{LocalDateTime, Seconds}
+
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
@@ -1609,7 +1611,7 @@ class AvatarActor(
           } yield r
           result.onComplete {
             case Success(_) =>
-              sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(session.get.player.GUID, bep, 0))
+              sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(session.get.player.GUID, bep, ExperienceType.Normal))
               session.get.zone.AvatarEvents ! AvatarServiceMessage(
                 session.get.zone.id,
                 AvatarAction.PlanetsideAttributeToAll(session.get.player.GUID, 17, bep)
@@ -1690,8 +1692,8 @@ class AvatarActor(
             //short-circuit if the shortcut already exists at the given location
             val isMacroShortcut = shortcut.isInstanceOf[Shortcut.Macro]
             val isDifferentShortcut = !(targetShortcut match {
-              case Some(target) => AvatarShortcut.equals(shortcut, target)
-              case _            => false
+              case Some(target: AvatarShortcut) => AvatarShortcut.equals(shortcut, target)
+              case _                            => false
             })
             if (isDifferentShortcut) {
               if (!isMacroShortcut && avatar.shortcuts.flatten.exists {
@@ -1701,7 +1703,7 @@ class AvatarActor(
                 if (shortcut.isInstanceOf[Shortcut.Implant]) {
                   //duplicate implant
                   targetShortcut match {
-                    case Some(existingShortcut) =>
+                    case Some(existingShortcut: AvatarShortcut) =>
                       //redraw redundant shortcut slot with existing shortcut
                       sessionActor ! SessionActor.SendResponse(
                         CreateShortcutMessage(session.get.player.GUID, slot + 1, Some(AvatarShortcut.convert(existingShortcut)))

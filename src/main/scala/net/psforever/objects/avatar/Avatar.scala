@@ -2,6 +2,7 @@
 package net.psforever.objects.avatar
 
 import net.psforever.actors.session.AvatarActor
+import net.psforever.objects.avatar.scoring.ScoreCard
 import net.psforever.objects.definition.{AvatarDefinition, BasicDefinition}
 import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
 import net.psforever.objects.inventory.LocallyRegisteredInventory
@@ -132,7 +133,8 @@ case class Avatar(
     decoration: ProgressDecoration = ProgressDecoration(),
     loadouts: Loadouts = Loadouts(),
     cooldowns: Cooldowns = Cooldowns(),
-    people: MemberLists = MemberLists()
+    people: MemberLists = MemberLists(),
+    scorecard: ScoreCard = new ScoreCard()
 ) {
   assert(bep >= 0)
   assert(cep >= 0)

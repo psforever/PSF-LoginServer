@@ -986,7 +986,6 @@ object Zones {
       */
     def standardTimeRules(defender: SourceEntry, attacker: SourceEntry): FiniteDuration = {
       import net.psforever.objects.GlobalDefinitions
-      import net.psforever.objects.ballistics._
       if (attacker.Faction == defender.Faction) {
         0 seconds
       } else {

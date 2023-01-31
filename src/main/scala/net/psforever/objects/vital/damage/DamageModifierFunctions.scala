@@ -2,7 +2,6 @@
 package net.psforever.objects.vital.damage
 
 import net.psforever.objects.GlobalDefinitions
-import net.psforever.objects.ballistics._
 import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vital.base.{DamageModifiers, DamageReason}
 import net.psforever.objects.vital.interaction.DamageInteraction
