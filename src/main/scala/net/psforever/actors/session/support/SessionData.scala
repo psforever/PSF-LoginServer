@@ -696,7 +696,7 @@ class SessionData(
   def handleGenericAction(pkt: GenericActionMessage): Unit = {
     val GenericActionMessage(action) = pkt
     if (player == null) {
-      if (action == GenericAction.AwayFromKeyboard) {
+      if (action == GenericAction.AwayFromKeyboard_RCV) {
         log.debug("GenericObjectState: AFK state reported during login")
       }
     } else {
@@ -709,7 +709,7 @@ class SessionData(
       action match {
         case GenericAction.DropSpecialItem =>
           dropSpecialSlotItem()
-        case GenericAction.MaxAnchorsExtend =>
+        case GenericAction.MaxAnchorsExtend_RCV =>
           log.info(s"${player.Name} has anchored ${player.Sex.pronounObject}self to the ground")
           player.UsingSpecial = SpecialExoSuitDefinition.Mode.Anchored
           continent.AvatarEvents ! AvatarServiceMessage(
@@ -730,7 +730,7 @@ class SessionData(
             case _ =>
               log.warn(s"GenericObject: ${player.Name} is a MAX with an unexpected attachment - ${definition.Name}")
           }
-        case GenericAction.MaxAnchorsRelease =>
+        case GenericAction.MaxAnchorsRelease_RCV =>
           log.info(s"${player.Name} has released the anchors")
           player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
           continent.AvatarEvents ! AvatarServiceMessage(
@@ -750,13 +750,13 @@ class SessionData(
             case _ =>
               log.warn(s"GenericObject: $player is MAX with an unexpected attachment - ${definition.Name}")
           }
-        case GenericAction.MaxSpecialEffect =>
+        case GenericAction.MaxSpecialEffect_RCV =>
           if (player.ExoSuit == ExoSuitType.MAX) {
             toggleMaxSpecialState(enable = true)
           } else {
             log.warn(s"GenericActionMessage: ${player.Name} can't handle MAX special effect")
           }
-        case GenericAction.StopMaxSpecialEffect =>
+        case GenericAction.StopMaxSpecialEffect_RCV =>
           if (player.ExoSuit == ExoSuitType.MAX) {
             player.Faction match {
               case PlanetSideEmpire.NC =>
@@ -767,23 +767,23 @@ class SessionData(
           } else {
             log.warn(s"GenericActionMessage: ${player.Name} can't stop MAX special effect")
           }
-        case GenericAction.AwayFromKeyboard =>
+        case GenericAction.AwayFromKeyboard_RCV =>
           log.info(s"${player.Name} is AFK")
           AvatarActor.savePlayerLocation(player)
           displayCharSavedMsgThenRenewTimer(fixedLen=1800L, varLen=0L) //~30min
           player.AwayFromKeyboard = true
-        case GenericAction.BackInGame =>
+        case GenericAction.BackInGame_RCV =>
           log.info(s"${player.Name} is back")
           player.AwayFromKeyboard = false
           renewCharSavedTimer(
             Config.app.game.savedMsg.renewal.fixed,
             Config.app.game.savedMsg.renewal.variable
           )
-        case GenericAction.LookingForSquad => //Looking For Squad ON
+        case GenericAction.LookingForSquad_RCV => //Looking For Squad ON
           if (!avatar.lookingForSquad && (squad.squadUI.isEmpty || squad.squadUI(player.CharId).index == 0)) {
             avatarActor ! AvatarActor.SetLookingForSquad(true)
           }
-        case GenericAction.NotLookingForSquad => //Looking For Squad OFF
+        case GenericAction.NotLookingForSquad_RCV => //Looking For Squad OFF
           if (avatar.lookingForSquad && (squad.squadUI.isEmpty || squad.squadUI(player.CharId).index == 0)) {
             avatarActor ! AvatarActor.SetLookingForSquad(false)
           }
