@@ -23,8 +23,8 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
-
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._

@@ -4,7 +4,6 @@ package net.psforever.objects.vehicles.control
 import akka.actor.Cancellable
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
-import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.definition.converter.OCM
 import net.psforever.objects.entity.WorldEntity
@@ -20,6 +19,7 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.{DamagingActivity, VehicleShieldCharge, VitalsActivity}

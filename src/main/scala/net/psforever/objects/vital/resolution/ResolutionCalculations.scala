@@ -2,10 +2,10 @@
 package net.psforever.objects.vital.resolution
 
 import net.psforever.objects._
-import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vehicles.VehicleSubsystemEntry
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.{DamagingActivity, Vitality, VitalsHistory}

@@ -2,8 +2,8 @@
 package net.psforever.objects.serverobject.damage
 
 import net.psforever.objects.Player
-import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.services.Service

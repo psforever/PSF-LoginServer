@@ -2,8 +2,8 @@
 package net.psforever.objects.vital.interaction
 
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution, DamageType}
 import net.psforever.objects.vital.resolution.{DamageAndResistance, ResolutionCalculations}
 import net.psforever.types.Vector3

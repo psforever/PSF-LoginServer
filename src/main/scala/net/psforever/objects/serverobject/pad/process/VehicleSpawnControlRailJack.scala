@@ -3,9 +3,9 @@ package net.psforever.objects.serverobject.pad.process
 
 import akka.actor.Props
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.etc.{ExplodingEntityReason, VehicleSpawnReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}

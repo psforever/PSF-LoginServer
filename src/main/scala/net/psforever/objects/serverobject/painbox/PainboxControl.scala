@@ -1,9 +1,9 @@
 package net.psforever.objects.serverobject.painbox
 
 import akka.actor.Cancellable
-import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.etc.PainboxReason
 import net.psforever.objects.vital.interaction.DamageInteraction

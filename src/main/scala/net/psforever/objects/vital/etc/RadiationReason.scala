@@ -1,7 +1,8 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vital.etc
 
-import net.psforever.objects.ballistics.{PlayerSource, SourceEntry, Projectile => ActualProjectile}
+import net.psforever.objects.ballistics.{Projectile => ActualProjectile}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.{ProjectileDamageModifierFunctions, ProjectileReason}

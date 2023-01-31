@@ -2,9 +2,9 @@
 package net.psforever.objects.vital.etc
 
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.{Vitality, VitalityDefinition}
 import net.psforever.objects.vital.base.{DamageModifiers, DamageReason, DamageResolution}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}

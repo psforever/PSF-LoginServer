@@ -3,7 +3,6 @@ package net.psforever.objects.vehicles.control
 
 import akka.actor.Cancellable
 import net.psforever.objects._
-import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.{GridInventory, InventoryItem}
@@ -11,6 +10,7 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.transfer.TransferBehavior
+import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.VehicleShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult

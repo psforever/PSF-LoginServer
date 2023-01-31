@@ -1,11 +1,11 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.ballistics
+package net.psforever.objects.sourcing
 
-import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player}
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vital.resistance.ResistanceProfile
+import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player}
 import net.psforever.types.{CharacterSex, ExoSuitType, PlanetSideEmpire, Vector3}
 
 final case class UniquePlayer(

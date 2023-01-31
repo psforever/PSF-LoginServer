@@ -1,11 +1,12 @@
 // Copyright (c) 2023 PSForever
-package net.psforever.objects.ballistics
+package net.psforever.objects.sourcing
 
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.objects.vital.{Vitality, VitalityDefinition}
+import net.psforever.objects.sourcing
 import net.psforever.objects.vital.resistance.ResistanceProfile
+import net.psforever.objects.vital.{Vitality, VitalityDefinition}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 final case class AmenitySource(
@@ -52,7 +53,7 @@ object AmenitySource {
       health,
       obj.Orientation,
       occupants,
-      UniqueAmenity(obj.Zone.Number, obj.GUID, obj.Position)
+      sourcing.UniqueAmenity(obj.Zone.Number, obj.GUID, obj.Position)
     )
   }
 }

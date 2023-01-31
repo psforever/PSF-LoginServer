@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.objects.ballistics
+package net.psforever.objects.sourcing
 
 import net.psforever.objects.Vehicle
 import net.psforever.objects.definition.VehicleDefinition

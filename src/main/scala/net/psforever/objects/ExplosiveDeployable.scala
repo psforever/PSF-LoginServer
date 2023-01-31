@@ -2,7 +2,6 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, ActorRef, Props}
-import net.psforever.objects.ballistics.{DeployableSource, PlayerSource, SourceEntry, UniquePlayer}
 import net.psforever.objects.ce._
 import net.psforever.objects.definition.{DeployableDefinition, ExoSuitDefinition}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
@@ -12,6 +11,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, SourceEntry, UniquePlayer}
 import net.psforever.objects.vital.etc.TrippedMineReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.vital.{SimpleResolutions, Vitality}

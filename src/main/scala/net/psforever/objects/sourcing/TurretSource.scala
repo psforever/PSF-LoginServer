@@ -1,12 +1,12 @@
 // Copyright (c) 2023 PSForever
-package net.psforever.objects.ballistics
+package net.psforever.objects.sourcing
 
-import net.psforever.objects.{PlanetSideGameObject, TurretDeployable}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.vital.VitalityDefinition
 import net.psforever.objects.vital.resistance.ResistanceProfile
+import net.psforever.objects.{PlanetSideGameObject, TurretDeployable}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 final case class TurretSource(

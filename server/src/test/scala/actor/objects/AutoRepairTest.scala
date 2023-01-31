@@ -7,11 +7,12 @@ import base.FreedContextActorTest
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.ballistics.{Projectile, SourceEntry}
+import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.structures.{AutoRepairStats, Building, StructureType}
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal, TerminalControl}
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.damage.DamageProfile

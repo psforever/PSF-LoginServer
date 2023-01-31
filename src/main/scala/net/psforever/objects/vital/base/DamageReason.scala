@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.base
 
-import net.psforever.objects.ballistics.SourceEntry
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.damage.DamageProfile
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.prop.DamageProperties

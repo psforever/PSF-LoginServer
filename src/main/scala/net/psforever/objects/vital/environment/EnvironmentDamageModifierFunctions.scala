@@ -1,9 +1,9 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.environment
 
-import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.serverobject.environment.EnvironmentAttribute
+import net.psforever.objects.sourcing.PlayerSource
 
 /**
   * The deeper you move into lava, the greater the amount of health you burn through.

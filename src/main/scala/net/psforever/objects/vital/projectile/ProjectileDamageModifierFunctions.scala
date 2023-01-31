@@ -3,6 +3,7 @@ package net.psforever.objects.vital.projectile
 
 import net.psforever.objects.ballistics._
 import net.psforever.objects.equipment.ChargeFireModeDefinition
+import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.damage.DamageModifierFunctions
 import net.psforever.objects.vital.interaction.DamageInteraction

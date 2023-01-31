@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.interaction
 
-import net.psforever.objects.ballistics.SourceEntry
+import net.psforever.objects.sourcing.SourceEntry
 
 /**
   * But one thing's sure. The player is hurt, attacked, and somebody's responsible.

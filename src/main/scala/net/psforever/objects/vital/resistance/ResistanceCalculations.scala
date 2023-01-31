@@ -5,6 +5,7 @@ import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.ExoSuitDefinition
 import net.psforever.objects.serverobject.structures.AmenityDefinition
+import net.psforever.objects.sourcing.{ObjectSource, PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.types.ExoSuitType
 

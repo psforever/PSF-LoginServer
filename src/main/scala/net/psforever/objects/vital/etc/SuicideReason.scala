@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.etc
 
-import net.psforever.objects.ballistics.SourceEntry
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.{NoResistanceSelection, SimpleResolutions}
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
 import net.psforever.objects.vital.damage.DamageCalculations

@@ -1,11 +1,11 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.equipment.{EffectTarget, TargetValidation}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.{Vitality, VitalityDefinition}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.etc.EmpReason

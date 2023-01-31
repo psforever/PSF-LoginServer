@@ -2,7 +2,6 @@ package net.psforever.actors.zone
 
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.structures.{StructureType, WarpGate}
@@ -14,6 +13,7 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import scala.collection.mutable.ListBuffer
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.building.MajorFacilityLogic
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.util.Database._
 import net.psforever.persistence
 

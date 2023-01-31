@@ -3,7 +3,6 @@ package net.psforever.objects.serverobject.terminals
 
 import akka.actor.{ActorRef, Cancellable}
 import net.psforever.objects._
-import net.psforever.objects.ballistics.{PlayerSource, VehicleSource}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
@@ -12,6 +11,7 @@ import net.psforever.objects.serverobject.damage.DamageableAmenity
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.sourcing.{PlayerSource, VehicleSource}
 import net.psforever.objects.vital.{HealFromTerm, RepairFromTerm}
 import net.psforever.packet.game.InventoryStateMessage
 import net.psforever.services.Service

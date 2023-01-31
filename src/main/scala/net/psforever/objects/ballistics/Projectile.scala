@@ -2,12 +2,12 @@
 package net.psforever.objects.ballistics
 
 import java.util.concurrent.atomic.AtomicLong
-
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.{ProjectileDefinition, ToolDefinition}
 import net.psforever.objects.entity.SimpleWorldEntity
 import net.psforever.objects.equipment.FireModeDefinition
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.types.Vector3

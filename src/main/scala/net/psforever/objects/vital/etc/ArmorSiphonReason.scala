@@ -1,8 +1,8 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vital.etc
 
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.{GlobalDefinitions, Tool, Vehicle}
-import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.vital.base.{DamageModifiers, DamageReason, DamageResolution}
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.prop.DamageWithPosition

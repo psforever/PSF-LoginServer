@@ -4,6 +4,7 @@ package net.psforever.objects.serverobject.damage
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.serverobject.aura.Aura
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}

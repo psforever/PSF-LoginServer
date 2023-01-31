@@ -32,8 +32,8 @@ import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, VehicleLoadout}
 import net.psforever.objects._
-import net.psforever.objects.ballistics.PlayerSource
 import net.psforever.objects.locker.LockerContainer
+import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.HealFromImplant
 import net.psforever.packet.game.objectcreate.{ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}

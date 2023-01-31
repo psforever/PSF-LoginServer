@@ -2,7 +2,7 @@
 package net.psforever.objects.vital.etc
 
 import net.psforever.objects.GlobalDefinitions
-import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.{NoResistanceSelection, SimpleResolutions}
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
 import net.psforever.objects.vital.damage.DamageCalculations.AgainstExoSuit

@@ -4,6 +4,7 @@ package objects
 import net.psforever.objects.ballistics._
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction

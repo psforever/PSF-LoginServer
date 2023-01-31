@@ -1,8 +1,8 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vital.collision
 
-import net.psforever.objects.ballistics.{DeployableSource, PlayerSource, VehicleSource}
 import net.psforever.objects.definition.ExoSuitDefinition
+import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, VehicleSource}
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.types.Vector3
 

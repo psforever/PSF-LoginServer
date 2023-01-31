@@ -15,6 +15,7 @@ import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.environment.{DeepSquare, EnvironmentAttribute, OxygenStateTarget, Pool}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason

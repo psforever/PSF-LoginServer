@@ -3,6 +3,8 @@ package net.psforever.actors.session.support
 
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, OneForOneStrategy, SupervisorStrategy, typed}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
+
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

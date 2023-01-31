@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.collision
 
-import net.psforever.objects.ballistics.{DeployableSource, SourceEntry, VehicleSource}
+import net.psforever.objects.sourcing.{DeployableSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.base.{DamageModifiers, DamageReason, DamageResolution, DamageType}
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.DamageAndResistance

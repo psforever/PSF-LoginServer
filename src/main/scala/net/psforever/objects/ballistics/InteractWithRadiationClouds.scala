@@ -2,6 +2,7 @@
 package net.psforever.objects.ballistics
 
 import net.psforever.objects.Player
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.etc.RadiationReason

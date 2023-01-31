@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2023 PSForever
-package net.psforever.objects.ballistics
+package net.psforever.objects.sourcing
 
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.vital.VitalityDefinition

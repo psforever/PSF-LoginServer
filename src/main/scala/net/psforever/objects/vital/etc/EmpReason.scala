@@ -2,8 +2,8 @@
 package net.psforever.objects.vital.etc
 
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
 import net.psforever.objects.vital.prop.DamageWithPosition

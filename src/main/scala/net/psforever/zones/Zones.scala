@@ -1,11 +1,10 @@
 package net.psforever.zones
 
 import java.io.FileNotFoundException
-
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, ProximityTerminalDefinition, Terminal, TerminalDefinition}
 import net.psforever.objects.serverobject.mblocker.Locker
-import java.util.concurrent.atomic.AtomicInteger
 
+import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.ActorContext
 import io.circe._
 import io.circe.parser._
@@ -26,6 +25,7 @@ import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
+import net.psforever.objects.sourcing.{DeployableSource, ObjectSource, PlayerSource, VehicleSource}
 import net.psforever.objects.zones.{MapInfo, Zone, ZoneInfo, ZoneMap}
 import net.psforever.types.{Angular, PlanetSideEmpire, Vector3}
 import net.psforever.util.DefinitionUtil
@@ -914,7 +914,8 @@ object Zones {
   }
 
   object HotSpots {
-    import net.psforever.objects.ballistics.SourceEntry
+
+    import net.psforever.objects.sourcing.SourceEntry
     import net.psforever.objects.zones.MapScale
     import net.psforever.types.Vector3
 

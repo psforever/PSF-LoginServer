@@ -4,8 +4,7 @@ package net.psforever.objects.avatar
 import akka.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.login.WorldSession.{DropEquipmentFromInventory, HoldNewEquipmentUp, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
-import net.psforever.objects.{Player, _}
-import net.psforever.objects.ballistics.PlayerSource
+import net.psforever.objects._
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.DeployAnimation
 import net.psforever.objects.definition.converter.OCM
@@ -33,6 +32,7 @@ import net.psforever.objects.locker.LockerContainerControl
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
+import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}

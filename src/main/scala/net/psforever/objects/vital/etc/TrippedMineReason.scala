@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vital.etc
 
-import net.psforever.objects.ballistics.{DeployableSource, SourceEntry}
+import net.psforever.objects.sourcing.{DeployableSource, SourceEntry}
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.DamageAndResistance

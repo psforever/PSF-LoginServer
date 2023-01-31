@@ -13,6 +13,7 @@ import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl, GeneratorDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
