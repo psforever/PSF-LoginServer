@@ -1,7 +1,6 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital
 
-import net.psforever.objects.Player
 import net.psforever.objects.ballistics.{PlayerSource, VehicleSource}
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ToolDefinition}
 import net.psforever.objects.serverobject.terminals.TerminalDefinition

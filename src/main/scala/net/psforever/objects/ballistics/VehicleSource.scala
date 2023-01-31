@@ -4,28 +4,27 @@ package net.psforever.objects.ballistics
 import net.psforever.objects.Vehicle
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.vital.resistance.ResistanceProfile
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.{DriveState, PlanetSideEmpire, Vector3}
+
+final case class UniqueVehicle(spawnTime: Long, originalOwnerName: String) extends SourceUniqueness
 
 final case class VehicleSource(
-    obj_def: VehicleDefinition,
-    faction: PlanetSideEmpire.Value,
-    health: Int,
-    shields: Int,
-    position: Vector3,
-    orientation: Vector3,
-    velocity: Option[Vector3],
-    occupants: List[SourceEntry],
-    modifiers: ResistanceProfile
-) extends SourceEntry {
-  override def Name                 = SourceEntry.NameFormat(obj_def.Name)
-  override def Faction              = faction
-  def Definition: VehicleDefinition = obj_def
-  def Health                        = health
-  def Shields                       = shields
-  def Position                      = position
-  def Orientation                   = orientation
-  def Velocity                      = velocity
-  def Modifiers                     = modifiers
+                                Definition: VehicleDefinition,
+                                Faction: PlanetSideEmpire.Value,
+                                health: Int,
+                                shields: Int,
+                                Position: Vector3,
+                                Orientation: Vector3,
+                                Velocity: Option[Vector3],
+                                deployed: DriveState.Value,
+                                occupants: List[SourceEntry],
+                                Modifiers: ResistanceProfile,
+                                unique: UniqueVehicle
+                              ) extends SourceWithHealthEntry with SourceWithShieldsEntry {
+  def Name: String                  = SourceEntry.NameFormat(Definition.Name)
+  def Health: Int                   = health
+  def Shields: Int                  = shields
+  def total: Int                    = health + shields
 }
 
 object VehicleSource {
@@ -38,13 +37,21 @@ object VehicleSource {
       obj.Position,
       obj.Orientation,
       obj.Velocity,
+      obj.DeploymentState,
       obj.Seats.values.map { seat =>
         seat.occupant match {
           case Some(p) => PlayerSource(p)
           case _ => SourceEntry.None
         }
       }.toList,
-      obj.Definition.asInstanceOf[ResistanceProfile]
+      obj.Definition.asInstanceOf[ResistanceProfile],
+      UniqueVehicle(
+        obj.History.headOption match {
+          case Some(entry) => entry.time
+          case None => 0L
+        },
+        obj.OwnerName.getOrElse("ownerless")
+      )
     )
   }
 }

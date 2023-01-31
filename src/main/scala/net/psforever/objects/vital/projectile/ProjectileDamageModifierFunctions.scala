@@ -461,7 +461,7 @@ object ProjectileDamageModifierFunctions {
             case _ =>
               1f
           }
-          if (p.exosuit == ExoSuitType.MAX) {
+          if (p.ExoSuit == ExoSuitType.MAX) {
             (damage * degradation * aggravation.max_factor) toInt
           } else {
             val resist = cause.damageModel.ResistUsing(data)(data)

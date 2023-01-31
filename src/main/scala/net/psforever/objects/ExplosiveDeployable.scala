@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, ActorRef, Props}
-import net.psforever.objects.ballistics.{DeployableSource, PlayerSource, SourceEntry}
+import net.psforever.objects.ballistics.{DeployableSource, PlayerSource, SourceEntry, UniquePlayer}
 import net.psforever.objects.ce._
 import net.psforever.objects.definition.{DeployableDefinition, ExoSuitDefinition}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
@@ -18,7 +18,7 @@ import net.psforever.objects.vital.{SimpleResolutions, Vitality}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.Zone
-import net.psforever.types.{ExoSuitType, Vector3}
+import net.psforever.types.{CharacterSex, ExoSuitType, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -336,20 +336,20 @@ object MineDeployableControl {
         }
         val faction = mine.Faction
         PlayerSource(
-          name,
-          charId,
           GlobalDefinitions.avatar,
-          mine.Faction,
           exosuit,
-          seated,
+          seatedIn = None,
           100,
-          100,
+          0,
           mine.Position,
           Vector3.Zero,
           None,
           crouching = false,
           jumping = false,
-          ExoSuitDefinition.Select(exosuit, faction)
+          ExoSuitDefinition.Select(exosuit, faction),
+          bep = 0,
+          kills = Nil,
+          UniquePlayer(charId, name, CharacterSex.Male, mine.Faction)
         )
       case None =>
         //credit where credit is due

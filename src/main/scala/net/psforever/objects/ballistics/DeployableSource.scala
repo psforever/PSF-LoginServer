@@ -3,28 +3,29 @@ package net.psforever.objects.ballistics
 
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.{DeployableDefinition, ObjectDefinition}
+import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 final case class DeployableSource(
-    obj_def: ObjectDefinition with DeployableDefinition,
-    faction: PlanetSideEmpire.Value,
-    health: Int,
-    shields: Int,
-    owner: SourceEntry,
-    position: Vector3,
-    orientation: Vector3
-) extends SourceEntry {
-  override def Name                                   = obj_def.Descriptor
-  override def Faction                   = faction
-  def Definition: ObjectDefinition with DeployableDefinition = obj_def
-  def Health                                            = health
-  def Shields                                           = shields
-  def OwnerName                                       = owner.Name
-  def Position                                       = position
-  def Orientation                                    = orientation
-  def Velocity                                               = None
-  def Modifiers                               = obj_def.asInstanceOf[ResistanceProfile]
+                                   Definition: ObjectDefinition with DeployableDefinition,
+                                   Faction: PlanetSideEmpire.Value,
+                                   health: Int,
+                                   shields: Int,
+                                   owner: SourceEntry,
+                                   Position: Vector3,
+                                   Orientation: Vector3,
+                                   occupants: List[SourceEntry],
+                                   unique: UniqueDeployable
+                                 ) extends SourceWithHealthEntry {
+  def Name: String = Definition.Descriptor
+  def Health: Int = health
+  def Shields: Int = shields
+  def OwnerName: String = owner.Name
+  def Velocity: Option[Vector3] = None
+  def Modifiers: ResistanceProfile = Definition.asInstanceOf[ResistanceProfile]
+
+  def total: Int                             = health + shields
 }
 
 object DeployableSource {
@@ -36,6 +37,12 @@ object DeployableSource {
       case Some(p) => SourceEntry(p)
       case _ => SourceEntry.None
     }
+    val occupants = obj match {
+      case o: Mountable =>
+        o.Seats.values.flatMap { _.occupants }.map { PlayerSource(_) }.toList
+      case _ =>
+        Nil
+    }
     DeployableSource(
       obj.Definition,
       obj.Faction,
@@ -43,7 +50,15 @@ object DeployableSource {
       obj.Shields,
       ownerSource,
       obj.Position,
-      obj.Orientation
+      obj.Orientation,
+      occupants,
+      UniqueDeployable(
+        obj.History.headOption match {
+          case Some(entry) => entry.time
+          case None => 0L
+        },
+        obj.OriginalOwnerName.getOrElse("none")
+      )
     )
   }
 }

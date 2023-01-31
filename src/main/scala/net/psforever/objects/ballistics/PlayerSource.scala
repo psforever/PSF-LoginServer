@@ -1,58 +1,94 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.ballistics
 
-import net.psforever.objects.Player
+import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player}
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition}
+import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vital.resistance.ResistanceProfile
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, Vector3}
+import net.psforever.types.{CharacterSex, ExoSuitType, PlanetSideEmpire, Vector3}
+
+final case class UniquePlayer(
+                               charId: Long,
+                               name: String,
+                               sex: CharacterSex,
+                               faction: PlanetSideEmpire.Value
+                             ) extends SourceUniqueness
 
 final case class PlayerSource(
-    name: String,
-    char_id: Long,
-    obj_def: AvatarDefinition,
-    faction: PlanetSideEmpire.Value,
-    exosuit: ExoSuitType.Value,
-    seated: Boolean,
-    health: Int,
-    armor: Int,
-    position: Vector3,
-    orientation: Vector3,
-    velocity: Option[Vector3],
-    crouching: Boolean,
-    jumping: Boolean,
-    modifiers: ResistanceProfile
-) extends SourceEntry {
-  override def Name    = name
-  override def Faction = faction
-  override def CharId  = char_id
-  def Definition       = obj_def
-  def ExoSuit          = exosuit
-  def Seated           = seated
-  def Health           = health
-  def Armor            = armor
-  def Position         = position
-  def Orientation      = orientation
-  def Velocity         = velocity
-  def Modifiers        = modifiers
+                               Definition: AvatarDefinition,
+                               ExoSuit: ExoSuitType.Value,
+                               seatedIn: Option[(SourceEntry, Int)],
+                               health: Int,
+                               armor: Int,
+                               Position: Vector3,
+                               Orientation: Vector3,
+                               Velocity: Option[Vector3],
+                               crouching: Boolean,
+                               jumping: Boolean,
+                               Modifiers: ResistanceProfile,
+                               bep: Long,
+                               kills: Seq[Any],
+                               unique: UniquePlayer
+                             ) extends SourceWithHealthEntry {
+  override def Name: String = unique.name
+  override def Faction: PlanetSideEmpire.Value = unique.faction
+  override def CharId: Long = unique.charId
+
+  def Seated: Boolean = seatedIn.nonEmpty
+  def Health: Int = health
+  def Armor: Int = armor
+  def total: Int = health + armor
 }
 
 object PlayerSource {
-  def apply(tplayer: Player): PlayerSource = {
+  def apply(p: Player): PlayerSource = {
+    val exosuit = p.ExoSuit
+    val faction = p.Faction
+    val seatedEntity = mountableAndSeat(p)
     PlayerSource(
-      tplayer.Name,
-      tplayer.CharId,
-      tplayer.Definition,
-      tplayer.Faction,
-      tplayer.ExoSuit,
-      tplayer.VehicleSeated.nonEmpty,
-      tplayer.Health,
-      tplayer.Armor,
-      tplayer.Position,
-      tplayer.Orientation,
-      tplayer.Velocity,
-      tplayer.Crouching,
-      tplayer.Jumping,
-      ExoSuitDefinition.Select(tplayer.ExoSuit, tplayer.Faction)
+      p.Definition,
+      exosuit,
+      seatedEntity,
+      p.Health,
+      p.Armor,
+      p.Position,
+      p.Orientation,
+      p.Velocity,
+      p.Crouching,
+      p.Jumping,
+      ExoSuitDefinition.Select(exosuit, faction),
+      p.avatar.bep,
+      kills = Nil,
+      UniquePlayer(p.CharId, p.Name, p.Sex, faction)
     )
+  }
+
+  def apply(name: String, faction: PlanetSideEmpire.Value, position: Vector3): PlayerSource = {
+    new PlayerSource(
+      GlobalDefinitions.avatar,
+      ExoSuitType.Standard,
+      seatedIn = None,
+      health = 100,
+      armor = 0,
+      position,
+      Orientation = Vector3.Zero,
+      Velocity = None,
+      crouching = false,
+      jumping = false,
+      GlobalDefinitions.Standard,
+      bep = 0L,
+      kills = Nil,
+      UniquePlayer(0L, name, CharacterSex.Male, faction)
+    )
+  }
+
+  def mountableAndSeat(player: Player): Option[(SourceEntry, Int)] = {
+    player.Zone.GUID(player.VehicleSeated) match {
+      case Some(thing: PlanetSideGameObject with Mountable with FactionAffinity) =>
+        Some((SourceEntry(thing), thing.PassengerInSeat(player).get))
+      case _ =>
+        None
+    }
   }
 }
