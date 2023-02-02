@@ -4,7 +4,7 @@ package net.psforever.objects.zones
 import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects._
 import net.psforever.objects.ballistics.Projectile
-import net.psforever.objects.ce.Deployable
+import net.psforever.objects.ce.{Deployable, DeployableCategory}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{NumberPoolHub, UniqueNumberOps, UniqueNumberSetup}
 import net.psforever.objects.guid.key.LoanedKey
@@ -45,7 +45,7 @@ import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.sourcing.SourceEntry
-import net.psforever.objects.vehicles.UtilityType
+import net.psforever.objects.vehicles.{MountedWeapons, UtilityType}
 import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageWithPosition
@@ -54,6 +54,7 @@ import net.psforever.objects.zones.blockmap.BlockMap
 import net.psforever.services.Service
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.concurrent.{Future, Promise}
 
 /**
@@ -161,6 +162,8 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   /** calculate a duration from a given interaction's participants */
   private var hotspotTimeFunc: (SourceEntry, SourceEntry) => FiniteDuration = Zone.HotSpot.Rules.NoTime
 
+  private val linkDynamicTurretWeapon: mutable.HashMap[Int, Int] = mutable.HashMap[Int, Int]()
+
   /**
     */
   private var avatarEvents: ActorRef = Default.Actor
@@ -208,9 +211,9 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       SetupNumberPools()
       context.actorOf(Props(classOf[UniqueNumberSys], this, this.guid), s"zone-$id-uns")
       ground = context.actorOf(Props(classOf[ZoneGroundActor], this, equipmentOnGround), s"zone-$id-ground")
-      deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions), s"zone-$id-deployables")
+      deployables = context.actorOf(Props(classOf[ZoneDeployableActor], this, constructions, linkDynamicTurretWeapon), s"zone-$id-deployables")
       projectiles = context.actorOf(Props(classOf[ZoneProjectileActor], this, projectileList), s"zone-$id-projectiles")
-      transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"zone-$id-vehicles")
+      transport = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles, linkDynamicTurretWeapon), s"zone-$id-vehicles")
       population = context.actorOf(Props(classOf[ZonePopulationActor], this, players, corpses), s"zone-$id-players")
       projector = context.actorOf(
         Props(classOf[ZoneHotSpotDisplay], this, hotspots, 15 seconds, hotspotHistory, 60 seconds),
@@ -669,9 +672,10 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     map.objectToBuilding.foreach({
       case (object_guid, building_id) =>
         (buildings.get(building_id), guid(object_guid)) match {
-          case (Some(building), Some(amenity)) =>
-            building.Amenities = amenity.asInstanceOf[Amenity]
-          case (None, _) | (_, None) => ; //let ZoneActor's sanity check catch this error
+          case (Some(building), Some(amenity: Amenity)) =>
+            building.Amenities = amenity
+            //amenity.History(EntitySpawn(SourceEntry(amenity), this))
+          case (Some(_), _) | (None, _) | (_, None) => ; //let ZoneActor's sanity check catch this error
         }
     })
     //doors with nearby locks use those locks as their unlocking mechanism
@@ -693,7 +697,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       .flatMap(_.Amenities.filter(_.Definition.isInstanceOf[PainboxDefinition]))
       .collect {
         case painbox: Painbox =>
-          painbox.Actor ! "startup"
+          painbox.Actor ! Service.Startup()
       }
     //the orbital_buildings in sanctuary zones have to establish their shuttle routes
     map.shuttleBays
@@ -826,6 +830,8 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     * @return the `Zone` object
     */
   def ClientInitialization(): Zone = this
+
+  def turretToWeapon: Map[Int, Int] = linkDynamicTurretWeapon.toMap[Int, Int]
 
   def AvatarEvents: ActorRef = avatarEvents
 
@@ -1089,6 +1095,8 @@ object Zone {
       */
     final case class InContainer(obj: Container, index: Int) extends ItemLocation
 
+    final case class Mounted(obj: MountedWeapons, index: Int) extends ItemLocation
+
     /**
       * The target item is found on the Ground.
       * @see `ZoneGroundActor`
@@ -1105,9 +1113,12 @@ object Zone {
       * and a token that qualifies the current location of the object in the zone is returned.
       * The following groups of objects are searched:
       * the inventories of all players and all corpses,
-      * all vehicles weapon mounts and trunks,
-      * the lockers of all players and corpses;
-      * and, if still not found, the ground is scoured too.
+     * the lockers of all players and corpses,
+     * all vehicles's weapon mounts and trunks,
+     * all weapon-mounted deployables's mounted turrets,
+     * all facilities's natural mounted turrets;
+     * and, if still not found, the ground is scoured too;
+     * and, if still not found after that, it __shouldn't__ exist (in this zone).
       * @see `ItemLocation`
       * @see `LockerContainer`
       * @param equipment the target object
@@ -1128,8 +1139,29 @@ object Zone {
           }).orElse(continent.Players.find(_.locker.Find(guid).nonEmpty) match {
             case Some(avatar) => Some((avatar.locker, avatar.locker.Find(guid)))
             case _            => None
-          }) match {
-            case Some((obj, Some(index))) =>
+          }).orElse({
+            (continent.DeployableList.filter( d => d.Definition.DeployCategory == DeployableCategory.FieldTurrets ) ++
+              continent.DeployableList.filter( d => d.Definition.DeployCategory == DeployableCategory.SmallTurrets )).find {
+              case w: MountedWeapons => w.Weapons.values.flatMap(_.Equipment).exists(_ eq equipment)
+              case _                 => false
+            } match {
+              case Some(deployable) => Some((deployable, Some(0)))
+              case _                => None
+            }
+          }).orElse({
+            continent.Buildings.values
+              .flatMap(_.Amenities).find {
+              case w: MountedWeapons => w.Weapons.values.flatMap(_.Equipment).exists(_ eq equipment)
+              case _                 => false
+            } match {
+              case Some(turret) => Some((turret.asInstanceOf[MountedWeapons], Some(0)))
+              case _            => None
+            }
+          })
+          match {
+            case Some((obj: MountedWeapons, Some(index))) =>
+              Some(Zone.EquipmentIs.Mounted(obj, index))
+            case Some((obj: Container, Some(index))) =>
               Some(Zone.EquipmentIs.InContainer(obj, index))
             case _ =>
               continent.EquipmentOnGround.find(_.GUID == guid) match {

@@ -13,6 +13,7 @@ import net.psforever.types.Vector3
   */
 class CaptureFlagSocket(tDef: CaptureFlagSocketDefinition)
   extends Amenity {
+  private var lastFlag: Option[CaptureFlag] = None
   private var spawnedCaptureFlag: Option[CaptureFlag] = None
 
   def captureFlag: Option[CaptureFlag] = spawnedCaptureFlag
@@ -20,8 +21,17 @@ class CaptureFlagSocket(tDef: CaptureFlagSocketDefinition)
   def captureFlag_=(flag: CaptureFlag): Option[CaptureFlag] = captureFlag_=(Some(flag))
 
   def captureFlag_=(flag: Option[CaptureFlag]): Option[CaptureFlag] = {
+    lastFlag = flag.orElse(lastFlag)
     spawnedCaptureFlag = flag
     captureFlag
+  }
+
+  def previousFlag: Option[CaptureFlag] = lastFlag
+
+  def clearOldFlagData(): Unit = {
+    if (spawnedCaptureFlag.isEmpty) {
+      lastFlag = None
+    }
   }
 
   def Definition : CaptureFlagSocketDefinition = tDef

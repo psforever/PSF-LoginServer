@@ -2,6 +2,8 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.avatar.scoring.EquipmentStat
+
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -41,6 +43,7 @@ private[support] class WeaponAndProjectileOperations(
   var prefire: mutable.Set[PlanetSideGUID] = mutable.Set.empty //if WeaponFireMessage precedes ChangeFireStateMessage_Start
   private[support] var shootingStart: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
   private[support] var shootingStop: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
+  private var ongoingShotsFired: Int = 0
   private[support] var shotsWhileDead: Int = 0
   private val projectiles: Array[Option[Projectile]] =
     Array.fill[Option[Projectile]](Projectile.rangeUID - Projectile.baseUID)(None)
@@ -113,6 +116,7 @@ private[support] class WeaponAndProjectileOperations(
             prefire -= item_guid
             shooting += item_guid
             shootingStart += item_guid -> System.currentTimeMillis()
+            ongoingShotsFired = 0
             //special case - suppress the decimator's alternate fire mode, by projectile
             if (tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
               continent.AvatarEvents ! AvatarServiceMessage(
@@ -141,6 +145,7 @@ private[support] class WeaponAndProjectileOperations(
           prefire -= item_guid
           shooting += item_guid
           shootingStart += item_guid -> System.currentTimeMillis()
+          ongoingShotsFired = 0
           continent.AvatarEvents ! AvatarServiceMessage(
             continent.id,
             AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
@@ -169,8 +174,10 @@ private[support] class WeaponAndProjectileOperations(
             continent.id,
             AvatarAction.ChangeFireState_Start(pguid, item_guid)
           )
+          ongoingShotsFired = ongoingShotsFired + tool.Discharge()
           shootingStart += item_guid -> (System.currentTimeMillis() - 1L)
         }
+        avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(tool.Definition.ObjectId,ongoingShotsFired,0,0))
         tool.FireMode match {
           case _: ChargeFireModeDefinition =>
             sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))
@@ -411,6 +418,7 @@ private[support] class WeaponAndProjectileOperations(
               ) =>
               ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos) match {
                 case Some(resprojectile) =>
+                  avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(resprojectile.cause.attribution,0,1,0))
                   sessionData.handleDealingDamage(target, resprojectile)
                 case None => ;
               }
@@ -448,8 +456,9 @@ private[support] class WeaponAndProjectileOperations(
           case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
             CheckForHitPositionDiscrepancy(projectile_guid, target.Position, target)
             ResolveProjectileInteraction(projectile, resolution1, target, target.Position) match {
-              case Some(_projectile) =>
-                sessionData.handleDealingDamage(target, _projectile)
+              case Some(resprojectile) =>
+                avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(resprojectile.cause.attribution,0,1,0))
+                sessionData.handleDealingDamage(target, resprojectile)
               case None => ;
             }
           case _ => ;
@@ -460,8 +469,9 @@ private[support] class WeaponAndProjectileOperations(
             case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
               CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
               ResolveProjectileInteraction(projectile, resolution2, target, explosion_pos) match {
-                case Some(_projectile) =>
-                  sessionData.handleDealingDamage(target, _projectile)
+                case Some(resprojectile) =>
+                  avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(resprojectile.cause.attribution,0,1,0))
+                  sessionData.handleDealingDamage(target, resprojectile)
                 case None => ;
               }
             case _ => ;
@@ -500,8 +510,9 @@ private[support] class WeaponAndProjectileOperations(
       case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
         CheckForHitPositionDiscrepancy(projectile_guid, hit_pos, target)
         ResolveProjectileInteraction(projectile_guid, DamageResolution.Lash, target, hit_pos) match {
-          case Some(projectile) =>
-            sessionData.handleDealingDamage(target, projectile)
+          case Some(resprojectile) =>
+            avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(resprojectile.cause.attribution,0,1,0))
+            sessionData.handleDealingDamage(target, resprojectile)
           case None => ;
         }
       case _ => ;
@@ -555,17 +566,29 @@ private[support] class WeaponAndProjectileOperations(
         val distanceToOwner = Vector3.DistanceSquared(shotOrigin, player.Position)
         if (distanceToOwner <= acceptableDistanceToOwner) {
           val projectile_info = tool.Projectile
-          val projectile =
-            Projectile(
-              projectile_info,
-              tool.Definition,
-              tool.FireMode,
-              PlayerSource(player),
-              attribution,
-              shotOrigin,
-              angle,
-              shotVelocity
-            )
+          val wguid = weaponGUID.guid
+          val mountedIn = ((continent.turretToWeapon ++ continent.map.turretToWeapon)
+            .find { case (guid, _) => guid == wguid } match {
+            case Some((_, turretGuid)) => Some((
+              turretGuid,
+              continent.GUID(turretGuid).collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) }
+            ))
+            case _                     => None
+          }) match {
+            case Some((guid, Some(entity))) => Some((guid, entity))
+            case _                          => None
+          }
+          val projectile = new Projectile(
+            projectile_info,
+            tool.Definition,
+            tool.FireMode,
+            mountedIn,
+            PlayerSource(player),
+            attribution,
+            shotOrigin,
+            angle,
+            shotVelocity
+          )
           val initialQuality = tool.FireMode match {
             case mode: ChargeFireModeDefinition =>
               ProjectileQuality.Modified(
@@ -642,7 +665,7 @@ private[support] class WeaponAndProjectileOperations(
             }
             avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)
             prefire += weaponGUID
-            tool.Discharge()
+            ongoingShotsFired = ongoingShotsFired + tool.Discharge()
           }
           (o, Some(tool))
       }

@@ -10,13 +10,13 @@ import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorGroup}
 import net.psforever.objects.{ConstructionItem, Player, Vehicle}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
-import scala.collection.mutable.ListBuffer
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.building.MajorFacilityLogic
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.util.Database._
 import net.psforever.persistence
 
+import scala.collection.mutable
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -26,7 +26,7 @@ object ZoneActor {
       .supervise[Command] {
         Behaviors.setup(context => new ZoneActor(context, zone))
       }
-      .onFailure[Exception](SupervisorStrategy.restart)
+      .onFailure[Exception](SupervisorStrategy.resume)
 
   sealed trait Command
 
@@ -73,13 +73,13 @@ object ZoneActor {
 }
 
 class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
-    extends AbstractBehavior[ZoneActor.Command](context) {
+  extends AbstractBehavior[ZoneActor.Command](context) {
 
   import ZoneActor._
   import ctx._
 
   private[this] val log           = org.log4s.getLogger
-  val players: ListBuffer[Player] = ListBuffer()
+  val players: mutable.ListBuffer[Player] = mutable.ListBuffer()
 
   zone.actor = context.self
   zone.init(context.toClassic)
@@ -102,7 +102,7 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
     case Failure(e) => log.error(e.getMessage)
   }
 
-  override def onMessage(msg: Command): Behavior[Command] = {
+  def onMessage(msg: Command): Behavior[Command] = {
     msg match {
       case GetZone(replyTo) =>
         replyTo ! ZoneResponse(zone)

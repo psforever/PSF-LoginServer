@@ -30,10 +30,10 @@ class GeneratorControl(gen: Generator)
     with DamageableEntity
     with RepairableEntity
     with AmenityAutoRepair {
-  def FactionObject      = gen
-  def DamageableObject   = gen
-  def RepairableObject   = gen
-  def AutoRepairObject   = gen
+  def FactionObject: Generator    = gen
+  def DamageableObject: Generator = gen
+  def RepairableObject: Generator = gen
+  def AutoRepairObject: Generator = gen
   /** flagged to explode after some time */
   var imminentExplosion: Boolean   = false
   /** explode when this timer completes */
@@ -123,9 +123,9 @@ class GeneratorControl(gen: Generator)
           imminentExplosion = false
           //hate on everything nearby
           Zone.serverSideDamage(gen.Zone, gen, Zone.explosionDamage(gen.LastDamage), explosionFunc)
-          gen.ClearHistory()
 
         case GeneratorControl.Restored() =>
+          gen.ClearHistory()
           GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Online))
 
         case _ => ;
@@ -153,7 +153,6 @@ class GeneratorControl(gen: Generator)
           imminentExplosion = false
           gen.Condition = PlanetSideGeneratorState.Destroyed
           GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Destroyed))
-          gen.ClearHistory()
 
         case _ =>
       }

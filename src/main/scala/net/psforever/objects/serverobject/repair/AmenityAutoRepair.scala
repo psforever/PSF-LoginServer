@@ -96,6 +96,7 @@ trait AmenityAutoRepair
           wholeRepairAmount + wholeOverflow
         }
         PerformRepairs(obj, finalRepairAmount)
+        //obj.History(RepairFromAmenityAutoRepair(finalRepairAmount))
         val currentTime = System.currentTimeMillis()
         val taskTime = currentTime - autoRepairQueueTask.getOrElse(currentTime)
         autoRepairQueueTask = Some(0L)

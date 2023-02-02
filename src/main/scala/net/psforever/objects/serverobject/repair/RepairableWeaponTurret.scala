@@ -16,6 +16,7 @@ trait RepairableWeaponTurret extends RepairableEntity {
 
   override def Restoration(target: Repairable.Target): Unit = {
     super.Restoration(target)
+    RepairableAmenity.RestorationOfHistory(target)
     RepairableWeaponTurret.Restoration(RepairableObject)
   }
 }

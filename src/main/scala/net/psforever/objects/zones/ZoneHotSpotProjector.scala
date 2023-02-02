@@ -35,11 +35,11 @@ class ZoneHotSpotDisplay(
     dataList: ListBuffer[HotSpotInfo],
     dataBlanking: FiniteDuration
 ) extends Actor {
-  val projector = context.actorOf(
+  val projector: ActorRef = context.actorOf(
     Props(classOf[ZoneHotSpotProjector], zone, outputList, outputBlanking),
     s"${zone.id}-hotspot-projector"
   )
-  val backup =
+  val backup: ActorRef =
     context.actorOf(Props(classOf[ZoneHotSpotHistory], zone, dataList, dataBlanking), s"${zone.id}-hotspot-backup")
 
   def receive: Receive = {
@@ -164,18 +164,11 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
         )
         val noPriorActivity = !(hotspot.ActivityBy(defenderFaction) && hotspot.ActivityBy(attackerFaction))
         //update the activity report for these factions
-        val affectedFactions = Seq(attackerFaction, defenderFaction)
-        affectedFactions.foreach { f =>
-          hotspot.ActivityFor(f) match {
-            case Some(events) =>
-              events.Duration = duration
-              events.Report()
-            case None => ;
-          }
-        }
+        hotspot.Activity(attackerFaction).Report(pow = 2, duration)
+        hotspot.Activity(defenderFaction).Report(pow = 1, duration)
         //if the level of activity changed for one of the participants or the number of hotspots was zero
         if (noPriorActivity || noPriorHotSpots) {
-          UpdateHotSpots(affectedFactions, hotspots)
+          UpdateHotSpots(Seq(attackerFaction, defenderFaction), hotspots)
           if (noPriorHotSpots) {
             import scala.concurrent.ExecutionContext.Implicits.global
             blanking.cancel()
@@ -331,9 +324,41 @@ class ZoneHotSpotHistory(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanking
   /* this component does not actually the visible hotspots
    * a duplicate of the projector device otherwise */
   override def UpdateHotSpots(
-      affectedFactions: Iterable[PlanetSideEmpire.Value],
-      hotSpotInfos: Iterable[HotSpotInfo]
-  ): Unit = {}
+                               affectedFactions: Iterable[PlanetSideEmpire.Value],
+                               hotSpotInfos: Iterable[HotSpotInfo]
+                             ): Unit = { }
+  override def Established: Receive = {
+    case ZoneHotSpotProjector.ExposeHeatForRegion(center, radius) =>
+      MapInfo.values.find(_.value == zone.map.name) match {
+        case Some(mapInfo) =>
+          //turn the radius into the number of hotspots, then sample all hotspots outwards from the center region
+          val span = mapInfo.hotSpotSpan
+          val spanIntervalsHalf = (radius / span).toInt + 1
+          val cornerOffset = span * spanIntervalsHalf.toFloat
+          val lowerLeftCorner = zone.HotSpotCoordinateFunction(center) + Vector3(-cornerOffset, -cornerOffset, 0f)
+          val progressionOfIntervals = 0 to spanIntervalsHalf * 2
+          val squareRadius = radius * radius
+          val out = progressionOfIntervals
+            .flatMap { y =>
+              val yFloat = span * y.toFloat
+              progressionOfIntervals.map { x => TryHotSpot(lowerLeftCorner + Vector3(span * x.toFloat, yFloat, 0f)) }
+            }
+            .filter { info => Vector3.DistanceSquared(center, info.DisplayLocation) < squareRadius }
+            .distinctBy { _.DisplayLocation }
+            .toList
+          sender() ! ZoneHotSpotProjector.ExposedHeat(center, radius, out)
+
+        case _ =>
+          //can't validate the radius so just get the center hotspot
+          sender() ! ZoneHotSpotProjector.ExposedHeat(
+            center,
+            radius,
+            List(TryHotSpot(zone.HotSpotCoordinateFunction(center)))
+          )
+      }
+    case msg =>
+      super.Established.apply(msg)
+  }
 }
 
 object ZoneHotSpotProjector {
@@ -352,6 +377,10 @@ object ZoneHotSpotProjector {
     * The internal message for eliminating hotspot data whose lifespan has exceeded its set duration.
     */
   private case class BlankingPhase()
+
+  final case class ExposeHeatForRegion(center: Vector3, radius: Float)
+
+  final case class ExposedHeat(center: Vector3, radius: Float, activity: List[HotSpotInfo])
 
   /**
     * Extract related hotspot activity information based on association with a faction.

@@ -10,6 +10,7 @@ import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.containable.Containable
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{ExoSuitType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.Service
@@ -31,7 +32,8 @@ object WorldSession {
     * @return 1 for `true`; 0 for `false`
     */
   implicit def boolToInt(b: Boolean): Int = if (b) 1 else 0
-  private implicit val timeout            = new Timeout(5000 milliseconds)
+
+  private implicit val timeout: Timeout = new Timeout(5000 milliseconds)
 
   /**
     * Use this for placing equipment that has already been registered into a container,
@@ -185,7 +187,6 @@ object WorldSession {
     val localZone = obj.Zone
     TaskBundle(
       new StraightforwardTask() {
-        private val localContainer                             = obj
         private val localItem                                  = item
         private val localSlot                                  = slot
         private val localFunc: (Equipment, Int) => Future[Any] = PutEquipmentInInventorySlot(obj)
@@ -568,13 +569,13 @@ object WorldSession {
     }
     if (performSwap) {
       def moveItemTaskFunc(toSlot: Int): Task = new StraightforwardTask() {
-        val localGUID = swapItemGUID //the swap item's original GUID, if any swap item
-        val localChannel = toChannel
-        val localSource = source
-        val localDestination = destination
-        val localItem = item
-        val localDestSlot = dest
-        val localSrcSlot = toSlot
+        val localGUID: Option[PlanetSideGUID] = swapItemGUID //the swap item's original GUID, if any swap item
+        val localChannel: String = toChannel
+        val localSource: PlanetSideServerObject with Container = source
+        val localDestination: PlanetSideServerObject with Container = destination
+        val localItem: Equipment = item
+        val localDestSlot: Int = dest
+        val localSrcSlot: Int = toSlot
         val localMoveOnComplete: Try[Any] => Unit = {
           case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) =>
             //swapItem is not registered right now, we can not drop the item without re-registering it
@@ -673,13 +674,13 @@ object WorldSession {
     }
     if (performSwap) {
       def moveItemTaskFunc(toSlot: Int): Task = new StraightforwardTask() {
-        val localGUID = swapItemGUID //the swap item's original GUID, if any swap item
-        val localChannel = toChannel
-        val localSource = source
-        val localDestination = destination
-        val localItem = item
-        val localDestSlot = dest
-        val localSrcSlot = toSlot
+        val localGUID: Option[PlanetSideGUID] = swapItemGUID //the swap item's original GUID, if any swap item
+        val localChannel: String = toChannel
+        val localSource: PlanetSideServerObject with Container = source
+        val localDestination: PlanetSideServerObject with Container = destination
+        val localItem: Equipment = item
+        val localDestSlot: Int = dest
+        val localSrcSlot: Int = toSlot
         val localMoveOnComplete: Try[Any] => Unit = {
           case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) =>
             //swapItem is not registered right now, we can not drop the item without re-registering it
@@ -936,6 +937,18 @@ object WorldSession {
   def TerminalResult(guid: PlanetSideGUID, player: Player, transaction: TransactionType.Value)(
       result: Boolean
   ): Unit = {
+    if (result) {
+      player.Zone.GUID(guid) match {
+        case Some(term: Terminal) =>
+//          player.History(TerminalUsedActivity(
+//            guid,
+//            term.Definition,
+//            transaction,
+//            term.HackedBy.map { _.player }
+//          ))
+        case _ => ;
+      }
+    }
     player.Zone.AvatarEvents ! AvatarServiceMessage(
       player.Name,
       AvatarAction.TerminalOrderResult(guid, transaction, result)

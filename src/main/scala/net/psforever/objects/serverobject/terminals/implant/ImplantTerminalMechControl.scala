@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity, DamageableMountable}
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
-import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableEntity}
+import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity, RepairableEntity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAwareBehavior
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
@@ -27,13 +27,13 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     with RepairableEntity
     with AmenityAutoRepair
     with CaptureTerminalAwareBehavior {
-  def MountableObject  = mech
-  def HackableObject   = mech
-  def FactionObject    = mech
-  def DamageableObject = mech
-  def RepairableObject = mech
-  def AutoRepairObject = mech
-  def CaptureTerminalAwareObject = mech
+  def MountableObject: ImplantTerminalMech            = mech
+  def HackableObject: ImplantTerminalMech             = mech
+  def FactionObject: ImplantTerminalMech              = mech
+  def DamageableObject: ImplantTerminalMech           = mech
+  def RepairableObject: ImplantTerminalMech           = mech
+  def AutoRepairObject: ImplantTerminalMech           = mech
+  def CaptureTerminalAwareObject: ImplantTerminalMech = mech
 
   def commonBehavior: Receive =
     checkBehavior
@@ -98,7 +98,6 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
   override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
     DamageableMountable.DestructionAwareness(DamageableObject, cause)
-    target.ClearHistory()
   }
 
   override def PerformRepairs(target : Damageable.Target, amount : Int) : Int = {
@@ -135,5 +134,10 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
 
   def powerTurnOnCallback(): Unit = {
     tryAutoRepair()
+  }
+
+  override def Restoration(obj: Target): Unit = {
+    super.Restoration(obj)
+    RepairableAmenity.RestorationOfHistory(obj)
   }
 }

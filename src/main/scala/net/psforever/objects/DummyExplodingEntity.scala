@@ -53,7 +53,7 @@ private class DefinitionWrappedInVitality(definition: ObjectDefinition)
     case p: ProjectileDefinition                          => p
     case _                                                => GlobalDefinitions.no_projectile
   }
-
+  Name = { definition.Name }
   DefaultHealth = 1 //just cuz
 }
 

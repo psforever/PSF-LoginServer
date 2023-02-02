@@ -10,7 +10,7 @@ import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.packet.game.{CreateShortcutMessage, Shortcut}
 import net.psforever.packet.game.objectcreate.DrawnSlot
 import net.psforever.types.ChatMessageType.{CMT_GMOPEN, UNK_227}
-import net.psforever.types.ImplantType
+import net.psforever.types.{ExperienceType, ImplantType}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContextExecutor
@@ -820,7 +820,7 @@ class ChatActor(
 
             case (CMT_ADDBATTLEEXPERIENCE, _, contents) if gmCommandAllowed =>
               contents.toIntOption match {
-                case Some(bep) => avatarActor ! AvatarActor.AwardBep(bep)
+                case Some(bep) => avatarActor ! AvatarActor.AwardBep(bep, ExperienceType.Normal)
                 case None =>
                   sessionActor ! SessionActor.SendResponse(
                     message.copy(messageType = UNK_229, contents = "@CMT_ADDBATTLEEXPERIENCE_usage")

@@ -8,6 +8,7 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.etc.PainboxReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.{Default, GlobalDefinitions, Player}
+import net.psforever.services.Service
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -58,7 +59,7 @@ class PainboxControl(painbox: Painbox) extends PoweredAmenityControl {
   }
 
   var commonBehavior: Receive = {
-    case "startup" =>
+    case Service.Startup() =>
       if (!disabled && domain.midpoint == Vector3.Zero) {
         initialStartup()
       }

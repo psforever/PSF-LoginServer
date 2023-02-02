@@ -2,6 +2,7 @@
 package objects
 
 import akka.actor.Props
+import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.testkit.TestProbe
 import base.{ActorTest, FreedContextActorTest}
 import net.psforever.actors.zone.ZoneActor
@@ -707,6 +708,7 @@ class DamageableMountableDestroyTest extends ActorTest {
   val activityProbe = TestProbe()
   val avatarProbe   = TestProbe()
   val buildingProbe = TestProbe()
+  zone.actor = ActorTestKit().createTestProbe[ZoneActor.Command]().ref
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   building.Actor = buildingProbe.ref
@@ -778,6 +780,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
   val activityProbe = TestProbe()
   val avatarProbe   = TestProbe()
   val vehicleProbe   = TestProbe()
+  zone.actor = ActorTestKit().createTestProbe[ZoneActor.Command]().ref
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   zone.VehicleEvents = vehicleProbe.ref
@@ -785,6 +788,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
   turret.Actor = system.actorOf(Props(classOf[TurretControl], turret), "turret-control")
   turret.Zone = zone
   turret.Position = Vector3(1, 0, 0)
+  //turret.History(EntitySpawn(TurretSource(turret), zone)) //seed a spawn event
   val player1 =
     Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn()
@@ -843,8 +847,8 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
       assert(
         msg3 match {
           case activity: Zone.HotSpot.Activity =>
-            activity.attacker == pSource &&
-              activity.defender == SourceEntry(turret) &&
+            activity.attacker.unique == pSource.unique &&
+              activity.defender.unique == SourceEntry(turret).unique &&
               activity.location == Vector3(1, 0, 0)
           case _ => false
         }
@@ -972,6 +976,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
   val avatarProbe   = TestProbe()
   val vehicleProbe  = TestProbe()
   val buildingProbe = TestProbe()
+  zone.actor = ActorTestKit().createTestProbe[ZoneActor.Command]().ref
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   zone.VehicleEvents = vehicleProbe.ref
@@ -1008,6 +1013,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
   building.Amenities = turret
 
   val turretSource = SourceEntry(turret)
+  //turret.History(EntitySpawn(turretSource, zone)) //seed a spawn event
   val weaponA      = Tool(GlobalDefinitions.jammer_grenade)
   val projectileA  = weaponA.Projectile
   val resolvedA = DamageInteraction(
@@ -1119,6 +1125,7 @@ class DamageableVehicleDamageTest extends ActorTest {
   val activityProbe = TestProbe()
   val avatarProbe   = TestProbe()
   val vehicleProbe  = TestProbe()
+  zone.actor = ActorTestKit().createTestProbe[ZoneActor.Command]().ref
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   zone.VehicleEvents = vehicleProbe.ref
@@ -1126,6 +1133,7 @@ class DamageableVehicleDamageTest extends ActorTest {
   val atv = Vehicle(GlobalDefinitions.quadstealth) //guid=1
   atv.Actor = system.actorOf(Props(classOf[VehicleControl], atv), "vehicle-control")
   atv.Position = Vector3(1, 0, 0)
+  //atv.History(EntitySpawn(turretSource, zone)) //seed a spawn event
 
   val player1 =
     Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=2
@@ -1195,9 +1203,9 @@ class DamageableVehicleDamageTest extends ActorTest {
       assert(
         msg3 match {
           case activity: Zone.HotSpot.Activity =>
-            activity.attacker == PlayerSource(player1) &&
-            activity.defender == VehicleSource(atv) &&
-            activity.location == Vector3(1, 0, 0)
+            activity.attacker.unique == PlayerSource(player1).unique &&
+              activity.defender.unique  == VehicleSource(atv).unique &&
+              activity.location == Vector3(1, 0, 0)
           case _ => false
         }
       )
@@ -1226,6 +1234,7 @@ class DamageableVehicleDamageMountedTest extends FreedContextActorTest {
   val activityProbe = TestProbe()
   val avatarProbe   = TestProbe()
   val vehicleProbe  = TestProbe()
+  zone.actor = ActorTestKit().createTestProbe[ZoneActor.Command]().ref
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   zone.VehicleEvents = vehicleProbe.ref
@@ -1234,6 +1243,7 @@ class DamageableVehicleDamageMountedTest extends FreedContextActorTest {
 
   val lodestar = Vehicle(GlobalDefinitions.lodestar) //guid=1 & 4,5,6,7,8,9
   lodestar.Position = Vector3(1, 0, 0)
+  //lodestar.History(EntitySpawn(VehicleSource(lodestar), zone)) //seed a spawn event
   val atv = Vehicle(GlobalDefinitions.quadstealth) //guid=11
   atv.Position = Vector3(1, 0, 0)
   atv.Actor = system.actorOf(Props(classOf[VehicleControl], atv), "atv-control")
@@ -1324,8 +1334,8 @@ class DamageableVehicleDamageMountedTest extends FreedContextActorTest {
     }
     msg3 match {
       case activity: Zone.HotSpot.Activity =>
-        assert(activity.attacker == pSource &&
-          activity.defender == SourceEntry(lodestar) &&
+        assert(activity.attacker.unique == pSource.unique &&
+          activity.defender.unique == SourceEntry(lodestar).unique &&
           activity.location == Vector3(1, 0, 0))
       case _ => assert(false)
     }
@@ -1474,6 +1484,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
   val activityProbe = TestProbe()
   val avatarProbe   = TestProbe()
   val vehicleProbe  = TestProbe()
+  zone.actor = ActorTestKit().createTestProbe[ZoneActor.Command]().ref
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   zone.VehicleEvents = vehicleProbe.ref

@@ -324,23 +324,23 @@ object MineDeployableControl {
     val deployableSource = DeployableSource(mine)
     val blame = mine.OwnerName match {
       case Some(name) =>
-        val(charId, exosuit, seated): (Long, ExoSuitType.Value, Boolean) = mine.Zone
+        val(charId, exosuit, seatedIn): (Long, ExoSuitType.Value, Option[(SourceEntry, Int)]) = mine.Zone
           .LivePlayers
           .find { _.Name.equals(name) } match {
           case Some(player) =>
             //if the owner is alive in the same zone as the mine, use data from their body to create the source
-            (player.CharId, player.ExoSuit, player.VehicleSeated.nonEmpty)
+            (player.CharId, player.ExoSuit, PlayerSource.mountableAndSeat(player))
           case None         =>
             //if the owner is as dead as a corpse or is not in the same zone as the mine, use defaults
-            (0L, ExoSuitType.Standard, false)
+            (0L, ExoSuitType.Standard, None)
         }
         val faction = mine.Faction
         PlayerSource(
           GlobalDefinitions.avatar,
           exosuit,
-          seatedIn = None,
-          100,
-          0,
+          seatedIn,
+          health = 100,
+          armor = 0,
           mine.Position,
           Vector3.Zero,
           None,

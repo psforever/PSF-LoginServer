@@ -214,7 +214,6 @@ trait DamageableVehicle
         }
         //clean up
         target.Actor ! Vehicle.Deconstruct(Some(1 minute))
-        target.ClearHistory()
         DamageableWeaponTurret.DestructionAwareness(obj, cause)
       case _ => ;
     }

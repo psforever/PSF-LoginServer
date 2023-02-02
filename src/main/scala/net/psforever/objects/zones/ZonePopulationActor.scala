@@ -94,6 +94,8 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
           (player.Zone == Zone.Nowhere || player.Zone == zone, None)
       }
       if (canBeCorpse && CorpseAdd(player, corpseList)) {
+        player.ClearHistory()
+        //player.History(PlayerSpawn(PlayerSource(player), zone, player.Position))
         player.Actor = context.actorOf(
           Props(classOf[CorpseControl], player),
           name = s"corpse_of_${GetPlayerControlName(player, control)}"

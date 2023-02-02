@@ -945,7 +945,7 @@ class SessionData(
     continent.GUID(player.VehicleSeated) match {
       case Some(obj) if obj.Destroyed => () //vehicle will try to charge even if destroyed
       case Some(obj: Vehicle) =>
-        obj.Actor ! Vehicle.ChargeShields(15)
+        obj.Actor ! CommonMessages.ChargeShields(15, None)
       case Some(_: TurretDeployable) => () //TODO the turret will charge a shield in some circumstances
       case None if player.VehicleSeated.nonEmpty =>
         log.error(

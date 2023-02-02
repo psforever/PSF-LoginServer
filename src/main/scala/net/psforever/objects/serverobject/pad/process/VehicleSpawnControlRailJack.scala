@@ -39,6 +39,7 @@ class VehicleSpawnControlRailJack(pad: VehicleSpawnPad) extends VehicleSpawnCont
         VehicleSpawnControlRailJack.prepareSpawnExplosion(pad, SourceEntry(driver), SourceEntry(vehicle)),
         pad.Definition.killBox(pad, vehicle.Definition.CanFly)
       )
+      //vehicle.History(EntitySpawn(VehicleSource(vehicle), pad.Zone)) //spawn entry added at this point
       pad.Zone.VehicleEvents ! VehicleSpawnPad.AttachToRails(vehicle, pad)
       context.system.scheduler.scheduleOnce(10 milliseconds, seatDriver, order)
 

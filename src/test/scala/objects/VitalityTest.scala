@@ -42,7 +42,7 @@ class VitalityTest extends Specification {
       player.History(HealFromImplant(pSource, 10, ImplantType.AdvancedRegen))
       player.History(HealFromExoSuitChange(pSource, ExoSuitType.Standard))
       player.History(RepairFromTerm(vSource, 10, GlobalDefinitions.order_terminal))
-      player.History(VehicleShieldCharge(vSource, 10))
+      player.History(ShieldCharge(vSource, 10))
       player.History(PlayerSuicide(PlayerSource(player)))
       ok
     }
@@ -56,14 +56,14 @@ class VitalityTest extends Specification {
       player.History(HealFromImplant(pSource, 10, ImplantType.AdvancedRegen))
       player.History(HealFromExoSuitChange(pSource, ExoSuitType.Standard))
       player.History(RepairFromTerm(vSource, 10, GlobalDefinitions.order_terminal))
-      player.History(VehicleShieldCharge(vSource, 10))
+      player.History(ShieldCharge(vSource, 10))
       player.History(PlayerSuicide(PlayerSource(player)))
       player.History.size mustEqual 7
 
       val list = player.ClearHistory()
       player.History.size mustEqual 0
       list.head.isInstanceOf[PlayerSuicide] mustEqual true
-      list(1).isInstanceOf[VehicleShieldCharge] mustEqual true
+      list(1).isInstanceOf[ShieldCharge] mustEqual true
       list(2).isInstanceOf[RepairFromTerm] mustEqual true
       list(3).isInstanceOf[HealFromExoSuitChange] mustEqual true
       list(4).isInstanceOf[HealFromImplant] mustEqual true
@@ -92,7 +92,7 @@ class VitalityTest extends Specification {
       player.History(HealFromImplant(pSource, 10, ImplantType.AdvancedRegen))
       player.History(HealFromExoSuitChange(pSource, ExoSuitType.Standard))
       player.History(RepairFromTerm(vSource, 10, GlobalDefinitions.order_terminal))
-      player.History(VehicleShieldCharge(vSource, 10))
+      player.History(ShieldCharge(vSource, 10))
       player.History(PlayerSuicide(PlayerSource(player)))
 
       player.LastShot match {

@@ -10,9 +10,9 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.transfer.TransferBehavior
-import net.psforever.objects.sourcing.VehicleSource
+import net.psforever.objects.sourcing.{SourceEntry, VehicleSource}
 import net.psforever.objects.vehicles._
-import net.psforever.objects.vital.VehicleShieldCharge
+import net.psforever.objects.vital.ShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
@@ -37,12 +37,12 @@ class BfrControl(vehicle: Vehicle)
     * `Cancellable.alreadyCancelled` indicates a permanant cessation of charging activity (vehicle destruction) */
   var shieldCharge: Cancellable = Default.Cancellable
 
-  def SiphoningObject = vehicle
+  def SiphoningObject: Vehicle = vehicle
 
-  def ChargeTransferObject = vehicle
+  def ChargeTransferObject: Vehicle = vehicle
 
   if (vehicle.Shields < vehicle.MaxShields) {
-    chargeShields(amount = 0) //start charging if starts as uncharged
+    chargeShields(amount = 0, Some(VehicleSource(vehicle))) //start charging if starts as uncharged
   }
 
   override def postStop(): Unit = {
@@ -107,7 +107,7 @@ class BfrControl(vehicle: Vehicle)
       shieldCharge = context.system.scheduler.scheduleOnce(
         delay = vehicle.Definition.ShieldDamageDelay milliseconds,
         self,
-        Vehicle.ChargeShields(0)
+        CommonMessages.ChargeShields(0, Some(vehicle))
       )
     }
   }
@@ -242,7 +242,7 @@ class BfrControl(vehicle: Vehicle)
         val (stow, _) = GridInventory.recoverInventory(afterInventory, vehicle.Inventory)
         val afterWeapons = weapons
           .map { item => item.start += 1; item }
-        (culledWeaponMounts(pairedArmSubsys.unzip._2), afterWeapons, stow)
+        (culledWeaponMounts(pairedArmSubsys.map { _._2 }), afterWeapons, stow)
       } else if(vWeapons.size == 2 && GlobalDefinitions.isBattleFrameGunnerVehicle(definition)) {
         //battleframe is a flight variant but loadout spec is for gunner variant
         // remap the hands, shave the gunner mount from the spec, and refit the trunk
@@ -312,7 +312,7 @@ class BfrControl(vehicle: Vehicle)
     )
   }
 
-  override def chargeShields(amount: Int): Unit = {
+  override def chargeShields(amount: Int, motivator: Option[SourceEntry]): Unit = {
     chargeShieldsOnly(amount)
     shieldCharge(vehicle.Shields, vehicle.Definition, delay = 0) //continue charge?
   }
@@ -328,7 +328,9 @@ class BfrControl(vehicle: Vehicle)
       }).getOrElse(amount) * vehicle.SubsystemStatusMultiplier(sys = "BattleframeShieldGenerator.RechargeRate")).toInt)
       vehicle.Shields = before + chargeAmount
       val after = vehicle.Shields
-      vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), after - before))
+      val target = VehicleSource(vehicle)
+      vehicle.History(ShieldCharge(VehicleSource(vehicle), after - before))
+      //vehicle.History(ShieldCharge(target, after - before, Some(target)))
       showShieldCharge()
       if (before == 0 && after > 0) {
         enableShield()
@@ -346,7 +348,7 @@ class BfrControl(vehicle: Vehicle)
       shieldCharge = context.system.scheduler.scheduleOnce(
         delay = definition.ShieldPeriodicDelay + delay milliseconds,
         self,
-        Vehicle.ChargeShields(0)
+        CommonMessages.ChargeShields(0, Some(vehicle))
       )
     } else {
       shieldCharge = Default.Cancellable

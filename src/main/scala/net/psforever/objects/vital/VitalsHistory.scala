@@ -63,7 +63,7 @@ final case class RepairFromTerm(term_def: TerminalDefinition, amount: Int)
 final case class RepairFromArmorSiphon(siphon_def: ToolDefinition, amount: Int)
   extends HealingActivity
 
-final case class VehicleShieldCharge(amount: Int)
+final case class ShieldCharge(amount: Int)
   extends HealingActivity //TODO facility
 
 final case class DamageFrom(data: DamageResult)
@@ -230,7 +230,7 @@ object RepairFromTerm {
     RepairFromTerm(term_def, amount)
 }
 
-object VehicleShieldCharge {
-  def apply(Target: VehicleSource, amount: Int): VehicleShieldCharge =
-    VehicleShieldCharge(amount)
+object ShieldCharge {
+  def apply(Target: VehicleSource, amount: Int): ShieldCharge =
+    ShieldCharge(amount)
 }

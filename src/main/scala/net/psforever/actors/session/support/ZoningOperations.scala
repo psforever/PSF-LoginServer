@@ -6,6 +6,9 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
+import net.psforever.objects.serverobject.tube.SpawnTube
+import net.psforever.objects.sourcing.PlayerSource
+
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -829,6 +832,10 @@ class ZoningOperations(
               spawn.LoadZonePhysicalSpawnPoint(zoneId, position, Vector3.Zero, 0 seconds, None)
             case _ => // not seated as the driver, in which case we can't move
           }
+        case _ if !player.isAlive =>
+          Player.Respawn(player)
+          player.Health = 1
+          spawn.LoadZonePhysicalSpawnPoint(continent.id, position, Vector3.z(player.Orientation.z), 0.seconds, None)
         case None =>
           spawn.deadState = DeadState.Release // cancel movement updates
           player.Position = position
@@ -1437,6 +1444,10 @@ class ZoningOperations(
     Deployables.Disown(continent, avatar, context.self)
     spawn.drawDeloyableIcon = spawn.RedrawDeployableIcons //important for when SetCurrentAvatar initializes the UI next zone
     sessionData.squad.squadSetup = sessionData.squad.ZoneChangeSquadSetup
+    val lastSeen = sessionData.avatarResponse.lastSeenStreamMessage
+    lastSeen.indices.foreach { index =>
+      lastSeen(index) = 0
+    }
   }
 
   /**
@@ -2699,7 +2710,6 @@ class ZoningOperations(
       }
 
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
-      //TODO if Medkit does not have shortcut, add to a free slot or write over slot 64
       avatar.shortcuts
         .zipWithIndex
         .collect { case (Some(shortcut), index) =>
@@ -2832,6 +2842,22 @@ class ZoningOperations(
         Config.app.game.savedMsg.short.fixed,
         Config.app.game.savedMsg.short.variable
       )
+      val effortBy = (nextSpawnPoint match {
+        case Some(tube: SpawnTube) =>
+          tube.Owner match {
+            case v: Vehicle => continent.GUID(v.Owner)
+            case _          => None
+          }
+        case _ => None
+      }) match {
+        case Some(p: Player) => Some(PlayerSource(player))
+        case _               => None
+      }
+//      player.History(if (player.History.headOption.exists { _.isInstanceOf[PlayerSpawn] }) {
+//        PlayerRespawn(PlayerSource(player), continent, player.Position, effortBy)
+//      } else {
+//        PlayerSpawn(PlayerSource(player), continent, player.Position, effortBy)
+//      })
       upstreamMessageCount = 0
       setAvatar = true
     }

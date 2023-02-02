@@ -38,17 +38,21 @@ case object CavernFacilityLogic
   def amenityStateChange(details: BuildingWrapper, entity: Amenity, data: Option[Any]): Behavior[Command] = {
     entity match {
       case terminal: CaptureTerminal =>
+        val building = details.building
         // Notify amenities that listen for CC hack state changes, e.g. wall turrets to dismount seated players
-        details.building.Amenities.filter(x => x.isInstanceOf[CaptureTerminalAware]).foreach(amenity => {
-          data match {
-            case Some(isResecured: Boolean) => amenity.Actor ! CaptureTerminalAwareBehavior.TerminalStatusChanged(terminal, isResecured)
-            case _ => log(details).warn("CaptureTerminal AmenityStateChange was received with no attached data.")
-          }
-        })
+        data match {
+          case Some(isResecured: Boolean) =>
+            //pass hack information to amenities
+            building.Amenities.filter(x => x.isInstanceOf[CaptureTerminalAware]).foreach(amenity => {
+              amenity.Actor ! CaptureTerminalAwareBehavior.TerminalStatusChanged(terminal, isResecured)
+            })
+          case _ =>
+            log(details).warn("CaptureTerminal AmenityStateChange was received with no attached data.")
+        }
         // When a CC is hacked (or resecured) all currently hacked amenities for the base should return to their default unhacked state
-        details.building.HackableAmenities.foreach(amenity => {
+        building.HackableAmenities.foreach(amenity => {
           if (amenity.HackedBy.isDefined) {
-            details.building.Zone.LocalEvents ! LocalServiceMessage(amenity.Zone.id,LocalAction.ClearTemporaryHack(PlanetSideGUID(0), amenity))
+            building.Zone.LocalEvents ! LocalServiceMessage(amenity.Zone.id,LocalAction.ClearTemporaryHack(PlanetSideGUID(0), amenity))
           }
         })
       // No map update needed - will be sent by `HackCaptureActor` when required

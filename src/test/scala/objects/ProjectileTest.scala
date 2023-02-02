@@ -14,8 +14,8 @@ import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable.Specification
 
 class ProjectileTest extends Specification {
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
-  val fury   = Vehicle(GlobalDefinitions.fury)
+  val player: Player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
+  val fury: Vehicle  = Vehicle(GlobalDefinitions.fury)
 
   "Range" should {
     "local projectile range" in {
@@ -170,7 +170,7 @@ class ProjectileTest extends Specification {
           o.Definition mustEqual GlobalDefinitions.avatar
           o.Position mustEqual Vector3.Zero
           o.Orientation mustEqual Vector3.Zero
-          o.Velocity mustEqual None
+          o.Velocity.isEmpty mustEqual true
         case _ =>
           ko
       }
@@ -186,7 +186,7 @@ class ProjectileTest extends Specification {
           o.Shields mustEqual 0
           o.Position mustEqual Vector3.Zero
           o.Orientation mustEqual Vector3.Zero
-          o.Velocity mustEqual None
+          o.Velocity.isEmpty mustEqual true
         case _ =>
           ko
       }
@@ -196,13 +196,12 @@ class ProjectileTest extends Specification {
       val obj = Locker()
       SourceEntry(obj) match {
         case o: ObjectSource =>
-          o.obj mustEqual obj
           o.Name mustEqual "Mb Locker"
           o.Faction mustEqual PlanetSideEmpire.NEUTRAL
           o.Definition mustEqual GlobalDefinitions.mb_locker
           o.Position mustEqual Vector3.Zero
           o.Orientation mustEqual Vector3.Zero
-          o.Velocity mustEqual None
+          o.Velocity.isEmpty mustEqual true
         case _ =>
           ko
       }
@@ -231,7 +230,7 @@ class ProjectileTest extends Specification {
           o.Definition mustEqual GlobalDefinitions.avatar
           o.Position mustEqual Vector3(1.2f, 3.4f, 5.6f)
           o.Orientation mustEqual Vector3(2.1f, 4.3f, 6.5f)
-          o.Velocity mustEqual Some(Vector3(1.1f, 2.2f, 3.3f))
+          o.Velocity.contains(Vector3(1.1f, 2.2f, 3.3f)) mustEqual true
         case _ =>
           ko
       }

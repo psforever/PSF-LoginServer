@@ -6,7 +6,7 @@ import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.ballistics._
-import net.psforever.objects.ce.DeployedItem
+import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.mount.{MountInfo, Mountable}
@@ -26,7 +26,7 @@ import net.psforever.objects.vital.projectile.ProjectileReason
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 class DeployableTest extends Specification {
@@ -318,9 +318,9 @@ class ExplosiveDeployableJammerTest extends ActorTest {
   val avatar2 = Avatar(0, "TestCharacter2", PlanetSideEmpire.NC, CharacterSex.Male, 0, CharacterVoice.Mute)
   val player2 = Player(avatar2) //guid=4
   val weapon = Tool(GlobalDefinitions.jammer_grenade) //guid=5
-  val deployableList = new ListBuffer()
+  val deployableList = new mutable.ListBuffer[Deployable]()
   val zone = new Zone("test", new ZoneMap("test"), 0) {
-    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList), name = "test-zone-deployables")
+    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -395,9 +395,9 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
   val avatar2 = Avatar(0, "TestCharacter2", PlanetSideEmpire.NC, CharacterSex.Male, 0, CharacterVoice.Mute)
   val player2 = Player(avatar2) //guid=4
   val weapon = Tool(GlobalDefinitions.jammer_grenade) //guid=5
-  val deployableList = new ListBuffer()
+  val deployableList = new mutable.ListBuffer[Deployable]()
   val zone = new Zone("test", new ZoneMap("test"), 0) {
-    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList), name = "test-zone-deployables")
+    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools() = {}
     GUID(guid)
@@ -504,9 +504,9 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
   val avatar2 = Avatar(0, "TestCharacter2", PlanetSideEmpire.NC, CharacterSex.Male, 0, CharacterVoice.Mute)
   val player2 = Player(avatar2) //guid=4
   val weapon = Tool(GlobalDefinitions.suppressor) //guid=5
-  val deployableList = new ListBuffer()
+  val deployableList = new mutable.ListBuffer[Deployable]()
   val zone = new Zone("test", new ZoneMap("test"), 0) {
-    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList), name = "test-zone-deployables")
+    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools() = {}
     GUID(guid)

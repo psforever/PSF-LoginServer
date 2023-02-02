@@ -64,6 +64,9 @@ class ActivityReport {
   /** heat increases each time the hotspot is considered active and receives more activity */
   private var heat: Int = 0
 
+  /** the time of the first activity report, when heat was last equal to zero */
+  private var firstReport: Option[Long] = None
+
   /** the time of the last activity report */
   private var lastReport: Option[Long] = None
 
@@ -139,6 +142,18 @@ class ActivityReport {
   }
 
   /**
+   * Submit new activity, increasing the lifespan of the current report's existence.
+   * @see `Renew`
+   * @return the current report
+   */
+  def Report(pow: Int, duration: FiniteDuration): ActivityReport = {
+    RaiseHeat(pow)
+    Duration = duration
+    Renew
+    this
+  }
+
+  /**
     * Submit new activity.
     * Do not increase the lifespan of the current report's existence.
     * @return the current report
@@ -163,6 +178,7 @@ class ActivityReport {
     */
   def Renew: Long = {
     val t = System.nanoTime
+    firstReport = firstReport.orElse(Some(t))
     lastReport = Some(t)
     t
   }
@@ -173,6 +189,7 @@ class ActivityReport {
     */
   def Clear(): Unit = {
     heat = 0
+    firstReport = None
     lastReport = None
     duration = FiniteDuration(0, "nanoseconds")
   }

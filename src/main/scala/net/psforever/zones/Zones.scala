@@ -61,7 +61,7 @@ object Zones {
                                      max: Int,
                                      selector: String
                                    ) {
-    def getSelector() : NumberSelector = {
+    def getSelector(): NumberSelector = {
       if (selector.equals("random")) new RandomSelector
       else new SpecificSelector
     }
@@ -692,9 +692,9 @@ object Zones {
           super.init(context)
 
           if (!info.id.startsWith("tz")) {
-            this.HotSpotCoordinateFunction = Zones.HotSpots.standardRemapping(info.map.scale, 80, 80)
+            this.HotSpotCoordinateFunction = Zones.HotSpots.standardRemapping(info.map.scale, info.map.hotSpotSpan, info.map.hotSpotSpan)
             this.HotSpotTimeFunction = Zones.HotSpots.standardTimeRules
-            Zones.initZoneAmenities(this)
+            Zones.initZoneAmenities(zone = this)
           }
 
           //special conditions

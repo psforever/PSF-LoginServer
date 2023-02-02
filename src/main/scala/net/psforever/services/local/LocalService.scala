@@ -104,8 +104,8 @@ class LocalService(zone: Zone) extends Actor {
         case LocalAction.ClearTemporaryHack(_, target) =>
           hackClearer ! HackClearActor.ObjectIsResecured(target)
 
-        case LocalAction.ResecureCaptureTerminal(target) =>
-          hackCapturer ! HackCaptureActor.ResecureCaptureTerminal(target, zone)
+        case LocalAction.ResecureCaptureTerminal(target, hacker) =>
+          hackCapturer ! HackCaptureActor.ResecureCaptureTerminal(target, zone, hacker)
         case LocalAction.StartCaptureTerminalHack(target) =>
           hackCapturer ! HackCaptureActor.StartCaptureTerminalHack(target, zone, 0, 8L)
         case LocalAction.LluCaptured(llu) =>
@@ -320,7 +320,7 @@ class LocalService(zone: Zone) extends Actor {
         LocalServiceResponse(
           s"/${zone.id}/Local",
           PlanetSideGUID(0),
-          LocalResponse.ProximityTerminalEffect(terminal.GUID, true)
+          LocalResponse.ProximityTerminalEffect(terminal.GUID, effectState = true)
         )
       )
     case Terminal.StopProximityEffect(terminal) =>
@@ -328,7 +328,7 @@ class LocalService(zone: Zone) extends Actor {
         LocalServiceResponse(
           s"/${zone.id}/Local",
           PlanetSideGUID(0),
-          LocalResponse.ProximityTerminalEffect(terminal.GUID, false)
+          LocalResponse.ProximityTerminalEffect(terminal.GUID, effectState = false)
         )
       )
 

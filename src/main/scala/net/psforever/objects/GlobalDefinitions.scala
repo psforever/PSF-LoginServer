@@ -9841,14 +9841,17 @@ object GlobalDefinitions {
     capture_terminal.Name = "capture_terminal"
     capture_terminal.Damageable = false
     capture_terminal.Repairable = false
+    capture_terminal.FacilityHackTime = 15.minutes
 
     secondary_capture.Name = "secondary_capture"
     secondary_capture.Damageable = false
     secondary_capture.Repairable = false
+    secondary_capture.FacilityHackTime = 1.nanosecond
 
     vanu_control_console.Name = "vanu_control_console"
     vanu_control_console.Damageable = false
     vanu_control_console.Repairable = false
+    vanu_control_console.FacilityHackTime = 10.minutes
 
     lodestar_repair_terminal.Name = "lodestar_repair_terminal"
     lodestar_repair_terminal.Interval = 1000

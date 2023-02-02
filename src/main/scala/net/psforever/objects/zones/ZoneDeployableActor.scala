@@ -5,15 +5,21 @@ import akka.actor.Actor
 import net.psforever.objects.Player
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.ce.Deployable
+import net.psforever.objects.vehicles.MountedWeapons
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 /**
   * na
   * @param zone the `Zone` object
   */
-class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) extends Actor {
+class ZoneDeployableActor(
+                           zone: Zone,
+                           deployableList: ListBuffer[Deployable],
+                           turretToMount: mutable.HashMap[Int, Int]
+                         ) extends Actor {
   import ZoneDeployableActor._
 
   private[this] val log = org.log4s.getLogger
@@ -22,8 +28,21 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
     case Zone.Deployable.Build(obj) =>
       if (DeployableBuild(obj, deployableList)) {
         obj.Zone = zone
+        obj match {
+          case mounting: MountedWeapons =>
+            val dguid = obj.GUID.guid
+            mounting
+              .Weapons
+              .values
+              .flatten { _.Equipment.map { _.GUID.guid } }
+              .foreach { guid =>
+                turretToMount.put(guid, dguid)
+              }
+          case _ => ;
+        }
         obj.Definition.Initialize(obj, context)
         zone.actor ! ZoneActor.AddToBlockMap(obj, obj.Position)
+        //obj.History(EntitySpawn(SourceEntry(obj), obj.Zone))
         obj.Actor ! Zone.Deployable.Setup()
       } else {
         log.warn(s"failed to build a ${obj.Definition.Name}")
@@ -33,8 +52,21 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
     case Zone.Deployable.BuildByOwner(obj, owner, tool) =>
       if (DeployableBuild(obj, deployableList)) {
         obj.Zone = zone
+        obj match {
+          case mounting: MountedWeapons =>
+            val dguid = obj.GUID.guid
+            mounting
+              .Weapons
+              .values
+              .flatten { _.Equipment.map { _.GUID.guid } }
+              .foreach { guid =>
+                turretToMount.put(guid, dguid)
+              }
+          case _ => ;
+        }
         obj.Definition.Initialize(obj, context)
         zone.actor ! ZoneActor.AddToBlockMap(obj, obj.Position)
+        //obj.History(EntitySpawn(SourceEntry(obj), obj.Zone))
         owner.Actor ! Player.BuildDeployable(obj, tool)
       } else {
         log.warn(s"failed to build a ${obj.Definition.Name} belonging to ${obj.OwnerName.getOrElse("no one")}")
@@ -43,8 +75,15 @@ class ZoneDeployableActor(zone: Zone, deployableList: ListBuffer[Deployable]) ex
 
     case Zone.Deployable.Dismiss(obj) =>
       if (DeployableDismiss(obj, deployableList)) {
+        obj match {
+          case _: MountedWeapons =>
+            val dguid = obj.GUID.guid
+            turretToMount.filterInPlace { case (_, guid) => guid != dguid }
+          case _ => ;
+        }
         obj.Actor ! Zone.Deployable.IsDismissed(obj)
         obj.Definition.Uninitialize(obj, context)
+        obj.ClearHistory()
         zone.actor ! ZoneActor.RemoveFromBlockMap(obj)
       }
 

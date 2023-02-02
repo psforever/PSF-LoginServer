@@ -1,6 +1,7 @@
 // Copyright (c) 2020 PSForever
 package objects
 
+import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.{ActorRef, Props}
 import akka.actor.typed.scaladsl.adapter._
 import akka.testkit.TestProbe
@@ -11,11 +12,12 @@ import net.psforever.objects.ce.DeployedItem
 import net.psforever.objects._
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.VehicleLockState
-import net.psforever.objects.vehicles.control.{/*CargoCarrierControl, */VehicleControl}
-import net.psforever.objects.vital.{VehicleShieldCharge, Vitality}
+import net.psforever.objects.vehicles.control.VehicleControl
+import net.psforever.objects.vital.{ShieldCharge, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
@@ -459,16 +461,16 @@ class VehicleControlShieldsChargingTest extends ActorTest {
 
   "charge vehicle shields" in {
     assert(vehicle.Shields == 0)
-    assert(!vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
+    assert(!vehicle.History.exists({ p => p.isInstanceOf[ShieldCharge] }))
 
-    vehicle.Actor ! Vehicle.ChargeShields(15)
+    vehicle.Actor ! CommonMessages.ChargeShields(15, None)
     val msg = probe.receiveOne(500 milliseconds)
     assert(msg match {
       case VehicleServiceMessage(_, VehicleAction.PlanetsideAttribute(_, PlanetSideGUID(10), 68, 15)) => true
       case _                                                                                          => false
     })
     assert(vehicle.Shields == 15)
-    assert(vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
+    assert(vehicle.History.exists({ p => p.isInstanceOf[ShieldCharge] }))
   }
 }
 
@@ -486,12 +488,12 @@ class VehicleControlShieldsNotChargingVehicleDeadTest extends ActorTest {
     vehicle.Health = 0
     assert(vehicle.Health == 0)
     assert(vehicle.Shields == 0)
-    assert(!vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
-    vehicle.Actor.tell(Vehicle.ChargeShields(15), probe.ref)
+    assert(!vehicle.History.exists({ p => p.isInstanceOf[ShieldCharge] }))
+    vehicle.Actor.tell(CommonMessages.ChargeShields(15, None), probe.ref)
 
     probe.expectNoMessage(1 seconds)
     assert(vehicle.Shields == 0)
-    assert(!vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
+    assert(!vehicle.History.exists({ p => p.isInstanceOf[ShieldCharge] }))
   }
 }
 
@@ -508,11 +510,11 @@ class VehicleControlShieldsNotChargingVehicleShieldsFullTest extends ActorTest {
     assert(vehicle.Shields == 0)
     vehicle.Shields = vehicle.MaxShields
     assert(vehicle.Shields == vehicle.MaxShields)
-    assert(!vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
-    vehicle.Actor ! Vehicle.ChargeShields(15)
+    assert(!vehicle.History.exists({ p => p.isInstanceOf[ShieldCharge] }))
+    vehicle.Actor ! CommonMessages.ChargeShields(15, None)
 
     probe.expectNoMessage(1 seconds)
-    assert(!vehicle.History.exists({ p => p.isInstanceOf[VehicleShieldCharge] }))
+    assert(!vehicle.History.exists({ p => p.isInstanceOf[ShieldCharge] }))
   }
 }
 
@@ -528,7 +530,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
   "charge vehicle shields" in {
     assert(vehicle.Shields == 0)
 
-    vehicle.Actor ! Vehicle.ChargeShields(15)
+    vehicle.Actor ! CommonMessages.ChargeShields(15, None)
     val msg = probe.receiveOne(200 milliseconds)
     //assert(msg.isInstanceOf[Vehicle.UpdateShieldsCharge])
     assert(msg match {
@@ -537,7 +539,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
     })
     assert(vehicle.Shields == 15)
 
-    vehicle.Actor ! Vehicle.ChargeShields(15)
+    vehicle.Actor ! CommonMessages.ChargeShields(15, None)
     probe.expectNoMessage(200 milliseconds)
     assert(vehicle.Shields == 15)
   }
@@ -566,7 +568,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
 //    val msg = probe.receiveOne(200 milliseconds)
 //    assert(msg.isInstanceOf[Vitality.DamageResolution])
 //    assert(vehicle.Shields == 0)
-//    vehicle.Actor.tell(Vehicle.ChargeShields(15), probe.ref)
+//    vehicle.Actor.tell(CommonMessages.ChargeShields(15, None), probe.ref)
 //
 //    probe.expectNoMessage(200 milliseconds)
 //    assert(vehicle.Shields == 0)
@@ -780,6 +782,7 @@ class VehicleControlInteractWithLavaTest extends ActorTest {
     },
     zoneNumber = 0
   ) {
+    actor = ActorTestKit().createTestProbe[ZoneActor.Command]().ref
     override def SetupNumberPools() = {}
     GUID(guid)
     override def LivePlayers = List(player1)
@@ -841,6 +844,7 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
     },
     zoneNumber = 0
   ) {
+    actor = ActorTestKit().createTestProbe[ZoneActor.Command]().ref
     override def SetupNumberPools() = {}
     GUID(guid)
     override def LivePlayers = List(player1)

@@ -5,7 +5,11 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
-import net.psforever.objects.vital.{DamagingActivity, HealingActivity}
+import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.avatar.SpecialCarry
+import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
+import net.psforever.objects.vital.projectile.ProjectileReason
+import net.psforever.objects.vital.{DamagingActivity, HealingActivity, Vitality}
 import net.psforever.types.ExperienceType
 import org.joda.time.{LocalDateTime, Seconds}
 
@@ -190,7 +194,7 @@ object AvatarActor {
   final case class SuspendStaminaRegeneration(duration: FiniteDuration) extends Command
 
   /** Award battle experience points */
-  final case class AwardBep(bep: Long) extends Command
+  final case class AwardBep(bep: Long, modifier: ExperienceType) extends Command
 
   /** Set total battle experience points */
   final case class SetBep(bep: Long) extends Command
@@ -215,6 +219,8 @@ object AvatarActor {
   final case class AddShortcut(slot: Int, shortcut: Shortcut) extends Command
 
   final case class RemoveShortcut(slot: Int) extends Command
+
+  final case class UpdateToolDischarge(stat: EquipmentStat) extends Command
 
   final case class AvatarResponse(avatar: Avatar)
 
@@ -620,22 +626,26 @@ object AvatarActor {
     */
   def finalSavePlayerData(player: Player): Future[Int] = {
     val health = (
-      player.History.find(_.isInstanceOf[DamagingActivity]),
-      player.History.find(_.isInstanceOf[HealingActivity])
+      player.History.findLast(_.isInstanceOf[DamagingActivity]),
+      player.History.findLast(_.isInstanceOf[HealingActivity])
     ) match {
-      case (Some(damage), Some(heal)) =>
+      case (Some(damage: DamagingActivity), Some(heal: HealingActivity)) =>
+        val health = damage.data.targetAfter.asInstanceOf[PlayerSource].health
         //between damage and potential healing, which came last?
         if (damage.time < heal.time) {
-          heal.asInstanceOf[HealingActivity].amount % player.MaxHealth
+          health //+ heal.health
         } else {
-          damage.asInstanceOf[DamagingActivity].data.targetAfter.asInstanceOf[PlayerSource].health
+          health
         }
-      case (Some(damage), None) =>
-        damage.asInstanceOf[DamagingActivity].data.targetAfter.asInstanceOf[PlayerSource].health
-      case (None, Some(heal)) =>
-        heal.asInstanceOf[HealingActivity].amount % player.MaxHealth
+      case (Some(damage: DamagingActivity), None) =>
+        damage.data.targetAfter.asInstanceOf[PlayerSource].health
+      case (None, Some(heal: HealingActivity)) =>
+        player.History.headOption match {
+          //case Some(ps: PlayerSpawn) => ps.player.Health + heal.health
+          case _                     => player.Health
+        }
       case _ =>
-        player.MaxHealth
+        player.Health
     }
     savePlayerData(player, health)
   }
@@ -1597,67 +1607,24 @@ class AvatarActor(
           initializeImplants()
           Behaviors.same
 
-        case AwardBep(bep) =>
-          context.self ! SetBep(avatar.bep + bep)
+        case UpdateToolDischarge(stats) =>
+          updateToolDischarge(stats)
+          Behaviors.same
+
+        case AwardBep(bep, modifier) =>
+          setBep(avatar.bep + bep, modifier)
           Behaviors.same
 
         case SetBep(bep) =>
-          import ctx._
-          val result = for {
-            _ <-
-              if (BattleRank.withExperience(bep).value < BattleRank.BR24.value) setCosmetics(Set())
-              else Future.successful(())
-            r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatar.id)).update(_.bep -> lift(bep)))
-          } yield r
-          result.onComplete {
-            case Success(_) =>
-              sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(session.get.player.GUID, bep, ExperienceType.Normal))
-              session.get.zone.AvatarEvents ! AvatarServiceMessage(
-                session.get.zone.id,
-                AvatarAction.PlanetsideAttributeToAll(session.get.player.GUID, 17, bep)
-              )
-              // when the level is reduced, take away any implants over the implant slot limit
-              val implants = avatar.implants.zipWithIndex.map {
-                case (implant, index) =>
-                  if (index >= BattleRank.withExperience(bep).implantSlots && implant.isDefined) {
-                    ctx.run(
-                      query[persistence.Implant]
-                        .filter(_.name == lift(implant.get.definition.Name))
-                        .filter(_.avatarId == lift(avatar.id))
-                        .delete
-                    )
-                      .onComplete {
-                        case Success(_) =>
-                          sessionActor ! SessionActor.SendResponse(
-                            AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, index, 0)
-                          )
-                        case Failure(exception) => log.error(exception)("db failure")
-                      }
-                    None
-                  } else {
-                    implant
-                  }
-              }
-              avatar = avatar.copy(bep = bep, implants = implants)
-            case Failure(exception) => log.error(exception)("db failure")
-          }
+          setBep(bep, ExperienceType.Normal)
           Behaviors.same
 
         case AwardCep(cep) =>
-          context.self ! SetCep(avatar.cep + cep)
+          setCep(avatar.cep + cep)
           Behaviors.same
 
         case SetCep(cep) =>
-          import ctx._
-          ctx.run(query[persistence.Avatar].filter(_.id == lift(avatar.id)).update(_.cep -> lift(cep))).onComplete {
-            case Success(_) =>
-              avatar = avatar.copy(cep = cep)
-              session.get.zone.AvatarEvents ! AvatarServiceMessage(
-                session.get.zone.id,
-                AvatarAction.PlanetsideAttributeToAll(session.get.player.GUID, 18, cep)
-              )
-            case Failure(exception) => log.error(exception)("db failure")
-          }
+          setCep(cep)
           Behaviors.same
 
         case SetCosmetics(cosmetics) =>
@@ -2358,11 +2325,12 @@ class AvatarActor(
   }
 
   def refreshLoadouts(loadouts: Iterable[(Option[Loadout], Int)]): Unit = {
+    val guid = session.get.player.GUID
     loadouts
       .map {
         case (Some(loadout: InfantryLoadout), index) =>
           FavoritesMessage.Infantry(
-            session.get.player.GUID,
+            guid,
             index,
             loadout.label,
             InfantryLoadout.DetermineSubtypeB(loadout.exosuit, loadout.subtype)
@@ -2370,14 +2338,14 @@ class AvatarActor(
         case (Some(loadout: VehicleLoadout), index)
             if GlobalDefinitions.isBattleFrameVehicle(loadout.vehicle_definition) =>
           FavoritesMessage.Battleframe(
-            session.get.player.GUID,
+            guid,
             index - 15,
             loadout.label,
             VehicleLoadout.DetermineBattleframeSubtype(loadout.vehicle_definition)
           )
         case (Some(loadout: VehicleLoadout), index) =>
           FavoritesMessage.Vehicle(
-            session.get.player.GUID,
+            guid,
             index - 10,
             loadout.label
           )
@@ -2391,7 +2359,7 @@ class AvatarActor(
           }
           FavoritesMessage(
             mtype,
-            session.get.player.GUID,
+            guid,
             lineNo,
             "",
             0
@@ -2813,5 +2781,111 @@ class AvatarActor(
     )
     sessionActor ! SessionActor.UpdateIgnoredPlayers(FriendsResponse(MemberAction.RemoveIgnoredPlayer, GameFriend(name)))
     sessionActor ! SessionActor.CharSaved
+  }
+
+  def setBep(bep: Long, modifier: ExperienceType): Unit = {
+    import ctx._
+    val result = for {
+      _ <-
+        if (BattleRank.withExperience(bep).value < BattleRank.BR24.value) setCosmetics(Set())
+        else Future.successful(())
+      r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatar.id)).update(_.bep -> lift(bep)))
+    } yield r
+    result.onComplete {
+      case Success(_) =>
+        val sess = session.get
+        val zone = sess.zone
+        val pguid = sess.player.GUID
+        val localModifier = modifier
+        sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(pguid, bep, localModifier))
+        zone.AvatarEvents ! AvatarServiceMessage(
+          zone.id,
+          AvatarAction.PlanetsideAttributeToAll(pguid, 17, bep)
+        )
+        // when the level is reduced, take away any implants over the implant slot limit
+        val implants = avatar.implants.zipWithIndex.map {
+          case (implant, index) =>
+            if (index >= BattleRank.withExperience(bep).implantSlots && implant.isDefined) {
+              ctx.run(
+                query[persistence.Implant]
+                  .filter(_.name == lift(implant.get.definition.Name))
+                  .filter(_.avatarId == lift(avatar.id))
+                  .delete
+              )
+                .onComplete {
+                  case Success(_) =>
+                    sessionActor ! SessionActor.SendResponse(
+                      AvatarImplantMessage(pguid, ImplantAction.Remove, index, 0)
+                    )
+                  case Failure(exception) =>
+                    log.error(exception)("db failure")
+                }
+              None
+            } else {
+              implant
+            }
+        }
+        avatar = avatar.copy(bep = bep, implants = implants)
+      case Failure(exception) =>
+        log.error(exception)("db failure")
+    }
+  }
+
+  def setCep(cep: Long): Unit = {
+    import ctx._
+    ctx.run(query[persistence.Avatar].filter(_.id == lift(avatar.id)).update(_.cep -> lift(cep))).onComplete {
+      case Success(_) =>
+        val sess = session.get
+        val zone = sess.zone
+        avatar = avatar.copy(cep = cep)
+        zone.AvatarEvents ! AvatarServiceMessage(
+          zone.id,
+          AvatarAction.PlanetsideAttributeToAll(sess.player.GUID, 18, cep)
+        )
+      case Failure(exception) =>
+        log.error(exception)("db failure")
+    }
+  }
+
+  def updateKillsDeathsAssists(kdaStat: KDAStat): Unit = {
+    avatar.scorecard.rate(kdaStat)
+    val exp = kdaStat.experienceEarned
+    val _session = session.get
+    val zone = _session.zone
+    val player = _session.player
+    kdaStat match {
+      case kill: Kill =>
+        val playerSource = PlayerSource(player)
+        (kill.info.interaction.cause match {
+          case pr: ProjectileReason => pr.projectile.mounted_in.map { a => zone.GUID(a._1) }
+          case _ => None
+        }) match {
+          case Some(Some(obj: Vitality)) =>
+            //zone.actor ! ZoneActor.RewardOurSupporters(playerSource, obj.History, kill, exp)
+          case _ => ;
+        }
+        //zone.actor ! ZoneActor.RewardOurSupporters(playerSource, player.History, kill, exp)
+      case _: Death =>
+        player.Zone.AvatarEvents ! AvatarServiceMessage(
+          player.Name,
+          AvatarAction.SendResponse(
+            Service.defaultPlayerGUID,
+            AvatarStatisticsMessage(DeathStatistic(avatar.scorecard.Lives.size))
+          )
+        )
+    }
+    if (exp > 0L) {
+      val gameOpts = Config.app.game
+      val (msg, modifier): (ExperienceType, Float) = if (player.Carrying.contains(SpecialCarry.RabbitBall)) {
+        (ExperienceType.RabbitBall, 1.25f)
+      } else {
+        (ExperienceType.Normal, 1f)
+      }
+      setBep(avatar.bep + (exp * modifier * gameOpts.bepRate).toLong, msg)
+    }
+  }
+
+  def updateToolDischarge(stats: EquipmentStat): Unit = {
+    avatar.scorecard.rate(stats)
   }
 }

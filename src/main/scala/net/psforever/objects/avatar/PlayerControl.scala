@@ -50,21 +50,21 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     with AggravatedBehavior
     with AuraEffectBehavior
     with RespondsToZoneEnvironment {
-  def JammableObject = player
+  def JammableObject: Player = player
 
-  def DamageableObject = player
+  def DamageableObject: Player = player
 
-  def ContainerObject = player
+  def ContainerObject: Player = player
 
-  def AggravatedObject = player
+  def AggravatedObject: Player = player
 
-  def AuraTargetObject = player
+  def AuraTargetObject: Player = player
   ApplicableEffect(Aura.Plasma)
   ApplicableEffect(Aura.Napalm)
   ApplicableEffect(Aura.Comet)
   ApplicableEffect(Aura.Fire)
 
-  def InteractiveObject = player
+  def InteractiveObject: Player = player
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
@@ -105,8 +105,18 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case Player.Die(Some(reason)) =>
           if (player.isAlive) {
             //primary death
-            PerformDamage(player, reason.calculate())
-            suicide()
+            val health = player.Health
+            val psource = PlayerSource(player)
+            player.Health = 0
+            HandleDamage(
+              player,
+              DamageResult(psource, psource.copy(health = 0), reason),
+              health,
+              damageToArmor = 0,
+              damageToStamina = 0,
+              damageToCapacitor = 0
+            )
+            damageLog.info(s"${player.Name}-infantry: dead by explicit reason - ${reason.cause.resolution}")
           }
 
         case Player.Die(None) =>
@@ -172,7 +182,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           ) {
             sender() ! CommonMessages.Progress(
               4,
-              Players.FinishRevivingPlayer(player, user.Name, item),
+              Players.FinishRevivingPlayer(player, user, item),
               Players.RevivingTickAction(player, user, item)
             )
           }
@@ -488,9 +498,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               )
               player.Zone.AvatarEvents ! AvatarServiceMessage(
                 player.Name,
-                AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true)
+                AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result=true)
               )
-            case _ => assert(false, msg.toString)
+            case _ => assert(assertion=false, msg.toString)
           }
 
         case Zone.Ground.ItemOnGround(item, _, _) =>
@@ -593,19 +603,18 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val originalSubtype = Loadout.DetermineSubtype(player)
     val requestToChangeArmor = originalSuit != exosuit || originalSubtype != subtype
     val allowedToChangeArmor = Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
-                               (if (exosuit == ExoSuitType.MAX) {
-                                 val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
-                                 player.avatar.purchaseCooldown(weapon) match {
-                                   case Some(_) =>
-                                     false
-                                   case None =>
-                                     avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
-                                     true
-                                 }
-                               }
-                               else {
-                                 true
-                               })
+      (if (exosuit == ExoSuitType.MAX) {
+        val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
+        player.avatar.purchaseCooldown(weapon) match {
+          case Some(_) =>
+            false
+          case None =>
+            avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
+            true
+        }
+      } else {
+        true
+      })
     if (requestToChangeArmor && allowedToChangeArmor) {
       log.info(s"${player.Name} wants to change to a different exo-suit - $exosuit")
       val beforeHolsters = Players.clearHolsters(player.Holsters().iterator)
@@ -1015,7 +1024,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       nameChannel,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
-        AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, target.Faction, true)
+        AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, target.Faction, unk5=true)
       )
     )
     //TODO other methods of death?
