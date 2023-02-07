@@ -60,7 +60,7 @@ object LocalAction {
   final case class StartCaptureTerminalHack(target: CaptureTerminal) extends Action
   final case class LluCaptured(llu: CaptureFlag) extends Action
   final case class LluSpawned(player_guid: PlanetSideGUID, llu: CaptureFlag) extends Action
-  final case class LluDespawned(player_guid: PlanetSideGUID, llu: CaptureFlag) extends Action
+  final case class LluDespawned(player_guid: PlanetSideGUID, guid: PlanetSideGUID, position: Vector3) extends Action
 
   final case class SendPacket(packet: PlanetSideGamePacket) extends Action
   final case class SendPlanetsideAttributeMessage(

@@ -121,13 +121,13 @@ class LocalService(zone: Zone) extends Actor {
             )
           )
 
-        case LocalAction.LluDespawned(player_guid, llu) =>
+        case LocalAction.LluDespawned(player_guid, guid, position) =>
           // Forward to all clients to destroy object locally
           LocalEvents.publish(
             LocalServiceResponse(
               s"/$forChannel/Local",
               player_guid,
-              LocalResponse.LluDespawned(llu)
+              LocalResponse.LluDespawned(guid, position)
             )
           )
 

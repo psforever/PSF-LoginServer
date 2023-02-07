@@ -128,20 +128,17 @@ class SessionLocalHandlers(
             llu.Definition.Packet.ConstructorData(llu).get
           )
         )
-
         sendResponse(TriggerSoundMessage(TriggeredSound.LLUMaterialize, llu.Position, unk = 20, 0.8000001f))
 
-      case LocalResponse.LluDespawned(llu) =>
-        sendResponse(TriggerSoundMessage(TriggeredSound.LLUDeconstruct, llu.Position, unk = 20, 0.8000001f))
-        sendResponse(ObjectDeleteMessage(llu.GUID, 0))
+      case LocalResponse.LluDespawned(lluGuid, position) =>
+        sendResponse(TriggerSoundMessage(TriggeredSound.LLUDeconstruct, position, unk = 20, 0.8000001f))
+        sendResponse(ObjectDeleteMessage(lluGuid, 0))
         // If the player was holding the LLU, remove it from their tracked special item slot
         sessionData.specialItemSlotGuid match {
-          case Some(guid) =>
-            if (guid == llu.GUID) {
-              sessionData.specialItemSlotGuid = None
-              player.Carrying = None
-            }
-          case _ => ;
+          case Some(guid) if guid == lluGuid =>
+            sessionData.specialItemSlotGuid = None
+            player.Carrying = None
+          case _ => ()
         }
 
       case LocalResponse.ObjectDelete(object_guid, unk) =>
