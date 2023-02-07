@@ -11,6 +11,8 @@ import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.sourcing.AmenitySource
+import net.psforever.objects.vital.TerminalUsedActivity
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{ExoSuitType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.Service
@@ -938,15 +940,8 @@ object WorldSession {
       result: Boolean
   ): Unit = {
     if (result) {
-      player.Zone.GUID(guid) match {
-        case Some(term: Terminal) =>
-//          player.History(TerminalUsedActivity(
-//            guid,
-//            term.Definition,
-//            transaction,
-//            term.HackedBy.map { _.player }
-//          ))
-        case _ => ;
+      player.Zone.GUID(guid).collect {
+        case term: Terminal => player.LogActivity(TerminalUsedActivity(AmenitySource(term), transaction))
       }
     }
     player.Zone.AvatarEvents ! AvatarServiceMessage(

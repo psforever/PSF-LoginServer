@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
-import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.SpecialCarry
 import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
 import net.psforever.objects.vital.projectile.ProjectileReason
@@ -1509,7 +1508,7 @@ class AvatarActor(
                             val events         = zone.AvatarEvents
                             val guid           = player.GUID
                             val newHealth      = player.Health = originalHealth + 1
-                            player.History(HealFromImplant(PlayerSource(player), 1, implantType))
+                            player.LogActivity(HealFromImplant(implantType, 1))
                             events ! AvatarServiceMessage(
                               zone.id,
                               AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth)

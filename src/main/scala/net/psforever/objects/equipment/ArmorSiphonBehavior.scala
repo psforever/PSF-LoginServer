@@ -76,7 +76,7 @@ object ArmorSiphonBehavior {
             if before < obj.MaxHealth =>
             val after = obj.Health += amount
             if(before < after) {
-              obj.History(RepairFromArmorSiphon(asr.siphon.Definition, before - after))
+              obj.LogActivity(RepairFromArmorSiphon(asr.siphon.Definition, VehicleSource(obj), before - after))
               val zone = obj.Zone
               zone.VehicleEvents ! VehicleServiceMessage(
                 zone.id,

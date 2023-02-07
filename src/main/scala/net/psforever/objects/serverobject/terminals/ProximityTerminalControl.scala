@@ -2,6 +2,8 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.{ActorRef, Cancellable}
+import net.psforever.objects.sourcing.AmenitySource
+
 import scala.collection.mutable
 import scala.concurrent.duration._
 //
@@ -242,8 +244,8 @@ object ProximityTerminalControl {
    */
   def HealthAndArmorTerminal(unit: Terminal with ProximityUnit, target: Player): Boolean = {
     val medDef = unit.Definition.asInstanceOf[MedicalTerminalDefinition]
-    val fullHeal = HealAction(medDef, target, PlayerHealthCallback)
-    val fullRepair = ArmorRepairAction(medDef, target)
+    val fullHeal = HealAction(unit, target, medDef.HealAmount, PlayerHealthCallback)
+    val fullRepair = ArmorRepairAction(unit, target, medDef.ArmorAmount)
     fullHeal && fullRepair
   }
 
@@ -256,8 +258,8 @@ object ProximityTerminalControl {
    */
   def VehicleRepairTerminal(unit: Terminal with ProximityUnit, target: Vehicle): Boolean = {
     unit.Definition match {
-      case definition: MedicalTerminalDefinition if !target.Destroyed && unit.Validate(target) =>
-        HealAction(definition, target, VehicleHealthCallback)
+      case medDef: MedicalTerminalDefinition if !target.Destroyed && unit.Validate(target) =>
+        HealAction(unit, target, medDef.HealAmount, VehicleHealthCallback)
       case _ =>
         true
     }
@@ -266,16 +268,18 @@ object ProximityTerminalControl {
   /**
    * Restore, at most, a specific amount of health points on a player.
    * Send messages to connected client and to events system.
-   * @param definition na
-   * @param target the player
-   * @return whether the player can be repaired for any more health points
+   * @param terminal na
+   * @param target that which will accept the health
+   * @param healAmount health value to be given to the target
+   * @param updateFunc callback to update the UI
+   * @return whether the target can be healed any further
    */
   def HealAction(
-                  definition: MedicalTerminalDefinition,
+                  terminal: Terminal,
                   target: PlanetSideGameObject with Vitality with ZoneAware,
-                  updateFunc: (PlanetSideGameObject with Vitality with ZoneAware, TerminalDefinition,Int)=>Unit
+                  healAmount: Int,
+                  updateFunc: PlanetSideGameObject with Vitality with ZoneAware=>Unit
                 ): Boolean = {
-    val healAmount = definition.HealAmount
     val health = target.Health
     val maxHealth = target.MaxHealth
     val nextHealth = health + healAmount
@@ -286,19 +290,15 @@ object ProximityTerminalControl {
         healAmount
       }
       target.Health = health + finalHealthAmount
-      updateFunc(target, definition, finalHealthAmount)
+      target.LogActivity(HealFromTerm(AmenitySource(terminal), finalHealthAmount))
+      updateFunc(target)
       target.Health == maxHealth
     } else {
       true
     }
   }
 
-  def PlayerHealthCallback(
-                            target: PlanetSideGameObject with Vitality with ZoneAware,
-                            definition: TerminalDefinition,
-                            amount: Int
-                          ): Unit = {
-    //target.History(HealFromTerm(definition, amount))
+  def PlayerHealthCallback(target: PlanetSideGameObject with Vitality with ZoneAware): Unit = {
     val zone = target.Zone
     zone.AvatarEvents ! AvatarServiceMessage(
       zone.id,
@@ -306,12 +306,7 @@ object ProximityTerminalControl {
     )
   }
 
-  def VehicleHealthCallback(
-                             target: PlanetSideGameObject with Vitality with ZoneAware,
-                             definition: TerminalDefinition,
-                             amount: Int
-                           ): Unit = {
-    target.History(RepairFromTerm(definition, amount))
+  def VehicleHealthCallback(target: PlanetSideGameObject with Vitality with ZoneAware): Unit = {
     val zone = target.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
@@ -322,12 +317,16 @@ object ProximityTerminalControl {
   /**
    * Restore, at most, a specific amount of personal armor points on a player.
    * Send messages to connected client and to events system.
-   * @param definition na
-   * @param target the player
-   * @return whether the player can be repaired for any more armor points
+   * @param terminal na
+   * @param target that which will accept the repair
+   * @param repairAmount armor value to be given to the target
+   * @return whether the target can be repaired any further
    */
-  def ArmorRepairAction(definition: MedicalTerminalDefinition, target: Player): Boolean = {
-    val repairAmount = definition.ArmorAmount
+  def ArmorRepairAction(
+                         terminal: Terminal,
+                         target: Player,
+                         repairAmount: Int
+                       ): Boolean = {
     val armor = target.Armor
     val maxArmor = target.MaxArmor
     val nextArmor = armor + repairAmount
@@ -338,7 +337,7 @@ object ProximityTerminalControl {
         repairAmount
       }
       target.Armor = armor + finalRepairAmount
-      //target.History(HealFromTerm(definition, finalRepairAmount))
+      target.LogActivity(RepairFromTerm(AmenitySource(terminal), finalRepairAmount))
       val zone = target.Zone
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,

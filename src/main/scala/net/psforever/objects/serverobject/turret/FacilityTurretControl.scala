@@ -168,8 +168,6 @@ class FacilityTurretControl(turret: FacilityTurret)
     val tguid  = turret.GUID
     events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 0))
     events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 0))
-    obj.ClearHistory()
-    //obj.History(EntitySpawn(SourceEntry(obj), obj.Zone))
   }
 
   override def tryAutoRepair() : Boolean = {

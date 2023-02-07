@@ -7,7 +7,8 @@ import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
+import net.psforever.objects.vital.{InGameHistory, ReconstructionActivity, SpawningActivity}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -1170,7 +1171,7 @@ class ZoningOperations(
    */
   def LoadZoneAsPlayer(targetPlayer: Player, zoneId: String): Unit = {
     log.debug(s"LoadZoneAsPlayer: ${targetPlayer.avatar.name} loading into $zoneId")
-    if (!zoneReload && zoneId == continent.id) {
+    if (!zoneReload && zoneId.equals(continent.id)) {
       if (player.isBackpack) { // important! test the actor-wide player ref, not the parameter
         // respawning from unregistered player
         TaskWorkflow.execute(sessionData.registerAvatar(targetPlayer))
@@ -2554,17 +2555,26 @@ class ZoningOperations(
       nextSpawnPoint = physSpawnPoint
       shiftPosition = Some(pos)
       shiftOrientation = Some(ori)
+      val toZoneNumber = if (continent.id.equals(zoneId)) {
+        continent.Number
+      } else {
+        Zones.zones.find { _.id.equals(zoneId) }.orElse(Some(Zone.Nowhere)).get.Number
+      }
+      val toSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) }
       respawnTimer = context.system.scheduler.scheduleOnce(respawnTime) {
         if (player.isBackpack) { // if the player is dead, he is handled as dead infantry, even if he died in a vehicle
           // new player is spawning
           val newPlayer = RespawnClone(player)
           newPlayer.Position = pos
           newPlayer.Orientation = ori
+          newPlayer.LogActivity(SpawningActivity(PlayerSource(newPlayer), toZoneNumber, toSpawnPoint))
           LoadZoneAsPlayer(newPlayer, zoneId)
         } else {
           avatarActor ! AvatarActor.DeactivateActiveImplants()
           interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
             case Some(vehicle: Vehicle) => // driver or passenger in vehicle using a warp gate, or a droppod
+              InGameHistory.SpawnReconstructionActivity(vehicle, toZoneNumber, toSpawnPoint)
+              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, toSpawnPoint)
               LoadZoneInVehicle(vehicle, pos, ori, zoneId)
 
             case _ if player.HasGUID => // player is deconstructing self or instant action
@@ -2576,11 +2586,13 @@ class ZoningOperations(
               )
               player.Position = pos
               player.Orientation = ori
+              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, toSpawnPoint)
               LoadZoneAsPlayer(player, zoneId)
 
             case _ => //player is logging in
               player.Position = pos
               player.Orientation = ori
+              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, toSpawnPoint)
               LoadZoneAsPlayer(player, zoneId)
           }
         }
@@ -2798,13 +2810,13 @@ class ZoningOperations(
             )
           )
         case (Some(vehicle), Some(0)) =>
-          //driver; summon any passengers and cargo vehicles left behind on previous continent
+          //driver of vehicle
           if (vehicle.Jammed) {
             //TODO something better than just canceling?
             vehicle.Actor ! JammableUnit.ClearJammeredStatus()
             vehicle.Actor ! JammableUnit.ClearJammeredSound()
           }
-          //positive shield strength
+          // positive shield strength
           if (vehicle.Definition.MaxShields > 0) {
             sendResponse(PlanetsideAttributeMessage(vehicle.GUID, vehicle.Definition.shieldUiAttribute, vehicle.Shields))
           }
@@ -2816,6 +2828,11 @@ class ZoningOperations(
           if (vehicle.Definition.MaxCapacitor > 0) {
             sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 113, vehicle.Capacitor))
           }
+          // vehicle entering zone
+          if (vehicle.History.headOption.exists { _.isInstanceOf[SpawningActivity] }) {
+            vehicle.LogActivity(ReconstructionActivity(VehicleSource(vehicle), continent.Number, None))
+          }
+          // summon any passengers and cargo vehicles left behind on previous continent
           LoadZoneTransferPassengerMessages(
             guid,
             continent.id,
@@ -2836,28 +2853,31 @@ class ZoningOperations(
       } else if (originalDeadState == DeadState.Dead || player.Health == 0) {
         //killed during spawn setup or possibly a relog into a corpse (by accident?)
         player.Actor ! Player.Die()
-      }
-      AvatarActor.savePlayerData(player)
-      sessionData.displayCharSavedMsgThenRenewTimer(
-        Config.app.game.savedMsg.short.fixed,
-        Config.app.game.savedMsg.short.variable
-      )
-      val effortBy = (nextSpawnPoint match {
-        case Some(tube: SpawnTube) =>
-          tube.Owner match {
-            case v: Vehicle => continent.GUID(v.Owner)
-            case _          => None
+      } else {
+        AvatarActor.savePlayerData(player)
+        sessionData.displayCharSavedMsgThenRenewTimer(
+          Config.app.game.savedMsg.short.fixed,
+          Config.app.game.savedMsg.short.variable
+        )
+        //player
+        val effortBy = nextSpawnPoint
+          .collect { case sp: SpawnTube => (sp, continent.GUID(sp.Owner.GUID)) }
+          .collect {
+            case (_, Some(v: Vehicle)) => continent.GUID(v.Owner)
+            case (sp, Some(_: Building)) => Some(sp)
           }
-        case _ => None
-      }) match {
-        case Some(p: Player) => Some(PlayerSource(player))
-        case _               => None
+          .collect { case Some(thing: PlanetSideGameObject with FactionAffinity) => Some(SourceEntry(thing)) }
+          .flatten
+        player.LogActivity({
+          if (player.History.headOption.exists { _.isInstanceOf[SpawningActivity] }) {
+            ReconstructionActivity(PlayerSource(player), continent.Number, effortBy)
+          } else {
+            SpawningActivity(PlayerSource(player), continent.Number, effortBy)
+          }
+        })
+        //ride
+
       }
-//      player.History(if (player.History.headOption.exists { _.isInstanceOf[PlayerSpawn] }) {
-//        PlayerRespawn(PlayerSource(player), continent, player.Position, effortBy)
-//      } else {
-//        PlayerSpawn(PlayerSource(player), continent, player.Position, effortBy)
-//      })
       upstreamMessageCount = 0
       setAvatar = true
     }

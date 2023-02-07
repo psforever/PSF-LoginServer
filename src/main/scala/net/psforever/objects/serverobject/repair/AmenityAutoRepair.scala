@@ -9,6 +9,7 @@ import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{Default, NtuContainer, NtuStorageBehavior}
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.structures.{Amenity, AutoRepairStats, Building}
+import net.psforever.objects.vital.RepairFromAmenityAutoRepair
 import net.psforever.util.Config
 
 import scala.concurrent.duration._
@@ -96,7 +97,7 @@ trait AmenityAutoRepair
           wholeRepairAmount + wholeOverflow
         }
         PerformRepairs(obj, finalRepairAmount)
-        //obj.History(RepairFromAmenityAutoRepair(finalRepairAmount))
+        obj.LogActivity(RepairFromAmenityAutoRepair(finalRepairAmount))
         val currentTime = System.currentTimeMillis()
         val taskTime = currentTime - autoRepairQueueTask.getOrElse(currentTime)
         autoRepairQueueTask = Some(0L)
@@ -149,7 +150,8 @@ trait AmenityAutoRepair
     * or if the current process has stalled.
     */
   private def startAutoRepairIfStopped(): Unit = {
-    if(autoRepairQueueTask.isEmpty || stallDetection(stallTime = 15000L)) {
+    val stallTime: Long = 15000L
+    if(autoRepairQueueTask.isEmpty || stallDetection(stallTime)) {
       trySetupAutoRepairInitial()
     }
   }

@@ -89,7 +89,7 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
     val damageToShields = originalShields - shields
     val damage          = damageToHealth + damageToShields
     if (WillAffectTarget(target, damage, cause)) {
-      target.History(cause)
+      target.LogActivity(cause)
       DamageLog(
         target,
         s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields"

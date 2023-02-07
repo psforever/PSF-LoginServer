@@ -5,7 +5,9 @@ import akka.actor.Actor
 import net.psforever.objects.Player
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.ce.Deployable
+import net.psforever.objects.sourcing.ObjectSource
 import net.psforever.objects.vehicles.MountedWeapons
+import net.psforever.objects.vital.SpawningActivity
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -66,7 +68,7 @@ class ZoneDeployableActor(
         }
         obj.Definition.Initialize(obj, context)
         zone.actor ! ZoneActor.AddToBlockMap(obj, obj.Position)
-        //obj.History(EntitySpawn(SourceEntry(obj), obj.Zone))
+        obj.LogActivity(SpawningActivity(ObjectSource(obj), zone.Number, None))
         owner.Actor ! Player.BuildDeployable(obj, tool)
       } else {
         log.warn(s"failed to build a ${obj.Definition.Name} belonging to ${obj.OwnerName.getOrElse("no one")}")

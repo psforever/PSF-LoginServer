@@ -831,7 +831,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     */
   def ClientInitialization(): Zone = this
 
-  def turretToWeapon: Map[Int, Int] = linkDynamicTurretWeapon.toMap[Int, Int]
+  def turretToWeapon: Map[Int, Int] = linkDynamicTurretWeapon.toMap[Int, Int] ++ map.turretToWeapon
 
   def AvatarEvents: ActorRef = avatarEvents
 

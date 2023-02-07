@@ -942,18 +942,22 @@ class SessionData(
 
   def handleFacilityBenefitShieldChargeRequest(pkt: FacilityBenefitShieldChargeRequestMessage): Unit = {
     val FacilityBenefitShieldChargeRequestMessage(_) = pkt
-    continent.GUID(player.VehicleSeated) match {
-      case Some(obj) if obj.Destroyed => () //vehicle will try to charge even if destroyed
-      case Some(obj: Vehicle) =>
-        obj.Actor ! CommonMessages.ChargeShields(15, None)
-      case Some(_: TurretDeployable) => () //TODO the turret will charge a shield in some circumstances
-      case None if player.VehicleSeated.nonEmpty =>
-        log.error(
-          s"FacilityBenefitShieldChargeRequest: ${player.Name} is seated in a vehicle that can not be found in zone ${continent.id}"
-        )
-      case _ =>
-        log.warn(s"FacilityBenefitShieldChargeRequest: ${player.Name} is seated in an imaginary vehicle")
-    }
+    val vehicleGuid = player.VehicleSeated
+    continent
+      .GUID(vehicleGuid)
+      .foreach {
+        case obj: Vehicle if !obj.Destroyed => //vehicle will try to charge even if destroyed
+          obj.Actor ! CommonMessages.ChargeShields(
+            15,
+            Some(continent.blockMap.sector(obj).buildingList.maxBy(_.Definition.SOIRadius))
+          )
+        case _ if vehicleGuid.nonEmpty =>
+          log.warn(
+            s"FacilityBenefitShieldChargeRequest: ${player.Name} can not find vehicle ${vehicleGuid.get.guid} in zone ${continent.id}"
+          )
+        case _ =>
+          log.warn(s"FacilityBenefitShieldChargeRequest: ${player.Name} is not seated in a vehicle")
+      }
   }
 
   def handleBattleplan(pkt: BattleplanMessage): Unit = {
@@ -2286,7 +2290,7 @@ class SessionData(
    * @param tplayer the player to be killed
    */
   def suicide(tplayer: Player): Unit = {
-    tplayer.History(PlayerSuicide(PlayerSource(tplayer)))
+    tplayer.LogActivity(PlayerSuicide(PlayerSource(tplayer)))
     tplayer.Actor ! Player.Die()
   }
 

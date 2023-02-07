@@ -39,21 +39,37 @@ object EffectTarget {
           false
       }
 
+    /**
+     * To repair at this silo, the vehicle:
+     * can not be a flight vehicle,
+     * must have some health already, but does not have all its health,
+     * and can not have taken damage in the last five seconds.
+    */
     def RepairSilo(target: PlanetSideGameObject): Boolean =
       target match {
-        case v: Vehicle =>
-          !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && !v.History.takeWhile(System.currentTimeMillis() - _.time <= 5000L).exists(_.isInstanceOf[DamagingActivity])
-        case _ =>
-          false
+        case v: Vehicle => !GlobalDefinitions.isFlightVehicle(v.Definition) && CommonRepairConditions(v)
+        case _ => false
       }
 
+    /**
+     * To repair at this landing pad, the vehicle:
+     * be a flight vehicle,
+     * must have some health already, but does not have all its health,
+     * and can not have taken damage in the last five seconds.
+     */
     def PadLanding(target: PlanetSideGameObject): Boolean =
       target match {
-        case v: Vehicle =>
-          GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && v.Health < v.MaxHealth && !v.History.takeWhile(System.currentTimeMillis() - _.time <= 5000L).exists(_.isInstanceOf[DamagingActivity])
-        case _ =>
-          false
+        case v: Vehicle => GlobalDefinitions.isFlightVehicle(v.Definition) && CommonRepairConditions(v)
+        case _ => false
       }
+
+    private def CommonRepairConditions(v: Vehicle): Boolean = {
+      v.Health > 0 && v.Health < v.MaxHealth &&
+        v.History.findLast { entry => entry.isInstanceOf[DamagingActivity] }.exists {
+          case entry if System.currentTimeMillis() - entry.time < 5000L => true
+          case _ => false
+        }
+    }
 
     def Player(target: PlanetSideGameObject): Boolean =
       target match {

@@ -94,7 +94,7 @@ trait RepairableEntity extends Repairable {
             InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)
           )
         )
-        target.History(
+        target.LogActivity(
           RepairFromEquipment(
             PlayerSource(player),
             item.Definition,

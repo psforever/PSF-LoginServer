@@ -2,6 +2,8 @@
 package net.psforever.objects.sourcing
 
 import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.hackable.Hackable.HackInfo
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.sourcing
@@ -15,6 +17,7 @@ final case class AmenitySource(
                                 health: Int,
                                 Orientation: Vector3,
                                 occupants: List[SourceEntry],
+                                hacked: Option[HackInfo],
                                 unique: UniqueAmenity
                               ) extends SourceWithHealthEntry {
   private val definition = objdef match {
@@ -47,12 +50,17 @@ object AmenitySource {
       case o: Vitality => o.Health
       case _ => 1
     }
+    val hackData = obj match {
+      case o: Hackable => o.HackedBy
+      case _ => None
+    }
     AmenitySource(
       obj.Definition,
       obj.Faction,
       health,
       obj.Orientation,
       occupants,
+      hackData,
       sourcing.UniqueAmenity(obj.Zone.Number, obj.GUID, obj.Position)
     )
   }

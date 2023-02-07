@@ -3,8 +3,8 @@ package net.psforever.objects.serverobject.repair
 
 import net.psforever.objects.Tool
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.objects.sourcing.SourceWithHealthEntry
-import net.psforever.objects.vital.{DamagingActivity, RepairFromEquipment}
+import net.psforever.objects.sourcing.{SourceEntry, SourceWithHealthEntry}
+import net.psforever.objects.vital.{DamagingActivity, RepairFromEquipment, SpawningActivity}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 /**
@@ -58,8 +58,8 @@ object RepairableAmenity {
       list.size
     ).collect {
       case entry: RepairFromEquipment => Some(entry.user)
-      case _ => None
+      case _                          => None
     }.flatten.distinctBy(_.Name)
-    //target.History(EntitySpawn(SourceEntry(target), target.Zone, effort))
+    target.LogActivity(SpawningActivity(SourceEntry(target), target.Zone.Number, effort.headOption))
   }
 }

@@ -3,6 +3,7 @@ package net.psforever.objects.zones
 
 import akka.actor.Actor
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.vital.InGameHistory
 import net.psforever.objects.{Default, Vehicle}
 import net.psforever.types.Vector3
 
@@ -13,7 +14,7 @@ import scala.collection.mutable
   * Synchronize management of the list of `Vehicles` maintained by some `Zone`.
   */
 //COMMENTS IMPORTED FROM FORMER VehicleContextActor:
-/**
+ /*
   * Provide a context for a `Vehicle` `Actor` - the `VehicleControl`.<br>
   * <br>
   * A vehicle can be passed between different zones and, therefore, does not belong to the zone.
@@ -58,6 +59,7 @@ class ZoneVehicleActor(
       if (vehicle.MountedIn.isEmpty) {
         zone.actor ! ZoneActor.AddToBlockMap(vehicle, vehicle.Position)
       }
+      InGameHistory.SpawnReconstructionActivity(vehicle, zone.Number, None)
       sender() ! Zone.Vehicle.HasSpawned(zone, vehicle)
 
     case Zone.Vehicle.Despawn(vehicle) =>

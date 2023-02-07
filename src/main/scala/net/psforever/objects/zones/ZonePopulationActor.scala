@@ -4,6 +4,7 @@ package net.psforever.objects.zones
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{CorpseControl, PlayerControl}
+import net.psforever.objects.vital.InGameHistory
 import net.psforever.objects.{Default, Player}
 import net.psforever.types.Vector3
 
@@ -51,6 +52,7 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
       PopulationSpawn(avatar.id, player, playerMap) match {
         case Some((tplayer, newToZone)) =>
           tplayer.Zone = zone
+          InGameHistory.SpawnReconstructionActivity(player, zone.Number, None)
           if (tplayer ne player) {
             sender() ! Zone.Population.PlayerAlreadySpawned(zone, player)
           } else if (newToZone) {

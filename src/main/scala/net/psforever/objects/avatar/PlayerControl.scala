@@ -148,12 +148,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 )
               )
               events ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth))
-              player.History(
+              player.LogActivity(
                 HealFromEquipment(
-                  PlayerSource(player),
                   PlayerSource(user),
-                  newHealth - originalHealth,
-                  GlobalDefinitions.medicalapplicator
+                  GlobalDefinitions.medicalapplicator,
+                  newHealth - originalHealth
                 )
               )
             }
@@ -212,12 +211,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 )
               )
               events ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(guid, 4, player.Armor))
-              player.History(
+              player.LogActivity(
                 RepairFromEquipment(
-                  PlayerSource(player),
                   PlayerSource(user),
-                  newArmor - originalArmor,
-                  GlobalDefinitions.bank
+                  GlobalDefinitions.bank,
+                  newArmor - originalArmor
                 )
               )
             }
@@ -252,7 +250,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                     if (player.Health == player.MaxHealth) {
                       (None, 0, 0, "@HealComplete")
                     } else {
-                      player.History(HealFromKit(PlayerSource(player), 25, kdef))
+                      player.LogActivity(HealFromKit(kdef, 25))
                       player.Health = player.Health + 25
                       (Some(index), 0, player.Health, "")
                     }
@@ -260,7 +258,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                     if (player.Health == player.MaxHealth) {
                       (None, 0, 0, "@HealComplete")
                     } else {
-                      player.History(HealFromKit(PlayerSource(player), 100, kdef))
+                      player.LogActivity(HealFromKit(kdef, 100))
                       player.Health = player.Health + 100
                       (Some(index), 0, player.Health, "")
                     }
@@ -268,7 +266,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                     if (player.Armor == player.MaxArmor) {
                       (None, 0, 0, "Armor at maximum - No repairing required.")
                     } else {
-                      player.History(RepairFromKit(PlayerSource(player), 200, kdef))
+                      player.LogActivity(RepairFromKit(kdef, 200))
                       player.Armor = player.Armor + 200
                       (Some(index), 4, player.Armor, "")
                     }
@@ -436,13 +434,14 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               val originalArmor = player.Armor
               player.ExoSuit = nextSuit
               val toMaxArmor = player.MaxArmor
-              val toArmor =
+              val toArmor = {
                 if (originalSuit != nextSuit || originalSubtype != nextSubtype || originalArmor > toMaxArmor) {
-                  player.History(HealFromExoSuitChange(PlayerSource(player), nextSuit))
+                  player.LogActivity(RepairFromExoSuitChange(nextSuit, toMaxArmor - player.Armor))
                   player.Armor = toMaxArmor
                 } else {
                   player.Armor = originalArmor
                 }
+              }
               //ensure arm is down, even if it needs to go back up
               if (player.DrawnSlot != Player.HandsDownSlot) {
                 player.DrawnSlot = Player.HandsDownSlot
@@ -623,8 +622,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       val originalArmor = player.Armor
       player.ExoSuit = exosuit //changes the value of MaxArmor to reflect the new exo-suit
       val toMaxArmor = player.MaxArmor
-      val toArmor = if (originalSuit != exosuit || originalSubtype != subtype || originalArmor > toMaxArmor) {
-        player.History(HealFromExoSuitChange(PlayerSource(player), exosuit))
+      val toArmor = if (originalArmor > toMaxArmor) {
+        player.LogActivity(RepairFromExoSuitChange(exosuit, toMaxArmor - originalArmor))
         player.Armor = toMaxArmor
       }
       else {
@@ -813,7 +812,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       })) {
         //activate second wind
         player.Health += 25
-        player.History(HealFromImplant(PlayerSource(player), 25, ImplantType.SecondWind))
+        player.LogActivity(HealFromImplant(ImplantType.SecondWind, 25))
         avatarActor ! AvatarActor.ResetImplant(ImplantType.SecondWind)
         avatarActor ! AvatarActor.RestoreStamina(25)
       }
@@ -853,7 +852,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         cause.interaction.cause.source.Aggravated.nonEmpty
     }
     //log historical event (always)
-    target.History(cause)
+    target.LogActivity(cause)
     //stat changes
     if (damageToCapacitor > 0) {
       events ! AvatarServiceMessage(
@@ -968,7 +967,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     avatarActor ! AvatarActor.DeinitializeImplants()
 
     //log historical event
-    target.History(cause)
+    target.LogActivity(cause)
     //log message
     cause.adversarial match {
       case Some(a) =>

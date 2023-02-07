@@ -6,10 +6,10 @@ import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.sourcing.SourceEntry
-import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.etc.{ExplodingEntityReason, VehicleSpawnReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageProperties
+import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,7 +39,6 @@ class VehicleSpawnControlRailJack(pad: VehicleSpawnPad) extends VehicleSpawnCont
         VehicleSpawnControlRailJack.prepareSpawnExplosion(pad, SourceEntry(driver), SourceEntry(vehicle)),
         pad.Definition.killBox(pad, vehicle.Definition.CanFly)
       )
-      //vehicle.History(EntitySpawn(VehicleSource(vehicle), pad.Zone)) //spawn entry added at this point
       pad.Zone.VehicleEvents ! VehicleSpawnPad.AttachToRails(vehicle, pad)
       context.system.scheduler.scheduleOnce(10 milliseconds, seatDriver, order)
 

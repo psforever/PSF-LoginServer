@@ -567,7 +567,7 @@ private[support] class WeaponAndProjectileOperations(
         if (distanceToOwner <= acceptableDistanceToOwner) {
           val projectile_info = tool.Projectile
           val wguid = weaponGUID.guid
-          val mountedIn = ((continent.turretToWeapon ++ continent.map.turretToWeapon)
+          val mountedIn = (continent.turretToWeapon
             .find { case (guid, _) => guid == wguid } match {
             case Some((_, turretGuid)) => Some((
               turretGuid,

@@ -127,7 +127,7 @@ object ExplosiveDeployableControl {
     * @param damage na
     */
   def DamageResolution(target: ExplosiveDeployable, cause: DamageResult, damage: Int): Unit = {
-    target.History(cause)
+    target.LogActivity(cause)
     if (cause.interaction.cause.source.SympatheticExplosion) {
       explodes(target, cause)
       DestructionAwareness(target, cause)

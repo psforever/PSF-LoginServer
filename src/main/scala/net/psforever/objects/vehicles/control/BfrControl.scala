@@ -328,9 +328,7 @@ class BfrControl(vehicle: Vehicle)
       }).getOrElse(amount) * vehicle.SubsystemStatusMultiplier(sys = "BattleframeShieldGenerator.RechargeRate")).toInt)
       vehicle.Shields = before + chargeAmount
       val after = vehicle.Shields
-      val target = VehicleSource(vehicle)
-      vehicle.History(ShieldCharge(VehicleSource(vehicle), after - before))
-      //vehicle.History(ShieldCharge(target, after - before, Some(target)))
+      vehicle.LogActivity(ShieldCharge(after - before, Some(VehicleSource(vehicle))))
       showShieldCharge()
       if (before == 0 && after > 0) {
         enableShield()

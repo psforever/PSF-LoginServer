@@ -29,9 +29,13 @@ final case class VehicleSource(
 
 object VehicleSource {
   def apply(obj: Vehicle): VehicleSource = {
+    val faction = obj.HackedBy match {
+      case Some(o) => o.player.Faction
+      case _ => obj.Faction
+    }
     VehicleSource(
       obj.Definition,
-      obj.Faction,
+      faction,
       obj.Health,
       obj.Shields,
       obj.Position,
@@ -50,7 +54,7 @@ object VehicleSource {
           case Some(entry) => entry.time
           case None => 0L
         },
-        obj.OwnerName.getOrElse("ownerless")
+        obj.OriginalOwnerName.getOrElse("none")
       )
     )
   }

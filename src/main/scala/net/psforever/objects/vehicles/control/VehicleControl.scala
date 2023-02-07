@@ -22,7 +22,7 @@ import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.sourcing.{SourceEntry, VehicleSource}
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
-import net.psforever.objects.vital.{DamagingActivity, ShieldCharge, VitalsActivity}
+import net.psforever.objects.vital.{DamagingActivity, InGameActivity, ShieldCharge}
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.zones._
@@ -552,15 +552,14 @@ class VehicleControl(vehicle: Vehicle)
 
   //make certain vehicles don't charge shields too quickly
   def canChargeShields: Boolean = {
-    val func: VitalsActivity => Boolean = VehicleControl.LastShieldChargeOrDamage(System.currentTimeMillis(), vehicle.Definition)
+    val func: InGameActivity => Boolean = VehicleControl.LastShieldChargeOrDamage(System.currentTimeMillis(), vehicle.Definition)
     vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
-    !vehicle.History.exists(func)
+    vehicle.History.findLast(func).isEmpty
   }
 
   def chargeShields(amount: Int, motivator: Option[SourceEntry]): Unit = {
     if (canChargeShields) {
-      vehicle.History(ShieldCharge(VehicleSource(vehicle), amount))
-      //vehicle.History(ShieldCharge(VehicleSource(vehicle), amount, motivator))
+      vehicle.LogActivity(ShieldCharge(amount, motivator))
       vehicle.Shields = vehicle.Shields + amount
       vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
         s"${vehicle.Actor}",
@@ -868,7 +867,7 @@ class VehicleControl(vehicle: Vehicle)
 }
 
 object VehicleControl {
-  import net.psforever.objects.vital.{ShieldCharge, VitalsActivity}
+  import net.psforever.objects.vital.{ShieldCharge}
 
   private case class PrepareForDeletion()
 
@@ -887,7 +886,7 @@ object VehicleControl {
     * @return `true`, if the shield charge would be blocked;
     *        `false`, otherwise
     */
-  def LastShieldChargeOrDamage(now: Long, vdef: VehicleDefinition)(act: VitalsActivity): Boolean = {
+  def LastShieldChargeOrDamage(now: Long, vdef: VehicleDefinition)(act: InGameActivity): Boolean = {
     act match {
       case dact: DamagingActivity   => now - dact.time < vdef.ShieldDamageDelay //damage delays next charge
       case vsc: ShieldCharge        => now - vsc.time < vdef.ShieldPeriodicDelay //previous charge delays next

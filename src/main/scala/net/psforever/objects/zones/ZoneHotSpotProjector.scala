@@ -330,7 +330,7 @@ class ZoneHotSpotHistory(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanking
   override def Established: Receive = {
     case ZoneHotSpotProjector.ExposeHeatForRegion(center, radius) =>
       MapInfo.values.find(_.value == zone.map.name) match {
-        case Some(mapInfo) =>
+        case Some(mapInfo) if mapInfo.hotSpotSpan > 0 =>
           //turn the radius into the number of hotspots, then sample all hotspots outwards from the center region
           val span = mapInfo.hotSpotSpan
           val spanIntervalsHalf = (radius / span).toInt + 1
