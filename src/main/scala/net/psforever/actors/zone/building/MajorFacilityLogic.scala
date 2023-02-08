@@ -9,6 +9,7 @@ import net.psforever.actors.zone.{BuildingActor, BuildingControlDetails, ZoneAct
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAware, CaptureTerminalAwareBehavior}
+import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
@@ -334,6 +335,14 @@ case object MajorFacilityLogic
 
   def alertToFactionChange(details: BuildingWrapper, building: Building): Behavior[Command] = {
     alignForceDomeStatus(details)
+    val bldg = details.building
+    //the presence of the flag means that we are involved in an ongoing llu hack
+    (bldg.GetFlag, bldg.CaptureTerminal) match {
+      case (Some(flag), Some(terminal)) if (flag.Target eq building) && flag.Faction != building.Faction =>
+        //our hack destination may have been compromised and the hack needs to be cancelled
+        bldg.Zone.LocalEvents ! LocalServiceMessage("", LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody))
+      case _ => ()
+    }
     Behaviors.same
   }
 

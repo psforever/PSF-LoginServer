@@ -31,16 +31,8 @@ class CaptureFlag(private val tDef: CaptureFlagDefinition) extends Amenity {
   def Definition : CaptureFlagDefinition = tDef
 
   private var target: Building = Building.NoBuilding
-  private var owningFaction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var carrier: Option[Player] = None
-
-  override def Owner_=(obj: AmenityOwner): AmenityOwner = {
-    owningFaction = obj.Faction
-    super.Owner_=(obj)
-  }
-
-  def OwningFaction: PlanetSideEmpire.Value = owningFaction
 
   def Target: Building = target
   def Target_=(newTarget: Building): Building = {

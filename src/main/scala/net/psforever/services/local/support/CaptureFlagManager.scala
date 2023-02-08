@@ -36,18 +36,7 @@ class CaptureFlagManager(zone: Zone) extends Actor {
       galaxyService = endpoint
 
     case CaptureFlagManager.MapUpdate() =>
-      val flagInfo = flags.map(flag =>
-        FlagInfo(
-          u1 = 0,
-          owner_map_id = flag.Owner.asInstanceOf[Building].MapId,
-          target_map_id = flag.Target.MapId,
-          x = flag.Position.x,
-          y = flag.Position.y,
-          hack_time_remaining = flag.Owner.asInstanceOf[Building].infoUpdateMessage().hack_time_remaining,
-          is_monolith_unit = false
-        )
-      )
-      galaxyService ! GalaxyServiceMessage(GalaxyAction.FlagMapUpdate(CaptureFlagUpdateMessage(zone.Number, flagInfo)))
+      DoMapUpdate()
 
     case CaptureFlagManager.SpawnCaptureFlag(capture_terminal, target, hackingFaction) =>
       val zone = capture_terminal.Zone
@@ -63,7 +52,7 @@ class CaptureFlagManager(zone: Zone) extends Actor {
       )
       // Register LLU object create task and callback to create on clients
       val flag: CaptureFlag = CaptureFlag.Constructor(
-        socket.Position - Vector3.z(value = -1),
+        socket.Position - Vector3.z(value = 1),
         socket.Orientation,
         target,
         socket.Owner,
@@ -101,7 +90,7 @@ class CaptureFlagManager(zone: Zone) extends Actor {
         case CaptureFlagLostReasonEnum.Resecured =>
           ChatBroadcast(
             flag.Zone,
-            CaptureFlagChatMessageStrings.CTF_Failed_SourceResecured(flag.Owner.asInstanceOf[Building].Name, flag.OwningFaction)
+            CaptureFlagChatMessageStrings.CTF_Failed_SourceResecured(flag.Owner.asInstanceOf[Building].Name, flag.Faction)
           )
         case CaptureFlagLostReasonEnum.TimedOut  =>
           val building = flag.Owner.asInstanceOf[Building]
@@ -140,6 +129,21 @@ class CaptureFlagManager(zone: Zone) extends Actor {
       log.warn("Received unhandled message")
   }
 
+  private def DoMapUpdate(): Unit = {
+    val flagInfo = flags.map(flag =>
+      FlagInfo(
+        u1 = 0,
+        owner_map_id = flag.Owner.asInstanceOf[Building].MapId,
+        target_map_id = flag.Target.MapId,
+        x = flag.Position.x,
+        y = flag.Position.y,
+        hack_time_remaining = flag.Owner.asInstanceOf[Building].infoUpdateMessage().hack_time_remaining,
+        is_monolith_unit = false
+      )
+    )
+    galaxyService ! GalaxyServiceMessage(GalaxyAction.FlagMapUpdate(CaptureFlagUpdateMessage(zone.Number, flagInfo)))
+  }
+
   private def TrackFlag(flag: CaptureFlag): Unit = {
     flag.Owner.Amenities = flag
     flags = flags :+ flag
@@ -152,10 +156,10 @@ class CaptureFlagManager(zone: Zone) extends Actor {
 
   private def UntrackFlag(flag: CaptureFlag): Unit = {
     flag.Owner.RemoveAmenity(flag)
-    flags = flags.filterNot(x => x == flag)
+    flags = flags.filterNot(x => x eq flag)
     if (flags.isEmpty) {
       mapUpdateTick.cancel()
-      self ! CaptureFlagManager.MapUpdate() //one final map update to clear the last flag from the map
+      DoMapUpdate()
     }
   }
 

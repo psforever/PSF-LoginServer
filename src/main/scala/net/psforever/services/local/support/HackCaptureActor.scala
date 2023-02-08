@@ -94,6 +94,7 @@ class HackCaptureActor extends Actor {
 
     case HackCaptureActor.ResecureCaptureTerminal(target, _, hacker) =>
       val (results, remainder) = hackedObjects.partition(x => x.target eq target)
+      target.HackedBy = None
       hackedObjects = remainder
       val building = target.Owner.asInstanceOf[Building]
       // If LLU exists it was not delivered. Send resecured notifications
@@ -101,13 +102,13 @@ class HackCaptureActor extends Actor {
         case flag: CaptureFlag => target.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Resecured)
       }
       NotifyHackStateChange(target, isResecured = true)
-      HackCaptureActor.RewardFacilityCaptureParticipants(
-        building,
-        target,
-        hacker,
-        System.currentTimeMillis() - results.head.hack_timestamp,
-        isResecured = true
-      )
+//      HackCaptureActor.RewardFacilityCaptureParticipants(
+//        building,
+//        target,
+//        hacker,
+//        System.currentTimeMillis() - results.head.hack_timestamp,
+//        isResecured = true
+//      )
       // Restart the timer in case the object we just removed was the next one scheduled
       RestartTimer()
 
@@ -123,13 +124,13 @@ class HackCaptureActor extends Actor {
           val hackedByFaction = hackInfo.hackerFaction
           hackedObjects = hackedObjects.filterNot(x => x == entry)
           HackCompleted(terminal, hackedByFaction)
-          HackCaptureActor.RewardFacilityCaptureParticipants(
-            building,
-            terminal,
-            hacker,
-            System.currentTimeMillis() - entry.hack_timestamp,
-            isResecured = false
-          )
+//          HackCaptureActor.RewardFacilityCaptureParticipants(
+//            building,
+//            terminal,
+//            hacker,
+//            System.currentTimeMillis() - entry.hack_timestamp,
+//            isResecured = false
+//          )
           entry.target.Actor ! CommonMessages.ClearHack()
           flag.Zone.LocalEvents ! CaptureFlagManager.Captured(flag)
           // If there's hacked objects left in the list restart the timer with the shortest hack time left
@@ -150,11 +151,11 @@ class HackCaptureActor extends Actor {
       case owner: Building if owner.IsCtfBase => Some((owner, owner.GetFlag, owner.Neighbours(hackingFaction)))
       case _ => None
     }) match {
-      case Some((owner, None, Some(neighbours))) if neighbours.isEmpty =>
+      case Some((owner, None, Some(neighbours))) if neighbours.nonEmpty =>
         log.info(s"An LLU is being spawned for facility ${owner.Name} by $hackingFaction")
         spawnCaptureFlag(neighbours, terminal, hackingFaction)
         true
-      case Some((owner, Some(flag), Some(neighbours))) if hackingFaction != flag.Faction =>
+      case Some((owner, Some(flag), Some(neighbours))) if neighbours.nonEmpty && hackingFaction != flag.Faction =>
         log.info(s"$hackingFaction is overriding the ongoing LLU hack of facility ${owner.Name} by ${flag.Faction}")
         terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended)
         NotifyHackStateChange(terminal, isResecured = false)
@@ -189,15 +190,15 @@ class HackCaptureActor extends Actor {
                                      terminal: CaptureTerminal,
                                      isResecured: Boolean
                                    ): Unit = {
-    val attribute_value = HackCaptureActor.GetHackUpdateAttributeValue(terminal, isResecured)
-    // Notify all clients that CC has been hacked
+    val attributeValue = HackCaptureActor.GetHackUpdateAttributeValue(terminal, isResecured)
+    // Notify all clients that CC has had its hack state changed
     terminal.Zone.LocalEvents ! LocalServiceMessage(
       terminal.Zone.id,
       LocalAction.SendPlanetsideAttributeMessage(
         PlanetSideGUID(-1),
         terminal.GUID,
         PlanetsideAttributeEnum.ControlConsoleHackUpdate,
-        attribute_value
+        attributeValue
       )
     )
     val owner = terminal.Owner.asInstanceOf[Building]

@@ -91,4 +91,13 @@ object PlayerSource {
         None
     }
   }
+
+  /**
+   * Nobody is my name: Nobody they call me –
+   * my mother and my father and all my other companions”
+   * Thus I spoke but he immediately replied to me with a ruthless spirit:
+   * “I shall kill Nobody last of all, after his companions,
+   * the others first: this will be my guest-gift to you.”
+   */
+  final val Nobody = PlayerSource("Nobody", PlanetSideEmpire.NEUTRAL, Vector3.Zero)
 }
