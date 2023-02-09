@@ -35,7 +35,7 @@ class BoomerDeployable(cdef: ExplosiveDeployableDefinition)
 }
 
 class BoomerDeployableDefinition(private val objectId: Int) extends ExplosiveDeployableDefinition(objectId) {
-  override def Initialize(obj: Deployable, context: ActorContext) = {
+  override def Initialize(obj: Deployable, context: ActorContext): Unit = {
     obj.Actor =
       context.actorOf(Props(classOf[BoomerDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
   }
@@ -97,7 +97,7 @@ class BoomerDeployableControl(mine: BoomerDeployable)
         }
         zone.AvatarEvents! AvatarServiceMessage(
           zone.id,
-          AvatarAction.ObjectDelete(Service.defaultPlayerGUID, trigger.GUID)
+          AvatarAction.ObjectDelete(Service.defaultPlayerGUID, guid)
         )
         TaskWorkflow.execute(GUIDTask.unregisterObject(zone.GUID, trigger))
       case None => ;

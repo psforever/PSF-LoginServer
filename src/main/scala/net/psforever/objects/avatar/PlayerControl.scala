@@ -537,8 +537,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               val trigger = new BoomerTrigger
               trigger.Companion = obj.GUID
               obj.Trigger = trigger
-              //TODO sufficiently delete the tool
-              zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
+              zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, tool.GUID))
               TaskWorkflow.execute(GUIDTask.unregisterEquipment(zone.GUID, tool))
               player.Find(tool) match {
                 case Some(index) if player.VisibleSlots.contains(index) =>

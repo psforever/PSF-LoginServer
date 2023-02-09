@@ -9,7 +9,7 @@ import net.psforever.objects.guid._
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.serverobject.containable.Containable
+import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.TerminalUsedActivity
@@ -559,10 +559,12 @@ object WorldSession {
       val tile = item.Definition.Tile
       destination.Inventory.CheckCollisionsVar(dest, tile.Width, tile.Height)
     } match {
-      case Success(Nil) =>
+      case Success(Nil)
+        if ContainableBehavior.PermitEquipmentStow(destination, item, dest) =>
         //no swap item
         (true, None)
-      case Success(List(swapEntry: InventoryItem)) =>
+      case Success(List(swapEntry: InventoryItem))
+        if ContainableBehavior.PermitEquipmentStow(destination, item, dest) =>
         //the swap item is to be registered to the source's zone
         (true, Some(swapEntry.obj.GUID))
       case _ =>
