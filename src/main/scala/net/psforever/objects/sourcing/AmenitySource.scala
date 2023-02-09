@@ -40,12 +40,6 @@ final case class AmenitySource(
 
 object AmenitySource {
   def apply(obj: Amenity): AmenitySource = {
-    val occupants = obj match {
-      case o: Mountable =>
-        o.Seats.values.flatMap { _.occupants }.map { PlayerSource(_) }.toList
-      case _ =>
-        Nil
-    }
     val health: Int = obj match {
       case o: Vitality => o.Health
       case _ => 1
@@ -54,14 +48,20 @@ object AmenitySource {
       case o: Hackable => o.HackedBy
       case _ => None
     }
-    AmenitySource(
+    val amenity = AmenitySource(
       obj.Definition,
       obj.Faction,
       health,
       obj.Orientation,
-      occupants,
+      Nil,
       hackData,
       sourcing.UniqueAmenity(obj.Zone.Number, obj.GUID, obj.Position)
     )
+    amenity.copy(occupants = obj match {
+      case o: Mountable =>
+        o.Seats.values.flatMap { _.occupants }.map { p => PlayerSource.inSeat(p, o, amenity) }.toList
+      case _ =>
+        Nil
+    })
   }
 }

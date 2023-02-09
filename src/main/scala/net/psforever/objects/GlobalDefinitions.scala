@@ -5647,10 +5647,10 @@ object GlobalDefinitions {
     advanced_ace.Name = "advanced_ace"
     advanced_ace.Size = EquipmentSize.Rifle
     advanced_ace.Modes += new ConstructionFireMode {
-      Item(DeployedItem.portable_manned_turret, Set(Certification.AssaultEngineering))
+      Item(DeployedItem.tank_traps, Set(Certification.FortificationEngineering))
     }
     advanced_ace.Modes += new ConstructionFireMode {
-      Item(DeployedItem.tank_traps, Set(Certification.FortificationEngineering))
+      Item(DeployedItem.portable_manned_turret, Set(Certification.AssaultEngineering))
     }
     advanced_ace.Modes += new ConstructionFireMode {
       Item(DeployedItem.deployable_shield_generator, Set(Certification.AssaultEngineering))

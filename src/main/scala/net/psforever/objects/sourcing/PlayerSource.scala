@@ -93,7 +93,39 @@ object PlayerSource {
   }
 
   /**
-   * Nobody is my name: Nobody they call me –
+   * Produce a mostly normal player source entity
+   * but the `seatedIn` field is just a shallow copy of the mountable information.
+   * Said "shallow copy" will not reflect that the player is an occupant of the mountable entity
+   * even if this function is entirely for the purpose of establishing that the player is an occupant of the mountable entity.<br>
+   * Don't think too much about it.
+   * @param player player
+   * @param mount mountable entity in which the player should be seated
+   * @param source a `SourceEntry` for the aforementioned mountable entity
+   * @return a `PlayerSource` entity
+   */
+  def inSeat(player: Player, mount: Mountable, source: SourceEntry): PlayerSource = {
+    val exosuit = player.ExoSuit
+    val faction = player.Faction
+    PlayerSource(
+      player.Definition,
+      exosuit,
+      Some((source, mount.PassengerInSeat(player).get)),
+      player.Health,
+      player.Armor,
+      player.Position,
+      player.Orientation,
+      player.Velocity,
+      player.Crouching,
+      player.Jumping,
+      ExoSuitDefinition.Select(exosuit, faction),
+      player.avatar.bep,
+      kills = Nil,
+      UniquePlayer(player.CharId, player.Name, player.Sex, faction)
+    )
+  }
+
+  /**
+   * "Nobody is my name: Nobody they call me –
    * my mother and my father and all my other companions”
    * Thus I spoke but he immediately replied to me with a ruthless spirit:
    * “I shall kill Nobody last of all, after his companions,

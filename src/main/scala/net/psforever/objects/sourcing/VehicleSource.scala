@@ -33,7 +33,7 @@ object VehicleSource {
       case Some(o) => o.player.Faction
       case _ => obj.Faction
     }
-    VehicleSource(
+    val vehicle = VehicleSource(
       obj.Definition,
       faction,
       obj.Health,
@@ -42,12 +42,7 @@ object VehicleSource {
       obj.Orientation,
       obj.Velocity,
       obj.DeploymentState,
-      obj.Seats.values.map { seat =>
-        seat.occupant match {
-          case Some(p) => PlayerSource(p)
-          case _ => SourceEntry.None
-        }
-      }.toList,
+      Nil,
       obj.Definition.asInstanceOf[ResistanceProfile],
       UniqueVehicle(
         obj.History.headOption match {
@@ -57,5 +52,13 @@ object VehicleSource {
         obj.OriginalOwnerName.getOrElse("none")
       )
     )
+    vehicle.copy(occupants = {
+      obj.Seats.values.map { seat =>
+        seat.occupant match {
+          case Some(p) => PlayerSource.inSeat(p, obj, vehicle) //shallow
+          case _ => PlayerSource.Nobody
+        }
+      }.toList
+    })
   }
 }

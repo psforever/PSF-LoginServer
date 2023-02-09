@@ -45,21 +45,21 @@ object TurretSource {
       case o =>
         throw new IllegalArgumentException(s"was given ${o.Actor.toString()} when only wanted to model turrets")
     }
-    val occupants = obj match {
-      case o: Mountable =>
-        o.Seats.values.flatMap { _.occupants }.map { PlayerSource(_) }.toList
-      case _ =>
-        Nil
-    }
-    new TurretSource(
+    val turret = TurretSource(
       obj.Definition.asInstanceOf[ObjectDefinition with VitalityDefinition],
       obj.Faction,
       obj.Health,
       shields = 0, //TODO implement later
       position,
       obj.Orientation,
-      occupants,
+      Nil,
       identifer
     )
+    turret.copy(occupants = obj match {
+      case o: Mountable =>
+        o.Seats.values.flatMap { _.occupants }.map { p => PlayerSource.inSeat(p, o, turret) }.toList
+      case _ =>
+        Nil
+    })
   }
 }
