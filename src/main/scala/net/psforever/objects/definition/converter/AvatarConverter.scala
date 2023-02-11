@@ -65,7 +65,7 @@ object AvatarConverter {
   def MakeAppearanceData(obj: Player): Int => CharacterAppearanceData = {
     val alt_model_flag: Boolean = obj.isBackpack
     val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
-      BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, obj.Voice),
+      obj.avatar.basic,
       CommonFieldData(
         obj.Faction,
         bops = false,

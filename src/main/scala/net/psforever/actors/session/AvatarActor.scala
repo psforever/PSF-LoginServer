@@ -5,10 +5,12 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
-import net.psforever.objects.avatar.SpecialCarry
+import net.psforever.objects.avatar.{ProgressDecoration, SpecialCarry}
 import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
+import net.psforever.objects.sourcing.SourceWithHealthEntry
 import net.psforever.objects.vital.projectile.ProjectileReason
-import net.psforever.objects.vital.{DamagingActivity, HealingActivity, Vitality}
+import net.psforever.objects.vital.{DamagingActivity, HealingActivity, SpawningActivity, Vitality}
+import net.psforever.packet.game.objectcreate.BasicCharacterData
 import net.psforever.types.ExperienceType
 import org.joda.time.{LocalDateTime, Seconds}
 
@@ -626,22 +628,24 @@ object AvatarActor {
   def finalSavePlayerData(player: Player): Future[Int] = {
     val health = (
       player.History.findLast(_.isInstanceOf[DamagingActivity]),
-      player.History.findLast(_.isInstanceOf[HealingActivity])
+      player.History.collect { case h: HealingActivity => h }
     ) match {
-      case (Some(damage: DamagingActivity), Some(heal: HealingActivity)) =>
+      case (Some(damage: DamagingActivity), heals) if heals.nonEmpty =>
         val health = damage.data.targetAfter.asInstanceOf[PlayerSource].health
         //between damage and potential healing, which came last?
-        if (damage.time < heal.time) {
-          health //+ heal.health
+        if (damage.time < heals.last.time) {
+          health + heals.map { _.amount }.sum
         } else {
           health
         }
-      case (Some(damage: DamagingActivity), None) =>
+      case (Some(damage: DamagingActivity), _) =>
         damage.data.targetAfter.asInstanceOf[PlayerSource].health
-      case (None, Some(heal: HealingActivity)) =>
+      case (None, heals) if heals.nonEmpty =>
         player.History.headOption match {
-          //case Some(ps: PlayerSpawn) => ps.player.Health + heal.health
-          case _                     => player.Health
+          case Some(es: SpawningActivity) =>
+            es.src.asInstanceOf[SourceWithHealthEntry].health + heals.map { _.amount }.sum
+          case _ =>
+            player.Health
         }
       case _ =>
         player.Health
@@ -783,6 +787,21 @@ object AvatarActor {
     }
     out.future
   }
+
+  def toAvatar(avatar: persistence.Avatar): Avatar =
+    Avatar(
+      avatar.id,
+      BasicCharacterData(
+        avatar.name,
+        PlanetSideEmpire(avatar.factionId),
+        CharacterSex.valuesToEntriesMap(avatar.genderId),
+        avatar.headId,
+        CharacterVoice(avatar.voiceId)
+      ),
+      avatar.bep,
+      avatar.cep,
+      decoration = ProgressDecoration(cosmetics = avatar.cosmetics.map(c => Cosmetic.valuesFromObjectCreateValue(c)))
+    )
 }
 
 class AvatarActor(
@@ -948,7 +967,7 @@ class AvatarActor(
             case Success(characters) =>
               characters.headOption match {
                 case Some(character) =>
-                  avatar = character.toAvatar
+                  avatar = AvatarActor.toAvatar(character)
                   replyTo ! AvatarResponse(avatar)
                 case None =>
                   log.error(s"selected character $charId not found")
@@ -2084,7 +2103,7 @@ class AvatarActor(
 
         avatars.filter(!_.deleted) foreach { a =>
           val secondsSinceLastLogin = Seconds.secondsBetween(a.lastLogin, LocalDateTime.now()).getSeconds
-          val avatar                = a.toAvatar
+          val avatar                = AvatarActor.toAvatar(a)
           val player                = new Player(avatar)
 
           player.ExoSuit = ExoSuitType.Reinforced
@@ -2854,12 +2873,12 @@ class AvatarActor(
     val player = _session.player
     kdaStat match {
       case kill: Kill =>
-        val playerSource = PlayerSource(player)
+        val _ = PlayerSource(player)
         (kill.info.interaction.cause match {
           case pr: ProjectileReason => pr.projectile.mounted_in.map { a => zone.GUID(a._1) }
           case _ => None
         }) match {
-          case Some(Some(obj: Vitality)) =>
+          case Some(Some(_: Vitality)) =>
             //zone.actor ! ZoneActor.RewardOurSupporters(playerSource, obj.History, kill, exp)
           case _ => ;
         }

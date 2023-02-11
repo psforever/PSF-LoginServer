@@ -6,6 +6,7 @@ import net.psforever.objects._
 import net.psforever.objects.avatar.{Avatar, BattleRank, Implant}
 import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.locker.LockerEquipment
+import net.psforever.packet.game.objectcreate.BasicCharacterData
 import net.psforever.types.{CharacterSex, CharacterVoice, ImplantType, PlanetSideEmpire}
 import org.specs2.mutable._
 
@@ -59,13 +60,16 @@ class AvatarTest extends Specification {
     val testplant = Implant(new ImplantDefinition(ImplantType.AdvancedRegen))
     var obj = Avatar(
       0,
-      "Chord",
-      PlanetSideEmpire.TR,
-      CharacterSex.Male,
-      0,
-      CharacterVoice.Voice5,
+      BasicCharacterData(
+        "Chord",
+        PlanetSideEmpire.TR,
+        CharacterSex.Male,
+        0,
+        CharacterVoice.Voice5
+      ),
       bep = BattleRank.BR6.experience
     )
+    obj
     obj.implants.nonEmpty must beTrue
     obj.implants.length mustEqual 3
     obj = obj.copy(implants = obj.implants.updated(0, Some(testplant)))

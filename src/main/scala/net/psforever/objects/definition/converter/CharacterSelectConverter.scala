@@ -39,7 +39,7 @@ class CharacterSelectConverter extends AvatarConverter {
     */
   private def MakeAppearanceData(obj: Player): Int => CharacterAppearanceData = {
     val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
-      BasicCharacterData(obj.Name, obj.Faction, obj.Sex, obj.Head, CharacterVoice.Mute),
+      obj.avatar.basic,
       CommonFieldData(
         obj.Faction,
         bops = false,
