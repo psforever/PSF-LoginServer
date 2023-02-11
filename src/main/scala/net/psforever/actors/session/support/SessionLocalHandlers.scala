@@ -30,7 +30,7 @@ class SessionLocalHandlers(
         }
 
       case LocalResponse.DeployableUIFor(item) =>
-        sessionData.UpdateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
+        sessionData.updateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
 
       case LocalResponse.Detonate(dguid, _: BoomerDeployable) =>
         sendResponse(TriggerEffectMessage(dguid, "detonate_boomer"))
@@ -160,7 +160,7 @@ class SessionLocalHandlers(
         sendResponse(ChatMsg(ChatMessageType.UNK_229, wideContents=false, "", msg, None))
 
       case LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid) =>
-        sessionData.UseRouterTelepadEffect(passenger_guid, src_guid, dest_guid)
+        sessionData.useRouterTelepadEffect(passenger_guid, src_guid, dest_guid)
 
       case LocalResponse.SendResponse(msg) =>
         sendResponse(msg)
@@ -189,7 +189,7 @@ class SessionLocalHandlers(
         sendResponse(VehicleStateMessage(sguid, 0, pos, orient, None, Some(state), 0, 0, 15, is_decelerating=false, is_cloaked=false))
 
       case LocalResponse.ToggleTeleportSystem(router, system_plan) =>
-        sessionData.ToggleTeleportSystem(router, system_plan)
+        sessionData.toggleTeleportSystem(router, system_plan)
 
       case LocalResponse.TriggerEffect(target_guid, effect, effectInfo, triggerLocation) =>
         sendResponse(TriggerEffectMessage(target_guid, effect, effectInfo, triggerLocation))

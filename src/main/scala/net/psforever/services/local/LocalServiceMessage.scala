@@ -11,10 +11,9 @@ import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.GenericActionEnum.GenericActionEnum
 import net.psforever.packet.game.GenericObjectActionEnum.GenericObjectActionEnum
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
-import net.psforever.packet.game.{ChatMsg, DeployableInfo, DeploymentAction, TriggeredSound}
+import net.psforever.packet.game.{ChatMsg, DeployableInfo, DeploymentAction, GenericAction, TriggeredSound}
 import net.psforever.services.hart.HartTimer.OrbitalShuttleEvent
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
@@ -82,7 +81,7 @@ object LocalAction {
 
   final case class SendGenericActionMessage(
     player_guid: PlanetSideGUID,
-    action_number: GenericActionEnum
+    action_number: GenericAction
   ) extends Action
   final case class RouterTelepadMessage(msg: String)                                      extends Action
   final case class RouterTelepadTransport(

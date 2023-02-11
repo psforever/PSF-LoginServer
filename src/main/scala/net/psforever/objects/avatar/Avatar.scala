@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.avatar
 
+import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.definition.{AvatarDefinition, BasicDefinition}
 import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
 import net.psforever.objects.inventory.LocallyRegisteredInventory
@@ -144,7 +145,8 @@ case class Avatar(
       cooldowns: Map[BasicDefinition, FiniteDuration],
       definition: BasicDefinition
   ): Option[Duration] = {
-    times.get(definition.Name) match {
+    val (_, resolvedName) = AvatarActor.resolvePurchaseTimeName(faction, definition)
+    times.get(resolvedName) match {
       case Some(purchaseTime) =>
         val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now())
         cooldowns.get(definition) match {

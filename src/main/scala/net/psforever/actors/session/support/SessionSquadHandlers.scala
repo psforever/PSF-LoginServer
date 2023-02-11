@@ -46,7 +46,6 @@ class SessionSquadHandlers(
    * Upon leaving or disbanding a squad, this value is made false.
    * Control switching between the `Avatar`-local and the `WorldSessionActor`-local variable is contingent on `squadUI` being populated.
    */
-  private[support] var lfsm: Boolean = false
   private[support] var squadSetup: () => Unit = FirstTimeSquadSetup
   private var squadUpdateCounter: Int = 0
   private val queuedSquadActions: Seq[() => Unit] = Seq(SquadUpdates, NoSquadUpdates, NoSquadUpdates, NoSquadUpdates)
@@ -263,7 +262,6 @@ class SessionSquadHandlers(
               GiveSquadColorsToSelf(value = 0)
               sendResponse(PlanetsideAttributeMessage(playerGuid, 32, 0))           //disassociate with member position in squad?
               sendResponse(PlanetsideAttributeMessage(playerGuid, 34, 4294967295L)) //unknown, perhaps unrelated?
-              lfsm = false
               avatarActor ! AvatarActor.SetLookingForSquad(false)
               //a finalization? what does this do?
               sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
@@ -291,9 +289,8 @@ class SessionSquadHandlers(
         case SquadResponse.PromoteMember(squad, promotedPlayer, from_index) =>
           if (promotedPlayer != player.CharId) {
             //demoted from leader; no longer lfsm
-            if (lfsm) {
-              lfsm = false
-              AvatarActor.displayLookingForSquad(session, state = 0)
+            if (player.avatar.lookingForSquad) {
+              avatarActor ! AvatarActor.SetLookingForSquad(false)
             }
           }
           sendResponse(SquadMemberEvent(MemberEvent.Promote, squad.GUID.guid, promotedPlayer, position = 0))

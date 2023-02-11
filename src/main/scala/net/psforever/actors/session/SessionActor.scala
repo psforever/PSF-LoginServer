@@ -256,10 +256,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sessionFuncs.zoning.spawn.performAvatarAwardMessageDelivery(pkts, delay)
 
     case CommonMessages.Progress(rate, finishedAction, stepAction) =>
-      sessionFuncs.SetupProgressChange(rate, finishedAction, stepAction)
+      sessionFuncs.setupProgressChange(rate, finishedAction, stepAction)
 
     case SessionActor.ProgressEvent(delta, finishedAction, stepAction, tick) =>
-      sessionFuncs.HandleProgressChange(delta, finishedAction, stepAction, tick)
+      sessionFuncs.handleProgressChange(delta, finishedAction, stepAction, tick)
 
     case CavernRotationService.CavernRotationServiceKey.Listing(listings) =>
       listings.head ! SendCavernRotationUpdates(context.self)

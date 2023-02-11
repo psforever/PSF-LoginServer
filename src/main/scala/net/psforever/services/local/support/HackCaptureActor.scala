@@ -9,7 +9,7 @@ import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Default, GlobalDefinitions}
-import net.psforever.packet.game.{GenericActionEnum, PlanetsideAttributeEnum}
+import net.psforever.packet.game.{GenericAction, PlanetsideAttributeEnum}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
@@ -212,7 +212,7 @@ class HackCaptureActor extends Actor {
       building.Actor! BuildingActor.SetFaction(hackedByFaction)
 
       // todo: This should probably only go to those within the captured SOI who belong to the capturing faction
-      building.Zone.LocalEvents ! LocalServiceMessage(building.Zone.id, LocalAction.SendGenericActionMessage(PlanetSideGUID(-1), GenericActionEnum.BaseCaptureFanfare))
+      building.Zone.LocalEvents ! LocalServiceMessage(building.Zone.id, LocalAction.SendGenericActionMessage(PlanetSideGUID(-1), GenericAction.FacilityCaptureFanfare))
     } else {
       log.info("Base hack completed, but base was out of NTU.")
     }

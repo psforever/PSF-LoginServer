@@ -106,7 +106,7 @@ private[support] class WeaponAndProjectileOperations(
   def handleChangeFireStateStart(pkt: ChangeFireStateMessage_Start)(implicit context: ActorContext): Unit = {
     val ChangeFireStateMessage_Start(item_guid) = pkt
     if (shooting.isEmpty) {
-      sessionData.FindEquipment(item_guid) match {
+      sessionData.findEquipment(item_guid) match {
         case Some(tool: Tool) =>
           if (tool.FireMode.RoundsPerShot == 0 || tool.Magazine > 0 || prefire.contains(item_guid)) {
             prefire -= item_guid
@@ -156,7 +156,7 @@ private[support] class WeaponAndProjectileOperations(
     shootingStop += item_guid -> System.currentTimeMillis()
     shooting -= item_guid
     val pguid = player.GUID
-    sessionData.FindEquipment(item_guid) match {
+    sessionData.findEquipment(item_guid) match {
       case Some(tool: Tool) =>
         //the decimator does not send a ChangeFireState_Start on the last shot; heaven knows why
         if (
@@ -259,7 +259,7 @@ private[support] class WeaponAndProjectileOperations(
 
   def handleChangeAmmo(pkt: ChangeAmmoMessage): Unit = {
     val ChangeAmmoMessage(item_guid, _) = pkt
-    val (thing, equipment) = sessionData.FindContainedEquipment()
+    val (thing, equipment) = sessionData.findContainedEquipment()
     if (equipment.isEmpty) {
       log.warn(s"ChangeAmmo: either can not find $item_guid or the object found was not Equipment")
     } else {
@@ -286,7 +286,7 @@ private[support] class WeaponAndProjectileOperations(
 
   def handleChangeFireMode(pkt: ChangeFireModeMessage): Unit = {
     val ChangeFireModeMessage(item_guid, _/*fire_mode*/) = pkt
-    sessionData.FindEquipment(item_guid) match {
+    sessionData.findEquipment(item_guid) match {
       case Some(obj: PlanetSideGameObject with FireModeSwitch[_]) =>
         val originalModeIndex = obj.FireModeIndex
         if (obj match {
@@ -376,7 +376,7 @@ private[support] class WeaponAndProjectileOperations(
         (hit_info match {
           case Some(hitInfo) =>
             val hitPos     = hitInfo.hit_pos
-            sessionData.ValidObject(hitInfo.hitobject_guid, decorator = "Hit/hitInfo") match {
+            sessionData.validObject(hitInfo.hitobject_guid, decorator = "Hit/hitInfo") match {
               case _ if projectile.profile == GlobalDefinitions.flail_projectile =>
                 val radius  = projectile.profile.DamageRadius * projectile.profile.DamageRadius
                 val targets = Zone.findAllTargets(hitPos)(continent, player, projectile.profile)
@@ -410,7 +410,7 @@ private[support] class WeaponAndProjectileOperations(
               ) =>
               ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos) match {
                 case Some(resprojectile) =>
-                  sessionData.HandleDealingDamage(target, resprojectile)
+                  sessionData.handleDealingDamage(target, resprojectile)
                 case None => ;
               }
             case _ => ;
@@ -443,24 +443,24 @@ private[support] class WeaponAndProjectileOperations(
             (DamageResolution.Splash, DamageResolution.Splash)
         }
         //direct_victim_uid
-        sessionData.ValidObject(direct_victim_uid, decorator = "SplashHit/direct_victim") match {
+        sessionData.validObject(direct_victim_uid, decorator = "SplashHit/direct_victim") match {
           case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
             CheckForHitPositionDiscrepancy(projectile_guid, target.Position, target)
             ResolveProjectileInteraction(projectile, resolution1, target, target.Position) match {
               case Some(_projectile) =>
-                sessionData.HandleDealingDamage(target, _projectile)
+                sessionData.handleDealingDamage(target, _projectile)
               case None => ;
             }
           case _ => ;
         }
         //other victims
         targets.foreach(elem => {
-          sessionData.ValidObject(elem.uid, decorator = "SplashHit/other_victims") match {
+          sessionData.validObject(elem.uid, decorator = "SplashHit/other_victims") match {
             case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
               CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
               ResolveProjectileInteraction(projectile, resolution2, target, explosion_pos) match {
                 case Some(_projectile) =>
-                  sessionData.HandleDealingDamage(target, _projectile)
+                  sessionData.handleDealingDamage(target, _projectile)
                 case None => ;
               }
             case _ => ;
@@ -495,12 +495,12 @@ private[support] class WeaponAndProjectileOperations(
 
   def handleLashHit(pkt: LashMessage): Unit = {
     val LashMessage(_, _, victim_guid, projectile_guid, hit_pos, _) = pkt
-    sessionData.ValidObject(victim_guid, decorator = "Lash") match {
+    sessionData.validObject(victim_guid, decorator = "Lash") match {
       case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
         CheckForHitPositionDiscrepancy(projectile_guid, hit_pos, target)
         ResolveProjectileInteraction(projectile_guid, DamageResolution.Lash, target, hit_pos) match {
           case Some(projectile) =>
-            sessionData.HandleDealingDamage(target, projectile)
+            sessionData.handleDealingDamage(target, projectile)
           case None => ;
         }
       case _ => ;
@@ -606,7 +606,7 @@ private[support] class WeaponAndProjectileOperations(
     sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_fire")
     if (player.isShielded) {
       // Cancel NC MAX shield if it's active
-      sessionData.ToggleMaxSpecialState(enable = false)
+      sessionData.toggleMaxSpecialState(enable = false)
     }
     val (o, tools) = FindContainedWeapon
     val (_, enabledTools) = FindEnabledWeaponsToHandleWeaponFireAccountability(o, tools)
@@ -909,7 +909,7 @@ private[support] class WeaponAndProjectileOperations(
                 case Some(_) =>
                   stowFunc(previousBox)
                 case None =>
-                  sessionData.NormalItemDrop(player, continent)(previousBox)
+                  sessionData.normalItemDrop(player, continent)(previousBox)
               }
               AmmoBox.Split(previousBox) match {
                 case Nil | List(_) => ; //done (the former case is technically not possible)
@@ -935,7 +935,7 @@ private[support] class WeaponAndProjectileOperations(
    */
   def FindDetectedProjectileTargets(targets: Iterable[PlanetSideGUID]): Iterable[String] = {
     targets
-      .map { sessionData.ValidObject(_, decorator="FindDetectedProjectileTargets") }
+      .map { sessionData.validObject(_, decorator="FindDetectedProjectileTargets") }
       .flatMap {
         case Some(obj: Vehicle) if !obj.Cloaked =>
           //TODO hint: vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.ProjectileAutoLockAwareness(mode))
@@ -1179,7 +1179,7 @@ private[support] class WeaponAndProjectileOperations(
    *         the second value is an `Tool` object in the former
    */
   def FindContainedWeapon: (Option[PlanetSideGameObject with Container], Set[Tool]) = {
-    sessionData.FindContainedEquipment() match {
+    sessionData.findContainedEquipment() match {
       case (container, equipment) =>
         (container, equipment collect { case t: Tool => t })
       case _ =>
