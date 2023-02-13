@@ -66,7 +66,6 @@ class CryptoTest extends Specification {
         )
 
       val encrypted = PacketCoding.marshalPacket(packet, Some(10), Some(crypto)).require
-      println(s"encrypted ${encrypted}")
       val (decryptedPacket, sequence) = PacketCoding.unmarshalPacket(encrypted.bytes, Some(crypto)).require
 
       decryptedPacket mustEqual packet

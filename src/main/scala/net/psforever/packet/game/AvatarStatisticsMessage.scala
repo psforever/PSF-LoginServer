@@ -79,7 +79,7 @@ object AvatarStatisticsMessage extends Marshallable[AvatarStatisticsMessage] {
    */
   private val complexCodec: Codec[IntermediateStatistic] = (
     PacketHelpers.createIntEnumCodec(StatisticalCategory, uint(bits = 5)) ::
-      PacketHelpers.createIntEnumCodec(StatisticalElement, uint(bits = 11)) ::
+      PacketHelpers.createIntEnumCodec(StatisticalElement, uintL(bits = 11)) ::
       PacketHelpers.listOfNSized(size = 8, uint32L)
     ).exmap[IntermediateStatistic](
     {

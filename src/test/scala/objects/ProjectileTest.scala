@@ -193,12 +193,13 @@ class ProjectileTest extends Specification {
     }
 
     "construct for generic object" in {
-      val obj = Locker()
+      val obj = Tool(GlobalDefinitions.suppressor)
+      obj.GUID = PlanetSideGUID(1)
       SourceEntry(obj) match {
         case o: ObjectSource =>
-          o.Name mustEqual "Mb Locker"
+          o.Name mustEqual "Suppressor"
           o.Faction mustEqual PlanetSideEmpire.NEUTRAL
-          o.Definition mustEqual GlobalDefinitions.mb_locker
+          o.Definition mustEqual GlobalDefinitions.suppressor
           o.Position mustEqual Vector3.Zero
           o.Orientation mustEqual Vector3.Zero
           o.Velocity.isEmpty mustEqual true
@@ -210,12 +211,10 @@ class ProjectileTest extends Specification {
     "contain timely information" in {
       val obj =
         Player(Avatar(0, "TestCharacter-alt", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
-      obj.VehicleSeated = Some(PlanetSideGUID(1))
       obj.Position = Vector3(1.2f, 3.4f, 5.6f)
       obj.Orientation = Vector3(2.1f, 4.3f, 6.5f)
       obj.Velocity = Some(Vector3(1.1f, 2.2f, 3.3f))
       val sobj = SourceEntry(obj)
-      obj.VehicleSeated = None
       obj.Position = Vector3.Zero
       obj.Orientation = Vector3.Zero
       obj.Velocity = None
@@ -225,7 +224,6 @@ class ProjectileTest extends Specification {
         case o: PlayerSource =>
           o.Name mustEqual "TestCharacter-alt"
           o.Faction mustEqual PlanetSideEmpire.TR
-          o.Seated mustEqual true
           o.ExoSuit mustEqual ExoSuitType.Standard
           o.Definition mustEqual GlobalDefinitions.avatar
           o.Position mustEqual Vector3(1.2f, 3.4f, 5.6f)

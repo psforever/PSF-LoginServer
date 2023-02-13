@@ -18,7 +18,7 @@ import net.psforever.objects.serverobject.terminals.{Terminal, TerminalControl, 
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretControl, TurretUpgrade}
 import net.psforever.objects.vehicles.control.VehicleControl
-import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.{SpawningActivity, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types._
@@ -76,6 +76,7 @@ class DamageableTest extends Specification {
 
     "ignore attempts at damaging friendly targets not designated for friendly fire" in {
       val target = new Generator(GlobalDefinitions.generator)
+      target.GUID = PlanetSideGUID(1)
       target.Owner =
         new Building("test-building", 0, 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building) {
           Faction = player1.Faction
@@ -110,6 +111,7 @@ class DamageableTest extends Specification {
 
     "ignore attempts at damaging a target that is not damageable" in {
       val target = new SpawnTube(GlobalDefinitions.respawn_tube_sanctuary)
+      target.GUID = PlanetSideGUID(1)
       target.Owner =
         new Building("test-building", 0, 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building) {
           Faction = PlanetSideEmpire.NC
@@ -139,6 +141,7 @@ class DamageableTest extends Specification {
 
         override def Request(player: Player, msg: Any): Terminal.Exchange = null
       })
+      target.GUID = PlanetSideGUID(2)
       target.Owner =
         new Building("test-building", 0, 0, Zone.Nowhere, StructureType.Building, GlobalDefinitions.building) {
           Faction = player1.Faction
@@ -788,7 +791,8 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
   turret.Actor = system.actorOf(Props(classOf[TurretControl], turret), "turret-control")
   turret.Zone = zone
   turret.Position = Vector3(1, 0, 0)
-  //turret.History(EntitySpawn(TurretSource(turret), zone)) //seed a spawn event
+  turret.LogActivity(SpawningActivity(SourceEntry(turret), zone.Number, None)) //seed a spawn event
+  val tSource = SourceEntry(turret)
   val player1 =
     Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=3
   player1.Spawn()
@@ -810,7 +814,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
   val projectile   = weapon.Projectile
   val pSource = PlayerSource(player1)
   val resolved = DamageInteraction(
-    SourceEntry(turret),
+    tSource,
     ProjectileReason(
       DamageResolution.Hit,
       Projectile(
@@ -848,7 +852,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
         msg3 match {
           case activity: Zone.HotSpot.Activity =>
             activity.attacker.unique == pSource.unique &&
-              activity.defender.unique == SourceEntry(turret).unique &&
+              activity.defender.unique == tSource.unique &&
               activity.location == Vector3(1, 0, 0)
           case _ => false
         }
@@ -1156,6 +1160,7 @@ class DamageableVehicleDamageTest extends ActorTest {
 
   val weapon        = Tool(GlobalDefinitions.suppressor)
   val projectile    = weapon.Projectile
+  val pSource = PlayerSource(player1)
   val vehicleSource = SourceEntry(atv)
   val resolved = DamageInteraction(
     vehicleSource,
@@ -1203,8 +1208,8 @@ class DamageableVehicleDamageTest extends ActorTest {
       assert(
         msg3 match {
           case activity: Zone.HotSpot.Activity =>
-            activity.attacker.unique == PlayerSource(player1).unique &&
-              activity.defender.unique  == VehicleSource(atv).unique &&
+            activity.attacker.unique == pSource.unique &&
+              activity.defender.unique  == vehicleSource.unique &&
               activity.location == Vector3(1, 0, 0)
           case _ => false
         }
@@ -1291,8 +1296,9 @@ class DamageableVehicleDamageMountedTest extends FreedContextActorTest {
   val weapon        = Tool(GlobalDefinitions.phoenix) //decimator
   val projectile    = weapon.Projectile
   val pSource = PlayerSource(player1)
+  val vSource = SourceEntry(lodestar)
   val resolved = DamageInteraction(
-    SourceEntry(lodestar),
+    vSource,
     ProjectileReason(
       DamageResolution.Hit,
       Projectile(
@@ -1335,7 +1341,7 @@ class DamageableVehicleDamageMountedTest extends FreedContextActorTest {
     msg3 match {
       case activity: Zone.HotSpot.Activity =>
         assert(activity.attacker.unique == pSource.unique &&
-          activity.defender.unique == SourceEntry(lodestar).unique &&
+          activity.defender.unique == vSource.unique &&
           activity.location == Vector3(1, 0, 0))
       case _ => assert(false)
     }

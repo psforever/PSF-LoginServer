@@ -294,7 +294,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
                   Some(member_list)
                 ) =>
               u1 mustEqual 3
-              u2 mustEqual 1792
+              u2 mustEqual 7
               char_id mustEqual 42771010L
               u3 mustEqual 529745L
               leader mustEqual "HofD"
@@ -832,7 +832,7 @@ class SquadDetailDefinitionUpdateMessageTest extends Specification {
         PlanetSideGUID(3),
         SquadDetail(
           3,
-          1792,
+          7,
           42771010L,
           529745L,
           "HofD",

@@ -23,7 +23,6 @@ import scala.concurrent.duration._
 
 class OrbitalShuttlePadControlTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
-  system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   val services: ActorRef = ServiceManager.boot(system)
   services ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
   services ! ServiceManager.Register(Props[HartService](), "hart")
@@ -60,8 +59,9 @@ class OrbitalShuttlePadControlTest extends FreedContextActorTest {
     StructureType.Building,
     GlobalDefinitions.orbital_building_tr
   )
-  building.Faction = PlanetSideEmpire.TR
   buildingMap += 1 -> building
+  system.spawn(InterstellarClusterService(Seq(zone)), InterstellarClusterService.InterstellarClusterServiceKey.id)
+  building.Faction = PlanetSideEmpire.TR
   building.Actor = context.spawn(BuildingActor(zone, building), "test-orbital-building-tr-control").toClassic
   building.Invalidate()
   guid.register(building, number = 1)

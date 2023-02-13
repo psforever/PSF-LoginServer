@@ -150,7 +150,6 @@ class ResourceSiloControlStartupMessageSomeTest extends ActorTest {
 
 class ResourceSiloControlUseTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
-  system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
@@ -178,6 +177,7 @@ class ResourceSiloControlUseTest extends FreedContextActorTest {
     GlobalDefinitions.cryo_facility
   )
   buildingMap += 6 -> building
+  system.spawn(InterstellarClusterService(Seq(zone)), InterstellarClusterService.InterstellarClusterServiceKey.id)
   building.Actor = context.spawn(BuildingActor(zone, building), "integ-fac-test-building-control").toClassic
   building.Invalidate()
 
@@ -372,6 +372,6 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
 
 object ResourceSiloTest {
   val player = Player(
-    new Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
+    Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute).copy(stamina = 0)
   )
 }
