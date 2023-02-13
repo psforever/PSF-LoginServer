@@ -621,13 +621,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       val originalArmor = player.Armor
       player.ExoSuit = exosuit //changes the value of MaxArmor to reflect the new exo-suit
       val toMaxArmor = player.MaxArmor
-      val toArmor = if (originalArmor > toMaxArmor) {
+      val toArmor = toMaxArmor
+      if (originalArmor != toMaxArmor) {
         player.LogActivity(RepairFromExoSuitChange(exosuit, toMaxArmor - originalArmor))
-        player.Armor = toMaxArmor
       }
-      else {
-        player.Armor = originalArmor
-      }
+      player.Armor = toMaxArmor
       //ensure arm is down, even if it needs to go back up
       if (player.DrawnSlot != Player.HandsDownSlot) {
         player.DrawnSlot = Player.HandsDownSlot

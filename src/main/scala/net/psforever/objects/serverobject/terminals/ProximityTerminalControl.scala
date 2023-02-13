@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.terminals
 
 import akka.actor.{ActorRef, Cancellable}
 import net.psforever.objects.sourcing.AmenitySource
+import org.log4s.Logger
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -46,7 +47,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
 
   var terminalAction: Cancellable             = Default.Cancellable
   val callbacks: mutable.ListBuffer[ActorRef] = new mutable.ListBuffer[ActorRef]()
-  val log                                     = org.log4s.getLogger
+  val log: Logger                             = org.log4s.getLogger
 
   val commonBehavior: Receive = checkBehavior
     .orElse(takesDamage)

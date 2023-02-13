@@ -4,7 +4,8 @@ package net.psforever.objects.zones
 import akka.actor.{Actor, ActorRef, Props}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{CorpseControl, PlayerControl}
-import net.psforever.objects.vital.InGameHistory
+import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.objects.vital.{InGameHistory, SpawningActivity}
 import net.psforever.objects.{Default, Player}
 import net.psforever.types.Vector3
 
@@ -97,7 +98,7 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
       }
       if (canBeCorpse && CorpseAdd(player, corpseList)) {
         player.ClearHistory()
-        //player.History(PlayerSpawn(PlayerSource(player), zone, player.Position))
+        player.LogActivity(SpawningActivity(PlayerSource(player), zone.Number, None))
         player.Actor = context.actorOf(
           Props(classOf[CorpseControl], player),
           name = s"corpse_of_${GetPlayerControlName(player, control)}"
