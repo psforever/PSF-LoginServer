@@ -1,6 +1,8 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.repair
 
+import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.objects.vital.RepairFromEquipment
 import net.psforever.objects.{Player, Tool}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
@@ -90,6 +92,13 @@ trait RepairableEntity extends Repairable {
           AvatarAction.SendResponse(
             Service.defaultPlayerGUID,
             InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)
+          )
+        )
+        target.LogActivity(
+          RepairFromEquipment(
+            PlayerSource(player),
+            item.Definition,
+            repairValue
           )
         )
         PerformRepairs(target, repairValue)

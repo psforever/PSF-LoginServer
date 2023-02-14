@@ -7,6 +7,7 @@ import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
+import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
@@ -55,11 +56,11 @@ object LocalAction {
   final case class ClearTemporaryHack(player_guid: PlanetSideGUID, target: PlanetSideServerObject with Hackable)
       extends Action
 
-  final case class ResecureCaptureTerminal(target: CaptureTerminal) extends Action
+  final case class ResecureCaptureTerminal(target: CaptureTerminal, hacker: PlayerSource) extends Action
   final case class StartCaptureTerminalHack(target: CaptureTerminal) extends Action
   final case class LluCaptured(llu: CaptureFlag) extends Action
   final case class LluSpawned(player_guid: PlanetSideGUID, llu: CaptureFlag) extends Action
-  final case class LluDespawned(player_guid: PlanetSideGUID, llu: CaptureFlag) extends Action
+  final case class LluDespawned(player_guid: PlanetSideGUID, guid: PlanetSideGUID, position: Vector3) extends Action
 
   final case class SendPacket(packet: PlanetSideGamePacket) extends Action
   final case class SendPlanetsideAttributeMessage(

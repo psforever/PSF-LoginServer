@@ -132,6 +132,11 @@ class SessionVehicleHandlers(
           sendResponse(ObjectAttachMessage(vehicle_guid, guid, seat))
         }
 
+      case VehicleResponse.ObjectDelete(itemGuid) =>
+        if (tplayer_guid != guid) {
+          sendResponse(ObjectDeleteMessage(itemGuid, 0))
+        }
+
       case VehicleResponse.Ownership(vehicleGuid) =>
         if (tplayer_guid == guid) { // Only the player that owns this vehicle needs the ownership packet
           avatarActor ! AvatarActor.SetVehicle(Some(vehicleGuid))

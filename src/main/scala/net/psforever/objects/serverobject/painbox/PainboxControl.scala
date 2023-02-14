@@ -1,13 +1,14 @@
 package net.psforever.objects.serverobject.painbox
 
 import akka.actor.Cancellable
-import net.psforever.objects.ballistics.SourceEntry
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.etc.PainboxReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.{Default, GlobalDefinitions, Player}
+import net.psforever.services.Service
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -58,7 +59,7 @@ class PainboxControl(painbox: Painbox) extends PoweredAmenityControl {
   }
 
   var commonBehavior: Receive = {
-    case "startup" =>
+    case Service.Startup() =>
       if (!disabled && domain.midpoint == Vector3.Zero) {
         initialStartup()
       }

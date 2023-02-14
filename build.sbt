@@ -46,6 +46,7 @@ lazy val psforeverSettings = Seq(
     "com.typesafe.akka"          %% "akka-stream"                % "2.6.17",
     "com.typesafe.akka"          %% "akka-testkit"               % "2.6.17" % "test",
     "com.typesafe.akka"          %% "akka-actor-typed"           % "2.6.17",
+    "com.typesafe.akka"          %% "akka-actor-testkit-typed"   % "2.6.17" % "test",
     "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.17",
     "com.typesafe.akka"          %% "akka-cluster-typed"         % "2.6.17",
     "com.typesafe.akka"          %% "akka-coordination"          % "2.6.17",

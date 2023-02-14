@@ -4,8 +4,7 @@ package net.psforever.objects.avatar
 import akka.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.login.WorldSession.{DropEquipmentFromInventory, HoldNewEquipmentUp, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
-import net.psforever.objects.{Player, _}
-import net.psforever.objects.ballistics.PlayerSource
+import net.psforever.objects._
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.DeployAnimation
 import net.psforever.objects.definition.converter.OCM
@@ -33,6 +32,7 @@ import net.psforever.objects.locker.LockerContainerControl
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
+import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
@@ -50,21 +50,21 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     with AggravatedBehavior
     with AuraEffectBehavior
     with RespondsToZoneEnvironment {
-  def JammableObject = player
+  def JammableObject: Player = player
 
-  def DamageableObject = player
+  def DamageableObject: Player = player
 
-  def ContainerObject = player
+  def ContainerObject: Player = player
 
-  def AggravatedObject = player
+  def AggravatedObject: Player = player
 
-  def AuraTargetObject = player
+  def AuraTargetObject: Player = player
   ApplicableEffect(Aura.Plasma)
   ApplicableEffect(Aura.Napalm)
   ApplicableEffect(Aura.Comet)
   ApplicableEffect(Aura.Fire)
 
-  def InteractiveObject = player
+  def InteractiveObject: Player = player
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
   SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
@@ -105,8 +105,18 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case Player.Die(Some(reason)) =>
           if (player.isAlive) {
             //primary death
-            PerformDamage(player, reason.calculate())
-            suicide()
+            val health = player.Health
+            val psource = PlayerSource(player)
+            player.Health = 0
+            HandleDamage(
+              player,
+              DamageResult(psource, psource.copy(health = 0), reason),
+              health,
+              damageToArmor = 0,
+              damageToStamina = 0,
+              damageToCapacitor = 0
+            )
+            damageLog.info(s"${player.Name}-infantry: dead by explicit reason - ${reason.cause.resolution}")
           }
 
         case Player.Die(None) =>
@@ -138,12 +148,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 )
               )
               events ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth))
-              player.History(
+              player.LogActivity(
                 HealFromEquipment(
-                  PlayerSource(player),
                   PlayerSource(user),
-                  newHealth - originalHealth,
-                  GlobalDefinitions.medicalapplicator
+                  GlobalDefinitions.medicalapplicator,
+                  newHealth - originalHealth
                 )
               )
             }
@@ -172,7 +181,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           ) {
             sender() ! CommonMessages.Progress(
               4,
-              Players.FinishRevivingPlayer(player, user.Name, item),
+              Players.FinishRevivingPlayer(player, user, item),
               Players.RevivingTickAction(player, user, item)
             )
           }
@@ -202,12 +211,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 )
               )
               events ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(guid, 4, player.Armor))
-              player.History(
+              player.LogActivity(
                 RepairFromEquipment(
-                  PlayerSource(player),
                   PlayerSource(user),
-                  newArmor - originalArmor,
-                  GlobalDefinitions.bank
+                  GlobalDefinitions.bank,
+                  newArmor - originalArmor
                 )
               )
             }
@@ -242,7 +250,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                     if (player.Health == player.MaxHealth) {
                       (None, 0, 0, "@HealComplete")
                     } else {
-                      player.History(HealFromKit(PlayerSource(player), 25, kdef))
+                      player.LogActivity(HealFromKit(kdef, 25))
                       player.Health = player.Health + 25
                       (Some(index), 0, player.Health, "")
                     }
@@ -250,7 +258,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                     if (player.Health == player.MaxHealth) {
                       (None, 0, 0, "@HealComplete")
                     } else {
-                      player.History(HealFromKit(PlayerSource(player), 100, kdef))
+                      player.LogActivity(HealFromKit(kdef, 100))
                       player.Health = player.Health + 100
                       (Some(index), 0, player.Health, "")
                     }
@@ -258,7 +266,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                     if (player.Armor == player.MaxArmor) {
                       (None, 0, 0, "Armor at maximum - No repairing required.")
                     } else {
-                      player.History(RepairFromKit(PlayerSource(player), 200, kdef))
+                      player.LogActivity(RepairFromKit(kdef, 200))
                       player.Armor = player.Armor + 200
                       (Some(index), 4, player.Armor, "")
                     }
@@ -426,13 +434,14 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               val originalArmor = player.Armor
               player.ExoSuit = nextSuit
               val toMaxArmor = player.MaxArmor
-              val toArmor =
+              val toArmor = {
                 if (originalSuit != nextSuit || originalSubtype != nextSubtype || originalArmor > toMaxArmor) {
-                  player.History(HealFromExoSuitChange(PlayerSource(player), nextSuit))
+                  player.LogActivity(RepairFromExoSuitChange(nextSuit, toMaxArmor - player.Armor))
                   player.Armor = toMaxArmor
                 } else {
                   player.Armor = originalArmor
                 }
+              }
               //ensure arm is down, even if it needs to go back up
               if (player.DrawnSlot != Player.HandsDownSlot) {
                 player.DrawnSlot = Player.HandsDownSlot
@@ -488,9 +497,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               )
               player.Zone.AvatarEvents ! AvatarServiceMessage(
                 player.Name,
-                AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, true)
+                AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result=true)
               )
-            case _ => assert(false, msg.toString)
+            case _ => assert(assertion=false, msg.toString)
           }
 
         case Zone.Ground.ItemOnGround(item, _, _) =>
@@ -528,8 +537,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               val trigger = new BoomerTrigger
               trigger.Companion = obj.GUID
               obj.Trigger = trigger
-              //TODO sufficiently delete the tool
-              zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(player.GUID, tool.GUID))
+              zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, tool.GUID))
               TaskWorkflow.execute(GUIDTask.unregisterEquipment(zone.GUID, tool))
               player.Find(tool) match {
                 case Some(index) if player.VisibleSlots.contains(index) =>
@@ -593,19 +601,18 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val originalSubtype = Loadout.DetermineSubtype(player)
     val requestToChangeArmor = originalSuit != exosuit || originalSubtype != subtype
     val allowedToChangeArmor = Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
-                               (if (exosuit == ExoSuitType.MAX) {
-                                 val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
-                                 player.avatar.purchaseCooldown(weapon) match {
-                                   case Some(_) =>
-                                     false
-                                   case None =>
-                                     avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
-                                     true
-                                 }
-                               }
-                               else {
-                                 true
-                               })
+      (if (exosuit == ExoSuitType.MAX) {
+        val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
+        player.avatar.purchaseCooldown(weapon) match {
+          case Some(_) =>
+            false
+          case None =>
+            avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
+            true
+        }
+      } else {
+        true
+      })
     if (requestToChangeArmor && allowedToChangeArmor) {
       log.info(s"${player.Name} wants to change to a different exo-suit - $exosuit")
       val beforeHolsters = Players.clearHolsters(player.Holsters().iterator)
@@ -614,13 +621,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       val originalArmor = player.Armor
       player.ExoSuit = exosuit //changes the value of MaxArmor to reflect the new exo-suit
       val toMaxArmor = player.MaxArmor
-      val toArmor = if (originalSuit != exosuit || originalSubtype != subtype || originalArmor > toMaxArmor) {
-        player.History(HealFromExoSuitChange(PlayerSource(player), exosuit))
-        player.Armor = toMaxArmor
+      val toArmor = toMaxArmor
+      if (originalArmor != toMaxArmor) {
+        player.LogActivity(RepairFromExoSuitChange(exosuit, toMaxArmor - originalArmor))
       }
-      else {
-        player.Armor = originalArmor
-      }
+      player.Armor = toMaxArmor
       //ensure arm is down, even if it needs to go back up
       if (player.DrawnSlot != Player.HandsDownSlot) {
         player.DrawnSlot = Player.HandsDownSlot
@@ -804,7 +809,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       })) {
         //activate second wind
         player.Health += 25
-        player.History(HealFromImplant(PlayerSource(player), 25, ImplantType.SecondWind))
+        player.LogActivity(HealFromImplant(ImplantType.SecondWind, 25))
         avatarActor ! AvatarActor.ResetImplant(ImplantType.SecondWind)
         avatarActor ! AvatarActor.RestoreStamina(25)
       }
@@ -844,7 +849,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         cause.interaction.cause.source.Aggravated.nonEmpty
     }
     //log historical event (always)
-    target.History(cause)
+    target.LogActivity(cause)
     //stat changes
     if (damageToCapacitor > 0) {
       events ! AvatarServiceMessage(
@@ -959,7 +964,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     avatarActor ! AvatarActor.DeinitializeImplants()
 
     //log historical event
-    target.History(cause)
+    target.LogActivity(cause)
     //log message
     cause.adversarial match {
       case Some(a) =>
@@ -1015,7 +1020,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       nameChannel,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
-        AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, target.Faction, true)
+        AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, target.Faction, unk5=true)
       )
     )
     //TODO other methods of death?

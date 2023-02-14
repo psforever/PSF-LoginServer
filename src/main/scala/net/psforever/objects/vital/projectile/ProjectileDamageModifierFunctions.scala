@@ -3,6 +3,7 @@ package net.psforever.objects.vital.projectile
 
 import net.psforever.objects.ballistics._
 import net.psforever.objects.equipment.ChargeFireModeDefinition
+import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.damage.DamageModifierFunctions
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -461,7 +462,7 @@ object ProjectileDamageModifierFunctions {
             case _ =>
               1f
           }
-          if (p.exosuit == ExoSuitType.MAX) {
+          if (p.ExoSuit == ExoSuitType.MAX) {
             (damage * degradation * aggravation.max_factor) toInt
           } else {
             val resist = cause.damageModel.ResistUsing(data)(data)

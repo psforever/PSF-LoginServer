@@ -1,10 +1,11 @@
 // Copyright (c) 2020 PSForever
 package objects
 
+import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
 import base.ActorTest
-import net.psforever.actors.zone.BuildingActor
+import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
@@ -13,6 +14,7 @@ import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl, GeneratorDefinition}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -359,6 +361,7 @@ class GeneratorControlKillsTest extends ActorTest {
   val activityProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(5))
   val zone = new Zone("test", new ZoneMap("test"), 0) {
+    actor = ActorTestKit().createTestProbe[ZoneActor.Command]().ref
     override def SetupNumberPools() = {}
     GUID(guid)
     override def LivePlayers = List(player1, player2)

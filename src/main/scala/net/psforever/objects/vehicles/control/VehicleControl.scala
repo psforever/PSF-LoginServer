@@ -4,7 +4,6 @@ package net.psforever.objects.vehicles.control
 import akka.actor.Cancellable
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
-import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.definition.converter.OCM
 import net.psforever.objects.entity.WorldEntity
@@ -20,9 +19,10 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.sourcing.{SourceEntry, VehicleSource}
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
-import net.psforever.objects.vital.{DamagingActivity, VehicleShieldCharge, VitalsActivity}
+import net.psforever.objects.vital.{DamagingActivity, InGameActivity, ShieldCharge}
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.zones._
@@ -60,23 +60,15 @@ class VehicleControl(vehicle: Vehicle)
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach { case (_, util) => util.Setup }
 
-  def MountableObject = vehicle
-
-  def JammableObject = vehicle
-
-  def FactionObject = vehicle
-
-  def DamageableObject = vehicle
-
-  def SiphonableObject = vehicle
-
-  def RepairableObject = vehicle
-
-  def ContainerObject = vehicle
-
-  def InteractiveObject = vehicle
-
-  def CargoObject = vehicle
+  def MountableObject: Vehicle = vehicle
+  def JammableObject: Vehicle = vehicle
+  def FactionObject: Vehicle = vehicle
+  def DamageableObject: Vehicle = vehicle
+  def SiphonableObject: Vehicle = vehicle
+  def RepairableObject: Vehicle = vehicle
+  def ContainerObject: Vehicle = vehicle
+  def InteractiveObject: Vehicle = vehicle
+  def CargoObject: Vehicle = vehicle
 
   SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
   SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
@@ -136,8 +128,8 @@ class VehicleControl(vehicle: Vehicle)
         dismountBehavior.apply(msg)
         dismountCleanup(seat_num)
 
-      case Vehicle.ChargeShields(amount) =>
-        chargeShields(amount)
+      case CommonMessages.ChargeShields(amount, motivator) =>
+        chargeShields(amount, motivator.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) })
 
       case Vehicle.UpdateZoneInteractionProgressUI(player) =>
         updateZoneInteractionProgressUI(player)
@@ -406,6 +398,7 @@ class VehicleControl(vehicle: Vehicle)
     TaskWorkflow.execute(GUIDTask.unregisterVehicle(zone.GUID, vehicle))
     //banished to the shadow realm
     vehicle.Position = Vector3.Zero
+    vehicle.ClearHistory()
     //queue final deletion
     decayTimer = context.system.scheduler.scheduleOnce(5 seconds, self, VehicleControl.Deletion())
   }
@@ -559,14 +552,14 @@ class VehicleControl(vehicle: Vehicle)
 
   //make certain vehicles don't charge shields too quickly
   def canChargeShields: Boolean = {
-    val func: VitalsActivity => Boolean = VehicleControl.LastShieldChargeOrDamage(System.currentTimeMillis(), vehicle.Definition)
+    val func: InGameActivity => Boolean = VehicleControl.LastShieldChargeOrDamage(System.currentTimeMillis(), vehicle.Definition)
     vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
-    !vehicle.History.exists(func)
+    vehicle.History.findLast(func).isEmpty
   }
 
-  def chargeShields(amount: Int): Unit = {
+  def chargeShields(amount: Int, motivator: Option[SourceEntry]): Unit = {
     if (canChargeShields) {
-      vehicle.History(VehicleShieldCharge(VehicleSource(vehicle), amount))
+      vehicle.LogActivity(ShieldCharge(amount, motivator))
       vehicle.Shields = vehicle.Shields + amount
       vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
         s"${vehicle.Actor}",
@@ -874,7 +867,7 @@ class VehicleControl(vehicle: Vehicle)
 }
 
 object VehicleControl {
-  import net.psforever.objects.vital.{VehicleShieldCharge, VitalsActivity}
+  import net.psforever.objects.vital.{ShieldCharge}
 
   private case class PrepareForDeletion()
 
@@ -893,10 +886,10 @@ object VehicleControl {
     * @return `true`, if the shield charge would be blocked;
     *        `false`, otherwise
     */
-  def LastShieldChargeOrDamage(now: Long, vdef: VehicleDefinition)(act: VitalsActivity): Boolean = {
+  def LastShieldChargeOrDamage(now: Long, vdef: VehicleDefinition)(act: InGameActivity): Boolean = {
     act match {
       case dact: DamagingActivity   => now - dact.time < vdef.ShieldDamageDelay //damage delays next charge
-      case vsc: VehicleShieldCharge => now - vsc.time < vdef.ShieldPeriodicDelay //previous charge delays next
+      case vsc: ShieldCharge        => now - vsc.time < vdef.ShieldPeriodicDelay //previous charge delays next
       case _                        => false
     }
   }

@@ -3,17 +3,18 @@ package net.psforever.objects.zones
 
 import akka.actor.Actor
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.vital.InGameHistory
 import net.psforever.objects.{Default, Vehicle}
 import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 
 /**
   * Synchronize management of the list of `Vehicles` maintained by some `Zone`.
   */
 //COMMENTS IMPORTED FROM FORMER VehicleContextActor:
-/**
+ /*
   * Provide a context for a `Vehicle` `Actor` - the `VehicleControl`.<br>
   * <br>
   * A vehicle can be passed between different zones and, therefore, does not belong to the zone.
@@ -27,7 +28,11 @@ import scala.collection.mutable.ListBuffer
   * <br>
   * This `Actor` is intended to sit on top of the event system that handles broadcast messaging.
   */
-class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Actor {
+class ZoneVehicleActor(
+                        zone: Zone,
+                        vehicleList: mutable.ListBuffer[Vehicle],
+                        turretToMount: mutable.HashMap[Int, Int]
+                      ) extends Actor {
   //private[this] val log = org.log4s.getLogger
 
   def receive: Receive = {
@@ -41,11 +46,20 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
       } else {
         vehicleList += vehicle
         vehicle.Zone = zone
+        val vguid = vehicle.GUID.guid
+        vehicle
+          .Weapons
+          .values
+          .flatten { _.Equipment.map { _.GUID.guid } }
+          .foreach { guid =>
+            turretToMount.put(guid, vguid)
+          }
         vehicle.Definition.Initialize(vehicle, context)
       }
       if (vehicle.MountedIn.isEmpty) {
         zone.actor ! ZoneActor.AddToBlockMap(vehicle, vehicle.Position)
       }
+      InGameHistory.SpawnReconstructionActivity(vehicle, zone.Number, None)
       sender() ! Zone.Vehicle.HasSpawned(zone, vehicle)
 
     case Zone.Vehicle.Despawn(vehicle) =>
@@ -53,7 +67,10 @@ class ZoneVehicleActor(zone: Zone, vehicleList: ListBuffer[Vehicle]) extends Act
         case Some(index) =>
           vehicleList.remove(index)
           vehicle.Definition.Uninitialize(vehicle, context)
+          val vguid = vehicle.GUID.guid
+          turretToMount.filterInPlace { case (_, guid) => guid != vguid }
           vehicle.Position = Vector3.Zero
+          vehicle.ClearHistory()
           zone.actor ! ZoneActor.RemoveFromBlockMap(vehicle)
           sender() ! Zone.Vehicle.HasDespawned(zone, vehicle)
         case None => ;

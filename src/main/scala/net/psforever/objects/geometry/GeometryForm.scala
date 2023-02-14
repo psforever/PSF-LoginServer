@@ -1,8 +1,9 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.geometry
 
-import net.psforever.objects.ballistics.{PlayerSource, Projectile, SourceEntry}
+import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.geometry.d3._
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player}
 import net.psforever.types.{ExoSuitType, Vector3}
 

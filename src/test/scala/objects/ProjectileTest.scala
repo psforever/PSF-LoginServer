@@ -6,6 +6,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.ProjectileDefinition
 import net.psforever.objects.serverobject.mblocker.Locker
+import net.psforever.objects.sourcing.{ObjectSource, PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.base.{DamageResolution, DamageType}
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
@@ -13,8 +14,8 @@ import net.psforever.types.{PlanetSideGUID, _}
 import org.specs2.mutable.Specification
 
 class ProjectileTest extends Specification {
-  val player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
-  val fury   = Vehicle(GlobalDefinitions.fury)
+  val player: Player = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
+  val fury: Vehicle  = Vehicle(GlobalDefinitions.fury)
 
   "Range" should {
     "local projectile range" in {
@@ -169,7 +170,7 @@ class ProjectileTest extends Specification {
           o.Definition mustEqual GlobalDefinitions.avatar
           o.Position mustEqual Vector3.Zero
           o.Orientation mustEqual Vector3.Zero
-          o.Velocity mustEqual None
+          o.Velocity.isEmpty mustEqual true
         case _ =>
           ko
       }
@@ -185,23 +186,23 @@ class ProjectileTest extends Specification {
           o.Shields mustEqual 0
           o.Position mustEqual Vector3.Zero
           o.Orientation mustEqual Vector3.Zero
-          o.Velocity mustEqual None
+          o.Velocity.isEmpty mustEqual true
         case _ =>
           ko
       }
     }
 
     "construct for generic object" in {
-      val obj = Locker()
+      val obj = Tool(GlobalDefinitions.suppressor)
+      obj.GUID = PlanetSideGUID(1)
       SourceEntry(obj) match {
         case o: ObjectSource =>
-          o.obj mustEqual obj
-          o.Name mustEqual "Mb Locker"
+          o.Name mustEqual "Suppressor"
           o.Faction mustEqual PlanetSideEmpire.NEUTRAL
-          o.Definition mustEqual GlobalDefinitions.mb_locker
+          o.Definition mustEqual GlobalDefinitions.suppressor
           o.Position mustEqual Vector3.Zero
           o.Orientation mustEqual Vector3.Zero
-          o.Velocity mustEqual None
+          o.Velocity.isEmpty mustEqual true
         case _ =>
           ko
       }
@@ -210,12 +211,10 @@ class ProjectileTest extends Specification {
     "contain timely information" in {
       val obj =
         Player(Avatar(0, "TestCharacter-alt", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
-      obj.VehicleSeated = Some(PlanetSideGUID(1))
       obj.Position = Vector3(1.2f, 3.4f, 5.6f)
       obj.Orientation = Vector3(2.1f, 4.3f, 6.5f)
       obj.Velocity = Some(Vector3(1.1f, 2.2f, 3.3f))
       val sobj = SourceEntry(obj)
-      obj.VehicleSeated = None
       obj.Position = Vector3.Zero
       obj.Orientation = Vector3.Zero
       obj.Velocity = None
@@ -225,12 +224,11 @@ class ProjectileTest extends Specification {
         case o: PlayerSource =>
           o.Name mustEqual "TestCharacter-alt"
           o.Faction mustEqual PlanetSideEmpire.TR
-          o.Seated mustEqual true
           o.ExoSuit mustEqual ExoSuitType.Standard
           o.Definition mustEqual GlobalDefinitions.avatar
           o.Position mustEqual Vector3(1.2f, 3.4f, 5.6f)
           o.Orientation mustEqual Vector3(2.1f, 4.3f, 6.5f)
-          o.Velocity mustEqual Some(Vector3(1.1f, 2.2f, 3.3f))
+          o.Velocity.contains(Vector3(1.1f, 2.2f, 3.3f)) mustEqual true
         case _ =>
           ko
       }

@@ -4,8 +4,9 @@ package net.psforever.objects
 import net.psforever.types.PlanetSideGUID
 
 trait OwnableByPlayer {
-  private var owner: Option[PlanetSideGUID] = None
-  private var ownerName: Option[String]     = None
+  private var owner: Option[PlanetSideGUID]         = None
+  private var ownerName: Option[String]             = None
+  private var originalOwnerName: Option[String]     = None
 
   def Owner: Option[PlanetSideGUID] = owner
 
@@ -33,24 +34,27 @@ trait OwnableByPlayer {
     owner match {
       case Some(_) =>
         ownerName = owner
+        originalOwnerName = originalOwnerName.orElse(owner)
       case None =>
         ownerName = None
     }
     OwnerName
   }
 
+  def OriginalOwnerName: Option[String] = originalOwnerName
+
   /**
-    * na
-    * @param player na
-    * @return na
-    */
+   * na
+   * @param player na
+   * @return na
+   */
   def AssignOwnership(player: Player): OwnableByPlayer = AssignOwnership(Some(player))
 
   /**
-    * na
-    * @param playerOpt na
-    * @return na
-    */
+   * na
+   * @param playerOpt na
+   * @return na
+   */
   def AssignOwnership(playerOpt: Option[Player]): OwnableByPlayer = {
     playerOpt match {
       case Some(player) =>

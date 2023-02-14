@@ -9,6 +9,7 @@ import net.psforever.actors.zone.{BuildingActor, BuildingControlDetails, ZoneAct
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAware, CaptureTerminalAwareBehavior}
+import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
@@ -164,17 +165,21 @@ case object MajorFacilityLogic
           details.building.Zone.actor ! ZoneActor.ZoneMapUpdate()
         }
       case terminal: CaptureTerminal =>
+        val building = details.building
         // Notify amenities that listen for CC hack state changes, e.g. wall turrets to dismount seated players
-        details.building.Amenities.filter(x => x.isInstanceOf[CaptureTerminalAware]).foreach(amenity => {
-          data match {
-            case Some(isResecured: Boolean) => amenity.Actor ! CaptureTerminalAwareBehavior.TerminalStatusChanged(terminal, isResecured)
-            case _ => log(details).warn("CaptureTerminal AmenityStateChange was received with no attached data.")
-          }
-        })
+        data match {
+          case Some(isResecured: Boolean) =>
+            //pass hack information to amenities
+            building.Amenities.filter(x => x.isInstanceOf[CaptureTerminalAware]).foreach(amenity => {
+              amenity.Actor ! CaptureTerminalAwareBehavior.TerminalStatusChanged(terminal, isResecured)
+            })
+          case _ =>
+            log(details).warn("CaptureTerminal AmenityStateChange was received with no attached data.")
+        }
         // When a CC is hacked (or resecured) all currently hacked amenities for the base should return to their default unhacked state
-        details.building.HackableAmenities.foreach(amenity => {
+        building.HackableAmenities.foreach(amenity => {
           if (amenity.HackedBy.isDefined) {
-            details.building.Zone.LocalEvents ! LocalServiceMessage(amenity.Zone.id,LocalAction.ClearTemporaryHack(PlanetSideGUID(0), amenity))
+            building.Zone.LocalEvents ! LocalServiceMessage(amenity.Zone.id,LocalAction.ClearTemporaryHack(PlanetSideGUID(0), amenity))
           }
         })
       // No map update needed - will be sent by `HackCaptureActor` when required
@@ -330,6 +335,14 @@ case object MajorFacilityLogic
 
   def alertToFactionChange(details: BuildingWrapper, building: Building): Behavior[Command] = {
     alignForceDomeStatus(details)
+    val bldg = details.building
+    //the presence of the flag means that we are involved in an ongoing llu hack
+    (bldg.GetFlag, bldg.CaptureTerminal) match {
+      case (Some(flag), Some(terminal)) if (flag.Target eq building) && flag.Faction != building.Faction =>
+        //our hack destination may have been compromised and the hack needs to be cancelled
+        bldg.Zone.LocalEvents ! LocalServiceMessage("", LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody))
+      case _ => ()
+    }
     Behaviors.same
   }
 

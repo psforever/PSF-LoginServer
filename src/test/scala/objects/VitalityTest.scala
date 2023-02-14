@@ -4,6 +4,8 @@ package objects
 import net.psforever.objects.ballistics._
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.sourcing.{AmenitySource, PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -33,38 +35,40 @@ class VitalityTest extends Specification {
         Vector3(50, 50, 0)
       )
       val result = resprojectile.calculate()(player)
+      val term = AmenitySource(new Terminal(GlobalDefinitions.order_terminal) { GUID = PlanetSideGUID(1) })
 
-      player.History(result) //DamageResult, straight-up
-      player.History(DamageFromProjectile(result))
-      player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
-      player.History(HealFromTerm(pSource, 10, 0, GlobalDefinitions.order_terminal))
-      player.History(HealFromImplant(pSource, 10, ImplantType.AdvancedRegen))
-      player.History(HealFromExoSuitChange(pSource, ExoSuitType.Standard))
-      player.History(RepairFromTerm(vSource, 10, GlobalDefinitions.order_terminal))
-      player.History(VehicleShieldCharge(vSource, 10))
-      player.History(PlayerSuicide(PlayerSource(player)))
+      player.LogActivity(result) //DamageResult, straight-up
+      player.LogActivity(DamageFromProjectile(result))
+      player.LogActivity(HealFromKit(GlobalDefinitions.medkit, 10))
+      player.LogActivity(HealFromTerm(term, 10))
+      player.LogActivity(HealFromImplant(ImplantType.AdvancedRegen, 10))
+      player.LogActivity(RepairFromExoSuitChange(ExoSuitType.Standard, 10))
+      player.LogActivity(RepairFromTerm(term, 10))
+      player.LogActivity(ShieldCharge(10, Some(vSource)))
+      player.LogActivity(PlayerSuicide(PlayerSource(player)))
       ok
     }
 
     "return and clear the former list of vital activities" in {
       val player  = Player(Avatar(0, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
       val pSource = PlayerSource(player)
+      val term = AmenitySource(new Terminal(GlobalDefinitions.order_terminal) { GUID = PlanetSideGUID(1) })
 
-      player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
-      player.History(HealFromTerm(pSource, 10, 0, GlobalDefinitions.order_terminal))
-      player.History(HealFromImplant(pSource, 10, ImplantType.AdvancedRegen))
-      player.History(HealFromExoSuitChange(pSource, ExoSuitType.Standard))
-      player.History(RepairFromTerm(vSource, 10, GlobalDefinitions.order_terminal))
-      player.History(VehicleShieldCharge(vSource, 10))
-      player.History(PlayerSuicide(PlayerSource(player)))
+      player.LogActivity(HealFromKit(GlobalDefinitions.medkit, 10))
+      player.LogActivity(HealFromTerm(term, 10))
+      player.LogActivity(HealFromImplant(ImplantType.AdvancedRegen, 10))
+      player.LogActivity(RepairFromExoSuitChange(ExoSuitType.Standard, 10))
+      player.LogActivity(RepairFromTerm(term, 10))
+      player.LogActivity(ShieldCharge(10, Some(vSource)))
+      player.LogActivity(PlayerSuicide(PlayerSource(player)))
       player.History.size mustEqual 7
 
       val list = player.ClearHistory()
       player.History.size mustEqual 0
       list.head.isInstanceOf[PlayerSuicide] mustEqual true
-      list(1).isInstanceOf[VehicleShieldCharge] mustEqual true
+      list(1).isInstanceOf[ShieldCharge] mustEqual true
       list(2).isInstanceOf[RepairFromTerm] mustEqual true
-      list(3).isInstanceOf[HealFromExoSuitChange] mustEqual true
+      list(3).isInstanceOf[RepairFromExoSuitChange] mustEqual true
       list(4).isInstanceOf[HealFromImplant] mustEqual true
       list(5).isInstanceOf[HealFromTerm] mustEqual true
       list(6).isInstanceOf[HealFromKit] mustEqual true
@@ -84,15 +88,16 @@ class VitalityTest extends Specification {
         Vector3(50, 50, 0)
       )
       val result = resprojectile.calculate()(player)
+      val term = AmenitySource(new Terminal(GlobalDefinitions.order_terminal) { GUID = PlanetSideGUID(1) })
 
-      player.History(DamageFromProjectile(result))
-      player.History(HealFromKit(pSource, 10, GlobalDefinitions.medkit))
-      player.History(HealFromTerm(pSource, 10, 0, GlobalDefinitions.order_terminal))
-      player.History(HealFromImplant(pSource, 10, ImplantType.AdvancedRegen))
-      player.History(HealFromExoSuitChange(pSource, ExoSuitType.Standard))
-      player.History(RepairFromTerm(vSource, 10, GlobalDefinitions.order_terminal))
-      player.History(VehicleShieldCharge(vSource, 10))
-      player.History(PlayerSuicide(PlayerSource(player)))
+      player.LogActivity(DamageFromProjectile(result))
+      player.LogActivity(HealFromKit(GlobalDefinitions.medkit, 10))
+      player.LogActivity(HealFromTerm(term, 10))
+      player.LogActivity(HealFromImplant(ImplantType.AdvancedRegen, 10))
+      player.LogActivity(RepairFromExoSuitChange(ExoSuitType.Standard, 10))
+      player.LogActivity(RepairFromTerm(term, 10))
+      player.LogActivity(ShieldCharge(10, Some(vSource)))
+      player.LogActivity(PlayerSuicide(PlayerSource(player)))
 
       player.LastShot match {
         case Some(resolved_projectile) =>

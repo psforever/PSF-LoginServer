@@ -591,13 +591,6 @@ object Vehicle {
   final case class Reactivate()
 
   /**
-    * A request has been made to charge this vehicle's shields.
-    * @see `FacilityBenefitShieldChargeRequestMessage`
-    * @param amount the number of points to charge
-    */
-  final case class ChargeShields(amount: Int)
-
-  /**
     * Following a successful shield charge tick, display the results of the update.
     * @see `FacilityBenefitShieldChargeRequestMessage`
     * @param vehicle the updated vehicle

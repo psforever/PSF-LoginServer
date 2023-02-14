@@ -5647,10 +5647,10 @@ object GlobalDefinitions {
     advanced_ace.Name = "advanced_ace"
     advanced_ace.Size = EquipmentSize.Rifle
     advanced_ace.Modes += new ConstructionFireMode {
-      Item(DeployedItem.portable_manned_turret, Set(Certification.AssaultEngineering))
+      Item(DeployedItem.tank_traps, Set(Certification.FortificationEngineering))
     }
     advanced_ace.Modes += new ConstructionFireMode {
-      Item(DeployedItem.tank_traps, Set(Certification.FortificationEngineering))
+      Item(DeployedItem.portable_manned_turret, Set(Certification.AssaultEngineering))
     }
     advanced_ace.Modes += new ConstructionFireMode {
       Item(DeployedItem.deployable_shield_generator, Set(Certification.AssaultEngineering))
@@ -9841,14 +9841,17 @@ object GlobalDefinitions {
     capture_terminal.Name = "capture_terminal"
     capture_terminal.Damageable = false
     capture_terminal.Repairable = false
+    capture_terminal.FacilityHackTime = 15.minutes
 
     secondary_capture.Name = "secondary_capture"
     secondary_capture.Damageable = false
     secondary_capture.Repairable = false
+    secondary_capture.FacilityHackTime = 1.nanosecond
 
     vanu_control_console.Name = "vanu_control_console"
     vanu_control_console.Damageable = false
     vanu_control_console.Repairable = false
+    vanu_control_console.FacilityHackTime = 10.minutes
 
     lodestar_repair_terminal.Name = "lodestar_repair_terminal"
     lodestar_repair_terminal.Interval = 1000

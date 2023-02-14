@@ -1,16 +1,14 @@
 package net.psforever.zones
 
 import java.io.FileNotFoundException
-
 import net.psforever.objects.serverobject.terminals.{ProximityTerminal, ProximityTerminalDefinition, Terminal, TerminalDefinition}
 import net.psforever.objects.serverobject.mblocker.Locker
-import java.util.concurrent.atomic.AtomicInteger
 
+import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.ActorContext
 import io.circe._
 import io.circe.parser._
 import net.psforever.objects.{GlobalDefinitions, LocalLockerItem, LocalProjectile}
-import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.definition.BasicDefinition
 import net.psforever.objects.guid.selector.{NumberSelector, RandomSelector, SpecificSelector}
 import net.psforever.objects.serverobject.doors.{Door, DoorDefinition, SpawnTubeDoor}
@@ -27,6 +25,7 @@ import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
+import net.psforever.objects.sourcing.{DeployableSource, ObjectSource, PlayerSource, VehicleSource}
 import net.psforever.objects.zones.{MapInfo, Zone, ZoneInfo, ZoneMap}
 import net.psforever.types.{Angular, PlanetSideEmpire, Vector3}
 import net.psforever.util.DefinitionUtil
@@ -62,7 +61,7 @@ object Zones {
                                      max: Int,
                                      selector: String
                                    ) {
-    def getSelector() : NumberSelector = {
+    def getSelector(): NumberSelector = {
       if (selector.equals("random")) new RandomSelector
       else new SpecificSelector
     }
@@ -693,9 +692,9 @@ object Zones {
           super.init(context)
 
           if (!info.id.startsWith("tz")) {
-            this.HotSpotCoordinateFunction = Zones.HotSpots.standardRemapping(info.map.scale, 80, 80)
+            this.HotSpotCoordinateFunction = Zones.HotSpots.standardRemapping(info.map.scale, info.map.hotSpotSpan, info.map.hotSpotSpan)
             this.HotSpotTimeFunction = Zones.HotSpots.standardTimeRules
-            Zones.initZoneAmenities(this)
+            Zones.initZoneAmenities(zone = this)
           }
 
           //special conditions
@@ -915,7 +914,8 @@ object Zones {
   }
 
   object HotSpots {
-    import net.psforever.objects.ballistics.SourceEntry
+
+    import net.psforever.objects.sourcing.SourceEntry
     import net.psforever.objects.zones.MapScale
     import net.psforever.types.Vector3
 
@@ -986,7 +986,6 @@ object Zones {
       */
     def standardTimeRules(defender: SourceEntry, attacker: SourceEntry): FiniteDuration = {
       import net.psforever.objects.GlobalDefinitions
-      import net.psforever.objects.ballistics._
       if (attacker.Faction == defender.Faction) {
         0 seconds
       } else {

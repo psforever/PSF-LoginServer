@@ -1,8 +1,10 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.ballistics
 
-import java.util.concurrent.atomic.AtomicLong
+import net.psforever.objects.sourcing.SourceEntry
 
+import java.util.concurrent.atomic.AtomicLong
+//
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.{ProjectileDefinition, ToolDefinition}
 import net.psforever.objects.entity.SimpleWorldEntity
@@ -13,42 +15,44 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.types.Vector3
 
 /**
-  * A summation of weapon discharge.
-  * @see `ProjectileDefinition`
-  * @see `ToolDefinition`
-  * @see `FireModeDefinition`
-  * @see `SourceEntry`
-  * @see `PlayerSource`
-  * @param profile an explanation of the damage that can be performed by this discharge
-  * @param tool_def the weapon that caused this discharge
-  * @param fire_mode the current fire mode of the tool used
-  * @param owner the agency that caused the weapon to produce this projectile;
-  *              most often a player (`PlayerSource`)
-  * @param attribute_to an object ID that refers to the method of death that would be reported;
-  *                     usually the same as `tool_def.ObjectId`;
-  *                     if not, then it is a type of vehicle (and owner should have a positive `seated` field)
-  * @param shot_origin where the projectile started
-  * @param shot_angle in which direction the projectile was aimed when it was discharged
-  * @param shot_velocity the initial velocity coordinates of the projectile according to its world directions
-  * @param quality na
-  * @param id an exclusive identifier for this projectile;
-  *           normally generated internally, but can be manually set (for modifying a continuous projectile reference)
-  * @param fire_time when the weapon discharged was recorded;
-  *                  defaults to `System.currentTimeMillis()`
-  */
+ * A summation of weapon discharge.
+ * @see `ProjectileDefinition`
+ * @see `ToolDefinition`
+ * @see `FireModeDefinition`
+ * @see `SourceEntry`
+ * @see `PlayerSource`
+ * @param profile an explanation of the damage that can be performed by this discharge
+ * @param tool_def the weapon that caused this discharge
+ * @param fire_mode the current fire mode of the tool used
+ * @param mounted_in na
+ * @param owner the agency that caused the weapon to produce this projectile;
+ *              most often a player (`PlayerSource`)
+ * @param attribute_to an object ID that refers to the method of death that would be reported;
+ *                     usually the same as `tool_def.ObjectId`;
+ *                     if not, then it is a type of vehicle (and owner should have a positive `seated` field)
+ * @param shot_origin where the projectile started
+ * @param shot_angle in which direction the projectile was aimed when it was discharged
+ * @param shot_velocity the initial velocity coordinates of the projectile according to its world directions
+ * @param quality na
+ * @param id an exclusive identifier for this projectile;
+ *           normally generated internally, but can be manually set (for modifying a continuous projectile reference)
+ * @param fire_time when the weapon discharged was recorded;
+ *                  defaults to `System.currentTimeMillis()`
+ */
 final case class Projectile(
-    profile: ProjectileDefinition,
-    tool_def: ToolDefinition,
-    fire_mode: FireModeDefinition,
-    owner: SourceEntry,
-    attribute_to: Int,
-    shot_origin: Vector3,
-    shot_angle: Vector3,
-    shot_velocity: Option[Vector3],
-    quality: ProjectileQuality = ProjectileQuality.Normal,
-    id: Long = Projectile.idGenerator.getAndIncrement(),
-    fire_time: Long = System.currentTimeMillis()
-) extends PlanetSideGameObject
+                             profile: ProjectileDefinition,
+                             tool_def: ToolDefinition,
+                             fire_mode: FireModeDefinition,
+                             mounted_in: Option[(Int, SourceEntry)],
+                             owner: SourceEntry,
+                             attribute_to: Int,
+                             shot_origin: Vector3,
+                             shot_angle: Vector3,
+                             shot_velocity: Option[Vector3],
+                             quality: ProjectileQuality = ProjectileQuality.Normal,
+                             id: Long = Projectile.idGenerator.getAndIncrement(),
+                             fire_time: Long = System.currentTimeMillis()
+                           ) extends PlanetSideGameObject
   with BlockMapEntity {
   Position = shot_origin
   Orientation = shot_angle
@@ -66,18 +70,19 @@ final case class Projectile(
   private var resolved: DamageResolution.Value = DamageResolution.Unresolved
 
   /**
-    * Create a copy of this projectile with all the same information
-    * save for the quality.
-    * Used mainly for aggravated damage.
-    * It is important to note that the new projectile shares the (otherwise) exclusive id of the original.
-    * @param value the new quality
-    * @return a new `Projectile` entity
-    */
+   * Create a copy of this projectile with all the same information
+   * save for the quality.
+   * Used mainly for aggravated damage.
+   * It is important to note that the new projectile shares the (otherwise) exclusive id of the original.
+   * @param value the new quality
+   * @return a new `Projectile` entity
+   */
   def quality(value: ProjectileQuality): Projectile = {
-    val projectile = Projectile(
+    val projectile = new Projectile(
       profile,
       tool_def,
       fire_mode,
+      mounted_in,
       owner,
       attribute_to,
       shot_origin,
@@ -93,8 +98,8 @@ final case class Projectile(
   }
 
   /**
-    * Mark the projectile as being "encountered" or "managed" at least once.
-    */
+   * Mark the projectile as being "encountered" or "managed" at least once.
+   */
   def Resolve(): Unit = {
     resolved = DamageResolution.Resolved
   }
@@ -107,7 +112,7 @@ final case class Projectile(
 
   def isMiss: Boolean = resolved == DamageResolution.Missed
 
-  def Definition = profile
+  def Definition: ProjectileDefinition = profile
 }
 
 object Projectile {
@@ -116,22 +121,22 @@ object Projectile {
   final val baseUID: Int = 40100
 
   /** all clients progress through 40100 to 40124 normally, skipping only for long-lived projectiles
-    * 40125 to 40149 are being reserved as a guard against undetected overflow
-    */
+   * 40125 to 40149 are being reserved as a guard against undetected overflow
+   */
   final val rangeUID: Int = 40150
 
   private val idGenerator: AtomicLong = new AtomicLong
 
   /**
-    * Overloaded constructor for an `Unresolved` projectile.
-    * @param profile an explanation of the damage that can be performed by this discharge
-    * @param tool_def the weapon that caused this discharge
-    * @param fire_mode the current fire mode of the tool used
-    * @param owner the agency that caused the weapon to produce this projectile
-    * @param shot_origin where the projectile started
-    * @param shot_angle in which direction the projectile was aimed when it was discharged
-    * @return the `Projectile` object
-    */
+   * Overloaded constructor for an `Unresolved` projectile.
+   * @param profile an explanation of the damage that can be performed by this discharge
+   * @param tool_def the weapon that caused this discharge
+   * @param fire_mode the current fire mode of the tool used
+   * @param owner the agency that caused the weapon to produce this projectile
+   * @param shot_origin where the projectile started
+   * @param shot_angle in which direction the projectile was aimed when it was discharged
+   * @return the `Projectile` object
+   */
   def apply(
              profile: ProjectileDefinition,
              tool_def: ToolDefinition,
@@ -140,20 +145,20 @@ object Projectile {
              shot_origin: Vector3,
              shot_angle: Vector3
            ): Projectile = {
-    Projectile(profile, tool_def, fire_mode, SourceEntry(owner), tool_def.ObjectId, shot_origin, shot_angle, None)
+    Projectile(profile, tool_def, fire_mode, None, SourceEntry(owner), tool_def.ObjectId, shot_origin, shot_angle, None)
   }
 
   /**
-    * Overloaded constructor for an `Unresolved` projectile.
-    * @param profile an explanation of the damage that can be performed by this discharge
-    * @param tool_def the weapon that caused this discharge
-    * @param fire_mode the current fire mode of the tool used
-    * @param owner the agency that caused the weapon to produce this projectile
-    * @param attribute_to an object ID that refers to the method of death that would be reported
-    * @param shot_origin where the projectile started
-    * @param shot_angle in which direction the projectile was aimed when it was discharged
-    * @return the `Projectile` object
-    */
+   * Overloaded constructor for an `Unresolved` projectile.
+   * @param profile an explanation of the damage that can be performed by this discharge
+   * @param tool_def the weapon that caused this discharge
+   * @param fire_mode the current fire mode of the tool used
+   * @param owner the agency that caused the weapon to produce this projectile
+   * @param attribute_to an object ID that refers to the method of death that would be reported
+   * @param shot_origin where the projectile started
+   * @param shot_angle in which direction the projectile was aimed when it was discharged
+   * @return the `Projectile` object
+   */
   def apply(
              profile: ProjectileDefinition,
              tool_def: ToolDefinition,
@@ -163,7 +168,7 @@ object Projectile {
              shot_origin: Vector3,
              shot_angle: Vector3
            ): Projectile = {
-    Projectile(profile, tool_def, fire_mode, SourceEntry(owner), attribute_to, shot_origin, shot_angle, None)
+    Projectile(profile, tool_def, fire_mode, None, SourceEntry(owner), attribute_to, shot_origin, shot_angle, None)
   }
 
   def apply(
@@ -175,6 +180,6 @@ object Projectile {
              shot_origin: Vector3,
              shot_angle: Vector3
            ): Projectile = {
-    Projectile(profile, tool_def, fire_mode, owner, attribute_to, shot_origin, shot_angle, None)
+    Projectile(profile, tool_def, fire_mode, None, owner, attribute_to, shot_origin, shot_angle, None)
   }
 }

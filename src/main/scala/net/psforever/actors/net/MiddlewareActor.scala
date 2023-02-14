@@ -297,7 +297,7 @@ class MiddlewareActor(
                 send(ServerStart(nonce, serverNonce), None, None)
                 cryptoSetup()
 
-              case (Unknown30(nonce), _) =>
+              case (Unknown30(_), _) =>
                 /*
                 Unknown30 is used to reuse an existing crypto session when switching from login to world
                 When not handling it, it appears that the client will fall back to using ClientStart

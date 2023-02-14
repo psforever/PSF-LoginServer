@@ -2,13 +2,14 @@
 package net.psforever.objects.avatar
 
 import net.psforever.actors.session.AvatarActor
+import net.psforever.objects.avatar.scoring.ScoreCard
 import net.psforever.objects.definition.{AvatarDefinition, BasicDefinition}
 import net.psforever.objects.equipment.{EquipmentSize, EquipmentSlot}
 import net.psforever.objects.inventory.LocallyRegisteredInventory
 import net.psforever.objects.loadouts.{Loadout, SquadLoadout}
 import net.psforever.objects.locker.{LockerContainer, LockerEquipment}
 import net.psforever.objects.{GlobalDefinitions, OffhandEquipmentSlot}
-import net.psforever.packet.game.objectcreate.RibbonBars
+import net.psforever.packet.game.objectcreate.{BasicCharacterData, RibbonBars}
 import net.psforever.types._
 import org.joda.time.{Duration, LocalDateTime, Seconds}
 
@@ -74,6 +75,10 @@ object Avatar {
     GlobalDefinitions.super_staminakit -> 5.minutes // Temporary - Default value is 20 minutes
   )
 
+  def apply(charId: Int, name: String, faction: PlanetSideEmpire.Value, sex: CharacterSex, head: Int, voice: CharacterVoice.Value): Avatar = {
+    Avatar(charId, BasicCharacterData(name, faction, sex, head, voice))
+  }
+
   def makeLocker(): LockerContainer = {
     new LockerContainer({
       val inv = new LocallyRegisteredInventory(numbers = 40150 until 40450) // TODO var bad
@@ -113,11 +118,7 @@ case class MemberLists(
 case class Avatar(
     /** unique identifier corresponding to a database table row index */
     id: Int,
-    name: String,
-    faction: PlanetSideEmpire.Value,
-    sex: CharacterSex,
-    head: Int,
-    voice: CharacterVoice.Value,
+    basic: BasicCharacterData,
     bep: Long = 0,
     cep: Long = 0,
     stamina: Int = 100,
@@ -132,13 +133,24 @@ case class Avatar(
     decoration: ProgressDecoration = ProgressDecoration(),
     loadouts: Loadouts = Loadouts(),
     cooldowns: Cooldowns = Cooldowns(),
-    people: MemberLists = MemberLists()
+    people: MemberLists = MemberLists(),
+    scorecard: ScoreCard = new ScoreCard()
 ) {
   assert(bep >= 0)
   assert(cep >= 0)
 
   val br: BattleRank  = BattleRank.withExperience(bep)
   val cr: CommandRank = CommandRank.withExperience(cep)
+
+  def name: String = basic.name
+
+  def faction: PlanetSideEmpire.Value = basic.faction
+
+  def sex: CharacterSex = basic.sex
+
+  def head: Int = basic.head
+
+  def voice: CharacterVoice.Value = basic.voice
 
   private def cooldown(
       times: Map[String, LocalDateTime],

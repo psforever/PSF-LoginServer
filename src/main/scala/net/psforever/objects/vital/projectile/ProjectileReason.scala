@@ -1,7 +1,8 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.projectile
 
-import net.psforever.objects.ballistics.{SourceEntry, Projectile => ActualProjectile}
+import net.psforever.objects.ballistics.{Projectile => ActualProjectile}
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.damage.DamageProfile
 import net.psforever.objects.vital.prop.DamageProperties

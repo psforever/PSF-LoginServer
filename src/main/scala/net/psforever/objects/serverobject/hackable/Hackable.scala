@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.hackable
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.hackable.Hackable.HackInfo
+import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
@@ -24,14 +25,14 @@ trait Hackable {
   def HackedBy_=(agent: Option[Player]): Option[HackInfo] = {
     (hackedBy, agent) match {
       case (None, Some(actor)) =>
-        hackedBy = Some(HackInfo(actor.Name, actor.GUID, actor.Faction, actor.Position, System.nanoTime, 0L))
+        hackedBy = Some(HackInfo(PlayerSource(actor), actor.GUID, System.nanoTime, 0L))
       case (Some(info), Some(actor)) =>
         if (actor.Faction == this.Faction) {
           //hack cleared
           hackedBy = None
         } else if (actor.Faction != info.hackerFaction) {
           //override the hack state with a new hack state if the new user has different faction affiliation
-          hackedBy = Some(HackInfo(actor.Name, actor.GUID, actor.Faction, actor.Position, System.nanoTime, 0L))
+          hackedBy = Some(HackInfo(PlayerSource(actor), actor.GUID, System.nanoTime, 0L))
         }
       case (_, None) =>
         hackedBy = None
@@ -67,30 +68,19 @@ trait Hackable {
     hackDuration = arr
     arr
   }
-
-//  private var hackable : Option[Boolean] = None
-//  def Hackable : Boolean = hackable.getOrElse(Definition.Hackable)
-//
-//  def Hackable_=(state : Boolean) : Boolean = Hackable_=(Some(state))
-//
-//  def Hackable_=(state : Option[Boolean]) : Boolean = {
-//    hackable = state
-//    Hackable
-//  }
-//
-//  def Definition : HackableDefinition
 }
 
 object Hackable {
   final case class HackInfo(
-      hackerName: String,
-      hackerGUID: PlanetSideGUID,
-      hackerFaction: PlanetSideEmpire.Value,
-      hackerPos: Vector3,
-      hackStartTime: Long,
-      hackDuration: Long
-  ) {
-    def Duration(time: Long): HackInfo =
-      HackInfo(hackerName, hackerGUID, hackerFaction, hackerPos, hackStartTime, time)
+                             player: PlayerSource,
+                            hackerGUID: PlanetSideGUID,
+                            hackStartTime: Long,
+                            hackDuration: Long
+                           ) {
+    def hackerName: String = player.Name
+    def hackerFaction: PlanetSideEmpire.Value = player.Faction
+    def hackerPos: Vector3 = player.Position
+
+    def Duration(time: Long): HackInfo = HackInfo(player, hackerGUID, hackStartTime, time)
   }
 }

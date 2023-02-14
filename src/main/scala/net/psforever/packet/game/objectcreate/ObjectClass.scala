@@ -172,6 +172,7 @@ object ObjectClass {
   final val cycler_v3                        = 235
   final val cycler_v4                        = 236
   final val dropship_rear_turret             = 262
+  final val dynomite                         = 267
   final val energy_gun                       = 274
   final val energy_gun_nc                    = 276
   final val energy_gun_tr                    = 278
@@ -182,6 +183,7 @@ object ObjectClass {
   final val flux_cannon_thresher             = 306
   final val fluxpod                          = 309
   final val forceblade                       = 324
+  final val frag_grenade                     = 330
   final val fragmentation_grenade            = 334
   final val fury_weapon_systema              = 336
   final val galaxy_gunship_cannon            = 339
@@ -189,6 +191,7 @@ object ObjectClass {
   final val galaxy_gunship_tailgun           = 342
   final val gauss                            = 345
   final val gauss_cannon                     = 346
+  final val generic_grenade                  = 354
   final val grenade_launcher_marauder        = 371
   final val heavy_rail_beam_magrider         = 394
   final val heavy_sniper                     = 396
@@ -196,11 +199,10 @@ object ObjectClass {
   final val hunterseeker                     = 406
   final val ilc9                             = 407
   final val isp                              = 411
+  final val jammer_grenade                   = 416
   final val katana                           = 421
   final val lancer                           = 425
   final val lasher                           = 429
-  final val lasher_projectile                = 430
-  final val lasher_projectile_ap             = 431
   final val liberator_25mm_cannon            = 433
   final val liberator_bomb_bay               = 435
   final val liberator_weapon_system          = 440
@@ -208,6 +210,7 @@ object ObjectClass {
   final val lightning_weapon_system          = 448
   final val maelstrom                        = 462
   final val magcutter                        = 468
+  final val mine_sweeper                     = 552
   final val mediumtransport_weapon_systemA   = 534
   final val mediumtransport_weapon_systemB   = 535
   final val mini_chaingun                    = 556
@@ -239,6 +242,7 @@ object ObjectClass {
   final val phalanx_sgl_hevgatcan            = 670
   final val phantasm_12mm_machinegun         = 672
   final val phoenix                          = 673
+  final val plasma_grenade                   = 680
   final val prowler_weapon_systemA           = 699
   final val prowler_weapon_systemB           = 700
   final val pulsar                           = 701
@@ -274,12 +278,6 @@ object ObjectClass {
   final val vulture_tail_cannon              = 992
   final val wasp_weapon_system               = 1002
   final val winchester                       = 1003
-  final val dynomite                         = 267
-  final val frag_grenade                     = 330
-  final val generic_grenade                  = 354
-  final val jammer_grenade                   = 416
-  final val mine_sweeper                     = 552
-  final val plasma_grenade                   = 680
   //medkits
   final val medkit           = 536
   final val super_armorkit   = 842
@@ -319,6 +317,8 @@ object ObjectClass {
   final val aphelion_starfire_projectile              = 108
   final val flamethrower_fire_cloud                   = 301
   final val hunter_seeker_missile_projectile          = 405  //phoenix projectile
+  final val lasher_projectile                         = 430
+  final val lasher_projectile_ap                      = 431
   final val maelstrom_grenade_damager                 = 464
   final val meteor_common                             = 543
   final val meteor_projectile_b_large                 = 544

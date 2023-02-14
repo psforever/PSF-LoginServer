@@ -51,7 +51,7 @@ trait DamageableWeaponTurret
     }
 
     //log historical event
-    target.History(cause)
+    target.LogActivity(cause)
     //damage
     if (Damageable.CanDamageOrJammer(target, damageToHealth, cause.interaction)) {
       //jammering

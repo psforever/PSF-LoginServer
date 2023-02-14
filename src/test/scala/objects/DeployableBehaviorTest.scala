@@ -18,6 +18,7 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types._
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 
@@ -27,7 +28,7 @@ class DeployableBehaviorSetupTest extends ActorTest {
   val deployableList = new ListBuffer()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
   val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
-    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList), name = "test-zone-deployables")
+    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools(): Unit = {}
     GUID(guid)
@@ -86,7 +87,7 @@ class DeployableBehaviorSetupOwnedP1Test extends ActorTest {
   val deployableList = new ListBuffer()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
   val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
-    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList), name = "test-zone-deployables")
+    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools(): Unit = {}
     GUID(guid)
@@ -132,7 +133,7 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
   val deployableList = new ListBuffer()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
   val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
-    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList), name = "test-zone-deployables")
+    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools(): Unit = {}
     GUID(guid)
@@ -232,7 +233,7 @@ class DeployableBehaviorDeconstructTest extends ActorTest {
   val deployableList = new ListBuffer()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
   val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
-    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList), name = "test-zone-deployables")
+    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools(): Unit = {}
     GUID(guid)
@@ -284,7 +285,7 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
   val deployableList = new ListBuffer()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 5))
   val zone = new Zone(id = "test", new ZoneMap(name = "test"), zoneNumber = 0) {
-    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList), name = "test-zone-deployables")
+    private val deployables = system.actorOf(Props(classOf[ZoneDeployableActor], this, deployableList, mutable.HashMap[Int, Int]()), name = "test-zone-deployables")
 
     override def SetupNumberPools(): Unit = {}
     GUID(guid)

@@ -56,7 +56,7 @@ trait DamageableEntity extends Damageable {
     val health         = target.Health
     val damage         = originalHealth - health
     if (WillAffectTarget(target, damage, cause)) {
-      target.History(cause)
+      target.LogActivity(cause)
       DamageLog(target, s"BEFORE=$originalHealth, AFTER=$health, CHANGE=$damage")
       HandleDamage(target, cause, damage)
     } else {

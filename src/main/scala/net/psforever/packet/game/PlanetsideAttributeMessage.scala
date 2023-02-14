@@ -25,7 +25,7 @@ import scodec.codecs._
   * <br>
   * Global (GUID=0)<br>
   * `75 - Russian client region check` (value checks with bitmask `& 8`)<br>
-  * `82 - ???`<br>
+  * `82 - event chat message in green, "You have been Silenced by a Game Official.  You can not talk in Command Chat."`<br>
   * `83 - max boomers`<br>
   * `84 - max he mines`<br>
   * `85 - max disruptor mines`<br>

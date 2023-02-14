@@ -2,9 +2,9 @@
 package net.psforever.objects.vital.resistance
 
 import net.psforever.objects.GlobalDefinitions
-import net.psforever.objects.ballistics._
 import net.psforever.objects.definition.ExoSuitDefinition
-import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.serverobject.structures.AmenityDefinition
+import net.psforever.objects.sourcing.{ObjectSource, PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.types.ExoSuitType
 
@@ -110,7 +110,7 @@ object ResistanceCalculations {
   def ValidAmenityTarget(data: DamageInteraction): Try[ObjectSource] = {
     data.target match {
       case target: ObjectSource =>
-        if (target.obj.isInstanceOf[Amenity]) {
+        if (target.Definition.isInstanceOf[AmenityDefinition]) {
           Success(target)
         } else {
           failure(s"${target.Definition.Name} amenity")

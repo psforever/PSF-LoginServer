@@ -188,6 +188,10 @@ class BuildingActor(
 
   def setup(details: BuildingControlDetails): Behavior[Command] = {
     Behaviors.receiveMessage {
+      case ReceptionistListing(InterstellarClusterService.InterstellarClusterServiceKey.Listing(listings))
+        if listings.isEmpty =>
+        Behaviors.same
+
       case ReceptionistListing(InterstellarClusterService.InterstellarClusterServiceKey.Listing(listings)) =>
         switchToBehavior(details.copy(interstellarCluster = listings.head))
 

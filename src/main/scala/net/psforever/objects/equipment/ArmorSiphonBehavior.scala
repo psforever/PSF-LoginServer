@@ -2,10 +2,10 @@
 package net.psforever.objects.equipment
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.ballistics.VehicleSource
 import net.psforever.objects.{GlobalDefinitions, Tool, Vehicle}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.damage.Damageable
+import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vital.RepairFromArmorSiphon
 import net.psforever.objects.vital.etc.{ArmorSiphonModifiers, ArmorSiphonReason}
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -76,7 +76,7 @@ object ArmorSiphonBehavior {
             if before < obj.MaxHealth =>
             val after = obj.Health += amount
             if(before < after) {
-              obj.History(RepairFromArmorSiphon(asr.siphon.Definition, before - after))
+              obj.LogActivity(RepairFromArmorSiphon(asr.siphon.Definition, VehicleSource(obj), before - after))
               val zone = obj.Zone
               zone.VehicleEvents ! VehicleServiceMessage(
                 zone.id,

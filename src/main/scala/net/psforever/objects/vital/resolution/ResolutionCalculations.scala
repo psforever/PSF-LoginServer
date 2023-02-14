@@ -2,13 +2,13 @@
 package net.psforever.objects.vital.resolution
 
 import net.psforever.objects._
-import net.psforever.objects.ballistics.{PlayerSource, SourceEntry}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.damage.Damageable
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vehicles.VehicleSubsystemEntry
 import net.psforever.objects.vital.base.DamageResolution
-import net.psforever.objects.vital.{DamagingActivity, Vitality, VitalsHistory}
+import net.psforever.objects.vital.{DamagingActivity, Vitality, InGameHistory}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
@@ -368,7 +368,7 @@ object ResolutionCalculations {
     }
   }
 
-  private def noDoubleLash(target: PlanetSideGameObject with VitalsHistory, data: DamageInteraction): Boolean = {
+  private def noDoubleLash(target: PlanetSideGameObject with InGameHistory, data: DamageInteraction): Boolean = {
     data.cause match {
       case reason: ProjectileReason if reason.resolution == DamageResolution.Lash =>
         val curr = System.currentTimeMillis()

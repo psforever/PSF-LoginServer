@@ -60,12 +60,14 @@ object Players {
     * @param medic the name of the player doing the reviving
     * @param item the tool being used to revive the target player
     */
-  def FinishRevivingPlayer(target: Player, medic: String, item: Tool)(): Unit = {
+  def FinishRevivingPlayer(target: Player, medic: Player, item: Tool)(): Unit = {
     val name = target.Name
-    log.info(s"$medic had revived $name")
+    val medicName = medic.Name
+    log.info(s"$medicName had revived $name")
+    //target.History(PlayerRespawn(PlayerSource(target), target.Zone, target.Position, Some(PlayerSource(medic))))
     val magazine = item.Discharge(Some(25))
     target.Zone.AvatarEvents ! AvatarServiceMessage(
-      medic,
+      medicName,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
         InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine)

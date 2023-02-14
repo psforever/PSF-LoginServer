@@ -2,7 +2,8 @@
 package net.psforever.objects.vehicles
 
 import net.psforever.objects.Vehicle
-import net.psforever.objects.ballistics.{Projectile, ProjectileQuality, SourceEntry}
+import net.psforever.objects.ballistics.{Projectile, ProjectileQuality}
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.{DamageResolution, DamageType}
 import net.psforever.objects.vital.etc.RadiationReason

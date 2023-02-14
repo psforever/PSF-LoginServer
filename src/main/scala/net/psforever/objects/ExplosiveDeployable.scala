@@ -2,7 +2,6 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, ActorRef, Props}
-import net.psforever.objects.ballistics.{DeployableSource, PlayerSource, SourceEntry}
 import net.psforever.objects.ce._
 import net.psforever.objects.definition.{DeployableDefinition, ExoSuitDefinition}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
@@ -12,13 +11,14 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, SourceEntry, UniquePlayer}
 import net.psforever.objects.vital.etc.TrippedMineReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.vital.{SimpleResolutions, Vitality}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.Zone
-import net.psforever.types.{ExoSuitType, Vector3}
+import net.psforever.types.{CharacterSex, ExoSuitType, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -127,7 +127,7 @@ object ExplosiveDeployableControl {
     * @param damage na
     */
   def DamageResolution(target: ExplosiveDeployable, cause: DamageResult, damage: Int): Unit = {
-    target.History(cause)
+    target.LogActivity(cause)
     if (cause.interaction.cause.source.SympatheticExplosion) {
       explodes(target, cause)
       DestructionAwareness(target, cause)
@@ -324,32 +324,32 @@ object MineDeployableControl {
     val deployableSource = DeployableSource(mine)
     val blame = mine.OwnerName match {
       case Some(name) =>
-        val(charId, exosuit, seated): (Long, ExoSuitType.Value, Boolean) = mine.Zone
+        val(charId, exosuit, seatedIn): (Long, ExoSuitType.Value, Option[(SourceEntry, Int)]) = mine.Zone
           .LivePlayers
           .find { _.Name.equals(name) } match {
           case Some(player) =>
             //if the owner is alive in the same zone as the mine, use data from their body to create the source
-            (player.CharId, player.ExoSuit, player.VehicleSeated.nonEmpty)
+            (player.CharId, player.ExoSuit, PlayerSource.mountableAndSeat(player))
           case None         =>
             //if the owner is as dead as a corpse or is not in the same zone as the mine, use defaults
-            (0L, ExoSuitType.Standard, false)
+            (0L, ExoSuitType.Standard, None)
         }
         val faction = mine.Faction
         PlayerSource(
-          name,
-          charId,
           GlobalDefinitions.avatar,
-          mine.Faction,
           exosuit,
-          seated,
-          100,
-          100,
+          seatedIn,
+          health = 100,
+          armor = 0,
           mine.Position,
           Vector3.Zero,
           None,
           crouching = false,
           jumping = false,
-          ExoSuitDefinition.Select(exosuit, faction)
+          ExoSuitDefinition.Select(exosuit, faction),
+          bep = 0,
+          kills = Nil,
+          UniquePlayer(charId, name, CharacterSex.Male, mine.Faction)
         )
       case None =>
         //credit where credit is due

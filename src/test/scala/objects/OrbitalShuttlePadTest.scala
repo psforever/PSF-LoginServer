@@ -18,36 +18,35 @@ import net.psforever.services.hart.HartService
 import net.psforever.types.PlanetSideEmpire
 
 import scala.collection.concurrent.TrieMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 class OrbitalShuttlePadControlTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
-  system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
-  val services = ServiceManager.boot(system)
+  val services: ActorRef = ServiceManager.boot(system)
   services ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
   services ! ServiceManager.Register(Props[HartService](), "hart")
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
-  val vehicles = ListBuffer[Vehicle]()
+  val vehicles: mutable.ListBuffer[Vehicle] = mutable.ListBuffer[Vehicle]()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 20))
   guid.AddPool("vehicles", (11 to 15).toList)
   guid.AddPool("tools", (16 to 19).toList)
-  val catchall = new TestProbe(system).ref
-  val unops = new UniqueNumberOps(guid, UniqueNumberSetup.AllocateNumberPoolActors(context, guid))
-  val zone = new Zone("test", new ZoneMap("test-map"), 0) {
-    val transport: ActorRef = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles), s"zone-test-vehicles")
+  val catchall: ActorRef = new TestProbe(system).ref
+  val unops: UniqueNumberOps = new UniqueNumberOps(guid, UniqueNumberSetup.AllocateNumberPoolActors(context, guid))
+  val zone: Zone = new Zone("test", new ZoneMap("test-map"), 0) {
+    val transport: ActorRef = context.actorOf(Props(classOf[ZoneVehicleActor], this, vehicles, mutable.HashMap[Int, Int]()), s"zone-test-vehicles")
 
-    override def SetupNumberPools() = {}
+    override def SetupNumberPools(): Unit = {}
     GUID(guid)
-    override def GUID = { unops }
-    override def AvatarEvents = catchall
-    override def LocalEvents = catchall
-    override def VehicleEvents = catchall
-    override def Activity = catchall
-    override def Transport = { transport }
-    override def Vehicles = { vehicles.toList }
-    override def Buildings = { buildingMap.toMap }
+    override def GUID: UniqueNumberOps = { unops }
+    override def AvatarEvents: ActorRef = catchall
+    override def LocalEvents: ActorRef = catchall
+    override def VehicleEvents: ActorRef = catchall
+    override def Activity: ActorRef = catchall
+    override def Transport: ActorRef = { transport }
+    override def Vehicles:List[Vehicle] = { vehicles.toList }
+    override def Buildings: Map[Int, Building] = { buildingMap.toMap }
 
     import akka.actor.typed.scaladsl.adapter._
     this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
@@ -60,8 +59,9 @@ class OrbitalShuttlePadControlTest extends FreedContextActorTest {
     StructureType.Building,
     GlobalDefinitions.orbital_building_tr
   )
-  building.Faction = PlanetSideEmpire.TR
   buildingMap += 1 -> building
+  system.spawn(InterstellarClusterService(Seq(zone)), InterstellarClusterService.InterstellarClusterServiceKey.id)
+  building.Faction = PlanetSideEmpire.TR
   building.Actor = context.spawn(BuildingActor(zone, building), "test-orbital-building-tr-control").toClassic
   building.Invalidate()
   guid.register(building, number = 1)

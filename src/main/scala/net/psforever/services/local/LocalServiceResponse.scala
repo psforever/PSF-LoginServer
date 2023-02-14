@@ -46,7 +46,7 @@ object LocalResponse {
   final case class SendGenericActionMessage(action_num: GenericAction) extends Response
 
   final case class LluSpawned(llu: CaptureFlag) extends Response
-  final case class LluDespawned(llu: CaptureFlag) extends Response
+  final case class LluDespawned(guid: PlanetSideGUID, position: Vector3) extends Response
 
   final case class ObjectDelete(item_guid: PlanetSideGUID, unk: Int) extends Response
   final case class ProximityTerminalAction(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject)

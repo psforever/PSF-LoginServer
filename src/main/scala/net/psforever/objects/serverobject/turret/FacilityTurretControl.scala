@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
+import akka.actor.Cancellable
 import net.psforever.objects.{Default, GlobalDefinitions, Player, Tool}
 import net.psforever.objects.equipment.{Ammo, JammableMountedWeapons}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
@@ -37,16 +38,16 @@ class FacilityTurretControl(turret: FacilityTurret)
     with AmenityAutoRepair
     with JammableMountedWeapons
     with CaptureTerminalAwareBehavior {
-  def FactionObject    = turret
-  def MountableObject  = turret
-  def JammableObject   = turret
-  def DamageableObject = turret
-  def RepairableObject = turret
-  def AutoRepairObject = turret
-  def CaptureTerminalAwareObject = turret
+  def FactionObject: FacilityTurret              = turret
+  def MountableObject: FacilityTurret            = turret
+  def JammableObject: FacilityTurret             = turret
+  def DamageableObject: FacilityTurret           = turret
+  def RepairableObject: FacilityTurret           = turret
+  def AutoRepairObject: FacilityTurret           = turret
+  def CaptureTerminalAwareObject: FacilityTurret = turret
 
   // Used for timing ammo recharge for vanu turrets in caves
-  var weaponAmmoRechargeTimer = Default.Cancellable
+  var weaponAmmoRechargeTimer: Cancellable = Default.Cancellable
 
   override def postStop(): Unit = {
     super.postStop()
@@ -186,7 +187,7 @@ class FacilityTurretControl(turret: FacilityTurret)
           seat.unmount(player)
           player.VehicleSeated = None
           if (player.HasGUID) {
-            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))
+            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2=false, guid))
           }
         case None => ;
       }

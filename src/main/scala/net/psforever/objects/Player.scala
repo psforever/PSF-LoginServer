@@ -72,7 +72,6 @@ class Player(var avatar: Avatar)
   var spectator: Boolean                 = false
   var silenced: Boolean                  = false
   var death_by: Int                      = 0
-  var lastSeenStreamMessage: Array[Long] = Array.fill[Long](65535)(0L)
   var lastShotSeq_time: Int              = -1
 
   /** From PlanetsideAttributeMessage */

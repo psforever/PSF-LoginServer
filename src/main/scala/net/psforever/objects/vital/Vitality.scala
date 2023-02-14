@@ -8,7 +8,7 @@ import net.psforever.objects.vital.resolution.{DamageAndResistance, ResolutionCa
   * The amount of HDHR is controlled by the damage model of this vital object reacting to stimulus.
   * The damage model is provided.
   */
-trait Vitality extends VitalsHistory {
+trait Vitality extends InGameHistory {
   private var health: Int                = Definition.DefaultHealth
   private var defaultHealth: Option[Int] = None
   private var maxHealth: Option[Int]     = None

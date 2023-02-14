@@ -276,24 +276,21 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
 
       case DroppodLaunchRequest(zoneNumber, position, faction, replyTo) =>
         zones.find(_.Number == zoneNumber) match {
+          //TODO all of the checks for the specific DroppodLaunchResponseMessage excuses go here
+          case Some(zone) if zone.map.cavern =>
+            //just being cautious - caverns are typically not normally selectable as drop zones
+            replyTo ! DroppodLaunchDenial(DroppodError.ZoneNotAvailable, None)
+          case Some(zone) if zone.Number == Zones.sanctuaryZoneNumber(faction) =>
+            replyTo ! DroppodLaunchDenial(DroppodError.OwnFactionLocked, None)
           case Some(zone) =>
-            //TODO all of the checks for the specific DroppodLaunchResponseMessage excuses go here
-            if(zone.map.cavern) {
-              //just being cautious - caverns are typically not normally selectable as drop zones
-              replyTo ! DroppodLaunchDenial(DroppodError.ZoneNotAvailable, None)
-            } else if (zone.Number == Zones.sanctuaryZoneNumber(faction)) {
-              replyTo ! DroppodLaunchDenial(DroppodError.OwnFactionLocked, None)
-            } else {
-              replyTo ! DroppodLaunchConfirmation(zone, position)
-            }
+            replyTo ! DroppodLaunchConfirmation(zone, position)
           case None =>
             replyTo ! DroppodLaunchDenial(DroppodError.InvalidLocation, None)
         }
 
       case CavernRotation(rotationMsg) =>
-        cavernRotation match {
-          case Some(rotation) => rotation ! rotationMsg
-          case _ => ;
+        cavernRotation.foreach {
+          rotation => rotation ! rotationMsg
         }
     }
     this
@@ -374,10 +371,19 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             (raw.head, raw.last)
           }
           ((_zones.find(_.id.equals(zone1)), _zones.find(_.id.equals(zone2))) match {
-            case (Some(z1), Some(z2)) => (z1.Building(gate1), z2.Building(gate2))
-            case _ => (None, None)
+            case (Some(z1), Some(z2)) =>
+              (z1.Building(gate1), z2.Building(gate2))
+            case _ =>
+              /*
+              one or both of the zones is not loaded;
+              the cavern lattice link will not be created and that may not be our fault;
+              the zone may have been intentionally excluded;
+              warnings may be thrown when caverns try to rotate depending on the plan;
+              @see `Config.app.game.cavernRotation.enhancedRotationOrder`
+               */
+              (Some(Building.NoBuilding), Some(Building.NoBuilding))
           }) match {
-            case (Some(_), Some(_)) => ;
+            case (Some(_), Some(_)) => ()
             case _ =>
               log.error(s"InterstellarCluster: can't create cavern lattice link between $a and $b")
           }

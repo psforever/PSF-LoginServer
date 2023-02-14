@@ -10,6 +10,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideEmpire
 import org.specs2.mutable.Specification
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.services.{InterstellarClusterService, ServiceManager}
 
 class AmenityTest extends Specification {
   val definition = new AmenityDefinition(0) {
@@ -114,6 +115,8 @@ class WarpGateTest extends Specification {
 class BuildingActor1Test extends ActorTest {
   "Building Control" should {
     "construct" in {
+      ServiceManager.boot(system)
+      system.spawn(InterstellarClusterService(Seq(Zone.Nowhere)), InterstellarClusterService.InterstellarClusterServiceKey.id)
       val bldg = Building("Building", 0, 10, Zone.Nowhere, StructureType.Building)
       bldg.Actor = system.spawn(BuildingActor(Zone.Nowhere, bldg), "test").toClassic
       assert(bldg.Actor != Default.Actor)

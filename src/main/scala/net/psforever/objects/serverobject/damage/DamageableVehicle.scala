@@ -49,7 +49,7 @@ trait DamageableVehicle
         //bfrs undergo a shiver spell before exploding
         val obj = DamageableObject
         obj.Health = 0
-        obj.History(cause)
+        obj.LogActivity(cause)
         DestructionAwareness(obj, cause)
     }
 
@@ -74,7 +74,7 @@ trait DamageableVehicle
         val damageToHealth  = originalHealth - health
         val damageToShields = originalShields - shields
         if (WillAffectTarget(target, damageToHealth + damageToShields, cause)) {
-          target.History(cause)
+          target.LogActivity(cause)
           DamageLog(
             target,
             s"BEFORE=$originalHealth/$originalShields, AFTER=$health/$shields, CHANGE=$damageToHealth/$damageToShields"
@@ -130,7 +130,7 @@ trait DamageableVehicle
 
     if (obj.MountedIn.nonEmpty) {
       //log historical event
-      target.History(cause)
+      target.LogActivity(cause)
     }
     //damage
     if (Damageable.CanDamageOrJammer(target, totalDamage, cause.interaction)) {
@@ -214,7 +214,6 @@ trait DamageableVehicle
         }
         //clean up
         target.Actor ! Vehicle.Deconstruct(Some(1 minute))
-        target.ClearHistory()
         DamageableWeaponTurret.DestructionAwareness(obj, cause)
       case _ => ;
     }

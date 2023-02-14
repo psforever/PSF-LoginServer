@@ -29,6 +29,8 @@ class SessionAvatarHandlers(
                              chatActor: typed.ActorRef[ChatActor.Command],
                              implicit val context: ActorContext
                            ) extends CommonSessionInterfacingFunctionality {
+  private[support] var lastSeenStreamMessage: Array[Long] = Array.fill[Long](65535)(elem=0L)
+
   /**
    * na
    *
@@ -117,7 +119,7 @@ class SessionAvatarHandlers(
         sendResponse(sessionData.destroyDisplayMessage(killer, victim, method, unk))
         // TODO Temporary thing that should go somewhere else and use proper xp values
         if (killer.CharId == avatar.id && killer.Faction != victim.Faction) {
-          avatarActor ! AvatarActor.AwardBep((1000 * Config.app.game.bepRate).toLong)
+          avatarActor ! AvatarActor.AwardBep((1000 * Config.app.game.bepRate).toLong, ExperienceType.Normal)
           avatarActor ! AvatarActor.AwardCep((100 * Config.app.game.cepRate).toLong)
         }
 
@@ -287,7 +289,7 @@ class SessionAvatarHandlers(
             val r2 = 2 + r.nextInt(4000).toFloat
             (Vector3(r2, r2, r1), 0L, 0f)
           } else {
-            val before = player.lastSeenStreamMessage(guid.guid)
+            val before = lastSeenStreamMessage(guid.guid)
             val dist = Vector3.DistanceSquared(player.Position, pos)
             (pos, now - before, dist)
           }
@@ -307,7 +309,7 @@ class SessionAvatarHandlers(
                 is_cloaking
               )
             )
-            player.lastSeenStreamMessage(guid.guid) = now
+            lastSeenStreamMessage(guid.guid) = now
           }
         }
 
