@@ -158,8 +158,9 @@ private[support] class WeaponAndProjectileOperations(
 
   def handleChangeFireStateStop(pkt: ChangeFireStateMessage_Stop): Unit = {
     val ChangeFireStateMessage_Stop(item_guid) = pkt
+    val now = System.currentTimeMillis()
     prefire -= item_guid
-    shootingStop += item_guid -> System.currentTimeMillis()
+    shootingStop += item_guid -> now
     shooting -= item_guid
     val pguid = player.GUID
     sessionData.findEquipment(item_guid) match {
@@ -174,8 +175,7 @@ private[support] class WeaponAndProjectileOperations(
             continent.id,
             AvatarAction.ChangeFireState_Start(pguid, item_guid)
           )
-          ongoingShotsFired = ongoingShotsFired + tool.Discharge()
-          shootingStart += item_guid -> (System.currentTimeMillis() - 1L)
+          shootingStart += item_guid -> (now - 1L)
         }
         avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(tool.Definition.ObjectId,ongoingShotsFired,0,0))
         tool.FireMode match {
