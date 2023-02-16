@@ -194,9 +194,10 @@ trait DamageableVehicle
       case (None, Some(delay)) => //set a future explosion for later
         destructionDelayed(delay, cause)
       case (Some(_), _) | (None, None) => //explode now
-        super.DestructionAwareness(target, cause)
         val obj = DamageableObject
         val zone = target.Zone
+        obj.PrepareGatingManifest()
+        super.DestructionAwareness(target, cause)
         //aggravation cancel
         EndAllAggravation()
         //passengers die with us

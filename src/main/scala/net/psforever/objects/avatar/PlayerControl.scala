@@ -1029,12 +1029,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case out @ Some(_) =>
         out
       case _ =>
-        target.LastDamage match {
-          case Some(attack) if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
+        target.LastDamage.collect {
+          case attack if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
             attack.adversarial
-          case _ =>
-            None
-        }
+        }.flatten
       }) match {
       case Some(adversarial) =>
         events ! AvatarServiceMessage(
