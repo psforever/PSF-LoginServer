@@ -45,14 +45,14 @@ class SessionTerminalHandlers(
   }
 
   def handleProximityTerminalUse(pkt: ProximityTerminalUseMessage): Unit = {
-    val ProximityTerminalUseMessage(_, object_guid, _) = pkt
-    continent.GUID(object_guid) match {
+    val ProximityTerminalUseMessage(_, objectGuid, _) = pkt
+    continent.GUID(objectGuid) match {
       case Some(obj: Terminal with ProximityUnit) =>
         HandleProximityTerminalUse(obj)
       case Some(obj) =>
         log.warn(s"ProximityTerminalUse: $obj does not have proximity effects for ${player.Name}")
       case None =>
-        log.error(s"ProximityTerminalUse: ${player.Name} can not find an object with guid $object_guid")
+        log.error(s"ProximityTerminalUse: ${player.Name} can not find an object with guid $objectGuid")
     }
   }
 
@@ -60,26 +60,26 @@ class SessionTerminalHandlers(
 
   /**
    * na
-   *
    * @param tplayer na
    * @param msg     na
    * @param order   na
    */
   def handle(tplayer: Player, msg: ItemTransactionMessage, order: Terminal.Exchange): Unit = {
     order match {
+      case Terminal.BuyEquipment(item) if tplayer.avatar.purchaseCooldown(item.Definition).nonEmpty =>
+        lastTerminalOrderFulfillment = true
+        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
+
       case Terminal.BuyEquipment(item) =>
-        tplayer.avatar.purchaseCooldown(item.Definition) match {
-          case Some(_) =>
-            lastTerminalOrderFulfillment = true
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
-          case None =>
-            avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
-            TaskWorkflow.execute(BuyNewEquipmentPutInInventory(
-              continent.GUID(tplayer.VehicleSeated) match { case Some(v: Vehicle) => v; case _ => player },
-              tplayer,
-              msg.terminal_guid
-            )(item))
-        }
+        avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
+        TaskWorkflow.execute(BuyNewEquipmentPutInInventory(
+          continent.GUID(tplayer.VehicleSeated) match {
+            case Some(v: Vehicle) => v
+            case _ => player
+          },
+          tplayer,
+          msg.terminal_guid
+        )(item))
 
       case Terminal.SellEquipment() =>
         SellEquipmentFromInventory(tplayer, tplayer, msg.terminal_guid)(Player.FreeHandSlot)
@@ -100,57 +100,55 @@ class SessionTerminalHandlers(
         avatarActor ! AvatarActor.SellImplant(msg.terminal_guid, implant)
         lastTerminalOrderFulfillment = true
 
-      case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
-        tplayer.avatar.purchaseCooldown(vehicle.Definition) match {
-          case Some(_) =>
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
-          case None =>
-            continent.map.terminalToSpawnPad
-              .find { case (termid, _) => termid == msg.terminal_guid.guid }
-              .collect {
-                case (a: Int, b: Int) => (continent.GUID(a), continent.GUID(b))
-                case _ => (None, None)
-              }
-              .get match {
-              case (Some(term: Terminal), Some(pad: VehicleSpawnPad)) =>
-                avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
-                vehicle.Faction = tplayer.Faction
-                vehicle.Position = pad.Position
-                vehicle.Orientation = pad.Orientation + Vector3.z(pad.Definition.VehicleCreationZOrientOffset)
-                //default loadout, weapons
-                val vWeapons = vehicle.Weapons
-                weapons.foreach(entry => {
-                  vWeapons.get(entry.start) match {
-                    case Some(slot) =>
-                      entry.obj.Faction = tplayer.Faction
-                      slot.Equipment = None
-                      slot.Equipment = entry.obj
-                    case None =>
-                      log.warn(
-                        s"BuyVehicle: ${player.Name} tries to apply default loadout to $vehicle on spawn, but can not find a mounted weapon for ${entry.start}"
-                      )
-                  }
-                })
-                //default loadout, trunk
-                val vTrunk = vehicle.Trunk
-                vTrunk.Clear()
-                trunk.foreach(entry => {
-                  entry.obj.Faction = tplayer.Faction
-                  vTrunk.InsertQuickly(entry.start, entry.obj)
-                })
-                TaskWorkflow.execute(registerVehicleFromSpawnPad(vehicle, pad, term))
-                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = true))
-                if (GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
-                  sendResponse(UnuseItemMessage(player.GUID, msg.terminal_guid))
-                }
-              case _ =>
-                log.error(
-                  s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
-                )
-                sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
-            }
-        }
+      case Terminal.BuyVehicle(vehicle, _, _) if tplayer.avatar.purchaseCooldown(vehicle.Definition).nonEmpty =>
+        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
         lastTerminalOrderFulfillment = true
+
+      case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
+        continent.map.terminalToSpawnPad
+          .find { case (termid, _) => termid == msg.terminal_guid.guid }
+          .map {
+            case (a: Int, b: Int) => (continent.GUID(a), continent.GUID(b))
+            case _ => (None, None)
+          }
+          .get match {
+          case (Some(term: Terminal), Some(pad: VehicleSpawnPad)) =>
+            avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
+            vehicle.Faction = tplayer.Faction
+            vehicle.Position = pad.Position
+            vehicle.Orientation = pad.Orientation + Vector3.z(pad.Definition.VehicleCreationZOrientOffset)
+            //default loadout, weapons
+            val vWeapons = vehicle.Weapons
+            weapons.foreach { entry =>
+              vWeapons.get(entry.start) match {
+                case Some(slot) =>
+                  entry.obj.Faction = tplayer.Faction
+                  slot.Equipment = None
+                  slot.Equipment = entry.obj
+                case None =>
+                  log.warn(
+                    s"BuyVehicle: ${player.Name} tries to apply default loadout to $vehicle on spawn, but can not find a mounted weapon for ${entry.start}"
+                  )
+              }
+            }
+            //default loadout, trunk
+            val vTrunk = vehicle.Trunk
+            vTrunk.Clear()
+            trunk.foreach { entry =>
+              entry.obj.Faction = tplayer.Faction
+              vTrunk.InsertQuickly(entry.start, entry.obj)
+            }
+            TaskWorkflow.execute(registerVehicleFromSpawnPad(vehicle, pad, term))
+            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = true))
+            if (GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
+              sendResponse(UnuseItemMessage(player.GUID, msg.terminal_guid))
+            }
+          case _ =>
+            log.error(
+              s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
+            )
+            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
+        }
 
       case Terminal.NoDeal() =>
         val order: String = if (msg == null) {
@@ -170,7 +168,7 @@ class SessionTerminalHandlers(
     }
   }
 
-  /* */
+  /* support */
 
   /**
    * Construct tasking that adds a completed and registered vehicle into the scene.
@@ -209,7 +207,7 @@ class SessionTerminalHandlers(
     val term_guid      = terminal.GUID
     val targets        = FindProximityUnitTargetsInScope(terminal)
     val currentTargets = terminal.Targets
-    targets.foreach(target => {
+    targets.foreach { target =>
       if (!currentTargets.contains(target)) {
         StartUsingProximityUnit(terminal, target)
       } else if (targets.isEmpty) {
@@ -217,7 +215,7 @@ class SessionTerminalHandlers(
           s"HandleProximityTerminalUse: ${player.Name} could not find valid targets to give to proximity unit ${terminal.Definition.Name}@${term_guid.guid}"
         )
       }
-    })
+    }
   }
 
   /**
@@ -226,7 +224,7 @@ class SessionTerminalHandlers(
    * @return na
    */
   def FindProximityUnitTargetsInScope(terminal: Terminal with ProximityUnit): Seq[PlanetSideGameObject] = {
-    terminal.Definition.asInstanceOf[ProximityDefinition].TargetValidation.keySet collect {
+    terminal.Definition.asInstanceOf[ProximityDefinition].TargetValidation.keySet.collect {
       case EffectTarget.Category.Player                                   => Some(player)
       case EffectTarget.Category.Vehicle | EffectTarget.Category.Aircraft => continent.GUID(player.VehicleSeated)
     } collect {
@@ -256,7 +254,7 @@ class SessionTerminalHandlers(
       terminal.Definition match {
         case GlobalDefinitions.adv_med_terminal | GlobalDefinitions.medical_terminal =>
           usingMedicalTerminal = Some(term_guid)
-        case _ => ;
+        case _ => ()
       }
     }
   }
@@ -283,10 +281,7 @@ class SessionTerminalHandlers(
    * @param terminal the proximity-based unit
    */
   def LocalStopUsingProximityUnit(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject): Unit = {
-    val term_guid = terminal.GUID
-    if (usingMedicalTerminal.contains(term_guid)) {
-      usingMedicalTerminal = None
-    }
+    ForgetAllProximityTerminals(terminal.GUID)
   }
 
   /**
@@ -296,21 +291,20 @@ class SessionTerminalHandlers(
    * @see `postStop`
    */
   def CancelAllProximityUnits(): Unit = {
-    continent.GUID(usingMedicalTerminal) match {
-      case Some(terminal: Terminal with ProximityUnit) =>
+    continent.GUID(usingMedicalTerminal).collect {
+      case terminal: Terminal with ProximityUnit =>
         FindProximityUnitTargetsInScope(terminal).foreach(target =>
           terminal.Actor ! CommonMessages.Unuse(player, Some(target))
         )
         ForgetAllProximityTerminals(usingMedicalTerminal.get)
-      case _ => ;
     }
   }
 
   /**
    * na
    */
-  def ForgetAllProximityTerminals(term_guid: PlanetSideGUID): Unit = {
-    if (usingMedicalTerminal.contains(term_guid)) {
+  def ForgetAllProximityTerminals(termGuid: PlanetSideGUID): Unit = {
+    if (usingMedicalTerminal.contains(termGuid)) {
       usingMedicalTerminal = None
     }
   }
