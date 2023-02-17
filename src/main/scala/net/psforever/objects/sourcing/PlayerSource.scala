@@ -89,17 +89,14 @@ object PlayerSource {
         Some((
           SourceEntry(vehicle),
           vehicle.PassengerInSeat(player).orElse {
-            vehicle.PublishGatingManifest().flatMap { manifest =>
+            vehicle.PublishGatingManifest().orElse(vehicle.PreviousGatingManifest()).flatMap { manifest =>
               val playerName = player.Name
               manifest.passengers.find { _.name == playerName }.collect { _.mount }
             }
           }.getOrElse(0)
         ))
       case Some(thing: PlanetSideGameObject with Mountable with FactionAffinity) =>
-        Some((
-          SourceEntry(thing),
-          thing.PassengerInSeat(player).getOrElse(0)
-        ))
+        Some((SourceEntry(thing), thing.PassengerInSeat(player).getOrElse(0)))
       case _ =>
         None
     }

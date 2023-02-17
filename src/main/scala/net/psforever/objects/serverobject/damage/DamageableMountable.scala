@@ -75,16 +75,14 @@ object DamageableMountable {
     */
   def DestructionAwareness(target: Damageable.Target with Mountable, cause: DamageResult): Unit = {
     val interaction = cause.interaction
-    target.Seats.values
-      .filter(seat => {
-        seat.isOccupied && seat.occupant.get.isAlive
-      })
-      .foreach(seat => {
-        val tplayer = seat.occupant.get
-        //tplayer.History(cause)
-        tplayer.Actor ! Player.Die(
-          DamageInteraction(interaction.resolution, SourceEntry(tplayer), interaction.cause, interaction.hitPos)
+    target.Seats
+      .values
+      .flatMap { _.occupant }
+      .collect { case player if player.isAlive =>
+        //player.LogActivity(cause)
+        player.Actor ! Player.Die(
+          DamageInteraction(interaction.resolution, SourceEntry(player), interaction.cause, interaction.hitPos)
         )
-      })
+    }
   }
 }

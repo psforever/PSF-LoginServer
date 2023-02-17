@@ -6,6 +6,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
+import net.psforever.objects.serverobject.mount.Seat
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, ReconstructionActivity, SpawningActivity}
@@ -1254,6 +1255,7 @@ class ZoningOperations(
     log.info(msg)
     log.debug(s"LoadZoneInVehicleAsDriver: $msg")
     val manifest  = vehicle.PrepareGatingManifest()
+    vehicle.Seats.collect { case (index: Int, seat: Seat) if index > 0 => seat.unmount(seat.occupant) }
     val pguid     = player.GUID
     val toChannel = manifest.file
     val topLevel  = interstellarFerryTopLevelGUID.getOrElse(vehicle.GUID)
