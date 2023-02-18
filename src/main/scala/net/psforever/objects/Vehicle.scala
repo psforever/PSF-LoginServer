@@ -511,7 +511,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def PrepareGatingManifest(): VehicleManifest = {
     val manifest = VehicleManifest(this)
-    seats.collect { case (index: Int, seat: Seat) if index > 0 => seat.unmount(seat.occupant) }
     vehicleGatingManifest = Some(manifest)
     previousVehicleGatingManifest = None
     manifest

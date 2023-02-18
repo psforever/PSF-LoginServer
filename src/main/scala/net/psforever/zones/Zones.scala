@@ -25,7 +25,7 @@ import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
-import net.psforever.objects.sourcing.{DeployableSource, ObjectSource, PlayerSource, VehicleSource}
+import net.psforever.objects.sourcing.{DeployableSource, ObjectSource, PlayerSource, TurretSource, VehicleSource}
 import net.psforever.objects.zones.{MapInfo, Zone, ZoneInfo, ZoneMap}
 import net.psforever.types.{Angular, PlanetSideEmpire, Vector3}
 import net.psforever.util.DefinitionUtil
@@ -995,10 +995,12 @@ object Zones {
             60 seconds
           case _: VehicleSource =>
             60 seconds
-          case t: ObjectSource if t.Definition == GlobalDefinitions.manned_turret =>
-            60 seconds
           case _: DeployableSource =>
             60 seconds
+          case _: TurretSource =>
+            60 seconds
+          case g if g.Definition == GlobalDefinitions.generator =>
+            90 seconds
           case _ =>
             0 seconds
         }

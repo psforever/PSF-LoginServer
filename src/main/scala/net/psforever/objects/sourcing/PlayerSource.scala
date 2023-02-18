@@ -5,7 +5,7 @@ import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vital.resistance.ResistanceProfile
-import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player}
+import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.types.{CharacterSex, ExoSuitType, PlanetSideEmpire, Vector3}
 
 final case class UniquePlayer(
@@ -85,8 +85,18 @@ object PlayerSource {
 
   def mountableAndSeat(player: Player): Option[(SourceEntry, Int)] = {
     player.Zone.GUID(player.VehicleSeated) match {
+      case Some(vehicle: Vehicle) =>
+        Some((
+          SourceEntry(vehicle),
+          vehicle.PassengerInSeat(player).orElse {
+            vehicle.PublishGatingManifest().orElse(vehicle.PreviousGatingManifest()).flatMap { manifest =>
+              val playerName = player.Name
+              manifest.passengers.find { _.name == playerName }.collect { _.mount }
+            }
+          }.getOrElse(0)
+        ))
       case Some(thing: PlanetSideGameObject with Mountable with FactionAffinity) =>
-        Some((SourceEntry(thing), thing.PassengerInSeat(player).get))
+        Some((SourceEntry(thing), thing.PassengerInSeat(player).getOrElse(0)))
       case _ =>
         None
     }
