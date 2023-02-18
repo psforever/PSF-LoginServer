@@ -65,10 +65,10 @@ object EffectTarget {
 
     private def CommonRepairConditions(v: Vehicle): Boolean = {
       v.Health > 0 && v.Health < v.MaxHealth &&
-        v.History.findLast { entry => entry.isInstanceOf[DamagingActivity] }.exists {
-          case entry if System.currentTimeMillis() - entry.time < 5000L => true
-          case _ => false
-        }
+        (v.History.findLast { entry => entry.isInstanceOf[DamagingActivity] } match {
+          case Some(entry) if System.currentTimeMillis() - entry.time < 5000L => false
+          case _ => true
+        })
     }
 
     def Player(target: PlanetSideGameObject): Boolean =
@@ -140,7 +140,7 @@ object EffectTarget {
     def AncientWeaponRecharge(target: PlanetSideGameObject): Boolean = {
       target match {
         case p: Player =>
-          (p.Holsters().map { _.Equipment }.flatten.toIterable ++ p.Inventory.Items.map { _.obj })
+          (p.Holsters().flatMap { _.Equipment }.toIterable ++ p.Inventory.Items.map { _.obj })
             .flatMap {
               case weapon: Tool => weapon.AmmoSlots
               case _            => Nil
