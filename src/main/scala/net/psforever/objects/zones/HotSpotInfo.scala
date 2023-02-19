@@ -2,7 +2,6 @@
 package net.psforever.objects.zones
 
 import net.psforever.types.{PlanetSideEmpire, Vector3}
-
 import scala.concurrent.duration._
 
 /**
@@ -15,9 +14,10 @@ import scala.concurrent.duration._
   */
 class HotSpotInfo(val DisplayLocation: Vector3) {
   private val activity: Map[PlanetSideEmpire.Value, ActivityReport] = Map(
-    PlanetSideEmpire.TR -> new ActivityReport(),
-    PlanetSideEmpire.NC -> new ActivityReport(),
-    PlanetSideEmpire.VS -> new ActivityReport()
+    PlanetSideEmpire.TR      -> new ActivityReport(),
+    PlanetSideEmpire.NC      -> new ActivityReport(),
+    PlanetSideEmpire.VS      -> new ActivityReport(),
+    PlanetSideEmpire.NEUTRAL -> new ActivityReport()
   )
 
   def Activity: Map[PlanetSideEmpire.Value, ActivityReport] = activity
@@ -125,7 +125,7 @@ class ActivityReport {
     * @return the current report
     */
   def Report(): ActivityReport = {
-    RaiseHeat(1)
+    RaiseHeat(addHeat = 1)
     Renew
     this
   }
