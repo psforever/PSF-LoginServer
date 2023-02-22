@@ -6,6 +6,8 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
+import net.psforever.login.WorldSession
+import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.mount.Seat
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
@@ -559,19 +561,15 @@ class ZoningOperations(
 
       zone.Buildings.foreach({ case (_, building) => initBuilding(continentNumber, building.MapId, building) })
       sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
+      //TODO should actually not claim that the sanctuary or VR zones are locked by their respective empire
       if (continentNumber == 11)
-        sendResponse(
-          ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NC)
-        ) // "The NC have captured the NC Sanctuary."
+        sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NC))
       else if (continentNumber == 12)
-        sendResponse(
-          ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.TR)
-        ) // "The TR have captured the TR Sanctuary."
+        sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.TR))
       else if (continentNumber == 13)
-        sendResponse(
-          ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.VS)
-        ) // "The VS have captured the VS Sanctuary."
-      else sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NEUTRAL))
+        sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.VS))
+      else
+        sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NEUTRAL))
       //CaptureFlagUpdateMessage()
       //VanuModuleUpdateMessage()
       //ModuleLimitsMessage()
@@ -1804,6 +1802,7 @@ class ZoningOperations(
           session = session.copy(player = p, avatar = a)
           sessionData.persist()
           setupAvatarFunc = AvatarRejoin
+          dropMedicalApplicators(p)
           avatarActor ! AvatarActor.ReplaceAvatar(a)
           avatarLoginResponse(a)
 
@@ -1813,6 +1812,7 @@ class ZoningOperations(
           deadState = DeadState.Dead
           session = session.copy(player = p, avatar = a)
           sessionData.persist()
+          dropMedicalApplicators(p)
           HandleReleaseAvatar(p, inZone)
           avatarActor ! AvatarActor.ReplaceAvatar(a)
           avatarLoginResponse(a)
@@ -1894,8 +1894,12 @@ class ZoningOperations(
     }
 
     def handleNewPlayerLoaded(tplayer: Player): Unit = {
-      //new zone
-      log.info(s"${tplayer.Name} has spawned into ${session.zone.id}")
+      /* new zone, might be on `tplayer.Zone` but should definitely be on `session` */
+      val zone = session.zone
+      val id = zone.id
+      val map = zone.map
+      val mapName = map.name
+      log.info(s"${tplayer.Name} has spawned into $id")
       sessionData.oldRefsMap.clear()
       sessionData.persist = UpdatePersistenceAndRefs
       tplayer.avatar = avatar
@@ -1903,18 +1907,8 @@ class ZoningOperations(
       avatarActor ! AvatarActor.CreateImplants()
       avatarActor ! AvatarActor.InitializeImplants()
       //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
-      val weaponsEnabled =
-        session.zone.map.name != "map11" && session.zone.map.name != "map12" && session.zone.map.name != "map13"
-      sendResponse(
-        LoadMapMessage(
-          session.zone.map.name,
-          session.zone.id,
-          40100,
-          25,
-          weaponsEnabled,
-          session.zone.map.checksum
-        )
-      )
+      val weaponsEnabled = !(mapName.equals("map11") || mapName.equals("map12") || mapName.equals("map13"))
+      sendResponse(LoadMapMessage(mapName, id, 40100, 25, weaponsEnabled, map.checksum))
       if (isAcceptableNextSpawnPoint) {
         //important! the LoadMapMessage must be processed by the client before the avatar is created
         setupAvatarFunc()
@@ -1934,7 +1928,7 @@ class ZoningOperations(
       } else {
         //look for different spawn point in same zone
         cluster ! ICS.GetNearbySpawnPoint(
-          session.zone.Number,
+          zone.Number,
           tplayer,
           Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
           context.self
@@ -1973,6 +1967,24 @@ class ZoningOperations(
     }
 
     /* support functions */
+
+    private def dropMedicalApplicators(p: Player): Unit = {
+      WorldSession.DropLeftovers(p) (
+        (p.Holsters().zipWithIndex.collect { case (slot, index) if slot.Equipment.nonEmpty => InventoryItem(slot.Equipment.get, index) } ++
+          p.Inventory.Items)
+          .collect {
+            case entry @ InventoryItem(equipment, index)
+              if equipment.Definition == GlobalDefinitions.medicalapplicator && p.VisibleSlots.contains(index) =>
+              p.Slot(index).Equipment = None
+              p.DrawnSlot = Player.HandsDownSlot
+              entry
+            case entry @ InventoryItem(equipment, index)
+              if equipment.Definition == GlobalDefinitions.medicalapplicator =>
+              p.Slot(index).Equipment = None
+              entry
+          }
+      )
+    }
 
     def isAcceptableNextSpawnPoint: Boolean = isAcceptableSpawnPoint(nextSpawnPoint)
 

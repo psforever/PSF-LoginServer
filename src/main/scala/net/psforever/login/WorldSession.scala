@@ -959,7 +959,7 @@ object WorldSession {
     * @param container the original object that contained the items
     * @param drops the items to be dropped on the ground
     */
-  def DropLeftovers(container: PlanetSideServerObject with Container)(drops: List[InventoryItem]): Unit = {
+  def DropLeftovers(container: PlanetSideServerObject with Container)(drops: Iterable[InventoryItem]): Unit = {
     //drop or retire
     val zone   = container.Zone
     val pos    = container.Position
