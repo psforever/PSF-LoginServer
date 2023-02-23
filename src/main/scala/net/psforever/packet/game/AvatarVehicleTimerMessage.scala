@@ -7,10 +7,13 @@ import scodec.Codec
 import scodec.codecs._
 
 /**
-  * @param player_guid player guid
-  * @param text internal name of the item or vehicle name, e.g., medkit, fury, trhev_antipersonnel
-  * @param time cooldown/delay in seconds
-  * @param unk `true` for vehicles and max exo-suits; `false` for other items
+ * @param player_guid player guid
+ * @param text internal name of the item or vehicle name, e.g., medkit, fury, trhev_antipersonnel
+ * @param time cooldown/delay in seconds
+ * @param unk unk;
+ *            most likely has to do with the visibility of the timer in equipment purchasing;
+ *            `false` for kit items;
+ *            `true` for almost everything else
   */
 final case class AvatarVehicleTimerMessage(player_guid: PlanetSideGUID, text: String, time: Long, unk: Boolean)
     extends PlanetSideGamePacket {
