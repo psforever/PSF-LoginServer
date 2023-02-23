@@ -5,7 +5,6 @@ import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import net.psforever.objects.Default
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.services.ServiceManager
-
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 
@@ -73,6 +72,15 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
   var blankingDelay: FiniteDuration = blankingTime
 
   private[this] val log = org.log4s.getLogger(s"${zone.id.capitalize}HotSpotProjector")
+
+  /**
+   * Whether or not the debug command should actually add messages to the log at a debug level.
+   * @see `org.log4s.Debug`
+   * @param msg message to be appended
+   */
+  private def trace(msg: String): Unit = {
+    //log.trace(msg)
+  }
 
   /**
     * Actions that occur before this `Actor` is formally started.
@@ -152,14 +160,14 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
       blanking = context.system.scheduler.scheduleOnce(blankingDelay, self, ZoneHotSpotProjector.BlankingPhase())
 
     case Zone.HotSpot.Conflict(defender, attacker, location) =>
-      log.trace(s"received information about activity in ${zone.id}@$location")
+      trace(s"received information about activity in ${zone.id}@$location")
       val defenderFaction = defender.Faction
       val attackerFaction = attacker.Faction
       val noPriorHotSpots = hotspots.isEmpty
       val duration        = zone.HotSpotTimeFunction(defender, attacker)
       if (duration.toNanos > 0) {
         val hotspot = TryHotSpot(zone.HotSpotCoordinateFunction(location))
-        log.trace(
+        trace(
           s"updating activity status for ${zone.id} hotspot x=${hotspot.DisplayLocation.x} y=${hotspot.DisplayLocation.y}"
         )
         val noPriorActivity = !(hotspot.ActivityBy(defenderFaction) && hotspot.ActivityBy(attackerFaction))
@@ -178,7 +186,7 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
       }
 
     case Zone.HotSpot.UpdateNow =>
-      log.trace(s"asked to update for zone ${zone.id} without a blanking period or new activity")
+      trace(s"asked to update for zone ${zone.id} without a blanking period or new activity")
       UpdateHotSpots(PlanetSideEmpire.values, hotspots)
 
     case ZoneHotSpotProjector.BlankingPhase() | Zone.HotSpot.Cleanup() =>
@@ -203,7 +211,7 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
       })
       val newSize      = spots.size
       val changesOnMap = hotspots.size - newSize
-      log.trace(s"blanking out $changesOnMap hotspots from zone ${zone.id}; $newSize remain active")
+      trace(s"blanking out $changesOnMap hotspots from zone ${zone.id}; $newSize remain active")
       hotspots.clear()
       hotspots.insertAll(0, spots)
       //other hotspots still need to be blanked later
@@ -218,7 +226,7 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
       }
 
     case Zone.HotSpot.ClearAll() =>
-      log.trace(s"blanking out all hotspots from zone ${zone.id} immediately")
+      trace(s"blanking out all hotspots from zone ${zone.id} immediately")
       blanking.cancel()
       hotspots.clear()
       UpdateHotSpots(PlanetSideEmpire.values, Nil)
@@ -259,7 +267,7 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
         report.Duration = 0L
       }
     }
-    log.trace(s"new duration remapping function provided; reloading ${hotspots.size} hotspots for one blanking phase")
+    trace(s"new duration remapping function provided; reloading ${hotspots.size} hotspots for one blanking phase")
   }
 
   /**
@@ -277,7 +285,7 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
       }
       newSpot
     }
-    log.trace(s"new coordinate remapping function provided; updating $redoneSpots.size hotspots")
+    trace(s"new coordinate remapping function provided; updating $redoneSpots.size hotspots")
     hotspots.clear()
     hotspots.insertAll(0, redoneSpots)
   }
