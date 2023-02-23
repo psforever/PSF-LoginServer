@@ -1446,9 +1446,8 @@ class AvatarActor(
                     name,
                     cooldown.toSeconds,
                     item match {
-                      case t: ToolDefinition => GlobalDefinitions.isMaxArms(t)
-                      case _: VehicleDefinition => true
-                      case _ => false
+                      case _: KitDefinition => false
+                      case _ => true
                     }
                   )
                 case _ => ;
@@ -2573,9 +2572,8 @@ class AvatarActor(
                 name,
                 cooldown.toSeconds - secondsSincePurchase,
                 obj match {
-                  case t: ToolDefinition => GlobalDefinitions.isMaxArms(t)
-                  case _: VehicleDefinition => true
-                  case _ => false
+                  case _: KitDefinition => false
+                  case _ => true
                 }
               )
 
@@ -2591,9 +2589,9 @@ class AvatarActor(
     }
   }
 
-  def updatePurchaseTimer(name: String, time: Long, isActuallyAMachine: Boolean): Unit = {
+  def updatePurchaseTimer(name: String, time: Long, isNotAMedKit: Boolean): Unit = {
     sessionActor ! SessionActor.SendResponse(
-      AvatarVehicleTimerMessage(session.get.player.GUID, name, time, isActuallyAMachine)
+      AvatarVehicleTimerMessage(session.get.player.GUID, name, time, isNotAMedKit)
     )
   }
 

@@ -1969,12 +1969,13 @@ class ZoningOperations(
     /* support functions */
 
     private def dropMedicalApplicators(p: Player): Unit = {
-      WorldSession.DropLeftovers(p) (
+      WorldSession.DropLeftovers(p)(
         (p.Holsters().zipWithIndex.collect { case (slot, index) if slot.Equipment.nonEmpty => InventoryItem(slot.Equipment.get, index) } ++
-          p.Inventory.Items)
+          p.Inventory.Items ++
+          p.FreeHand.Equipment.flatMap { item => Some(InventoryItem(item, Player.FreeHandSlot)) }.toList)
           .collect {
             case entry @ InventoryItem(equipment, index)
-              if equipment.Definition == GlobalDefinitions.medicalapplicator && p.VisibleSlots.contains(index) =>
+              if equipment.Definition == GlobalDefinitions.medicalapplicator && p.DrawnSlot == index =>
               p.Slot(index).Equipment = None
               p.DrawnSlot = Player.HandsDownSlot
               entry
