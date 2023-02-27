@@ -103,4 +103,26 @@ case object BattleRank extends IntEnum[BattleRank] {
       }
     )
   }
+
+  /**
+   * Given a number of battle experience points,
+   * determine if the resulting battle rank is sufficient to display cosmetic details on a player character.
+   * @see `BattleRank.withExperience`
+   * @param bep amount of battle experience
+   * @return `true`, if cosmetic elements will be visible;
+   *         `false`, otherwise
+   */
+  def showCosmetics(bep: Long): Boolean = {
+    showCosmetics(BattleRank.withExperience(bep).uniformStyle)
+  }
+  /**
+   * Given a certain level of uniform dress corresponding to battle rank,
+   * determine if the resulting battle rank is sufficient to display cosmetic details on a player character.
+   * @param uniform the style of uniform
+   * @return `true`, if cosmetic elements will be visible;
+   *         `false`, otherwise
+   */
+  def showCosmetics(uniform: UniformStyle.Value): Boolean = {
+    uniform.id > UniformStyle.SecondUpgrade.id
+  }
 }

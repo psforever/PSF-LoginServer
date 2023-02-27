@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game.objectcreate
 
-import net.psforever.objects.avatar.Cosmetic
+import net.psforever.objects.avatar.{BattleRank, Cosmetic}
 import net.psforever.packet.{Marshallable, PacketHelpers}
 import scodec.codecs._
 import scodec.{Attempt, Codec, Err}
@@ -139,7 +139,7 @@ object CharacterData extends Marshallable[CharacterData] {
         uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
           ("command_rank" | uintL(3)) ::
           listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
-          conditional(style.id > UniformStyle.SecondUpgrade.id, "cosmetics" | Cosmetic.codec)
+          ("cosmetics" | conditional(BattleRank.showCosmetics(style), Cosmetic.codec))
       })
     ).exmap[CharacterData](
       {
@@ -178,7 +178,7 @@ object CharacterData extends Marshallable[CharacterData] {
         uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
           ("command_rank" | uintL(3)) ::
           listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
-          conditional(style.id > UniformStyle.SecondUpgrade.id, "cosmetics" | Cosmetic.codec)
+          ("cosmetics" | conditional(BattleRank.showCosmetics(style), Cosmetic.codec))
       }
     ).exmap[CharacterData](
       {

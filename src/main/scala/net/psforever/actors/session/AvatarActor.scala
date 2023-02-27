@@ -806,7 +806,13 @@ object AvatarActor {
     out.future
   }
 
-  def toAvatar(avatar: persistence.Avatar): Avatar =
+  def toAvatar(avatar: persistence.Avatar): Avatar = {
+    val bep = avatar.bep
+    val convertedCosmetics = if (BattleRank.showCosmetics(bep)) {
+      avatar.cosmetics.map(c => Cosmetic.valuesFromObjectCreateValue(c))
+    } else {
+      None
+    }
     Avatar(
       avatar.id,
       BasicCharacterData(
@@ -816,10 +822,11 @@ object AvatarActor {
         avatar.headId,
         CharacterVoice(avatar.voiceId)
       ),
-      avatar.bep,
+      bep,
       avatar.cep,
-      decoration = ProgressDecoration(cosmetics = avatar.cosmetics.map(c => Cosmetic.valuesFromObjectCreateValue(c)))
+      decoration = ProgressDecoration(cosmetics = convertedCosmetics)
     )
+  }
 }
 
 class AvatarActor(
@@ -2816,9 +2823,12 @@ class AvatarActor(
 
   def setBep(bep: Long, modifier: ExperienceType): Unit = {
     import ctx._
+    val current = BattleRank.withExperience(avatar.bep).value
+    val next = BattleRank.withExperience(bep).value
+    lazy val br24 = BattleRank.BR24.value
     val result = for {
       _ <-
-        if (BattleRank.withExperience(bep).value < BattleRank.BR24.value) setCosmetics(Set())
+        if (current >= br24 && next < br24) setCosmetics(Set())
         else Future.successful(())
       r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatar.id)).update(_.bep -> lift(bep)))
     } yield r
