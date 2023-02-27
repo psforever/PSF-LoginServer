@@ -24,7 +24,6 @@ import net.psforever.objects.avatar.{
   BattleRank,
   Certification,
   Cooldowns,
-  Cosmetic,
   Friend => AvatarFriend,
   Ignored => AvatarIgnored,
   Implant,
@@ -45,8 +44,9 @@ import net.psforever.objects.vital.HealFromImplant
 import net.psforever.packet.game.objectcreate.{ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
 import net.psforever.types.{
-  CharacterVoice,
   CharacterSex,
+  CharacterVoice,
+  Cosmetic,
   ExoSuitType,
   ImplantType,
   LoadoutType,

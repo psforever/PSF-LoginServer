@@ -1,7 +1,7 @@
 package net.psforever.objects.avatar
 
 import enumeratum.values.{IntEnum, IntEnumEntry}
-import net.psforever.packet.game.objectcreate.UniformStyle
+import net.psforever.types.UniformStyle
 
 /** Battle ranks and their starting experience values
   * Source: http://wiki.psforever.net/wiki/Battle_Rank
@@ -19,9 +19,11 @@ sealed abstract class BattleRank(val value: Int, val experience: Long) extends I
     }
   }
 
-  def uniformStyle: UniformStyle.Value = {
+  def uniformStyle: UniformStyle = {
     if (this.value >= BattleRank.BR25.value) {
       UniformStyle.ThirdUpgrade
+    } else if (this.value == BattleRank.BR24.value) {
+      UniformStyle.SecondUpgradeBR24
     } else if (this.value >= BattleRank.BR14.value) {
       UniformStyle.SecondUpgrade
     } else if (this.value >= BattleRank.BR7.value) {
@@ -30,7 +32,6 @@ sealed abstract class BattleRank(val value: Int, val experience: Long) extends I
       UniformStyle.Normal
     }
   }
-
 }
 
 case object BattleRank extends IntEnum[BattleRank] {
@@ -122,7 +123,7 @@ case object BattleRank extends IntEnum[BattleRank] {
    * @return `true`, if cosmetic elements will be visible;
    *         `false`, otherwise
    */
-  def showCosmetics(uniform: UniformStyle.Value): Boolean = {
-    uniform.id > UniformStyle.SecondUpgrade.id
+  def showCosmetics(uniform: UniformStyle): Boolean = {
+    uniform.value > UniformStyle.SecondUpgrade.value
   }
 }

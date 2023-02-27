@@ -2,9 +2,9 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.newcodecs.newcodecs
-import net.psforever.objects.avatar.{BattleRank, Certification, Cosmetic}
+import net.psforever.objects.avatar.{BattleRank, Certification}
 import net.psforever.packet.{Marshallable, PacketHelpers}
-import net.psforever.types.{ExoSuitType, ImplantType}
+import net.psforever.types.{Cosmetic, ExoSuitType, ImplantType}
 import scodec.{Attempt, Codec}
 import scodec.codecs._
 import shapeless.{::, HNil}

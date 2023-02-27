@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package game.objectcreatevehicle
 
-import net.psforever.objects.avatar.Cosmetic
 import net.psforever.packet._
 import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game.ObjectCreateMessage
