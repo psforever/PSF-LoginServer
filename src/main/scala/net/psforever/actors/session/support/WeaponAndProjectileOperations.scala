@@ -2,8 +2,6 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
-import net.psforever.objects.avatar.scoring.EquipmentStat
-
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -11,6 +9,7 @@ import scala.concurrent.duration._
 //
 import net.psforever.actors.session.{AvatarActor, ChatActor, SessionActor}
 import net.psforever.login.WorldSession.{CountAmmunition, CountGrenades, FindAmmoBoxThatUses, FindEquipmentStock, FindToolThatUses, PutEquipmentInInventoryOrDrop, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
+import net.psforever.objects.avatar.scoring.EquipmentStat
 import net.psforever.objects.ballistics.{Projectile, ProjectileQuality}
 import net.psforever.objects.entity.SimpleWorldEntity
 import net.psforever.objects.equipment.{ChargeFireModeDefinition, Equipment, EquipmentSize, FireModeSwitch}
@@ -22,6 +21,7 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.{DamageResolution, DamageType}
+import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneProjectile}
@@ -1186,13 +1186,10 @@ private[support] class WeaponAndProjectileOperations(
 
   def HandleDamageProxyLittleBuddyExplosion(proxy: Projectile, orientation: Vector3, distance: Float): Unit = {
     //explosion
-    val obj = DummyExplodingEntity(proxy)
+    val obj = new DummyExplodingEntity(proxy, proxy.owner.Faction)
     obj.Position = obj.Position + orientation * distance
-    context.system.scheduler.scheduleOnce(500.milliseconds) {
-      val c = continent
-      val o = obj
-      Zone.serverSideDamage(c, o, Zone.explosionDamage(None, o.Position))
-    }
+    val explosionFunc: ()=>Unit = WeaponAndProjectileOperations.detonateLittleBuddy(continent, obj, proxy.owner)
+    context.system.scheduler.scheduleOnce(500.milliseconds) { explosionFunc() }
   }
 
   /**
@@ -1244,5 +1241,54 @@ private[support] class WeaponAndProjectileOperations(
       }
       projectiles.indices.foreach { projectiles.update(_, None) }
     }
+  }
+}
+
+object WeaponAndProjectileOperations {
+  /**
+   * Preparation for explosion damage that utilizes the Scorpion's little buddy sub-projectiles.
+   * The main difference from "normal" server-side explosion
+   * is that the owner of the projectile must be clarified explicitly.
+   * @see `Zone::serverSideDamage`
+   * @param zone where the explosion is taking place
+   *             (`source` contains the coordinate location)
+   * @param source a game object that represents the source of the explosion
+   * @param owner who or what to accredit damage from the explosion to;
+   *              clarifies a normal `SourceEntry(source)` accreditation
+   */
+  private def detonateLittleBuddy(
+                                   zone: Zone,
+                                   source: PlanetSideGameObject with FactionAffinity with Vitality,
+                                   owner: SourceEntry
+                                 )(): Unit = {
+    Zone.serverSideDamage(zone, source, littleBuddyExplosionDamage(owner, source.Position))
+  }
+
+  /**
+   * Preparation for explosion damage that utilizes the Scorpion's little buddy sub-projectiles.
+   * The main difference from "normal" server-side explosion
+   * is that the owner of the projectile must be clarified explicitly.
+   * The sub-projectiles will be the product of a normal projectile rather than a standard game object
+   * so a custom `source` entity must wrap around it and fulfill the requirements of the field.
+   * @see `Zone::explosionDamage`
+   * @param owner who or what to accredit damage from the explosion to
+   * @param explosionPosition where the explosion will be positioned in the game world
+   * @param source a game object that represents the source of the explosion
+   * @param target a game object that is affected by the explosion
+   * @return a `DamageInteraction` object
+   */
+  private def littleBuddyExplosionDamage(
+                                          owner: SourceEntry,
+                                          explosionPosition: Vector3
+                                        )
+                                        (
+                                          source: PlanetSideGameObject with FactionAffinity with Vitality,
+                                          target: PlanetSideGameObject with FactionAffinity with Vitality
+                                        ): DamageInteraction = {
+    DamageInteraction(
+      SourceEntry(target),
+      ExplodingEntityReason(owner, source.Definition.innateDamage.get, target.DamageModel, None),
+      explosionPosition
+    )
   }
 }
