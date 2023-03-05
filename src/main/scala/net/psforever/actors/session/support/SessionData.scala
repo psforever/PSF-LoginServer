@@ -2434,6 +2434,7 @@ class SessionData(
       case obj: PlayerSource => obj.Seated
       case _                 => false
     }
+    sendResponse(ChatMsg(ChatMessageType.CMT_OPEN, wideContents=false, "", s"Killer method: $method", note=None))
     new DestroyDisplayMessage(
       killer.Name,
       killer.CharId,
