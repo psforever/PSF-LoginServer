@@ -2,7 +2,7 @@ package net.psforever.objects.zones
 
 import enumeratum.values.{StringEnum, StringEnumEntry}
 import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
-import net.psforever.objects.serverobject.environment._
+import net.psforever.objects.serverobject.environment.{Pool, _}
 import net.psforever.packet.game.{ChatMsg, OffshoreVehicleMessage}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -433,8 +433,14 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 3654267088L,
         scale = MapScale.Dim4096,
         hotSpotSpan = 80,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 3.5f)) ++
-                      MapEnvironment.dim4096MapEdgeKillPlanes
+        environment = List(
+          Pool(EnvironmentAttribute.Water, 3.5f, 2867f, 1228f, 1128f, 0f), //west
+          Pool(EnvironmentAttribute.Water, 3.5f, 4096f, 4096f, 2867f, 0f), //north
+          Pool(EnvironmentAttribute.Water, 3.5f, 2867f, 4096f, 1227f, 2900f), //east
+          Pool(EnvironmentAttribute.Water, 3.5f, 1227f, 4096f, 0f, 2000f), //southeast
+          Pool(EnvironmentAttribute.Water, 3.5f, 1128f, 2000f, 0f, 0f), //southwest
+          Pool(EnvironmentAttribute.Death, 0.5f, 2867f, 2900f, 1128f, 1228f) //central, kill
+        ) ++ MapEnvironment.dim4096MapEdgeKillPlanes
       )
 
   case object Map99
