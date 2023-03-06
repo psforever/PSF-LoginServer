@@ -180,13 +180,14 @@ class ZoningOperations(
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
 
     //find and reclaim own deployables, if any
-    val foundDeployables =
-      continent.DeployableList.filter(obj => obj.OwnerName.contains(player.Name) && obj.Health > 0)
-    foundDeployables.foreach(obj => {
-      if (avatar.deployables.AddOverLimit(obj)) {
+    val foundDeployables = continent.DeployableList.filter {
+      case _: BoomerDeployable => false //if we do find boomers for any reason, ignore them
+      case dobj => dobj.OwnerName.contains(player.Name) && dobj.Health > 0
+    }
+    foundDeployables.collect {
+      case obj if avatar.deployables.AddOverLimit(obj) =>
         obj.Actor ! Deployable.Ownership(player)
-      }
-    })
+    }
     //render deployable objects
     val (turrets, normal) = continent.DeployableList.partition(obj =>
       DeployableToolbox.UnifiedType(obj.Definition.Item) == DeployedItem.portable_manned_turret
