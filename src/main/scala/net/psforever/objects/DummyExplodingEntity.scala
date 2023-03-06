@@ -63,7 +63,7 @@ private class DefinitionWrappedInVitality(private val entity: PlanetSideGameObje
 
   override def ObjectId: Int = entity match {
     case p: Projectile => p.tool_def.ObjectId //projectiles point back to the weapon of origin
-    case _             => super.ObjectId //we're no projectile; we're entirely to blame
+    case _             => internalDefinition.ObjectId //what are we?
   }
 }
 

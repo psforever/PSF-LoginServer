@@ -21,7 +21,7 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.{DamageResolution, DamageType}
-import net.psforever.objects.vital.etc.ExplodingEntityReason
+import net.psforever.objects.vital.etc.OicwLilBuddyReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneProjectile}
@@ -1188,7 +1188,7 @@ private[support] class WeaponAndProjectileOperations(
     //explosion
     val obj = new DummyExplodingEntity(proxy, proxy.owner.Faction)
     obj.Position = obj.Position + orientation * distance
-    val explosionFunc: ()=>Unit = WeaponAndProjectileOperations.detonateLittleBuddy(continent, obj, proxy.owner)
+    val explosionFunc: ()=>Unit = WeaponAndProjectileOperations.detonateLittleBuddy(continent, obj, proxy, proxy.owner)
     context.system.scheduler.scheduleOnce(500.milliseconds) { explosionFunc() }
   }
 
@@ -1259,9 +1259,10 @@ object WeaponAndProjectileOperations {
   private def detonateLittleBuddy(
                                    zone: Zone,
                                    source: PlanetSideGameObject with FactionAffinity with Vitality,
+                                   proxy: Projectile,
                                    owner: SourceEntry
                                  )(): Unit = {
-    Zone.serverSideDamage(zone, source, littleBuddyExplosionDamage(owner, source.Position))
+    Zone.serverSideDamage(zone, source, littleBuddyExplosionDamage(owner, proxy.id, source.Position))
   }
 
   /**
@@ -1279,16 +1280,13 @@ object WeaponAndProjectileOperations {
    */
   private def littleBuddyExplosionDamage(
                                           owner: SourceEntry,
+                                          projectileId: Long,
                                           explosionPosition: Vector3
                                         )
                                         (
                                           source: PlanetSideGameObject with FactionAffinity with Vitality,
                                           target: PlanetSideGameObject with FactionAffinity with Vitality
                                         ): DamageInteraction = {
-    DamageInteraction(
-      SourceEntry(target),
-      ExplodingEntityReason(owner, source.Definition.innateDamage.get, target.DamageModel, None),
-      explosionPosition
-    )
+    DamageInteraction(SourceEntry(target), OicwLilBuddyReason(owner, projectileId, target.DamageModel), explosionPosition)
   }
 }
