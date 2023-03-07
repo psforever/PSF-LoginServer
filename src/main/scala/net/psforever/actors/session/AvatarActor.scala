@@ -268,8 +268,8 @@ object AvatarActor {
    * @param container the container in which to place the pieces of equipment produced from the CLOB
    * @param clob the inventory data in string form
    * @param log a reference to a logging context
-   * @param restoreAmmo by default, when `false`, use the maximum ammunition for all magazines, for all tools;
-   *                    if `true`, load the last saved ammunition count for all magazines, for all tools
+   * @param restoreAmmo by default, when `false`, use the maximum ammunition for all ammunition boixes and for all tools;
+   *                    if `true`, load the last saved ammunition count for all ammunition boxes and for all tools
    */
   def buildContainedEquipmentFromClob(
                                        container: Container,
@@ -278,7 +278,7 @@ object AvatarActor {
                                        restoreAmmo: Boolean = false
                                      ): Unit = {
     clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
-      val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
+      val (objectType, objectIndex, objectId, ammoData) = value.split(",") match {
         case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
         case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
         case _ =>
@@ -288,11 +288,30 @@ object AvatarActor {
 
       objectType match {
         case "Tool" =>
-          container.Slot(objectIndex).Equipment =
-            Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
+          val tool = Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
+          container.Slot(objectIndex).Equipment = tool
+          //previous ammunition loaded into each sub-magazine
+          ammoData foreach { toolAmmo =>
+            toolAmmo.split("_").drop(1).foreach { value =>
+              val (ammoSlots, ammoTypeIndex, ammoBoxDefinition, ammoCount) = value.split("-") match {
+                case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt, None)
+                case Array(a: String, b: String, c: String, d:String) => (a.toInt, b.toInt, c.toInt, Some(d.toInt))
+              }
+              val fireMode = tool.AmmoSlots(ammoSlots)
+              fireMode.AmmoTypeIndex = ammoTypeIndex
+              fireMode.Box = AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
+              ammoCount.collect {
+                case count if restoreAmmo => fireMode.Magazine = count
+              }
+            }
+          }
         case "AmmoBox" =>
-          container.Slot(objectIndex).Equipment =
-            AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
+          val box = AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
+          container.Slot(objectIndex).Equipment = box
+          //previous capacity of ammunition box
+          ammoData.collect {
+            case count if restoreAmmo => box.Capacity = count.toInt
+          }
         case "ConstructionItem" =>
           container.Slot(objectIndex).Equipment = ConstructionItem(
             DefinitionUtil.idToDefinition(objectId).asInstanceOf[ConstructionItemDefinition]
@@ -307,21 +326,6 @@ object AvatarActor {
         //special types of equipment that are not actually loaded
         case name =>
           log.error(s"failing to add unknown equipment to a container - $name")
-      }
-
-      toolAmmo foreach { toolAmmo =>
-        toolAmmo.split("_").drop(1).foreach { value =>
-          val (ammoSlots, ammoTypeIndex, ammoBoxDefinition, ammoCount) = value.split("-") match {
-            case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt, None)
-            case Array(a: String, b: String, c: String, d:String) => (a.toInt, b.toInt, c.toInt, Some(d.toInt))
-          }
-          val fireMode = container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots)
-          fireMode.AmmoTypeIndex = ammoTypeIndex
-          fireMode.Box = AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
-          ammoCount.collect {
-            case count if restoreAmmo => fireMode.Magazine = count
-          }
-        }
       }
     }
   }
@@ -440,6 +444,8 @@ object AvatarActor {
           case (ammoSlot, index2) =>
             s"_$index2-${ammoSlot.AmmoTypeIndex}-${ammoSlot.AmmoType.id}-${ammoSlot.Magazine}"
         }.mkString
+      case ammo: AmmoBox =>
+        s"${ammo.Capacity}"
       case _ =>
         ""
     }
