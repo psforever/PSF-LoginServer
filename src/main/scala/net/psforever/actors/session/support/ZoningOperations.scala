@@ -1707,8 +1707,8 @@ class ZoningOperations(
           if (hasHealthUponLogin) {
             player.Spawn()
             player.Health = health
-            player.Armor = results.armor
             player.ExoSuit = ExoSuitType(results.exosuitNum)
+            player.Armor = results.armor
             AvatarActor.buildContainedEquipmentFromClob(player, results.loadout, log, restoreAmmo = true)
             if (player.ExoSuit == ExoSuitType.MAX) {
               player.DrawnSlot = 0
