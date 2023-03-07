@@ -257,19 +257,26 @@ object AvatarActor {
   }
 
   /**
-    * Transform from encoded inventory data as a CLOB - character large object - into individual items.
-    * Install those items into positions in a target container
-    * in the same positions in which they were previously recorded.<br>
-    * <br>
-    * There is no guarantee that the structure of the retained container data encoded in the CLOB
-    * will fit the current dimensions of the container.
-    * No tests are performed.
-    * A partial decompression of the CLOB may occur.
-    * @param container the container in which to place the pieces of equipment produced from the CLOB
-    * @param clob the inventory data in string form
-    * @param log a reference to a logging context
-    */
-  def buildContainedEquipmentFromClob(container: Container, clob: String, log: org.log4s.Logger): Unit = {
+   * Transform from encoded inventory data as a CLOB - character large object - into individual items.
+   * Install those items into positions in a target container
+   * in the same positions in which they were previously recorded.<br>
+   * <br>
+   * There is no guarantee that the structure of the retained container data encoded in the CLOB
+   * will fit the current dimensions of the container.
+   * No tests are performed.
+   * A partial decompression of the CLOB may occur.
+   * @param container the container in which to place the pieces of equipment produced from the CLOB
+   * @param clob the inventory data in string form
+   * @param log a reference to a logging context
+   * @param restoreAmmo by default, when `false`, use the maximum ammunition for all magazines, for all tools;
+   *                    if `true`, load the last saved ammunition count for all magazines, for all tools
+   */
+  def buildContainedEquipmentFromClob(
+                                       container: Container,
+                                       clob: String,
+                                       log: org.log4s.Logger,
+                                       restoreAmmo: Boolean = false
+                                     ): Unit = {
     clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
       val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
         case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
@@ -304,13 +311,16 @@ object AvatarActor {
 
       toolAmmo foreach { toolAmmo =>
         toolAmmo.split("_").drop(1).foreach { value =>
-          val (ammoSlots, ammoTypeIndex, ammoBoxDefinition) = value.split("-") match {
-            case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt)
+          val (ammoSlots, ammoTypeIndex, ammoBoxDefinition, ammoCount) = value.split("-") match {
+            case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt, None)
+            case Array(a: String, b: String, c: String, d:String) => (a.toInt, b.toInt, c.toInt, Some(d.toInt))
           }
-          container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).AmmoTypeIndex =
-            ammoTypeIndex
-          container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).Box =
-            AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
+          val fireMode = container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots)
+          fireMode.AmmoTypeIndex = ammoTypeIndex
+          fireMode.Box = AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
+          ammoCount.collect {
+            case count if restoreAmmo => fireMode.Magazine = count
+          }
         }
       }
     }
@@ -427,8 +437,8 @@ object AvatarActor {
     val ammoInfo: String = equipment match {
       case tool: Tool =>
         tool.AmmoSlots.zipWithIndex.collect {
-          case (ammoSlot, index2) if ammoSlot.AmmoTypeIndex != 0 =>
-            s"_$index2-${ammoSlot.AmmoTypeIndex}-${ammoSlot.AmmoType.id}"
+          case (ammoSlot, index2) =>
+            s"_$index2-${ammoSlot.AmmoTypeIndex}-${ammoSlot.AmmoType.id}-${ammoSlot.Magazine}"
         }.mkString
       case _ =>
         ""

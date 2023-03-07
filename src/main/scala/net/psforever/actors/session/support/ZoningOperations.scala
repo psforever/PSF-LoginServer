@@ -1709,7 +1709,7 @@ class ZoningOperations(
             player.Health = health
             player.Armor = results.armor
             player.ExoSuit = ExoSuitType(results.exosuitNum)
-            AvatarActor.buildContainedEquipmentFromClob(player, results.loadout, log)
+            AvatarActor.buildContainedEquipmentFromClob(player, results.loadout, log, restoreAmmo = true)
             if (player.ExoSuit == ExoSuitType.MAX) {
               player.DrawnSlot = 0
               player.ResistArmMotion(PlayerControl.maxRestriction)
