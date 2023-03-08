@@ -2289,7 +2289,12 @@ class AvatarActor(
 
   def storeLocker(): Unit = {
     log.debug(s"saving locker contents belonging to ${avatar.name}")
-    pushLockerClobToDataBase(AvatarActor.encodeLockerClob(avatar.locker))
+    pushLockerClobToDataBase(AvatarActor.encodeLockerClob(avatar.locker)).onComplete {
+      case Failure(e) =>
+        saveLockerFunc = doNotStoreLocker
+        log.error(e)("db failure")
+      case _ => ()
+    }
   }
 
   def pushLockerClobToDataBase(items: String): Database.ctx.Result[Database.ctx.RunActionResult] = {
@@ -2451,35 +2456,25 @@ class AvatarActor(
   }
 
   def loadLocker(charId: Long): Future[LockerContainer] = {
-    val locker = Avatar.makeLocker()
-    var notLoaded: Boolean = false
     import ctx._
-    val out = ctx.run(query[persistence.Locker]
-      .filter(_.avatarId == lift(charId)))
-      .map { entry =>
-        notLoaded = false
-        entry.foreach { contents => AvatarActor.buildContainedEquipmentFromClob(locker, contents.items, log) }
-      }
-      .map { _ => locker }
+    val locker = Avatar.makeLocker()
+    saveLockerFunc = storeLocker
+    val out = ctx.run(query[persistence.Locker].filter(_.avatarId == lift(charId)))
     out.onComplete {
-      case Success(_) =>
-        saveLockerFunc = storeLocker
+      case Success(entry) if entry.nonEmpty =>
+        AvatarActor.buildContainedEquipmentFromClob(locker, entry.head.items, log, restoreAmmo = true)
+      case Success(_) => ()
       case Failure(_) =>
-        notLoaded = true
+        //default empty locker
+        ctx.run(query[persistence.Locker].insert(_.avatarId -> lift(avatar.id), _.items -> lift("")))
+          .onComplete {
+            case Success(_) => ()
+            case Failure(e) =>
+              saveLockerFunc = doNotStoreLocker
+              log.error(e)("db failure")
+          }
     }
-    if (notLoaded) {
-      //default empty locker
-      ctx.run(query[persistence.Locker]
-        .insert(_.avatarId -> lift(avatar.id), _.items -> lift("")))
-        .onComplete {
-          case Success(_) =>
-            saveLockerFunc = storeLocker
-          case Failure(e) =>
-            saveLockerFunc = doNotStoreLocker
-            log.error(e)("db failure")
-        }
-    }
-    out
+    out.map { _ => locker }
   }
 
 
