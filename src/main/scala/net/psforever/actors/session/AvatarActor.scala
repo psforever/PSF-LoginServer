@@ -289,7 +289,6 @@ object AvatarActor {
       objectType match {
         case "Tool" =>
           val tool = Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
-          container.Slot(objectIndex).Equipment = tool
           //previous ammunition loaded into each sub-magazine
           ammoData foreach { toolAmmo =>
             toolAmmo.split("_").drop(1).foreach { value =>
@@ -305,6 +304,7 @@ object AvatarActor {
               }
             }
           }
+          container.Slot(objectIndex).Equipment = tool
         case "AmmoBox" =>
           val box = AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
           container.Slot(objectIndex).Equipment = box
@@ -1811,7 +1811,7 @@ class AvatarActor(
       saved     <- AvatarActor.loadSavedAvatarData(avatarId)
     } yield (loadouts, implants, certs, locker, friends, ignored, shortcuts, saved)
     result.onComplete {
-      case Success((_loadouts, implants, certs, locker, friendsList, ignoredList, shortcutList, saved)) =>
+      case Success((_loadouts, implants, certs, lockerInv, friendsList, ignoredList, shortcutList, saved)) =>
         //shortcuts must have a hotbar option for each implant
 //        val implantShortcuts = shortcutList.filter {
 //          case Some(e) => e.purpose == 0
@@ -1837,7 +1837,7 @@ class AvatarActor(
               certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
             implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
             shortcuts = shortcutList,
-            locker = locker,
+            locker = lockerInv,
             people = MemberLists(
               friend = friendsList,
               ignored = ignoredList
@@ -2459,22 +2459,27 @@ class AvatarActor(
     import ctx._
     val locker = Avatar.makeLocker()
     saveLockerFunc = storeLocker
-    val out = ctx.run(query[persistence.Locker].filter(_.avatarId == lift(charId)))
-    out.onComplete {
+    val out = Promise[LockerContainer]()
+    ctx.run(query[persistence.Locker].filter(_.avatarId == lift(charId)))
+      .onComplete {
       case Success(entry) if entry.nonEmpty =>
         AvatarActor.buildContainedEquipmentFromClob(locker, entry.head.items, log, restoreAmmo = true)
-      case Success(_) => ()
+        out.completeWith(Future(locker))
+      case Success(_) =>
+        out.completeWith(Future(locker))
       case Failure(_) =>
         //default empty locker
         ctx.run(query[persistence.Locker].insert(_.avatarId -> lift(avatar.id), _.items -> lift("")))
           .onComplete {
-            case Success(_) => ()
+            case Success(_) =>
+              out.completeWith(Future(locker))
             case Failure(e) =>
               saveLockerFunc = doNotStoreLocker
               log.error(e)("db failure")
+              out.tryFailure(e)
           }
     }
-    out.map { _ => locker }
+    out.future
   }
 
 

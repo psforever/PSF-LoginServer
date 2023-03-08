@@ -2,7 +2,7 @@
 package net.psforever.objects.inventory
 
 import net.psforever.objects.Tool
-import net.psforever.objects.equipment.Equipment
+import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.SpecificNumberSource
@@ -30,6 +30,15 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
     //only one pool composed of all of the numbers; randomized selection
     numHub.AddPool("internal", numbers.toList).Selector = new RandomSelector
     numHub
+  }
+
+  override def Slot(slot: Int): EquipmentSlot = {
+    val actualSlot = slot - Offset
+    if (actualSlot < 0 || actualSlot > TotalCapacity) {
+      throw new IndexOutOfBoundsException(s"requested indices not in bounds of grid inventory - $actualSlot")
+    } else {
+      new LocallyRegisteredInventoryEquipmentSlot(slot, inv=this)
+    }
   }
 
   override def Insert(start : Int, obj : Equipment) : Boolean = {
@@ -128,5 +137,21 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
 
   private def unregisterObject(obj: Equipment): Boolean = {
     hub.unregister(obj).isSuccess
+  }
+}
+
+class LocallyRegisteredInventoryEquipmentSlot(private val slot: Int, private val inv: LocallyRegisteredInventory)
+  extends InventoryEquipmentSlot(slot, inv) {
+  override def Equipment_=(assignEquipment: Option[Equipment]): Option[Equipment] = {
+    assignEquipment match {
+      case Some(equipment) if inv.Insert(slot, equipment) =>
+        assignEquipment
+      case Some(_) =>
+        inv.Slot(slot).Equipment
+      case None if inv.Remove(slot) =>
+        None
+      case None =>
+        inv.Slot(slot).Equipment
+    }
   }
 }
