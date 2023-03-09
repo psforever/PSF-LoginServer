@@ -2,7 +2,7 @@
 package net.psforever.objects.inventory
 
 import net.psforever.objects.Tool
-import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
+import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.SpecificNumberSource
@@ -17,7 +17,7 @@ import scala.util.{Failure, Success}
   * The equipment must not already be registered to another unique number system for that reason.
   * Upon being removed, the removed equipment is unregistered.
   * The registration system adds another unspoken layer to `Capacity`
-  * as it imposes a total object count to the inventory.
+  * as it imposes a total object count to the inventory based on he number of unique identifiers available.
   * @see `NumberSourceHub`
   * @see `RandomSelector`
   * @see `SpecificNumberSource`
@@ -32,16 +32,7 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
     numHub
   }
 
-  override def Slot(slot: Int): EquipmentSlot = {
-    val actualSlot = slot - Offset
-    if (actualSlot < 0 || actualSlot > TotalCapacity) {
-      throw new IndexOutOfBoundsException(s"requested indices not in bounds of grid inventory - $actualSlot")
-    } else {
-      new LocallyRegisteredInventoryEquipmentSlot(slot, inv=this)
-    }
-  }
-
-  override def Insert(start : Int, obj : Equipment) : Boolean = {
+  override def Insert(start: Int, obj: Equipment): Boolean = {
     if(!obj.HasGUID) {
       registerEquipment(obj) match {
         case true if super.Insert(start, obj) =>
@@ -58,7 +49,7 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
     }
   }
 
-  override def InsertQuickly(start : Int, obj : Equipment) : Boolean = {
+  override def InsertQuickly(start: Int, obj: Equipment): Boolean = {
     if(!obj.HasGUID) {
       registerEquipment(obj) match {
         case true if super.InsertQuickly(start, obj) =>
@@ -75,7 +66,7 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
     }
   }
 
-  override def Remove(guid : PlanetSideGUID) : Boolean = {
+  override def Remove(guid: PlanetSideGUID): Boolean = {
     hub(guid) match {
       case Some(obj: Equipment) if super.Remove(guid) =>
         unregisterEquipment(obj)
@@ -84,7 +75,7 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
     }
   }
 
-  override def Remove(index : Int) : Boolean = {
+  override def Remove(index: Int): Boolean = {
     Slot(index).Equipment match {
       case Some(obj: Equipment) if super.Remove(obj.GUID) =>
         unregisterEquipment(obj)
@@ -93,7 +84,7 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
     }
   }
 
-  override def Clear() : List[InventoryItem] = {
+  override def Clear(): List[InventoryItem] = {
     val items = super.Clear()
     items.foreach { item => unregisterEquipment(item.obj) }
     items
@@ -137,21 +128,5 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
 
   private def unregisterObject(obj: Equipment): Boolean = {
     hub.unregister(obj).isSuccess
-  }
-}
-
-class LocallyRegisteredInventoryEquipmentSlot(private val slot: Int, private val inv: LocallyRegisteredInventory)
-  extends InventoryEquipmentSlot(slot, inv) {
-  override def Equipment_=(assignEquipment: Option[Equipment]): Option[Equipment] = {
-    assignEquipment match {
-      case Some(equipment) if inv.Insert(slot, equipment) =>
-        assignEquipment
-      case Some(_) =>
-        inv.Slot(slot).Equipment
-      case None if inv.Remove(slot) =>
-        None
-      case None =>
-        inv.Slot(slot).Equipment
-    }
   }
 }

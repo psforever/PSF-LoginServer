@@ -2466,18 +2466,15 @@ class AvatarActor(
         AvatarActor.buildContainedEquipmentFromClob(locker, entry.head.items, log, restoreAmmo = true)
         out.completeWith(Future(locker))
       case Success(_) =>
-        out.completeWith(Future(locker))
-      case Failure(_) =>
-        //default empty locker
+        //no locker, or maybe default empty locker?
         ctx.run(query[persistence.Locker].insert(_.avatarId -> lift(avatar.id), _.items -> lift("")))
           .onComplete {
-            case Success(_) =>
-              out.completeWith(Future(locker))
-            case Failure(e) =>
-              saveLockerFunc = doNotStoreLocker
-              log.error(e)("db failure")
-              out.tryFailure(e)
+            _ => out.completeWith(Future(locker))
           }
+      case Failure(e) =>
+        saveLockerFunc = doNotStoreLocker
+        log.error(e)("db failure")
+        out.tryFailure(e)
     }
     out.future
   }
