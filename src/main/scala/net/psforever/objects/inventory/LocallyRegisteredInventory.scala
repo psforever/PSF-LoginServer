@@ -17,7 +17,7 @@ import scala.util.{Failure, Success}
   * The equipment must not already be registered to another unique number system for that reason.
   * Upon being removed, the removed equipment is unregistered.
   * The registration system adds another unspoken layer to `Capacity`
-  * as it imposes a total object count to the inventory.
+  * as it imposes a total object count to the inventory based on he number of unique identifiers available.
   * @see `NumberSourceHub`
   * @see `RandomSelector`
   * @see `SpecificNumberSource`
@@ -32,7 +32,7 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
     numHub
   }
 
-  override def Insert(start : Int, obj : Equipment) : Boolean = {
+  override def Insert(start: Int, obj: Equipment): Boolean = {
     if(!obj.HasGUID) {
       registerEquipment(obj) match {
         case true if super.Insert(start, obj) =>
@@ -49,7 +49,7 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
     }
   }
 
-  override def InsertQuickly(start : Int, obj : Equipment) : Boolean = {
+  override def InsertQuickly(start: Int, obj: Equipment): Boolean = {
     if(!obj.HasGUID) {
       registerEquipment(obj) match {
         case true if super.InsertQuickly(start, obj) =>
@@ -66,7 +66,7 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
     }
   }
 
-  override def Remove(guid : PlanetSideGUID) : Boolean = {
+  override def Remove(guid: PlanetSideGUID): Boolean = {
     hub(guid) match {
       case Some(obj: Equipment) if super.Remove(guid) =>
         unregisterEquipment(obj)
@@ -75,7 +75,7 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
     }
   }
 
-  override def Remove(index : Int) : Boolean = {
+  override def Remove(index: Int): Boolean = {
     Slot(index).Equipment match {
       case Some(obj: Equipment) if super.Remove(obj.GUID) =>
         unregisterEquipment(obj)
@@ -84,7 +84,7 @@ class LocallyRegisteredInventory(numbers: Iterable[Int])
     }
   }
 
-  override def Clear() : List[InventoryItem] = {
+  override def Clear(): List[InventoryItem] = {
     val items = super.Clear()
     items.foreach { item => unregisterEquipment(item.obj) }
     items

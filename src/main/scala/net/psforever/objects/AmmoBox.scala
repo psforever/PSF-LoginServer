@@ -5,9 +5,11 @@ import net.psforever.objects.definition.AmmoBoxDefinition
 import net.psforever.objects.equipment.{Ammo, Equipment}
 import net.psforever.types.PlanetSideEmpire
 
-class AmmoBox(private val ammoDef: AmmoBoxDefinition, cap: Option[Int] = None) extends Equipment {
-  private var capacity = if (cap.isDefined) { AmmoBox.limitCapacity(cap.get, 1) }
-  else { FullCapacity }
+class AmmoBox(private val ammoDef: AmmoBoxDefinition, private val cap: Option[Int] = None) extends Equipment {
+  private var capacity = cap match {
+    case Some(toCount) => AmmoBox.limitCapacity(toCount, min=1)
+    case _ => FullCapacity
+  }
 
   def AmmoType: Ammo.Value = ammoDef.AmmoType
 

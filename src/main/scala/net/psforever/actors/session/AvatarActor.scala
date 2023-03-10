@@ -257,21 +257,28 @@ object AvatarActor {
   }
 
   /**
-    * Transform from encoded inventory data as a CLOB - character large object - into individual items.
-    * Install those items into positions in a target container
-    * in the same positions in which they were previously recorded.<br>
-    * <br>
-    * There is no guarantee that the structure of the retained container data encoded in the CLOB
-    * will fit the current dimensions of the container.
-    * No tests are performed.
-    * A partial decompression of the CLOB may occur.
-    * @param container the container in which to place the pieces of equipment produced from the CLOB
-    * @param clob the inventory data in string form
-    * @param log a reference to a logging context
-    */
-  def buildContainedEquipmentFromClob(container: Container, clob: String, log: org.log4s.Logger): Unit = {
+   * Transform from encoded inventory data as a CLOB - character large object - into individual items.
+   * Install those items into positions in a target container
+   * in the same positions in which they were previously recorded.<br>
+   * <br>
+   * There is no guarantee that the structure of the retained container data encoded in the CLOB
+   * will fit the current dimensions of the container.
+   * No tests are performed.
+   * A partial decompression of the CLOB may occur.
+   * @param container the container in which to place the pieces of equipment produced from the CLOB
+   * @param clob the inventory data in string form
+   * @param log a reference to a logging context
+   * @param restoreAmmo by default, when `false`, use the maximum ammunition for all ammunition boixes and for all tools;
+   *                    if `true`, load the last saved ammunition count for all ammunition boxes and for all tools
+   */
+  def buildContainedEquipmentFromClob(
+                                       container: Container,
+                                       clob: String,
+                                       log: org.log4s.Logger,
+                                       restoreAmmo: Boolean = false
+                                     ): Unit = {
     clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
-      val (objectType, objectIndex, objectId, toolAmmo) = value.split(",") match {
+      val (objectType, objectIndex, objectId, ammoData) = value.split(",") match {
         case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
         case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
         case _ =>
@@ -281,11 +288,30 @@ object AvatarActor {
 
       objectType match {
         case "Tool" =>
-          container.Slot(objectIndex).Equipment =
-            Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
+          val tool = Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
+          //previous ammunition loaded into each sub-magazine
+          ammoData foreach { toolAmmo =>
+            toolAmmo.split("_").drop(1).foreach { value =>
+              val (ammoSlots, ammoTypeIndex, ammoBoxDefinition, ammoCount) = value.split("-") match {
+                case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt, None)
+                case Array(a: String, b: String, c: String, d:String) => (a.toInt, b.toInt, c.toInt, Some(d.toInt))
+              }
+              val fireMode = tool.AmmoSlots(ammoSlots)
+              fireMode.AmmoTypeIndex = ammoTypeIndex
+              fireMode.Box = AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
+              ammoCount.collect {
+                case count if restoreAmmo => fireMode.Magazine = count
+              }
+            }
+          }
+          container.Slot(objectIndex).Equipment = tool
         case "AmmoBox" =>
-          container.Slot(objectIndex).Equipment =
-            AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
+          val box = AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
+          container.Slot(objectIndex).Equipment = box
+          //previous capacity of ammunition box
+          ammoData.collect {
+            case count if restoreAmmo => box.Capacity = count.toInt
+          }
         case "ConstructionItem" =>
           container.Slot(objectIndex).Equipment = ConstructionItem(
             DefinitionUtil.idToDefinition(objectId).asInstanceOf[ConstructionItemDefinition]
@@ -300,18 +326,6 @@ object AvatarActor {
         //special types of equipment that are not actually loaded
         case name =>
           log.error(s"failing to add unknown equipment to a container - $name")
-      }
-
-      toolAmmo foreach { toolAmmo =>
-        toolAmmo.split("_").drop(1).foreach { value =>
-          val (ammoSlots, ammoTypeIndex, ammoBoxDefinition) = value.split("-") match {
-            case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt)
-          }
-          container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).AmmoTypeIndex =
-            ammoTypeIndex
-          container.Slot(objectIndex).Equipment.get.asInstanceOf[Tool].AmmoSlots(ammoSlots).Box =
-            AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
-        }
       }
     }
   }
@@ -427,9 +441,11 @@ object AvatarActor {
     val ammoInfo: String = equipment match {
       case tool: Tool =>
         tool.AmmoSlots.zipWithIndex.collect {
-          case (ammoSlot, index2) if ammoSlot.AmmoTypeIndex != 0 =>
-            s"_$index2-${ammoSlot.AmmoTypeIndex}-${ammoSlot.AmmoType.id}"
+          case (ammoSlot, index2) =>
+            s"_$index2-${ammoSlot.AmmoTypeIndex}-${ammoSlot.AmmoType.id}-${ammoSlot.Magazine}"
         }.mkString
+      case ammo: AmmoBox =>
+        s"${ammo.Capacity}"
       case _ =>
         ""
     }
@@ -1795,7 +1811,7 @@ class AvatarActor(
       saved     <- AvatarActor.loadSavedAvatarData(avatarId)
     } yield (loadouts, implants, certs, locker, friends, ignored, shortcuts, saved)
     result.onComplete {
-      case Success((_loadouts, implants, certs, locker, friendsList, ignoredList, shortcutList, saved)) =>
+      case Success((_loadouts, implants, certs, lockerInv, friendsList, ignoredList, shortcutList, saved)) =>
         //shortcuts must have a hotbar option for each implant
 //        val implantShortcuts = shortcutList.filter {
 //          case Some(e) => e.purpose == 0
@@ -1821,7 +1837,7 @@ class AvatarActor(
               certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
             implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
             shortcuts = shortcutList,
-            locker = locker,
+            locker = lockerInv,
             people = MemberLists(
               friend = friendsList,
               ignored = ignoredList
@@ -2273,7 +2289,12 @@ class AvatarActor(
 
   def storeLocker(): Unit = {
     log.debug(s"saving locker contents belonging to ${avatar.name}")
-    pushLockerClobToDataBase(AvatarActor.encodeLockerClob(avatar.locker))
+    pushLockerClobToDataBase(AvatarActor.encodeLockerClob(avatar.locker)).onComplete {
+      case Failure(e) =>
+        saveLockerFunc = doNotStoreLocker
+        log.error(e)("db failure")
+      case _ => ()
+    }
   }
 
   def pushLockerClobToDataBase(items: String): Database.ctx.Result[Database.ctx.RunActionResult] = {
@@ -2435,35 +2456,27 @@ class AvatarActor(
   }
 
   def loadLocker(charId: Long): Future[LockerContainer] = {
-    val locker = Avatar.makeLocker()
-    var notLoaded: Boolean = false
     import ctx._
-    val out = ctx.run(query[persistence.Locker]
-      .filter(_.avatarId == lift(charId)))
-      .map { entry =>
-        notLoaded = false
-        entry.foreach { contents => AvatarActor.buildContainedEquipmentFromClob(locker, contents.items, log) }
-      }
-      .map { _ => locker }
-    out.onComplete {
+    val locker = Avatar.makeLocker()
+    saveLockerFunc = storeLocker
+    val out = Promise[LockerContainer]()
+    ctx.run(query[persistence.Locker].filter(_.avatarId == lift(charId)))
+      .onComplete {
+      case Success(entry) if entry.nonEmpty =>
+        AvatarActor.buildContainedEquipmentFromClob(locker, entry.head.items, log, restoreAmmo = true)
+        out.completeWith(Future(locker))
       case Success(_) =>
-        saveLockerFunc = storeLocker
-      case Failure(_) =>
-        notLoaded = true
+        //no locker, or maybe default empty locker?
+        ctx.run(query[persistence.Locker].insert(_.avatarId -> lift(avatar.id), _.items -> lift("")))
+          .onComplete {
+            _ => out.completeWith(Future(locker))
+          }
+      case Failure(e) =>
+        saveLockerFunc = doNotStoreLocker
+        log.error(e)("db failure")
+        out.tryFailure(e)
     }
-    if (notLoaded) {
-      //default empty locker
-      ctx.run(query[persistence.Locker]
-        .insert(_.avatarId -> lift(avatar.id), _.items -> lift("")))
-        .onComplete {
-          case Success(_) =>
-            saveLockerFunc = storeLocker
-          case Failure(e) =>
-            saveLockerFunc = doNotStoreLocker
-            log.error(e)("db failure")
-        }
-    }
-    out
+    out.future
   }
 
 
