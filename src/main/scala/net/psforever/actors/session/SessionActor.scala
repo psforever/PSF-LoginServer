@@ -283,8 +283,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sessionFuncs.vehicles.handleCanNotChangeDeployment(obj, state, reason)
 
     /* rare messages */
-    case ProximityUnit.StopAction(term, target) =>
-      sessionFuncs.terminals.LocalStopUsingProximityUnit(term, target)
+    case ProximityUnit.StopAction(term, _) =>
+      sessionFuncs.terminals.LocalStopUsingProximityUnit(term)
 
     case SessionActor.Suicide() =>
       sessionFuncs.suicide(sessionFuncs.player)

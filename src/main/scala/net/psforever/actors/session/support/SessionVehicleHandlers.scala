@@ -163,10 +163,8 @@ class SessionVehicleHandlers(
         avatarActor ! AvatarActor.SetVehicle(Some(vehicleGuid))
         sendResponse(PlanetsideAttributeMessage(resolvedPlayerGuid, attribute_type=21, vehicleGuid))
 
-      case VehicleResponse.PlanetsideAttribute(vehicleGuid, attributeType, attributeValue) =>
-        if (isNotSameTarget) {
-          sendResponse(PlanetsideAttributeMessage(vehicleGuid, attributeType, attributeValue))
-        }
+      case VehicleResponse.PlanetsideAttribute(vehicleGuid, attributeType, attributeValue) if isNotSameTarget =>
+        sendResponse(PlanetsideAttributeMessage(vehicleGuid, attributeType, attributeValue))
 
       case VehicleResponse.ResetSpawnPad(padGuid) =>
         sendResponse(GenericObjectActionMessage(padGuid, code=23))
@@ -201,7 +199,7 @@ class SessionVehicleHandlers(
 
       case VehicleResponse.KickCargo(vehicle, speed, delay)
         if player.VehicleSeated.nonEmpty && sessionData.zoning.spawn.deadState == DeadState.Alive && speed > 0 =>
-        val strafe = if (Vehicles.CargoOrientation(vehicle) == 1) { 2 } else { 1 }
+        val strafe = 1 + Vehicles.CargoOrientation(vehicle)
         val reverseSpeed = if (strafe > 1) { 0 } else { speed }
         //strafe or reverse, not both
         sessionData.vehicles.serverVehicleControlVelocity = Some(reverseSpeed)
@@ -236,19 +234,29 @@ class SessionVehicleHandlers(
           unk8=None
         ))
 
+      case VehicleResponse.StartPlayerSeatedInVehicle(vehicle, _)
+        if player.VisibleSlots.contains(player.DrawnSlot) =>
+        val vehicle_guid = vehicle.GUID
+        sessionData.playerActionsToCancel()
+        sessionData.vehicles.serverVehicleControlVelocity = Some(0)
+        sessionData.terminals.CancelAllProximityUnits()
+        player.DrawnSlot = Player.HandsDownSlot
+        sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, unk1=true))
+        continent.AvatarEvents ! AvatarServiceMessage(
+          continent.id,
+          AvatarAction.SendResponse(player.GUID, ObjectHeldMessage(player.GUID, player.LastDrawnSlot, unk1=false))
+        )
+        sendResponse(PlanetsideAttributeMessage(vehicle_guid, attribute_type=22, attribute_value=1L)) //mount points off
+        sendResponse(PlanetsideAttributeMessage(player.GUID, attribute_type=21, vehicle_guid)) //ownership
+        vehicle.MountPoints.find { case (_, mp) => mp.seatIndex == 0 }.collect {
+          case (mountPoint, _) => vehicle.Actor ! Mountable.TryMount(player, mountPoint)
+        }
+
       case VehicleResponse.StartPlayerSeatedInVehicle(vehicle, _) =>
         val vehicle_guid = vehicle.GUID
         sessionData.playerActionsToCancel()
         sessionData.vehicles.serverVehicleControlVelocity = Some(0)
         sessionData.terminals.CancelAllProximityUnits()
-        if (player.VisibleSlots.contains(player.DrawnSlot)) {
-          player.DrawnSlot = Player.HandsDownSlot
-          sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, unk1=true))
-          continent.AvatarEvents ! AvatarServiceMessage(
-            continent.id,
-            AvatarAction.SendResponse(player.GUID, ObjectHeldMessage(player.GUID, player.LastDrawnSlot, unk1=false))
-          )
-        }
         sendResponse(PlanetsideAttributeMessage(vehicle_guid, attribute_type=22, attribute_value=1L)) //mount points off
         sendResponse(PlanetsideAttributeMessage(player.GUID, attribute_type=21, vehicle_guid)) //ownership
         vehicle.MountPoints.find { case (_, mp) => mp.seatIndex == 0 }.collect {

@@ -114,16 +114,16 @@ class SessionLocalHandlers(
       case LocalResponse.HackObject(targetGuid, unk1, unk2) =>
         HackObject(targetGuid, unk1, unk2)
 
-      case LocalResponse.SendPlanetsideAttributeMessage(targetGuid, attributeType, attributeValue) =>
+      case LocalResponse.PlanetsideAttribute(targetGuid, attributeType, attributeValue) =>
         SendPlanetsideAttributeMessage(targetGuid, attributeType, attributeValue)
 
-      case LocalResponse.SendGenericObjectActionMessage(targetGuid, actionNumber) =>
+      case LocalResponse.GenericObjectAction(targetGuid, actionNumber) =>
         sendResponse(GenericObjectActionMessage(targetGuid, actionNumber))
 
-      case LocalResponse.SendGenericActionMessage(actionNumber) =>
+      case LocalResponse.GenericActionMessage(actionNumber) =>
         sendResponse(GenericActionMessage(actionNumber))
 
-      case LocalResponse.SendChatMsg(msg) =>
+      case LocalResponse.ChatMessage(msg) =>
         sendResponse(msg)
 
       case LocalResponse.SendPacket(packet) =>
@@ -142,7 +142,7 @@ class SessionLocalHandlers(
         sendResponse(TriggerSoundMessage(TriggeredSound.LLUDeconstruct, position, unk=20, volume=0.8000001f))
         sendResponse(ObjectDeleteMessage(lluGuid, unk1=0))
         // If the player was holding the LLU, remove it from their tracked special item slot
-        sessionData.specialItemSlotGuid.foreach { case guid if guid == lluGuid =>
+        sessionData.specialItemSlotGuid.collect { case guid if guid == lluGuid =>
           sessionData.specialItemSlotGuid = None
           player.Carrying = None
         }
@@ -198,20 +198,19 @@ class SessionLocalHandlers(
       case LocalResponse.TriggerSound(sound, pos, unk, volume) =>
         sendResponse(TriggerSoundMessage(sound, pos, unk, volume))
 
-      case LocalResponse.UpdateForceDomeStatus(buildingGuid, activated) if activated =>
+      case LocalResponse.UpdateForceDomeStatus(buildingGuid, true) =>
         sendResponse(GenericObjectActionMessage(buildingGuid, 11))
 
-      case LocalResponse.UpdateForceDomeStatus(buildingGuid, _) =>
+      case LocalResponse.UpdateForceDomeStatus(buildingGuid, false) =>
         sendResponse(GenericObjectActionMessage(buildingGuid, 12))
 
       case LocalResponse.RechargeVehicleWeapon(vehicleGuid, weaponGuid) if resolvedPlayerGuid == guid =>
-        continent.GUID(vehicleGuid).collect { case vehicle: MountableWeapons =>
-          vehicle.PassengerInSeat(player).collect { seat_num =>
-            vehicle.WeaponControlledFromSeat(seat_num).collect { case weapon: Tool if weapon.GUID == weaponGuid =>
-              sendResponse(InventoryStateMessage(weapon.AmmoSlot.Box.GUID, weapon.GUID, weapon.Magazine))
-            }
+        continent.GUID(vehicleGuid)
+          .collect { case vehicle: MountableWeapons => (vehicle, vehicle.PassengerInSeat(player)) }
+          .collect { case (vehicle, Some(seat_num)) => vehicle.WeaponControlledFromSeat(seat_num) }
+          .collect { case weapon: Tool if weapon.GUID == weaponGuid =>
+            sendResponse(InventoryStateMessage(weapon.AmmoSlot.Box.GUID, weapon.GUID, weapon.Magazine))
           }
-        }
 
       case _ => ()
     }

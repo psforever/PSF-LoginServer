@@ -257,10 +257,7 @@ class SessionData(
         }
       case None => ()
     }
-    val wepInHand: Boolean = player.Slot(player.DrawnSlot).Equipment match {
-      case Some(item) => item.Definition == GlobalDefinitions.bolt_driver
-      case _ => false
-    }
+    val eagleEye: Boolean = canSeeReallyFar
     continent.AvatarEvents ! AvatarServiceMessage(
       continent.id,
       AvatarAction.PlayerState(
@@ -276,7 +273,7 @@ class SessionData(
         jumpThrust,
         isCloaking,
         player.spectator,
-        wepInHand
+        eagleEye
       )
     )
     squad.updateSquad()
@@ -2908,6 +2905,23 @@ class SessionData(
       heightHistory = zHeight
     }
     heightLast = zHeight
+  }
+
+  def canSeeReallyFar: Boolean = {
+    findEquipment().exists {
+      case weapon: Tool
+        if weapon.Size == EquipmentSize.Rifle &&
+          (weapon.Projectile ne GlobalDefinitions.no_projectile) &&
+          player.Crouching &&
+          player.avatar
+            .implants
+            .exists { p =>
+              p.collect { implant => implant.definition.implantType == ImplantType.RangeMagnifier && implant.initialized }.nonEmpty
+            } =>
+        true
+      case item =>
+        item.Definition == GlobalDefinitions.bolt_driver || item.Definition == GlobalDefinitions.heavy_sniper
+    }
   }
 
   def displayCharSavedMsgThenRenewTimer(fixedLen: Long, varLen: Long): Unit = {

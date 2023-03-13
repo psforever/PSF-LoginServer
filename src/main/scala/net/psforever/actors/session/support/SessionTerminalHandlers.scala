@@ -28,19 +28,19 @@ class SessionTerminalHandlers(
   /* packets */
 
   def handleItemTransaction(pkt: ItemTransactionMessage): Unit = {
-    val ItemTransactionMessage(terminalGuid, _, _, _, _, _) = pkt
+    val ItemTransactionMessage(terminalGuid, transactionType, _, itemName, _, _) = pkt
     continent.GUID(terminalGuid) match {
-      case Some(term: Terminal) =>
-        if (lastTerminalOrderFulfillment) {
-          log.trace(s"ItemTransactionMessage: ${player.Name} is submitting an order")
-          lastTerminalOrderFulfillment = false
-          sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
-          term.Actor ! Terminal.Request(player, pkt)
-        }
-      case Some(obj: PlanetSideGameObject) =>
-        log.error(s"ItemTransaction: $obj is not a terminal, ${player.Name}")
+      case Some(term: Terminal) if lastTerminalOrderFulfillment =>
+        log.info(s"${player.Name} is submitting an order - $transactionType of $itemName")
+        lastTerminalOrderFulfillment = false
+        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+        term.Actor ! Terminal.Request(player, pkt)
+      case Some(_: Terminal) =>
+        log.warn(s"Please Wait until your previous order has been fulfilled, ${player.Name}")
+      case Some(obj) =>
+        log.error(s"ItemTransaction: ${obj.Definition.Name} is not a terminal, ${player.Name}")
       case _ =>
-        log.error(s"ItemTransaction: $terminalGuid does not exist, ${player.Name}")
+        log.error(s"ItemTransaction: entity with guid=${terminalGuid.guid} does not exist, ${player.Name}")
     }
   }
 
@@ -50,9 +50,9 @@ class SessionTerminalHandlers(
       case Some(obj: Terminal with ProximityUnit) =>
         HandleProximityTerminalUse(obj)
       case Some(obj) =>
-        log.warn(s"ProximityTerminalUse: $obj does not have proximity effects for ${player.Name}")
+        log.warn(s"ProximityTerminalUse: ${obj.Definition.Name} guid=${objectGuid.guid} is not ready to implement proximity effects")
       case None =>
-        log.error(s"ProximityTerminalUse: ${player.Name} can not find an object with guid $objectGuid")
+        log.error(s"ProximityTerminalUse: ${player.Name} can not find an object with guid ${objectGuid.guid}")
     }
   }
 
@@ -66,7 +66,8 @@ class SessionTerminalHandlers(
    */
   def handle(tplayer: Player, msg: ItemTransactionMessage, order: Terminal.Exchange): Unit = {
     order match {
-      case Terminal.BuyEquipment(item) if tplayer.avatar.purchaseCooldown(item.Definition).nonEmpty =>
+      case Terminal.BuyEquipment(item)
+        if tplayer.avatar.purchaseCooldown(item.Definition).nonEmpty =>
         lastTerminalOrderFulfillment = true
         sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
 
@@ -100,19 +101,16 @@ class SessionTerminalHandlers(
         avatarActor ! AvatarActor.SellImplant(msg.terminal_guid, implant)
         lastTerminalOrderFulfillment = true
 
-      case Terminal.BuyVehicle(vehicle, _, _) if tplayer.avatar.purchaseCooldown(vehicle.Definition).nonEmpty =>
+      case Terminal.BuyVehicle(vehicle, _, _)
+        if tplayer.avatar.purchaseCooldown(vehicle.Definition).nonEmpty =>
         sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
         lastTerminalOrderFulfillment = true
 
       case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
         continent.map.terminalToSpawnPad
           .find { case (termid, _) => termid == msg.terminal_guid.guid }
-          .map {
-            case (a: Int, b: Int) => (continent.GUID(a), continent.GUID(b))
-            case _ => (None, None)
-          }
-          .get match {
-          case (Some(term: Terminal), Some(pad: VehicleSpawnPad)) =>
+          .map { case (a: Int, b: Int) => (continent.GUID(a), continent.GUID(b)) }
+          .collect { case (Some(term: Terminal), Some(pad: VehicleSpawnPad)) =>
             avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
             vehicle.Faction = tplayer.Faction
             vehicle.Position = pad.Position
@@ -143,27 +141,30 @@ class SessionTerminalHandlers(
             if (GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
               sendResponse(UnuseItemMessage(player.GUID, msg.terminal_guid))
             }
-          case _ =>
-            log.error(
-              s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
-            )
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
+          }.orElse {
+          log.error(
+            s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
+          )
+          sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
+          None
         }
 
-      case Terminal.NoDeal() =>
-        val order: String = if (msg == null) {
-          "missing order"
-        } else {
-          s"${msg.transaction_type} order"
-        }
-        log.warn(s"NoDeal: ${tplayer.Name} made a request but the terminal rejected the $order")
-        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, msg.transaction_type, success = false))
+      case Terminal.NoDeal() if msg != null =>
+        val transaction = msg.transaction_type
+        log.warn(s"NoDeal: ${tplayer.Name} made a request but the terminal rejected the ${transaction.toString} order")
+        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, transaction, success = false))
         lastTerminalOrderFulfillment = true
 
       case _ =>
-        val transaction = msg.transaction_type
-        log.warn(s"n/a: ${tplayer.Name} made a $transaction request but terminal#${msg.terminal_guid.guid} is missing or wrong")
-        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, transaction, success = false))
+        val terminal = msg.terminal_guid.guid
+        continent.GUID(terminal) match {
+          case Some(term: Terminal) =>
+            log.warn(s"NoDeal?: ${tplayer.Name} made a request but the ${term.Definition.Name}#$terminal rejected the missing order")
+          case Some(_) =>
+            log.warn(s"NoDeal?: ${tplayer.Name} made a request to a non-terminal entity#$terminal")
+          case None =>
+            log.warn(s"NoDeal?: ${tplayer.Name} made a request to a missing entity#$terminal")
+        }
         lastTerminalOrderFulfillment = true
     }
   }
@@ -239,7 +240,6 @@ class SessionTerminalHandlers(
    */
   def StartUsingProximityUnit(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject): Unit = {
     val term_guid = terminal.GUID
-    //log.trace(s"StartUsingProximityUnit: ${player.Name} wants to use ${terminal.Definition.Name}@${term_guid.guid} on $target")
     if (player.isAlive) {
       target match {
         case _: Player =>
@@ -267,7 +267,7 @@ class SessionTerminalHandlers(
    */
   def StopUsingProximityUnit(terminal: Terminal with ProximityUnit): Unit = {
     FindProximityUnitTargetsInScope(terminal).foreach { target =>
-      LocalStopUsingProximityUnit(terminal, target)
+      LocalStopUsingProximityUnit(terminal)
       terminal.Actor ! CommonMessages.Unuse(player, Some(target))
     }
   }
@@ -280,7 +280,7 @@ class SessionTerminalHandlers(
    * Other sorts of proximity-based units are put on a timer.
    * @param terminal the proximity-based unit
    */
-  def LocalStopUsingProximityUnit(terminal: Terminal with ProximityUnit, target: PlanetSideGameObject): Unit = {
+  def LocalStopUsingProximityUnit(terminal: Terminal with ProximityUnit): Unit = {
     ForgetAllProximityTerminals(terminal.GUID)
   }
 
@@ -291,12 +291,23 @@ class SessionTerminalHandlers(
    * @see `postStop`
    */
   def CancelAllProximityUnits(): Unit = {
-    continent.GUID(usingMedicalTerminal).collect {
+    usingMedicalTerminal.foreach { CancelAllProximityUnits }
+  }
+
+  /**
+   * Cease all current interactions with proximity-based units.
+   * Pair with `PlayerActionsToCancel`, except when logging out (stopping).
+   * This operations may invoke callback messages.
+   * @param guid globally unique identifier for a proximity terminal
+   * @see `postStop`
+   */
+  def CancelAllProximityUnits(guid: PlanetSideGUID): Unit = {
+    continent.GUID(guid).collect {
       case terminal: Terminal with ProximityUnit =>
         FindProximityUnitTargetsInScope(terminal).foreach(target =>
           terminal.Actor ! CommonMessages.Unuse(player, Some(target))
         )
-        ForgetAllProximityTerminals(usingMedicalTerminal.get)
+        ForgetAllProximityTerminals(guid)
     }
   }
 
