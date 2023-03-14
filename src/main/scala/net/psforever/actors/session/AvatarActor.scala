@@ -539,7 +539,8 @@ object AvatarActor {
     *         `false`, otherwise
     */
   def onlineIfNotIgnored(onlinePlayerName: String, observerName: String): Boolean = {
-    LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(onlinePlayerName) }).headOption match {
+    val onlinePlayerNameLower = onlinePlayerName.toLowerCase()
+    LivePlayerList.WorldPopulation({ case (_, a) => a.name.toLowerCase().equals(onlinePlayerNameLower) }).headOption match {
       case Some(onlinePlayer) => onlineIfNotIgnored(onlinePlayer, observerName)
       case _ => false
     }
@@ -582,7 +583,8 @@ object AvatarActor {
     *         `false`, otherwise
     */
   def onlineIfNotIgnored(onlinePlayer: Avatar, observedName: String): Boolean = {
-    !onlinePlayer.people.ignored.exists { f => f.name.equals(observedName) }
+    val observedNameLower = observedName.toLowerCase()
+    !onlinePlayer.people.ignored.exists { f => f.name.toLowerCase().equals(observedNameLower) }
   }
 
   /**
