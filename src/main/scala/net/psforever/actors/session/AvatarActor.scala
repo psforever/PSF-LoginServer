@@ -943,6 +943,7 @@ class AvatarActor(
         case DeleteAvatar(id) =>
           import ctx._
           val performDeletion = for {
+            _ <- ctx.run(query[persistence.Shortcut].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Loadout].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Locker].filter(_.avatarId == lift(id)).delete)
@@ -1893,9 +1894,10 @@ class AvatarActor(
     )
       .onComplete {
         case Success(_) =>
+          val zone = session.get.zone
           avatarCopy(avatar.copy(decoration = avatar.decoration.copy(cosmetics = Some(cosmetics))))
-          session.get.zone.AvatarEvents ! AvatarServiceMessage(
-            session.get.zone.id,
+          zone.AvatarEvents ! AvatarServiceMessage(
+            zone.id,
             AvatarAction.PlanetsideAttributeToAll(
               session.get.player.GUID,
               106,
@@ -2827,22 +2829,27 @@ class AvatarActor(
     val next = BattleRank.withExperience(bep).value
     lazy val br24 = BattleRank.BR24.value
     val result = for {
-      _ <-
-        if (current >= br24 && next < br24) setCosmetics(Set())
-        else Future.successful(())
       r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatar.id)).update(_.bep -> lift(bep)))
     } yield r
     result.onComplete {
       case Success(_) =>
         val sess = session.get
         val zone = sess.zone
-        val pguid = sess.player.GUID
+        val zoneId = zone.id
+        val events = zone.AvatarEvents
+        val player = sess.player
+        val pguid = player.GUID
         val localModifier = modifier
         sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(pguid, bep, localModifier))
-        zone.AvatarEvents ! AvatarServiceMessage(
-          zone.id,
-          AvatarAction.PlanetsideAttributeToAll(pguid, 17, bep)
-        )
+        events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(pguid, 17, bep))
+        if (current < br24 && next >= br24 || current >= br24 && next < br24) {
+          setCosmetics(Set()).onComplete { _ =>
+            val evts = events
+            val name = player.Name
+            val guid = pguid
+            evts ! AvatarServiceMessage(name, AvatarAction.PlanetsideAttributeToAll(guid, 106, 1)) //set to no helmet
+          }
+        }
         // when the level is reduced, take away any implants over the implant slot limit
         val implants = avatar.implants.zipWithIndex.map {
           case (implant, index) =>
@@ -2855,9 +2862,7 @@ class AvatarActor(
               )
                 .onComplete {
                   case Success(_) =>
-                    sessionActor ! SessionActor.SendResponse(
-                      AvatarImplantMessage(pguid, ImplantAction.Remove, index, 0)
-                    )
+                    sessionActor ! SessionActor.SendResponse(AvatarImplantMessage(pguid, ImplantAction.Remove, index, 0))
                   case Failure(exception) =>
                     log.error(exception)("db failure")
                 }

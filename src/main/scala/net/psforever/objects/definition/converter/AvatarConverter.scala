@@ -135,8 +135,16 @@ object AvatarConverter {
   }
 
   def MakeDetailedCharacterData(obj: Player): Option[Int] => DetailedCharacterData = {
-    val maxOpt: Option[Long] = if (obj.ExoSuit == ExoSuitType.MAX) { Some(0L) }
-    else { None }
+    val maxOpt: Option[Long] = if (obj.ExoSuit == ExoSuitType.MAX) {
+      Some(0L)
+    } else {
+      None
+    }
+    val cosmetics = if (BattleRank.BR24.experience >= obj.avatar.bep) {
+      obj.avatar.decoration.cosmetics
+    } else {
+      None
+    }
     val ba: DetailedCharacterA = DetailedCharacterA(
       obj.avatar.bep,
       obj.avatar.cep,
@@ -173,7 +181,7 @@ object AvatarConverter {
       Nil,
       Nil,
       unkC = false,
-      obj.avatar.decoration.cosmetics
+      cosmetics
     )
     pad_length: Option[Int] => DetailedCharacterData(ba, bb(obj.avatar.bep, pad_length))(pad_length)
   }

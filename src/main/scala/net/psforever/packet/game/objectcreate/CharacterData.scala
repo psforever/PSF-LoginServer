@@ -183,7 +183,12 @@ object CharacterData extends Marshallable[CharacterData] {
       },
       {
         case CharacterData(_, _, uniform, unk, cr, implant_effects, cosmetics) =>
-          Attempt.Successful(uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil)
+          val cos = if (BattleRank.showCosmetics(uniform)) {
+            cosmetics.orElse(Some(Set[Cosmetic]()))
+          } else {
+            None
+          }
+          Attempt.Successful(uniform :: unk :: cr :: implant_effects :: cos :: HNil)
 
         case _ =>
           Attempt.Failure(Err("invalid character data; can not decode"))
