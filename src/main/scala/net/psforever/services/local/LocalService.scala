@@ -145,7 +145,7 @@ class LocalService(zone: Zone) extends Actor {
             LocalServiceResponse(
               s"/$forChannel/Local",
               player_guid,
-              LocalResponse.SendPlanetsideAttributeMessage(target_guid, attribute_number, attribute_value)
+              LocalResponse.PlanetsideAttribute(target_guid, attribute_number, attribute_value)
             )
           )
         case LocalAction.SendGenericObjectActionMessage(player_guid, target_guid, action_number) =>
@@ -153,7 +153,7 @@ class LocalService(zone: Zone) extends Actor {
             LocalServiceResponse(
               s"/$forChannel/Local",
               player_guid,
-              LocalResponse.SendGenericObjectActionMessage(target_guid, action_number)
+              LocalResponse.GenericObjectAction(target_guid, action_number)
             )
           )
 
@@ -162,7 +162,7 @@ class LocalService(zone: Zone) extends Actor {
             LocalServiceResponse(
               s"/$forChannel/Local",
               player_guid,
-              LocalResponse.SendChatMsg(msg)
+              LocalResponse.ChatMessage(msg)
             )
           )
 
@@ -171,7 +171,7 @@ class LocalService(zone: Zone) extends Actor {
             LocalServiceResponse(
               s"/$forChannel/Local",
               player_guid,
-              LocalResponse.SendGenericActionMessage(action_number)
+              LocalResponse.GenericActionMessage(action_number)
             )
           )
         case LocalAction.RouterTelepadMessage(msg) =>

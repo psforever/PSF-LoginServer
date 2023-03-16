@@ -5,13 +5,6 @@ import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.scaladsl.adapter._
-import net.psforever.objects.avatar.{Shortcut => AvatarShortcut}
-import net.psforever.objects.definition.ImplantDefinition
-import net.psforever.packet.game.{CreateShortcutMessage, Shortcut}
-import net.psforever.packet.game.objectcreate.DrawnSlot
-import net.psforever.types.ChatMessageType.{CMT_GMOPEN, UNK_227}
-import net.psforever.types.{ExperienceType, ImplantType}
-
 import scala.collection.mutable
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
@@ -19,18 +12,20 @@ import scala.concurrent.duration._
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.login.WorldSession
 import net.psforever.objects.{Default, Player, Session}
-import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank}
+import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank, Shortcut => AvatarShortcut}
+import net.psforever.objects.definition.ImplantDefinition
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
 import net.psforever.objects.zones.Zoning
-import net.psforever.packet.game.{ChatMsg, DeadState, RequestDestroyMessage, ZonePopulationUpdateMessage}
+import net.psforever.packet.game.objectcreate.DrawnSlot
+import net.psforever.packet.game.{ChatMsg, CreateShortcutMessage, DeadState, RequestDestroyMessage, Shortcut, ZonePopulationUpdateMessage}
 import net.psforever.services.{CavernRotationService, InterstellarClusterService}
 import net.psforever.services.chat.ChatService
 import net.psforever.services.chat.ChatService.ChatChannel
-import net.psforever.types.ChatMessageType.UNK_229
-import net.psforever.types.{ChatMessageType, Cosmetic, PlanetSideEmpire, PlanetSideGUID, Vector3}
+import net.psforever.types.ChatMessageType.{CMT_GMOPEN, UNK_227, UNK_229}
+import net.psforever.types.{ChatMessageType, Cosmetic, ExperienceType, ImplantType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.util.{Config, PointOfInterest}
 import net.psforever.zones.Zones
 
@@ -998,9 +993,8 @@ class ChatActor(
               sessionActor ! SessionActor.SendResponse(message)
             case CMT_VOICE =>
               if (
-                session.zone == fromSession.zone &&
-                Vector3.DistanceSquared(session.player.Position, fromSession.player.Position) < 625 ||
-                message.contents.startsWith("SH") // tactical squad voice macro
+                (session.zone == fromSession.zone || message.contents.startsWith("SH")) && /*tactical squad voice macro*/
+                  Vector3.DistanceSquared(session.player.Position, fromSession.player.Position) < 1600
               ) {
                 val name = fromSession.avatar.name
                 if (!session.avatar.people.ignored.exists { f => f.name.equals(name) } ||

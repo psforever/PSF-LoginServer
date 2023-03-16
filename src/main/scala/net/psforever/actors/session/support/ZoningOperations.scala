@@ -1446,14 +1446,11 @@ class ZoningOperations(
     Deployables.Disown(continent, avatar, context.self)
     spawn.drawDeloyableIcon = spawn.RedrawDeployableIcons //important for when SetCurrentAvatar initializes the UI next zone
     sessionData.squad.squadSetup = sessionData.squad.ZoneChangeSquadSetup
-    val lastSeen = sessionData.avatarResponse.lastSeenStreamMessage
-    lastSeen.indices.foreach { index =>
-      lastSeen(index) = 0
-    }
+    sessionData.avatarResponse.lastSeenStreamMessage = SessionAvatarHandlers.blankUpstreamMessages(65535)
   }
 
   /**
-   * Attempt to tranfer to the player's faction-specific sanctuary continent.
+   * Attempt to transfer to the player's faction-specific sanctuary continent.
    * If the server thinks the player is already on his sanctuary continent, and dead,
    * it will disconnect the player under the assumption that an error has occurred.
    * Eventually, this functionality should support better error-handling before it jumps to the conclusion:

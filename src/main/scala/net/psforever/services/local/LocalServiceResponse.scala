@@ -38,12 +38,12 @@ object LocalResponse {
   final case class HackObject(target_guid: PlanetSideGUID, unk1: Long, unk2: Long) extends Response
 
   final case class SendPacket(packet: PlanetSideGamePacket) extends Response
-  final case class SendPlanetsideAttributeMessage(target_guid: PlanetSideGUID, attribute_number: PlanetsideAttributeEnum, attribute_value: Long)
+  final case class PlanetsideAttribute(target_guid: PlanetSideGUID, attribute_number: PlanetsideAttributeEnum, attribute_value: Long)
       extends Response
-  final case class SendGenericObjectActionMessage(target_guid: PlanetSideGUID, action_number: GenericObjectActionEnum)
+  final case class GenericObjectAction(target_guid: PlanetSideGUID, action_number: GenericObjectActionEnum)
     extends Response
-  final case class SendChatMsg(msg: ChatMsg) extends Response
-  final case class SendGenericActionMessage(action_num: GenericAction) extends Response
+  final case class ChatMessage(msg: ChatMsg) extends Response
+  final case class GenericActionMessage(action_num: GenericAction) extends Response
 
   final case class LluSpawned(llu: CaptureFlag) extends Response
   final case class LluDespawned(guid: PlanetSideGUID, position: Vector3) extends Response

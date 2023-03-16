@@ -7,6 +7,7 @@ import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects._
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game._
+import net.psforever.services.Service
 import net.psforever.services.local.LocalResponse
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, Vector3}
 
@@ -21,99 +22,108 @@ class SessionLocalHandlers(
    * @param reply     na
    */
   def handle(toChannel: String, guid: PlanetSideGUID, reply: LocalResponse.Response): Unit = {
-    val tplayer_guid = if (player.HasGUID) { player.GUID }
-    else { PlanetSideGUID(0) }
+    val resolvedPlayerGuid = if (player.HasGUID) {
+      player.GUID
+    } else {
+      Service.defaultPlayerGUID
+    }
+    val isNotSameTarget = resolvedPlayerGuid != guid
     reply match {
-      case LocalResponse.DeployableMapIcon(behavior, deployInfo) =>
-        if (tplayer_guid != guid) {
-          sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
-        }
+      case LocalResponse.DeployableMapIcon(behavior, deployInfo) if isNotSameTarget =>
+        sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
 
       case LocalResponse.DeployableUIFor(item) =>
         sessionData.updateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
 
       case LocalResponse.Detonate(dguid, _: BoomerDeployable) =>
         sendResponse(TriggerEffectMessage(dguid, "detonate_boomer"))
-        sendResponse(PlanetsideAttributeMessage(dguid, 29, 1))
-        sendResponse(ObjectDeleteMessage(dguid, 0))
+        sendResponse(PlanetsideAttributeMessage(dguid, attribute_type=29, attribute_value=1))
+        sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
       case LocalResponse.Detonate(dguid, _: ExplosiveDeployable) =>
-        sendResponse(GenericObjectActionMessage(dguid, 19))
-        sendResponse(PlanetsideAttributeMessage(dguid, 29, 1))
-        sendResponse(ObjectDeleteMessage(dguid, 0))
+        sendResponse(GenericObjectActionMessage(dguid, code=19))
+        sendResponse(PlanetsideAttributeMessage(dguid, attribute_type=29, attribute_value=1))
+        sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
       case LocalResponse.Detonate(_, obj) =>
         log.warn(s"LocalResponse.Detonate: ${obj.Definition.Name} not configured to explode correctly")
 
-      case LocalResponse.DoorOpens(door_guid) =>
-        if (tplayer_guid != guid) {
-          sendResponse(GenericObjectStateMsg(door_guid, 16))
-        }
+      case LocalResponse.DoorOpens(doorGuid) if isNotSameTarget =>
+        sendResponse(GenericObjectStateMsg(doorGuid, state=16))
 
-      case LocalResponse.DoorCloses(door_guid) => //door closes for everyone
-        sendResponse(GenericObjectStateMsg(door_guid, 17))
+      case LocalResponse.DoorCloses(doorGuid) => //door closes for everyone
+        sendResponse(GenericObjectStateMsg(doorGuid, state=17))
+
+      case LocalResponse.EliminateDeployable(obj: TurretDeployable, dguid, _, _) if obj.Destroyed =>
+        sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
       case LocalResponse.EliminateDeployable(obj: TurretDeployable, dguid, pos, _) =>
-        if (obj.Destroyed) {
-          sendResponse(ObjectDeleteMessage(dguid, 0))
-        } else {
-          obj.Destroyed = true
-          DeconstructDeployable(
-            obj,
-            dguid,
-            pos,
-            obj.Orientation,
-            if (obj.MountPoints.isEmpty) 2 else 1
-          )
-        }
+        obj.Destroyed = true
+        DeconstructDeployable(
+          obj,
+          dguid,
+          pos,
+          obj.Orientation,
+          deletionType= if (obj.MountPoints.isEmpty) { 2 } else { 1 }
+        )
+
+      case LocalResponse.EliminateDeployable(obj: ExplosiveDeployable, dguid, _, _)
+        if obj.Destroyed || obj.Jammed || obj.Health == 0 =>
+        sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
       case LocalResponse.EliminateDeployable(obj: ExplosiveDeployable, dguid, pos, effect) =>
-        if (obj.Destroyed || obj.Jammed || obj.Health == 0) {
-          sendResponse(ObjectDeleteMessage(dguid, 0))
-        } else {
-          obj.Destroyed = true
-          DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
-        }
+        obj.Destroyed = true
+        DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
+
+      case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, _, _) if obj.Active && obj.Destroyed =>
+        //if active, deactivate
+        obj.Active = false
+        sendResponse(GenericObjectActionMessage(dguid, code=29))
+        sendResponse(GenericObjectActionMessage(dguid, code=30))
+        //standard deployable elimination behavior
+        sendResponse(ObjectDeleteMessage(dguid, unk1=0))
+
+      case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, pos, _) if obj.Active =>
+        //if active, deactivate
+        obj.Active = false
+        sendResponse(GenericObjectActionMessage(dguid, code=29))
+        sendResponse(GenericObjectActionMessage(dguid, code=30))
+        //standard deployable elimination behavior
+        obj.Destroyed = true
+        DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)
+
+      case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, _, _) if obj.Destroyed =>
+        //standard deployable elimination behavior
+        sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
       case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, pos, _) =>
-        //if active, deactivate
-        if (obj.Active) {
-          obj.Active = false
-          sendResponse(GenericObjectActionMessage(dguid, 29))
-          sendResponse(GenericObjectActionMessage(dguid, 30))
-        }
         //standard deployable elimination behavior
-        if (obj.Destroyed) {
-          sendResponse(ObjectDeleteMessage(dguid, 0))
-        } else {
-          obj.Destroyed = true
-          DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType = 2)
-        }
+        obj.Destroyed = true
+        DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)
+
+      case LocalResponse.EliminateDeployable(obj, dguid, _, _) if obj.Destroyed =>
+        sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
       case LocalResponse.EliminateDeployable(obj, dguid, pos, effect) =>
-        if (obj.Destroyed) {
-          sendResponse(ObjectDeleteMessage(dguid, 0))
-        } else {
-          obj.Destroyed = true
-          DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
-        }
+        obj.Destroyed = true
+        DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
 
-      case LocalResponse.SendHackMessageHackCleared(target_guid, unk1, unk2) =>
-        sendResponse(HackMessage(0, target_guid, guid, 0, unk1, HackState.HackCleared, unk2))
+      case LocalResponse.SendHackMessageHackCleared(targetGuid, unk1, unk2) =>
+        sendResponse(HackMessage(unk1=0, targetGuid, guid, progress=0, unk1, HackState.HackCleared, unk2))
 
-      case LocalResponse.HackObject(target_guid, unk1, unk2) =>
-        HackObject(target_guid, unk1, unk2)
+      case LocalResponse.HackObject(targetGuid, unk1, unk2) =>
+        HackObject(targetGuid, unk1, unk2)
 
-      case LocalResponse.SendPlanetsideAttributeMessage(target_guid, attribute_number, attribute_value) =>
-        SendPlanetsideAttributeMessage(target_guid, attribute_number, attribute_value)
+      case LocalResponse.PlanetsideAttribute(targetGuid, attributeType, attributeValue) =>
+        SendPlanetsideAttributeMessage(targetGuid, attributeType, attributeValue)
 
-      case LocalResponse.SendGenericObjectActionMessage(target_guid, action_number) =>
-        sendResponse(GenericObjectActionMessage(target_guid, action_number))
+      case LocalResponse.GenericObjectAction(targetGuid, actionNumber) =>
+        sendResponse(GenericObjectActionMessage(targetGuid, actionNumber))
 
-      case LocalResponse.SendGenericActionMessage(action_number) =>
-        sendResponse(GenericActionMessage(action_number))
+      case LocalResponse.GenericActionMessage(actionNumber) =>
+        sendResponse(GenericActionMessage(actionNumber))
 
-      case LocalResponse.SendChatMsg(msg) =>
+      case LocalResponse.ChatMessage(msg) =>
         sendResponse(msg)
 
       case LocalResponse.SendPacket(packet) =>
@@ -121,49 +131,43 @@ class SessionLocalHandlers(
 
       case LocalResponse.LluSpawned(llu) =>
         // Create LLU on client
-        sendResponse(
-          ObjectCreateMessage(
-            llu.Definition.ObjectId,
-            llu.GUID,
-            llu.Definition.Packet.ConstructorData(llu).get
-          )
-        )
-        sendResponse(TriggerSoundMessage(TriggeredSound.LLUMaterialize, llu.Position, unk = 20, 0.8000001f))
+        sendResponse(ObjectCreateMessage(
+          llu.Definition.ObjectId,
+          llu.GUID,
+          llu.Definition.Packet.ConstructorData(llu).get
+        ))
+        sendResponse(TriggerSoundMessage(TriggeredSound.LLUMaterialize, llu.Position, unk=20, volume=0.8000001f))
 
       case LocalResponse.LluDespawned(lluGuid, position) =>
-        sendResponse(TriggerSoundMessage(TriggeredSound.LLUDeconstruct, position, unk = 20, 0.8000001f))
-        sendResponse(ObjectDeleteMessage(lluGuid, 0))
+        sendResponse(TriggerSoundMessage(TriggeredSound.LLUDeconstruct, position, unk=20, volume=0.8000001f))
+        sendResponse(ObjectDeleteMessage(lluGuid, unk1=0))
         // If the player was holding the LLU, remove it from their tracked special item slot
-        sessionData.specialItemSlotGuid match {
-          case Some(guid) if guid == lluGuid =>
-            sessionData.specialItemSlotGuid = None
-            player.Carrying = None
-          case _ => ()
+        sessionData.specialItemSlotGuid.collect { case guid if guid == lluGuid =>
+          sessionData.specialItemSlotGuid = None
+          player.Carrying = None
         }
 
-      case LocalResponse.ObjectDelete(object_guid, unk) =>
-        if (tplayer_guid != guid) {
-          sendResponse(ObjectDeleteMessage(object_guid, unk))
-        }
+      case LocalResponse.ObjectDelete(objectGuid, unk) if isNotSameTarget =>
+        sendResponse(ObjectDeleteMessage(objectGuid, unk))
 
       case LocalResponse.ProximityTerminalEffect(object_guid, true) =>
-        sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, unk=true))
+        sendResponse(ProximityTerminalUseMessage(Service.defaultPlayerGUID, object_guid, unk=true))
 
-      case LocalResponse.ProximityTerminalEffect(object_guid, false) =>
-        sendResponse(ProximityTerminalUseMessage(PlanetSideGUID(0), object_guid, unk=false))
-        sessionData.terminals.ForgetAllProximityTerminals(object_guid)
+      case LocalResponse.ProximityTerminalEffect(objectGuid, false) =>
+        sendResponse(ProximityTerminalUseMessage(Service.defaultPlayerGUID, objectGuid, unk=false))
+        sessionData.terminals.ForgetAllProximityTerminals(objectGuid)
 
       case LocalResponse.RouterTelepadMessage(msg) =>
-        sendResponse(ChatMsg(ChatMessageType.UNK_229, wideContents=false, "", msg, None))
+        sendResponse(ChatMsg(ChatMessageType.UNK_229, wideContents=false, recipient="", msg, note=None))
 
-      case LocalResponse.RouterTelepadTransport(passenger_guid, src_guid, dest_guid) =>
-        sessionData.useRouterTelepadEffect(passenger_guid, src_guid, dest_guid)
+      case LocalResponse.RouterTelepadTransport(passengerGuid, srcGuid, destGuid) =>
+        sessionData.useRouterTelepadEffect(passengerGuid, srcGuid, destGuid)
 
       case LocalResponse.SendResponse(msg) =>
         sendResponse(msg)
 
-      case LocalResponse.SetEmpire(object_guid, empire) =>
-        sendResponse(SetEmpireMessage(object_guid, empire))
+      case LocalResponse.SetEmpire(objectGuid, empire) =>
+        sendResponse(SetEmpireMessage(objectGuid, empire))
 
       case LocalResponse.ShuttleEvent(ev) =>
         val msg = OrbitalShuttleTimeMsg(
@@ -172,7 +176,7 @@ class SessionLocalHandlers(
           ev.t1,
           ev.t2,
           ev.t3,
-          ev.pairs.map { case ((a, b), c) => PadAndShuttlePair(a, b, c) }
+          pairs=ev.pairs.map { case ((a, b), c) => PadAndShuttlePair(a, b, c) }
         )
         sendResponse(msg)
 
@@ -183,42 +187,32 @@ class SessionLocalHandlers(
         sendResponse(ObjectDetachMessage(pguid, sguid, pos, orient))
 
       case LocalResponse.ShuttleState(sguid, pos, orient, state) =>
-        sendResponse(VehicleStateMessage(sguid, 0, pos, orient, None, Some(state), 0, 0, 15, is_decelerating=false, is_cloaked=false))
+        sendResponse(VehicleStateMessage(sguid, unk1=0, pos, orient, vel=None, Some(state), unk3=0, unk4=0, wheel_direction=15, is_decelerating=false, is_cloaked=false))
 
-      case LocalResponse.ToggleTeleportSystem(router, system_plan) =>
-        sessionData.toggleTeleportSystem(router, system_plan)
+      case LocalResponse.ToggleTeleportSystem(router, systemPlan) =>
+        sessionData.toggleTeleportSystem(router, systemPlan)
 
-      case LocalResponse.TriggerEffect(target_guid, effect, effectInfo, triggerLocation) =>
-        sendResponse(TriggerEffectMessage(target_guid, effect, effectInfo, triggerLocation))
+      case LocalResponse.TriggerEffect(targetGuid, effect, effectInfo, triggerLocation) =>
+        sendResponse(TriggerEffectMessage(targetGuid, effect, effectInfo, triggerLocation))
 
       case LocalResponse.TriggerSound(sound, pos, unk, volume) =>
         sendResponse(TriggerSoundMessage(sound, pos, unk, volume))
 
-      case LocalResponse.UpdateForceDomeStatus(building_guid, activated) =>
-        if (activated) {
-          sendResponse(GenericObjectActionMessage(building_guid, 11))
-        } else {
-          sendResponse(GenericObjectActionMessage(building_guid, 12))
-        }
+      case LocalResponse.UpdateForceDomeStatus(buildingGuid, true) =>
+        sendResponse(GenericObjectActionMessage(buildingGuid, 11))
 
-      case LocalResponse.RechargeVehicleWeapon(vehicle_guid, weapon_guid) =>
-        if (tplayer_guid == guid) {
-          continent.GUID(vehicle_guid) match {
-            case Some(vehicle: MountableWeapons) =>
-              vehicle.PassengerInSeat(player) match {
-                case Some(seat_num: Int) =>
-                  vehicle.WeaponControlledFromSeat(seat_num) foreach {
-                    case weapon: Tool if weapon.GUID == weapon_guid =>
-                      sendResponse(InventoryStateMessage(weapon.AmmoSlot.Box.GUID, weapon.GUID, weapon.Magazine))
-                    case _ => ;
-                  }
-                case _ => ;
-              }
-            case _ => ;
+      case LocalResponse.UpdateForceDomeStatus(buildingGuid, false) =>
+        sendResponse(GenericObjectActionMessage(buildingGuid, 12))
+
+      case LocalResponse.RechargeVehicleWeapon(vehicleGuid, weaponGuid) if resolvedPlayerGuid == guid =>
+        continent.GUID(vehicleGuid)
+          .collect { case vehicle: MountableWeapons => (vehicle, vehicle.PassengerInSeat(player)) }
+          .collect { case (vehicle, Some(seat_num)) => vehicle.WeaponControlledFromSeat(seat_num) }
+          .collect { case weapon: Tool if weapon.GUID == weaponGuid =>
+            sendResponse(InventoryStateMessage(weapon.AmmoSlot.Box.GUID, weapon.GUID, weapon.Magazine))
           }
-        }
 
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -244,25 +238,25 @@ class SessionLocalHandlers(
 
   /**
    * na
-   * @param target_guid na
+   * @param targetGuid na
    * @param unk1 na
    * @param unk2 na
    */
-  def HackObject(target_guid: PlanetSideGUID, unk1: Long, unk2: Long): Unit = {
-    sendResponse(HackMessage(0, target_guid, PlanetSideGUID(0), 100, unk1, HackState.Hacked, unk2))
+  def HackObject(targetGuid: PlanetSideGUID, unk1: Long, unk2: Long): Unit = {
+    sendResponse(HackMessage(unk1=0, targetGuid, player_guid=Service.defaultPlayerGUID, progress=100, unk1, HackState.Hacked, unk2))
   }
 
   /**
    * Send a PlanetsideAttributeMessage packet to the client
-   * @param target_guid The target of the attribute
-   * @param attribute_number The attribute number
-   * @param attribute_value The attribute value
+   * @param targetGuid The target of the attribute
+   * @param attributeType The attribute number
+   * @param attributeValue The attribute value
    */
   def SendPlanetsideAttributeMessage(
-                                      target_guid: PlanetSideGUID,
-                                      attribute_number: PlanetsideAttributeEnum,
-                                      attribute_value: Long
+                                      targetGuid: PlanetSideGUID,
+                                      attributeType: PlanetsideAttributeEnum,
+                                      attributeValue: Long
                                     ): Unit = {
-    sendResponse(PlanetsideAttributeMessage(target_guid, attribute_number, attribute_value))
+    sendResponse(PlanetsideAttributeMessage(targetGuid, attributeType, attributeValue))
   }
 }
