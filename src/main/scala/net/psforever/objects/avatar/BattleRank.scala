@@ -1,7 +1,7 @@
 package net.psforever.objects.avatar
 
 import enumeratum.values.{IntEnum, IntEnumEntry}
-import net.psforever.packet.game.objectcreate.UniformStyle
+import net.psforever.types.UniformStyle
 
 /** Battle ranks and their starting experience values
   * Source: http://wiki.psforever.net/wiki/Battle_Rank
@@ -19,9 +19,11 @@ sealed abstract class BattleRank(val value: Int, val experience: Long) extends I
     }
   }
 
-  def uniformStyle: UniformStyle.Value = {
+  def uniformStyle: UniformStyle = {
     if (this.value >= BattleRank.BR25.value) {
       UniformStyle.ThirdUpgrade
+    } else if (this.value == BattleRank.BR24.value) {
+      UniformStyle.SecondUpgradeBR24
     } else if (this.value >= BattleRank.BR14.value) {
       UniformStyle.SecondUpgrade
     } else if (this.value >= BattleRank.BR7.value) {
@@ -30,7 +32,6 @@ sealed abstract class BattleRank(val value: Int, val experience: Long) extends I
       UniformStyle.Normal
     }
   }
-
 }
 
 case object BattleRank extends IntEnum[BattleRank] {
@@ -102,5 +103,27 @@ case object BattleRank extends IntEnum[BattleRank] {
           experience >= br.experience
       }
     )
+  }
+
+  /**
+   * Given a number of battle experience points,
+   * determine if the resulting battle rank is sufficient to display cosmetic details on a player character.
+   * @see `BattleRank.withExperience`
+   * @param bep amount of battle experience
+   * @return `true`, if cosmetic elements will be visible;
+   *         `false`, otherwise
+   */
+  def showCosmetics(bep: Long): Boolean = {
+    showCosmetics(BattleRank.withExperience(bep).uniformStyle)
+  }
+  /**
+   * Given a certain level of uniform dress corresponding to battle rank,
+   * determine if the resulting battle rank is sufficient to display cosmetic details on a player character.
+   * @param uniform the style of uniform
+   * @return `true`, if cosmetic elements will be visible;
+   *         `false`, otherwise
+   */
+  def showCosmetics(uniform: UniformStyle): Boolean = {
+    uniform.value > UniformStyle.SecondUpgrade.value
   }
 }

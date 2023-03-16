@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package game.objectcreatedetailed
 
-import net.psforever.objects.avatar.{BattleRank, Certification, Cosmetic}
+import net.psforever.objects.avatar.{BattleRank, Certification}
 import org.specs2.mutable._
 import net.psforever.packet._
 import net.psforever.packet.game.ObjectCreateDetailedMessage

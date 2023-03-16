@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package game.objectcreate
 
-import net.psforever.objects.avatar.Cosmetic
 import net.psforever.packet.PacketCoding
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate._

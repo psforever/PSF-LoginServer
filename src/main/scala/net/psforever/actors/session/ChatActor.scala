@@ -19,7 +19,7 @@ import scala.concurrent.duration._
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.login.WorldSession
 import net.psforever.objects.{Default, Player, Session}
-import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank, Cosmetic}
+import net.psforever.objects.avatar.{BattleRank, Certification, CommandRank}
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
@@ -30,7 +30,7 @@ import net.psforever.services.{CavernRotationService, InterstellarClusterService
 import net.psforever.services.chat.ChatService
 import net.psforever.services.chat.ChatService.ChatChannel
 import net.psforever.types.ChatMessageType.UNK_229
-import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
+import net.psforever.types.{ChatMessageType, Cosmetic, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.util.{Config, PointOfInterest}
 import net.psforever.zones.Zones
 

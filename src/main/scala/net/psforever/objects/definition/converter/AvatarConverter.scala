@@ -2,6 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Player
+import net.psforever.objects.avatar.BattleRank
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{ExoSuitType, GrenadeState, PlanetSideEmpire, PlanetSideGUID}
@@ -109,25 +110,41 @@ object AvatarConverter {
   }
 
   def MakeCharacterData(obj: Player): (Boolean, Boolean) => CharacterData = {
+    val avatar = obj.avatar
+    val uniformStyle = avatar.br.uniformStyle
+    val cosmetics = if (BattleRank.showCosmetics(uniformStyle)) {
+      avatar.decoration.cosmetics
+    } else {
+      None
+    }
     val MaxArmor = obj.MaxArmor
+    val armor = if (MaxArmor == 0) {
+      0
+    } else {
+      StatConverter.Health(obj.Armor, MaxArmor)
+    }
     CharacterData(
       StatConverter.Health(obj.Health, obj.MaxHealth),
-      if (MaxArmor == 0) {
-        0
-      } else {
-        StatConverter.Health(obj.Armor, MaxArmor)
-      },
-      obj.avatar.br.uniformStyle,
+      armor,
+      uniformStyle,
       0,
-      obj.avatar.cr.value,
-      obj.avatar.implants.flatten.filter(_.active).flatMap(_.definition.implantType.effect).toList,
-      obj.avatar.decoration.cosmetics
+      avatar.cr.value,
+      avatar.implants.flatten.filter(_.active).flatMap(_.definition.implantType.effect).toList,
+      cosmetics
     )
   }
 
   def MakeDetailedCharacterData(obj: Player): Option[Int] => DetailedCharacterData = {
-    val maxOpt: Option[Long] = if (obj.ExoSuit == ExoSuitType.MAX) { Some(0L) }
-    else { None }
+    val maxOpt: Option[Long] = if (obj.ExoSuit == ExoSuitType.MAX) {
+      Some(0L)
+    } else {
+      None
+    }
+    val cosmetics = if (BattleRank.BR24.experience >= obj.avatar.bep) {
+      obj.avatar.decoration.cosmetics
+    } else {
+      None
+    }
     val ba: DetailedCharacterA = DetailedCharacterA(
       obj.avatar.bep,
       obj.avatar.cep,
@@ -164,7 +181,7 @@ object AvatarConverter {
       Nil,
       Nil,
       unkC = false,
-      obj.avatar.decoration.cosmetics
+      cosmetics
     )
     pad_length: Option[Int] => DetailedCharacterData(ba, bb(obj.avatar.bep, pad_length))(pad_length)
   }
@@ -229,7 +246,7 @@ object AvatarConverter {
           equip.GUID,
           5,
           DetailedLockerContainerData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, bops=false, alternate=false, v1=true, None, jammered=false, None, None, PlanetSideGUID(0)),
             None
           )
         ))

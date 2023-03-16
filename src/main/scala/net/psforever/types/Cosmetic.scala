@@ -1,8 +1,8 @@
-package net.psforever.objects.avatar
+package net.psforever.types
 
 import enumeratum.values.{IntEnum, IntEnumEntry}
-import scodec.{Attempt, Codec}
 import scodec.codecs.uint
+import scodec.{Attempt, Codec}
 
 /** Avatar cosmetic options */
 sealed abstract class Cosmetic(val value: Int) extends IntEnumEntry
@@ -58,9 +58,8 @@ case object Cosmetic extends IntEnum[Cosmetic] {
   }
 
   /** Codec for object create messages */
-  implicit val codec: Codec[Set[Cosmetic]] = uint(5).exmap(
+  implicit val codec: Codec[Set[Cosmetic]] = uint(bits = 5).exmap(
     value => Attempt.Successful(Cosmetic.valuesFromObjectCreateValue(value)),
     cosmetics => Attempt.Successful(Cosmetic.valuesToObjectCreateValue(cosmetics))
   )
-
 }
