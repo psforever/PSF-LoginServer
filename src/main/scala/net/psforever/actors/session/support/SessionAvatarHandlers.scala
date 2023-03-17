@@ -72,6 +72,7 @@ class SessionAvatarHandlers(
       spectating,
       canSeeReallyFar
       ) if isNotSameTarget =>
+        val pstateToSave = pstate.copy(timestamp = 0)
         val (lastMsg, lastTime, lastPosition, wasSpectating) = lastSeenStreamMessage(guid.guid) match {
           case SessionAvatarHandlers.LastUpstream(Some(msg), time) => (Some(msg), time, msg.pos, msg.spectator)
           case _ => (None, 0L, Vector3.Zero, false)
@@ -84,7 +85,7 @@ class SessionAvatarHandlers(
         val wasInVisibleRange = Vector3.DistanceSquared(lastPosition, pos) <= maxRange
         val now = System.currentTimeMillis() //ms
         val durationSince = now - lastTime //ms
-        if ((!spectating && inVisibleRange && !lastMsg.contains(reply)) ||
+        if ((!spectating && inVisibleRange && !lastMsg.contains(pstateToSave)) ||
           (inVisibleRange && wasSpectating && !spectating)) { //this condition is unlikely, but ...
           lazy val targetDelay = {
             val populationOver = math.max(
@@ -119,9 +120,9 @@ class SessionAvatarHandlers(
                 isCloaking
               )
             )
-            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstate), now)
+            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), now)
           } else {
-            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstate), lastTime)
+            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), lastTime)
           }
         } else if (
           (inVisibleRange && !wasSpectating && spectating) ||
@@ -140,7 +141,7 @@ class SessionAvatarHandlers(
               is_cloaked = isCloaking
             )
           )
-          lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstate), now)
+          lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), now)
         }
 
       case AvatarResponse.ObjectHeld(slot, _)
