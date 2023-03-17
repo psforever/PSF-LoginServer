@@ -70,31 +70,74 @@ class SessionAvatarHandlers(
       jumpThrust,
       isCloaking,
       spectating,
-      _
+      canSeeReallyFar
       ) if isNotSameTarget =>
-        val now = System.currentTimeMillis()
-        val (location, time, distanceSq): (Vector3, Long, Float) = if (spectating) {
-          val r2 = 2 + hidingPlayerRandomizer.nextInt(4000).toFloat
-          (Vector3(r2, r2, 1f), 0L, 0f)
-        } else {
-          val before = lastSeenStreamMessage(guid.guid).time
-          val dist = Vector3.DistanceSquared(player.Position, pos)
-          (pos, now - before, dist)
+        val (lastMsg, lastTime, lastPosition, wasSpectating) = lastSeenStreamMessage(guid.guid) match {
+          case SessionAvatarHandlers.LastUpstream(Some(msg), time) => (Some(msg), time, msg.pos, msg.spectator)
+          case _ => (None, 0L, Vector3.Zero, false)
         }
-        if (distanceSq < 302500 || time > 5000) { // Render distance seems to be approx 525m. Reduce update rate at ~550m to be safe
+        val drawConfig = Config.app.game.playerDraw
+        val maxRange = drawConfig.rangeMax * drawConfig.rangeMax //sq.m
+        val ourPosition = player.Position
+        val currentDistance = Vector3.DistanceSquared(ourPosition, pos) //sq.m
+        val inVisibleRange = currentDistance <= maxRange
+        val wasInVisibleRange = Vector3.DistanceSquared(lastPosition, pos) <= maxRange
+        val now = System.currentTimeMillis() //ms
+        val durationSince = now - lastTime //ms
+        if ((!spectating && inVisibleRange && !lastMsg.contains(reply)) ||
+          (inVisibleRange && wasSpectating && !spectating)) { //this condition is unlikely, but ...
+          lazy val targetDelay = {
+            val populationOver = math.max(
+              0,
+              continent.blockMap.sector(ourPosition, range=drawConfig.rangeMax.toFloat).livePlayerList.size - drawConfig.populationThreshold
+            )
+            val distanceAdjustment = math.pow(populationOver / drawConfig.populationStep * drawConfig.rangeStep, 2) //sq.m
+            val adjustedDistance = currentDistance + distanceAdjustment //sq.m
+            drawConfig.ranges.lastIndexWhere { dist => adjustedDistance > dist * dist } match {
+              case -1 => 1
+              case index => drawConfig.delays(index)
+            }
+          } //ms
+          if (canSeeReallyFar ||
+            currentDistance < drawConfig.rangeMin * drawConfig.rangeMin ||
+            durationSince > drawConfig.delayMax ||
+            sessionData.canSeeReallyFar ||
+            durationSince > targetDelay) {
+            //must draw
+            sendResponse(
+              PlayerStateMessage(
+                guid,
+                pos,
+                vel,
+                yaw,
+                pitch,
+                yawUpper,
+                timestamp = 0, //is this okay?
+                isCrouching,
+                isJumping,
+                jumpThrust,
+                isCloaking
+              )
+            )
+            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstate), now)
+          } else {
+            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstate), lastTime)
+          }
+        } else if (
+          (inVisibleRange && !wasSpectating && spectating) ||
+            (!spectating && wasInVisibleRange && !inVisibleRange)) {
+          //must hide
+          val lat = (1 + hidingPlayerRandomizer.nextInt(continent.map.scale.height.toInt)).toFloat
           sendResponse(
             PlayerStateMessage(
               guid,
-              location,
-              vel,
-              yaw,
-              pitch,
-              yawUpper,
-              timestamp = 0,
-              isCrouching,
-              isJumping,
-              jumpThrust,
-              isCloaking
+              Vector3(1f, lat, 1f),
+              vel=None,
+              facingYaw=0f,
+              facingPitch=0f,
+              facingYawUpper=0f,
+              timestamp=0, //is this okay?
+              is_cloaked = isCloaking
             )
           )
           lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstate), now)
