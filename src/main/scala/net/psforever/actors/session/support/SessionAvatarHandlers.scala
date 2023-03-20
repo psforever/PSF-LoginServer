@@ -73,9 +73,9 @@ class SessionAvatarHandlers(
       canSeeReallyFar
       ) if isNotSameTarget =>
         val pstateToSave = pstate.copy(timestamp = 0)
-        val (lastMsg, lastTime, lastPosition, wasSpectating) = lastSeenStreamMessage(guid.guid) match {
-          case SessionAvatarHandlers.LastUpstream(Some(msg), time) => (Some(msg), time, msg.pos, msg.spectator)
-          case _ => (None, 0L, Vector3.Zero, false)
+        val (lastMsg, lastTime, lastPosition, wasSpectating, wasVisible) = lastSeenStreamMessage(guid.guid) match {
+          case SessionAvatarHandlers.LastUpstream(Some(msg), visible, time) => (Some(msg), time, msg.pos, msg.spectator, visible)
+          case _ => (None, 0L, Vector3.Zero, false, false)
         }
         val drawConfig = Config.app.game.playerDraw
         val maxRange = drawConfig.rangeMax * drawConfig.rangeMax //sq.m
@@ -85,8 +85,10 @@ class SessionAvatarHandlers(
         val wasInVisibleRange = Vector3.DistanceSquared(lastPosition, pos) <= maxRange
         val now = System.currentTimeMillis() //ms
         val durationSince = now - lastTime //ms
-        if ((!spectating && inVisibleRange && !lastMsg.contains(pstateToSave)) ||
-          (inVisibleRange && wasSpectating && !spectating)) { //this condition is unlikely, but ...
+        val released = player.isReleased
+        if (!released &&
+          ((!spectating && inVisibleRange && !lastMsg.contains(pstateToSave)) ||
+            (inVisibleRange && wasSpectating && !spectating))) { //this condition is unlikely, but ...
           lazy val targetDelay = {
             val populationOver = math.max(
               0,
@@ -120,13 +122,15 @@ class SessionAvatarHandlers(
                 isCloaking
               )
             )
-            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), now)
+            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, now)
           } else {
-            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), lastTime)
+            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, lastTime)
           }
         } else if (
-          (inVisibleRange && !wasSpectating && spectating) ||
-            (!spectating && wasInVisibleRange && !inVisibleRange)) {
+          (!spectating && wasInVisibleRange && !inVisibleRange) ||
+            (inVisibleRange && !wasSpectating && spectating) ||
+            (wasVisible && released)
+        ) {
           //must hide
           val lat = (1 + hidingPlayerRandomizer.nextInt(continent.map.scale.height.toInt)).toFloat
           sendResponse(
@@ -141,7 +145,7 @@ class SessionAvatarHandlers(
               is_cloaked = isCloaking
             )
           )
-          lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), now)
+          lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, now)
         }
 
       case AvatarResponse.ObjectHeld(slot, _)
@@ -544,9 +548,9 @@ class SessionAvatarHandlers(
 }
 
 object SessionAvatarHandlers {
-  private[support] case class LastUpstream(msg: Option[AvatarResponse.PlayerState], time: Long)
+  private[support] case class LastUpstream(msg: Option[AvatarResponse.PlayerState], visible: Boolean, time: Long)
 
   private[support] def blankUpstreamMessages(n: Int): Array[LastUpstream] = {
-    Array.fill[SessionAvatarHandlers.LastUpstream](n)(elem = LastUpstream(None, 0L))
+    Array.fill[SessionAvatarHandlers.LastUpstream](n)(elem = LastUpstream(None, visible=false, 0L))
   }
 }
