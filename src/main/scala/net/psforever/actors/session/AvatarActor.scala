@@ -5,6 +5,8 @@ import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import java.util.concurrent.atomic.AtomicInteger
+import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
 import org.joda.time.{LocalDateTime, Seconds}
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
@@ -26,7 +28,6 @@ import net.psforever.objects.avatar.{
   Shortcut => AvatarShortcut,
   SpecialCarry
 }
-import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.CharacterSelectConverter
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
@@ -191,6 +192,9 @@ object AvatarActor {
 
   /** Award battle experience points */
   final case class AwardBep(bep: Long, modifier: ExperienceType) extends Command
+
+  /** ... */
+  final case class UpdateKillsDeathsAssists(stat: KDAStat) extends Command
 
   /** Set total battle experience points */
   final case class SetBep(bep: Long) extends Command
@@ -1642,6 +1646,10 @@ class AvatarActor(
           updateToolDischarge(stats)
           Behaviors.same
 
+        case UpdateKillsDeathsAssists(stat) =>
+          updateKillsDeathsAssists(stat)
+          Behaviors.same
+
         case AwardBep(bep, modifier) =>
           setBep(avatar.bep + bep, modifier)
           Behaviors.same
@@ -2936,18 +2944,17 @@ class AvatarActor(
     val player   = _session.player
     kdaStat match {
       case kill: Kill =>
-        val _ = PlayerSource(player)
+        val playerSource = PlayerSource(player)
         (kill.info.interaction.cause match {
           case pr: ProjectileReason => pr.projectile.mounted_in.map { a => zone.GUID(a._1) }
-          case _                    => None
-        }) match {
-          case Some(Some(_: Vitality)) =>
-          //zone.actor ! ZoneActor.RewardOurSupporters(playerSource, obj.History, kill, exp)
-          case _ => ;
+          case _ => None
+        }).collect {
+          case Some(obj: Vitality) =>
+            zone.actor ! ZoneActor.RewardOurSupporters(playerSource, obj.History, kill, exp)
         }
-      //zone.actor ! ZoneActor.RewardOurSupporters(playerSource, player.History, kill, exp)
+        zone.actor ! ZoneActor.RewardOurSupporters(playerSource, player.History, kill, exp)
       case _: Death =>
-        player.Zone.AvatarEvents ! AvatarServiceMessage(
+        zone.AvatarEvents ! AvatarServiceMessage(
           player.Name,
           AvatarAction.SendResponse(
             Service.defaultPlayerGUID,

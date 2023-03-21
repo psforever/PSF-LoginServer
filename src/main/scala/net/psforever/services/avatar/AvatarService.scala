@@ -429,6 +429,15 @@ class AvatarService(zone: Zone) extends Actor {
             )
           )
 
+        case AvatarAction.UpdateKillsDeathsAssists(charId, stat) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.UpdateKillsDeathsAssists(charId, stat)
+            )
+          )
+
         case _ => ;
       }
 

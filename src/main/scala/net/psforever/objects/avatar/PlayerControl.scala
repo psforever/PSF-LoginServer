@@ -3,6 +3,7 @@ package net.psforever.objects.avatar
 
 import akka.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.login.WorldSession.{DropEquipmentFromInventory, HoldNewEquipmentUp, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
 import net.psforever.objects._
 import net.psforever.objects.ce.Deployable
@@ -1052,6 +1053,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case _ =>
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
     }
+    zone.actor ! ZoneActor.RewardThisDeath(player)
   }
 
   def suicide() : Unit = {

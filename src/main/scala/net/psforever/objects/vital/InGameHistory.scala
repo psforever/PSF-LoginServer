@@ -148,7 +148,7 @@ trait InGameHistory {
 
   /**
    * An in-game event must be recorded.
-   * Add new entry to the front of the list (for recent activity).
+   * Add new entry to the list (for recent activity).
    * @param action the fully-informed entry
    * @return the list of previous changes to this entity
    */
@@ -157,14 +157,14 @@ trait InGameHistory {
 
   /**
    * An in-game event must be recorded.
-   * Add new entry to the front of the list (for recent activity).
+   * Add new entry to the list (for recent activity).
    * @param action the fully-informed entry
    * @return the list of previous changes to this entity
    */
   def LogActivity(action: Option[InGameActivity]): List[InGameActivity] = {
     action match {
       case Some(act) =>
-        history = act +: history
+        history = history :+ act
       case None => ()
     }
     history

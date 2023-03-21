@@ -2,6 +2,7 @@
 package net.psforever.services.avatar
 
 import net.psforever.objects.Player
+import net.psforever.objects.avatar.scoring.KDAStat
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
@@ -153,6 +154,8 @@ object AvatarAction {
   final case class DropSpecialItem() extends Action
   final case class UseKit(kit_guid: PlanetSideGUID, kit_objid: Int) extends Action
   final case class KitNotUsed(kit_guid: PlanetSideGUID, msg: String) extends Action
+
+  final case class UpdateKillsDeathsAssists(charId: Long, kda: KDAStat) extends Action
 
   final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action

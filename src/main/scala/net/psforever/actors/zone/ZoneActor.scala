@@ -7,12 +7,15 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.structures.{StructureType, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorGroup}
-import net.psforever.objects.{ConstructionItem, Player, Vehicle}
+import net.psforever.objects.{ConstructionItem, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
-
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.building.MajorFacilityLogic
+import net.psforever.objects.avatar.scoring.Kill
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.sourcing.SourceEntry
+import net.psforever.objects.vital.{InGameActivity, InGameHistory}
+import net.psforever.objects.zones.exp.ExperienceCalculator
 import net.psforever.util.Database._
 import net.psforever.persistence
 
@@ -70,6 +73,9 @@ object ZoneActor {
   // Once they do, we won't need this anymore
   final case class ZoneMapUpdate() extends Command
 
+  final case class RewardThisDeath(entity: PlanetSideGameObject with FactionAffinity with InGameHistory) extends Command
+
+  final case class RewardOurSupporters(target: SourceEntry, history: Iterable[InGameActivity], kill: Kill, bep: Long) extends Command
 }
 
 class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
@@ -79,7 +85,8 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
   import ctx._
 
   private[this] val log           = org.log4s.getLogger
-  val players: mutable.ListBuffer[Player] = mutable.ListBuffer()
+  private val players: mutable.ListBuffer[Player] = mutable.ListBuffer()
+  private val experience: ActorRef[ExperienceCalculator.Command] = context.spawnAnonymous(ExperienceCalculator(zone))
 
   zone.actor = context.self
   zone.init(context.toClassic)
@@ -142,6 +149,12 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
 
       case HotSpotActivity(defender, attacker, location) =>
         zone.Activity ! Zone.HotSpot.Activity(defender, attacker, location)
+
+      case RewardThisDeath(entity) =>
+        experience ! ExperienceCalculator.RewardThisDeath(entity)
+
+      case RewardOurSupporters(target, history, kill, bep) =>
+        ()
 
       case ZoneMapUpdate() =>
         zone.Buildings
