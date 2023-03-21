@@ -2,6 +2,7 @@
 package net.psforever.services.avatar
 
 import net.psforever.objects.Player
+import net.psforever.objects.avatar.scoring.KDAStat
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
@@ -124,4 +125,6 @@ object AvatarResponse {
   //  final case class PlayerStateShift(itemID : PlanetSideGUID) extends Response
   final case class UseKit(kit_guid: PlanetSideGUID, kit_objid: Int) extends Response
   final case class KitNotUsed(kit_guid: PlanetSideGUID, msg: String) extends Response
+
+  final case class UpdateKillsDeathsAssists(charId: Long, kda: KDAStat) extends Response
 }

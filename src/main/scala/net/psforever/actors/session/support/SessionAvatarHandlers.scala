@@ -224,10 +224,9 @@ class SessionAvatarHandlers(
 
       case AvatarResponse.DestroyDisplay(killer, victim, method, unk)
         if killer.CharId == avatar.id && killer.Faction != victim.Faction =>
-        // TODO Temporary thing that should go somewhere else and use proper xp values
         sendResponse(sessionData.destroyDisplayMessage(killer, victim, method, unk))
-        avatarActor ! AvatarActor.AwardBep((1000 * Config.app.game.bepRate).toLong, ExperienceType.Normal)
-        avatarActor ! AvatarActor.AwardCep((100 * Config.app.game.cepRate).toLong)
+      //TODO Temporary thing that should go somewhere else and use proper xp values
+//        avatarActor ! AvatarActor.AwardCep((100 * Config.app.game.cepRate).toLong)
 
       case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
         // guid = victim // killer = killer
@@ -395,6 +394,9 @@ class SessionAvatarHandlers(
       case AvatarResponse.KitNotUsed(_, msg) =>
         sessionData.kitToBeUsed = None
         sendResponse(ChatMsg(ChatMessageType.UNK_225, msg))
+
+      case AvatarResponse.UpdateKillsDeathsAssists(_, kda) =>
+        avatarActor ! AvatarActor.UpdateKillsDeathsAssists(kda)
 
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
