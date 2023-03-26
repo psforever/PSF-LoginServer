@@ -89,8 +89,14 @@ case class State(
       case LoginRespMessage(token, _, _, _, _, _, _)               => this.copy(token = Some(token))
       case VNLWorldStatusMessage(_, worlds)                        => this.copy(worlds = worlds, connection = Connection.WorldSelection)
       case ObjectCreateDetailedMessage(_, objectClass, guid, _, _) => this.copy(objects = objects ++ Seq(guid.guid))
-      case message @ CharacterInfoMessage(_, _, _, _, _, _) =>
-        this.copy(characters = characters ++ Seq(message), connection = Connection.AvatarSelection)
+      case message @ CharacterInfoMessage(_, _, _, _, finished, _) =>
+        // if finished is true, it is not real character but rather signal that list is complete
+        if (finished) {
+          this.copy(connection = Connection.AvatarSelection)
+        } else {
+          this.copy(characters = characters ++ Seq(message), connection = Connection.AvatarSelection)
+        }
+
       case _ => this
     }).copy(avatar = avatar.update(packet))
 

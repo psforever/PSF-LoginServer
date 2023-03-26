@@ -48,30 +48,52 @@ import scala.collection.mutable
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 import java.util.concurrent.{Executors, TimeUnit}
+import net.psforever.packet.game.CharacterCreateRequestMessage
+import net.psforever.types.CharacterSex
+import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.CharacterVoice
+import net.psforever.packet.game.ActionResultMessage
+import scala.concurrent.Future
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 object Client {
+  implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
   Security.addProvider(new BouncyCastleProvider)
 
   private[this] val log = org.log4s.getLogger
 
   def main(args: Array[String]): Unit = {
-    val client = new Client("test", "test")
-    client.login(new InetSocketAddress("localhost", 51000))
-    client.joinWorld(client.state.worlds.head)
-    client.selectCharacter(client.state.characters.head.charId)
-    client.startTasks()
 
-    while (true) {
-      client.updateAvatar(client.state.avatar.copy(crouching = !client.state.avatar.crouching))
-      Thread.sleep(2000)
-      //Thread.sleep(Int.MaxValue)
+    for (i <- 0 until 20) {
+      val id = i
+
+      new Thread {
+        override def run: Unit = {
+          val client = new Client(s"bot${id}", "bot")
+          client.login(new InetSocketAddress("localhost", 51000))
+
+          client.joinWorld(client.state.worlds.head)
+
+          if (client.state.characters.isEmpty) {
+            client.createCharacter(s"bot${id}")
+          }
+
+          client.selectCharacter(client.state.characters.head.charId)
+          client.startTasks()
+          while (true) {
+            client.updateAvatar(client.state.avatar.copy(crouching = !client.state.avatar.crouching))
+            Thread.sleep(2000)
+          }
+        }
+      }.start()
     }
+
+    Await.ready(Future.never, Duration.Inf)
   }
 }
 
 class Client(username: String, password: String) {
-  import Client._
-
   private var sequence = 0
   private def nextSequence = {
     val r = sequence
@@ -188,21 +210,34 @@ class Client(username: String, password: String) {
     }
     setupConnection()
     send(ConnectToWorldRequestMessage("", state.token.get, 0, 0, 0, "", 0)).require
-    waitFor[CharacterInfoMessage]().require
+    while (true) {
+      val r = waitFor[CharacterInfoMessage]().require
+      if (r.finished) {
+        return
+      }
+    }
   }
 
   def selectCharacter(charId: Long): Unit = {
     assert(state.connection == Connection.AvatarSelection)
     send(CharacterRequestMessage(charId, CharacterRequestAction.Select)).require
-    waitFor[LoadMapMessage](timeout = 15.seconds).require
+    waitFor[LoadMapMessage](timeout = 30.seconds).require
   }
 
-  def createCharacter(): Unit = {
-    ???
+  def createCharacter(name: String): Unit = {
+    assert(state.connection == Connection.AvatarSelection)
+    send(CharacterCreateRequestMessage(name, 0, CharacterVoice.Voice1, CharacterSex.Male, PlanetSideEmpire.TR)).require
+    val r = waitFor[ActionResultMessage](timeout = 15.seconds).require
+    assert(r.errorCode == None)
+    while (true) {
+      val r = waitFor[CharacterInfoMessage]().require
+      if (r.finished) {
+        return
+      }
+    }
   }
 
   def deleteCharacter(charId: Long): Unit = {
-    ??? // never been tested
     assert(state.connection == Connection.AvatarSelection)
     send(CharacterRequestMessage(charId, CharacterRequestAction.Delete)).require
   }
