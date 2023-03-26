@@ -5,6 +5,8 @@ import java.nio.file.Paths
 import java.util.Locale
 import java.util.UUID.randomUUID
 import java.util.concurrent.atomic.AtomicLong
+import scala.concurrent.Future
+import scala.concurrent.Await
 
 import akka.actor.ActorSystem
 import akka.actor.typed.ActorRef
@@ -13,7 +15,6 @@ import akka.{actor => classic}
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
 import io.sentry.{Sentry, SentryOptions}
-import kamon.Kamon
 import net.psforever.actors.net.{LoginActor, MiddlewareActor, SocketActor}
 import net.psforever.actors.session.SessionActor
 import net.psforever.login.psadmin.PsAdminActor
@@ -37,6 +38,7 @@ import scopt.OParser
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.services.hart.HartService
+import scala.concurrent.duration.Duration
 
 object Server {
   private val logger = org.log4s.getLogger
@@ -80,11 +82,6 @@ object Server {
         case None          => InetAddress.getByName(Config.app.bind) // address from config
       }
 
-    if (Config.app.kamon.enable) {
-      logger.info("Starting Kamon")
-      Kamon.init()
-    }
-
     if (Config.app.sentry.enable) {
       logger.info(s"Enabling Sentry")
       val options = new SentryOptions()
@@ -110,8 +107,9 @@ object Server {
     }
     val session = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
       Behaviors.setup[PlanetSidePacket](context => {
-        val uuid  = randomUUID().toString
-        val actor = context.actorOf(classic.Props(new SessionActor(ref, connectionId, Session.getNewId())), s"session-$uuid")
+        val uuid = randomUUID().toString
+        val actor =
+          context.actorOf(classic.Props(new SessionActor(ref, connectionId, Session.getNewId())), s"session-$uuid")
         Behaviors.receiveMessage(message => {
           actor ! message
           Behaviors.same
@@ -119,7 +117,7 @@ object Server {
       })
     }
 
-    val zones = Zones.zones ++ Seq(Zone.Nowhere)
+    val zones          = Zones.zones ++ Seq(Zone.Nowhere)
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(classic.Props[AccountIntermediaryService](), "accountIntermediary")
     serviceManager ! ServiceManager.Register(classic.Props[GalaxyService](), "galaxy")
@@ -156,6 +154,8 @@ object Server {
       // TODO: clean up active sessions and close resources safely
       logger.info("Login server now shutting down...")
     }
+
+    Await.ready(Future.never, Duration.Inf)
   }
 
   def flyway(args: CliConfig): Flyway = {
@@ -228,6 +228,7 @@ object Server {
   }
 
   sealed trait AuthoritativeCounter {
+
     /** the id accumulator */
     private val masterIdKeyRing: AtomicLong = new AtomicLong(0L)
 
