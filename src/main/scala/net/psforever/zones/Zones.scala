@@ -25,7 +25,7 @@ import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
-import net.psforever.objects.sourcing.{DeployableSource, ObjectSource, PlayerSource, TurretSource, VehicleSource}
+import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, TurretSource, VehicleSource}
 import net.psforever.objects.zones.{MapInfo, Zone, ZoneInfo, ZoneMap}
 import net.psforever.types.{Angular, PlanetSideEmpire, Vector3}
 import net.psforever.util.DefinitionUtil
