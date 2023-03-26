@@ -127,4 +127,5 @@ object AvatarResponse {
   final case class KitNotUsed(kit_guid: PlanetSideGUID, msg: String) extends Response
 
   final case class UpdateKillsDeathsAssists(charId: Long, kda: KDAStat) extends Response
+  final case class AwardSupportBep(charId: Long, bep: Long) extends Response
 }

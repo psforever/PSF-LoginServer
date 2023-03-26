@@ -14,7 +14,7 @@ private case class ContributionStats(
                                       player: PlayerSource,
                                       weapons: Seq[WeaponStats],
                                       amount: Int,
-                                      totalDamage: Int,
+                                      total: Int,
                                       shots: Int,
                                       time: Long
                                     )

@@ -28,13 +28,25 @@ trait InGameActivity {
  */
 trait GeneralActivity extends InGameActivity
 
-final case class SpawningActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry]) extends GeneralActivity
+trait SupportActivityCausedByAnother {
+  def user: PlayerSource
+  def amount: Int
+}
 
-final case class ReconstructionActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry]) extends GeneralActivity
+final case class SpawningActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry])
+  extends GeneralActivity
 
-final case class ShieldCharge(amount: Int, cause: Option[SourceEntry]) extends GeneralActivity
+final case class ReconstructionActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry])
+  extends GeneralActivity
 
-final case class TerminalUsedActivity(terminal: AmenitySource, transaction: TransactionType.Value) extends GeneralActivity
+final case class RevivingActivity(target: SourceEntry, user: PlayerSource, amount: Int, equipment: EquipmentDefinition)
+  extends GeneralActivity with SupportActivityCausedByAnother
+
+final case class ShieldCharge(amount: Int, cause: Option[SourceEntry])
+  extends GeneralActivity
+
+final case class TerminalUsedActivity(terminal: AmenitySource, transaction: TransactionType.Value)
+  extends GeneralActivity
 
 /* vitals history */
 
@@ -76,7 +88,7 @@ final case class HealFromKit(kit_def: KitDefinition, amount: Int)
   extends HealingActivity
 
 final case class HealFromEquipment(user: PlayerSource, equipment_def: EquipmentDefinition, amount: Int)
-  extends HealingActivity
+  extends HealingActivity with SupportActivityCausedByAnother
 
 final case class HealFromTerm(term: AmenitySource, amount: Int)
   extends HealingActivity
@@ -91,7 +103,7 @@ final case class RepairFromKit(kit_def: KitDefinition, amount: Int)
     extends RepairingActivity()
 
 final case class RepairFromEquipment(user: PlayerSource, equipment_def: EquipmentDefinition, amount: Int)
-  extends RepairingActivity
+  extends RepairingActivity with SupportActivityCausedByAnother
 
 final case class RepairFromTerm(term: AmenitySource, amount: Int) extends RepairingActivity
 

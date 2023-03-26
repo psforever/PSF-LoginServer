@@ -6,7 +6,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import java.util.concurrent.atomic.AtomicInteger
 import net.psforever.actors.zone.ZoneActor
-import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
+import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill}
 import org.joda.time.{LocalDateTime, Seconds}
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
@@ -2953,6 +2953,8 @@ class AvatarActor(
             zone.actor ! ZoneActor.RewardOurSupporters(playerSource, obj.History, kill, exp)
         }
         zone.actor ! ZoneActor.RewardOurSupporters(playerSource, player.History, kill, exp)
+      case _: Assist =>
+        ()
       case _: Death =>
         zone.AvatarEvents ! AvatarServiceMessage(
           player.Name,

@@ -7,7 +7,7 @@ import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.avatar.scoring.{Assist, Death, Kill}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
-import net.psforever.objects.vital.{DamagingActivity, HealingActivity, InGameActivity, InGameHistory, ReconstructionActivity, RepairFromExoSuitChange, RepairingActivity, SpawningActivity}
+import net.psforever.objects.vital.{DamagingActivity, HealingActivity, InGameActivity, InGameHistory, ReconstructionActivity, RepairFromExoSuitChange, RepairingActivity, RevivingActivity, SpawningActivity}
 import net.psforever.objects.vital.interaction.{Adversarial, DamageResult}
 import net.psforever.objects.zones.Zone
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -30,6 +30,36 @@ object ExperienceCalculator {
   object RewardThisDeath {
     def apply(obj: PlanetSideGameObject with FactionAffinity with InGameHistory): RewardThisDeath = {
       RewardThisDeath(SourceEntry(obj), obj.LastDamage, obj.History)
+    }
+  }
+
+  final case class RewardOurSupporters(target: SourceEntry, history: Iterable[InGameActivity], kill: Kill, bep: Long) extends Command
+
+  object RewardOurSupporters {
+    def apply(obj: PlanetSideGameObject with FactionAffinity with InGameHistory, kill: Kill): RewardOurSupporters = {
+      RewardOurSupporters(SourceEntry(obj), obj.History, kill, kill.experienceEarned)
+    }
+  }
+
+  def limitHistoryToThisLife(history: List[InGameActivity]): List[InGameActivity] = {
+    val spawnIndex = history.lastIndexWhere {
+      case _: SpawningActivity => true
+      case _: RevivingActivity => true
+      case _ => false
+    }
+    val endIndex = history.lastIndexWhere {
+      case damage: DamagingActivity => damage.data.targetAfter.asInstanceOf[PlayerSource].Health == 0
+      case _ => false
+    }
+    if (spawnIndex == -1 || endIndex == -1) {
+      Nil //throw VitalsHistoryException(history.head, "vitals history does not contain expected conditions")
+      //    } else
+      //    if (spawnIndex == -1) {
+      //      Nil  //throw VitalsHistoryException(history.head, "vitals history does not contain initial spawn conditions")
+      //    } else if (endIndex == -1) {
+      //      Nil  //throw VitalsHistoryException(history.last, "vitals history does not contain end of life conditions")
+    } else {
+      history.slice(spawnIndex, endIndex)
     }
   }
 
@@ -64,6 +94,38 @@ object ExperienceCalculator {
       base
     }
   }
+
+  def onlyOriginalAssistEntries(
+                                 first: mutable.LongMap[ContributionStatsOutput],
+                                 second: mutable.LongMap[ContributionStatsOutput]
+                               ): Iterable[ContributionStatsOutput] = {
+    onlyOriginalAssistEntriesIterable(first.values, second.values)
+  }
+
+  def onlyOriginalAssistEntriesIterable(
+                                         first: Iterable[ContributionStatsOutput],
+                                         second: Iterable[ContributionStatsOutput]
+                                       ): Iterable[ContributionStatsOutput] = {
+    if (second.isEmpty) {
+      first
+    } else if (first.isEmpty) {
+      second
+    } else {
+      //overlap discriminated by percentage
+      val shared: mutable.LongMap[ContributionStatsOutput] = mutable.LongMap[ContributionStatsOutput]()
+      for {
+        h @ ContributionStatsOutput(hid, hwep, hkda) <- first
+        a @ ContributionStatsOutput(aid, awep, akda) <- second
+        (id, out) = if (hkda < akda)
+          (aid.CharId, a.copy(implements = (a.implements ++ hwep).distinct))
+        else
+          (hid.CharId, h.copy(implements = (h.implements ++ awep).distinct))
+        if hid == aid && shared.put(id, out).isEmpty
+      } yield ()
+      val sharedKeys = shared.keys
+      (first ++ second).filterNot { case ContributionStatsOutput(id, _, _) => sharedKeys.exists(_ == id.CharId) } ++ shared.values
+    }
+  }
 }
 
 class ExperienceCalculator(context: ActorContext[ExperienceCalculator.Command], zone: Zone)
@@ -74,13 +136,10 @@ class ExperienceCalculator(context: ActorContext[ExperienceCalculator.Command], 
   def onMessage(msg: Command): Behavior[Command] = {
     msg match {
       case RewardThisDeath(victim: PlayerSource, lastDamage, history) =>
-        rewardThisPlayerDeath(
-          victim,
-          lastDamage,
-          limitHistoryToThisLife(history.toList)
-        )
-      case _ =>
-        ()
+        rewardThisPlayerDeath(victim, lastDamage, history)
+      case RewardOurSupporters(target, history, kill, bep) =>
+        rewardTheseSupporters(target, history.toList, kill, bep)
+      case _ => ()
     }
     Behaviors.same
   }
@@ -88,49 +147,29 @@ class ExperienceCalculator(context: ActorContext[ExperienceCalculator.Command], 
   def rewardThisPlayerDeath(
                              victim: PlayerSource,
                              lastDamage: Option[DamageResult],
-                             history: List[InGameActivity]
+                             history: Iterable[InGameActivity]
                            ): Unit = {
-    val everyone = determineKiller(lastDamage, history) match {
+    val shortHistory = ExperienceCalculator.limitHistoryToThisLife(history.toList)
+    val everyone = determineKiller(lastDamage, shortHistory) match {
       case Some((result, killer: PlayerSource)) =>
-        val assists = collectAssistsForPlayer(victim, history, Some(killer))
-        val fullBep = KillDeathAssists.calculateExperience(killer, victim, history)
+        val assists = collectAssistsForPlayer(victim, shortHistory, Some(killer))
+        val fullBep = KillDeathAssists.calculateExperience(killer, victim, shortHistory)
         val hitSquad = (killer, Kill(victim, result, fullBep)) +: assists.map {
           case ContributionStatsOutput(p, w, r) => (p, Assist(victim, w, r, (fullBep * r).toLong))
         }.toSeq
-        (victim, Death(hitSquad.map { _._1 }, history.last.time - history.head.time, fullBep)) +: hitSquad
+        (victim, Death(hitSquad.map { _._1 }, shortHistory.last.time - shortHistory.head.time, fullBep)) +: hitSquad
 
       case _ =>
-        val assists = collectAssistsForPlayer(victim, history, None)
-        val fullBep = ExperienceCalculator.calculateExperience(victim, history)
+        val assists = collectAssistsForPlayer(victim, shortHistory, None)
+        val fullBep = ExperienceCalculator.calculateExperience(victim, shortHistory)
         val hitSquad = assists.map {
           case ContributionStatsOutput(p, w, r) => (p, Assist(victim, w, r, (fullBep * r).toLong))
         }.toSeq
-        (victim, Death(hitSquad.map { _._1 }, history.last.time - history.head.time, fullBep)) +: hitSquad
+        (victim, Death(hitSquad.map { _._1 }, shortHistory.last.time - shortHistory.head.time, fullBep)) +: hitSquad
     }
     val events = zone.AvatarEvents
     everyone.foreach { case (p, kda) =>
       events ! AvatarServiceMessage(p.Name, AvatarAction.UpdateKillsDeathsAssists(p.CharId, kda))
-    }
-  }
-
-  def limitHistoryToThisLife(history: List[InGameActivity]): List[InGameActivity] = {
-    val spawnIndex = history.indexWhere {
-      case SpawningActivity(_, _, _) => true
-      case _ => false
-    }
-    val endIndex = history.lastIndexWhere {
-      case damage: DamagingActivity => damage.data.targetAfter.asInstanceOf[PlayerSource].Health == 0
-      case _ => false
-    }
-    if (spawnIndex == -1 || endIndex == -1) {
-      Nil //throw VitalsHistoryException(history.head, "vitals history does not contain expected conditions")
-//    } else
-//    if (spawnIndex == -1) {
-//      Nil  //throw VitalsHistoryException(history.head, "vitals history does not contain initial spawn conditions")
-//    } else if (endIndex == -1) {
-//      Nil  //throw VitalsHistoryException(history.last, "vitals history does not contain end of life conditions")
-    } else {
-      history.slice(spawnIndex, endIndex)
     }
   }
 
@@ -254,7 +293,7 @@ class ExperienceCalculator(context: ActorContext[ExperienceCalculator.Command], 
             mod.copy(
               amount = mod.amount + amount,
               weapons = weapons,
-              totalDamage = mod.totalDamage + amount,
+              total = mod.total + amount,
               shots = mod.shots + 1,
               time = activity.time
             )
@@ -332,5 +371,31 @@ class ExperienceCalculator(context: ActorContext[ExperienceCalculator.Command], 
       amt > 0
     }
     newOrder ++ order.drop(count)
+  }
+
+  private def rewardTheseSupporters(
+                             target: SourceEntry,
+                             history: List[InGameActivity],
+                             kill: Kill,
+                             bep: Long
+                           ): Unit = {
+    val time = kill.time
+    val normalAssists = ExperienceCalculator.onlyOriginalAssistEntries(
+      Support.collectHealingSupportAssists(target, time, history),
+      Support.collectRepairingSupportAssists(target, time, history)
+    )
+//    retainedSupportAssists.get(target.unique) match {
+//      case Some(support) =>
+//        ExperienceCalculator.onlyOriginalAssistEntriesIterable(normalAssists, support.assists)
+//      case None =>
+//        normalAssists
+//    }
+    val events = zone.AvatarEvents
+    normalAssists.foreach { case ContributionStatsOutput(p, _, ratio) =>
+      events ! AvatarServiceMessage(p.Name, AvatarAction.AwardSupportBep(p.CharId, (ratio * bep).toLong))
+    }
+    Support.collectTerminalSupportAssists(target, history).foreach { case ContributionStatsOutput(p, _, reward) =>
+      events ! AvatarServiceMessage(p.Name, AvatarAction.AwardSupportBep(p.CharId, reward.toLong))
+    }
   }
 }

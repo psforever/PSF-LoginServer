@@ -398,6 +398,9 @@ class SessionAvatarHandlers(
       case AvatarResponse.UpdateKillsDeathsAssists(_, kda) =>
         avatarActor ! AvatarActor.UpdateKillsDeathsAssists(kda)
 
+      case AvatarResponse.AwardSupportBep(_, bep) =>
+        avatarActor ! AvatarActor.AwardBep(bep, ExperienceType.Support)
+
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
 

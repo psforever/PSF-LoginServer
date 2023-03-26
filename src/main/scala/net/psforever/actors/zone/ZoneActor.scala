@@ -154,7 +154,7 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
         experience ! ExperienceCalculator.RewardThisDeath(entity)
 
       case RewardOurSupporters(target, history, kill, bep) =>
-        ()
+        experience ! ExperienceCalculator.RewardOurSupporters(target, history, kill, bep)
 
       case ZoneMapUpdate() =>
         zone.Buildings
@@ -162,7 +162,6 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
           .values
           .foreach(_.Actor ! BuildingActor.MapUpdate())
     }
-
     this
   }
 }
