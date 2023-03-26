@@ -83,12 +83,13 @@ class SessionAvatarHandlers(
         val currentDistance = Vector3.DistanceSquared(ourPosition, pos) //sq.m
         val inVisibleRange = currentDistance <= maxRange
         val wasInVisibleRange = Vector3.DistanceSquared(lastPosition, pos) <= maxRange
+        val comingIntoVisibleRange = inVisibleRange && !wasInVisibleRange
         val now = System.currentTimeMillis() //ms
         val durationSince = now - lastTime //ms
         val released = player.isReleased
         if (!released &&
-          ((!spectating && inVisibleRange && !lastMsg.contains(pstateToSave)) ||
-            (inVisibleRange && wasSpectating && !spectating))) { //this condition is unlikely, but ...
+          !spectating &&
+          (comingIntoVisibleRange || (inVisibleRange && !lastMsg.contains(pstateToSave)))) {
           lazy val targetDelay = {
             val populationOver = math.max(
               0,
@@ -101,7 +102,8 @@ class SessionAvatarHandlers(
               case index => drawConfig.delays(index)
             }
           } //ms
-          if (canSeeReallyFar ||
+          if (comingIntoVisibleRange ||
+            canSeeReallyFar ||
             currentDistance < drawConfig.rangeMin * drawConfig.rangeMin ||
             durationSince > drawConfig.delayMax ||
             sessionData.canSeeReallyFar ||
