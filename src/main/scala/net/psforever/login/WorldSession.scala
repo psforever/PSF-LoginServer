@@ -942,8 +942,9 @@ object WorldSession {
       result: Boolean
   ): Unit = {
     if (result) {
-      player.Zone.GUID(guid).collect {
-        case term: Terminal => player.LogActivity(TerminalUsedActivity(AmenitySource(term), transaction))
+      player.Zone.GUID(guid).collect { case term: Terminal =>
+        player.LogActivity(TerminalUsedActivity(AmenitySource(term), transaction))
+        player.ContributionFrom(term)
       }
     }
     player.Zone.AvatarEvents ! AvatarServiceMessage(

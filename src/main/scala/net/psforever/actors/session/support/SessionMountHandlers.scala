@@ -2,6 +2,9 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.vital.InGameHistory
+
 import scala.concurrent.duration._
 //
 import net.psforever.actors.session.AvatarActor
@@ -160,7 +163,7 @@ class SessionMountHandlers(
           s"MountVehicleMsg: ${tplayer.Name} wants to mount turret ${obj.GUID.guid}, but needs to wait until it finishes updating"
         )
 
-      case Mountable.CanMount(obj: PlanetSideGameObject with WeaponTurret, seatNumber, _) =>
+      case Mountable.CanMount(obj: PlanetSideGameObject with FactionAffinity with WeaponTurret with InGameHistory, seatNumber, _) =>
         sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the ${obj.Definition.asInstanceOf[BasicDefinition].Name}")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, attribute_type=0, obj.Health))
@@ -246,7 +249,7 @@ class SessionMountHandlers(
           VehicleAction.KickPassenger(tplayer.GUID, seat_num, unk2=true, obj.GUID)
         )
 
-      case Mountable.CanDismount(obj: PlanetSideGameObject with WeaponTurret, seatNum, _) =>
+      case Mountable.CanDismount(obj: PlanetSideGameObject with PlanetSideGameObject with Mountable with FactionAffinity with InGameHistory, seatNum, _) =>
         log.info(s"${tplayer.Name} dismounts a ${obj.Definition.asInstanceOf[ObjectDefinition].Name}")
         DismountAction(tplayer, obj, seatNum)
 
@@ -276,7 +279,7 @@ class SessionMountHandlers(
    * @param obj the mountable object
    * @param seatNum the mount into which the player is mounting
    */
-  def MountingAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
+  def MountingAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
     val playerGuid: PlanetSideGUID = tplayer.GUID
     val objGuid: PlanetSideGUID    = obj.GUID
     sessionData.playerActionsToCancel()
@@ -295,7 +298,7 @@ class SessionMountHandlers(
    * @param obj the mountable object
    * @param seatNum the mount out of which which the player is disembarking
    */
-  def DismountVehicleAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
+  def DismountVehicleAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
     DismountAction(tplayer, obj, seatNum)
     //until vehicles maintain synchronized momentum without a driver
     obj match {
@@ -332,8 +335,9 @@ class SessionMountHandlers(
    * @param obj the mountable object
    * @param seatNum the mount out of which which the player is disembarking
    */
-  def DismountAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
+  def DismountAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
     val playerGuid: PlanetSideGUID = tplayer.GUID
+    tplayer.ContributionFrom(obj)
     sessionData.keepAliveFunc = sessionData.zoning.NormalKeepAlive
     val bailType = if (tplayer.BailProtection) {
       BailType.Bailed

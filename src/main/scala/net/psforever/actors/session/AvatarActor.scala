@@ -4,10 +4,17 @@ package net.psforever.actors.session
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
+
 import java.util.concurrent.atomic.AtomicInteger
 import net.psforever.actors.zone.ZoneActor
-import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
+import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, ScoreCard, SupportActivity}
+import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.sourcing.VehicleSource
+import net.psforever.objects.vital.InGameHistory
+import net.psforever.objects.vehicles.MountedWeapons
+import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
 import org.joda.time.{LocalDateTime, Seconds}
+
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
@@ -36,7 +43,7 @@ import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, VehicleLoadout}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.sourcing.{PlayerSource,SourceWithHealthEntry}
 import net.psforever.objects.vital.projectile.ProjectileReason
-import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity, Vitality}
+import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity}
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
 import net.psforever.persistence
@@ -199,11 +206,17 @@ object AvatarActor {
   /** Set total battle experience points */
   final case class SetBep(bep: Long) extends Command
 
+  /** Advance total battle experience points */
+  final case class Progress(bep: Long) extends Command
+
   /** Award command experience points */
-  final case class AwardCep(bep: Long) extends Command
+  final case class AwardFacilityCaptureBep(bep: Long) extends Command
+
+  /** Award command experience points */
+  final case class AwardCep(cep: Long) extends Command
 
   /** Set total command experience points */
-  final case class SetCep(bep: Long) extends Command
+  final case class SetCep(cep: Long) extends Command
 
   /** Set cosmetics. Only allowed for BR24 or higher. */
   final case class SetCosmetics(personalStyles: Set[Cosmetic]) extends Command
@@ -225,6 +238,8 @@ object AvatarActor {
   final case class AvatarResponse(avatar: Avatar)
 
   final case class AvatarLoginResponse(avatar: Avatar)
+
+  final case class SupportExperienceDeposit(bep: Long, delay: Long) extends Command
 
   /**
     * A player loadout represents all of the items in the player's hands (equipment slots)
@@ -822,6 +837,110 @@ object AvatarActor {
     out.future
   }
 
+  def setBepOnly(avatarId: Long, bep: Long): Future[Long] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[Long] = Promise()
+    val result = ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId)).update(_.bep -> lift(bep)))
+    result.onComplete { _ =>
+      out.completeWith(Future(bep))
+    }
+    out.future
+  }
+
+  def loadExperienceDebt(avatarId: Long): Future[Long] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[Long] = Promise()
+    val result = ctx.run(query[persistence.Progressiondebt].filter(_.avatarId == lift(avatarId)))
+    result.onComplete {
+      case Success(debt) if debt.nonEmpty =>
+        out.completeWith(Future(debt.head.experience))
+      case _ =>
+        out.completeWith(Future(0L))
+    }
+    out.future
+  }
+
+  def saveExperienceDebt(avatarId: Long, exp: Long): Future[Int] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[Int] = Promise()
+    val result = ctx.run(query[persistence.Progressiondebt].filter(_.avatarId == lift(avatarId)))
+    result.onComplete {
+      case Success(debt) if debt.nonEmpty =>
+        ctx.run(
+          query[persistence.Progressiondebt]
+            .filter(_.avatarId == lift(avatarId))
+            .update(_.experience -> lift(exp))
+        )
+        out.completeWith(Future(1))
+      case _ =>
+        out.completeWith(Future(0))
+    }
+    out.future
+  }
+
+  def avatarNoLongerLoggedIn(accountId: Long): Unit = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global //linter says unused but compiler says otherwise
+    ctx.run(
+      query[persistence.Account]
+        .filter(_.id == lift(accountId))
+        .update(_.avatarLoggedIn -> lift(0L))
+    )
+  }
+
+  def updateToolDischargeFor(avatar: Avatar): Unit = {
+    updateToolDischargeFor(avatar.id, avatar.scorecard.CurrentLife)
+  }
+
+  def updateToolDischargeFor(avatarId: Long, life: Life): Unit = {
+    updateToolDischargeFor(avatarId, life.equipmentStats)
+  }
+
+  def updateToolDischargeFor(avatarId: Long, stats: Seq[EquipmentStat]): Unit = {
+    stats.foreach { stat =>
+      zones.exp.ToDatabase.reportToolDischarge(avatarId, stat)
+    }
+  }
+
+  def loadCampaignKdaData(avatarId: Long): Future[ScoreCard] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[ScoreCard] = Promise()
+    val result = ctx.run(quote {
+      for {
+        kdaOut <- query[persistence.Killactivity]
+          .filter(c =>
+            (c.killerId == lift(avatarId) || c.victimId == lift(avatarId)) && c.killerId != c.victimId
+          )
+          .join(query[persistence.Avatar])
+          .on({ case (a, b) =>
+            b.id == a.victimId
+          })
+          .map({ case (a, b) =>
+            (a.killerId, a.victimId, a.victimExosuit, b.factionId)
+          })
+      } yield kdaOut
+    })
+    result.onComplete {
+      case Success(res) =>
+        val card = new ScoreCard()
+        val (killerEntries, _) = res.partition {
+          case (killer, _, _, _) => avatarId == killer
+        }
+        killerEntries.foreach { case (_, _, exosuit, faction) =>
+          val statId = StatisticalElement.relatedElement(ExoSuitType(exosuit)).value
+          card.initStatisticForKill(statId, PlanetSideEmpire(faction))
+        }
+        out.completeWith(Future(card))
+      case _ =>
+        out.completeWith(Future(new ScoreCard()))
+    }
+    out.future
+  }
+
   def toAvatar(avatar: persistence.Avatar): Avatar = {
     val bep = avatar.bep
     val convertedCosmetics = if (BattleRank.showCosmetics(bep)) {
@@ -863,6 +982,9 @@ class AvatarActor(
   var _avatar: Option[Avatar]                      = None
   var saveLockerFunc: () => Unit                   = storeNewLocker
   //val topic: ActorRef[Topic.Command[Avatar]]       = context.spawnAnonymous(Topic[Avatar]("avatar"))
+  var supportExperiencePool: Long = 0
+  var supportExperienceTimer: Cancellable          = Default.Cancellable
+  var experienceDebt: Long = 0L
 
   def avatar: Avatar = _avatar.get
 
@@ -1024,13 +1146,13 @@ class AvatarActor(
                   } yield true
                   inits.onComplete {
                     case Success(_) =>
-                      performAvatarLogin(avatarId, account.id, replyTo)
+                      performAvatarLoginTest(avatarId, account.id, replyTo)
                     case Failure(e) =>
                       log.error(e)("db failure")
                       sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 6))
                   }
                 } else {
-                  performAvatarLogin(avatarId, account.id, replyTo)
+                  performAvatarLoginTest(avatarId, account.id, replyTo)
                 }
               case Success(_) =>
                 //TODO this may not be an actual failure, but don't know what to do
@@ -1047,6 +1169,11 @@ class AvatarActor(
 
         case other =>
           buffer.stash(other)
+          Behaviors.same
+      }
+      .receiveSignal {
+        case (_, PostStop) =>
+          AvatarActor.avatarNoLongerLoggedIn(account.id)
           Behaviors.same
       }
   }
@@ -1646,24 +1773,95 @@ class AvatarActor(
           updateToolDischarge(stats)
           Behaviors.same
 
-        case UpdateKillsDeathsAssists(stat) =>
-          updateKillsDeathsAssists(stat)
+        case UpdateKillsDeathsAssists(stat: Kill) =>
+          updateKills(stat)
+          Behaviors.same
+
+        case UpdateKillsDeathsAssists(stat: Assist) =>
+          updateAssists(stat)
+          Behaviors.same
+
+        case UpdateKillsDeathsAssists(stat: Death) =>
+          updateDeaths(stat)
+          Behaviors.same
+
+        case UpdateKillsDeathsAssists(stat: SupportActivity) =>
+          updateSupport(stat)
+          Behaviors.same
+
+        case AwardBep(bep, ExperienceType.Support) =>
+          val gain = bep - experienceDebt
+          if (gain > 0L) {
+            awardSupportExperience(gain, previousDelay = 0L)
+          } else {
+            experienceDebt = experienceDebt - bep
+          }
           Behaviors.same
 
         case AwardBep(bep, modifier) =>
-          setBep(avatar.bep + bep, modifier)
+          val mod = Config.app.game.promotion.battleExperiencePointsModifier
+          if (experienceDebt == 0L) {
+            setBep(avatar.bep + bep, modifier)
+          } else if (mod > 0f) {
+            val modifiedBep = (bep.toFloat * Config.app.game.promotion.battleExperiencePointsModifier).toLong
+            val gain = modifiedBep - experienceDebt
+            if (gain > 0L) {
+              setBep(avatar.bep + gain, modifier)
+            } else {
+              experienceDebt = experienceDebt - modifiedBep
+            }
+          }
+          Behaviors.same
+
+        case AwardFacilityCaptureBep(bep) =>
+          val gain = bep - experienceDebt
+          if (gain > 0L) {
+            setBep(gain, ExperienceType.Normal)
+          } else {
+            experienceDebt = experienceDebt - bep
+          }
+          Behaviors.same
+
+        case SupportExperienceDeposit(bep, delayBy) =>
+          actuallyAwardSupportExperience(bep, delayBy)
           Behaviors.same
 
         case SetBep(bep) =>
           setBep(bep, ExperienceType.Normal)
+          sessionActor ! SessionActor.SendResponse(ChatMsg(ChatMessageType.UNK_229, "@AckSuccessSetBattleRank"))
+          Behaviors.same
+
+        case Progress(bep) =>
+          if ({
+            val oldBr = BattleRank.withExperience(avatar.bep).value
+            val newBr = BattleRank.withExperience(bep).value
+            if (Config.app.game.promotion.active && oldBr == 1 && newBr > 1 && newBr < Config.app.game.promotion.maxBattleRank + 1) {
+              experienceDebt = bep
+              if (avatar.cep > 0) {
+                setCep(0L)
+              }
+              true
+            } else if (experienceDebt > 0 && newBr == 2) {
+              experienceDebt = 0
+              true
+            } else {
+              false
+            }
+          }) {
+            setBep(bep, ExperienceType.Normal)
+            sessionActor ! SessionActor.SendResponse(ChatMsg(ChatMessageType.UNK_229, "@AckSuccessSetBattleRank"))
+          }
           Behaviors.same
 
         case AwardCep(cep) =>
-          setCep(avatar.cep + cep)
+          if (experienceDebt > 0L) {
+            setCep(avatar.cep + cep)
+          }
           Behaviors.same
 
         case SetCep(cep) =>
           setCep(cep)
+          sessionActor ! SessionActor.SendResponse(ChatMsg(ChatMessageType.UNK_229, "@AckSuccessSetCommandRank"))
           Behaviors.same
 
         case SetCosmetics(cosmetics) =>
@@ -1789,10 +1987,17 @@ class AvatarActor(
       }
       .receiveSignal {
         case (_, PostStop) =>
-          AvatarActor.saveAvatarData(avatar)
           staminaRegenTimer.cancel()
           implantTimers.values.foreach(_.cancel())
+          supportExperienceTimer.cancel()
+          if (supportExperiencePool > 0) {
+            AvatarActor.setBepOnly(avatar.id, avatar.bep + supportExperiencePool)
+          }
+          AvatarActor.saveAvatarData(avatar)
           saveLockerFunc()
+          AvatarActor.updateToolDischargeFor(avatar)
+          AvatarActor.saveExperienceDebt(avatar.id, experienceDebt)
+          AvatarActor.avatarNoLongerLoggedIn(account.get.id)
           Behaviors.same
       }
   }
@@ -1805,9 +2010,26 @@ class AvatarActor(
     Future.failed(ex).asInstanceOf[Future[Loadout]]
   }
 
+  def performAvatarLoginTest(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
+    import ctx._
+    val blockLogInIfNot = for {
+      out <- ctx.run(query[persistence.Account].filter(_.id == lift(accountId)))
+    } yield out
+    blockLogInIfNot.onComplete {
+      case Success(account)
+        //TODO test against acceptable player factions
+        if account.exists { _.avatarLoggedIn == 0 } =>
+        //accept
+        performAvatarLogin(avatarId, accountId, replyTo)
+      case _ =>
+        //refuse
+        //TODO refuse?
+        sessionActor ! SessionActor.Quit()
+    }
+  }
+
   def performAvatarLogin(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
     import ctx._
-
     val result = for {
       //log this login
       _ <- ctx.run(
@@ -1819,7 +2041,10 @@ class AvatarActor(
       _ <- ctx.run(
         query[persistence.Account]
           .filter(_.id == lift(accountId))
-          .update(_.lastFactionId -> lift(avatar.faction.id))
+          .update(
+            _.lastFactionId -> lift(avatar.faction.id),
+            _.avatarLoggedIn -> lift(avatarId)
+          )
       )
       //retrieve avatar data
       loadouts  <- initializeAllLoadouts()
@@ -1830,9 +2055,11 @@ class AvatarActor(
       ignored   <- loadIgnoredList(avatarId)
       shortcuts <- loadShortcuts(avatarId)
       saved     <- AvatarActor.loadSavedAvatarData(avatarId)
-    } yield (loadouts, implants, certs, locker, friends, ignored, shortcuts, saved)
+      debt      <- AvatarActor.loadExperienceDebt(avatarId)
+      card      <- AvatarActor.loadCampaignKdaData(avatarId)
+    } yield (loadouts, implants, certs, locker, friends, ignored, shortcuts, saved, debt, card)
     result.onComplete {
-      case Success((_loadouts, implants, certs, lockerInv, friendsList, ignoredList, shortcutList, saved)) =>
+      case Success((_loadouts, implants, certs, lockerInv, friendsList, ignoredList, shortcutList, saved, debt, card)) =>
         //shortcuts must have a hotbar option for each implant
 //        val implantShortcuts = shortcutList.filter {
 //          case Some(e) => e.purpose == 0
@@ -1866,11 +2093,13 @@ class AvatarActor(
             cooldowns = Cooldowns(
               purchase = AvatarActor.buildCooldownsFromClob(saved.purchaseCooldowns, Avatar.purchaseCooldowns, log),
               use = AvatarActor.buildCooldownsFromClob(saved.useCooldowns, Avatar.useCooldowns, log)
-            )
+            ),
+            scorecard = card
           )
         )
         // if we need to start stamina regeneration
         tryRestoreStaminaForSession(stamina = 1).collect { _ => defaultStaminaRegen(initialDelay = 0.5f seconds) }
+        experienceDebt = debt
         replyTo ! AvatarLoginResponse(avatar)
       case Failure(e) =>
         log.error(e)("db failure")
@@ -2865,13 +3094,7 @@ class AvatarActor(
 
   def setBep(bep: Long, modifier: ExperienceType): Unit = {
     import ctx._
-    val current   = BattleRank.withExperience(avatar.bep).value
-    val next      = BattleRank.withExperience(bep).value
-    lazy val br24 = BattleRank.BR24.value
-    val result = for {
-      r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatar.id)).update(_.bep -> lift(bep)))
-    } yield r
-    result.onComplete {
+    AvatarActor.setBepOnly(avatar.id, bep).onComplete {
       case Success(_) =>
         val sess          = session.get
         val zone          = sess.zone
@@ -2880,6 +3103,9 @@ class AvatarActor(
         val player        = sess.player
         val pguid         = player.GUID
         val localModifier = modifier
+        val current   = BattleRank.withExperience(avatar.bep).value
+        val next      = BattleRank.withExperience(bep).value
+        val br24 = BattleRank.BR24.value
         sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(pguid, bep, localModifier))
         events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(pguid, 17, bep))
         if (current < br24 && next >= br24 || current >= br24 && next < br24) {
@@ -2936,41 +3162,142 @@ class AvatarActor(
     }
   }
 
-  def updateKillsDeathsAssists(kdaStat: KDAStat): Unit = {
-    avatar.scorecard.rate(kdaStat)
-    val exp      = kdaStat.experienceEarned
+  def awardSupportExperience(bep: Long, previousDelay: Long): Unit = {
+    setBep(avatar.bep + bep, ExperienceType.Support) //todo simplify support testing
+//    supportExperiencePool = supportExperiencePool + bep
+//    avatar.scorecard.rate(bep)
+//    if (supportExperienceTimer.isCancelled) {
+//      resetSupportExperienceTimer(previousBep = 0, previousDelay = 0)
+//    }
+  }
+
+  def actuallyAwardSupportExperience(bep: Long, delayBy: Long): Unit = {
+    setBep(avatar.bep + bep, ExperienceType.Support)
+    supportExperiencePool = supportExperiencePool - bep
+    if (supportExperiencePool > 0) {
+      resetSupportExperienceTimer(bep, delayBy)
+    } else {
+      supportExperiencePool = 0
+      supportExperienceTimer.cancel()
+      supportExperienceTimer = Default.Cancellable
+    }
+  }
+
+  def updateKills(killStat: Kill): Unit = {
+    val exp                = killStat.experienceEarned
+    val (modifiedExp, msg) = updateExperienceAndType(killStat.experienceEarned)
+    val output             = avatar.scorecard.rate(killStat.copy(experienceEarned = modifiedExp))
+    val _session           = session.get
+    val zone               = _session.zone
+    val player             = _session.player
+    val playerSource       = PlayerSource(player)
+    val historyTranscript  = {
+      (killStat.info.interaction.cause match {
+        case pr: ProjectileReason => pr.projectile.mounted_in.flatMap { a => zone.GUID(a._1) } //what fired the projectile
+        case _ => None
+      }).collect {
+        case mount: PlanetSideGameObject with FactionAffinity with InGameHistory with MountedWeapons =>
+          player.ContributionFrom(mount)
+      }
+      player.HistoryAndContributions()
+    }
+    zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, killStat, exp)
+    val target = killStat.info.targetAfter.asInstanceOf[PlayerSource]
+    val targetMounted = target.seatedIn.map { case (v: VehicleSource, seat) =>
+      val definition = v.Definition
+      definition.ObjectId * 10 + Vehicles.SeatPermissionGroup(definition, seat).map { _.id }.getOrElse(0)
+    }.getOrElse(0)
+    zones.exp.ToDatabase.reportKillBy(
+      avatar.id.toLong,
+      target.CharId,
+      target.ExoSuit.id,
+      targetMounted,
+      killStat.info.interaction.cause.attribution,
+      player.Zone.Number,
+      target.Position,
+      modifiedExp
+    )
+    output.foreach { case (id, entry) =>
+      val elem = StatisticalElement.fromId(id)
+      sessionActor ! SessionActor.SendResponse(
+        AvatarStatisticsMessage(SessionStatistic(
+          StatisticalCategory.Destroyed,
+          elem,
+          entry.tr_s,
+          entry.nc_s,
+          entry.vs_s,
+          entry.ps_s
+        ))
+      )
+    }
+    if (exp > 0L) {
+      setBep(avatar.bep + exp, msg)
+    }
+  }
+
+  def updateDeaths(deathStat: Death): Unit = {
+    AvatarActor.updateToolDischargeFor(avatar)
+    avatar.scorecard.rate(deathStat)
     val _session = session.get
     val zone     = _session.zone
     val player   = _session.player
-    kdaStat match {
-      case kill: Kill =>
-        val playerSource = PlayerSource(player)
-        (kill.info.interaction.cause match {
-          case pr: ProjectileReason => pr.projectile.mounted_in.map { a => zone.GUID(a._1) }
-          case _ => None
-        }).collect {
-          case Some(obj: Vitality) =>
-            zone.actor ! ZoneActor.RewardOurSupporters(playerSource, obj.History, kill, exp)
-        }
-        zone.actor ! ZoneActor.RewardOurSupporters(playerSource, player.History, kill, exp)
-      case _: Death =>
-        zone.AvatarEvents ! AvatarServiceMessage(
-          player.Name,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            AvatarStatisticsMessage(DeathStatistic(avatar.scorecard.Lives.size))
-          )
-        )
+    zone.AvatarEvents ! AvatarServiceMessage(
+      player.Name,
+      AvatarAction.SendResponse(
+        Service.defaultPlayerGUID,
+        AvatarStatisticsMessage(DeathStatistic(ScoreCard.deathCount(avatar.scorecard)))
+      )
+    )
+  }
+
+  def updateAssists(assistStat: Assist): Unit = {
+    avatar.scorecard.rate(assistStat)
+    val exp      = assistStat.experienceEarned
+    val _session = session.get
+    val avatarId = avatar.id.toLong
+    assistStat.weapons.foreach { wrapper =>
+      zones.exp.ToDatabase.reportKillAssistBy(
+        avatarId,
+        assistStat.victim.CharId,
+        wrapper.equipment,
+        _session.zone.Number,
+        assistStat.victim.Position,
+        exp
+      )
     }
-    if (exp > 0L) {
-      val gameOpts = Config.app.game
-      val (msg, modifier): (ExperienceType, Float) = if (player.Carrying.contains(SpecialCarry.RabbitBall)) {
-        (ExperienceType.RabbitBall, 1.25f)
-      } else {
-        (ExperienceType.Normal, 1f)
-      }
-      setBep(avatar.bep + (exp * modifier * gameOpts.bepRate).toLong, msg)
+    awardSupportExperience(exp, previousDelay = 0L)
+  }
+
+  def updateSupport(supportStat: SupportActivity): Unit = {
+    val avatarId = avatar.id.toLong
+    val target = supportStat.target
+    val targetId = target.CharId
+    val targetExosuit = target.ExoSuit.id
+    val exp = supportStat.experienceEarned
+    supportStat.weapons.foreach { entry =>
+      zones.exp.ToDatabase.reportSupportBy(
+        avatarId,
+        targetId,
+        targetExosuit,
+        entry.value,
+        entry.intermediate,
+        entry.equipment,
+        exp
+      )
     }
+    awardSupportExperience(exp, previousDelay = 0L)
+  }
+
+  def updateExperienceAndType(exp: Long): (Long, ExperienceType) = {
+    val _session = session.get
+    val player   = _session.player
+    val gameOpts = Config.app.game.experience.bep
+    val (modifier, msg) = if (player.Carrying.contains(SpecialCarry.RabbitBall)) {
+      (1.25f, ExperienceType.RabbitBall)
+    } else {
+      (1f, ExperienceType.Normal)
+    }
+    ((exp * modifier * gameOpts.rate).toLong, msg)
   }
 
   def updateToolDischarge(stats: EquipmentStat): Unit = {
@@ -3102,5 +3429,42 @@ class AvatarActor(
         output.success(false)
     }
     output.future
+  }
+
+  def resetSupportExperienceTimer(previousBep: Long, previousDelay: Long): Unit = {
+    val bep: Long = if (supportExperiencePool < 10L) {
+      supportExperiencePool
+    } else {
+      val rand = math.random()
+      val range: Long = if (previousBep < 30L) {
+        if (rand < 0.3d) {
+          75L
+        } else {
+          215L
+        }
+      } else {
+        if (rand < 0.1d || (previousDelay > 35000L && previousBep > 150L)) {
+          75L
+        } else if (rand > 0.9d) {
+          520L
+        } else {
+          125L
+        }
+      }
+      math.min((range * math.random()).toLong, supportExperiencePool)
+    }
+    val delay: Long = {
+      val rand = math.random()
+      if ((previousBep > 190L || previousDelay > 35000L) && bep < 51L) {
+        (1000d * rand).toLong
+      } else {
+        10000L + (rand * 35000d).toLong
+      }
+    }
+    supportExperienceTimer = context.scheduleOnce(
+      delay.milliseconds,
+      context.self,
+      SupportExperienceDeposit(bep, delay)
+    )
   }
 }

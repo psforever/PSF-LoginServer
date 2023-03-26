@@ -564,7 +564,7 @@ class ConverterTest extends Specification {
       obj.Faction = PlanetSideEmpire.TR
       obj.GUID = PlanetSideGUID(90)
       obj.Router = PlanetSideGUID(1001)
-      obj.Owner = PlanetSideGUID(5001)
+      obj.OwnerGuid = PlanetSideGUID(5001)
       obj.Health = 1
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
@@ -596,7 +596,7 @@ class ConverterTest extends Specification {
       obj.Faction = PlanetSideEmpire.TR
       obj.GUID = PlanetSideGUID(90)
       obj.Router = PlanetSideGUID(1001)
-      obj.Owner = PlanetSideGUID(5001)
+      obj.OwnerGuid = PlanetSideGUID(5001)
       obj.Health = 0
       obj.Definition.Packet.ConstructorData(obj) match {
         case Success(pkt) =>
@@ -628,7 +628,7 @@ class ConverterTest extends Specification {
       obj.Faction = PlanetSideEmpire.TR
       obj.GUID = PlanetSideGUID(90)
       //obj.Router = PlanetSideGUID(1001)
-      obj.Owner = PlanetSideGUID(5001)
+      obj.OwnerGuid = PlanetSideGUID(5001)
       obj.Health = 1
       obj.Definition.Packet.ConstructorData(obj).isFailure mustEqual true
 
@@ -641,7 +641,7 @@ class ConverterTest extends Specification {
       obj.Faction = PlanetSideEmpire.TR
       obj.GUID = PlanetSideGUID(90)
       obj.Router = PlanetSideGUID(1001)
-      obj.Owner = PlanetSideGUID(5001)
+      obj.OwnerGuid = PlanetSideGUID(5001)
       obj.Health = 1
       obj.Definition.Packet.DetailedConstructorData(obj).isFailure mustEqual true
     }

@@ -1,45 +1,33 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.sourcing.{PlayerSource, UniquePlayer}
 import net.psforever.types.PlanetSideGUID
 
 trait OwnableByPlayer {
-  private var owner: Option[PlanetSideGUID]         = None
-  private var ownerName: Option[String]             = None
-  private var originalOwnerName: Option[String]     = None
+  private var owner: Option[UniquePlayer]       = None
+  private var ownerGuid: Option[PlanetSideGUID] = None
+  private var originalOwnerName: Option[String] = None
 
-  def Owner: Option[PlanetSideGUID] = owner
+  def Owners: Option[UniquePlayer] = owner
 
-  def Owner_=(owner: PlanetSideGUID): Option[PlanetSideGUID] = Owner_=(Some(owner))
+  def OwnerGuid: Option[PlanetSideGUID] = ownerGuid
 
-  def Owner_=(owner: Player): Option[PlanetSideGUID] = Owner_=(Some(owner.GUID))
+  def OwnerGuid_=(owner: PlanetSideGUID): Option[PlanetSideGUID] = OwnerGuid_=(Some(owner))
 
-  def Owner_=(owner: Option[PlanetSideGUID]): Option[PlanetSideGUID] = {
+  def OwnerGuid_=(owner: Player): Option[PlanetSideGUID] = OwnerGuid_=(Some(owner.GUID))
+
+  def OwnerGuid_=(owner: Option[PlanetSideGUID]): Option[PlanetSideGUID] = {
     owner match {
       case Some(_) =>
-        this.owner = owner
+        ownerGuid = owner
       case None =>
-        this.owner = None
+        ownerGuid = None
     }
-    Owner
+    OwnerGuid
   }
 
-  def OwnerName: Option[String] = ownerName
-
-  def OwnerName_=(owner: String): Option[String] = OwnerName_=(Some(owner))
-
-  def OwnerName_=(owner: Player): Option[String] = OwnerName_=(Some(owner.Name))
-
-  def OwnerName_=(owner: Option[String]): Option[String] = {
-    owner match {
-      case Some(_) =>
-        ownerName = owner
-        originalOwnerName = originalOwnerName.orElse(owner)
-      case None =>
-        ownerName = None
-    }
-    OwnerName
-  }
+  def OwnerName: Option[String] = owner.map { _.name }
 
   def OriginalOwnerName: Option[String] = originalOwnerName
 
@@ -56,14 +44,30 @@ trait OwnableByPlayer {
    * @return na
    */
   def AssignOwnership(playerOpt: Option[Player]): OwnableByPlayer = {
-    playerOpt match {
-      case Some(player) =>
-        Owner = player
-        OwnerName = player
-      case None =>
-        Owner = None
-        OwnerName = None
+    (originalOwnerName, playerOpt) match {
+      case (None, Some(player)) =>
+        owner = Some(PlayerSource(player).unique)
+        originalOwnerName = originalOwnerName.orElse { Some(player.Name) }
+        OwnerGuid = player
+      case (_, Some(player)) =>
+        owner = Some(PlayerSource(player).unique)
+        OwnerGuid = player
+      case (_, None) =>
+        owner = None
+        OwnerGuid = None
     }
+    this
+  }
+
+  /**
+   * na
+   * @param ownable na
+   * @return na
+   */
+  def AssignOwnership(ownable: OwnableByPlayer): OwnableByPlayer = {
+    owner = ownable.owner
+    originalOwnerName = originalOwnerName.orElse { ownable.originalOwnerName }
+    OwnerGuid = ownable.OwnerGuid
     this
   }
 }

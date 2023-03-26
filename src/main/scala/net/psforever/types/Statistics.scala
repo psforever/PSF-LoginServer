@@ -2,6 +2,7 @@
 package net.psforever.types
 
 import enumeratum.values.{IntEnum, IntEnumEntry}
+import net.psforever.objects.definition.ExoSuitDefinition
 import net.psforever.types.StatisticalElement.{AMS, ANT, AgileExoSuit, ApcNc, ApcTr, ApcVs, Aphelion, AphelionFlight, AphelionGunner, Battlewagon, Colossus, ColossusFlight, ColossusGunner, Dropship, Flail, Fury, GalaxyGunship, InfiltrationExoSuit, Liberator, Lightgunship, Lightning, Lodestar, Magrider, MechanizedAssaultExoSuit, MediumTransport, Mosquito, Peregrine, PeregrineFlight, PeregrineGunner, PhalanxTurret, PortableMannedTurretNc, PortableMannedTurretTr, PortableMannedTurretVs, Prowler, QuadAssault, QuadStealth, Raider, ReinforcedExoSuit, Router, Skyguard, StandardExoSuit, Sunderer, Switchblade, ThreeManHeavyBuggy, Thunderer, TwoManAssaultBuggy, TwoManHeavyBuggy, TwoManHoverBuggy, VanSentryTurret, Vanguard, Vulture, Wasp}
 
 sealed abstract class StatisticalCategory(val value: Int) extends IntEnumEntry
@@ -64,16 +65,16 @@ object StatisticalCategory extends IntEnum[StatisticalCategory] {
       Seq(Phantasm, ImplantTerminalMech, Droppod, SpitfireAA, SpitfireCloaked, SpitfireTurret, TankTraps) ++
         driverOnlyVehicles ++ gunnerVehicles ++ mannedTurretElements ++ exosuitElements,
       Seq(
-        //        Chaingun12mm, Chaingun15mm, Cannon20mm, Deliverer20mm, DropshipL20mm, Cannon75mm, Lightning75mm, AdvancedMissileLauncherT, AMS, AnniversaryGun, AnniversaryGunA, AnniversaryGunB, ANT, Sunderer, ApcBallGunL, ApcBallGunR, ApcTr, ApcNc, ApcVs, ApcWeaponSystemA, ApcWeaponSystemB, ApcWeaponSystemC, ApcWeaponSystemCNc, ApcWeaponSystemCTr, ApcWeaponSystemCVs, ApcWeaponSystemD, ApcWeaponSystemDNc, ApcWeaponSystemDTr, ApcWeaponSystemDVs, Aphelion, AphelionArmorSiphon, AphelionFlight, AphelionGunner, AphelionImmolationCannon, AphelionLaser, AphelionNtuSiphon, AphelionPlasmaCloud, AphelionPlasmaRocketPod,
-        //        AphelionPpa, AphelionStarfire, AuroraWeaponSystemA, AuroraWeaponSystemB, Battlewagon, BattlewagonWeaponSystemA, BattlewagonWeaponSystemB, BattlewagonWeaponSystemC, BattlewagonWeaponSystemD, Infantry, Raider, Beamer, BoltDriver, Boomer, Chainblade, ChaingunP, Colossus, ColossusArmorSiphon, ColossusBurster, ColossusChaingun, ColossusClusterBombPod, ColossusDual100mmCannons, ColossusFlight,
-        //        ColossusGunner, ColossusNtuSiphon, ColossusTankCannon, Cycler, CyclerV2, CyclerV3, CyclerV4, Dropship, DropshipRearTurret, Dynomite, EnergyGunNc, EnergyGunTr, EnergyGunVs, Flail, FlailWeapon, Flamethrower,
-        //        Flechette, FluxCannonThresher, Fluxpod, Forceblade, FragGrenade, Fury, FragmentationGrenade, FuryWeaponSystemA, GalaxyGunship, GalaxyGunshipCannon, GalaxyGunshipGun, GalaxyGunshipTailgun, Gauss, GaussCannon, GrenadeLauncherMarauder, HeMine, HeavyRailBeamMagrider, HeavySniper, Hellfire,
-        //        Hunterseeker, Ilc9, Isp, JammerGrenade, Katana, Knife, Lancer, Lasher, Liberator, Liberator25mmCannon, LiberatorBombBay, LiberatorWeaponSystem, Lightgunship, LightgunshipWeapon20mm, LightgunshipWeaponRocket, LightgunshipWeaponSystem, Lightning, LightningWeaponSystem, Lodestar, Maelstrom, Magcutter, Magrider, PhalanxTurret,
-        //        MedicalApplicator, MediumTransport, MediumTransportWeaponSystemA, MediumTransportWeaponSystemB, MineSweeper, MiniChaingun, Mosquito, NchevFalcon, NchevScattercannon, NchevSparrow, Oicw,
-        //        OrbitalStrikeBig, OrbitalStrikeSmall, ParticleBeamMagrider, PelletGun, Peregrine, PeregrineArmorSiphon, PeregrineDualMachineGun, PeregrineDualRocketPods, PeregrineFlight, PeregrineGunner, PeregrineMechhammer, PeregrineNtuSiphon, PeregrineParticleCannon, PeregrineSparrow, PhalanxAvcombo, PhalanxFlakcombo, PhalanxSglHevgatcan, Phantasm, Phantasm12mmMachinegun, Phoenix, PlasmaGrenade, Prowler, ProwlerWeaponSystemA,
-        //        ProwlerWeaponSystemB, Pulsar, PulsedParticleAccelerator, Punisher, QuadAssault, QuadAssaultWeaponSystem, QuadStealth, RShotgun, Radiator, Repeater, Rocklet, RotaryChaingunMosquito, Router, RouterTelepadDeployable, Scythe, SixShooter, Skyguard, SkyguardWeaponSystem,
-        //        Spiker, SpitfireAA, SpitfireCloaked, SpitfireTurret, Striker, Suppressor, Switchblade, ThreeManHeavyBuggy, Thumper, Thunderer, ThundererWeaponSystemA, ThundererWeaponSystemB, TrhevBurster, TrhevDualcycler, TrhevPounder, TwoManAssaultBuggy, TwoManHeavyBuggy,
-        //        TwoManHoverBuggy, Vanguard, VanguardWeapon150mm, VanguardWeapon20mm, VanguardWeaponSystem, VanuModule, VanuSentryTurretWeapon, VanuModuleBeam, VshevComet, VshevQuasar, VshevStarfire, Vulture, VultureBombBay, VultureNoseWeaponSystem, VultureTailCannon, Wasp, WaspWeaponSystem, Winchester
+        Chaingun12mm, Chaingun15mm, Cannon20mm, Deliverer20mm, DropshipL20mm, Cannon75mm, Lightning75mm, AdvancedMissileLauncherT, AMS, AnniversaryGun, AnniversaryGunA, AnniversaryGunB, ANT, Sunderer, ApcBallGunL, ApcBallGunR, ApcTr, ApcNc, ApcVs, ApcWeaponSystemA, ApcWeaponSystemB, ApcWeaponSystemC, ApcWeaponSystemCNc, ApcWeaponSystemCTr, ApcWeaponSystemCVs, ApcWeaponSystemD, ApcWeaponSystemDNc, ApcWeaponSystemDTr, ApcWeaponSystemDVs, Aphelion, AphelionArmorSiphon, AphelionFlight, AphelionGunner, AphelionImmolationCannon, AphelionLaser, AphelionNtuSiphon, AphelionPlasmaCloud, AphelionPlasmaRocketPod,
+        AphelionPpa, AphelionStarfire, AuroraWeaponSystemA, AuroraWeaponSystemB, Battlewagon, BattlewagonWeaponSystemA, BattlewagonWeaponSystemB, BattlewagonWeaponSystemC, BattlewagonWeaponSystemD, Infantry, Raider, Beamer, BoltDriver, Boomer, Chainblade, ChaingunP, Colossus, ColossusArmorSiphon, ColossusBurster, ColossusChaingun, ColossusClusterBombPod, ColossusDual100mmCannons, ColossusFlight,
+        ColossusGunner, ColossusNtuSiphon, ColossusTankCannon, Cycler, CyclerV2, CyclerV3, CyclerV4, Dropship, DropshipRearTurret, Dynomite, EnergyGunNc, EnergyGunTr, EnergyGunVs, Flail, FlailWeapon, Flamethrower,
+        Flechette, FluxCannonThresher, Fluxpod, Forceblade, FragGrenade, Fury, FragmentationGrenade, FuryWeaponSystemA, GalaxyGunship, GalaxyGunshipCannon, GalaxyGunshipGun, GalaxyGunshipTailgun, Gauss, GaussCannon, GrenadeLauncherMarauder, HeMine, HeavyRailBeamMagrider, HeavySniper, Hellfire,
+        Hunterseeker, Ilc9, Isp, JammerGrenade, Katana, Knife, Lancer, Lasher, Liberator, Liberator25mmCannon, LiberatorBombBay, LiberatorWeaponSystem, Lightgunship, LightgunshipWeapon20mm, LightgunshipWeaponRocket, LightgunshipWeaponSystem, Lightning, LightningWeaponSystem, Lodestar, Maelstrom, Magcutter, Magrider, PhalanxTurret,
+        MedicalApplicator, MediumTransport, MediumTransportWeaponSystemA, MediumTransportWeaponSystemB, MineSweeper, MiniChaingun, Mosquito, NchevFalcon, NchevScattercannon, NchevSparrow, Oicw,
+        OrbitalStrikeBig, OrbitalStrikeSmall, ParticleBeamMagrider, PelletGun, Peregrine, PeregrineArmorSiphon, PeregrineDualMachineGun, PeregrineDualRocketPods, PeregrineFlight, PeregrineGunner, PeregrineMechhammer, PeregrineNtuSiphon, PeregrineParticleCannon, PeregrineSparrow, PhalanxAvcombo, PhalanxFlakcombo, PhalanxSglHevgatcan, Phantasm, Phantasm12mmMachinegun, Phoenix, PlasmaGrenade, Prowler, ProwlerWeaponSystemA,
+        ProwlerWeaponSystemB, Pulsar, PulsedParticleAccelerator, Punisher, QuadAssault, QuadAssaultWeaponSystem, QuadStealth, RShotgun, Radiator, Repeater, Rocklet, RotaryChaingunMosquito, Router, RouterTelepadDeployable, Scythe, SixShooter, Skyguard, SkyguardWeaponSystem,
+        Spiker, SpitfireAA, SpitfireCloaked, SpitfireTurret, Striker, Suppressor, Switchblade, ThreeManHeavyBuggy, Thumper, Thunderer, ThundererWeaponSystemA, ThundererWeaponSystemB, TrhevBurster, TrhevDualcycler, TrhevPounder, TwoManAssaultBuggy, TwoManHeavyBuggy,
+        TwoManHoverBuggy, Vanguard, VanguardWeapon150mm, VanguardWeapon20mm, VanguardWeaponSystem, VanuModule, VanuSentryTurretWeapon, VanuModuleBeam, VshevComet, VshevQuasar, VshevStarfire, Vulture, VultureBombBay, VultureNoseWeaponSystem, VultureTailCannon, Wasp, WaspWeaponSystem, Winchester
       ),
       Seq(Facilities, Redoubt, Tower, VanuControlPoint, VanuVehicleStation),
       exosuitElements,
@@ -402,4 +403,31 @@ object StatisticalElement extends IntEnum[StatisticalElement] {
   final case object XmasSnowmanIshundar extends StatisticalElement(value = 1044)
   final case object XmasSnowmanSearhus extends StatisticalElement(value = 1045)
   final case object XmasSnowmanSolsar extends StatisticalElement(value = 1046)
+
+  def fromId(id: Int): StatisticalElement = {
+    values.find(_.value == id).getOrElse(StatisticalElement.Door)
+  }
+
+  def relatedElement(key: Any): StatisticalElement = {
+    key match {
+      case suit: ExoSuitType.Value =>
+        Seq(
+          StatisticalElement.AgileExoSuit,
+          StatisticalElement.ReinforcedExoSuit,
+          StatisticalElement.MechanizedAssaultExoSuit,
+          StatisticalElement.InfiltrationExoSuit,
+          StatisticalElement.StandardExoSuit
+        )(suit.id)
+      case exodef: ExoSuitDefinition =>
+        Seq(
+          StatisticalElement.AgileExoSuit,
+          StatisticalElement.ReinforcedExoSuit,
+          StatisticalElement.MechanizedAssaultExoSuit,
+          StatisticalElement.InfiltrationExoSuit,
+          StatisticalElement.StandardExoSuit
+        )(exodef.SuitType.id)
+      case _ =>
+        StatisticalElement.Door  //no one cares about doors
+    }
+  }
 }

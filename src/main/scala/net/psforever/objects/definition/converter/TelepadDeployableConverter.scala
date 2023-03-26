@@ -28,7 +28,7 @@ class TelepadDeployableConverter extends ObjectCreateConverter[TelepadDeployable
                   false,
                   None,
                   Some(router.guid),
-                  obj.Owner.getOrElse(PlanetSideGUID(0))
+                  obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
                 ),
                 unk1 = 87,
                 unk2 = 12

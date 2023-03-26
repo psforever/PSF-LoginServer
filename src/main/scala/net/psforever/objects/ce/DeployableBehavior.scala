@@ -66,16 +66,16 @@ trait DeployableBehavior {
       finalizeDeployable(callback)
 
     case Deployable.Ownership(None)
-      if DeployableObject.Owner.nonEmpty =>
+      if DeployableObject.OwnerGuid.nonEmpty =>
       val obj = DeployableObject
       if (constructed.contains(true)) {
         loseOwnership(obj.Faction)
       } else {
-        obj.Owner = None
+        obj.OwnerGuid = None
       }
 
     case Deployable.Ownership(Some(player))
-      if !DeployableObject.Destroyed && DeployableObject.Owner.isEmpty =>
+      if !DeployableObject.Destroyed && DeployableObject.OwnerGuid.isEmpty =>
       if (constructed.contains(true)) {
         gainOwnership(player)
       } else {
@@ -132,12 +132,12 @@ trait DeployableBehavior {
 
   def startOwnerlessDecay(): Unit = {
     val obj = DeployableObject
-    if (obj.Owner.nonEmpty && decay.isCancelled) {
+    if (obj.OwnerGuid.nonEmpty && decay.isCancelled) {
       //without an owner, this deployable should begin to decay and will deconstruct later
       import scala.concurrent.ExecutionContext.Implicits.global
       decay = context.system.scheduler.scheduleOnce(Deployable.decay, self, Deployable.Deconstruct())
     }
-    obj.Owner = None //OwnerName should remain set
+    obj.OwnerGuid = None //OwnerName should remain set
   }
 
   /**
@@ -163,7 +163,7 @@ trait DeployableBehavior {
     val guid = obj.GUID
     val zone = obj.Zone
     val originalFaction = obj.Faction
-    val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, obj.Owner.get)
+    val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, obj.OwnerGuid.get)
     if (originalFaction != toFaction) {
       obj.Faction = toFaction
       val localEvents = zone.LocalEvents
@@ -199,7 +199,7 @@ trait DeployableBehavior {
       zone.LocalEvents ! LocalServiceMessage(
         zone.id,
         LocalAction.TriggerEffectLocation(
-          obj.Owner.getOrElse(Service.defaultPlayerGUID),
+          obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID),
           "spawn_object_effect",
           obj.Position,
           obj.Orientation
@@ -234,7 +234,7 @@ trait DeployableBehavior {
     val obj = DeployableObject
     val zone       = obj.Zone
     val localEvents = zone.LocalEvents
-    val owner     = obj.Owner.getOrElse(Service.defaultPlayerGUID)
+    val owner     = obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID)
     obj.OwnerName match {
       case Some(_) =>
       case None    =>
@@ -306,7 +306,9 @@ trait DeployableBehavior {
     if (!obj.Destroyed) {
       Deployables.AnnounceDestroyDeployable(obj)
     }
-    obj.OwnerName = None
+    val guid = obj.OwnerGuid
+    obj.AssignOwnership(None)
+    obj.OwnerGuid = guid
   }
 }
 

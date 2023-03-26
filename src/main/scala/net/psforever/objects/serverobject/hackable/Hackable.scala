@@ -25,14 +25,14 @@ trait Hackable {
   def HackedBy_=(agent: Option[Player]): Option[HackInfo] = {
     (hackedBy, agent) match {
       case (None, Some(actor)) =>
-        hackedBy = Some(HackInfo(PlayerSource(actor), actor.GUID, System.nanoTime, 0L))
+        hackedBy = Some(HackInfo(PlayerSource(actor), actor.GUID, System.currentTimeMillis(), 0L))
       case (Some(info), Some(actor)) =>
         if (actor.Faction == this.Faction) {
           //hack cleared
           hackedBy = None
         } else if (actor.Faction != info.hackerFaction) {
           //override the hack state with a new hack state if the new user has different faction affiliation
-          hackedBy = Some(HackInfo(PlayerSource(actor), actor.GUID, System.nanoTime, 0L))
+          hackedBy = Some(HackInfo(PlayerSource(actor), actor.GUID, System.currentTimeMillis(), 0L))
         }
       case (_, None) =>
         hackedBy = None

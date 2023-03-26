@@ -5,12 +5,9 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.zones.Zone
 import net.psforever.objects._
-import net.psforever.packet.game.{
-  CargoMountPointStatusMessage,
-  ObjectAttachMessage,
-  ObjectDetachMessage,
-  PlanetsideAttributeMessage
-}
+import net.psforever.objects.sourcing.VehicleSource
+import net.psforever.objects.vital.VehicleCargoMountActivity
+import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.types.{BailType, CargoStatus, PlanetSideGUID, Vector3}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.Service
@@ -35,14 +32,12 @@ trait CarrierBehavior {
     cargoDismountTimer.cancel()
     val obj = CarrierObject
     val zone = obj.Zone
-    zone.GUID(isMounting) match {
-      case Some(v : Vehicle) => v.Actor ! CargoBehavior.EndCargoMounting(obj.GUID)
-      case _ => ;
+    zone.GUID(isMounting).collect {
+      case v : Vehicle => v.Actor ! CargoBehavior.EndCargoMounting(obj.GUID)
     }
     isMounting = None
-    zone.GUID(isDismounting) match {
-      case Some(v : Vehicle) => v.Actor ! CargoBehavior.EndCargoDismounting(obj.GUID)
-      case _ => ;
+    zone.GUID(isDismounting).collect {
+      case v : Vehicle => v.Actor ! CargoBehavior.EndCargoDismounting(obj.GUID)
     }
     isDismounting = None
   }
@@ -89,9 +84,8 @@ trait CarrierBehavior {
       )
     }
     else {
-      obj.Zone.GUID(isMounting) match {
-        case Some(v: Vehicle) => v.Actor ! CargoBehavior.EndCargoMounting(obj.GUID)
-        case _ => ;
+      obj.Zone.GUID(isMounting).collect {
+        case v: Vehicle => v.Actor ! CargoBehavior.EndCargoMounting(obj.GUID)
       }
       isMounting = None
     }
@@ -115,10 +109,9 @@ trait CarrierBehavior {
               kicked = false
             )
           case _ =>
-            obj.CargoHold(mountPoint) match {
-              case Some(hold) if hold.isOccupied && hold.occupant.get.GUID == cargo_guid =>
-                hold.unmount(hold.occupant.get)
-              case _ => ;
+            obj.CargoHold(mountPoint).collect {
+              case hold if hold.isOccupied && hold.occupant.get.GUID == cargo_guid =>
+                CarrierBehavior.CargoDismountAction(obj, hold.occupant.get, hold, BailType.Normal)
             }
             false
         }
@@ -135,17 +128,15 @@ trait CarrierBehavior {
           CarrierBehavior.CheckCargoDismount(cargo_guid, mountPoint, iteration + 1, bailed)
         )
       } else {
-        zone.GUID(isDismounting.getOrElse(cargo_guid)) match {
-          case Some(cargo: Vehicle) =>
+        zone.GUID(isDismounting.getOrElse(cargo_guid)).collect {
+          case cargo: Vehicle =>
             cargo.Actor ! CargoBehavior.EndCargoDismounting(guid)
-          case _ => ;
         }
         isDismounting = None
       }
     } else {
-      zone.GUID(isDismounting.getOrElse(cargo_guid)) match {
-        case Some(cargo: Vehicle) => cargo.Actor ! CargoBehavior.EndCargoDismounting(guid)
-        case _ => ;
+      zone.GUID(isDismounting.getOrElse(cargo_guid)).collect {
+        case cargo: Vehicle => cargo.Actor ! CargoBehavior.EndCargoDismounting(guid)
       }
       isDismounting = None
     }
@@ -213,10 +204,8 @@ object CarrierBehavior {
         if (distance <= 64) {
           //cargo vehicle is close enough to assume to be physically within the carrier's hold; mount it
           log.debug(s"HandleCheckCargoMounting: mounting cargo vehicle in carrier at distance of $distance")
-          hold.mount(cargo)
-          cargo.MountedIn = carrierGUID
+          CargoMountAction(carrier, cargo, hold, carrierGUID)
           cargo.Velocity = None
-          cargo.Actor ! CargoBehavior.EndCargoMounting(carrierGUID)
           zone.VehicleEvents ! VehicleServiceMessage(
             s"${cargo.Actor}",
             VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health))
@@ -358,9 +347,7 @@ object CarrierBehavior {
           //obviously, don't do this
         } else if (iteration > 40) {
           //cargo vehicle has spent too long not getting far enough away; restore the cargo's mount in the carrier hold
-          hold.mount(cargo)
-          cargo.MountedIn = carrierGUID
-          cargo.Actor ! CargoBehavior.EndCargoMounting(carrierGUID)
+          CargoMountAction(carrier, cargo, hold, carrierGUID)
           CargoMountBehaviorForAll(carrier, cargo, mountPoint)
           zone.actor ! ZoneActor.RemoveFromBlockMap(cargo)
           false
@@ -441,9 +428,10 @@ object CarrierBehavior {
     val zone = carrier.Zone
     carrier.CargoHolds.find({ case (_, hold) => hold.occupant.contains(cargo) }) match {
       case Some((mountPoint, hold)) =>
-        cargo.MountedIn = None
-        hold.unmount(
+        CarrierBehavior.CargoDismountAction(
+          carrier,
           cargo,
+          hold,
           if (bailed) BailType.Bailed else if (kicked) BailType.Kicked else BailType.Normal
         )
         val driverOpt = cargo.Seats(0).occupant
@@ -532,7 +520,7 @@ object CarrierBehavior {
                                         targetGUID: PlanetSideGUID
                                       ): Unit = {
     target match {
-      case Some(_: Vehicle) => ;
+      case Some(_: Vehicle) => ()
       case Some(_)          => log.error(s"$decorator target $targetGUID no longer identifies as a vehicle")
       case None             => log.error(s"$decorator target $targetGUID has gone missing")
     }
@@ -652,5 +640,63 @@ object CarrierBehavior {
       VehicleAction.SendResponse(Service.defaultPlayerGUID, mountPointStatusMessage)
     )
     msgs
+  }
+
+  /**
+   * na
+   * @param carrier the ferrying vehicle
+   * @param cargo the ferried vehicle
+   * @param hold na
+   * @param carrierGuid the ferrying vehicle's unique identifier
+   */
+  private def CargoMountAction(
+                                carrier: Vehicle,
+                                cargo: Vehicle,
+                                hold: Cargo,
+                                carrierGuid: PlanetSideGUID): Unit = {
+    hold.mount(cargo)
+    cargo.MountedIn = carrierGuid
+    val event = VehicleCargoMountActivity(VehicleSource(carrier), VehicleSource(cargo), carrier.Zone.Number)
+    cargo.LogActivity(event)
+    cargo.Seats
+      .filterNot(_._1 == 0) /*ignore driver*/
+      .values
+      .collect {
+        case seat if seat.isOccupied =>
+          seat.occupants.foreach { player =>
+            player.LogActivity(event)
+          }
+      }
+    cargo.Actor ! CargoBehavior.EndCargoMounting(carrierGuid)
+  }
+
+  /**
+   * na
+   * @param carrier the ferrying vehicle
+   * @param cargo the ferried vehicle
+   * @param hold na
+   * @param bailType na
+   */
+  private def CargoDismountAction(
+                                   carrier: Vehicle,
+                                   cargo: Vehicle,
+                                   hold: Cargo,
+                                   bailType: BailType.Value
+                                 ): Unit = {
+    cargo.MountedIn = None
+    hold.unmount(cargo, bailType)
+    val event = VehicleCargoMountActivity(VehicleSource(carrier), VehicleSource(cargo), carrier.Zone.Number)
+    cargo.LogActivity(event)
+    cargo.Seats
+      .filterNot(_._1 == 0) /*ignore driver*/
+      .values
+      .collect {
+        case seat if seat.isOccupied =>
+          seat.occupants.foreach { player =>
+            player.LogActivity(event)
+            player.ContributionFrom(cargo)
+            player.ContributionFrom(carrier)
+          }
+      }
   }
 }

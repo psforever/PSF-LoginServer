@@ -5,6 +5,7 @@ import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.scaladsl.adapter._
+
 import scala.collection.mutable
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
@@ -76,7 +77,7 @@ object ChatActor {
                               ): Unit = {
     if (silos.isEmpty) {
       session ! SessionActor.SendResponse(
-        ChatMsg(UNK_229, true, "Server", s"no targets for ntu found with parameters $debugContent", None)
+        ChatMsg(UNK_229, wideContents=true, "Server", s"no targets for ntu found with parameters $debugContent", None)
       )
     }
     resources match {
@@ -225,7 +226,7 @@ class ChatActor(
               }
               sessionActor ! SessionActor.SetFlying(flying)
               sessionActor ! SessionActor.SendResponse(
-                ChatMsg(CMT_FLY, false, recipient, if (flying) "on" else "off", None)
+                ChatMsg(CMT_FLY, wideContents=false, recipient, if (flying) "on" else "off", None)
               )
 
             case (CMT_ANONYMOUS, _, _) =>
@@ -282,69 +283,43 @@ class ChatActor(
               }
               errorMessage match {
                 case Some(errorMessage) =>
-                  sessionActor ! SessionActor.SendResponse(
-                    ChatMsg(
-                      CMT_QUIT,
-                      false,
-                      "",
-                      errorMessage,
-                      None
-                    )
-                  )
+                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, errorMessage))
                 case None =>
                   sessionActor ! SessionActor.Recall()
               }
 
             case (CMT_INSTANTACTION, _, _) =>
               if (session.zoningType == Zoning.Method.Quit) {
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(CMT_QUIT, false, "", "You can't instant action while quitting.", None)
-                )
+                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "You can't instant action while quitting."))
               } else if (session.zoningType == Zoning.Method.InstantAction) {
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(CMT_QUIT, false, "", "@noinstantaction_instantactionting", None)
-                )
+                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_instantactionting"))
               } else if (session.zoningType == Zoning.Method.Recall) {
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(
-                    CMT_QUIT,
-                    false,
-                    "",
-                    "You won't instant action. You already requested to recall to your sanctuary continent",
-                    None
-                  )
+                  ChatMsg(CMT_QUIT, "You won't instant action. You already requested to recall to your sanctuary continent")
                 )
               } else if (!session.player.isAlive || session.deadState != DeadState.Alive) {
                 if (session.player.isAlive) {
-                  sessionActor ! SessionActor.SendResponse(
-                    ChatMsg(CMT_QUIT, false, "", "@noinstantaction_deconstructing", None)
-                  )
+                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_deconstructing"))
                 } else {
-                  sessionActor ! SessionActor.SendResponse(
-                    ChatMsg(CMT_QUIT, false, "", "@noinstantaction_dead", None)
-                  )
+                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_dead"))
                 }
               } else if (session.player.VehicleSeated.nonEmpty) {
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(CMT_QUIT, false, "", "@noinstantaction_invehicle", None)
-                )
+                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_invehicle"))
               } else {
                 sessionActor ! SessionActor.InstantAction()
               }
 
             case (CMT_QUIT, _, _) =>
               if (session.zoningType == Zoning.Method.Quit) {
-                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, false, "", "@noquit_quitting", None))
+                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_quitting"))
               } else if (!session.player.isAlive || session.deadState != DeadState.Alive) {
                 if (session.player.isAlive) {
-                  sessionActor ! SessionActor.SendResponse(
-                    ChatMsg(CMT_QUIT, false, "", "@noquit_deconstructing", None)
-                  )
+                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_deconstructing"))
                 } else {
-                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, false, "", "@noquit_dead", None))
+                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_dead"))
                 }
               } else if (session.player.VehicleSeated.nonEmpty) {
-                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, false, "", "@noquit_invehicle", None))
+                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_invehicle"))
               } else {
                 sessionActor ! SessionActor.Quit()
               }
@@ -514,7 +489,7 @@ class ChatActor(
                   sessionActor ! SessionActor.SendResponse(
                     ChatMsg(
                       UNK_229,
-                      true,
+                      wideContents=true,
                       "",
                       s"\\#FF4040ERROR - \'${args(0)}\' is not a valid building name.",
                       None
@@ -524,7 +499,7 @@ class ChatActor(
                   sessionActor ! SessionActor.SendResponse(
                     ChatMsg(
                       UNK_229,
-                      true,
+                      wideContents=true,
                       "",
                       s"\\#FF4040ERROR - \'${args(timerPos.get)}\' is not a valid timer value.",
                       None
@@ -610,11 +585,11 @@ class ChatActor(
                 )
               } else if (AvatarActor.getLiveAvatarForFunc(message.recipient, (_,_,_)=>{}).isEmpty) {
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.UNK_45, false, "none", "@notell_target", None)
+                  ChatMsg(ChatMessageType.UNK_45, wideContents=false, "none", "@notell_target", None)
                 )
               } else {
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.UNK_45, false, "none", "@notell_ignore", None)
+                  ChatMsg(ChatMessageType.UNK_45, wideContents=false, "none", "@notell_ignore", None)
                 )
               }
 
@@ -663,22 +638,20 @@ class ChatActor(
               val popVS    = players.count(_.faction == PlanetSideEmpire.VS)
 
               if (popNC + popTR + popVS == 0) {
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.CMT_WHO, false, "", "@Nomatches", None)
-                )
+                sessionActor ! SessionActor.SendResponse(ChatMsg(ChatMessageType.CMT_WHO, "@Nomatches"))
               } else {
                 val contName = session.zone.map.name
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "That command doesn't work for now, but : ", None)
+                  ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "That command doesn't work for now, but : ", None)
                 )
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "NC online : " + popNC + " on " + contName, None)
+                  ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "NC online : " + popNC + " on " + contName, None)
                 )
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "TR online : " + popTR + " on " + contName, None)
+                  ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "TR online : " + popTR + " on " + contName, None)
                 )
                 sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.CMT_WHO, true, "", "VS online : " + popVS + " on " + contName, None)
+                  ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "VS online : " + popVS + " on " + contName, None)
                 )
               }
 
@@ -702,16 +675,16 @@ class ChatActor(
               }
               (zone, gate, list) match {
                 case (None, None, true) =>
-                  sessionActor ! SessionActor.SendResponse(ChatMsg(UNK_229, true, "", PointOfInterest.list, None))
+                  sessionActor ! SessionActor.SendResponse(ChatMsg(UNK_229, wideContents=true, "", PointOfInterest.list, None))
                 case (Some(zone), None, true) =>
                   sessionActor ! SessionActor.SendResponse(
-                    ChatMsg(UNK_229, true, "", PointOfInterest.listWarpgates(zone), None)
+                    ChatMsg(UNK_229, wideContents=true, "", PointOfInterest.listWarpgates(zone), None)
                   )
                 case (Some(zone), Some(gate), false) =>
                   sessionActor ! SessionActor.SetZone(zone.zonename, gate)
                 case (_, None, false) =>
                   sessionActor ! SessionActor.SendResponse(
-                    ChatMsg(UNK_229, true, "", "Gate id not defined (use '/zone <zone> -list')", None)
+                    ChatMsg(UNK_229, wideContents=true, "", "Gate id not defined (use '/zone <zone> -list')", None)
                   )
                 case (_, _, _) if buffer.isEmpty || buffer(0).equals("-help") =>
                   sessionActor ! SessionActor.SendResponse(
@@ -740,16 +713,16 @@ class ChatActor(
                   zone match {
                     case Some(zone: PointOfInterest) =>
                       sessionActor ! SessionActor.SendResponse(
-                        ChatMsg(UNK_229, true, "", PointOfInterest.listAll(zone), None)
+                        ChatMsg(UNK_229, wideContents=true, "", PointOfInterest.listAll(zone), None)
                       )
-                    case _ => ChatMsg(UNK_229, true, "", s"unknown player zone '${session.player.Zone.id}'", None)
+                    case _ => ChatMsg(UNK_229, wideContents=true, "", s"unknown player zone '${session.player.Zone.id}'", None)
                   }
                 case (None, Some(waypoint)) if waypoint != "-help" =>
                   PointOfInterest.getWarpLocation(session.zone.id, waypoint) match {
                     case Some(location) => sessionActor ! SessionActor.SetPosition(location)
                     case None =>
                       sessionActor ! SessionActor.SendResponse(
-                        ChatMsg(UNK_229, true, "", s"unknown location '$waypoint'", None)
+                        ChatMsg(UNK_229, wideContents=true, "", s"unknown location '$waypoint'", None)
                       )
                   }
                 case _ =>
@@ -759,60 +732,10 @@ class ChatActor(
               }
 
             case (CMT_SETBATTLERANK, _, contents) if gmCommandAllowed =>
-              val buffer = contents.toLowerCase.split("\\s+")
-              val (target, rank) = (buffer.lift(0), buffer.lift(1)) match {
-                case (Some(target), Some(rank)) if target == session.avatar.name =>
-                  rank.toIntOption match {
-                    case Some(rank) => (None, BattleRank.withValueOpt(rank))
-                    case None       => (None, None)
-                  }
-                case (Some(target), Some(rank)) =>
-                  // picking other targets is not supported for now
-                  (None, None)
-                case (Some(rank), None) =>
-                  rank.toIntOption match {
-                    case Some(rank) => (None, BattleRank.withValueOpt(rank))
-                    case None       => (None, None)
-                  }
-                case _ => (None, None)
-              }
-              (target, rank) match {
-                case (_, Some(rank)) =>
-                  avatarActor ! AvatarActor.SetBep(rank.experience)
-                  sessionActor ! SessionActor.SendResponse(message.copy(contents = "@AckSuccessSetBattleRank"))
-                case _ =>
-                  sessionActor ! SessionActor.SendResponse(
-                    message.copy(messageType = UNK_229, contents = "@CMT_SETBATTLERANK_usage")
-                  )
-              }
+              setBattleRank(message, contents, session, AvatarActor.SetBep)
 
             case (CMT_SETCOMMANDRANK, _, contents) if gmCommandAllowed =>
-              val buffer = contents.toLowerCase.split("\\s+")
-              val (target, rank) = (buffer.lift(0), buffer.lift(1)) match {
-                case (Some(target), Some(rank)) if target == session.avatar.name =>
-                  rank.toIntOption match {
-                    case Some(rank) => (None, CommandRank.withValueOpt(rank))
-                    case None       => (None, None)
-                  }
-                case (Some(target), Some(rank)) =>
-                  // picking other targets is not supported for now
-                  (None, None)
-                case (Some(rank), None) =>
-                  rank.toIntOption match {
-                    case Some(rank) => (None, CommandRank.withValueOpt(rank))
-                    case None       => (None, None)
-                  }
-                case _ => (None, None)
-              }
-              (target, rank) match {
-                case (_, Some(rank)) =>
-                  avatarActor ! AvatarActor.SetCep(rank.experience)
-                  sessionActor ! SessionActor.SendResponse(message.copy(contents = "@AckSuccessSetCommandRank"))
-                case _ =>
-                  sessionActor ! SessionActor.SendResponse(
-                    message.copy(messageType = UNK_229, contents = "@CMT_SETCOMMANDRANK_usage")
-                  )
-              }
+              setCommandRank(message, contents, session)
 
             case (CMT_ADDBATTLEEXPERIENCE, _, contents) if gmCommandAllowed =>
               contents.toIntOption match {
@@ -1031,20 +954,20 @@ class ChatActor(
                   if (session.player.silenced) {
                     sessionActor ! SessionActor.SetSilenced(false)
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMsg(ChatMessageType.UNK_229, true, "", "@silence_off", None)
+                      ChatMsg(ChatMessageType.UNK_229, wideContents=true, "", "@silence_off", None)
                     )
                     if (!silenceTimer.isCancelled) silenceTimer.cancel()
                   } else {
                     sessionActor ! SessionActor.SetSilenced(true)
                     sessionActor ! SessionActor.SendResponse(
-                      ChatMsg(ChatMessageType.UNK_229, true, "", "@silence_on", None)
+                      ChatMsg(ChatMessageType.UNK_229, wideContents=true, "", "@silence_on", None)
                     )
                     silenceTimer = context.system.scheduler.scheduleOnce(
                       time minutes,
                       () => {
                         sessionActor ! SessionActor.SetSilenced(false)
                         sessionActor ! SessionActor.SendResponse(
-                          ChatMsg(ChatMessageType.UNK_229, true, "", "@silence_timeout", None)
+                          ChatMsg(ChatMessageType.UNK_229, wideContents=true, "", "@silence_timeout", None)
                         )
                       }
                     )
@@ -1186,7 +1109,7 @@ class ChatActor(
       if (contents.startsWith("!whitetext ") && gmCommandAllowed) {
         chatService ! ChatService.Message(
           session,
-          ChatMsg(UNK_227, true, "", contents.replace("!whitetext ", ""), None),
+          ChatMsg(UNK_227, wideContents=true, "", contents.replace("!whitetext ", ""), None),
           ChatChannel.Default()
         )
         true
@@ -1350,11 +1273,80 @@ class ChatActor(
           case _ =>
             false
         }
+      } else if (contents.startsWith("!progress")) {
+        if (!session.account.gm && BattleRank.withExperience(session.avatar.bep).value < Config.app.game.promotion.maxBattleRank + 1) {
+          setBattleRank(message, contents, session, AvatarActor.Progress)
+          true
+        } else {
+          false
+        }
       } else {
         false // unknown ! commands are ignored
       }
     } else {
       false // unknown ! commands are ignored
+    }
+  }
+
+  def setBattleRank(
+                     message: ChatMsg,
+                     contents: String,
+                     session: Session,
+                     msgFunc: Long => AvatarActor.Command
+                   ): Unit = {
+    val buffer = contents.toLowerCase.split("\\s+")
+    val (target, rank) = (buffer.lift(0), buffer.lift(1)) match {
+      case (Some(target), Some(rank)) if target == session.avatar.name =>
+        rank.toIntOption match {
+          case Some(rank) => (None, BattleRank.withValueOpt(rank))
+          case None       => (None, None)
+        }
+      case (Some(_), Some(_)) =>
+        // picking other targets is not supported for now
+        (None, None)
+      case (Some(rank), None) =>
+        rank.toIntOption match {
+          case Some(rank) => (None, BattleRank.withValueOpt(rank))
+          case None       => (None, None)
+        }
+      case _ => (None, None)
+    }
+    (target, rank) match {
+      case (_, Some(rank)) if rank.value <= Config.app.game.maxBattleRank =>
+        avatarActor ! msgFunc(rank.experience)
+      case _ =>
+        sessionActor ! SessionActor.SendResponse(
+          message.copy(messageType = UNK_229, contents = "@CMT_SETBATTLERANK_usage")
+        )
+    }
+  }
+
+  def setCommandRank(message: ChatMsg, contents: String, session: Session): Unit = {
+    val buffer = contents.toLowerCase.split("\\s+")
+    val (target, rank) = (buffer.lift(0), buffer.lift(1)) match {
+      case (Some(target), Some(rank)) if target == session.avatar.name =>
+        rank.toIntOption match {
+          case Some(rank) => (None, CommandRank.withValueOpt(rank))
+          case None       => (None, None)
+        }
+      case (Some(_), Some(_)) =>
+        // picking other targets is not supported for now
+        (None, None)
+      case (Some(rank), None) =>
+        rank.toIntOption match {
+          case Some(rank) => (None, CommandRank.withValueOpt(rank))
+          case None       => (None, None)
+        }
+      case _ => (None, None)
+    }
+    (target, rank) match {
+      case (_, Some(rank)) =>
+        avatarActor ! AvatarActor.SetCep(rank.experience)
+        //sessionActor ! SessionActor.SendResponse(message.copy(contents = "@AckSuccessSetCommandRank"))
+      case _ =>
+        sessionActor ! SessionActor.SendResponse(
+          message.copy(messageType = UNK_229, contents = "@CMT_SETCOMMANDRANK_usage")
+        )
     }
   }
 }

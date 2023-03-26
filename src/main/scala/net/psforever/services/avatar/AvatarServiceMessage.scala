@@ -12,7 +12,7 @@ import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
+import net.psforever.types.{ExoSuitType, ExperienceType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -156,6 +156,9 @@ object AvatarAction {
   final case class KitNotUsed(kit_guid: PlanetSideGUID, msg: String) extends Action
 
   final case class UpdateKillsDeathsAssists(charId: Long, kda: KDAStat) extends Action
+  final case class AwardBep(charId: Long, bep: Long, expType: ExperienceType) extends Action
+  final case class AwardCep(charId: Long, bep: Long) extends Action
+  final case class FacilityCaptureRewards(building_id: Int, zone_number: Int, exp: Long) extends Action
 
   final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action

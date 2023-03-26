@@ -4,12 +4,15 @@ package net.psforever.objects.vital
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ToolDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.sourcing.{AmenitySource, ObjectSource, PlayerSource, SourceEntry, SourceWithHealthEntry, VehicleSource}
+import net.psforever.objects.sourcing.{AmenitySource, PlayerSource, SourceEntry, SourceUniqueness, SourceWithHealthEntry, VehicleSource}
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types.{ExoSuitType, ImplantType, TransactionType}
+import net.psforever.util.Config
+
+import scala.collection.mutable
 
 /* root */
 
@@ -18,7 +21,21 @@ import net.psforever.types.{ExoSuitType, ImplantType, TransactionType}
  * Must keep track of the time (ms) the activity occurred.
  */
 trait InGameActivity {
-  val time: Long = System.currentTimeMillis()
+  private var _time: Long = System.currentTimeMillis()
+
+  def time: Long = _time
+}
+
+object InGameActivity {
+  def ShareTime(benefactor: InGameActivity, donor: InGameActivity): InGameActivity = {
+    benefactor._time = donor.time
+    benefactor
+  }
+
+  def SetTime(benefactor: InGameActivity, time: Long): InGameActivity = {
+    benefactor._time = time
+    benefactor
+  }
 }
 
 /* normal history */
@@ -28,13 +45,64 @@ trait InGameActivity {
  */
 trait GeneralActivity extends InGameActivity
 
-final case class SpawningActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry]) extends GeneralActivity
+trait SupportActivityCausedByAnother {
+  def user: PlayerSource
+  def amount: Int
+}
 
-final case class ReconstructionActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry]) extends GeneralActivity
+final case class SpawningActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry])
+  extends GeneralActivity
 
-final case class ShieldCharge(amount: Int, cause: Option[SourceEntry]) extends GeneralActivity
+final case class ReconstructionActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry])
+  extends GeneralActivity
 
-final case class TerminalUsedActivity(terminal: AmenitySource, transaction: TransactionType.Value) extends GeneralActivity
+final case class RevivingActivity(target: SourceEntry, user: PlayerSource, amount: Int, equipment: EquipmentDefinition)
+  extends GeneralActivity with SupportActivityCausedByAnother
+
+final case class ShieldCharge(amount: Int, cause: Option[SourceEntry])
+  extends GeneralActivity
+
+final case class TerminalUsedActivity(terminal: AmenitySource, transaction: TransactionType.Value)
+  extends GeneralActivity
+
+sealed trait VehicleMountChange extends GeneralActivity {
+  def vehicle: VehicleSource
+  def zoneNumber: Int
+}
+
+sealed trait VehiclePassengerMountChange extends VehicleMountChange {
+  def player: PlayerSource
+}
+
+sealed trait VehicleCargoMountChange extends VehicleMountChange {
+  def cargo: VehicleSource
+}
+
+final case class VehicleMountActivity(vehicle: VehicleSource, player: PlayerSource, zoneNumber: Int)
+  extends VehiclePassengerMountChange
+
+final case class VehicleDismountActivity(
+                                          vehicle: VehicleSource,
+                                          player: PlayerSource,
+                                          zoneNumber: Int,
+                                          pairedEvent: Option[VehicleMountActivity] = None
+                                        ) extends VehiclePassengerMountChange
+
+final case class VehicleCargoMountActivity(vehicle: VehicleSource, cargo: VehicleSource, zoneNumber: Int)
+  extends VehicleCargoMountChange
+
+final case class VehicleCargoDismountActivity(
+                                               vehicle: VehicleSource,
+                                               cargo: VehicleSource,
+                                               zoneNumber: Int,
+                                               pairedEvent: Option[VehicleCargoMountActivity] = None
+                                             ) extends VehicleCargoMountChange
+
+final case class Contribution(src: SourceUniqueness, entries: List[InGameActivity])
+  extends GeneralActivity {
+  val start: Long = entries.headOption.map { _.time }.getOrElse(System.currentTimeMillis())
+  val end: Long = entries.lastOption.map { _.time }.getOrElse(start)
+}
 
 /* vitals history */
 
@@ -65,9 +133,8 @@ trait DamagingActivity extends VitalsActivity {
 
   def health: Int = {
     (data.targetBefore, data.targetAfter) match {
-      case (pb: PlayerSource, pa: PlayerSource) if pb.ExoSuit == ExoSuitType.MAX => pb.total - pa.total
-      case (pb: SourceWithHealthEntry, pa: SourceWithHealthEntry)                => pb.health - pa.health
-      case _                                                                     => 0
+      case (pb: SourceWithHealthEntry, pa: SourceWithHealthEntry) => pb.health - pa.health
+      case _                                                      => 0
     }
   }
 }
@@ -76,9 +143,9 @@ final case class HealFromKit(kit_def: KitDefinition, amount: Int)
   extends HealingActivity
 
 final case class HealFromEquipment(user: PlayerSource, equipment_def: EquipmentDefinition, amount: Int)
-  extends HealingActivity
+  extends HealingActivity with SupportActivityCausedByAnother
 
-final case class HealFromTerm(term: AmenitySource, amount: Int)
+final case class HealFromTerminal(term: AmenitySource, amount: Int)
   extends HealingActivity
 
 final case class HealFromImplant(implant: ImplantType, amount: Int)
@@ -91,9 +158,9 @@ final case class RepairFromKit(kit_def: KitDefinition, amount: Int)
     extends RepairingActivity()
 
 final case class RepairFromEquipment(user: PlayerSource, equipment_def: EquipmentDefinition, amount: Int)
-  extends RepairingActivity
+  extends RepairingActivity with SupportActivityCausedByAnother
 
-final case class RepairFromTerm(term: AmenitySource, amount: Int) extends RepairingActivity
+final case class RepairFromTerminal(term: AmenitySource, amount: Int) extends RepairingActivity
 
 final case class RepairFromArmorSiphon(siphon_def: ToolDefinition, vehicle: VehicleSource, amount: Int)
   extends RepairingActivity
@@ -158,11 +225,34 @@ trait InGameHistory {
   /**
    * An in-game event must be recorded.
    * Add new entry to the list (for recent activity).
+   * Special handling must be conducted for certain events.
    * @param action the fully-informed entry
    * @return the list of previous changes to this entity
    */
   def LogActivity(action: Option[InGameActivity]): List[InGameActivity] = {
     action match {
+      case Some(act: VehicleDismountActivity) =>
+        history
+          .findLast(_.isInstanceOf[VehicleMountActivity])
+          .collect {
+            case event: VehicleMountActivity if event.vehicle.unique == act.vehicle.unique =>
+              history = history :+ InGameActivity.ShareTime(act.copy(pairedEvent = Some(event)), act)
+          }
+          .orElse {
+            history = history :+ act
+            None
+          }
+      case Some(act: VehicleCargoDismountActivity) =>
+        history
+          .findLast(_.isInstanceOf[VehicleCargoMountActivity])
+          .collect {
+            case event: VehicleCargoMountActivity if event.vehicle.unique == act.vehicle.unique =>
+              history = history :+ InGameActivity.ShareTime(act.copy(pairedEvent = Some(event)), act)
+          }
+          .orElse {
+            history = history :+ act
+            None
+          }
       case Some(act) =>
         history = history :+ act
       case None => ()
@@ -188,7 +278,7 @@ trait InGameHistory {
         LogActivity(DamageFromPainbox(result))
       case _: EnvironmentReason =>
         LogActivity(DamageFromEnvironment(result))
-      case _ => ;
+      case _ =>
         LogActivity(DamageFrom(result))
         if(result.adversarial.nonEmpty) {
           lastDamage = Some(result)
@@ -209,10 +299,55 @@ trait InGameHistory {
     }
   }
 
+  /**
+   * activity that comes from another entity used for scoring;<br>
+   * key - unique reference to that entity; value - history from that entity
+   */
+  private val contributionInheritance: mutable.HashMap[SourceUniqueness, Contribution] =
+    mutable.HashMap[SourceUniqueness, Contribution]()
+
+  def ContributionFrom(target: PlanetSideGameObject with FactionAffinity with InGameHistory): Option[Contribution] = {
+    if (target eq this) {
+      None
+    } else {
+      val uniqueTarget = SourceEntry(target).unique
+      (target.GetContribution(), contributionInheritance.get(uniqueTarget)) match {
+        case (Some(in), Some(curr)) =>
+          val end = curr.end
+          val contribution = Contribution(uniqueTarget, curr.entries ++ in.filter(_.time > end))
+          contributionInheritance.put(uniqueTarget, contribution)
+          Some(contribution)
+        case (Some(in), _) =>
+          val contribution = Contribution(uniqueTarget, in)
+          contributionInheritance.put(uniqueTarget, contribution)
+          Some(contribution)
+        case (None, _) =>
+          None
+      }
+    }
+  }
+
+  def GetContribution(): Option[List[InGameActivity]] = {
+    Option(GetContributionDuringPeriod(History, duration = Config.app.game.experience.longContributionTime))
+  }
+
+  def GetContributionDuringPeriod(list: List[InGameActivity], duration: Long): List[InGameActivity] = {
+    val earliestEndTime = System.currentTimeMillis() - duration
+    list.collect {
+      case event: DamagingActivity if event.health > 0 && event.time > earliestEndTime  => event
+      case event: RepairingActivity if event.amount > 0 && event.time > earliestEndTime => event
+    }
+  }
+
+  def HistoryAndContributions(): List[InGameActivity] = {
+    History ++ contributionInheritance.values.toList
+  }
+
   def ClearHistory(): List[InGameActivity] = {
     lastDamage = None
     val out = history
     history = List.empty
+    contributionInheritance.clear()
     out
   }
 }
@@ -221,14 +356,14 @@ object InGameHistory {
   def SpawnReconstructionActivity(
                                    obj: PlanetSideGameObject with FactionAffinity with InGameHistory,
                                    zoneNumber: Int,
-                                   unit: Option[SourceEntry]
+                                   unit: Option[PlanetSideGameObject with FactionAffinity with InGameHistory]
                                  ): Unit = {
-    val event: GeneralActivity = if (obj.History.nonEmpty || obj.History.headOption.exists {
-      _.isInstanceOf[SpawningActivity]
-    }) {
-      ReconstructionActivity(ObjectSource(obj), zoneNumber, unit)
+    val toUnitSource = unit.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) }
+
+    val event: GeneralActivity = if (obj.History.isEmpty) {
+      SpawningActivity(SourceEntry(obj), zoneNumber, toUnitSource)
     } else {
-      SpawningActivity(ObjectSource(obj), zoneNumber, unit)
+      ReconstructionActivity(SourceEntry(obj), zoneNumber, toUnitSource)
     }
     if (obj.History.lastOption match {
       case Some(evt: SpawningActivity) => evt != event
@@ -236,6 +371,13 @@ object InGameHistory {
       case _ => true
     }) {
       obj.LogActivity(event)
+      unit.foreach { o => obj.ContributionFrom(o) }
     }
+  }
+
+  def ContributionFrom(target: PlanetSideGameObject with FactionAffinity with InGameHistory): Option[Contribution] = {
+    target
+      .GetContribution()
+      .collect { case events => Contribution(SourceEntry(target).unique, events) }
   }
 }

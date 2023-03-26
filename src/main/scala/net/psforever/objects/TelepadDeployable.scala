@@ -103,8 +103,7 @@ class TelepadDeployableControl(tpad: TelepadDeployable)
   override def startOwnerlessDecay(): Unit = {
     //telepads do not decay when they become ownerless
     //telepad decay is tied to their lifecycle with routers
-    tpad.Owner = None
-    tpad.OwnerName = None
+    tpad.AssignOwnership(None)
   }
 
   override def finalizeDeployable(callback: ActorRef): Unit = {

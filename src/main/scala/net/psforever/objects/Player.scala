@@ -13,7 +13,7 @@ import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.serverobject.environment.InteractWithEnvironment
 import net.psforever.objects.serverobject.mount.MountableEntity
 import net.psforever.objects.vital.resistance.ResistanceProfile
-import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.{HealFromEquipment, InGameActivity, RepairFromEquipment, Vitality}
 import net.psforever.objects.vital.damage.DamageProfile
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resolution.DamageResistanceModel
@@ -110,6 +110,7 @@ class Player(var avatar: Avatar)
       Health = Definition.DefaultHealth
       Armor = MaxArmor
       Capacitor = 0
+      avatar.scorecard.respawn()
       released = false
     }
     isAlive
@@ -124,13 +125,16 @@ class Player(var avatar: Avatar)
   def Revive: Boolean = {
     Destroyed = false
     Health = Definition.DefaultHealth
+    avatar.scorecard.revive()
     released = false
     true
   }
 
   def Release: Boolean = {
-    released = true
-    backpack = !isAlive
+    if (!released) {
+      released = true
+      backpack = !isAlive
+    }
     true
   }
 
@@ -422,12 +426,13 @@ class Player(var avatar: Avatar)
   def UsingSpecial_=(state: SpecialExoSuitDefinition.Mode.Value): SpecialExoSuitDefinition.Mode.Value =
     usingSpecial(state)
 
+  //noinspection ScalaUnusedSymbol
   private def DefaultUsingSpecial(state: SpecialExoSuitDefinition.Mode.Value): SpecialExoSuitDefinition.Mode.Value =
     SpecialExoSuitDefinition.Mode.Normal
 
   private def UsingAnchorsOrOverdrive(
-      state: SpecialExoSuitDefinition.Mode.Value
-  ): SpecialExoSuitDefinition.Mode.Value = {
+                                       state: SpecialExoSuitDefinition.Mode.Value
+                                     ): SpecialExoSuitDefinition.Mode.Value = {
     import SpecialExoSuitDefinition.Mode._
     val curr = UsingSpecial
     val next = if (curr == Normal) {
@@ -532,11 +537,14 @@ class Player(var avatar: Avatar)
 
   def Carrying: Option[SpecialCarry] = carrying
 
+  //noinspection ScalaUnusedSymbol
   def Carrying_=(item: SpecialCarry): Option[SpecialCarry] = {
-    Carrying
+    Carrying_=(Some(item))
   }
 
+  //noinspection ScalaUnusedSymbol
   def Carrying_=(item: Option[SpecialCarry]): Option[SpecialCarry] = {
+    carrying = item
     Carrying
   }
 
@@ -552,6 +560,14 @@ class Player(var avatar: Avatar)
   }
 
   def DamageModel: DamageResistanceModel = exosuit.asInstanceOf[DamageResistanceModel]
+
+  override def GetContributionDuringPeriod(list: List[InGameActivity], duration: Long): List[InGameActivity] = {
+    val earliestEndTime = System.currentTimeMillis() - duration
+    History.collect {
+      case heal: HealFromEquipment if heal.amount > 0 && heal.time > earliestEndTime         => heal
+      case repair: RepairFromEquipment if repair.amount > 0 && repair.time > earliestEndTime => repair
+    }
+  }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Player]
 
@@ -614,12 +630,14 @@ object Player {
     if (player.Release) {
       val obj = new Player(player.avatar)
       obj.Continent = player.Continent
+      obj.avatar.scorecard.respawn()
       obj
     } else {
       player
     }
   }
 
+  //noinspection ScalaUnusedSymbol
   def neverRestrict(player: Player, slot: Int): Boolean = {
     false
   }

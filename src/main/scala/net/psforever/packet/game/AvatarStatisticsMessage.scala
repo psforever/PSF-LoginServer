@@ -14,6 +14,7 @@ import scala.annotation.switch
  * na
  */
 sealed abstract class Statistic(val code: Int)
+
 /**
  * na
  */
@@ -38,11 +39,17 @@ sealed case class IntermediateStatistic(
  * @param fields four pairs of values that add together to produce the first columns on the statistics spreadsheet;
  *             organized as TR, NC, VS, BO (PS)
  */
-final case class InitStatistic(
+final case class CampaignStatistic(
                                 category: StatisticalCategory,
                                 unk: StatisticalElement,
                                 fields: List[Long]
                               ) extends Statistic(code = 0) with ComplexStatistic
+
+object CampaignStatistic {
+  def apply(cat: StatisticalCategory, stat: StatisticalElement, tr: Long, nc: Long, vs: Long, bo: Long): CampaignStatistic = {
+    CampaignStatistic(cat, stat, List(tr, 0, nc, 0, vs, 0, bo, 0))
+  }
+}
 
 /**
  *
@@ -51,11 +58,17 @@ final case class InitStatistic(
  * @param fields four pairs of values that add together to produce the first column(s) on the statistics spreadsheet;
  *               organized as TR, NC, VS, BO (PS)
  */
-final case class UpdateStatistic(
+final case class SessionStatistic(
                                   category: StatisticalCategory,
                                   unk: StatisticalElement,
                                   fields: List[Long]
                                 ) extends Statistic(code = 1) with ComplexStatistic
+
+object SessionStatistic {
+  def apply(cat: StatisticalCategory, stat: StatisticalElement, tr: Long, nc: Long, vs: Long, bo: Long): SessionStatistic = {
+    SessionStatistic(cat, stat, List(0, tr, 0, nc, 0, vs, 0, bo))
+  }
+}
 
 /**
  *
@@ -103,10 +116,10 @@ object AvatarStatisticsMessage extends Marshallable[AvatarStatisticsMessage] {
    */
   private val initCodec: Codec[Statistic] = complexCodec.exmap[Statistic](
     {
-      case IntermediateStatistic(a, b, c) => Successful(InitStatistic(a, b, c))
+      case IntermediateStatistic(a, b, c) => Successful(CampaignStatistic(a, b, c))
     },
     {
-      case InitStatistic(a, b, c) => Successful(IntermediateStatistic(a, b, c))
+      case CampaignStatistic(a, b, c) => Successful(IntermediateStatistic(a, b, c))
       case _ => Failure(Err("expected initializing statistic, but found something else"))
     }
   )
@@ -115,10 +128,10 @@ object AvatarStatisticsMessage extends Marshallable[AvatarStatisticsMessage] {
    */
   private val updateCodec: Codec[Statistic] = complexCodec.exmap[Statistic](
     {
-      case IntermediateStatistic(a, b, c) => Successful(UpdateStatistic(a, b, c))
+      case IntermediateStatistic(a, b, c) => Successful(SessionStatistic(a, b, c))
     },
     {
-      case UpdateStatistic(a, b, c) => Successful(IntermediateStatistic(a, b, c))
+      case SessionStatistic(a, b, c) => Successful(IntermediateStatistic(a, b, c))
       case _ => Failure(Err("expected updating statistic, but found something else"))
     }
   )

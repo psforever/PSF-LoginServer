@@ -3,8 +3,11 @@ package net.psforever.actors.session.support
 
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.avatar.SpecialCarry
+import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.services.Service
+import net.psforever.objects.zones.exp
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -225,8 +228,6 @@ class SessionAvatarHandlers(
       case AvatarResponse.DestroyDisplay(killer, victim, method, unk)
         if killer.CharId == avatar.id && killer.Faction != victim.Faction =>
         sendResponse(sessionData.destroyDisplayMessage(killer, victim, method, unk))
-      //TODO Temporary thing that should go somewhere else and use proper xp values
-//        avatarActor ! AvatarActor.AwardCep((100 * Config.app.game.cepRate).toLong)
 
       case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
         // guid = victim // killer = killer
@@ -398,6 +399,80 @@ class SessionAvatarHandlers(
       case AvatarResponse.UpdateKillsDeathsAssists(_, kda) =>
         avatarActor ! AvatarActor.UpdateKillsDeathsAssists(kda)
 
+      case AvatarResponse.AwardBep(charId, bep, expType) =>
+        if (charId == player.CharId) {
+          avatarActor ! AvatarActor.AwardBep(bep, expType)
+        }
+
+      case AvatarResponse.AwardCep(charId, cep)  =>
+        //if the target player, always award (some) CEP
+        if (charId == player.CharId) {
+          avatarActor ! AvatarActor.AwardCep(cep)
+        }
+
+      case AvatarResponse.FacilityCaptureRewards(buildingId, zoneNumber, cep) =>
+        //must be in a squad to earn experience
+        val cepConfig = Config.app.game.experience.cep
+        val charId = player.CharId
+        val squadUI = sessionData.squad.squadUI
+        val participation = continent
+          .Building(buildingId)
+          .map { building =>
+            building.Participation.PlayerContribution()
+          }
+        squadUI
+          .find { _._1 == charId }
+          .collect {
+            case (_, elem) if elem.index == 0 =>
+              //squad leader earns CEP, modified by squad effort, capped by squad size present during the capture
+              val squadParticipation = participation match {
+                case Some(map) => map.filter { case (id, _) => squadUI.contains(id) }
+                case _ => Map.empty[Long, Float]
+              }
+              val maxCepBySquadSize: Long = {
+                val maxCepList = cepConfig.maximumPerSquadSize
+                val squadSize: Int = squadParticipation.size
+                maxCepList.lift(squadSize - 1).getOrElse(squadSize * maxCepList.head).toLong
+              }
+              val groupContribution: Float = squadUI
+                .map { case (id, _) => (id, squadParticipation.getOrElse(id, 0f) / 10f) }
+                .values
+                .max
+              val modifiedExp: Long = (cep.toFloat * groupContribution).toLong
+              val cappedModifiedExp: Long = math.min(modifiedExp, maxCepBySquadSize)
+              val finalExp: Long = if (modifiedExp > cappedModifiedExp) {
+                val overLimitOverflow = if (cepConfig.squadSizeLimitOverflow == -1) {
+                  cep.toFloat
+                } else {
+                  cepConfig.squadSizeLimitOverflow.toFloat
+                }
+                cappedModifiedExp + (overLimitOverflow * cepConfig.squadSizeLimitOverflowMultiplier).toLong
+              } else {
+                cappedModifiedExp
+              }
+              exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, finalExp, expType="cep")
+              avatarActor ! AvatarActor.AwardCep(finalExp)
+              Some(finalExp)
+
+            case _ =>
+              //squad member earns BEP based on CEP, modified by personal effort
+              val individualContribution = {
+                val contributionList = for {
+                  facilityMap <- participation
+                  if facilityMap.contains(charId)
+                } yield facilityMap(charId)
+                if (contributionList.nonEmpty) {
+                  contributionList.max
+                } else {
+                  0f
+                }
+              }
+              val modifiedExp = (cep * individualContribution).toLong
+              exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, modifiedExp, expType="bep")
+              avatarActor ! AvatarActor.AwardFacilityCaptureBep(modifiedExp)
+              Some(modifiedExp)
+          }
+
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
 
@@ -412,16 +487,35 @@ class SessionAvatarHandlers(
       case AvatarResponse.Killed(mount) =>
         //log and chat messages
         val cause = player.LastDamage.flatMap { damage =>
-          damage.interaction.cause match {
-            case cause: ExplodingEntityReason if cause.entity.isInstanceOf[VehicleSpawnPad] =>
+          val interaction = damage.interaction
+          val reason = interaction.cause
+          val adversarial = interaction.adversarial.map { _.attacker }
+          reason match {
+            case r: ExplodingEntityReason if r.entity.isInstanceOf[VehicleSpawnPad] =>
               //also, @SVCP_Killed_TooCloseToPadOnCreate^n~ or "... within n meters of pad ..."
               sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SVCP_Killed_OnPadOnCreate"))
             case _ => ()
           }
-          damage match {
-            case damage if damage.adversarial.nonEmpty => Some(damage.adversarial.get.attacker.Name)
-            case damage => Some(s"a ${damage.interaction.cause.getClass.getSimpleName}")
+          adversarial.collect {
+            case attacker
+              if player.Carrying.contains(SpecialCarry.CaptureFlag) &&
+                attacker.Faction != player.Faction &&
+                sessionData
+                  .specialItemSlotGuid
+                  .flatMap { continent.GUID }
+                  .collect {
+                    case llu: CaptureFlag =>
+                      System.currentTimeMillis() - llu.LastCollectionTime > Config.app.game.experience.cep.lluSlayerCreditDuration.toMillis
+                    case _ =>
+                      false
+                  }
+                  .contains(true) =>
+              continent.AvatarEvents ! AvatarServiceMessage(
+                attacker.Name,
+                AvatarAction.AwardCep(attacker.CharId, Config.app.game.experience.cep.lluSlayerCredit)
+              )
           }
+          adversarial.map {_.Name }.orElse { Some(s"a ${reason.getClass.getSimpleName}") }
         }.getOrElse { s"an unfortunate circumstance (probably ${player.Sex.pronounObject} own fault)" }
         log.info(s"${player.Name} has died, killed by $cause")
         if (sessionData.shooting.shotsWhileDead > 0) {
@@ -434,6 +528,7 @@ class SessionAvatarHandlers(
         sessionData.renewCharSavedTimer(fixedLen = 1800L, varLen = 0L)
 
         //player state changes
+        AvatarActor.updateToolDischargeFor(avatar)
         player.FreeHand.Equipment.foreach { item =>
           DropEquipmentFromInventory(player)(item)
         }
@@ -448,7 +543,6 @@ class SessionAvatarHandlers(
         }
         sessionData.playerActionsToCancel()
         sessionData.terminals.CancelAllProximityUnits()
-        sessionData.zoning
         AvatarActor.savePlayerLocation(player)
         sessionData.zoning.spawn.shiftPosition = Some(player.Position)
 

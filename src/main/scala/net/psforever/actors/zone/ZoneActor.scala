@@ -15,7 +15,7 @@ import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.{InGameActivity, InGameHistory}
-import net.psforever.objects.zones.exp.ExperienceCalculator
+import net.psforever.objects.zones.exp.{ExperienceCalculator, SupportExperienceCalculator}
 import net.psforever.util.Database._
 import net.psforever.persistence
 
@@ -87,6 +87,7 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
   private[this] val log           = org.log4s.getLogger
   private val players: mutable.ListBuffer[Player] = mutable.ListBuffer()
   private val experience: ActorRef[ExperienceCalculator.Command] = context.spawnAnonymous(ExperienceCalculator(zone))
+  private val supportExperience: ActorRef[SupportExperienceCalculator.Command] = context.spawnAnonymous(SupportExperienceCalculator(zone))
 
   zone.actor = context.self
   zone.init(context.toClassic)
@@ -154,7 +155,7 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
         experience ! ExperienceCalculator.RewardThisDeath(entity)
 
       case RewardOurSupporters(target, history, kill, bep) =>
-        ()
+        supportExperience ! SupportExperienceCalculator.RewardOurSupporters(target, history, kill, bep)
 
       case ZoneMapUpdate() =>
         zone.Buildings
@@ -162,7 +163,6 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
           .values
           .foreach(_.Actor ! BuildingActor.MapUpdate())
     }
-
     this
   }
 }

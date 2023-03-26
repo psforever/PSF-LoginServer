@@ -310,7 +310,7 @@ class VehicleControlMountingBlockedExosuitTest extends ActorTest {
       // Reset to allow further driver mount mounting tests
       vehicle.Actor.tell(Mountable.TryDismount(player1, 0), probe.ref)
       probe.receiveOne(500 milliseconds) //discard
-      vehicle.Owner = None //ensure
+      vehicle.OwnerGuid = None //ensure
       vehicle.OwnerName = None //ensure
       vehicle.Actor.tell(Mountable.TryMount(player3, 1), probe.ref) // Agile in driver mount allowing all except MAX
       VehicleControlTest.checkCanMount(probe, "Agile in driver mount allowing all except MAX")
@@ -369,7 +369,7 @@ class VehicleControlMountingDriverSeatTest extends ActorTest {
     "allow players to sit in the driver mount, even if it is locked, if the vehicle is unowned" in {
       assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Locked)) //driver group -> locked
       assert(vehicle.Seats(0).occupant.isEmpty)
-      assert(vehicle.Owner.isEmpty)
+      assert(vehicle.OwnerGuid.isEmpty)
       vehicle.Actor.tell(Mountable.TryMount(player1, 1), probe.ref)
       VehicleControlTest.checkCanMount(probe, "")
       assert(vehicle.Seats(0).occupant.nonEmpty)
@@ -397,7 +397,7 @@ class VehicleControlMountingOwnedLockedDriverSeatTest extends ActorTest {
     "block players that are not the current owner from sitting in the driver mount (locked)" in {
       assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Locked)) //driver group -> locked
       assert(vehicle.Seats(0).occupant.isEmpty)
-      vehicle.Owner = player1.GUID
+      vehicle.OwnerGuid = player1.GUID
 
       vehicle.Actor.tell(Mountable.TryMount(player1, 1), probe.ref)
       VehicleControlTest.checkCanMount(probe, "")
@@ -434,7 +434,7 @@ class VehicleControlMountingOwnedUnlockedDriverSeatTest extends ActorTest {
       vehicle.PermissionGroup(0, 3)                                        //passenger group -> empire
       assert(vehicle.PermissionGroup(0).contains(VehicleLockState.Empire)) //driver group -> empire
       assert(vehicle.Seats(0).occupant.isEmpty)
-      vehicle.Owner = player1.GUID //owner set
+      vehicle.OwnerGuid = player1.GUID //owner set
 
       vehicle.Actor.tell(Mountable.TryMount(player1, 1), probe.ref)
       VehicleControlTest.checkCanMount(probe, "")

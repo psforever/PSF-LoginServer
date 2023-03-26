@@ -30,7 +30,7 @@ class AvatarStatisticsMessageTest extends Specification {
     PacketCoding.decodePacket(string_complex).require match {
       case AvatarStatisticsMessage(stat) =>
         stat match {
-          case InitStatistic(a, b, c) =>
+          case CampaignStatistic(a, b, c) =>
             a mustEqual StatisticalCategory.Destroyed
             b mustEqual StatisticalElement.Mosquito
             c mustEqual List(1, 6, 0, 1, 1, 2, 0, 0)
@@ -51,7 +51,7 @@ class AvatarStatisticsMessageTest extends Specification {
 
   "encode (complex)" in {
     val msg = AvatarStatisticsMessage(
-      InitStatistic(StatisticalCategory.Destroyed, StatisticalElement.Mosquito, List[Long](1, 6, 0, 1, 1, 2, 0, 0))
+      CampaignStatistic(StatisticalCategory.Destroyed, StatisticalElement.Mosquito, List[Long](1, 6, 0, 1, 1, 2, 0, 0))
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -60,7 +60,7 @@ class AvatarStatisticsMessageTest extends Specification {
 
   "encode (failure; complex; wrong number of list entries)" in {
     val msg = AvatarStatisticsMessage(
-      InitStatistic(StatisticalCategory.Destroyed, StatisticalElement.Mosquito, List[Long](1, 6, 0, 1))
+      CampaignStatistic(StatisticalCategory.Destroyed, StatisticalElement.Mosquito, List[Long](1, 6, 0, 1))
     )
     PacketCoding.encodePacket(msg).isFailure mustEqual true
   }
