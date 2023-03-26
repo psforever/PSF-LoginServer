@@ -15,7 +15,7 @@ object TerrainCondition extends Enumeration {
   type Type = Value
   val Safe, Unsafe = Value
 
-  implicit val codec = PacketHelpers.createEnumerationCodec(enum = this, uint(bits = 1))
+  implicit val codec = PacketHelpers.createEnumerationCodec(e = this, uint(bits = 1))
 }
 
 /**
@@ -28,11 +28,11 @@ object TerrainCondition extends Enumeration {
   * @param pos the vehicle's current position in the game world
   */
 final case class InvalidTerrainMessage(
-                                        player_guid: PlanetSideGUID,
-                                        vehicle_guid: PlanetSideGUID,
-                                        proximity_alert: TerrainCondition.Value,
-                                        pos: Vector3
-                                      ) extends PlanetSideGamePacket {
+    player_guid: PlanetSideGUID,
+    vehicle_guid: PlanetSideGUID,
+    proximity_alert: TerrainCondition.Value,
+    pos: Vector3
+) extends PlanetSideGamePacket {
   type Packet = InvalidTerrainMessage
   def opcode = GamePacketOpcode.InvalidTerrainMessage
   def encode = InvalidTerrainMessage.encode(this)
@@ -40,8 +40,7 @@ final case class InvalidTerrainMessage(
 
 object InvalidTerrainMessage extends Marshallable[InvalidTerrainMessage] {
 
-  implicit val codec: Codec[InvalidTerrainMessage] = (
-    ("player_guid" | PlanetSideGUID.codec) ::
+  implicit val codec: Codec[InvalidTerrainMessage] = (("player_guid" | PlanetSideGUID.codec) ::
     ("vehicle_guid" | PlanetSideGUID.codec) ::
     ("proximity_alert" | TerrainCondition.codec) ::
     ("pos" | floatL :: floatL :: floatL).narrow[Vector3](
