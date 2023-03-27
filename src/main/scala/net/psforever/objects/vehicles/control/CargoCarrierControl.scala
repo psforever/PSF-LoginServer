@@ -25,7 +25,8 @@ class CargoCarrierControl(vehicle: Vehicle)
 
   /**
     * If the vehicle becomes disabled, the safety and autonomy of the cargo should be prioritized.
-    * @param kickPassengers passengers need to be ejected "by force"
+    * @param kickPassengers passengers need to be ejected "by force";
+   *                       actually controls bail protection and flavors a log message (further down the line)
     */
   override def PrepareForDisabled(kickPassengers: Boolean) : Unit = {
     super.PrepareForDisabled(kickPassengers)
@@ -33,7 +34,7 @@ class CargoCarrierControl(vehicle: Vehicle)
     vehicle.CargoHolds.collect {
       case (index, hold : Cargo) if hold.isOccupied =>
         val cargo = hold.occupant.get
-        checkCargoDismount(cargo.GUID, index, iteration = 0, bailed = false)
+        checkCargoDismount(cargo.GUID, index, iteration = 0, bailed = kickPassengers)
     }
   }
 
