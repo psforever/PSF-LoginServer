@@ -28,12 +28,12 @@ class CargoCarrierControl(vehicle: Vehicle)
     * @param kickPassengers passengers need to be ejected "by force"
     */
   override def PrepareForDisabled(kickPassengers: Boolean) : Unit = {
+    super.PrepareForDisabled(kickPassengers)
     //abandon all cargo
     vehicle.CargoHolds.collect {
       case (index, hold : Cargo) if hold.isOccupied =>
         val cargo = hold.occupant.get
         checkCargoDismount(cargo.GUID, index, iteration = 0, bailed = false)
-        super.PrepareForDisabled(kickPassengers)
     }
   }
 
