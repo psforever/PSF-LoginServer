@@ -366,7 +366,7 @@ class VehicleControl(vehicle: Vehicle)
     //escape being someone else's cargo
     vehicle.MountedIn match {
       case Some(_) =>
-        startCargoDismounting(bailed = false)
+        startCargoDismounting(bailed = true)
       case _ => ;
     }
     if (!vehicle.isFlying || kickPassengers) {
