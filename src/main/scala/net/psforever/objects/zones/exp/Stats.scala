@@ -7,7 +7,8 @@ private case class WeaponStats(
                                 weapon_id: Int,
                                 amount: Int,
                                 shots: Int,
-                                time: Long
+                                time: Long,
+                                contributions: Float
                               )
 
 private case class ContributionStats(

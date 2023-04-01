@@ -3,7 +3,7 @@ package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, Props}
 import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployableCategory}
-import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects.definition.{DeployableDefinition, WithShields}
 import net.psforever.objects.definition.converter.ShieldGeneratorConverter
 import net.psforever.objects.equipment.{JammableBehavior, JammableUnit}
 import net.psforever.objects.serverobject.damage.Damageable.Target
@@ -22,7 +22,8 @@ class ShieldGeneratorDeployable(cdef: ShieldGeneratorDefinition)
     with Hackable
     with JammableUnit
 
-class ShieldGeneratorDefinition extends DeployableDefinition(240) {
+class ShieldGeneratorDefinition extends DeployableDefinition(240)
+  with WithShields {
   Packet = new ShieldGeneratorConverter
   DeployCategory = DeployableCategory.ShieldGenerators
 

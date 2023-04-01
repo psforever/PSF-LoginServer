@@ -8,9 +8,9 @@ import org.joda.time.{Instant, LocalDateTime => JodaLocalDateTime}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.sourcing.{AmenitySource, PlayerSource, SourceEntry}
-import net.psforever.objects.vital.{HealFromEquipment, InGameActivity, RepairFromEquipment, RevivingActivity, SpawningActivity, SupportActivityCausedByAnother, TerminalUsedActivity}
+import net.psforever.objects.vital.{DamagingActivity, HealFromEquipment, InGameActivity, ReconstructionActivity, RepairFromEquipment, RepairFromExoSuitChange, RevivingActivity, SpawningActivity, SupportActivityCausedByAnother, TerminalUsedActivity}
 import net.psforever.objects.zones.Zone
-import net.psforever.types.TransactionType
+import net.psforever.types.{ExoSuitType, PlanetSideEmpire, TransactionType}
 import net.psforever.zones.Zones
 
 import scala.collection.mutable
@@ -18,14 +18,82 @@ import scala.collection.mutable
 object Support {
   private type SupportActivity = InGameActivity with SupportActivityCausedByAnother
 
+  private[exp] def limitHistoryToThisLife(history: List[InGameActivity]): List[InGameActivity] = {
+    val spawnIndex = history.lastIndexWhere {
+      case _: SpawningActivity => true
+      case _: RevivingActivity => true
+      case _ => false
+    }
+    val endIndex = history.lastIndexWhere {
+      case damage: DamagingActivity => damage.data.targetAfter.asInstanceOf[PlayerSource].Health == 0
+      case _ => false
+    }
+    if (spawnIndex == -1 || endIndex == -1) {
+      Nil //throw VitalsHistoryException(history.head, "vitals history does not contain expected conditions")
+      //    } else
+      //    if (spawnIndex == -1) {
+      //      Nil  //throw VitalsHistoryException(history.head, "vitals history does not contain initial spawn conditions")
+      //    } else if (endIndex == -1) {
+      //      Nil  //throw VitalsHistoryException(history.last, "vitals history does not contain end of life conditions")
+    } else {
+      history.slice(spawnIndex, endIndex)
+    }
+  }
+
+  private[exp] def onlyOriginalAssistEntries(
+                                              first: mutable.LongMap[ContributionStatsOutput],
+                                              second: mutable.LongMap[ContributionStatsOutput]
+                                            ): Iterable[ContributionStatsOutput] = {
+    onlyOriginalAssistEntriesIterable(first.values, second.values)
+  }
+
+  private[exp] def onlyOriginalAssistEntriesIterable(
+                                                      first: Iterable[ContributionStatsOutput],
+                                                      second: Iterable[ContributionStatsOutput]
+                                                    ): Iterable[ContributionStatsOutput] = {
+    if (second.isEmpty) {
+      first
+    } else if (first.isEmpty) {
+      second
+    } else {
+      //overlap discriminated by percentage
+      val shared: mutable.LongMap[ContributionStatsOutput] = mutable.LongMap[ContributionStatsOutput]()
+      for {
+        h @ ContributionStatsOutput(hid, hwep, hkda) <- first
+        a @ ContributionStatsOutput(aid, awep, akda) <- second
+        (id, out) = if (hkda < akda)
+          (aid.CharId, a.copy(implements = (a.implements ++ hwep).distinct))
+        else
+          (hid.CharId, h.copy(implements = (h.implements ++ awep).distinct))
+        if hid == aid && shared.put(id, out).isEmpty
+      } yield ()
+      val sharedKeys = shared.keys
+      (first ++ second).filterNot { case ContributionStatsOutput(id, _, _) => sharedKeys.exists(_ == id.CharId) } ++ shared.values
+    }
+  }
+
+  private[exp] def collectHealthAssists(
+                                         victim: SourceEntry,
+                                         history: List[InGameActivity],
+                                         func: (List[InGameActivity], PlanetSideEmpire.Value) => mutable.LongMap[ContributionStats]
+                                       ): mutable.LongMap[ContributionStatsOutput] = {
+    val healthAssists = func(history, victim.Faction).filterNot { case (_, kda) => kda.amount <= 0 }
+    val qualifiedHealing = healthAssists.values.foldLeft(0)(_ + _.total)
+    val healthAssistsOutput = healthAssists.map { case (id, kda) =>
+      (id, ContributionStatsOutput(kda.player, kda.weapons.map { _.weapon_id }, kda.amount / qualifiedHealing))
+    }
+    healthAssistsOutput.remove(victim.CharId)
+    healthAssistsOutput
+  }
+
   private[exp] def collectHealingSupportAssists(
                                                  target: SourceEntry,
                                                  time: JodaLocalDateTime,
-                                                 history: Iterable[InGameActivity]
+                                                 history: List[InGameActivity]
                                                ): mutable.LongMap[ContributionStatsOutput] = {
     //normal heals
     val healInfo = collectSupportContributions(
-      target, time, ExperienceCalculator.limitHistoryToThisLife(history.toList).collect { case heals: HealFromEquipment
+      target, time, history.collect { case heals: HealFromEquipment
         if heals.amount > 0 && heals.user.unique != target.unique => (heals, heals.equipment_def.ObjectId)
       }, mapContributionPointsByPercentage
     )
@@ -48,10 +116,10 @@ object Support {
   private[exp] def collectRepairingSupportAssists(
                                                  target: SourceEntry,
                                                  time: JodaLocalDateTime,
-                                                 history: Iterable[InGameActivity]
+                                                 history: List[InGameActivity]
                                                ): mutable.LongMap[ContributionStatsOutput] = {
     collectSupportContributions(
-      target, time, ExperienceCalculator.limitHistoryToThisLife(history.toList).collect { case repairs: RepairFromEquipment
+      target, time, history.collect { case repairs: RepairFromEquipment
         if repairs.amount > 0 && repairs.user.unique != target.unique => (repairs, repairs.equipment_def.ObjectId)
       }, mapContributionPointsByPercentage
     )
@@ -148,11 +216,11 @@ object Support {
       .sortBy(_.time)(Ordering.Long.reverse)
   }
 
-  private def allocateSupportAssists(
-                                      longTerm: Seq[SupportActivity],
-                                      shortTerm: Seq[SupportActivity],
-                                      defaultTool: Int
-                                    ): mutable.LongMap[ContributionStats] = {
+  private def combineTimeApplicableActivitiesForContribution(
+                                                              longTerm: Seq[SupportActivity],
+                                                              shortTerm: Seq[SupportActivity],
+                                                              defaultTool: Int
+                                                            ): mutable.LongMap[ContributionStats] = {
     val contributions: mutable.LongMap[ContributionStats] = mutable.LongMap[ContributionStats]()
     (longTerm ++ shortTerm).foreach { h =>
       val amount = h.amount
@@ -167,7 +235,8 @@ object Support {
             time = math.max(entry.time, h.time)
           ))
         case None =>
-          contributions.put(charId, ContributionStats(user, Seq(WeaponStats(defaultTool, amount, 1, h.time)), amount, amount, 1, h.time))
+          //the contribution percentage allocated will always be 1.0f and should be overwritten later
+          contributions.put(charId, ContributionStats(user, Seq(WeaponStats(defaultTool, amount, 1, h.time, 1f)), amount, amount, 1, h.time))
       }
     }
     contributions
@@ -183,36 +252,52 @@ object Support {
     //TODO this is not correct, but it will do for now
     if (tools.isEmpty) {
       mutable.LongMap[ContributionStatsOutput]()
-    } else if (tools.distinct.size == 1) {
-      collectSupportAssists(target, time, activity, tools.head, contributionPointsMap)
     } else {
-      var output = Iterable[ContributionStatsOutput]()
-      tools.groupBy(identity).keys.foreach { implement =>
-        output = ExperienceCalculator.onlyOriginalAssistEntriesIterable(
-          output,
-          collectSupportAssists(target, time, activity, implement, contributionPointsMap).values
-        )
+      val distinctTools = tools.distinct
+      if (distinctTools.size == 1) {
+        compileTimedSupportContributions(target, time, activity, distinctTools.head, contributionPointsMap)
+      } else {
+        var output = Iterable[ContributionStatsOutput]()
+        distinctTools.foreach { implement =>
+          output = onlyOriginalAssistEntriesIterable(
+            output,
+            compileTimedSupportContributions(target, time, activity, implement, contributionPointsMap).values
+          )
+        }
+        mutable.LongMap[ContributionStatsOutput]().addAll(output.map { entry => (entry.player.CharId, entry) })
       }
-      mutable.LongMap[ContributionStatsOutput]().addAll(output.map { entry => (entry.player.CharId, entry) })
     }
   }
 
-  private def collectSupportAssists(
-                                     target: SourceEntry,
-                                     killLastTime: JodaLocalDateTime,
-                                     activity: Seq[InGameActivity],
-                                     defaultImplement: Int,
-                                     contributionPointsMap: (Float,Iterable[SupportActivity])=>(Long,ContributionStats)=>(Long,ContributionStatsOutput)
-                                   ): mutable.LongMap[ContributionStatsOutput] = {
-    val activityByAnother = activity.collect {
-      case activity: SupportActivity => activity
-    }
-    val longTermActivity = findTimeApplicableActivities(activityByAnother, killLastTime, timeOffset = 600)
-    val shortTermActivity = findTimeApplicableActivities(activityByAnother, killLastTime, timeOffset = 300)
-    val contributions = allocateSupportAssists(longTermActivity, shortTermActivity, defaultImplement)
+  private def compileTimedSupportContributions(
+                                                target: SourceEntry,
+                                                timeLimit: JodaLocalDateTime,
+                                                activity: Seq[InGameActivity],
+                                                defaultImplement: Int,
+                                                contributionPointsMap: (Float,Iterable[SupportActivity])=>(Long,ContributionStats)=>(Long,ContributionStatsOutput)
+                                              ): mutable.LongMap[ContributionStatsOutput] = {
+    val activityByAnother = activity.collect { case theActivity: SupportActivity => theActivity }
+    val longTermActivity = findTimeApplicableActivities(activityByAnother, timeLimit, timeOffset = 600)
+    val shortTermActivity = findTimeApplicableActivities(activityByAnother, timeLimit, timeOffset = 300)
+    val contributions = combineTimeApplicableActivitiesForContribution(longTermActivity, shortTermActivity, defaultImplement)
     contributions.remove(target.CharId)
     val mapFunc = contributionPointsMap(contributions.values.foldLeft(0)(_ + _.total).toFloat, shortTermActivity)
     contributions.map { case (a, b) => mapFunc(a, b) }
+  }
+
+  private[exp] def allocateContributors(
+                                         tallyFunc: (List[InGameActivity], PlanetSideEmpire.Value, mutable.LongMap[ContributionStats]) => Any
+                                       )
+                                       (
+                                         history: List[InGameActivity],
+                                         faction: PlanetSideEmpire.Value
+                                       ): mutable.LongMap[ContributionStats] = {
+    /** players who have contributed to this death, and how much they have contributed<br>
+     * key - character identifier,
+     * value - (player, damage, total damage, number of shots) */
+    val participants: mutable.LongMap[ContributionStats] = mutable.LongMap[ContributionStats]()
+    tallyFunc(history, faction, participants)
+    participants
   }
 
   private def mapContributionPointsByPercentage(
@@ -256,5 +341,14 @@ object Support {
                                             contribution: ContributionStats,
                                           ): (Long, ContributionStatsOutput) = {
     (charId, ContributionStatsOutput(contribution.player, contribution.weapons.map { _.weapon_id }, compareList.size.toFloat))
+  }
+
+  private[exp] def wasEverAMax(player: PlayerSource, history: Iterable[InGameActivity]): Boolean = {
+    player.ExoSuit == ExoSuitType.MAX || history.exists {
+      case SpawningActivity(p: PlayerSource, _, _) => p.ExoSuit == ExoSuitType.MAX
+      case ReconstructionActivity(p: PlayerSource, _, _) => p.ExoSuit == ExoSuitType.MAX
+      case RepairFromExoSuitChange(suit, _) => suit == ExoSuitType.MAX
+      case _                                => false
+    }
   }
 }

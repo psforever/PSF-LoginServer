@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
-import net.psforever.objects.definition.{ObjectDefinition, ToolDefinition}
+import net.psforever.objects.definition.{ObjectDefinition, ToolDefinition, WithShields}
 import net.psforever.objects.vehicles.{MountableWeaponsDefinition, Turrets}
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 import net.psforever.objects.vital.resolution.DamageResistanceModel
@@ -14,7 +14,8 @@ import scala.collection.mutable
 trait TurretDefinition
   extends MountableWeaponsDefinition
   with ResistanceProfileMutators
-  with DamageResistanceModel {
+  with DamageResistanceModel
+  with WithShields {
   odef: ObjectDefinition =>
   Turrets(odef.ObjectId) //let throw NoSuchElementException
   /* key - upgrade, value - weapon definition */
