@@ -40,10 +40,10 @@ class VitalityTest extends Specification {
       player.LogActivity(result) //DamageResult, straight-up
       player.LogActivity(DamageFromProjectile(result))
       player.LogActivity(HealFromKit(GlobalDefinitions.medkit, 10))
-      player.LogActivity(HealFromTerm(term, 10))
+      player.LogActivity(HealFromTerminal(term, 10))
       player.LogActivity(HealFromImplant(ImplantType.AdvancedRegen, 10))
       player.LogActivity(RepairFromExoSuitChange(ExoSuitType.Standard, 10))
-      player.LogActivity(RepairFromTerm(term, 10))
+      player.LogActivity(RepairFromTerminal(term, 10))
       player.LogActivity(ShieldCharge(10, Some(vSource)))
       player.LogActivity(PlayerSuicide(PlayerSource(player)))
       ok
@@ -55,10 +55,10 @@ class VitalityTest extends Specification {
       val term = AmenitySource(new Terminal(GlobalDefinitions.order_terminal) { GUID = PlanetSideGUID(1) })
 
       player.LogActivity(HealFromKit(GlobalDefinitions.medkit, 10))
-      player.LogActivity(HealFromTerm(term, 10))
+      player.LogActivity(HealFromTerminal(term, 10))
       player.LogActivity(HealFromImplant(ImplantType.AdvancedRegen, 10))
       player.LogActivity(RepairFromExoSuitChange(ExoSuitType.Standard, 10))
-      player.LogActivity(RepairFromTerm(term, 10))
+      player.LogActivity(RepairFromTerminal(term, 10))
       player.LogActivity(ShieldCharge(10, Some(vSource)))
       player.LogActivity(PlayerSuicide(PlayerSource(player)))
       player.History.size mustEqual 7
@@ -67,10 +67,10 @@ class VitalityTest extends Specification {
       player.History.size mustEqual 0
       list.head.isInstanceOf[PlayerSuicide] mustEqual true
       list(1).isInstanceOf[ShieldCharge] mustEqual true
-      list(2).isInstanceOf[RepairFromTerm] mustEqual true
+      list(2).isInstanceOf[RepairFromTerminal] mustEqual true
       list(3).isInstanceOf[RepairFromExoSuitChange] mustEqual true
       list(4).isInstanceOf[HealFromImplant] mustEqual true
-      list(5).isInstanceOf[HealFromTerm] mustEqual true
+      list(5).isInstanceOf[HealFromTerminal] mustEqual true
       list(6).isInstanceOf[HealFromKit] mustEqual true
     }
 
@@ -92,10 +92,10 @@ class VitalityTest extends Specification {
 
       player.LogActivity(DamageFromProjectile(result))
       player.LogActivity(HealFromKit(GlobalDefinitions.medkit, 10))
-      player.LogActivity(HealFromTerm(term, 10))
+      player.LogActivity(HealFromTerminal(term, 10))
       player.LogActivity(HealFromImplant(ImplantType.AdvancedRegen, 10))
       player.LogActivity(RepairFromExoSuitChange(ExoSuitType.Standard, 10))
-      player.LogActivity(RepairFromTerm(term, 10))
+      player.LogActivity(RepairFromTerminal(term, 10))
       player.LogActivity(ShieldCharge(10, Some(vSource)))
       player.LogActivity(PlayerSuicide(PlayerSource(player)))
 

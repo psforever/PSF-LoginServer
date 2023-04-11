@@ -2614,10 +2614,11 @@ class ZoningOperations(
           LoadZoneAsPlayer(newPlayer, zoneId)
         } else {
           avatarActor ! AvatarActor.DeactivateActiveImplants()
+          val betterSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity with InGameHistory => o }
           interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
             case Some(vehicle: Vehicle) => // driver or passenger in vehicle using a warp gate, or a droppod
-              InGameHistory.SpawnReconstructionActivity(vehicle, toZoneNumber, toSpawnPoint)
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, toSpawnPoint)
+              InGameHistory.SpawnReconstructionActivity(vehicle, toZoneNumber, betterSpawnPoint)
+              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
               LoadZoneInVehicle(vehicle, pos, ori, zoneId)
 
             case _ if player.HasGUID => // player is deconstructing self or instant action
@@ -2629,13 +2630,13 @@ class ZoningOperations(
               )
               player.Position = pos
               player.Orientation = ori
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, toSpawnPoint)
+              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
               LoadZoneAsPlayer(player, zoneId)
 
             case _ => //player is logging in
               player.Position = pos
               player.Orientation = ori
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, toSpawnPoint)
+              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
               LoadZoneAsPlayer(player, zoneId)
           }
         }

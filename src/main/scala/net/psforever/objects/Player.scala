@@ -13,7 +13,7 @@ import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.serverobject.environment.InteractWithEnvironment
 import net.psforever.objects.serverobject.mount.MountableEntity
 import net.psforever.objects.vital.resistance.ResistanceProfile
-import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.{HealFromEquipment, InGameActivity, RepairFromEquipment, Vitality}
 import net.psforever.objects.vital.damage.DamageProfile
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resolution.DamageResistanceModel
@@ -422,12 +422,13 @@ class Player(var avatar: Avatar)
   def UsingSpecial_=(state: SpecialExoSuitDefinition.Mode.Value): SpecialExoSuitDefinition.Mode.Value =
     usingSpecial(state)
 
+  //noinspection ScalaUnusedSymbol
   private def DefaultUsingSpecial(state: SpecialExoSuitDefinition.Mode.Value): SpecialExoSuitDefinition.Mode.Value =
     SpecialExoSuitDefinition.Mode.Normal
 
   private def UsingAnchorsOrOverdrive(
-      state: SpecialExoSuitDefinition.Mode.Value
-  ): SpecialExoSuitDefinition.Mode.Value = {
+                                       state: SpecialExoSuitDefinition.Mode.Value
+                                     ): SpecialExoSuitDefinition.Mode.Value = {
     import SpecialExoSuitDefinition.Mode._
     val curr = UsingSpecial
     val next = if (curr == Normal) {
@@ -532,11 +533,14 @@ class Player(var avatar: Avatar)
 
   def Carrying: Option[SpecialCarry] = carrying
 
+  //noinspection ScalaUnusedSymbol
   def Carrying_=(item: SpecialCarry): Option[SpecialCarry] = {
-    Carrying
+    Carrying_=(Some(item))
   }
 
+  //noinspection ScalaUnusedSymbol
   def Carrying_=(item: Option[SpecialCarry]): Option[SpecialCarry] = {
+    carrying = item
     Carrying
   }
 
@@ -554,6 +558,14 @@ class Player(var avatar: Avatar)
   def DamageModel: DamageResistanceModel = exosuit.asInstanceOf[DamageResistanceModel]
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Player]
+
+  override def GetContributionDuringPeriod(ending: Long, duration: Long): List[InGameActivity] = {
+    val start = ending - duration
+    History.collect {
+      case heal: HealFromEquipment if heal.time <= ending && heal.time > start => heal
+      case repair: RepairFromEquipment if repair.time <= ending && repair.time > start => repair
+    }
+  }
 
   override def equals(other: Any): Boolean =
     other match {
@@ -620,6 +632,7 @@ object Player {
     }
   }
 
+  //noinspection ScalaUnusedSymbol
   def neverRestrict(player: Player, slot: Int): Boolean = {
     false
   }

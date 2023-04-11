@@ -4,10 +4,14 @@ package net.psforever.actors.session
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
+
 import java.util.concurrent.atomic.AtomicInteger
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill}
+import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.vital.InGameHistory
 import org.joda.time.{LocalDateTime, Seconds}
+
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
@@ -36,7 +40,7 @@ import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, VehicleLoadout}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.sourcing.{PlayerSource,SourceWithHealthEntry}
 import net.psforever.objects.vital.projectile.ProjectileReason
-import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity, Vitality}
+import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity}
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
 import net.psforever.persistence
@@ -2949,10 +2953,10 @@ class AvatarActor(
           case pr: ProjectileReason => pr.projectile.mounted_in.map { a => zone.GUID(a._1) }
           case _ => None
         }).collect {
-          case Some(obj: Vitality) =>
-            zone.actor ! ZoneActor.RewardOurSupporters(playerSource, obj.History, kill, exp)
+          case Some(mount: PlanetSideGameObject with FactionAffinity with InGameHistory) =>
+            player.ContributionFrom(mount)
         }
-        zone.actor ! ZoneActor.RewardOurSupporters(playerSource, player.History, kill, exp)
+        zone.actor ! ZoneActor.RewardOurSupporters(playerSource, player.HistoryAndContributions(), kill, exp)
       case _: Assist =>
         ()
       case _: Death =>

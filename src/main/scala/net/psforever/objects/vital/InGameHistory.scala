@@ -4,12 +4,14 @@ package net.psforever.objects.vital
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ToolDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.sourcing.{AmenitySource, ObjectSource, PlayerSource, SourceEntry, SourceWithHealthEntry, VehicleSource}
+import net.psforever.objects.sourcing.{AmenitySource, ObjectSource, PlayerSource, SourceEntry, SourceUniqueness, SourceWithHealthEntry, VehicleSource}
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types.{ExoSuitType, ImplantType, TransactionType}
+
+import scala.collection.mutable
 
 /* root */
 
@@ -48,6 +50,11 @@ final case class ShieldCharge(amount: Int, cause: Option[SourceEntry])
 final case class TerminalUsedActivity(terminal: AmenitySource, transaction: TransactionType.Value)
   extends GeneralActivity
 
+final case class Contribution(unique: SourceEntry, entries: List[InGameActivity])
+  extends GeneralActivity {
+  override val time: Long = entries.maxBy(_.time).time
+}
+
 /* vitals history */
 
 /**
@@ -77,9 +84,8 @@ trait DamagingActivity extends VitalsActivity {
 
   def health: Int = {
     (data.targetBefore, data.targetAfter) match {
-      case (pb: PlayerSource, pa: PlayerSource) if pb.ExoSuit == ExoSuitType.MAX => pb.total - pa.total
-      case (pb: SourceWithHealthEntry, pa: SourceWithHealthEntry)                => pb.health - pa.health
-      case _                                                                     => 0
+      case (pb: SourceWithHealthEntry, pa: SourceWithHealthEntry) => pb.health - pa.health
+      case _                                                      => 0
     }
   }
 }
@@ -90,7 +96,7 @@ final case class HealFromKit(kit_def: KitDefinition, amount: Int)
 final case class HealFromEquipment(user: PlayerSource, equipment_def: EquipmentDefinition, amount: Int)
   extends HealingActivity with SupportActivityCausedByAnother
 
-final case class HealFromTerm(term: AmenitySource, amount: Int)
+final case class HealFromTerminal(term: AmenitySource, amount: Int)
   extends HealingActivity
 
 final case class HealFromImplant(implant: ImplantType, amount: Int)
@@ -105,7 +111,7 @@ final case class RepairFromKit(kit_def: KitDefinition, amount: Int)
 final case class RepairFromEquipment(user: PlayerSource, equipment_def: EquipmentDefinition, amount: Int)
   extends RepairingActivity with SupportActivityCausedByAnother
 
-final case class RepairFromTerm(term: AmenitySource, amount: Int) extends RepairingActivity
+final case class RepairFromTerminal(term: AmenitySource, amount: Int) extends RepairingActivity
 
 final case class RepairFromArmorSiphon(siphon_def: ToolDefinition, vehicle: VehicleSource, amount: Int)
   extends RepairingActivity
@@ -221,6 +227,66 @@ trait InGameHistory {
     }
   }
 
+  private val contributionInheritance: mutable.HashMap[SourceUniqueness, Seq[Contribution]] =
+    mutable.HashMap[SourceUniqueness, Seq[Contribution]]()
+
+  def ContributionFrom(target: PlanetSideGameObject with FactionAffinity with InGameHistory): Boolean = {
+    if (target ne this) {
+      val events = target.GetContribution()
+      val nonEmpty = events.nonEmpty
+      if (nonEmpty) {
+        val source = SourceEntry(target)
+        contributionInheritance.get(source.unique) match {
+          case Some(previousContributions) =>
+            val uniqueEvents = for {
+              curr <- events
+              if !previousContributions.filter(_ == curr).exists(_.time == curr.time)
+            } yield curr
+            contributionInheritance.put(source.unique, previousContributions :+ Contribution(source, uniqueEvents))
+          case None =>
+            contributionInheritance.put(source.unique, Seq(Contribution(source, events)))
+        }
+      }
+      nonEmpty
+    } else {
+      false
+    }
+  }
+
+  def RemoveContributionFrom(target: PlanetSideGameObject with FactionAffinity with InGameHistory): Iterable[Contribution] = {
+    contributionInheritance.remove(SourceEntry(target).unique).getOrElse(Nil)
+  }
+
+  def GetContribution(): List[InGameActivity] = {
+    GetContributionDuringPeriod(System.currentTimeMillis(), duration = 600000)
+  }
+
+  def GetContribution(ending: Long): List[InGameActivity] = {
+    GetContributionDuringPeriod(ending, duration = 600000)
+  }
+
+  def GetContributionDuringPeriod(ending: Long, duration: Long): List[InGameActivity] = {
+    val start = ending - duration
+    History.collect { case repair: RepairFromEquipment
+      if repair.time <= ending && repair.time > start => repair
+    }
+  }
+
+  def HistoryAndContributions(): List[InGameActivity] = {
+    val ending = System.currentTimeMillis()
+    val start = ending - 600000
+    contributionInheritance.foreach { case (obj, list) =>
+      val filtered = list.filter { event => event.time <= ending && event.time > start }
+      if (filtered.isEmpty) {
+        contributionInheritance.remove(obj)
+      } else if (filtered.size != list.size) {
+        contributionInheritance.update(obj, filtered)
+      }
+    }
+    val contributions = contributionInheritance.flatMap { case (_, list) => list }
+    (History ++ contributions).sortBy(_.time)
+  }
+
   def ClearHistory(): List[InGameActivity] = {
     lastDamage = None
     val out = history
@@ -233,14 +299,15 @@ object InGameHistory {
   def SpawnReconstructionActivity(
                                    obj: PlanetSideGameObject with FactionAffinity with InGameHistory,
                                    zoneNumber: Int,
-                                   unit: Option[SourceEntry]
+                                   unit: Option[PlanetSideGameObject with FactionAffinity with InGameHistory]
                                  ): Unit = {
+    val toUnitSource = unit.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) }
     val event: GeneralActivity = if (obj.History.nonEmpty || obj.History.headOption.exists {
       _.isInstanceOf[SpawningActivity]
     }) {
-      ReconstructionActivity(ObjectSource(obj), zoneNumber, unit)
+      ReconstructionActivity(ObjectSource(obj), zoneNumber, toUnitSource)
     } else {
-      SpawningActivity(ObjectSource(obj), zoneNumber, unit)
+      SpawningActivity(ObjectSource(obj), zoneNumber, toUnitSource)
     }
     if (obj.History.lastOption match {
       case Some(evt: SpawningActivity) => evt != event
@@ -248,6 +315,7 @@ object InGameHistory {
       case _ => true
     }) {
       obj.LogActivity(event)
+      unit.foreach { o => obj.ContributionFrom(o) }
     }
   }
 }

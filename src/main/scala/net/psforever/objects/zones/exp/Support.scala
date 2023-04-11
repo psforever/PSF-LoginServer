@@ -42,14 +42,18 @@ object Support {
 
   private[exp] def onlyOriginalAssistEntries(
                                               first: mutable.LongMap[ContributionStatsOutput],
-                                              second: mutable.LongMap[ContributionStatsOutput]
+                                              second: mutable.LongMap[ContributionStatsOutput],
+                                              combiner: (ContributionStatsOutput, ContributionStatsOutput)=>ContributionStatsOutput =
+                                              defaultAdditiveOutputCombiner(multiplier = 0.05f)
                                             ): Iterable[ContributionStatsOutput] = {
-    onlyOriginalAssistEntriesIterable(first.values, second.values)
+    onlyOriginalAssistEntriesIterable(first.values, second.values, combiner)
   }
 
   private[exp] def onlyOriginalAssistEntriesIterable(
                                                       first: Iterable[ContributionStatsOutput],
-                                                      second: Iterable[ContributionStatsOutput]
+                                                      second: Iterable[ContributionStatsOutput],
+                                                      combiner: (ContributionStatsOutput, ContributionStatsOutput)=>ContributionStatsOutput =
+                                                      defaultAdditiveOutputCombiner(multiplier = 0.05f)
                                                     ): Iterable[ContributionStatsOutput] = {
     if (second.isEmpty) {
       first
@@ -59,12 +63,10 @@ object Support {
       //overlap discriminated by percentage
       val shared: mutable.LongMap[ContributionStatsOutput] = mutable.LongMap[ContributionStatsOutput]()
       for {
-        h @ ContributionStatsOutput(hid, hwep, hkda) <- first
-        a @ ContributionStatsOutput(aid, awep, akda) <- second
-        (id, out) = if (hkda < akda)
-          (aid.CharId, a.copy(implements = (a.implements ++ hwep).distinct))
-        else
-          (hid.CharId, h.copy(implements = (h.implements ++ awep).distinct))
+        h @ ContributionStatsOutput(hid, _, _) <- first
+        a @ ContributionStatsOutput(aid, _, _) <- second
+        out = combiner(h, a)
+        id = out.player.CharId
         if hid == aid && shared.put(id, out).isEmpty
       } yield ()
       val sharedKeys = shared.keys
@@ -72,19 +74,38 @@ object Support {
     }
   }
 
-  private[exp] def collectHealthAssists(
-                                         victim: SourceEntry,
-                                         history: List[InGameActivity],
-                                         func: (List[InGameActivity], PlanetSideEmpire.Value) => mutable.LongMap[ContributionStats]
-                                       ): mutable.LongMap[ContributionStatsOutput] = {
-    val healthAssists = func(history, victim.Faction).filterNot { case (_, kda) => kda.amount <= 0 }
-    val qualifiedHealing = healthAssists.values.foldLeft(0)(_ + _.total)
-    val healthAssistsOutput = healthAssists.map { case (id, kda) =>
-      (id, ContributionStatsOutput(kda.player, kda.weapons.map { _.weapon_id }, kda.amount / qualifiedHealing))
-    }
-    healthAssistsOutput.remove(victim.CharId)
-    healthAssistsOutput
+  private def defaultAdditiveOutputCombiner(
+                                             multiplier: Float
+                                           )
+                                           (
+                                             first: ContributionStatsOutput,
+                                             second: ContributionStatsOutput
+                                           ): ContributionStatsOutput = {
+    if (first.percentage < second.percentage)
+      second.copy(
+        implements = (second.implements ++ first.implements).distinct,
+        percentage = first.percentage + second.implements.size * multiplier
+      )
+    else
+      first.copy(
+        implements = (first.implements ++ second.implements).distinct,
+        percentage = second.percentage + second.implements.size * multiplier
+      )
   }
+
+//  private[exp] def collectKillAssists(
+//                                       victim: SourceEntry,
+//                                       history: List[InGameActivity],
+//                                       func: (List[InGameActivity], PlanetSideEmpire.Value) => mutable.LongMap[ContributionStats]
+//                                     ): mutable.LongMap[ContributionStatsOutput] = {
+//    val healthAssists = func(history, victim.Faction).filterNot { case (_, kda) => kda.amount <= 0 }
+//    val qualifiedHealing = healthAssists.values.foldLeft(0)(_ + _.total)
+//    val healthAssistsOutput = healthAssists.map { case (id, kda) =>
+//      (id, ContributionStatsOutput(kda.player, kda.weapons.map { _.weapon_id }, kda.amount / qualifiedHealing))
+//    }
+//    healthAssistsOutput.remove(victim.CharId)
+//    healthAssistsOutput
+//  }
 
   private[exp] def collectHealingSupportAssists(
                                                  target: SourceEntry,
@@ -199,7 +220,7 @@ object Support {
     }
   }
 
-  private def findTimeApplicableActivities(
+  private[exp] def findTimeApplicableActivities(
                                             activity: Seq[SupportActivity],
                                             killLastTime: JodaLocalDateTime,
                                             timeOffset: Int //s
