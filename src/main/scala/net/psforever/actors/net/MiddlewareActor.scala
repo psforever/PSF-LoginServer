@@ -193,10 +193,8 @@ class MiddlewareActor(
   /** Queue of outgoing packets ready for sending */
   val outQueueBundled: mutable.Queue[PlanetSidePacket] = mutable.Queue()
 
-  /** Latest outbound sequence number;
-    * the current sequence is one less than this number
-    */
-  var outSequence = 0
+  /** Latest outbound sequence number */
+  var outSequence = -1
 
   /**
     * Increment the outbound sequence number.
@@ -205,13 +203,18 @@ class MiddlewareActor(
     * @return
     */
   def nextSequence: Int = {
-    val r = outSequence
-    if (outSequence == 0xffff) {
-      outSequence = 0
-    } else {
-      outSequence += 1
+    if (outSequence >= 0xffff) {
+      // TODO resetting the sequence to 0 causes a client crash
+      // but that does not happen when we always send the same number
+      // the solution is most likely to send the proper ResetSequence payload
+      // send(ResetSequence(), None, crypto)
+
+      // outSequence = -1
+      // return nextSequence
+      return outSequence
     }
-    r
+    outSequence += 1
+    outSequence
   }
 
   /** Latest outbound subslot number;
@@ -454,6 +457,11 @@ class MiddlewareActor(
             case Successful((packet, Some(sequence))) =>
               activeSequenceFunc(packet, sequence)
             case Successful((packet, None)) =>
+              packet match {
+                case _: PlanetSideResetSequencePacket =>
+                  log.info(s"ResetSequence: ${msg}, inSeq: ${inSequence}, outSeq: ${outSequence}")
+                case _ => ()
+              }
               in(packet)
             case Failure(e) =>
               log.error(s"Could not decode $connectionId's packet: $e")
@@ -569,9 +577,14 @@ class MiddlewareActor(
         log.error(s"Unexpected crypto packet '$packet'")
         Behaviors.same
 
-      case _: PlanetSideResetSequencePacket =>
-        log.debug("Received sequence reset request from client; complying")
-        outSequence = 0
+      case packet: PlanetSideResetSequencePacket =>
+        // TODO This is wrong
+        // I suspect ResetSequence is a notification that the remote sequence has been reset
+        // rather than a request to reset our outgoing sequence number
+        // Resetting it this way causes a client crash, see nextSequence
+
+        // log.debug(s"Received sequence reset request from client: $packet.}")
+        // outSequence = 0
         Behaviors.same
     }
   }
