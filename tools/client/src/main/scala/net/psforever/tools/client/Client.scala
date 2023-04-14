@@ -48,11 +48,8 @@ import scala.collection.mutable
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.reflect.ClassTag
 import java.util.concurrent.{Executors, TimeUnit}
-import net.psforever.packet.game.CharacterCreateRequestMessage
-import net.psforever.types.CharacterSex
-import net.psforever.types.PlanetSideEmpire
-import net.psforever.types.CharacterVoice
-import net.psforever.packet.game.ActionResultMessage
+import net.psforever.packet.game._
+import net.psforever.types._
 import scala.concurrent.Future
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -81,6 +78,9 @@ object Client {
 
           client.selectCharacter(client.state.characters.head.charId)
           client.startTasks()
+
+          client.send(ChatMsg(ChatMessageType.CMT_ZONE, wideContents = false, "", "z1", None))
+
           while (true) {
             client.updateAvatar(client.state.avatar.copy(crouching = !client.state.avatar.crouching))
             Thread.sleep(2000)
@@ -328,13 +328,11 @@ class Client(username: String, password: String) {
   private def _process(packet: PlanetSidePacket): Unit = {
     packet match {
       case _: KeepAliveMessage => ()
-      case _: LoadMapMessage =>
-        log.info(s"process: ${packet}")
+      case _: LoadMapMessage   =>
         send(BeginZoningMessage()).require
         _state = state.update(packet)
       case packet: PlanetSideGamePacket =>
         _state = state.update(packet)
-        log.info(s"process: ${packet}")
         ()
       case _ => ()
     }
@@ -381,10 +379,6 @@ class Client(username: String, password: String) {
       sequence: Option[Int],
       crypto: Option[CryptoCoding]
   ): Attempt[BitVector] = {
-    packet match {
-      case _: KeepAliveMessage => ()
-      case _                   => log.info(s"send: ${packet}")
-    }
     PacketCoding.marshalPacket(packet, sequence, crypto) match {
       case Successful(payload) =>
         send(payload.toByteArray)
