@@ -305,14 +305,14 @@ class MiddlewareActor(
                 Unknown30 is used to reuse an existing crypto session when switching from login to world
                 When not handling it, it appears that the client will fall back to using ClientStart
                 Do we need to implement this?
-                */
+                 */
                 connectionClose()
 
               case (ConnectionClose(), _) =>
                 /*
                 indicates the user has willingly quit the game world
                 we do not need to implement this
-                */
+                 */
                 Behaviors.same
 
               // TODO ResetSequence
@@ -459,7 +459,7 @@ class MiddlewareActor(
             case Successful((packet, None)) =>
               packet match {
                 case _: PlanetSideResetSequencePacket =>
-                  log.info(s"ResetSequence: ${msg}, inSeq: ${inSequence}, outSeq: ${outSequence}")
+                  log.info(s"ResetSequence: ${msg.toHex}, inSeq: ${inSequence}, outSeq: ${outSequence}")
                 case _ => ()
               }
               in(packet)
