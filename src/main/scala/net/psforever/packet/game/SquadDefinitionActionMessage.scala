@@ -22,7 +22,7 @@ object SquadAction {
 
     val AnyPositions, AvailablePositions, SomeCertifications, AllCertifications = Value
 
-    implicit val codec: Codec[SearchMode.Value] = PacketHelpers.createEnumerationCodec(enum = this, uint(bits = 3))
+    implicit val codec: Codec[SearchMode.Value] = PacketHelpers.createEnumerationCodec(e = this, uint(bits = 3))
   }
 
   final case class DisplaySquad() extends SquadAction(code = 0)
@@ -280,7 +280,7 @@ object SquadAction {
 
     val squadListDecoratorCodec = (
       SquadListDecoration.codec ::
-      ignore(size = 3)
+        ignore(size = 3)
     ).xmap[SquadListDecorator](
       {
         case value :: _ :: HNil => SquadListDecorator(value)

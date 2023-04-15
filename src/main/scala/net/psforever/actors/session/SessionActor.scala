@@ -102,7 +102,10 @@ object SessionActor {
       tickTime: Long = 250L
   )
 
-  private[session] final case class AvatarAwardMessageBundle(bundle: Iterable[Iterable[PlanetSideGamePacket]], delay: Long)
+  private[session] final case class AvatarAwardMessageBundle(
+      bundle: Iterable[Iterable[PlanetSideGamePacket]],
+      delay: Long
+  )
 }
 
 class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
@@ -110,9 +113,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     with MDCContextAware {
   MDC("connectionId") = connectionId
 
-  private[this] val log = org.log4s.getLogger
   private[this] val buffer: mutable.ListBuffer[Any] = new mutable.ListBuffer[Any]()
-  private[this] val sessionFuncs = new SessionData(middlewareActor, context)
+  private[this] val sessionFuncs                    = new SessionData(middlewareActor, context)
 
   override val supervisorStrategy: SupervisorStrategy = sessionFuncs.sessionSupervisorStrategy
 
@@ -195,7 +197,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sessionFuncs.zoning.spawn.handlePlayerLoaded(tplayer)
 
     case Zone.Population.PlayerHasLeft(zone, None) =>
-      log.trace(s"PlayerHasLeft: ${sessionFuncs.player.Name} does not have a body on ${zone.id}")
+      log.debug(s"PlayerHasLeft: ${sessionFuncs.player.Name} does not have a body on ${zone.id}")
 
     case Zone.Population.PlayerHasLeft(zone, Some(tplayer)) =>
       if (tplayer.isAlive) {
@@ -203,16 +205,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       }
 
     case Zone.Population.PlayerCanNotSpawn(zone, tplayer) =>
-      log.warn(s"${tplayer.Name} can not spawn in zone ${zone.id}; why?")
+      log.warning(s"${tplayer.Name} can not spawn in zone ${zone.id}; why?")
 
     case Zone.Population.PlayerAlreadySpawned(zone, tplayer) =>
-      log.warn(s"${tplayer.Name} is already spawned on zone ${zone.id}; is this a clerical error?")
+      log.warning(s"${tplayer.Name} is already spawned on zone ${zone.id}; is this a clerical error?")
 
     case Zone.Vehicle.CanNotSpawn(zone, vehicle, reason) =>
-      log.warn(s"${sessionFuncs.player.Name}'s ${vehicle.Definition.Name} can not spawn in ${zone.id} because $reason")
+      log.warning(
+        s"${sessionFuncs.player.Name}'s ${vehicle.Definition.Name} can not spawn in ${zone.id} because $reason"
+      )
 
     case Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
-      log.warn(s"${sessionFuncs.player.Name}'s ${vehicle.Definition.Name} can not deconstruct in ${zone.id} because $reason")
+      log.warning(
+        s"${sessionFuncs.player.Name}'s ${vehicle.Definition.Name} can not deconstruct in ${zone.id} because $reason"
+      )
 
     case ICS.ZoneResponse(Some(zone)) =>
       sessionFuncs.zoning.handleZoneResponse(zone)
@@ -349,7 +355,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       log.debug(s"CanNotPutItemInSlot: $msg")
 
     case default =>
-      log.warn(s"Invalid packet class received: $default from ${sender()}")
+      log.warning(s"Invalid packet class received: $default from ${sender()}")
   }
 
   private def handleGamePkt: PlanetSideGamePacket => Unit = {
@@ -363,7 +369,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sessionFuncs.vehicles.handleDismountVehicleCargo(packet)
 
     case packet: CharacterCreateRequestMessage =>
-     sessionFuncs.handleCharacterCreateRequest(packet)
+      sessionFuncs.handleCharacterCreateRequest(packet)
 
     case packet: CharacterRequestMessage =>
       sessionFuncs.handleCharacterRequest(packet)
@@ -588,6 +594,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       sessionFuncs.handleHitHint(packet)
 
     case pkt =>
-      log.warn(s"Unhandled GamePacket $pkt")
+      log.warning(s"Unhandled GamePacket $pkt")
   }
 }

@@ -15,4 +15,3 @@ final case class Ignore(data: ByteVector) extends PlanetSideCryptoPacket {
 object Ignore extends Marshallable[Ignore] {
   implicit val codec: Codec[Ignore] = ("data" | bytes).as[Ignore]
 }
-

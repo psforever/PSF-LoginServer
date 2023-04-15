@@ -1,0 +1,31 @@
+version: "3.8"
+
+volumes:
+  postgres-data:
+
+services:
+  app:
+    container_name: javadev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      CONFIG_FORCE_database_host: postgres
+      CONFIG_FORCE_bind: 0.0.0.0
+    volumes:
+      - ../..:/workspaces:cached
+    command: sleep infinity
+    # network_mode: service:postgres
+    ports:
+      - "51000:51000/udp"
+      - "51001:51001/udp"
+      # - "51000:51002"
+  postgres:
+    image: postgres:latest
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: psforever
+      POSTGRES_USER: psforever
+      POSTGRES_DB: psforever

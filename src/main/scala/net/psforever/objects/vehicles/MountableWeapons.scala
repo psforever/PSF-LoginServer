@@ -40,4 +40,3 @@ trait MountableWeapons
 
   def Definition: MountableWeaponsDefinition
 }
-

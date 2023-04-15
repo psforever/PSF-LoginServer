@@ -549,7 +549,7 @@ class CavernRotationService(
   }
 
   /**
-    * 
+    *
     * @param sendToSession callback reference
     */
   def sendCavernRotationUpdates(sendToSession: ActorRef): Unit = {

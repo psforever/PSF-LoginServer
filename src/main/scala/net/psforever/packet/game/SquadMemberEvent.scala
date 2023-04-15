@@ -11,7 +11,7 @@ object MemberEvent extends Enumeration {
 
   val Add, Remove, Promote, UpdateZone, Outfit = Value
 
-  implicit val codec = PacketHelpers.createEnumerationCodec(enum = this, uint(bits = 3))
+  implicit val codec = PacketHelpers.createEnumerationCodec(e = this, uint(bits = 3))
 }
 
 final case class SquadMemberEvent(
@@ -58,13 +58,18 @@ object SquadMemberEvent extends Marshallable[SquadMemberEvent] {
     ("unk2" | uint16L) ::
       ("char_id" | uint32L) ::
       ("position" | uint4) ::
-      ("player_name" | conditional(action == MemberEvent.Add, PacketHelpers.encodedWideStringAligned(adjustment = 1))) ::
+      ("player_name" | conditional(
+        action == MemberEvent.Add,
+        PacketHelpers.encodedWideStringAligned(adjustment = 1)
+      )) ::
       ("zone_number" | conditional(action == MemberEvent.Add || action == MemberEvent.UpdateZone, uint16L)) ::
       ("outfit_id" | conditional(action == MemberEvent.Add || action == MemberEvent.Outfit, uint32L))
   }).exmap[SquadMemberEvent](
     {
       case action :: unk2 :: char_id :: member_position :: player_name :: zone_number :: outfit_id :: HNil =>
-        Attempt.Successful(SquadMemberEvent(action, unk2, char_id, member_position, player_name, zone_number, outfit_id))
+        Attempt.Successful(
+          SquadMemberEvent(action, unk2, char_id, member_position, player_name, zone_number, outfit_id)
+        )
     },
     {
       case SquadMemberEvent(

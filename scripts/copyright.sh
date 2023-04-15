@@ -53,7 +53,7 @@ for f in $FILES; do
         else
           SED_CMD='s#'"$LINESPEC_EXISTING_COPY"'#'"$COPYRIGHT"'#'
           echo "Replacing '$LINESPEC_EXISTING_COPY' --> '$COPYRIGHT'"
-          sed -i -b "$SED_CMD" "$f" 
+          sed -i -b "$SED_CMD" "$f"
         fi
       else
         echo "$f: Not found"
@@ -63,7 +63,7 @@ for f in $FILES; do
         if [ $CHOICE = "n" ]; then
           :
         else
-          sed -i -b '1i '"$COPYRIGHT"'' "$f" 
+          sed -i -b '1i '"$COPYRIGHT"'' "$f"
         fi
       fi
     fi

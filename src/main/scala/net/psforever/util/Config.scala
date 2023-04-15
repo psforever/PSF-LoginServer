@@ -25,12 +25,12 @@ object Config {
   }
 
   implicit def enumeratumIntConfigConvert[A <: IntEnumEntry](implicit
-      enum: IntEnum[A],
+      e: IntEnum[A],
       ct: ClassTag[A]
   ): ConfigConvert[A] =
     viaNonEmptyStringOpt[A](
       v =>
-        enum.values.toList.collectFirst {
+        e.values.toList.collectFirst {
           case e: ServerType if e.name == v            => e.asInstanceOf[A]
           case e: BattleRank if e.value.toString == v  => e.asInstanceOf[A]
           case e: CommandRank if e.value.toString == v => e.asInstanceOf[A]
@@ -40,12 +40,12 @@ object Config {
     )
 
   implicit def enumeratumConfigConvert[A <: EnumEntry](implicit
-      enum: Enum[A],
+      e: Enum[A],
       ct: ClassTag[A]
   ): ConfigConvert[A] =
     viaNonEmptyStringOpt[A](
       v =>
-        enum.values.toList.collectFirst {
+        e.values.toList.collectFirst {
           case e if e.toString.toLowerCase == v.toLowerCase => e.asInstanceOf[A]
         },
       _.toString

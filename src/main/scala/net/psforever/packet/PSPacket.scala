@@ -89,20 +89,20 @@ object PacketHelpers {
   }
 
   /** Create a Codec for an enumeration type that can correctly represent its value
-    * @param enum         the enumeration type to create a codec for
+    * @param e         the enumeration type to create a codec for
     * @param storageCodec the Codec used for actually representing the value
     * @tparam E The inferred type
     * @return Generated codec
     */
-  def createEnumerationCodec[E <: Enumeration](enum: E, storageCodec: Codec[Int]): Codec[E#Value] = {
+  def createEnumerationCodec[E <: Enumeration](e: E, storageCodec: Codec[Int]): Codec[E#Value] = {
     type Struct = Int :: HNil
     val struct: Codec[Struct] = storageCodec.hlist
     val primitiveLimit        = Math.pow(2, storageCodec.sizeBound.exact.get.toDouble)
 
     // Assure that the enum will always be able to fit in a N-bit int
     assert(
-      enum.maxId <= primitiveLimit,
-      enum.getClass.getCanonicalName + s": maxId exceeds primitive type (limit of $primitiveLimit, maxId ${enum.maxId})"
+      e.maxId <= primitiveLimit,
+      e.getClass.getCanonicalName + s": maxId exceeds primitive type (limit of $primitiveLimit, maxId ${e.maxId})"
     )
 
     def to(pkt: E#Value): Struct = {
@@ -113,13 +113,13 @@ object PacketHelpers {
       struct match {
         case enumVal :: HNil =>
           // verify that this int can match the enum
-          val first = enum.values.firstKey.id
-          val last  = enum.maxId - 1
+          val first = e.values.firstKey.id
+          val last  = e.maxId - 1
 
           if (enumVal >= first && enumVal <= last)
-            Attempt.successful(enum(enumVal))
+            Attempt.successful(e(enumVal))
           else
-            Attempt.failure(Err(s"Expected ${enum} with ID between [${first}, ${last}], but got '${enumVal}'"))
+            Attempt.failure(Err(s"Expected ${e} with ID between [${first}, ${last}], but got '${enumVal}'"))
       }
 
     struct.narrow[E#Value](from, to)
@@ -130,12 +130,12 @@ object PacketHelpers {
     * NOTE: enumerations in scala can't be represented by more than an Int anyways, so this conversion shouldn't matter.
     * This is only to overload createEnumerationCodec to work with uint32[L] codecs (which are Long)
     */
-  def createLongEnumerationCodec[E <: Enumeration](enum: E, storageCodec: Codec[Long]): Codec[E#Value] = {
-    createEnumerationCodec(enum, storageCodec.xmap[Int](_.toInt, _.toLong))
+  def createLongEnumerationCodec[E <: Enumeration](e: E, storageCodec: Codec[Long]): Codec[E#Value] = {
+    createEnumerationCodec(e, storageCodec.xmap[Int](_.toInt, _.toLong))
   }
 
   /** Create a Codec for enumeratum's IntEnum type */
-  def createIntEnumCodec[E <: IntEnumEntry](enum: IntEnum[E], storageCodec: Codec[Int]): Codec[E] = {
+  def createIntEnumCodec[E <: IntEnumEntry](e: IntEnum[E], storageCodec: Codec[Int]): Codec[E] = {
     type Struct = Int :: HNil
     val struct: Codec[Struct] = storageCodec.hlist
 
@@ -146,36 +146,36 @@ object PacketHelpers {
     def from(struct: Struct): Attempt[E] =
       struct match {
         case enumVal :: HNil =>
-          enum.withValueOpt(enumVal) match {
+          e.withValueOpt(enumVal) match {
             case Some(v) => Attempt.successful(v)
             case None =>
-              Attempt.failure(Err(s"Enum value '${enumVal}' not found in values '${enum.values.toString()}'"))
+              Attempt.failure(Err(s"Enum value '${enumVal}' not found in values '${e.values.toString()}'"))
           }
       }
 
     struct.narrow[E](from, to)
   }
 
-  def createLongIntEnumCodec[E <: IntEnumEntry](enum: IntEnum[E], storageCodec: Codec[Long]): Codec[E] = {
-    createIntEnumCodec(enum, storageCodec.xmap[Int](_.toInt, _.toLong))
+  def createLongIntEnumCodec[E <: IntEnumEntry](e: IntEnum[E], storageCodec: Codec[Long]): Codec[E] = {
+    createIntEnumCodec(e, storageCodec.xmap[Int](_.toInt, _.toLong))
   }
 
   /** Create a Codec for enumeratum's Enum type */
-  def createEnumCodec[E <: EnumEntry](enum: Enum[E], storageCodec: Codec[Int]): Codec[E] = {
+  def createEnumCodec[E <: EnumEntry](e: Enum[E], storageCodec: Codec[Int]): Codec[E] = {
     type Struct = Int :: HNil
     val struct: Codec[Struct] = storageCodec.hlist
 
     def to(pkt: E): Struct = {
-      enum.indexOf(pkt) :: HNil
+      e.indexOf(pkt) :: HNil
     }
 
     def from(struct: Struct): Attempt[E] =
       struct match {
         case enumVal :: HNil =>
-          enum.valuesToIndex.find(_._2 == enumVal) match {
+          e.valuesToIndex.find(_._2 == enumVal) match {
             case Some((v, _)) => Attempt.successful(v)
             case None =>
-              Attempt.failure(Err(s"Enum index '${enumVal}' not found in values '${enum.valuesToIndex.toString()}'"))
+              Attempt.failure(Err(s"Enum index '${enumVal}' not found in values '${e.valuesToIndex.toString()}'"))
           }
       }
 
