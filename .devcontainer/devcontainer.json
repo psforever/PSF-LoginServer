@@ -29,7 +29,8 @@
 		"vscode": {
 			"extensions": [
 				"scalameta.metals",
-				"scala-lang.scala"
+				"scala-lang.scala",
+				"EditorConfig.EditorConfig"
 			]
 		}
 	}
