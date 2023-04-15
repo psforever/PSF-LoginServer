@@ -28,4 +28,3 @@ class GenericObjectActionAtPositionMessageTest extends Specification {
     pkt mustEqual string
   }
 }
-

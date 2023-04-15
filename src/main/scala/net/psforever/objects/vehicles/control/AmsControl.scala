@@ -55,4 +55,3 @@ class AmsControl(vehicle: Vehicle)
     }
   }
 }
-

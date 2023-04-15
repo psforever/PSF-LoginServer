@@ -65,4 +65,3 @@ class ComponentDamageMessageTest extends Specification {
     pkt mustEqual string_off
   }
 }
-
