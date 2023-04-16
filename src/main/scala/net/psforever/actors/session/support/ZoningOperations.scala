@@ -762,19 +762,19 @@ class ZoningOperations(
           None
       }
     } match {
-      case Some(v: Vehicle) =>
+      case Some(cargo: Vehicle) =>
         galaxyService ! Service.Leave(Some(temp_channel)) //temporary vehicle-specific channel (see above)
         spawn.deadState = DeadState.Release
         sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, unk5=true))
-        interstellarFerry = Some(v) //on the other continent and registered to that continent's GUID system
-        spawn.LoadZonePhysicalSpawnPoint(v.Continent, v.Position, v.Orientation, 1 seconds, None)
+        interstellarFerry = Some(cargo) //on the other continent and registered to that continent's GUID system
+        cargo.MountedIn = vehicle.GUID
+        spawn.LoadZonePhysicalSpawnPoint(cargo.Continent, cargo.Position, cargo.Orientation, respawnTime = 1 seconds, None)
       case _ =>
         interstellarFerry match {
           case None =>
             galaxyService ! Service.Leave(Some(temp_channel)) //no longer being transferred between zones
             interstellarFerryTopLevelGUID = None
-          case Some(_) => ;
-          //wait patiently
+          case Some(_) => () //wait patiently
         }
     }
   }

@@ -3,7 +3,7 @@ package net.psforever.actors.session
 
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{Actor, MDCContextAware, SupervisorStrategy, typed}
+import akka.actor.{Actor, MDCContextAware, typed}
 import org.joda.time.LocalDateTime
 import org.log4s.MDC
 import scala.collection.mutable
@@ -115,8 +115,6 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
   private[this] val buffer: mutable.ListBuffer[Any] = new mutable.ListBuffer[Any]()
   private[this] val sessionFuncs                    = new SessionData(middlewareActor, context)
-
-  override val supervisorStrategy: SupervisorStrategy = sessionFuncs.sessionSupervisorStrategy
 
   ServiceManager.serviceManager ! Lookup("accountIntermediary")
   ServiceManager.serviceManager ! Lookup("accountPersistence")

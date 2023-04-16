@@ -27,7 +27,7 @@ trait CargoBehavior {
       case _ => ;
     }
     isDismounting = None
-    startCargoDismounting(bailed = false)
+    startCargoDismountingNoCleanup(bailed = false)
   }
 
   val cargoBehavior: Receive = {
@@ -64,23 +64,25 @@ trait CargoBehavior {
   }
 
   def startCargoDismounting(bailed: Boolean): Unit = {
-    val obj = CargoObject
-    obj.Zone.GUID(obj.MountedIn) match {
-      case Some(carrier: Vehicle) =>
-        carrier.CargoHolds.find { case (_, hold) => hold.occupant.contains(obj) } match {
-          case Some((mountPoint, _))
-            if isDismounting.isEmpty && isMounting.isEmpty =>
-            isDismounting = obj.MountedIn
-            carrier.Actor ! CarrierBehavior.CheckCargoDismount(obj.GUID, mountPoint, 0, bailed)
-
-          case _ =>
-            obj.MountedIn = None
-            isDismounting = None
-        }
-      case _ =>
-        obj.MountedIn = None
-        isDismounting = None
+    if (!startCargoDismountingNoCleanup(bailed)) {
+      isDismounting = None
+      CargoObject.MountedIn = None
     }
+  }
+
+  def startCargoDismountingNoCleanup(bailed: Boolean): Boolean = {
+    val obj = CargoObject
+    obj.Zone.GUID(obj.MountedIn)
+      .collect { case carrier: Vehicle =>
+        (carrier, carrier.CargoHolds.find { case (_, hold) => hold.occupant.contains(obj) })
+      }
+      .collect { case (carrier, Some((mountPoint, _)))
+        if isDismounting.isEmpty && isMounting.isEmpty =>
+        isDismounting = obj.MountedIn
+        carrier.Actor ! CarrierBehavior.CheckCargoDismount(obj.GUID, mountPoint, 0, bailed)
+        true
+      }
+      .nonEmpty
   }
 }
 
