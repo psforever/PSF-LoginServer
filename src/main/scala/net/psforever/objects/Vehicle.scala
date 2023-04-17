@@ -113,13 +113,6 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   private var utilities: Map[Int, Utility]       = Map.empty
   private var subsystems: List[VehicleSubsystem] = Nil
   private val trunk: GridInventory               = GridInventory()
-
-  /*
-    * Records the GUID of the cargo vehicle (galaxy/lodestar) this vehicle is stored in for DismountVehicleCargoMsg use
-    * DismountVehicleCargoMsg only passes the player_guid and this vehicle's guid
-    */
-  //private var mountedIn: Option[PlanetSideGUID] = None
-
   private var vehicleGatingManifest: Option[VehicleManifest]         = None
   private var previousVehicleGatingManifest: Option[VehicleManifest] = None
 
