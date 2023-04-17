@@ -298,7 +298,7 @@ object AvatarActor {
               }
               val fireMode = tool.AmmoSlots(ammoSlots)
               fireMode.AmmoTypeIndex = ammoTypeIndex
-              fireMode.Box = AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
+              fireMode.Box = AmmoBox(DefinitionUtil.idToDefinition(ammoBoxDefinition).asInstanceOf[AmmoBoxDefinition])
               ammoCount.collect {
                 case count if restoreAmmo => fireMode.Magazine = count
               }
