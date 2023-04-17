@@ -63,6 +63,8 @@ class SessionGalaxyHandlers(
 
       case GalaxyResponse.SendResponse(msg) =>
         sendResponse(msg)
+
+      case _ => ()
     }
   }
 }
