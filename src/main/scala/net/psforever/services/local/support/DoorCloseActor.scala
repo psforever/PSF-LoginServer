@@ -2,11 +2,10 @@
 package net.psforever.services.local.support
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.{Default, Player}
+import net.psforever.objects.{Default, Doors}
 import net.psforever.objects.serverobject.doors.Door
-import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.Zone
-import net.psforever.types.{PlanetSideGUID, Vector3}
+import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
@@ -17,7 +16,6 @@ import scala.concurrent.duration._
   * @see `LocalService`
   */
 class DoorCloseActor() extends Actor {
-
   /** The periodic `Executor` that checks for doors to be closed */
   private var doorCloserTrigger: Cancellable = Default.Cancellable
 
@@ -36,43 +34,11 @@ class DoorCloseActor() extends Actor {
 
     case DoorCloseActor.TryCloseDoors() =>
       doorCloserTrigger.cancel()
-      val now: Long                       = System.nanoTime
+      val now: Long                       = System.currentTimeMillis()
       val (doorsToClose1, doorsLeftOpen1) = PartitionEntries(openDoors, now)
-      val (doorsToClose2, doorsLeftOpen2) = doorsToClose1.partition(entry => {
-        entry.door.Open match {
-          case Some(player) =>
-            // If the player that opened the door is far enough away, or they're dead,
-            var openerIsGone = Vector3.MagnitudeSquared(entry.door.Position - player.Position) > 25.5 || !player.isAlive
-
-            if (openerIsGone) {
-              // Check nobody else is nearby to hold the door opens
-              val playersToCheck: List[Player] =
-                if (
-                  entry.door.Owner
-                    .isInstanceOf[Building] && entry.door.Owner.asInstanceOf[Building].Definition.SOIRadius > 0
-                ) {
-                  entry.door.Owner.asInstanceOf[Building].PlayersInSOI
-                } else {
-                  entry.zone.LivePlayers
-                }
-
-              playersToCheck
-                .filter(x => x.isAlive && Vector3.MagnitudeSquared(entry.door.Position - x.Position) < 25.5)
-                .headOption match {
-                case Some(newOpener) =>
-                  // Another player is near the door, keep it open
-                  entry.door.Open = newOpener
-                  openerIsGone = false
-                case _ => ;
-              }
-            }
-
-            openerIsGone
-          case None =>
-            // Door should not be open. Mark it to be closed.
-            true
-        }
-      })
+      val (doorsToClose2, doorsLeftOpen2) = doorsToClose1.partition { entry =>
+        Doors.testForTargetHoldingDoorOpen(entry.door, entry.door.Definition.continuousOpenDistance).isEmpty
+      }
       openDoors = (
         doorsLeftOpen1 ++
           doorsLeftOpen2.map(entry => DoorCloseActor.DoorEntry(entry.door, entry.zone, now))
@@ -89,7 +55,7 @@ class DoorCloseActor() extends Actor {
         doorCloserTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, DoorCloseActor.TryCloseDoors())
       }
 
-    case _ => ;
+    case _ => ()
   }
 
   /**
@@ -144,9 +110,9 @@ class DoorCloseActor() extends Actor {
 object DoorCloseActor {
 
   /** The wait before an open door closes; as a Long for calculation simplicity */
-  private final val timeout_time: Long = 5000000000L //nanoseconds (5s)
+  private final val timeout_time: Long = 5000L //milliseconds (5s)
   /** The wait before an open door closes; as a `FiniteDuration` for `Executor` simplicity */
-  private final val timeout: FiniteDuration = timeout_time nanoseconds
+  private final val timeout: FiniteDuration = timeout_time milliseconds
 
   /**
     * Message that carries information about a door that has been opened.
@@ -155,7 +121,7 @@ object DoorCloseActor {
     * @param time when the door was opened
     * @see `DoorEntry`
     */
-  final case class DoorIsOpen(door: Door, zone: Zone, time: Long = System.nanoTime())
+  final case class DoorIsOpen(door: Door, zone: Zone, time: Long = System.currentTimeMillis())
 
   /**
     * Message that carries information about a door that needs to close.
