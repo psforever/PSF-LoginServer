@@ -540,7 +540,7 @@ class SessionData(
     }
     validObject(pkt.object_guid, decorator = "UseItem") match {
       case Some(door: Door) =>
-        handleUseDoor(door)
+        handleUseDoor(door, equipment)
       case Some(resourceSilo: ResourceSilo) =>
         handleUseResourceSilo(resourceSilo, equipment)
       case Some(panel: IFFLock) =>
@@ -1245,8 +1245,17 @@ class SessionData(
     }
   }
 
-  private def handleUseDoor(door: Door): Unit = {
-    door.Actor ! CommonMessages.Use(player)
+  private def handleUseDoor(door: Door, equipment: Option[Equipment]): Unit = {
+    equipment match {
+      case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
+        val distance: Float = math.max(
+          Config.app.game.doorsCanBeOpenedByMedAppFromThisDistance,
+          door.Definition.initialOpeningDistance
+        )
+        door.Actor ! CommonMessages.Use(player, Some(distance))
+      case _ =>
+        door.Actor ! CommonMessages.Use(player)
+    }
   }
 
   private def handleUseResourceSilo(resourceSilo: ResourceSilo, equipment: Option[Equipment]): Unit = {

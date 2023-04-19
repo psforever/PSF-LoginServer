@@ -46,7 +46,7 @@ object Config {
     viaNonEmptyStringOpt[A](
       v =>
         e.values.toList.collectFirst {
-          case e if e.toString.toLowerCase == v.toLowerCase => e.asInstanceOf[A]
+          case e if e.toString.toLowerCase == v.toLowerCase => e
         },
       _.toString
     )
@@ -62,25 +62,23 @@ object Config {
   // Raw config object - prefer app when possible
   lazy val config: TypesafeConfig = source.config() match {
     case Right(config) => config
-    case Left(failures) => {
+    case Left(failures) =>
       logger.error("Loading config failed")
       failures.toList.foreach { failure =>
         logger.error(failure.toString)
       }
       sys.exit(1)
-    }
   }
 
   // Typed config object
   lazy val app: AppConfig = source.load[AppConfig] match {
     case Right(config) => config
-    case Left(failures) => {
+    case Left(failures) =>
       logger.error("Loading config failed")
       failures.toList.foreach { failure =>
         logger.error(failure.toString)
       }
       sys.exit(1)
-    }
   }
 }
 
@@ -159,7 +157,8 @@ case class GameConfig(
     baseCertifications: Seq[Certification],
     warpGates: WarpGateConfig,
     cavernRotation: CavernRotationConfig,
-    savedMsg: SavedMessageEvents
+    savedMsg: SavedMessageEvents,
+    doorsCanBeOpenedByMedAppFromThisDistance: Float
 )
 
 case class NewAvatar(
