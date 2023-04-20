@@ -146,7 +146,7 @@ case class SessionConfig(
 )
 
 case class GameConfig(
-    instantActionAms: Boolean,
+    instantAction: InstantActionConfig,
     amenityAutorepairRate: Float,
     amenityAutorepairDrainRate: Float,
     bepRate: Double,
@@ -159,6 +159,11 @@ case class GameConfig(
     cavernRotation: CavernRotationConfig,
     savedMsg: SavedMessageEvents,
     doorsCanBeOpenedByMedAppFromThisDistance: Float
+)
+
+case class InstantActionConfig(
+    spawnOnAms: Boolean,
+    thirdParty: Boolean
 )
 
 case class NewAvatar(
