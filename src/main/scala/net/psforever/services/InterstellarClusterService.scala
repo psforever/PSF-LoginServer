@@ -85,11 +85,6 @@ object InterstellarClusterService {
                                          replyTo: ActorRef[DroppodLaunchExchange]
                                        ) extends Command
 
-  final case class DroppodOntoHotspot(
-                                       faction: PlanetSideEmpire.Value,
-                                       replyTo: ActorRef[DroppodLaunchExchange]
-                                     ) extends Command
-
   final case class CavernRotation(msg: CavernRotationService.Command) extends Command
 
   trait DroppodLaunchExchange
