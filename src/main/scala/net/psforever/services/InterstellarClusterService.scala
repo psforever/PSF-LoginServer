@@ -1,3 +1,4 @@
+// Copyright (c) 2020 PSForever
 package net.psforever.services
 
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
@@ -7,7 +8,7 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{Player, SpawnPoint, Vehicle}
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{HotSpotInfo, Zone}
 import net.psforever.packet.game.DroppodError
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, SpawnGroup, Vector3}
 import net.psforever.util.Config
@@ -101,8 +102,8 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
   import InterstellarClusterService._
 
   private[this] val log = org.log4s.getLogger
-  var intercontinentalSetup: Boolean = false
-  var cavernRotation: Option[ActorRef[CavernRotationService.Command]] = None
+  private var intercontinentalSetup: Boolean = false
+  private var cavernRotation: Option[ActorRef[CavernRotationService.Command]] = None
 
   val zoneActors: mutable.Map[String, (ActorRef[ZoneActor.Command], Zone)] = {
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -164,47 +165,44 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
         replyTo ! ZonesResponse(zones.filter(predicate))
 
       case GetInstantActionSpawnPoint(faction, replyTo) =>
-        val res = zones
-          .filter(_.Players.nonEmpty)
-          .flatMap { zone =>
-            zone.HotSpotData.collect {
-              case spot => (zone, spot)
+        val spawnTarget: Seq[SpawnGroup] = if (Config.app.game.instantAction.spawnOnAms) {
+          Seq(SpawnGroup.Tower, SpawnGroup.Facility, SpawnGroup.AMS)
+        } else {
+          Seq(SpawnGroup.Tower, SpawnGroup.Facility)
+        }
+        val hotspotsAndSpawnsInZones: Iterable[(Zone, HotSpotInfo, List[SpawnPoint])] = zones
+          .collect {
+            case zone if !zone.map.cavern && zone.Players.nonEmpty =>
+              zone.HotSpotData
+                .map {
+                  info => (zone, info, zone.findNearestSpawnPoints(faction, info.DisplayLocation, spawnTarget))
+                }
+          }
+          .flatten
+          .collect {
+            case (zone, info, Some(spawns)) if spawns.nonEmpty => (zone, info, spawns)
+          }
+        val spawnResults: Option[(Zone, SpawnPoint)] = hotspotsAndSpawnsInZones
+          .maxByOption {
+            case (_, info, _) => info.ActivityFor(faction).map(_.Heat).getOrElse(0) //heat by target faction
+          }
+          .orElse {
+            if (Config.app.game.instantAction.thirdParty) {
+              hotspotsAndSpawnsInZones
+                .maxByOption {
+                  case (_, info, _) => info.Activity.values.foldLeft(0)(_ + _.Heat) //sum of heat for all factions
+                }
+            } else {
+              None
             }
           }
           .map {
-            case (zone, spot) =>
-              (
-                zone,
-                spot,
-                zone.findNearestSpawnPoints(
-                  faction,
-                  spot.DisplayLocation,
-                  if (Config.app.game.instantActionAms) Seq(SpawnGroup.Tower, SpawnGroup.Facility, SpawnGroup.AMS)
-                  else Seq(SpawnGroup.Tower, SpawnGroup.Facility)
-                )
-              )
-          }
-          .collect {
-            case (zone, info, Some(spawns)) => (zone, info, spawns)
-          }
-          .toList
-          .sortBy { case (_, spot, _) => spot.Activity.values.foldLeft(0)(_ + _.Heat) }(
-            Ordering[Int].reverse
-          ) // greatest > least
-          .sortWith {
-            case ((_, spot1, _), (_, _, _)) =>
-              spot1.ActivityBy().contains(faction) // prefer own faction activity
-          }
-          .headOption
-          .flatMap {
             case (zone, info, spawns) =>
-              val pos        = info.DisplayLocation
+              val pos = info.DisplayLocation
               val spawnPoint = spawns.minBy(point => Vector3.DistanceSquared(point.Position, pos))
-              //Some(zone, pos, spawnPoint)
-              Some(zone, spawnPoint)
-            case _ => None
+              (zone, spawnPoint)
           }
-        replyTo ! SpawnPointResponse(res)
+        replyTo ! SpawnPointResponse(spawnResults)
 
       case GetRandomSpawnPoint(zoneNumber, faction, spawnGroups, replyTo) =>
         val response = zones.find(_.Number == zoneNumber) match {
