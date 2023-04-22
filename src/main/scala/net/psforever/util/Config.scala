@@ -25,12 +25,12 @@ object Config {
   }
 
   implicit def enumeratumIntConfigConvert[A <: IntEnumEntry](implicit
-      enum: IntEnum[A],
+      e: IntEnum[A],
       ct: ClassTag[A]
   ): ConfigConvert[A] =
     viaNonEmptyStringOpt[A](
       v =>
-        enum.values.toList.collectFirst {
+        e.values.toList.collectFirst {
           case e: ServerType if e.name == v            => e.asInstanceOf[A]
           case e: BattleRank if e.value.toString == v  => e.asInstanceOf[A]
           case e: CommandRank if e.value.toString == v => e.asInstanceOf[A]
@@ -40,13 +40,13 @@ object Config {
     )
 
   implicit def enumeratumConfigConvert[A <: EnumEntry](implicit
-      enum: Enum[A],
+      e: Enum[A],
       ct: ClassTag[A]
   ): ConfigConvert[A] =
     viaNonEmptyStringOpt[A](
       v =>
-        enum.values.toList.collectFirst {
-          case e if e.toString.toLowerCase == v.toLowerCase => e.asInstanceOf[A]
+        e.values.toList.collectFirst {
+          case e if e.toString.toLowerCase == v.toLowerCase => e
         },
       _.toString
     )
@@ -62,25 +62,23 @@ object Config {
   // Raw config object - prefer app when possible
   lazy val config: TypesafeConfig = source.config() match {
     case Right(config) => config
-    case Left(failures) => {
+    case Left(failures) =>
       logger.error("Loading config failed")
       failures.toList.foreach { failure =>
         logger.error(failure.toString)
       }
       sys.exit(1)
-    }
   }
 
   // Typed config object
   lazy val app: AppConfig = source.load[AppConfig] match {
     case Right(config) => config
-    case Left(failures) => {
+    case Left(failures) =>
       logger.error("Loading config failed")
       failures.toList.foreach { failure =>
         logger.error(failure.toString)
       }
       sys.exit(1)
-    }
   }
 }
 
@@ -148,7 +146,7 @@ case class SessionConfig(
 )
 
 case class GameConfig(
-    instantActionAms: Boolean,
+    instantAction: InstantActionConfig,
     amenityAutorepairRate: Float,
     amenityAutorepairDrainRate: Float,
     bepRate: Double,
@@ -161,6 +159,12 @@ case class GameConfig(
     cavernRotation: CavernRotationConfig,
     savedMsg: SavedMessageEvents,
     playerDraw: PlayerStateDrawSettings
+    doorsCanBeOpenedByMedAppFromThisDistance: Float
+)
+
+case class InstantActionConfig(
+    spawnOnAms: Boolean,
+    thirdParty: Boolean
 )
 
 case class NewAvatar(

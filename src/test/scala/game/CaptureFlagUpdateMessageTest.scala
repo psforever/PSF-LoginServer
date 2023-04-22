@@ -45,4 +45,3 @@ class CaptureFlagUpdateMessageTest extends Specification with Debug {
     pkt mustEqual stringOne
   }
 }
-

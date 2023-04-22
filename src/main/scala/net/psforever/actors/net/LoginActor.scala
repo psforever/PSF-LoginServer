@@ -45,7 +45,6 @@ class LoginActor(
 class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
     extends Actor
     with MDCContextAware {
-  private[this] val log = org.log4s.getLogger
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -100,9 +99,9 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
         val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
 
         if (token.isDefined)
-          log.trace(s"New login UN:$username Token:${token.get}. $clientVersion")
+          log.debug(s"New login UN:$username Token:${token.get}. $clientVersion")
         else {
-          log.trace(s"New login UN:$username. $clientVersion")
+          log.debug(s"New login UN:$username. $clientVersion")
         }
 
         accountLogin(username, password.getOrElse(""))
@@ -114,7 +113,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
         middlewareActor ! MiddlewareActor.Close()
 
       case _ =>
-        log.warn(s"Unhandled GamePacket $pkt")
+        log.warning(s"Unhandled GamePacket $pkt")
     }
 
   def accountLogin(username: String, password: String): Unit = {
@@ -196,7 +195,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   def loginPwdFailureResponse(username: String, newToken: String) = {
-    log.warn(s"Failed login to account $username")
+    log.warning(s"Failed login to account $username")
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         newToken,
@@ -211,7 +210,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   def loginFailureResponse(username: String, newToken: String) = {
-    log.warn("DB problem")
+    log.warning("DB problem")
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         newToken,
@@ -226,7 +225,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   }
 
   def loginAccountFailureResponse(username: String, newToken: String) = {
-    log.warn(s"Account $username inactive")
+    log.warning(s"Account $username inactive")
     middlewareActor ! MiddlewareActor.Send(
       LoginRespMessage(
         newToken,

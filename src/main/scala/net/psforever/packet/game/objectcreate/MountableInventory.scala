@@ -332,4 +332,3 @@ object MountableInventory {
     }
   }
 }
-

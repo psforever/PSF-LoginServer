@@ -23,5 +23,5 @@ object OxygenState extends Enum[OxygenState] {
   case object Recovery    extends OxygenState
   case object Suffocation extends OxygenState
 
-  implicit val codec: Codec[OxygenState] = PacketHelpers.createEnumCodec(enum = this, uint(bits = 1))
+  implicit val codec: Codec[OxygenState] = PacketHelpers.createEnumCodec(e = this, uint(bits = 1))
 }

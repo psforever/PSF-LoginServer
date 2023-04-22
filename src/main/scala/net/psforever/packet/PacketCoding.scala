@@ -37,6 +37,7 @@ object PacketCoding {
   ): Attempt[BitVector] = {
     val seq = packet match {
       case _: PlanetSideControlPacket if crypto.isEmpty => BitVector.empty
+      case _: PlanetSideResetSequencePacket             => BitVector.empty
       case _ =>
         sequence match {
           case Some(_sequence) =>
@@ -89,6 +90,17 @@ object PacketCoding {
           case Successful(_payload) =>
             (
               PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Crypto, secured = false)).require,
+              _payload
+            )
+          case f @ Failure(_) => return f
+        }
+      case packet: PlanetSideResetSequencePacket =>
+        encodePacket(packet) match {
+          case Successful(_payload) =>
+            (
+              PlanetSidePacketFlags.codec
+                .encode(PlanetSidePacketFlags(PacketType.ResetSequence, secured = false))
+                .require,
               _payload
             )
           case f @ Failure(_) => return f

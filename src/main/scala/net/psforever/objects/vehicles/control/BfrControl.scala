@@ -613,7 +613,7 @@ object BfrControl {
     final val Enabled  = 38
     final val Disabled = 39
   }
-  
+
   private case object VehicleExplosion
 
   val dimorphics: List[EquipmentHandiness] = {

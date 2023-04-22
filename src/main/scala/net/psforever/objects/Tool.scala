@@ -256,5 +256,3 @@ object Tool {
     def Definition: FireModeDefinition = fdef
   }
 }
-
-

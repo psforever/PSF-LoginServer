@@ -16,7 +16,7 @@ object WaypointEventAction extends Enumeration {
   val Add, Unknown1, Remove, Unknown3 //unconfirmed
   = Value
 
-  implicit val codec: Codec[WaypointEventAction.Value] = PacketHelpers.createEnumerationCodec(enum = this, uint2)
+  implicit val codec: Codec[WaypointEventAction.Value] = PacketHelpers.createEnumerationCodec(e = this, uint2)
 }
 
 /**

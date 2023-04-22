@@ -11,11 +11,11 @@ import scodec.codecs.uint2L
   * Blame the lack of gender dysphoria on the Terran Republic.
   */
 sealed abstract class CharacterSex(
-                                    val value: Int,
-                                    val pronounSubject: String,
-                                    val pronounObject: String,
-                                    val possessive: String
-                                  ) extends IntEnumEntry {
+    val value: Int,
+    val pronounSubject: String,
+    val pronounObject: String,
+    val possessive: String
+) extends IntEnumEntry {
   def possessiveNoObject: String = possessive
 }
 
@@ -25,21 +25,23 @@ sealed abstract class CharacterSex(
 object CharacterSex extends IntEnum[CharacterSex] {
   val values = findValues
 
-  case object Male extends CharacterSex(
-    value = 1,
-    pronounSubject = "he",
-    pronounObject = "him",
-    possessive = "his"
-  )
+  case object Male
+      extends CharacterSex(
+        value = 1,
+        pronounSubject = "he",
+        pronounObject = "him",
+        possessive = "his"
+      )
 
-  case object Female extends CharacterSex(
-    value = 2,
-    pronounSubject = "she",
-    pronounObject = "her",
-    possessive = "her"
-  ) {
+  case object Female
+      extends CharacterSex(
+        value = 2,
+        pronounSubject = "she",
+        pronounObject = "her",
+        possessive = "her"
+      ) {
     override def possessiveNoObject: String = "hers"
   }
 
-  implicit val codec = PacketHelpers.createIntEnumCodec(enum = this, uint2L)
+  implicit val codec = PacketHelpers.createIntEnumCodec(e = this, uint2L)
 }

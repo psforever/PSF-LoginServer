@@ -309,11 +309,8 @@ class VehicleOperations(
           obj.PassengerInSeat(player) match {
             case Some(seat_num) =>
               obj.Actor ! Mountable.TryDismount(player, seat_num, bailType)
-              if (sessionData.zoning.interstellarFerry.isDefined) {
-                //short-circuit the temporary channel for transferring between zones, the player is no longer doing that
-                //see above in VehicleResponse.TransferPassenger case
-                sessionData.zoning.interstellarFerry = None
-              }
+              //short-circuit the temporary channel for transferring between zones, the player is no longer doing that
+              sessionData.zoning.interstellarFerry = None
               // Deconstruct the vehicle if the driver has bailed out and the vehicle is capable of flight
               //todo: implement auto landing procedure if the pilot bails but passengers are still present instead of deconstructing the vehicle
               //todo: continue flight path until aircraft crashes if no passengers present (or no passenger seats), then deconstruct.
@@ -626,6 +623,7 @@ class VehicleOperations(
     }
   }
 
+  //noinspection ScalaUnusedSymbol
   def TotalDriverVehicleControl(vehicle: Vehicle): Unit = {
     serverVehicleControlVelocity = None
     sendResponse(ServerVehicleOverrideMsg(lock_accelerator=false, lock_wheel=false, reverse=false, unk4=false, 0, 0, 0, None))

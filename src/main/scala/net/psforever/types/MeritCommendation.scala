@@ -165,8 +165,8 @@ object MeritCommendation extends Enumeration {
     {
       case MeritCommendation.None =>
         Attempt.successful(0xffffffffL)
-      case enum =>
-        Attempt.successful(enum.id.toLong)
+      case e =>
+        Attempt.successful(e.id.toLong)
     }
   )
 }

@@ -30,7 +30,7 @@ which has the instructions on downloading the game and using the PSForever launc
     - Up to date
   - [PostgreSQL](https://www.postgresql.org/)
     - 10+
-- Development (+Running) 
+- Development (+Running)
   - [Git](https://en.wikipedia.org/wiki/Git)
   - IDE or Text Editor
 
@@ -87,7 +87,7 @@ arguments - is recommended in order to avoid this startup time.
 ### PostgreSQL Database
 A database is required for persistence of game state and player characters.  The login server and game server (which are
 considered the same things, more or else) are set up to accept queries to a PostgreSQL server.  It doesn't matter if you
-don't understand what PostgreSQL actually is compared to MySQL. I don't get it either - just install it: 
+don't understand what PostgreSQL actually is compared to MySQL. I don't get it either - just install it:
 for [Windows](https://www.postgresql.org/download/windows/);
 for Linux [Debian](https://www.postgresql.org/download/linux/debian/),
 for Linux [Ubuntu](https://www.postgresql.org/download/linux/ubuntu/);
@@ -102,7 +102,7 @@ To use pgAdmin, run the appropriate binary to start the pgAdmin server.  Dependi
 browser will open, or maybe a dedicated application window will open.  Either way, create necessary passwords during
 the first login, then enter the connection details that were used during the PostgreSQL installation.  When connected,
 expand the tree and right click on "Databases", menu -> Create... -> Database.  Enter name as "psforever", then Save.
-Right click on the psforever database, menu -> Query Tool...  Copy and paste the commands below, then hit the 
+Right click on the psforever database, menu -> Query Tool...  Copy and paste the commands below, then hit the
 "Play/Run" button. The user should be created and made owner of the database. (Prior to that, it should be "postgresql".)
 (Check menu -> Properties to confirm.  May need to refresh first to see these changes.)
 ```sql
@@ -117,11 +117,11 @@ If this happens, drop all objects and try again or apply permissions to everythi
 Scala code can be fairly complex, and a good IDE helps you understand the code and what methods are available for certain
 types, especially as you are learning the language. IntelliJ IDEA has some of the most mature support for Scala of any
 IDE today. It has advanced type introspection (examine the properties of an object at runtime) and excellent code
-completion (examine the code as you are writing it). 
+completion (examine the code as you are writing it).
 Download the [community edition of IDEA](https://www.jetbrains.com/idea/download/) directly from IntelliJ's website
 then get the [required Scala plugin for IDEA](https://www.jetbrains.com/help/idea/managing-plugins.html).
 
-You will need to import the project into the IDE.  Older versions of IDEA (2016.3.4, etc.) have an 
+You will need to import the project into the IDE.  Older versions of IDEA (2016.3.4, etc.) have an
 [import procedure](https://www.lagomframework.com/documentation/1.6.x/scala/IntellijSbt.html)
 where it is necessary to instruct the IDE what kind of project is being imported.  Modern IDEA (2022.1.3) still
 utilizes this procedure but can also open the repo as a project and contextually determine what
@@ -206,7 +206,7 @@ some helper scripts. Run the correct file for your platform (.BAT for Windows an
 1. If dependency resolution results in certificate issues or generates a `/null/` directory into which some library
 files are placed, the Java versioning is incorrectly applied.  Your system's Java, via `JAVA_HOME` environment variable,
 must be advanced enough to operate the toolset and only the project itself requires JDK 8.  Check that project settings
-import and utilize Java 1.8_251.  Perform normal generated file cleanup, e.g., sbt's `clean`. 
+import and utilize Java 1.8_251.  Perform normal generated file cleanup, e.g., sbt's `clean`.
 Any extraneous folders may also be deleted without issue.
 2. If the server repeatedly complains that "authentication method 10 not supported" during startup, your PostgreSQL
 database does not support [scram-sha-256](https://www.postgresql.org/docs/current/auth-password.html) authentication.

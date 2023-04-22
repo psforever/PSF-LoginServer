@@ -2,7 +2,7 @@
 package net.psforever.types
 
 import enumeratum.values.{IntEnum, IntEnumEntry}
-import net.psforever.types.StatisticalElement.{AMS, ANT, AgileExoSuit, ApcNc, ApcTr, ApcVs, Aphelion, AphelionFlight, AphelionGunner, Battlewagon, Colossus, ColossusFlight, ColossusGunner, Droppod, Dropship, Flail, Fury, GalaxyGunship, ImplantTerminalMech, InfiltrationExoSuit, Liberator, Lightgunship, Lightning, Lodestar, Magrider, MechanizedAssaultExoSuit, MediumTransport, Mosquito, Peregrine, PeregrineFlight, PeregrineGunner, PhalanxTurret, Phantasm, PortableMannedTurretNc, PortableMannedTurretTr, PortableMannedTurretVs, Prowler, QuadAssault, QuadStealth, Raider, ReinforcedExoSuit, Router, Skyguard, SpitfireAA, SpitfireCloaked, SpitfireTurret, StandardExoSuit, Sunderer, Switchblade, TankTraps, ThreeManHeavyBuggy, Thunderer, TwoManAssaultBuggy, TwoManHeavyBuggy, TwoManHoverBuggy, VanSentryTurret, Vanguard, Vulture, Wasp}
+import net.psforever.types.StatisticalElement.{AMS, ANT, AgileExoSuit, ApcNc, ApcTr, ApcVs, Aphelion, AphelionFlight, AphelionGunner, Battlewagon, Colossus, ColossusFlight, ColossusGunner, Dropship, Flail, Fury, GalaxyGunship, InfiltrationExoSuit, Liberator, Lightgunship, Lightning, Lodestar, Magrider, MechanizedAssaultExoSuit, MediumTransport, Mosquito, Peregrine, PeregrineFlight, PeregrineGunner, PhalanxTurret, PortableMannedTurretNc, PortableMannedTurretTr, PortableMannedTurretVs, Prowler, QuadAssault, QuadStealth, Raider, ReinforcedExoSuit, Router, Skyguard, StandardExoSuit, Sunderer, Switchblade, ThreeManHeavyBuggy, Thunderer, TwoManAssaultBuggy, TwoManHeavyBuggy, TwoManHoverBuggy, VanSentryTurret, Vanguard, Vulture, Wasp}
 
 sealed abstract class StatisticalCategory(val value: Int) extends IntEnumEntry
 

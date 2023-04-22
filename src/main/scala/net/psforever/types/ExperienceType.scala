@@ -11,9 +11,9 @@ sealed abstract class ExperienceType(val value: Int) extends IntEnumEntry
 object ExperienceType extends IntEnum[ExperienceType] {
   val values: IndexedSeq[ExperienceType] = findValues
 
-  case object Normal extends ExperienceType(value = 0)
-  case object Support extends ExperienceType(value = 2)
+  case object Normal     extends ExperienceType(value = 0)
+  case object Support    extends ExperienceType(value = 2)
   case object RabbitBall extends ExperienceType(value = 4)
 
-  implicit val codec: Codec[ExperienceType] = PacketHelpers.createIntEnumCodec(enum = this, uint(bits = 3))
+  implicit val codec: Codec[ExperienceType] = PacketHelpers.createIntEnumCodec(e = this, uint(bits = 3))
 }

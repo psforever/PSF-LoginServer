@@ -54,4 +54,3 @@ class FrameVehicleStateMessageTest extends Specification {
     pkt mustEqual string
   }
 }
-

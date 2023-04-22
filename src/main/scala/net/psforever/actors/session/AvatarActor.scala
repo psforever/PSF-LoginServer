@@ -257,26 +257,26 @@ object AvatarActor {
   }
 
   /**
-   * Transform from encoded inventory data as a CLOB - character large object - into individual items.
-   * Install those items into positions in a target container
-   * in the same positions in which they were previously recorded.<br>
-   * <br>
-   * There is no guarantee that the structure of the retained container data encoded in the CLOB
-   * will fit the current dimensions of the container.
-   * No tests are performed.
-   * A partial decompression of the CLOB may occur.
-   * @param container the container in which to place the pieces of equipment produced from the CLOB
-   * @param clob the inventory data in string form
-   * @param log a reference to a logging context
-   * @param restoreAmmo by default, when `false`, use the maximum ammunition for all ammunition boixes and for all tools;
-   *                    if `true`, load the last saved ammunition count for all ammunition boxes and for all tools
-   */
+    * Transform from encoded inventory data as a CLOB - character large object - into individual items.
+    * Install those items into positions in a target container
+    * in the same positions in which they were previously recorded.<br>
+    * <br>
+    * There is no guarantee that the structure of the retained container data encoded in the CLOB
+    * will fit the current dimensions of the container.
+    * No tests are performed.
+    * A partial decompression of the CLOB may occur.
+    * @param container the container in which to place the pieces of equipment produced from the CLOB
+    * @param clob the inventory data in string form
+    * @param log a reference to a logging context
+    * @param restoreAmmo by default, when `false`, use the maximum ammunition for all ammunition boixes and for all tools;
+    *                    if `true`, load the last saved ammunition count for all ammunition boxes and for all tools
+    */
   def buildContainedEquipmentFromClob(
-                                       container: Container,
-                                       clob: String,
-                                       log: org.log4s.Logger,
-                                       restoreAmmo: Boolean = false
-                                     ): Unit = {
+      container: Container,
+      clob: String,
+      log: org.log4s.Logger,
+      restoreAmmo: Boolean = false
+  ): Unit = {
     clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
       val (objectType, objectIndex, objectId, ammoData) = value.split(",") match {
         case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
@@ -293,12 +293,12 @@ object AvatarActor {
           ammoData foreach { toolAmmo =>
             toolAmmo.split("_").drop(1).foreach { value =>
               val (ammoSlots, ammoTypeIndex, ammoBoxDefinition, ammoCount) = value.split("-") match {
-                case Array(a: String, b: String, c: String) => (a.toInt, b.toInt, c.toInt, None)
-                case Array(a: String, b: String, c: String, d:String) => (a.toInt, b.toInt, c.toInt, Some(d.toInt))
+                case Array(a: String, b: String, c: String)            => (a.toInt, b.toInt, c.toInt, None)
+                case Array(a: String, b: String, c: String, d: String) => (a.toInt, b.toInt, c.toInt, Some(d.toInt))
               }
               val fireMode = tool.AmmoSlots(ammoSlots)
               fireMode.AmmoTypeIndex = ammoTypeIndex
-              fireMode.Box = AmmoBox(AmmoBoxDefinition(ammoBoxDefinition))
+              fireMode.Box = AmmoBox(DefinitionUtil.idToDefinition(ammoBoxDefinition).asInstanceOf[AmmoBoxDefinition])
               ammoCount.collect {
                 case count if restoreAmmo => fireMode.Magazine = count
               }
@@ -340,11 +340,11 @@ object AvatarActor {
     * @return the resulting text data that represents object to time mappings
     */
   def buildCooldownsFromClob(
-                              clob: String,
-                              cooldownDurations: Map[BasicDefinition,FiniteDuration],
-                              log: org.log4s.Logger
-                            ): Map[String, LocalDateTime] = {
-    val now = LocalDateTime.now()
+      clob: String,
+      cooldownDurations: Map[BasicDefinition, FiniteDuration],
+      log: org.log4s.Logger
+  ): Map[String, LocalDateTime] = {
+    val now                                           = LocalDateTime.now()
     val cooldowns: mutable.Map[String, LocalDateTime] = mutable.Map()
     clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
       value.split(",") match {
@@ -385,7 +385,7 @@ object AvatarActor {
     val factionName: String = faction.toString.toLowerCase
     val name = item match {
       case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.nchev_scattercannon |
-           GlobalDefinitions.vshev_quasar =>
+          GlobalDefinitions.vshev_quasar =>
         s"${factionName}hev_antipersonnel"
       case GlobalDefinitions.trhev_pounder | GlobalDefinitions.nchev_falcon | GlobalDefinitions.vshev_comet =>
         s"${factionName}hev_antivehicular"
@@ -402,12 +402,12 @@ object AvatarActor {
     if (name.matches("(tr|nc|vs)hev_.+") && Config.app.game.sharedMaxCooldown) {
       val faction = name.take(2)
       (if (faction.equals("nc")) {
-        Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
-      } else if (faction.equals("vs")) {
-        Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
-      } else {
-        Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
-      }).zip(
+         Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
+       } else if (faction.equals("vs")) {
+         Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
+       } else {
+         Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
+       }).zip(
         Seq(s"${faction}hev_antipersonnel", s"${faction}hev_antivehicular", s"${faction}hev_antiaircraft")
       )
     } else {
@@ -461,7 +461,6 @@ object AvatarActor {
     }
   }
 
-
   def displayLookingForSquad(session: Session, state: Int): Unit = {
     val player = session.player
     session.zone.AvatarEvents ! AvatarServiceMessage(
@@ -477,7 +476,10 @@ object AvatarActor {
     * @param func functionality that is called upon discovery of the character
     * @return if found, the discovered avatar, the avatar's account id, and the avatar's faction affiliation
     */
-  def getLiveAvatarForFunc(name: String, func: (Long,String,Int)=>Unit): Option[(Avatar, Long, PlanetSideEmpire.Value)] = {
+  def getLiveAvatarForFunc(
+      name: String,
+      func: (Long, String, Int) => Unit
+  ): Option[(Avatar, Long, PlanetSideEmpire.Value)] = {
     if (name.nonEmpty) {
       LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(name) }).headOption match {
         case Some(otherAvatar) =>
@@ -500,7 +502,10 @@ object AvatarActor {
     *         otherwise, always returns `None` as if no avatar was discovered
     *         (the query is probably still in progress)
     */
-  def getAvatarForFunc(name: String, func: (Long,String,Int)=>Unit): Option[(Avatar, Long, PlanetSideEmpire.Value)] = {
+  def getAvatarForFunc(
+      name: String,
+      func: (Long, String, Int) => Unit
+  ): Option[(Avatar, Long, PlanetSideEmpire.Value)] = {
     getLiveAvatarForFunc(name, func).orElse {
       if (name.nonEmpty) {
         import ctx._
@@ -527,7 +532,7 @@ object AvatarActor {
     * @param name unique character name
     * @param faction the faction affiliation
     */
-  def formatForOtherFunc(func: (Long,String)=>Unit)(charId: Long, name: String, faction: Int): Unit = {
+  def formatForOtherFunc(func: (Long, String) => Unit)(charId: Long, name: String, faction: Int): Unit = {
     func(charId, name)
   }
 
@@ -540,9 +545,11 @@ object AvatarActor {
     */
   def onlineIfNotIgnored(onlinePlayerName: String, observerName: String): Boolean = {
     val onlinePlayerNameLower = onlinePlayerName.toLowerCase()
-    LivePlayerList.WorldPopulation({ case (_, a) => a.name.toLowerCase().equals(onlinePlayerNameLower) }).headOption match {
+    LivePlayerList
+      .WorldPopulation({ case (_, a) => a.name.toLowerCase().equals(onlinePlayerNameLower) })
+      .headOption match {
       case Some(onlinePlayer) => onlineIfNotIgnored(onlinePlayer, observerName)
-      case _ => false
+      case _                  => false
     }
   }
 
@@ -556,9 +563,9 @@ object AvatarActor {
     */
   def onlineIfNotIgnoredEitherWay(observer: Avatar, onlinePlayerName: String): Boolean = {
     LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(onlinePlayerName) }) match {
-      case Nil => false //weird case, but ...
+      case Nil                 => false //weird case, but ...
       case onlinePlayer :: Nil => onlineIfNotIgnoredEitherWay(onlinePlayer, observer)
-      case _ => throw new Exception("only trying to find two players, but too many matching search results!")
+      case _                   => throw new Exception("only trying to find two players, but too many matching search results!")
     }
   }
 
@@ -598,24 +605,25 @@ object AvatarActor {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global
     val out: Promise[persistence.Savedplayer] = Promise()
-    val queryResult = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
+    val queryResult                           = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
     queryResult.onComplete {
       case Success(data) if data.nonEmpty =>
         out.completeWith(Future(data.head))
       case _ =>
-        ctx.run(query[persistence.Savedplayer]
-          .insert(
-            _.avatarId -> lift(avatarId),
-            _.px -> lift(0),
-            _.py -> lift(0),
-            _.pz -> lift(0),
-            _.orientation -> lift(0),
-            _.zoneNum -> lift(0),
-            _.health -> lift(0),
-            _.armor -> lift(0),
-            _.exosuitNum -> lift(0),
-            _.loadout -> lift("")
-          )
+        ctx.run(
+          query[persistence.Savedplayer]
+            .insert(
+              _.avatarId    -> lift(avatarId),
+              _.px          -> lift(0),
+              _.py          -> lift(0),
+              _.pz          -> lift(0),
+              _.orientation -> lift(0),
+              _.zoneNum     -> lift(0),
+              _.health      -> lift(0),
+              _.armor       -> lift(0),
+              _.exosuitNum  -> lift(0),
+              _.loadout     -> lift("")
+            )
         )
         out.completeWith(Future(persistence.Savedplayer(avatarId, 0, 0, 0, 0, 0, 0, 0, 0, "")))
     }
@@ -684,24 +692,25 @@ object AvatarActor {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global
     val out: Promise[Int] = Promise()
-    val avatarId = player.avatar.id
-    val position = player.Position
-    val queryResult = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
+    val avatarId          = player.avatar.id
+    val position          = player.Position
+    val queryResult       = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
     queryResult.onComplete {
       case Success(results) if results.nonEmpty =>
-        ctx.run(query[persistence.Savedplayer]
-          .filter { _.avatarId == lift(avatarId) }
-          .update(
-            _.px -> lift((position.x * 1000).toInt),
-            _.py -> lift((position.y * 1000).toInt),
-            _.pz -> lift((position.z * 1000).toInt),
-            _.orientation -> lift((player.Orientation.z * 1000).toInt),
-            _.zoneNum -> lift(player.Zone.Number),
-            _.health -> lift(health),
-            _.armor -> lift(player.Armor),
-            _.exosuitNum -> lift(player.ExoSuit.id),
-            _.loadout -> lift(buildClobFromPlayerLoadout(player))
-          )
+        ctx.run(
+          query[persistence.Savedplayer]
+            .filter { _.avatarId == lift(avatarId) }
+            .update(
+              _.px          -> lift((position.x * 1000).toInt),
+              _.py          -> lift((position.y * 1000).toInt),
+              _.pz          -> lift((position.z * 1000).toInt),
+              _.orientation -> lift((player.Orientation.z * 1000).toInt),
+              _.zoneNum     -> lift(player.Zone.Number),
+              _.health      -> lift(health),
+              _.armor       -> lift(player.Armor),
+              _.exosuitNum  -> lift(player.ExoSuit.id),
+              _.loadout     -> lift(buildClobFromPlayerLoadout(player))
+            )
         )
         out.completeWith(Future(1))
       case _ =>
@@ -722,20 +731,21 @@ object AvatarActor {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global
     val out: Promise[Int] = Promise()
-    val avatarId = player.avatar.id
-    val position = player.Position
-    val queryResult = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
+    val avatarId          = player.avatar.id
+    val position          = player.Position
+    val queryResult       = ctx.run(query[persistence.Savedplayer].filter { _.avatarId == lift(avatarId) })
     queryResult.onComplete {
       case Success(results) if results.nonEmpty =>
-        ctx.run(query[persistence.Savedplayer]
-          .filter { _.avatarId == lift(avatarId) }
-          .update(
-            _.px -> lift((position.x * 1000).toInt),
-            _.py -> lift((position.y * 1000).toInt),
-            _.pz -> lift((position.z * 1000).toInt),
-            _.orientation -> lift((player.Orientation.z * 1000).toInt),
-            _.zoneNum -> lift(player.Zone.Number)
-          )
+        ctx.run(
+          query[persistence.Savedplayer]
+            .filter { _.avatarId == lift(avatarId) }
+            .update(
+              _.px          -> lift((position.x * 1000).toInt),
+              _.py          -> lift((position.y * 1000).toInt),
+              _.pz          -> lift((position.z * 1000).toInt),
+              _.orientation -> lift((player.Orientation.z * 1000).toInt),
+              _.zoneNum     -> lift(player.Zone.Number)
+            )
         )
         out.completeWith(Future(1))
       case _ =>
@@ -757,19 +767,20 @@ object AvatarActor {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global
     val out: Promise[persistence.Savedavatar] = Promise()
-    val queryResult = ctx.run(query[persistence.Savedavatar].filter { _.avatarId == lift(avatarId) })
+    val queryResult                           = ctx.run(query[persistence.Savedavatar].filter { _.avatarId == lift(avatarId) })
     queryResult.onComplete {
       case Success(data) if data.nonEmpty =>
         out.completeWith(Future(data.head))
       case _ =>
         val now = LocalDateTime.now()
-        ctx.run(query[persistence.Savedavatar]
-          .insert(
-            _.avatarId -> lift(avatarId),
-            _.forgetCooldown -> lift(now),
-            _.purchaseCooldowns -> lift(""),
-            _.useCooldowns -> lift("")
-          )
+        ctx.run(
+          query[persistence.Savedavatar]
+            .insert(
+              _.avatarId          -> lift(avatarId),
+              _.forgetCooldown    -> lift(now),
+              _.purchaseCooldowns -> lift(""),
+              _.useCooldowns      -> lift("")
+            )
         )
         out.completeWith(Future(persistence.Savedavatar(avatarId, now, "", "")))
     }
@@ -788,16 +799,17 @@ object AvatarActor {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global
     val out: Promise[Int] = Promise()
-    val avatarId = avatar.id
-    val queryResult = ctx.run(query[persistence.Savedavatar].filter { _.avatarId == lift(avatarId) })
+    val avatarId          = avatar.id
+    val queryResult       = ctx.run(query[persistence.Savedavatar].filter { _.avatarId == lift(avatarId) })
     queryResult.onComplete {
       case Success(results) if results.nonEmpty =>
-        ctx.run(query[persistence.Savedavatar]
-          .filter { _.avatarId == lift(avatarId) }
-          .update(
-            _.purchaseCooldowns -> lift(buildClobfromCooldowns(avatar.cooldowns.purchase)),
-            _.useCooldowns -> lift(buildClobfromCooldowns(avatar.cooldowns.use))
-          )
+        ctx.run(
+          query[persistence.Savedavatar]
+            .filter { _.avatarId == lift(avatarId) }
+            .update(
+              _.purchaseCooldowns -> lift(buildClobfromCooldowns(avatar.cooldowns.purchase)),
+              _.useCooldowns      -> lift(buildClobfromCooldowns(avatar.cooldowns.use))
+            )
         )
         out.completeWith(Future(1))
       case _ =>
@@ -959,12 +971,13 @@ class AvatarActor(
               deleted.headOption match {
                 case Some(a) if !a.deleted =>
                   val flagDeletion = for {
-                    _ <- ctx.run(query[persistence.Avatar]
-                      .filter(_.id == lift(id))
-                      .update(
-                        _.deleted -> lift(true),
-                        _.lastModified -> lift(LocalDateTime.now())
-                      )
+                    _ <- ctx.run(
+                      query[persistence.Avatar]
+                        .filter(_.id == lift(id))
+                        .update(
+                          _.deleted      -> lift(true),
+                          _.lastModified -> lift(LocalDateTime.now())
+                        )
                     )
                   } yield ()
                   flagDeletion.onComplete {
@@ -1008,11 +1021,12 @@ class AvatarActor(
         case LoginAvatar(replyTo) =>
           import ctx._
           val avatarId = avatar.id
-          ctx.run(
-            query[persistence.Avatar]
-              .filter(_.id == lift(avatarId))
-              .map { c => (c.created, c.lastLogin) }
-          )
+          ctx
+            .run(
+              query[persistence.Avatar]
+                .filter(_.id == lift(avatarId))
+                .map { c => (c.created, c.lastLogin) }
+            )
             .onComplete {
               case Success(value) if value.nonEmpty =>
                 val (created, lastLogin) = value.head
@@ -1031,12 +1045,12 @@ class AvatarActor(
                           persistence.Certification(Certification.ATV.value, avatarId),
                           persistence.Certification(Certification.Harasser.value, avatarId)
                         )
-                      ).foreach(c => query[persistence.Certification].insert(c))
+                      ).foreach(c => query[persistence.Certification].insertValue(c))
                     )
                     _ <- ctx.run(
                       liftQuery(
                         List(persistence.Shortcut(avatarId, 0, 0, "medkit"))
-                      ).foreach(c => query[persistence.Shortcut].insert(c))
+                      ).foreach(c => query[persistence.Shortcut].insertValue(c))
                     )
                   } yield true
                   inits.onComplete {
@@ -1109,13 +1123,14 @@ class AvatarActor(
             val replace = certification.replaces.intersect(avatar.certifications)
             Future
               .sequence(replace.map(cert => {
-                ctx.run(
-                  query[persistence.Certification]
-                    .filter(_.avatarId == lift(avatar.id))
-                    .filter(_.id == lift(cert.value))
-                    .delete
-                )
-                .map(_ => cert)
+                ctx
+                  .run(
+                    query[persistence.Certification]
+                      .filter(_.avatarId == lift(avatar.id))
+                      .filter(_.id == lift(cert.value))
+                      .delete
+                  )
+                  .map(_ => cert)
               }))
               .onComplete {
                 case Failure(exception) =>
@@ -1129,10 +1144,11 @@ class AvatarActor(
                       PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
                     )
                   }
-                  ctx.run(
-                    query[persistence.Certification]
-                      .insert(_.id -> lift(certification.value), _.avatarId -> lift(avatar.id))
-                  )
+                  ctx
+                    .run(
+                      query[persistence.Certification]
+                        .insert(_.id -> lift(certification.value), _.avatarId -> lift(avatar.id))
+                    )
                     .onComplete {
                       case Failure(exception) =>
                         log.error(exception)("db failure")
@@ -1180,13 +1196,14 @@ class AvatarActor(
                 avatar.certifications
                   .intersect(requiredByCert)
                   .map(cert => {
-                    ctx.run(
-                      query[persistence.Certification]
-                        .filter(_.avatarId == lift(avatar.id))
-                        .filter(_.id == lift(cert.value))
-                        .delete
-                    )
-                    .map(_ => cert)
+                    ctx
+                      .run(
+                        query[persistence.Certification]
+                          .filter(_.avatarId == lift(avatar.id))
+                          .filter(_.id == lift(cert.value))
+                          .delete
+                      )
+                      .map(_ => cert)
                   })
               )
               .onComplete {
@@ -1329,25 +1346,26 @@ class AvatarActor(
           index match {
             case Some(_index) =>
               import ctx._
-              ctx.run(
-                query[persistence.Implant]
-                  .filter(_.name == lift(definition.Name))
-                  .filter(_.avatarId == lift(avatar.id))
-                  .delete
-              )
-              .onComplete {
-                case Success(_) =>
-                  replaceAvatar(avatar.copy(implants = avatar.implants.updated(_index, None)))
-                  sessionActor ! SessionActor.SendResponse(
-                    AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, _index, 0)
-                  )
-                  sessionActor ! SessionActor.SendResponse(
-                    ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
-                  )
-                  context.self ! ResetImplants()
-                  sessionActor ! SessionActor.CharSaved
-                case Failure(exception) => log.error(exception)("db failure")
-              }
+              ctx
+                .run(
+                  query[persistence.Implant]
+                    .filter(_.name == lift(definition.Name))
+                    .filter(_.avatarId == lift(avatar.id))
+                    .delete
+                )
+                .onComplete {
+                  case Success(_) =>
+                    replaceAvatar(avatar.copy(implants = avatar.implants.updated(_index, None)))
+                    sessionActor ! SessionActor.SendResponse(
+                      AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, _index, 0)
+                    )
+                    sessionActor ! SessionActor.SendResponse(
+                      ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
+                    )
+                    context.self ! ResetImplants()
+                    sessionActor ! SessionActor.CharSaved
+                  case Failure(exception) => log.error(exception)("db failure")
+                }
 
             case None =>
               log.warn("attempted to sell implant but could not find slot")
@@ -1462,23 +1480,25 @@ class AvatarActor(
 
         case UpdatePurchaseTime(definition, time) =>
           var newTimes = avatar.cooldowns.purchase
-          AvatarActor.resolveSharedPurchaseTimeNames(AvatarActor.resolvePurchaseTimeName(avatar.faction, definition)).foreach {
-            case (item, name) =>
-              Avatar.purchaseCooldowns.get(item) match {
-                case Some(cooldown) =>
-                  //only send for items with cooldowns
-                  newTimes = newTimes.updated(name, time)
-                  updatePurchaseTimer(
-                    name,
-                    cooldown.toSeconds,
-                    item match {
-                      case _: KitDefinition => false
-                      case _ => true
-                    }
-                  )
-                case _ => ;
-              }
-          }
+          AvatarActor
+            .resolveSharedPurchaseTimeNames(AvatarActor.resolvePurchaseTimeName(avatar.faction, definition))
+            .foreach {
+              case (item, name) =>
+                Avatar.purchaseCooldowns.get(item) match {
+                  case Some(cooldown) =>
+                    //only send for items with cooldowns
+                    newTimes = newTimes.updated(name, time)
+                    updatePurchaseTimer(
+                      name,
+                      cooldown.toSeconds,
+                      item match {
+                        case _: KitDefinition => false
+                        case _                => true
+                      }
+                    )
+                  case _ => ;
+                }
+            }
           avatarCopy(avatar.copy(cooldowns = avatar.cooldowns.copy(purchase = newTimes)))
           Behaviors.same
 
@@ -1675,14 +1695,16 @@ class AvatarActor(
           Behaviors.same
 
         case SetRibbon(ribbon, bar) =>
-          val decor = avatar.decoration
+          val decor              = avatar.decoration
           val previousRibbonBars = decor.ribbonBars
           val useRibbonBars = Seq(previousRibbonBars.upper, previousRibbonBars.middle, previousRibbonBars.lower)
             .indexWhere { _ == ribbon } match {
             case -1 => previousRibbonBars
             case n  => AvatarActor.changeRibbons(previousRibbonBars, MeritCommendation.None, RibbonBarSlot(n))
           }
-          replaceAvatar(avatar.copy(decoration = decor.copy(ribbonBars = AvatarActor.changeRibbons(useRibbonBars, ribbon, bar))))
+          replaceAvatar(
+            avatar.copy(decoration = decor.copy(ribbonBars = AvatarActor.changeRibbons(useRibbonBars, ribbon, bar)))
+          )
           val player = session.get.player
           val zone   = player.Zone
           zone.AvatarEvents ! AvatarServiceMessage(
@@ -1706,9 +1728,11 @@ class AvatarActor(
               case _                            => false
             })
             if (isDifferentShortcut) {
-              if (!isMacroShortcut && avatar.shortcuts.flatten.exists {
-                a => AvatarShortcut.equals(shortcut, a)
-              }) {
+              if (
+                !isMacroShortcut && avatar.shortcuts.flatten.exists { a =>
+                  AvatarShortcut.equals(shortcut, a)
+                }
+              ) {
                 //duplicate implant or medkit found
                 if (shortcut.isInstanceOf[Shortcut.Implant]) {
                   //duplicate implant
@@ -1716,11 +1740,17 @@ class AvatarActor(
                     case Some(existingShortcut: AvatarShortcut) =>
                       //redraw redundant shortcut slot with existing shortcut
                       sessionActor ! SessionActor.SendResponse(
-                        CreateShortcutMessage(session.get.player.GUID, slot + 1, Some(AvatarShortcut.convert(existingShortcut)))
+                        CreateShortcutMessage(
+                          session.get.player.GUID,
+                          slot + 1,
+                          Some(AvatarShortcut.convert(existingShortcut))
+                        )
                       )
                     case _ =>
                       //blank shortcut slot
-                      sessionActor ! SessionActor.SendResponse(CreateShortcutMessage(session.get.player.GUID, slot + 1, None))
+                      sessionActor ! SessionActor.SendResponse(
+                        CreateShortcutMessage(session.get.player.GUID, slot + 1, None)
+                      )
                   }
                 }
               } else {
@@ -1743,7 +1773,7 @@ class AvatarActor(
                         .filter(_.slot == lift(slot))
                         .update(
                           _.purpose -> lift(shortcut.code),
-                          _.tile -> lift(shortcut.tile),
+                          _.tile    -> lift(shortcut.tile),
                           _.effect1 -> Option(lift(optEffect1)),
                           _.effect2 -> Option(lift(optEffect2))
                         )
@@ -1752,11 +1782,11 @@ class AvatarActor(
                     ctx.run(
                       query[persistence.Shortcut].insert(
                         _.avatarId -> lift(avatar.id.toLong),
-                        _.slot -> lift(slot),
-                        _.purpose -> lift(shortcut.code),
-                        _.tile -> lift(shortcut.tile),
-                        _.effect1 -> Option(lift(optEffect1)),
-                        _.effect2 -> Option(lift(optEffect2))
+                        _.slot     -> lift(slot),
+                        _.purpose  -> lift(shortcut.code),
+                        _.tile     -> lift(shortcut.tile),
+                        _.effect1  -> Option(lift(optEffect1)),
+                        _.effect2  -> Option(lift(optEffect2))
                       )
                     )
                 }
@@ -1771,10 +1801,11 @@ class AvatarActor(
           avatar.shortcuts.lift(slot).flatten match {
             case None => ;
             case Some(_) =>
-              ctx.run(query[persistence.Shortcut]
-                .filter(_.avatarId == lift(avatar.id.toLong))
-                .filter(_.slot == lift(slot))
-                .delete
+              ctx.run(
+                query[persistence.Shortcut]
+                  .filter(_.avatarId == lift(avatar.id.toLong))
+                  .filter(_.slot == lift(slot))
+                  .delete
               )
               avatar.shortcuts.update(slot, None)
           }
@@ -1803,12 +1834,16 @@ class AvatarActor(
 
     val result = for {
       //log this login
-      _ <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId))
-        .update(_.lastLogin -> lift(LocalDateTime.now()))
+      _ <- ctx.run(
+        query[persistence.Avatar]
+          .filter(_.id == lift(avatarId))
+          .update(_.lastLogin -> lift(LocalDateTime.now()))
       )
       //log this choice of faction (no empire switching)
-      _ <- ctx.run(query[persistence.Account].filter(_.id == lift(accountId))
-        .update(_.lastFactionId -> lift(avatar.faction.id))
+      _ <- ctx.run(
+        query[persistence.Account]
+          .filter(_.id == lift(accountId))
+          .update(_.lastFactionId -> lift(avatar.faction.id))
       )
       //retrieve avatar data
       loadouts  <- initializeAllLoadouts()
@@ -1887,11 +1922,12 @@ class AvatarActor(
     val p = Promise[Unit]()
 
     import ctx._
-    ctx.run(
-      query[persistence.Avatar]
-        .filter(_.id == lift(avatar.id))
-        .update(_.cosmetics -> lift(Some(Cosmetic.valuesToObjectCreateValue(cosmetics)): Option[Int]))
-    )
+    ctx
+      .run(
+        query[persistence.Avatar]
+          .filter(_.id == lift(avatar.id))
+          .update(_.cosmetics -> lift(Some(Cosmetic.valuesToObjectCreateValue(cosmetics)): Option[Int]))
+      )
       .onComplete {
         case Success(_) =>
           val zone = session.get.zone
@@ -2177,6 +2213,7 @@ class AvatarActor(
               secondsSinceLastLogin
             )
           )
+
           /** After the user has selected a character to load from the "character select screen,"
             * the temporary global unique identifiers used for that screen are stripped from the underlying `Player` object that was selected.
             * Characters that were not selected may  be destroyed along with their temporary GUIDs.
@@ -2471,42 +2508,45 @@ class AvatarActor(
     val locker = Avatar.makeLocker()
     saveLockerFunc = storeLocker
     val out = Promise[LockerContainer]()
-    ctx.run(query[persistence.Locker].filter(_.avatarId == lift(charId)))
+    ctx
+      .run(query[persistence.Locker].filter(_.avatarId == lift(charId)))
       .onComplete {
-      case Success(entry) if entry.nonEmpty =>
-        AvatarActor.buildContainedEquipmentFromClob(locker, entry.head.items, log, restoreAmmo = true)
-        out.completeWith(Future(locker))
-      case Success(_) =>
-        //no locker, or maybe default empty locker?
-        ctx.run(query[persistence.Locker].insert(_.avatarId -> lift(avatar.id), _.items -> lift("")))
-          .onComplete {
-            _ => out.completeWith(Future(locker))
-          }
-      case Failure(e) =>
-        saveLockerFunc = doNotStoreLocker
-        log.error(e)("db failure")
-        out.tryFailure(e)
-    }
+        case Success(entry) if entry.nonEmpty =>
+          AvatarActor.buildContainedEquipmentFromClob(locker, entry.head.items, log, restoreAmmo = true)
+          out.completeWith(Future(locker))
+        case Success(_) =>
+          //no locker, or maybe default empty locker?
+          ctx
+            .run(query[persistence.Locker].insert(_.avatarId -> lift(avatar.id), _.items -> lift("")))
+            .onComplete { _ =>
+              out.completeWith(Future(locker))
+            }
+        case Failure(e) =>
+          saveLockerFunc = doNotStoreLocker
+          log.error(e)("db failure")
+          out.tryFailure(e)
+      }
     out.future
   }
-
-
 
   def loadFriendList(avatarId: Long): Future[List[AvatarFriend]] = {
     import ctx._
     val out: Promise[List[AvatarFriend]] = Promise()
 
     val queryResult = ctx.run(
-      query[persistence.Friend].filter { _.avatarId == lift(avatarId) }
+      query[persistence.Friend]
+        .filter { _.avatarId == lift(avatarId) }
         .join(query[persistence.Avatar])
         .on { case (friend, avatar) => friend.charId == avatar.id }
         .map { case (_, avatar) => (avatar.id, avatar.name, avatar.factionId) }
     )
     queryResult.onComplete {
       case Success(list) =>
-        out.completeWith(Future(
-          list.map { case (id, name, faction) => AvatarFriend(id, name, PlanetSideEmpire(faction)) }.toList
-        ))
+        out.completeWith(
+          Future(
+            list.map { case (id, name, faction) => AvatarFriend(id, name, PlanetSideEmpire(faction)) }.toList
+          )
+        )
       case _ =>
         out.completeWith(Future(List.empty[AvatarFriend]))
     }
@@ -2518,16 +2558,19 @@ class AvatarActor(
     val out: Promise[List[AvatarIgnored]] = Promise()
 
     val queryResult = ctx.run(
-      query[persistence.Ignored].filter { _.avatarId == lift(avatarId) }
+      query[persistence.Ignored]
+        .filter { _.avatarId == lift(avatarId) }
         .join(query[persistence.Avatar])
         .on { case (friend, avatar) => friend.charId == avatar.id }
         .map { case (_, avatar) => (avatar.id, avatar.name) }
     )
     queryResult.onComplete {
       case Success(list) =>
-        out.completeWith(Future(
-          list.map { case (id, name) => AvatarIgnored(id, name) }.toList
-        ))
+        out.completeWith(
+          Future(
+            list.map { case (id, name) => AvatarIgnored(id, name) }.toList
+          )
+        )
       case _ =>
         out.completeWith(Future(List.empty[AvatarIgnored]))
     }
@@ -2539,14 +2582,16 @@ class AvatarActor(
     val out: Promise[Array[Option[AvatarShortcut]]] = Promise()
 
     val queryResult = ctx.run(
-      query[persistence.Shortcut].filter { _.avatarId == lift(avatarId) }
+      query[persistence.Shortcut]
+        .filter { _.avatarId == lift(avatarId) }
         .map { shortcut => (shortcut.slot, shortcut.purpose, shortcut.tile, shortcut.effect1, shortcut.effect2) }
     )
     val output = Array.fill[Option[AvatarShortcut]](64)(None)
     queryResult.onComplete {
       case Success(list) =>
-        list.foreach { case (slot, purpose, tile, effect1, effect2) =>
-          output.update(slot, Some(AvatarShortcut(purpose, tile, effect1.getOrElse(""), effect2.getOrElse(""))))
+        list.foreach {
+          case (slot, purpose, tile, effect1, effect2) =>
+            output.update(slot, Some(AvatarShortcut(purpose, tile, effect1.getOrElse(""), effect2.getOrElse(""))))
         }
         out.completeWith(Future(output))
       case Failure(e) =>
@@ -2597,7 +2642,7 @@ class AvatarActor(
                 cooldown.toSeconds - secondsSincePurchase,
                 obj match {
                   case _: KitDefinition => false
-                  case _ => true
+                  case _                => true
                 }
               )
 
@@ -2648,7 +2693,7 @@ class AvatarActor(
         case MemberAction.RemoveFriend         => getAvatarForFunc(name, formatForOtherFunc(memberActionRemoveFriend))
         case MemberAction.AddIgnoredPlayer     => getAvatarForFunc(name, memberActionAddIgnored)
         case MemberAction.RemoveIgnoredPlayer  => getAvatarForFunc(name, formatForOtherFunc(memberActionRemoveIgnored))
-        case _ => ;
+        case _                                 => ;
       }
     }
   }
@@ -2658,15 +2703,17 @@ class AvatarActor(
     * @return a list of `Friends` suitable for putting into a packet
     */
   def transformFriendsList(): List[GameFriend] = {
-    avatar.people.friend.map { f => GameFriend(f.name, f.online)}
+    avatar.people.friend.map { f => GameFriend(f.name, f.online) }
   }
+
   /**
     * Transform the ignored players list in a list of packet entities.
     * @return a list of `Friends` suitable for putting into a packet
     */
   def transformIgnoredList(): List[GameFriend] = {
-    avatar.people.ignored.map { f => GameFriend(f.name, f.online)}
+    avatar.people.ignored.map { f => GameFriend(f.name, f.online) }
   }
+
   /**
     * Reload the list of friend players or ignored players for the client.
     * This does not update any player's online status, but merely reloads current states.
@@ -2674,7 +2721,7 @@ class AvatarActor(
     *               (either `InitializeFriendList` or `InitializeIgnoreList`, hopefully)
     * @param listFunc transformation function that produces data suitable for a game paket
     */
-  def memberActionListManagement(action: MemberAction.Value, listFunc: ()=>List[GameFriend]): Unit = {
+  def memberActionListManagement(action: MemberAction.Value, listFunc: () => List[GameFriend]): Unit = {
     FriendsResponse.packetSequence(action, listFunc()).foreach { msg =>
       sessionActor ! SessionActor.SendResponse(msg)
     }
@@ -2693,16 +2740,20 @@ class AvatarActor(
       case Some(_) => ;
       case None =>
         import ctx._
-        ctx.run(query[persistence.Friend]
-          .insert(
-            _.avatarId -> lift(avatar.id.toLong),
-            _.charId -> lift(charId)
-          )
+        ctx.run(
+          query[persistence.Friend]
+            .insert(
+              _.avatarId -> lift(avatar.id.toLong),
+              _.charId   -> lift(charId)
+            )
         )
         val isOnline = onlineIfNotIgnoredEitherWay(avatar, name)
-        replaceAvatar(avatar.copy(
-          people = people.copy(friend = people.friend :+ AvatarFriend(charId, name, PlanetSideEmpire(faction), isOnline))
-        ))
+        replaceAvatar(
+          avatar.copy(
+            people =
+              people.copy(friend = people.friend :+ AvatarFriend(charId, name, PlanetSideEmpire(faction), isOnline))
+          )
+        )
         sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.AddFriend, GameFriend(name, isOnline)))
         sessionActor ! SessionActor.CharSaved
     }
@@ -2724,17 +2775,17 @@ class AvatarActor(
         )
       case None => ;
     }
-    ctx.run(query[persistence.Friend]
-      .filter(_.avatarId == lift(avatar.id))
-      .filter(_.charId == lift(charId))
-      .delete
+    ctx.run(
+      query[persistence.Friend]
+        .filter(_.avatarId == lift(avatar.id))
+        .filter(_.charId == lift(charId))
+        .delete
     )
     sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.RemoveFriend, GameFriend(name)))
     sessionActor ! SessionActor.CharSaved
   }
 
   /**
-    *
     * @param name unique character name
     * @return if the avatar is found, that avatar's unique identifier and the avatar's faction affiliation
     */
@@ -2752,11 +2803,13 @@ class AvatarActor(
             case None =>
               (None, false)
           }
-          replaceAvatar(avatar.copy(
-            people = people.copy(
-              friend = people.friend.filterNot { _.name.equals(name) } :+ otherFriend.copy(online = online)
+          replaceAvatar(
+            avatar.copy(
+              people = people.copy(
+                friend = people.friend.filterNot { _.name.equals(name) } :+ otherFriend.copy(online = online)
+              )
             )
-          ))
+          )
           sessionActor ! SessionActor.SendResponse(FriendsResponse(MemberAction.UpdateFriend, GameFriend(name, online)))
           out
         case None =>
@@ -2782,16 +2835,19 @@ class AvatarActor(
       case Some(_) => ;
       case None =>
         import ctx._
-        ctx.run(query[persistence.Ignored]
-          .insert(
-            _.avatarId -> lift(avatar.id.toLong),
-            _.charId -> lift(charId)
-          )
+        ctx.run(
+          query[persistence.Ignored]
+            .insert(
+              _.avatarId -> lift(avatar.id.toLong),
+              _.charId   -> lift(charId)
+            )
         )
         replaceAvatar(
           avatar.copy(people = people.copy(ignored = people.ignored :+ AvatarIgnored(charId, name)))
         )
-        sessionActor ! SessionActor.UpdateIgnoredPlayers(FriendsResponse(MemberAction.AddIgnoredPlayer, GameFriend(name)))
+        sessionActor ! SessionActor.UpdateIgnoredPlayers(
+          FriendsResponse(MemberAction.AddIgnoredPlayer, GameFriend(name))
+        )
         sessionActor ! SessionActor.CharSaved
     }
   }
@@ -2814,31 +2870,34 @@ class AvatarActor(
         )
       case None => ;
     }
-    ctx.run(query[persistence.Ignored]
-      .filter(_.avatarId == lift(avatar.id.toLong))
-      .filter(_.charId == lift(charId))
-      .delete
+    ctx.run(
+      query[persistence.Ignored]
+        .filter(_.avatarId == lift(avatar.id.toLong))
+        .filter(_.charId == lift(charId))
+        .delete
     )
-    sessionActor ! SessionActor.UpdateIgnoredPlayers(FriendsResponse(MemberAction.RemoveIgnoredPlayer, GameFriend(name)))
+    sessionActor ! SessionActor.UpdateIgnoredPlayers(
+      FriendsResponse(MemberAction.RemoveIgnoredPlayer, GameFriend(name))
+    )
     sessionActor ! SessionActor.CharSaved
   }
 
   def setBep(bep: Long, modifier: ExperienceType): Unit = {
     import ctx._
-    val current = BattleRank.withExperience(avatar.bep).value
-    val next = BattleRank.withExperience(bep).value
+    val current   = BattleRank.withExperience(avatar.bep).value
+    val next      = BattleRank.withExperience(bep).value
     lazy val br24 = BattleRank.BR24.value
     val result = for {
       r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatar.id)).update(_.bep -> lift(bep)))
     } yield r
     result.onComplete {
       case Success(_) =>
-        val sess = session.get
-        val zone = sess.zone
-        val zoneId = zone.id
-        val events = zone.AvatarEvents
-        val player = sess.player
-        val pguid = player.GUID
+        val sess          = session.get
+        val zone          = sess.zone
+        val zoneId        = zone.id
+        val events        = zone.AvatarEvents
+        val player        = sess.player
+        val pguid         = player.GUID
         val localModifier = modifier
         sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(pguid, bep, localModifier))
         events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(pguid, 17, bep))
@@ -2854,15 +2913,18 @@ class AvatarActor(
         val implants = avatar.implants.zipWithIndex.map {
           case (implant, index) =>
             if (index >= BattleRank.withExperience(bep).implantSlots && implant.isDefined) {
-              ctx.run(
-                query[persistence.Implant]
-                  .filter(_.name == lift(implant.get.definition.Name))
-                  .filter(_.avatarId == lift(avatar.id))
-                  .delete
-              )
+              ctx
+                .run(
+                  query[persistence.Implant]
+                    .filter(_.name == lift(implant.get.definition.Name))
+                    .filter(_.avatarId == lift(avatar.id))
+                    .delete
+                )
                 .onComplete {
                   case Success(_) =>
-                    sessionActor ! SessionActor.SendResponse(AvatarImplantMessage(pguid, ImplantAction.Remove, index, 0))
+                    sessionActor ! SessionActor.SendResponse(
+                      AvatarImplantMessage(pguid, ImplantAction.Remove, index, 0)
+                    )
                   case Failure(exception) =>
                     log.error(exception)("db failure")
                 }
@@ -2895,22 +2957,22 @@ class AvatarActor(
 
   def updateKillsDeathsAssists(kdaStat: KDAStat): Unit = {
     avatar.scorecard.rate(kdaStat)
-    val exp = kdaStat.experienceEarned
+    val exp      = kdaStat.experienceEarned
     val _session = session.get
-    val zone = _session.zone
-    val player = _session.player
+    val zone     = _session.zone
+    val player   = _session.player
     kdaStat match {
       case kill: Kill =>
         val _ = PlayerSource(player)
         (kill.info.interaction.cause match {
           case pr: ProjectileReason => pr.projectile.mounted_in.map { a => zone.GUID(a._1) }
-          case _ => None
+          case _                    => None
         }) match {
           case Some(Some(_: Vitality)) =>
-            //zone.actor ! ZoneActor.RewardOurSupporters(playerSource, obj.History, kill, exp)
+          //zone.actor ! ZoneActor.RewardOurSupporters(playerSource, obj.History, kill, exp)
           case _ => ;
         }
-        //zone.actor ! ZoneActor.RewardOurSupporters(playerSource, player.History, kill, exp)
+      //zone.actor ! ZoneActor.RewardOurSupporters(playerSource, player.History, kill, exp)
       case _: Death =>
         player.Zone.AvatarEvents ! AvatarServiceMessage(
           player.Name,

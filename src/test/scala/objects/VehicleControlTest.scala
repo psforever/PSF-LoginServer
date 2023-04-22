@@ -218,7 +218,7 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
       lodestar.Actor ! Vehicle.Deconstruct()
 
       val vehicle_msg = vehicleProbe.receiveN(6, 500 milliseconds)
-      vehicle_msg(5) match {
+      vehicle_msg.head match {
         case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(4), 4, true, PlanetSideGUID(2))) => ;
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-1: ${vehicle_msg(5)}")
@@ -226,27 +226,27 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
       assert(player2.VehicleSeated.isEmpty)
       assert(lodestar.Seats(0).occupant.isEmpty)
       //cargo dismounting messages
-      vehicle_msg.head match {
+      vehicle_msg(1) match {
         case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))) => ;
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-2: ${vehicle_msg.head}")
       }
-      vehicle_msg(1) match {
+      vehicle_msg(2) match {
         case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))) => ;
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-3: ${vehicle_msg(1)}")
       }
-      vehicle_msg(2) match {
+      vehicle_msg(3) match {
         case VehicleServiceMessage("test", VehicleAction.SendResponse(_, CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0))) => ;
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-4: ${vehicle_msg(2)}")
       }
-      vehicle_msg(3) match {
+      vehicle_msg(4) match {
         case VehicleServiceMessage("test", VehicleAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))) => ;
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-5: ${vehicle_msg(3)}")
       }
-      vehicle_msg(4) match {
+      vehicle_msg(5) match {
         case VehicleServiceMessage("test", VehicleAction.SendResponse(_, CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0))) => ;
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-6: ${vehicle_msg(4)}")
