@@ -70,34 +70,84 @@ class SessionAvatarHandlers(
       jumpThrust,
       isCloaking,
       spectating,
-      _
+      canSeeReallyFar
       ) if isNotSameTarget =>
-        val now = System.currentTimeMillis()
-        val (location, time, distanceSq): (Vector3, Long, Float) = if (spectating) {
-          val r2 = 2 + hidingPlayerRandomizer.nextInt(4000).toFloat
-          (Vector3(r2, r2, 1f), 0L, 0f)
-        } else {
-          val before = lastSeenStreamMessage(guid.guid).time
-          val dist = Vector3.DistanceSquared(player.Position, pos)
-          (pos, now - before, dist)
+        val pstateToSave = pstate.copy(timestamp = 0)
+        val (lastMsg, lastTime, lastPosition, wasSpectating, wasVisible) = lastSeenStreamMessage(guid.guid) match {
+          case SessionAvatarHandlers.LastUpstream(Some(msg), visible, time) => (Some(msg), time, msg.pos, msg.spectator, visible)
+          case _ => (None, 0L, Vector3.Zero, false, false)
         }
-        if (distanceSq < 302500 || time > 5000) { // Render distance seems to be approx 525m. Reduce update rate at ~550m to be safe
+        val drawConfig = Config.app.game.playerDraw
+        val maxRange = drawConfig.rangeMax * drawConfig.rangeMax //sq.m
+        val ourPosition = player.Position
+        val currentDistance = Vector3.DistanceSquared(ourPosition, pos) //sq.m
+        val inVisibleRange = currentDistance <= maxRange
+        val wasInVisibleRange = Vector3.DistanceSquared(lastPosition, pos) <= maxRange
+        val comingIntoVisibleRange = inVisibleRange && !wasInVisibleRange
+        val now = System.currentTimeMillis() //ms
+        val durationSince = now - lastTime //ms
+        val released = player.isReleased
+        if (!released &&
+          !spectating &&
+          (comingIntoVisibleRange || (inVisibleRange && !lastMsg.contains(pstateToSave)))) {
+          lazy val targetDelay = {
+            val populationOver = math.max(
+              0,
+              continent.blockMap.sector(ourPosition, range=drawConfig.rangeMax.toFloat).livePlayerList.size - drawConfig.populationThreshold
+            )
+            val distanceAdjustment = math.pow(populationOver / drawConfig.populationStep * drawConfig.rangeStep, 2) //sq.m
+            val adjustedDistance = currentDistance + distanceAdjustment //sq.m
+            drawConfig.ranges.lastIndexWhere { dist => adjustedDistance > dist * dist } match {
+              case -1 => 1
+              case index => drawConfig.delays(index)
+            }
+          } //ms
+          if (comingIntoVisibleRange ||
+            canSeeReallyFar ||
+            currentDistance < drawConfig.rangeMin * drawConfig.rangeMin ||
+            durationSince > drawConfig.delayMax ||
+            sessionData.canSeeReallyFar ||
+            durationSince > targetDelay) {
+            //must draw
+            sendResponse(
+              PlayerStateMessage(
+                guid,
+                pos,
+                vel,
+                yaw,
+                pitch,
+                yawUpper,
+                timestamp = 0, //is this okay?
+                isCrouching,
+                isJumping,
+                jumpThrust,
+                isCloaking
+              )
+            )
+            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, now)
+          } else {
+            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, lastTime)
+          }
+        } else if (
+          (!spectating && wasInVisibleRange && !inVisibleRange) ||
+            (inVisibleRange && !wasSpectating && spectating) ||
+            (wasVisible && released)
+        ) {
+          //must hide
+          val lat = (1 + hidingPlayerRandomizer.nextInt(continent.map.scale.height.toInt)).toFloat
           sendResponse(
             PlayerStateMessage(
               guid,
-              location,
-              vel,
-              yaw,
-              pitch,
-              yawUpper,
-              timestamp = 0,
-              isCrouching,
-              isJumping,
-              jumpThrust,
-              isCloaking
+              Vector3(1f, lat, 1f),
+              vel=None,
+              facingYaw=0f,
+              facingPitch=0f,
+              facingYawUpper=0f,
+              timestamp=0, //is this okay?
+              is_cloaked = isCloaking
             )
           )
-          lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstate), now)
+          lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, now)
         }
 
       case AvatarResponse.ObjectHeld(slot, _)
@@ -500,9 +550,9 @@ class SessionAvatarHandlers(
 }
 
 object SessionAvatarHandlers {
-  private[support] case class LastUpstream(msg: Option[AvatarResponse.PlayerState], time: Long)
+  private[support] case class LastUpstream(msg: Option[AvatarResponse.PlayerState], visible: Boolean, time: Long)
 
   private[support] def blankUpstreamMessages(n: Int): Array[LastUpstream] = {
-    Array.fill[SessionAvatarHandlers.LastUpstream](n)(elem = LastUpstream(None, 0L))
+    Array.fill[SessionAvatarHandlers.LastUpstream](n)(elem = LastUpstream(None, visible=false, 0L))
   }
 }

@@ -158,6 +158,7 @@ case class GameConfig(
     warpGates: WarpGateConfig,
     cavernRotation: CavernRotationConfig,
     savedMsg: SavedMessageEvents,
+    playerDraw: PlayerStateDrawSettings,
     doorsCanBeOpenedByMedAppFromThisDistance: Float
 )
 
@@ -220,3 +221,17 @@ case class SavedMessageTimings(
     fixed: Long,
     variable: Long
 )
+
+case class PlayerStateDrawSettings(
+    populationThreshold: Int,
+    populationStep: Int,
+    rangeMin: Int,
+    rangeMax: Int,
+    rangeStep: Int,
+    ranges: Seq[Int],
+    delayMax: Long,
+    delays: Seq[Long]
+) {
+  assert(ranges.nonEmpty)
+  assert(ranges.size == delays.size)
+}

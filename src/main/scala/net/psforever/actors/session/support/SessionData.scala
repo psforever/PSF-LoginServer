@@ -2711,19 +2711,28 @@ class SessionData(
   }
 
   def canSeeReallyFar: Boolean = {
-    findEquipment().exists {
-      case weapon: Tool
-        if weapon.Size == EquipmentSize.Rifle &&
-          (weapon.Projectile ne GlobalDefinitions.no_projectile) &&
-          player.Crouching &&
-          player.avatar
-            .implants
-            .exists { p =>
-              p.collect { implant => implant.definition.implantType == ImplantType.RangeMagnifier && implant.initialized }.nonEmpty
-            } =>
-        true
-      case item =>
-        item.Definition == GlobalDefinitions.bolt_driver || item.Definition == GlobalDefinitions.heavy_sniper
+    shooting.FindContainedWeapon match {
+      case (Some(_: Vehicle), weapons) if weapons.nonEmpty =>
+        player.avatar
+          .implants
+          .exists { p =>
+            p.collect { implant => implant.definition.implantType == ImplantType.RangeMagnifier && implant.active }.nonEmpty
+          }
+      case (Some(_: Player), weapons) if weapons.nonEmpty =>
+        val wep = weapons.head
+        wep.Definition == GlobalDefinitions.bolt_driver ||
+          wep.Definition == GlobalDefinitions.heavy_sniper ||
+          (
+            (wep.Projectile ne GlobalDefinitions.no_projectile) &&
+              player.Crouching &&
+              player.avatar
+                .implants
+                .exists { p =>
+                  p.collect { implant => implant.definition.implantType == ImplantType.RangeMagnifier && implant.active }.nonEmpty
+                }
+            )
+      case _ =>
+        false
     }
   }
 

@@ -1063,6 +1063,9 @@ class AvatarActor(
                 } else {
                   performAvatarLogin(avatarId, account.id, replyTo)
                 }
+              case Success(_) =>
+                //TODO this may not be an actual failure, but don't know what to do
+                sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 6))
               case Failure(e) =>
                 log.error(e)("db failure")
                 sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 6))

@@ -290,6 +290,8 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
         cavernRotation.foreach {
           rotation => rotation ! rotationMsg
         }
+
+      case _ => ()
     }
     this
   }
