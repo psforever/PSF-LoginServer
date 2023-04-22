@@ -158,7 +158,7 @@ case class GameConfig(
     warpGates: WarpGateConfig,
     cavernRotation: CavernRotationConfig,
     savedMsg: SavedMessageEvents,
-    playerDraw: PlayerStateDrawSettings
+    playerDraw: PlayerStateDrawSettings,
     doorsCanBeOpenedByMedAppFromThisDistance: Float
 )
 
