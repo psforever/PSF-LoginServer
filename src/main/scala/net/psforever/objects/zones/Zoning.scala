@@ -25,6 +25,7 @@ object Zoning {
     val values: IndexedSeq[Status] = findValues
 
     case object None extends Status(value = "None")
+    case object Deconstructing extends Status(value = "Deconstructing")
     case object Request extends Status(value = "Request")
     case object Countdown extends Status(value = "Countdown")
   }

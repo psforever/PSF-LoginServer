@@ -1920,6 +1920,7 @@ class ZoningOperations(
             TurnCounterDuringInterim
         }
         sessionData.keepAliveFunc = NormalKeepAlive
+        zoningStatus = Zoning.Status.None
         upstreamMessageCount = 0
         setAvatar = false
         sessionData.persist()
@@ -1950,6 +1951,7 @@ class ZoningOperations(
             TurnCounterDuringInterim
         }
         sessionData.keepAliveFunc = NormalKeepAlive
+        zoningStatus = Zoning.Status.None
         upstreamMessageCount = 0
         setAvatar = false
         sessionData.persist()
