@@ -349,8 +349,11 @@ class ZoneHotSpotHistory(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanking
           val out = progressionOfIntervals
             .flatMap { y =>
               val yFloat = span * y.toFloat
-              progressionOfIntervals.map { x => TryHotSpot(lowerLeftCorner + Vector3(span * x.toFloat, yFloat, 0f)) }
+              progressionOfIntervals.map { x =>
+                hotspots.find { _.DisplayLocation == lowerLeftCorner + Vector3(span * x.toFloat, yFloat, 0f) }
+              }
             }
+            .flatten
             .filter { info => Vector3.DistanceSquared(center, info.DisplayLocation) < squareRadius }
             .distinctBy { _.DisplayLocation }
             .toList
