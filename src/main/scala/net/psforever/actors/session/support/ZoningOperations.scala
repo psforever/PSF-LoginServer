@@ -2082,6 +2082,7 @@ class ZoningOperations(
         player.Health = health
         player.Armor = armor
       }
+      player.death_by = math.min(player.death_by, 0)
       sessionData.vehicles.GetKnownVehicleAndSeat() match {
         case (Some(vehicle: Vehicle), Some(seat: Int)) =>
           //if the vehicle is the cargo of another vehicle in this zone

@@ -163,7 +163,7 @@ class SessionAvatarHandlers(
           case term: Terminal with ProximityUnit => sessionData.terminals.StopUsingProximityUnit(term)
         }
         if (sessionData.zoning.zoningStatus == Zoning.Status.Deconstructing) {
-          sessionData.zoning.zoningStatus = Zoning.Status.None
+          sessionData.stopDeconstructing()
         }
 
       case AvatarResponse.ObjectHeld(slot, _)

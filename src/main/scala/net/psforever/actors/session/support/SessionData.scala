@@ -211,7 +211,7 @@ class SessionData(
     val isMovingPlus = isMoving || isJumping || jumpThrust
     if (isMovingPlus) {
       if (zoning.zoningStatus == Zoning.Status.Deconstructing) {
-        zoning.zoningStatus = Zoning.Status.None
+        stopDeconstructing()
       } else {
         zoning.CancelZoningProcessWithDescriptiveReason("cancel_motion")
       }
@@ -525,7 +525,7 @@ class SessionData(
     if (action == ImplantAction.Activation) {
       if (zoning.zoningStatus == Zoning.Status.Deconstructing) {
         //do not activate; play deactivation sound instead
-        zoning.zoningStatus == Zoning.Status.None
+        stopDeconstructing()
         avatar.implants(slot).collect {
           case implant if implant.active =>
             avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
@@ -1450,6 +1450,9 @@ class SessionData(
         }
         player.Actor ! PlayerControl.ObjectHeld(Player.HandsDownSlot, updateMyHolsterArm = true)
         zoning.zoningStatus = Zoning.Status.Deconstructing
+        if (player.death_by == 0) {
+          player.death_by = 1
+        }
         terminals.CancelAllProximityUnits()
         zoning.spawn.GoToDeploymentMap()
       case _ => ()
@@ -2774,6 +2777,11 @@ class SessionData(
 
   def charSaved(): Unit = {
     sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@charsaved", None))
+  }
+
+  def stopDeconstructing(): Unit = {
+    zoning.zoningStatus = Zoning.Status.None
+    player.death_by = math.min(player.death_by, 0)
   }
 
   def failWithError(error: String): Unit = {

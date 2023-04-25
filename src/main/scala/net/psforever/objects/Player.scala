@@ -547,6 +547,10 @@ class Player(var avatar: Avatar)
     ZoningRequest
   }
 
+  override def CanDamage: Boolean = {
+    death_by < 1 && super.CanDamage
+  }
+
   def DamageModel: DamageResistanceModel = exosuit.asInstanceOf[DamageResistanceModel]
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Player]
