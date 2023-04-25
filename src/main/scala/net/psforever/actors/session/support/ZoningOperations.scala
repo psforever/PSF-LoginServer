@@ -1920,7 +1920,9 @@ class ZoningOperations(
             TurnCounterDuringInterim
         }
         sessionData.keepAliveFunc = NormalKeepAlive
-        zoningStatus = Zoning.Status.None
+        if (zoningStatus == Zoning.Status.Deconstructing) {
+          sessionData.stopDeconstructing()
+        }
         upstreamMessageCount = 0
         setAvatar = false
         sessionData.persist()
@@ -1951,7 +1953,9 @@ class ZoningOperations(
             TurnCounterDuringInterim
         }
         sessionData.keepAliveFunc = NormalKeepAlive
-        zoningStatus = Zoning.Status.None
+        if (zoningStatus == Zoning.Status.Deconstructing) {
+          sessionData.stopDeconstructing()
+        }
         upstreamMessageCount = 0
         setAvatar = false
         sessionData.persist()

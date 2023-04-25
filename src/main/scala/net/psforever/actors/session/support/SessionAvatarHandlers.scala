@@ -83,7 +83,10 @@ class SessionAvatarHandlers(
         val currentDistance = Vector3.DistanceSquared(ourPosition, pos) //sq.m
         val inDrawableRange = currentDistance <= maxRange
         val now = System.currentTimeMillis() //ms
-        if (!isNotRendered && inDrawableRange) {
+        if (
+          sessionData.zoning.zoningStatus != Zoning.Status.Deconstructing &&
+          !isNotRendered && inDrawableRange
+        ) {
           //conditions where visibility is assured
           val durationSince = now - lastTime //ms
           lazy val previouslyInDrawableRange = Vector3.DistanceSquared(ourPosition, lastPosition) <= maxRange

@@ -1441,20 +1441,10 @@ class SessionData(
         sendUseGeneralEntityMessage(obj, item)
       case None if player.Faction == obj.Faction =>
         //deconstruction
-        log.info(s"${player.Name} is deconstructing at the ${obj.Owner.Definition.Name}'s spawns")
         zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         playerActionsToCancel()
-        avatar.implants.collect {
-          case Some(implant) if implant.active && !implant.definition.Passive =>
-            avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
-        }
-        player.Actor ! PlayerControl.ObjectHeld(Player.HandsDownSlot, updateMyHolsterArm = true)
-        zoning.zoningStatus = Zoning.Status.Deconstructing
-        if (player.death_by == 0) {
-          player.death_by = 1
-        }
         terminals.CancelAllProximityUnits()
-        zoning.spawn.GoToDeploymentMap()
+        startDeconstructing(obj)
       case _ => ()
     }
   }
@@ -2779,9 +2769,32 @@ class SessionData(
     sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@charsaved", None))
   }
 
+  def startDeconstructing(obj: SpawnTube): Unit = {
+    log.info(s"${player.Name} is deconstructing at the ${obj.Owner.Definition.Name}'s spawns")
+    avatar.implants.collect {
+      case Some(implant) if implant.active && !implant.definition.Passive =>
+        avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
+    }
+    if (player.ExoSuit != ExoSuitType.MAX) {
+      player.Actor ! PlayerControl.ObjectHeld(Player.HandsDownSlot, updateMyHolsterArm = true)
+    }
+    zoning.spawn.nextSpawnPoint = Some(obj) //set fallback
+    zoning.zoningStatus = Zoning.Status.Deconstructing
+    player.allowInteraction = false
+    if (player.death_by == 0) {
+      player.death_by = 1
+    }
+    zoning.spawn.GoToDeploymentMap()
+  }
+
   def stopDeconstructing(): Unit = {
     zoning.zoningStatus = Zoning.Status.None
     player.death_by = math.min(player.death_by, 0)
+    player.allowInteraction = true
+    zoning.spawn.nextSpawnPoint.foreach { tube =>
+      sendResponse(PlayerStateShiftMessage(ShiftState(0, tube.Position, tube.Orientation.z)))
+      zoning.spawn.nextSpawnPoint = None
+    }
   }
 
   def failWithError(error: String): Unit = {
