@@ -210,7 +210,11 @@ class SessionData(
     val isMoving     = WorldEntity.isMoving(vel)
     val isMovingPlus = isMoving || isJumping || jumpThrust
     if (isMovingPlus) {
-      zoning.CancelZoningProcessWithDescriptiveReason("cancel_motion")
+      if (zoning.zoningStatus == Zoning.Status.Deconstructing) {
+        stopDeconstructing()
+      } else {
+        zoning.CancelZoningProcessWithDescriptiveReason("cancel_motion")
+      }
     }
     fallHeightTracker(pos.z)
     //        if (isCrouching && !player.Crouching) {
@@ -258,6 +262,9 @@ class SessionData(
       case None => ()
     }
     val eagleEye: Boolean = canSeeReallyFar
+    val isNotVisible: Boolean = player.spectator ||
+      zoning.zoningStatus == Zoning.Status.Deconstructing ||
+      (player.isAlive && zoning.spawn.deadState == DeadState.RespawnTime)
     continent.AvatarEvents ! AvatarServiceMessage(
       continent.id,
       AvatarAction.PlayerState(
@@ -272,7 +279,7 @@ class SessionData(
         isJumping,
         jumpThrust,
         isCloaking,
-        player.spectator,
+        isNotVisible,
         eagleEye
       )
     )
@@ -516,15 +523,27 @@ class SessionData(
   def handleAvatarImplant(pkt: AvatarImplantMessage): Unit = {
     val AvatarImplantMessage(_, action, slot, status) = pkt
     if (action == ImplantAction.Activation) {
-      zoning.CancelZoningProcessWithDescriptiveReason("cancel_implant")
-      avatar.implants(slot) match {
-        case Some(implant) =>
-          if (status == 1) {
-            avatarActor ! AvatarActor.ActivateImplant(implant.definition.implantType)
-          } else {
+      if (zoning.zoningStatus == Zoning.Status.Deconstructing) {
+        //do not activate; play deactivation sound instead
+        stopDeconstructing()
+        avatar.implants(slot).collect {
+          case implant if implant.active =>
             avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
-          }
-        case _ => log.error(s"AvatarImplantMessage: ${player.Name} has an unknown implant in $slot")
+          case implant =>
+            sendResponse(PlanetsideAttributeMessage(player.GUID, 28, implant.definition.implantType.value * 2))
+        }
+      } else {
+        zoning.CancelZoningProcessWithDescriptiveReason("cancel_implant")
+        avatar.implants(slot) match {
+          case Some(implant) =>
+            if (status == 1) {
+              avatarActor ! AvatarActor.ActivateImplant(implant.definition.implantType)
+            } else {
+              avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
+            }
+          case _ =>
+            log.error(s"AvatarImplantMessage: ${player.Name} has an unknown implant in $slot")
+        }
       }
     }
   }
@@ -1422,11 +1441,10 @@ class SessionData(
         sendUseGeneralEntityMessage(obj, item)
       case None if player.Faction == obj.Faction =>
         //deconstruction
-        log.info(s"${player.Name} is deconstructing at the ${obj.Owner.Definition.Name}'s spawns")
         zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         playerActionsToCancel()
         terminals.CancelAllProximityUnits()
-        zoning.spawn.GoToDeploymentMap()
+        startDeconstructing(obj)
       case _ => ()
     }
   }
@@ -2749,6 +2767,34 @@ class SessionData(
 
   def charSaved(): Unit = {
     sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@charsaved", None))
+  }
+
+  def startDeconstructing(obj: SpawnTube): Unit = {
+    log.info(s"${player.Name} is deconstructing at the ${obj.Owner.Definition.Name}'s spawns")
+    avatar.implants.collect {
+      case Some(implant) if implant.active && !implant.definition.Passive =>
+        avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
+    }
+    if (player.ExoSuit != ExoSuitType.MAX) {
+      player.Actor ! PlayerControl.ObjectHeld(Player.HandsDownSlot, updateMyHolsterArm = true)
+    }
+    zoning.spawn.nextSpawnPoint = Some(obj) //set fallback
+    zoning.zoningStatus = Zoning.Status.Deconstructing
+    player.allowInteraction = false
+    if (player.death_by == 0) {
+      player.death_by = 1
+    }
+    zoning.spawn.GoToDeploymentMap()
+  }
+
+  def stopDeconstructing(): Unit = {
+    zoning.zoningStatus = Zoning.Status.None
+    player.death_by = math.min(player.death_by, 0)
+    player.allowInteraction = true
+    zoning.spawn.nextSpawnPoint.foreach { tube =>
+      sendResponse(PlayerStateShiftMessage(ShiftState(0, tube.Position, tube.Orientation.z)))
+      zoning.spawn.nextSpawnPoint = None
+    }
   }
 
   def failWithError(error: String): Unit = {

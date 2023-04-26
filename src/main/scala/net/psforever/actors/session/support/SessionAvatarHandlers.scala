@@ -69,27 +69,27 @@ class SessionAvatarHandlers(
       isJumping,
       jumpThrust,
       isCloaking,
-      spectating,
+      isNotRendered,
       canSeeReallyFar
       ) if isNotSameTarget =>
         val pstateToSave = pstate.copy(timestamp = 0)
-        val (lastMsg, lastTime, lastPosition, wasSpectating, wasVisible) = lastSeenStreamMessage(guid.guid) match {
-          case SessionAvatarHandlers.LastUpstream(Some(msg), visible, time) => (Some(msg), time, msg.pos, msg.spectator, visible)
-          case _ => (None, 0L, Vector3.Zero, false, false)
+        val (lastMsg, lastTime, lastPosition, wasVisible) = lastSeenStreamMessage(guid.guid) match {
+          case SessionAvatarHandlers.LastUpstream(Some(msg), visible, time) => (Some(msg), time, msg.pos, visible)
+          case _ => (None, 0L, Vector3.Zero, false)
         }
-        val drawConfig = Config.app.game.playerDraw
+        val drawConfig = Config.app.game.playerDraw //m
         val maxRange = drawConfig.rangeMax * drawConfig.rangeMax //sq.m
-        val ourPosition = player.Position
+        val ourPosition = player.Position //xyz
         val currentDistance = Vector3.DistanceSquared(ourPosition, pos) //sq.m
-        val inVisibleRange = currentDistance <= maxRange
-        val wasInVisibleRange = Vector3.DistanceSquared(lastPosition, pos) <= maxRange
-        val comingIntoVisibleRange = inVisibleRange && !wasInVisibleRange
+        val inDrawableRange = currentDistance <= maxRange
         val now = System.currentTimeMillis() //ms
-        val durationSince = now - lastTime //ms
-        val released = player.isReleased
-        if (!released &&
-          !spectating &&
-          (comingIntoVisibleRange || (inVisibleRange && !lastMsg.contains(pstateToSave)))) {
+        if (
+          sessionData.zoning.zoningStatus != Zoning.Status.Deconstructing &&
+          !isNotRendered && inDrawableRange
+        ) {
+          //conditions where visibility is assured
+          val durationSince = now - lastTime //ms
+          lazy val previouslyInDrawableRange = Vector3.DistanceSquared(ourPosition, lastPosition) <= maxRange
           lazy val targetDelay = {
             val populationOver = math.max(
               0,
@@ -102,12 +102,17 @@ class SessionAvatarHandlers(
               case index => drawConfig.delays(index)
             }
           } //ms
-          if (comingIntoVisibleRange ||
-            canSeeReallyFar ||
-            currentDistance < drawConfig.rangeMin * drawConfig.rangeMin ||
-            durationSince > drawConfig.delayMax ||
-            sessionData.canSeeReallyFar ||
-            durationSince > targetDelay) {
+          if (!wasVisible ||
+            !previouslyInDrawableRange ||
+            (!lastMsg.contains(pstateToSave) &&
+              (canSeeReallyFar ||
+                currentDistance < drawConfig.rangeMin * drawConfig.rangeMin ||
+                durationSince > drawConfig.delayMax ||
+                sessionData.canSeeReallyFar ||
+                durationSince > targetDelay
+                )
+              )
+          ) {
             //must draw
             sendResponse(
               PlayerStateMessage(
@@ -126,28 +131,31 @@ class SessionAvatarHandlers(
             )
             lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, now)
           } else {
+            //is visible, but skip reinforcement
+            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, lastTime)
+          }
+        } else {
+          //conditions where the target is not currently visible
+          if (wasVisible) {
+            //the target was JUST PREVIOUSLY visible; one last draw to move target beyond a renderable distance
+            val lat = (1 + hidingPlayerRandomizer.nextInt(continent.map.scale.height.toInt)).toFloat
+            sendResponse(
+              PlayerStateMessage(
+                guid,
+                Vector3(1f, lat, 1f),
+                vel=None,
+                facingYaw=0f,
+                facingPitch=0f,
+                facingYawUpper=0f,
+                timestamp=0, //is this okay?
+                is_cloaked = isCloaking
+              )
+            )
+            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, now)
+          } else {
+            //skip drawing altogether
             lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, lastTime)
           }
-        } else if (
-          (!spectating && wasInVisibleRange && !inVisibleRange) ||
-            (inVisibleRange && !wasSpectating && spectating) ||
-            (wasVisible && released)
-        ) {
-          //must hide
-          val lat = (1 + hidingPlayerRandomizer.nextInt(continent.map.scale.height.toInt)).toFloat
-          sendResponse(
-            PlayerStateMessage(
-              guid,
-              Vector3(1f, lat, 1f),
-              vel=None,
-              facingYaw=0f,
-              facingPitch=0f,
-              facingYawUpper=0f,
-              timestamp=0, //is this okay?
-              is_cloaked = isCloaking
-            )
-          )
-          lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, now)
         }
 
       case AvatarResponse.ObjectHeld(slot, _)
@@ -156,6 +164,9 @@ class SessionAvatarHandlers(
         //Stop using proximity terminals if player unholsters a weapon
         continent.GUID(sessionData.terminals.usingMedicalTerminal).collect {
           case term: Terminal with ProximityUnit => sessionData.terminals.StopUsingProximityUnit(term)
+        }
+        if (sessionData.zoning.zoningStatus == Zoning.Status.Deconstructing) {
+          sessionData.stopDeconstructing()
         }
 
       case AvatarResponse.ObjectHeld(slot, _)
