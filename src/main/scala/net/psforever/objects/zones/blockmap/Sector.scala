@@ -120,11 +120,11 @@ class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a equals b) {
 class Sector(val longitude: Int, val latitude: Int, val span: Int)
   extends SectorPopulation {
   private val livePlayers: SectorListOf[Player] = new SectorListOf[Player](
-    (a: Player, b: Player) => a.CharId == b.CharId
+    (a: Player, b: Player) => a.GUID == b.GUID
   )
 
   private val corpses: SectorListOf[Player] = new SectorListOf[Player](
-    (a: Player, b: Player) => a.GUID == b.GUID || (a eq b)
+    (a: Player, b: Player) => a eq b
   )
 
   private val vehicles: SectorListOf[Vehicle] = new SectorListOf[Vehicle](
@@ -140,11 +140,11 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
   )
 
   private val buildings: SectorListOf[Building] = new SectorListOf[Building](
-    (a: Building, b: Building) => a eq b
+    (a: Building, b: Building) => a.GUID == b.GUID
   )
 
   private val amenities: SectorListOf[Amenity] = new SectorListOf[Amenity](
-    (a: Amenity, b: Amenity) => a eq b
+    (a: Amenity, b: Amenity) => a.GUID == b.GUID
   )
 
   private val environment: SectorListOf[PieceOfEnvironment] = new SectorListOf[PieceOfEnvironment](
@@ -185,16 +185,12 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
     */
   def addTo(o: BlockMapEntity): Boolean = {
     o match {
-      case p: Player =>
-        //players and corpses are the same kind of object, but are distinguished by a single flag
+      case p: Player if p.isBackpack =>
         //when adding to the "corpse" list, first attempt to remove from the "player" list
-        if (!p.isBackpack) {
-          livePlayers.list.size < livePlayers.addTo(p).size
-        }
-        else {
-          livePlayers.removeFrom(p)
-          corpses.list.size < corpses.addTo(p).size
-        }
+        livePlayers.removeFrom(p)
+        corpses.list.size < corpses.addTo(p).size
+      case p: Player =>
+        livePlayers.list.size < livePlayers.addTo(p).size
       case v: Vehicle =>
         vehicles.list.size < vehicles.addTo(v).size
       case e: Equipment =>
@@ -222,9 +218,10 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
     */
   def removeFrom(o: Any): Boolean = {
     o match {
-      case p: Player =>
-        livePlayers.list.size > livePlayers.removeFrom(p).size ||
+      case p: Player if p.isBackpack =>
         corpses.list.size > corpses.removeFrom(p).size
+      case p: Player =>
+        livePlayers.list.size > livePlayers.removeFrom(p).size
       case v: Vehicle =>
         vehicles.list.size > vehicles.removeFrom(v).size
       case e: Equipment =>
