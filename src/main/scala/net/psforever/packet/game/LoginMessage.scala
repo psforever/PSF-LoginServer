@@ -59,6 +59,7 @@ object LoginMessage extends Marshallable[LoginMessage] {
       a match {
         case username :: Some(password) :: None :: HNil => Left(username :: password :: HNil)
         case username :: None :: Some(token) :: HNil    => Right(token :: username :: HNil)
+        case username :: _ :: _ :: HNil                 => Right(username :: "" :: HNil) //this will fail
       }
 
     either(bool, passwordPath, tokenPath).xmap[Struct](from, to)

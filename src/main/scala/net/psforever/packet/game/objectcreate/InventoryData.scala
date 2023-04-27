@@ -48,7 +48,7 @@ object InventoryData {
       }
     ).xmap[InventoryData](
       {
-        case _ :: 0 :: c :: HNil =>
+        case _ :: _ :: c :: HNil =>
           InventoryData(c)
       },
       {

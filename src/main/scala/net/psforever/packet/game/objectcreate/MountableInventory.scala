@@ -3,10 +3,10 @@ package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.PacketHelpers
 import net.psforever.types.PlanetSideGUID
-import scodec.Attempt.Successful
-import scodec.Codec
+import scodec.Attempt.{Failure, Successful}
+import scodec.{Codec, Err}
 import scodec.codecs._
-import shapeless.HNil //note: do not import shapeless.:: at top level; it messes up List's :: functionality
+import shapeless.HNil
 
 import scala.collection.mutable.ListBuffer
 
@@ -222,6 +222,9 @@ object MountableInventory {
 
         case _ :: slot :: Some(next) :: HNil =>
           Successful(Some(InventorySeat(slot, next)))
+
+        case _ =>
+          Failure(Err("bad seat decoding"))
       },
       {
         case None =>

@@ -86,7 +86,7 @@ class GridInventory extends Container {
     items.values.find({ case InventoryItem(obj, _) => obj.HasGUID && obj.GUID == guid }) match {
       case Some(InventoryItem(_, index)) =>
         Some(index)
-      case None =>
+      case _ =>
         None
     }
   }

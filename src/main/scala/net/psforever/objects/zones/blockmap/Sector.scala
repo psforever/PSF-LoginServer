@@ -69,7 +69,7 @@ trait SectorTraits {
   * @param eqFunc a custom equivalence function to distinguish between the entities in the list
   * @tparam A the type of object that will be the entities stored in the list
   */
-class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a equals b) {
+class SectorListOf[A](eqFunc: (A, A) => Boolean = (a: A, b: A) => a == b) {
   private val internalList: ListBuffer[A] = ListBuffer[A]()
 
   /**
