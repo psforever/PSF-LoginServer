@@ -1929,7 +1929,7 @@ class ZoningOperations(
         if (zoningStatus == Zoning.Status.Deconstructing) {
           sessionData.stopDeconstructing()
         }
-        sessionData.avatarResponse.lastSeenStreamMessage = SessionAvatarHandlers.blankUpstreamMessages(65535)
+        sessionData.avatarResponse.lastSeenStreamMessage.clear()
         upstreamMessageCount = 0
         setAvatar = false
         sessionData.persist()
@@ -1963,7 +1963,7 @@ class ZoningOperations(
         if (zoningStatus == Zoning.Status.Deconstructing) {
           sessionData.stopDeconstructing()
         }
-        sessionData.avatarResponse.lastSeenStreamMessage = SessionAvatarHandlers.blankUpstreamMessages(65535)
+        sessionData.avatarResponse.lastSeenStreamMessage.clear()
         upstreamMessageCount = 0
         setAvatar = false
         sessionData.persist()

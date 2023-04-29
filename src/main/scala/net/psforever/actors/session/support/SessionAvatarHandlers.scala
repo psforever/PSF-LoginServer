@@ -5,6 +5,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, typed}
 import net.psforever.services.Service
 
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 //
@@ -32,9 +33,8 @@ class SessionAvatarHandlers(
                              implicit val context: ActorContext
                            ) extends CommonSessionInterfacingFunctionality {
   //TODO player characters only exist within a certain range of GUIDs for a given zone; this is overkill
-  private[support] var lastSeenStreamMessage: Array[SessionAvatarHandlers.LastUpstream] = {
-    SessionAvatarHandlers.blankUpstreamMessages(65535)
-  }
+  private[support] var lastSeenStreamMessage: mutable.LongMap[SessionAvatarHandlers.LastUpstream] =
+    mutable.LongMap[SessionAvatarHandlers.LastUpstream]()
   private[this] val hidingPlayerRandomizer = new scala.util.Random
 
   /**
@@ -73,8 +73,8 @@ class SessionAvatarHandlers(
       canSeeReallyFar
       ) if isNotSameTarget =>
         val pstateToSave = pstate.copy(timestamp = 0)
-        val (lastMsg, lastTime, lastPosition, wasVisible) = lastSeenStreamMessage(guid.guid) match {
-          case SessionAvatarHandlers.LastUpstream(Some(msg), visible, time) => (Some(msg), time, msg.pos, visible)
+        val (lastMsg, lastTime, lastPosition, wasVisible) = lastSeenStreamMessage.get(guid.guid) match {
+          case Some(SessionAvatarHandlers.LastUpstream(Some(msg), visible, time)) => (Some(msg), time, msg.pos, visible)
           case _ => (None, 0L, Vector3.Zero, false)
         }
         val drawConfig = Config.app.game.playerDraw //m
@@ -129,10 +129,10 @@ class SessionAvatarHandlers(
                 isCloaking
               )
             )
-            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, now)
+            lastSeenStreamMessage.put(guid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, now))
           } else {
             //is visible, but skip reinforcement
-            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, lastTime)
+            lastSeenStreamMessage.put(guid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, lastTime))
           }
         } else {
           //conditions where the target is not currently visible
@@ -151,10 +151,10 @@ class SessionAvatarHandlers(
                 is_cloaked = isCloaking
               )
             )
-            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, now)
+            lastSeenStreamMessage.put(guid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, now))
           } else {
             //skip drawing altogether
-            lastSeenStreamMessage(guid.guid) = SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, lastTime)
+            lastSeenStreamMessage.put(guid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, lastTime))
           }
         }
 
@@ -549,7 +549,7 @@ class SessionAvatarHandlers(
         continent.GUID(weaponGuid).collect {
           case tool: Tool if tool.Magazine == 0 =>
             // check that the magazine is still empty before sending WeaponDryFireMessage
-            // if it has been reloaded since then, other clients not see it firing
+            // if it has been reloaded since then, other clients will not see it firing
             sendResponse(WeaponDryFireMessage(weaponGuid))
           case _ =>
             sendResponse(WeaponDryFireMessage(weaponGuid))
@@ -562,8 +562,4 @@ class SessionAvatarHandlers(
 
 object SessionAvatarHandlers {
   private[support] case class LastUpstream(msg: Option[AvatarResponse.PlayerState], visible: Boolean, time: Long)
-
-  private[support] def blankUpstreamMessages(n: Int): Array[LastUpstream] = {
-    Array.fill[SessionAvatarHandlers.LastUpstream](n)(elem = LastUpstream(None, visible=false, 0L))
-  }
 }
