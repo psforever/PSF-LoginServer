@@ -913,43 +913,8 @@ class AvatarActor(
           AvatarActor.displayLookingForSquad(session.get, if (lfs) 1 else 0)
           Behaviors.same
 
-        case CreateAvatar(name, head, voice, gender, empire) =>
-          import ctx._
-          ctx.run(query[persistence.Avatar].filter(_.name ilike lift(name)).filter(!_.deleted)).onComplete {
-            case Success(characters) =>
-              characters.headOption match {
-                case None =>
-                  val result = for {
-                    _ <- ctx.run(
-                      query[persistence.Avatar]
-                        .insert(
-                          _.name      -> lift(name),
-                          _.accountId -> lift(account.id),
-                          _.factionId -> lift(empire.id),
-                          _.headId    -> lift(head),
-                          _.voiceId   -> lift(voice.id),
-                          _.genderId  -> lift(gender.value),
-                          _.bep       -> lift(Config.app.game.newAvatar.br.experience),
-                          _.cep       -> lift(Config.app.game.newAvatar.cr.experience)
-                        )
-                    )
-                  } yield ()
-                  result.onComplete {
-                    case Success(_) =>
-                      log.debug(s"AvatarActor: created character $name for account ${account.name}")
-                      sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
-                      sendAvatars(account)
-                    case Failure(e) => log.error(e)("db failure")
-                  }
-                case Some(_) =>
-                  // send "char already exists"
-                  sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(1))
-              }
-            case Failure(e) =>
-              log.error(e)("db failure")
-              sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(3))
-              sendAvatars(account)
-          }
+        case CreateAvatar(name, head, voice, sex, empire) =>
+          createAvatar(account, name, sex, empire, head, voice)
           Behaviors.same
 
         case DeleteAvatar(id) =>
@@ -2998,5 +2963,115 @@ class AvatarActor(
 
   def updateToolDischarge(stats: EquipmentStat): Unit = {
     avatar.scorecard.rate(stats)
+  }
+
+  def createAvatar(
+                    account: Account,
+                    name: String,
+                    sex: CharacterSex,
+                    empire: PlanetSideEmpire.Value,
+                    head: Int,
+                    voice: CharacterVoice.Value
+                  ): Unit = {
+    import ctx._
+    ctx.run(
+      query[persistence.Avatar]
+        .filter(_.name ilike lift(name))
+        .map(a => (a.accountId, a.deleted, a.created))
+    )
+      .onComplete {
+        case Success(foundCharacters) if foundCharacters.size == 1 =>
+          testFoundCharacters(
+            account,
+            name,
+            foundCharacters
+              .collect { case (a, b, c) => (a, b, c.toDate.getTime) }
+          )
+        case Success(foundCharacters) if foundCharacters.nonEmpty =>
+          testFoundCharacters(
+            account,
+            name,
+            foundCharacters
+              .map { case (a, b, created) => (a, b, created.toDate.getTime) }
+              .sortBy { case (_, _, created) => created }
+              .toList
+          )
+        case Success(_) =>
+          //create new character
+          actuallyCreateNewCharacter(account.id, account.name, name, sex, empire, head, voice)
+          sendAvatars(account)
+        case Failure(e) =>
+          log.error(e)("db failure")
+          sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 3))
+          sendAvatars(account)
+      }
+  }
+
+  private def testFoundCharacters(
+                                   account: Account,
+                                   name: String,
+                                   foundCharacters: IterableOnce[(Int, Boolean, Long)]): Unit = {
+    val foundCharactersIterator = foundCharacters.iterator
+    if (foundCharactersIterator.exists { case (_, deleted, _ ) => !deleted } ||
+      foundCharactersIterator.exists { case (accountId, _, _) => accountId != account.id }) {
+      //send "char already exists"
+      sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 1))
+    } else {
+      //reactivate character
+      reactivateCharacter(account.id, account.name, name)
+      sendAvatars(account)
+    }
+  }
+
+  private def actuallyCreateNewCharacter(
+                                          accountId: Int,
+                                          accountName: String,
+                                          name: String,
+                                          sex: CharacterSex,
+                                          empire: PlanetSideEmpire.Value,
+                                          head: Int,
+                                          voice: CharacterVoice.Value
+                                        ): Unit = {
+    import ctx._
+    val result = for {
+      _ <- ctx.run(
+        query[persistence.Avatar]
+          .insert(
+            _.name      -> lift(name),
+            _.accountId -> lift(accountId),
+            _.factionId -> lift(empire.id),
+            _.headId    -> lift(head),
+            _.voiceId   -> lift(voice.id),
+            _.genderId  -> lift(sex.value),
+            _.bep       -> lift(Config.app.game.newAvatar.br.experience),
+            _.cep       -> lift(Config.app.game.newAvatar.cr.experience)
+          )
+      )
+    } yield ()
+    result.onComplete {
+      case Success(_) =>
+        log.debug(s"AvatarActor: created character $name for account $accountName")
+        sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
+      case Failure(e) =>
+        log.error(e)("db failure")
+        sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 3))
+    }
+  }
+
+  private def reactivateCharacter(accountId: Int, accountName: String, characterName: String): Unit = {
+    import ctx._
+    ctx.run(
+      query[persistence.Avatar]
+        .filter(a => a.accountId == lift(accountId))
+        .filter(a => a.name ilike lift(characterName))
+        .update(_.deleted -> lift(false))
+    ).onComplete {
+      case Success(_) =>
+        log.debug(s"AvatarActor: character belonging to $accountName with name $characterName reactivated")
+        sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
+      case Failure(e) =>
+        log.error(e)("db failure")
+        sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 3))
+    }
   }
 }

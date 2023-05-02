@@ -82,19 +82,16 @@ object Deployables {
     val zone = target.Zone
     val events = zone.LocalEvents
     val item = target.Definition.Item
-    target.OwnerName match {
-      case Some(owner) =>
-        zone.Players.find { p => owner.equals(p.name) } match {
-          case Some(p) =>
-            if (p.deployables.Remove(target)) {
-              events ! LocalServiceMessage(owner, LocalAction.DeployableUIFor(item))
-            }
-          case None => ;
-        }
+    target.OwnerName
+      .foreach { owner =>
+        zone.LivePlayers.find { p => owner.equals(p.Name) }
+          .orElse(zone.Corpses.find { c => owner.equals(c.Name) })
+          .foreach { p =>
+            p.Actor ! Player.LoseDeployable(target)
+          }
         target.Owner = None
         target.OwnerName = None
-      case None => ;
-    }
+      }
     events ! LocalServiceMessage(
       s"${target.Faction}",
       LocalAction.DeployableMapIcon(
@@ -114,6 +111,7 @@ object Deployables {
     * @return all previously-owned deployables after they have been processed;
     *         boomers are listed before all other deployable types
     */
+  //noinspection ScalaUnusedSymbol
   def Disown(zone: Zone, avatar: Avatar, replyTo: ActorRef): List[Deployable] = {
     avatar.deployables
       .Clear()

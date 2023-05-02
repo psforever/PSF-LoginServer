@@ -802,7 +802,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     //choose
     if (target.Health > 0) {
       //alive
-      if (target.Health <= 25 && target.Health + damageToHealth > 25 &&
+      if (target.Health <= 25 &&
           (player.avatar.implants.flatten.find { _.definition.implantType == ImplantType.SecondWind } match {
             case Some(wind) => wind.initialized
             case _          => false
@@ -810,8 +810,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         //activate second wind
         player.Health += 25
         player.LogActivity(HealFromImplant(ImplantType.SecondWind, 25))
-        avatarActor ! AvatarActor.ResetImplant(ImplantType.SecondWind)
         avatarActor ! AvatarActor.RestoreStamina(25)
+        avatarActor ! AvatarActor.ResetImplant(ImplantType.SecondWind)
       }
       //take damage/update
       DamageAwareness(target, cause, damageToHealth, damageToArmor, damageToStamina, damageToCapacitor)

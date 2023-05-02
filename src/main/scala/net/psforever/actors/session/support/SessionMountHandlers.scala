@@ -56,6 +56,7 @@ class SessionMountHandlers(
         sendResponse(PlanetsideAttributeMessage(obj_guid, obj.Definition.shieldUiAttribute, obj.Shields))
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=45, obj.NtuCapacitorScaled))
         sendResponse(GenericObjectActionMessage(obj_guid, code=11))
+        sessionData.accessContainer(obj)
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)

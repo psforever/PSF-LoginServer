@@ -279,11 +279,9 @@ class VehicleOperations(
 
   def handleDismountVehicle(pkt: DismountVehicleMsg): Unit = {
     val DismountVehicleMsg(player_guid, bailType, wasKickedByDriver) = pkt
+    val dError: (String, Player)=> Unit = dismountError(bailType, wasKickedByDriver)
     //TODO optimize this later
     //common warning for this section
-    def dismountWarning(note: String): Unit = {
-      log.error(s"$note; some vehicle might not know that ${player.Name} is no longer sitting in it")
-    }
     if (player.GUID == player_guid) {
       //normally disembarking from a mount
       (sessionData.zoning.interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
@@ -295,10 +293,7 @@ class VehicleOperations(
         case out @ Some(_: Mountable) =>
           out
         case _ =>
-          dismountWarning(
-            s"DismountVehicleMsg: player ${player.Name}_guid not considered seated in a mountable entity"
-          )
-          sendResponse(DismountVehicleMsg(player_guid, bailType, wasKickedByDriver))
+          dError(s"DismountVehicleMsg: player ${player.Name} not considered seated in a mountable entity", player)
           None
       }) match {
         case Some(_) if serverVehicleControlVelocity.nonEmpty =>
@@ -325,15 +320,14 @@ class VehicleOperations(
               }
 
             case None =>
-              dismountWarning(
-                s"DismountVehicleMsg: can not find where player ${player.Name}_guid is seated in mountable ${player.VehicleSeated}"
-              )
+              dError(s"DismountVehicleMsg: can not find where player ${player.Name}_guid is seated in mountable ${player.VehicleSeated}", player)
           }
         case _ =>
-          dismountWarning(s"DismountVehicleMsg: can not find mountable entity ${player.VehicleSeated}")
+          dError(s"DismountVehicleMsg: can not find mountable entity ${player.VehicleSeated}", player)
       }
     } else {
       //kicking someone else out of a mount; need to own that mount/mountable
+      val dWarn: (String, Player)=> Unit = dismountWarning(bailType, wasKickedByDriver)
       player.avatar.vehicle match {
         case Some(obj_guid) =>
           (
@@ -353,21 +347,45 @@ class VehicleOperations(
                 case Some(seat_num) =>
                   obj.Actor ! Mountable.TryDismount(tplayer, seat_num, bailType)
                 case None =>
-                  dismountWarning(
-                    s"DismountVehicleMsg: can not find where other player ${player.Name}_guid is seated in mountable $obj_guid"
-                  )
+                  dError(s"DismountVehicleMsg: can not find where other player ${tplayer.Name} is seated in mountable $obj_guid", tplayer)
               }
-            case (None, _) => ;
-              log.warn(s"DismountVehicleMsg: ${player.Name} can not find his vehicle")
-            case (_, None) => ;
-              log.warn(s"DismountVehicleMsg: player $player_guid could not be found to kick, ${player.Name}")
+            case (None, _) =>
+              dWarn(s"DismountVehicleMsg: ${player.Name} can not find his vehicle", player)
+            case (_, None) =>
+              dWarn(s"DismountVehicleMsg: player $player_guid could not be found to kick, ${player.Name}", player)
             case _ =>
-              log.warn(s"DismountVehicleMsg: object is either not a Mountable or not a Player")
+              dWarn(s"DismountVehicleMsg: object is either not a Mountable or not a Player", player)
           }
         case None =>
-          log.warn(s"DismountVehicleMsg: ${player.Name} does not own a vehicle")
+          dWarn(s"DismountVehicleMsg: ${player.Name} does not own a vehicle", player)
       }
     }
+  }
+
+  private def dismountWarning(
+                               bailAs: BailType.Value,
+                               kickedByDriver: Boolean
+                             )
+                             (
+                               note: String,
+                               player: Player
+                             ): Unit = {
+    log.warn(note)
+    player.VehicleSeated = None
+    sendResponse(DismountVehicleMsg(player.GUID, bailAs, kickedByDriver))
+  }
+
+  private def dismountError(
+                             bailAs: BailType.Value,
+                             kickedByDriver: Boolean
+                           )
+                           (
+                             note: String,
+                             player: Player
+                           ): Unit = {
+    log.error(s"$note; some vehicle might not know that ${player.Name} is no longer sitting in it")
+    player.VehicleSeated = None
+    sendResponse(DismountVehicleMsg(player.GUID, bailAs, kickedByDriver))
   }
 
   def handleMountVehicleCargo(pkt: MountVehicleCargoMsg): Unit = {
