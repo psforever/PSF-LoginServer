@@ -804,8 +804,8 @@ object WorldSession {
               val name = definition.Name
               GlobalDefinitions.isGrenade(definition) && (name.contains("frag") || name.contains("plasma"))
             } match {
-              case Some(InventoryItem(equipment, slotNum)) =>Some(equipment.asInstanceOf[Tool], slotNum)
-              case None                                    => None
+              case Some(InventoryItem(equipment, slotNum)) => Some(equipment.asInstanceOf[Tool], slotNum)
+              case _                                       => None
             }
         }
       }

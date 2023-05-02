@@ -147,7 +147,7 @@ object ObjectCreateBase {
         cls :: guid :: None :: HNil
     },
     {
-      case cls :: guid :: None :: HNil =>
+      case cls :: guid :: _ :: HNil =>
         cls :: guid :: HNil
     }
   )
@@ -157,17 +157,19 @@ object ObjectCreateBase {
     */
   private val parent: Codec[parentPattern] = (
     ("parentGuid" | PlanetSideGUID.codec) ::                //16u
-      ("objectClass" | uintL(0xb)) ::                       //11u
+      ("objectClass" | uintL(0xb)) ::                 //11u
       ("guid" | PlanetSideGUID.codec) ::                    //16u
       ("parentSlotIndex" | PacketHelpers.encodedStringSize) //8u or 16u
-  ).xmap[parentPattern](
+  ).exmap[parentPattern](
     {
       case pguid :: cls :: guid :: slot :: HNil =>
-        cls :: guid :: Some(ObjectCreateMessageParent(pguid, slot)) :: HNil
+        Attempt.Successful(cls :: guid :: Some(ObjectCreateMessageParent(pguid, slot)) :: HNil)
     },
     {
       case cls :: guid :: Some(ObjectCreateMessageParent(pguid, slot)) :: HNil =>
-        pguid :: cls :: guid :: slot :: HNil
+        Attempt.Successful(pguid :: cls :: guid :: slot :: HNil)
+      case _ =>
+        Attempt.Failure(Err("expecting parent data, but found none"))
     }
   )
 

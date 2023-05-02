@@ -717,6 +717,7 @@ class ChatActor(
                   sessionActor ! SessionActor.SendResponse(
                     message.copy(messageType = UNK_229, contents = "@CMT_ZONE_usage")
                   )
+                case _ => ()
               }
 
             case (CMT_WARP, _, contents) if gmCommandAllowed =>

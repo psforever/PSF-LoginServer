@@ -732,18 +732,19 @@ class ZoningOperations(
     (manifest.passengers.find {
       _.name.equals(playerName)
     } match {
-      case Some(entry) if vehicle.Seats(entry.mount).occupant.isEmpty =>
+      case Some(entry) if vehicle.Seat(entry.mount).flatMap { _.occupant }.isEmpty =>
         player.VehicleSeated = None
         vehicle.Seats(entry.mount).mount(player)
         player.VehicleSeated = vehicle.GUID
-        Some(vehicle)
-      case Some(entry) if vehicle.Seats(entry.mount).occupant.contains(player) =>
-        Some(vehicle)
+        Some((None, Some(vehicle)))
+      case Some(entry) if vehicle.Seat(entry.mount).flatMap { _.occupant }.contains(player) =>
+        player.VehicleSeated = vehicle.GUID
+        Some((None, Some(vehicle)))
       case Some(entry) =>
         log.warn(
           s"TransferPassenger: $playerName tried to mount seat ${entry.mount} during summoning, but it was already occupied, and ${player.Sex.pronounSubject} was rebuked"
         )
-        None
+        Some((None, None))
       case None =>
         //log.warn(s"TransferPassenger: $playerName is missing from the manifest of a summoning ${vehicle.Definition.Name} from ${vehicle.Zone.id}")
         None
@@ -753,8 +754,8 @@ class ZoningOperations(
       } match {
         case Some(entry) =>
           vehicle.CargoHolds(entry.mount).occupant match {
-            case out@Some(cargo) if cargo.Seats(0).occupants.exists(_.Name.equals(playerName)) =>
-              out
+            case out @ Some(cargo) if cargo.Seats(0).occupants.exists(_.Name.equals(playerName)) =>
+              Some((Some(vehicle), out))
             case _ =>
               None
           }
@@ -762,13 +763,11 @@ class ZoningOperations(
           None
       }
     } match {
-      case Some(cargo: Vehicle) =>
-        galaxyService ! Service.Leave(Some(temp_channel)) //temporary vehicle-specific channel (see above)
-        spawn.deadState = DeadState.Release
-        sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, unk5=true))
-        interstellarFerry = Some(cargo) //on the other continent and registered to that continent's GUID system
-        cargo.MountedIn = vehicle.GUID
-        spawn.LoadZonePhysicalSpawnPoint(cargo.Continent, cargo.Position, cargo.Orientation, respawnTime = 1 seconds, None)
+      case Some((Some(ferry), Some(cargo))) =>
+        cargo.MountedIn = ferry.GUID
+        handleTransferPassengerVehicle(cargo, temp_channel)
+      case Some((None, Some(_: Vehicle))) =>
+        handleTransferPassengerVehicle(vehicle, temp_channel)
       case _ =>
         interstellarFerry match {
           case None =>
@@ -777,6 +776,14 @@ class ZoningOperations(
           case Some(_) => () //wait patiently
         }
     }
+  }
+
+  private def handleTransferPassengerVehicle(vehicle: Vehicle, temporaryChannel: String): Unit = {
+    galaxyService ! Service.Leave(Some(temporaryChannel)) //temporary vehicle-specific channel (see above)
+    spawn.deadState = DeadState.Release
+    sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, unk5=true))
+    interstellarFerry = Some(vehicle) //on the other continent and registered to that continent's GUID system
+    spawn.LoadZonePhysicalSpawnPoint(vehicle.Continent, vehicle.Position, vehicle.Orientation, respawnTime = 1 seconds, None)
   }
 
   def handleDroppodLaunchDenial(errorCode: DroppodError): Unit = {
@@ -1446,7 +1453,6 @@ class ZoningOperations(
     Deployables.Disown(continent, avatar, context.self)
     spawn.drawDeloyableIcon = spawn.RedrawDeployableIcons //important for when SetCurrentAvatar initializes the UI next zone
     sessionData.squad.squadSetup = sessionData.squad.ZoneChangeSquadSetup
-    sessionData.avatarResponse.lastSeenStreamMessage = SessionAvatarHandlers.blankUpstreamMessages(65535)
   }
 
   /**
@@ -1923,6 +1929,7 @@ class ZoningOperations(
         if (zoningStatus == Zoning.Status.Deconstructing) {
           sessionData.stopDeconstructing()
         }
+        sessionData.avatarResponse.lastSeenStreamMessage.clear()
         upstreamMessageCount = 0
         setAvatar = false
         sessionData.persist()
@@ -1956,6 +1963,7 @@ class ZoningOperations(
         if (zoningStatus == Zoning.Status.Deconstructing) {
           sessionData.stopDeconstructing()
         }
+        sessionData.avatarResponse.lastSeenStreamMessage.clear()
         upstreamMessageCount = 0
         setAvatar = false
         sessionData.persist()

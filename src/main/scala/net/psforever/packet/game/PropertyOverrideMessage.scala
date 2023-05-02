@@ -166,6 +166,9 @@ object PropertyOverrideMessage extends Marshallable[PropertyOverrideMessage] {
 
         case target :: _ :: Some(first) :: Some(other) :: HNil =>
           GamePropertyTarget(target, first +: other)
+
+        case target :: _ :: _ :: Some(other) :: HNil =>
+          GamePropertyTarget(target, other)
       },
       {
         case GamePropertyTarget(target, list) =>
@@ -202,6 +205,9 @@ object PropertyOverrideMessage extends Marshallable[PropertyOverrideMessage] {
 
       case zone :: _ :: Some(first) :: Some(other) :: HNil =>
         GamePropertyScope(zone, first +: other)
+
+      case zone :: _ :: None :: Some(other) :: HNil =>
+        GamePropertyScope(zone, other)
     },
     {
       case GamePropertyScope(zone, list) =>

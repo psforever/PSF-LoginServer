@@ -29,7 +29,7 @@ object LittleBuddyProjectileData extends Marshallable[LittleBuddyProjectileData]
       ("unk4" | bool)
     ).exmap[LittleBuddyProjectileData](
     {
-      case data :: u2 :: 31 :: u4 :: HNil =>
+      case data :: u2 :: _ :: u4 :: HNil =>
         Attempt.successful(LittleBuddyProjectileData(data, u2, u4))
     },
     {

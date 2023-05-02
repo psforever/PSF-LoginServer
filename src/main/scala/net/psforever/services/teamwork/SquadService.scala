@@ -642,7 +642,7 @@ class SquadService extends Actor {
             val squad = features.Squad
             LeaveSquad(squad.Membership(position).CharId, features)
             out
-          case None =>
+          case _ =>
             None
         }
       case FindLfsSoldiersForRole(_) =>
