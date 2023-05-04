@@ -5411,6 +5411,7 @@ object GlobalDefinitions {
     dynomite.Tile = InventoryTile.Tile22
 
     trhev_dualcycler.Name = "trhev_dualcycler"
+    trhev_dualcycler.Descriptor = "trhev_antipersonnel"
     trhev_dualcycler.Size = EquipmentSize.Max
     trhev_dualcycler.AmmoTypes += dualcycler_ammo
     trhev_dualcycler.ProjectileTypes += dualcycler_projectile
@@ -5428,6 +5429,7 @@ object GlobalDefinitions {
     trhev_dualcycler.FireModes(2).Magazine = 200
 
     trhev_pounder.Name = "trhev_pounder"
+    trhev_pounder.Descriptor = "trhev_antivehicular"
     trhev_pounder.Size = EquipmentSize.Max
     trhev_pounder.AmmoTypes += pounder_ammo
     trhev_pounder.ProjectileTypes += pounder_projectile
@@ -5461,6 +5463,7 @@ object GlobalDefinitions {
     trhev_pounder.FireModes(5).Magazine = 30
 
     trhev_burster.Name = "trhev_burster"
+    trhev_burster.Descriptor = "trhev_antiaircraft"
     trhev_burster.Size = EquipmentSize.Max
     trhev_burster.AmmoTypes += burster_ammo
     trhev_burster.ProjectileTypes += burster_projectile
@@ -5470,6 +5473,7 @@ object GlobalDefinitions {
     trhev_burster.FireModes.head.Magazine = 40
 
     nchev_scattercannon.Name = "nchev_scattercannon"
+    nchev_scattercannon.Descriptor = "nchev_antipersonnel"
     nchev_scattercannon.Size = EquipmentSize.Max
     nchev_scattercannon.AmmoTypes += scattercannon_ammo
     nchev_scattercannon.ProjectileTypes += scattercannon_projectile
@@ -5490,6 +5494,7 @@ object GlobalDefinitions {
     nchev_scattercannon.FireModes(2).Chamber = 10 //40 shells * 10 pellets = 400
 
     nchev_falcon.Name = "nchev_falcon"
+    nchev_falcon.Descriptor = "nchev_antivehicular"
     nchev_falcon.Size = EquipmentSize.Max
     nchev_falcon.AmmoTypes += falcon_ammo
     nchev_falcon.ProjectileTypes += falcon_projectile
@@ -5499,6 +5504,7 @@ object GlobalDefinitions {
     nchev_falcon.FireModes.head.Magazine = 20
 
     nchev_sparrow.Name = "nchev_sparrow"
+    nchev_sparrow.Descriptor = "nchev_antiaircraft"
     nchev_sparrow.Size = EquipmentSize.Max
     nchev_sparrow.AmmoTypes += sparrow_ammo
     nchev_sparrow.ProjectileTypes += sparrow_projectile
@@ -5508,6 +5514,7 @@ object GlobalDefinitions {
     nchev_sparrow.FireModes.head.Magazine = 12
 
     vshev_quasar.Name = "vshev_quasar"
+    vshev_quasar.Descriptor = "vshev_antipersonnel"
     vshev_quasar.Size = EquipmentSize.Max
     vshev_quasar.AmmoTypes += quasar_ammo
     vshev_quasar.ProjectileTypes += quasar_projectile
@@ -5523,6 +5530,7 @@ object GlobalDefinitions {
     vshev_quasar.FireModes(1).Magazine = 120
 
     vshev_comet.Name = "vshev_comet"
+    vshev_comet.Descriptor = "vshev_antivehicular"
     vshev_comet.Size = EquipmentSize.Max
     vshev_comet.AmmoTypes += comet_ammo
     vshev_comet.ProjectileTypes += comet_projectile
@@ -5532,6 +5540,7 @@ object GlobalDefinitions {
     vshev_comet.FireModes.head.Magazine = 10
 
     vshev_starfire.Name = "vshev_starfire"
+    vshev_starfire.Descriptor = "vshev_antiaircraft"
     vshev_starfire.Size = EquipmentSize.Max
     vshev_starfire.AmmoTypes += starfire_ammo
     vshev_starfire.ProjectileTypes += starfire_projectile

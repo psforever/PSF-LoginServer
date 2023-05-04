@@ -400,28 +400,33 @@ object AvatarActor {
   def resolveSharedPurchaseTimeNames(pair: (BasicDefinition, String)): Seq[(BasicDefinition, String)] = {
     val (definition, name) = pair
     if (name.matches("(tr|nc|vs)hev_.+") && Config.app.game.sharedMaxCooldown) {
+      //all mechanized exo-suits
       val faction = name.take(2)
       (if (faction.equals("nc")) {
-         Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
-       } else if (faction.equals("vs")) {
-         Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
-       } else {
-         Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
-       }).zip(
-        Seq(s"${faction}hev_antipersonnel", s"${faction}hev_antivehicular", s"${faction}hev_antiaircraft")
-      )
-    } else {
+        Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
+      } else if (faction.equals("vs")) {
+        Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
+      } else {
+        Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
+      }).map { tdef => (tdef, tdef.Descriptor) }
+    } else if ((name.matches(".+_gunner") || name.matches(".+_flight")) && Config.app.game.sharedBfrCooldown) {
+      //all battleframe robotics vehicles
       definition match {
         case vdef: VehicleDefinition if GlobalDefinitions.isBattleFrameFlightVehicle(vdef) =>
           val bframe = name.substring(0, name.indexOf('_'))
           val gunner = bframe + "_gunner"
-          Seq((DefinitionUtil.fromString(gunner), gunner), (vdef, name))
-
+          Seq((DefinitionUtil.fromString(gunner), gunner), pair)
         case vdef: VehicleDefinition if GlobalDefinitions.isBattleFrameGunnerVehicle(vdef) =>
           val bframe = name.substring(0, name.indexOf('_'))
           val flight = bframe + "_flight"
-          Seq((vdef, name), (DefinitionUtil.fromString(flight), flight))
-
+          Seq(pair, (DefinitionUtil.fromString(flight), flight))
+        case _ =>
+          Seq.empty
+      }
+    } else {
+      definition match {
+        case tdef: ToolDefinition if GlobalDefinitions.isMaxArms(tdef) =>
+          Seq((tdef, tdef.Descriptor))
         case _ =>
           Seq(pair)
       }
@@ -1447,7 +1452,8 @@ class AvatarActor(
           Behaviors.same
 
         case UpdatePurchaseTime(definition, time) =>
-          var newTimes = avatar.cooldowns.purchase
+          var theTimes = avatar.cooldowns.purchase
+          var updateTheTimes: Boolean = false
           AvatarActor
             .resolveSharedPurchaseTimeNames(AvatarActor.resolvePurchaseTimeName(avatar.faction, definition))
             .foreach {
@@ -1455,7 +1461,8 @@ class AvatarActor(
                 Avatar.purchaseCooldowns.get(item) match {
                   case Some(cooldown) =>
                     //only send for items with cooldowns
-                    newTimes = newTimes.updated(name, time)
+                    updateTheTimes = true
+                    theTimes = theTimes.updated(name, time)
                     updatePurchaseTimer(
                       name,
                       cooldown.toSeconds,
@@ -1467,7 +1474,9 @@ class AvatarActor(
                   case _ => ;
                 }
             }
-          avatarCopy(avatar.copy(cooldowns = avatar.cooldowns.copy(purchase = newTimes)))
+          if (updateTheTimes) {
+            avatarCopy(avatar.copy(cooldowns = avatar.cooldowns.copy(purchase = theTimes)))
+          }
           Behaviors.same
 
         case UpdateUseTime(definition, time) =>
@@ -2598,27 +2607,40 @@ class AvatarActor(
 
   def refreshPurchaseTimes(keys: Set[String]): Unit = {
     var keysToDrop: Seq[String] = Nil
+    val faction = avatar.faction
     keys.foreach { key =>
-      avatar.cooldowns.purchase.find { case (name, _) => name.equals(key) } match {
-        case Some((name, purchaseTime)) =>
+      avatar
+        .cooldowns
+        .purchase
+        .find { case (name, _) => name.equals(key) }
+        .flatMap { case (name, purchaseTime) =>
           val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
-          Avatar.purchaseCooldowns.find(_._1.Name.equals(name)) match {
-            case Some((obj, cooldown)) if cooldown.toSeconds - secondsSincePurchase > 0 =>
-              val (_, name) = AvatarActor.resolvePurchaseTimeName(avatar.faction, obj)
-              updatePurchaseTimer(
-                name,
-                cooldown.toSeconds - secondsSincePurchase,
-                obj match {
-                  case _: KitDefinition => false
-                  case _                => true
-                }
-              )
-
-            case _ =>
-              keysToDrop = keysToDrop :+ key //key has timed-out
+          Avatar
+            .purchaseCooldowns
+            .find(_._1.Descriptor.equals(name))
+            .collect {
+              case (obj, cooldown) =>
+                (obj, cooldown.toSeconds - secondsSincePurchase)
+            }
+          .orElse {
+            keysToDrop = keysToDrop :+ key //key indicates cooldown, but no cooldown delay
+            None
           }
-        case _ => ;
-      }
+        }
+        .collect {
+          case (obj, remainingTime) if remainingTime > 0 =>
+            val (_, resolvedName) = AvatarActor.resolvePurchaseTimeName(faction, obj)
+            updatePurchaseTimer(
+              resolvedName,
+              remainingTime,
+              obj match {
+                case _: KitDefinition => false
+                case _                => true
+              }
+            )
+          case (_, _) =>
+            keysToDrop = keysToDrop :+ key //key has timed-out
+        }
     }
     if (keysToDrop.nonEmpty) {
       val cdown = avatar.cooldowns
@@ -3030,7 +3052,9 @@ class AvatarActor(
                                           sex: CharacterSex,
                                           empire: PlanetSideEmpire.Value,
                                           head: Int,
-                                          voice: CharacterVoice.Value
+                                          voice: CharacterVoice.Value,
+                                          bep: Long = Config.app.game.newAvatar.br.experience,
+                                          cep: Long = Config.app.game.newAvatar.cr.experience
                                         ): Unit = {
     import ctx._
     val result = for {
@@ -3043,8 +3067,8 @@ class AvatarActor(
             _.headId    -> lift(head),
             _.voiceId   -> lift(voice.id),
             _.genderId  -> lift(sex.value),
-            _.bep       -> lift(Config.app.game.newAvatar.br.experience),
-            _.cep       -> lift(Config.app.game.newAvatar.cr.experience)
+            _.bep       -> lift(bep),
+            _.cep       -> lift(cep)
           )
       )
     } yield ()
