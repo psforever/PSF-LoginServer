@@ -32,7 +32,7 @@ import org.specs2.mutable.Specification
 import scala.concurrent.duration._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalMech, ImplantTerminalMechControl}
-import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.projectile.ProjectileReason
@@ -327,21 +327,17 @@ class DamageableEntityDamageTest extends ActorTest {
       gen.Actor ! Vitality.Damage(applyDamageTo)
       val msg1 = avatarProbe.receiveOne(500 milliseconds)
       val msg2 = activityProbe.receiveOne(500 milliseconds)
-      assert(
-        msg1 match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-          case _                                                                                            => false
-        }
-      )
-      assert(
-        msg2 match {
-          case activity: Zone.HotSpot.Activity =>
-            activity.attacker == PlayerSource(player1) &&
-              activity.defender == SourceEntry(gen) &&
-              activity.location == Vector3(1, 0, 0)
-          case _ => false
-        }
-      )
+      msg1 match {
+        case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(ValidPlanetSideGUID(2), 0, 3600)) => ()
+        case _ => assert(false, "DamageableEntity:handle taking damage - player not messaged")
+      }
+      msg2 match {
+        case activity: Zone.HotSpot.Activity
+          if activity.attacker == PlayerSource(player1) &&
+            activity.defender == SourceEntry(gen) &&
+            activity.location == Vector3(1, 0, 0) => ()
+        case _ => assert(false, "DamageableEntity:handle taking damage - activity not messaged")
+      }
     }
   }
 }

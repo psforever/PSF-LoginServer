@@ -25,6 +25,7 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
+import net.psforever.services.local.LocalAction.DeployableMapIcon
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -447,9 +448,9 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
       assert(!h_mine.Destroyed)
 
       h_mine.Actor ! Vitality.Damage(applyDamageToH)
-      val eventMsgs = eventsProbe.receiveN(5, 200 milliseconds)
+      val eventMsgs = eventsProbe.receiveN(4, 200 milliseconds)
       val p1Msgs = player1Probe.receiveN(1, 200 milliseconds)
-      player2Probe.expectNoMessage(200 milliseconds)
+      val p2Msgs = player2Probe.receiveN(1, 200 milliseconds)
       eventMsgs.head match {
         case Zone.HotSpot.Conflict(target, attacker, _)
           if (target.Definition eq h_mine.Definition) && (attacker eq pSource) => ;
@@ -461,10 +462,6 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
         case _ => assert(false, "")
       }
       eventMsgs(2) match {
-        case LocalServiceMessage("TestCharacter2", LocalAction.DeployableUIFor(DeployedItem.he_mine)) => ;
-        case _ => assert(false, "")
-      }
-      eventMsgs(3) match {
         case LocalServiceMessage(
           "NC",
           LocalAction.DeployableMapIcon(
@@ -475,7 +472,7 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
         )  => ;
         case _ => assert(false, "")
       }
-      eventMsgs(4) match {
+      eventMsgs(3) match {
         case AvatarServiceMessage(
           "test",
           AvatarAction.Destroy(PlanetSideGUID(2), PlanetSideGUID(3), Service.defaultPlayerGUID, Vector3.Zero)
@@ -486,7 +483,10 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
         case Vitality.Damage(_) => ;
         case _                  => assert(false, "")
       }
-      assert(!avatar2.deployables.Contains(h_mine))
+      p2Msgs.head match {
+        case Player.LoseDeployable(_) => ;
+        case _                        => assert(false, "")
+      }
       assert(h_mine.Destroyed)
     }
   }
@@ -558,14 +558,10 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
       assert(!h_mine.Destroyed)
 
       h_mine.Actor ! Vitality.Damage(applyDamageTo)
-      val eventMsgs  = eventsProbe.receiveN(4, 200 milliseconds)
+      val eventMsgs  = eventsProbe.receiveN(3, 200 milliseconds)
       player1Probe.expectNoMessage(200 milliseconds)
-      player2Probe.expectNoMessage(200 milliseconds)
+      val p2Msgs = player2Probe.receiveN(1, 200 milliseconds)
       eventMsgs.head match {
-        case LocalServiceMessage("TestCharacter2", LocalAction.DeployableUIFor(DeployedItem.he_mine)) => ;
-        case _ => assert(false, "")
-      }
-      eventMsgs(1) match {
         case LocalServiceMessage(
           "NC",
           LocalAction.DeployableMapIcon(
@@ -576,16 +572,20 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
         )  => ;
         case _ => assert(false, "")
       }
-      eventMsgs(2) match {
+      eventMsgs(1) match {
         case AvatarServiceMessage(
-        "test",
-        AvatarAction.Destroy(PlanetSideGUID(2), PlanetSideGUID(3), Service.defaultPlayerGUID, Vector3.Zero)
+          "test",
+          AvatarAction.Destroy(PlanetSideGUID(2), PlanetSideGUID(3), Service.defaultPlayerGUID, Vector3.Zero)
         ) => ;
         case _ => assert(false, "")
       }
-      eventMsgs(3) match {
+      eventMsgs(2) match {
         case LocalServiceMessage("test", LocalAction.TriggerEffect(_, "detonate_damaged_mine", PlanetSideGUID(2))) => ;
         case _ => assert(false, "")
+      }
+      p2Msgs.head match {
+        case Player.LoseDeployable(_) => ;
+        case _                        => assert(false, "")
       }
       assert(h_mine.Health <= h_mine.Definition.DamageDestroysAt)
       assert(h_mine.Destroyed)
