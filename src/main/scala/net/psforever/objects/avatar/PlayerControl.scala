@@ -368,8 +368,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
             case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
               log.info(s"${player.Name} wants to change equipment loadout to their option #${msg.unk1 + 1}")
-              val fallbackSubtype = 0
-              val fallbackSuit = ExoSuitType.Standard
               val originalSuit = player.ExoSuit
               val originalSubtype = Loadout.DetermineSubtype(player)
               //sanitize exo-suit for change
@@ -392,29 +390,39 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               }) ++ dropHolsters ++ dropInventory
               //a loadout with a prohibited exo-suit type will result in the fallback exo-suit type
               //imposed 5min delay on mechanized exo-suit switches
-              val (nextSuit, nextSubtype) =
-              if (
-                Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
-                (if (exosuit == ExoSuitType.MAX) {
-                  player.ResistArmMotion(PlayerControl.maxRestriction)
-                  val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
-                  player.avatar.purchaseCooldown(weapon) match {
-                    case Some(_) => false
-                    case None =>
+              val (nextSuit, nextSubtype) = {
+                lazy val fallbackSuit = if (Players.CertificationToUseExoSuit(player, originalSuit, originalSubtype)) {
+                  //TODO will we ever need to check for the cooldown status of an original non-MAX exo-suit?
+                  (originalSuit, originalSubtype)
+                } else {
+                  (ExoSuitType.Standard, 0)
+                }
+                if (Players.CertificationToUseExoSuit(player, exosuit, subtype)) {
+                  if (exosuit == ExoSuitType.MAX) {
+                    val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
+                    val cooldown = player.avatar.purchaseCooldown(weapon)
+                    if (originalSubtype == subtype) {
+                      (exosuit, subtype) //same MAX subtype is free
+                    } else if (cooldown.nonEmpty) {
+                      fallbackSuit //different MAX subtype can not have cooldown
+                    } else {
                       avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
-                      true
+                      (exosuit, subtype) //switching for first time causes cooldown
+                    }
+                  } else {
+                    (exosuit, subtype)
                   }
                 } else {
-                  player.ResistArmMotion(Player.neverRestrict)
-                  true
-                })
-              ) {
-                (exosuit, subtype)
+                  log.warn(
+                    s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear ${fallbackSuit._1} instead"
+                  )
+                  fallbackSuit
+                }
+              }
+              if (nextSuit == ExoSuitType.MAX) {
+                player.ResistArmMotion(PlayerControl.maxRestriction)
               } else {
-                log.warn(
-                  s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead"
-                )
-                (fallbackSuit, fallbackSubtype)
+                player.ResistArmMotion(Player.neverRestrict)
               }
               //sanitize (incoming) inventory
               //TODO equipment permissions; these loops may be expanded upon in future
@@ -1288,6 +1296,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     suicide()
   }
 
+  //noinspection ScalaUnusedSymbol
   def doInteractingWithGantryField(
                                     obj: PlanetSideServerObject,
                                     body: PieceOfEnvironment,
