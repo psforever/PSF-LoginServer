@@ -53,9 +53,9 @@ object VehicleSource {
       )
     )
     vehicle.copy(occupants = {
-      obj.Seats.values.map { seat =>
+      obj.Seats.map { case (seatNumber, seat) =>
         seat.occupant match {
-          case Some(p) => PlayerSource.inSeat(p, obj, vehicle) //shallow
+          case Some(p) => PlayerSource.inSeat(p, vehicle, seatNumber) //shallow
           case _ => PlayerSource.Nobody
         }
       }.toList

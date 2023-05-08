@@ -36,7 +36,7 @@ import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
-import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.objects.vital.interaction.{Adversarial, DamageInteraction, DamageResult}
 import net.psforever.services.hart.ShuttleState
 import net.psforever.packet.PlanetSideGamePacket
 
@@ -1033,21 +1033,23 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     )
     //TODO other methods of death?
     val pentry = PlayerSource(target)
-    (cause.adversarial match {
-      case out @ Some(_) =>
-        out
-      case _ =>
+    cause
+      .adversarial
+      .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
+      .orElse {
         target.LastDamage.collect {
           case attack if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
-            attack.adversarial
+            attack
+              .adversarial
+              .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
         }.flatten
-      }) match {
+      } match {
       case Some(adversarial) =>
         events ! AvatarServiceMessage(
           zoneChannel,
           AvatarAction.DestroyDisplay(adversarial.attacker, pentry, adversarial.implement)
         )
-      case None =>
+      case _ =>
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
     }
   }

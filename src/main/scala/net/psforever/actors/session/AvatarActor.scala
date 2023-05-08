@@ -1606,11 +1606,7 @@ class AvatarActor(
           Behaviors.same
 
         case RestoreStamina(stamina) =>
-          tryRestoreStaminaForSession(stamina) match {
-            case Some(sess) =>
-              actuallyRestoreStamina(stamina, sess)
-            case _ => ;
-          }
+          tryRestoreStaminaForSession(stamina).collect { actuallyRestoreStamina(stamina, _) }
           Behaviors.same
 
         case RestoreStaminaPeriodically(stamina) =>
@@ -1871,11 +1867,7 @@ class AvatarActor(
           )
         )
         // if we need to start stamina regeneration
-        tryRestoreStaminaForSession(stamina = 1) match {
-          case Some(_) =>
-            defaultStaminaRegen(initialDelay = 0.5f seconds)
-          case _ => ;
-        }
+        tryRestoreStaminaForSession(stamina = 1).collect { _ => defaultStaminaRegen(initialDelay = 0.5f seconds) }
         replyTo ! AvatarLoginResponse(avatar)
       case Failure(e) =>
         log.error(e)("db failure")
@@ -1965,11 +1957,7 @@ class AvatarActor(
   }
 
   def restoreStaminaPeriodically(stamina: Int): Unit = {
-    tryRestoreStaminaForSession(stamina) match {
-      case Some(sess) =>
-        actuallyRestoreStaminaIfStationary(stamina, sess)
-      case _ => ;
-    }
+    tryRestoreStaminaForSession(stamina).collect { actuallyRestoreStaminaIfStationary(stamina, _) }
     startIfStoppedStaminaRegen(initialDelay = 0.5f seconds)
   }
 
