@@ -104,10 +104,10 @@ class SessionAvatarHandlers(
           } //ms
           if (!wasVisible ||
             !previouslyInDrawableRange ||
+            durationSince > drawConfig.delayMax ||
             (!lastMsg.contains(pstateToSave) &&
               (canSeeReallyFar ||
                 currentDistance < drawConfig.rangeMin * drawConfig.rangeMin ||
-                durationSince > drawConfig.delayMax ||
                 sessionData.canSeeReallyFar ||
                 durationSince > targetDelay
                 )
