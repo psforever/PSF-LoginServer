@@ -13,6 +13,7 @@ import net.psforever.objects.inventory.{GridInventory, InventoryItem}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject, ServerObjectControl}
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
+import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{AggravatedBehavior, DamageableVehicle}
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.hackable.GenericHackables
@@ -864,10 +865,15 @@ class VehicleControl(vehicle: Vehicle)
       )
     }
   }
+
+  override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
+    passengerRadiationCloudTimer.cancel()
+    super.DestructionAwareness(target, cause)
+  }
 }
 
 object VehicleControl {
-  import net.psforever.objects.vital.{ShieldCharge}
+  import net.psforever.objects.vital.ShieldCharge
 
   private case class PrepareForDeletion()
 

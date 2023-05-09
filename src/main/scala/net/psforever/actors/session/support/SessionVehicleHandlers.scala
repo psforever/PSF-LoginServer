@@ -34,7 +34,7 @@ class SessionVehicleHandlers(
     val resolvedPlayerGuid = if (player.HasGUID) {
       player.GUID
     } else {
-      Service.defaultPlayerGUID
+      PlanetSideGUID(-1)
     }
     val isNotSameTarget = resolvedPlayerGuid != guid
     reply match {
@@ -253,12 +253,13 @@ class SessionVehicleHandlers(
         }
 
       case VehicleResponse.StartPlayerSeatedInVehicle(vehicle, _) =>
-        val vehicle_guid = vehicle.GUID
+        val vehicleGuid = vehicle.GUID
+        val playerGuid = player.GUID
         sessionData.playerActionsToCancel()
         sessionData.vehicles.serverVehicleControlVelocity = Some(0)
         sessionData.terminals.CancelAllProximityUnits()
-        sendResponse(PlanetsideAttributeMessage(vehicle_guid, attribute_type=22, attribute_value=1L)) //mount points off
-        sendResponse(PlanetsideAttributeMessage(player.GUID, attribute_type=21, vehicle_guid)) //ownership
+        sendResponse(PlanetsideAttributeMessage(vehicleGuid, attribute_type=22, attribute_value=1L)) //mount points off
+        sendResponse(PlanetsideAttributeMessage(playerGuid, attribute_type=21, vehicleGuid)) //ownership
         vehicle.MountPoints.find { case (_, mp) => mp.seatIndex == 0 }.collect {
           case (mountPoint, _) => vehicle.Actor ! Mountable.TryMount(player, mountPoint)
         }
