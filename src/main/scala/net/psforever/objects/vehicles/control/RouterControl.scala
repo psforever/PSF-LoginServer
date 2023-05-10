@@ -24,11 +24,10 @@ class RouterControl(vehicle: Vehicle)
   override def specificResponseToDeployment(state: DriveState.Value): Unit = {
     state match {
       case DriveState.Deployed =>
-        vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-          case Some(util: Utility.InternalTelepad) => util.Actor ! TelepadLike.Activate(util)
-          case _ => ;
+        vehicle.Utility(UtilityType.internal_router_telepad_deployable).collect {
+          case util: Utility.InternalTelepad => util.Actor ! TelepadLike.Activate(util)
         }
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -40,11 +39,10 @@ class RouterControl(vehicle: Vehicle)
   override def specificResponseToUndeployment(state: DriveState.Value): Unit = {
     state match {
       case DriveState.Undeploying =>
-        vehicle.Utility(UtilityType.internal_router_telepad_deployable) match {
-          case Some(util: Utility.InternalTelepad) => util.Actor ! TelepadLike.Deactivate(util)
-          case _ => ;
+        vehicle.Utility(UtilityType.internal_router_telepad_deployable).collect {
+          case util: Utility.InternalTelepad => util.Actor ! TelepadLike.Deactivate(util)
         }
-      case _ => ;
+      case _ => ()
     }
   }
 }

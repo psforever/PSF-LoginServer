@@ -20,7 +20,7 @@ import net.psforever.types._
 class DeployingVehicleControl(vehicle: Vehicle)
   extends VehicleControl(vehicle)
     with DeploymentBehavior {
-  def DeploymentObject = vehicle
+  def DeploymentObject: Vehicle = vehicle
 
   override def commonEnabledBehavior : Receive = super.commonEnabledBehavior.orElse(deployBehavior)
 
@@ -45,7 +45,7 @@ class DeployingVehicleControl(vehicle: Vehicle)
   override def commonDeleteBehavior : Receive =
     super.commonDeleteBehavior
       .orElse {
-        case msg : Deployment.TryUndeploy =>
+        case msg: Deployment.TryUndeploy =>
           deployBehavior.apply(msg)
       }
 
@@ -53,7 +53,7 @@ class DeployingVehicleControl(vehicle: Vehicle)
     * Even when disabled, the vehicle can be made to undeploy.
     */
   override def PrepareForDisabled(kickPassengers: Boolean) : Unit = {
-    vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
+    TryUndeployStateChange(DriveState.Undeploying)
     super.PrepareForDisabled(kickPassengers)
   }
 
