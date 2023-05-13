@@ -1,24 +1,17 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.actors.session
 
-import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
-import net.psforever.objects.avatar.{ProgressDecoration, SpecialCarry}
-import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
-import net.psforever.objects.sourcing.SourceWithHealthEntry
-import net.psforever.objects.vital.projectile.ProjectileReason
-import net.psforever.objects.vital.{DamagingActivity, HealingActivity, SpawningActivity, Vitality}
-import net.psforever.packet.game.objectcreate.BasicCharacterData
-import net.psforever.types.ExperienceType
+import java.util.concurrent.atomic.AtomicInteger
 import org.joda.time.{LocalDateTime, Seconds}
-
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
 //
+import net.psforever.objects._
 import net.psforever.objects.avatar.{
   Avatar,
   BattleRank,
@@ -29,25 +22,31 @@ import net.psforever.objects.avatar.{
   Implant,
   MemberLists,
   PlayerControl,
-  Shortcut => AvatarShortcut
+  ProgressDecoration,
+  Shortcut => AvatarShortcut,
+  SpecialCarry
 }
+import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.CharacterSelectConverter
-import net.psforever.objects.inventory.Container
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
-import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, VehicleLoadout}
-import net.psforever.objects._
 import net.psforever.objects.locker.LockerContainer
-import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.objects.vital.HealFromImplant
-import net.psforever.packet.game.objectcreate.{ObjectClass, RibbonBars}
+import net.psforever.objects.sourcing.{PlayerSource,SourceWithHealthEntry}
+import net.psforever.objects.vital.projectile.ProjectileReason
+import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity, Vitality}
+import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
+import net.psforever.persistence
+import net.psforever.services.Service
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.{
   CharacterSex,
   CharacterVoice,
   Cosmetic,
   ExoSuitType,
+  ExperienceType,
   ImplantType,
   LoadoutType,
   MemberAction,
@@ -57,11 +56,7 @@ import net.psforever.types.{
   TransactionType
 }
 import net.psforever.util.Database._
-import net.psforever.persistence
 import net.psforever.util.{Config, Database, DefinitionUtil}
-import net.psforever.services.Service
-//import org.log4s.Logger
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 object AvatarActor {
   def apply(sessionActor: ActorRef[SessionActor.Command]): Behavior[Command] =
@@ -3009,7 +3004,7 @@ class AvatarActor(
         case Success(_) =>
           //create new character
           actuallyCreateNewCharacter(account.id, account.name, name, sex, empire, head, voice)
-          sendAvatars(account)
+            .onComplete(_ => sendAvatars(account))
         case Failure(e) =>
           log.error(e)("db failure")
           sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 3))
@@ -3029,7 +3024,7 @@ class AvatarActor(
     } else {
       //reactivate character
       reactivateCharacter(account.id, account.name, name)
-      sendAvatars(account)
+        .onComplete(_ => sendAvatars(account))
     }
   }
 
@@ -3043,7 +3038,8 @@ class AvatarActor(
                                           voice: CharacterVoice.Value,
                                           bep: Long = Config.app.game.newAvatar.br.experience,
                                           cep: Long = Config.app.game.newAvatar.cr.experience
-                                        ): Unit = {
+                                        ): Future[Boolean] = {
+    val output: Promise[Boolean] = Promise[Boolean]()
     import ctx._
     val result = for {
       _ <- ctx.run(
@@ -3064,26 +3060,40 @@ class AvatarActor(
       case Success(_) =>
         log.debug(s"AvatarActor: created character $name for account $accountName")
         sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
+        output.success(true)
       case Failure(e) =>
         log.error(e)("db failure")
         sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 3))
+        output.success(false)
     }
+    output.future
   }
 
-  private def reactivateCharacter(accountId: Int, accountName: String, characterName: String): Unit = {
+  private def reactivateCharacter(
+                                   accountId: Int,
+                                   accountName: String,
+                                   characterName: String
+                                 ): Future[Boolean] = {
+    val output: Promise[Boolean] = Promise[Boolean]()
     import ctx._
-    ctx.run(
-      query[persistence.Avatar]
-        .filter(a => a.accountId == lift(accountId))
-        .filter(a => a.name ilike lift(characterName))
-        .update(_.deleted -> lift(false))
-    ).onComplete {
+    val result = for {
+      out <- ctx.run(
+        query[persistence.Avatar]
+          .filter(a => a.accountId == lift(accountId))
+          .filter(a => a.name ilike lift(characterName))
+          .update(_.deleted -> lift(false))
+      )
+    } yield out
+    result.onComplete {
       case Success(_) =>
         log.debug(s"AvatarActor: character belonging to $accountName with name $characterName reactivated")
         sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
+        output.success(true)
       case Failure(e) =>
         log.error(e)("db failure")
         sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 3))
+        output.success(false)
     }
+    output.future
   }
 }

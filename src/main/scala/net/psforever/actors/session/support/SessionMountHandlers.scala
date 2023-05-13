@@ -16,7 +16,7 @@ import net.psforever.packet.game.{ChatMsg, DelayedPathMountMsg, DismountVehicleM
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.types.{BailType, ChatMessageType, PlanetSideGUID}
+import net.psforever.types.{BailType, ChatMessageType, PlanetSideGUID, Vector3}
 
 class SessionMountHandlers(
                             val sessionData: SessionData,
@@ -238,7 +238,7 @@ class SessionMountHandlers(
         }")
         sessionData.vehicles.ConditionalDriverVehicleControl(obj)
         sessionData.unaccessContainer(obj)
-        DismountAction(tplayer, obj, seatNum)
+        DismountVehicleAction(tplayer, obj, seatNum)
 
       case Mountable.CanDismount(obj: Vehicle, seat_num, _) =>
         continent.VehicleEvents ! VehicleServiceMessage(
@@ -295,6 +295,40 @@ class SessionMountHandlers(
    * @param obj the mountable object
    * @param seatNum the mount out of which which the player is disembarking
    */
+  def DismountVehicleAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
+    DismountAction(tplayer, obj, seatNum)
+    //until vehicles maintain synchronized momentum without a driver
+    obj match {
+      case v: Vehicle
+        if seatNum == 0 && Vector3.MagnitudeSquared(v.Velocity.getOrElse(Vector3.Zero)) > 0f =>
+        v.Velocity = Vector3.Zero
+        continent.VehicleEvents ! VehicleServiceMessage(
+          continent.id,
+          VehicleAction.VehicleState(
+            tplayer.GUID,
+            v.GUID,
+            unk1 = 0,
+            v.Position,
+            v.Orientation,
+            vel = None,
+            v.Flying,
+            unk3 = 0,
+            unk4 = 0,
+            wheel_direction = 15,
+            unk5 = false,
+            unk6 = v.Cloaked
+          )
+        )
+      case _ => ()
+    }
+  }
+
+  /**
+   * Common activities/procedure when a player dismounts a valid mountable object.
+   * @param tplayer the player
+   * @param obj the mountable object
+   * @param seatNum the mount out of which which the player is disembarking
+   */
   def DismountAction(tplayer: Player, obj: PlanetSideGameObject with Mountable, seatNum: Int): Unit = {
     val playerGuid: PlanetSideGUID = tplayer.GUID
     sessionData.keepAliveFunc = sessionData.zoning.NormalKeepAlive
@@ -306,7 +340,7 @@ class SessionMountHandlers(
     sendResponse(DismountVehicleMsg(playerGuid, bailType, wasKickedByDriver = false))
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
-      VehicleAction.DismountVehicle(playerGuid, bailType, unk2=false)
+      VehicleAction.DismountVehicle(playerGuid, bailType, unk2 = false)
     )
   }
 }
