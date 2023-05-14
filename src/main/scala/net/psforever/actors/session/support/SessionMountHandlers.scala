@@ -301,6 +301,9 @@ class SessionMountHandlers(
     obj match {
       case v: Vehicle
         if seatNum == 0 && Vector3.MagnitudeSquared(v.Velocity.getOrElse(Vector3.Zero)) > 0f =>
+        sessionData.vehicles.serverVehicleControlVelocity.collect { _ =>
+          sessionData.vehicles.ServerVehicleOverrideEnd(v)
+        }
         v.Velocity = Vector3.Zero
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,

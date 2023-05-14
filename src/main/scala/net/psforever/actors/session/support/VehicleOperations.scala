@@ -268,12 +268,15 @@ class VehicleOperations(
 
   def handleMountVehicle(pkt: MountVehicleMsg): Unit = {
     val MountVehicleMsg(_, mountable_guid, entry_point) = pkt
-    sessionData.validObject(mountable_guid, decorator = "MountVehicle") match {
-      case Some(obj: Mountable) =>
+    sessionData.validObject(mountable_guid, decorator = "MountVehicle").collect {
+      case obj: Mountable if serverVehicleControlVelocity.isEmpty =>
         obj.Actor ! Mountable.TryMount(player, entry_point)
-      case Some(_) =>
+      case _: Mountable =>
+        log.warn(
+          s"DismountVehicleMsg: ${player.Name} can not mount while server has asserted control; please wait"
+        )
+      case _ =>
         log.error(s"MountVehicleMsg: object ${mountable_guid.guid} not a mountable thing, ${player.Name}")
-      case None => ;
     }
   }
 
@@ -297,7 +300,7 @@ class VehicleOperations(
           None
       }) match {
         case Some(_) if serverVehicleControlVelocity.nonEmpty =>
-          log.debug(
+          log.warn(
             s"DismountVehicleMsg: ${player.Name} can not dismount from vehicle while server has asserted control; please wait"
           )
         case Some(obj: Mountable) =>
@@ -592,6 +595,16 @@ class VehicleOperations(
         unk8 = Some(0)
       )
     )
+  }
+
+  /**
+   *
+   */
+  def ServerVehicleOverrideEnd(vehicle: Vehicle): Unit = {
+    val vehicleGuid = vehicle.GUID
+    session = session.copy(avatar = avatar.copy(vehicle = Some(vehicleGuid)))
+    sessionData.vehicles.DriverVehicleControl(vehicle, vehicle.Definition.AutoPilotSpeed2)
+    sendResponse(PlanetsideAttributeMessage(vehicleGuid, attribute_type=22, attribute_value=0L)) //mount points on
   }
 
   /**

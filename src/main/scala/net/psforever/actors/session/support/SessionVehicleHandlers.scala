@@ -265,8 +265,6 @@ class SessionVehicleHandlers(
         }
 
       case VehicleResponse.PlayerSeatedInVehicle(vehicle, _) =>
-        val vehicle_guid = vehicle.GUID
-        sendResponse(PlanetsideAttributeMessage(vehicle_guid, attribute_type=22, attribute_value=0L)) //mount points on
         Vehicles.ReloadAccessPermissions(vehicle, player.Name)
         sessionData.vehicles.ServerVehicleLock(vehicle)
 
@@ -279,8 +277,7 @@ class SessionVehicleHandlers(
         )
 
       case VehicleResponse.ServerVehicleOverrideEnd(vehicle, _) =>
-        session = session.copy(avatar = avatar.copy(vehicle = Some(vehicle.GUID)))
-        sessionData.vehicles.DriverVehicleControl(vehicle, vehicle.Definition.AutoPilotSpeed2)
+        sessionData.vehicles.ServerVehicleOverrideEnd(vehicle)
 
       case VehicleResponse.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, data) =>
         sendResponse(ChatMsg(
