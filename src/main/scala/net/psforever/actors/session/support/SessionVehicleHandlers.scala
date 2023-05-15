@@ -202,17 +202,19 @@ class SessionVehicleHandlers(
         val strafe = 1 + Vehicles.CargoOrientation(vehicle)
         val reverseSpeed = if (strafe > 1) { 0 } else { speed }
         //strafe or reverse, not both
-        sessionData.vehicles.serverVehicleControlVelocity = Some(reverseSpeed)
-        sendResponse(ServerVehicleOverrideMsg(
-          lock_accelerator=true,
-          lock_wheel=true,
-          reverse=true,
-          unk4=false,
-          lock_vthrust=0,
-          strafe,
-          reverseSpeed,
-          unk8=Some(0)
-        ))
+        sessionData.vehicles.ServerVehicleOverrideWithPacket(
+          vehicle,
+          ServerVehicleOverrideMsg(
+            lock_accelerator=true,
+            lock_wheel=true,
+            reverse=true,
+            unk4=false,
+            lock_vthrust=0,
+            strafe,
+            reverseSpeed,
+            unk8=Some(0)
+          )
+        )
         import scala.concurrent.ExecutionContext.Implicits.global
         context.system.scheduler.scheduleOnce(
           delay milliseconds,
@@ -220,25 +222,27 @@ class SessionVehicleHandlers(
           VehicleServiceResponse(toChannel, PlanetSideGUID(0), VehicleResponse.KickCargo(vehicle, speed=0, delay))
         )
 
-      case VehicleResponse.KickCargo(_, _, _)
+      case VehicleResponse.KickCargo(cargo, _, _)
         if player.VehicleSeated.nonEmpty && sessionData.zoning.spawn.deadState == DeadState.Alive =>
-        sessionData.vehicles.serverVehicleControlVelocity = None
-        sendResponse(ServerVehicleOverrideMsg(
-          lock_accelerator=false,
-          lock_wheel=false,
-          reverse=false,
-          unk4=false,
-          lock_vthrust=0,
-          lock_strafe=0,
-          movement_speed=0,
-          unk8=None
-        ))
+        sessionData.vehicles.TotalDriverVehicleControl(cargo)
 
       case VehicleResponse.StartPlayerSeatedInVehicle(vehicle, _)
         if player.VisibleSlots.contains(player.DrawnSlot) =>
         val vehicle_guid = vehicle.GUID
         sessionData.playerActionsToCancel()
-        sessionData.vehicles.serverVehicleControlVelocity = Some(0)
+        sessionData.vehicles.ServerVehicleOverrideWithPacket(
+          vehicle,
+          ServerVehicleOverrideMsg(
+            lock_accelerator=false,
+            lock_wheel=false,
+            reverse=false,
+            unk4=false,
+            lock_vthrust=0,
+            lock_strafe=0,
+            movement_speed=0,
+            unk8=None
+          )
+        )
         sessionData.terminals.CancelAllProximityUnits()
         player.DrawnSlot = Player.HandsDownSlot
         sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, unk1=true))
@@ -256,7 +260,6 @@ class SessionVehicleHandlers(
         val vehicleGuid = vehicle.GUID
         val playerGuid = player.GUID
         sessionData.playerActionsToCancel()
-        sessionData.vehicles.serverVehicleControlVelocity = Some(0)
         sessionData.terminals.CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(vehicleGuid, attribute_type=22, attribute_value=1L)) //mount points off
         sendResponse(PlanetsideAttributeMessage(playerGuid, attribute_type=21, vehicleGuid)) //ownership
@@ -266,18 +269,39 @@ class SessionVehicleHandlers(
 
       case VehicleResponse.PlayerSeatedInVehicle(vehicle, _) =>
         Vehicles.ReloadAccessPermissions(vehicle, player.Name)
-        sessionData.vehicles.ServerVehicleLock(vehicle)
+        sessionData.vehicles.ServerVehicleOverrideWithPacket(
+          vehicle,
+          ServerVehicleOverrideMsg(
+            lock_accelerator=true,
+            lock_wheel=true,
+            reverse=false,
+            unk4=false,
+            lock_vthrust=0,
+            lock_strafe=0,
+            movement_speed=0,
+            unk8=Some(0)
+          )
+        )
+        sessionData.vehicles.serverVehicleControlVelocity = Some(-1)
 
       case VehicleResponse.ServerVehicleOverrideStart(vehicle, _) =>
         val vdef = vehicle.Definition
-        sessionData.vehicles.ServerVehicleOverride(
+        sessionData.vehicles.ServerVehicleOverrideWithPacket(
           vehicle,
-          vdef.AutoPilotSpeed1,
-          flight= if (GlobalDefinitions.isFlightVehicle(vdef)) { 1 } else { 0 }
+          ServerVehicleOverrideMsg(
+            lock_accelerator=true,
+            lock_wheel=true,
+            reverse=false,
+            unk4=false,
+            lock_vthrust=if (GlobalDefinitions.isFlightVehicle(vdef)) { 1 } else { 0 },
+            lock_strafe=0,
+            movement_speed=vdef.AutoPilotSpeed1,
+            unk8=Some(0)
+          )
         )
 
       case VehicleResponse.ServerVehicleOverrideEnd(vehicle, _) =>
-        sessionData.vehicles.ServerVehicleOverrideEnd(vehicle)
+        sessionData.vehicles.ServerVehicleOverrideStop(vehicle)
 
       case VehicleResponse.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, data) =>
         sendResponse(ChatMsg(

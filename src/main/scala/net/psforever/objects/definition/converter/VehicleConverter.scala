@@ -36,7 +36,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
           health,
           unk4 = false,
           no_mount_points = false,
-          obj.DeploymentState,
+          SterilizedDeploymentState(obj),
           unk5 = false,
           unk6 = false,
           obj.Cloaked,
@@ -103,6 +103,13 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
           InventoryItemData(utilDef.ObjectId, util.GUID, index, utilDef.Packet.ConstructorData(util).get)
       })
       .toList
+  }
+
+  private def SterilizedDeploymentState(obj: Vehicle): DriveState.Value = {
+    obj.DeploymentState match {
+      case state if state.id < 0 => DriveState.Mobile
+      case state => state
+    }
   }
 
   protected def SpecificFormatModifier: VehicleFormat.Value = VehicleFormat.Normal

@@ -21,5 +21,7 @@ object DriveState extends Enumeration {
   val State7      = Value(7)   //unknown; not encountered on a vehicle that can deploy; functions like Mobile
   val State127    = Value(127) //unknown
 
-  val Kneeling    = Value(-1) //flag bfr kneeling state; should not not encode
+  //the following values should never be encoded
+  val Kneeling    = Value(-1) //flag bfr kneeling state
+  val AutoPilot   = Value(-2) //when emerging from spawn pad, or being kicked from a ferry, during server guidance
 }

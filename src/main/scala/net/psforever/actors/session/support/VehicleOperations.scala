@@ -269,7 +269,7 @@ class VehicleOperations(
   def handleMountVehicle(pkt: MountVehicleMsg): Unit = {
     val MountVehicleMsg(_, mountable_guid, entry_point) = pkt
     sessionData.validObject(mountable_guid, decorator = "MountVehicle").collect {
-      case obj: Mountable if serverVehicleControlVelocity.isEmpty =>
+      case obj: Mountable =>
         obj.Actor ! Mountable.TryMount(player, entry_point)
       case _: Mountable =>
         log.warn(
@@ -299,10 +299,6 @@ class VehicleOperations(
           dError(s"DismountVehicleMsg: player ${player.Name} not considered seated in a mountable entity", player)
           None
       }) match {
-        case Some(_) if serverVehicleControlVelocity.nonEmpty =>
-          log.warn(
-            s"DismountVehicleMsg: ${player.Name} can not dismount from vehicle while server has asserted control; please wait"
-          )
         case Some(obj: Mountable) =>
           obj.PassengerInSeat(player) match {
             case Some(seat_num) =>
@@ -535,72 +531,11 @@ class VehicleOperations(
     }
 
   /**
-   * This function is applied to vehicles that are leaving a cargo vehicle's cargo hold to auto reverse them out
-   * Lock all applicable controls of the current vehicle
-   * Set the vehicle to move in reverse
+   * Place the current vehicle under the control of the driver's commands,
+   * but leave it in a cancellable auto-drive.
+   * @param vehicle the vehicle
    */
-  def ServerVehicleLockReverse(): Unit = {
-    serverVehicleControlVelocity = Some(-1)
-    sendResponse(
-      ServerVehicleOverrideMsg(
-        lock_accelerator = true,
-        lock_wheel = true,
-        reverse = true,
-        unk4 = true,
-        lock_vthrust = 0,
-        lock_strafe = 1,
-        movement_speed = 2,
-        unk8 = Some(0)
-      )
-    )
-  }
-
-  /**
-   * This function is applied to vehicles that are leaving a cargo vehicle's cargo hold to strafe right out of the cargo hold for vehicles that are mounted sideways e.g. router/BFR
-   * Lock all applicable controls of the current vehicle
-   * Set the vehicle to strafe right
-   */
-  def ServerVehicleLockStrafeRight(): Unit = {
-    serverVehicleControlVelocity = Some(-1)
-    sendResponse(
-      ServerVehicleOverrideMsg(
-        lock_accelerator = true,
-        lock_wheel = true,
-        reverse = false,
-        unk4 = true,
-        lock_vthrust = 0,
-        lock_strafe = 3,
-        movement_speed = 0,
-        unk8 = Some(0)
-      )
-    )
-  }
-
-  /**
-   * This function is applied to vehicles that are leaving a cargo vehicle's cargo hold to strafe left out of the cargo hold for vehicles that are mounted sideways e.g. router/BFR
-   * Lock all applicable controls of the current vehicle
-   * Set the vehicle to strafe left
-   */
-  def ServerVehicleLockStrafeLeft(): Unit = {
-    serverVehicleControlVelocity = Some(-1)
-    sendResponse(
-      ServerVehicleOverrideMsg(
-        lock_accelerator = true,
-        lock_wheel = true,
-        reverse = false,
-        unk4 = true,
-        lock_vthrust = 0,
-        lock_strafe = 2,
-        movement_speed = 0,
-        unk8 = Some(0)
-      )
-    )
-  }
-
-  /**
-   *
-   */
-  def ServerVehicleOverrideEnd(vehicle: Vehicle): Unit = {
+  def ServerVehicleOverrideStop(vehicle: Vehicle): Unit = {
     val vehicleGuid = vehicle.GUID
     session = session.copy(avatar = avatar.copy(vehicle = Some(vehicleGuid)))
     sessionData.vehicles.DriverVehicleControl(vehicle, vehicle.Definition.AutoPilotSpeed2)
@@ -608,24 +543,15 @@ class VehicleOperations(
   }
 
   /**
-   * Lock all applicable controls of the current vehicle.
-   * This includes forward motion, turning, and, if applicable, strafing.
-   * @param vehicle the vehicle being controlled
-   */
-  def ServerVehicleLock(vehicle: Vehicle): Unit = {
-    serverVehicleControlVelocity = Some(-1)
-    sendResponse(ServerVehicleOverrideMsg(lock_accelerator=true, lock_wheel=true, reverse=false, unk4=false, 0, 1, 0, Some(0)))
-  }
-
-  /**
    * Place the current vehicle under the control of the server's commands.
-   * @param vehicle the vehicle
-   * @param speed how fast the vehicle is moving forward
-   * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
+   * @param vehicle vehicle to be controlled;
+   *                the client's player who is receiving this packet should be mounted as its driver, but this is not explicitly tested
+   * @param pkt packet to instigate server control
    */
-  def ServerVehicleOverride(vehicle: Vehicle, speed: Int = 0, flight: Int = 0): Unit = {
-    serverVehicleControlVelocity = Some(speed)
-    sendResponse(ServerVehicleOverrideMsg(lock_accelerator=true, lock_wheel=true, reverse=false, unk4=false, flight, 0, speed, Some(0)))
+  def ServerVehicleOverrideWithPacket(vehicle: Vehicle, pkt: ServerVehicleOverrideMsg): Unit = {
+    serverVehicleControlVelocity = Some(pkt.movement_speed)
+    vehicle.DeploymentState = DriveState.AutoPilot
+    sendResponse(pkt)
   }
 
   /**
@@ -636,9 +562,20 @@ class VehicleOperations(
    * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
    */
   def DriverVehicleControl(vehicle: Vehicle, speed: Int = 0, flight: Int = 0): Unit = {
-    if (serverVehicleControlVelocity.nonEmpty) {
-      serverVehicleControlVelocity = None
-      sendResponse(ServerVehicleOverrideMsg(lock_accelerator=false, lock_wheel=false, reverse=false, unk4=true, flight, 0, speed, None))
+    if (vehicle.DeploymentState == DriveState.AutoPilot) {
+      TotalDriverVehicleControlWithPacket(
+        vehicle,
+        ServerVehicleOverrideMsg(
+          lock_accelerator=false,
+          lock_wheel=false,
+          reverse=false,
+          unk4=true,
+          lock_vthrust=flight,
+          lock_strafe=0,
+          movement_speed=speed,
+          unk8=None
+        )
+      )
     }
   }
 
@@ -649,15 +586,45 @@ class VehicleOperations(
    * @param vehicle the vehicle
    */
   def ConditionalDriverVehicleControl(vehicle: Vehicle): Unit = {
-    if (serverVehicleControlVelocity.nonEmpty && !serverVehicleControlVelocity.contains(0)) {
+    if (vehicle.DeploymentState == DriveState.AutoPilot) {
       TotalDriverVehicleControl(vehicle)
     }
   }
 
-  //noinspection ScalaUnusedSymbol
+  /**
+   * Place the current vehicle under the control of the driver's commands,
+   * but leave it in a cancellable auto-drive.
+   * Stop all movement entirely.
+   * @param vehicle the vehicle
+   */
   def TotalDriverVehicleControl(vehicle: Vehicle): Unit = {
+    TotalDriverVehicleControlWithPacket(
+      vehicle,
+      ServerVehicleOverrideMsg(
+        lock_accelerator=false,
+        lock_wheel=false,
+        reverse=false,
+        unk4=false,
+        lock_vthrust=0,
+        lock_strafe=0,
+        movement_speed=0,
+        unk8=None
+      )
+    )
+  }
+
+  /**
+   * Place the current vehicle under the control of the driver's commands,
+   * but leave it in a cancellable auto-drive.
+   * Stop all movement entirely.
+   * @param vehicle the vehicle;
+   *                the client's player who is receiving this packet should be mounted as its driver, but this is not explicitly tested
+   * @param pkt packet to instigate cancellable control
+   */
+  def TotalDriverVehicleControlWithPacket(vehicle: Vehicle, pkt: ServerVehicleOverrideMsg): Unit = {
     serverVehicleControlVelocity = None
-    sendResponse(ServerVehicleOverrideMsg(lock_accelerator=false, lock_wheel=false, reverse=false, unk4=false, 0, 0, 0, None))
+    vehicle.DeploymentState = DriveState.Mobile
+    sendResponse(pkt)
   }
 
   /**

@@ -121,6 +121,9 @@ class VehicleControl(vehicle: Vehicle)
       case Vehicle.Ownership(Some(player)) =>
         GainOwnership(player)
 
+      case Mountable.TryMount(user, mountPoint) if vehicle.DeploymentState == DriveState.AutoPilot =>
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotMount(vehicle, mountPoint))
+
       case msg @ Mountable.TryMount(player, mount_point) =>
         mountBehavior.apply(msg)
         mountCleanup(mount_point, player)
