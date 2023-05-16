@@ -5,7 +5,7 @@ import net.psforever.objects.Vehicle
 import net.psforever.packet.game.objectcreate.{VariantVehicleData, VehicleFormat}
 
 class VariantVehicleConverter extends VehicleConverter {
-  override protected def SpecificFormatModifier: VehicleFormat.Value = VehicleFormat.Variant
+  override protected def SpecificFormatModifier: VehicleFormat = VehicleFormat.Variant
 
   override protected def SpecificFormatData(obj: Vehicle) = {
     /*

@@ -7,20 +7,29 @@ import scodec.{Attempt, Codec, Err}
 import shapeless.HNil
 import scodec.codecs._
 import net.psforever.types.DriveState
+import enumeratum.values.{IntEnum, IntEnumEntry}
 
 /**
-  * An `Enumeration` of the various formats that known structures that the stream of bits for `VehicleData` can assume.
+  * An enumeration of the various formats that known structures that the stream of bits for `VehicleData` can assume.
   */
-object VehicleFormat extends Enumeration {
-  type Type = Value
+sealed abstract class VehicleFormat(val value: Int) extends IntEnumEntry
 
-  val Battleframe, BattleframeFlight, Normal, Utility, Variant = Value
+object VehicleFormat extends IntEnum[VehicleFormat] {
+  val values = findValues
+
+  case object Normal extends VehicleFormat(value = 0)
+  case object Battleframe extends VehicleFormat(value = 1)
+  case object BattleframeFlight extends VehicleFormat(value = 2)
+  case object Utility extends VehicleFormat(value = 6)
+  case object Variant extends VehicleFormat(value = 8)
+
+  //val Battleframe, BattleframeFlight, Normal, Utility, Variant = Value
 }
 
 /**
   * A basic `Trait` connecting all of the vehicle data formats (excepting `Normal`/`None`).
   */
-sealed abstract class SpecificVehicleData(val format: VehicleFormat.Value) extends StreamBitSize
+sealed abstract class SpecificVehicleData(val format: VehicleFormat) extends StreamBitSize
 
 /**
   * The format of vehicle data for the type of vehicles that are considered "utility."
@@ -84,7 +93,7 @@ final case class VehicleData(
     cloak: Boolean,
     vehicle_format_data: Option[SpecificVehicleData],
     inventory: Option[InventoryData] = None
-)(val vehicle_type: VehicleFormat.Value = VehicleFormat.Normal)
+)(val vehicle_type: VehicleFormat = VehicleFormat.Normal)
     extends ConstructorData {
   override def bitsize: Long = {
     //factor guard bool values into the base size, not its corresponding optional field
@@ -174,7 +183,7 @@ object VehicleData extends Marshallable[VehicleData] {
     */
   private val utility_data_codec: Codec[SpecificVehicleData] = {
     import shapeless.::
-    uintL(6).hlist.exmap[SpecificVehicleData](
+    uintL(VehicleFormat.Utility.value).hlist.exmap[SpecificVehicleData](
       {
         case n :: HNil =>
           Successful(UtilityVehicleData(n).asInstanceOf[SpecificVehicleData])
@@ -193,7 +202,7 @@ object VehicleData extends Marshallable[VehicleData] {
     */
   private val variant_data_codec: Codec[SpecificVehicleData] = {
     import shapeless.::
-    uint8L.hlist.exmap[SpecificVehicleData](
+    uintL(VehicleFormat.Variant.value).hlist.exmap[SpecificVehicleData](
       {
         case n :: HNil =>
           Successful(VariantVehicleData(n).asInstanceOf[SpecificVehicleData])
@@ -212,7 +221,7 @@ object VehicleData extends Marshallable[VehicleData] {
     * @param vehicleFormat the requested format
     * @return the appropriate `Codec` for parsing that format
     */
-  private def selectFormatReader(vehicleFormat: VehicleFormat.Value): Codec[SpecificVehicleData] =
+  private def selectFormatReader(vehicleFormat: VehicleFormat): Codec[SpecificVehicleData] =
     vehicleFormat match {
       case VehicleFormat.Utility =>
         utility_data_codec
@@ -223,7 +232,7 @@ object VehicleData extends Marshallable[VehicleData] {
           .asInstanceOf[Codec[SpecificVehicleData]]
     }
 
-  def codec(vehicle_type: VehicleFormat.Value): Codec[VehicleData] = {
+  def codec(vehicle_type: VehicleFormat): Codec[VehicleData] = {
     import shapeless.::
     (
       ("pos" | PlacementData.codec) >>:~ { pos =>
@@ -237,7 +246,7 @@ object VehicleData extends Marshallable[VehicleData] {
         ("unk6" | bool) ::
         ("cloak" | bool) :: //cloak as wraith, phantasm
         conditional(vehicle_type != VehicleFormat.Normal,"vehicle_format_data" | selectFormatReader(vehicle_type)) ::
-        optional(bool, target = "inventory" | MountableInventory.custom_inventory_codec(pos.vel.isDefined, VehicleFormat.Normal))
+        optional(bool, target = "inventory" | MountableInventory.custom_inventory_codec(pos.vel.isDefined, vehicle_type))
       }
     ).exmap[VehicleData](
       {

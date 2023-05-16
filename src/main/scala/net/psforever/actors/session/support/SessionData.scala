@@ -217,9 +217,12 @@ class SessionData(
       }
     }
     fallHeightTracker(pos.z)
-    //        if (isCrouching && !player.Crouching) {
-    //          //dev stuff goes here
-    //        }
+    if (isCrouching && !player.Crouching) {
+      import scodec.bits._
+      //                                        17 B8010000 970 3D10 002D765535CA16000000 402285BB0037E 4100749E1D03000000620D83A0A00000195798741C00000332E40D84800000
+      middlewareActor ! MiddlewareActor.Raw(hex"17 ec060000 970 fe0f 6C2D765535CA16000013 f9c1f2f80c000 1e18ff0000 105 1e4078640000000 8c50004c0041006d0069006e00670079007500650054005200 7c00000304217c859e8080000000000000002503420022c02a002a002a002a0050004c0041002a002a002a002a00010027e300940000016c0400023c040002285a086c2f00c80000000000300210288740800000004046f17423018000002c4d6190400000001010704a86406000002bc770842000000004041c5f21d01800000e075821902000000623e84208000001950588c1800000332ea0f840000000")
+      //dev stuff goes here
+    }
     player.Position = pos
     player.Velocity = vel
     player.Orientation = Vector3(player.Orientation.x, pitch, yaw)

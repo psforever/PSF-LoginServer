@@ -301,7 +301,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
   def a_codec(name_padding: Int): Codec[CharacterAppearanceA] =
     (
       ("data" | CommonFieldData.codec) >>:~ { data =>
-        ("name" | PacketHelpers.encodedWideStringAligned(namePadding(name_padding, data.v2))) ::
+        ("name" | PacketHelpers.encodedWideStringAligned(namePadding(name_padding, data.v2))) >>:~ { name =>
           ("exosuit" | ExoSuitType.codec) ::
           ("unk5" | uint2) :: //unknown
           ("sex" | CharacterSex.codec) ::
@@ -312,7 +312,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
           ("unk8" | uint16L) ::
           ("unk9" | uint16L) ::
           ("unkA" | uint16L) //usually either 0 or 65535
-      }
+      }}
     ).exmap[CharacterAppearanceA](
       {
         case data :: name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil =>

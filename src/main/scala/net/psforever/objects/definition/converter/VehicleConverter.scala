@@ -112,7 +112,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
     }
   }
 
-  protected def SpecificFormatModifier: VehicleFormat.Value = VehicleFormat.Normal
+  protected def SpecificFormatModifier: VehicleFormat = VehicleFormat.Normal
 
   protected def SpecificFormatData(obj: Vehicle): Option[SpecificVehicleData] = None
 }
