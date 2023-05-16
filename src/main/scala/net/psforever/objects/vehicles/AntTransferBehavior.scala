@@ -50,7 +50,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
 
   def UpdateNtuUI(vehicle: Vehicle with NtuContainer): Unit = {
     if (vehicle.Seats.values.exists(_.isOccupied)) {
-      val display = scala.math.ceil(vehicle.NtuCapacitorScaled).toLong
+      val display = vehicle.NtuCapacitorScaled.toLong
       vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
         vehicle.Actor.toString,
         VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vehicle.GUID, 45, display)

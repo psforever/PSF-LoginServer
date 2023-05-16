@@ -320,15 +320,12 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
       jmine.Actor ! Deployable.Deconstruct()
       val eventsMsgs = eventsProbe.receiveN(3, 10.seconds)
       eventsMsgs.head match {
-        case LocalServiceMessage("test", LocalAction.EliminateDeployable(`jmine`, PlanetSideGUID(1), Vector3(1,2,3), 2)) => ;
+        case LocalServiceMessage("test",LocalAction.EliminateDeployable(mine, ValidPlanetSideGUID(1), Vector3(1.0,2.0,3.0),2))
+          if mine eq jmine => ;
         case _ => assert(false, "owned deconstruct test - not eliminating deployable")
       }
       eventsMsgs(1) match {
-        case LocalServiceMessage("TestCharacter1", LocalAction.DeployableUIFor(DeployedItem.jammer_mine)) => ;
-        case _ => assert(false, "")
-      }
-      eventsMsgs(2) match {
-          case LocalServiceMessage(
+        case LocalServiceMessage(
           "TR",
           LocalAction.DeployableMapIcon(
             PlanetSideGUID(0),
@@ -337,6 +334,10 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
           )
         ) => ;
         case _ => assert(false, "owned deconstruct test - not removing icon")
+      }
+      eventsMsgs(2) match {
+        case LocalServiceMessage("TestCharacter1", LocalAction.DeployableUIFor(DeployedItem.jammer_mine)) => ;
+        case _ => assert(false, "")
       }
 
       assert(deployableList.isEmpty, "owned deconstruct test - deployable still in list")

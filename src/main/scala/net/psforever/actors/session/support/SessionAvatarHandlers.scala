@@ -104,10 +104,10 @@ class SessionAvatarHandlers(
           } //ms
           if (!wasVisible ||
             !previouslyInDrawableRange ||
+            durationSince > drawConfig.delayMax ||
             (!lastMsg.contains(pstateToSave) &&
               (canSeeReallyFar ||
                 currentDistance < drawConfig.rangeMin * drawConfig.rangeMin ||
-                durationSince > drawConfig.delayMax ||
                 sessionData.canSeeReallyFar ||
                 durationSince > targetDelay
                 )
@@ -425,8 +425,7 @@ class SessionAvatarHandlers(
         sessionData.zoning.zoningStatus = Zoning.Status.None
         sessionData.zoning.spawn.deadState = DeadState.Dead
         continent.GUID(mount).collect { case obj: Vehicle =>
-          sessionData.vehicles.ConditionalDriverVehicleControl(obj)
-          sessionData.vehicles.serverVehicleControlVelocity = None
+          sessionData.vehicles.DriverVehicleControl(obj)
           sessionData.unaccessContainer(obj)
         }
         sessionData.playerActionsToCancel()

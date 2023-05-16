@@ -31,7 +31,8 @@ import scodec.codecs._
   * For flight vehicles, for `n`, the forward air speed for the value in this packet will be at least `1.18 * n`.
   * This approximation is not always going to be accurate but serves as a good rule of thumb.
   * @param lock_accelerator driver has no control over vehicle acceleration
-  * @param lock_wheel driver has no control over vehicle turning
+  * @param lock_wheel driver has no control over vehicle turning;
+ *                   generally, the driver never has turning control
   * @param reverse move in reverse
   *                0 = forward
   *                1 = reverse

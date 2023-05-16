@@ -154,6 +154,7 @@ case class GameConfig(
     newAvatar: NewAvatar,
     hart: HartConfig,
     sharedMaxCooldown: Boolean,
+    sharedBfrCooldown: Boolean,
     baseCertifications: Seq[Certification],
     warpGates: WarpGateConfig,
     cavernRotation: CavernRotationConfig,

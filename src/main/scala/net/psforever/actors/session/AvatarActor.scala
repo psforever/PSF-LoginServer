@@ -1,24 +1,17 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.actors.session
 
-import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
-import net.psforever.objects.avatar.{ProgressDecoration, SpecialCarry}
-import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
-import net.psforever.objects.sourcing.SourceWithHealthEntry
-import net.psforever.objects.vital.projectile.ProjectileReason
-import net.psforever.objects.vital.{DamagingActivity, HealingActivity, SpawningActivity, Vitality}
-import net.psforever.packet.game.objectcreate.BasicCharacterData
-import net.psforever.types.ExperienceType
+import java.util.concurrent.atomic.AtomicInteger
 import org.joda.time.{LocalDateTime, Seconds}
-
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
 //
+import net.psforever.objects._
 import net.psforever.objects.avatar.{
   Avatar,
   BattleRank,
@@ -29,25 +22,31 @@ import net.psforever.objects.avatar.{
   Implant,
   MemberLists,
   PlayerControl,
-  Shortcut => AvatarShortcut
+  ProgressDecoration,
+  Shortcut => AvatarShortcut,
+  SpecialCarry
 }
+import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.CharacterSelectConverter
-import net.psforever.objects.inventory.Container
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
-import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, VehicleLoadout}
-import net.psforever.objects._
 import net.psforever.objects.locker.LockerContainer
-import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.objects.vital.HealFromImplant
-import net.psforever.packet.game.objectcreate.{ObjectClass, RibbonBars}
+import net.psforever.objects.sourcing.{PlayerSource,SourceWithHealthEntry}
+import net.psforever.objects.vital.projectile.ProjectileReason
+import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity, Vitality}
+import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
+import net.psforever.persistence
+import net.psforever.services.Service
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.{
   CharacterSex,
   CharacterVoice,
   Cosmetic,
   ExoSuitType,
+  ExperienceType,
   ImplantType,
   LoadoutType,
   MemberAction,
@@ -57,11 +56,7 @@ import net.psforever.types.{
   TransactionType
 }
 import net.psforever.util.Database._
-import net.psforever.persistence
 import net.psforever.util.{Config, Database, DefinitionUtil}
-import net.psforever.services.Service
-//import org.log4s.Logger
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 object AvatarActor {
   def apply(sessionActor: ActorRef[SessionActor.Command]): Behavior[Command] =
@@ -400,28 +395,33 @@ object AvatarActor {
   def resolveSharedPurchaseTimeNames(pair: (BasicDefinition, String)): Seq[(BasicDefinition, String)] = {
     val (definition, name) = pair
     if (name.matches("(tr|nc|vs)hev_.+") && Config.app.game.sharedMaxCooldown) {
+      //all mechanized exo-suits
       val faction = name.take(2)
       (if (faction.equals("nc")) {
-         Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
-       } else if (faction.equals("vs")) {
-         Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
-       } else {
-         Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
-       }).zip(
-        Seq(s"${faction}hev_antipersonnel", s"${faction}hev_antivehicular", s"${faction}hev_antiaircraft")
-      )
-    } else {
+        Seq(GlobalDefinitions.nchev_scattercannon, GlobalDefinitions.nchev_falcon, GlobalDefinitions.nchev_sparrow)
+      } else if (faction.equals("vs")) {
+        Seq(GlobalDefinitions.vshev_quasar, GlobalDefinitions.vshev_comet, GlobalDefinitions.vshev_starfire)
+      } else {
+        Seq(GlobalDefinitions.trhev_dualcycler, GlobalDefinitions.trhev_pounder, GlobalDefinitions.trhev_burster)
+      }).map { tdef => (tdef, tdef.Descriptor) }
+    } else if ((name.matches(".+_gunner") || name.matches(".+_flight")) && Config.app.game.sharedBfrCooldown) {
+      //all battleframe robotics vehicles
       definition match {
         case vdef: VehicleDefinition if GlobalDefinitions.isBattleFrameFlightVehicle(vdef) =>
           val bframe = name.substring(0, name.indexOf('_'))
           val gunner = bframe + "_gunner"
-          Seq((DefinitionUtil.fromString(gunner), gunner), (vdef, name))
-
+          Seq((DefinitionUtil.fromString(gunner), gunner), pair)
         case vdef: VehicleDefinition if GlobalDefinitions.isBattleFrameGunnerVehicle(vdef) =>
           val bframe = name.substring(0, name.indexOf('_'))
           val flight = bframe + "_flight"
-          Seq((vdef, name), (DefinitionUtil.fromString(flight), flight))
-
+          Seq(pair, (DefinitionUtil.fromString(flight), flight))
+        case _ =>
+          Seq.empty
+      }
+    } else {
+      definition match {
+        case tdef: ToolDefinition if GlobalDefinitions.isMaxArms(tdef) =>
+          Seq((tdef, tdef.Descriptor))
         case _ =>
           Seq(pair)
       }
@@ -913,43 +913,8 @@ class AvatarActor(
           AvatarActor.displayLookingForSquad(session.get, if (lfs) 1 else 0)
           Behaviors.same
 
-        case CreateAvatar(name, head, voice, gender, empire) =>
-          import ctx._
-          ctx.run(query[persistence.Avatar].filter(_.name ilike lift(name)).filter(!_.deleted)).onComplete {
-            case Success(characters) =>
-              characters.headOption match {
-                case None =>
-                  val result = for {
-                    _ <- ctx.run(
-                      query[persistence.Avatar]
-                        .insert(
-                          _.name      -> lift(name),
-                          _.accountId -> lift(account.id),
-                          _.factionId -> lift(empire.id),
-                          _.headId    -> lift(head),
-                          _.voiceId   -> lift(voice.id),
-                          _.genderId  -> lift(gender.value),
-                          _.bep       -> lift(Config.app.game.newAvatar.br.experience),
-                          _.cep       -> lift(Config.app.game.newAvatar.cr.experience)
-                        )
-                    )
-                  } yield ()
-                  result.onComplete {
-                    case Success(_) =>
-                      log.debug(s"AvatarActor: created character $name for account ${account.name}")
-                      sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
-                      sendAvatars(account)
-                    case Failure(e) => log.error(e)("db failure")
-                  }
-                case Some(_) =>
-                  // send "char already exists"
-                  sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(1))
-              }
-            case Failure(e) =>
-              log.error(e)("db failure")
-              sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(3))
-              sendAvatars(account)
-          }
+        case CreateAvatar(name, head, voice, sex, empire) =>
+          createAvatar(account, name, sex, empire, head, voice)
           Behaviors.same
 
         case DeleteAvatar(id) =>
@@ -1482,7 +1447,8 @@ class AvatarActor(
           Behaviors.same
 
         case UpdatePurchaseTime(definition, time) =>
-          var newTimes = avatar.cooldowns.purchase
+          var theTimes = avatar.cooldowns.purchase
+          var updateTheTimes: Boolean = false
           AvatarActor
             .resolveSharedPurchaseTimeNames(AvatarActor.resolvePurchaseTimeName(avatar.faction, definition))
             .foreach {
@@ -1490,7 +1456,8 @@ class AvatarActor(
                 Avatar.purchaseCooldowns.get(item) match {
                   case Some(cooldown) =>
                     //only send for items with cooldowns
-                    newTimes = newTimes.updated(name, time)
+                    updateTheTimes = true
+                    theTimes = theTimes.updated(name, time)
                     updatePurchaseTimer(
                       name,
                       cooldown.toSeconds,
@@ -1502,7 +1469,9 @@ class AvatarActor(
                   case _ => ;
                 }
             }
-          avatarCopy(avatar.copy(cooldowns = avatar.cooldowns.copy(purchase = newTimes)))
+          if (updateTheTimes) {
+            avatarCopy(avatar.copy(cooldowns = avatar.cooldowns.copy(purchase = theTimes)))
+          }
           Behaviors.same
 
         case UpdateUseTime(definition, time) =>
@@ -1632,11 +1601,7 @@ class AvatarActor(
           Behaviors.same
 
         case RestoreStamina(stamina) =>
-          tryRestoreStaminaForSession(stamina) match {
-            case Some(sess) =>
-              actuallyRestoreStamina(stamina, sess)
-            case _ => ;
-          }
+          tryRestoreStaminaForSession(stamina).collect { actuallyRestoreStamina(stamina, _) }
           Behaviors.same
 
         case RestoreStaminaPeriodically(stamina) =>
@@ -1897,11 +1862,7 @@ class AvatarActor(
           )
         )
         // if we need to start stamina regeneration
-        tryRestoreStaminaForSession(stamina = 1) match {
-          case Some(_) =>
-            defaultStaminaRegen(initialDelay = 0.5f seconds)
-          case _ => ;
-        }
+        tryRestoreStaminaForSession(stamina = 1).collect { _ => defaultStaminaRegen(initialDelay = 0.5f seconds) }
         replyTo ! AvatarLoginResponse(avatar)
       case Failure(e) =>
         log.error(e)("db failure")
@@ -1991,11 +1952,7 @@ class AvatarActor(
   }
 
   def restoreStaminaPeriodically(stamina: Int): Unit = {
-    tryRestoreStaminaForSession(stamina) match {
-      case Some(sess) =>
-        actuallyRestoreStaminaIfStationary(stamina, sess)
-      case _ => ;
-    }
+    tryRestoreStaminaForSession(stamina).collect { actuallyRestoreStaminaIfStationary(stamina, _) }
     startIfStoppedStaminaRegen(initialDelay = 0.5f seconds)
   }
 
@@ -2633,27 +2590,40 @@ class AvatarActor(
 
   def refreshPurchaseTimes(keys: Set[String]): Unit = {
     var keysToDrop: Seq[String] = Nil
+    val faction = avatar.faction
     keys.foreach { key =>
-      avatar.cooldowns.purchase.find { case (name, _) => name.equals(key) } match {
-        case Some((name, purchaseTime)) =>
+      avatar
+        .cooldowns
+        .purchase
+        .find { case (name, _) => name.equals(key) }
+        .flatMap { case (name, purchaseTime) =>
           val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
-          Avatar.purchaseCooldowns.find(_._1.Name.equals(name)) match {
-            case Some((obj, cooldown)) if cooldown.toSeconds - secondsSincePurchase > 0 =>
-              val (_, name) = AvatarActor.resolvePurchaseTimeName(avatar.faction, obj)
-              updatePurchaseTimer(
-                name,
-                cooldown.toSeconds - secondsSincePurchase,
-                obj match {
-                  case _: KitDefinition => false
-                  case _                => true
-                }
-              )
-
-            case _ =>
-              keysToDrop = keysToDrop :+ key //key has timed-out
+          Avatar
+            .purchaseCooldowns
+            .find(_._1.Descriptor.equals(name))
+            .collect {
+              case (obj, cooldown) =>
+                (obj, cooldown.toSeconds - secondsSincePurchase)
+            }
+          .orElse {
+            keysToDrop = keysToDrop :+ key //key indicates cooldown, but no cooldown delay
+            None
           }
-        case _ => ;
-      }
+        }
+        .collect {
+          case (obj, remainingTime) if remainingTime > 0 =>
+            val (_, resolvedName) = AvatarActor.resolvePurchaseTimeName(faction, obj)
+            updatePurchaseTimer(
+              resolvedName,
+              remainingTime,
+              obj match {
+                case _: KitDefinition => false
+                case _                => true
+              }
+            )
+          case (_, _) =>
+            keysToDrop = keysToDrop :+ key //key has timed-out
+        }
     }
     if (keysToDrop.nonEmpty) {
       val cdown = avatar.cooldowns
@@ -2998,5 +2968,132 @@ class AvatarActor(
 
   def updateToolDischarge(stats: EquipmentStat): Unit = {
     avatar.scorecard.rate(stats)
+  }
+
+  def createAvatar(
+                    account: Account,
+                    name: String,
+                    sex: CharacterSex,
+                    empire: PlanetSideEmpire.Value,
+                    head: Int,
+                    voice: CharacterVoice.Value
+                  ): Unit = {
+    import ctx._
+    ctx.run(
+      query[persistence.Avatar]
+        .filter(_.name ilike lift(name))
+        .map(a => (a.accountId, a.deleted, a.created))
+    )
+      .onComplete {
+        case Success(foundCharacters) if foundCharacters.size == 1 =>
+          testFoundCharacters(
+            account,
+            name,
+            foundCharacters
+              .collect { case (a, b, c) => (a, b, c.toDate.getTime) }
+          )
+        case Success(foundCharacters) if foundCharacters.nonEmpty =>
+          testFoundCharacters(
+            account,
+            name,
+            foundCharacters
+              .map { case (a, b, created) => (a, b, created.toDate.getTime) }
+              .sortBy { case (_, _, created) => created }
+              .toList
+          )
+        case Success(_) =>
+          //create new character
+          actuallyCreateNewCharacter(account.id, account.name, name, sex, empire, head, voice)
+            .onComplete(_ => sendAvatars(account))
+        case Failure(e) =>
+          log.error(e)("db failure")
+          sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 3))
+          sendAvatars(account)
+      }
+  }
+
+  private def testFoundCharacters(
+                                   account: Account,
+                                   name: String,
+                                   foundCharacters: IterableOnce[(Int, Boolean, Long)]): Unit = {
+    val foundCharactersIterator = foundCharacters.iterator
+    if (foundCharactersIterator.exists { case (_, deleted, _ ) => !deleted } ||
+      foundCharactersIterator.exists { case (accountId, _, _) => accountId != account.id }) {
+      //send "char already exists"
+      sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 1))
+    } else {
+      //reactivate character
+      reactivateCharacter(account.id, account.name, name)
+        .onComplete(_ => sendAvatars(account))
+    }
+  }
+
+  private def actuallyCreateNewCharacter(
+                                          accountId: Int,
+                                          accountName: String,
+                                          name: String,
+                                          sex: CharacterSex,
+                                          empire: PlanetSideEmpire.Value,
+                                          head: Int,
+                                          voice: CharacterVoice.Value,
+                                          bep: Long = Config.app.game.newAvatar.br.experience,
+                                          cep: Long = Config.app.game.newAvatar.cr.experience
+                                        ): Future[Boolean] = {
+    val output: Promise[Boolean] = Promise[Boolean]()
+    import ctx._
+    val result = for {
+      _ <- ctx.run(
+        query[persistence.Avatar]
+          .insert(
+            _.name      -> lift(name),
+            _.accountId -> lift(accountId),
+            _.factionId -> lift(empire.id),
+            _.headId    -> lift(head),
+            _.voiceId   -> lift(voice.id),
+            _.genderId  -> lift(sex.value),
+            _.bep       -> lift(bep),
+            _.cep       -> lift(cep)
+          )
+      )
+    } yield ()
+    result.onComplete {
+      case Success(_) =>
+        log.debug(s"AvatarActor: created character $name for account $accountName")
+        sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
+        output.success(true)
+      case Failure(e) =>
+        log.error(e)("db failure")
+        sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 3))
+        output.success(false)
+    }
+    output.future
+  }
+
+  private def reactivateCharacter(
+                                   accountId: Int,
+                                   accountName: String,
+                                   characterName: String
+                                 ): Future[Boolean] = {
+    val output: Promise[Boolean] = Promise[Boolean]()
+    import ctx._
+    val result = for {
+      out <- ctx.run(
+        query[persistence.Avatar]
+          .filter(a => a.accountId == lift(accountId))
+          .filter(a => a.name ilike lift(characterName))
+          .update(_.deleted -> lift(false))
+      )
+    } yield out
+    result.onComplete {
+      case Success(_) =>
+        log.debug(s"AvatarActor: character belonging to $accountName with name $characterName reactivated")
+        sessionActor ! SessionActor.SendResponse(ActionResultMessage.Pass)
+        output.success(true)
+      case Failure(e) =>
+        log.error(e)("db failure")
+        sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 3))
+        output.success(false)
+    }
+    output.future
   }
 }

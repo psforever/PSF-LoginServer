@@ -57,7 +57,9 @@ object TurretSource {
     )
     turret.copy(occupants = obj match {
       case o: Mountable =>
-        o.Seats.values.flatMap { _.occupants }.map { p => PlayerSource.inSeat(p, o, turret) }.toList
+        o.Seats
+          .collect { case (num, seat) if seat.isOccupied => (num, seat.occupants.head) }
+          .map { case (num, p) => PlayerSource.inSeat(p, turret, num) }.toList
       case _ =>
         Nil
     })

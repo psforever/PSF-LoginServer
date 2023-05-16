@@ -109,17 +109,17 @@ object PlayerSource {
    * even if this function is entirely for the purpose of establishing that the player is an occupant of the mountable entity.<br>
    * Don't think too much about it.
    * @param player player
-   * @param mount mountable entity in which the player should be seated
    * @param source a `SourceEntry` for the aforementioned mountable entity
+   * @param seatNumber the attributed seating index in which the player is mounted in `source`
    * @return a `PlayerSource` entity
    */
-  def inSeat(player: Player, mount: Mountable, source: SourceEntry): PlayerSource = {
+  def inSeat(player: Player, source: SourceEntry, seatNumber: Int): PlayerSource = {
     val exosuit = player.ExoSuit
     val faction = player.Faction
     PlayerSource(
       player.Definition,
       exosuit,
-      Some((source, mount.PassengerInSeat(player).get)),
+      Some((source, seatNumber)),
       player.Health,
       player.Armor,
       player.Position,

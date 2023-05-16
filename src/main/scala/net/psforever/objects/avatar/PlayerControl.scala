@@ -36,7 +36,7 @@ import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
-import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.objects.vital.interaction.{Adversarial, DamageInteraction, DamageResult}
 import net.psforever.services.hart.ShuttleState
 import net.psforever.packet.PlanetSideGamePacket
 
@@ -368,8 +368,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
             case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
               log.info(s"${player.Name} wants to change equipment loadout to their option #${msg.unk1 + 1}")
-              val fallbackSubtype = 0
-              val fallbackSuit = ExoSuitType.Standard
               val originalSuit = player.ExoSuit
               val originalSubtype = Loadout.DetermineSubtype(player)
               //sanitize exo-suit for change
@@ -392,29 +390,39 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               }) ++ dropHolsters ++ dropInventory
               //a loadout with a prohibited exo-suit type will result in the fallback exo-suit type
               //imposed 5min delay on mechanized exo-suit switches
-              val (nextSuit, nextSubtype) =
-              if (
-                Players.CertificationToUseExoSuit(player, exosuit, subtype) &&
-                (if (exosuit == ExoSuitType.MAX) {
-                  player.ResistArmMotion(PlayerControl.maxRestriction)
-                  val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
-                  player.avatar.purchaseCooldown(weapon) match {
-                    case Some(_) => false
-                    case None =>
+              val (nextSuit, nextSubtype) = {
+                lazy val fallbackSuit = if (Players.CertificationToUseExoSuit(player, originalSuit, originalSubtype)) {
+                  //TODO will we ever need to check for the cooldown status of an original non-MAX exo-suit?
+                  (originalSuit, originalSubtype)
+                } else {
+                  (ExoSuitType.Standard, 0)
+                }
+                if (Players.CertificationToUseExoSuit(player, exosuit, subtype)) {
+                  if (exosuit == ExoSuitType.MAX) {
+                    val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
+                    val cooldown = player.avatar.purchaseCooldown(weapon)
+                    if (originalSubtype == subtype) {
+                      (exosuit, subtype) //same MAX subtype is free
+                    } else if (cooldown.nonEmpty) {
+                      fallbackSuit //different MAX subtype can not have cooldown
+                    } else {
                       avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
-                      true
+                      (exosuit, subtype) //switching for first time causes cooldown
+                    }
+                  } else {
+                    (exosuit, subtype)
                   }
                 } else {
-                  player.ResistArmMotion(Player.neverRestrict)
-                  true
-                })
-              ) {
-                (exosuit, subtype)
+                  log.warn(
+                    s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear ${fallbackSuit._1} instead"
+                  )
+                  fallbackSuit
+                }
+              }
+              if (nextSuit == ExoSuitType.MAX) {
+                player.ResistArmMotion(PlayerControl.maxRestriction)
               } else {
-                log.warn(
-                  s"${player.Name} no longer has permission to wear the exo-suit type $exosuit; will wear $fallbackSuit instead"
-                )
-                (fallbackSuit, fallbackSubtype)
+                player.ResistArmMotion(Player.neverRestrict)
               }
               //sanitize (incoming) inventory
               //TODO equipment permissions; these loops may be expanded upon in future
@@ -802,7 +810,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     //choose
     if (target.Health > 0) {
       //alive
-      if (target.Health <= 25 && target.Health + damageToHealth > 25 &&
+      if (target.Health <= 25 &&
           (player.avatar.implants.flatten.find { _.definition.implantType == ImplantType.SecondWind } match {
             case Some(wind) => wind.initialized
             case _          => false
@@ -810,8 +818,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         //activate second wind
         player.Health += 25
         player.LogActivity(HealFromImplant(ImplantType.SecondWind, 25))
-        avatarActor ! AvatarActor.ResetImplant(ImplantType.SecondWind)
         avatarActor ! AvatarActor.RestoreStamina(25)
+        avatarActor ! AvatarActor.ResetImplant(ImplantType.SecondWind)
       }
       //take damage/update
       DamageAwareness(target, cause, damageToHealth, damageToArmor, damageToStamina, damageToCapacitor)
@@ -1025,21 +1033,23 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     )
     //TODO other methods of death?
     val pentry = PlayerSource(target)
-    (cause.adversarial match {
-      case out @ Some(_) =>
-        out
-      case _ =>
+    cause
+      .adversarial
+      .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
+      .orElse {
         target.LastDamage.collect {
           case attack if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
-            attack.adversarial
+            attack
+              .adversarial
+              .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
         }.flatten
-      }) match {
+      } match {
       case Some(adversarial) =>
         events ! AvatarServiceMessage(
           zoneChannel,
           AvatarAction.DestroyDisplay(adversarial.attacker, pentry, adversarial.implement)
         )
-      case None =>
+      case _ =>
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
     }
   }
@@ -1288,6 +1298,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     suicide()
   }
 
+  //noinspection ScalaUnusedSymbol
   def doInteractingWithGantryField(
                                     obj: PlanetSideServerObject,
                                     body: PieceOfEnvironment,
