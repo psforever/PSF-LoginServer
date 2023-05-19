@@ -358,34 +358,21 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   ): List[(AmenityOwner, Iterable[SpawnPoint])] = {
     val ams = spawnGroups.contains(SpawnGroup.AMS)
     val structures = spawnGroups.collect {
-      case SpawnGroup.Facility =>
-        StructureType.Facility
-      case SpawnGroup.Tower =>
-        StructureType.Tower
-      case SpawnGroup.WarpGate =>
-        StructureType.WarpGate
-      case SpawnGroup.Sanctuary =>
-        StructureType.Building
+      case SpawnGroup.Facility => StructureType.Facility
+      case SpawnGroup.Tower => StructureType.Tower
+      case SpawnGroup.WarpGate => StructureType.WarpGate
+      case SpawnGroup.Sanctuary => StructureType.Building
     }
-
     SpawnGroups()
-      .filter {
-        case (building, spawns) =>
-          spawns.nonEmpty &&
-          spawns.exists(_.isOffline == false) &&
-          structures.contains(building.BuildingType)
-      }
-      .filter {
-        case (building, _) =>
-          building match {
-            case warpGate: WarpGate =>
-              warpGate.Faction == faction || warpGate.Broadcast(faction)
-            case _ =>
-              building.Faction == faction
-          }
-      }
-      .map {
-        case (building, spawns: List[SpawnPoint]) =>
+      .collect {
+        case (building, spawns)
+          if (building match {
+            case warpGate: WarpGate => warpGate.Faction == faction || warpGate.Broadcast(faction)
+            case _ => building.Faction == faction
+          }) &&
+            structures.contains(building.BuildingType) &&
+            spawns.nonEmpty &&
+            spawns.exists(_.isOffline == false) =>
           (building, spawns.filter(!_.isOffline))
       }
       .concat(
@@ -406,7 +393,6 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
           )
       )
       .toList
-
   }
 
   def findNearestSpawnPoints(

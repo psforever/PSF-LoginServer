@@ -6,7 +6,7 @@ import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.{Player, SpawnPoint, Vehicle}
+import net.psforever.objects.{SpawnPoint, Vehicle}
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.{HotSpotInfo, Zone}
 import net.psforever.packet.game.DroppodError
@@ -51,7 +51,7 @@ object InterstellarClusterService {
 
   final case class GetSpawnPoint(
       zoneNumber: Int,
-      player: Player,
+      faction: PlanetSideEmpire.Value,
       target: PlanetSideGUID,
       fromZoneNumber: Int,
       fromGateGuid: PlanetSideGUID,
@@ -60,7 +60,8 @@ object InterstellarClusterService {
 
   final case class GetNearbySpawnPoint(
       zoneNumber: Int,
-      player: Player,
+      faction: PlanetSideEmpire.Value,
+      position: Vector3,
       spawnGroups: Seq[SpawnGroup],
       replyTo: ActorRef[SpawnPointResponse]
   ) extends Command
@@ -219,11 +220,11 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
         }
         replyTo ! SpawnPointResponse(response)
 
-      case GetSpawnPoint(zoneNumber, player, target, fromZoneNumber, fromOriginGuid, replyTo) =>
+      case GetSpawnPoint(zoneNumber, faction, target, fromZoneNumber, fromOriginGuid, replyTo) =>
         zones.find(_.Number == zoneNumber) match {
           case Some(zone) =>
             //found target zone; find a spawn point in target zone
-            zone.findSpawns(player.Faction, SpawnGroup.values).find {
+            zone.findSpawns(faction, SpawnGroup.values).find {
               case (spawn: Building, spawnPoints) =>
                 spawn.MapId == target.guid || spawnPoints.exists(_.GUID == target)
               case (spawn: Vehicle, spawnPoints) =>
@@ -259,10 +260,10 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             }
         }
 
-      case GetNearbySpawnPoint(zoneNumber, player, spawnGroups, replyTo) =>
+      case GetNearbySpawnPoint(zoneNumber, faction, position, spawnGroups, replyTo) =>
         zones.find(_.Number == zoneNumber) match {
           case Some(zone) =>
-            zone.findNearestSpawnPoints(player.Faction, player.Position, spawnGroups) match {
+            zone.findNearestSpawnPoints(faction, position, spawnGroups) match {
               case None | Some(Nil) =>
                 replyTo ! SpawnPointResponse(None)
               case Some(spawnPoints) =>

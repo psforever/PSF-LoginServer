@@ -425,12 +425,14 @@ class SessionAvatarHandlers(
         sessionData.zoning.zoningStatus = Zoning.Status.None
         sessionData.zoning.spawn.deadState = DeadState.Dead
         continent.GUID(mount).collect { case obj: Vehicle =>
-          sessionData.vehicles.DriverVehicleControl(obj)
+          sessionData.vehicles.ConditionalDriverVehicleControl(obj)
           sessionData.unaccessContainer(obj)
         }
         sessionData.playerActionsToCancel()
         sessionData.terminals.CancelAllProximityUnits()
+        sessionData.zoning
         AvatarActor.savePlayerLocation(player)
+        sessionData.zoning.spawn.shiftPosition = Some(player.Position)
 
         //respawn
         val respawnTimer = 300.seconds
