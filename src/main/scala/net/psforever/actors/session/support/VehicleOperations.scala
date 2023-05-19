@@ -538,7 +538,19 @@ class VehicleOperations(
   def ServerVehicleOverrideStop(vehicle: Vehicle): Unit = {
     val vehicleGuid = vehicle.GUID
     session = session.copy(avatar = avatar.copy(vehicle = Some(vehicleGuid)))
-    sessionData.vehicles.DriverVehicleControl(vehicle, vehicle.Definition.AutoPilotSpeed2)
+    TotalDriverVehicleControlWithPacket(
+      vehicle,
+      ServerVehicleOverrideMsg(
+        lock_accelerator=false,
+        lock_wheel=false,
+        reverse=false,
+        unk4=true,
+        lock_vthrust=0,
+        lock_strafe=0,
+        movement_speed=vehicle.Definition.AutoPilotSpeed2,
+        unk8=None
+      )
+    )
     sendResponse(PlanetsideAttributeMessage(vehicleGuid, attribute_type=22, attribute_value=0L)) //mount points on
   }
 
@@ -552,31 +564,6 @@ class VehicleOperations(
     serverVehicleControlVelocity = Some(pkt.movement_speed)
     vehicle.DeploymentState = DriveState.AutoPilot
     sendResponse(pkt)
-  }
-
-  /**
-   * Place the current vehicle under the control of the driver's commands,
-   * but leave it in a cancellable auto-drive.
-   * @param vehicle the vehicle
-   * @param speed how fast the vehicle is moving forward
-   * @param flight whether the vehicle is ascending or not, if the vehicle is an applicable type
-   */
-  def DriverVehicleControl(vehicle: Vehicle, speed: Int = 0, flight: Int = 0): Unit = {
-    if (vehicle.DeploymentState == DriveState.AutoPilot) {
-      TotalDriverVehicleControlWithPacket(
-        vehicle,
-        ServerVehicleOverrideMsg(
-          lock_accelerator=false,
-          lock_wheel=false,
-          reverse=false,
-          unk4=true,
-          lock_vthrust=flight,
-          lock_strafe=0,
-          movement_speed=speed,
-          unk8=None
-        )
-      )
-    }
   }
 
   /**

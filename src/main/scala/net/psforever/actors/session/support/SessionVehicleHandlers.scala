@@ -276,7 +276,7 @@ class SessionVehicleHandlers(
             lock_wheel=true,
             reverse=false,
             unk4=false,
-            lock_vthrust=0,
+            lock_vthrust=1,
             lock_strafe=0,
             movement_speed=0,
             unk8=Some(0)

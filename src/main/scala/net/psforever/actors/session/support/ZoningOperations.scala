@@ -127,7 +127,7 @@ class ZoningOperations(
           spawn.deadState = DeadState.RespawnTime
           cluster ! ICS.GetSpawnPoint(
             destinationZoneGuid.guid,
-            player,
+            player.Faction,
             destinationBuildingGuid,
             continent.Number,
             building_guid,
@@ -651,7 +651,8 @@ class ZoningOperations(
           zoneReload = true
           cluster ! ICS.GetNearbySpawnPoint(
             zone.Number,
-            player,
+            player.Faction,
+            player.Position,
             Seq(SpawnGroup.Facility, SpawnGroup.Tower),
             context.self
           )
@@ -1668,10 +1669,12 @@ class ZoningOperations(
             case _ =>
               zoneNumber
           },
-          player,
+          player.Faction,
+          shiftPosition.getOrElse(player.Position),
           Seq(spawnGroup),
           context.self
         )
+        shiftPosition = None
       } else {
         log.warn(s"SpawnRequestMessage: request consumed because ${player.Name} is already respawning ...")
       }
@@ -1937,7 +1940,8 @@ class ZoningOperations(
         //look for different spawn point in same zone
         cluster ! ICS.GetNearbySpawnPoint(
           zone.Number,
-          tplayer,
+          tplayer.Faction,
+          tplayer.Position,
           Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
           context.self
         )
@@ -1971,7 +1975,8 @@ class ZoningOperations(
         //look for different spawn point in same zone
         cluster ! ICS.GetNearbySpawnPoint(
           continent.Number,
-          tplayer,
+          tplayer.Faction,
+          tplayer.Position,
           Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
           context.self
         )
