@@ -11,7 +11,6 @@ import net.psforever.objects.{GlobalDefinitions, Player, Vehicle, Vehicles}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game._
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleResponse, VehicleServiceResponse}
 import net.psforever.types.{BailType, ChatMessageType, PlanetSideGUID, Vector3}
 
@@ -228,44 +227,11 @@ class SessionVehicleHandlers(
 
       case VehicleResponse.StartPlayerSeatedInVehicle(vehicle, _)
         if player.VisibleSlots.contains(player.DrawnSlot) =>
-        val vehicle_guid = vehicle.GUID
-        sessionData.playerActionsToCancel()
-        sessionData.vehicles.ServerVehicleOverrideWithPacket(
-          vehicle,
-          ServerVehicleOverrideMsg(
-            lock_accelerator=false,
-            lock_wheel=false,
-            reverse=false,
-            unk4=false,
-            lock_vthrust=0,
-            lock_strafe=0,
-            movement_speed=0,
-            unk8=None
-          )
-        )
-        sessionData.terminals.CancelAllProximityUnits()
         player.DrawnSlot = Player.HandsDownSlot
-        sendResponse(ObjectHeldMessage(player.GUID, Player.HandsDownSlot, unk1=true))
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.SendResponse(player.GUID, ObjectHeldMessage(player.GUID, player.LastDrawnSlot, unk1=false))
-        )
-        sendResponse(PlanetsideAttributeMessage(vehicle_guid, attribute_type=22, attribute_value=1L)) //mount points off
-        sendResponse(PlanetsideAttributeMessage(player.GUID, attribute_type=21, vehicle_guid)) //ownership
-        vehicle.MountPoints.find { case (_, mp) => mp.seatIndex == 0 }.collect {
-          case (mountPoint, _) => vehicle.Actor ! Mountable.TryMount(player, mountPoint)
-        }
+        startPlayerSeatedInVehicle(vehicle)
 
       case VehicleResponse.StartPlayerSeatedInVehicle(vehicle, _) =>
-        val vehicleGuid = vehicle.GUID
-        val playerGuid = player.GUID
-        sessionData.playerActionsToCancel()
-        sessionData.terminals.CancelAllProximityUnits()
-        sendResponse(PlanetsideAttributeMessage(vehicleGuid, attribute_type=22, attribute_value=1L)) //mount points off
-        sendResponse(PlanetsideAttributeMessage(playerGuid, attribute_type=21, vehicleGuid)) //ownership
-        vehicle.MountPoints.find { case (_, mp) => mp.seatIndex == 0 }.collect {
-          case (mountPoint, _) => vehicle.Actor ! Mountable.TryMount(player, mountPoint)
-        }
+        startPlayerSeatedInVehicle(vehicle)
 
       case VehicleResponse.PlayerSeatedInVehicle(vehicle, _) =>
         Vehicles.ReloadAccessPermissions(vehicle, player.Name)
@@ -274,7 +240,7 @@ class SessionVehicleHandlers(
           ServerVehicleOverrideMsg(
             lock_accelerator=true,
             lock_wheel=true,
-            reverse=false,
+            reverse=true,
             unk4=false,
             lock_vthrust=1,
             lock_strafe=0,
@@ -282,7 +248,7 @@ class SessionVehicleHandlers(
             unk8=Some(0)
           )
         )
-        sessionData.vehicles.serverVehicleControlVelocity = Some(-1)
+        sessionData.vehicles.serverVehicleControlVelocity = Some(0)
 
       case VehicleResponse.ServerVehicleOverrideStart(vehicle, _) =>
         val vdef = vehicle.Definition
@@ -378,6 +344,18 @@ class SessionVehicleHandlers(
       case None =>
         //observer: observe changes to external equipment
         oldWeapons.foreach { case (_, eguid) => sendResponse(ObjectDeleteMessage(eguid, unk1=0)) }
+    }
+  }
+
+  private def startPlayerSeatedInVehicle(vehicle: Vehicle): Unit = {
+    val vehicle_guid = vehicle.GUID
+    sessionData.playerActionsToCancel()
+    sessionData.terminals.CancelAllProximityUnits()
+    sessionData.vehicles.serverVehicleControlVelocity = Some(0)
+    sendResponse(PlanetsideAttributeMessage(vehicle_guid, attribute_type=22, attribute_value=1L)) //mount points off
+    sendResponse(PlanetsideAttributeMessage(player.GUID, attribute_type=21, vehicle_guid)) //ownership
+    vehicle.MountPoints.find { case (_, mp) => mp.seatIndex == 0 }.collect {
+      case (mountPoint, _) => vehicle.Actor ! Mountable.TryMount(player, mountPoint)
     }
   }
 }
