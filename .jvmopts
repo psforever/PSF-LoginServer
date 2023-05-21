@@ -1,5 +1,4 @@
--Xmx2048M
--Xss6M
+-Xss1M
 -Dconfig.override_with_env_vars=true
 -Dsbt.server.forcestart=true
 -Dquill.macro.log=false
