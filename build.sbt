@@ -1,4 +1,4 @@
-import xerial.sbt.pack.PackPlugin._
+//import xerial.sbt.pack.PackPlugin._
 
 lazy val psforeverSettings = Seq(
   organization := "net.psforever",
@@ -22,12 +22,12 @@ lazy val psforeverSettings = Seq(
   // Quiet test options
   // https://github.com/etorreborre/specs2/blob/8305db76c5084e4b3ce5827ce23117f6fb6beee4/common/shared/src/main/scala/org/specs2/main/Report.scala#L94
   // https://etorreborre.github.io/specs2/guide/SPECS2-2.4.17/org.specs2.guide.Runners.html
-  testOptions in QuietTest += Tests.Argument(TestFrameworks.Specs2, "showOnly", "x!"),
+  QuietTest / testOptions += Tests.Argument(TestFrameworks.Specs2, "showOnly", "x!"),
   // http://www.scalatest.org/user_guide/using_the_runner
-  testOptions in QuietTest += Tests.Argument(TestFrameworks.ScalaTest, "-oCEHILMNOPQRX"),
+  QuietTest / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oCEHILMNOPQRX"),
   // Trick taken from https://groups.google.com/d/msg/scala-user/mxV9ok7J_Eg/kt-LnsrD0bkJ
   // scaladoc flags: https://github.com/scala/scala/blob/2.11.x/src/scaladoc/scala/tools/nsc/doc/Settings.scala
-  scalacOptions in (Compile, doc) ++= Seq(
+  Compile / doc / scalacOptions ++= Seq(
     "-groups",
     "-doc-title",
     "PSF-LoginServer - ",
@@ -64,6 +64,8 @@ lazy val psforeverSettings = Seq(
     "com.github.nscala-time"     %% "nscala-time"                % "2.30.0",
     "com.github.t3hnar"          %% "scala-bcrypt"               % "4.3.0",
     "org.scala-graph"            %% "graph-core"                 % "1.13.3",
+    "io.kamon"                   %% "kamon-bundle"               % "2.3.1",
+    "io.kamon"                   %% "kamon-apm-reporter"         % "2.3.1",
     "org.json4s"                 %% "json4s-native"              % "4.0.3",
     "io.getquill"                %% "quill-jasync-postgres"      % "3.18.0",
     "org.flywaydb"                % "flyway-core"                % "9.0.0",
@@ -104,14 +106,14 @@ lazy val server = (project in file("server"))
   .settings(
     name := "server",
     // ActorTests have specific timing requirements and will be flaky if run in parallel
-    parallelExecution in Test := false,
+    Test / parallelExecution := false,
     // Copy all tests from Test -> QuietTest (we're only changing the run options)
     inConfig(QuietTest)(Defaults.testTasks),
     packMain := Map("psforever-server" -> "net.psforever.server.Server"),
     packArchivePrefix := "psforever-server",
     packJvmOpts := Map("psforever-server" -> Seq("-Dstacktrace.app.packages=net.psforever")),
     packExtraClasspath := Map("psforever-server" -> Seq("${PROG_HOME}/config")),
-    packResourceDir += (baseDirectory.in(psforever).value / "config" -> "config")
+    packResourceDir += ((psforever / baseDirectory).value / "config" -> "config")
   )
   .dependsOn(psforever)
 
