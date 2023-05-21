@@ -7,7 +7,6 @@ import java.util.UUID.randomUUID
 import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.Future
 import scala.concurrent.Await
-
 import akka.actor.ActorSystem
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.Behaviors
@@ -36,8 +35,10 @@ import org.fusesource.jansi.Ansi._
 import org.slf4j
 import scopt.OParser
 import akka.actor.typed.scaladsl.adapter._
+import kamon.Kamon
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.services.hart.HartService
+
 import scala.concurrent.duration.Duration
 
 object Server {
@@ -82,6 +83,10 @@ object Server {
         case None          => InetAddress.getByName(Config.app.bind) // address from config
       }
 
+    if (Config.app.kamon.enable) {
+      logger.info("Starting Kamon")
+      Kamon.init()
+    }
     if (Config.app.sentry.enable) {
       logger.info(s"Enabling Sentry")
       val options = new SentryOptions()

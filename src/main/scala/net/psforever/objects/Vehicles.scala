@@ -65,10 +65,10 @@ object Vehicles {
       case Some(player: Player) =>
         if (player.avatar.vehicle.contains(guid)) {
           player.avatar.vehicle = None
-          vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
-            player.Name,
-            VehicleAction.Ownership(player.GUID, PlanetSideGUID(0))
-          )
+//          vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
+//            player.Name,
+//            VehicleAction.Ownership(player.GUID, PlanetSideGUID(0))
+//          )
         }
         vehicle.AssignOwnership(None)
         val empire         = VehicleLockState.Empire.id
@@ -118,17 +118,18 @@ object Vehicles {
   }
 
   /**
-    * Disassociate a player from a vehicle that he owns without associating a different player as the owner.
-    * Set the vehicle's driver mount permissions and passenger and gunner mount permissions to "allow empire,"
-    * then reload them for all clients.
-    * This is the vehicle side of vehicle ownership removal.
-    * @param player the player
-    */
+   * Disassociate a player from a vehicle that he owns without associating a different player as the owner.
+   * Set the vehicle's driver mount permissions and passenger and gunner mount permissions to "allow empire,"
+   * then reload them for all clients.
+   * This is the vehicle side of vehicle ownership removal.
+   * @param player the player
+   * @param vehicle the vehicle
+   */
   def Disown(player: Player, vehicle: Vehicle): Option[Vehicle] = {
     val pguid = player.GUID
     if (vehicle.Owner.contains(pguid)) {
       vehicle.AssignOwnership(None)
-      vehicle.Zone.VehicleEvents ! VehicleServiceMessage(player.Name, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
+      //vehicle.Zone.VehicleEvents ! VehicleServiceMessage(player.Name, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
       val vguid  = vehicle.GUID
       val empire = VehicleLockState.Empire.id
       (0 to 2).foreach(group => {

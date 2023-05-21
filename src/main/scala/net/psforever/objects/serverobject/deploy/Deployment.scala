@@ -80,8 +80,7 @@ object Deployment {
     * Two sequences are defined.
     * The more elaborate sequence proceeds from `Mobile --> Deploying --> Deployed --> Undeploying --> Mobile`.
     * This is the standard in-game deploy cycle.
-    * The sequence void of complexity is `State7 --> State7`.
-    * `State7` is an odd condition possessed mainly by vehicles that do not deploy.
+    * All other sequences are void of complexity and should not mutate from their original value.
     * @param from_state the original deployment state
     * @return the deployment state that is being transitioned
     */
@@ -91,7 +90,7 @@ object Deployment {
       case DriveState.Deploying   => DriveState.Deployed
       case DriveState.Deployed    => DriveState.Undeploying
       case DriveState.Undeploying => DriveState.Mobile
-      case DriveState.State7      => DriveState.State7
+      case _                      => from_state
     }
   }
 
