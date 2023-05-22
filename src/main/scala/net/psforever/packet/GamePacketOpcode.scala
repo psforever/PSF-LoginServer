@@ -470,7 +470,7 @@ object GamePacketOpcode extends Enumeration {
       case 0x8b => noDecoder(UnknownMessage139)
       case 0x8c => noDecoder(OutfitMembershipRequest)
       case 0x8d => noDecoder(OutfitMembershipResponse)
-      case 0x8e => noDecoder(OutfitRequest)
+      case 0x8e => game.OutfitRequest.decode
       case 0x8f => noDecoder(OutfitEvent)
 
       // OPCODES 0x90-9f
