@@ -382,7 +382,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 3797992164L,
         scale = MapScale.Dim2048,
         hotSpotSpan = 80,
-        environment = List(SeaLevel(EnvironmentAttribute.Death, 52.414f)) //abd: 51.414
+        environment = List(Pool(EnvironmentAttribute.Death, DeepSurface(51.414f, 2048, 2048, 0, 0)))
       )
 
   case object Ugd05
