@@ -12,21 +12,22 @@ class ConnectToWorldRequestMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.decodePacket(string).require match {
-      case ConnectToWorldRequestMessage(serverName, token, majorVersion, minorVersion, revision, buildDate, unk) =>
+      case ConnectToWorldRequestMessage(serverName, token, majorVersion, minorVersion, revision, buildDate, unk1, unk2) =>
         serverName mustEqual "gemini"
         token mustEqual ""
         majorVersion mustEqual 0
         minorVersion mustEqual 0
         revision mustEqual 0
         buildDate mustEqual ""
-        unk mustEqual 0
+        unk1 mustEqual 0
+        unk2 mustEqual 0
       case _ =>
         ko
     }
   }
 
   "encode" in {
-    val msg = ConnectToWorldRequestMessage("gemini", "", 0, 0, 0, "", 0)
+    val msg = ConnectToWorldRequestMessage("gemini", "", 0, 0, 0, "", 0, 0)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string

@@ -14,7 +14,8 @@ final case class ConnectToWorldRequestMessage(
     minorVersion: Long,
     revision: Long,
     buildDate: String,
-    unknown: Int
+    unk1: Int,
+    unk2: Int
 ) extends PlanetSideGamePacket {
   type Packet = ConnectToWorldRequestMessage
   def opcode = GamePacketOpcode.ConnectToWorldRequestMessage
@@ -29,6 +30,7 @@ object ConnectToWorldRequestMessage extends Marshallable[ConnectToWorldRequestMe
       ("minor_version" | uint32L) ::
       ("revision" | uint32L) ::
       ("build_date" | PacketHelpers.encodedString) ::
-      ("unknown_short" | uint16L)
+      ("unk1" | uint8) ::
+      ("unk2" | uint8)
   ).as[ConnectToWorldRequestMessage]
 }

@@ -119,7 +119,7 @@ object CharacterData extends Marshallable[CharacterData] {
       ("health" | uint8L) :: //dead state when health == 0
         ("armor" | uint8L) ::
         (("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
-        uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
+        uint(bits = 3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
           ("command_rank" | uintL(3)) ::
           listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
           ("cosmetics" | conditional(BattleRank.showCosmetics(style), Cosmetic.codec))

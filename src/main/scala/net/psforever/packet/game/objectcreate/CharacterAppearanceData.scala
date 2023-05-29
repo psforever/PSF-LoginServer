@@ -171,9 +171,9 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
         app.faction,
         black_ops,
         altModel,
-        false,
+        v1 = false,
         None,
-        false,
+        jammered=false,
         None,
         if (jammered) {
           Some(0)
@@ -194,20 +194,20 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
       outfit_name.length,
       outfit_name: String,
       outfit_logo: Int,
-      false,
+      unk1 = false,
       backpack,
-      false,
-      false,
-      false,
+      unk2 = false,
+      unk3 = false,
+      unk4 = false,
       facingPitch: Float,
       facingYawUpper: Float,
       lfs: Boolean,
       grenade_state: GrenadeState.Value,
       is_cloaking: Boolean,
-      false,
-      false,
+      unk5 = false,
+      unk6 = false,
       charging_pose: Boolean,
-      false,
+      unk7 = false,
       on_zipline
     )(altModel, name_padding)
     new CharacterAppearanceData(
@@ -283,11 +283,6 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
     6
   }
 
-  private val extra_codec: Codec[ExtraData] = (
-    ("unk1" | bool) ::
-      ("unk2" | bool)
-  ).as[ExtraData]
-
   private val zipline_codec: Codec[ZiplineData] = (
     ("unk1" | uint32L) ::
       ("unk2" | bool)
@@ -301,9 +296,9 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
   def a_codec(name_padding: Int): Codec[CharacterAppearanceA] =
     (
       ("data" | CommonFieldData.codec) >>:~ { data =>
-        ("name" | PacketHelpers.encodedWideStringAligned(namePadding(name_padding, data.v2))) >>:~ { name =>
+        ("name" | PacketHelpers.encodedWideStringAligned(namePadding(name_padding, data.v2))) ::
           ("exosuit" | ExoSuitType.codec) ::
-          ("unk5" | uint2) :: //unknown
+          ("unk5" | uint2) ::
           ("sex" | CharacterSex.codec) ::
           ("head" | uint8L) ::
           ("voice" | CharacterVoice.codec) ::
@@ -312,7 +307,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
           ("unk8" | uint16L) ::
           ("unk9" | uint16L) ::
           ("unkA" | uint16L) //usually either 0 or 65535
-      }}
+      }
     ).exmap[CharacterAppearanceA](
       {
         case data :: name :: suit :: u5 :: sex :: head :: v1 :: u6 :: u7 :: u8 :: u9 :: uA :: HNil =>
@@ -398,14 +393,14 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
         ("outfit_name" | PacketHelpers.encodedWideStringAligned(outfitNamePadding)) ::
         ("outfit_logo" | uint8L) ::
         ("unk1" | bool) ::                           //unknown
-        conditional(alt_model, "backpack" | bool) :: //alt_model flag adds this bit; see ps.c:line#1069587
+        ("backpack" | conditional(alt_model, bool)) :: //alt_model flag adds this bit; see ps.c:line#1069587
         ("unk2" | bool) ::                           //requires alt_model flag (does NOT require health == 0)
         ("unk3" | bool) ::                           //stream misalignment when set
         ("unk4" | bool) ::                           //unknown
         ("facingPitch" | Angular.codec_zero_centered) ::
         ("facingYawUpper" | Angular.codec_zero_centered) ::
         ("lfs" | uint2) ::
-        ("grenade_state" | GrenadeState.codec_2u) :: //note: bin10 and bin11 are neutral (bin00 is not defined)
+        ("grenade_state" | GrenadeState.codec_2u) ::
         ("is_cloaking" | bool) ::
         ("unk5" | bool) :: //unknown
         ("unk6" | bool) :: //stream misalignment when set
