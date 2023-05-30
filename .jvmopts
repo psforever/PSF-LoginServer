@@ -1,5 +1,5 @@
 -Xmx4096M
--Xss1M
+-Xss6M
 -Dconfig.override_with_env_vars=true
 -Dsbt.server.forcestart=true
 -Dquill.macro.log=false
