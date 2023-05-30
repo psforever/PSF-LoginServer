@@ -7287,7 +7287,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = ExplodingRadialDegrade
     }
-    twomanhoverbuggy.DrownAtMaxDepth = true
+    twomanhoverbuggy.DrownAtMaxDepth = false //true?
+    twomanhoverbuggy.MaxDepth = 2f
     twomanhoverbuggy.UnderwaterLifespan(
       suffocation = 45000L,
       recovery = 5000L
@@ -7336,7 +7337,7 @@ object GlobalDefinitions {
       Modifiers = ExplodingRadialDegrade
     }
     mediumtransport.DrownAtMaxDepth = false
-    mediumtransport.MaxDepth = 1.2f
+    mediumtransport.MaxDepth = 2f
     mediumtransport.UnderwaterLifespan(suffocation = -1, recovery = -1)
     mediumtransport.Geometry = delivererForm
     mediumtransport.collision.avatarCollisionDamageMax = 120
@@ -7384,8 +7385,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = ExplodingRadialDegrade
     }
-    battlewagon.DrownAtMaxDepth = true
-    battlewagon.MaxDepth = 1.2f
+    battlewagon.DrownAtMaxDepth = false
+    battlewagon.MaxDepth = 2f
     battlewagon.UnderwaterLifespan(suffocation = -1, recovery = -1)
     battlewagon.Geometry = delivererForm
     battlewagon.collision.avatarCollisionDamageMax = 120
@@ -7430,8 +7431,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = ExplodingRadialDegrade
     }
-    thunderer.DrownAtMaxDepth = true
-    thunderer.MaxDepth = 1.2f
+    thunderer.DrownAtMaxDepth = false
+    thunderer.MaxDepth = 2f
     thunderer.UnderwaterLifespan(suffocation = -1, recovery = -1)
     thunderer.Geometry = delivererForm
     thunderer.collision.avatarCollisionDamageMax = 120
@@ -7476,8 +7477,8 @@ object GlobalDefinitions {
       DamageAtEdge = 0.2f
       Modifiers = ExplodingRadialDegrade
     }
-    aurora.DrownAtMaxDepth = true
-    aurora.MaxDepth = 1.2f
+    aurora.DrownAtMaxDepth = false
+    aurora.MaxDepth = 2f
     aurora.UnderwaterLifespan(suffocation = -1, recovery = -1)
     aurora.Geometry = delivererForm
     aurora.collision.avatarCollisionDamageMax = 120
