@@ -1,3 +1,4 @@
+-Xmx4096M
 -Xss1M
 -Dconfig.override_with_env_vars=true
 -Dsbt.server.forcestart=true
