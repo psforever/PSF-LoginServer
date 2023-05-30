@@ -106,7 +106,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
         accountLogin(username, password.getOrElse(""))
 
-      case ConnectToWorldRequestMessage(name, _, _, _, _, _, _) =>
+      case ConnectToWorldRequestMessage(name, _, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '$name'")
         val response = ConnectToWorldMessage(serverName, publicAddress.getAddress.getHostAddress, publicAddress.getPort)
         middlewareActor ! MiddlewareActor.Send(response)

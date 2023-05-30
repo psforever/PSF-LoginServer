@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.vehicles.VehicleSubsystemEntry
 import net.psforever.objects.{PlanetSideGameObject, Vehicle}
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{PlanetSideGUID, VehicleFormat}
 import net.psforever.packet.game.objectcreate._
 
 import scala.util.{Failure, Success, Try}

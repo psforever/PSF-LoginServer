@@ -2,7 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.PacketHelpers
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{PlanetSideGUID, VehicleFormat}
 import scodec.Attempt.{Failure, Successful}
 import scodec.{Codec, Err}
 import scodec.codecs._
@@ -23,7 +23,7 @@ object MountableInventory {
   * @param format the subtype for this vehicle
   * @return a `Codec` that translates `InventoryData`
   */
-  def custom_inventory_codec(hasVelocity: Boolean, format: VehicleFormat.Type): Codec[InventoryData] =
+  def custom_inventory_codec(hasVelocity: Boolean, format: VehicleFormat): Codec[InventoryData] =
     custom_inventory_codec(InitialStreamLengthToSeatEntries(hasVelocity, format))
 
   /**
@@ -96,7 +96,7 @@ object MountableInventory {
                   accumulative: Long
                 ): Player_Data = {
     val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
-    Player_Data(None, appearance, character_data(appearance.b.backpack, true), Some(inventory), drawn_slot)(false)
+    Player_Data(None, appearance, character_data(false, true), Some(inventory), drawn_slot)(position_defined = false)
   }
 
   /**
@@ -118,7 +118,7 @@ object MountableInventory {
                   accumulative: Long
                 ): Player_Data = {
     val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
-    Player_Data.apply(None, appearance, character_data(appearance.b.backpack, true), None, drawn_slot)(false)
+    Player_Data.apply(None, appearance, character_data(false, true), None, drawn_slot)(position_defined = false)
   }
 
   /**
@@ -136,16 +136,8 @@ object MountableInventory {
     * @param format the subtype for this vehicle
     * @return the length of the bitstream
     */
-  def InitialStreamLengthToSeatEntries(hasVelocity: Boolean, format: VehicleFormat.Type): Long = {
-    198 +
-    (if (hasVelocity) 42 else 0) +
-    (format match {
-      case VehicleFormat.Utility           => 6
-      case VehicleFormat.Variant           => 8
-      case VehicleFormat.Battleframe       => 1
-      case VehicleFormat.BattleframeFlight => 2
-      case _                               => 0
-    })
+  def InitialStreamLengthToSeatEntries(hasVelocity: Boolean, format: VehicleFormat): Long = {
+    198 + (if (hasVelocity) 42 else 0) + format.value
   }
 
   /**
@@ -156,10 +148,7 @@ object MountableInventory {
     * @return the padding value, 0-7 bits
     */
   def CumulativeSeatedPlayerNamePadding(base: Long, next: Option[StreamBitSize]): Int = {
-    CumulativeSeatedPlayerNamePadding(base + (next match {
-      case Some(o) => o.bitsize
-      case None    => 0
-    }))
+    CumulativeSeatedPlayerNamePadding(base + next.map { _.bitsize }.getOrElse(0L))
   }
 
   /**
@@ -199,7 +188,7 @@ object MountableInventory {
   private def inventory_seat_codec(length: Long, offset: Int): Codec[Option[InventorySeat]] = {
     import shapeless.::
     (
-      PacketHelpers.peek(uintL(11)) >>:~ { objClass =>
+      PacketHelpers.peek(uintL(bits = 11)) >>:~ { objClass =>
         conditional(objClass == ObjectClass.avatar, seat_codec(offset)) >>:~ { seat =>
           conditional(
             objClass == ObjectClass.avatar,
@@ -240,7 +229,7 @@ object MountableInventory {
   }
 
   /**
-    * Translate data the is verified to involve a player who is seated (mounted) to the parent object at a given slot.
+    * Translate data that is verified to involve a player who is seated (mounted) to the parent object at a given slot.
     * The operation performed by this `Codec` is very similar to `InternalSlot.codec`.
     * @param pad the padding offset for the player's name;
     *            0-7 bits;
@@ -253,7 +242,7 @@ object MountableInventory {
   private def seat_codec(pad: Int): Codec[InternalSlot] = {
     import shapeless.::
     (
-      ("objectClass" | uintL(11)) ::
+      ("objectClass" | uintL(bits = 11)) ::
       ("guid" | PlanetSideGUID.codec) ::
       ("parentSlot" | PacketHelpers.encodedStringSize) ::
       ("obj" | Player_Data.codec(pad))

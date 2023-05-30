@@ -4,7 +4,7 @@ package net.psforever.objects.definition.converter
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.packet.game.objectcreate._
-import net.psforever.types.{DriveState, PlanetSideGUID}
+import net.psforever.types.{DriveState, PlanetSideGUID, VehicleFormat}
 
 import scala.util.{Failure, Success, Try}
 
@@ -75,9 +75,9 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
   }
 
   private def MakeDriverSeat(obj: Vehicle): List[InventoryItemData.InventoryItem] = {
-    val offset: Long = MountableInventory.InitialStreamLengthToSeatEntries(obj.Velocity.nonEmpty, SpecificFormatModifier)
     obj.Seats(0).occupant match {
       case Some(player) =>
+        val offset: Long = MountableInventory.InitialStreamLengthToSeatEntries(obj.Velocity.nonEmpty, SpecificFormatModifier)
         List(InventoryItemData(ObjectClass.avatar, player.GUID, 0, SeatConverter.MakeSeat(player, offset)))
       case None =>
         Nil
@@ -112,7 +112,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
     }
   }
 
-  protected def SpecificFormatModifier: VehicleFormat.Value = VehicleFormat.Normal
+  protected def SpecificFormatModifier: VehicleFormat = VehicleFormat.Normal
 
   protected def SpecificFormatData(obj: Vehicle): Option[SpecificVehicleData] = None
 }

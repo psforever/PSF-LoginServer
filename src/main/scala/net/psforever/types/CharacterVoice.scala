@@ -22,5 +22,5 @@ object CharacterVoice extends Enumeration {
   Voice5            //daredevil, calculating
   = Value
 
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(3))
+  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint(bits = 3))
 }

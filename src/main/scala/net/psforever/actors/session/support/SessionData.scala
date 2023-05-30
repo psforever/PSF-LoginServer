@@ -156,7 +156,7 @@ class SessionData(
   /* packets */
 
   def handleConnectToWorldRequest(pkt: ConnectToWorldRequestMessage)(implicit context: ActorContext): Unit = {
-    val ConnectToWorldRequestMessage(_, token, majorVersion, minorVersion, revision, buildDate, _) = pkt
+    val ConnectToWorldRequestMessage(_, token, majorVersion, minorVersion, revision, buildDate, _, _) = pkt
     log.trace(
       s"ConnectToWorldRequestMessage: client with versioning $majorVersion.$minorVersion.$revision, $buildDate has sent a token to the server"
     )
@@ -217,9 +217,9 @@ class SessionData(
       }
     }
     fallHeightTracker(pos.z)
-    //        if (isCrouching && !player.Crouching) {
-    //          //dev stuff goes here
-    //        }
+//    if (isCrouching && !player.Crouching) {
+//      //dev stuff goes here
+//    }
     player.Position = pos
     player.Velocity = vel
     player.Orientation = Vector3(player.Orientation.x, pitch, yaw)

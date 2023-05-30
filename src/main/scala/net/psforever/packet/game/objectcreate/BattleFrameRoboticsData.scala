@@ -2,6 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
+import net.psforever.types.VehicleFormat
 import scodec.{Attempt, Codec, Err}
 import shapeless.HNil
 import scodec.codecs._

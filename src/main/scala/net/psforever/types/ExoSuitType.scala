@@ -12,5 +12,5 @@ object ExoSuitType extends Enumeration {
   type Type = Value
   val Agile, Reinforced, MAX, Infiltration, Standard = Value
 
-  implicit val codec: Codec[ExoSuitType.Value] = PacketHelpers.createEnumerationCodec(this, uint(3))
+  implicit val codec: Codec[ExoSuitType.Value] = PacketHelpers.createEnumerationCodec(this, uint(bits = 3))
 }

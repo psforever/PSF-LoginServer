@@ -11,7 +11,7 @@ object SeatConverter {
       AvatarConverter.MakeAppearanceData(player),
       AvatarConverter.MakeCharacterData(player),
       AvatarConverter.MakeInventoryData(player),
-      AvatarConverter.GetDrawnSlot(player),
+      DrawnSlot.None,
       offset
     )
   }

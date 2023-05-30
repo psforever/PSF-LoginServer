@@ -209,7 +209,7 @@ class Client(username: String, password: String) {
       case _ => ???
     }
     setupConnection()
-    send(ConnectToWorldRequestMessage("", state.token.get, 0, 0, 0, "", 0)).require
+    send(ConnectToWorldRequestMessage("", state.token.get, 0, 0, 0, "", 0, 0)).require
     while (true) {
       val r = waitFor[CharacterInfoMessage]().require
       if (r.finished) {
