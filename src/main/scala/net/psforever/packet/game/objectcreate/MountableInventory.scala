@@ -2,7 +2,7 @@
 package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.PacketHelpers
-import net.psforever.types.PlanetSideGUID
+import net.psforever.types.{PlanetSideGUID, VehicleFormat}
 import scodec.Attempt.{Failure, Successful}
 import scodec.{Codec, Err}
 import scodec.codecs._
@@ -118,7 +118,7 @@ object MountableInventory {
                   accumulative: Long
                 ): Player_Data = {
     val appearance = basic_appearance(CumulativeSeatedPlayerNamePadding(accumulative))
-    Player_Data.apply(None, appearance, character_data(appearance.b.backpack, true), None, drawn_slot)(position_defined = false)
+    Player_Data.apply(None, appearance, character_data(false, true), None, drawn_slot)(position_defined = false)
   }
 
   /**

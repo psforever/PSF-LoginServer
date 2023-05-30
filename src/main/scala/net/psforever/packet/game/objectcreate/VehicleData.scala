@@ -6,25 +6,7 @@ import scodec.Attempt.{Failure, Successful}
 import scodec.{Attempt, Codec, Err}
 import shapeless.HNil
 import scodec.codecs._
-import net.psforever.types.DriveState
-import enumeratum.values.{IntEnum, IntEnumEntry}
-
-/**
-  * An enumeration of the various formats that known structures that the stream of bits for `VehicleData` can assume.
-  */
-sealed abstract class VehicleFormat(val value: Int) extends IntEnumEntry
-
-object VehicleFormat extends IntEnum[VehicleFormat] {
-  val values = findValues
-
-  case object Normal extends VehicleFormat(value = 0)
-  case object Battleframe extends VehicleFormat(value = 1)
-  case object BattleframeFlight extends VehicleFormat(value = 2)
-  case object Utility extends VehicleFormat(value = 6)
-  case object Variant extends VehicleFormat(value = 8)
-
-  //val Battleframe, BattleframeFlight, Normal, Utility, Variant = Value
-}
+import net.psforever.types.{DriveState, VehicleFormat}
 
 /**
   * A basic `Trait` connecting all of the vehicle data formats (excepting `Normal`/`None`).
