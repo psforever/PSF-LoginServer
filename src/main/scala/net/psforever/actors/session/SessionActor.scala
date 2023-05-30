@@ -591,6 +591,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case packet: HitHint =>
       sessionFuncs.handleHitHint(packet)
 
+    case _: OutfitRequest => ()
+
     case pkt =>
       log.warning(s"Unhandled GamePacket $pkt")
   }
