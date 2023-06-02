@@ -22,6 +22,16 @@ final case class VehicleServiceResponse(
 object VehicleResponse {
   trait Response
 
+  final case class ChangeAmmo(
+                               weapon_guid: PlanetSideGUID,
+                               weapon_slot: Int,
+                               old_ammo_guid: PlanetSideGUID,
+                               ammo_id: Int,
+                               ammo_guid: PlanetSideGUID,
+                               ammo_data: ConstructorData
+                             )                                                             extends Response
+  final case class ChangeFireState_Start(weapon_guid: PlanetSideGUID)   extends Response
+  final case class ChangeFireState_Stop(weapon_guid: PlanetSideGUID)    extends Response
   final case class ChildObjectState(object_guid: PlanetSideGUID, pitch: Float, yaw: Float) extends Response
   final case class ConcealPlayer(player_guid: PlanetSideGUID)                              extends Response
   final case class DeployRequest(
@@ -66,8 +76,9 @@ object VehicleResponse {
   final case class Ownership(vehicle_guid: PlanetSideGUID)              extends Response
   final case class PlanetsideAttribute(vehicle_guid: PlanetSideGUID, attribute_type: Int, attribute_value: Long)
       extends Response
-  final case class RevealPlayer(player_guid: PlanetSideGUID)                                          extends Response
-  final case class SeatPermissions(vehicle_guid: PlanetSideGUID, seat_group: Int, permission: Long)   extends Response
+  final case class Reload(weapon_guid: PlanetSideGUID)                                              extends Response
+  final case class RevealPlayer(player_guid: PlanetSideGUID)                                        extends Response
+  final case class SeatPermissions(vehicle_guid: PlanetSideGUID, seat_group: Int, permission: Long) extends Response
   final case class StowEquipment(
       vehicle_guid: PlanetSideGUID,
       slot: Int,
@@ -75,6 +86,7 @@ object VehicleResponse {
       iguid: PlanetSideGUID,
       idata: ConstructorData
   )                                                                              extends Response
+  final case class WeaponDryFire(weapon_guid: PlanetSideGUID)                    extends Response
   final case class UnloadVehicle(vehicle: Vehicle, vehicle_guid: PlanetSideGUID) extends Response
   final case class UnstowEquipment(item_guid: PlanetSideGUID)                    extends Response
   final case class VehicleState(

@@ -16,7 +16,7 @@ class VehicleService(zone: Zone) extends Actor {
 
   val VehicleEvents = new GenericEventBus[VehicleServiceResponse]
 
-  def receive = {
+  def receive: Receive = {
     case Service.Join(channel) =>
       val path = s"/$channel/Vehicle"
       VehicleEvents.subscribe(sender(), path)
@@ -33,6 +33,26 @@ class VehicleService(zone: Zone) extends Actor {
 
     case VehicleServiceMessage(forChannel, action) =>
       action match {
+        case VehicleAction.ChangeAmmo(player_guid, weapon_guid, weapon_slot, old_ammo_guid, ammo_id, ammo_guid, ammo_data) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(
+              s"/$forChannel/Vehicle",
+              player_guid,
+              VehicleResponse.ChangeAmmo(weapon_guid, weapon_slot, old_ammo_guid, ammo_id, ammo_guid, ammo_data)
+            )
+          )
+        case VehicleAction.ChangeFireState_Start(player_guid, weapon_guid) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(
+              s"/$forChannel/Vehicle",
+              player_guid,
+              VehicleResponse.ChangeFireState_Start(weapon_guid)
+            )
+          )
+        case VehicleAction.ChangeFireState_Stop(player_guid, weapon_guid) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.ChangeFireState_Stop(weapon_guid))
+          )
         case VehicleAction.ChildObjectState(player_guid, object_guid, pitch, yaw) =>
           VehicleEvents.publish(
             VehicleServiceResponse(
@@ -176,6 +196,11 @@ class VehicleService(zone: Zone) extends Actor {
               VehicleResponse.PlanetsideAttribute(target_guid, attribute_type, attribute_value)
             )
           )
+
+        case VehicleAction.Reload(player_guid, weapon_guid) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.Reload(weapon_guid))
+          )
         case VehicleAction.SeatPermissions(player_guid, vehicle_guid, seat_group, permission) =>
           VehicleEvents.publish(
             VehicleServiceResponse(
@@ -198,6 +223,10 @@ class VehicleService(zone: Zone) extends Actor {
                 definition.Packet.DetailedConstructorData(item).get
               )
             )
+          )
+        case VehicleAction.WeaponDryFire(player_guid, weapon_guid) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.WeaponDryFire(weapon_guid))
           )
         case VehicleAction.UnloadVehicle(player_guid, vehicle, vehicle_guid) =>
           VehicleEvents.publish(

@@ -74,19 +74,28 @@ private[support] class WeaponAndProjectileOperations(
 
   def handleWeaponDryFire(pkt: WeaponDryFireMessage): Unit = {
     val WeaponDryFireMessage(weapon_guid) = pkt
-    FindWeapon
+    val (containerOpt, tools) = FindContainedWeapon
+    tools
       .find { _.GUID == weapon_guid }
-      .orElse { continent.GUID(weapon_guid) } match {
-      case Some(_: Equipment) =>
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.WeaponDryFire(player.GUID, weapon_guid)
-        )
-      case _ =>
+      .orElse { continent.GUID(weapon_guid) }
+      .collect {
+        case _: Equipment if containerOpt.exists(_.isInstanceOf[Player]) =>
+          continent.AvatarEvents ! AvatarServiceMessage(
+            continent.id,
+            AvatarAction.WeaponDryFire(player.GUID, weapon_guid)
+          )
+        case _: Equipment =>
+          continent.VehicleEvents ! VehicleServiceMessage(
+            continent.id,
+            VehicleAction.WeaponDryFire(player.GUID, weapon_guid)
+          )
+      }
+      .orElse {
         log.warn(
           s"WeaponDryFire: ${player.Name}'s weapon ${weapon_guid.guid} is either not a weapon or does not exist"
         )
-    }
+        None
+      }
   }
 
   def handleWeaponLazeTargetPosition(pkt: WeaponLazeTargetPositionMessage): Unit = {
@@ -111,45 +120,16 @@ private[support] class WeaponAndProjectileOperations(
     val ChangeFireStateMessage_Start(item_guid) = pkt
     if (shooting.isEmpty) {
       sessionData.findEquipment(item_guid) match {
+        case Some(tool: Tool) if player.VehicleSeated.isEmpty =>
+          fireStateStartWhenPlayer(tool, item_guid)
         case Some(tool: Tool) =>
-          if (tool.FireMode.RoundsPerShot == 0 || tool.Magazine > 0 || prefire.contains(item_guid)) {
-            prefire -= item_guid
-            shooting += item_guid
-            shootingStart += item_guid -> System.currentTimeMillis()
-            ongoingShotsFired = 0
-            //special case - suppress the decimator's alternate fire mode, by projectile
-            if (tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
-              continent.AvatarEvents ! AvatarServiceMessage(
-                continent.id,
-                AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
-              )
-            }
-            //charge ammunition drain
-            tool.FireMode match {
-              case mode: ChargeFireModeDefinition =>
-                sessionData.progressBarValue = Some(0f)
-                sessionData.progressBarUpdate = context.system.scheduler.scheduleOnce(
-                  (mode.Time + mode.DrainInterval) milliseconds,
-                  context.self,
-                  SessionActor.ProgressEvent(1f, () => {}, Tools.ChargeFireMode(player, tool), mode.DrainInterval)
-                )
-              case _ => ;
-            }
-          } else {
-            log.warn(
-              s"ChangeFireState_Start: ${player.Name}'s ${tool.Definition.Name} magazine was empty before trying to shoot"
-            )
-            EmptyMagazine(item_guid, tool)
-          }
-        case Some(_) => //permissible, for now
-          prefire -= item_guid
-          shooting += item_guid
-          shootingStart += item_guid -> System.currentTimeMillis()
-          ongoingShotsFired = 0
-          continent.AvatarEvents ! AvatarServiceMessage(
-            continent.id,
-            AvatarAction.ChangeFireState_Start(player.GUID, item_guid)
-          )
+          fireStateStartWhenMounted(tool, item_guid)
+        case Some(_) if player.VehicleSeated.isEmpty =>
+          fireStateStartSetup(item_guid)
+          fireStateStartPlayerMessages(item_guid)
+        case Some(_) =>
+          fireStateStartSetup(item_guid)
+          fireStateStartMountedMessages(item_guid)
         case None =>
           log.warn(s"ChangeFireState_Start: can not find $item_guid")
       }
@@ -162,48 +142,23 @@ private[support] class WeaponAndProjectileOperations(
     prefire -= item_guid
     shootingStop += item_guid -> now
     shooting -= item_guid
-    val pguid = player.GUID
     sessionData.findEquipment(item_guid) match {
+      case Some(tool: Tool) if player.VehicleSeated.isEmpty =>
+        fireStateStopWhenPlayer(tool, item_guid)
       case Some(tool: Tool) =>
-        //the decimator does not send a ChangeFireState_Start on the last shot; heaven knows why
-        if (
-          tool.Definition == GlobalDefinitions.phoenix &&
-            tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile
-        ) {
-          //suppress the decimator's alternate fire mode, however
-          continent.AvatarEvents ! AvatarServiceMessage(
-            continent.id,
-            AvatarAction.ChangeFireState_Start(pguid, item_guid)
-          )
-          shootingStart += item_guid -> (now - 1L)
-        }
-        avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(tool.Definition.ObjectId,ongoingShotsFired,0,0))
-        tool.FireMode match {
-          case _: ChargeFireModeDefinition =>
-            sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))
-          case _ => ;
-        }
-        if (tool.Magazine == 0) {
-          FireCycleCleanup(tool)
-        }
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.ChangeFireState_Stop(pguid, item_guid)
-        )
-
+        fireStateStopWhenMounted(tool, item_guid)
       case Some(trigger: BoomerTrigger) =>
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.ChangeFireState_Start(pguid, item_guid)
-        )
-        continent.GUID(trigger.Companion) match {
-          case Some(boomer: BoomerDeployable) =>
+        fireStateStopPlayerMessages(item_guid)
+        continent.GUID(trigger.Companion).collect {
+          case boomer: BoomerDeployable =>
             boomer.Actor ! CommonMessages.Use(player, Some(trigger))
-          case Some(_) | None => ;
         }
-
-      case _ => ;
-      //log.warn(s"ChangeFireState_Stop: ${player.Name} never started firing item ${item_guid.guid} in the first place?")
+      case Some(_) if player.VehicleSeated.isEmpty =>
+        fireStateStopPlayerMessages(item_guid)
+      case Some(_) =>
+        fireStateStopMountedMessages(item_guid)
+      case _ => ()
+        log.warn(s"ChangeFireState_Stop: can not find $item_guid")
     }
     sessionData.progressBarUpdate.cancel()
     sessionData.progressBarValue = None
@@ -212,54 +167,10 @@ private[support] class WeaponAndProjectileOperations(
   def handleReload(pkt: ReloadMessage): Unit = {
     val ReloadMessage(item_guid, _, unk1) = pkt
     FindContainedWeapon match {
+      case (Some(obj: Player), tools) =>
+        handleReloadWhenPlayer(item_guid, obj, tools, unk1)
       case (Some(obj: PlanetSideServerObject with Container), tools) =>
-        tools.filter { _.GUID == item_guid }.foreach { tool =>
-          val currentMagazine : Int = tool.Magazine
-          val magazineSize : Int = tool.MaxMagazine
-          val reloadValue : Int = magazineSize - currentMagazine
-          if (magazineSize > 0 && reloadValue > 0) {
-            FindEquipmentStock(obj, FindAmmoBoxThatUses(tool.AmmoType), reloadValue, CountAmmunition).reverse match {
-              case Nil => ;
-              case x :: xs =>
-                val (deleteFunc, modifyFunc) : (Equipment => Future[Any], (AmmoBox, Int) => Unit) = obj match {
-                  case veh : Vehicle =>
-                    (RemoveOldEquipmentFromInventory(veh)(_), ModifyAmmunitionInVehicle(veh)(_, _))
-                  case _ =>
-                    (RemoveOldEquipmentFromInventory(obj)(_), ModifyAmmunition(obj)(_, _))
-                }
-                xs.foreach { item => deleteFunc(item.obj) }
-                val box = x.obj.asInstanceOf[AmmoBox]
-                val tailReloadValue : Int = if (xs.isEmpty) {
-                  0
-                }
-                else {
-                  xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum
-                }
-                val sumReloadValue : Int = box.Capacity + tailReloadValue
-                val actualReloadValue = if (sumReloadValue <= reloadValue) {
-                  deleteFunc(box)
-                  sumReloadValue
-                }
-                else {
-                  modifyFunc(box, reloadValue - tailReloadValue)
-                  reloadValue
-                }
-                val finalReloadValue = actualReloadValue + currentMagazine
-                log.info(
-                  s"${player.Name} successfully reloaded $reloadValue ${tool.AmmoType} into ${tool.Definition.Name}"
-                )
-                tool.Magazine = finalReloadValue
-                sendResponse(ReloadMessage(item_guid, finalReloadValue, unk1))
-                continent.AvatarEvents ! AvatarServiceMessage(
-                  continent.id,
-                  AvatarAction.Reload(player.GUID, item_guid)
-                )
-            }
-          } else {
-            //the weapon can not reload due to full magazine; the UI for the magazine is obvious bugged, so fix it
-            sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, magazineSize))
-          }
-        }
+        handleReloadWhenMountable(item_guid, obj, tools, unk1)
       case (_, _) =>
         log.warn(s"ReloadMessage: either can not find $item_guid or the object found was not a Tool")
     }
@@ -272,17 +183,19 @@ private[support] class WeaponAndProjectileOperations(
       log.warn(s"ChangeAmmo: either can not find $item_guid or the object found was not Equipment")
     } else {
       equipment foreach {
-        case obj : ConstructionItem =>
+        case obj: ConstructionItem =>
           if (Deployables.performConstructionItemAmmoChange(player.avatar.certifications, obj, obj.AmmoTypeIndex)) {
             log.info(
               s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${obj.AmmoType} (option #${obj.FireModeIndex})"
             )
             sendResponse(ChangeAmmoMessage(obj.GUID, obj.AmmoTypeIndex))
           }
-        case tool : Tool =>
+        case tool: Tool =>
           thing match {
-            case Some(correctThing: PlanetSideServerObject with Container) =>
-              PerformToolAmmoChange(tool, correctThing)
+            case Some(player: Player) =>
+              PerformToolAmmoChange(tool, player, ModifyAmmunition(player))
+            case Some(mountable: PlanetSideServerObject with Container) =>
+              PerformToolAmmoChange(tool, mountable, ModifyAmmunitionInMountable(mountable))
             case _ =>
               log.warn(s"ChangeAmmo: the ${thing.get.Definition.Name} in ${player.Name}'s is not the correct type")
           }
@@ -804,7 +717,7 @@ private[support] class WeaponAndProjectileOperations(
    * @param reloadValue the value to modify the `AmmoBox`;
    *                    subtracted from the current `Capacity` of `Box`
    */
-  def ModifyAmmunitionInVehicle(obj: Vehicle)(box: AmmoBox, reloadValue: Int): Unit = {
+  def ModifyAmmunitionInMountable(obj: PlanetSideServerObject with Container)(box: AmmoBox, reloadValue: Int): Unit = {
     ModifyAmmunition(obj)(box, reloadValue)
     obj.Find(box) match {
       case Some(index) =>
@@ -827,19 +740,19 @@ private[support] class WeaponAndProjectileOperations(
    * @param tool na
    * @param obj na
    */
-  def PerformToolAmmoChange(tool: Tool, obj: PlanetSideServerObject with Container): Unit = {
+  def PerformToolAmmoChange(
+                             tool: Tool,
+                             obj: PlanetSideServerObject with Container,
+                             modifyFunc: (AmmoBox, Int) => Unit
+                           ): Unit = {
     val originalAmmoType = tool.AmmoType
     do {
       val requestedAmmoType = tool.NextAmmoType
       val fullMagazine      = tool.MaxMagazine
       if (requestedAmmoType != tool.AmmoSlot.Box.AmmoType) {
         FindEquipmentStock(obj, FindAmmoBoxThatUses(requestedAmmoType), fullMagazine, CountAmmunition).reverse match {
-          case Nil => ;
+          case Nil => ()
           case x :: xs =>
-            val modifyFunc: (AmmoBox, Int) => Unit = obj match {
-              case veh: Vehicle => ModifyAmmunitionInVehicle(veh)
-              case _ =>            ModifyAmmunition(obj)
-            }
             val stowNewFunc: Equipment => TaskBundle = PutNewEquipmentInInventoryOrDrop(obj)
             val stowFunc: Equipment => Future[Any]   = PutEquipmentInInventoryOrDrop(obj)
 
@@ -1231,13 +1144,233 @@ private[support] class WeaponAndProjectileOperations(
    */
   def FindWeapon: Set[Tool] = FindContainedWeapon._2
 
+  /*
+  used by ChangeFireStateMessage_Start handling
+   */
+  private def fireStateStartSetup(itemGuid: PlanetSideGUID): Unit = {
+    prefire -= itemGuid
+    shooting += itemGuid
+    shootingStart += itemGuid -> System.currentTimeMillis()
+    ongoingShotsFired = 0
+  }
+
+  private def fireStateStartChargeMode(tool: Tool): Unit = {
+    //charge ammunition drain
+    tool.FireMode match {
+      case mode: ChargeFireModeDefinition =>
+        sessionData.progressBarValue = Some(0f)
+        sessionData.progressBarUpdate = context.system.scheduler.scheduleOnce(
+          (mode.Time + mode.DrainInterval) milliseconds,
+          context.self,
+          SessionActor.ProgressEvent(1f, () => {}, Tools.ChargeFireMode(player, tool), mode.DrainInterval)
+        )
+      case _ => ()
+    }
+  }
+
+  private def fireStateStartPlayerMessages(itemGuid: PlanetSideGUID): Unit = {
+    continent.AvatarEvents ! AvatarServiceMessage(
+      continent.id,
+      AvatarAction.ChangeFireState_Start(player.GUID, itemGuid)
+    )
+  }
+
+  private def fireStateStartMountedMessages(itemGuid: PlanetSideGUID): Unit = {
+    continent.VehicleEvents ! VehicleServiceMessage(
+      continent.id,
+      VehicleAction.ChangeFireState_Start(player.GUID, itemGuid)
+    )
+  }
+
+  private def allowFireStateChangeStart(tool: Tool, itemGuid: PlanetSideGUID): Boolean = {
+    tool.FireMode.RoundsPerShot == 0 || tool.Magazine > 0 || prefire.contains(itemGuid)
+  }
+
+  private def enforceEmptyMagazine(tool: Tool, itemGuid: PlanetSideGUID): Unit = {
+    log.warn(
+      s"ChangeFireState_Start: ${player.Name}'s ${tool.Definition.Name} magazine was empty before trying to shoot"
+    )
+    EmptyMagazine(itemGuid, tool)
+  }
+
+  private def fireStateStartWhenPlayer(tool: Tool, itemGuid: PlanetSideGUID): Unit = {
+    if (allowFireStateChangeStart(tool, itemGuid)) {
+      fireStateStartSetup(itemGuid)
+      //special case - suppress the decimator's alternate fire mode, by projectile
+      if (tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile) {
+        fireStateStartPlayerMessages(itemGuid)
+      }
+      fireStateStartChargeMode(tool)
+    } else {
+      enforceEmptyMagazine(tool, itemGuid)
+    }
+  }
+
+  private def fireStateStartWhenMounted(tool: Tool, itemGuid: PlanetSideGUID): Unit = {
+    if (allowFireStateChangeStart(tool, itemGuid)) {
+      fireStateStartSetup(itemGuid)
+      fireStateStartMountedMessages(itemGuid)
+      fireStateStartChargeMode(tool)
+    } else {
+      enforceEmptyMagazine(tool, itemGuid)
+    }
+  }
+
+  /*
+  used by ChangeFireStateMessage_Stop handling
+  */
+  private def fireStateStopUpdateChargeAndCleanup(tool: Tool): Unit = {
+    avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(tool.Definition.ObjectId, ongoingShotsFired, 0, 0))
+    tool.FireMode match {
+      case _: ChargeFireModeDefinition =>
+        sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))
+      case _ => ;
+    }
+    if (tool.Magazine == 0) {
+      FireCycleCleanup(tool)
+    }
+  }
+
+  private def fireStateStopPlayerMessages(itemGuid: PlanetSideGUID): Unit = {
+    continent.AvatarEvents ! AvatarServiceMessage(
+      continent.id,
+      AvatarAction.ChangeFireState_Stop(player.GUID, itemGuid)
+    )
+  }
+
+  private def fireStateStopMountedMessages(itemGuid: PlanetSideGUID): Unit = {
+    continent.VehicleEvents ! VehicleServiceMessage(
+      continent.id,
+      VehicleAction.ChangeFireState_Stop(player.GUID, itemGuid)
+    )
+  }
+
+  private def fireStateStopWhenPlayer(tool: Tool, itemGuid: PlanetSideGUID): Unit = {
+    //the decimator does not send a ChangeFireState_Start on the last shot; heaven knows why
+    //suppress the decimator's alternate fire mode, however
+    if (
+      tool.Definition == GlobalDefinitions.phoenix &&
+        tool.Projectile != GlobalDefinitions.phoenix_missile_guided_projectile
+    ) {
+      fireStateStartPlayerMessages(itemGuid)
+    }
+    fireStateStopUpdateChargeAndCleanup(tool)
+    fireStateStopPlayerMessages(itemGuid)
+  }
+
+  private def fireStateStopWhenMounted(tool: Tool, itemGuid: PlanetSideGUID): Unit = {
+    fireStateStopUpdateChargeAndCleanup(tool)
+    fireStateStopMountedMessages(itemGuid)
+  }
+
+  /*
+  used by ReloadMessage handling
+  */
+  private def reloadPlayerMessages(itemGuid: PlanetSideGUID): Unit = {
+    continent.AvatarEvents ! AvatarServiceMessage(
+      continent.id,
+      AvatarAction.Reload(player.GUID, itemGuid)
+    )
+  }
+
+  private def reloadVehicleMessages(itemGuid: PlanetSideGUID): Unit = {
+    continent.VehicleEvents ! VehicleServiceMessage(
+      continent.id,
+      VehicleAction.Reload(player.GUID, itemGuid)
+    )
+  }
+
+  private def handleReloadProcedure(
+                                     itemGuid: PlanetSideGUID,
+                                     obj: PlanetSideGameObject with Container,
+                                     tools: Set[Tool],
+                                     unk1: Int,
+                                     deleteFunc: Equipment => Future[Any],
+                                     modifyFunc: (AmmoBox, Int) => Unit,
+                                     messageFunc: PlanetSideGUID => Unit
+                                   ): Unit = {
+    tools
+      .filter { _.GUID == itemGuid }
+      .foreach { tool =>
+        val currentMagazine : Int = tool.Magazine
+        val magazineSize : Int = tool.MaxMagazine
+        val reloadValue : Int = magazineSize - currentMagazine
+        if (magazineSize > 0 && reloadValue > 0) {
+          FindEquipmentStock(obj, FindAmmoBoxThatUses(tool.AmmoType), reloadValue, CountAmmunition).reverse match {
+            case Nil => ()
+            case x :: xs =>
+              xs.foreach { item => deleteFunc(item.obj) }
+              val box = x.obj.asInstanceOf[AmmoBox]
+              val tailReloadValue : Int = if (xs.isEmpty) {
+                0
+              }
+              else {
+                xs.map(_.obj.asInstanceOf[AmmoBox].Capacity).sum
+              }
+              val sumReloadValue : Int = box.Capacity + tailReloadValue
+              val actualReloadValue = if (sumReloadValue <= reloadValue) {
+                deleteFunc(box)
+                sumReloadValue
+              }
+              else {
+                modifyFunc(box, reloadValue - tailReloadValue)
+                reloadValue
+              }
+              val finalReloadValue = actualReloadValue + currentMagazine
+              log.info(
+                s"${player.Name} successfully reloaded $reloadValue ${tool.AmmoType} into ${tool.Definition.Name}"
+              )
+              tool.Magazine = finalReloadValue
+              sendResponse(ReloadMessage(itemGuid, finalReloadValue, unk1))
+              messageFunc(itemGuid)
+          }
+        } else {
+          //the weapon can not reload due to full magazine; the UI for the magazine is obvious bugged, so fix it
+          sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, magazineSize))
+        }
+      }
+  }
+
+  private def handleReloadWhenPlayer(
+                                      itemGuid: PlanetSideGUID,
+                                      obj: Player,
+                                      tools: Set[Tool],
+                                      unk1: Int
+                                    ): Unit = {
+    handleReloadProcedure(
+      itemGuid,
+      obj,
+      tools,
+      unk1,
+      RemoveOldEquipmentFromInventory(obj)(_),
+      ModifyAmmunition(obj)(_, _),
+      reloadPlayerMessages
+    )
+  }
+
+  private def handleReloadWhenMountable(
+                                         itemGuid: PlanetSideGUID,
+                                         obj: PlanetSideServerObject with Container,
+                                         tools: Set[Tool],
+                                         unk1: Int
+                                       ): Unit = {
+    handleReloadProcedure(
+      itemGuid,
+      obj,
+      tools,
+      unk1,
+      RemoveOldEquipmentFromInventory(obj)(_),
+      ModifyAmmunitionInMountable(obj)(_, _),
+      reloadVehicleMessages
+    )
+  }
+
   override protected[session] def stop(): Unit = {
     if (player != null && player.HasGUID) {
       (prefire ++ shooting).foreach { guid =>
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.ChangeFireState_Stop(player.GUID, guid)
-        )
+        //do I need to do this? (maybe)
+        fireStateStopPlayerMessages(guid)
+        fireStateStopMountedMessages(guid)
       }
       projectiles.indices.foreach { projectiles.update(_, None) }
     }

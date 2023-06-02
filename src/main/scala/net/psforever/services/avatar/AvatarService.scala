@@ -17,7 +17,7 @@ class AvatarService(zone: Zone) extends Actor {
 
   val AvatarEvents = new GenericEventBus[AvatarServiceResponse] //AvatarEventBus
 
-  def receive = {
+  def receive: Receive = {
     case Service.Join(channel) =>
       val path = s"/$channel/Avatar"
       val who  = sender()
