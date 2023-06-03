@@ -271,10 +271,6 @@ class VehicleOperations(
     sessionData.validObject(mountable_guid, decorator = "MountVehicle").collect {
       case obj: Mountable =>
         obj.Actor ! Mountable.TryMount(player, entry_point)
-      case _: Mountable =>
-        log.warn(
-          s"DismountVehicleMsg: ${player.Name} can not mount while server has asserted control; please wait"
-        )
       case _ =>
         log.error(s"MountVehicleMsg: object ${mountable_guid.guid} not a mountable thing, ${player.Name}")
     }

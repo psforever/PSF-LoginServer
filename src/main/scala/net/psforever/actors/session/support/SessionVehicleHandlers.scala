@@ -7,7 +7,7 @@ import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons, Jamma
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle, Vehicles}
+import net.psforever.objects.{GlobalDefinitions, Player, Tool, Vehicle, Vehicles}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game._
 import net.psforever.services.Service
@@ -78,6 +78,36 @@ class SessionVehicleHandlers(
       case VehicleResponse.FrameVehicleState(vguid, u1, pos, oient, vel, u2, u3, u4, is_crouched, u6, u7, u8, u9, uA)
         if isNotSameTarget =>
         sendResponse(FrameVehicleStateMessage(vguid, u1, pos, oient, vel, u2, u3, u4, is_crouched, u6, u7, u8, u9, uA))
+
+      case VehicleResponse.ChangeFireState_Start(weaponGuid) if isNotSameTarget =>
+        sendResponse(ChangeFireStateMessage_Start(weaponGuid))
+
+      case VehicleResponse.ChangeFireState_Stop(weaponGuid) if isNotSameTarget =>
+        sendResponse(ChangeFireStateMessage_Stop(weaponGuid))
+
+      case VehicleResponse.Reload(itemGuid) if isNotSameTarget =>
+        sendResponse(ReloadMessage(itemGuid, ammo_clip=1, unk1=0))
+
+      case VehicleResponse.ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data) if isNotSameTarget =>
+        sendResponse(ObjectDetachMessage(weapon_guid, previous_guid, Vector3.Zero, 0))
+        //TODO? sendResponse(ObjectDeleteMessage(previousAmmoGuid, 0))
+        sendResponse(
+          ObjectCreateMessage(
+            ammo_id,
+            ammo_guid,
+            ObjectCreateMessageParent(weapon_guid, weapon_slot),
+            ammo_data
+          )
+        )
+        sendResponse(ChangeAmmoMessage(weapon_guid, 1))
+
+      case VehicleResponse.WeaponDryFire(weaponGuid) if isNotSameTarget =>
+        continent.GUID(weaponGuid).collect {
+          case tool: Tool if tool.Magazine == 0 =>
+            // check that the magazine is still empty before sending WeaponDryFireMessage
+            // if it has been reloaded since then, other clients will not see it firing
+            sendResponse(WeaponDryFireMessage(weaponGuid))
+        }
 
       case VehicleResponse.DismountVehicle(bailType, wasKickedByDriver) if isNotSameTarget =>
         sendResponse(DismountVehicleMsg(guid, bailType, wasKickedByDriver))
@@ -330,10 +360,10 @@ class SessionVehicleHandlers(
   }
 
   private def changeLoadoutDeleteOldEquipment(
-                                       vehicle: Vehicle,
-                                       oldWeapons: Iterable[(Equipment, PlanetSideGUID)],
-                                       oldInventory: Iterable[(Equipment, PlanetSideGUID)]
-                                     ): Unit = {
+                                               vehicle: Vehicle,
+                                               oldWeapons: Iterable[(Equipment, PlanetSideGUID)],
+                                               oldInventory: Iterable[(Equipment, PlanetSideGUID)]
+                                             ): Unit = {
     vehicle.PassengerInSeat(player) match {
       case Some(seatNum) =>
         //participant: observe changes to equipment

@@ -23,6 +23,17 @@ object VehicleServiceMessage {
 object VehicleAction {
   trait Action
 
+  final case class ChangeAmmo(
+                               player_guid: PlanetSideGUID,
+                               weapon_guid: PlanetSideGUID,
+                               weapon_slot: Int,
+                               old_ammo_guid: PlanetSideGUID,
+                               ammo_id: Int,
+                               ammo_guid: PlanetSideGUID,
+                               ammo_data: ConstructorData
+                             ) extends Action
+  final case class ChangeFireState_Start(player_guid: PlanetSideGUID, weapon_guid: PlanetSideGUID)   extends Action
+  final case class ChangeFireState_Stop(player_guid: PlanetSideGUID, weapon_guid: PlanetSideGUID)    extends Action
   final case class ChildObjectState(player_guid: PlanetSideGUID, object_guid: PlanetSideGUID, pitch: Float, yaw: Float)
       extends Action
   final case class DeployRequest(
@@ -89,6 +100,7 @@ object VehicleAction {
       attribute_type: Int,
       attribute_value: Long
   ) extends Action
+  final case class Reload(player_guid: PlanetSideGUID, weapon_guid: PlanetSideGUID) extends Action
   final case class SeatPermissions(
       player_guid: PlanetSideGUID,
       vehicle_guid: PlanetSideGUID,
@@ -118,6 +130,7 @@ object VehicleAction {
       unk6: Boolean
   )                                                                                     extends Action
   final case class SendResponse(player_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends Action
+  final case class WeaponDryFire(player_guid: PlanetSideGUID, weapon_guid: PlanetSideGUID) extends Action
   final case class UpdateAmsSpawnPoint(zone: Zone)                                      extends Action
 
   final case class TransferPassengerChannel(

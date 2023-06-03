@@ -8156,7 +8156,7 @@ object GlobalDefinitions {
     lightgunship.DrownAtMaxDepth = true
     lightgunship.MaxDepth = 2 //flying vehicles will automatically disable
     lightgunship.Geometry = GeometryForm.representByCylinder(radius = 2.375f, height = 1.98438f)
-    lightgunship.collision.avatarCollisionDamageMax = 750
+    lightgunship.collision.avatarCollisionDamageMax = 75
     lightgunship.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 60), (0.5f, 120), (0.75f, 180), (1f, 250)))
     lightgunship.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
     lightgunship.maxForwardSpeed = 104f
