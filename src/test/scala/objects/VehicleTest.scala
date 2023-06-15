@@ -121,7 +121,7 @@ class VehicleTest extends Specification {
 
     "construct (detailed)" in {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
-      fury_vehicle.Owner.isEmpty mustEqual true
+      fury_vehicle.OwnerGuid.isEmpty mustEqual true
       fury_vehicle.Seats.size mustEqual 1
       fury_vehicle.Seats(0).definition.restriction mustEqual NoMax
       fury_vehicle.Seats(0).isOccupied mustEqual false
@@ -148,30 +148,30 @@ class VehicleTest extends Specification {
 
     "can be owned by a player" in {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
-      fury_vehicle.Owner.isDefined mustEqual false
+      fury_vehicle.OwnerGuid.isDefined mustEqual false
 
       val player1 = Player(avatar1)
       player1.GUID = PlanetSideGUID(1)
-      fury_vehicle.Owner = player1
-      fury_vehicle.Owner.isDefined mustEqual true
-      fury_vehicle.Owner.contains(PlanetSideGUID(1)) mustEqual true
+      fury_vehicle.OwnerGuid = player1
+      fury_vehicle.OwnerGuid.isDefined mustEqual true
+      fury_vehicle.OwnerGuid.contains(PlanetSideGUID(1)) mustEqual true
     }
 
     "ownership depends on who last was granted it" in {
       val fury_vehicle = Vehicle(GlobalDefinitions.fury)
-      fury_vehicle.Owner.isDefined mustEqual false
+      fury_vehicle.OwnerGuid.isDefined mustEqual false
 
       val player1 = Player(avatar1)
       player1.GUID = PlanetSideGUID(1)
-      fury_vehicle.Owner = player1
-      fury_vehicle.Owner.isDefined mustEqual true
-      fury_vehicle.Owner.contains(PlanetSideGUID(1)) mustEqual true
+      fury_vehicle.OwnerGuid = player1
+      fury_vehicle.OwnerGuid.isDefined mustEqual true
+      fury_vehicle.OwnerGuid.contains(PlanetSideGUID(1)) mustEqual true
 
       val player2 = Player(avatar2)
       player2.GUID = PlanetSideGUID(2)
-      fury_vehicle.Owner = player2
-      fury_vehicle.Owner.isDefined mustEqual true
-      fury_vehicle.Owner.contains(PlanetSideGUID(2)) mustEqual true
+      fury_vehicle.OwnerGuid = player2
+      fury_vehicle.OwnerGuid.isDefined mustEqual true
+      fury_vehicle.OwnerGuid.contains(PlanetSideGUID(2)) mustEqual true
     }
 
     "can use mount point to get mount number" in {

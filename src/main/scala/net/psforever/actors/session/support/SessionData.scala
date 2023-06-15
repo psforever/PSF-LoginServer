@@ -3,7 +3,7 @@ package net.psforever.actors.session.support
 
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
-import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.zones.blockmap.{SectorGroup, SectorPopulation}
 
 import scala.collection.mutable
@@ -411,10 +411,10 @@ class SessionData(
         /* line 2: vehicle is not mounted in anything or, if it is, its seats are empty */
         if (
           (session.account.gm ||
-            (player.avatar.vehicle.contains(objectGuid) && vehicle.Owner.contains(player.GUID)) ||
+            (player.avatar.vehicle.contains(objectGuid) && vehicle.OwnerGuid.contains(player.GUID)) ||
             (player.Faction == vehicle.Faction &&
               (vehicle.Definition.CanBeOwned.nonEmpty &&
-                (vehicle.Owner.isEmpty || continent.GUID(vehicle.Owner.get).isEmpty) || vehicle.Destroyed))) &&
+                (vehicle.OwnerGuid.isEmpty || continent.GUID(vehicle.OwnerGuid.get).isEmpty) || vehicle.Destroyed))) &&
             (vehicle.MountedIn.isEmpty || !vehicle.Seats.values.exists(_.isOccupied))
         ) {
           vehicle.Actor ! Vehicle.Deconstruct()
@@ -442,7 +442,7 @@ class SessionData(
         }
 
       case Some(obj: Deployable) =>
-        if (session.account.gm || obj.Owner.isEmpty || obj.Owner.contains(player.GUID) || obj.Destroyed) {
+        if (session.account.gm || obj.OwnerGuid.isEmpty || obj.OwnerGuid.contains(player.GUID) || obj.Destroyed) {
           obj.Actor ! Deployable.Deconstruct()
         } else {
           log.warn(s"RequestDestroy: ${player.Name} must own the deployable in order to deconstruct it")
@@ -1377,7 +1377,7 @@ class SessionData(
         //access to trunk
         if (
           obj.AccessingTrunk.isEmpty &&
-            (!obj.PermissionGroup(AccessPermissionGroup.Trunk.id).contains(VehicleLockState.Locked) || obj.Owner
+            (!obj.PermissionGroup(AccessPermissionGroup.Trunk.id).contains(VehicleLockState.Locked) || obj.OwnerGuid
               .contains(player.GUID))
         ) {
           log.info(s"${player.Name} is looking in the ${obj.Definition.Name}'s trunk")
@@ -2473,6 +2473,7 @@ class SessionData(
         continent.id,
         LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid)
       )
+      player.LogActivity(VehicleDismountActivity(VehicleSource(router), PlayerSource(player)))
     } else {
       log.warn(s"UseRouterTelepadSystem: ${player.Name} can not teleport")
     }

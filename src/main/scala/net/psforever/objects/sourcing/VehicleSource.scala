@@ -17,6 +17,7 @@ final case class VehicleSource(
                                 Orientation: Vector3,
                                 Velocity: Option[Vector3],
                                 deployed: DriveState.Value,
+                                owner: Option[PlayerSource],
                                 occupants: List[SourceEntry],
                                 Modifiers: ResistanceProfile,
                                 unique: UniqueVehicle
@@ -42,6 +43,7 @@ object VehicleSource {
       obj.Orientation,
       obj.Velocity,
       obj.DeploymentState,
+      None,
       Nil,
       obj.Definition.asInstanceOf[ResistanceProfile],
       UniqueVehicle(

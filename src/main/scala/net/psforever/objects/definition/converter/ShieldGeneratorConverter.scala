@@ -24,7 +24,7 @@ class ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDepl
               jammered = obj.Jammed,
               None,
               None,
-              obj.Owner match {
+              obj.OwnerGuid match {
                 case Some(owner) => owner
                 case None        => PlanetSideGUID(0)
               }

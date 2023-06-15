@@ -28,7 +28,7 @@ class BattleFrameRoboticsConverter extends ObjectCreateConverter[Vehicle]() {
             jammered = obj.Jammed,
             v4 = None,
             v5 = None,
-            obj.Owner match {
+            obj.OwnerGuid match {
               case Some(owner) => owner
               case None => PlanetSideGUID(0)
             }

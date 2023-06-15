@@ -286,7 +286,7 @@ class VehicleControl(vehicle: Vehicle)
     val seatGroup = vehicle.SeatPermissionGroup(seatNumber).getOrElse(AccessPermissionGroup.Passenger)
     val permission = vehicle.PermissionGroup(seatGroup.id).getOrElse(VehicleLockState.Empire)
     (if (seatGroup == AccessPermissionGroup.Driver) {
-      vehicle.Owner.contains(user.GUID) || vehicle.Owner.isEmpty || permission != VehicleLockState.Locked
+      vehicle.OwnerGuid.contains(user.GUID) || vehicle.OwnerGuid.isEmpty || permission != VehicleLockState.Locked
     } else {
       permission != VehicleLockState.Locked
     }) &&
@@ -348,7 +348,7 @@ class VehicleControl(vehicle: Vehicle)
       //are we already decaying? are we unowned? is no one seated anywhere?
       if (!decaying &&
           obj.Definition.undergoesDecay &&
-          obj.Owner.isEmpty &&
+          obj.OwnerGuid.isEmpty &&
           obj.Seats.values.forall(!_.isOccupied)) {
         decaying = true
         decayTimer = context.system.scheduler.scheduleOnce(
@@ -418,7 +418,7 @@ class VehicleControl(vehicle: Vehicle)
     Vehicles.Disown(obj.GUID, obj)
     if (!decaying &&
         obj.Definition.undergoesDecay &&
-        obj.Owner.isEmpty &&
+        obj.OwnerGuid.isEmpty &&
         obj.Seats.values.forall(!_.isOccupied)) {
       decaying = true
       decayTimer = context.system.scheduler.scheduleOnce(

@@ -476,7 +476,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     if (trunkAccess.isEmpty || trunkAccess.contains(player.GUID)) {
       groupPermissions(3) match {
         case VehicleLockState.Locked => //only the owner
-          Owner.isEmpty || (Owner.isDefined && player.GUID == Owner.get)
+          OwnerGuid.isEmpty || (OwnerGuid.isDefined && player.GUID == OwnerGuid.get)
         case VehicleLockState.Group => //anyone in the owner's squad or platoon
           faction == player.Faction //TODO this is not correct
         case VehicleLockState.Empire => //anyone of the owner's faction
@@ -681,6 +681,6 @@ object Vehicle {
     */
   def toString(obj: Vehicle): String = {
     val occupancy = obj.Seats.values.count(seat => seat.isOccupied)
-    s"${obj.Definition.Name}, owned by ${obj.Owner}: (${obj.Health}/${obj.MaxHealth})(${obj.Shields}/${obj.MaxShields}) ($occupancy)"
+    s"${obj.Definition.Name}, owned by ${obj.OwnerGuid}: (${obj.Health}/${obj.MaxHealth})(${obj.Shields}/${obj.MaxShields}) ($occupancy)"
   }
 }

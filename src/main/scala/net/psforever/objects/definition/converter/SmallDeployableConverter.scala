@@ -25,7 +25,7 @@ class SmallDeployableConverter extends ObjectCreateConverter[Deployable]() {
           },
           Some(false),
           None,
-          obj.Owner match {
+          obj.OwnerGuid match {
             case Some(owner) => owner
             case None        => PlanetSideGUID(0)
           }

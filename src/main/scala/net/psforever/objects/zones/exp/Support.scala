@@ -8,7 +8,7 @@ import org.joda.time.{Instant, LocalDateTime => JodaLocalDateTime}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.sourcing.{AmenitySource, PlayerSource, SourceEntry}
-import net.psforever.objects.vital.{DamagingActivity, HealFromEquipment, InGameActivity, ReconstructionActivity, RepairFromEquipment, RepairFromExoSuitChange, RevivingActivity, SpawningActivity, SupportActivityCausedByAnother, TerminalUsedActivity}
+import net.psforever.objects.vital.{HealFromEquipment, InGameActivity, ReconstructionActivity, RepairFromEquipment, RepairFromExoSuitChange, RevivingActivity, SpawningActivity, SupportActivityCausedByAnother, TerminalUsedActivity}
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, TransactionType}
 import net.psforever.zones.Zones
@@ -17,28 +17,6 @@ import scala.collection.mutable
 
 object Support {
   private type SupportActivity = InGameActivity with SupportActivityCausedByAnother
-
-  private[exp] def limitHistoryToThisLife(history: List[InGameActivity]): List[InGameActivity] = {
-    val spawnIndex = history.lastIndexWhere {
-      case _: SpawningActivity => true
-      case _: RevivingActivity => true
-      case _ => false
-    }
-    val endIndex = history.lastIndexWhere {
-      case damage: DamagingActivity => damage.data.targetAfter.asInstanceOf[PlayerSource].Health == 0
-      case _ => false
-    }
-    if (spawnIndex == -1 || endIndex == -1) {
-      Nil //throw VitalsHistoryException(history.head, "vitals history does not contain expected conditions")
-      //    } else
-      //    if (spawnIndex == -1) {
-      //      Nil  //throw VitalsHistoryException(history.head, "vitals history does not contain initial spawn conditions")
-      //    } else if (endIndex == -1) {
-      //      Nil  //throw VitalsHistoryException(history.last, "vitals history does not contain end of life conditions")
-    } else {
-      history.slice(spawnIndex, endIndex)
-    }
-  }
 
   private[exp] def onlyOriginalAssistEntries(
                                               first: mutable.LongMap[ContributionStatsOutput],
@@ -349,7 +327,7 @@ object Support {
         0.5f
       }
     }
-    (charId, ContributionStatsOutput(user, contribution.weapons.map { _.weapon_id }, value))
+    (charId, ContributionStatsOutput(user, contribution.weapons.map { _.equipment_id }, value))
   }
 
   //noinspection ScalaUnusedSymbol
@@ -361,7 +339,7 @@ object Support {
                                             charId: Long,
                                             contribution: ContributionStats,
                                           ): (Long, ContributionStatsOutput) = {
-    (charId, ContributionStatsOutput(contribution.player, contribution.weapons.map { _.weapon_id }, compareList.size.toFloat))
+    (charId, ContributionStatsOutput(contribution.player, contribution.weapons.map { _.equipment_id }, compareList.size.toFloat))
   }
 
   private[exp] def wasEverAMax(player: PlayerSource, history: Iterable[InGameActivity]): Boolean = {

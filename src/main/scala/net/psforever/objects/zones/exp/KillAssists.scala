@@ -5,7 +5,7 @@ import akka.actor.ActorRef
 import net.psforever.objects.avatar.scoring.{Assist, Death, Kill}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.interaction.{Adversarial, DamageResult}
-import net.psforever.objects.vital.{DamagingActivity, HealingActivity, InGameActivity, RepairingActivity, RevivingActivity}
+import net.psforever.objects.vital.{DamagingActivity, HealingActivity, InGameActivity, RepairingActivity, RevivingActivity, SpawningActivity}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.PlanetSideEmpire
 
@@ -13,6 +13,28 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 object KillAssists {
+  private def limitHistoryToThisLife(history: List[InGameActivity]): List[InGameActivity] = {
+    val spawnIndex = history.lastIndexWhere {
+      case _: SpawningActivity => true
+      case _: RevivingActivity => true
+      case _ => false
+    }
+    val endIndex = history.lastIndexWhere {
+      case damage: DamagingActivity => damage.data.targetAfter.asInstanceOf[PlayerSource].Health == 0
+      case _ => false
+    }
+    if (spawnIndex == -1 || endIndex == -1) {
+      Nil //throw VitalsHistoryException(history.head, "vitals history does not contain expected conditions")
+      //    } else
+      //    if (spawnIndex == -1) {
+      //      Nil  //throw VitalsHistoryException(history.head, "vitals history does not contain initial spawn conditions")
+      //    } else if (endIndex == -1) {
+      //      Nil  //throw VitalsHistoryException(history.last, "vitals history does not contain end of life conditions")
+    } else {
+      history.slice(spawnIndex, endIndex)
+    }
+  }
+
   private[exp] def determineKiller(
                                     lastDamageActivity: Option[DamageResult],
                                     history: List[InGameActivity]
@@ -71,7 +93,7 @@ object KillAssists {
                                           history: Iterable[InGameActivity],
                                           eventBus: ActorRef
                                         ): Unit = {
-    val shortHistory = Support.limitHistoryToThisLife(history.toList)
+    val shortHistory = limitHistoryToThisLife(history.toList)
     val everyone = determineKiller(lastDamage, shortHistory) match {
       case Some((result, killer: PlayerSource)) =>
         val assists = collectKillAssistsForPlayer(victim, shortHistory, Some(killer))
@@ -130,7 +152,7 @@ object KillAssists {
     val assists = func(history, victim.Faction).filterNot { case (_, kda) => kda.amount <= 0 }
     val total = assists.values.foldLeft(0f)(_ + _.total)
     val output = assists.map { case (id, kda) =>
-      (id, ContributionStatsOutput(kda.player, kda.weapons.map { _.weapon_id }, kda.amount / total))
+      (id, ContributionStatsOutput(kda.player, kda.weapons.map { _.equipment_id }, kda.amount / total))
     }
     output.remove(victim.CharId)
     output
@@ -214,7 +236,7 @@ object KillAssists {
           case Some(mod) =>
             //previous attacker, just add to entry
             val firstWeapon = mod.weapons.head
-            val weapons = if (firstWeapon.weapon_id == wepid) {
+            val weapons = if (firstWeapon.equipment_id == wepid) {
               firstWeapon.copy(
                 amount = firstWeapon.amount + amount,
                 shots = firstWeapon.shots + 1,

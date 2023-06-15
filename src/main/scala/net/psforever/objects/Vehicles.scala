@@ -61,7 +61,7 @@ object Vehicles {
     *         `None`, otherwise
     */
   def Disown(guid: PlanetSideGUID, vehicle: Vehicle): Option[Vehicle] =
-    vehicle.Zone.GUID(vehicle.Owner) match {
+    vehicle.Zone.GUID(vehicle.OwnerGuid) match {
       case Some(player: Player) =>
         if (player.avatar.vehicle.contains(guid)) {
           player.avatar.vehicle = None
@@ -127,7 +127,7 @@ object Vehicles {
    */
   def Disown(player: Player, vehicle: Vehicle): Option[Vehicle] = {
     val pguid = player.GUID
-    if (vehicle.Owner.contains(pguid)) {
+    if (vehicle.OwnerGuid.contains(pguid)) {
       vehicle.AssignOwnership(None)
       //vehicle.Zone.VehicleEvents ! VehicleServiceMessage(player.Name, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
       val vguid  = vehicle.GUID
@@ -272,7 +272,7 @@ object Vehicles {
           }
         case _ => ;
       }
-      target.Owner match {
+      target.OwnerGuid match {
         case Some(previousOwnerGuid: PlanetSideGUID) =>
           // Remove ownership of the vehicle from the previous player
           zone.GUID(previousOwnerGuid) match {

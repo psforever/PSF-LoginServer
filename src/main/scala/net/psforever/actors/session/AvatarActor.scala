@@ -10,6 +10,7 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.vital.InGameHistory
+import net.psforever.objects.vehicles.MountedWeapons
 import org.joda.time.{LocalDateTime, Seconds}
 
 import scala.collection.mutable
@@ -2949,14 +2950,16 @@ class AvatarActor(
     kdaStat match {
       case kill: Kill =>
         val playerSource = PlayerSource(player)
-        (kill.info.interaction.cause match {
-          case pr: ProjectileReason => pr.projectile.mounted_in.map { a => zone.GUID(a._1) }
+        val historyTranscript = (kill.info.interaction.cause match {
+          case pr: ProjectileReason => pr.projectile.mounted_in.flatMap { a => zone.GUID(a._1) } //what fired the projectile
           case _ => None
-        }).collect {
-          case Some(mount: PlanetSideGameObject with FactionAffinity with InGameHistory) =>
-            player.ContributionFrom(mount)
+        }) match {
+          case Some(mount: PlanetSideGameObject with FactionAffinity with InGameHistory with MountedWeapons) =>
+            player.HistoryAndContributions() ++ InGameHistory.ContributionFrom(mount)
+          case None =>
+            player.HistoryAndContributions()
         }
-        zone.actor ! ZoneActor.RewardOurSupporters(playerSource, player.HistoryAndContributions(), kill, exp)
+        zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, kill, exp)
       case _: Assist =>
         ()
       case _: Death =>

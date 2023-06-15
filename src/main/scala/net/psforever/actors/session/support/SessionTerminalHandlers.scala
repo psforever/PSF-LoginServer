@@ -2,6 +2,9 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.sourcing.AmenitySource
+import net.psforever.objects.vital.TerminalUsedActivity
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 //
@@ -68,8 +71,8 @@ class SessionTerminalHandlers(
     order match {
       case Terminal.BuyEquipment(item)
         if tplayer.avatar.purchaseCooldown(item.Definition).nonEmpty =>
-        lastTerminalOrderFulfillment = true
         sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
+        lastTerminalOrderFulfillment = true
 
       case Terminal.BuyEquipment(item) =>
         avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
@@ -141,6 +144,7 @@ class SessionTerminalHandlers(
             if (GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
               sendResponse(UnuseItemMessage(player.GUID, msg.terminal_guid))
             }
+            player.LogActivity(TerminalUsedActivity(AmenitySource(term), msg.transaction_type))
           }.orElse {
           log.error(
             s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"

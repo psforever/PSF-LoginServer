@@ -557,15 +557,15 @@ class Player(var avatar: Avatar)
 
   def DamageModel: DamageResistanceModel = exosuit.asInstanceOf[DamageResistanceModel]
 
-  def canEqual(other: Any): Boolean = other.isInstanceOf[Player]
-
-  override def GetContributionDuringPeriod(ending: Long, duration: Long): List[InGameActivity] = {
-    val start = ending - duration
+  override def GetContributionDuringPeriod(list: List[InGameActivity], duration: Long): List[InGameActivity] = {
+    val earliestEndTime = System.currentTimeMillis() - duration
     History.collect {
-      case heal: HealFromEquipment if heal.time <= ending && heal.time > start => heal
-      case repair: RepairFromEquipment if repair.time <= ending && repair.time > start => repair
+      case heal: HealFromEquipment if heal.amount > 0 && heal.time > earliestEndTime         => heal
+      case repair: RepairFromEquipment if repair.amount > 0 && repair.time > earliestEndTime => repair
     }
   }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Player]
 
   override def equals(other: Any): Boolean =
     other match {

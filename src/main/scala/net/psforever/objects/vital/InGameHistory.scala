@@ -50,9 +50,13 @@ final case class ShieldCharge(amount: Int, cause: Option[SourceEntry])
 final case class TerminalUsedActivity(terminal: AmenitySource, transaction: TransactionType.Value)
   extends GeneralActivity
 
-final case class Contribution(unique: SourceEntry, entries: List[InGameActivity])
+final case class VehicleDismountActivity(vehicle: VehicleSource, player: PlayerSource)
+  extends GeneralActivity
+
+final case class Contribution(src: SourceUniqueness, entries: List[InGameActivity])
   extends GeneralActivity {
-  override val time: Long = entries.maxBy(_.time).time
+  val start: Long = entries.last.time
+  val end: Long = entries.head.time
 }
 
 /* vitals history */
@@ -183,6 +187,9 @@ trait InGameHistory {
     action match {
       case Some(act) =>
         history = history :+ act
+        if (IsContributionEvent(act)) {
+          previousContributionInheritance = None
+        }
       case None => ()
     }
     history
@@ -206,7 +213,7 @@ trait InGameHistory {
         LogActivity(DamageFromPainbox(result))
       case _: EnvironmentReason =>
         LogActivity(DamageFromEnvironment(result))
-      case _ => ;
+      case _ =>
         LogActivity(DamageFrom(result))
         if(result.adversarial.nonEmpty) {
           lastDamage = Some(result)
@@ -227,70 +234,79 @@ trait InGameHistory {
     }
   }
 
-  private val contributionInheritance: mutable.HashMap[SourceUniqueness, Seq[Contribution]] =
-    mutable.HashMap[SourceUniqueness, Seq[Contribution]]()
+  private var previousContributionInheritance: Option[List[InGameActivity]] = None
 
-  def ContributionFrom(target: PlanetSideGameObject with FactionAffinity with InGameHistory): Boolean = {
+  private val contributionInheritance: mutable.HashMap[SourceUniqueness, Contribution] =
+    mutable.HashMap[SourceUniqueness, Contribution]()
+
+  def ContributionFrom(target: PlanetSideGameObject with FactionAffinity with InGameHistory): Option[Contribution] = {
     if (target ne this) {
-      val events = target.GetContribution()
-      val nonEmpty = events.nonEmpty
-      if (nonEmpty) {
-        val source = SourceEntry(target)
-        contributionInheritance.get(source.unique) match {
-          case Some(previousContributions) =>
-            val uniqueEvents = for {
-              curr <- events
-              if !previousContributions.filter(_ == curr).exists(_.time == curr.time)
-            } yield curr
-            contributionInheritance.put(source.unique, previousContributions :+ Contribution(source, uniqueEvents))
-          case None =>
-            contributionInheritance.put(source.unique, Seq(Contribution(source, events)))
-        }
+      InGameHistory.ContributionFrom(target) match {
+        case out @ Some(in @ Contribution(src, _)) =>
+          contributionInheritance.put(src, in)
+          out
+        case None =>
+          contributionInheritance.remove(SourceEntry(target).unique)
+          None
       }
-      nonEmpty
     } else {
-      false
+      None
     }
   }
 
-  def RemoveContributionFrom(target: PlanetSideGameObject with FactionAffinity with InGameHistory): Iterable[Contribution] = {
-    contributionInheritance.remove(SourceEntry(target).unique).getOrElse(Nil)
+  def GetContribution(): Option[List[InGameActivity]] = {
+    previousContributionInheritance
+      .collect {
+        case out @ events if events.head.time > System.currentTimeMillis() - 600000L =>
+          Some(out)
+        case events =>
+          val newEvents = GetContributionDuringPeriod(events, duration = 600000L)
+          if (newEvents.isEmpty) {
+            previousContributionInheritance = None
+            None
+          } else {
+            previousContributionInheritance = Some(newEvents)
+            Some(newEvents)
+          }
+      }
+      .flatten
+      .orElse {
+        val events = GetContributionDuringPeriod(History, duration = 600000L)
+        if (events.nonEmpty) {
+          previousContributionInheritance = Some(events)
+          Some(events)
+        } else {
+          None
+        }
+      }
   }
 
-  def GetContribution(): List[InGameActivity] = {
-    GetContributionDuringPeriod(System.currentTimeMillis(), duration = 600000)
+  def GetContributionDuringPeriod(list: List[InGameActivity], duration: Long): List[InGameActivity] = {
+    val earliestEndTime = System.currentTimeMillis() - duration
+    list.collect {
+      case event: DamagingActivity if event.health > 0 && event.time > earliestEndTime  => event
+      case event: RepairingActivity if event.amount > 0 && event.time > earliestEndTime => event
+    }
   }
 
-  def GetContribution(ending: Long): List[InGameActivity] = {
-    GetContributionDuringPeriod(ending, duration = 600000)
-  }
-
-  def GetContributionDuringPeriod(ending: Long, duration: Long): List[InGameActivity] = {
-    val start = ending - duration
-    History.collect { case repair: RepairFromEquipment
-      if repair.time <= ending && repair.time > start => repair
+  def IsContributionEvent(event: InGameActivity): Boolean = {
+    event match {
+      case _: RepairingActivity => true
+      case _: DamagingActivity => true
+      case _ => false
     }
   }
 
   def HistoryAndContributions(): List[InGameActivity] = {
-    val ending = System.currentTimeMillis()
-    val start = ending - 600000
-    contributionInheritance.foreach { case (obj, list) =>
-      val filtered = list.filter { event => event.time <= ending && event.time > start }
-      if (filtered.isEmpty) {
-        contributionInheritance.remove(obj)
-      } else if (filtered.size != list.size) {
-        contributionInheritance.update(obj, filtered)
-      }
-    }
-    val contributions = contributionInheritance.flatMap { case (_, list) => list }
-    (History ++ contributions).sortBy(_.time)
+    History ++ contributionInheritance.values.toList
   }
 
   def ClearHistory(): List[InGameActivity] = {
     lastDamage = None
     val out = history
     history = List.empty
+    previousContributionInheritance = None
+    contributionInheritance.clear()
     out
   }
 }
@@ -317,5 +333,11 @@ object InGameHistory {
       obj.LogActivity(event)
       unit.foreach { o => obj.ContributionFrom(o) }
     }
+  }
+
+  def ContributionFrom(target: PlanetSideGameObject with FactionAffinity with InGameHistory): Option[Contribution] = {
+    target
+      .GetContribution()
+      .collect { case events => Contribution(SourceEntry(target).unique, events) }
   }
 }

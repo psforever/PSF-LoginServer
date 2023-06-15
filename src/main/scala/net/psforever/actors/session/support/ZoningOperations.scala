@@ -258,7 +258,7 @@ class ZoningOperations(
           obj.GUID,
           Deployable.Icon(obj.Definition.Item),
           obj.Position,
-          obj.Owner.getOrElse(PlanetSideGUID(0))
+          obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
         )
         sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
       })
@@ -2824,7 +2824,7 @@ class ZoningOperations(
       continent.DeployableList
         .filter(_.OwnerName.contains(name))
         .foreach(obj => {
-          obj.Owner = guid
+          obj.OwnerGuid = guid
           drawDeloyableIcon(obj)
         })
       drawDeloyableIcon = DontRedrawIcons
@@ -2832,7 +2832,7 @@ class ZoningOperations(
       //assert or transfer vehicle ownership
       continent.GUID(player.avatar.vehicle) match {
         case Some(vehicle: Vehicle) if vehicle.OwnerName.contains(tplayer.Name) =>
-          vehicle.Owner = guid
+          vehicle.OwnerGuid = guid
           continent.VehicleEvents ! VehicleServiceMessage(
             s"${tplayer.Faction}",
             VehicleAction.Ownership(guid, vehicle.GUID)
@@ -2907,7 +2907,7 @@ class ZoningOperations(
         val effortBy = nextSpawnPoint
           .collect { case sp: SpawnTube => (sp, continent.GUID(sp.Owner.GUID)) }
           .collect {
-            case (_, Some(v: Vehicle)) => continent.GUID(v.Owner)
+            case (_, Some(v: Vehicle)) => continent.GUID(v.OwnerGuid)
             case (sp, Some(_: Building)) => Some(sp)
           }
           .collect { case Some(thing: PlanetSideGameObject with FactionAffinity) => Some(SourceEntry(thing)) }
@@ -2962,7 +2962,7 @@ class ZoningOperations(
         obj.GUID,
         Deployable.Icon(obj.Definition.Item),
         obj.Position,
-        obj.Owner.getOrElse(PlanetSideGUID(0))
+        obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
       )
       sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
     }
