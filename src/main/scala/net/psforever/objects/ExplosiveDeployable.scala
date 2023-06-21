@@ -348,7 +348,7 @@ object MineDeployableControl {
           jumping = false,
           ExoSuitDefinition.Select(exosuit, faction),
           bep = 0,
-          kills = Nil,
+          progress = PlayerSource.Nobody.progress,
           UniquePlayer(charId, name, CharacterSex.Male, mine.Faction)
         )
       case None =>

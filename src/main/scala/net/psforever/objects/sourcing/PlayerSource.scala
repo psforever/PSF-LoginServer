@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.sourcing
 
+import net.psforever.objects.avatar.scoring.Life
 import net.psforever.objects.definition.{AvatarDefinition, ExoSuitDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.mount.Mountable
@@ -28,7 +29,7 @@ final case class PlayerSource(
                                jumping: Boolean,
                                Modifiers: ResistanceProfile,
                                bep: Long,
-                               kills: Seq[Any],
+                               progress: Life,
                                unique: UniquePlayer
                              ) extends SourceWithHealthEntry {
   override def Name: String = unique.name
@@ -46,6 +47,7 @@ object PlayerSource {
     val exosuit = p.ExoSuit
     val faction = p.Faction
     val seatedEntity = mountableAndSeat(p)
+    val avatar = p.avatar
     PlayerSource(
       p.Definition,
       exosuit,
@@ -58,8 +60,8 @@ object PlayerSource {
       p.Crouching,
       p.Jumping,
       ExoSuitDefinition.Select(exosuit, faction),
-      p.avatar.bep,
-      kills = Nil,
+      avatar.bep,
+      progress = avatar.scorecard.CurrentLife,
       UniquePlayer(p.CharId, p.Name, p.Sex, faction)
     )
   }
@@ -78,7 +80,7 @@ object PlayerSource {
       jumping = false,
       GlobalDefinitions.Standard,
       bep = 0L,
-      kills = Nil,
+      progress = tokenLife,
       UniquePlayer(0L, name, CharacterSex.Male, faction)
     )
   }
@@ -116,6 +118,7 @@ object PlayerSource {
   def inSeat(player: Player, source: SourceEntry, seatNumber: Int): PlayerSource = {
     val exosuit = player.ExoSuit
     val faction = player.Faction
+    val avatar = player.avatar
     PlayerSource(
       player.Definition,
       exosuit,
@@ -128,8 +131,8 @@ object PlayerSource {
       player.Crouching,
       player.Jumping,
       ExoSuitDefinition.Select(exosuit, faction),
-      player.avatar.bep,
-      kills = Nil,
+      avatar.bep,
+      progress = tokenLife,
       UniquePlayer(player.CharId, player.Name, player.Sex, faction)
     )
   }
@@ -142,4 +145,6 @@ object PlayerSource {
    * the others first: this will be my guest-gift to you.”
    */
   final val Nobody = PlayerSource("Nobody", PlanetSideEmpire.NEUTRAL, Vector3.Zero)
+
+  private val tokenLife: Life = Life()
 }

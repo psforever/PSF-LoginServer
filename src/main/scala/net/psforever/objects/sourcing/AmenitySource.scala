@@ -17,6 +17,7 @@ final case class AmenitySource(
                                 health: Int,
                                 Orientation: Vector3,
                                 occupants: List[SourceEntry],
+                                installation: SourceEntry,
                                 hacked: Option[HackInfo],
                                 unique: UniqueAmenity
                               ) extends SourceWithHealthEntry {
@@ -54,6 +55,7 @@ object AmenitySource {
       health,
       obj.Orientation,
       Nil,
+      SourceEntry(obj.Owner),
       hackData,
       sourcing.UniqueAmenity(obj.Zone.Number, obj.GUID, obj.Position)
     )

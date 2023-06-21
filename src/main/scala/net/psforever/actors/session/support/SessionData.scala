@@ -2473,7 +2473,11 @@ class SessionData(
         continent.id,
         LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid)
       )
-      player.LogActivity(VehicleDismountActivity(VehicleSource(router), PlayerSource(player)))
+      val vSource = VehicleSource(router)
+      val zoneNumber = continent.Number
+      player.LogActivity(VehicleMountActivity(vSource, PlayerSource(player), zoneNumber))
+      player.Position = dest.Position
+      player.LogActivity(VehicleDismountActivity(vSource, PlayerSource(player), zoneNumber))
     } else {
       log.warn(s"UseRouterTelepadSystem: ${player.Name} can not teleport")
     }

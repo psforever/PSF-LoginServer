@@ -50,8 +50,30 @@ final case class ShieldCharge(amount: Int, cause: Option[SourceEntry])
 final case class TerminalUsedActivity(terminal: AmenitySource, transaction: TransactionType.Value)
   extends GeneralActivity
 
-final case class VehicleDismountActivity(vehicle: VehicleSource, player: PlayerSource)
-  extends GeneralActivity
+sealed trait VehicleMountChange extends GeneralActivity {
+  def vehicle: VehicleSource
+  def zoneNumber: Int
+}
+
+sealed trait VehiclePassengerMountChange extends VehicleMountChange {
+  def player: PlayerSource
+}
+
+sealed trait VehicleCargoMountChange extends VehicleMountChange {
+  def cargo: VehicleSource
+}
+
+final case class VehicleMountActivity(vehicle: VehicleSource, player: PlayerSource, zoneNumber: Int)
+  extends VehiclePassengerMountChange
+
+final case class VehicleDismountActivity(vehicle: VehicleSource, player: PlayerSource, zoneNumber: Int)
+  extends VehiclePassengerMountChange
+
+final case class VehicleCargoMountActivity(vehicle: VehicleSource, cargo: VehicleSource, zoneNumber: Int)
+  extends VehicleCargoMountChange
+
+final case class VehicleCargoDismountActivity(vehicle: VehicleSource, cargo: VehicleSource, zoneNumber: Int)
+  extends VehicleCargoMountChange
 
 final case class Contribution(src: SourceUniqueness, entries: List[InGameActivity])
   extends GeneralActivity {

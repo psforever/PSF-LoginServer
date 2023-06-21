@@ -170,8 +170,8 @@ class BfrControl(vehicle: Vehicle)
     specialArmWeaponEquipManagement(item, slot, handiness)
   }
 
-  override def dismountCleanup(seatBeingDismounted: Int): Unit = {
-    super.dismountCleanup(seatBeingDismounted)
+  override def dismountCleanup(seatBeingDismounted: Int, player: Player): Unit = {
+    super.dismountCleanup(seatBeingDismounted, player)
     if (!vehicle.Seats.values.exists(_.isOccupied)) {
       vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator) match {
         case Some(subsys) =>

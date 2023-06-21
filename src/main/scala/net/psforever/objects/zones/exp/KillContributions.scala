@@ -2,13 +2,14 @@
 package net.psforever.objects.zones.exp
 
 import akka.actor.ActorRef
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.avatar.scoring.{Assist, Kill}
 import net.psforever.objects.serverobject.hackable.Hackable.HackInfo
 import net.psforever.objects.sourcing.{AmenitySource, PlayerSource, SourceEntry, SourceUniqueness, VehicleSource}
-import net.psforever.objects.vital.{Contribution, InGameActivity, RevivingActivity, TerminalUsedActivity, VehicleDismountActivity}
+import net.psforever.objects.vital.{Contribution, InGameActivity, RevivingActivity, TerminalUsedActivity, VehicleCargoDismountActivity, VehicleCargoMountActivity, VehicleCargoMountChange, VehicleDismountActivity, VehicleMountActivity, VehiclePassengerMountChange}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.collection.mutable
 
@@ -22,7 +23,10 @@ object KillContributions {
       medical_terminal,
       adv_med_terminal,
       crystals_health_a,
-      crystals_health_b
+      crystals_health_b,
+      bfr_rearm_terminal,
+      multivehicle_rearm_terminal,
+      lodestar_repair_terminal
     ).collect { _.ObjectId }
   }
 
@@ -49,25 +53,34 @@ object KillContributions {
       )
     }
     //sort by applicable time periods, as long as the longer period is represented by activity
-    val otherContributionCalculations = contributionScoringAndCulling(faction, kill, Seq(target.CharId), contributions, bep)(_, _)
-    val finalContributions = if (longHistory.isEmpty) {
-      val contributionProcess = new CombinedHealthAndArmorContributionProcess(faction, contributions, Nil)
-      contributionProcess.submit(shortHistory)
-      val contributionEntries = otherContributionCalculations(shortHistory, contributionProcess.output())
-      contributionEntries
-        .keys
-        .map { composeContributionOutput(_, contributionEntries, contributionEntries, bep) }
-    } else {
+    val otherContributionCalculations = contributionScoringAndCulling(faction, kill, contributions, bep)(_, _)
+    val finalContributions = if (longHistory.nonEmpty && KillAssists.calculateMenace(target) > 2) {
       val longContributionProcess = new CombinedHealthAndArmorContributionProcess(faction, contributions, Nil)
       val shortContributionProcess = new CombinedHealthAndArmorContributionProcess(faction, contributions, Seq(longContributionProcess))
       longContributionProcess.submit(longHistory)
       shortContributionProcess.submit(shortHistory)
       val longContributionEntries = otherContributionCalculations(longHistory, longContributionProcess.output())
       val shortContributionEntries = otherContributionCalculations(shortHistory, shortContributionProcess.output())
-      (longContributionEntries.keys ++ shortContributionEntries.keys)
+      longContributionEntries.remove(target.CharId)
+      longContributionEntries.remove(kill.victim.CharId)
+      shortContributionEntries.remove(target.CharId)
+      shortContributionEntries.remove(kill.victim.CharId)
+      (longContributionEntries ++ shortContributionEntries)
         .toSeq
-        .distinct
-        .map { composeContributionOutput(_, shortContributionEntries, longContributionEntries, bep) }
+        .distinctBy(_._2.player.unique)
+        .map { case (_, stats) =>
+          composeContributionOutput(stats.player, shortContributionEntries, longContributionEntries, bep)
+        }
+    } else {
+      val contributionProcess = new CombinedHealthAndArmorContributionProcess(faction, contributions, Nil)
+      contributionProcess.submit(shortHistory)
+      val contributionEntries = otherContributionCalculations(shortHistory, contributionProcess.output())
+      contributionEntries.remove(target.CharId)
+      contributionEntries.remove(kill.victim.CharId)
+      contributionEntries
+        .map { case (_, stats) =>
+          composeContributionOutput(stats.player, contributionEntries, contributionEntries, bep)
+        }
     }
     //take the output and transform that into contribution distribution data
     val victim = kill.victim
@@ -98,7 +111,6 @@ object KillContributions {
   private def contributionScoringAndCulling(
                                              faction: PlanetSideEmpire.Value,
                                              kill: Kill,
-                                             excludeTargets: Seq[Long],
                                              contributions: Map[SourceUniqueness, List[InGameActivity]],
                                              bep: Long
                                            )
@@ -113,11 +125,11 @@ object KillContributions {
       contributionEntries.put(id, stat.copy(weapons = newWeaponStats))
     }
     contributeWithKillWhileMountedActivity(faction, kill, history, contributionEntries)
-    contributeWithVehicleTransportActivity(history, contributionEntries)
     contributeWithRevivalActivity(history, contributionEntries)
+    contributeWithVehicleTransportActivity(history, contributionEntries)
+    contributeWithVehicleCargoTransportActivity(history, contributionEntries)
     contributeWithTerminalActivity(faction, history, contributions, contributionEntries)
     contributionEntries.remove(0)
-    excludeTargets.foreach { contributionEntries.remove }
     contributionEntries
   }
 
@@ -185,23 +197,99 @@ object KillContributions {
                                                       history: List[InGameActivity],
                                                       participants: mutable.LongMap[ContributionStats]
                                                     ): List[InGameActivity] = {
-    val shortHistory = history.collect { case out: VehicleDismountActivity => out }
-    shortHistory
+    /*
+    collect the dismount activity of all vehicles from which this player is not the owner
+    make certain all dismount activity can be paired with a mounting activity
+    certain other qualifications of the prior mounting must be met before the support bonus applies
+    */
+    val dismountActivity = history
+      .collect {
+        case inAndOut: VehiclePassengerMountChange
+          if !inAndOut.vehicle.owner.contains(inAndOut.player) => inAndOut
+      }
+      .grouped(2)
+      .collect {
+        case List(in: VehicleMountActivity, out: VehicleDismountActivity)
+          if in.vehicle.unique == out.vehicle.unique &&
+            out.vehicle.Faction == out.player.Faction &&
+            (in.vehicle.Definition == GlobalDefinitions.router || {
+              val inTime = in.time
+              val outTime = out.time
+              out.player.progress.kills.exists { death =>
+                val deathTime = death.info.interaction.hitTime
+                inTime < deathTime && deathTime <= outTime
+              }
+            } || {
+              val sameZone = in.zoneNumber == out.zoneNumber
+              val distanceMoved = Vector3.DistanceSquared(in.vehicle.Position.xy, out.vehicle.Position.xy)
+              val timeSpent = out.time - in.time
+              timeSpent >= 210000 /* 3:30 */ ||
+                (sameZone && (distanceMoved > 160000f || distanceMoved > 10000f && timeSpent >= 60000)) |
+                (!sameZone && (distanceMoved > 10000f || timeSpent >= 120000))
+            }) =>
+          out
+      }.toList
+    //apply
+    dismountActivity
       .groupBy { a => a.vehicle.owner }
-      .foreach { case (Some(owner), dismountsFromVehicle) =>
+      .collect { case (Some(owner), dismountsFromVehicle) =>
         val numberOfDismounts = dismountsFromVehicle.size
         contributeWithCombinedActivity(
           owner.CharId,
-          dismountsFromVehicle.map { act => WeaponStats(act.vehicle.Definition.ObjectId, 1, 1, act.time, 15f) },
+          dismountsFromVehicle.map { act => WeaponStats(act.vehicle.Definition.ObjectId, 0, numberOfDismounts, act.time, 15f) },
           dismountsFromVehicle.head.vehicle.owner.get,
-          numberOfDismounts,
-          numberOfDismounts,
+          amount = 0,
+          total = 0,
           numberOfDismounts,
           dismountsFromVehicle.maxBy(_.time).time,
           participants
         )
       }
-    shortHistory
+    dismountActivity
+  }
+
+  private def contributeWithVehicleCargoTransportActivity(
+                                                           history: List[InGameActivity],
+                                                           participants: mutable.LongMap[ContributionStats]
+                                                         ): List[InGameActivity] = {
+    /*
+    collect the dismount activity of all vehicles from which this player is not the owner
+    make certain all dismount activity can be paired with a mounting activity
+    certain other qualifications of the prior mounting must be met before the support bonus applies
+    */
+    val dismountActivity = history
+      .collect {
+        case inAndOut: VehicleCargoMountChange if inAndOut.vehicle.owner.nonEmpty => inAndOut
+      }
+      .grouped(2)
+      .collect {
+        case List(in: VehicleCargoMountActivity, out: VehicleCargoDismountActivity)
+          if in.vehicle.unique == out.vehicle.unique &&
+            out.vehicle.Faction == out.cargo.Faction &&
+            (in.vehicle.Definition == GlobalDefinitions.router || {
+              val distanceMoved = Vector3.DistanceSquared(in.vehicle.Position.xy, out.vehicle.Position.xy)
+              val timeSpent = out.time - in.time
+              timeSpent >= 210000 /* 3:30 */ || distanceMoved > 640000f
+            }) =>
+          out
+      }.toList
+    //apply
+    dismountActivity
+      .groupBy { a => a.vehicle.owner }
+      .collect { case (Some(owner), dismountsFromVehicle) =>
+        val numberOfDismounts = dismountsFromVehicle.size
+        contributeWithCombinedActivity(
+          owner.CharId,
+          dismountsFromVehicle.map { act => WeaponStats(act.vehicle.Definition.ObjectId, 0, numberOfDismounts, act.time, 15f) },
+          dismountsFromVehicle.head.vehicle.owner.get,
+          amount = 0,
+          total = 0,
+          numberOfDismounts,
+          dismountsFromVehicle.maxBy(_.time).time,
+          participants
+        )
+      }
+    dismountActivity
   }
 
   private def contributeWithRevivalActivity(
@@ -251,11 +339,22 @@ object KillContributions {
       case (t, terminal, Some(info)) if terminal.Faction != faction =>
         participants.getOrElseUpdate(
           info.player.CharId,
-          ContributionStats(info.player, Seq(WeaponStats(0, 1, 1, t.time, 10f)), 1, 1, 1, t.time)
+          ContributionStats(info.player, Seq(WeaponStats(terminal.Definition.ObjectId, 0, 1, t.time, 10f)), 0, 0, 1, t.time)
         )
         t
       case (t, terminal, _) =>
-        extractContributionsForEntityByUser(faction, terminal, contributions, participants)
+        terminal.installation match {
+          case v: VehicleSource =>
+            v.owner.collect {
+              owner =>
+                participants.getOrElseUpdate(
+                  owner.CharId,
+                  ContributionStats(owner, Seq(WeaponStats(terminal.Definition.ObjectId, 0, 1, t.time, 10f)), 0, 0, 1, t.time)
+                )
+            }
+          case _ =>
+            extractContributionsForEntityByUser(faction, terminal, contributions, participants)
+        }
         t
     }.toList
   }
@@ -317,32 +416,33 @@ object KillContributions {
   }
 
   private def composeContributionOutput(
-                                         charId: Long,
+                                         player: PlayerSource,
                                          shortPeriod: mutable.LongMap[ContributionStats],
                                          longPeriod: mutable.LongMap[ContributionStats],
                                          bep: Long
                                        ): (Long, ContributionStatsOutput) = {
-    shortPeriod
+    val charId = player.CharId
+    longPeriod
       .get(charId)
       .collect {
         case entry =>
           val weapons = entry.weapons
           (
             entry.player,
-            weapons.map { _.equipment_id },
-            math.min(weapons.foldLeft(0f)(_ + _.contributions).toLong, bep)
+            weapons.filter { _.amount == 0 }.map { _.equipment_id },
+            (0.9f * math.min(weapons.foldLeft(0f)(_ + _.contributions), bep.toFloat)).toLong
           )
       }
       .orElse {
-        longPeriod
+        shortPeriod
           .get(charId)
           .collect {
             case entry =>
               val weapons = entry.weapons
               (
                 entry.player,
-                weapons.filter { _.amount == 0 }.map { _.equipment_id },
-                (0.9f * math.min(weapons.foldLeft(0f)(_ + _.contributions), bep.toFloat)).toLong
+                weapons.map { _.equipment_id },
+                math.min(weapons.foldLeft(0f)(_ + _.contributions).toLong, bep)
               )
           }
       }
@@ -350,7 +450,7 @@ object KillContributions {
         Some((PlayerSource.Nobody, Seq(0), 0L))
       }
       .collect {
-        case (player, weaponIds, experience) =>
+        case (player, weaponIds, experience) if experience > 0 =>
           (charId, ContributionStatsOutput(player, weaponIds, experience.toFloat))
       }
       .get

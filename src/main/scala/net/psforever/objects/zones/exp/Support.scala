@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.sourcing.{AmenitySource, PlayerSource, SourceEntry}
 import net.psforever.objects.vital.{HealFromEquipment, InGameActivity, ReconstructionActivity, RepairFromEquipment, RepairFromExoSuitChange, RevivingActivity, SpawningActivity, SupportActivityCausedByAnother, TerminalUsedActivity}
 import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.exp.KillAssists.calculateMenace
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, TransactionType}
 import net.psforever.zones.Zones
 
@@ -17,6 +18,33 @@ import scala.collection.mutable
 
 object Support {
   private type SupportActivity = InGameActivity with SupportActivityCausedByAnother
+
+  private[exp] def baseExperience(
+                                   victim: PlayerSource,
+                                   history: Iterable[InGameActivity]
+                                 ): Long = {
+    val lifespan = (history.headOption, history.lastOption) match {
+      case (Some(spawn), Some(death)) => death.time - spawn.time
+      case _                          => 0L
+    }
+    val wasEverAMax = Support.wasEverAMax(victim, history)
+    val base = if (wasEverAMax) { //shamed
+      250L
+    } else if (victim.Seated || victim.progress.kills.nonEmpty) {
+      100L
+    } else if (lifespan > 15000L) {
+      50L
+    } else {
+      1L
+    }
+    if (base > 1) {
+      //black ops modifier
+      //TODO x10
+      base
+    } else {
+      base
+    }
+  }
 
   private[exp] def onlyOriginalAssistEntries(
                                               first: mutable.LongMap[ContributionStatsOutput],

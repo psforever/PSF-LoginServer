@@ -24,12 +24,7 @@ object KillAssists {
       case _ => false
     }
     if (spawnIndex == -1 || endIndex == -1) {
-      Nil //throw VitalsHistoryException(history.head, "vitals history does not contain expected conditions")
-      //    } else
-      //    if (spawnIndex == -1) {
-      //      Nil  //throw VitalsHistoryException(history.head, "vitals history does not contain initial spawn conditions")
-      //    } else if (endIndex == -1) {
-      //      Nil  //throw VitalsHistoryException(history.last, "vitals history does not contain end of life conditions")
+      Nil
     } else {
       history.slice(spawnIndex, endIndex)
     }
@@ -54,13 +49,57 @@ object KillAssists {
       .collect { case (dam, Some(adv)) => (dam, adv.attacker) }
   }
 
-  private[exp] def calculateExperience(
-                                        killer: PlayerSource,
-                                        victim: PlayerSource,
-                                        history: Iterable[InGameActivity]
-                                      ): Long = {
+  /**
+   * "Menace" is a crude measurement of how much consistent destructive power a player has been demonstrating.
+   * Within the last ten kills, the rate of the player's killing speed is measured.
+   * The measurement - a "streak" in modern lingo - is transformed into the form of an `Integer` for simplicity.
+   * @param player the player
+   * @param mercy a time value that can be used to continue a missed streak
+   * @return an `Integer` between 0 and 7
+   */
+  private[exp] def calculateMenace(player: PlayerSource, mercy: Long = 2500L): Int = {
+    val allKills = player.progress.kills.reverse
+    val restBetweenKills = allKills.take(10) match {
+      case firstKill :: kills if kills.size == 9 =>
+        var xTime = firstKill.time.toDate.getTime
+        kills.map { kill =>
+          val time = kill.time.toDate.getTime
+          val timeOut = time - xTime
+          xTime = time
+          timeOut
+        }
+      case _ =>
+        Nil
+    }
+    //TODO the math here is not very meaningful
+    math.floor(math.sqrt(
+      math.max(0, takeWhileDelay(restBetweenKills, testValue = 20000L, mercy).size - 1) +
+        math.max(0, takeWhileDelay(restBetweenKills, testValue = 10000L, mercy).size - 5) * 3 +
+        math.max(0, takeWhileDelay(restBetweenKills, testValue = 5000L, mercy = 1000L).size - 4) * 5
+    )).toInt
+  }
+
+  private def takeWhileDelay(list: Iterable[Long], testValue: Long, mercy: Long = 2500L): Iterable[Long] = {
+    var onGoingMercy: Long = mercy
+    list.takeWhile { time =>
+      if (time < testValue) {
+        true
+      } else if (time - onGoingMercy - 1 < testValue) {
+        onGoingMercy = math.ceil(onGoingMercy * 0.65).toLong
+        true
+      } else {
+        false
+      }
+    }
+  }
+
+  private def calculateExperience(
+                                   killer: PlayerSource,
+                                   victim: PlayerSource,
+                                   history: Iterable[InGameActivity]
+                                 ): Long = {
     //base value (the kill experience before modifiers)
-    val base = ExperienceCalculator.calculateExperience(victim, history)
+    val base = Support.baseExperience(victim, history)
     if (base > 1) {
       //battle rank disparity modifiers
       val battleRankDisparity = {
@@ -81,7 +120,9 @@ object KillAssists {
           math.floor(-0.15f * base - killerLevel + victimLevel).toLong
         }
       }
-      math.max(1, base + battleRankDisparity)
+      //menace modifiers
+      val menace = 1f + calculateMenace(victim) * 0.14f
+      math.max(1, (base + battleRankDisparity) * menace).toLong
     } else {
       base
     }
@@ -105,7 +146,7 @@ object KillAssists {
 
       case _ =>
         val assists = collectKillAssistsForPlayer(victim, shortHistory, None)
-        val fullBep = ExperienceCalculator.calculateExperience(victim, shortHistory)
+        val fullBep = Support.baseExperience(victim, shortHistory)
         val hitSquad = assists.map {
           case ContributionStatsOutput(p, w, r) => (p, Assist(victim, w, r, (fullBep * r).toLong))
         }.toSeq

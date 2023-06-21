@@ -5,12 +5,9 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.zones.Zone
 import net.psforever.objects._
-import net.psforever.packet.game.{
-  CargoMountPointStatusMessage,
-  ObjectAttachMessage,
-  ObjectDetachMessage,
-  PlanetsideAttributeMessage
-}
+import net.psforever.objects.sourcing.VehicleSource
+import net.psforever.objects.vital.VehicleCargoMountActivity
+import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.types.{BailType, CargoStatus, PlanetSideGUID, Vector3}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.Service
@@ -117,7 +114,7 @@ trait CarrierBehavior {
           case _ =>
             obj.CargoHold(mountPoint) match {
               case Some(hold) if hold.isOccupied && hold.occupant.get.GUID == cargo_guid =>
-                hold.unmount(hold.occupant.get)
+                CarrierBehavior.CargoDismountAction(obj, hold.occupant.get, hold, BailType.Normal)
               case _ => ;
             }
             false
@@ -213,10 +210,8 @@ object CarrierBehavior {
         if (distance <= 64) {
           //cargo vehicle is close enough to assume to be physically within the carrier's hold; mount it
           log.debug(s"HandleCheckCargoMounting: mounting cargo vehicle in carrier at distance of $distance")
-          hold.mount(cargo)
-          cargo.MountedIn = carrierGUID
+          CargoMountAction(carrier, cargo, hold, carrierGUID)
           cargo.Velocity = None
-          cargo.Actor ! CargoBehavior.EndCargoMounting(carrierGUID)
           zone.VehicleEvents ! VehicleServiceMessage(
             s"${cargo.Actor}",
             VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health))
@@ -358,9 +353,7 @@ object CarrierBehavior {
           //obviously, don't do this
         } else if (iteration > 40) {
           //cargo vehicle has spent too long not getting far enough away; restore the cargo's mount in the carrier hold
-          hold.mount(cargo)
-          cargo.MountedIn = carrierGUID
-          cargo.Actor ! CargoBehavior.EndCargoMounting(carrierGUID)
+          CargoMountAction(carrier, cargo, hold, carrierGUID)
           CargoMountBehaviorForAll(carrier, cargo, mountPoint)
           zone.actor ! ZoneActor.RemoveFromBlockMap(cargo)
           false
@@ -441,9 +434,10 @@ object CarrierBehavior {
     val zone = carrier.Zone
     carrier.CargoHolds.find({ case (_, hold) => hold.occupant.contains(cargo) }) match {
       case Some((mountPoint, hold)) =>
-        cargo.MountedIn = None
-        hold.unmount(
+        CarrierBehavior.CargoDismountAction(
+          carrier,
           cargo,
+          hold,
           if (bailed) BailType.Bailed else if (kicked) BailType.Kicked else BailType.Normal
         )
         val driverOpt = cargo.Seats(0).occupant
@@ -652,5 +646,41 @@ object CarrierBehavior {
       VehicleAction.SendResponse(Service.defaultPlayerGUID, mountPointStatusMessage)
     )
     msgs
+  }
+
+  /**
+   * na
+   * @param carrier the ferrying vehicle
+   * @param cargo the ferried vehicle
+   * @param hold na
+   * @param carrierGuid the ferrying vehicle's unique identifier
+   */
+  private def CargoMountAction(
+                                carrier: Vehicle,
+                                cargo: Vehicle,
+                                hold: Cargo,
+                                carrierGuid: PlanetSideGUID): Unit = {
+    hold.mount(cargo)
+    cargo.MountedIn = carrierGuid
+    cargo.LogActivity(VehicleCargoMountActivity(VehicleSource(carrier), VehicleSource(cargo), carrier.Zone.Number))
+    cargo.Actor ! CargoBehavior.EndCargoMounting(carrierGuid)
+  }
+
+  /**
+   * na
+   * @param carrier the ferrying vehicle
+   * @param cargo the ferried vehicle
+   * @param hold na
+   * @param bailType na
+   */
+  private def CargoDismountAction(
+                                   carrier: Vehicle,
+                                   cargo: Vehicle,
+                                   hold: Cargo,
+                                   bailType: BailType.Value
+                                 ): Unit = {
+    cargo.MountedIn = None
+    hold.unmount(cargo, bailType)
+    cargo.LogActivity(VehicleCargoMountActivity(VehicleSource(carrier), VehicleSource(cargo), carrier.Zone.Number))
   }
 }
