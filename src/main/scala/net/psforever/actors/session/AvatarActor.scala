@@ -231,6 +231,8 @@ object AvatarActor {
 
   final case class AvatarLoginResponse(avatar: Avatar)
 
+  final case class SupportExperienceDeposit(bep: Long, delay: Long) extends Command
+
   /**
     * A player loadout represents all of the items in the player's hands (equipment slots)
     * and all of the items in the player's backpack (inventory)
@@ -827,6 +829,17 @@ object AvatarActor {
     out.future
   }
 
+  def setBepOnly(avatarId: Long, bep: Long): Future[Long] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[Long] = Promise()
+    val result = ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId)).update(_.bep -> lift(bep)))
+    result.onComplete { _ =>
+      out.completeWith(Future(bep))
+    }
+    out.future
+  }
+
   def toAvatar(avatar: persistence.Avatar): Avatar = {
     val bep = avatar.bep
     val convertedCosmetics = if (BattleRank.showCosmetics(bep)) {
@@ -868,6 +881,8 @@ class AvatarActor(
   var _avatar: Option[Avatar]                      = None
   var saveLockerFunc: () => Unit                   = storeNewLocker
   //val topic: ActorRef[Topic.Command[Avatar]]       = context.spawnAnonymous(Topic[Avatar]("avatar"))
+  var supportExperiencePool: Long = 0
+  var supportExperienceTimer: Cancellable          = Default.Cancellable
 
   def avatar: Avatar = _avatar.get
 
@@ -1655,8 +1670,27 @@ class AvatarActor(
           updateKillsDeathsAssists(stat)
           Behaviors.same
 
+        case AwardBep(bep, ExperienceType.Support) =>
+          //TODO cache experience for slow payouts
+          supportExperiencePool = supportExperiencePool + bep
+          if (supportExperienceTimer.isCancelled) {
+            resetSupportExperienceTimer(previousBep = 0, previousDelay = 0)
+          }
+          Behaviors.same
+
         case AwardBep(bep, modifier) =>
           setBep(avatar.bep + bep, modifier)
+          Behaviors.same
+
+        case SupportExperienceDeposit(bep, delayBy) =>
+          setBep(avatar.bep + bep, ExperienceType.Support)
+          supportExperiencePool = supportExperiencePool - bep
+          if (supportExperiencePool > 0) {
+            resetSupportExperienceTimer(bep, delayBy)
+          } else {
+            supportExperienceTimer.cancel()
+            supportExperienceTimer = Default.Cancellable
+          }
           Behaviors.same
 
         case SetBep(bep) =>
@@ -1797,6 +1831,10 @@ class AvatarActor(
           AvatarActor.saveAvatarData(avatar)
           staminaRegenTimer.cancel()
           implantTimers.values.foreach(_.cancel())
+          supportExperienceTimer.cancel()
+          if (supportExperiencePool > 0) {
+            AvatarActor.setBepOnly(avatar.id, avatar.bep + supportExperiencePool)
+          }
           saveLockerFunc()
           Behaviors.same
       }
@@ -2873,10 +2911,7 @@ class AvatarActor(
     val current   = BattleRank.withExperience(avatar.bep).value
     val next      = BattleRank.withExperience(bep).value
     lazy val br24 = BattleRank.BR24.value
-    val result = for {
-      r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatar.id)).update(_.bep -> lift(bep)))
-    } yield r
-    result.onComplete {
+    AvatarActor.setBepOnly(avatar.id, bep).onComplete {
       case Success(_) =>
         val sess          = session.get
         val zone          = sess.zone
@@ -3111,5 +3146,42 @@ class AvatarActor(
         output.success(false)
     }
     output.future
+  }
+
+  def resetSupportExperienceTimer(previousBep: Long, previousDelay: Long): Unit = {
+    val bep: Long = if (supportExperiencePool < 10L) {
+      supportExperiencePool
+    } else {
+      val rand = math.random()
+      val range: Long = if (previousBep < 30L) {
+        if (rand < 0.3d) {
+          75L
+        } else {
+          215L
+        }
+      } else {
+        if (rand < 0.1d || (previousDelay > 35000L && previousBep > 150L)) {
+          75L
+        } else if (rand > 0.9d) {
+          520L
+        } else {
+          125L
+        }
+      }
+      math.min((range * math.random()).toLong, supportExperiencePool)
+    }
+    val delay: Long = {
+      val rand = math.random()
+      if ((previousBep > 190L || previousDelay > 35000L) && bep < 51L) {
+        (1000d * rand).toLong
+      } else {
+        10000L + (rand * 35000d).toLong
+      }
+    }
+    supportExperienceTimer = context.scheduleOnce(
+      delay.milliseconds,
+      context.self,
+      SupportExperienceDeposit(bep, delay)
+    )
   }
 }
