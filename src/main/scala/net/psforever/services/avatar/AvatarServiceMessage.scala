@@ -157,6 +157,7 @@ object AvatarAction {
 
   final case class UpdateKillsDeathsAssists(charId: Long, kda: KDAStat) extends Action
   final case class AwardSupportBep(charId: Long, bep: Long) extends Action
+  final case class AwardCep(charId: Long, bep: Long) extends Action
 
   final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action

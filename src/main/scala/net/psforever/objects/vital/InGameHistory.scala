@@ -209,9 +209,6 @@ trait InGameHistory {
     action match {
       case Some(act) =>
         history = history :+ act
-        if (IsContributionEvent(act)) {
-          previousContributionInheritance = None
-        }
       case None => ()
     }
     history
@@ -256,8 +253,10 @@ trait InGameHistory {
     }
   }
 
-  private var previousContributionInheritance: Option[List[InGameActivity]] = None
-
+  /**
+   * activity that comes from another entity used for scoring;<br>
+   * key - unique reference to that entity; value - history from that entity
+   */
   private val contributionInheritance: mutable.HashMap[SourceUniqueness, Contribution] =
     mutable.HashMap[SourceUniqueness, Contribution]()
 
@@ -277,30 +276,7 @@ trait InGameHistory {
   }
 
   def GetContribution(): Option[List[InGameActivity]] = {
-    previousContributionInheritance
-      .collect {
-        case out @ events if events.head.time > System.currentTimeMillis() - 600000L =>
-          Some(out)
-        case events =>
-          val newEvents = GetContributionDuringPeriod(events, duration = 600000L)
-          if (newEvents.isEmpty) {
-            previousContributionInheritance = None
-            None
-          } else {
-            previousContributionInheritance = Some(newEvents)
-            Some(newEvents)
-          }
-      }
-      .flatten
-      .orElse {
-        val events = GetContributionDuringPeriod(History, duration = 600000L)
-        if (events.nonEmpty) {
-          previousContributionInheritance = Some(events)
-          Some(events)
-        } else {
-          None
-        }
-      }
+    Option(GetContributionDuringPeriod(History, duration = 600000L))
   }
 
   def GetContributionDuringPeriod(list: List[InGameActivity], duration: Long): List[InGameActivity] = {
@@ -308,14 +284,6 @@ trait InGameHistory {
     list.collect {
       case event: DamagingActivity if event.health > 0 && event.time > earliestEndTime  => event
       case event: RepairingActivity if event.amount > 0 && event.time > earliestEndTime => event
-    }
-  }
-
-  def IsContributionEvent(event: InGameActivity): Boolean = {
-    event match {
-      case _: RepairingActivity => true
-      case _: DamagingActivity => true
-      case _ => false
     }
   }
 
@@ -327,7 +295,6 @@ trait InGameHistory {
     lastDamage = None
     val out = history
     history = List.empty
-    previousContributionInheritance = None
     contributionInheritance.clear()
     out
   }

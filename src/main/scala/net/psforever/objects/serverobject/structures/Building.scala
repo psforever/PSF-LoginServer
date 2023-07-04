@@ -16,11 +16,10 @@ import net.psforever.types._
 import scalax.collection.{Graph, GraphEdge}
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.serverobject.llu.{CaptureFlag, CaptureFlagSocket}
+import net.psforever.objects.serverobject.structures.participation.{MajorFacilityHackParticipation, NoParticipation, ParticipationLogic, TowerHackParticipation}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 
-import scala.collection.mutable
 import java.util.concurrent.TimeUnit
-import scala.concurrent.duration._
 
 class Building(
                 private val name: String,
@@ -34,9 +33,8 @@ class Building(
 
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var playersInSOI: List[Player]      = List.empty
-  private val capitols                        = List("Thoth", "Voltan", "Neit", "Anguta", "Eisa", "Verica")
   private var forceDomeActive: Boolean        = false
-  private var participationFunc: Building.ParticipationLogic = Building.NoParticipation
+  private var participationFunc: ParticipationLogic = NoParticipation
   super.Zone_=(zone)
   super.GUID_=(PlanetSideGUID(building_guid)) //set
   Invalidate()                                //unset; guid can be used during setup, but does not stop being registered properly later
@@ -51,10 +49,11 @@ class Building(
    */
   def MapId: Int = map_id
 
-  def IsCapitol: Boolean = capitols.contains(name)
+  def IsCapitol: Boolean = Building.Capitols.contains(name)
+
   def IsSubCapitol: Boolean = {
     Neighbours match {
-      case Some(buildings: Set[Building]) => buildings.exists(x => capitols.contains(x.name))
+      case Some(buildings: Set[Building]) => buildings.exists(x => Building.Capitols.contains(x.name))
       case None                           => false
     }
   }
@@ -85,12 +84,10 @@ class Building(
           box.Actor ! Painbox.Stop()
       }
     }
-    participationFunc.Players(building = this, list)
     playersInSOI = list
+    participationFunc.TryUpdate()
     playersInSOI
   }
-
-  def PlayerContribution: Map[Player, Long] = participationFunc.Contribution()
 
   // Get all lattice neighbours
   def AllNeighbours: Option[Set[Building]] = {
@@ -360,43 +357,24 @@ class Building(
 
   override def Amenities_=(obj: Amenity): List[Amenity] = {
     obj match {
-      case _: CaptureTerminal => participationFunc = Building.FacilityHackParticipation
-      case _ => ;
+      case _: CaptureTerminal =>
+        if (buildingType == StructureType.Facility) {
+          participationFunc = MajorFacilityHackParticipation(this)
+        } else if (buildingType == StructureType.Tower) {
+          participationFunc = TowerHackParticipation(this)
+        }
+      case _ => ()
     }
     super.Amenities_=(obj)
   }
+
+  def Participation: ParticipationLogic = participationFunc
 
   def Definition: BuildingDefinition = buildingDefinition
 }
 
 object Building {
-  trait ParticipationLogic {
-    def Players(building: Building, list: List[Player]): Unit = { }
-    def Contribution(): Map[Player, Long]
-  }
-
-  final case object NoParticipation extends ParticipationLogic {
-    def Contribution(): Map[Player, Long] = Map.empty[Player, Long]
-  }
-
-  final case object FacilityHackParticipation extends ParticipationLogic {
-    private var playerContribution: mutable.HashMap[Player, Long] = mutable.HashMap[Player, Long]()
-
-    override def Players(building: Building, list: List[Player]): Unit = {
-      if (list.isEmpty) {
-        playerContribution.clear()
-      } else {
-        val hackTime = (building.CaptureTerminal.get.Definition.FacilityHackTime + 10.minutes).toMillis
-        val curr = System.currentTimeMillis()
-        val list2 = list.map { p => (p, curr) }
-        playerContribution = playerContribution.filterNot { case (p, t) =>
-          list2.contains(p) || curr - t > hackTime
-        } ++ list2
-      }
-    }
-
-    def Contribution(): Map[Player, Long] = playerContribution.toMap
-  }
+  final val Capitols = List("Thoth", "Voltan", "Neit", "Anguta", "Eisa", "Verica")
 
   final val NoBuilding: Building =
     new Building(name = "", 0, map_id = 0, Zone.Nowhere, StructureType.Platform, GlobalDefinitions.building) {

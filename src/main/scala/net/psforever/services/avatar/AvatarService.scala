@@ -447,7 +447,16 @@ class AvatarService(zone: Zone) extends Actor {
             )
           )
 
-        case _ => ;
+        case AvatarAction.AwardCep(charId, bep) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.AwardCep(charId, bep)
+            )
+          )
+
+        case _ => ()
       }
 
     //message to Undertaker

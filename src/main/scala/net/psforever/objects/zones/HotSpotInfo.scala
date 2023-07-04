@@ -102,7 +102,7 @@ class ActivityReport {
     * @return the time
     */
   def Duration_=(time: FiniteDuration): FiniteDuration = {
-    Duration_=(time.toNanos)
+    Duration_=(time.toMillis)
   }
 
   /**
@@ -112,8 +112,8 @@ class ActivityReport {
     * @return the time
     */
   def Duration_=(time: Long): FiniteDuration = {
-    if (time > duration.toNanos) {
-      duration = FiniteDuration(time, "nanoseconds")
+    if (time > duration.toMillis) {
+      duration = FiniteDuration(time, "milliseconds")
       Renew
     }
     Duration
@@ -177,7 +177,7 @@ class ActivityReport {
     * @return the current time
     */
   def Renew: Long = {
-    val t = System.nanoTime
+    val t = System.currentTimeMillis()
     firstReport = firstReport.orElse(Some(t))
     lastReport = Some(t)
     t
@@ -191,6 +191,6 @@ class ActivityReport {
     heat = 0
     firstReport = None
     lastReport = None
-    duration = FiniteDuration(0, "nanoseconds")
+    duration = FiniteDuration(0, "milliseconds")
   }
 }

@@ -1671,8 +1671,8 @@ class AvatarActor(
           Behaviors.same
 
         case AwardBep(bep, ExperienceType.Support) =>
-          //TODO cache experience for slow payouts
           supportExperiencePool = supportExperiencePool + bep
+          avatar.scorecard.rate(bep)
           if (supportExperienceTimer.isCancelled) {
             resetSupportExperienceTimer(previousBep = 0, previousDelay = 0)
           }
@@ -2990,8 +2990,8 @@ class AvatarActor(
           case _ => None
         }) match {
           case Some(mount: PlanetSideGameObject with FactionAffinity with InGameHistory with MountedWeapons) =>
-            player.HistoryAndContributions() ++ InGameHistory.ContributionFrom(mount)
-          case None =>
+            player.HistoryAndContributions() ++ InGameHistory.ContributionFrom(mount).toList
+          case _ =>
             player.HistoryAndContributions()
         }
         zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, kill, exp)

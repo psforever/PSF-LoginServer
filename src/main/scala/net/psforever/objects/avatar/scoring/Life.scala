@@ -5,11 +5,12 @@ final case class Life(
                        kills: Seq[Kill],
                        assists: Seq[Assist],
                        death: Option[Death],
-                       equipmentStats: Seq[EquipmentStat]
+                       equipmentStats: Seq[EquipmentStat],
+                       supportExperience: Long
                      )
 
 object Life {
-  def apply(): Life = Life(Nil, Nil, None, Nil)
+  def apply(): Life = Life(Nil, Nil, None, Nil, 0)
 
   def bep(life: Life): Long = {
     life.kills.foldLeft(0L)(_ + _.experienceEarned) + life.assists.foldLeft(0L)(_ + _.experienceEarned)

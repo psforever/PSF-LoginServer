@@ -401,6 +401,36 @@ class SessionAvatarHandlers(
       case AvatarResponse.AwardSupportBep(_, bep) =>
         avatarActor ! AvatarActor.AwardBep(bep, ExperienceType.Support)
 
+      case AvatarResponse.AwardCep(0, cep) =>
+        //must lead a squad to be awarded CEP
+        val squadUI = sessionData.squad.squadUI
+        squadUI
+          .find { _._1 == avatar.id }
+          .collect {
+            case (_, elem) if elem.index == 0 =>
+              val thisZone = continent.Number
+              val squadSize = squadUI.count { case (_, e) => e.zone == thisZone } -1
+              val maxCepList = Config.app.game.maximumCepPerSquadSize
+              val maxRate = maxCepList.lift(squadSize).getOrElse(squadSize * maxCepList.head).toLong
+              avatarActor ! AvatarActor.AwardCep(math.min(cep, maxRate))
+          }
+
+      case AvatarResponse.AwardCep(charId, cep)  =>
+        //if the target player, always award (some) CEP
+        val squadUI = sessionData.squad.squadUI
+        if (charId == player.CharId) {
+          val maxRate: Long = squadUI.find { _._1 == avatar.id } match {
+              case Some((_, elem)) if elem.index == 0 =>
+                val thisZone = continent.Number
+                val squadSize = squadUI.count { case (_, e) => e.zone == thisZone } - 1
+                val maxCepList = Config.app.game.maximumCepPerSquadSize
+                maxCepList.lift(squadSize).getOrElse(squadSize * maxCepList.head).toLong
+              case _ =>
+                Config.app.game.maximumCepPerSquadSize.head.toLong
+          }
+          avatarActor ! AvatarActor.AwardCep(math.min(cep, maxRate))
+        }
+
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
 

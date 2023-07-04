@@ -152,6 +152,7 @@ case class GameConfig(
     amenityAutorepairDrainRate: Float,
     bepRate: Double,
     cepRate: Double,
+    maximumCepPerSquadSize: Seq[Int],
     newAvatar: NewAvatar,
     hart: HartConfig,
     sharedMaxCooldown: Boolean,

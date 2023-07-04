@@ -18,6 +18,8 @@ class ScoreCard() {
 
   def Lives: Seq[Life] = lives
 
+  def Kills: Seq[Kill] = lives.flatMap { _.kills } ++ curr.kills
+
   def KillStatistics: Map[Int, Statistic] = killStatistics.toMap
 
   def AssistStatistics: Map[Int, Statistic] = assistStatistics.toMap
@@ -40,7 +42,9 @@ class ScoreCard() {
         val expired = curr
         curr = Life()
         lives = expired.copy(death = Some(d)) +: lives
-      case _ => ;
+      case value: Long =>
+        curr = curr.copy(supportExperience = curr.supportExperience + value)
+      case _ => ()
     }
   }
 }

@@ -10,7 +10,6 @@ import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.sourcing.{AmenitySource, PlayerSource, SourceEntry}
 import net.psforever.objects.vital.{HealFromEquipment, InGameActivity, ReconstructionActivity, RepairFromEquipment, RepairFromExoSuitChange, RevivingActivity, SpawningActivity, SupportActivityCausedByAnother, TerminalUsedActivity}
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.zones.exp.KillAssists.calculateMenace
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire, TransactionType}
 import net.psforever.zones.Zones
 
