@@ -1442,8 +1442,18 @@ class ZoningOperations(
     if (player.avatar.vehicle.nonEmpty && player.VehicleSeated != player.avatar.vehicle) {
       continent.GUID(player.avatar.vehicle) match {
         case Some(vehicle: Vehicle) if vehicle.Actor != Default.Actor =>
-          sessionData.vehicles.TotalDriverVehicleControl(vehicle)
+
+          // allow AMS, ANT and Router to remain deployed when owner leaves the zone
+          vehicle.Definition match {
+            case GlobalDefinitions.ams | GlobalDefinitions.ant | GlobalDefinitions.router
+              => sessionData.vehicles.ConditionalDriverVehicleControl(vehicle)
+
+            case _ => sessionData.vehicles.TotalDriverVehicleControl(vehicle)
+          }
+
+          // remove owner
           vehicle.Actor ! Vehicle.Ownership(None)
+
         case _ => ;
       }
       avatarActor ! AvatarActor.SetVehicle(None)
