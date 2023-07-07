@@ -1443,14 +1443,10 @@ class ZoningOperations(
       continent.GUID(player.avatar.vehicle) match {
         case Some(vehicle: Vehicle) if vehicle.Actor != Default.Actor =>
 
-          // allow AMS, router, ANT and BFR siphon to remain deployed when owner leaves the zone
-          // TODO: do we need to check for left/right siphon?
+          // allow AMS, ANT and Router to remain deployed when owner leaves the zone
           vehicle.Definition match {
-            case GlobalDefinitions.ams | GlobalDefinitions.ant | GlobalDefinitions.router |
-                 GlobalDefinitions.aphelion_ntu_siphon | //GlobalDefinitions.aphelion_ntu_siphon_left | GlobalDefinitions.aphelion_ntu_siphon_right |
-                 GlobalDefinitions.colossus_ntu_siphon | //GlobalDefinitions.colossus_ntu_siphon_left | GlobalDefinitions.colossus_ntu_siphon_right |
-                 GlobalDefinitions.peregrine_ntu_siphon //| GlobalDefinitions.peregrine_ntu_siphon_left | GlobalDefinitions.peregrine_ntu_siphon_right
-              => // do noting to keep them deployed
+            case GlobalDefinitions.ams | GlobalDefinitions.ant | GlobalDefinitions.router
+              => sessionData.vehicles.ConditionalDriverVehicleControl(vehicle)
 
             case _ => sessionData.vehicles.TotalDriverVehicleControl(vehicle)
           }
