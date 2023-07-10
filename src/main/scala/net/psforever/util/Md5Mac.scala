@@ -1,7 +1,7 @@
 package net.psforever.util
 
 import scodec.bits.ByteVector
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.ArrayBuffer
 
 object Md5Mac {
   val BLOCKSIZE  = 64
@@ -39,12 +39,12 @@ object Md5Mac {
 class Md5Mac(val key: ByteVector) {
   import Md5Mac._
 
-  private val buffer: ListBuffer[Byte] = ListBuffer.fill(BLOCKSIZE)(0)
-  private val digest: ListBuffer[Byte] = ListBuffer.fill(DIGESTSIZE)(0)
-  private val m: ListBuffer[Byte]      = ListBuffer.fill(32)(0)
-  private val k1: ListBuffer[Byte]     = ListBuffer.fill(16)(0)
-  private val k2: ListBuffer[Byte]     = ListBuffer.fill(16)(0)
-  private val k3: ListBuffer[Byte]     = ListBuffer.fill(BLOCKSIZE)(0)
+  private val buffer: ArrayBuffer[Byte] = ArrayBuffer.fill(BLOCKSIZE)(0)
+  private val digest: ArrayBuffer[Byte] = ArrayBuffer.fill(DIGESTSIZE)(0)
+  private val m: ArrayBuffer[Byte]      = ArrayBuffer.fill(32)(0)
+  private val k1: ArrayBuffer[Byte]     = ArrayBuffer.fill(16)(0)
+  private val k2: ArrayBuffer[Byte]     = ArrayBuffer.fill(16)(0)
+  private val k3: ArrayBuffer[Byte]     = ArrayBuffer.fill(BLOCKSIZE)(0)
   private var count: Long              = 0
   private var position: Int            = 0
 
@@ -58,8 +58,8 @@ class Md5Mac(val key: ByteVector) {
   doKey()
 
   private def doKey(): Unit = {
-    val ek: ListBuffer[Byte]   = ListBuffer.fill(48)(0)
-    val data: ListBuffer[Byte] = ListBuffer.fill(128)(0)
+    val ek: ArrayBuffer[Byte]   = ArrayBuffer.fill(48)(0)
+    val data: ArrayBuffer[Byte] = ArrayBuffer.fill(128)(0)
     (0 until 16).foreach(j => {
       data(j) = key(j % key.length)
       data(j + 112) = key(j % key.length)
@@ -175,7 +175,14 @@ class Md5Mac(val key: ByteVector) {
   }
 
   private def mkInt(lb: Iterable[Byte], pos: Int = 0): Int = {
-    ByteVector.view(lb.slice(pos, pos + 4).toArray).toInt()
+
+    // get iterator
+    val it = lb.iterator.drop(pos)
+
+    (it.next().toInt & 0xFF) << 24 |
+    (it.next().toInt & 0xFF) << 16 |
+    (it.next().toInt & 0xFF) << 8 |
+    (it.next().toInt & 0xFF)
   }
 
   private def ff(a: Int, b: Int, c: Int, d: Int, msg: Int, shift: Int, magic: Int): Int = {
@@ -226,7 +233,7 @@ class Md5Mac(val key: ByteVector) {
     * @return the hash
     */
   def doFinal(length: Int = MACLENGTH): ByteVector = {
-    val output: ListBuffer[Byte] = ListBuffer.fill(MACLENGTH)(0)
+    val output: ArrayBuffer[Byte] = ArrayBuffer.fill(MACLENGTH)(0)
     buffer(position) = 0x80.toByte
     (position + 1 until BLOCKSIZE).foreach(i => buffer(i) = 0)
     if (position >= BLOCKSIZE - 8) {
