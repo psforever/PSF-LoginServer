@@ -863,7 +863,6 @@ class MiddlewareActor(
     */
   private def inReorderQueueTest(): Unit = {
     if (inReorderQueue.isEmpty) {
-      timesInReorderQueue = 0
       inReorderQueueFunc = doNothing
       activeSequenceFunc = activeNormal
       log.trace("normalcy with packet sequence; resuming normal workflow")
