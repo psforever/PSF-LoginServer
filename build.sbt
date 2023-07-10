@@ -3,9 +3,7 @@
 lazy val psforeverSettings = Seq(
   organization := "net.psforever",
   version := "1.0.2-SNAPSHOT",
-  // TODO 2.13.5+ breaks Md5Mac test
-  // possibly due to ListBuffer changes? https://github.com/scala/scala/pull/9257
-  scalaVersion := "2.13.4",
+  scalaVersion := "2.13.10",
   Global / cancelable := false,
   semanticdbEnabled := true,
   semanticdbVersion := scalafixSemanticdb.revision,
