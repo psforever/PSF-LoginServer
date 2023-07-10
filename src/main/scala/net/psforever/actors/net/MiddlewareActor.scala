@@ -40,7 +40,7 @@ import net.psforever.util.{Config, DiffieHellman, Md5Mac}
   * Various subroutines are used to keep track of the predicted offending packets.<br>
   * <br>
   * The cryptographic aspect of the service resolves itself first,
-  * exchanging keys and passcodes and challeneges between local and the network.
+  * exchanging keys and passcodes and challenges between local and the network.
   * Most of this process occurs without any prior cryptographic setup,
   * relying on the validation of its own exchange to operate.
   * Afterwards its completion,
@@ -58,7 +58,7 @@ import net.psforever.util.{Config, DiffieHellman, Md5Mac}
   * and will respond to those requests if possible by searching its catalog.<br>
   * <br>
   * If the inbound packets do not arrive correctly the first time,
-  * after a while, requests for identified mising packets from the network source will occur.
+  * after a while, requests for identified missing packets from the network source will occur.
   * Virtually all important packets have a sequence number that bestows on each packet an absolute delivery order.
   * Bundled packets have a subslot number that indicates the total number of subslot packets dispatched to this client
   * as well as the order in which the packets should have been received.
@@ -66,14 +66,13 @@ import net.psforever.util.{Config, DiffieHellman, Md5Mac}
   * Should the expected packets show up out of order before the buffered is cleared,
   * everything sorts itself out.
   * Unresolved missing sequence entries will often lead to requests for missing packets with anticipated subslots.
-  * If these requests do not resolve, there is unfortuantely not much that can be done except grin and bear with it.
+  * If these requests do not resolve, there is unfortunately not much that can be done except grin and bear with it.
   */
 object MiddlewareActor {
   Security.addProvider(new BouncyCastleProvider)
 
   /** Maximum packet size in bytes */
-  //final val MTU: Int = 467
-  final val MTU: Int = 440
+  final val MTU: Int = 440 //467
 
   def apply(
       socket: ActorRef[Udp.Command],
@@ -835,7 +834,7 @@ class MiddlewareActor(
       inReorderQueueFunc = processInReorderQueueTimeoutOnly
       in(p)
     }
-    retimePacketProcessorIfNotRunning()
+    retimePacketProcessorIfNotRunningIfWork()
   }
 
   /**
@@ -864,6 +863,7 @@ class MiddlewareActor(
     */
   private def inReorderQueueTest(): Unit = {
     if (inReorderQueue.isEmpty) {
+      timesInReorderQueue = 0
       inReorderQueueFunc = doNothing
       activeSequenceFunc = activeNormal
       log.trace("normalcy with packet sequence; resuming normal workflow")
@@ -1036,7 +1036,7 @@ class MiddlewareActor(
   private def sendFirstBundle(): Unit = {
     lastOutboundEventTime = System.currentTimeMillis()
     send(outQueueBundled.dequeue(), Some(nextSequence), crypto)
-    retimePacketProcessorIfWork()
+    retimePacketProcessorIfNotRunningIfWork()
   }
 
   private def send(packet: PlanetSideControlPacket): ByteVector = {
@@ -1080,9 +1080,20 @@ class MiddlewareActor(
    * test if there are any packets waiting in certain messaging queues
    * for the chance to cancel, then restart, the timer for processing outbound packets.
    */
-  private def retimePacketProcessorIfNotRunning(): Unit = {
+  private def retimePacketProcessorIfNotRunningIfWork(): Unit = {
     if (packetProcessor == Default.Cancellable || packetProcessor.isCancelled) {
       retimePacketProcessorIfWork()
+    }
+  }
+
+  /**
+   * If the timer the timer for processing outbound packets is not currently running,
+   * test if there are any packets waiting in certain messaging queues
+   * for the chance to cancel, then restart, the timer for processing outbound packets.
+   */
+  private def retimePacketProcessorIfNotRunning(): Unit = {
+    if (packetProcessor == Default.Cancellable || packetProcessor.isCancelled) {
+      retimePacketProcessor()
     }
   }
 

@@ -516,7 +516,8 @@ object BlockMap {
                                                structure: Iterable[Sector]
                                              ): Iterable[Sector] = {
     if (list.max < structure.size) {
-      list.toSet.map { structure.toSeq }
+      val structureSeq = structure.toSeq
+      list.toSet.map { structureSeq }
     } else {
       List[Sector]()
     }
