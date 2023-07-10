@@ -288,6 +288,8 @@ object PacketCoding {
     private val rc5Decrypt = Cipher.getInstance("RC5/ECB/NoPadding")
     rc5Encrypt.init(Cipher.ENCRYPT_MODE, rc5EncryptionKey, rc5Spec)
     rc5Decrypt.init(Cipher.DECRYPT_MODE, rc5DecryptionKey, rc5Spec)
+    private val md5MacEncrypt = new Md5Mac(macEncryptionKey)
+    private val md5MacDecrypt = new Md5Mac(macDecryptionKey)
 
     def encrypt(packet: PlanetSidePacket): Attempt[ByteVector] = {
       encodePacket(packet) match {
@@ -302,7 +304,7 @@ object PacketCoding {
         data: ByteVector
     ): Attempt[ByteVector] = {
       // This is basically X9.23 padding, except that the length byte is -1 because it doesn't count itself
-      val packetNoPadding   = data ++ new Md5Mac(macEncryptionKey).updateFinal(data) // opcode, payload, and MAC
+      val packetNoPadding   = data ++ md5MacEncrypt.reset().updateFinal(data) // opcode, payload, and MAC
       val remainder         = packetNoPadding.length % RC5_BLOCK_SIZE
       val paddingNeeded     = RC5_BLOCK_SIZE - remainder - 1 // minus 1 because of a mandatory padding byte
       val paddingEncoded    = uint8L.encode(paddingNeeded.toInt).require
@@ -344,7 +346,7 @@ object PacketCoding {
       }
 
       val payloadNoMac = payloadNoPadding.dropRight(Md5Mac.MACLENGTH)
-      val computedMac  = new Md5Mac(macDecryptionKey).updateFinal(payloadNoMac)
+      val computedMac  = md5MacDecrypt.reset().updateFinal(payloadNoMac)
 
       if (!Md5Mac.verifyMac(computedMac, mac)) {
         return Failure(Err("Invalid packet MAC"))
