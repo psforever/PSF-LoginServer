@@ -108,7 +108,10 @@ object MiddlewareActor {
   final case class Close() extends Command
 
   /** ... */
-  private case class ProcessQueue() extends Command
+  private case object ProcessQueue extends Command
+
+  /** ... */
+  private case object ProcessMissingSubslots extends Command
 
   /** Log inbound packets that are yet to be in proper order by sequence number */
   private case class InReorderEntry(packet: PlanetSidePacket, sequence: Int, time: Long)
@@ -426,7 +429,7 @@ class MiddlewareActor(
                     packetProcessorDelay,
                     packetProcessorDelay
                   )(() => {
-                    context.self ! ProcessQueue()
+                    context.self ! ProcessQueue
                   })
                   active()
 
@@ -480,8 +483,12 @@ class MiddlewareActor(
           }
           Behaviors.same
 
-        case ProcessQueue() =>
+        case ProcessQueue =>
           processQueue()
+          Behaviors.same
+
+        case ProcessMissingSubslots =>
+          processRequestsForMissingSubslots()
           Behaviors.same
 
         case Teardown() =>
@@ -844,6 +851,24 @@ class MiddlewareActor(
   private var activeSubslotsFunc: (Int, Int, ByteVector) => Unit = inSubslotNotMissing
 
   /**
+   * Start making requests for missing `SlottedMetaPackets`
+   * if no prior requests were prepared.
+   * Start the scheduled task and handle the dispatched requests.
+   * @see `processRequestsForMissingSubslots`
+   */
+  def askForMissingSubslots(): Unit = {
+    if (subslotMissingProcessor.isCancelled) {
+      subslotMissingProcessor = context.system.scheduler.scheduleWithFixedDelay(
+        inSubslotMissingDelay,
+        inSubslotMissingDelay
+      )(() => {
+        context.self ! ProcessMissingSubslots
+      })
+      processRequestsForMissingSubslots() //perform immediately
+    }
+  }
+
+  /**
     * What to do with a `SlottedMetaPacket` control packet normally.
     * The typical approach, when the subslot is the expected next number, is to merely receive the packet
     * and dispatch a confirmation.
@@ -873,6 +898,27 @@ class MiddlewareActor(
       askForMissingSubslots()
       log.trace("packet subslots in disorder; start requests")
     }
+  }
+
+  /**
+   * Make requests for missing `SlottedMetaPackets`.
+   * @see `inSubslotsMissingRequestFuncs`
+   * @see `inSubslotsMissingRequestsFinished`
+   * @see `RelatedA`
+   */
+  def processRequestsForMissingSubslots(): Unit = {
+    timesSubslotMissing += inSubslotsMissing.size
+    inSubslotsMissing.foreach {
+      case (subslot, attempt) =>
+        val value = attempt - 1
+        if (value > 0) {
+          inSubslotsMissing(subslot) = value
+        } else {
+          inSubslotsMissing.remove(subslot)
+        }
+        send(RelatedA(0, subslot))
+    }
+    inSubslotsMissingRequestsFinished()
   }
 
   /**
@@ -915,38 +961,6 @@ class MiddlewareActor(
       activeSubslotsFunc = inSubslotNotMissing
       send(RelatedB(slot, inSubslot)) //send a confirmation packet after all requested packets are handled
       log.trace("normalcy with packet subslot order; resuming normal workflow")
-    }
-  }
-
-  /**
-    * Start making requests for missing `SlotedMetaPackets`
-    * if no prior requests were prepared.
-    * Start the scheduled task and handle the dispatched requests.
-    * @see `inSubslotsMissingRequestFuncs`
-    * @see `inSubslotsMissingRequestsFinished`
-    * @see `RelatedA`
-    */
-  def askForMissingSubslots(): Unit = {
-    if (subslotMissingProcessor.isCancelled) {
-      subslotMissingProcessor = context.system.scheduler.scheduleWithFixedDelay(
-        initialDelay = 0.milliseconds,
-        inSubslotMissingDelay
-      )(() => {
-        inSubslotsMissing.synchronized {
-          timesSubslotMissing += inSubslotsMissing.size
-          inSubslotsMissing.foreach {
-            case (subslot, attempt) =>
-              val value = attempt - 1
-              if (value > 0) {
-                inSubslotsMissing(subslot) = value
-              } else {
-                inSubslotsMissing.remove(subslot)
-              }
-              send(RelatedA(0, subslot))
-          }
-          inSubslotsMissingRequestsFinished()
-        }
-      })
     }
   }
 
