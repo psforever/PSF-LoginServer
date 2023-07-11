@@ -140,7 +140,7 @@ object EffectTarget {
     def AncientWeaponRecharge(target: PlanetSideGameObject): Boolean = {
       target match {
         case p: Player =>
-          (p.Holsters().flatMap { _.Equipment }.toIterable ++ p.Inventory.Items.map { _.obj })
+          (p.Holsters().flatMap { _.Equipment }.toSeq ++ p.Inventory.Items.map { _.obj })
             .flatMap {
               case weapon: Tool => weapon.AmmoSlots
               case _            => Nil

@@ -361,7 +361,7 @@ object ProximityTerminalControl {
   def WeaponRechargeTerminal(unit: Terminal with ProximityUnit, target: Player): Boolean = {
     val result = WeaponsBeingRechargedWithSomeAmmunition(
       unit.Definition.asInstanceOf[WeaponRechargeTerminalDefinition].AmmoAmount,
-      target.Holsters().flatMap { _.Equipment }.toIterable ++ target.Inventory.Items.map { _.obj }
+      target.Holsters().flatMap { _.Equipment }.toSeq ++ target.Inventory.Items.map { _.obj }
     )
     val events = unit.Zone.AvatarEvents
     val channel = target.Name
