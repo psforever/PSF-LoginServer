@@ -74,13 +74,25 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
     * find the sector conglomerate to which this range allocates.
     * @see `BlockMap.findSectorIndices`
     * @see `BlockMap.quickToSectorGroup`
+    * @see `BlockMap::sector(Iterable[Int], Float)`
     * @param p the game world coordinates
     * @param range the axis distance from the provided coordinates
     * @return a conglomerate sector which lists all of the entities in the discovered sector(s)
     */
   def sector(p: Vector3, range: Float): SectorPopulation = {
-    val indices = BlockMap.findSectorIndices(blockMap = this, p, range)
+    sector(BlockMap.findSectorIndices(blockMap = this, p, range), range)
+  }
 
+  /**
+   * Given a coordinate position within representable space and a range from that representable space,
+   * find the sector conglomerate to which this range allocates.
+   * @see `BlockMap.findSectorIndices`
+   * @see `BlockMap.quickToSectorGroup`
+   * @param indices an enumeration that directly associates with the structure of the block map
+   * @param range the axis distance from the provided coordinates
+   * @return a conglomerate sector which lists all of the entities in the discovered sector(s)
+   */
+  def sector(indices: Iterable[Int], range: Float): SectorPopulation = {
     if (indices.max < blocks.size) {
       BlockMap.quickToSectorGroup(range, BlockMap.sectorsOnlyWithinBlockStructure(indices, blocks) )
     } else {

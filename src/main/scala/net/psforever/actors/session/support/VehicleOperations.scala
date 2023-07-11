@@ -44,7 +44,7 @@ class VehicleOperations(
         sessionData.turnCounterFunc(player.GUID)
         sessionData.fallHeightTracker(pos.z)
         if (obj.MountedIn.isEmpty) {
-          sessionData.updateBlockMap(obj, continent, pos)
+          sessionData.updateBlockMap(obj, pos)
         }
         player.Position = pos //convenient
         if (obj.WeaponControlledFromSeat(0).isEmpty) {
@@ -127,7 +127,7 @@ class VehicleOperations(
         sessionData.turnCounterFunc(player.GUID)
         val (position, angle, velocity, notMountedState) = continent.GUID(obj.MountedIn) match {
           case Some(v: Vehicle) =>
-            sessionData.updateBlockMap(obj, continent, pos)
+            sessionData.updateBlockMap(obj, pos)
             (pos, v.Orientation - Vector3.z(value = 90f) * Vehicles.CargoOrientation(obj).toFloat, v.Velocity, false)
           case _ =>
             (pos, ang, vel, true)
@@ -243,7 +243,7 @@ class VehicleOperations(
         obj.Position = pos
         obj.Orientation = ang
         obj.Velocity = vel
-        sessionData.updateBlockMap(obj, continent, pos)
+        sessionData.updateBlockMap(obj, pos)
         obj.zoneInteractions()
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
