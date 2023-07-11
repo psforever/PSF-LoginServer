@@ -126,7 +126,7 @@ object MiddlewareActor {
     * `CharacterInfoMessage` packets are bundled by themselves.<br>
     * <br>
     * Super awkward special case.
-    * Bundling `CharacterInfoMessage` with its corresponding `ObjectCreateDetailedMesssage`,
+    * Bundling `CharacterInfoMessage` with its corresponding `ObjectCreateDetailedMessage`,
     * which can occur during otherwise careless execution of the character select screen,
     * causes the character options to show blank slots and be unusable.
     */
@@ -228,7 +228,7 @@ class MiddlewareActor(
   /**
     * Increment the outbound subslot number.
     * The previous subslot number is returned.
-    * The fidelity of the subslot field in `SlottedMetapacket`'s is 16 bits, so wrap back to 0 after 65535.
+    * The fidelity of the subslot field in a `SlottedMetaPacket` is 16 bits, so wrap back to 0 after 65535.
     * @return
     */
   private def nextSubslot: Int = {
@@ -273,7 +273,7 @@ class MiddlewareActor(
   private val packetOutboundDelay: Long = Config.app.network.middleware.packetBundlingDelay.toMillis
 
   /** Delay between runs of the packet bundler/resolver timer (ms);
-   * this is the same as `packetOutboundDelay` increased by 1.5x */
+   * this is the same as `packetOutboundDelay` increased by the multiplier */
   private val packetProcessorDelay: FiniteDuration = Duration.apply(
     math.abs(packetOutboundDelay * Config.app.network.middleware.packetBundlingDelayMultiplier).toLong,
     "milliseconds"
@@ -697,7 +697,7 @@ class MiddlewareActor(
         if (bundle.length == 1) {
           splitPacket(bundle.head) match {
             case Seq() =>
-              //TODO is oversized packet recovery possible?
+              //TODO is over-sized packet recovery possible?
               retimePacketProcessorIfWork()
             case data =>
               outQueueBundled.enqueueAll(data)
