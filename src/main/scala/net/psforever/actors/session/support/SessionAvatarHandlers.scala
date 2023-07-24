@@ -398,21 +398,80 @@ class SessionAvatarHandlers(
       case AvatarResponse.UpdateKillsDeathsAssists(_, kda) =>
         avatarActor ! AvatarActor.UpdateKillsDeathsAssists(kda)
 
-      case AvatarResponse.AwardSupportBep(_, bep) =>
-        avatarActor ! AvatarActor.AwardBep(bep, ExperienceType.Support)
+      case AvatarResponse.AwardBep(_, bep, expType) =>
+        avatarActor ! AvatarActor.AwardBep(bep, expType)
 
       case AvatarResponse.AwardCep(0, cep) =>
-        //must lead a squad to be awarded CEP
+        //must be in a squad to earn experience
+        val id = player.CharId
         val squadUI = sessionData.squad.squadUI
+        val participation = continent
+          .Buildings
+          .values
+          .collect { case building if {
+            val soi = building.Definition.SOIRadius * building.Definition.SOIRadius
+            val pos = player.Position.xy
+            Vector3.DistanceSquared(building.Position.xy, pos) < soi
+          } =>
+            building.Participation.PlayerContribution()
+          }
         squadUI
-          .find { _._1 == avatar.id }
+          .find { _._1 == id }
           .collect {
             case (_, elem) if elem.index == 0 =>
-              val thisZone = continent.Number
-              val squadSize = squadUI.count { case (_, e) => e.zone == thisZone } -1
-              val maxCepList = Config.app.game.maximumCepPerSquadSize
-              val maxRate = maxCepList.lift(squadSize).getOrElse(squadSize * maxCepList.head).toLong
-              avatarActor ! AvatarActor.AwardCep(math.min(cep, maxRate))
+              //squad leader earns CEP, modified by squad effort
+              val maxRate: Long = {
+                val maxCepList = Config.app.game.maximumCepPerSquadSize
+                val squadSize: Int = {
+                  val squadSizeList: Iterable[Int] = participation
+                    .map { facilityMap =>
+                      squadUI.count { case (id, _) => facilityMap.contains(id) }
+                    }
+                  if (squadSizeList.nonEmpty) {
+                    squadSizeList.max
+                  } else {
+                    0
+                  }
+                }
+                maxCepList.lift(squadSize - 1).getOrElse(squadSize * maxCepList.head).toLong
+              }
+              val groupContribution: Float = {
+                val eachSquadMemberParticipation: Iterable[Float] = participation.map { facilityMap =>
+                  val foundSquadMemberParticipation: Iterable[Float] = squadUI
+                    .keys
+                    .flatMap { facilityMap.get }
+                  if (foundSquadMemberParticipation.nonEmpty) {
+                    foundSquadMemberParticipation.sum / 10f
+                  } else {
+                    0f
+                  }
+                }
+                if (eachSquadMemberParticipation.nonEmpty) {
+                  eachSquadMemberParticipation.max
+                } else {
+                  0
+                }
+              }
+              val modifiedExp: Long = math.min((cep.toFloat * groupContribution).toLong, maxRate)
+              avatarActor ! AvatarActor.AwardCep(modifiedExp)
+              Some(modifiedExp)
+
+            case _ =>
+              //squad member earns BEP based on CEP, modified by personal effort
+              val individualContribution = {
+                val contributionList = for {
+                  facilityMap <- participation
+                  if facilityMap.contains(id)
+                } yield facilityMap(id)
+                if (contributionList.nonEmpty) {
+                  contributionList.max
+                } else {
+                  0f
+                }
+              }
+              val modifiedExp = (cep * individualContribution).toLong
+              avatarActor ! AvatarActor.AwardBep(modifiedExp, ExperienceType.Normal)
+              Some(modifiedExp)
           }
 
       case AvatarResponse.AwardCep(charId, cep)  =>

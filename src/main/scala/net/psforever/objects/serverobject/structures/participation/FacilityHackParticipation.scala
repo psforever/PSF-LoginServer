@@ -17,6 +17,15 @@ trait FacilityHackParticipation extends ParticipationLogic {
   protected var playerContribution: mutable.LongMap[(Player, Int, Long)] = mutable.LongMap[(Player, Int, Long)]()
   protected var playerPopulationOverTime: Seq[Map[PlanetSideEmpire.Value, Int]] = Seq[ Map[PlanetSideEmpire.Value, Int]]()
 
+  def PlayerContribution(timeDelay: Long): Map[Long, Float] = {
+    playerContribution
+      .collect {
+        case (id, (_, d, _)) if d < timeDelay => (id, d.toFloat / timeDelay.toFloat)
+        case (id, (_, _, _))                  => (id, 1.0f)
+      }
+      .toMap[Long, Float]
+  }
+
   protected def updatePlayers(list: List[Player]): Unit = {
     val hackTime = building.CaptureTerminal.get.Definition.FacilityHackTime.toMillis
     val curr = System.currentTimeMillis()

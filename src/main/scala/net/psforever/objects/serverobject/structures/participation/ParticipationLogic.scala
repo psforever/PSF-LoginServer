@@ -30,4 +30,6 @@ trait ParticipationLogic {
                              completionTime: Long,
                              isResecured: Boolean
                            ): Unit
+
+  def PlayerContribution(timeDelay: Long = 600): Map[Long, Float]
 }

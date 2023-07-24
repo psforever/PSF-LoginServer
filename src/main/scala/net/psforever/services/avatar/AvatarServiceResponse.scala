@@ -11,7 +11,7 @@ import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.packet.game.ObjectCreateMessage
-import net.psforever.types.{ExoSuitType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
+import net.psforever.types.{ExoSuitType, ExperienceType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.GenericEventBusMsg
 
 final case class AvatarServiceResponse(
@@ -127,6 +127,6 @@ object AvatarResponse {
   final case class KitNotUsed(kit_guid: PlanetSideGUID, msg: String) extends Response
 
   final case class UpdateKillsDeathsAssists(charId: Long, kda: KDAStat) extends Response
-  final case class AwardSupportBep(charId: Long, bep: Long) extends Response
+  final case class AwardBep(charId: Long, bep: Long, expType: ExperienceType) extends Response
   final case class AwardCep(charId: Long, bep: Long) extends Response
 }

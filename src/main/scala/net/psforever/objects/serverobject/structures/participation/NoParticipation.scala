@@ -16,4 +16,5 @@ case object NoParticipation extends ParticipationLogic {
                              completionTime: Long,
                              isResecured: Boolean
                            ): Unit = { /* nothing here */ }
+  override def PlayerContribution(timeDelay: Long): Map[Long, Float] = Map.empty[Long, Float]
 }

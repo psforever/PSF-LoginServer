@@ -438,12 +438,12 @@ class AvatarService(zone: Zone) extends Actor {
             )
           )
 
-        case AvatarAction.AwardSupportBep(charId, bep) =>
+        case AvatarAction.AwardBep(charId, bep, expType) =>
           AvatarEvents.publish(
             AvatarServiceResponse(
               s"/$forChannel/Avatar",
               Service.defaultPlayerGUID,
-              AvatarResponse.AwardSupportBep(charId, bep)
+              AvatarResponse.AwardBep(charId, bep, expType)
             )
           )
 

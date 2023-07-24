@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.ActorRef
+import akka.actor.{ActorRef, Cancellable}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.deploy.Deployment
@@ -9,21 +9,23 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
 import net.psforever.objects.{NtuContainer, _}
-import net.psforever.types.DriveState
+import net.psforever.types.{DriveState, ExperienceType}
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.objects.serverobject.transfer.TransferContainer.TransferMaterial
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   var panelAnimationFunc: () => Unit = NoCharge
-  var ntuChargingTick     = Default.Cancellable
+  var ntuChargingTick: Cancellable = Default.Cancellable
   findChargeTargetFunc    = Vehicles.FindANTChargingSource
   findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
 
-  def TransferMaterial = Ntu.Nanites
+  def TransferMaterial: TransferMaterial = Ntu.Nanites
 
   def ChargeTransferObject: Vehicle with NtuContainer
 
@@ -138,6 +140,10 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
     chargeable.NtuCapacitor -= chargeToDeposit
     UpdateNtuUI(chargeable)
     Ntu.Grant(chargeable, chargeToDeposit)
+    vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
+      vehicle.OwnerName.getOrElse(""),
+      AvatarAction.AwardBep(0, 100L, ExperienceType.Normal)
+    )
   }
 
   /** Stopping */
