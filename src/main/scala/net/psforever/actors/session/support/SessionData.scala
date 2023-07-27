@@ -4,6 +4,7 @@ package net.psforever.actors.session.support
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
+import net.psforever.objects.zones.blockmap.{SectorGroup, SectorPopulation}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -137,6 +138,12 @@ class SessionData(
   def squad: SessionSquadHandlers = squadResponseOpt.orNull
   def zoning: ZoningOperations = zoningOpt.orNull
 
+  /**
+   * updated when an upstream packet arrives;
+   * allow to be a little stale for a short while
+   */
+  private[support] var localSector: SectorPopulation = SectorGroup(Nil)
+
   def session: Session = theSession
 
   def session_=(session: Session): Unit = {
@@ -206,7 +213,7 @@ class SessionData(
     )= pkt
     persist()
     turnCounterFunc(avatarGuid)
-    updateBlockMap(player, continent, pos)
+    updateBlockMap(player, pos)
     val isMoving     = WorldEntity.isMoving(vel)
     val isMovingPlus = isMoving || isJumping || jumpThrust
     if (isMovingPlus) {
@@ -2665,14 +2672,20 @@ class SessionData(
     middlewareActor ! MiddlewareActor.Teardown()
   }
 
-  def updateBlockMap(target: BlockMapEntity, zone: Zone, newCoords: Vector3): Unit = {
+  def updateBlockMap(target: BlockMapEntity, newCoords: Vector3): Unit = {
     target.blockMapEntry.foreach { entry =>
-      if (BlockMap.findSectorIndices(continent.blockMap, newCoords, entry.rangeX, entry.rangeY).toSet.equals(entry.sectors)) {
+      val sectorIndices = BlockMap.findSectorIndices(continent.blockMap, newCoords, entry.rangeX, entry.rangeY).toSet
+      if (sectorIndices.equals(entry.sectors)) {
         target.updateBlockMapEntry(newCoords) //soft update
+        localSector = continent.blockMap.sector(sectorIndices, Config.app.game.playerDraw.rangeMax.toFloat)
       } else {
-        zone.actor ! ZoneActor.UpdateBlockMap(target, newCoords) //hard update
+        continent.actor ! ZoneActor.UpdateBlockMap(target, newCoords) //hard update
       }
     }
+  }
+
+  def updateLocalBlockMap(pos: Vector3): Unit = {
+    localSector = continent.blockMap.sector(pos, Config.app.game.playerDraw.rangeMax.toFloat)
   }
 
   private[support] var oldRefsMap: mutable.HashMap[PlanetSideGUID, String] = new mutable.HashMap[PlanetSideGUID, String]()

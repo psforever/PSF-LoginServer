@@ -94,7 +94,7 @@ class SessionAvatarHandlers(
           lazy val targetDelay = {
             val populationOver = math.max(
               0,
-              continent.blockMap.sector(ourPosition, range=drawConfig.rangeMax.toFloat).livePlayerList.size - drawConfig.populationThreshold
+              sessionData.localSector.livePlayerList.size - drawConfig.populationThreshold
             )
             val distanceAdjustment = math.pow(populationOver / drawConfig.populationStep * drawConfig.rangeStep, 2) //sq.m
             val adjustedDistance = currentDistance + distanceAdjustment //sq.m

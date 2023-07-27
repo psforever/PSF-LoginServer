@@ -55,6 +55,7 @@ class SessionVehicleHandlers(
         player.Position = pos
         player.Orientation = orient
         player.Velocity = vel
+        sessionData.updateLocalBlockMap(pos)
 
       case VehicleResponse.VehicleState(
       vehicleGuid,
