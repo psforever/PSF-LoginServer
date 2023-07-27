@@ -16,7 +16,7 @@ and allowing packets to arrive correctly.
 Various subroutines are used to keep track of the predicted offending packets.<br>
 <br>
 The cryptographic aspect of the service resolves itself first,
-exchanging keys and passcodes and challeneges between local and the network.
+exchanging keys and passcodes and challenges between local and the network.
 Most of this process occurs without any prior cryptographic setup,
 relying on the validation of its own exchange to operate.
 Afterwards its completion,
@@ -34,7 +34,7 @@ This side of the communication will keep track of its previously dispatched pack
 and will respond to those requests if possible by searching its catalog.<br>
 <br>
 If the inbound packets do not arrive correctly the first time,
-after a while, requests for identified mising packets from the network source will occur.
+after a while, requests for identified missing packets from the network source will occur.
 Virtually all important packets have a sequence number that bestows on each packet an absolute delivery order.
 Bundled packets have a subslot number that indicates the total number of subslot packets dispatched to this client
 as well as the order in which the packets should have been received.
@@ -42,7 +42,7 @@ If a packet is out of sequence - a future packet, compared to what is being expe
 Should the expected packets show up out of order before the buffered is cleared,
 everything sorts itself out.
 Unresolved missing sequence entries will often lead to requests for missing packets with anticipated subslots.
-If these requests do not resolve, there is unfortuantely not much that can be done except grin and bear with it.
+If these requests do not resolve, there is unfortunately not much that can be done except grin and bear with it.
 </p></div></div></li><li class="indented0 " name="net.psforever.actors.net.SocketActor" group="Ungrouped" fullComment="no" data-isabs="false" visbl="pub"><a id="SocketActor" class="anchorToMember"></a><a id="SocketActor:SocketActor" class="anchorToMember"></a> <span class="permalink"><a href="../../../../net/psforever/actors/net/SocketActor$.html" title="Permalink"><i class="material-icons"></i></a></span> <span class="modifier_kind"><span class="modifier"></span> <span class="kind">object</span></span> <span class="symbol"><a href="SocketActor$.html" title="SocketActor creates a UDP socket, receives packets and forwards them to MiddlewareActor There is only one SocketActor, but each connected client gets its own MiddlewareActor"><span class="name">SocketActor</span></a></span><p class="shortcomment cmt">SocketActor creates a UDP socket, receives packets and forwards them to MiddlewareActor
 There is only one SocketActor, but each connected client gets its own MiddlewareActor
 </p></li></ol></div></div><div id="inheritedMembers"></div><div id="groupedMembers"><div name="Ungrouped" class="group"><h3>Ungrouped</h3></div></div></div><div id="tooltip"></div><div id="footer"></div></body></div></div></div></body></html>
