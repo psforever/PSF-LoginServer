@@ -505,16 +505,14 @@ class MiddlewareActor(
         case Teardown() =>
           send(TeardownConnection(clientNonce))
           close()
-          Behaviors.same
 
         case Close() =>
           close()
-          Behaviors.same
       }
       .receiveSignal(onSignal)
   }
 
-  private def close(): Unit = {
+  private def close(): Behavior[Command] = {
     outQueue
       .dequeueAll(_ => true)
       .foreach(p => send(smp(slot = 0, p._2.bytes), Some(nextSequence), crypto))
