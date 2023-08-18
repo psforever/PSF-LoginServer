@@ -267,30 +267,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   }
 
   def SeatPermissionGroup(seatNumber: Int): Option[AccessPermissionGroup.Value] = {
-    if (seatNumber == 0) { //valid in almost all cases
-      Some(AccessPermissionGroup.Driver)
-    } else {
-      Seat(seatNumber) match {
-        case Some(_) =>
-          Definition.controlledWeapons().get(seatNumber) match {
-            case Some(_) =>
-              Some(AccessPermissionGroup.Gunner)
-            case None =>
-              Some(AccessPermissionGroup.Passenger)
-          }
-        case None =>
-          CargoHold(seatNumber) match {
-            case Some(_) =>
-              Some(AccessPermissionGroup.Passenger) //TODO confirm this
-            case None =>
-              if (seatNumber >= trunk.Offset && seatNumber < trunk.Offset + trunk.TotalCapacity) {
-                Some(AccessPermissionGroup.Trunk)
-              } else {
-                None
-              }
-          }
-      }
-    }
+    Vehicles.SeatPermissionGroup(this.Definition, seatNumber)
   }
 
   def Utilities: Map[Int, Utility] = utilities

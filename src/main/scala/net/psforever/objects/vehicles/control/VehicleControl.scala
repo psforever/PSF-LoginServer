@@ -298,7 +298,7 @@ class VehicleControl(vehicle: Vehicle)
     obj.PassengerInSeat(user) match {
       case Some(seatNumber) =>
         val vsrc = VehicleSource(vehicle)
-        user.LogActivity(VehicleMountActivity(vsrc, PlayerSource.inSeat(user, vehicle, vsrc), vehicle.Zone.Number))
+        user.LogActivity(VehicleMountActivity(vsrc, PlayerSource.inSeat(user, vsrc, seatNumber), vehicle.Zone.Number))
         //if the driver mount, change ownership if that is permissible for this vehicle
         if (seatNumber == 0 && !obj.OwnerName.contains(user.Name) && obj.Definition.CanBeOwned.nonEmpty) {
           //whatever vehicle was previously owned

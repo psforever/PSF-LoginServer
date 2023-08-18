@@ -2,6 +2,7 @@
 package net.psforever.objects
 
 import net.psforever.objects.ce.TelepadLike
+import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
@@ -438,5 +439,50 @@ object Vehicles {
     }
     val turnAway = if (offset.x >= 0) -90f else 90f
     (obj.Position + offset, (shuttleAngle + turnAway) % 360f)
+  }
+
+  /**
+   * Based on a mounting index, for a certain mount, to what mounting group does this seat belong?
+   * @param vehicle the vehicle
+   * @param seatNumber specific seat index
+   * @return the seat group designation
+   */
+  def SeatPermissionGroup(vehicle: Vehicle, seatNumber: Int): Option[AccessPermissionGroup.Value] = {
+    SeatPermissionGroup(vehicle.Definition, seatNumber)
+  }
+
+  /**
+   * Based on a mounting index, for a certain mount, to what mounting group does this seat belong?
+   * @param definition global vehicle specification
+   * @param seatNumber specific seat index
+   * @return the seat group designation
+   */
+  def SeatPermissionGroup(definition: VehicleDefinition, seatNumber: Int): Option[AccessPermissionGroup.Value] = {
+    if (seatNumber == 0) { //valid in almost all cases
+      Some(AccessPermissionGroup.Driver)
+    } else {
+      definition.Seats
+        .get(seatNumber)
+        .map { _ =>
+          definition.controlledWeapons()
+            .get(seatNumber)
+            .map { _ => AccessPermissionGroup.Gunner }
+            .getOrElse { AccessPermissionGroup.Passenger }
+        }
+        .orElse {
+          definition.Cargo
+            .get(seatNumber)
+            .map { _ => AccessPermissionGroup.Passenger }
+            .orElse {
+              val offset = definition.TrunkOffset
+              val size = definition.TrunkSize
+              if (seatNumber >= offset && seatNumber < offset + size.Width * size.Height) {
+                Some(AccessPermissionGroup.Trunk)
+              } else {
+                None
+              }
+            }
+        }
+    }
   }
 }

@@ -542,6 +542,7 @@ class SessionAvatarHandlers(
         sessionData.terminals.CancelAllProximityUnits()
         sessionData.zoning
         AvatarActor.savePlayerLocation(player)
+        sessionData.shooting.reportOngoingShots(sessionData.shooting.reportOngoingShotsToDatabase)
         sessionData.zoning.spawn.shiftPosition = Some(player.Position)
 
         //respawn

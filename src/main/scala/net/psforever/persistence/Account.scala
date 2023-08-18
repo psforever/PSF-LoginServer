@@ -12,6 +12,8 @@ case class Account(
     inactive: Boolean = false,
     gm: Boolean = false,
     lastFactionId: Int = 3,
+    avatarLoggedIn: Long,
+    sessionId: Long,
     token: Option[String],
     tokenCreated: Option[LocalDateTime]
 )

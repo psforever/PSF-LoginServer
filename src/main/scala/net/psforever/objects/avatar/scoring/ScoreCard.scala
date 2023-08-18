@@ -30,7 +30,7 @@ class ScoreCard() {
         curr = ScoreCard.updateEquipmentStat(curr, e)
       case k: Kill =>
         curr = curr.copy(kills = k +: curr.kills)
-        curr = ScoreCard.updateEquipmentStat(curr, EquipmentStat(k.info.interaction.cause.attribution, 0, 0, 1))
+        curr = ScoreCard.updateEquipmentStat(curr, EquipmentStat(k.info.interaction.cause.attribution, 0, 0, 1, 0))
         ScoreCard.updateStatisticsFor(killStatistics, k.info.interaction.cause.attribution, k.victim.Faction)
       case a: Assist =>
         curr = curr.copy(assists = a +: curr.assists)
@@ -51,14 +51,15 @@ class ScoreCard() {
 
 object ScoreCard {
   private def updateEquipmentStat(curr: Life, entry: EquipmentStat): Life = {
-    updateEquipmentStat(curr, entry, entry.objectId, entry.kills)
+    updateEquipmentStat(curr, entry, entry.objectId, entry.kills, entry.assists)
   }
 
   private def updateEquipmentStat(
                                    curr: Life,
                                    entry: EquipmentStat,
                                    objectId: Int,
-                                   killCount: Int
+                                   killCount: Int,
+                                   assists: Int
                                  ): Life = {
     curr.equipmentStats.indexWhere { a => a.objectId == objectId } match {
       case -1 =>

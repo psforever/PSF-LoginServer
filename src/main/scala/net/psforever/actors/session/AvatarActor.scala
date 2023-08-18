@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.objects.vehicles.MountedWeapons
 import org.joda.time.{LocalDateTime, Seconds}
@@ -840,6 +841,15 @@ object AvatarActor {
     out.future
   }
 
+  def avatarNoLongerLoggedIn(accountId: Long): Unit = {
+    import ctx._
+    ctx.run(
+      query[persistence.Account]
+        .filter(_.id == lift(accountId))
+        .update(_.avatarLoggedIn -> lift(0L))
+    )
+  }
+
   def toAvatar(avatar: persistence.Avatar): Avatar = {
     val bep = avatar.bep
     val convertedCosmetics = if (BattleRank.showCosmetics(bep)) {
@@ -1044,13 +1054,13 @@ class AvatarActor(
                   } yield true
                   inits.onComplete {
                     case Success(_) =>
-                      performAvatarLogin(avatarId, account.id, replyTo)
+                      performAvatarLoginTest(avatarId, account.id, replyTo)
                     case Failure(e) =>
                       log.error(e)("db failure")
                       sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 6))
                   }
                 } else {
-                  performAvatarLogin(avatarId, account.id, replyTo)
+                  performAvatarLoginTest(avatarId, account.id, replyTo)
                 }
               case Success(_) =>
                 //TODO this may not be an actual failure, but don't know what to do
@@ -1067,6 +1077,11 @@ class AvatarActor(
 
         case other =>
           buffer.stash(other)
+          Behaviors.same
+      }
+      .receiveSignal {
+        case (_, PostStop) =>
+          AvatarActor.avatarNoLongerLoggedIn(account.id)
           Behaviors.same
       }
   }
@@ -1828,6 +1843,7 @@ class AvatarActor(
       }
       .receiveSignal {
         case (_, PostStop) =>
+          AvatarActor.avatarNoLongerLoggedIn(account.get.id)
           AvatarActor.saveAvatarData(avatar)
           staminaRegenTimer.cancel()
           implantTimers.values.foreach(_.cancel())
@@ -1848,9 +1864,25 @@ class AvatarActor(
     Future.failed(ex).asInstanceOf[Future[Loadout]]
   }
 
+  def performAvatarLoginTest(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
+    import ctx._
+    val blockLogInIfNot = for {
+      out <- ctx.run(query[persistence.Account].filter(_.id == lift(accountId)))
+    } yield out
+    blockLogInIfNot.onComplete {
+      case Success(account)
+        //TODO test against acceptable player factions
+        if account.exists { _.avatarLoggedIn == 0 } =>
+        //accept
+        performAvatarLogin(avatarId, accountId, replyTo)
+      case _ =>
+        //refuse
+        //TODO refuse
+    }
+  }
+
   def performAvatarLogin(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
     import ctx._
-
     val result = for {
       //log this login
       _ <- ctx.run(
@@ -1862,7 +1894,10 @@ class AvatarActor(
       _ <- ctx.run(
         query[persistence.Account]
           .filter(_.id == lift(accountId))
-          .update(_.lastFactionId -> lift(avatar.faction.id))
+          .update(
+            _.lastFactionId -> lift(avatar.faction.id),
+            _.avatarLoggedIn -> lift(avatarId)
+          )
       )
       //retrieve avatar data
       loadouts  <- initializeAllLoadouts()
@@ -2995,8 +3030,26 @@ class AvatarActor(
             player.HistoryAndContributions()
         }
         zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, kill, exp)
-      case _: Assist =>
-        ()
+        val target = kill.info.targetAfter.asInstanceOf[PlayerSource]
+        val targetMounted = target.seatedIn.map { case (v: VehicleSource, seat) =>
+          val definition = v.Definition
+          definition.ObjectId * 10 + Vehicles.SeatPermissionGroup(definition, seat).map { _.id }.getOrElse(0)
+        }.getOrElse(0)
+        zones.exp.ToDatabase.reportKillBy(
+          avatar.id.toLong,
+          target.CharId,
+          target.ExoSuit.id,
+          targetMounted,
+          kill.info.interaction.cause.attribution,
+          player.Zone.Number,
+          target.Position,
+          kill.experienceEarned
+        )
+      case assist: Assist =>
+        val avatarId = avatar.id.toLong
+        assist.weapons.foreach {
+          zones.exp.ToDatabase.reportAssistKills(avatarId, _, assists = 1)
+        }
       case _: Death =>
         zone.AvatarEvents ! AvatarServiceMessage(
           player.Name,
@@ -3019,6 +3072,7 @@ class AvatarActor(
 
   def updateToolDischarge(stats: EquipmentStat): Unit = {
     avatar.scorecard.rate(stats)
+    zones.exp.ToDatabase.reportToolDischarge(avatar.id.toLong, stats)
   }
 
   def createAvatar(
