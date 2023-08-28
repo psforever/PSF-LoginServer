@@ -9,12 +9,11 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
 import net.psforever.objects.{NtuContainer, _}
-import net.psforever.types.{DriveState, ExperienceType}
+import net.psforever.types.DriveState
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.serverobject.transfer.TransferContainer.TransferMaterial
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -140,10 +139,6 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
     chargeable.NtuCapacitor -= chargeToDeposit
     UpdateNtuUI(chargeable)
     Ntu.Grant(chargeable, chargeToDeposit)
-    vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
-      vehicle.OwnerName.getOrElse(""),
-      AvatarAction.AwardBep(0, 100L, ExperienceType.Normal)
-    )
   }
 
   /** Stopping */

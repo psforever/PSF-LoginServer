@@ -1,6 +1,6 @@
 /* changes to objects from V008__Scoring.sql */
 ALTER TABLE killactivity
-ADD COLUMN victim_mounted INT NO NULL DEFAULT 0;
+ADD COLUMN victim_mounted INT NOT NULL DEFAULT 0;
 
 DROP PROCEDURE IF EXISTS proc_sessionnumber_initAndOrIncrease;
 
@@ -254,7 +254,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 /* new objects */
-CREATE OR REPLACE TABLE machinedestroyed (
+CREATE TABLE IF NOT EXISTS machinedestroyed (
   "index" SERIAL PRIMARY KEY NOT NULL,
   "avatar_id" INT NOT NULL REFERENCES avatar (id),
   "weapon_id" INT NOT NULL,
@@ -269,27 +269,42 @@ CREATE OR REPLACE TABLE machinedestroyed (
   "timestamp" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-/*
-expectations:
-heal player with medapp: no intermediate_type, implement_type is the medapp (no, yes)
-revive player with medapp: intermediate_type is 121, implement_type is the medapp (yes, yes)
-repair max with bank: no intermediate_type, implement_type is the bank (no, yes)
-repair foo with gluegun: intermediate_type is the foo object type, implement_type is the gluegun (yes, yes)
-bail from vehicle: intermediate_type is the vehicle object type, no implement_type (yes, no)
-cargo from vehicle: intermediate_type is the vehicle object type, implement_type is the cargo vehicle object type (yes, yes)
-damage from vehicle (collision): no intermediate_type, implement_type is vehicle object type (no, yes)
-damage from vehicle (explosion): intermediate_type is vehicle object type, implement_type is intermediate_type (yes, yes)
-always ignore target_id = user_id
-*/
-CREATE OR REPLACE TABLE supportactivity (
+CREATE TABLE IF NOT EXISTS "assistactivity" (
+  "index" SERIAL PRIMARY KEY NOT NULL,
+  "victim_id" INT NOT NULL REFERENCES avatar (id),
+  "attacker_id" INT NOT NULL REFERENCES avatar (id),
+  "weapon_id" SMALLINT NOT NULL,
+  "zone_id" SMALLINT NOT NULL,
+  "px" INT NOT NULL,
+  "py" INT NOT NULL,
+  "pz" INT NOT NULL,
+  "exp" INT NOT NULL,
+  "timestamp" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS supportactivity (
   "index" SERIAL PRIMARY KEY NOT NULL,
   "user_id" INT NOT NULL REFERENCES avatar (id), -- player that provides the support
   "target_id" INT NOT NULL REFERENCES avatar (id), -- benefactor of the support
-  "interaction_type" SMALLINT NOT NULL, -- description of support
+  "target_exosuit" SMALLINT NOT NULL, -- benefactor's exo-suit
+  "interaction_type" SMALLINT NOT NULL, -- classification of support
   "intermediate_type" INT DEFAULT 0, -- through what medium user_id supports target_id
   "implement_type" INT DEFAULT 0, -- tool utilized by user_id to support target_id, potentially via interaction with intermediate_type
-  "bep" INT NOT NULL,
+  "exp" INT NOT NULL,
   "timestamp" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS respawnsession (
+  "avatar_id" INT NOT NULL REFERENCES avatar (id),
+  "session_id" INT NOT NULL,
+  "respawn_count" INT NOT NULL DEFAULT 0,
+  UNIQUE(avatar_id, session_id)
+);
+
+CREATE TABLE IF NOT EXISTS respawn (
+  "avatar_id" INT NOT NULL REFERENCES avatar (id),
+  "respawn_count" INT NOT NULL DEFAULT 0,
+  UNIQUE(avatar_id)
 );
 
 /*
@@ -333,3 +348,33 @@ ON weaponstatsession
 FOR EACH ROW
 WHEN (NEW.session_id = -1)
 EXECUTE FUNCTION fn_weaponstatsession_beforeInsert();
+
+/*
+A kill assist activity causes a major update to weapon stats:
+the weapon that was used in the activity has the kills count for the killer updated/increased.
+*/
+CREATE OR REPLACE FUNCTION fn_assistactivity_updateRelatedStats()
+RETURNS TRIGGER
+AS
+$$
+DECLARE killerSessionId Int;
+DECLARE killerId Int;
+DECLARE weaponId Int;
+BEGIN
+  killerId := NEW.killer_id;
+  weaponId := NEW.weapon_id;
+  SELECT proc_sessionnumber_get(killerId, killerSessionId);
+  BEGIN
+    UPDATE weaponstatsession
+    SET assists = assists + 1
+    WHERE avatar_id = killerId AND session_id = killerSessionId AND weapon_id = weaponId;
+  END;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER psf_assistactivity_updateRelatedStats
+AFTER INSERT
+ON killactivity
+FOR EACH ROW
+EXECUTE FUNCTION fn_assistactivity_updateRelatedStats();

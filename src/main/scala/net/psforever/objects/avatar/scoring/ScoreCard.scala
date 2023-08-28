@@ -36,7 +36,7 @@ class ScoreCard() {
         curr = curr.copy(assists = a +: curr.assists)
         val faction = a.victim.Faction
         a.weapons.foreach { wid =>
-          ScoreCard.updateStatisticsFor(assistStatistics, wid, faction)
+          ScoreCard.updateStatisticsFor(assistStatistics, wid.equipment, faction)
         }
       case d: Death =>
         val expired = curr

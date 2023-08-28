@@ -282,7 +282,6 @@ class SessionMountHandlers(
   def MountingAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
     val playerGuid: PlanetSideGUID = tplayer.GUID
     val objGuid: PlanetSideGUID    = obj.GUID
-    tplayer.ContributionFrom(obj)
     sessionData.playerActionsToCancel()
     avatarActor ! AvatarActor.DeactivateActiveImplants()
     avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)

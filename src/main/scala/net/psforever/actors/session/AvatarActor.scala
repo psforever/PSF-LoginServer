@@ -7,7 +7,7 @@ import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 
 import java.util.concurrent.atomic.AtomicInteger
 import net.psforever.actors.zone.ZoneActor
-import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill}
+import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, SupportActivity}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vital.InGameHistory
@@ -843,6 +843,7 @@ object AvatarActor {
 
   def avatarNoLongerLoggedIn(accountId: Long): Unit = {
     import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global //linter says unused but compiler says otherwise
     ctx.run(
       query[persistence.Account]
         .filter(_.id == lift(accountId))
@@ -1681,16 +1682,24 @@ class AvatarActor(
           updateToolDischarge(stats)
           Behaviors.same
 
-        case UpdateKillsDeathsAssists(stat) =>
-          updateKillsDeathsAssists(stat)
+        case UpdateKillsDeathsAssists(stat: Kill) =>
+          updateKills(stat)
+          Behaviors.same
+
+        case UpdateKillsDeathsAssists(stat: Assist) =>
+          updateAssists(stat)
+          Behaviors.same
+
+        case UpdateKillsDeathsAssists(stat: Death) =>
+          updateDeaths(stat)
+          Behaviors.same
+
+        case UpdateKillsDeathsAssists(stat: SupportActivity) =>
+          updateSupport(stat)
           Behaviors.same
 
         case AwardBep(bep, ExperienceType.Support) =>
-          supportExperiencePool = supportExperiencePool + bep
-          avatar.scorecard.rate(bep)
-          if (supportExperienceTimer.isCancelled) {
-            resetSupportExperienceTimer(previousBep = 0, previousDelay = 0)
-          }
+          awardSupportExperience(bep, previousDelay = 0L)
           Behaviors.same
 
         case AwardBep(bep, modifier) =>
@@ -1877,7 +1886,8 @@ class AvatarActor(
         performAvatarLogin(avatarId, accountId, replyTo)
       case _ =>
         //refuse
-        //TODO refuse
+        //TODO refuse?
+        sessionActor ! SessionActor.Quit()
     }
   }
 
@@ -3011,63 +3021,114 @@ class AvatarActor(
     }
   }
 
-  def updateKillsDeathsAssists(kdaStat: KDAStat): Unit = {
-    avatar.scorecard.rate(kdaStat)
-    val exp      = kdaStat.experienceEarned
+  def awardSupportExperience(bep: Long, previousDelay: Long): Unit = {
+    supportExperiencePool = supportExperiencePool + bep
+    avatar.scorecard.rate(bep)
+    if (supportExperienceTimer.isCancelled) {
+      resetSupportExperienceTimer(previousBep = 0, previousDelay = 0)
+    }
+  }
+
+  def updateKills(killStat: Kill): Unit = {
+    val exp                = killStat.experienceEarned
+    val (modifiedExp, msg) = updateExperienceAndType(killStat.experienceEarned)
+    avatar.scorecard.rate(killStat.copy(experienceEarned = modifiedExp))
+    val _session           = session.get
+    val zone               = _session.zone
+    val player             = _session.player
+    val playerSource       = PlayerSource(player)
+    val historyTranscript  = (killStat.info.interaction.cause match {
+      case pr: ProjectileReason => pr.projectile.mounted_in.flatMap { a => zone.GUID(a._1) } //what fired the projectile
+      case _ => None
+    }) match {
+      case Some(mount: PlanetSideGameObject with FactionAffinity with InGameHistory with MountedWeapons) =>
+        player.HistoryAndContributions() ++ InGameHistory.ContributionFrom(mount).toList
+      case _ =>
+        player.HistoryAndContributions()
+    }
+    zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, killStat, exp)
+    val target = killStat.info.targetAfter.asInstanceOf[PlayerSource]
+    val targetMounted = target.seatedIn.map { case (v: VehicleSource, seat) =>
+      val definition = v.Definition
+      definition.ObjectId * 10 + Vehicles.SeatPermissionGroup(definition, seat).map { _.id }.getOrElse(0)
+    }.getOrElse(0)
+    zones.exp.ToDatabase.reportKillBy(
+      avatar.id.toLong,
+      target.CharId,
+      target.ExoSuit.id,
+      targetMounted,
+      killStat.info.interaction.cause.attribution,
+      player.Zone.Number,
+      target.Position,
+      modifiedExp
+    )
+    if (exp > 0L) {
+      setBep(avatar.bep + exp, msg)
+    }
+  }
+
+  def updateDeaths(deathStat: Death): Unit = {
+    avatar.scorecard.rate(deathStat)
     val _session = session.get
     val zone     = _session.zone
     val player   = _session.player
-    kdaStat match {
-      case kill: Kill =>
-        val playerSource = PlayerSource(player)
-        val historyTranscript = (kill.info.interaction.cause match {
-          case pr: ProjectileReason => pr.projectile.mounted_in.flatMap { a => zone.GUID(a._1) } //what fired the projectile
-          case _ => None
-        }) match {
-          case Some(mount: PlanetSideGameObject with FactionAffinity with InGameHistory with MountedWeapons) =>
-            player.HistoryAndContributions() ++ InGameHistory.ContributionFrom(mount).toList
-          case _ =>
-            player.HistoryAndContributions()
-        }
-        zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, kill, exp)
-        val target = kill.info.targetAfter.asInstanceOf[PlayerSource]
-        val targetMounted = target.seatedIn.map { case (v: VehicleSource, seat) =>
-          val definition = v.Definition
-          definition.ObjectId * 10 + Vehicles.SeatPermissionGroup(definition, seat).map { _.id }.getOrElse(0)
-        }.getOrElse(0)
-        zones.exp.ToDatabase.reportKillBy(
-          avatar.id.toLong,
-          target.CharId,
-          target.ExoSuit.id,
-          targetMounted,
-          kill.info.interaction.cause.attribution,
-          player.Zone.Number,
-          target.Position,
-          kill.experienceEarned
-        )
-      case assist: Assist =>
-        val avatarId = avatar.id.toLong
-        assist.weapons.foreach {
-          zones.exp.ToDatabase.reportAssistKills(avatarId, _, assists = 1)
-        }
-      case _: Death =>
-        zone.AvatarEvents ! AvatarServiceMessage(
-          player.Name,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            AvatarStatisticsMessage(DeathStatistic(avatar.scorecard.Lives.size))
-          )
-        )
+    zone.AvatarEvents ! AvatarServiceMessage(
+      player.Name,
+      AvatarAction.SendResponse(
+        Service.defaultPlayerGUID,
+        AvatarStatisticsMessage(DeathStatistic(avatar.scorecard.Lives.size))
+      )
+    )
+  }
+
+  def updateAssists(assistStat: Assist): Unit = {
+    avatar.scorecard.rate(assistStat)
+    val exp      = assistStat.experienceEarned
+    val _session = session.get
+    val avatarId = avatar.id.toLong
+    assistStat.weapons.foreach { wrapper =>
+      zones.exp.ToDatabase.reportKillAssistBy(
+        avatarId,
+        assistStat.victim.CharId,
+        wrapper.equipment,
+        _session.zone.Number,
+        assistStat.victim.Position,
+        exp
+      )
     }
-    if (exp > 0L) {
-      val gameOpts = Config.app.game
-      val (msg, modifier): (ExperienceType, Float) = if (player.Carrying.contains(SpecialCarry.RabbitBall)) {
-        (ExperienceType.RabbitBall, 1.25f)
-      } else {
-        (ExperienceType.Normal, 1f)
-      }
-      setBep(avatar.bep + (exp * modifier * gameOpts.bepRate).toLong, msg)
+    awardSupportExperience(exp, previousDelay = 0L)
+  }
+
+  def updateSupport(supportStat: SupportActivity): Unit = {
+    val avatarId = avatar.id.toLong
+    val target = supportStat.target
+    val targetId = target.CharId
+    val targetExosuit = target.ExoSuit.id
+    val exp = supportStat.experienceEarned
+    supportStat.weapons.foreach { entry =>
+      zones.exp.ToDatabase.reportSupportBy(
+        avatarId,
+        targetId,
+        targetExosuit,
+        entry.value,
+        entry.intermediate,
+        entry.equipment,
+        exp
+      )
     }
+    awardSupportExperience(exp, previousDelay = 0L)
+  }
+
+  def updateExperienceAndType(exp: Long): (Long, ExperienceType) = {
+    val _session = session.get
+    val player   = _session.player
+    val gameOpts = Config.app.game
+    val (modifier, msg) = if (player.Carrying.contains(SpecialCarry.RabbitBall)) {
+      (1.25f, ExperienceType.RabbitBall)
+    } else {
+      (1f, ExperienceType.Normal)
+    }
+    ((exp * modifier * gameOpts.bepRate).toLong, msg)
   }
 
   def updateToolDischarge(stats: EquipmentStat): Unit = {

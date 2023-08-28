@@ -77,8 +77,8 @@ final case class VehicleCargoDismountActivity(vehicle: VehicleSource, cargo: Veh
 
 final case class Contribution(src: SourceUniqueness, entries: List[InGameActivity])
   extends GeneralActivity {
-  val start: Long = entries.last.time
-  val end: Long = entries.head.time
+  val start: Long = entries.headOption.map { _.time }.getOrElse(System.currentTimeMillis())
+  val end: Long = entries.lastOption.map { _.time }.getOrElse(start)
 }
 
 /* vitals history */
@@ -261,17 +261,18 @@ trait InGameHistory {
     mutable.HashMap[SourceUniqueness, Contribution]()
 
   def ContributionFrom(target: PlanetSideGameObject with FactionAffinity with InGameHistory): Option[Contribution] = {
-    if (target ne this) {
-      InGameHistory.ContributionFrom(target) match {
-        case out @ Some(in @ Contribution(src, _)) =>
-          contributionInheritance.put(src, in)
-          out
+    if (target eq this) {
+      None
+    } else {
+      target.GetContribution() match {
+        case Some(in) =>
+          val contribution = Contribution(SourceEntry(target).unique, in)
+          contributionInheritance.put(contribution.src, contribution)
+          Some(contribution)
         case None =>
           contributionInheritance.remove(SourceEntry(target).unique)
           None
       }
-    } else {
-      None
     }
   }
 
@@ -307,12 +308,11 @@ object InGameHistory {
                                    unit: Option[PlanetSideGameObject with FactionAffinity with InGameHistory]
                                  ): Unit = {
     val toUnitSource = unit.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) }
-    val event: GeneralActivity = if (obj.History.nonEmpty || obj.History.headOption.exists {
-      _.isInstanceOf[SpawningActivity]
-    }) {
-      ReconstructionActivity(ObjectSource(obj), zoneNumber, toUnitSource)
-    } else {
+
+    val event: GeneralActivity = if (obj.History.isEmpty) {
       SpawningActivity(ObjectSource(obj), zoneNumber, toUnitSource)
+    } else {
+      ReconstructionActivity(ObjectSource(obj), zoneNumber, toUnitSource)
     }
     if (obj.History.lastOption match {
       case Some(evt: SpawningActivity) => evt != event

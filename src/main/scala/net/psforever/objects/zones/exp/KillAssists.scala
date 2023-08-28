@@ -23,7 +23,7 @@ object KillAssists {
       case damage: DamagingActivity => damage.data.targetAfter.asInstanceOf[PlayerSource].Health == 0
       case _ => false
     }
-    if (spawnIndex == -1 || endIndex == -1) {
+    if (spawnIndex == -1 || endIndex == -1 || spawnIndex > endIndex) {
       Nil
     } else {
       history.slice(spawnIndex, endIndex)
@@ -193,7 +193,7 @@ object KillAssists {
     val assists = func(history, victim.Faction).filterNot { case (_, kda) => kda.amount <= 0 }
     val total = assists.values.foldLeft(0f)(_ + _.total)
     val output = assists.map { case (id, kda) =>
-      (id, ContributionStatsOutput(kda.player, kda.weapons.map { _.equipment_id }, kda.amount / total))
+      (id, ContributionStatsOutput(kda.player, kda.weapons.map { _.equipment }, kda.amount / total))
     }
     output.remove(victim.CharId)
     output
@@ -277,7 +277,8 @@ object KillAssists {
           case Some(mod) =>
             //previous attacker, just add to entry
             val firstWeapon = mod.weapons.head
-            val weapons = if (firstWeapon.equipment_id == wepid) {
+            val newEntry = DamageWith(wepid)
+            val weapons = if (firstWeapon.equipment == newEntry) {
               firstWeapon.copy(
                 amount = firstWeapon.amount + amount,
                 shots = firstWeapon.shots + 1,
@@ -285,7 +286,7 @@ object KillAssists {
                 contributions = firstWeapon.contributions + percentage
               ) +: mod.weapons.tail
             } else {
-              WeaponStats(wepid, amount, 1, time, percentage) +: mod.weapons
+              WeaponStats(newEntry, amount, 1, time, percentage) +: mod.weapons
             }
             mod.copy(
               amount = mod.amount + amount,
@@ -298,7 +299,7 @@ object KillAssists {
             //new attacker, new entry
             ContributionStats(
               user,
-              Seq(WeaponStats(wepid, amount, 1, time, percentage)),
+              Seq(WeaponStats(DamageWith(wepid), amount, 1, time, percentage)),
               amount,
               amount,
               1,

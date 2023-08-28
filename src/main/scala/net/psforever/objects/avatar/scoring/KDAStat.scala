@@ -3,6 +3,7 @@ package net.psforever.objects.avatar.scoring
 
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.zones.exp.EquipmentUseContextWrapper
 import org.joda.time.LocalDateTime
 
 trait KDAStat {
@@ -10,10 +11,29 @@ trait KDAStat {
   val time: LocalDateTime = LocalDateTime.now()
 }
 
-final case class Kill(victim: PlayerSource, info: DamageResult, experienceEarned: Long) extends KDAStat
+final case class Kill(
+                       victim: PlayerSource,
+                       info: DamageResult,
+                       experienceEarned: Long
+                     ) extends KDAStat
 
-final case class Assist(victim: PlayerSource, weapons: Seq[Int], damageInflictedPercentage: Float, experienceEarned: Long) extends KDAStat
+final case class Assist(
+                         victim: PlayerSource,
+                         weapons: Seq[EquipmentUseContextWrapper],
+                         damageInflictedPercentage: Float,
+                         experienceEarned: Long
+                       ) extends KDAStat
 
-final case class Death(assailant: Seq[PlayerSource], timeAlive: Long, bep: Long) extends KDAStat {
+final case class Death(
+                        assailant: Seq[PlayerSource],
+                        timeAlive: Long,
+                        bep: Long
+                      ) extends KDAStat {
   def experienceEarned: Long = 0
 }
+
+final case class SupportActivity(
+                                  target: PlayerSource,
+                                  weapons: Seq[EquipmentUseContextWrapper],
+                                  experienceEarned: Long
+                                ) extends KDAStat

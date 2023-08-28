@@ -87,30 +87,10 @@ object Support {
                                              second: ContributionStatsOutput
                                            ): ContributionStatsOutput = {
     if (first.percentage < second.percentage)
-      second.copy(
-        implements = (second.implements ++ first.implements).distinct,
-        percentage = first.percentage + second.implements.size * multiplier
-      )
+      second.copy(implements = (second.implements ++ first.implements).distinct, percentage = first.percentage + second.implements.size * multiplier)
     else
-      first.copy(
-        implements = (first.implements ++ second.implements).distinct,
-        percentage = second.percentage + second.implements.size * multiplier
-      )
+      first.copy(implements = (first.implements ++ second.implements).distinct, percentage = second.percentage + second.implements.size * multiplier)
   }
-
-//  private[exp] def collectKillAssists(
-//                                       victim: SourceEntry,
-//                                       history: List[InGameActivity],
-//                                       func: (List[InGameActivity], PlanetSideEmpire.Value) => mutable.LongMap[ContributionStats]
-//                                     ): mutable.LongMap[ContributionStatsOutput] = {
-//    val healthAssists = func(history, victim.Faction).filterNot { case (_, kda) => kda.amount <= 0 }
-//    val qualifiedHealing = healthAssists.values.foldLeft(0)(_ + _.total)
-//    val healthAssistsOutput = healthAssists.map { case (id, kda) =>
-//      (id, ContributionStatsOutput(kda.player, kda.weapons.map { _.weapon_id }, kda.amount / qualifiedHealing))
-//    }
-//    healthAssistsOutput.remove(victim.CharId)
-//    healthAssistsOutput
-//  }
 
   private[exp] def collectHealingSupportAssists(
                                                  target: SourceEntry,
@@ -145,9 +125,12 @@ object Support {
                                                  history: List[InGameActivity]
                                                ): mutable.LongMap[ContributionStatsOutput] = {
     collectSupportContributions(
-      target, time, history.collect { case repairs: RepairFromEquipment
+      target,
+      time,
+      history.collect { case repairs: RepairFromEquipment
         if repairs.amount > 0 && repairs.user.unique != target.unique => (repairs, repairs.equipment_def.ObjectId)
-      }, mapContributionPointsByPercentage
+      },
+      mapContributionPointsByPercentage
     )
   }
 
@@ -183,7 +166,7 @@ object Support {
               if target.CharId != player.CharId && faction == player.Faction =>
               //accessed a hacked terminal
               termsUsed.put(guid.toLong, Some(terminal))
-              addTerminalContributionEntry(credit, player, Seq(GlobalDefinitions.remote_electronics_kit.ObjectId), percentage = 1f)
+              addTerminalContributionEntry(credit, player, Seq(HackKillAssist(GlobalDefinitions.remote_electronics_kit.ObjectId)), percentage = 1f)
             case _
               if terminal.Faction == faction =>
               //accessed a faction-friendly terminal; check log for repair history
@@ -193,7 +176,8 @@ object Support {
                 .History
                 .collect { case a: RepairFromEquipment =>
                   val user = a.user
-                  addTerminalContributionEntry(credit, user, Seq(a.equipment_def.ObjectId), percentage = 0.5f)
+                  //TODO might be wrong intermediate
+                  addTerminalContributionEntry(credit, user, Seq(RepairKillAssist(a.equipment_def.ObjectId, target.Definition.ObjectId)), percentage = 0.5f)
                 }
             case _ =>
               //what is this?
@@ -208,7 +192,7 @@ object Support {
   private def addTerminalContributionEntry(
                                             contributions: mutable.LongMap[ContributionStatsOutput],
                                             player: PlayerSource,
-                                            implements: Seq[Int],
+                                            implements: Seq[EquipmentUseContextWrapper],
                                             percentage: Float
                                           ): Unit = {
     val charId = player.CharId
@@ -216,10 +200,7 @@ object Support {
       case Some(entry) if percentage > entry.percentage =>
         contributions.put(charId, entry.copy(percentage = percentage))
       case Some(entry) =>
-        contributions.put(charId, entry.copy(
-          implements = (entry.implements ++ implements).distinct,
-          percentage = entry.percentage + 0.05f
-        ))
+        contributions.put(charId, entry.copy(implements = (entry.implements ++ implements).distinct, percentage = entry.percentage + 0.05f))
       case None =>
         contributions.put(charId, ContributionStatsOutput(player, implements, percentage))
     }
@@ -262,7 +243,7 @@ object Support {
           ))
         case None =>
           //the contribution percentage allocated will always be 1.0f and should be overwritten later
-          contributions.put(charId, ContributionStats(user, Seq(WeaponStats(defaultTool, amount, 1, h.time, 1f)), amount, amount, 1, h.time))
+          contributions.put(charId, ContributionStats(user, Seq(WeaponStats(NoUse(defaultTool), amount, 1, h.time, 1f)), amount, amount, 1, h.time))
       }
     }
     contributions
@@ -354,7 +335,7 @@ object Support {
         0.5f
       }
     }
-    (charId, ContributionStatsOutput(user, contribution.weapons.map { _.equipment_id }, value))
+    (charId, ContributionStatsOutput(user, contribution.weapons.map { _.equipment }, value))
   }
 
   //noinspection ScalaUnusedSymbol
@@ -366,7 +347,7 @@ object Support {
                                             charId: Long,
                                             contribution: ContributionStats,
                                           ): (Long, ContributionStatsOutput) = {
-    (charId, ContributionStatsOutput(contribution.player, contribution.weapons.map { _.equipment_id }, compareList.size.toFloat))
+    (charId, ContributionStatsOutput(contribution.player, contribution.weapons.map { _.equipment }, compareList.size.toFloat))
   }
 
   private[exp] def wasEverAMax(player: PlayerSource, history: Iterable[InGameActivity]): Boolean = {

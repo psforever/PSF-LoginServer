@@ -3,7 +3,7 @@ package net.psforever.persistence
 
 import org.joda.time.LocalDateTime
 
-case class Machinedestroyedinstance(
+case class Machinedestroyed(
                                      index: Int,
                                      avatarId: Long,
                                      weaponId: Int,

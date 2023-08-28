@@ -4,14 +4,14 @@ package net.psforever.objects.zones.exp
 import net.psforever.objects.sourcing.PlayerSource
 
 sealed trait ItemUseStats {
-  def equipment_id: Int
+  def equipment: EquipmentUseContextWrapper
   def shots: Int
   def time: Long
   def contributions: Float
 }
 
 private case class WeaponStats(
-                                equipment_id: Int,
+                                equipment: EquipmentUseContextWrapper,
                                 amount: Int,
                                 shots: Int,
                                 time: Long,
@@ -19,7 +19,7 @@ private case class WeaponStats(
                               ) extends ItemUseStats
 
 private case class EquipmentStats(
-                                   equipment_id: Int,
+                                   equipment: EquipmentUseContextWrapper,
                                    shots: Int,
                                    time: Long,
                                    contributions: Float
@@ -36,6 +36,6 @@ private[exp] case class ContributionStats(
 
 sealed case class ContributionStatsOutput(
                                            player: PlayerSource,
-                                           implements: Seq[Int],
+                                           implements: Seq[EquipmentUseContextWrapper],
                                            percentage: Float
                                          )

@@ -7,8 +7,8 @@ import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.{GlobalDefinitions, Ntu, NtuContainer, NtuStorageBehavior}
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.objects.{GlobalDefinitions, Ntu, NtuContainer, NtuStorageBehavior, Vehicle}
+import net.psforever.types.{ExperienceType, PlanetSideEmpire}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -181,6 +181,19 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     if (amount != 0) {
       panelAnimationFunc(sender, amount)
       panelAnimationFunc = SkipPanelAnimation
+      (src match {
+        case v: Vehicle => Some(v)
+        case _ => None
+      })
+        .map { v => (v, v.Owners) }
+        .collect { case (vehicle, Some(owner)) =>
+          //experience is reported as normal
+          val deposit: Long = 100L * math.floor(amount).toLong / math.floor(resourceSilo.MaxNtuCapacitor / 105f).toLong
+          vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
+            owner.name,
+            AvatarAction.AwardBep(0, deposit, ExperienceType.Normal)
+          )
+        }
     }
   }
 
@@ -192,6 +205,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     * @param trigger if positive, activate the animation;
     *                if negative or zero, disable the animation
     */
+  //noinspection ScalaUnusedSymbol
   def PanelAnimation(source: ActorRef, trigger: Float): Unit = {
     val currentlyHas = resourceSilo.NtuCapacitor
     // do not let the trigger charge go to waste, but also do not let the silo be filled
