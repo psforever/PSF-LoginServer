@@ -4,7 +4,7 @@ package net.psforever.objects.vital
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ToolDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.sourcing.{AmenitySource, ObjectSource, PlayerSource, SourceEntry, SourceUniqueness, SourceWithHealthEntry, VehicleSource}
+import net.psforever.objects.sourcing.{AmenitySource, PlayerSource, SourceEntry, SourceUniqueness, SourceWithHealthEntry, VehicleSource}
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
@@ -20,7 +20,21 @@ import scala.collection.mutable
  * Must keep track of the time (ms) the activity occurred.
  */
 trait InGameActivity {
-  val time: Long = System.currentTimeMillis()
+  private var _time: Long = System.currentTimeMillis()
+
+  def time: Long = _time
+}
+
+object InGameActivity {
+  def ShareTime(benefactor: InGameActivity, donor: InGameActivity): InGameActivity = {
+    benefactor._time = donor.time
+    benefactor
+  }
+
+  def SetTime(benefactor: InGameActivity, time: Long): InGameActivity = {
+    benefactor._time = time
+    benefactor
+  }
 }
 
 /* normal history */
@@ -66,14 +80,22 @@ sealed trait VehicleCargoMountChange extends VehicleMountChange {
 final case class VehicleMountActivity(vehicle: VehicleSource, player: PlayerSource, zoneNumber: Int)
   extends VehiclePassengerMountChange
 
-final case class VehicleDismountActivity(vehicle: VehicleSource, player: PlayerSource, zoneNumber: Int)
-  extends VehiclePassengerMountChange
+final case class VehicleDismountActivity(
+                                          vehicle: VehicleSource,
+                                          player: PlayerSource,
+                                          zoneNumber: Int,
+                                          pairedEvent: Option[VehicleMountActivity] = None
+                                        ) extends VehiclePassengerMountChange
 
 final case class VehicleCargoMountActivity(vehicle: VehicleSource, cargo: VehicleSource, zoneNumber: Int)
   extends VehicleCargoMountChange
 
-final case class VehicleCargoDismountActivity(vehicle: VehicleSource, cargo: VehicleSource, zoneNumber: Int)
-  extends VehicleCargoMountChange
+final case class VehicleCargoDismountActivity(
+                                               vehicle: VehicleSource,
+                                               cargo: VehicleSource,
+                                               zoneNumber: Int,
+                                               pairedEvent: Option[VehicleCargoMountActivity] = None
+                                             ) extends VehicleCargoMountChange
 
 final case class Contribution(src: SourceUniqueness, entries: List[InGameActivity])
   extends GeneralActivity {
@@ -202,11 +224,34 @@ trait InGameHistory {
   /**
    * An in-game event must be recorded.
    * Add new entry to the list (for recent activity).
+   * Special handling must be conducted for certain events.
    * @param action the fully-informed entry
    * @return the list of previous changes to this entity
    */
   def LogActivity(action: Option[InGameActivity]): List[InGameActivity] = {
     action match {
+      case Some(act: VehicleDismountActivity) =>
+        history
+          .findLast(_.isInstanceOf[VehicleMountActivity])
+          .collect {
+            case event: VehicleMountActivity if event.vehicle.unique == act.vehicle.unique =>
+              history = history :+ InGameActivity.ShareTime(act.copy(pairedEvent = Some(event)), act)
+          }
+          .orElse {
+            history = history :+ act
+            None
+          }
+      case Some(act: VehicleCargoDismountActivity) =>
+        history
+          .findLast(_.isInstanceOf[VehicleCargoMountActivity])
+          .collect {
+            case event: VehicleCargoMountActivity if event.vehicle.unique == act.vehicle.unique =>
+              history = history :+ InGameActivity.ShareTime(act.copy(pairedEvent = Some(event)), act)
+          }
+          .orElse {
+            history = history :+ act
+            None
+          }
       case Some(act) =>
         history = history :+ act
       case None => ()
@@ -264,13 +309,18 @@ trait InGameHistory {
     if (target eq this) {
       None
     } else {
-      target.GetContribution() match {
-        case Some(in) =>
-          val contribution = Contribution(SourceEntry(target).unique, in)
-          contributionInheritance.put(contribution.src, contribution)
+      val uniqueTarget = SourceEntry(target).unique
+      (target.GetContribution(), contributionInheritance.get(uniqueTarget)) match {
+        case (Some(in), Some(curr)) =>
+          val end = curr.end
+          val contribution = Contribution(uniqueTarget, curr.entries ++ in.filter(_.time > end))
+          contributionInheritance.put(uniqueTarget, contribution)
           Some(contribution)
-        case None =>
-          contributionInheritance.remove(SourceEntry(target).unique)
+        case (Some(in), _) =>
+          val contribution = Contribution(uniqueTarget, in)
+          contributionInheritance.put(uniqueTarget, contribution)
+          Some(contribution)
+        case (None, _) =>
           None
       }
     }
@@ -310,9 +360,9 @@ object InGameHistory {
     val toUnitSource = unit.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) }
 
     val event: GeneralActivity = if (obj.History.isEmpty) {
-      SpawningActivity(ObjectSource(obj), zoneNumber, toUnitSource)
+      SpawningActivity(SourceEntry(obj), zoneNumber, toUnitSource)
     } else {
-      ReconstructionActivity(ObjectSource(obj), zoneNumber, toUnitSource)
+      ReconstructionActivity(SourceEntry(obj), zoneNumber, toUnitSource)
     }
     if (obj.History.lastOption match {
       case Some(evt: SpawningActivity) => evt != event

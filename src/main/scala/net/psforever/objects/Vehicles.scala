@@ -237,16 +237,14 @@ object Vehicles {
     val zone = target.Zone
     // Forcefully dismount any cargo
     target.CargoHolds.foreach { case (_, cargoHold) =>
-      cargoHold.occupant match {
-        case Some(cargo: Vehicle) =>
-          cargo.Actor ! CargoBehavior.StartCargoDismounting(bailed = false)
-        case None => ;
+      cargoHold.occupant.collect {
+        cargo: Vehicle => cargo.Actor ! CargoBehavior.StartCargoDismounting(bailed = false)
       }
     }
     // Forcefully dismount all seated occupants from the vehicle
     target.Seats.values.foreach(seat => {
-      seat.occupant match {
-        case Some(tplayer: Player) =>
+      seat.occupant.collect {
+        tplayer: Player =>
           seat.unmount(tplayer)
           tplayer.VehicleSeated = None
           if (tplayer.HasGUID) {
@@ -255,7 +253,6 @@ object Vehicles {
               VehicleAction.KickPassenger(tplayer.GUID, 4, unk2 = false, target.GUID)
             )
           }
-        case _ => ;
       }
     })
     // If the vehicle can fly and is flying deconstruct it, and well played to whomever managed to hack a plane in mid air. I'm impressed.
@@ -264,25 +261,17 @@ object Vehicles {
       target.Actor ! Vehicle.Deconstruct()
     } else { // Otherwise handle ownership transfer as normal
       // Remove ownership of our current vehicle, if we have one
-      hacker.avatar.vehicle match {
-        case Some(guid: PlanetSideGUID) =>
-          zone.GUID(guid) match {
-            case Some(vehicle: Vehicle) =>
-              Vehicles.Disown(hacker, vehicle)
-            case _ => ;
-          }
-        case _ => ;
-      }
-      target.OwnerGuid match {
-        case Some(previousOwnerGuid: PlanetSideGUID) =>
-          // Remove ownership of the vehicle from the previous player
-          zone.GUID(previousOwnerGuid) match {
-            case Some(tplayer: Player) =>
-              Vehicles.Disown(tplayer, target)
-            case _ => ; // Vehicle already has no owner
-          }
-        case _ => ;
-      }
+      hacker.avatar.vehicle
+        .flatMap { guid => zone.GUID(guid) }
+        .collect { case vehicle: Vehicle =>
+          Vehicles.Disown(hacker, vehicle)
+        }
+      // Remove ownership of the vehicle from the previous player
+      target.OwnerGuid
+        .flatMap { guid => zone.GUID(guid) }
+        .collect { case tplayer: Player =>
+          Vehicles.Disown(tplayer, target)
+        }
       // Now take ownership of the jacked vehicle
       target.Actor ! CommonMessages.Hack(hacker, target)
       target.Faction = hacker.Faction
@@ -302,16 +291,15 @@ object Vehicles {
     // If AMS is deployed, swap it to the new faction
     target.Definition match {
       case GlobalDefinitions.router =>
-        target.Utility(UtilityType.internal_router_telepad_deployable) match {
-          case Some(util: Utility.InternalTelepad) =>
+        target.Utility(UtilityType.internal_router_telepad_deployable).collect {
+          case util: Utility.InternalTelepad =>
             //"power cycle"
             util.Actor ! TelepadLike.Deactivate(util)
             util.Actor ! TelepadLike.Activate(util)
-          case _ => ;
         }
       case GlobalDefinitions.ams if target.DeploymentState == DriveState.Deployed =>
         zone.VehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(zone)
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -412,6 +400,7 @@ object Vehicles {
     *
     * @param vehicle the vehicle
     */
+  //noinspection ScalaUnusedSymbol
   def BeforeUnloadVehicle(vehicle: Vehicle, zone: Zone): Unit = {
     vehicle.Definition match {
       case GlobalDefinitions.ams =>
@@ -420,7 +409,7 @@ object Vehicles {
         vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
       case GlobalDefinitions.router =>
         vehicle.Actor ! Deployment.TryUndeploy(DriveState.Undeploying)
-      case _ => ;
+      case _ => ()
     }
   }
 

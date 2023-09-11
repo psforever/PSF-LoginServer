@@ -17,15 +17,15 @@ final case class VehicleSource(
                                 Orientation: Vector3,
                                 Velocity: Option[Vector3],
                                 deployed: DriveState.Value,
-                                owner: Option[PlayerSource],
+                                owner: Option[UniquePlayer],
                                 occupants: List[SourceEntry],
                                 Modifiers: ResistanceProfile,
                                 unique: UniqueVehicle
                               ) extends SourceWithHealthEntry with SourceWithShieldsEntry {
-  def Name: String                  = SourceEntry.NameFormat(Definition.Name)
-  def Health: Int                   = health
-  def Shields: Int                  = shields
-  def total: Int                    = health + shields
+  def Name: String = SourceEntry.NameFormat(Definition.Name)
+  def Health: Int  = health
+  def Shields: Int = shields
+  def total: Int   = health + shields
 }
 
 object VehicleSource {
@@ -54,13 +54,15 @@ object VehicleSource {
         obj.OriginalOwnerName.getOrElse("none")
       )
     )
-    vehicle.copy(occupants = {
-      obj.Seats.map { case (seatNumber, seat) =>
+    //shallow information that references the existing source entry
+    vehicle.copy(
+      owner = obj.Owners,
+      occupants = obj.Seats.map { case (seatNumber, seat) =>
         seat.occupant match {
-          case Some(p) => PlayerSource.inSeat(p, vehicle, seatNumber) //shallow
+          case Some(p) => PlayerSource.inSeat(p, vehicle, seatNumber)
           case _ => PlayerSource.Nobody
         }
       }.toList
-    })
+    )
   }
 }

@@ -13,10 +13,9 @@ class CombinedHealthAndArmorContributionProcess(
                                                  private val contributions: Map[SourceUniqueness, List[InGameActivity]],
                                                  otherSubmissions: Seq[RecoveryExperienceContribution]
                                                ) extends RecoveryExperienceContribution {
-  private val excludedTargets: mutable.ListBuffer[SourceUniqueness] = mutable.ListBuffer()
   private val process: Seq[RecoveryExperienceContributionProcess] = Seq(
-    new HealthRecoveryExperienceContributionProcess(faction, contributions, excludedTargets),
-    new ArmorRecoveryExperienceContributionProcess(faction, contributions, excludedTargets)
+    new HealthRecoveryExperienceContributionProcess(faction, contributions),
+    new ArmorRecoveryExperienceContributionProcess(faction, contributions)
   )
 
   def submit(history: List[InGameActivity]): Unit = {

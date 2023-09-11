@@ -105,32 +105,17 @@ object ToDatabase {
    * Shots fired.
    */
   def reportToolDischarge(avatarId: Long, stats: EquipmentStat): Unit = {
-    val result = for {
-      res <- ctx.run(
-        query[persistence.Weaponstatsession]
-          .filter(_.avatarId == lift(avatarId))
-          .filter(_.weaponId == lift(stats.objectId))
-          .update(
-            _.shotsFired -> lift(stats.shotsFired),
-            _.shotsLanded -> lift(stats.shotsLanded)
-          )
+    ctx.run(query[persistence.Weaponstatsession]
+      .insert(
+        _.avatarId -> lift(avatarId),
+        _.weaponId -> lift(stats.objectId),
+        _.shotsFired -> lift(stats.shotsFired),
+        _.shotsLanded -> lift(stats.shotsLanded),
+        _.kills -> lift(0),
+        _.assists -> lift(0),
+        _.sessionId -> lift(-1L)
       )
-    } yield res
-    result.onComplete {
-      case Success(rowCount) if rowCount.longValue > 0 => ()
-      case _ =>
-        ctx.run(query[persistence.Weaponstatsession]
-          .insert(
-            _.avatarId -> lift(avatarId),
-            _.weaponId -> lift(stats.objectId),
-            _.shotsFired -> lift(stats.shotsFired),
-            _.shotsLanded -> lift(stats.shotsLanded),
-            _.kills -> lift(0),
-            _.assists -> lift(0),
-            _.sessionId -> lift(-1L)
-          )
-        )
-    }
+    )
   }
 
   /**

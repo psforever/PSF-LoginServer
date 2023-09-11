@@ -95,6 +95,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   interaction(new InteractWithRadiationCloudsSeatedInVehicle(obj = this, range = 20))
 
   private var faction: PlanetSideEmpire.Value     = PlanetSideEmpire.NEUTRAL
+  private var previousFaction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var shields: Int                        = 0
   private var decal: Int                          = 0
   private var trunkAccess: Option[PlanetSideGUID] = None
@@ -128,13 +129,17 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   }
 
   def Faction: PlanetSideEmpire.Value = {
-    this.faction
-  }
-
-  override def Faction_=(faction: PlanetSideEmpire.Value): PlanetSideEmpire.Value = {
-    this.faction = faction
     faction
   }
+
+  override def Faction_=(toFaction: PlanetSideEmpire.Value): PlanetSideEmpire.Value = {
+    //TODO in the future, this may create an issue when the vehicle is originally or is hacked from Black Ops
+    previousFaction = faction
+    faction = toFaction
+    toFaction
+  }
+
+  def PreviousFaction: PlanetSideEmpire.Value = previousFaction
 
   /** How long it takes to jack the vehicle in seconds, based on the hacker's certification level */
   def JackingDuration: Array[Int] = Definition.JackingDuration
@@ -335,9 +340,9 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     }
   }
 
-  override def DeployTime = Definition.DeployTime
+  override def DeployTime: Int = Definition.DeployTime
 
-  override def UndeployTime = Definition.UndeployTime
+  override def UndeployTime: Int = Definition.UndeployTime
 
   def Inventory: GridInventory = trunk
 
@@ -495,7 +500,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def PreviousGatingManifest(): Option[VehicleManifest] = previousVehicleGatingManifest
 
-  def DamageModel = Definition.asInstanceOf[DamageResistanceModel]
+  def DamageModel: DamageResistanceModel = Definition.asInstanceOf[DamageResistanceModel]
 
   override def BailProtection_=(protect: Boolean): Boolean = {
     !Definition.CanFly && super.BailProtection_=(protect)

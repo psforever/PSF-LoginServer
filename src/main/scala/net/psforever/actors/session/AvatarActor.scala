@@ -7,7 +7,7 @@ import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 
 import java.util.concurrent.atomic.AtomicInteger
 import net.psforever.actors.zone.ZoneActor
-import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, SupportActivity}
+import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, SupportActivity}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vital.InGameHistory
@@ -851,6 +851,14 @@ object AvatarActor {
     )
   }
 
+  def updateToolDischargeFor(avatarId: Long, lives: Seq[Life]): Unit = {
+    lives
+      .flatMap { _.equipmentStats }
+      .foreach { stat =>
+        zones.exp.ToDatabase.reportToolDischarge(avatarId, stat)
+      }
+  }
+
   def toAvatar(avatar: persistence.Avatar): Avatar = {
     val bep = avatar.bep
     val convertedCosmetics = if (BattleRank.showCosmetics(bep)) {
@@ -1083,6 +1091,7 @@ class AvatarActor(
       .receiveSignal {
         case (_, PostStop) =>
           AvatarActor.avatarNoLongerLoggedIn(account.id)
+          AvatarActor.updateToolDischargeFor(avatar.id.toLong, avatar.scorecard.CurrentLife +: avatar.scorecard.Lives)
           Behaviors.same
       }
   }
@@ -1707,14 +1716,7 @@ class AvatarActor(
           Behaviors.same
 
         case SupportExperienceDeposit(bep, delayBy) =>
-          setBep(avatar.bep + bep, ExperienceType.Support)
-          supportExperiencePool = supportExperiencePool - bep
-          if (supportExperiencePool > 0) {
-            resetSupportExperienceTimer(bep, delayBy)
-          } else {
-            supportExperienceTimer.cancel()
-            supportExperienceTimer = Default.Cancellable
-          }
+          actuallyAwardSupportExperience(bep, delayBy)
           Behaviors.same
 
         case SetBep(bep) =>
@@ -3022,10 +3024,23 @@ class AvatarActor(
   }
 
   def awardSupportExperience(bep: Long, previousDelay: Long): Unit = {
-    supportExperiencePool = supportExperiencePool + bep
-    avatar.scorecard.rate(bep)
-    if (supportExperienceTimer.isCancelled) {
-      resetSupportExperienceTimer(previousBep = 0, previousDelay = 0)
+    setBep(avatar.bep + bep, ExperienceType.Support) //todo simplify support testing
+//    supportExperiencePool = supportExperiencePool + bep
+//    avatar.scorecard.rate(bep)
+//    if (supportExperienceTimer.isCancelled) {
+//      resetSupportExperienceTimer(previousBep = 0, previousDelay = 0)
+//    }
+  }
+
+  def actuallyAwardSupportExperience(bep: Long, delayBy: Long): Unit = {
+    setBep(avatar.bep + bep, ExperienceType.Support)
+    supportExperiencePool = supportExperiencePool - bep
+    if (supportExperiencePool > 0) {
+      resetSupportExperienceTimer(bep, delayBy)
+    } else {
+      supportExperiencePool = 0
+      supportExperienceTimer.cancel()
+      supportExperienceTimer = Default.Cancellable
     }
   }
 
@@ -3037,14 +3052,15 @@ class AvatarActor(
     val zone               = _session.zone
     val player             = _session.player
     val playerSource       = PlayerSource(player)
-    val historyTranscript  = (killStat.info.interaction.cause match {
-      case pr: ProjectileReason => pr.projectile.mounted_in.flatMap { a => zone.GUID(a._1) } //what fired the projectile
-      case _ => None
-    }) match {
-      case Some(mount: PlanetSideGameObject with FactionAffinity with InGameHistory with MountedWeapons) =>
-        player.HistoryAndContributions() ++ InGameHistory.ContributionFrom(mount).toList
-      case _ =>
-        player.HistoryAndContributions()
+    val historyTranscript  = {
+      (killStat.info.interaction.cause match {
+        case pr: ProjectileReason => pr.projectile.mounted_in.flatMap { a => zone.GUID(a._1) } //what fired the projectile
+        case _ => None
+      }).collect {
+        case mount: PlanetSideGameObject with FactionAffinity with InGameHistory with MountedWeapons =>
+          player.ContributionFrom(mount)
+      }
+      player.HistoryAndContributions()
     }
     zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, killStat, exp)
     val target = killStat.info.targetAfter.asInstanceOf[PlayerSource]
@@ -3133,7 +3149,6 @@ class AvatarActor(
 
   def updateToolDischarge(stats: EquipmentStat): Unit = {
     avatar.scorecard.rate(stats)
-    zones.exp.ToDatabase.reportToolDischarge(avatar.id.toLong, stats)
   }
 
   def createAvatar(

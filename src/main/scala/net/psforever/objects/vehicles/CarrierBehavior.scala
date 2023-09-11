@@ -32,14 +32,12 @@ trait CarrierBehavior {
     cargoDismountTimer.cancel()
     val obj = CarrierObject
     val zone = obj.Zone
-    zone.GUID(isMounting) match {
-      case Some(v : Vehicle) => v.Actor ! CargoBehavior.EndCargoMounting(obj.GUID)
-      case _ => ;
+    zone.GUID(isMounting).collect {
+      case v : Vehicle => v.Actor ! CargoBehavior.EndCargoMounting(obj.GUID)
     }
     isMounting = None
-    zone.GUID(isDismounting) match {
-      case Some(v : Vehicle) => v.Actor ! CargoBehavior.EndCargoDismounting(obj.GUID)
-      case _ => ;
+    zone.GUID(isDismounting).collect {
+      case v : Vehicle => v.Actor ! CargoBehavior.EndCargoDismounting(obj.GUID)
     }
     isDismounting = None
   }
@@ -86,9 +84,8 @@ trait CarrierBehavior {
       )
     }
     else {
-      obj.Zone.GUID(isMounting) match {
-        case Some(v: Vehicle) => v.Actor ! CargoBehavior.EndCargoMounting(obj.GUID)
-        case _ => ;
+      obj.Zone.GUID(isMounting).collect {
+        case v: Vehicle => v.Actor ! CargoBehavior.EndCargoMounting(obj.GUID)
       }
       isMounting = None
     }
@@ -112,10 +109,9 @@ trait CarrierBehavior {
               kicked = false
             )
           case _ =>
-            obj.CargoHold(mountPoint) match {
-              case Some(hold) if hold.isOccupied && hold.occupant.get.GUID == cargo_guid =>
+            obj.CargoHold(mountPoint).collect {
+              case hold if hold.isOccupied && hold.occupant.get.GUID == cargo_guid =>
                 CarrierBehavior.CargoDismountAction(obj, hold.occupant.get, hold, BailType.Normal)
-              case _ => ;
             }
             false
         }
@@ -132,17 +128,15 @@ trait CarrierBehavior {
           CarrierBehavior.CheckCargoDismount(cargo_guid, mountPoint, iteration + 1, bailed)
         )
       } else {
-        zone.GUID(isDismounting.getOrElse(cargo_guid)) match {
-          case Some(cargo: Vehicle) =>
+        zone.GUID(isDismounting.getOrElse(cargo_guid)).collect {
+          case cargo: Vehicle =>
             cargo.Actor ! CargoBehavior.EndCargoDismounting(guid)
-          case _ => ;
         }
         isDismounting = None
       }
     } else {
-      zone.GUID(isDismounting.getOrElse(cargo_guid)) match {
-        case Some(cargo: Vehicle) => cargo.Actor ! CargoBehavior.EndCargoDismounting(guid)
-        case _ => ;
+      zone.GUID(isDismounting.getOrElse(cargo_guid)).collect {
+        case cargo: Vehicle => cargo.Actor ! CargoBehavior.EndCargoDismounting(guid)
       }
       isDismounting = None
     }
@@ -526,7 +520,7 @@ object CarrierBehavior {
                                         targetGUID: PlanetSideGUID
                                       ): Unit = {
     target match {
-      case Some(_: Vehicle) => ;
+      case Some(_: Vehicle) => ()
       case Some(_)          => log.error(s"$decorator target $targetGUID no longer identifies as a vehicle")
       case None             => log.error(s"$decorator target $targetGUID has gone missing")
     }
@@ -662,7 +656,17 @@ object CarrierBehavior {
                                 carrierGuid: PlanetSideGUID): Unit = {
     hold.mount(cargo)
     cargo.MountedIn = carrierGuid
-    cargo.LogActivity(VehicleCargoMountActivity(VehicleSource(carrier), VehicleSource(cargo), carrier.Zone.Number))
+    val event = VehicleCargoMountActivity(VehicleSource(carrier), VehicleSource(cargo), carrier.Zone.Number)
+    cargo.LogActivity(event)
+    cargo.Seats
+      .filterNot(_._1 == 0) /*ignore driver*/
+      .values
+      .collect {
+        case seat if seat.isOccupied =>
+          seat.occupants.foreach { player =>
+            player.LogActivity(event)
+          }
+      }
     cargo.Actor ! CargoBehavior.EndCargoMounting(carrierGuid)
   }
 
@@ -681,6 +685,18 @@ object CarrierBehavior {
                                  ): Unit = {
     cargo.MountedIn = None
     hold.unmount(cargo, bailType)
-    cargo.LogActivity(VehicleCargoMountActivity(VehicleSource(carrier), VehicleSource(cargo), carrier.Zone.Number))
+    val event = VehicleCargoMountActivity(VehicleSource(carrier), VehicleSource(cargo), carrier.Zone.Number)
+    cargo.LogActivity(event)
+    cargo.Seats
+      .filterNot(_._1 == 0) /*ignore driver*/
+      .values
+      .collect {
+        case seat if seat.isOccupied =>
+          seat.occupants.foreach { player =>
+            player.LogActivity(event)
+            player.ContributionFrom(cargo)
+            player.ContributionFrom(carrier)
+          }
+      }
   }
 }

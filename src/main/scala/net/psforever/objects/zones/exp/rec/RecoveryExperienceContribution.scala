@@ -262,18 +262,20 @@ object RecoveryExperienceContribution {
                                                         ): (Seq[(Long, Int)], Seq[(Long, Int)]) = {
     var outputDamageOrder = damageOrder
     var outputRecoveryOrder = recoveryOrder
-    val damageParticipants: mutable.LongMap[PlayerSource] = mutable.LongMap[PlayerSource]()
-    users.zip {
-      val numberOfUsers = users.size
-      val out = Array.fill(numberOfUsers)(numberOfUsers / amount)
-      (0 to numberOfUsers % amount).foreach {
-        out(_) += 1
+    if (users.nonEmpty) {
+      val damageParticipants: mutable.LongMap[PlayerSource] = mutable.LongMap[PlayerSource]()
+      users.zip {
+        val numberOfUsers = users.size
+        val out = Array.fill(numberOfUsers)(numberOfUsers / amount)
+        (0 to numberOfUsers % amount).foreach {
+          out(_) += 1
+        }
+        out
+      }.foreach { case (user, subAmount) =>
+        val (a, b) = contributeWithRecoveryActivity(user, user.CharId, wepid, faction, subAmount, time, damageParticipants, participants, outputDamageOrder, outputRecoveryOrder)
+        outputDamageOrder = a
+        outputRecoveryOrder = b
       }
-      out
-    }.foreach { case (user, subAmount) =>
-      val (a, b) = contributeWithRecoveryActivity(user, user.CharId, wepid, faction, subAmount, time, damageParticipants, participants, outputDamageOrder, outputRecoveryOrder)
-      outputDamageOrder = a
-      outputRecoveryOrder = b
     }
     (outputDamageOrder, outputRecoveryOrder)
   }

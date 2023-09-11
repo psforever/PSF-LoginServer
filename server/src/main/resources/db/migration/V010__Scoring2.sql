@@ -363,7 +363,7 @@ DECLARE weaponId Int;
 BEGIN
   killerId := NEW.killer_id;
   weaponId := NEW.weapon_id;
-  SELECT proc_sessionnumber_get(killerId, killerSessionId);
+  CALL proc_sessionnumber_get(killerId, killerSessionId);
   BEGIN
     UPDATE weaponstatsession
     SET assists = assists + 1

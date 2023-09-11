@@ -10,9 +10,9 @@ import scala.collection.mutable
 
 //noinspection ScalaUnusedSymbol
 abstract class RecoveryExperienceContributionProcess(
-                                                              faction : PlanetSideEmpire.Value,
-                                                              contributions: Map[SourceUniqueness, List[InGameActivity]]
-                                                            ) extends RecoveryExperienceContribution {
+                                                      faction : PlanetSideEmpire.Value,
+                                                      contributions: Map[SourceUniqueness, List[InGameActivity]]
+                                                    ) extends RecoveryExperienceContribution {
   protected var damageInOrder: Seq[(Long, Int)] = Seq[(Long, Int)]()
   protected var recoveryInOrder: Seq[(Long, Int)] = Seq[(Long, Int)]()
   protected val contributionsBy: mutable.LongMap[ContributionStats] = mutable.LongMap[ContributionStats]()

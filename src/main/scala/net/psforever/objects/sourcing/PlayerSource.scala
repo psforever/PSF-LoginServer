@@ -67,6 +67,10 @@ object PlayerSource {
   }
 
   def apply(name: String, faction: PlanetSideEmpire.Value, position: Vector3): PlayerSource = {
+    this(UniquePlayer(0L, name, CharacterSex.Male, faction), position)
+  }
+
+  def apply(unique: UniquePlayer, position: Vector3): PlayerSource = {
     new PlayerSource(
       GlobalDefinitions.avatar,
       ExoSuitType.Standard,
@@ -81,7 +85,7 @@ object PlayerSource {
       GlobalDefinitions.Standard,
       bep = 0L,
       progress = tokenLife,
-      UniquePlayer(0L, name, CharacterSex.Male, faction)
+      unique
     )
   }
 
@@ -138,6 +142,19 @@ object PlayerSource {
   }
 
   /**
+   * Produce a copy of a normal player source entity
+   * but the `seatedIn` field is overrode to point at the specified vehicle and seat number.<br>
+   * Don't think too much about it.
+   * @param player `SourceEntry` for a player
+   * @param source `SourceEntry` for the aforementioned mountable entity
+   * @param seatNumber the attributed seating index in which the player is mounted in `source`
+   * @return a `PlayerSource` entity
+   */
+  def inSeat(player: PlayerSource, source: SourceEntry, seatNumber: Int): PlayerSource = {
+    player.copy(seatedIn = Some((source, seatNumber)))
+  }
+
+  /**
    * "Nobody is my name: Nobody they call me –
    * my mother and my father and all my other companions”
    * Thus I spoke but he immediately replied to me with a ruthless spirit:
@@ -146,5 +163,8 @@ object PlayerSource {
    */
   final val Nobody = PlayerSource("Nobody", PlanetSideEmpire.NEUTRAL, Vector3.Zero)
 
+  /**
+   * Used to dummy the statistics value for shallow player source entities.
+   */
   private val tokenLife: Life = Life()
 }
