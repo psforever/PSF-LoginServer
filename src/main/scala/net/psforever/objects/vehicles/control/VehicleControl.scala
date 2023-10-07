@@ -893,7 +893,7 @@ object VehicleControl {
 
   /**
     * Determine if a given activity entry would invalidate the act of charging vehicle shields this tick.
-    * @param now the current time (in nanoseconds)
+    * @param now the current time (in milliseconds)
     * @param act a `VitalsActivity` entry to test
     * @return `true`, if the shield charge would be blocked;
     *        `false`, otherwise

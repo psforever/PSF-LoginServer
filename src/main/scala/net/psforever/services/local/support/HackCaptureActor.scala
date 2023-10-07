@@ -17,7 +17,6 @@ import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
-import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.Random
 
@@ -38,7 +37,7 @@ class HackCaptureActor extends Actor {
       val duration = target.Definition.FacilityHackTime
       target.HackedBy match {
         case Some(hackInfo) =>
-          target.HackedBy = hackInfo.Duration(duration.toNanos)
+          target.HackedBy = hackInfo.Duration(duration.toMillis)
         case None =>
           log.error(s"Initial $target hack information is missing")
       }
@@ -57,8 +56,8 @@ class HackCaptureActor extends Actor {
     case HackCaptureActor.ProcessCompleteHacks() =>
       log.trace("Processing complete hacks")
       clearTrigger.cancel()
-      val now: Long     = System.nanoTime
-      val (stillHacked, finishedHacks) = hackedObjects.partition(x => now - x.hack_timestamp < x.duration.toNanos)
+      val now: Long     = System.currentTimeMillis()
+      val (stillHacked, finishedHacks) = hackedObjects.partition(x => now - x.hack_timestamp < x.duration.toMillis)
       hackedObjects = stillHacked
       finishedHacks.foreach { entry =>
         val terminal = entry.target
@@ -213,9 +212,8 @@ class HackCaptureActor extends Actor {
 
   private def RestartTimer(): Unit = {
     if (hackedObjects.nonEmpty) {
-      val hackEntry = hackedObjects.reduceLeft(HackCaptureActor.minTimeLeft(System.nanoTime()))
-      val short_timeout: FiniteDuration =
-        math.max(1, hackEntry.duration.toNanos - (System.nanoTime - hackEntry.hack_timestamp)).nanoseconds
+      val hackEntry = hackedObjects.reduceLeft(HackCaptureActor.minTimeLeft(System.currentTimeMillis()))
+      val short_timeout: FiniteDuration = math.max(1, hackEntry.duration.toMillis - (System.currentTimeMillis() - hackEntry.hack_timestamp)).milliseconds
       log.trace(s"RestartTimer: still items left in hacked objects list. Checking again in ${short_timeout.toSeconds} seconds")
       import scala.concurrent.ExecutionContext.Implicits.global
       clearTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, HackCaptureActor.ProcessCompleteHacks())
@@ -229,7 +227,7 @@ object HackCaptureActor {
                                              zone: Zone,
                                              unk1: Long,
                                              unk2: Long,
-                                             startTime: Long = System.nanoTime()
+                                             startTime: Long = System.currentTimeMillis()
                                            )
 
   final case class ResecureCaptureTerminal(target: CaptureTerminal, zone: Zone, hacker: PlayerSource)
@@ -256,8 +254,7 @@ object HackCaptureActor {
         17039360L
       case Some(Hackable.HackInfo(p, _, start, length)) =>
         // See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
-        val hackTimeRemainingMS =
-          TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
+        val hackTimeRemainingMS = math.max(0, start + length - System.currentTimeMillis())
         val startNum = p.Faction match {
           case PlanetSideEmpire.TR => 0x10000
           case PlanetSideEmpire.NC => 0x20000
@@ -273,8 +270,8 @@ object HackCaptureActor {
     entry1: HackCaptureActor.HackEntry,
     entry2: HackCaptureActor.HackEntry
   ): HackCaptureActor.HackEntry = {
-    val entry1TimeLeft = entry1.duration.toNanos - (now - entry1.hack_timestamp)
-    val entry2TimeLeft = entry2.duration.toNanos - (now - entry2.hack_timestamp)
+    val entry1TimeLeft = entry1.duration.toMillis - (now - entry1.hack_timestamp)
+    val entry2TimeLeft = entry2.duration.toMillis - (now - entry2.hack_timestamp)
     if (entry1TimeLeft < entry2TimeLeft) {
       entry1
     } else {

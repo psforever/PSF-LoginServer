@@ -82,7 +82,7 @@ abstract class RemoverActor() extends SupportActor[RemoverActor.Entry] {
     entryManagementBehaviors
       .orElse {
         case RemoverActor.AddTask(obj, zone, duration) =>
-          val entry = RemoverActor.Entry(obj, zone, duration.getOrElse(FirstStandardDuration).toNanos)
+          val entry = RemoverActor.Entry(obj, zone, duration.getOrElse(FirstStandardDuration).toMillis)
           if (InclusionTest(entry) && !secondHeap.exists(test => sameEntryComparator.Test(test, entry))) {
             InitialJob(entry)
             if (entry.duration == 0) {
@@ -120,7 +120,7 @@ abstract class RemoverActor() extends SupportActor[RemoverActor.Entry] {
         case RemoverActor.StartDelete() =>
           firstTask.cancel()
           secondTask.cancel()
-          val now: Long = System.nanoTime
+          val now: Long = System.currentTimeMillis()
           val (in, out) = firstHeap.partition(entry => {
             now - entry.time >= entry.duration
           })
@@ -229,19 +229,19 @@ abstract class RemoverActor() extends SupportActor[RemoverActor.Entry] {
     *         this new entry is always set to last for the duration of the second pool
     */
   private def RepackageEntry(entry: RemoverActor.Entry): RemoverActor.Entry = {
-    RemoverActor.Entry(entry.obj, entry.zone, SecondStandardDuration.toNanos)
+    RemoverActor.Entry(entry.obj, entry.zone, SecondStandardDuration.toMillis)
   }
 
   /**
     * Common function to reset the first task's delayed execution.
     * Cancels the scheduled timer and will only restart the timer if there is at least one entry in the first pool.
-    * @param now the time (in nanoseconds);
-    *            defaults to the current time (in nanoseconds)
+    * @param now the time (in milliseconds);
+    *            defaults to the current time (in milliseconds)
     */
-  def RetimeFirstTask(now: Long = System.nanoTime): Unit = {
+  def RetimeFirstTask(now: Long = System.currentTimeMillis()): Unit = {
     firstTask.cancel()
     if (firstHeap.nonEmpty) {
-      val short_timeout: FiniteDuration = math.max(1, firstHeap.head.duration - (now - firstHeap.head.time)) nanoseconds
+      val short_timeout: FiniteDuration = math.max(1, firstHeap.head.duration - (now - firstHeap.head.time)).milliseconds
       import scala.concurrent.ExecutionContext.Implicits.global
       firstTask = context.system.scheduler.scheduleOnce(short_timeout, self, RemoverActor.StartDelete())
     }
@@ -274,14 +274,14 @@ abstract class RemoverActor() extends SupportActor[RemoverActor.Entry] {
   /**
     * Default time for entries waiting in the first list.
     * Override.
-    * @return the time as a `FiniteDuration` object (to be later transformed into nanoseconds)
+    * @return the time as a `FiniteDuration` object (to be later transformed into milliseconds)
     */
   def FirstStandardDuration: FiniteDuration
 
   /**
     * Default time for entries waiting in the second list.
     * Override.
-    * @return the time as a `FiniteDuration` object (to be later transformed into nanoseconds)
+    * @return the time as a `FiniteDuration` object (to be later transformed into milliseconds)
     */
   def SecondStandardDuration: FiniteDuration
 
@@ -322,7 +322,7 @@ object RemoverActor extends SupportActorCaseConversions {
     * Internally, all entries have a "time created" field.
     * @param _obj the target
     * @param _zone the zone in which this target is registered
-    * @param _duration how much longer the target will exist in its current state (in nanoseconds)
+    * @param _duration how much longer the target will exist in its current state (in milliseconds)
     */
   case class Entry(_obj: PlanetSideGameObject, _zone: Zone, _duration: Long)
       extends SupportActor.Entry(_obj, _zone, _duration)
@@ -332,7 +332,7 @@ object RemoverActor extends SupportActorCaseConversions {
     * @see `FirstStandardDuration`
     * @param obj the target
     * @param zone the zone in which this target is registered
-    * @param duration how much longer the target will exist in its current state (in nanoseconds);
+    * @param duration how much longer the target will exist in its current state (in milliseconds);
     *                 a default time duration is provided by implementation
     */
   case class AddTask(obj: PlanetSideGameObject, zone: Zone, duration: Option[FiniteDuration] = None)

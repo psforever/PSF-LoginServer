@@ -851,12 +851,18 @@ object AvatarActor {
     )
   }
 
-  def updateToolDischargeFor(avatarId: Long, lives: Seq[Life]): Unit = {
-    lives
-      .flatMap { _.equipmentStats }
-      .foreach { stat =>
-        zones.exp.ToDatabase.reportToolDischarge(avatarId, stat)
-      }
+  def updateToolDischargeFor(avatar: Avatar): Unit = {
+    updateToolDischargeFor(avatar.id, avatar.scorecard.CurrentLife)
+  }
+
+  def updateToolDischargeFor(avatarId: Long, life: Life): Unit = {
+    updateToolDischargeFor(avatarId, life.equipmentStats)
+  }
+
+  def updateToolDischargeFor(avatarId: Long, stats: Seq[EquipmentStat]): Unit = {
+    stats.foreach { stat =>
+      zones.exp.ToDatabase.reportToolDischarge(avatarId, stat)
+    }
   }
 
   def toAvatar(avatar: persistence.Avatar): Avatar = {
@@ -1091,7 +1097,6 @@ class AvatarActor(
       .receiveSignal {
         case (_, PostStop) =>
           AvatarActor.avatarNoLongerLoggedIn(account.id)
-          AvatarActor.updateToolDischargeFor(avatar.id.toLong, avatar.scorecard.CurrentLife +: avatar.scorecard.Lives)
           Behaviors.same
       }
   }
@@ -1863,6 +1868,7 @@ class AvatarActor(
             AvatarActor.setBepOnly(avatar.id, avatar.bep + supportExperiencePool)
           }
           saveLockerFunc()
+          AvatarActor.updateToolDischargeFor(avatar)
           Behaviors.same
       }
   }
@@ -3084,6 +3090,7 @@ class AvatarActor(
   }
 
   def updateDeaths(deathStat: Death): Unit = {
+    AvatarActor.updateToolDischargeFor(avatar)
     avatar.scorecard.rate(deathStat)
     val _session = session.get
     val zone     = _session.zone
@@ -3138,13 +3145,13 @@ class AvatarActor(
   def updateExperienceAndType(exp: Long): (Long, ExperienceType) = {
     val _session = session.get
     val player   = _session.player
-    val gameOpts = Config.app.game
+    val gameOpts = Config.app.game.experience.bep
     val (modifier, msg) = if (player.Carrying.contains(SpecialCarry.RabbitBall)) {
       (1.25f, ExperienceType.RabbitBall)
     } else {
       (1f, ExperienceType.Normal)
     }
-    ((exp * modifier * gameOpts.bepRate).toLong, msg)
+    ((exp * modifier * gameOpts.rate).toLong, msg)
   }
 
   def updateToolDischarge(stats: EquipmentStat): Unit = {

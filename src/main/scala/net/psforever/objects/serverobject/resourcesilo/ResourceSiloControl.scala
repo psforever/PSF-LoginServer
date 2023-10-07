@@ -7,11 +7,13 @@ import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.zones
 import net.psforever.objects.{GlobalDefinitions, Ntu, NtuContainer, NtuStorageBehavior, Vehicle}
 import net.psforever.types.{ExperienceType, PlanetSideEmpire}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.util.Config
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -188,11 +190,16 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
         .map { v => (v, v.Owners) }
         .collect { case (vehicle, Some(owner)) =>
           //experience is reported as normal
-          val deposit: Long = 100L * math.floor(amount).toLong / math.floor(resourceSilo.MaxNtuCapacitor / 105f).toLong
+          val deposit: Long =
+            (Config.app.game.experience.sep.ntuSiloDepositReward.toFloat *
+              math.floor(amount).toFloat /
+              math.floor(resourceSilo.MaxNtuCapacitor / resourceSilo.Definition.ChargeTime.toMillis.toFloat)
+              ).toLong
           vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
             owner.name,
             AvatarAction.AwardBep(0, deposit, ExperienceType.Normal)
           )
+          zones.exp.ToDatabase.reportNtuActivity(owner.charId, resourceSilo.Zone.Number, resourceSilo.Owner.GUID.guid, deposit)
         }
     }
   }

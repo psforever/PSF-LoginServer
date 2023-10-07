@@ -110,6 +110,7 @@ class Player(var avatar: Avatar)
       Health = Definition.DefaultHealth
       Armor = MaxArmor
       Capacitor = 0
+      avatar.scorecard.respawn()
       released = false
     }
     isAlive
@@ -124,13 +125,16 @@ class Player(var avatar: Avatar)
   def Revive: Boolean = {
     Destroyed = false
     Health = Definition.DefaultHealth
+    avatar.scorecard.revive()
     released = false
     true
   }
 
   def Release: Boolean = {
-    released = true
-    backpack = !isAlive
+    if (!released) {
+      released = true
+      backpack = !isAlive
+    }
     true
   }
 
@@ -626,6 +630,7 @@ object Player {
     if (player.Release) {
       val obj = new Player(player.avatar)
       obj.Continent = player.Continent
+      obj.avatar.scorecard.respawn()
       obj
     } else {
       player

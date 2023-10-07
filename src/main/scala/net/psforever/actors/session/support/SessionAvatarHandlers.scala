@@ -5,6 +5,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, typed}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.services.Service
+import net.psforever.objects.zones.exp
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -225,8 +226,6 @@ class SessionAvatarHandlers(
       case AvatarResponse.DestroyDisplay(killer, victim, method, unk)
         if killer.CharId == avatar.id && killer.Faction != victim.Faction =>
         sendResponse(sessionData.destroyDisplayMessage(killer, victim, method, unk))
-      //TODO Temporary thing that should go somewhere else and use proper xp values
-//        avatarActor ! AvatarActor.AwardCep((100 * Config.app.game.cepRate).toLong)
 
       case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
         // guid = victim // killer = killer
@@ -398,71 +397,68 @@ class SessionAvatarHandlers(
       case AvatarResponse.UpdateKillsDeathsAssists(_, kda) =>
         avatarActor ! AvatarActor.UpdateKillsDeathsAssists(kda)
 
-      case AvatarResponse.AwardBep(_, bep, expType) =>
-        avatarActor ! AvatarActor.AwardBep(bep, expType)
+      case AvatarResponse.AwardBep(charId, bep, expType) =>
+        if (charId == player.CharId) {
+          avatarActor ! AvatarActor.AwardBep(bep, expType)
+        }
 
-      case AvatarResponse.AwardCep(0, cep) =>
+      case AvatarResponse.AwardCep(charId, cep)  =>
+        //if the target player, always award (some) CEP
+        if (charId == player.CharId) {
+          avatarActor ! AvatarActor.AwardCep(cep)
+        }
+
+      case AvatarResponse.FacilityCaptureRewards(buildingId, zoneNumber, cep) =>
         //must be in a squad to earn experience
-        val id = player.CharId
+        val cepConfig = Config.app.game.experience.cep
+        val charId = player.CharId
         val squadUI = sessionData.squad.squadUI
         val participation = continent
-          .Buildings
-          .values
-          .collect { case building if {
-            val soi = building.Definition.SOIRadius * building.Definition.SOIRadius
-            val pos = player.Position.xy
-            Vector3.DistanceSquared(building.Position.xy, pos) < soi
-          } =>
+          .Building(buildingId)
+          .map { building =>
             building.Participation.PlayerContribution()
           }
         squadUI
-          .find { _._1 == id }
+          .find { _._1 == charId }
           .collect {
             case (_, elem) if elem.index == 0 =>
-              //squad leader earns CEP, modified by squad effort
-              val maxRate: Long = {
-                val maxCepList = Config.app.game.maximumCepPerSquadSize
-                val squadSize: Int = {
-                  val squadSizeList: Iterable[Int] = participation
-                    .map { facilityMap =>
-                      squadUI.count { case (id, _) => facilityMap.contains(id) }
-                    }
-                  if (squadSizeList.nonEmpty) {
-                    squadSizeList.max
-                  } else {
-                    0
-                  }
-                }
+              //squad leader earns CEP, modified by squad effort, capped by squad size present during the capture
+              val squadParticipation = participation match {
+                case Some(map) => map.filter { case (id, _) => squadUI.contains(id) }
+                case _ => Map.empty[Long, Float]
+              }
+              val maxCepBySquadSize: Long = {
+                val maxCepList = cepConfig.maximumPerSquadSize
+                val squadSize: Int = squadParticipation.size
                 maxCepList.lift(squadSize - 1).getOrElse(squadSize * maxCepList.head).toLong
               }
-              val groupContribution: Float = {
-                val eachSquadMemberParticipation: Iterable[Float] = participation.map { facilityMap =>
-                  val foundSquadMemberParticipation: Iterable[Float] = squadUI
-                    .keys
-                    .flatMap { facilityMap.get }
-                  if (foundSquadMemberParticipation.nonEmpty) {
-                    foundSquadMemberParticipation.sum / 10f
-                  } else {
-                    0f
-                  }
-                }
-                if (eachSquadMemberParticipation.nonEmpty) {
-                  eachSquadMemberParticipation.max
+              val groupContribution: Float = squadUI
+                .map { case (id, _) => (id, squadParticipation.getOrElse(id, 0f) / 10f) }
+                .values
+                .max
+              val modifiedExp: Long = (cep.toFloat * groupContribution).toLong
+              val cappedModifiedExp: Long = math.min(modifiedExp, maxCepBySquadSize)
+              val finalExp: Long = if (modifiedExp > cappedModifiedExp) {
+                val overLimitOverflow = if (cepConfig.squadSizeLimitOverflow == -1) {
+                  cep.toFloat
                 } else {
-                  0
+                  cepConfig.squadSizeLimitOverflow.toFloat
                 }
+                cappedModifiedExp + (overLimitOverflow * cepConfig.squadSizeLimitOverflowMultiplier).toLong
+              } else {
+                cappedModifiedExp
               }
-              val modifiedExp: Long = math.min((cep.toFloat * groupContribution).toLong, maxRate)
-              avatarActor ! AvatarActor.AwardCep(modifiedExp)
-              Some(modifiedExp)
+              exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, finalExp, expType="cep")
+              avatarActor ! AvatarActor.AwardCep(finalExp)
+              Some(finalExp)
 
             case _ =>
               //squad member earns BEP based on CEP, modified by personal effort
               val individualContribution = {
                 val contributionList = for {
                   facilityMap <- participation
-                  if facilityMap.contains(id)
-                } yield facilityMap(id)
+                  if facilityMap.contains(charId)
+                } yield facilityMap(charId)
                 if (contributionList.nonEmpty) {
                   contributionList.max
                 } else {
@@ -470,25 +466,10 @@ class SessionAvatarHandlers(
                 }
               }
               val modifiedExp = (cep * individualContribution).toLong
+              exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, modifiedExp, expType="bep")
               avatarActor ! AvatarActor.AwardBep(modifiedExp, ExperienceType.Normal)
               Some(modifiedExp)
           }
-
-      case AvatarResponse.AwardCep(charId, cep)  =>
-        //if the target player, always award (some) CEP
-        val squadUI = sessionData.squad.squadUI
-        if (charId == player.CharId) {
-          val maxRate: Long = squadUI.find { _._1 == avatar.id } match {
-              case Some((_, elem)) if elem.index == 0 =>
-                val thisZone = continent.Number
-                val squadSize = squadUI.count { case (_, e) => e.zone == thisZone } - 1
-                val maxCepList = Config.app.game.maximumCepPerSquadSize
-                maxCepList.lift(squadSize).getOrElse(squadSize * maxCepList.head).toLong
-              case _ =>
-                Config.app.game.maximumCepPerSquadSize.head.toLong
-          }
-          avatarActor ! AvatarActor.AwardCep(math.min(cep, maxRate))
-        }
 
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
@@ -526,6 +507,7 @@ class SessionAvatarHandlers(
         sessionData.renewCharSavedTimer(fixedLen = 1800L, varLen = 0L)
 
         //player state changes
+        AvatarActor.updateToolDischargeFor(avatar)
         player.FreeHand.Equipment.foreach { item =>
           DropEquipmentFromInventory(player)(item)
         }
@@ -540,9 +522,7 @@ class SessionAvatarHandlers(
         }
         sessionData.playerActionsToCancel()
         sessionData.terminals.CancelAllProximityUnits()
-        sessionData.zoning
         AvatarActor.savePlayerLocation(player)
-        sessionData.shooting.reportOngoingShots(sessionData.shooting.reportOngoingShotsToDatabase)
         sessionData.zoning.spawn.shiftPosition = Some(player.Position)
 
         //respawn

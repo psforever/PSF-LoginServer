@@ -11,11 +11,12 @@ import scala.collection.mutable
 trait FacilityHackParticipation extends ParticipationLogic {
   protected var lastInfoRequest: Long = 0L
   protected var infoRequestOverTime: Seq[Long] = Seq[Long]()
-  /*
-  key: unique player identifier
+  /**
+  key: unique player identifier<br>
+  values: last player entry, number of times updated, time of last update (POSIX time)
    */
   protected var playerContribution: mutable.LongMap[(Player, Int, Long)] = mutable.LongMap[(Player, Int, Long)]()
-  protected var playerPopulationOverTime: Seq[Map[PlanetSideEmpire.Value, Int]] = Seq[ Map[PlanetSideEmpire.Value, Int]]()
+  protected var playerPopulationOverTime: Seq[Map[PlanetSideEmpire.Value, Int]] = Seq[Map[PlanetSideEmpire.Value, Int]]()
 
   def PlayerContribution(timeDelay: Long): Map[Long, Float] = {
     playerContribution
@@ -49,6 +50,13 @@ trait FacilityHackParticipation extends ParticipationLogic {
     }
   }
 
+  /**
+   * Eliminate participation for players who have no submitted updates within the time period.
+   * @param list current list of players
+   * @param now current time (ms)
+   * @param before how long before the current time beyond which players should be eliminated (ms)
+   * @see `timeSensitiveFilterAndAppend`
+   */
   protected def updatePopulationOverTime(list: List[Player], now: Long, before: Long): Unit = {
     var populationList = list
     val layer = PlanetSideEmpire.values.map { faction =>
@@ -56,70 +64,82 @@ trait FacilityHackParticipation extends ParticipationLogic {
       populationList = everyoneElse
       (faction, isFaction.size)
     }.toMap[PlanetSideEmpire.Value, Int]
-    playerPopulationOverTime = timeSensitiveFilterAndAppend(playerPopulationOverTime, layer, now, before)
+    playerPopulationOverTime = timeSensitiveFilterAndAppend(playerPopulationOverTime, layer, now - before)
   }
 
+  protected def updateTime(now: Long): Unit = {
+    infoRequestOverTime = timeSensitiveFilterAndAppend(infoRequestOverTime, now, now - 900000L)
+  }
+
+  /**
+   * Eliminate entries from the primary input list based on time entries in a secondary time record list.
+   * The time record list must be updated independently.
+   * @param list input list whose entries are edited against time and then is appended
+   * @param newEntry new entry of the appropriate type to append to the end of the output list
+   * @param beforeTime how long before the current time beyond which entries in the input list should be eliminated (ms)
+   * @tparam T it does not matter what the type is
+   * @return the modified list
+   */
   protected def timeSensitiveFilterAndAppend[T](
                                                  list: Seq[T],
                                                  newEntry: T,
-                                                 now: Long = System.currentTimeMillis(),
-                                                 before: Long
+                                                 beforeTime: Long
                                                ): Seq[T] = {
     infoRequestOverTime match {
-      case Nil =>
-        Seq(newEntry)
+      case Nil => Seq(newEntry)
       case _ =>
-        val beforeTime = now - before
         (infoRequestOverTime.indexWhere { _ >= beforeTime } match {
-          case -1 =>
-            list
-          case cutOffIndex =>
-            list.drop(cutOffIndex)
+          case -1 => list
+          case cutOffIndex => list.drop(cutOffIndex)
         }) :+ newEntry
     }
   }
 }
 
 object FacilityHackParticipation {
-  private[participation] def calculateExperienceFromKills(
+  private[participation] def allocateKillsByPlayers(
                                                            center: Vector3,
                                                            radius: Float,
                                                            hackStart: Long,
                                                            completionTime: Long,
                                                            opposingFaction: PlanetSideEmpire.Value,
                                                            contributionVictor: Iterable[(Player, Int, Long)],
-                                                           contributionOpposingSize: Int
-                                                         ): Long = {
+                                                         ): Iterable[(UniquePlayer, Float, Seq[Kill])] = {
     val killMapFunc: Iterable[(Player, Int, Long)] => Iterable[(UniquePlayer, Float, Seq[Kill])] = {
         killsEarnedPerPlayerDuringHack(center.xy, radius * radius, hackStart, hackStart + completionTime, opposingFaction)
     }
-    val killMapValues = killMapFunc(contributionVictor)
-    val totalExperienceFromKills = killMapValues.flatMap { _._3.map { _.experienceEarned } }.sum
-    val experienceModifier = {
-      if (contributionOpposingSize > 0 && contributionOpposingSize < 10) {
-        contributionOpposingSize * 0.1f + math.random()
-      } else {
-        contributionOpposingSize * 0.1f
-      }
-    }
-    (totalExperienceFromKills * experienceModifier).toLong
+    killMapFunc(contributionVictor)
   }
 
-  private def killsEarnedPerPlayerDuringHack(
-                                              centerXY: Vector3,
-                                              distanceSq: Float,
-                                              start: Long,
-                                              end: Long,
-                                              faction: PlanetSideEmpire.Value
-                                            )
-                                            (
-                                              list: Iterable[(Player, Int, Long)]
-                                            ): Iterable[(UniquePlayer, Float, Seq[Kill])] = {
+  private[participation] def calculateExperienceFromKills(
+                                                           killMapValues: Iterable[(UniquePlayer, Float, Seq[Kill])],
+                                                           contributionOpposingSize: Int
+                                                         ): Long = {
+    val totalExperienceFromKills = killMapValues
+      .flatMap { _._3.map { _.experienceEarned } }
+      .sum
+      .toFloat
+    (totalExperienceFromKills * contributionOpposingSize.toFloat * 0.1d).toLong
+  }
+
+  private[participation] def killsEarnedPerPlayerDuringHack(
+                                                             centerXY: Vector3,
+                                                             distanceSq: Float,
+                                                             start: Long,
+                                                             end: Long,
+                                                             faction: PlanetSideEmpire.Value
+                                                           )
+                                                           (
+                                                             list: Iterable[(Player, Int, Long)]
+                                                           ): Iterable[(UniquePlayer, Float, Seq[Kill])] = {
     val duration = end - start
     list.map { case (p, d, _) =>
       val killList = p.avatar.scorecard.Kills.filter { k =>
         val killTime = k.info.interaction.hitTime
-        k.victim.Faction == faction && start < killTime && killTime < end && Vector3.DistanceSquared(centerXY, k.info.interaction.hitPos.xy) < distanceSq
+        k.victim.Faction == faction &&
+          start < killTime &&
+          killTime <= end &&
+          Vector3.DistanceSquared(centerXY, k.info.interaction.hitPos.xy) < distanceSq
       }
       (PlayerSource(p).unique, math.min(d, duration).toFloat / duration.toFloat, killList)
     }
@@ -220,7 +240,8 @@ object FacilityHackParticipation {
       victorPop <- victorPopulationNumbers
       opposePop <- opposingPopulationNumbers
       out = if (
-        (opposePop < victorPop && opposePop * healthyPercentage > victorPop) ||
+        (opposePop + victorPop < 8) ||
+          (opposePop < victorPop && opposePop * healthyPercentage > victorPop) ||
           (opposePop > victorPop && victorPop * healthyPercentage > opposePop)
       ) {
         1f //balanced enough population
@@ -241,7 +262,7 @@ object FacilityHackParticipation {
                                                overwhelmingOddsBonus: Long
                                              ): Long = {
     if (opposingSize * steamrollPercentage < victorSize.toFloat) {
-      -steamrollBonus * (victorSize - opposingSize) //steamroll by the victor
+      0L //steamroll by the victor
     } else if (victorSize * overwhelmingOddsPercentage <= opposingSize.toFloat) {
       overwhelmingOddsBonus + opposingSize + victorSize //victory against overwhelming odds
     } else {

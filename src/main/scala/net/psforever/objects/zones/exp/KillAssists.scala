@@ -78,23 +78,23 @@ object KillAssists {
                                      lastDamage: Option[DamageResult],
                                      history: Iterable[InGameActivity],
                                    ):  Seq[(PlayerSource, KDAStat)] = {
-    val shortHistory = limitHistoryToThisLife(history.toList)
-    determineKiller(lastDamage, shortHistory) match {
+    val truncatedHistory = limitHistoryToThisLife(history.toList)
+    determineKiller(lastDamage, truncatedHistory) match {
       case Some((result, killer: PlayerSource)) =>
-        val assists = collectKillAssistsForPlayer(victim, shortHistory, Some(killer))
-        val fullBep = calculateExperience(killer, victim, shortHistory)
+        val assists = collectKillAssistsForPlayer(victim, truncatedHistory, Some(killer))
+        val fullBep = calculateExperience(killer, victim, truncatedHistory)
         val hitSquad = (killer, Kill(victim, result, fullBep)) +: assists.map {
           case ContributionStatsOutput(p, w, r) => (p, Assist(victim, w, r, (fullBep * r).toLong))
         }.toSeq
-        (victim, Death(hitSquad.map { _._1 }, shortHistory.last.time - shortHistory.head.time, fullBep)) +: hitSquad
+        (victim, Death(hitSquad.map { _._1 }, truncatedHistory.last.time - truncatedHistory.head.time, fullBep)) +: hitSquad
 
       case _ =>
-        val assists = collectKillAssistsForPlayer(victim, shortHistory, None)
-        val fullBep = Support.baseExperience(victim, shortHistory)
+        val assists = collectKillAssistsForPlayer(victim, truncatedHistory, None)
+        val fullBep = Support.baseExperience(victim, truncatedHistory)
         val hitSquad = assists.map {
           case ContributionStatsOutput(p, w, r) => (p, Assist(victim, w, r, (fullBep * r).toLong))
         }.toSeq
-        (victim, Death(hitSquad.map { _._1 }, shortHistory.last.time - shortHistory.head.time, fullBep)) +: hitSquad
+        (victim, Death(hitSquad.map { _._1 }, truncatedHistory.last.time - truncatedHistory.head.time, fullBep)) +: hitSquad
     }
   }
 

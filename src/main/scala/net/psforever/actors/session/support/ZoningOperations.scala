@@ -7,6 +7,7 @@ import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
 import net.psforever.login.WorldSession
+import net.psforever.objects.avatar.scoring.ScoreCard
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.mount.Seat
 import net.psforever.objects.serverobject.tube.SpawnTube
@@ -2342,6 +2343,7 @@ class ZoningOperations(
       player.avatar = player.avatar.copy(stamina = avatar.maxStamina)
       avatarActor ! AvatarActor.RestoreStamina(avatar.maxStamina)
       avatarActor ! AvatarActor.ResetImplants()
+      zones.exp.ToDatabase.reportRespawns(tplayer.CharId, ScoreCard.reviveCount(player.avatar.scorecard.CurrentLife))
       val obj = Player.Respawn(tplayer)
       DefinitionUtil.applyDefaultLoadout(obj)
       obj.death_by = tplayer.death_by

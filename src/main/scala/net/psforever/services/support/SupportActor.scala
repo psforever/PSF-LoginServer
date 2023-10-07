@@ -96,7 +96,7 @@ abstract class SupportActor[A <: SupportActor.Entry] extends Actor {
 
 object SupportActor {
   class Entry(val obj: PlanetSideGameObject, val zone: Zone, val duration: Long) {
-    val time: Long = System.nanoTime
+    val time: Long = System.currentTimeMillis()
   }
 
   /**

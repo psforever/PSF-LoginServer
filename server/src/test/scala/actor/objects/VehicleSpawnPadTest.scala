@@ -231,17 +231,17 @@ object VehicleSpawnPadControlTest {
       override def SetupNumberPools(): Unit = {}
     }
     zone.GUID(guid)
-    zone.actor = system.spawn(ZoneActor(zone), s"test-zone-${System.nanoTime()}")
+    zone.actor = system.spawn(ZoneActor(zone), s"test-zone-${System.currentTimeMillis()}")
 
     // Hack: Wait for the Zone to finish booting, otherwise later tests will fail randomly due to race conditions
     // with actor probe setting
     // TODO(chord): Remove when Zone supports notification of booting being complete
     Thread.sleep(5000)
 
-    vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), s"vehicle-control-${System.nanoTime()}")
+    vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), s"vehicle-control-${System.currentTimeMillis()}")
 
     val pad = VehicleSpawnPad(GlobalDefinitions.mb_pad_creation)
-    pad.Actor = system.actorOf(Props(classOf[VehicleSpawnControl], pad), s"test-pad-${System.nanoTime()}")
+    pad.Actor = system.actorOf(Props(classOf[VehicleSpawnControl], pad), s"test-pad-${System.currentTimeMillis()}")
     pad.Owner =
       new Building("Building", building_guid = 0, map_id = 0, zone, StructureType.Building, GlobalDefinitions.building)
     pad.Owner.Faction = faction

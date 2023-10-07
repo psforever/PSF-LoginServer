@@ -2,7 +2,6 @@
 package net.psforever.objects.zones.exp
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import net.psforever.objects.avatar.scoring.EquipmentStat
 import net.psforever.objects.serverobject.hackable.Hackable.HackInfo
 import net.psforever.objects.sourcing.VehicleSource
@@ -10,8 +9,6 @@ import net.psforever.persistence
 import net.psforever.types.Vector3
 import net.psforever.util.Database.ctx
 import net.psforever.util.Database.ctx._
-
-import scala.util.Success
 
 object ToDatabase {
   /**
@@ -57,7 +54,7 @@ object ToDatabase {
                           position: Vector3,
                           exp: Long
                         ): Unit = {
-    ctx.run(query[persistence.Assistactivity]
+    ctx.run(query[persistence.Killactivity]
       .insert(
         _.killerId -> lift(avatarId),
         _.victimId -> lift(victimId),
@@ -115,6 +112,10 @@ object ToDatabase {
         _.assists -> lift(0),
         _.sessionId -> lift(-1L)
       )
+      .onConflictUpdate(_.avatarId, _.weaponId, _.sessionId)(
+        (t, e) => t.shotsFired -> (t.shotsFired + e.shotsFired),
+        (t, e) => t.shotsLanded -> (t.shotsLanded + e.shotsLanded)
+      )
     )
   }
 
@@ -148,6 +149,68 @@ object ToDatabase {
         _.px -> lift((machinePosition.x * 1000).toInt),
         _.py -> lift((machinePosition.y * 1000).toInt),
         _.pz -> lift((machinePosition.z * 1000).toInt)
+      )
+    )
+  }
+
+  /**
+   * Insert an entry into the database's `ntuactivity` table.
+   * This table monitors experience earned through NTU silo operations and
+   * first time event entity interactions (zone and building set to 0).
+   */
+  def reportNtuActivity(
+                         avatarId: Long,
+                         zoneId: Int,
+                         buildingId: Int,
+                         experience: Long
+                       ): Unit = {
+    ctx.run(query[persistence.Ntuactivity]
+      .insert(
+        _.avatarId -> lift(avatarId),
+        _.zoneId -> lift(zoneId),
+        _.buildingId -> lift(buildingId),
+        _.exp -> lift(experience)
+      )
+      .onConflictUpdate(_.avatarId, _.zoneId, _.buildingId)(
+        (t, e) => t.exp -> (t.exp + e.exp)
+      )
+    )
+  }
+
+  /**
+   * Insert an entry into the database's `kdasession` table
+   * to specifically update the revive counter for the current session.
+   */
+  def reportRespawns(
+                      avatarId: Long,
+                      reviveCount: Int
+                    ): Unit = {
+    ctx.run(query[persistence.Kdasession]
+      .insert(
+        _.avatarId  -> lift(avatarId),
+        _.revives   -> lift(reviveCount),
+        _.sessionId -> lift(-1)
+      )
+    )
+  }
+
+  /**
+   * Insert an entry into the database's `buildingCapture` table.
+   */
+  def reportFacilityCapture(
+                             avatarId: Long,
+                             zoneId: Int,
+                             buildingId: Int,
+                             exp: Long,
+                             expType: String
+                           ): Unit = {
+    ctx.run(query[persistence.Buildingcapture]
+      .insert(
+        _.avatarId   -> lift(avatarId),
+        _.zoneId     -> lift(zoneId),
+        _.buildingId -> lift(buildingId),
+        _.exp        -> lift(exp),
+        _.expType    -> lift(expType)
       )
     )
   }

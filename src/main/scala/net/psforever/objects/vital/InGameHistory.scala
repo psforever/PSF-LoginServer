@@ -10,6 +10,7 @@ import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason, Su
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.types.{ExoSuitType, ImplantType, TransactionType}
+import net.psforever.util.Config
 
 import scala.collection.mutable
 
@@ -327,7 +328,7 @@ trait InGameHistory {
   }
 
   def GetContribution(): Option[List[InGameActivity]] = {
-    Option(GetContributionDuringPeriod(History, duration = 600000L))
+    Option(GetContributionDuringPeriod(History, duration = Config.app.game.experience.longContributionTime))
   }
 
   def GetContributionDuringPeriod(list: List[InGameActivity], duration: Long): List[InGameActivity] = {

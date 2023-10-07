@@ -3,15 +3,15 @@ package net.psforever.objects.zones.exp.rec
 
 import net.psforever.objects.sourcing.SourceUniqueness
 import net.psforever.objects.vital.{DamagingActivity, InGameActivity, RepairFromEquipment, RepairingActivity}
-import net.psforever.objects.zones.exp.ContributionStats
+import net.psforever.objects.zones.exp.{ContributionStats, Support, WeaponStats}
 import net.psforever.types.PlanetSideEmpire
 
 import scala.collection.mutable
 
-//noinspection ScalaUnusedSymbol
 class MachineRecoveryExperienceContributionProcess(
                                                     private val faction : PlanetSideEmpire.Value,
                                                     private val contributions: Map[SourceUniqueness, List[InGameActivity]],
+                                                    eventOutputType: String,
                                                     private val excludedTargets: mutable.ListBuffer[SourceUniqueness] = mutable.ListBuffer()
                                                   ) extends RecoveryExperienceContributionProcess(faction, contributions) {
   def submit(history: List[InGameActivity]): Unit = {
@@ -65,11 +65,9 @@ class MachineRecoveryExperienceContributionProcess(
         .map { case (wrapper, entries) =>
           val size = entries.size
           val newTime = entries.maxBy(_.time).time
-          entries.head.copy(
-            shots = size,
-            amount = entries.foldLeft(0)(_ + _.amount),
-            contributions = (10 + size).toFloat,
-            time = newTime
+          Support.calculateSupportExperience(
+            eventOutputType,
+            WeaponStats(wrapper, size, entries.foldLeft(0)(_ + _.amount), newTime, 1f)
           )
         }
         .toSeq

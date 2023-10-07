@@ -18,6 +18,8 @@ class ScoreCard() {
 
   def Lives: Seq[Life] = lives
 
+  def AllLives: Seq[Life] = curr +: lives
+
   def Kills: Seq[Kill] = lives.flatMap { _.kills } ++ curr.kills
 
   def KillStatistics: Map[Int, Statistic] = killStatistics.toMap
@@ -39,17 +41,41 @@ class ScoreCard() {
           ScoreCard.updateStatisticsFor(assistStatistics, wid.equipment, faction)
         }
       case d: Death =>
-        val expired = curr
-        curr = Life()
-        lives = expired.copy(death = Some(d)) +: lives
+        curr = curr.copy(death = Some(d))
       case value: Long =>
         curr = curr.copy(supportExperience = curr.supportExperience + value)
       case _ => ()
     }
   }
+
+  def revive(): Unit = {
+    curr = Life.revive(curr)
+  }
+
+  def respawn(): Unit = {
+    val death = curr
+    curr = Life()
+    lives = death +: lives
+  }
 }
 
 object ScoreCard {
+  def respawnCount(card: ScoreCard): Int = {
+    card.AllLives.foldLeft(0)(_ + recursiveReviveCount(_, count = 0))
+  }
+
+  def reviveCount(life: Life): Int = {
+    recursiveReviveCount(life, count = 0)
+  }
+
+  @tailrec
+  private def recursiveReviveCount(life: Life, count: Int): Int = {
+    life.prior match {
+      case None => count
+      case Some(previousLife) => recursiveReviveCount(previousLife, count + 1)
+    }
+  }
+
   private def updateEquipmentStat(curr: Life, entry: EquipmentStat): Life = {
     updateEquipmentStat(curr, entry, entry.objectId, entry.kills, entry.assists)
   }

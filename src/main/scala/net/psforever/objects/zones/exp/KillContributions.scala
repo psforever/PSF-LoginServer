@@ -10,6 +10,7 @@ import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.exp.rec.{CombinedHealthAndArmorContributionProcess, MachineRecoveryExperienceContributionProcess}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.util.Config
 
 import scala.collection.mutable
 
@@ -49,7 +50,7 @@ object KillContributions {
       multivehicle_rearm_terminal,
       lodestar_repair_terminal
     ).collect { _.ObjectId }
-  } //TODO currently includes things that are not typical items but are used for expressing contribution implements
+  } //TODO currently includes things that are not typical equipment but things that express contribution
 
   /** cached for empty collection returns; please do not add anything to it */
   private val emptyMap: mutable.LongMap[ContributionStats] = mutable.LongMap.empty[ContributionStats]
@@ -119,21 +120,20 @@ object KillContributions {
                                         ): Iterable[(Long, ContributionStatsOutput)] = {
     val faction = target.Faction
     /*
-    divide into applicable time periods - long for 10 minutes and short 5 minutes;
+    divide into applicable time periods;
     these two periods represent passes over the in-game history to evaluate statistic modification events;
     the short time period should stand on its own, but should also be represented in the long time period;
     more players should be rewarded if one qualifies for the longer time period's evaluation
     */
-    //divide by applicable time periods (long=10minutes, short=5minutes)
-    val (contributions, (shortHistory, longHistory)) = {
+    val (contributions, (longHistory, shortHistory)) = {
       val killTime = kill.time.toDate.getTime
-      val shortPeriod = killTime - 300000L
+      val shortPeriod = killTime - Config.app.game.experience.shortContributionTime
       val (contrib, onlyHistory) = history.partition { _.isInstanceOf[Contribution] }
       (
         contrib
           .collect { case Contribution(unique, entries) => (unique, entries) }
           .toMap[SourceUniqueness, List[InGameActivity]],
-        limitHistoryToThisLife(onlyHistory.toList, killTime).partition { _.time > shortPeriod }
+        limitHistoryToThisLife(onlyHistory.toList, killTime).partition { _.time < shortPeriod }
       )
     }
     //events that are older than 5 minutes are enough to prove one has been alive that long
@@ -195,7 +195,7 @@ object KillContributions {
    * @return the potentially truncated history
    */
   private def limitHistoryToThisLife(history: List[InGameActivity], eventTime: Long): List[InGameActivity] = {
-    limitHistoryToThisLife(history, eventTime, eventTime - 600000L)
+    limitHistoryToThisLife(history, eventTime, eventTime - Config.app.game.experience.longContributionTime)
   }
 
   /**
@@ -262,9 +262,9 @@ object KillContributions {
                                              excludedTargets: mutable.ListBuffer[SourceUniqueness]
                                            ): mutable.LongMap[ContributionStats] = {
     contributeWithRevivalActivity(history, existingParticipants)
-    contributeWithTerminalActivity(faction, history, contributions, excludedTargets, existingParticipants)
-    contributeWithVehicleTransportActivity(history, faction, contributions, excludedTargets, existingParticipants)
-    contributeWithVehicleCargoTransportActivity(history, faction, contributions, excludedTargets, existingParticipants)
+    contributeWithTerminalActivity(history, faction, contributions, excludedTargets, existingParticipants)
+    contributeWithVehicleTransportActivity(kill, history, faction, contributions, excludedTargets, existingParticipants)
+    contributeWithVehicleCargoTransportActivity(kill, history, faction, contributions, excludedTargets, existingParticipants)
     contributeWithKillWhileMountedActivity(kill, faction, contributions, excludedTargets, existingParticipants)
     existingParticipants.remove(0)
     existingParticipants
@@ -314,13 +314,17 @@ object KillContributions {
                 excludedTargets.addOne(owner)
                 excludedTargets.addOne(attacker.unique)
                 val time = kill.time.toDate.getTime
+                val weaponStat = Support.calculateSupportExperience(
+                  event = "mounted-kill",
+                  WeaponStats(DriverAssist(mount.Definition.ObjectId), 1, 1, time, 1f)
+                )
                 combineStatsInto(
                   out,
                   (
                     owner.charId,
                     ContributionStats(
                       PlayerSource(owner, mount.Position),
-                      Seq(WeaponStats(DriverAssist(mount.Definition.ObjectId), 1, 1, time, 10f)),
+                      Seq(weaponStat),
                       1,
                       1,
                       1,
@@ -332,12 +336,12 @@ object KillContributions {
             }
           combineStatsInto(
             out,
-            extractContributionsForMachineByTarget(mount, faction, eventTime, contributions, excludedTargets)
+            extractContributionsForMachineByTarget(mount, faction, eventTime, contributions, excludedTargets, eventOutputType="support-repair")
           )
         case Some((mount: TurretSource, _: PlayerSource)) if !excludedTargets.contains(mount.unique) =>
           combineStatsInto(
             out,
-            extractContributionsForMachineByTarget(mount, faction, eventTime, contributions, excludedTargets)
+            extractContributionsForMachineByTarget(mount, faction, eventTime, contributions, excludedTargets, eventOutputType="support-repair-turret")
           )
       }
   }
@@ -345,6 +349,7 @@ object KillContributions {
   /**
    * Gather and reward specific in-game equipment use activity.<br>
    * na
+   * @param kill the in-game event that maintains information about the other player's death
    * @param history chronology of activity the game considers noteworthy
    * @param faction empire to target
    * @param contributions mapping between external entities
@@ -356,6 +361,7 @@ object KillContributions {
    * @see `extractContributionsForMachineByTarget`
    */
   private def contributeWithVehicleTransportActivity(
+                                                      kill: Kill,
                                                       history: List[InGameActivity],
                                                       faction: PlanetSideEmpire.Value,
                                                       contributions: Map[SourceUniqueness, List[InGameActivity]],
@@ -385,11 +391,19 @@ object KillContributions {
               }
             } || {
               val sameZone = in.zoneNumber == out.zoneNumber
-              val distanceMoved = Vector3.DistanceSquared(in.vehicle.Position.xy, out.vehicle.Position.xy)
+              val distanceTransported = Vector3.DistanceSquared(in.vehicle.Position.xy, out.vehicle.Position.xy)
+              val distanceMoved = {
+                val killLocation = kill.info.adversarial
+                  .collect { adversarial => adversarial.attacker.Position.xy }
+                  .getOrElse(Vector3.Zero)
+                Vector3.DistanceSquared(killLocation, out.player.Position.xy)
+              }
               val timeSpent = out.time - in.time
-              timeSpent >= 210000 /* 3:30 */ ||
-                (sameZone && (distanceMoved > 160000f || distanceMoved > 10000f && timeSpent >= 60000)) |
-                (!sameZone && (distanceMoved > 10000f || timeSpent >= 120000))
+              distanceMoved < 5625f /* 75m */ &&
+                (timeSpent >= 210000L /* 3:30 */ ||
+                  (sameZone && (distanceTransported > 160000f /* 400m */ ||
+                    distanceTransported > 10000f /* 100m */ && timeSpent >= 60000L /* 1:00m */)) ||
+                  (!sameZone && (distanceTransported > 10000f /* 100m */ || timeSpent >= 120000L /* 2:00 */ )))
             }) =>
           out
       }
@@ -398,18 +412,23 @@ object KillContributions {
       .groupBy { _.vehicle }
       .collect { case (mount, dismountsFromVehicle) if mount.owner.nonEmpty =>
         val promotedOwner = PlayerSource(mount.owner.get, mount.Position)
-        val equipmentUseContext = mount.Definition match {
+        val (equipmentUseContext, equipmentUseEvent) = mount.Definition match {
           case v @ GlobalDefinitions.router =>
-            RouterKillAssist(v.ObjectId)
+            (RouterKillAssist(v.ObjectId), "router")
           case v =>
-            HotDropKillAssist(v.ObjectId, 0)
+            (HotDropKillAssist(v.ObjectId, 0), "hotdrop")
         }
-        val statContext = Seq(WeaponStats(equipmentUseContext, 0, dismountsFromVehicle.size, dismountsFromVehicle.maxBy(_.time).time, 15f))
+        val size = dismountsFromVehicle.size
+        val time = dismountsFromVehicle.maxBy(_.time).time
+        val weaponStat = Support.calculateSupportExperience(
+          equipmentUseEvent,
+          WeaponStats(equipmentUseContext, size, size, time, 1f)
+        )
         combineStatsInto(
           out,
           (
             promotedOwner.CharId,
-            ContributionStats(promotedOwner, statContext, 1, 1, 1, statContext.head.time)
+            ContributionStats(promotedOwner, Seq(weaponStat), size, size, size, time)
           )
         )
         contributions.get(mount.unique).collect {
@@ -417,13 +436,13 @@ object KillContributions {
             val mountHistory = dismountsFromVehicle
               .flatMap { event =>
                 val eventTime = event.time
-                val startTime = event.pairedEvent.get.time - 600000L
+                val startTime = event.pairedEvent.get.time - Config.app.game.experience.longContributionTime
                 limitHistoryToThisLife(list, eventTime, startTime)
               }
               .distinctBy(_.time)
             combineStatsInto(
               out,
-              extractContributionsForMachineByTarget(mount, faction, mountHistory, contributions, excludedTargets)
+              extractContributionsForMachineByTarget(mount, faction, mountHistory, contributions, excludedTargets, eventOutputType="support-repair")
             )
         }
       }
@@ -432,6 +451,7 @@ object KillContributions {
   /**
    * Gather and reward specific in-game equipment use activity.<br>
    * na
+   * @param kill the in-game event that maintains information about the other player's death
    * @param faction empire to target
    * @param contributions mapping between external entities
    *                      the target has interacted with in the form of in-game activity
@@ -442,6 +462,7 @@ object KillContributions {
    * @see `extractContributionsForMachineByTarget`
    */
   private def contributeWithVehicleCargoTransportActivity(
+                                                           kill: Kill,
                                                            history: List[InGameActivity],
                                                            faction: PlanetSideEmpire.Value,
                                                            contributions: Map[SourceUniqueness, List[InGameActivity]],
@@ -463,9 +484,16 @@ object KillContributions {
           if in.vehicle.unique == out.vehicle.unique &&
             out.vehicle.Faction == out.cargo.Faction &&
             (in.vehicle.Definition == GlobalDefinitions.router || {
-              val distanceMoved = Vector3.DistanceSquared(in.vehicle.Position.xy, out.vehicle.Position.xy)
+              val distanceTransported = Vector3.DistanceSquared(in.vehicle.Position.xy, out.vehicle.Position.xy)
+              val distanceMoved = {
+                val killLocation = kill.info.adversarial
+                  .collect { adversarial => adversarial.attacker.Position.xy }
+                  .getOrElse(Vector3.Zero)
+                Vector3.DistanceSquared(killLocation, out.cargo.Position.xy)
+              }
               val timeSpent = out.time - in.time
-              timeSpent >= 210000 /* 3:30 */ || distanceMoved > 640000f
+              distanceMoved < 5625f /* 75m */ &&
+                (timeSpent >= 210000 /* 3:30 */ || distanceTransported > 360000f /* 600m */)
             }) =>
           out
       }
@@ -478,7 +506,13 @@ object KillContributions {
         dismountsFromVehicle
           .groupBy(_.vehicle)
           .map { case (vehicle, events) =>
-            (vehicle, vehicle.owner, Seq(WeaponStats(HotDropKillAssist(vehicle.Definition.ObjectId, mountId), 0, events.size, events.maxBy(_.time).time, 15f)))
+            val size = events.size
+            val time = events.maxBy(_.time).time
+            val weaponStat = Support.calculateSupportExperience(
+              event = "hotdrop",
+              WeaponStats(HotDropKillAssist(vehicle.Definition.ObjectId, mountId), size, size, time, 1f)
+            )
+            (vehicle, vehicle.owner, Seq(weaponStat))
           }
           .collect { case (vehicle, Some(owner), statContext) =>
             combineStatsInto(
@@ -493,13 +527,13 @@ object KillContributions {
                 val mountHistory = dismountsFromVehicle
                   .flatMap { event =>
                     val eventTime = event.time
-                    val startTime = event.pairedEvent.get.time - 600000L
+                    val startTime = event.pairedEvent.get.time - Config.app.game.experience.longContributionTime
                     limitHistoryToThisLife(list, eventTime, startTime)
                   }
                   .distinctBy(_.time)
                 combineStatsInto(
                   out,
-                  extractContributionsForMachineByTarget(mount, faction, mountHistory, contributions, excludedTargets)
+                  extractContributionsForMachineByTarget(mount, faction, mountHistory, contributions, excludedTargets, eventOutputType="support-repair")
                 )
             }
             contributions.get(vehicle.unique).collect {
@@ -507,13 +541,13 @@ object KillContributions {
                 val carrierHistory = dismountsFromVehicle
                   .flatMap { event =>
                     val eventTime = event.time
-                    val startTime = event.pairedEvent.get.time - 600000L
+                    val startTime = event.pairedEvent.get.time - Config.app.game.experience.longContributionTime
                     limitHistoryToThisLife(list, eventTime, startTime)
                   }
                   .distinctBy(_.time)
                 combineStatsInto(
                   out,
-                  extractContributionsForMachineByTarget(vehicle, faction, carrierHistory, contributions, excludedTargets)
+                  extractContributionsForMachineByTarget(vehicle, faction, carrierHistory, contributions, excludedTargets, eventOutputType="support-repair")
                 )
             }
           }
@@ -542,104 +576,120 @@ object KillContributions {
    * @see `TerminalUsedActivity`
    */
   private def contributeWithTerminalActivity(
-                                              faction: PlanetSideEmpire.Value,
                                               history: List[InGameActivity],
+                                              faction: PlanetSideEmpire.Value,
                                               contributions: Map[SourceUniqueness, List[InGameActivity]],
                                               excludedTargets: mutable.ListBuffer[SourceUniqueness],
                                               out: mutable.LongMap[ContributionStats]
                                             ): Unit = {
-    val data = history
+    history
       .collect {
-        case h: HealFromTerminal => (h.term, (h, h.term.hacked))
-        case r: RepairFromTerminal => (r.term, (r, r.term.hacked))
-        case t: TerminalUsedActivity => (t.terminal, (t, t.terminal.hacked))
+        case h: HealFromTerminal => (h.term, h)
+        case r: RepairFromTerminal => (r.term, r)
+        case t: TerminalUsedActivity => (t.terminal, t)
       }
       .groupBy(_._1.unique)
-      .map { case (_, list) => (list.head._1, list.map { _._2 }) }
-    data.flatMap {
-      case (terminal, events) =>
-        val (activity, hackState) = events.unzip
-        val terminalFaction = terminal.Faction
-        if (terminalFaction != faction && hackState.exists { _.nonEmpty }) {
-          /*
-          if the terminal has been hacked,
-          and the original terminal does not align with our own faction,
-          then the support must be reported as a hack;
-          if we are the same faction as the terminal, then the hacked condition is irrelevant
-          */
-          val hackContext = HackKillAssist(GlobalDefinitions.remote_electronics_kit.ObjectId, terminal.Definition.ObjectId)
-          hackState
-            .groupBy(_.get.player)
-            .collect {
-              case (player, _) if player.Faction == faction => //only reward allied hacking
-                val time = activity.maxBy(_.time).time
+      .map {
+        case (_, events1) =>
+          val (termThings1, _) = events1.unzip
+          val hackContext = HackKillAssist(GlobalDefinitions.remote_electronics_kit.ObjectId, termThings1.head.Definition.ObjectId)
+          if (termThings1.exists(t => t.Faction != faction && t.hacked.nonEmpty)) {
+            /*
+            if the terminal has been hacked,
+            and the original terminal does not align with our own faction,
+            then the support must be reported as a hack;
+            if we are the same faction as the terminal, then the hacked condition is irrelevant
+            */
+            events1
+              .collect { case out @ (t, _) if t.hacked.nonEmpty => out }
+              .groupBy { case (t, _) => t.hacked.get.player.unique }
+              .foreach { case (_, events2) =>
+                val (termThings2, events3) = events2.unzip
+                val hacker = termThings2.head.hacked.get.player
+                val size = events3.size
+                val time = events3.maxBy(_.time).time
+                val weaponStats = Support.calculateSupportExperience(
+                  event = "hack",
+                  WeaponStats(hackContext, size, size, time, 1f)
+                )
                 combineStatsInto(
                   out,
                   (
-                    player.CharId,
+                    hacker.CharId,
                     ContributionStats(
-                      player,
-                      Seq(WeaponStats(hackContext, 0, 1, time, 10f)),
-                      0,
-                      0,
-                      1,
+                      hacker,
+                      Seq(weaponStats),
+                      size,
+                      size,
+                      size,
                       time
                     )
                   )
                 )
-            }
-          activity
-        } else if (terminalFaction == faction) {
-          val eventTime = activity.maxBy(_.time).time
-          val startTime = activity.minBy(_.time).time - 600000L
-          val (equipmentUseContext, ownerOpt) = terminal.installation match {
-            case v: VehicleSource =>
-              terminal.Definition match {
-                case GlobalDefinitions.order_terminala =>
-                  combineStatsInto(out, extractContributionsForMachineByTarget(v, faction, eventTime, startTime, contributions, excludedTargets))
-                  (AmsResupplyKillAssist(terminal.Definition.ObjectId), v.owner)
-                case GlobalDefinitions.order_terminalb =>
-                  combineStatsInto(out, extractContributionsForMachineByTarget(v, faction, eventTime, startTime, contributions, excludedTargets))
-                  (AmsResupplyKillAssist(terminal.Definition.ObjectId), v.owner)
-                case GlobalDefinitions.lodestar_repair_terminal =>
-                  combineStatsInto(out, extractContributionsForMachineByTarget(v, faction, eventTime, startTime, contributions, excludedTargets))
-                  (RepairKillAssist(terminal.Definition.ObjectId, v.Definition.ObjectId), v.owner)
-                case GlobalDefinitions.bfr_rearm_terminal =>
-                  combineStatsInto(out, extractContributionsForMachineByTarget(v, faction, eventTime, startTime, contributions, excludedTargets))
-                  (LodestarRearmKillAssist(terminal.Definition.ObjectId), v.owner)
-                case GlobalDefinitions.multivehicle_rearm_terminal =>
-                  combineStatsInto(out, extractContributionsForMachineByTarget(v, faction, eventTime, startTime, contributions, excludedTargets))
-                  (LodestarRearmKillAssist(terminal.Definition.ObjectId), v.owner)
-                case _ =>
-                  (NoUse(), None)
               }
-            case _: BuildingSource =>
-              combineStatsInto(out, extractContributionsForMachineByTarget(terminal, faction, eventTime, startTime, contributions, excludedTargets))
-              (NoUse(), None) //general terminal use
-            case _ =>
-              (NoUse(), None)
-          }
-          ownerOpt.collect { owner =>
-            val time = activity.maxBy(_.time).time
-            combineStatsInto(
-              out,
-              (
-                owner.charId,
-                ContributionStats(
-                  PlayerSource(owner, terminal.installation.Position),
-                  Seq(WeaponStats(equipmentUseContext, 0, 1, time, 10f)),
-                  0,
-                  0,
-                  1,
-                  time
+          } else if (termThings1.exists(_.Faction == faction)) {
+            //faction-aligned terminal
+            val (_, events2) = events1.unzip
+            val eventTime = events2.maxBy(_.time).time
+            val startTime = events2.minBy(_.time).time - Config.app.game.experience.longContributionTime
+            val termThingsHead = termThings1.head
+            val (equipmentUseContext, equipmentUseEvent, installationEvent, target) = termThingsHead.installation match {
+              case v: VehicleSource =>
+                termThingsHead.Definition match {
+                  case GlobalDefinitions.order_terminala =>
+                    (AmsResupplyKillAssist(GlobalDefinitions.order_terminala.ObjectId), "ams-resupply", "support-repair", Some(v))
+                  case GlobalDefinitions.order_terminalb =>
+                    (AmsResupplyKillAssist(GlobalDefinitions.order_terminalb.ObjectId), "ams-resupply", "support-repair", Some(v))
+                  case GlobalDefinitions.lodestar_repair_terminal =>
+                    (RepairKillAssist(GlobalDefinitions.lodestar_repair_terminal.ObjectId, v.Definition.ObjectId), "lodestar-repair", "support-repair", Some(v))
+                  case GlobalDefinitions.bfr_rearm_terminal =>
+                    (LodestarRearmKillAssist(GlobalDefinitions.bfr_rearm_terminal.ObjectId), "lodestar-rearm", "support-repair", Some(v))
+                  case GlobalDefinitions.multivehicle_rearm_terminal =>
+                    (LodestarRearmKillAssist(GlobalDefinitions.multivehicle_rearm_terminal.ObjectId), "lodestar-rearm", "support-repair", Some(v))
+                  case _ =>
+                    (NoUse(), "", "", None)
+                }
+              case _: BuildingSource =>
+                (NoUse(), "", "support-repair-terminal", Some(termThingsHead))
+              case _ =>
+                (NoUse(), "", "", None)
+            }
+            target.map { src =>
+              combineStatsInto(
+                out,
+                extractContributionsForMachineByTarget(src, faction, eventTime, startTime, contributions, excludedTargets, installationEvent)
+              )
+            }
+            events1
+              .map { case (a, b) => (a.installation, b) }
+              .collect { case (installation: VehicleSource, evt) if installation.owner.nonEmpty => (installation, evt) }
+              .groupBy(_._1.owner.get)
+              .collect { case (owner, list) =>
+                val (installations, events2) = list.unzip
+                val size = events2.size
+                val time = events2.maxBy(_.time).time
+                val weaponStats = Support.calculateSupportExperience(
+                  equipmentUseEvent,
+                  WeaponStats(equipmentUseContext, size, size, time, 1f)
                 )
-              ))
+                combineStatsInto(
+                  out,
+                  (
+                    owner.charId,
+                    ContributionStats(
+                      PlayerSource(owner, installations.head.Position),
+                      Seq(weaponStats),
+                      size,
+                      size,
+                      size,
+                      time
+                    )
+                  )
+                )
+              }
           }
-          activity
-        } else {
-          Nil
-        }
-    }
+          None
+      }
   }
 
   /**
@@ -671,7 +721,12 @@ object KillContributions {
                 id,
                 ContributionStats(
                   user,
-                  Seq(WeaponStats(ReviveKillAssist(objectId), 100, 1, time, math.log(eventSize + 1).toFloat * 15f)),
+                  Seq({
+                    Support.calculateSupportExperience(
+                      event = "revival",
+                      WeaponStats(ReviveKillAssist(objectId), 1, eventSize, time, 1f)
+                    )
+                  }),
                   eventSize,
                   eventSize,
                   eventSize,
@@ -700,10 +755,11 @@ object KillContributions {
                                                       faction: PlanetSideEmpire.Value,
                                                       time: Long,
                                                       contributions: Map[SourceUniqueness, List[InGameActivity]],
-                                                      excludedTargets: mutable.ListBuffer[SourceUniqueness]
+                                                      excludedTargets: mutable.ListBuffer[SourceUniqueness],
+                                                      eventOutputType: String
                                                     ): mutable.LongMap[ContributionStats] = {
-    val start: Long = time - 600000L
-    extractContributionsForMachineByTarget(target, faction, time, start, contributions, excludedTargets)
+    val start: Long = time - Config.app.game.experience.longContributionTime
+    extractContributionsForMachineByTarget(target, faction, time, start, contributions, excludedTargets, eventOutputType)
   }
 
   /**
@@ -726,11 +782,12 @@ object KillContributions {
                                                       eventTime: Long,
                                                       startTime: Long,
                                                       contributions: Map[SourceUniqueness, List[InGameActivity]],
-                                                      excludedTargets: mutable.ListBuffer[SourceUniqueness]
+                                                      excludedTargets: mutable.ListBuffer[SourceUniqueness],
+                                                      eventOutputType: String
                                                     ): mutable.LongMap[ContributionStats] = {
     val unique = target.unique
     val history = limitHistoryToThisLife(contributions.getOrElse(unique, List()), eventTime, startTime)
-    extractContributionsForMachineByTarget(target, faction, history, contributions, excludedTargets)
+    extractContributionsForMachineByTarget(target, faction, history, contributions, excludedTargets, eventOutputType)
   }
 
   /**
@@ -753,12 +810,13 @@ object KillContributions {
                                                       faction: PlanetSideEmpire.Value,
                                                       history: List[InGameActivity],
                                                       contributions: Map[SourceUniqueness, List[InGameActivity]],
-                                                      excludedTargets: mutable.ListBuffer[SourceUniqueness]
+                                                      excludedTargets: mutable.ListBuffer[SourceUniqueness],
+                                                      eventOutputType: String
                                                     ): mutable.LongMap[ContributionStats] = {
     val unique = target.unique
     if (!excludedTargets.contains(unique) && history.nonEmpty) {
       excludedTargets.addOne(unique)
-      val process = new MachineRecoveryExperienceContributionProcess(faction, contributions, excludedTargets)
+      val process = new MachineRecoveryExperienceContributionProcess(faction, contributions, eventOutputType, excludedTargets)
       process.submit(history)
       cullContributorImplements(process.output())
     } else {

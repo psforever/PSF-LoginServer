@@ -2458,9 +2458,9 @@ class SessionData(
                               src: PlanetSideGameObject with TelepadLike,
                               dest: PlanetSideGameObject with TelepadLike
                             ): Unit = {
-    val time = System.nanoTime
+    val time = System.currentTimeMillis()
     if (
-      time - recentTeleportAttempt > (2 seconds).toNanos && router.DeploymentState == DriveState.Deployed &&
+      time - recentTeleportAttempt > 2000L && router.DeploymentState == DriveState.Deployed &&
         internalTelepad.Active &&
         remoteTelepad.Active
     ) {

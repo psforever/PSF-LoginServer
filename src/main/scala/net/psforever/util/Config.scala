@@ -150,9 +150,6 @@ case class GameConfig(
     instantAction: InstantActionConfig,
     amenityAutorepairRate: Float,
     amenityAutorepairDrainRate: Float,
-    bepRate: Double,
-    cepRate: Double,
-    maximumCepPerSquadSize: Seq[Int],
     newAvatar: NewAvatar,
     hart: HartConfig,
     sharedMaxCooldown: Boolean,
@@ -162,7 +159,8 @@ case class GameConfig(
     cavernRotation: CavernRotationConfig,
     savedMsg: SavedMessageEvents,
     playerDraw: PlayerStateDrawSettings,
-    doorsCanBeOpenedByMedAppFromThisDistance: Float
+    doorsCanBeOpenedByMedAppFromThisDistance: Float,
+    experience: Experience
 )
 
 case class InstantActionConfig(
@@ -238,3 +236,51 @@ case class PlayerStateDrawSettings(
   assert(ranges.nonEmpty)
   assert(ranges.size == delays.size)
 }
+
+case class Experience(
+    shortContributionTime: Long,
+    longContributionTime: Long,
+    bep: BattleExperiencePoints,
+    sep: SupportExperiencePoints,
+    cep: CommandExperiencePoints
+) {
+  assert(shortContributionTime < longContributionTime)
+}
+
+case class BattleExperiencePoints(
+     base: BattleExperiencePointsBase,
+     rate: Float
+)
+
+case class BattleExperiencePointsBase(
+    bopsMultiplier: Long,
+    asMax: Long,
+    withKills: Long,
+    asMounted: Long,
+    mature: Long
+)
+
+case class SupportExperiencePoints(
+    rate: Float,
+    ntuSiloDepositReward: Long,
+    canNotFindEventDefaultValue: Long,
+    events: Seq[SupportExperienceEvent]
+)
+
+case class SupportExperienceEvent(
+    name: String,
+    base: Long,
+    shotsMultiplier: Float = 0f,
+    shotsNatLog: Double = 0f,
+    shotsLimit: Int = 50,
+    shotsCutoff: Int = 50,
+    amountMultiplier: Float = 0f
+)
+
+case class CommandExperiencePoints(
+    rate: Float,
+    lluCarrierModifier: Float,
+    maximumPerSquadSize: Seq[Int],
+    squadSizeLimitOverflow: Int,
+    squadSizeLimitOverflowMultiplier: Float
+)

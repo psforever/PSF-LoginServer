@@ -187,8 +187,10 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
       val chargeToDeposit = if (min == 0) {
         transferTarget match {
           case Some(silo: ResourceSilo) =>
-            // Silos would charge from 0-100% in roughly 105s on live (~20%-100% https://youtu.be/veOWToR2nSk?t=1402)
-            scala.math.min(scala.math.min(silo.MaxNtuCapacitor / 105, chargeable.NtuCapacitor), max)
+            scala.math.min(
+              scala.math.min(silo.MaxNtuCapacitor / silo.Definition.ChargeTime.toMillis.toFloat, chargeable.NtuCapacitor),
+              max
+            )
           case _ =>
             0
         }

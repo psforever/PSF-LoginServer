@@ -3,7 +3,7 @@ package net.psforever.objects.zones.exp.rec
 
 import net.psforever.objects.sourcing.SourceUniqueness
 import net.psforever.objects.vital.InGameActivity
-import net.psforever.objects.zones.exp.{ContributionStats, KillContributions, WeaponStats}
+import net.psforever.objects.zones.exp.{ContributionStats, KillContributions, Support, WeaponStats}
 import net.psforever.types.PlanetSideEmpire
 
 import scala.collection.mutable
@@ -58,23 +58,32 @@ class CombinedHealthAndArmorContributionProcess(
       }
       .map {
         case (id, entry) =>
+          var totalShots: Int = 0
+          var totalAmount: Int = 0
+          var mostRecentTime: Long = 0
           val groupedWeapons = entry.weapons
             .groupBy(_.equipment)
             .map {
-              case (weaponId, weaponEntries) =>
-                val specificEntries = weaponEntries.filter(_.equipment == weaponId)
+              case (weaponContext, weaponEntries) =>
+                val specificEntries = weaponEntries.filter(_.equipment == weaponContext)
                 val amount = specificEntries.foldLeft(0)(_ + _.amount)
+                totalAmount = totalAmount + amount
                 val shots = specificEntries.foldLeft(0)(_ + _.shots)
-                WeaponStats(weaponId, amount, shots, specificEntries.maxBy(_.time).time, 1f)
+                totalShots = totalShots + shots
+                val time = specificEntries.maxBy(_.time).time
+                mostRecentTime = math.max(mostRecentTime, time)
+                Support.calculateSupportExperience(
+                  event = "support-heal",
+                  WeaponStats(weaponContext, amount, shots, time, 1f)
+                )
             }
             .toSeq
-          (id, ContributionStats(
-            player = entry.player,
+          (id, entry.copy(
             weapons = groupedWeapons,
-            amount = entry.amount + entry.amount,
-            total = entry.total + entry.total,
-            shots = groupedWeapons.foldLeft(0)(_ + _.shots),
-            time = groupedWeapons.maxBy(_.time).time
+            amount = totalAmount,
+            total = math.max(entry.total, totalAmount),
+            shots = totalShots,
+            time = mostRecentTime
           ))
       }
   }

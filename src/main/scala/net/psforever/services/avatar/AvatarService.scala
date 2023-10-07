@@ -456,6 +456,15 @@ class AvatarService(zone: Zone) extends Actor {
             )
           )
 
+        case AvatarAction.FacilityCaptureRewards(building_id, zone_number, exp) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.FacilityCaptureRewards(building_id, zone_number, exp)
+            )
+          )
+
         case _ => ()
       }
 

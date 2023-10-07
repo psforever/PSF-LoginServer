@@ -17,7 +17,7 @@ class CaptureFlagConverter extends ObjectCreateConverter[CaptureFlag]() {
       case _ => Hackable.HackInfo(PlayerSource("", PlanetSideEmpire.NEUTRAL, Vector3.Zero), PlanetSideGUID(0), 0L, 0L)
     }
 
-    val millisecondsRemaining = TimeUnit.MILLISECONDS.convert(math.max(0, hackInfo.hackStartTime + hackInfo.hackDuration - System.nanoTime), TimeUnit.NANOSECONDS)
+    val millisecondsRemaining = math.max(0, hackInfo.hackStartTime + hackInfo.hackDuration - System.currentTimeMillis())
 
     Success(
       CaptureFlagData(

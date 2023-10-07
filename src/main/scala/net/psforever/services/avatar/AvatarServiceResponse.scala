@@ -129,4 +129,5 @@ object AvatarResponse {
   final case class UpdateKillsDeathsAssists(charId: Long, kda: KDAStat) extends Response
   final case class AwardBep(charId: Long, bep: Long, expType: ExperienceType) extends Response
   final case class AwardCep(charId: Long, bep: Long) extends Response
+  final case class FacilityCaptureRewards(building_id: Int, zone_number: Int, exp: Long) extends Response
 }

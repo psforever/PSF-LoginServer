@@ -4,6 +4,7 @@ package net.psforever.objects.zones.exp
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.{InGameActivity, ReconstructionActivity, RepairFromExoSuitChange, SpawningActivity}
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire}
+import net.psforever.util.Config
 
 import scala.collection.mutable
 
@@ -11,6 +12,8 @@ import scala.collection.mutable
  * Functions to assist experience calculation and history manipulation and analysis.
  */
 object Support {
+  private val sep = Config.app.game.experience.sep
+
   /**
    * Calculate a base experience value to consider additional reasons for points.
    * @param victim player to which a final interaction has reduced health to zero
@@ -27,18 +30,19 @@ object Support {
       case _                          => 0L
     }
     val base = if (Support.wasEverAMax(victim, history)) {
-      250L
-    } else if (victim.Seated || victim.progress.kills.nonEmpty) {
-      100L
+      Config.app.game.experience.bep.base.asMax
+    } else if (victim.progress.kills.nonEmpty) {
+      Config.app.game.experience.bep.base.withKills
+    } else if (victim.Seated) {
+      Config.app.game.experience.bep.base.asMounted
     } else if (lifespan > 15000L) {
-      50L
+      Config.app.game.experience.bep.base.mature
     } else {
       1L
     }
     if (base > 1) {
       //black ops modifier
-      //TODO x10
-      base
+      base * Config.app.game.experience.bep.base.bopsMultiplier
     } else {
       base
     }
@@ -186,5 +190,50 @@ object Support {
       case RepairFromExoSuitChange(suit, _) => suit == ExoSuitType.MAX
       case _                                => false
     }
+  }
+
+  /**
+   * Take a weapon statistics entry and calculate the support experience value resulting from this support event.
+   * The complete formula is:<br><br>
+   * `base + shots-multplier * ln(shots^exp + 2) + amount-multiplier * amount`<br><br>
+   * ... where the middle field can be truncated into:<br><br>
+   * `shots-multplier * shots`<br><br>
+   * ... without the natural logarithm exponent defined.
+   * Limits can be applied to the number of shots and/or to the amount,
+   * which will either zero the calculations or cap the results.
+   * @param event identification for the event calculation parameters
+   * @param weaponStat base weapon stat entry to be modified
+   * @param canNotFindEventDefaultValue custom default value
+   * @return weapon stat entry with a modified for the experience
+   */
+  private[exp] def calculateSupportExperience(
+                                               event: String,
+                                               weaponStat: WeaponStats,
+                                               canNotFindEventDefaultValue: Option[Float] = None
+                                             ): WeaponStats = {
+    val rewards: Float = sep.events
+      .find(evt => event.equals(evt.name))
+      .map { event =>
+        val shots = weaponStat.shots
+        val shotsMultiplier = event.shotsMultiplier
+        if (shotsMultiplier > 0f && shots < event.shotsCutoff) {
+          val modifiedShotsReward: Float = {
+            val partialShots = math.min(event.shotsLimit, shots).toFloat
+            shotsMultiplier * (if (event.shotsNatLog > 0f) {
+              math.log(math.pow(partialShots, event.shotsNatLog) + 2d).toFloat
+            } else {
+              partialShots
+            })
+          }
+          val modifiedAmountReward: Float = event.amountMultiplier * weaponStat.amount.toFloat
+          event.base + modifiedShotsReward + modifiedAmountReward
+        } else {
+          0f
+        }
+      }
+      .getOrElse(
+        canNotFindEventDefaultValue.getOrElse(sep.canNotFindEventDefaultValue.toFloat)
+      )
+    weaponStat.copy(contributions = rewards)
   }
 }
