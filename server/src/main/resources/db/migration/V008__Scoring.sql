@@ -447,7 +447,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_killactivity_updateRelatedStats
+CREATE TRIGGER psf_killactivity_updateRelatedStats
 AFTER INSERT
 ON killactivity
 FOR EACH ROW
@@ -473,7 +473,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_weaponstatsession_addEntryIfNone
+CREATE TRIGGER psf_weaponstatsession_addEntryIfNone
 BEFORE UPDATE
 ON weaponstatsession
 FOR EACH ROW
@@ -497,7 +497,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_kda_addEntryIfNone
+CREATE TRIGGER psf_kda_addEntryIfNone
 BEFORE UPDATE
 ON kda
 FOR EACH ROW
@@ -523,7 +523,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_weaponstat_addEntryIfNone
+CREATE TRIGGER psf_weaponstat_addEntryIfNone
 BEFORE UPDATE
 ON weaponstat
 FOR EACH ROW
@@ -554,7 +554,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_kdasession_updateRevives
+CREATE TRIGGER psf_kdasession_updateRevives
 BEFORE INSERT
 ON kdasession
 FOR EACH ROW
@@ -588,7 +588,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_kdasession_updateOnDelete
+CREATE TRIGGER psf_kdasession_updateOnDelete
 BEFORE DELETE
 ON kdasession
 FOR EACH ROW
@@ -627,7 +627,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_weaponstatsession_updateOnDelete
+CREATE TRIGGER psf_weaponstatsession_updateOnDelete
 BEFORE DELETE
 ON weaponstatsession
 FOR EACH ROW
@@ -669,7 +669,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_weaponstatsession_beforeInsert
+CREATE TRIGGER psf_weaponstatsession_beforeInsert
 BEFORE INSERT
 ON weaponstatsession
 FOR EACH ROW
@@ -702,7 +702,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_assistactivity_updateRelatedStats
+CREATE TRIGGER psf_assistactivity_updateRelatedStats
 AFTER INSERT
 ON killactivity
 FOR EACH ROW
@@ -752,7 +752,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_buildingcapture_updateOnDelete
+CREATE TRIGGER psf_buildingcapture_updateOnDelete
 BEFORE DELETE
 ON buildingcapture
 FOR EACH ROW
@@ -776,7 +776,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_avatar_addDebtEntry
+CREATE TRIGGER psf_avatar_addDebtEntry
 AFTER INSERT
 ON avatar
 FOR EACH ROW
