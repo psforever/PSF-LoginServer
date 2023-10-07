@@ -14,7 +14,7 @@ END;
 $function$
 ;
 
-CREATE OR REPLACE TRIGGER trigger_accounts_set_token_created
+CREATE TRIGGER trigger_accounts_set_token_created
 BEFORE UPDATE
     OF "token" ON "account"
     FOR EACH ROW EXECUTE FUNCTION fn_set_token_created_timestamp();
