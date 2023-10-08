@@ -399,7 +399,6 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER psf_account_newSession
 AFTER UPDATE
-OF avatar_logged_in
 ON account
 FOR EACH ROW
 WHEN (OLD.avatar_logged_in = 0 AND NEW.avatar_logged_in > 0)
