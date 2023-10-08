@@ -403,7 +403,7 @@ CREATE TRIGGER psf_account_newSession
 AFTER UPDATE
 ON account
 FOR EACH ROW
-EXECUTE FUNCTION fn_account_newSession();
+EXECUTE PROCEDURE fn_account_newSession();
 
 /*
 A kill activity causes three major updates:
@@ -452,7 +452,7 @@ CREATE TRIGGER psf_killactivity_updateRelatedStats
 AFTER INSERT
 ON killactivity
 FOR EACH ROW
-EXECUTE FUNCTION fn_killactivity_updateRelatedStats();
+EXECUTE PROCEDURE fn_killactivity_updateRelatedStats();
 
 /*
 Before attempting to update the data in a character's session weapon statistics row entry, make certain the row entry already exists.
@@ -478,7 +478,7 @@ CREATE TRIGGER psf_weaponstatsession_addEntryIfNone
 BEFORE UPDATE
 ON weaponstatsession
 FOR EACH ROW
-EXECUTE FUNCTION fn_weaponstatsession_addEntryIfNone();
+EXECUTE PROCEDURE fn_weaponstatsession_addEntryIfNone();
 
 /*
 Before attempting to update the data in a character's campaign KDA row entry, make certain the row entry already exists.
@@ -502,7 +502,7 @@ CREATE TRIGGER psf_kda_addEntryIfNone
 BEFORE UPDATE
 ON kda
 FOR EACH ROW
-EXECUTE FUNCTION fn_kda_addEntryIfNone();
+EXECUTE PROCEDURE fn_kda_addEntryIfNone();
 
 /*
 Before attempting to update the data in a character's campaign weapon statistics row entry, make certain the row entry already exists.
@@ -528,7 +528,7 @@ CREATE TRIGGER psf_weaponstat_addEntryIfNone
 BEFORE UPDATE
 ON weaponstat
 FOR EACH ROW
-EXECUTE FUNCTION fn_weaponstat_addEntryIfNone();
+EXECUTE PROCEDURE fn_weaponstat_addEntryIfNone();
 
 /*
 Before attempting to update the revival data in a character's session kda column,
@@ -559,7 +559,7 @@ CREATE TRIGGER psf_kdasession_updateRevives
 BEFORE INSERT
 ON kdasession
 FOR EACH ROW
-EXECUTE FUNCTION fn_kdasession_updateRevives();
+EXECUTE PROCEDURE fn_kdasession_updateRevives();
 
 /*
 Upon deletion of row entries for a character's session KDA,
@@ -593,7 +593,7 @@ CREATE TRIGGER psf_kdasession_updateOnDelete
 BEFORE DELETE
 ON kdasession
 FOR EACH ROW
-EXECUTE FUNCTION fn_kdasession_updateOnDelete();
+EXECUTE PROCEDURE fn_kdasession_updateOnDelete();
 
 /*
 Upon deletion of row entries for a character's session weapon stats,
@@ -632,7 +632,7 @@ CREATE TRIGGER psf_weaponstatsession_updateOnDelete
 BEFORE DELETE
 ON weaponstatsession
 FOR EACH ROW
-EXECUTE FUNCTION fn_weaponstatsession_updateOnDelete();
+EXECUTE PROCEDURE fn_weaponstatsession_updateOnDelete();
 
 /*
 Before inserting a value into the weaponstatsession table to session id -1,
@@ -675,7 +675,7 @@ BEFORE INSERT
 ON weaponstatsession
 FOR EACH ROW
 WHEN (NEW.session_id = -1)
-EXECUTE FUNCTION fn_weaponstatsession_beforeInsert();
+EXECUTE PROCEDURE fn_weaponstatsession_beforeInsert();
 
 /*
 A kill assist activity causes a major update to weapon stats:
@@ -707,7 +707,7 @@ CREATE TRIGGER psf_assistactivity_updateRelatedStats
 AFTER INSERT
 ON killactivity
 FOR EACH ROW
-EXECUTE FUNCTION fn_assistactivity_updateRelatedStats();
+EXECUTE PROCEDURE fn_assistactivity_updateRelatedStats();
 
 /*
 Upon deletion of row entries for a character's building capture table,
@@ -757,7 +757,7 @@ CREATE TRIGGER psf_buildingcapture_updateOnDelete
 BEFORE DELETE
 ON buildingcapture
 FOR EACH ROW
-EXECUTE FUNCTION fn_buildingcapture_updateOnDelete();
+EXECUTE PROCEDURE fn_buildingcapture_updateOnDelete();
 
 /*
 If a new avatar is created, a corresponding progression debt entry is also created by default.
@@ -781,4 +781,4 @@ CREATE TRIGGER psf_avatar_addDebtEntry
 AFTER INSERT
 ON avatar
 FOR EACH ROW
-EXECUTE FUNCTION fn_avatar_addDebtEntry();
+EXECUTE PROCEDURE fn_avatar_addDebtEntry();
