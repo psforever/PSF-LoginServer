@@ -134,7 +134,7 @@ lazy val QuietTest = config("quiet") extend Test
 
 lazy val docs = (project in file("docs"))
   .settings(psforeverSettings: _*)
-  .enablePlugins(ScalaUnidocPlugin)
+  //.enablePlugins(ScalaUnidocPlugin)
   .settings(
     name := "psforever"
   )
