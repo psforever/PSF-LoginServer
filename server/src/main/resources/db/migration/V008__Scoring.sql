@@ -381,17 +381,19 @@ DECLARE avatarId Int;
 DECLARE sessionId Int;
 DECLARE oldSessionId Int;
 BEGIN
-  avatarId := NEW.avatar_logged_in;
-  oldSessionId := proc_sessionnumber_test(avatarId);
-  sessionId := proc_sessionnumber_initAndOrIncreasePerHour(avatarId);
-  IF (sessionId > oldSessionId) THEN
-    BEGIN
-      UPDATE account
-      SET session_id = sessionId
-      WHERE id = OLD.id;
-      INSERT INTO kdasession (avatar_id, session_id)
-      VALUES (avatarId, sessionId);
-    END;
+  IF (OLD.avatar_logged_in = 0 AND NEW.avatar_logged_in > 0) THEN
+    avatarId := NEW.avatar_logged_in;
+    oldSessionId := proc_sessionnumber_test(avatarId);
+    sessionId := proc_sessionnumber_initAndOrIncreasePerHour(avatarId);
+    IF (sessionId > oldSessionId) THEN
+      BEGIN
+        UPDATE account
+        SET session_id = sessionId
+        WHERE id = OLD.id;
+        INSERT INTO kdasession (avatar_id, session_id)
+        VALUES (avatarId, sessionId);
+      END;
+    END IF;
   END IF;
   RETURN NEW;
 END;
@@ -401,7 +403,6 @@ CREATE TRIGGER psf_account_newSession
 AFTER UPDATE
 ON account
 FOR EACH ROW
-WHEN (OLD.avatar_logged_in = 0 AND NEW.avatar_logged_in > 0)
 EXECUTE FUNCTION fn_account_newSession();
 
 /*
