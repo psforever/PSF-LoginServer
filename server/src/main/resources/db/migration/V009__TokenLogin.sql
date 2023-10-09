@@ -17,7 +17,7 @@ $function$
 CREATE OR REPLACE TRIGGER trigger_accounts_set_token_created
 BEFORE UPDATE
     OF "token" ON "account"
-    FOR EACH ROW EXECUTE FUNCTION fn_set_token_created_timestamp();
+    FOR EACH ROW EXECUTE PROCEDURE fn_set_token_created_timestamp();
 
 CREATE TABLE IF NOT EXISTS "launcher" (
     "id" SERIAL PRIMARY KEY,

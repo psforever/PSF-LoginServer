@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS "killactivity" (
 );
 
 CREATE TABLE IF NOT EXISTS "kda" (
-  "avatar_id" INT NOT NULL REFERENCES avatar (id),  
+  "avatar_id" INT NOT NULL REFERENCES avatar (id),
   "kills" INT NOT NULL DEFAULT 0,
   "deaths" INT NOT NULL DEFAULT 0,
   "revives" INT NOT NULL DEFAULT 0,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS "kdasession" (
 );
 
 CREATE TABLE IF NOT EXISTS "weaponstat" (
-  "avatar_id" INT NOT NULL REFERENCES avatar (id),  
+  "avatar_id" INT NOT NULL REFERENCES avatar (id),
   "weapon_id" SMALLINT NOT NULL,
   "shots_fired" INT NOT NULL DEFAULT 0,
   "shots_landed" INT NOT NULL DEFAULT 0,
@@ -381,29 +381,29 @@ DECLARE avatarId Int;
 DECLARE sessionId Int;
 DECLARE oldSessionId Int;
 BEGIN
-  avatarId := NEW.avatar_logged_in;
-  oldSessionId := proc_sessionnumber_test(avatarId);
-  sessionId := proc_sessionnumber_initAndOrIncreasePerHour(avatarId);
-  IF (sessionId > oldSessionId) THEN
-    BEGIN
-      UPDATE account
-      SET session_id = sessionId
-      WHERE id = OLD.id;
-      INSERT INTO kdasession (avatar_id, session_id)
-      VALUES (avatarId, sessionId);
-    END;
+  IF (OLD.avatar_logged_in = 0 AND NEW.avatar_logged_in > 0) THEN
+    avatarId := NEW.avatar_logged_in;
+    oldSessionId := proc_sessionnumber_test(avatarId);
+    sessionId := proc_sessionnumber_initAndOrIncreasePerHour(avatarId);
+    IF (sessionId > oldSessionId) THEN
+      BEGIN
+        UPDATE account
+        SET session_id = sessionId
+        WHERE id = OLD.id;
+        INSERT INTO kdasession (avatar_id, session_id)
+        VALUES (avatarId, sessionId);
+      END;
+    END IF;
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_account_newSession
+CREATE TRIGGER psf_account_newSession
 AFTER UPDATE
-OF avatar_logged_in
 ON account
 FOR EACH ROW
-WHEN (OLD.avatar_logged_in = 0 AND NEW.avatar_logged_in > 0)
-EXECUTE FUNCTION fn_account_newSession();
+EXECUTE PROCEDURE fn_account_newSession();
 
 /*
 A kill activity causes three major updates:
@@ -448,11 +448,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_killactivity_updateRelatedStats
+CREATE TRIGGER psf_killactivity_updateRelatedStats
 AFTER INSERT
 ON killactivity
 FOR EACH ROW
-EXECUTE FUNCTION fn_killactivity_updateRelatedStats();
+EXECUTE PROCEDURE fn_killactivity_updateRelatedStats();
 
 /*
 Before attempting to update the data in a character's session weapon statistics row entry, make certain the row entry already exists.
@@ -474,11 +474,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_weaponstatsession_addEntryIfNone
+CREATE TRIGGER psf_weaponstatsession_addEntryIfNone
 BEFORE UPDATE
 ON weaponstatsession
 FOR EACH ROW
-EXECUTE FUNCTION fn_weaponstatsession_addEntryIfNone();
+EXECUTE PROCEDURE fn_weaponstatsession_addEntryIfNone();
 
 /*
 Before attempting to update the data in a character's campaign KDA row entry, make certain the row entry already exists.
@@ -498,11 +498,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_kda_addEntryIfNone
+CREATE TRIGGER psf_kda_addEntryIfNone
 BEFORE UPDATE
 ON kda
 FOR EACH ROW
-EXECUTE FUNCTION fn_kda_addEntryIfNone();
+EXECUTE PROCEDURE fn_kda_addEntryIfNone();
 
 /*
 Before attempting to update the data in a character's campaign weapon statistics row entry, make certain the row entry already exists.
@@ -524,11 +524,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_weaponstat_addEntryIfNone
+CREATE TRIGGER psf_weaponstat_addEntryIfNone
 BEFORE UPDATE
 ON weaponstat
 FOR EACH ROW
-EXECUTE FUNCTION fn_weaponstat_addEntryIfNone();
+EXECUTE PROCEDURE fn_weaponstat_addEntryIfNone();
 
 /*
 Before attempting to update the revival data in a character's session kda column,
@@ -555,11 +555,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_kdasession_updateRevives
+CREATE TRIGGER psf_kdasession_updateRevives
 BEFORE INSERT
 ON kdasession
 FOR EACH ROW
-EXECUTE FUNCTION fn_kdasession_updateRevives();
+EXECUTE PROCEDURE fn_kdasession_updateRevives();
 
 /*
 Upon deletion of row entries for a character's session KDA,
@@ -589,11 +589,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_kdasession_updateOnDelete
+CREATE TRIGGER psf_kdasession_updateOnDelete
 BEFORE DELETE
 ON kdasession
 FOR EACH ROW
-EXECUTE FUNCTION fn_kdasession_updateOnDelete();
+EXECUTE PROCEDURE fn_kdasession_updateOnDelete();
 
 /*
 Upon deletion of row entries for a character's session weapon stats,
@@ -628,11 +628,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_weaponstatsession_updateOnDelete
+CREATE TRIGGER psf_weaponstatsession_updateOnDelete
 BEFORE DELETE
 ON weaponstatsession
 FOR EACH ROW
-EXECUTE FUNCTION fn_weaponstatsession_updateOnDelete();
+EXECUTE PROCEDURE fn_weaponstatsession_updateOnDelete();
 
 /*
 Before inserting a value into the weaponstatsession table to session id -1,
@@ -670,12 +670,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_weaponstatsession_beforeInsert
+CREATE TRIGGER psf_weaponstatsession_beforeInsert
 BEFORE INSERT
 ON weaponstatsession
 FOR EACH ROW
 WHEN (NEW.session_id = -1)
-EXECUTE FUNCTION fn_weaponstatsession_beforeInsert();
+EXECUTE PROCEDURE fn_weaponstatsession_beforeInsert();
 
 /*
 A kill assist activity causes a major update to weapon stats:
@@ -703,11 +703,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_assistactivity_updateRelatedStats
+CREATE TRIGGER psf_assistactivity_updateRelatedStats
 AFTER INSERT
 ON killactivity
 FOR EACH ROW
-EXECUTE FUNCTION fn_assistactivity_updateRelatedStats();
+EXECUTE PROCEDURE fn_assistactivity_updateRelatedStats();
 
 /*
 Upon deletion of row entries for a character's building capture table,
@@ -753,11 +753,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_buildingcapture_updateOnDelete
+CREATE TRIGGER psf_buildingcapture_updateOnDelete
 BEFORE DELETE
 ON buildingcapture
 FOR EACH ROW
-EXECUTE FUNCTION fn_buildingcapture_updateOnDelete();
+EXECUTE PROCEDURE fn_buildingcapture_updateOnDelete();
 
 /*
 If a new avatar is created, a corresponding progression debt entry is also created by default.
@@ -777,8 +777,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER psf_avatar_addDebtEntry
+CREATE TRIGGER psf_avatar_addDebtEntry
 AFTER INSERT
 ON avatar
 FOR EACH ROW
-EXECUTE FUNCTION fn_avatar_addDebtEntry();
+EXECUTE PROCEDURE fn_avatar_addDebtEntry();
