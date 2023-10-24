@@ -10884,14 +10884,14 @@
     "Id": 295,
     "ObjectName": "vanu_equipment_term_200004",
     "ObjectType": "vanu_equipment_term",
-    "Owner": 126,
+    "Owner": null,
     "AbsX": 1029.84,
     "AbsY": 1332.43,
     "AbsZ": 96.39,
     "Yaw": 76.0,
     "GUID": 859,
     "MapID": 200004,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 296,
