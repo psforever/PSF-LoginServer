@@ -47,7 +47,7 @@ class Terminal(tdef: TerminalDefinition) extends Amenity with Hackable {
     * @return an actionable message that explains what resulted from interacting with this `Terminal`
     */
   def Request(player: Player, msg: Any): Terminal.Exchange = {
-    if (Faction == player.Faction || HackedBy.isDefined || Owner.GUID == PlanetSideGUID(0)) {
+    if (Faction == player.Faction || HackedBy.isDefined || Owner.GUID == PlanetSideGUID(0) || Owner.ObjectType = "vanu_core") {
       tdef.Request(player, msg)
     } else {
       Terminal.NoDeal()
