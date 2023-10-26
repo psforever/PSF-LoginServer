@@ -124,9 +124,9 @@ object CollisionDamageModifierFunctions {
     val fall = cause.fall
     if (fall.toInt != 0) {
       val z = data.target.Definition.collision.z
-      damage + z.hp(z.height(fall + 0.5f))
+      (damage + z.hp(z.height(fall + 0.5f))) / 3
     } else {
-      damage
+      damage / 3
     }
   }
 }
