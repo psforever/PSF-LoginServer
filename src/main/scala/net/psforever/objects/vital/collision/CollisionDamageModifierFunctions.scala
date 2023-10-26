@@ -11,7 +11,7 @@ import net.psforever.types.Vector3
   */
 case object GroundImpact extends CollisionDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: CollisionReason): Int =
-    CollisionDamageModifierFunctions.calculateGroundImpact(damage, data, cause)
+    CollisionDamageModifierFunctions.calculateGroundImpact(damage, data, cause) / 5
 }
 
 /**
@@ -19,7 +19,7 @@ case object GroundImpact extends CollisionDamageModifiers.Mod {
   */
 case object GroundImpactWith extends CollisionWithDamageModifiers.Mod {
   def calculate(damage: Int, data: DamageInteraction, cause: CollisionWithReason): Int =
-    CollisionDamageModifierFunctions.calculateGroundImpact(damage, data, cause)
+    CollisionDamageModifierFunctions.calculateGroundImpact(damage, data, cause) / 5
 }
 
 /**
@@ -124,9 +124,9 @@ object CollisionDamageModifierFunctions {
     val fall = cause.fall
     if (fall.toInt != 0) {
       val z = data.target.Definition.collision.z
-      (damage + z.hp(z.height(fall + 0.5f))) / 3
+      damage + z.hp(z.height(fall + 0.5f))
     } else {
-      damage / 3
+      damage
     }
   }
 }
