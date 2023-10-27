@@ -173,7 +173,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
         }
         val hotspotsAndSpawnsInZones: Iterable[(Zone, HotSpotInfo, List[SpawnPoint])] = zones
           .collect {
-            case zone if !zone.map.cavern && zone.Players.nonEmpty =>
+            case zone if zone.Players.nonEmpty =>
               zone.HotSpotData
                 .map {
                   info => (zone, info, zone.findNearestSpawnPoints(faction, info.DisplayLocation, spawnTarget))
