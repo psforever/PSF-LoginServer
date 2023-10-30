@@ -6237,7 +6237,7 @@
     "Yaw": 259.0,
     "GUID": 483,
     "MapID": 200015,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 270,
@@ -6250,7 +6250,7 @@
     "Yaw": 259.0,
     "GUID": 484,
     "MapID": 200016,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 271,
@@ -6263,7 +6263,7 @@
     "Yaw": 220.0,
     "GUID": 485,
     "MapID": 200017,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 275,
@@ -6276,7 +6276,7 @@
     "Yaw": 43.0,
     "GUID": 486,
     "MapID": 200021,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 274,
@@ -6289,7 +6289,7 @@
     "Yaw": 76.0,
     "GUID": 487,
     "MapID": 200020,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 273,
@@ -6302,7 +6302,7 @@
     "Yaw": 104.0,
     "GUID": 488,
     "MapID": 200019,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 233,
@@ -6315,20 +6315,20 @@
     "Yaw": 0.0,
     "GUID": 489,
     "MapID": 200004,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 134,
     "ObjectName": "crystals_energy_a",
     "ObjectType": "crystals_energy_a",
-    "Owner": 131,
+    "Owner": null,
     "AbsX": 1235.27588,
     "AbsY": 1133.46118,
     "AbsZ": 195.23,
     "Yaw": 0.0,
     "GUID": 490,
     "MapID": null,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 268,
@@ -6341,7 +6341,7 @@
     "Yaw": 50.0,
     "GUID": 491,
     "MapID": 200014,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 278,
@@ -6354,7 +6354,7 @@
     "Yaw": 248.0,
     "GUID": 492,
     "MapID": 200024,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 272,
@@ -6367,7 +6367,7 @@
     "Yaw": 58.0,
     "GUID": 493,
     "MapID": 200018,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 234,
@@ -6380,7 +6380,7 @@
     "Yaw": 83.0,
     "GUID": 494,
     "MapID": 200005,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 286,
@@ -6393,7 +6393,7 @@
     "Yaw": 83.0,
     "GUID": 495,
     "MapID": 200031,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 261,
@@ -6406,7 +6406,7 @@
     "Yaw": 0.0,
     "GUID": 496,
     "MapID": 200007,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 164,
@@ -6419,7 +6419,7 @@
     "Yaw": 101.0,
     "GUID": 497,
     "MapID": 200001,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 163,
@@ -6432,7 +6432,7 @@
     "Yaw": 61.0,
     "GUID": 498,
     "MapID": 200000,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 285,
@@ -6445,7 +6445,7 @@
     "Yaw": 0.0,
     "GUID": 499,
     "MapID": 200030,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 232,
@@ -6458,7 +6458,7 @@
     "Yaw": 0.0,
     "GUID": 500,
     "MapID": 200003,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 262,
@@ -6471,7 +6471,7 @@
     "Yaw": 234.0,
     "GUID": 501,
     "MapID": 200008,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 235,
@@ -6484,7 +6484,7 @@
     "Yaw": 151.0,
     "GUID": 502,
     "MapID": 200006,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 247,
