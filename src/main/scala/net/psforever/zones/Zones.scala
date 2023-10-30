@@ -519,7 +519,8 @@ object Zones {
           )
 
         case "adv_med_terminal" | "repair_silo" | "pad_landing_frame" | "pad_landing_tower_frame" | "medical_terminal" |
-            "crystals_health_a" | "crystals_health_b" =>
+            "crystals_health_a" | "crystals_health_b" | "crystals_repair_a" | "crystals_repair_b" | "crystals_vehicle_a" |
+            "crystals_vehicle_b" | "crystals_energy_a" | "crystals_energy_b" =>
           zoneMap.addLocalObject(
             obj.guid,
             ProximityTerminal
@@ -567,6 +568,18 @@ object Zones {
               zoneMap.addLocalObject(
                 obj.guid + 2,
                 ProximityTerminal.Constructor(obj.position, GlobalDefinitions.recharge_terminal),
+                owningBuildingGuid = ownerGuid
+              )
+            case "crystals_vehicle_a" | "crystals_vehicle_b" =>
+              zoneMap.addLocalObject(
+                obj.guid + 1,
+                ProximityTerminal.Constructor(obj.position, GlobalDefinitions.recharge_terminal),
+                owningBuildingGuid = ownerGuid
+              )
+            case "crystals_energy_a" | "crystals_energy_b" =>
+              zoneMap.addLocalObject(
+                obj.guid + 1,
+                ProximityTerminal.Constructor(obj.position, GlobalDefinitions.crystals_energy),
                 owningBuildingGuid = ownerGuid
               )
             case _ => ;
