@@ -2,7 +2,8 @@
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
-import scodec.Codec
+import scodec.bits.BitVector
+import scodec.{Attempt, Codec}
 import scodec.codecs._
 
 /**
@@ -12,21 +13,33 @@ import scodec.codecs._
   * It merely generates the message:<br>
   *   `"You have been awarded x experience points."`<br>
   * ... where `x` is the number of experience points that have been promised.
-  * If the `Boolean` parameter is `true`, `x` will be equal to the number provided followed by the word "Command."
-  * If the `Boolean` parameter is `false`, `x` will be represented as an obvious blank space character.
-  * (Yes, it prints to the events chat like that.)
   * @param exp the number of (Command) experience points earned
-  * @param unk defaults to `true` for effect;
-  *            if `false`, the number of experience points in the message will be blanked
+  * @param cmd if `true`, the message will be tailored for "Command" experience;
+  *            if `false`, the number of experience points and the "Command" flair will be blanked
   */
-final case class ExperienceAddedMessage(exp: Int, unk: Boolean = true) extends PlanetSideGamePacket {
+final case class ExperienceAddedMessage(exp: Int, cmd: Boolean) extends PlanetSideGamePacket {
   type Packet = ExperienceAddedMessage
-  def opcode = GamePacketOpcode.ExperienceAddedMessage
-  def encode = ExperienceAddedMessage.encode(this)
+  def opcode: GamePacketOpcode.Value = GamePacketOpcode.ExperienceAddedMessage
+  def encode: Attempt[BitVector] = ExperienceAddedMessage.encode(this)
 }
 
 object ExperienceAddedMessage extends Marshallable[ExperienceAddedMessage] {
+  /**
+   * Produce a packet whose message to the event chat is
+   * "You have been awarded experience points."
+   * @return `ExperienceAddedMessage` packet
+   */
+  def apply(): ExperienceAddedMessage = ExperienceAddedMessage(0, cmd = false)
+
+  /**
+   * Produce a packet whose message to the event chat is
+   * "You have been awarded 'exp' Command experience points."
+   * @param exp the number of Command experience points earned
+   * @return `ExperienceAddedMessage` packet
+   */
+  def apply(exp: Int): ExperienceAddedMessage = ExperienceAddedMessage(exp, cmd = true)
+
   implicit val codec: Codec[ExperienceAddedMessage] = (
-    ("exp" | uintL(15)) :: ("unk" | bool)
+    ("exp" | uintL(bits = 15)) :: ("unk" | bool)
   ).as[ExperienceAddedMessage]
 }

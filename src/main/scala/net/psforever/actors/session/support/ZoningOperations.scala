@@ -81,7 +81,7 @@ object ZoningOperations {
         "If you consider yourself as a veteran soldier, despite looking so green, please read this.\n" ++
           "You only have this opportunity while you are battle rank 1." ++
           "\n\n" ++
-          "The normal method of rank advancement comes from progress on the battlefield - fighting enemies, helping allies, and capturing facilities. " ++
+          "The normal method of rank advancement comes from the battlefield - fighting enemies, helping allies, and capturing facilities. " ++
           "\n\n" ++
           s"You may, however, rapidly promote yourself to at most battle rank ${Config.app.game.promotion.maxBattleRank}. " ++
           "You have access to all of the normal benefits, certification points, implants, etc., of your chosen rank. " ++

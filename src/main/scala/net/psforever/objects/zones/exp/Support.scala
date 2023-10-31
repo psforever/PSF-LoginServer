@@ -215,18 +215,14 @@ object Support {
       .find(evt => event.equals(evt.name))
       .map { event =>
         val shots = weaponStat.shots
+        val shotsMax = event.shotsMax
         val shotsMultiplier = event.shotsMultiplier
         if (shotsMultiplier > 0f && shots < event.shotsCutoff) {
-          val modifiedShotsReward: Float = {
-            val partialShots = math.min(event.shotsLimit, shots).toFloat
-            shotsMultiplier * (if (event.shotsNatLog > 0f) {
-              math.log(math.pow(partialShots, event.shotsNatLog) + 2d).toFloat
-            } else {
-              partialShots
-            })
-          }
-          val modifiedAmountReward: Float = event.amountMultiplier * weaponStat.amount.toFloat
-          event.base + modifiedShotsReward + modifiedAmountReward
+          val modifiedShotsReward: Float =
+            shotsMultiplier * math.log(math.min(shotsMax, shots).toDouble + 2d).toFloat
+          val modifiedAmountReward: Float =
+            event.amountMultiplier * weaponStat.amount.toFloat
+          event.base.toFloat + modifiedShotsReward + modifiedAmountReward
         } else {
           0f
         }

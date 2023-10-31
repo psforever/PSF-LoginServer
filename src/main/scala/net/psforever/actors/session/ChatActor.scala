@@ -732,10 +732,18 @@ class ChatActor(
               }
 
             case (CMT_SETBATTLERANK, _, contents) if gmCommandAllowed =>
-              setBattleRank(message, contents, session, AvatarActor.SetBep)
+              if (!setBattleRank(contents, session, AvatarActor.SetBep)) {
+                sessionActor ! SessionActor.SendResponse(
+                  message.copy(messageType = UNK_229, contents = "@CMT_SETBATTLERANK_usage")
+                )
+              }
 
             case (CMT_SETCOMMANDRANK, _, contents) if gmCommandAllowed =>
-              setCommandRank(message, contents, session)
+              if (!setCommandRank(contents, session)) {
+                sessionActor ! SessionActor.SendResponse(
+                  message.copy(messageType = UNK_229, contents = "@CMT_SETCOMMANDRANK_usage")
+                )
+              }
 
             case (CMT_ADDBATTLEEXPERIENCE, _, contents) if gmCommandAllowed =>
               contents.toIntOption match {
@@ -1124,7 +1132,7 @@ class ChatActor(
         true
 
       } else if (contents.startsWith("!list")) {
-        val zone = contents.split(" ").lift(1) match {
+        val zone = dropFirstWord(contents).split(" ").headOption match {
           case None =>
             Some(session.zone)
           case Some(id) =>
@@ -1170,8 +1178,8 @@ class ChatActor(
         true
 
       } else if (contents.startsWith("!ntu") && gmCommandAllowed) {
-        val buffer = contents.toLowerCase.split("\\s+")
-        val (facility, customNtuValue) = (buffer.lift(1), buffer.lift(2)) match {
+        val buffer = dropFirstWord(contents).toLowerCase.split("\\s+")
+        val (facility, customNtuValue) = (buffer.headOption, buffer.lift(1)) match {
           case (Some(x), Some(y)) if y.toIntOption.nonEmpty => (Some(x), Some(y.toInt))
           case (Some(x), None) if x.toIntOption.nonEmpty => (None, Some(x.toInt))
           case _ => (None, None)
@@ -1202,8 +1210,8 @@ class ChatActor(
         true
 
       } else if (contents.startsWith("!zonerotate") && gmCommandAllowed) {
-        val buffer = contents.toLowerCase.split("\\s+")
-        cluster ! InterstellarClusterService.CavernRotation(buffer.lift(1) match {
+        val buffer = dropFirstWord(contents).toLowerCase.split("\\s+")
+        cluster ! InterstellarClusterService.CavernRotation(buffer.headOption match {
           case Some("-list") | Some("-l") =>
             CavernRotationService.ReportRotationOrder(sessionActor.toClassic)
           case _ =>
@@ -1224,8 +1232,8 @@ class ChatActor(
 
       } else if (contents.startsWith("!macro")) {
         val avatar = session.avatar
-        val args = contents.split(" ").filter(_ != "")
-        (args.lift(1), args.lift(2)) match {
+        val args = dropFirstWord(contents).split(" ").filter(_ != "")
+        (args.headOption, args.lift(1)) match {
           case (Some(cmd), other) =>
             cmd.toLowerCase() match {
               case "medkit" =>
@@ -1275,9 +1283,10 @@ class ChatActor(
         }
       } else if (contents.startsWith("!progress")) {
         if (!session.account.gm && BattleRank.withExperience(session.avatar.bep).value < Config.app.game.promotion.maxBattleRank + 1) {
-          setBattleRank(message, contents, session, AvatarActor.Progress)
+          setBattleRank(dropFirstWord(contents), session, AvatarActor.Progress)
           true
         } else {
+          setBattleRank(contents="1", session, AvatarActor.Progress)
           false
         }
       } else {
@@ -1288,12 +1297,19 @@ class ChatActor(
     }
   }
 
+  private def dropFirstWord(str: String): String = {
+    val noExtraSpaces = str.replaceAll("\\s+", " ").toLowerCase.trim
+    noExtraSpaces.indexOf({ char: String => char.equals(" ") }) match {
+      case -1               => ""
+      case beforeFirstBlank => noExtraSpaces.drop(beforeFirstBlank + 1)
+    }
+  }
+
   def setBattleRank(
-                     message: ChatMsg,
                      contents: String,
                      session: Session,
                      msgFunc: Long => AvatarActor.Command
-                   ): Unit = {
+                   ): Boolean = {
     val buffer = contents.toLowerCase.split("\\s+")
     val (target, rank) = (buffer.lift(0), buffer.lift(1)) match {
       case (Some(target), Some(rank)) if target == session.avatar.name =>
@@ -1301,6 +1317,8 @@ class ChatActor(
           case Some(rank) => (None, BattleRank.withValueOpt(rank))
           case None       => (None, None)
         }
+      case (Some("-h"), _) | (Some("-help"), _) =>
+        (None, Some(BattleRank.BR1))
       case (Some(_), Some(_)) =>
         // picking other targets is not supported for now
         (None, None)
@@ -1314,14 +1332,16 @@ class ChatActor(
     (target, rank) match {
       case (_, Some(rank)) if rank.value <= Config.app.game.maxBattleRank =>
         avatarActor ! msgFunc(rank.experience)
+        true
       case _ =>
-        sessionActor ! SessionActor.SendResponse(
-          message.copy(messageType = UNK_229, contents = "@CMT_SETBATTLERANK_usage")
-        )
+        false
     }
   }
 
-  def setCommandRank(message: ChatMsg, contents: String, session: Session): Unit = {
+  def setCommandRank(
+                      contents: String,
+                      session: Session
+                    ): Boolean = {
     val buffer = contents.toLowerCase.split("\\s+")
     val (target, rank) = (buffer.lift(0), buffer.lift(1)) match {
       case (Some(target), Some(rank)) if target == session.avatar.name =>
@@ -1342,11 +1362,9 @@ class ChatActor(
     (target, rank) match {
       case (_, Some(rank)) =>
         avatarActor ! AvatarActor.SetCep(rank.experience)
-        //sessionActor ! SessionActor.SendResponse(message.copy(contents = "@AckSuccessSetCommandRank"))
+        true
       case _ =>
-        sessionActor ! SessionActor.SendResponse(
-          message.copy(messageType = UNK_229, contents = "@CMT_SETCOMMANDRANK_usage")
-        )
+        false
     }
   }
 }

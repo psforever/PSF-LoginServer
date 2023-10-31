@@ -204,7 +204,7 @@ object FacilityHackParticipation {
     if (dataSum != 0) {
       math.max(0.15f, math.min(2f, dataSum / dataCount.toFloat))
     } else {
-      1f //can't do anything; multiplier should not affect values
+      1f
     }
   }
 

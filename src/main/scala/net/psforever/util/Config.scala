@@ -272,25 +272,26 @@ case class SupportExperiencePoints(
 case class SupportExperienceEvent(
     name: String,
     base: Long,
-    shotsMultiplier: Float = 0f,
-    shotsNatLog: Double = 0f,
-    shotsLimit: Int = 50,
+    shotsMax: Int = 50,
     shotsCutoff: Int = 50,
+    shotsMultiplier: Float = 0f,
     amountMultiplier: Float = 0f
 )
 
 case class CommandExperiencePoints(
-                                    rate: Float,
-                                    lluCarrierModifier: Float,
-                                    lluSlayerCreditDuration: Duration,
-                                    lluSlayerCredit: Long,
-                                    maximumPerSquadSize: Seq[Int],
-                                    squadSizeLimitOverflow: Int,
-                                    squadSizeLimitOverflowMultiplier: Float
+    rate: Float,
+    lluCarrierModifier: Float,
+    lluSlayerCreditDuration: Duration,
+    lluSlayerCredit: Long,
+    maximumPerSquadSize: Seq[Int],
+    squadSizeLimitOverflow: Int,
+    squadSizeLimitOverflowMultiplier: Float
 )
 
 case class PromotionSystem(
     active: Boolean,
     maxBattleRank: Int,
-    battleExperiencePointsModifier: Float
+    battleExperiencePointsModifier: Float,
+    supportExperiencePointsModifier: Float,
+    captureExperiencePointsModifier: Float
 )

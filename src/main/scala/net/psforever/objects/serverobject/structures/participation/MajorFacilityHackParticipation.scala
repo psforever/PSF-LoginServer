@@ -47,14 +47,15 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
     import scala.concurrent.Promise
     import scala.util.Success
     val requestLayers: Promise[ZoneHotSpotProjector.ExposedHeat] = Promise[ZoneHotSpotProjector.ExposedHeat]()
-    val request = updateHotSpotInfoOnly()
-    requestLayers.completeWith(request)
-    request.onComplete {
-      case Success(ZoneHotSpotProjector.ExposedHeat(_, _, activity)) =>
-        hotSpotLayersOverTime = timeSensitiveFilterAndAppend(hotSpotLayersOverTime, activity, System.currentTimeMillis() - 900000L)
-      case _ =>
-        requestLayers.completeWith(Future(ZoneHotSpotProjector.ExposedHeat(Vector3.Zero, 0, Nil)))
-    }
+//    val request = updateHotSpotInfoOnly()
+//    requestLayers.completeWith(request)
+//    request.onComplete {
+//      case Success(ZoneHotSpotProjector.ExposedHeat(_, _, activity)) =>
+//        hotSpotLayersOverTime = timeSensitiveFilterAndAppend(hotSpotLayersOverTime, activity, System.currentTimeMillis() - 900000L)
+//      case _ =>
+//        requestLayers.completeWith(Future(ZoneHotSpotProjector.ExposedHeat(building.Position.xy, building.Definition.SOIRadius, Nil)))
+//    }
+    requestLayers.completeWith(Future(ZoneHotSpotProjector.ExposedHeat(building.Position.xy, building.Definition.SOIRadius, Nil)))
     requestLayers.future
   }
 
@@ -140,7 +141,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
            */
           val finalMap = mutable.HashMap[Vector3, Map[PlanetSideEmpire.Value, Seq[Long]]]()
             .addAll(
-              hotSpotLayersOverTime.take(1).flatMap { entry =>
+              hotSpotLayersOverTime.flatMap { entry =>
                 entry.map { f => (f.DisplayLocation, Map.empty[PlanetSideEmpire.Value, Seq[Long]]) }
               }
             )
