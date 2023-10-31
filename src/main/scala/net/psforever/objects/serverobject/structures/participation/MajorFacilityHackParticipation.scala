@@ -55,7 +55,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
 //      case _ =>
 //        requestLayers.completeWith(Future(ZoneHotSpotProjector.ExposedHeat(building.Position.xy, building.Definition.SOIRadius, Nil)))
 //    }
-    requestLayers.completeWith(Future(ZoneHotSpotProjector.ExposedHeat(building.Position.xy, building.Definition.SOIRadius, Nil)))
+    requestLayers.completeWith(Future(ZoneHotSpotProjector.ExposedHeat(building.Position.xy, building.Definition.SOIRadius.toFloat, Nil)))
     requestLayers.future
   }
 

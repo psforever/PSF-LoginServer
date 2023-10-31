@@ -311,7 +311,7 @@ class VehicleControlMountingBlockedExosuitTest extends ActorTest {
       vehicle.Actor.tell(Mountable.TryDismount(player1, 0), probe.ref)
       probe.receiveOne(500 milliseconds) //discard
       vehicle.OwnerGuid = None //ensure
-      vehicle.OwnerName = None //ensure
+      //vehicle.OwnerName = None //ensure
       vehicle.Actor.tell(Mountable.TryMount(player3, 1), probe.ref) // Agile in driver mount allowing all except MAX
       VehicleControlTest.checkCanMount(probe, "Agile in driver mount allowing all except MAX")
       vehicle.Actor.tell(Mountable.TryMount(player1, 3), probe.ref) // Reinforced in passenger mount allowing all except MAX
