@@ -578,7 +578,7 @@ object Zones {
               )
             case "crystals_energy_a" | "crystals_energy_b" =>
               zoneMap.addLocalObject(
-                obj.guid + 1,
+                obj.guid + 2000,
                 ProximityTerminal.Constructor(obj.position, GlobalDefinitions.crystals_energy),
                 owningBuildingGuid = ownerGuid
               )
