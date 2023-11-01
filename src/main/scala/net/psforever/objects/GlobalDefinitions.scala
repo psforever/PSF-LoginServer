@@ -9937,8 +9937,8 @@ object GlobalDefinitions {
     lodestar_repair_terminal.Name = "lodestar_repair_terminal"
     lodestar_repair_terminal.Interval = 1000
     lodestar_repair_terminal.HealAmount = 60
-    lodestar_repair_terminal.UseRadius = 20
-    lodestar_repair_terminal.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.RepairSilo
+    lodestar_repair_terminal.UseRadius = 40
+    lodestar_repair_terminal.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.LodestarRepair
     lodestar_repair_terminal.Damageable = false
     lodestar_repair_terminal.Repairable = false
 
