@@ -9713,16 +9713,16 @@ object GlobalDefinitions {
     crystals_repair_b.Repairable = false
 
     crystals_vehicle_a.Name = "crystals_vehicle_a"
-    crystals_vehicle_a.Interval = 1350
-    crystals_vehicle_a.HealAmount = 40
+    crystals_vehicle_a.Interval = 1000
+    crystals_vehicle_a.HealAmount = 60
     crystals_vehicle_a.UseRadius = 15
     crystals_vehicle_a.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.VehicleCrystal
     crystals_vehicle_a.Damageable = false
     crystals_vehicle_a.Repairable = false
 
     crystals_vehicle_b.Name = "crystals_vehicle_b"
-    crystals_vehicle_b.Interval = 1350
-    crystals_vehicle_b.HealAmount = 40
+    crystals_vehicle_b.Interval = 1000
+    crystals_vehicle_b.HealAmount = 60
     crystals_vehicle_b.UseRadius = 15
     crystals_vehicle_b.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.VehicleCrystal
     crystals_vehicle_b.Damageable = false
@@ -9743,7 +9743,7 @@ object GlobalDefinitions {
     crystals_energy_b.Repairable = false
 
     crystals_energy.Name = "crystals_energy"
-    crystals_energy.Interval = 500
+    crystals_energy.Interval = 1000
     crystals_energy.UseRadius = 5
     crystals_energy.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.AncientWeaponRecharge
     crystals_energy.Damageable = false
