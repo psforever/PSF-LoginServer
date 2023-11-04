@@ -39,6 +39,26 @@ object EffectTarget {
           false
       }
 
+    def RepairCrystal(target: PlanetSideGameObject): Boolean =
+      target match {
+        case p: Player =>
+          p.Health > 0 && p.Armor < p.MaxArmor
+        case _ =>
+          false
+      }
+
+    def VehicleCrystal(target: PlanetSideGameObject): Boolean =
+      target match {
+        case v: Vehicle => RepairSilo(v) || PadLanding(v) || AncientVehicleWeaponRecharge(v)
+        case _ => false
+      }
+
+    def LodestarRepair(target: PlanetSideGameObject): Boolean =
+      target match {
+        case v: Vehicle => RepairSilo(v) || PadLanding(v)
+        case _ => false
+      }
+
     /**
      * To repair at this silo, the vehicle:
      * can not be a flight vehicle,
@@ -65,7 +85,7 @@ object EffectTarget {
 
     private def CommonRepairConditions(v: Vehicle): Boolean = {
       v.Health > 0 && v.Health < v.MaxHealth &&
-        (v.History.findLast { entry => entry.isInstanceOf[DamagingActivity] } match {
+        (v.History.find { entry => entry.isInstanceOf[DamagingActivity] } match {
           case Some(entry) if System.currentTimeMillis() - entry.time < 5000L => false
           case _ => true
         })

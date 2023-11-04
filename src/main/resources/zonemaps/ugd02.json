@@ -15077,7 +15077,7 @@
     "Yaw": 18.0,
     "GUID": 1214,
     "MapID": 200093,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 624,
@@ -15090,7 +15090,7 @@
     "Yaw": 54.0,
     "GUID": 1215,
     "MapID": 200096,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 393,
@@ -15103,7 +15103,7 @@
     "Yaw": 94.0,
     "GUID": 1216,
     "MapID": 200027,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 392,
@@ -15116,7 +15116,7 @@
     "Yaw": 0.0,
     "GUID": 1217,
     "MapID": 200026,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 394,
@@ -15129,7 +15129,7 @@
     "Yaw": 346.0,
     "GUID": 1218,
     "MapID": 200028,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 464,
@@ -15142,7 +15142,7 @@
     "Yaw": 173.0,
     "GUID": 1219,
     "MapID": 200040,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 676,
@@ -15155,7 +15155,7 @@
     "Yaw": 86.0,
     "GUID": 1220,
     "MapID": 200144,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 463,
@@ -15168,7 +15168,7 @@
     "Yaw": 97.0,
     "GUID": 1221,
     "MapID": 200039,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 316,
@@ -15181,7 +15181,7 @@
     "Yaw": 0.0,
     "GUID": 1222,
     "MapID": 200003,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 440,
@@ -15194,7 +15194,7 @@
     "Yaw": 198.0,
     "GUID": 1223,
     "MapID": 200038,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 439,
@@ -15207,7 +15207,7 @@
     "Yaw": 137.0,
     "GUID": 1224,
     "MapID": 200037,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 438,
@@ -15220,7 +15220,7 @@
     "Yaw": 0.0,
     "GUID": 1225,
     "MapID": 200036,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 400,
@@ -15233,7 +15233,7 @@
     "Yaw": 90.0,
     "GUID": 1226,
     "MapID": 200034,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 399,
@@ -15246,7 +15246,7 @@
     "Yaw": 169.0,
     "GUID": 1227,
     "MapID": 200033,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 665,
@@ -15259,7 +15259,7 @@
     "Yaw": 86.0,
     "GUID": 1228,
     "MapID": 200135,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 666,
@@ -15272,7 +15272,7 @@
     "Yaw": 115.0,
     "GUID": 1229,
     "MapID": 200136,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 625,
@@ -15285,7 +15285,7 @@
     "Yaw": 144.0,
     "GUID": 1230,
     "MapID": 200097,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 376,
@@ -15298,7 +15298,7 @@
     "Yaw": 54.0,
     "GUID": 1231,
     "MapID": 200019,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 377,
@@ -15311,7 +15311,7 @@
     "Yaw": 292.0,
     "GUID": 1232,
     "MapID": 200020,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 379,
@@ -15324,7 +15324,7 @@
     "Yaw": 54.0,
     "GUID": 1233,
     "MapID": 200022,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 380,
@@ -15337,7 +15337,7 @@
     "Yaw": 353.0,
     "GUID": 1234,
     "MapID": 200023,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 378,
@@ -15350,7 +15350,7 @@
     "Yaw": 292.0,
     "GUID": 1235,
     "MapID": 200021,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 502,
@@ -15363,7 +15363,7 @@
     "Yaw": 209.0,
     "GUID": 1236,
     "MapID": 200075,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 498,
@@ -15376,7 +15376,7 @@
     "Yaw": 137.0,
     "GUID": 1237,
     "MapID": 200071,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 499,
@@ -15389,7 +15389,7 @@
     "Yaw": 65.0,
     "GUID": 1238,
     "MapID": 200072,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 500,
@@ -15402,7 +15402,7 @@
     "Yaw": 65.0,
     "GUID": 1239,
     "MapID": 200073,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 501,
@@ -15415,7 +15415,7 @@
     "Yaw": 108.0,
     "GUID": 1240,
     "MapID": 200074,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 480,
@@ -15428,7 +15428,7 @@
     "Yaw": 0.0,
     "GUID": 1241,
     "MapID": 200053,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 481,
@@ -15441,7 +15441,7 @@
     "Yaw": 180.0,
     "GUID": 1242,
     "MapID": 200054,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 482,
@@ -15454,7 +15454,7 @@
     "Yaw": 248.0,
     "GUID": 1243,
     "MapID": 200055,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 651,
@@ -15467,7 +15467,7 @@
     "Yaw": 79.0,
     "GUID": 1244,
     "MapID": 200122,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 652,
@@ -15480,7 +15480,7 @@
     "Yaw": 259.0,
     "GUID": 1245,
     "MapID": 200123,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 631,
@@ -15493,7 +15493,7 @@
     "Yaw": 61.0,
     "GUID": 1246,
     "MapID": 200103,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 484,
@@ -15506,7 +15506,7 @@
     "Yaw": 94.0,
     "GUID": 1247,
     "MapID": 200057,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 486,
@@ -15519,7 +15519,7 @@
     "Yaw": 284.0,
     "GUID": 1248,
     "MapID": 200059,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 485,
@@ -15532,7 +15532,7 @@
     "Yaw": 194.0,
     "GUID": 1249,
     "MapID": 200058,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 648,
@@ -15545,7 +15545,7 @@
     "Yaw": 259.0,
     "GUID": 1250,
     "MapID": 200119,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 647,
@@ -15558,7 +15558,7 @@
     "Yaw": 112.0,
     "GUID": 1251,
     "MapID": 200118,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 646,
@@ -15571,7 +15571,7 @@
     "Yaw": 349.0,
     "GUID": 1252,
     "MapID": 200117,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 645,
@@ -15584,7 +15584,7 @@
     "Yaw": 184.0,
     "GUID": 1253,
     "MapID": 200116,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 636,
@@ -15597,7 +15597,7 @@
     "Yaw": 205.0,
     "GUID": 1254,
     "MapID": 200107,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 637,
@@ -15610,7 +15610,7 @@
     "Yaw": 25.0,
     "GUID": 1255,
     "MapID": 200108,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 634,
@@ -15623,7 +15623,7 @@
     "Yaw": 328.0,
     "GUID": 1256,
     "MapID": 200105,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 635,
@@ -15636,7 +15636,7 @@
     "Yaw": 108.0,
     "GUID": 1257,
     "MapID": 200106,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 618,
@@ -15649,7 +15649,7 @@
     "Yaw": 90.0,
     "GUID": 1258,
     "MapID": 200090,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 398,
@@ -15662,7 +15662,7 @@
     "Yaw": 0.0,
     "GUID": 1259,
     "MapID": 200032,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 597,
@@ -15675,7 +15675,7 @@
     "Yaw": 0.0,
     "GUID": 1260,
     "MapID": 200082,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 627,
@@ -15688,7 +15688,7 @@
     "Yaw": 324.0,
     "GUID": 1261,
     "MapID": 200099,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 628,
@@ -15701,7 +15701,7 @@
     "Yaw": 4.0,
     "GUID": 1262,
     "MapID": 200100,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 664,
@@ -15714,7 +15714,7 @@
     "Yaw": 0.0,
     "GUID": 1263,
     "MapID": 200134,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 497,
@@ -15727,7 +15727,7 @@
     "Yaw": 0.0,
     "GUID": 1264,
     "MapID": 200070,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 614,
@@ -15740,7 +15740,7 @@
     "Yaw": 68.0,
     "GUID": 1265,
     "MapID": 200086,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 613,
@@ -15753,7 +15753,7 @@
     "Yaw": 259.0,
     "GUID": 1266,
     "MapID": 200085,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 483,
@@ -15766,7 +15766,7 @@
     "Yaw": 317.0,
     "GUID": 1267,
     "MapID": 200056,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 623,
@@ -15779,7 +15779,7 @@
     "Yaw": 0.0,
     "GUID": 1268,
     "MapID": 200095,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 470,
@@ -15792,7 +15792,7 @@
     "Yaw": 277.0,
     "GUID": 1269,
     "MapID": 200046,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 469,
@@ -15805,7 +15805,7 @@
     "Yaw": 137.0,
     "GUID": 1270,
     "MapID": 200045,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 616,
@@ -15818,7 +15818,7 @@
     "Yaw": 0.0,
     "GUID": 1271,
     "MapID": 200088,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 495,
@@ -15831,7 +15831,7 @@
     "Yaw": 180.0,
     "GUID": 1272,
     "MapID": 200068,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 494,
@@ -15844,7 +15844,7 @@
     "Yaw": 0.0,
     "GUID": 1273,
     "MapID": 200067,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 496,
@@ -15857,7 +15857,7 @@
     "Yaw": 356.0,
     "GUID": 1274,
     "MapID": 200069,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 367,
@@ -15870,7 +15870,7 @@
     "Yaw": 151.0,
     "GUID": 1275,
     "MapID": 200015,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 368,
@@ -15883,7 +15883,7 @@
     "Yaw": 112.0,
     "GUID": 1276,
     "MapID": 200016,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 699,
@@ -15896,7 +15896,7 @@
     "Yaw": 68.0,
     "GUID": 1277,
     "MapID": 200150,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 698,
@@ -15909,7 +15909,7 @@
     "Yaw": 68.0,
     "GUID": 1278,
     "MapID": 200149,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 700,
@@ -15922,7 +15922,7 @@
     "Yaw": 155.0,
     "GUID": 1279,
     "MapID": 200151,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 511,
@@ -15935,7 +15935,7 @@
     "Yaw": 180.0,
     "GUID": 1280,
     "MapID": 200081,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 649,
@@ -15948,7 +15948,7 @@
     "Yaw": 313.0,
     "GUID": 1281,
     "MapID": 200120,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 650,
@@ -15961,7 +15961,7 @@
     "Yaw": 126.0,
     "GUID": 1282,
     "MapID": 200121,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 657,
@@ -15974,7 +15974,7 @@
     "Yaw": 25.0,
     "GUID": 1283,
     "MapID": 200128,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 656,
@@ -15987,7 +15987,7 @@
     "Yaw": 144.0,
     "GUID": 1284,
     "MapID": 200127,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 655,
@@ -16000,7 +16000,7 @@
     "Yaw": 0.0,
     "GUID": 1285,
     "MapID": 200126,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 617,
@@ -16013,7 +16013,7 @@
     "Yaw": 0.0,
     "GUID": 1286,
     "MapID": 200089,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 642,
@@ -16026,7 +16026,7 @@
     "Yaw": 349.0,
     "GUID": 1287,
     "MapID": 200113,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 641,
@@ -16039,7 +16039,7 @@
     "Yaw": 65.0,
     "GUID": 1288,
     "MapID": 200112,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 640,
@@ -16052,7 +16052,7 @@
     "Yaw": 281.0,
     "GUID": 1289,
     "MapID": 200111,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 639,
@@ -16065,7 +16065,7 @@
     "Yaw": 230.0,
     "GUID": 1290,
     "MapID": 200110,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 713,
@@ -16078,7 +16078,7 @@
     "Yaw": 76.0,
     "GUID": 1291,
     "MapID": 200152,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 622,
@@ -16091,7 +16091,7 @@
     "Yaw": 169.0,
     "GUID": 1292,
     "MapID": 200094,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 327,
@@ -16104,7 +16104,7 @@
     "Yaw": 0.0,
     "GUID": 1293,
     "MapID": 200013,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 715,
@@ -16117,7 +16117,7 @@
     "Yaw": 0.0,
     "GUID": 1294,
     "MapID": 200154,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 626,
@@ -16130,7 +16130,7 @@
     "Yaw": 43.0,
     "GUID": 1295,
     "MapID": 200098,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 509,
@@ -16143,7 +16143,7 @@
     "Yaw": 86.0,
     "GUID": 1296,
     "MapID": 200079,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 508,
@@ -16156,7 +16156,7 @@
     "Yaw": 0.0,
     "GUID": 1297,
     "MapID": 200078,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 510,
@@ -16169,7 +16169,7 @@
     "Yaw": 162.0,
     "GUID": 1298,
     "MapID": 200080,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 320,
@@ -16182,7 +16182,7 @@
     "Yaw": 0.0,
     "GUID": 1299,
     "MapID": 200007,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 630,
@@ -16195,7 +16195,7 @@
     "Yaw": 4.0,
     "GUID": 1300,
     "MapID": 200102,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 638,
@@ -16208,7 +16208,7 @@
     "Yaw": 0.0,
     "GUID": 1301,
     "MapID": 200109,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 619,
@@ -16221,7 +16221,7 @@
     "Yaw": 0.0,
     "GUID": 1302,
     "MapID": 200091,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 620,
@@ -16234,7 +16234,7 @@
     "Yaw": 108.0,
     "GUID": 1303,
     "MapID": 200092,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 317,
@@ -16247,7 +16247,7 @@
     "Yaw": 0.0,
     "GUID": 1304,
     "MapID": 200004,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 468,
@@ -16260,7 +16260,7 @@
     "Yaw": 140.0,
     "GUID": 1305,
     "MapID": 200044,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 467,
@@ -16273,7 +16273,7 @@
     "Yaw": 220.0,
     "GUID": 1306,
     "MapID": 200043,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 491,
@@ -16286,7 +16286,7 @@
     "Yaw": 47.0,
     "GUID": 1307,
     "MapID": 200064,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 490,
@@ -16299,7 +16299,7 @@
     "Yaw": 148.0,
     "GUID": 1308,
     "MapID": 200063,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 370,
@@ -16312,7 +16312,7 @@
     "Yaw": 209.0,
     "GUID": 1309,
     "MapID": 200018,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 318,
@@ -16325,7 +16325,7 @@
     "Yaw": 0.0,
     "GUID": 1310,
     "MapID": 200005,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 474,
@@ -16338,7 +16338,7 @@
     "Yaw": 245.0,
     "GUID": 1311,
     "MapID": 200047,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 475,
@@ -16351,7 +16351,7 @@
     "Yaw": 137.0,
     "GUID": 1312,
     "MapID": 200048,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 507,
@@ -16364,7 +16364,7 @@
     "Yaw": 47.0,
     "GUID": 1313,
     "MapID": 200077,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 503,
@@ -16377,7 +16377,7 @@
     "Yaw": 227.0,
     "GUID": 1314,
     "MapID": 200076,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 659,
@@ -16390,7 +16390,7 @@
     "Yaw": 58.0,
     "GUID": 1315,
     "MapID": 200130,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 658,
@@ -16403,7 +16403,7 @@
     "Yaw": 238.0,
     "GUID": 1316,
     "MapID": 200129,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 643,
@@ -16416,7 +16416,7 @@
     "Yaw": 36.0,
     "GUID": 1317,
     "MapID": 200114,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 644,
@@ -16429,7 +16429,7 @@
     "Yaw": 97.0,
     "GUID": 1318,
     "MapID": 200115,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 714,
@@ -16442,7 +16442,7 @@
     "Yaw": 119.0,
     "GUID": 1319,
     "MapID": 200153,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 673,
@@ -16455,7 +16455,7 @@
     "Yaw": 252.0,
     "GUID": 1320,
     "MapID": 200143,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 672,
@@ -16468,7 +16468,7 @@
     "Yaw": 54.0,
     "GUID": 1321,
     "MapID": 200142,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 599,
@@ -16481,7 +16481,7 @@
     "Yaw": 83.0,
     "GUID": 1322,
     "MapID": 200084,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 598,
@@ -16494,7 +16494,7 @@
     "Yaw": 274.0,
     "GUID": 1323,
     "MapID": 200083,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 629,
@@ -16507,7 +16507,7 @@
     "Yaw": 180.0,
     "GUID": 1324,
     "MapID": 200101,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 489,
@@ -16520,7 +16520,7 @@
     "Yaw": 79.0,
     "GUID": 1325,
     "MapID": 200062,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 369,
@@ -16533,7 +16533,7 @@
     "Yaw": 29.0,
     "GUID": 1326,
     "MapID": 200017,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 615,
@@ -16546,7 +16546,7 @@
     "Yaw": 32.0,
     "GUID": 1327,
     "MapID": 200087,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 596,
@@ -17631,7 +17631,7 @@
     "Id": 717,
     "ObjectName": "vanu_equipment_term_200156",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 585,
     "AbsX": 868.14,
     "AbsY": 1507.66,
     "AbsZ": 214.34,
@@ -17644,7 +17644,7 @@
     "Id": 718,
     "ObjectName": "vanu_equipment_term_200157",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 585,
     "AbsX": 873.05,
     "AbsY": 1479.4,
     "AbsZ": 214.34,
@@ -18216,7 +18216,7 @@
     "Id": 1559,
     "ObjectName": "vanu_equipment_term_200328",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 601,
     "AbsX": 1282.61,
     "AbsY": 1120.26,
     "AbsZ": 216.13,
@@ -18242,7 +18242,7 @@
     "Id": 1560,
     "ObjectName": "vanu_equipment_term_200329",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 601,
     "AbsX": 1300.12,
     "AbsY": 1143.05,
     "AbsZ": 216.15,
