@@ -3,8 +3,6 @@ package net.psforever.actors.session.support
 
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, typed}
-import net.psforever.objects.avatar.SpecialCarry
-import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.services.Service
 import net.psforever.objects.zones.exp
@@ -495,25 +493,6 @@ class SessionAvatarHandlers(
               //also, @SVCP_Killed_TooCloseToPadOnCreate^n~ or "... within n meters of pad ..."
               sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SVCP_Killed_OnPadOnCreate"))
             case _ => ()
-          }
-          adversarial.collect {
-            case attacker
-              if player.Carrying.contains(SpecialCarry.CaptureFlag) &&
-                attacker.Faction != player.Faction &&
-                sessionData
-                  .specialItemSlotGuid
-                  .flatMap { continent.GUID }
-                  .collect {
-                    case llu: CaptureFlag =>
-                      System.currentTimeMillis() - llu.LastCollectionTime > Config.app.game.experience.cep.lluSlayerCreditDuration.toMillis
-                    case _ =>
-                      false
-                  }
-                  .contains(true) =>
-              continent.AvatarEvents ! AvatarServiceMessage(
-                attacker.Name,
-                AvatarAction.AwardCep(attacker.CharId, Config.app.game.experience.cep.lluSlayerCredit)
-              )
           }
           adversarial.map {_.Name }.orElse { Some(s"a ${reason.getClass.getSimpleName}") }
         }.getOrElse { s"an unfortunate circumstance (probably ${player.Sex.pronounObject} own fault)" }

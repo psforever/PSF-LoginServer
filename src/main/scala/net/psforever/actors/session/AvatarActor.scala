@@ -1063,6 +1063,9 @@ class AvatarActor(
         case DeleteAvatar(id) =>
           import ctx._
           val performDeletion = for {
+            _ <- ctx.run(query[persistence.Weaponstatsession].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Kdasession].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Buildingcapture].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Shortcut].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Loadout].filter(_.avatarId == lift(id)).delete)
@@ -1646,11 +1649,16 @@ class AvatarActor(
           if ({
             val oldBr = BattleRank.withExperience(avatar.bep).value
             val newBr = BattleRank.withExperience(bep).value
-            if (Config.app.game.promotion.active && oldBr == 1 && newBr > 1 && newBr < Config.app.game.promotion.maxBattleRank + 1) {
+            val resetBr = Config.app.game.promotion.resetBattleRank
+            if (
+              Config.app.game.promotion.active &&
+              oldBr <= Config.app.game.promotion.broadcastBattleRank &&
+              newBr > resetBr && newBr < Config.app.game.promotion.maxBattleRank + 1
+            ) {
               experienceDebt = bep
               AvatarActor.saveExperienceDebt(avatar.id, bep, bep)
               true
-            } else if (experienceDebt > 0 && newBr == 2) {
+            } else if (experienceDebt > 0 && newBr == resetBr) {
               experienceDebt = 0
               AvatarActor.saveExperienceDebt(avatar.id, exp = 0, bep)
               true
@@ -1663,7 +1671,6 @@ class AvatarActor(
               setCep(0L)
             }
             restoreBasicCerts()
-            removeAllImplants()
             sessionActor ! SessionActor.CharSaved
             sessionActor ! SessionActor.SendResponse(ChatMsg(ChatMessageType.UNK_229, "@AckSuccessSetBattleRank"))
           } else if (experienceDebt > 0) {
@@ -1674,9 +1681,9 @@ class AvatarActor(
           Behaviors.same
 
         case AwardCep(cep) =>
-          if (experienceDebt > 0L) {
+          if (experienceDebt == 0L) {
             setCep(avatar.cep + cep)
-          } else {
+          } else if (cep > 0) {
             sessionActor ! SessionActor.SendResponse(ExperienceAddedMessage(0))
           }
           Behaviors.same
@@ -1851,16 +1858,77 @@ class AvatarActor(
   }
 
   def performAvatarLogin(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
+    performAvatarLogin0(avatarId, accountId, replyTo)
+//    import ctx._
+//    val result = for {
+//      //log this login
+//      _ <- ctx.run(
+//        query[persistence.Avatar]
+//          .filter(_.id == lift(avatarId))
+//          .update(_.lastLogin -> lift(LocalDateTime.now()))
+//      )
+//      //log this choice of faction (no empire switching)
+//      _ <- ctx.run(
+//        query[persistence.Account]
+//          .filter(_.id == lift(accountId))
+//          .update(
+//            _.lastFactionId -> lift(avatar.faction.id),
+//            _.avatarLoggedIn -> lift(avatarId)
+//          )
+//      )
+//      //retrieve avatar data
+//      loadouts  <- initializeAllLoadouts()
+//      implants  <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatarId)))
+//      certs     <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatarId)))
+//      locker    <- loadLocker(avatarId)
+//      friends   <- loadFriendList(avatarId)
+//      ignored   <- loadIgnoredList(avatarId)
+//      shortcuts <- loadShortcuts(avatarId)
+//      saved     <- AvatarActor.loadSavedAvatarData(avatarId)
+//      debt      <- AvatarActor.loadExperienceDebt(avatarId)
+//      card      <- AvatarActor.loadCampaignKdaData(avatarId)
+//    } yield (loadouts, implants, certs, locker, friends, ignored, shortcuts, saved, debt, card)
+//    result.onComplete {
+//      case Success((_loadouts, implants, certs, lockerInv, friendsList, ignoredList, shortcutList, saved, debt, card)) =>
+//        avatarCopy(
+//          avatar.copy(
+//            loadouts = avatar.loadouts.copy(suit = _loadouts),
+//            certifications =
+//              certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
+//            implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
+//            shortcuts = shortcutList,
+//            locker = lockerInv,
+//            people = MemberLists(
+//              friend = friendsList,
+//              ignored = ignoredList
+//            ),
+//            cooldowns = Cooldowns(
+//              purchase = AvatarActor.buildCooldownsFromClob(saved.purchaseCooldowns, Avatar.purchaseCooldowns, log),
+//              use = AvatarActor.buildCooldownsFromClob(saved.useCooldowns, Avatar.useCooldowns, log)
+//            ),
+//            scorecard = card
+//          )
+//        )
+//        // if we need to start stamina regeneration
+//        tryRestoreStaminaForSession(stamina = 1).collect { _ => defaultStaminaRegen(initialDelay = 0.5f seconds) }
+//        experienceDebt = debt
+//        replyTo ! AvatarLoginResponse(avatar)
+//      case Failure(e) =>
+//        log.error(e)("db failure")
+//    }
+  }
+
+  def performAvatarLogin0(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
     import ctx._
     val result = for {
       //log this login
-      _ <- ctx.run(
+      loginTime <- ctx.run(
         query[persistence.Avatar]
           .filter(_.id == lift(avatarId))
           .update(_.lastLogin -> lift(LocalDateTime.now()))
       )
       //log this choice of faction (no empire switching)
-      _ <- ctx.run(
+      loginFaction <- ctx.run(
         query[persistence.Account]
           .filter(_.id == lift(accountId))
           .update(
@@ -1868,50 +1936,64 @@ class AvatarActor(
             _.avatarLoggedIn -> lift(avatarId)
           )
       )
-      //retrieve avatar data
-      loadouts  <- initializeAllLoadouts()
+    } yield (loginTime, loginFaction)
+    result.onComplete {
+      case Success(_) =>
+        sessionActor ! SessionActor.AvatarLoadingSync(step = 0)
+        performAvatarLogin1(avatarId, replyTo)
+      case Failure(e) =>
+        log.error(e)("db failure")
+    }
+  }
+
+  def performAvatarLogin1(avatarId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
+    import ctx._
+    val result = for {
+      //retrieve avatar data for OCDM packet
       implants  <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatarId)))
       certs     <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatarId)))
+      debt      <- AvatarActor.loadExperienceDebt(avatarId)
       locker    <- loadLocker(avatarId)
+    } yield (certs, implants, locker, debt)
+    result.onComplete {
+      case Success((certs, implants, lockerInv, debt)) =>
+        avatarCopy(
+          avatar.copy(
+            certifications =
+              certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
+            implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
+            locker = lockerInv
+          )
+        )
+        experienceDebt = debt
+        // if we need to start stamina regeneration
+        tryRestoreStaminaForSession(stamina = 1).collect { _ => defaultStaminaRegen(initialDelay = 0.5f seconds) }
+        sessionActor ! SessionActor.AvatarLoadingSync(step = 1)
+        replyTo ! AvatarLoginResponse(avatar)
+        performAvatarLogin2(avatarId, replyTo)
+      case Failure(e) =>
+        log.error(e)("db failure")
+    }
+  }
+
+  //noinspection ScalaUnusedSymbol
+  def performAvatarLogin2(avatarId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
+    val result = for {
+      //retrieve avatar data for other packets
+      loadouts  <- initializeAllLoadouts()
       friends   <- loadFriendList(avatarId)
       ignored   <- loadIgnoredList(avatarId)
       shortcuts <- loadShortcuts(avatarId)
       saved     <- AvatarActor.loadSavedAvatarData(avatarId)
-      debt      <- AvatarActor.loadExperienceDebt(avatarId)
       card      <- AvatarActor.loadCampaignKdaData(avatarId)
-    } yield (loadouts, implants, certs, locker, friends, ignored, shortcuts, saved, debt, card)
+    } yield (loadouts, friends, ignored, shortcuts, saved, card)
     result.onComplete {
-      case Success((_loadouts, implants, certs, lockerInv, friendsList, ignoredList, shortcutList, saved, debt, card)) =>
-        //shortcuts must have a hotbar option for each implant
-//        val implantShortcuts = shortcutList.filter {
-//          case Some(e) => e.purpose == 0
-//          case None    => false
-//        }
-//        implants.filterNot { implant =>
-//          implantShortcuts.exists {
-//            case Some(a) => a.tile.equals(implant.name)
-//            case None    => false
-//          }
-//        }.foreach { c =>
-//          shortcutList.indexWhere { _.isEmpty } match {
-//            case -1 => ()
-//            case index =>
-//              shortcutList.update(index, Some(AvatarShortcut(2, c.name)))
-//          }
-//        }
-        //
+      case Success((loadoutList, friendsList, ignoredList, shortcutList, saved, card)) =>
         avatarCopy(
           avatar.copy(
-            loadouts = avatar.loadouts.copy(suit = _loadouts),
-            certifications =
-              certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
-            implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
+            loadouts = avatar.loadouts.copy(suit = loadoutList),
             shortcuts = shortcutList,
-            locker = lockerInv,
-            people = MemberLists(
-              friend = friendsList,
-              ignored = ignoredList
-            ),
+            people = MemberLists(friend = friendsList, ignored = ignoredList),
             cooldowns = Cooldowns(
               purchase = AvatarActor.buildCooldownsFromClob(saved.purchaseCooldowns, Avatar.purchaseCooldowns, log),
               use = AvatarActor.buildCooldownsFromClob(saved.useCooldowns, Avatar.useCooldowns, log)
@@ -1919,10 +2001,7 @@ class AvatarActor(
             scorecard = card
           )
         )
-        // if we need to start stamina regeneration
-        tryRestoreStaminaForSession(stamina = 1).collect { _ => defaultStaminaRegen(initialDelay = 0.5f seconds) }
-        experienceDebt = debt
-        replyTo ! AvatarLoginResponse(avatar)
+        sessionActor ! SessionActor.AvatarLoadingSync(step = 2)
       case Failure(e) =>
         log.error(e)("db failure")
     }
@@ -3046,7 +3125,6 @@ class AvatarActor(
       }
       player.HistoryAndContributions()
     }
-    zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, killStat, exp)
     val target = killStat.info.targetAfter.asInstanceOf[PlayerSource]
     val targetMounted = target.seatedIn.map { case (v: VehicleSource, seat) =>
       val definition = v.Definition
@@ -3077,6 +3155,7 @@ class AvatarActor(
     }
     if (exp > 0L) {
       setBep(avatar.bep + exp, msg)
+      zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, killStat, exp)
     }
   }
 

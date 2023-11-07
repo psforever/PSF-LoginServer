@@ -315,8 +315,10 @@ object KillAssists {
                                    history: Iterable[InGameActivity]
                                  ): Long = {
     //base value (the kill experience before modifiers)
-    val base = Support.baseExperience(victim, history)
-    if (base > 1) {
+    lazy val base = Support.baseExperience(victim, history)
+    if (killer.Faction == victim.Faction || killer.unique == victim.unique) {
+      0L
+    } else if (base > 1) {
       //include battle rank disparity modifier
       val battleRankDisparity = {
         import net.psforever.objects.avatar.BattleRank

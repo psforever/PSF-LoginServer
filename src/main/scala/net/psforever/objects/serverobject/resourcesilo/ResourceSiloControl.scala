@@ -192,12 +192,11 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
           //experience is reported as normal
           val deposit: Long =
             (Config.app.game.experience.sep.ntuSiloDepositReward.toFloat *
-              math.floor(amount).toFloat /
-              math.floor(resourceSilo.MaxNtuCapacitor / resourceSilo.Definition.ChargeTime.toMillis.toFloat)
+              amount / (resourceSilo.MaxNtuCapacitor * resourceSilo.Definition.ChargeTime.toSeconds.toFloat)
               ).toLong
           vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
             owner.name,
-            AvatarAction.AwardBep(0, deposit, ExperienceType.Normal)
+            AvatarAction.AwardBep(owner.charId, deposit, ExperienceType.Normal)
           )
           zones.exp.ToDatabase.reportNtuActivity(owner.charId, resourceSilo.Zone.Number, resourceSilo.Owner.GUID.guid, deposit)
         }

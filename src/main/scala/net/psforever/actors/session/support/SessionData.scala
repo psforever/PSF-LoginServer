@@ -1579,6 +1579,24 @@ class SessionData(
         case Some(llu: CaptureFlag) => Some((llu, llu.Carrier))
         case _ => None
       }) match {
+        case Some((llu, Some(carrier: Player)))
+          if carrier.GUID == player.GUID && !player.isAlive =>
+          player.LastDamage.foreach { damage =>
+            damage
+              .interaction
+              .adversarial
+              .map { _.attacker }
+              .collect {
+                case attacker
+                  if attacker.Faction != player.Faction &&
+                    System.currentTimeMillis() - llu.LastCollectionTime >= Config.app.game.experience.cep.lluSlayerCreditDuration.toMillis =>
+                  continent.AvatarEvents ! AvatarServiceMessage(
+                    attacker.Name,
+                    AvatarAction.AwardCep(attacker.CharId, Config.app.game.experience.cep.lluSlayerCredit)
+                  )
+              }
+          }
+          continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
         case Some((llu, Some(carrier: Player))) if carrier.GUID == player.GUID =>
           continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
         case Some((_, Some(carrier: Player))) =>

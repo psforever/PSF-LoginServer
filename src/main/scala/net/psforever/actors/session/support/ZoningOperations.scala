@@ -13,7 +13,7 @@ import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.mount.Seat
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
-import net.psforever.objects.vital.{InGameHistory, ReconstructionActivity, SpawningActivity}
+import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
 import net.psforever.packet.game.{CampaignStatistic, MailMessage, SessionStatistic}
 
 import scala.collection.mutable
@@ -79,7 +79,7 @@ object ZoningOperations {
         "High Command",
         "Progress versus Promotion",
         "If you consider yourself as a veteran soldier, despite looking so green, please read this.\n" ++
-          "You only have this opportunity while you are battle rank 1." ++
+          s"You only have this opportunity while you are less than or equal to battle rank ${Config.app.game.promotion.broadcastBattleRank}." ++
           "\n\n" ++
           "The normal method of rank advancement comes from the battlefield - fighting enemies, helping allies, and capturing facilities. " ++
           "\n\n" ++
@@ -91,7 +91,7 @@ object ZoningOperations {
           "In addition, you will be ineligible of having your command experience be recognized during this time." ++
           "\n\n" ++
           "If you wish to continue, set your desired battle rank now - use '!progress' followed by a battle rank index. " ++
-          "If you accept, but it becomes too much of burden, you may ask to revert to battle rank 2 at any time. " ++
+          s"If you accept, but it becomes too much of burden, you may ask to revert to battle rank ${Config.app.game.promotion.resetBattleRank} at any time. " ++
           "Your normal sense of progress will be restored."
       )
     )
@@ -629,22 +629,7 @@ class ZoningOperations(
     ServiceManager.serviceManager ! Lookup("propertyOverrideManager")
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
-    (
-      FriendsResponse.packetSequence(
-        MemberAction.InitializeFriendList,
-        avatar.people.friend
-          .map { f =>
-            game.Friend(f.name, AvatarActor.onlineIfNotIgnoredEitherWay(avatar, f.name))
-          }
-      ) ++
-        //ignored list (no one ever online)
-        FriendsResponse.packetSequence(
-          MemberAction.InitializeIgnoreList,
-          avatar.people.ignored.map { f => game.Friend(f.name) }
-        )
-      ).foreach {
-      sendResponse
-    }
+    spawn.initializeFriendsAndIgnoredLists()
     //the following subscriptions last until character switch/logout
     galaxyService ! Service.Join("galaxy") //for galaxy-wide messages
     galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots, etc.
@@ -2797,16 +2782,7 @@ class ZoningOperations(
       }
 
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
-      avatar.shortcuts
-        .zipWithIndex
-        .collect { case (Some(shortcut), index) =>
-          sendResponse(CreateShortcutMessage(
-            guid,
-            index + 1,
-            Some(AvatarShortcut.convert(shortcut))
-          ))
-        }
-      sendResponse(ChangeShortcutBankMessage(guid, 0))
+      initializeShortcutsAndBank(guid)
       //Favorites lists
       avatarActor ! AvatarActor.InitialRefreshLoadouts()
 
@@ -2940,20 +2916,28 @@ class ZoningOperations(
           }
           .collect { case Some(thing: PlanetSideGameObject with FactionAffinity) => Some(SourceEntry(thing)) }
           .flatten
-        player.LogActivity({
-          if (player.History.headOption.exists { _.isInstanceOf[SpawningActivity] }) {
-            ReconstructionActivity(PlayerSource(player), continent.Number, effortBy)
-          } else {
-            SpawningActivity(PlayerSource(player), continent.Number, effortBy)
-          }
-        })
+        val lastEntryOpt = player.History.lastOption
+        if (lastEntryOpt.exists { !_.isInstanceOf[IncarnationActivity] }) {
+          player.LogActivity({
+            lastEntryOpt match {
+              case Some(_) =>
+                ReconstructionActivity(PlayerSource(player), continent.Number, effortBy)
+              case None =>
+                SpawningActivity(PlayerSource(player), continent.Number, effortBy)
+            }
+          })
+        }
       }
       upstreamMessageCount = 0
       setAvatar = true
       if (
-        BattleRank.withExperience(tplayer.avatar.bep).value == 1 &&
-          Config.app.game.promotion.active &&
-          !account.gm) {
+        !account.gm && /* gm's are excluded */
+          Config.app.game.promotion.active && /* play versus progress system must be active */
+          BattleRank.withExperience(tplayer.avatar.bep).value <= Config.app.game.promotion.broadcastBattleRank && /* must be below a certain battle rank */
+          avatar.scorecard.Lives.isEmpty && /* first life after login */
+          avatar.scorecard.CurrentLife.prior.isEmpty && /* no revives */
+          player.History.size == 1 /* did nothing but come into existence */
+      ) {
         ZoningOperations.reportProgressionSystem(context.self)
       }
     }
@@ -2966,6 +2950,59 @@ class ZoningOperations(
      */
     def SetCurrentAvatarNormally(tplayer: Player): Unit = {
       HandleSetCurrentAvatar(tplayer)
+    }
+
+    /**
+     * Respond to feedback of how the avatar's data is being handled
+     * in a way that properly reflects the state of the server at the moment.
+     * @param state indicator for the progress of the avatar
+     */
+    def handleAvatarLoadingSync(state: Int): Unit = {
+      if (state == 2 && zoneLoaded.contains(true)) {
+        initializeFriendsAndIgnoredLists()
+        initializeShortcutsAndBank(player.GUID)
+        avatarActor ! AvatarActor.RefreshPurchaseTimes()
+        loginAvatarStatisticsFields()
+        avatarActor ! AvatarActor.InitialRefreshLoadouts()
+      }
+    }
+
+    /**
+     * Set up and dispatch a list of `FriendsResponse` packets related to both formal friends and ignored players.
+     */
+    def initializeFriendsAndIgnoredLists(): Unit = {
+      (
+        FriendsResponse.packetSequence(
+          MemberAction.InitializeFriendList,
+          avatar.people.friend
+            .map { f =>
+              game.Friend(f.name, AvatarActor.onlineIfNotIgnoredEitherWay(avatar, f.name))
+            }
+        ) ++
+          //ignored list (no one ever online)
+          FriendsResponse.packetSequence(
+            MemberAction.InitializeIgnoreList,
+            avatar.people.ignored.map { f => game.Friend(f.name) }
+          )
+        ).foreach {
+        sendResponse
+      }
+    }
+
+    /**
+     * Set up and dispatch a list of `CreateShortcutMessage` packets and a single `ChangeShortcutBankMessage` packet.
+     */
+    def initializeShortcutsAndBank(guid: PlanetSideGUID): Unit = {
+      avatar.shortcuts
+        .zipWithIndex
+        .collect { case (Some(shortcut), index) =>
+          sendResponse(CreateShortcutMessage(
+            guid,
+            index + 1,
+            Some(AvatarShortcut.convert(shortcut))
+          ))
+        }
+      sendResponse(ChangeShortcutBankMessage(guid, 0))
     }
 
     /**
@@ -3247,7 +3284,7 @@ class ZoningOperations(
 
     /**
      * Accessible method to switch population of the Character Info window's statistics page
-     * from whatever it currently js to after each respawn.
+     * from whatever it currently is to after each respawn.
      * At the time of "login", only campaign (total, historical) deaths are reported for convenience.
      * At the time of "respawn", all fields - campaign and session - should be reported if applicable.
      */

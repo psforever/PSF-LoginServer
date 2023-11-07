@@ -289,9 +289,11 @@ case class CommandExperiencePoints(
 )
 
 case class PromotionSystem(
-    active: Boolean,
-    maxBattleRank: Int,
-    battleExperiencePointsModifier: Float,
-    supportExperiencePointsModifier: Float,
-    captureExperiencePointsModifier: Float
+                            active: Boolean,
+                            broadcastBattleRank: Int,
+                            resetBattleRank: Int,
+                            maxBattleRank: Int,
+                            battleExperiencePointsModifier: Float,
+                            supportExperiencePointsModifier: Float,
+                            captureExperiencePointsModifier: Float
 )

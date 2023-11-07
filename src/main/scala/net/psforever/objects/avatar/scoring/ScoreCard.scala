@@ -163,6 +163,7 @@ object ScoreCard {
           case PlanetSideEmpire.VS =>      fields.copy(vs_s = fields.vs_s + 1)
           case PlanetSideEmpire.NEUTRAL => fields.copy(ps_s = fields.ps_s + 1)
         }
+        statisticMap.put(objectId, outEntry)
         outEntry
       case _ =>
         val out = Statistic(0, 0, 0, 0, 0, 0, 0, 0)

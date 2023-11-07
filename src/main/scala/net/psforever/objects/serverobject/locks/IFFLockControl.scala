@@ -27,7 +27,7 @@ class IFFLockControl(lock: IFFLock)
       .orElse {
         case CommonMessages.Use(player, Some(item: SimpleItem))
             if item.Definition == GlobalDefinitions.remote_electronics_kit =>
-          if (lock.Faction != player.Faction && lock.HackedBy.isEmpty) {
+          if (lock.Faction != player.Faction) {
             sender() ! CommonMessages.Progress(
               GenericHackables.GetHackSpeed(player, lock),
               GenericHackables.FinishHacking(lock, player, 1114636288L),
@@ -42,8 +42,7 @@ class IFFLockControl(lock: IFFLock)
           } else {
             val log = org.log4s.getLogger
             log.warn(s"IFF lock is being hacked by ${player.Faction}, but don't know how to handle this state:")
-            log.warn(s"Lock - Faction=${lock.Faction}, HackedBy=${lock.HackedBy}")
-            log.warn(s"Player - Faction=${player.Faction}")
+            log.warn(s"Lock - Faction=${lock.Faction}, HackedBy=${lock.HackedBy.map{_.player}}")
           }
 
         case IFFLock.DoorOpenRequest(target, door, replyTo) =>

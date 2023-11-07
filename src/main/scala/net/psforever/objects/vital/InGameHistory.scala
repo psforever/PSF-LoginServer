@@ -50,14 +50,16 @@ trait SupportActivityCausedByAnother {
   def amount: Int
 }
 
+trait IncarnationActivity extends GeneralActivity
+
 final case class SpawningActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry])
-  extends GeneralActivity
+  extends IncarnationActivity
 
 final case class ReconstructionActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry])
-  extends GeneralActivity
+  extends IncarnationActivity
 
 final case class RevivingActivity(target: SourceEntry, user: PlayerSource, amount: Int, equipment: EquipmentDefinition)
-  extends GeneralActivity with SupportActivityCausedByAnother
+  extends IncarnationActivity with SupportActivityCausedByAnother
 
 final case class ShieldCharge(amount: Int, cause: Option[SourceEntry])
   extends GeneralActivity

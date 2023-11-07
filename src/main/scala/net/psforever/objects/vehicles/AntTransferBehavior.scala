@@ -133,6 +133,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
     ActivatePanelsForChargingEvent(ChargeTransferObject)
   }
 
+  //noinspection ScalaUnusedSymbol
   def WithdrawAndTransmit(vehicle: Vehicle, maxRequested: Float): Any = {
     val chargeable      = ChargeTransferObject
     var chargeToDeposit = Math.min(Math.min(chargeable.NtuCapacitor, 100), maxRequested)
@@ -188,7 +189,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
         transferTarget match {
           case Some(silo: ResourceSilo) =>
             scala.math.min(
-              scala.math.min(silo.MaxNtuCapacitor / silo.Definition.ChargeTime.toMillis.toFloat, chargeable.NtuCapacitor),
+              scala.math.min(silo.MaxNtuCapacitor / silo.Definition.ChargeTime.toSeconds.toFloat, chargeable.NtuCapacitor),
               max
             )
           case _ =>

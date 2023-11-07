@@ -81,6 +81,8 @@ object SessionActor {
 
   final case class UpdateIgnoredPlayers(msg: FriendsResponse) extends Command
 
+  final case class AvatarLoadingSync(step: Int) extends Command
+
   final case object CharSaved extends Command
 
   private[session] case object CharSavedMsg extends Command
@@ -254,6 +256,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case SessionActor.SetConnectionState(state) =>
       sessionFuncs.connectionState = state
+
+    case SessionActor.AvatarLoadingSync(state) =>
+      sessionFuncs.zoning.spawn.handleAvatarLoadingSync(state)
 
     /* uncommon messages (utility, or once in a while) */
     case SessionActor.AvatarAwardMessageBundle(pkts, delay) =>

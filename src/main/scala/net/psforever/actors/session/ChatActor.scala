@@ -1282,7 +1282,10 @@ class ChatActor(
             false
         }
       } else if (contents.startsWith("!progress")) {
-        if (!session.account.gm && BattleRank.withExperience(session.avatar.bep).value < Config.app.game.promotion.maxBattleRank + 1) {
+        val ourRank = BattleRank.withExperience(session.avatar.bep).value
+        if (!session.account.gm &&
+          (ourRank <= Config.app.game.promotion.broadcastBattleRank ||
+          ourRank > Config.app.game.promotion.resetBattleRank && ourRank < Config.app.game.promotion.maxBattleRank + 1)) {
           setBattleRank(dropFirstWord(contents), session, AvatarActor.Progress)
           true
         } else {
@@ -1299,7 +1302,7 @@ class ChatActor(
 
   private def dropFirstWord(str: String): String = {
     val noExtraSpaces = str.replaceAll("\\s+", " ").toLowerCase.trim
-    noExtraSpaces.indexOf({ char: String => char.equals(" ") }) match {
+    noExtraSpaces.indexOf(" ") match {
       case -1               => ""
       case beforeFirstBlank => noExtraSpaces.drop(beforeFirstBlank + 1)
     }
