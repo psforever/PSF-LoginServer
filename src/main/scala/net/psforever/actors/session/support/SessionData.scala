@@ -1395,7 +1395,8 @@ class SessionData(
       case Some(item) =>
         sendUseGeneralEntityMessage(terminal, item)
       case None
-        if terminal.Owner == Building.NoBuilding || terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
+        if terminal.Owner == Building.NoBuilding || terminal.Faction == player.Faction ||
+          terminal.HackedBy.nonEmpty || terminal.Faction == PlanetSideEmpire.NEUTRAL =>
         val tdef = terminal.Definition
         if (tdef.isInstanceOf[MatrixTerminalDefinition]) {
           //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
