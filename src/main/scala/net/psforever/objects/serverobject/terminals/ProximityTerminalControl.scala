@@ -363,9 +363,11 @@ object ProximityTerminalControl {
       unit.Definition.asInstanceOf[WeaponRechargeTerminalDefinition].AmmoAmount,
       target.Holsters().flatMap { _.Equipment }.toSeq ++ target.Inventory.Items.map { _.obj }
     )
+    val ancient = result.filter(rechargeMe => rechargeMe._1.Definition == GlobalDefinitions.maelstrom ||
+      rechargeMe._1.Definition == GlobalDefinitions.spiker || rechargeMe._1.Definition == GlobalDefinitions.radiator)
     val events = unit.Zone.AvatarEvents
     val channel = target.Name
-    result.foreach { case (weapon, slots) =>
+    ancient.foreach { case (weapon, slots) =>
       slots.foreach { slot =>
         events ! AvatarServiceMessage(
           channel,

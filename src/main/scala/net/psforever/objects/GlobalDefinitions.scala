@@ -1171,6 +1171,24 @@ object GlobalDefinitions {
 
   val crystals_health_b = new MedicalTerminalDefinition(226)
 
+  val crystals_repair_a = new MedicalTerminalDefinition(227)
+
+  val crystals_repair_b = new MedicalTerminalDefinition(228)
+
+  val crystals_energy = new WeaponRechargeTerminalDefinition(222)
+
+  val crystals_energy_a = new WeaponRechargeTerminalDefinition(223)
+
+  val crystals_energy_b = new WeaponRechargeTerminalDefinition(224)
+
+  val crystals_vehicle_a = new MedicalTerminalDefinition(229)
+
+  val crystals_vehicle_b = new MedicalTerminalDefinition(230)
+
+  val crystals_damage_a = new MedicalTerminalDefinition(220)
+  //todo: make these work
+  val crystals_damage_b = new MedicalTerminalDefinition(221)
+
   val medical_terminal = new MedicalTerminalDefinition(529)
 
   val portable_med_terminal = new MedicalTerminalDefinition(689)
@@ -9678,6 +9696,59 @@ object GlobalDefinitions {
     crystals_health_b.Damageable = false
     crystals_health_b.Repairable = false
 
+    crystals_repair_a.Name = "crystals_repair_a"
+    crystals_repair_a.Interval = 500
+    crystals_repair_a.ArmorAmount = 4
+    crystals_repair_a.UseRadius = 5
+    crystals_repair_a.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.RepairCrystal
+    crystals_repair_a.Damageable = false
+    crystals_repair_a.Repairable = false
+
+    crystals_repair_b.Name = "crystals_repair_b"
+    crystals_repair_b.Interval = 500
+    crystals_repair_b.ArmorAmount = 4
+    crystals_repair_b.UseRadius = 5
+    crystals_repair_b.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.RepairCrystal
+    crystals_repair_b.Damageable = false
+    crystals_repair_b.Repairable = false
+
+    crystals_vehicle_a.Name = "crystals_vehicle_a"
+    crystals_vehicle_a.Interval = 1000
+    crystals_vehicle_a.HealAmount = 60
+    crystals_vehicle_a.UseRadius = 15
+    crystals_vehicle_a.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.VehicleCrystal
+    crystals_vehicle_a.Damageable = false
+    crystals_vehicle_a.Repairable = false
+
+    crystals_vehicle_b.Name = "crystals_vehicle_b"
+    crystals_vehicle_b.Interval = 1000
+    crystals_vehicle_b.HealAmount = 60
+    crystals_vehicle_b.UseRadius = 15
+    crystals_vehicle_b.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.VehicleCrystal
+    crystals_vehicle_b.Damageable = false
+    crystals_vehicle_b.Repairable = false
+
+    crystals_energy_a.Name = "crystals_energy_a"
+    crystals_energy_a.Interval = 1000
+    crystals_energy_a.UseRadius = 5
+    crystals_energy_a.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.AncientWeaponRecharge
+    crystals_energy_a.Damageable = false
+    crystals_energy_a.Repairable = false
+
+    crystals_energy_b.Name = "crystals_energy_b"
+    crystals_energy_b.Interval = 1000
+    crystals_energy_b.UseRadius = 5
+    crystals_energy_b.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.AncientWeaponRecharge
+    crystals_energy_b.Damageable = false
+    crystals_energy_b.Repairable = false
+
+    crystals_energy.Name = "crystals_energy"
+    crystals_energy.Interval = 1000
+    crystals_energy.UseRadius = 5
+    crystals_energy.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.AncientWeaponRecharge
+    crystals_energy.Damageable = false
+    crystals_energy.Repairable = false
+
     portable_med_terminal.Name = "portable_med_terminal"
     portable_med_terminal.Interval = 500
     portable_med_terminal.HealAmount = 5
@@ -9866,8 +9937,8 @@ object GlobalDefinitions {
     lodestar_repair_terminal.Name = "lodestar_repair_terminal"
     lodestar_repair_terminal.Interval = 1000
     lodestar_repair_terminal.HealAmount = 60
-    lodestar_repair_terminal.UseRadius = 20
-    lodestar_repair_terminal.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.RepairSilo
+    lodestar_repair_terminal.UseRadius = 40
+    lodestar_repair_terminal.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.LodestarRepair
     lodestar_repair_terminal.Damageable = false
     lodestar_repair_terminal.Repairable = false
 
