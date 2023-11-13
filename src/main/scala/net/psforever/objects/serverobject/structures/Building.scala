@@ -182,7 +182,7 @@ class Building(
     val (hacking, hackingFaction, hackTime): (Boolean, PlanetSideEmpire.Value, Long) = CaptureTerminal match {
       case Some(obj: CaptureTerminal with Hackable) =>
         obj.HackedBy match {
-          case Some(Hackable.HackInfo(p, _, start, length)) =>
+          case Some(Hackable.HackInfo(p, _, start, length, _)) =>
             val hack_time_remaining_ms = math.max(0, start + length - System.currentTimeMillis())
             (true, p.Faction, hack_time_remaining_ms)
           case _ =>

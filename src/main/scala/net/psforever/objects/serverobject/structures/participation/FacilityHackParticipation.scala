@@ -18,6 +18,8 @@ trait FacilityHackParticipation extends ParticipationLogic {
   protected var playerContribution: mutable.LongMap[(Player, Int, Long)] = mutable.LongMap[(Player, Int, Long)]()
   protected var playerPopulationOverTime: Seq[Map[PlanetSideEmpire.Value, Int]] = Seq[Map[PlanetSideEmpire.Value, Int]]()
 
+  def PlayerContributionRaw: Map[Long, (Player, Int, Long)] = playerContribution.toMap
+
   def PlayerContribution(timeDelay: Long): Map[Long, Float] = {
     playerContribution
       .collect {

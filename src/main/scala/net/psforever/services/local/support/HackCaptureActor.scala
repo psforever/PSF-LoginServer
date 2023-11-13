@@ -78,7 +78,14 @@ class HackCaptureActor extends Actor {
             // Timed hack finished (or neutral LLU base with no neighbour as timed hack), capture the base
             val hackTime = terminal.Definition.FacilityHackTime.toMillis
             HackCompleted(terminal, hackedByFaction)
-            building.Participation.RewardFacilityCapture(terminal.Faction, hackedByFaction, hacker, hackTime, hackTime, isResecured = false)
+            building.Participation.RewardFacilityCapture(
+              HackCaptureActor.GetDefendingFaction(terminal, building, hackedByFaction),
+              hackedByFaction,
+              hacker,
+              hackTime,
+              hackTime,
+              isResecured = false
+            )
         }
       }
       // If there's hacked objects left in the list restart the timer with the shortest hack time left
@@ -95,7 +102,14 @@ class HackCaptureActor extends Actor {
         case flag: CaptureFlag => target.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Resecured)
       }
       NotifyHackStateChange(target, isResecured = true)
-      building.Participation.RewardFacilityCapture(target.Faction, faction, hacker, target.Definition.FacilityHackTime.toMillis, System.currentTimeMillis() - results.head.hack_timestamp, isResecured = true)
+      building.Participation.RewardFacilityCapture(
+        target.Faction,
+        faction,
+        hacker,
+        target.Definition.FacilityHackTime.toMillis,
+        System.currentTimeMillis() - results.head.hack_timestamp,
+        isResecured = true
+      )
       // Restart the timer in case the object we just removed was the next one scheduled
       RestartTimer()
 
@@ -111,7 +125,14 @@ class HackCaptureActor extends Actor {
           val hackedByFaction = hackInfo.hackerFaction
           hackedObjects = hackedObjects.filterNot(x => x == entry)
           HackCompleted(terminal, hackedByFaction)
-          building.Participation.RewardFacilityCapture(terminal.Faction, hacker.Faction, hacker, terminal.Definition.FacilityHackTime.toMillis, System.currentTimeMillis() - entry.hack_timestamp, isResecured = false)
+          building.Participation.RewardFacilityCapture(
+            HackCaptureActor.GetDefendingFaction(terminal, building, hackedByFaction),
+            hackedByFaction,
+            hacker,
+            terminal.Definition.FacilityHackTime.toMillis,
+            System.currentTimeMillis() - entry.hack_timestamp,
+            isResecured = false
+          )
           entry.target.Actor ! CommonMessages.ClearHack()
           flag.Zone.LocalEvents ! CaptureFlagManager.Captured(flag)
           // If there's hacked objects left in the list restart the timer with the shortest hack time left
@@ -247,6 +268,44 @@ object HackCaptureActor {
                                hack_timestamp: Long
                              )
 
+  def GetDefendingFaction(
+                           terminal: CaptureTerminal,
+                           building: Building,
+                           excludeThisFaction: PlanetSideEmpire.Value
+                         ): PlanetSideEmpire.Value = {
+    terminal.HackedBy
+      .map { _.originalFaction }
+      .orElse { Some(terminal.Faction) }
+      .collect {
+        case PlanetSideEmpire.NEUTRAL =>
+          val factionEfforts = building.Participation
+            .PlayerContributionRaw
+            .values
+            .foldLeft(Array.fill(4)(0L))({ case (a, b) =>
+              val (player, duration, _) = b
+              val index = player.Faction.id
+              a.update(index, a(index) + duration.toLong)
+              a
+            })
+          factionEfforts.update(excludeThisFaction.id, Long.MinValue)
+          factionEfforts
+            .indices
+            .maxByOption(factionEfforts)
+            .map { index => PlanetSideEmpire(index) }
+            .getOrElse {
+              val test = PlanetSideEmpire(0)
+              if (excludeThisFaction == test) {
+                PlanetSideEmpire(1)
+              } else {
+                test
+              }
+            }
+        case faction =>
+          faction
+      }
+      .get
+  }
+
   def GetHackingFaction(terminal: CaptureTerminal): Option[PlanetSideEmpire.Value] = {
     terminal.HackedBy.map { a => a.player.Faction }
   }
@@ -255,7 +314,7 @@ object HackCaptureActor {
     terminal.HackedBy match {
       case _ if isResecured =>
         17039360L
-      case Some(Hackable.HackInfo(p, _, start, length)) =>
+      case Some(Hackable.HackInfo(p, _, start, length, _)) =>
         // See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
         val hackTimeRemainingMS = math.max(0, start + length - System.currentTimeMillis())
         val startNum = p.Faction match {

@@ -1,6 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.objects.serverobject.structures.participation
 
+import net.psforever.objects.Player
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.types.PlanetSideEmpire
@@ -30,6 +31,8 @@ trait ParticipationLogic {
                              completionTime: Long,
                              isResecured: Boolean
                            ): Unit
+
+  def PlayerContributionRaw: Map[Long, (Player, Int, Long)]
 
   def PlayerContribution(timeDelay: Long = 600): Map[Long, Float]
 }

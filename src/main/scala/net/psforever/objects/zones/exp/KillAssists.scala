@@ -320,33 +320,25 @@ object KillAssists {
       0L
     } else if (base > 1) {
       //include battle rank disparity modifier
-      val battleRankDisparity = {
+      val battleRankDisparity: Long = {
         import net.psforever.objects.avatar.BattleRank
         val killerLevel = BattleRank.withExperience(killer.bep).value
         val victimLevel = BattleRank.withExperience(victim.bep).value
-        if (victimLevel > killerLevel || killerLevel - victimLevel < 6) {
-          if (killerLevel < 7) {
-            6 * victimLevel + 10
-          } else if (killerLevel < 12) {
-            (12 - killerLevel) * victimLevel + 10
-          } else if (killerLevel < 25) {
-            25 + victimLevel - killerLevel
-          } else {
-            25
-          }
+        val victimMinusKiller = victimLevel - killerLevel
+        if (victimMinusKiller > -1) {
+          victimMinusKiller * 10 + victimLevel
         } else {
-          math.floor(-0.15f * base - killerLevel + victimLevel).toLong
+          val bothLevels = killerLevel + victimLevel
+          val pointFive = (base.toFloat * 0.25f).toInt
+          -1 * (if (bothLevels >= base) {
+            pointFive
+          } else {
+            math.min(bothLevels, pointFive)
+          })
         }
-      }
-      val baseWithDisparity: Long = base + battleRankDisparity
-      val killCount: Long = victim.progress.kills.size
-      if (battleRankDisparity > 0) {
-        //include menace modifier
-        val pureMenace = calculateMenace(victim)
-        baseWithDisparity + (killCount * (1f + pureMenace.toFloat / 10f)).toLong
-      } else {
-        math.max(baseWithDisparity, killCount)
-      }
+      }.toLong
+      //include menace modifier
+      base + battleRankDisparity + (victim.progress.kills.size.toFloat * (1f + calculateMenace(victim).toFloat / 10f)).toLong
     } else {
       base
     }
