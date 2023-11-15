@@ -963,30 +963,19 @@ class SessionData(
     log.debug(s"$pkt")
   }
 
-  // This is for excluding cargo vehicles from attempting to charge their shield while mounted in a carrier vehicle.
-  // As per issue 1126, this would cause the client of the cargo vehicle occupant(s) to disconnect
-  def handleGetCargoVehicles(vehicle: Vehicle): List[Vehicle] = {
-    val mountedVehicle = vehicle.MountedIn.flatMap { mountedGUID =>
-      continent.GUID(mountedGUID.guid).collect { case mountedVehicle: Vehicle => mountedVehicle }
-    }.toList
-    mountedVehicle
-  }
-
-  def handleIsCargoVehicle(vehicle: Vehicle): Boolean = {
-    handleGetCargoVehicles(vehicle).nonEmpty
-  }
-
   def handleFacilityBenefitShieldChargeRequest(pkt: FacilityBenefitShieldChargeRequestMessage): Unit = {
     val FacilityBenefitShieldChargeRequestMessage(_) = pkt
     val vehicleGuid = player.VehicleSeated
     continent
       .GUID(vehicleGuid)
       .foreach {
-        case obj: Vehicle if !obj.Destroyed && !handleIsCargoVehicle(obj) => // vehicle will try to charge even if destroyed
+        case obj: Vehicle if !obj.Destroyed && obj.MountedIn.isEmpty => // vehicle will try to charge even if destroyed & cargo vehicles need to be excluded
           obj.Actor ! CommonMessages.ChargeShields(
             15,
             Some(continent.blockMap.sector(obj).buildingList.maxBy(_.Definition.SOIRadius))
           )
+        case obj: Vehicle if obj.MountedIn.nonEmpty =>
+          false
         case _ if vehicleGuid.nonEmpty =>
           log.warn(
             s"FacilityBenefitShieldChargeRequest: ${player.Name} can not find vehicle ${vehicleGuid.get.guid} in zone ${continent.id}"
