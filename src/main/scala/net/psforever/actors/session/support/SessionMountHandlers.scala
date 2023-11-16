@@ -8,6 +8,7 @@ import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player, Vehicle, Vehicles}
 import net.psforever.objects.definition.{BasicDefinition, ObjectDefinition}
+import net.psforever.objects.serverobject.hackable.GenericHackables.getTurretUpgradeTime
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
@@ -147,7 +148,8 @@ class SessionMountHandlers(
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: FacilityTurret, seatNumber, _)
-        if !obj.isUpgrading =>
+        if !obj.isUpgrading || System.currentTimeMillis() - getTurretUpgradeTime >= 1500L =>
+        obj.setMiddleOfUpgrade(false)
         sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the ${obj.Definition.Name}")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, attribute_type=0, obj.Health))

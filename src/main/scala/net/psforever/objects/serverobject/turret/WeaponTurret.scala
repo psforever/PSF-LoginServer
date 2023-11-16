@@ -48,7 +48,6 @@ trait WeaponTurret
   def Upgrade: TurretUpgrade.Value = upgradePath
 
   def Upgrade_=(upgrade: TurretUpgrade.Value): TurretUpgrade.Value = {
-    middleOfUpgrade = true //blocking flag; block early
     var updated = false
     //upgrade each weapon as long as that weapon has a valid option for that upgrade
     Definition match {
@@ -64,8 +63,6 @@ trait WeaponTurret
     }
     if (updated) {
       upgradePath = upgrade
-    } else {
-      middleOfUpgrade = false //reset
     }
     Upgrade
   }
@@ -78,6 +75,10 @@ trait WeaponTurret
   }
 
   def isUpgrading: Boolean = middleOfUpgrade
+
+  def setMiddleOfUpgrade(value: Boolean): Unit = {
+    middleOfUpgrade = value
+  }
 
   def Definition: TurretDefinition
 }
