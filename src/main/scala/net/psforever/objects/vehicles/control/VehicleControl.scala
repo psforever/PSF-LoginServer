@@ -128,10 +128,18 @@ class VehicleControl(vehicle: Vehicle)
         mountBehavior.apply(msg)
         mountCleanup(mount_point, player)
 
-        // For Issue 1133. Todo: There may be a better way to address the issue? 
-      case Mountable.TryDismount(user, seat_num, _) if (vehicle.History.find { entry => entry.isInstanceOf[SpawningActivity] } match {
-        case Some(entry) if System.currentTimeMillis() - entry.time < 8500L => true
+        // Issue 1133. Todo: There may be a better way to address the issue?
+      case Mountable.TryDismount(user, seat_num, _) if GlobalDefinitions.isFlightVehicle(vehicle.Definition) &&
+           (vehicle.History.find { entry => entry.isInstanceOf[SpawningActivity] } match {
+        case Some(entry) if System.currentTimeMillis() - entry.time < 3000L => true
         case _ => false
+        }) =>
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num))
+
+      case Mountable.TryDismount(user, seat_num, _) if !GlobalDefinitions.isFlightVehicle(vehicle.Definition) &&
+           (vehicle.History.find { entry => entry.isInstanceOf[SpawningActivity] } match {
+          case Some(entry) if System.currentTimeMillis() - entry.time < 8500L => true
+          case _ => false
         }) =>
         sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num))
 
