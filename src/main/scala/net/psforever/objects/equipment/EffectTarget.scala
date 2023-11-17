@@ -85,7 +85,7 @@ object EffectTarget {
 
     private def CommonRepairConditions(v: Vehicle): Boolean = {
       v.Health > 0 && v.Health < v.MaxHealth &&
-        (v.History.find { entry => entry.isInstanceOf[DamagingActivity] } match {
+        (v.History.findLast { entry => entry.isInstanceOf[DamagingActivity] } match {
           case Some(entry) if System.currentTimeMillis() - entry.time < 5000L => false
           case _ => true
         })
