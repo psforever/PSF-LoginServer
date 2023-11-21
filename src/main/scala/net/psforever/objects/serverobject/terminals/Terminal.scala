@@ -7,7 +7,7 @@ import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.{ItemTransactionMessage, TriggeredSound}
-import net.psforever.types.{PlanetSideGUID, Vector3}
+import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 /**
   * A server object that can be accessed for net.psforever.services and other amenities.
@@ -47,7 +47,7 @@ class Terminal(tdef: TerminalDefinition) extends Amenity with Hackable {
     * @return an actionable message that explains what resulted from interacting with this `Terminal`
     */
   def Request(player: Player, msg: Any): Terminal.Exchange = {
-    if (Faction == player.Faction || HackedBy.isDefined || Owner.GUID == PlanetSideGUID(0)) {
+    if (Faction == player.Faction || HackedBy.isDefined || Owner.Faction == PlanetSideEmpire.NEUTRAL) {
       tdef.Request(player, msg)
     } else {
       Terminal.NoDeal()
