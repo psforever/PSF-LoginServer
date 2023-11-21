@@ -214,4 +214,19 @@ object ToDatabase {
       )
     )
   }
+
+  /**
+   * Insert multiple entries into the database's `buildingCapture` table as a single transaction.
+   */
+  def reportFacilityCaptureInBulk(
+                                   avatarIdAndExp: List[(Long, Long, String)],
+                                   zoneId: Int,
+                                   buildingId: Int
+                                 ): Unit = {
+    ctx.run(quote { liftQuery(
+      avatarIdAndExp.map { case (avatarId, exp, expType) =>
+        persistence.Buildingcapture(-1, avatarId, zoneId, buildingId, exp, expType)
+      }
+    )}.foreach(e => query[persistence.Buildingcapture].insertValue(e)))
+  }
 }

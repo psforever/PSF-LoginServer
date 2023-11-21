@@ -203,10 +203,10 @@ object FacilityHackParticipation {
         }
       }
     }
-    if (dataSum != 0) {
-      math.max(0.15f, math.min(2f, dataSum / dataCount.toFloat))
+    if (dataCount != 0) {
+      math.max(0.2f, math.min(2f, dataSum / dataCount.toFloat))
     } else {
-      1f
+      0.5f
     }
   }
 
@@ -220,14 +220,15 @@ object FacilityHackParticipation {
   private[participation] def populationProgressModifier(
                                                          populationNumbers: Seq[Int],
                                                          gradingRule: Int=>Float,
-                                                         layers: Int
+                                                         layers: Int,
+                                                         ordering: Ordering[Int] = Ordering[Int]
                                                        ): Float = {
     val gradedPopulation = populationNumbers
       .map { gradingRule }
       .groupBy(x => x)
       .values
       .toSeq
-      .sortBy(_.size)
+      .sortBy(_.size)(ordering)
       .take(layers)
       .flatten
     gradedPopulation.sum / gradedPopulation.size.toFloat
@@ -236,7 +237,8 @@ object FacilityHackParticipation {
   private[participation] def populationBalanceModifier(
                                                         victorPopulationNumbers: Seq[Int],
                                                         opposingPopulationNumbers: Seq[Int],
-                                                        healthyPercentage: Float
+                                                        healthyPercentage: Float,
+                                                        maxRatio: Float = 1f
                                                       ): Float = {
     val rate = for {
       victorPop <- victorPopulationNumbers
@@ -252,7 +254,7 @@ object FacilityHackParticipation {
       }
       if true
     } yield out
-    rate.sum / rate.size.toFloat
+    math.max(0f, math.min(rate.sum / rate.size.toFloat, maxRatio))
   }
 
   private[participation] def competitionBonus(

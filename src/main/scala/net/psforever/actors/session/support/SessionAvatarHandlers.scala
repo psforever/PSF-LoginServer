@@ -398,6 +398,7 @@ class SessionAvatarHandlers(
         avatarActor ! AvatarActor.UpdateKillsDeathsAssists(kda)
 
       case AvatarResponse.AwardBep(charId, bep, expType) =>
+        //if the target player, always award (some) BEP
         if (charId == player.CharId) {
           avatarActor ! AvatarActor.AwardBep(bep, expType)
         }
@@ -409,67 +410,7 @@ class SessionAvatarHandlers(
         }
 
       case AvatarResponse.FacilityCaptureRewards(buildingId, zoneNumber, cep) =>
-        //must be in a squad to earn experience
-        val cepConfig = Config.app.game.experience.cep
-        val charId = player.CharId
-        val squadUI = sessionData.squad.squadUI
-        val participation = continent
-          .Building(buildingId)
-          .map { building =>
-            building.Participation.PlayerContribution()
-          }
-        squadUI
-          .find { _._1 == charId }
-          .collect {
-            case (_, elem) if elem.index == 0 =>
-              //squad leader earns CEP, modified by squad effort, capped by squad size present during the capture
-              val squadParticipation = participation match {
-                case Some(map) => map.filter { case (id, _) => squadUI.contains(id) }
-                case _ => Map.empty[Long, Float]
-              }
-              val maxCepBySquadSize: Long = {
-                val maxCepList = cepConfig.maximumPerSquadSize
-                val squadSize: Int = squadParticipation.size
-                maxCepList.lift(squadSize - 1).getOrElse(squadSize * maxCepList.head).toLong
-              }
-              val groupContribution: Float = squadUI
-                .map { case (id, _) => (id, squadParticipation.getOrElse(id, 0f) / 10f) }
-                .values
-                .max
-              val modifiedExp: Long = (cep.toFloat * groupContribution).toLong
-              val cappedModifiedExp: Long = math.min(modifiedExp, maxCepBySquadSize)
-              val finalExp: Long = if (modifiedExp > cappedModifiedExp) {
-                val overLimitOverflow = if (cepConfig.squadSizeLimitOverflow == -1) {
-                  cep.toFloat
-                } else {
-                  cepConfig.squadSizeLimitOverflow.toFloat
-                }
-                cappedModifiedExp + (overLimitOverflow * cepConfig.squadSizeLimitOverflowMultiplier).toLong
-              } else {
-                cappedModifiedExp
-              }
-              exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, finalExp, expType="cep")
-              avatarActor ! AvatarActor.AwardCep(finalExp)
-              Some(finalExp)
-
-            case _ =>
-              //squad member earns BEP based on CEP, modified by personal effort
-              val individualContribution = {
-                val contributionList = for {
-                  facilityMap <- participation
-                  if facilityMap.contains(charId)
-                } yield facilityMap(charId)
-                if (contributionList.nonEmpty) {
-                  contributionList.max
-                } else {
-                  0f
-                }
-              }
-              val modifiedExp = (cep * individualContribution).toLong
-              exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, modifiedExp, expType="bep")
-              avatarActor ! AvatarActor.AwardFacilityCaptureBep(modifiedExp)
-              Some(modifiedExp)
-          }
+        facilityCaptureRewards(buildingId, zoneNumber, cep)
 
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
@@ -664,6 +605,71 @@ class SessionAvatarHandlers(
         ammoData
       )
     )
+  }
+
+  private def facilityCaptureRewards(buildingId: Int, zoneNumber: Int, cep: Long): Unit = {
+    //TODO squad services deactivated, participation trophy rewards for now - 11-20-2023
+    //must be in a squad to earn experience
+    val charId = player.CharId
+    val squadUI = sessionData.squad.squadUI
+    val participation = continent
+      .Building(buildingId)
+      .map { building =>
+        building.Participation.PlayerContribution()
+      }
+    squadUI
+      .find { _._1 == charId }
+      .collect {
+        case (_, elem) if elem.index == 0 =>
+          val cepConfig = Config.app.game.experience.cep
+          //squad leader earns CEP, modified by squad effort, capped by squad size present during the capture
+          val squadParticipation = participation match {
+            case Some(map) => map.filter { case (id, _) => squadUI.contains(id) }
+            case _ => Map.empty[Long, Float]
+          }
+          val maxCepBySquadSize: Long = {
+            val maxCepList = cepConfig.maximumPerSquadSize
+            val squadSize: Int = squadParticipation.size
+            maxCepList.lift(squadSize - 1).getOrElse(squadSize * maxCepList.head).toLong
+          }
+          val groupContribution: Float = squadUI
+            .map { case (id, _) => (id, squadParticipation.getOrElse(id, 0f) / 10f) }
+            .values
+            .max
+          val modifiedExp: Long = (cep.toFloat * groupContribution).toLong
+          val cappedModifiedExp: Long = math.min(modifiedExp, maxCepBySquadSize)
+          val finalExp: Long = if (modifiedExp > cappedModifiedExp) {
+            val overLimitOverflow = if (cepConfig.squadSizeLimitOverflow == -1) {
+              cep.toFloat
+            } else {
+              cepConfig.squadSizeLimitOverflow.toFloat
+            }
+            cappedModifiedExp + (overLimitOverflow * (math.random().toFloat % cepConfig.squadSizeLimitOverflowMultiplier)).toLong
+          } else {
+            cappedModifiedExp
+          }
+          exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, finalExp, expType="cep")
+          avatarActor ! AvatarActor.AwardCep(finalExp)
+          Some(finalExp)
+
+        case _ =>
+          //squad member earns BEP based on CEP, modified by personal effort
+          val individualContribution = {
+            val contributionList = for {
+              facilityMap <- participation
+              if facilityMap.contains(charId)
+            } yield facilityMap(charId)
+            if (contributionList.nonEmpty) {
+              contributionList.max
+            } else {
+              0f
+            }
+          }
+          val modifiedExp = (cep * individualContribution).toLong
+          exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, modifiedExp, expType="bep")
+          avatarActor ! AvatarActor.AwardFacilityCaptureBep(modifiedExp)
+          Some(modifiedExp)
+      }
   }
 }
 
