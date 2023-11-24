@@ -102,7 +102,7 @@ class SessionTerminalHandlers(
         lastTerminalOrderFulfillment = true
 
       case Terminal.BuyVehicle(vehicle, _, _)
-        if tplayer.avatar.purchaseCooldown(vehicle.Definition).nonEmpty =>
+        if tplayer.avatar.purchaseCooldown(vehicle.Definition).nonEmpty || tplayer.spectator =>
         sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
         lastTerminalOrderFulfillment = true
 
