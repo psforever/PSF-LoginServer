@@ -143,7 +143,7 @@ class VehicleControl(vehicle: Vehicle)
         }) =>
         sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num))
 
-      case msg @ Mountable.TryDismount(_, seat_num, _) =>
+      case msg @ Mountable.TryDismount(player, seat_num, _) =>
         dismountBehavior.apply(msg)
         dismountCleanup(seat_num, player)
 
