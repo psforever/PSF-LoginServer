@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableWeaponTurret}
 import net.psforever.objects.serverobject.hackable.GenericHackables
+import net.psforever.objects.serverobject.hackable.GenericHackables.getTurretUpgradeTime
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableWeaponTurret}
 import net.psforever.objects.serverobject.structures.PoweredAmenityControl
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAwareBehavior
@@ -77,10 +78,11 @@ class FacilityTurretControl(turret: FacilityTurret)
                 if turret.Upgrade != upgrade && turret.Definition.WeaponPaths.values
                   .flatMap(_.keySet)
                   .exists(_ == upgrade) =>
+              turret.setMiddleOfUpgrade(true)
               sender() ! CommonMessages.Progress(
                 1.25f,
                 WeaponTurrets.FinishUpgradingMannedTurret(turret, player, item, upgrade),
-                GenericHackables.HackingTickAction(progressType = 2, player, turret, item.GUID)
+                GenericHackables.TurretUpgradingTickAction(progressType = 2, player, turret, item.GUID)
               )
             case _ => ;
           }
@@ -133,7 +135,8 @@ class FacilityTurretControl(turret: FacilityTurret)
                                     obj: PlanetSideServerObject with Mountable,
                                     seatNumber: Int,
                                     player: Player): Boolean = {
-    (!turret.Definition.FactionLocked || player.Faction == obj.Faction) && !obj.Destroyed
+    (!turret.Definition.FactionLocked || player.Faction == obj.Faction) && !obj.Destroyed && !turret.isUpgrading ||
+      System.currentTimeMillis() - getTurretUpgradeTime >= 1500L
   }
 
   override protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any) : Unit = {

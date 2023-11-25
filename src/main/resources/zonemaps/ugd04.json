@@ -9240,7 +9240,7 @@
     "Yaw": 0.0,
     "GUID": 725,
     "MapID": 200044,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 162,
@@ -9253,20 +9253,20 @@
     "Yaw": 0.0,
     "GUID": 726,
     "MapID": 200026,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 246,
     "ObjectName": "crystals_energy_a",
     "ObjectType": "crystals_energy_a",
-    "Owner": 243,
+    "Owner": null,
     "AbsX": 875.1611,
     "AbsY": 874.311035,
     "AbsZ": 129.5,
     "Yaw": 0.0,
     "GUID": 727,
     "MapID": null,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 158,
@@ -9279,7 +9279,7 @@
     "Yaw": 0.0,
     "GUID": 728,
     "MapID": 200022,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 339,
@@ -9292,20 +9292,20 @@
     "Yaw": 0.0,
     "GUID": 729,
     "MapID": 200047,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 64,
     "ObjectName": "crystals_energy_a",
     "ObjectType": "crystals_energy_a",
-    "Owner": 61,
+    "Owner": null,
     "AbsX": 1066.2511,
     "AbsY": 1237.641,
     "AbsZ": 129.5,
     "Yaw": 0.0,
     "GUID": 730,
     "MapID": null,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 145,
@@ -9318,7 +9318,7 @@
     "Yaw": 0.0,
     "GUID": 731,
     "MapID": 200009,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 154,
@@ -9331,7 +9331,7 @@
     "Yaw": 0.0,
     "GUID": 732,
     "MapID": 200018,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 240,
@@ -9344,7 +9344,7 @@
     "Yaw": 0.0,
     "GUID": 733,
     "MapID": 200028,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 306,
@@ -9357,7 +9357,7 @@
     "Yaw": 0.0,
     "GUID": 734,
     "MapID": 200042,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 159,
@@ -9370,7 +9370,7 @@
     "Yaw": 0.0,
     "GUID": 735,
     "MapID": 200023,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 299,
@@ -9383,7 +9383,7 @@
     "Yaw": 0.0,
     "GUID": 736,
     "MapID": 200039,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 163,
@@ -9396,7 +9396,7 @@
     "Yaw": 0.0,
     "GUID": 737,
     "MapID": 200027,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 248,
@@ -9409,7 +9409,7 @@
     "Yaw": 0.0,
     "GUID": 738,
     "MapID": 200032,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 152,
@@ -9422,7 +9422,7 @@
     "Yaw": 0.0,
     "GUID": 739,
     "MapID": 200016,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 150,
@@ -9435,7 +9435,7 @@
     "Yaw": 0.0,
     "GUID": 740,
     "MapID": 200014,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 149,
@@ -9448,7 +9448,7 @@
     "Yaw": 0.0,
     "GUID": 741,
     "MapID": 200013,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 141,
@@ -9461,7 +9461,7 @@
     "Yaw": 0.0,
     "GUID": 742,
     "MapID": 200005,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 153,
@@ -9474,7 +9474,7 @@
     "Yaw": 0.0,
     "GUID": 743,
     "MapID": 200017,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 148,
@@ -9487,7 +9487,7 @@
     "Yaw": 0.0,
     "GUID": 744,
     "MapID": 200012,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 160,
@@ -9500,7 +9500,7 @@
     "Yaw": 0.0,
     "GUID": 745,
     "MapID": 200024,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 247,
@@ -9513,7 +9513,7 @@
     "Yaw": 0.0,
     "GUID": 746,
     "MapID": 200031,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 157,
@@ -9526,7 +9526,7 @@
     "Yaw": 0.0,
     "GUID": 747,
     "MapID": 200021,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 151,
@@ -9539,7 +9539,7 @@
     "Yaw": 0.0,
     "GUID": 748,
     "MapID": 200015,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 147,
@@ -9552,7 +9552,7 @@
     "Yaw": 0.0,
     "GUID": 749,
     "MapID": 200011,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 305,
@@ -9565,7 +9565,7 @@
     "Yaw": 0.0,
     "GUID": 750,
     "MapID": 200041,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 337,
@@ -9578,7 +9578,7 @@
     "Yaw": 0.0,
     "GUID": 751,
     "MapID": 200045,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 161,
@@ -9591,7 +9591,7 @@
     "Yaw": 0.0,
     "GUID": 752,
     "MapID": 200025,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 300,
@@ -9604,7 +9604,7 @@
     "Yaw": 0.0,
     "GUID": 753,
     "MapID": 200040,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 338,
@@ -9617,7 +9617,7 @@
     "Yaw": 335.0,
     "GUID": 754,
     "MapID": 200046,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 140,
@@ -9630,7 +9630,7 @@
     "Yaw": 0.0,
     "GUID": 755,
     "MapID": 200004,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 146,
@@ -9643,7 +9643,7 @@
     "Yaw": 0.0,
     "GUID": 756,
     "MapID": 200010,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 155,
@@ -9656,7 +9656,7 @@
     "Yaw": 0.0,
     "GUID": 757,
     "MapID": 200019,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 307,
@@ -9669,7 +9669,7 @@
     "Yaw": 0.0,
     "GUID": 758,
     "MapID": 200043,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 156,
@@ -9682,7 +9682,7 @@
     "Yaw": 0.0,
     "GUID": 759,
     "MapID": 200020,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 144,
@@ -9695,7 +9695,7 @@
     "Yaw": 0.0,
     "GUID": 760,
     "MapID": 200008,
-    "IsChildObject": true
+    "IsChildObject": false
   },
   {
     "Id": 278,
@@ -10611,7 +10611,7 @@
     "Id": 885,
     "ObjectName": "vanu_equipment_term_200100",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 309,
     "AbsX": 768.65,
     "AbsY": 1172.64,
     "AbsZ": 109.09,
@@ -10624,7 +10624,7 @@
     "Id": 888,
     "ObjectName": "vanu_equipment_term_200103",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 309,
     "AbsX": 778.06,
     "AbsY": 1189.82,
     "AbsZ": 109.09,
@@ -10637,7 +10637,7 @@
     "Id": 886,
     "ObjectName": "vanu_equipment_term_200101",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 309,
     "AbsX": 785.86,
     "AbsY": 1163.1,
     "AbsZ": 109.09,
@@ -10650,7 +10650,7 @@
     "Id": 298,
     "ObjectName": "vanu_equipment_term_200038",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 791.15,
     "AbsY": 1304.88,
     "AbsZ": 162.68,
@@ -10663,7 +10663,7 @@
     "Id": 887,
     "ObjectName": "vanu_equipment_term_200102",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 309,
     "AbsX": 795.55,
     "AbsY": 1180.29,
     "AbsZ": 109.09,
@@ -10689,7 +10689,7 @@
     "Id": 297,
     "ObjectName": "vanu_equipment_term_200037",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 799.83,
     "AbsY": 1295.35,
     "AbsZ": 162.68,
@@ -10702,7 +10702,7 @@
     "Id": 136,
     "ObjectName": "vanu_equipment_term_200000",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 835.57,
     "AbsY": 1094.07,
     "AbsZ": 193.71,
@@ -10715,7 +10715,7 @@
     "Id": 137,
     "ObjectName": "vanu_equipment_term_200001",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 845.78,
     "AbsY": 1062.0,
     "AbsZ": 193.71,
@@ -10728,7 +10728,7 @@
     "Id": 292,
     "ObjectName": "vanu_equipment_term_200036",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 891.69,
     "AbsY": 781.33,
     "AbsZ": 118.5,
@@ -10741,7 +10741,7 @@
     "Id": 291,
     "ObjectName": "vanu_equipment_term_200035",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 892.08,
     "AbsY": 790.5,
     "AbsZ": 118.5,
@@ -10754,7 +10754,7 @@
     "Id": 883,
     "ObjectName": "vanu_equipment_term_200098",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 321,
     "AbsX": 1013.04,
     "AbsY": 734.64,
     "AbsZ": 124.36,
@@ -10780,7 +10780,7 @@
     "Id": 882,
     "ObjectName": "vanu_equipment_term_200097",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 321,
     "AbsX": 1021.43,
     "AbsY": 716.77,
     "AbsZ": 124.36,
@@ -10793,7 +10793,7 @@
     "Id": 884,
     "ObjectName": "vanu_equipment_term_200099",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 321,
     "AbsX": 1030.94,
     "AbsY": 742.92,
     "AbsZ": 124.36,
@@ -10819,7 +10819,7 @@
     "Id": 881,
     "ObjectName": "vanu_equipment_term_200096",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 321,
     "AbsX": 1039.09,
     "AbsY": 725.04,
     "AbsZ": 124.36,
@@ -10832,7 +10832,7 @@
     "Id": 138,
     "ObjectName": "vanu_equipment_term_200002",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 1046.56,
     "AbsY": 1319.12,
     "AbsZ": 116.4,
@@ -10845,7 +10845,7 @@
     "Id": 139,
     "ObjectName": "vanu_equipment_term_200003",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 1048.6,
     "AbsY": 1352.78,
     "AbsZ": 116.4,
@@ -10858,7 +10858,7 @@
     "Id": 348,
     "ObjectName": "vanu_equipment_term_200049",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 1085.88,
     "AbsY": 680.98,
     "AbsZ": 116.8,
@@ -10871,7 +10871,7 @@
     "Id": 347,
     "ObjectName": "vanu_equipment_term_200048",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 1088.05,
     "AbsY": 714.6,
     "AbsZ": 116.8,
@@ -10884,7 +10884,7 @@
     "Id": 241,
     "ObjectName": "vanu_equipment_term_200029",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 1147.46,
     "AbsY": 1067.68,
     "AbsZ": 198.82,
@@ -10897,7 +10897,7 @@
     "Id": 242,
     "ObjectName": "vanu_equipment_term_200030",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 1171.04,
     "AbsY": 1053.54,
     "AbsZ": 198.82,
@@ -11040,7 +11040,7 @@
     "Id": 143,
     "ObjectName": "vanu_equipment_term_200007",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 1361.59,
     "AbsY": 876.44,
     "AbsZ": 121.5,
@@ -11053,7 +11053,7 @@
     "Id": 142,
     "ObjectName": "vanu_equipment_term_200006",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 1374.98,
     "AbsY": 865.79,
     "AbsZ": 121.5,
@@ -11066,7 +11066,7 @@
     "Id": 284,
     "ObjectName": "vanu_equipment_term_200034",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 1421.6,
     "AbsY": 1202.05,
     "AbsZ": 130.8,
@@ -11079,7 +11079,7 @@
     "Id": 283,
     "ObjectName": "vanu_equipment_term_200033",
     "ObjectType": "vanu_equipment_term",
-    "Owner": null,
+    "Owner": 0,
     "AbsX": 1430.67,
     "AbsY": 1192.45,
     "AbsZ": 130.8,

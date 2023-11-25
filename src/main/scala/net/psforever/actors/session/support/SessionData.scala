@@ -969,11 +969,13 @@ class SessionData(
     continent
       .GUID(vehicleGuid)
       .foreach {
-        case obj: Vehicle if !obj.Destroyed => //vehicle will try to charge even if destroyed
+        case obj: Vehicle if !obj.Destroyed && obj.MountedIn.isEmpty => // vehicle will try to charge even if destroyed & cargo vehicles need to be excluded
           obj.Actor ! CommonMessages.ChargeShields(
             15,
             Some(continent.blockMap.sector(obj).buildingList.maxBy(_.Definition.SOIRadius))
           )
+        case obj: Vehicle if obj.MountedIn.nonEmpty =>
+          false
         case _ if vehicleGuid.nonEmpty =>
           log.warn(
             s"FacilityBenefitShieldChargeRequest: ${player.Name} can not find vehicle ${vehicleGuid.get.guid} in zone ${continent.id}"
@@ -1395,7 +1397,8 @@ class SessionData(
       case Some(item) =>
         sendUseGeneralEntityMessage(terminal, item)
       case None
-        if terminal.Owner == Building.NoBuilding || terminal.Faction == player.Faction || terminal.HackedBy.nonEmpty =>
+        if terminal.Owner == Building.NoBuilding || terminal.Faction == player.Faction ||
+          terminal.HackedBy.nonEmpty || terminal.Faction == PlanetSideEmpire.NEUTRAL =>
         val tdef = terminal.Definition
         if (tdef.isInstanceOf[MatrixTerminalDefinition]) {
           //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
