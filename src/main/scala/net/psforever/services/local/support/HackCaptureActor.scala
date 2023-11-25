@@ -32,23 +32,17 @@ class HackCaptureActor extends Actor {
   private var hackedObjects: List[HackCaptureActor.HackEntry] = Nil
 
   def receive: Receive = {
+    case HackCaptureActor.StartCaptureTerminalHack(target, _, _, _, _)
+      if target.HackedBy.isEmpty =>
+      log.error(s"StartCaptureTerminalHack: initial $target hack information is missing; can not proceed")
+
     case HackCaptureActor.StartCaptureTerminalHack(target, zone, unk1, unk2, startTime) =>
-      log.trace(s"StartCaptureTerminalHack: ${target.GUID} is hacked.")
+      log.trace(s"StartCaptureTerminalHack: ${target.GUID} is hacked")
       val duration = target.Definition.FacilityHackTime
-      target.HackedBy match {
-        case Some(hackInfo) =>
-          target.HackedBy = hackInfo.Duration(duration.toMillis)
-        case None =>
-          log.error(s"Initial $target hack information is missing")
+      target.HackedBy.map {
+        hackInfo => target.HackedBy = hackInfo.Duration(duration.toMillis)
       }
-      hackedObjects.find(_.target == target).foreach { _ =>
-        log.trace(
-          s"StartCaptureTerminalHack: ${target.GUID} was already hacked - removing it from the hacked objects list before re-adding it."
-        )
-        hackedObjects = hackedObjects.filterNot(x => x.target == target)
-      }
-      hackedObjects = hackedObjects :+ HackCaptureActor.HackEntry(target, zone, unk1, unk2, duration, startTime)
-      // Restart the timer, in case this is the first object in the hacked objects list or the object was removed and re-added
+      hackedObjects = hackedObjects.filterNot(_.target == target) :+ HackCaptureActor.HackEntry(target, zone, unk1, unk2, duration, startTime)
       RestartTimer()
       NotifyHackStateChange(target, isResecured = false)
       TrySpawnCaptureFlag(target)

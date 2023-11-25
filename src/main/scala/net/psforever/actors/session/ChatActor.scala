@@ -1132,8 +1132,8 @@ class ChatActor(
         true
 
       } else if (contents.startsWith("!list")) {
-        val zone = dropFirstWord(contents).split(" ").headOption match {
-          case None =>
+        val zone = dropFirstWord(contents).split("\\s+").headOption match {
+          case Some("") | None =>
             Some(session.zone)
           case Some(id) =>
             Zones.zones.find(_.id == id)
@@ -1178,7 +1178,7 @@ class ChatActor(
         true
 
       } else if (contents.startsWith("!ntu") && gmCommandAllowed) {
-        val buffer = dropFirstWord(contents).toLowerCase.split("\\s+")
+        val buffer = dropFirstWord(contents).split("\\s+")
         val (facility, customNtuValue) = (buffer.headOption, buffer.lift(1)) match {
           case (Some(x), Some(y)) if y.toIntOption.nonEmpty => (Some(x), Some(y.toInt))
           case (Some(x), None) if x.toIntOption.nonEmpty => (None, Some(x.toInt))
@@ -1210,7 +1210,7 @@ class ChatActor(
         true
 
       } else if (contents.startsWith("!zonerotate") && gmCommandAllowed) {
-        val buffer = dropFirstWord(contents).toLowerCase.split("\\s+")
+        val buffer = dropFirstWord(contents).split("\\s+")
         cluster ! InterstellarClusterService.CavernRotation(buffer.headOption match {
           case Some("-list") | Some("-l") =>
             CavernRotationService.ReportRotationOrder(sessionActor.toClassic)
