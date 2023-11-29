@@ -859,10 +859,8 @@ class VehicleControl(vehicle: Vehicle)
   override def StartJammeredStatus(target: Any, dur: Int): Unit = {
     super.StartJammeredStatus(target, dur)
     val subsystems = vehicle.Subsystems()
-    if (!subsystems.exists { _.Jammed }) {
       subsystems.foreach { _.jam() }
       vehicleSubsystemMessages(subsystems.flatMap { _.changedMessages(vehicle) })
-    }
   }
 
   override def CancelJammeredStatus(target: Any): Unit = {
