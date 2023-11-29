@@ -324,7 +324,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               player.Name,
               AvatarAction.ObjectHeld(player.GUID, before, -1)
             )
-          } else if (!resistance && before != slot && (player.DrawnSlot = slot) != before) {
+          } else if ((!resistance && before != slot && (player.DrawnSlot = slot) != before) && ItemSwapSlot != before) {
             val mySlot = if (updateMyHolsterArm) slot else -1 //use as a short-circuit
             events ! AvatarServiceMessage(
               player.Continent,
@@ -353,6 +353,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   log.info(s"${player.Name} lowers ${player.Sex.possessive} hand")
               }
             }
+            UpdateItemSwapSlot
+          } else if (ItemSwapSlot == before) {
+            UpdateItemSwapSlot
           }
 
         case Terminal.TerminalMessage(_, msg, order) =>

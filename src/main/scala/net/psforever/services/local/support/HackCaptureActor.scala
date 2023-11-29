@@ -25,7 +25,6 @@ import scala.util.Random
  */
 class HackCaptureActor extends Actor {
   private[this] val log = org.log4s.getLogger
-
   /** main timer for completing or clearing hacked states */
   private var clearTrigger: Cancellable = Default.Cancellable
   /** list of currently hacked server objects */
@@ -167,6 +166,7 @@ class HackCaptureActor extends Actor {
       case Some((owner, _, _)) =>
         log.error(s"TrySpawnCaptureFlag: couldn't find any neighbouring $hackingFaction facilities of ${owner.Name} for LLU hack")
         owner.GetFlagSocket.foreach { _.clearOldFlagData() }
+        terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(owner.GetFlag.get, CaptureFlagLostReasonEnum.Ended)
         false
       case _ =>
         log.error(s"TrySpawnCaptureFlag: expecting a terminal ${terminal.GUID.guid} with the ctf owning facility")

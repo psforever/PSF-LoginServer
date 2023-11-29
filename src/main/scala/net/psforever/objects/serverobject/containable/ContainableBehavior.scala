@@ -42,6 +42,7 @@ trait ContainableBehavior {
     * The destination is set back to normal - flag to `0` - when both of the attempts short-circuit due to timeout.
     */
   private var waitOnMoveItemOps: Int = 0
+  private var itemSwapSlot: Int = 10 // Just a number higher than any inventory item slots
 
   final val containerBehavior: Receive = {
     /* messages that modify delivery order */
@@ -136,6 +137,15 @@ trait ContainableBehavior {
   }
 
   /* Functions (item transfer) */
+  // For issue 1108
+  def UpdateItemSwapSlot: Int = {
+    itemSwapSlot = 10
+    itemSwapSlot
+  }
+  // For issue 1108
+  def ItemSwapSlot: Int = {
+    itemSwapSlot
+  }
 
   protected def ContainableMoveItem(
                                    destination: PlanetSideServerObject with Container,
@@ -154,6 +164,7 @@ trait ContainableBehavior {
             LocalPutItemInSlot(item, dest) match {
               case Containable.ItemPutInSlot(_, _, _, None) => ; //success
               case Containable.ItemPutInSlot(_, _, _, Some(swapItem)) => //success, but with swap item
+                itemSwapSlot = dest
                 LocalPutItemInSlotOnlyOrAway(swapItem, slot) match {
                   case Containable.ItemPutInSlot(_, _, _, None) => ;
                   case _ =>
@@ -174,6 +185,7 @@ trait ContainableBehavior {
               case Success(Containable.ItemPutInSlot(_, _, _, None)) => ; //successful
 
               case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) => //successful, but with swap item
+                itemSwapSlot = dest
                 PutItBackOrDropIt(source, swapItem, slot, destination.Actor)
 
               case Success(_: Containable.CanNotPutItemInSlot) => //failure case ; try restore original item placement
