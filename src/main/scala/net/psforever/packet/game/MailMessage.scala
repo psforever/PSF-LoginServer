@@ -15,7 +15,8 @@ import scodec.codecs._
   * At the moment, it only seems possible to receive and read mail from the server.
   * @param sender the name of the player who sent the mail
   * @param subject the subject
-  * @param message the message
+  * @param message the message;
+ *                line breaks use `\n`
   */
 final case class MailMessage(sender: String, subject: String, message: String) extends PlanetSideGamePacket {
   type Packet = MailMessage

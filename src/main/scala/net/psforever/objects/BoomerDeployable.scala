@@ -72,7 +72,9 @@ class BoomerDeployableControl(mine: BoomerDeployable)
 
   override def loseOwnership(faction: PlanetSideEmpire.Value): Unit = {
     super.loseOwnership(PlanetSideEmpire.NEUTRAL)
-    mine.OwnerName = None
+    val guid = mine.OwnerGuid
+    mine.AssignOwnership(None)
+    mine.OwnerGuid = guid
   }
 
   override def gainOwnership(player: Player): Unit = {

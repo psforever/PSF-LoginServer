@@ -89,8 +89,7 @@ object Deployables {
           .foreach { p =>
             p.Actor ! Player.LoseDeployable(target)
           }
-        target.Owner = None
-        target.OwnerName = None
+        target.AssignOwnership(None)
       }
     events ! LocalServiceMessage(
       s"${target.Faction}",
@@ -119,7 +118,7 @@ object Deployables {
       .collect {
         case Some(obj: Deployable) =>
           obj.Actor ! Deployable.Ownership(None)
-          obj.Owner = None //fast-forward the effect
+          obj.OwnerGuid = None //fast-forward the effect
           obj
       }
   }

@@ -9,19 +9,16 @@ import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.zones.Zone
-import net.psforever.objects.{Default, Player}
+import net.psforever.objects.Default
 import net.psforever.packet.game.{GenericAction, PlanetsideAttributeEnum}
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.objects.zones.ZoneHotSpotProjector
 import net.psforever.services.Service
+import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
-import net.psforever.util.Config
 
-import java.util.concurrent.TimeUnit
-import scala.collection.mutable
 import scala.concurrent.duration.{FiniteDuration, _}
-import scala.util.{Random, Success}
+import scala.util.Random
 
 /**
  * Responsible for handling the aspects related to hacking control consoles and capturing bases.
@@ -35,23 +32,17 @@ class HackCaptureActor extends Actor {
   private var hackedObjects: List[HackCaptureActor.HackEntry] = Nil
 
   def receive: Receive = {
+    case HackCaptureActor.StartCaptureTerminalHack(target, _, _, _, _)
+      if target.HackedBy.isEmpty =>
+      log.error(s"StartCaptureTerminalHack: initial $target hack information is missing; can not proceed")
+
     case HackCaptureActor.StartCaptureTerminalHack(target, zone, unk1, unk2, startTime) =>
-      log.trace(s"StartCaptureTerminalHack: ${target.GUID} is hacked.")
+      log.trace(s"StartCaptureTerminalHack: ${target.GUID} is hacked")
       val duration = target.Definition.FacilityHackTime
-      target.HackedBy match {
-        case Some(hackInfo) =>
-          target.HackedBy = hackInfo.Duration(duration.toNanos)
-        case None =>
-          log.error(s"Initial $target hack information is missing")
+      target.HackedBy.map {
+        hackInfo => target.HackedBy = hackInfo.Duration(duration.toMillis)
       }
-      hackedObjects.find(_.target == target).foreach { _ =>
-        log.trace(
-          s"StartCaptureTerminalHack: ${target.GUID} was already hacked - removing it from the hacked objects list before re-adding it."
-        )
-        hackedObjects = hackedObjects.filterNot(x => x.target == target)
-      }
-      hackedObjects = hackedObjects :+ HackCaptureActor.HackEntry(target, zone, unk1, unk2, duration, startTime)
-      // Restart the timer, in case this is the first object in the hacked objects list or the object was removed and re-added
+      hackedObjects = hackedObjects.filterNot(_.target == target) :+ HackCaptureActor.HackEntry(target, zone, unk1, unk2, duration, startTime)
       RestartTimer()
       NotifyHackStateChange(target, isResecured = false)
       TrySpawnCaptureFlag(target)
@@ -59,8 +50,8 @@ class HackCaptureActor extends Actor {
     case HackCaptureActor.ProcessCompleteHacks() =>
       log.trace("Processing complete hacks")
       clearTrigger.cancel()
-      val now: Long     = System.nanoTime
-      val (stillHacked, finishedHacks) = hackedObjects.partition(x => now - x.hack_timestamp < x.duration.toNanos)
+      val now: Long     = System.currentTimeMillis()
+      val (stillHacked, finishedHacks) = hackedObjects.partition(x => now - x.hack_timestamp < x.duration.toMillis)
       hackedObjects = stillHacked
       finishedHacks.foreach { entry =>
         val terminal = entry.target
@@ -79,12 +70,14 @@ class HackCaptureActor extends Actor {
 
           case _ =>
             // Timed hack finished (or neutral LLU base with no neighbour as timed hack), capture the base
+            val hackTime = terminal.Definition.FacilityHackTime.toMillis
             HackCompleted(terminal, hackedByFaction)
-            HackCaptureActor.RewardFacilityCaptureParticipants(
-              building,
-              terminal,
+            building.Participation.RewardFacilityCapture(
+              HackCaptureActor.GetDefendingFaction(terminal, building, hackedByFaction),
+              hackedByFaction,
               hacker,
-              now - entry.hack_timestamp,
+              hackTime,
+              hackTime,
               isResecured = false
             )
         }
@@ -94,6 +87,7 @@ class HackCaptureActor extends Actor {
 
     case HackCaptureActor.ResecureCaptureTerminal(target, _, hacker) =>
       val (results, remainder) = hackedObjects.partition(x => x.target eq target)
+      val faction = GetHackingFaction(target).getOrElse(target.Faction)
       target.HackedBy = None
       hackedObjects = remainder
       val building = target.Owner.asInstanceOf[Building]
@@ -102,13 +96,14 @@ class HackCaptureActor extends Actor {
         case flag: CaptureFlag => target.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Resecured)
       }
       NotifyHackStateChange(target, isResecured = true)
-//      HackCaptureActor.RewardFacilityCaptureParticipants(
-//        building,
-//        target,
-//        hacker,
-//        System.currentTimeMillis() - results.head.hack_timestamp,
-//        isResecured = true
-//      )
+      building.Participation.RewardFacilityCapture(
+        target.Faction,
+        faction,
+        hacker,
+        target.Definition.FacilityHackTime.toMillis,
+        System.currentTimeMillis() - results.head.hack_timestamp,
+        isResecured = true
+      )
       // Restart the timer in case the object we just removed was the next one scheduled
       RestartTimer()
 
@@ -124,13 +119,14 @@ class HackCaptureActor extends Actor {
           val hackedByFaction = hackInfo.hackerFaction
           hackedObjects = hackedObjects.filterNot(x => x == entry)
           HackCompleted(terminal, hackedByFaction)
-//          HackCaptureActor.RewardFacilityCaptureParticipants(
-//            building,
-//            terminal,
-//            hacker,
-//            System.currentTimeMillis() - entry.hack_timestamp,
-//            isResecured = false
-//          )
+          building.Participation.RewardFacilityCapture(
+            HackCaptureActor.GetDefendingFaction(terminal, building, hackedByFaction),
+            hackedByFaction,
+            hacker,
+            terminal.Definition.FacilityHackTime.toMillis,
+            System.currentTimeMillis() - entry.hack_timestamp,
+            isResecured = false
+          )
           entry.target.Actor ! CommonMessages.ClearHack()
           flag.Zone.LocalEvents ! CaptureFlagManager.Captured(flag)
           // If there's hacked objects left in the list restart the timer with the shortest hack time left
@@ -151,6 +147,9 @@ class HackCaptureActor extends Actor {
       case owner: Building if owner.IsCtfBase => Some((owner, owner.GetFlag, owner.Neighbours(hackingFaction)))
       case _ => None
     }) match {
+      case None =>
+        //not an error; this is just not a ctf facility
+        false
       case Some((owner, None, Some(neighbours))) if neighbours.nonEmpty =>
         log.info(s"An LLU is being spawned for facility ${owner.Name} by $hackingFaction")
         spawnCaptureFlag(neighbours, terminal, hackingFaction)
@@ -231,9 +230,8 @@ class HackCaptureActor extends Actor {
 
   private def RestartTimer(): Unit = {
     if (hackedObjects.nonEmpty) {
-      val hackEntry = hackedObjects.reduceLeft(HackCaptureActor.minTimeLeft(System.nanoTime()))
-      val short_timeout: FiniteDuration =
-        math.max(1, hackEntry.duration.toNanos - (System.nanoTime - hackEntry.hack_timestamp)).nanoseconds
+      val hackEntry = hackedObjects.reduceLeft(HackCaptureActor.minTimeLeft(System.currentTimeMillis()))
+      val short_timeout: FiniteDuration = math.max(1, hackEntry.duration.toMillis - (System.currentTimeMillis() - hackEntry.hack_timestamp)).milliseconds
       log.trace(s"RestartTimer: still items left in hacked objects list. Checking again in ${short_timeout.toSeconds} seconds")
       import scala.concurrent.ExecutionContext.Implicits.global
       clearTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, HackCaptureActor.ProcessCompleteHacks())
@@ -247,7 +245,7 @@ object HackCaptureActor {
                                              zone: Zone,
                                              unk1: Long,
                                              unk2: Long,
-                                             startTime: Long = System.nanoTime()
+                                             startTime: Long = System.currentTimeMillis()
                                            )
 
   final case class ResecureCaptureTerminal(target: CaptureTerminal, zone: Zone, hacker: PlayerSource)
@@ -264,6 +262,44 @@ object HackCaptureActor {
                                hack_timestamp: Long
                              )
 
+  def GetDefendingFaction(
+                           terminal: CaptureTerminal,
+                           building: Building,
+                           excludeThisFaction: PlanetSideEmpire.Value
+                         ): PlanetSideEmpire.Value = {
+    terminal.HackedBy
+      .map { _.originalFaction }
+      .orElse { Some(terminal.Faction) }
+      .collect {
+        case PlanetSideEmpire.NEUTRAL =>
+          val factionEfforts = building.Participation
+            .PlayerContributionRaw
+            .values
+            .foldLeft(Array.fill(4)(0L))({ case (a, b) =>
+              val (player, duration, _) = b
+              val index = player.Faction.id
+              a.update(index, a(index) + duration.toLong)
+              a
+            })
+          factionEfforts.update(excludeThisFaction.id, Long.MinValue)
+          factionEfforts
+            .indices
+            .maxByOption(factionEfforts)
+            .map { index => PlanetSideEmpire(index) }
+            .getOrElse {
+              val test = PlanetSideEmpire(0)
+              if (excludeThisFaction == test) {
+                PlanetSideEmpire(1)
+              } else {
+                test
+              }
+            }
+        case faction =>
+          faction
+      }
+      .get
+  }
+
   def GetHackingFaction(terminal: CaptureTerminal): Option[PlanetSideEmpire.Value] = {
     terminal.HackedBy.map { a => a.player.Faction }
   }
@@ -272,10 +308,9 @@ object HackCaptureActor {
     terminal.HackedBy match {
       case _ if isResecured =>
         17039360L
-      case Some(Hackable.HackInfo(p, _, start, length)) =>
+      case Some(Hackable.HackInfo(p, _, start, length, _)) =>
         // See PlanetSideAttributeMessage #20 documentation for an explanation of how the timer is calculated
-        val hackTimeRemainingMS =
-          TimeUnit.MILLISECONDS.convert(math.max(0, start + length - System.nanoTime), TimeUnit.NANOSECONDS)
+        val hackTimeRemainingMS = math.max(0, start + length - System.currentTimeMillis())
         val startNum = p.Faction match {
           case PlanetSideEmpire.TR => 0x10000
           case PlanetSideEmpire.NC => 0x20000
@@ -291,149 +326,12 @@ object HackCaptureActor {
     entry1: HackCaptureActor.HackEntry,
     entry2: HackCaptureActor.HackEntry
   ): HackCaptureActor.HackEntry = {
-    val entry1TimeLeft = entry1.duration.toNanos - (now - entry1.hack_timestamp)
-    val entry2TimeLeft = entry2.duration.toNanos - (now - entry2.hack_timestamp)
+    val entry1TimeLeft = entry1.duration.toMillis - (now - entry1.hack_timestamp)
+    val entry2TimeLeft = entry2.duration.toMillis - (now - entry2.hack_timestamp)
     if (entry1TimeLeft < entry2TimeLeft) {
       entry1
     } else {
       entry2
     }
-  }
-
-  import akka.pattern.ask
-  import akka.util.Timeout
-  import scala.concurrent.duration._
-  import scala.concurrent.ExecutionContext.Implicits.global
-
-  private implicit val timeout: Timeout = Timeout(5.seconds)
-
-  private def RewardFacilityCaptureParticipants(
-                                                 building: Building,
-                                                 terminal: CaptureTerminal,
-                                                 hacker: PlayerSource,
-                                                 time: Long,
-                                                 isResecured: Boolean
-                                               ): Unit = {
-    val faction: PlanetSideEmpire.Value = terminal.Faction
-    val (contributionVictor, contributionAgainst) = building.PlayerContribution.keys.partition { _.Faction == faction }
-    val contributionVictorSize = contributionVictor.size
-    val flagCarrier = if (!isResecured) {
-      building.GetFlagSocket.flatMap(_.previousFlag).flatMap(_.Carrier)
-    } else {
-      None
-    }
-    val request = ask(building.Zone.Activity, ZoneHotSpotProjector.ExposeHeatForRegion(building.Position, building.Definition.SOIRadius.toFloat))
-    request.onComplete {
-      case Success(ZoneHotSpotProjector.ExposedHeat(_, _, activity)) =>
-        val (heatVictor, heatAgainst) = {
-          val reports = activity.map { _.Activity }
-          val allHeat: List[Long] = reports.map { a => a.values.foldLeft(0L)(_ + _.Heat) }
-          val _rewardedHeat: List[Long] = reports.flatMap { rep => rep.get(faction).map { _.Heat.toLong } }
-          val _enemyHeat = allHeat.indices.map { index =>
-            val allHeatValue = allHeat(index)
-            val rewardedHeatValue = _rewardedHeat(index)
-            allHeatValue - rewardedHeatValue
-          }
-          (_rewardedHeat, _enemyHeat.toList)
-        }
-        val heatVictorSum: Long = heatVictor.sum[Long]
-        val heatAgainstSum: Long = heatAgainst.sum[Long]
-        if  (contributionVictorSize > 0) {
-          val contributionRate = if (heatVictorSum * heatAgainstSum != 0) {
-            math.log(heatVictorSum * contributionVictorSize / heatAgainstSum.toFloat).toFloat
-          } else {
-            contributionAgainst.size / contributionVictorSize.toFloat
-          }
-          RewardFacilityCaptureParticipants(building, terminal, faction, hacker, building.PlayersInSOI, flagCarrier, isResecured, time, contributionRate)
-        }
-      case _ =>
-        RewardFacilityCaptureParticipants(building, terminal, faction, hacker, building.PlayersInSOI, flagCarrier, isResecured, time, victorContributionRate = 1.0f)
-    }
-    request.recover {
-      _ => RewardFacilityCaptureParticipants(building, terminal, faction, hacker, building.PlayersInSOI, flagCarrier, isResecured, time, victorContributionRate = 1.0f)
-    }
-  }
-
-  private def RewardFacilityCaptureParticipants(
-                                                 building: Building,
-                                                 terminal: CaptureTerminal,
-                                                 faction: PlanetSideEmpire.Value,
-                                                 hacker: PlayerSource,
-                                                 targets: List[Player],
-                                                 flagCarrier: Option[Player],
-                                                 isResecured: Boolean,
-                                                 hackTime: Long,
-                                                 victorContributionRate: Float
-                                               ): Unit = {
-    val contribution = building.PlayerContribution
-    val (contributionVictor, contributionAgainst) = contribution.keys.partition { _.Faction == faction }
-    val contributionVictorSize = contributionVictor.size
-    val contributionAgainstSize = contributionAgainst.size
-    val (contributionByTime, contributionByTimePartitioned) = {
-      val curr = System.currentTimeMillis()
-      val interval = 300000
-      val range: Seq[Long] = {
-        val htime = hackTime.toInt
-        (
-          if (htime < 60000) {
-            Seq(htime, interval + htime, 2 * interval + htime)
-          } else if (htime <= interval) {
-            Seq(60000, htime, interval + htime, 2 * interval + htime)
-          } else {
-            (60000 +: (interval to htime by interval)) ++ Seq(interval + htime, 2 * interval + htime)
-          }
-          ).map { _.toLong }
-      }
-      val playerMap = Array.fill[mutable.ListBuffer[Player]](range.size)(mutable.ListBuffer.empty)
-      contribution.foreach { case (p, t) =>
-        playerMap(range.lastIndexWhere(time => curr - t <= time)).addOne(p)
-      }
-      (playerMap, playerMap.map { _.partition(_.Faction == faction) })
-    }
-    val contributionByTimeSize = contributionByTime.length
-
-    val base: Long = 50L
-    val overallPopulationBonus = {
-      contributionByTime.map { _.size }.sum * contributionByTimeSize +
-        contributionByTime.zipWithIndex.map { case (lst, index) =>
-          ((contributionByTimeSize - index) * lst.size *
-            {
-              val lists = contributionByTimePartitioned(index)
-              lists._2.size / math.max(lists._1.size, 1).toFloat
-            }).toLong
-        }.sum
-    }
-    val competitionBonus: Long = if (contributionAgainstSize * 1.5f < contributionVictorSize.toFloat) {
-      //steamroll by the victor
-      25L * (contributionVictorSize - contributionAgainstSize)
-    } else if (contributionVictorSize * 1.5f <= contributionAgainstSize.toFloat) {
-      //victory against overwhelming odds
-      500L + 50L * contribution.keys.size
-    } else {
-      //still a battle
-      10L * math.min(contributionAgainstSize, contributionVictorSize)
-    }
-    val timeMultiplier: Float = {
-      val buildingHackTimeMilli = terminal.Definition.FacilityHackTime.toMillis.toFloat
-      1f + (if (isResecured) {
-        (buildingHackTimeMilli - hackTime) / buildingHackTimeMilli
-      } else {
-        0f
-      })
-    }
-    val finalCep: Long = ((base + overallPopulationBonus + competitionBonus) * timeMultiplier * Config.app.game.cepRate).toLong
-    //reward participant(s)
-//    targets
-//      .filter { player =>
-//        player.Faction == faction && !player.Name.equals(hacker.Name)
-//      }
-//      .foreach { player =>
-//        events ! AvatarServiceMessage(player.Name, AvatarAction.AwardCep(0, finalCep))
-//      }
-//    events ! AvatarServiceMessage(hacker.Name, AvatarAction.AwardCep(hacker.CharId, finalCep))
-//    flagCarrier match {
-//      case Some(player) => events ! AvatarServiceMessage(player.Name, AvatarAction.AwardCep(player.CharId, finalCep / 2))
-//      case None => ;
-//    }
   }
 }

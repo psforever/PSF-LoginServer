@@ -624,7 +624,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
 //    override def AvatarEvents = avatarProbe.ref
 //    override def Activity = activityProbe.ref
 //  }
-//  zone.actor = system.spawn(ZoneActor(zone), s"test-zone-${System.nanoTime()}")
+//  zone.actor = system.spawn(ZoneActor(zone), s"test-zone-${System.currentTimeMillis()}")
 //
 //  player1.Zone = zone
 //  player1.Spawn()

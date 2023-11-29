@@ -7,11 +7,14 @@ import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
 import net.psforever.login.WorldSession
+import net.psforever.objects.avatar.BattleRank
+import net.psforever.objects.avatar.scoring.{CampaignStatistics, ScoreCard, SessionStatistics}
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.mount.Seat
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
-import net.psforever.objects.vital.{InGameHistory, ReconstructionActivity, SpawningActivity}
+import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
+import net.psforever.packet.game.{CampaignStatistic, MailMessage, SessionStatistic}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -69,6 +72,30 @@ import net.psforever.zones.Zones
 
 object ZoningOperations {
   private final val zoningCountdownMessages: Seq[Int] = Seq(5, 10, 20)
+
+  def reportProgressionSystem(sessionActor: ActorRef): Unit = {
+    sessionActor ! SessionActor.SendResponse(
+      MailMessage(
+        "High Command",
+        "Progress versus Promotion",
+        "If you consider yourself as a veteran soldier, despite looking so green, please read this.\n" ++
+          s"You only have this opportunity while you are less than or equal to battle rank ${Config.app.game.promotion.broadcastBattleRank}." ++
+          "\n\n" ++
+          "The normal method of rank advancement comes from the battlefield - fighting enemies, helping allies, and capturing facilities. " ++
+          "\n\n" ++
+          s"You may, however, rapidly promote yourself to at most battle rank ${Config.app.game.promotion.maxBattleRank}. " ++
+          "You have access to all of the normal benefits, certification points, implants, etc., of your chosen rank. " ++
+          "However, that experience that you have skipped will count as PROMOTION DEBT. " ++
+          "You will not advance any further until you earn that experience back through support activity and engaging in facility capture. " ++
+          "The amount of experience required and your own effort will determine how long it takes. " ++
+          "In addition, you will be ineligible of having your command experience be recognized during this time." ++
+          "\n\n" ++
+          "If you wish to continue, set your desired battle rank now - use '!progress' followed by a battle rank index. " ++
+          s"If you accept, but it becomes too much of burden, you may ask to revert to battle rank ${Config.app.game.promotion.resetBattleRank} at any time. " ++
+          "Your normal sense of progress will be restored."
+      )
+    )
+  }
 }
 
 class ZoningOperations(
@@ -258,7 +285,7 @@ class ZoningOperations(
           obj.GUID,
           Deployable.Icon(obj.Definition.Item),
           obj.Position,
-          obj.Owner.getOrElse(PlanetSideGUID(0))
+          obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
         )
         sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
       })
@@ -602,22 +629,7 @@ class ZoningOperations(
     ServiceManager.serviceManager ! Lookup("propertyOverrideManager")
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
-    (
-      FriendsResponse.packetSequence(
-        MemberAction.InitializeFriendList,
-        avatar.people.friend
-          .map { f =>
-            game.Friend(f.name, AvatarActor.onlineIfNotIgnoredEitherWay(avatar, f.name))
-          }
-      ) ++
-        //ignored list (no one ever online)
-        FriendsResponse.packetSequence(
-          MemberAction.InitializeIgnoreList,
-          avatar.people.ignored.map { f => game.Friend(f.name) }
-        )
-      ).foreach {
-      sendResponse
-    }
+    spawn.initializeFriendsAndIgnoredLists()
     //the following subscriptions last until character switch/logout
     galaxyService ! Service.Join("galaxy") //for galaxy-wide messages
     galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots, etc.
@@ -1657,6 +1669,8 @@ class ZoningOperations(
     private[support] var reviveTimer: Cancellable = Default.Cancellable
     private[support] var respawnTimer: Cancellable = Default.Cancellable
 
+    private var statisticsPacketFunc: () => Unit = loginAvatarStatisticsFields
+
     /* packets */
 
     def handleReleaseAvatarRequest(pkt: ReleaseAvatarRequestMessage): Unit = {
@@ -1803,6 +1817,7 @@ class ZoningOperations(
       sessionData.persistFunc = UpdatePersistence(from)
       //tell the old WorldSessionActor to kill itself by using its own subscriptions against itself
       inZone.AvatarEvents ! AvatarServiceMessage(name, AvatarAction.TeardownConnection())
+      spawn.switchAvatarStatisticsFieldToRefreshAfterRespawn()
       //find and reload previous player
       (
         inZone.Players.find(p => p.name.equals(name)),
@@ -2342,6 +2357,7 @@ class ZoningOperations(
       player.avatar = player.avatar.copy(stamina = avatar.maxStamina)
       avatarActor ! AvatarActor.RestoreStamina(avatar.maxStamina)
       avatarActor ! AvatarActor.ResetImplants()
+      zones.exp.ToDatabase.reportRespawns(tplayer.CharId, ScoreCard.reviveCount(player.avatar.scorecard.CurrentLife))
       val obj = Player.Respawn(tplayer)
       DefinitionUtil.applyDefaultLoadout(obj)
       obj.death_by = tplayer.death_by
@@ -2614,10 +2630,11 @@ class ZoningOperations(
           LoadZoneAsPlayer(newPlayer, zoneId)
         } else {
           avatarActor ! AvatarActor.DeactivateActiveImplants()
+          val betterSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity with InGameHistory => o }
           interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
             case Some(vehicle: Vehicle) => // driver or passenger in vehicle using a warp gate, or a droppod
-              InGameHistory.SpawnReconstructionActivity(vehicle, toZoneNumber, toSpawnPoint)
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, toSpawnPoint)
+              InGameHistory.SpawnReconstructionActivity(vehicle, toZoneNumber, betterSpawnPoint)
+              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
               LoadZoneInVehicle(vehicle, pos, ori, zoneId)
 
             case _ if player.HasGUID => // player is deconstructing self or instant action
@@ -2629,13 +2646,13 @@ class ZoningOperations(
               )
               player.Position = pos
               player.Orientation = ori
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, toSpawnPoint)
+              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
               LoadZoneAsPlayer(player, zoneId)
 
             case _ => //player is logging in
               player.Position = pos
               player.Orientation = ori
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, toSpawnPoint)
+              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
               LoadZoneAsPlayer(player, zoneId)
           }
         }
@@ -2765,16 +2782,7 @@ class ZoningOperations(
       }
 
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
-      avatar.shortcuts
-        .zipWithIndex
-        .collect { case (Some(shortcut), index) =>
-          sendResponse(CreateShortcutMessage(
-            guid,
-            index + 1,
-            Some(AvatarShortcut.convert(shortcut))
-          ))
-        }
-      sendResponse(ChangeShortcutBankMessage(guid, 0))
+      initializeShortcutsAndBank(guid)
       //Favorites lists
       avatarActor ! AvatarActor.InitialRefreshLoadouts()
 
@@ -2803,10 +2811,7 @@ class ZoningOperations(
         .foreach { case (_, building) =>
           sendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0 /*building.BuildingType == StructureType.Facility*/))
         }
-      (0 to 30).foreach(_ => {
-        //TODO 30 for a new character only?
-        sendResponse(AvatarStatisticsMessage(DeathStatistic(0L)))
-      })
+      statisticsPacketFunc()
       if (tplayer.ExoSuit == ExoSuitType.MAX) {
         sendResponse(PlanetsideAttributeMessage(guid, 7, tplayer.Capacitor.toLong))
       }
@@ -2823,7 +2828,7 @@ class ZoningOperations(
       continent.DeployableList
         .filter(_.OwnerName.contains(name))
         .foreach(obj => {
-          obj.Owner = guid
+          obj.OwnerGuid = guid
           drawDeloyableIcon(obj)
         })
       drawDeloyableIcon = DontRedrawIcons
@@ -2831,7 +2836,7 @@ class ZoningOperations(
       //assert or transfer vehicle ownership
       continent.GUID(player.avatar.vehicle) match {
         case Some(vehicle: Vehicle) if vehicle.OwnerName.contains(tplayer.Name) =>
-          vehicle.Owner = guid
+          vehicle.OwnerGuid = guid
           continent.VehicleEvents ! VehicleServiceMessage(
             s"${tplayer.Faction}",
             VehicleAction.Ownership(guid, vehicle.GUID)
@@ -2906,23 +2911,35 @@ class ZoningOperations(
         val effortBy = nextSpawnPoint
           .collect { case sp: SpawnTube => (sp, continent.GUID(sp.Owner.GUID)) }
           .collect {
-            case (_, Some(v: Vehicle)) => continent.GUID(v.Owner)
+            case (_, Some(v: Vehicle)) => continent.GUID(v.OwnerGuid)
             case (sp, Some(_: Building)) => Some(sp)
           }
           .collect { case Some(thing: PlanetSideGameObject with FactionAffinity) => Some(SourceEntry(thing)) }
           .flatten
-        player.LogActivity({
-          if (player.History.headOption.exists { _.isInstanceOf[SpawningActivity] }) {
-            ReconstructionActivity(PlayerSource(player), continent.Number, effortBy)
-          } else {
-            SpawningActivity(PlayerSource(player), continent.Number, effortBy)
-          }
-        })
-        //ride
-
+        val lastEntryOpt = player.History.lastOption
+        if (lastEntryOpt.exists { !_.isInstanceOf[IncarnationActivity] }) {
+          player.LogActivity({
+            lastEntryOpt match {
+              case Some(_) =>
+                ReconstructionActivity(PlayerSource(player), continent.Number, effortBy)
+              case None =>
+                SpawningActivity(PlayerSource(player), continent.Number, effortBy)
+            }
+          })
+        }
       }
       upstreamMessageCount = 0
       setAvatar = true
+      if (
+        !account.gm && /* gm's are excluded */
+          Config.app.game.promotion.active && /* play versus progress system must be active */
+          BattleRank.withExperience(tplayer.avatar.bep).value <= Config.app.game.promotion.broadcastBattleRank && /* must be below a certain battle rank */
+          avatar.scorecard.Lives.isEmpty && /* first life after login */
+          avatar.scorecard.CurrentLife.prior.isEmpty && /* no revives */
+          player.History.size == 1 /* did nothing but come into existence */
+      ) {
+        ZoningOperations.reportProgressionSystem(context.self)
+      }
     }
 
     /**
@@ -2933,6 +2950,59 @@ class ZoningOperations(
      */
     def SetCurrentAvatarNormally(tplayer: Player): Unit = {
       HandleSetCurrentAvatar(tplayer)
+    }
+
+    /**
+     * Respond to feedback of how the avatar's data is being handled
+     * in a way that properly reflects the state of the server at the moment.
+     * @param state indicator for the progress of the avatar
+     */
+    def handleAvatarLoadingSync(state: Int): Unit = {
+      if (state == 2 && zoneLoaded.contains(true)) {
+        initializeFriendsAndIgnoredLists()
+        initializeShortcutsAndBank(player.GUID)
+        avatarActor ! AvatarActor.RefreshPurchaseTimes()
+        loginAvatarStatisticsFields()
+        avatarActor ! AvatarActor.InitialRefreshLoadouts()
+      }
+    }
+
+    /**
+     * Set up and dispatch a list of `FriendsResponse` packets related to both formal friends and ignored players.
+     */
+    def initializeFriendsAndIgnoredLists(): Unit = {
+      (
+        FriendsResponse.packetSequence(
+          MemberAction.InitializeFriendList,
+          avatar.people.friend
+            .map { f =>
+              game.Friend(f.name, AvatarActor.onlineIfNotIgnoredEitherWay(avatar, f.name))
+            }
+        ) ++
+          //ignored list (no one ever online)
+          FriendsResponse.packetSequence(
+            MemberAction.InitializeIgnoreList,
+            avatar.people.ignored.map { f => game.Friend(f.name) }
+          )
+        ).foreach {
+        sendResponse
+      }
+    }
+
+    /**
+     * Set up and dispatch a list of `CreateShortcutMessage` packets and a single `ChangeShortcutBankMessage` packet.
+     */
+    def initializeShortcutsAndBank(guid: PlanetSideGUID): Unit = {
+      avatar.shortcuts
+        .zipWithIndex
+        .collect { case (Some(shortcut), index) =>
+          sendResponse(CreateShortcutMessage(
+            guid,
+            index + 1,
+            Some(AvatarShortcut.convert(shortcut))
+          ))
+        }
+      sendResponse(ChangeShortcutBankMessage(guid, 0))
     }
 
     /**
@@ -2961,7 +3031,7 @@ class ZoningOperations(
         obj.GUID,
         Deployable.Icon(obj.Definition.Item),
         obj.Position,
-        obj.Owner.getOrElse(PlanetSideGUID(0))
+        obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
       )
       sendResponse(DeployableObjectsInfoMessage(DeploymentAction.Build, deployInfo))
     }
@@ -3162,6 +3232,64 @@ class ZoningOperations(
                                ): Unit = {
       sendResponse(attachMessage)
       sendResponse(mountPointStatusMessage)
+    }
+
+    /**
+     * Populate the Character Info window's statistics page during login.
+     * Always send campaign (historical, total) statistics.
+     * Set to refresh the statistics fields after each respawn from now on.
+     */
+    private def loginAvatarStatisticsFields(): Unit = {
+      avatar.scorecard.KillStatistics.foreach { case (id, stat) =>
+        val campaign = CampaignStatistics(stat)
+        val elem = StatisticalElement.fromId(id)
+        sendResponse(AvatarStatisticsMessage(
+          CampaignStatistic(StatisticalCategory.Destroyed, elem, campaign.tr, campaign.nc, campaign.vs, campaign.ps)
+        ))
+      }
+      //originally the client sent a death statistic update in between each change of statistic categories, about 30 times
+      sendResponse(AvatarStatisticsMessage(DeathStatistic(ScoreCard.deathCount(avatar.scorecard))))
+      statisticsPacketFunc = respawnAvatarStatisticsFields
+    }
+
+    /**
+     * Populate the Character Info window's statistics page after each respawn.
+     * Check whether to send session-related data, or campaign-related data, or both.
+     */
+    private def respawnAvatarStatisticsFields(): Unit = {
+      avatar
+        .scorecard
+        .KillStatistics
+        .flatMap { case (id, stat) =>
+          val campaign = CampaignStatistics(stat)
+          val session = SessionStatistics(stat)
+          (StatisticalElement.fromId(id), campaign.total, campaign, session.total, session) match {
+            case (elem, 0, _, _, session) =>
+              Seq(SessionStatistic(StatisticalCategory.Destroyed, elem, session.tr, session.nc, session.vs, session.ps))
+            case (elem, _, campaign, 0, _) =>
+              Seq(CampaignStatistic(StatisticalCategory.Destroyed, elem, campaign.tr, campaign.nc, campaign.vs, campaign.ps))
+            case (elem, _, campaign, _, session) =>
+              Seq(
+                CampaignStatistic(StatisticalCategory.Destroyed, elem, campaign.tr, campaign.nc, campaign.vs, campaign.ps),
+                SessionStatistic(StatisticalCategory.Destroyed, elem, session.tr, session.nc, session.vs, session.ps)
+              )
+          }
+        }
+        .foreach { statistics =>
+          sendResponse(AvatarStatisticsMessage(statistics))
+        }
+      //originally the client sent a death statistic update in between each change of statistic categories, about 30 times
+      sendResponse(AvatarStatisticsMessage(DeathStatistic(ScoreCard.deathCount(avatar.scorecard))))
+    }
+
+    /**
+     * Accessible method to switch population of the Character Info window's statistics page
+     * from whatever it currently is to after each respawn.
+     * At the time of "login", only campaign (total, historical) deaths are reported for convenience.
+     * At the time of "respawn", all fields - campaign and session - should be reported if applicable.
+     */
+    def switchAvatarStatisticsFieldToRefreshAfterRespawn(): Unit = {
+      statisticsPacketFunc = respawnAvatarStatisticsFields
     }
 
     /**

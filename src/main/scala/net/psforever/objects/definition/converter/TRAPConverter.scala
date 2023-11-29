@@ -24,7 +24,7 @@ class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
               false,
               Some(true),
               None,
-              obj.Owner match {
+              obj.OwnerGuid match {
                 case Some(owner) => owner
                 case None        => PlanetSideGUID(0)
               }

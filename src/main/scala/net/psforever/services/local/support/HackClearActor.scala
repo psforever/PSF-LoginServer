@@ -29,15 +29,15 @@ class HackClearActor() extends Actor {
 
   def receive: Receive = {
     case HackClearActor.ObjectIsHacked(target, zone, unk1, unk2, duration, time) =>
-      val durationNanos = TimeUnit.NANOSECONDS.convert(duration, TimeUnit.SECONDS)
-      hackedObjects = hackedObjects :+ HackClearActor.HackEntry(target, zone, unk1, unk2, time, durationNanos)
+      val durationMillis = TimeUnit.MILLISECONDS.convert(duration, TimeUnit.SECONDS)
+      hackedObjects = hackedObjects :+ HackClearActor.HackEntry(target, zone, unk1, unk2, time, durationMillis)
 
       // Restart the timer, in case this is the first object in the hacked objects list
       RestartTimer()
 
     case HackClearActor.TryClearHacks() =>
       clearTrigger.cancel()
-      val now: Long = System.nanoTime
+      val now: Long = System.currentTimeMillis()
       //TODO we can just walk across the list of doors and extract only the first few entries
       val (unhackObjects, stillHackedObjects) = PartitionEntries(hackedObjects, now)
       hackedObjects = stillHackedObjects
@@ -75,12 +75,12 @@ class HackClearActor() extends Actor {
 
   private def RestartTimer(): Unit = {
     if (hackedObjects.nonEmpty) {
-      val now                                 = System.nanoTime()
+      val now                                 = System.currentTimeMillis()
       val (_/*unhackObjects*/, stillHackedObjects) = PartitionEntries(hackedObjects, now)
 
       stillHackedObjects.headOption match {
         case Some(hackEntry) =>
-          val short_timeout: FiniteDuration = math.max(1, hackEntry.duration - (now - hackEntry.time)) nanoseconds
+          val short_timeout: FiniteDuration = math.max(1, hackEntry.duration - (now - hackEntry.time)).milliseconds
 
           log.debug(
             s"HackClearActor: still items left in hacked objects list. Checking again in ${short_timeout.toSeconds} seconds"
@@ -102,7 +102,7 @@ class HackClearActor() extends Actor {
     * and newer entries are always added to the end of the main `List`,
     * processing in order is always correct.
     * @param list the `List` of entries to divide
-    * @param now the time right now (in nanoseconds)
+    * @param now the time right now (in milliseconds)
     * @see `List.partition`
     * @return a `Tuple` of two `Lists`, whose qualifications are explained above
     */
@@ -119,7 +119,7 @@ class HackClearActor() extends Actor {
     * a `List` of elements that have exceeded the time limit,
     * and a `List` of elements that still satisfy the time limit.
     * @param iter the `Iterator` of entries to divide
-    * @param now the time right now (in nanoseconds)
+    * @param now the time right now (in milliseconds)
     * @param index a persistent record of the index where list division should occur;
     *              defaults to 0
     * @return the index where division will occur
@@ -158,7 +158,7 @@ object HackClearActor {
       unk1: Long,
       unk2: Long,
       duration: Int,
-      time: Long = System.nanoTime()
+      time: Long = System.currentTimeMillis()
   )
 
   /**
@@ -185,7 +185,7 @@ object HackClearActor {
     * @param target the server object
     * @param zone the zone in which the object resides
     * @param time when the object was hacked
-    * @param duration The hack duration in nanoseconds
+    * @param duration The hack duration in milliseconds
     * @see `ObjectIsHacked`
     */
   private final case class HackEntry(

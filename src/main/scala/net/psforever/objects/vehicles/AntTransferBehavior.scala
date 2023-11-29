@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vehicles
 
-import akka.actor.ActorRef
+import akka.actor.{ActorRef, Cancellable}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.deploy.Deployment
@@ -13,17 +13,18 @@ import net.psforever.types.DriveState
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.objects.serverobject.transfer.TransferContainer.TransferMaterial
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   var panelAnimationFunc: () => Unit = NoCharge
-  var ntuChargingTick     = Default.Cancellable
+  var ntuChargingTick: Cancellable = Default.Cancellable
   findChargeTargetFunc    = Vehicles.FindANTChargingSource
   findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
 
-  def TransferMaterial = Ntu.Nanites
+  def TransferMaterial: TransferMaterial = Ntu.Nanites
 
   def ChargeTransferObject: Vehicle with NtuContainer
 
@@ -132,6 +133,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
     ActivatePanelsForChargingEvent(ChargeTransferObject)
   }
 
+  //noinspection ScalaUnusedSymbol
   def WithdrawAndTransmit(vehicle: Vehicle, maxRequested: Float): Any = {
     val chargeable      = ChargeTransferObject
     var chargeToDeposit = Math.min(Math.min(chargeable.NtuCapacitor, 100), maxRequested)
@@ -186,8 +188,10 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
       val chargeToDeposit = if (min == 0) {
         transferTarget match {
           case Some(silo: ResourceSilo) =>
-            // Silos would charge from 0-100% in roughly 105s on live (~20%-100% https://youtu.be/veOWToR2nSk?t=1402)
-            scala.math.min(scala.math.min(silo.MaxNtuCapacitor / 105, chargeable.NtuCapacitor), max)
+            scala.math.min(
+              scala.math.min(silo.MaxNtuCapacitor / silo.Definition.ChargeTime.toSeconds.toFloat, chargeable.NtuCapacitor),
+              max
+            )
           case _ =>
             0
         }

@@ -8,7 +8,7 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 /**
  * Represent a special entity that is carried by the player in certain circumstances.
  * The entity is not a piece of `Equipment` so it does not go into the holsters,
- * doe not into the player's inventory,
+ * does not into the player's inventory,
  * and is not carried in or manipulated by the player's hands.
  * The different game elements it simulates are:
  * a facility's lattice logic unit (LLU),
@@ -33,6 +33,7 @@ class CaptureFlag(private val tDef: CaptureFlagDefinition) extends Amenity {
   private var target: Building = Building.NoBuilding
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var carrier: Option[Player] = None
+  private var lastTimeCollected: Long = System.currentTimeMillis()
 
   def Target: Building = target
   def Target_=(newTarget: Building): Building = {
@@ -64,8 +65,11 @@ class CaptureFlag(private val tDef: CaptureFlagDefinition) extends Amenity {
   def Carrier: Option[Player] = carrier
   def Carrier_=(newCarrier: Option[Player]) : Option[Player] = {
     carrier = newCarrier
+    lastTimeCollected = System.currentTimeMillis()
     carrier
   }
+
+  def LastCollectionTime: Long = carrier.map { _ => lastTimeCollected }.getOrElse { System.currentTimeMillis() }
 }
 
 object CaptureFlag {

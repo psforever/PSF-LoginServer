@@ -4,8 +4,17 @@ package net.psforever.actors.session
 import akka.actor.Cancellable
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
+
 import java.util.concurrent.atomic.AtomicInteger
+import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, ScoreCard, SupportActivity}
+import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.sourcing.VehicleSource
+import net.psforever.objects.vital.InGameHistory
+import net.psforever.objects.vehicles.MountedWeapons
+import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
 import org.joda.time.{LocalDateTime, Seconds}
+
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future, Promise}
 import scala.util.{Failure, Success}
@@ -26,7 +35,6 @@ import net.psforever.objects.avatar.{
   Shortcut => AvatarShortcut,
   SpecialCarry
 }
-import net.psforever.objects.avatar.scoring.{Death, EquipmentStat, KDAStat, Kill}
 import net.psforever.objects.definition._
 import net.psforever.objects.definition.converter.CharacterSelectConverter
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
@@ -35,7 +43,7 @@ import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, VehicleLoadout}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.sourcing.{PlayerSource,SourceWithHealthEntry}
 import net.psforever.objects.vital.projectile.ProjectileReason
-import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity, Vitality}
+import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity}
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
 import net.psforever.persistence
@@ -59,6 +67,16 @@ import net.psforever.util.Database._
 import net.psforever.util.{Config, Database, DefinitionUtil}
 
 object AvatarActor {
+  private val basicLoginCertifications: Set[Certification] = Set(
+    Certification.StandardExoSuit,
+    Certification.AgileExoSuit,
+    Certification.ReinforcedExoSuit,
+    Certification.StandardAssault,
+    Certification.MediumAssault,
+    Certification.ATV,
+    Certification.Harasser
+  )
+
   def apply(sessionActor: ActorRef[SessionActor.Command]): Behavior[Command] =
     Behaviors
       .supervise[Command] {
@@ -192,14 +210,23 @@ object AvatarActor {
   /** Award battle experience points */
   final case class AwardBep(bep: Long, modifier: ExperienceType) extends Command
 
+  /** ... */
+  final case class UpdateKillsDeathsAssists(stat: KDAStat) extends Command
+
   /** Set total battle experience points */
   final case class SetBep(bep: Long) extends Command
 
+  /** Advance total battle experience points */
+  final case class Progress(bep: Long) extends Command
+
   /** Award command experience points */
-  final case class AwardCep(bep: Long) extends Command
+  final case class AwardFacilityCaptureBep(bep: Long) extends Command
+
+  /** Award command experience points */
+  final case class AwardCep(cep: Long) extends Command
 
   /** Set total command experience points */
-  final case class SetCep(bep: Long) extends Command
+  final case class SetCep(cep: Long) extends Command
 
   /** Set cosmetics. Only allowed for BR24 or higher. */
   final case class SetCosmetics(personalStyles: Set[Cosmetic]) extends Command
@@ -221,6 +248,8 @@ object AvatarActor {
   final case class AvatarResponse(avatar: Avatar)
 
   final case class AvatarLoginResponse(avatar: Avatar)
+
+  final case class SupportExperienceDeposit(bep: Long, delay: Long) extends Command
 
   /**
     * A player loadout represents all of the items in the player's hands (equipment slots)
@@ -317,7 +346,7 @@ object AvatarActor {
         case "Kit" =>
           container.Slot(objectIndex).Equipment =
             Kit(DefinitionUtil.idToDefinition(objectId).asInstanceOf[KitDefinition])
-        case "Telepad" | "BoomerTrigger" => ;
+        case "Telepad" | "BoomerTrigger" => ()
         //special types of equipment that are not actually loaded
         case name =>
           log.error(s"failing to add unknown equipment to a container - $name")
@@ -349,10 +378,10 @@ object AvatarActor {
             cooldownDurations.get(DefinitionUtil.fromString(name)) match {
               case Some(duration) if now.compareTo(cooldown.plusMillis(duration.toMillis.toInt)) == -1 =>
                 cooldowns.put(name, cooldown)
-              case _ => ;
+              case _ => ()
             }
           } catch {
-            case _: Exception => ;
+            case _: Exception => ()
           }
         case _ =>
           log.warn(s"ignoring invalid cooldown string: '$value'")
@@ -515,9 +544,9 @@ object AvatarActor {
             otherAvatar.headOption match {
               case Some(a) =>
                 func(a.id, a.name, a.factionId)
-              case _ => ;
+              case _ => ()
             }
-          case _ => ;
+          case _ => ()
         }
       }
       None //satisfy the orElse
@@ -818,6 +847,117 @@ object AvatarActor {
     out.future
   }
 
+  def setBepOnly(avatarId: Long, bep: Long): Future[Long] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[Long] = Promise()
+    val result = ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId)).update(_.bep -> lift(bep)))
+    result.onComplete { _ =>
+      out.completeWith(Future(bep))
+    }
+    out.future
+  }
+
+  def loadExperienceDebt(avatarId: Long): Future[Long] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[Long] = Promise()
+    val result = ctx.run(query[persistence.Progressiondebt].filter(_.avatarId == lift(avatarId)))
+    result.onComplete {
+      case Success(debt) if debt.nonEmpty =>
+        out.completeWith(Future(debt.head.experience))
+      case _ =>
+        ctx.run(
+          query[persistence.Progressiondebt]
+            .filter(_.avatarId == lift(avatarId))
+            .update(_.experience -> lift(0L))
+        )
+        out.completeWith(Future(0L))
+    }
+    out.future
+  }
+
+  def saveExperienceDebt(avatarId: Long, exp: Long, max: Long): Future[Int] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[Int] = Promise()
+    val result = ctx.run(
+      query[persistence.Progressiondebt]
+        .filter(_.avatarId == lift(avatarId))
+        .update(
+          _.experience -> lift(exp),
+          _.maxExperience -> lift(max)
+        )
+    )
+    result.onComplete {
+      case Success(debt) if debt.toInt > 0 =>
+        out.completeWith(Future(1))
+      case _ =>
+        out.completeWith(Future(0))
+    }
+    out.future
+  }
+
+  def avatarNoLongerLoggedIn(accountId: Long): Unit = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global //linter says unused but compiler says otherwise
+    ctx.run(
+      query[persistence.Account]
+        .filter(_.id == lift(accountId))
+        .update(_.avatarLoggedIn -> lift(0L))
+    )
+  }
+
+  def updateToolDischargeFor(avatar: Avatar): Unit = {
+    updateToolDischargeFor(avatar.id, avatar.scorecard.CurrentLife)
+  }
+
+  def updateToolDischargeFor(avatarId: Long, life: Life): Unit = {
+    updateToolDischargeFor(avatarId, life.equipmentStats)
+  }
+
+  def updateToolDischargeFor(avatarId: Long, stats: Seq[EquipmentStat]): Unit = {
+    stats.foreach { stat =>
+      zones.exp.ToDatabase.reportToolDischarge(avatarId, stat)
+    }
+  }
+
+  def loadCampaignKdaData(avatarId: Long): Future[ScoreCard] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[ScoreCard] = Promise()
+    val result = ctx.run(quote {
+      for {
+        kdaOut <- query[persistence.Killactivity]
+          .filter(c =>
+            (c.killerId == lift(avatarId) || c.victimId == lift(avatarId)) && c.killerId != c.victimId
+          )
+          .join(query[persistence.Avatar])
+          .on({ case (a, b) =>
+            b.id == a.victimId
+          })
+          .map({ case (a, b) =>
+            (a.killerId, a.victimId, a.victimExosuit, b.factionId)
+          })
+      } yield kdaOut
+    })
+    result.onComplete {
+      case Success(res) =>
+        val card = new ScoreCard()
+        val (killerEntries, _) = res.partition {
+          case (killer, _, _, _) => avatarId == killer
+        }
+        killerEntries.foreach { case (_, _, exosuit, faction) =>
+          val statId = StatisticalElement.relatedElement(ExoSuitType(exosuit)).value
+          card.initStatisticForKill(statId, PlanetSideEmpire(faction))
+        }
+        out.completeWith(Future(card))
+      case _ =>
+        out.completeWith(Future(new ScoreCard()))
+    }
+    out.future
+  }
+
   def toAvatar(avatar: persistence.Avatar): Avatar = {
     val bep = avatar.bep
     val convertedCosmetics = if (BattleRank.showCosmetics(bep)) {
@@ -859,6 +999,9 @@ class AvatarActor(
   var _avatar: Option[Avatar]                      = None
   var saveLockerFunc: () => Unit                   = storeNewLocker
   //val topic: ActorRef[Topic.Command[Avatar]]       = context.spawnAnonymous(Topic[Avatar]("avatar"))
+  var supportExperiencePool: Long = 0
+  var supportExperienceTimer: Cancellable          = Default.Cancellable
+  var experienceDebt: Long = 0L
 
   def avatar: Avatar = _avatar.get
 
@@ -920,6 +1063,9 @@ class AvatarActor(
         case DeleteAvatar(id) =>
           import ctx._
           val performDeletion = for {
+            _ <- ctx.run(query[persistence.Weaponstatsession].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Kdasession].filter(_.avatarId == lift(id)).delete)
+            _ <- ctx.run(query[persistence.Buildingcapture].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Shortcut].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(id)).delete)
             _ <- ctx.run(query[persistence.Loadout].filter(_.avatarId == lift(id)).delete)
@@ -1001,15 +1147,7 @@ class AvatarActor(
                   val inits = for {
                     _ <- ctx.run(
                       liftQuery(
-                        List(
-                          persistence.Certification(Certification.StandardExoSuit.value, avatarId),
-                          persistence.Certification(Certification.AgileExoSuit.value, avatarId),
-                          persistence.Certification(Certification.ReinforcedExoSuit.value, avatarId),
-                          persistence.Certification(Certification.StandardAssault.value, avatarId),
-                          persistence.Certification(Certification.MediumAssault.value, avatarId),
-                          persistence.Certification(Certification.ATV.value, avatarId),
-                          persistence.Certification(Certification.Harasser.value, avatarId)
-                        )
+                        basicLoginCertifications.map { cert => persistence.Certification(cert.value, avatarId) }.toList
                       ).foreach(c => query[persistence.Certification].insertValue(c))
                     )
                     _ <- ctx.run(
@@ -1020,13 +1158,13 @@ class AvatarActor(
                   } yield true
                   inits.onComplete {
                     case Success(_) =>
-                      performAvatarLogin(avatarId, account.id, replyTo)
+                      performAvatarLoginTest(avatarId, account.id, replyTo)
                     case Failure(e) =>
                       log.error(e)("db failure")
                       sessionActor ! SessionActor.SendResponse(ActionResultMessage.Fail(error = 6))
                   }
                 } else {
-                  performAvatarLogin(avatarId, account.id, replyTo)
+                  performAvatarLoginTest(avatarId, account.id, replyTo)
                 }
               case Success(_) =>
                 //TODO this may not be an actual failure, but don't know what to do
@@ -1043,6 +1181,11 @@ class AvatarActor(
 
         case other =>
           buffer.stash(other)
+          Behaviors.same
+      }
+      .receiveSignal {
+        case (_, PostStop) =>
+          AvatarActor.avatarNoLongerLoggedIn(account.id)
           Behaviors.same
       }
   }
@@ -1081,135 +1224,11 @@ class AvatarActor(
           Behaviors.same
 
         case LearnCertification(terminalGuid, certification) =>
-          import ctx._
-
-          if (avatar.certifications.contains(certification)) {
-            sessionActor ! SessionActor.SendResponse(
-              ItemTransactionResultMessage(terminalGuid, TransactionType.Learn, success = false)
-            )
-          } else {
-            val replace = certification.replaces.intersect(avatar.certifications)
-            Future
-              .sequence(replace.map(cert => {
-                ctx
-                  .run(
-                    query[persistence.Certification]
-                      .filter(_.avatarId == lift(avatar.id))
-                      .filter(_.id == lift(cert.value))
-                      .delete
-                  )
-                  .map(_ => cert)
-              }))
-              .onComplete {
-                case Failure(exception) =>
-                  log.error(exception)("db failure")
-                  sessionActor ! SessionActor.SendResponse(
-                    ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
-                  )
-                case Success(_replace) =>
-                  _replace.foreach { cert =>
-                    sessionActor ! SessionActor.SendResponse(
-                      PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
-                    )
-                  }
-                  ctx
-                    .run(
-                      query[persistence.Certification]
-                        .insert(_.id -> lift(certification.value), _.avatarId -> lift(avatar.id))
-                    )
-                    .onComplete {
-                      case Failure(exception) =>
-                        log.error(exception)("db failure")
-                        sessionActor ! SessionActor.SendResponse(
-                          ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
-                        )
-
-                      case Success(_) =>
-                        sessionActor ! SessionActor.SendResponse(
-                          PlanetsideAttributeMessage(session.get.player.GUID, 24, certification.value)
-                        )
-                        replaceAvatar(
-                          avatar.copy(certifications = avatar.certifications.diff(replace) + certification)
-                        )
-                        sessionActor ! SessionActor.SendResponse(
-                          ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
-                        )
-                        sessionActor ! SessionActor.CharSaved
-                    }
-
-              }
-          }
+          performCertificationAction(terminalGuid, certification, learnCertificationInTheFuture, TransactionType.Buy)
           Behaviors.same
 
         case SellCertification(terminalGuid, certification) =>
-          import ctx._
-
-          if (!avatar.certifications.contains(certification)) {
-            sessionActor ! SessionActor.SendResponse(
-              ItemTransactionResultMessage(terminalGuid, TransactionType.Learn, success = false)
-            )
-          } else {
-            var requiredByCert: Set[Certification] = Set(certification)
-            var removeThese: Set[Certification]    = Set(certification)
-            val allCerts: Set[Certification]       = Certification.values.toSet
-            do {
-              removeThese = allCerts.filter { testingCert =>
-                testingCert.requires.intersect(removeThese).nonEmpty
-              }
-              requiredByCert = requiredByCert ++ removeThese
-            } while (removeThese.nonEmpty)
-
-            Future
-              .sequence(
-                avatar.certifications
-                  .intersect(requiredByCert)
-                  .map(cert => {
-                    ctx
-                      .run(
-                        query[persistence.Certification]
-                          .filter(_.avatarId == lift(avatar.id))
-                          .filter(_.id == lift(cert.value))
-                          .delete
-                      )
-                      .map(_ => cert)
-                  })
-              )
-              .onComplete {
-                case Failure(exception) =>
-                  log.error(exception)("db failure")
-                  sessionActor ! SessionActor.SendResponse(
-                    ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
-                  )
-                case Success(certs) =>
-                  val player = session.get.player
-                  replaceAvatar(avatar.copy(certifications = avatar.certifications.diff(certs)))
-                  certs.foreach { cert =>
-                    sessionActor ! SessionActor.SendResponse(
-                      PlanetsideAttributeMessage(player.GUID, 25, cert.value)
-                    )
-                  }
-                  sessionActor ! SessionActor.SendResponse(
-                    ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
-                  )
-                  sessionActor ! SessionActor.CharSaved
-                  //wearing invalid armor?
-                  if (
-                    if (certification == Certification.ReinforcedExoSuit) player.ExoSuit == ExoSuitType.Reinforced
-                    else if (certification == Certification.InfiltrationSuit) player.ExoSuit == ExoSuitType.Infiltration
-                    else if (player.ExoSuit == ExoSuitType.MAX) {
-                      lazy val subtype =
-                        InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, player.Slot(slot = 0).Equipment)
-                      if (certification == Certification.UniMAX) true
-                      else if (certification == Certification.AAMAX) subtype == 1
-                      else if (certification == Certification.AIMAX) subtype == 2
-                      else if (certification == Certification.AVMAX) subtype == 3
-                      else false
-                    } else false
-                  ) {
-                    player.Actor ! PlayerControl.SetExoSuit(ExoSuitType.Standard, 0)
-                  }
-              }
-          }
+          performCertificationAction(terminalGuid, certification, sellCertificationInTheFuture, TransactionType.Sell)
           Behaviors.same
 
         case SetCertifications(certifications) =>
@@ -1263,84 +1282,19 @@ class AvatarActor(
                   implant.definition.implantType.value
                 )
               )
-            case _ => ;
+            case _ => ()
           }
           deinitializeImplants()
           Behaviors.same
 
         case LearnImplant(terminalGuid, definition) =>
           // TODO there used to be a terminal check here, do we really need it?
-          val index = avatar.implants.zipWithIndex.collectFirst {
-            case (Some(implant), _index) if implant.definition.implantType == definition.implantType => _index
-            case (None, _index) if _index < avatar.br.implantSlots                                   => _index
-          }
-          index match {
-            case Some(_index) =>
-              import ctx._
-              ctx
-                .run(query[persistence.Implant].insert(_.name -> lift(definition.Name), _.avatarId -> lift(avatar.id)))
-                .onComplete {
-                  case Success(_) =>
-                    replaceAvatar(avatar.copy(implants = avatar.implants.updated(_index, Some(Implant(definition)))))
-                    sessionActor ! SessionActor.SendResponse(
-                      AvatarImplantMessage(
-                        session.get.player.GUID,
-                        ImplantAction.Add,
-                        _index,
-                        definition.implantType.value
-                      )
-                    )
-                    sessionActor ! SessionActor.SendResponse(
-                      ItemTransactionResultMessage(terminalGuid, TransactionType.Learn, success = true)
-                    )
-                    context.self ! ResetImplants()
-                    sessionActor ! SessionActor.CharSaved
-                  case Failure(exception) => log.error(exception)("db failure")
-                }
-
-            case None =>
-              log.warn("attempted to learn implant but could not find slot")
-              sessionActor ! SessionActor.SendResponse(
-                ItemTransactionResultMessage(terminalGuid, TransactionType.Learn, success = false)
-              )
-          }
+          buyImplantAction(terminalGuid, definition)
           Behaviors.same
 
         case SellImplant(terminalGuid, definition) =>
           // TODO there used to be a terminal check here, do we really need it?
-          val index = avatar.implants.zipWithIndex.collectFirst {
-            case (Some(implant), _index) if implant.definition.implantType == definition.implantType => _index
-          }
-          index match {
-            case Some(_index) =>
-              import ctx._
-              ctx
-                .run(
-                  query[persistence.Implant]
-                    .filter(_.name == lift(definition.Name))
-                    .filter(_.avatarId == lift(avatar.id))
-                    .delete
-                )
-                .onComplete {
-                  case Success(_) =>
-                    replaceAvatar(avatar.copy(implants = avatar.implants.updated(_index, None)))
-                    sessionActor ! SessionActor.SendResponse(
-                      AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, _index, 0)
-                    )
-                    sessionActor ! SessionActor.SendResponse(
-                      ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
-                    )
-                    context.self ! ResetImplants()
-                    sessionActor ! SessionActor.CharSaved
-                  case Failure(exception) => log.error(exception)("db failure")
-                }
-
-            case None =>
-              log.warn("attempted to sell implant but could not find slot")
-              sessionActor ! SessionActor.SendResponse(
-                ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
-              )
-          }
+          sellImplantAction(terminalGuid, definition)
           Behaviors.same
 
         case SaveLoadout(player, loadoutType, label, number) =>
@@ -1466,7 +1420,7 @@ class AvatarActor(
                         case _                => true
                       }
                     )
-                  case _ => ;
+                  case _ => ()
                 }
             }
           if (updateTheTimes) {
@@ -1642,20 +1596,101 @@ class AvatarActor(
           updateToolDischarge(stats)
           Behaviors.same
 
+        case UpdateKillsDeathsAssists(stat: Kill) =>
+          updateKills(stat)
+          Behaviors.same
+
+        case UpdateKillsDeathsAssists(stat: Assist) =>
+          updateAssists(stat)
+          Behaviors.same
+
+        case UpdateKillsDeathsAssists(stat: Death) =>
+          updateDeaths(stat)
+          Behaviors.same
+
+        case UpdateKillsDeathsAssists(stat: SupportActivity) =>
+          updateSupport(stat)
+          Behaviors.same
+
+        case AwardBep(bep, ExperienceType.Support) =>
+          awardProgressionOrExperience(
+            setSupportAction,
+            bep,
+            Config.app.game.promotion.supportExperiencePointsModifier
+          )
+          Behaviors.same
+
         case AwardBep(bep, modifier) =>
-          setBep(avatar.bep + bep, modifier)
+          awardProgressionOrExperience(
+            setBepAction(modifier),
+            bep,
+            Config.app.game.promotion.battleExperiencePointsModifier
+          )
+          Behaviors.same
+
+        case AwardFacilityCaptureBep(bep) =>
+          awardProgressionOrExperience(
+            setBepAction(ExperienceType.Normal),
+            bep,
+            Config.app.game.promotion.captureExperiencePointsModifier
+          )
+          Behaviors.same
+
+        case SupportExperienceDeposit(bep, delayBy) =>
+          actuallyAwardSupportExperience(bep, delayBy)
           Behaviors.same
 
         case SetBep(bep) =>
           setBep(bep, ExperienceType.Normal)
+          sessionActor ! SessionActor.SendResponse(ChatMsg(ChatMessageType.UNK_229, "@AckSuccessSetBattleRank"))
+          Behaviors.same
+
+        case Progress(bep) =>
+          if ({
+            val oldBr = BattleRank.withExperience(avatar.bep).value
+            val newBr = BattleRank.withExperience(bep).value
+            val resetBr = Config.app.game.promotion.resetBattleRank
+            if (
+              Config.app.game.promotion.active &&
+              oldBr <= Config.app.game.promotion.broadcastBattleRank &&
+              newBr > resetBr && newBr < Config.app.game.promotion.maxBattleRank + 1
+            ) {
+              experienceDebt = bep
+              AvatarActor.saveExperienceDebt(avatar.id, bep, bep)
+              true
+            } else if (experienceDebt > 0 && newBr == resetBr) {
+              experienceDebt = 0
+              AvatarActor.saveExperienceDebt(avatar.id, exp = 0, bep)
+              true
+            } else {
+              false
+            }
+          }) {
+            setBep(bep, ExperienceType.Normal)
+            if (avatar.cep > 0) {
+              setCep(0L)
+            }
+            restoreBasicCerts()
+            sessionActor ! SessionActor.CharSaved
+            sessionActor ! SessionActor.SendResponse(ChatMsg(ChatMessageType.UNK_229, "@AckSuccessSetBattleRank"))
+          } else if (experienceDebt > 0) {
+            sessionActor ! SessionActor.SendResponse(ChatMsg(ChatMessageType.CMT_QUIT, s"You already must earn back $experienceDebt."))
+          } else {
+            sessionActor ! SessionActor.SendResponse(ChatMsg(ChatMessageType.CMT_QUIT, "You may not suffer this debt."))
+          }
           Behaviors.same
 
         case AwardCep(cep) =>
-          setCep(avatar.cep + cep)
+          if (experienceDebt == 0L) {
+            setCep(avatar.cep + cep)
+          } else if (cep > 0) {
+            sessionActor ! SessionActor.SendResponse(ExperienceAddedMessage())
+          }
           Behaviors.same
 
         case SetCep(cep) =>
           setCep(cep)
+          sessionActor ! SessionActor.SendResponse(ChatMsg(ChatMessageType.UNK_229, "@AckSuccessSetCommandRank"))
           Behaviors.same
 
         case SetCosmetics(cosmetics) =>
@@ -1767,7 +1802,7 @@ class AvatarActor(
         case RemoveShortcut(slot) =>
           import ctx._
           avatar.shortcuts.lift(slot).flatten match {
-            case None => ;
+            case None => ()
             case Some(_) =>
               ctx.run(
                 query[persistence.Shortcut]
@@ -1781,10 +1816,17 @@ class AvatarActor(
       }
       .receiveSignal {
         case (_, PostStop) =>
-          AvatarActor.saveAvatarData(avatar)
           staminaRegenTimer.cancel()
           implantTimers.values.foreach(_.cancel())
+          supportExperienceTimer.cancel()
+          if (supportExperiencePool > 0) {
+            AvatarActor.setBepOnly(avatar.id, avatar.bep + supportExperiencePool)
+          }
+          AvatarActor.saveAvatarData(avatar)
           saveLockerFunc()
+          AvatarActor.updateToolDischargeFor(avatar)
+          AvatarActor.saveExperienceDebt(avatar.id, experienceDebt, avatar.bep)
+          AvatarActor.avatarNoLongerLoggedIn(account.get.id)
           Behaviors.same
       }
   }
@@ -1797,9 +1839,27 @@ class AvatarActor(
     Future.failed(ex).asInstanceOf[Future[Loadout]]
   }
 
-  def performAvatarLogin(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
+  def performAvatarLoginTest(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
     import ctx._
+    val blockLogInIfNot = for {
+      out <- ctx.run(query[persistence.Account].filter(_.id == lift(accountId)))
+    } yield out
+    blockLogInIfNot.onComplete {
+      case Success(account)
+        //TODO test against acceptable player factions
+        if account.exists { _.avatarLoggedIn == 0 } =>
+        //accept
+        performAvatarLogin(avatarId, accountId, replyTo)
+      case _ =>
+        //refuse
+        //TODO refuse?
+        sessionActor ! SessionActor.Quit()
+    }
+  }
 
+  def performAvatarLogin(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
+    performAvatarLogin0(avatarId, accountId, replyTo)
+    /*import ctx._
     val result = for {
       //log this login
       _ <- ctx.run(
@@ -1811,7 +1871,10 @@ class AvatarActor(
       _ <- ctx.run(
         query[persistence.Account]
           .filter(_.id == lift(accountId))
-          .update(_.lastFactionId -> lift(avatar.faction.id))
+          .update(
+            _.lastFactionId -> lift(avatar.faction.id),
+            _.avatarLoggedIn -> lift(avatarId)
+          )
       )
       //retrieve avatar data
       loadouts  <- initializeAllLoadouts()
@@ -1822,27 +1885,11 @@ class AvatarActor(
       ignored   <- loadIgnoredList(avatarId)
       shortcuts <- loadShortcuts(avatarId)
       saved     <- AvatarActor.loadSavedAvatarData(avatarId)
-    } yield (loadouts, implants, certs, locker, friends, ignored, shortcuts, saved)
+      debt      <- AvatarActor.loadExperienceDebt(avatarId)
+      card      <- AvatarActor.loadCampaignKdaData(avatarId)
+    } yield (loadouts, implants, certs, locker, friends, ignored, shortcuts, saved, debt, card)
     result.onComplete {
-      case Success((_loadouts, implants, certs, lockerInv, friendsList, ignoredList, shortcutList, saved)) =>
-        //shortcuts must have a hotbar option for each implant
-//        val implantShortcuts = shortcutList.filter {
-//          case Some(e) => e.purpose == 0
-//          case None    => false
-//        }
-//        implants.filterNot { implant =>
-//          implantShortcuts.exists {
-//            case Some(a) => a.tile.equals(implant.name)
-//            case None    => false
-//          }
-//        }.foreach { c =>
-//          shortcutList.indexWhere { _.isEmpty } match {
-//            case -1 => ;
-//            case index =>
-//              shortcutList.update(index, Some(AvatarShortcut(2, c.name)))
-//          }
-//        }
-        //
+      case Success((_loadouts, implants, certs, lockerInv, friendsList, ignoredList, shortcutList, saved, debt, card)) =>
         avatarCopy(
           avatar.copy(
             loadouts = avatar.loadouts.copy(suit = _loadouts),
@@ -1858,12 +1905,103 @@ class AvatarActor(
             cooldowns = Cooldowns(
               purchase = AvatarActor.buildCooldownsFromClob(saved.purchaseCooldowns, Avatar.purchaseCooldowns, log),
               use = AvatarActor.buildCooldownsFromClob(saved.useCooldowns, Avatar.useCooldowns, log)
-            )
+            ),
+            scorecard = card
           )
         )
         // if we need to start stamina regeneration
         tryRestoreStaminaForSession(stamina = 1).collect { _ => defaultStaminaRegen(initialDelay = 0.5f seconds) }
+        experienceDebt = debt
         replyTo ! AvatarLoginResponse(avatar)
+      case Failure(e) =>
+        log.error(e)("db failure")
+    }*/
+  }
+
+  def performAvatarLogin0(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
+    import ctx._
+    val result = for {
+      //log this login
+      loginTime <- ctx.run(
+        query[persistence.Avatar]
+          .filter(_.id == lift(avatarId))
+          .update(_.lastLogin -> lift(LocalDateTime.now()))
+      )
+      //log this choice of faction (no empire switching)
+      loginFaction <- ctx.run(
+        query[persistence.Account]
+          .filter(_.id == lift(accountId))
+          .update(
+            _.lastFactionId -> lift(avatar.faction.id),
+            _.avatarLoggedIn -> lift(avatarId)
+          )
+      )
+    } yield (loginTime, loginFaction)
+    result.onComplete {
+      case Success(_) =>
+        sessionActor ! SessionActor.AvatarLoadingSync(step = 0)
+        performAvatarLogin1(avatarId, replyTo)
+      case Failure(e) =>
+        log.error(e)("db failure")
+    }
+  }
+
+  def performAvatarLogin1(avatarId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
+    import ctx._
+    val result = for {
+      //retrieve avatar data for OCDM packet
+      implants  <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatarId)))
+      certs     <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatarId)))
+      debt      <- AvatarActor.loadExperienceDebt(avatarId)
+      locker    <- loadLocker(avatarId)
+    } yield (certs, implants, locker, debt)
+    result.onComplete {
+      case Success((certs, implants, lockerInv, debt)) =>
+        avatarCopy(
+          avatar.copy(
+            certifications =
+              certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
+            implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
+            locker = lockerInv
+          )
+        )
+        experienceDebt = debt
+        // if we need to start stamina regeneration
+        tryRestoreStaminaForSession(stamina = 1).collect { _ => defaultStaminaRegen(initialDelay = 0.5f seconds) }
+        sessionActor ! SessionActor.AvatarLoadingSync(step = 1)
+        replyTo ! AvatarLoginResponse(avatar)
+        performAvatarLogin2(avatarId, replyTo)
+      case Failure(e) =>
+        log.error(e)("db failure")
+    }
+  }
+
+  //noinspection ScalaUnusedSymbol
+  def performAvatarLogin2(avatarId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
+    val result = for {
+      //retrieve avatar data for other packets
+      loadouts  <- initializeAllLoadouts()
+      friends   <- loadFriendList(avatarId)
+      ignored   <- loadIgnoredList(avatarId)
+      shortcuts <- loadShortcuts(avatarId)
+      saved     <- AvatarActor.loadSavedAvatarData(avatarId)
+      card      <- AvatarActor.loadCampaignKdaData(avatarId)
+    } yield (loadouts, friends, ignored, shortcuts, saved, card)
+    result.onComplete {
+      case Success((loadoutList, friendsList, ignoredList, shortcutList, saved, card)) =>
+        avatarCopy(
+          avatar.copy(
+            loadouts = avatar.loadouts.copy(suit = loadoutList),
+            shortcuts = shortcutList,
+            people = MemberLists(friend = friendsList, ignored = ignoredList),
+            cooldowns = Cooldowns(
+              purchase = AvatarActor.buildCooldownsFromClob(saved.purchaseCooldowns, Avatar.purchaseCooldowns, log),
+              use = AvatarActor.buildCooldownsFromClob(saved.useCooldowns, Avatar.useCooldowns, log)
+            ),
+            scorecard = card
+          )
+        )
+        sessionActor ! SessionActor.AvatarLoadingSync(step = 2)
       case Failure(e) =>
         log.error(e)("db failure")
     }
@@ -1943,7 +2081,7 @@ class AvatarActor(
           avatar.implants.zipWithIndex.foreach {
             case (Some(_), slot) =>
               sessionActor ! SessionActor.SendResponse(AvatarImplantMessage(guid, ImplantAction.OutOfStamina, slot, 0))
-            case _ => ;
+            case _ => ()
           }
         }
         sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(guid, 2, totalStamina))
@@ -1986,7 +2124,7 @@ class AvatarActor(
               sessionActor ! SessionActor.SendResponse(
                 AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)
               )
-            case _ => ;
+            case _ => ()
           }
         }
         sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(player.GUID, 2, totalStamina))
@@ -2031,7 +2169,7 @@ class AvatarActor(
           AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
         )
 
-      case (None, _) => ;
+      case (None, _) => ()
     }
   }
 
@@ -2087,7 +2225,7 @@ class AvatarActor(
           avatar.name,
           AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(index + 6, 0))
         )
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -2151,7 +2289,7 @@ class AvatarActor(
                   tool.GUID = PlanetSideGUID(gen.getAndIncrement)
                 case Some(item: Equipment) =>
                   item.GUID = PlanetSideGUID(gen.getAndIncrement)
-                case _ => ;
+                case _ => ()
               }
             )
           player.GUID = PlanetSideGUID(gen.getAndIncrement)
@@ -2189,7 +2327,7 @@ class AvatarActor(
                   item.Invalidate()
                 case Some(item: Equipment) =>
                   item.Invalidate()
-                case _ => ;
+                case _ => ()
               }
             )
           player.Invalidate()
@@ -2459,7 +2597,7 @@ class AvatarActor(
             subtype
           )
         )
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -2647,7 +2785,7 @@ class AvatarActor(
     session match {
       case Some(sess) if sess.player != null =>
         sess.player.avatar = copyAvatar
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -2666,7 +2804,7 @@ class AvatarActor(
         case MemberAction.RemoveFriend         => getAvatarForFunc(name, formatForOtherFunc(memberActionRemoveFriend))
         case MemberAction.AddIgnoredPlayer     => getAvatarForFunc(name, memberActionAddIgnored)
         case MemberAction.RemoveIgnoredPlayer  => getAvatarForFunc(name, formatForOtherFunc(memberActionRemoveIgnored))
-        case _                                 => ;
+        case _                                 => ()
       }
     }
   }
@@ -2710,7 +2848,7 @@ class AvatarActor(
   def memberActionAddFriend(charId: Long, name: String, faction: Int): Unit = {
     val people = avatar.people
     people.friend.find { _.name.equals(name) } match {
-      case Some(_) => ;
+      case Some(_) => ()
       case None =>
         import ctx._
         ctx.run(
@@ -2746,7 +2884,7 @@ class AvatarActor(
         replaceAvatar(
           avatar.copy(people = people.copy(friend = people.friend.filterNot { _.charId == charId }))
         )
-      case None => ;
+      case None => ()
     }
     ctx.run(
       query[persistence.Friend]
@@ -2805,7 +2943,7 @@ class AvatarActor(
   def memberActionAddIgnored(charId: Long, name: String, faction: Int): Unit = {
     val people = avatar.people
     people.ignored.find { _.name.equals(name) } match {
-      case Some(_) => ;
+      case Some(_) => ()
       case None =>
         import ctx._
         ctx.run(
@@ -2841,7 +2979,7 @@ class AvatarActor(
         replaceAvatar(
           avatar.copy(people = people.copy(ignored = people.ignored.filterNot { _.charId == charId }))
         )
-      case None => ;
+      case None => ()
     }
     ctx.run(
       query[persistence.Ignored]
@@ -2857,13 +2995,7 @@ class AvatarActor(
 
   def setBep(bep: Long, modifier: ExperienceType): Unit = {
     import ctx._
-    val current   = BattleRank.withExperience(avatar.bep).value
-    val next      = BattleRank.withExperience(bep).value
-    lazy val br24 = BattleRank.BR24.value
-    val result = for {
-      r <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatar.id)).update(_.bep -> lift(bep)))
-    } yield r
-    result.onComplete {
+    AvatarActor.setBepOnly(avatar.id, bep).onComplete {
       case Success(_) =>
         val sess          = session.get
         val zone          = sess.zone
@@ -2872,6 +3004,9 @@ class AvatarActor(
         val player        = sess.player
         val pguid         = player.GUID
         val localModifier = modifier
+        val current   = BattleRank.withExperience(avatar.bep).value
+        val next      = BattleRank.withExperience(bep).value
+        val br24 = BattleRank.BR24.value
         sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(pguid, bep, localModifier))
         events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(pguid, 17, bep))
         if (current < br24 && next >= br24 || current >= br24 && next < br24) {
@@ -2928,42 +3063,167 @@ class AvatarActor(
     }
   }
 
-  def updateKillsDeathsAssists(kdaStat: KDAStat): Unit = {
-    avatar.scorecard.rate(kdaStat)
-    val exp      = kdaStat.experienceEarned
+  def awardSupportExperience(bep: Long, previousDelay: Long): Unit = {
+    setBep(avatar.bep + bep, ExperienceType.Support)
+  }
+
+  def actuallyAwardSupportExperience(bep: Long, delayBy: Long): Unit = {
+    setBep(avatar.bep + bep, ExperienceType.Support)
+    supportExperiencePool = supportExperiencePool - bep
+    if (supportExperiencePool > 0) {
+      resetSupportExperienceTimer(bep, delayBy)
+    } else {
+      supportExperiencePool = 0
+      supportExperienceTimer.cancel()
+      supportExperienceTimer = Default.Cancellable
+    }
+  }
+
+  private def awardProgressionOrExperience(
+                                            awardAction: Long => Unit,
+                                            experience: Long,
+                                            modifier: Float
+                                          ): Unit = {
+    if (experience > 0) {
+      if (experienceDebt == 0L) {
+        awardAction(experience)
+      } else if (modifier > 0f) {
+        val modifiedBep = (experience.toFloat * modifier).toLong
+        val gain = modifiedBep - experienceDebt
+        if (gain > 0L) {
+          experienceDebt = 0L
+          awardAction(experience)
+        } else {
+          experienceDebt = experienceDebt - modifiedBep
+          sessionActor ! SessionActor.SendResponse(ExperienceAddedMessage())
+        }
+      }
+    }
+  }
+
+  private def setBepAction(modifier: ExperienceType)(value: Long): Unit = {
+    setBep(avatar.bep + value, modifier)
+  }
+
+  private def setSupportAction(value: Long): Unit = {
+    awardSupportExperience(value, previousDelay = 0L)
+  }
+
+  def updateKills(killStat: Kill): Unit = {
+    val exp                = killStat.experienceEarned
+    val (modifiedExp, msg) = updateExperienceAndType(killStat.experienceEarned)
+    val output             = avatar.scorecard.rate(killStat.copy(experienceEarned = modifiedExp))
+    val _session           = session.get
+    val zone               = _session.zone
+    val player             = _session.player
+    val playerSource       = PlayerSource(player)
+    val historyTranscript  = {
+      (killStat.info.interaction.cause match {
+        case pr: ProjectileReason => pr.projectile.mounted_in.flatMap { a => zone.GUID(a._1) } //what fired the projectile
+        case _ => None
+      }).collect {
+        case mount: PlanetSideGameObject with FactionAffinity with InGameHistory with MountedWeapons =>
+          player.ContributionFrom(mount)
+      }
+      player.HistoryAndContributions()
+    }
+    val target = killStat.info.targetAfter.asInstanceOf[PlayerSource]
+    val targetMounted = target.seatedIn.map { case (v: VehicleSource, seat) =>
+      val definition = v.Definition
+      definition.ObjectId * 10 + Vehicles.SeatPermissionGroup(definition, seat).map { _.id }.getOrElse(0)
+    }.getOrElse(0)
+    zones.exp.ToDatabase.reportKillBy(
+      avatar.id.toLong,
+      target.CharId,
+      target.ExoSuit.id,
+      targetMounted,
+      killStat.info.interaction.cause.attribution,
+      player.Zone.Number,
+      target.Position,
+      modifiedExp
+    )
+    output.foreach { case (id, entry) =>
+      val elem = StatisticalElement.fromId(id)
+      sessionActor ! SessionActor.SendResponse(
+        AvatarStatisticsMessage(SessionStatistic(
+          StatisticalCategory.Destroyed,
+          elem,
+          entry.tr_s,
+          entry.nc_s,
+          entry.vs_s,
+          entry.ps_s
+        ))
+      )
+    }
+    if (exp > 0L) {
+      setBep(avatar.bep + exp, msg)
+      zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, killStat, exp)
+    }
+  }
+
+  def updateDeaths(deathStat: Death): Unit = {
+    AvatarActor.updateToolDischargeFor(avatar)
+    avatar.scorecard.rate(deathStat)
     val _session = session.get
     val zone     = _session.zone
     val player   = _session.player
-    kdaStat match {
-      case kill: Kill =>
-        val _ = PlayerSource(player)
-        (kill.info.interaction.cause match {
-          case pr: ProjectileReason => pr.projectile.mounted_in.map { a => zone.GUID(a._1) }
-          case _                    => None
-        }) match {
-          case Some(Some(_: Vitality)) =>
-          //zone.actor ! ZoneActor.RewardOurSupporters(playerSource, obj.History, kill, exp)
-          case _ => ;
-        }
-      //zone.actor ! ZoneActor.RewardOurSupporters(playerSource, player.History, kill, exp)
-      case _: Death =>
-        player.Zone.AvatarEvents ! AvatarServiceMessage(
-          player.Name,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            AvatarStatisticsMessage(DeathStatistic(avatar.scorecard.Lives.size))
-          )
-        )
+    zone.AvatarEvents ! AvatarServiceMessage(
+      player.Name,
+      AvatarAction.SendResponse(
+        Service.defaultPlayerGUID,
+        AvatarStatisticsMessage(DeathStatistic(ScoreCard.deathCount(avatar.scorecard)))
+      )
+    )
+  }
+
+  def updateAssists(assistStat: Assist): Unit = {
+    avatar.scorecard.rate(assistStat)
+    val exp      = assistStat.experienceEarned
+    val _session = session.get
+    val avatarId = avatar.id.toLong
+    assistStat.weapons.foreach { wrapper =>
+      zones.exp.ToDatabase.reportKillAssistBy(
+        avatarId,
+        assistStat.victim.CharId,
+        wrapper.equipment,
+        _session.zone.Number,
+        assistStat.victim.Position,
+        exp
+      )
     }
-    if (exp > 0L) {
-      val gameOpts = Config.app.game
-      val (msg, modifier): (ExperienceType, Float) = if (player.Carrying.contains(SpecialCarry.RabbitBall)) {
-        (ExperienceType.RabbitBall, 1.25f)
-      } else {
-        (ExperienceType.Normal, 1f)
-      }
-      setBep(avatar.bep + (exp * modifier * gameOpts.bepRate).toLong, msg)
+    awardSupportExperience(exp, previousDelay = 0L)
+  }
+
+  def updateSupport(supportStat: SupportActivity): Unit = {
+    val avatarId = avatar.id.toLong
+    val target = supportStat.target
+    val targetId = target.CharId
+    val targetExosuit = target.ExoSuit.id
+    val exp = supportStat.experienceEarned
+    supportStat.weapons.foreach { entry =>
+      zones.exp.ToDatabase.reportSupportBy(
+        avatarId,
+        targetId,
+        targetExosuit,
+        entry.value,
+        entry.intermediate,
+        entry.equipment,
+        exp
+      )
     }
+    awardSupportExperience(exp, previousDelay = 0L)
+  }
+
+  def updateExperienceAndType(exp: Long): (Long, ExperienceType) = {
+    val _session = session.get
+    val player   = _session.player
+    val gameOpts = Config.app.game.experience.bep
+    val (modifier, msg) = if (player.Carrying.contains(SpecialCarry.RabbitBall)) {
+      (1.25f, ExperienceType.RabbitBall)
+    } else {
+      (1f, ExperienceType.Normal)
+    }
+    ((exp * modifier * gameOpts.rate).toLong, msg)
   }
 
   def updateToolDischarge(stats: EquipmentStat): Unit = {
@@ -3095,5 +3355,281 @@ class AvatarActor(
         output.success(false)
     }
     output.future
+  }
+
+  def performCertificationAction(
+                                  terminalGuid: PlanetSideGUID,
+                                  certification: Certification,
+                                  action: Certification => Future[Boolean],
+                                  transaction: TransactionType.Value
+                                ): Unit = {
+    action(certification).onComplete {
+      case Success(true) =>
+        sessionActor ! SessionActor.SendResponse(
+          ItemTransactionResultMessage(terminalGuid, transaction, success = true)
+        )
+        sessionActor ! SessionActor.CharSaved
+      case _ =>
+        sessionActor ! SessionActor.SendResponse(
+          ItemTransactionResultMessage(terminalGuid, transaction, success = false)
+        )
+    }
+  }
+
+  def learnCertificationInTheFuture(certification: Certification): Future[Boolean] = {
+    import ctx._
+    val out: Promise[Boolean] = Promise()
+    val replace = certification.replaces.intersect(avatar.certifications)
+    Future
+      .sequence(replace.map(cert => {
+        ctx
+          .run(
+            query[persistence.Certification]
+              .filter(_.avatarId == lift(avatar.id))
+              .filter(_.id == lift(cert.value))
+              .delete
+          )
+          .map(_ => cert)
+      }))
+      .onComplete {
+        case Failure(exception) =>
+          log.error(exception)("db failure")
+        case Success(_replace) =>
+          _replace.foreach { cert =>
+            sessionActor ! SessionActor.SendResponse(
+              PlanetsideAttributeMessage(session.get.player.GUID, 25, cert.value)
+            )
+          }
+          ctx
+            .run(
+              query[persistence.Certification]
+                .insert(_.id -> lift(certification.value), _.avatarId -> lift(avatar.id))
+            )
+            .onComplete {
+              case Failure(exception) =>
+                log.error(exception)("db failure")
+                out.completeWith(Future(false))
+              case Success(_) =>
+                sessionActor ! SessionActor.SendResponse(
+                  PlanetsideAttributeMessage(session.get.player.GUID, 24, certification.value)
+                )
+                replaceAvatar(
+                  avatar.copy(certifications = avatar.certifications.diff(replace) + certification)
+                )
+                out.completeWith(Future(true))
+            }
+      }
+    out.future
+  }
+
+  def sellCertificationInTheFuture(certification: Certification): Future[Boolean] = {
+    import ctx._
+    val out: Promise[Boolean] = Promise()
+    var requiredByCert: Set[Certification] = Set(certification)
+    var removeThese: Set[Certification] = Set(certification)
+    val allCerts: Set[Certification] = Certification.values.toSet
+    do {
+      removeThese = allCerts.filter { testingCert =>
+        testingCert.requires.intersect(removeThese).nonEmpty
+      }
+      requiredByCert = requiredByCert ++ removeThese
+    } while (removeThese.nonEmpty)
+
+    Future
+      .sequence(
+        avatar.certifications
+          .intersect(requiredByCert)
+          .map(cert => {
+            ctx
+              .run(
+                query[persistence.Certification]
+                  .filter(_.avatarId == lift(avatar.id))
+                  .filter(_.id == lift(cert.value))
+                  .delete
+              )
+              .map(_ => cert)
+          })
+      )
+      .onComplete {
+        case Failure(exception) =>
+          log.error(exception)("db failure")
+          out.complete(Success(false))
+        case Success(certs) if certs.isEmpty =>
+          out.complete(Success(false))
+        case Success(certs) =>
+          val player = session.get.player
+          replaceAvatar(avatar.copy(certifications = avatar.certifications.diff(certs)))
+          certs.foreach { cert =>
+            sessionActor ! SessionActor.SendResponse(
+              PlanetsideAttributeMessage(player.GUID, 25, cert.value)
+            )
+          }
+          //wearing invalid armor?
+          if (
+            if (certification == Certification.ReinforcedExoSuit) player.ExoSuit == ExoSuitType.Reinforced
+            else if (certification == Certification.InfiltrationSuit) player.ExoSuit == ExoSuitType.Infiltration
+            else if (player.ExoSuit == ExoSuitType.MAX) {
+              lazy val subtype =
+                InfantryLoadout.DetermineSubtypeA(ExoSuitType.MAX, player.Slot(slot = 0).Equipment)
+              if (certification == Certification.UniMAX) true
+              else if (certification == Certification.AAMAX) subtype == 1
+              else if (certification == Certification.AIMAX) subtype == 2
+              else if (certification == Certification.AVMAX) subtype == 3
+              else false
+            } else false
+          ) {
+            player.Actor ! PlayerControl.SetExoSuit(ExoSuitType.Standard, 0)
+          }
+          out.complete(Success(true))
+      }
+    out.future
+  }
+
+  def restoreBasicCerts(): Unit = {
+    val certs = avatar.certifications
+    certs.diff(AvatarActor.basicLoginCertifications).foreach { sellCertificationInTheFuture }
+    AvatarActor.basicLoginCertifications.diff(certs).foreach { learnCertificationInTheFuture }
+  }
+
+  def buyImplantAction(
+                        terminalGuid: PlanetSideGUID,
+                        definition: ImplantDefinition
+                      ): Unit = {
+    buyImplantInTheFuture(definition).onComplete {
+      case Success(true) =>
+        sessionActor ! SessionActor.SendResponse(
+          ItemTransactionResultMessage(terminalGuid, TransactionType.Buy, success = true)
+        )
+        resetAnImplant(definition.implantType)
+        sessionActor ! SessionActor.CharSaved
+      case _ =>
+        sessionActor ! SessionActor.SendResponse(
+          ItemTransactionResultMessage(terminalGuid, TransactionType.Buy, success = false)
+        )
+    }
+  }
+
+  def buyImplantInTheFuture(definition: ImplantDefinition): Future[Boolean] = {
+    val out: Promise[Boolean] = Promise()
+    avatar.implants.zipWithIndex.collectFirst {
+      case (Some(implant), _) if implant.definition.implantType == definition.implantType => None
+      case (None, index) if index < avatar.br.implantSlots                                => Some(index)
+    }.flatten match {
+      case Some(index) =>
+        import ctx._
+        ctx
+          .run(query[persistence.Implant].insert(_.name -> lift(definition.Name), _.avatarId -> lift(avatar.id)))
+          .onComplete {
+            case Success(_) =>
+              replaceAvatar(avatar.copy(implants = avatar.implants.updated(index, Some(Implant(definition)))))
+              sessionActor ! SessionActor.SendResponse(
+                AvatarImplantMessage(
+                  session.get.player.GUID,
+                  ImplantAction.Add,
+                  index,
+                  definition.implantType.value
+                )
+              )
+              out.completeWith(Future(true))
+            case Failure(exception) =>
+              log.error(exception)("db failure")
+              out.completeWith(Future(false))
+          }
+      case None =>
+        log.warn("attempted to learn implant but could not find slot")
+        out.completeWith(Future(false))
+    }
+    out.future
+  }
+
+  def sellImplantAction(
+                         terminalGuid: PlanetSideGUID,
+                         definition: ImplantDefinition
+                       ): Unit = {
+    sellImplantInTheFuture(definition).onComplete {
+      case Success(true) =>
+        sessionActor ! SessionActor.SendResponse(
+          ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = true)
+        )
+        sessionActor ! SessionActor.CharSaved
+      case _ =>
+        sessionActor ! SessionActor.SendResponse(
+          ItemTransactionResultMessage(terminalGuid, TransactionType.Sell, success = false)
+        )
+    }
+  }
+
+  def sellImplantInTheFuture(definition: ImplantDefinition): Future[Boolean] = {
+    val out: Promise[Boolean] = Promise()
+    avatar.implants.zipWithIndex.collectFirst {
+      case (Some(implant), index) if implant.definition.implantType == definition.implantType => index
+    } match {
+      case Some(index) =>
+        import ctx._
+        ctx
+          .run(
+            query[persistence.Implant]
+              .filter(_.name == lift(definition.Name))
+              .filter(_.avatarId == lift(avatar.id))
+              .delete
+          )
+          .onComplete {
+            case Success(_) =>
+              replaceAvatar(avatar.copy(implants = avatar.implants.updated(index, None)))
+              sessionActor ! SessionActor.SendResponse(
+                AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, index, 0)
+              )
+              out.completeWith(Future(true))
+            case Failure(exception) =>
+              log.error(exception)("db failure")
+              out.completeWith(Future(false))
+          }
+      case None =>
+        log.warn("attempted to sell implant but could not find slot")
+        out.completeWith(Future(false))
+    }
+    out.future
+  }
+
+  def removeAllImplants(): Unit = {
+    avatar.implants.collect { case Some(imp) => imp.definition }.foreach { sellImplantInTheFuture }
+    context.self ! ResetImplants()
+  }
+
+  def resetSupportExperienceTimer(previousBep: Long, previousDelay: Long): Unit = {
+    val bep: Long = if (supportExperiencePool < 10L) {
+      supportExperiencePool
+    } else {
+      val rand = math.random()
+      val range: Long = if (previousBep < 30L) {
+        if (rand < 0.3d) {
+          75L
+        } else {
+          215L
+        }
+      } else {
+        if (rand < 0.1d || (previousDelay > 35000L && previousBep > 150L)) {
+          75L
+        } else if (rand > 0.9d) {
+          520L
+        } else {
+          125L
+        }
+      }
+      math.min((range * math.random()).toLong, supportExperiencePool)
+    }
+    val delay: Long = {
+      val rand = math.random()
+      if ((previousBep > 190L || previousDelay > 35000L) && bep < 51L) {
+        (1000d * rand).toLong
+      } else {
+        10000L + (rand * 35000d).toLong
+      }
+    }
+    supportExperienceTimer = context.scheduleOnce(
+      delay.milliseconds,
+      context.self,
+      SupportExperienceDeposit(bep, delay)
+    )
   }
 }

@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.damage.DamageableAmenity
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
-import net.psforever.objects.vital.{HealFromTerm, RepairFromTerm, Vitality}
+import net.psforever.objects.vital.{HealFromTerminal, RepairFromTerminal, Vitality}
 import net.psforever.objects.zones.ZoneAware
 import net.psforever.packet.game.InventoryStateMessage
 import net.psforever.services.Service
@@ -291,7 +291,7 @@ object ProximityTerminalControl {
         healAmount
       }
       target.Health = health + finalHealthAmount
-      target.LogActivity(HealFromTerm(AmenitySource(terminal), finalHealthAmount))
+      target.LogActivity(HealFromTerminal(AmenitySource(terminal), finalHealthAmount))
       updateFunc(target)
       target.Health == maxHealth
     } else {
@@ -338,7 +338,7 @@ object ProximityTerminalControl {
         repairAmount
       }
       target.Armor = armor + finalRepairAmount
-      target.LogActivity(RepairFromTerm(AmenitySource(terminal), finalRepairAmount))
+      target.LogActivity(RepairFromTerminal(AmenitySource(terminal), finalRepairAmount))
       val zone = target.Zone
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,

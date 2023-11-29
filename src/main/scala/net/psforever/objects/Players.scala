@@ -10,6 +10,8 @@ import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.InfantryLoadout
+import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.objects.vital.RevivingActivity
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types.{ChatMessageType, ExoSuitType, Vector3}
@@ -64,7 +66,7 @@ object Players {
     val name = target.Name
     val medicName = medic.Name
     log.info(s"$medicName had revived $name")
-    //target.History(PlayerRespawn(PlayerSource(target), target.Zone, target.Position, Some(PlayerSource(medic))))
+    target.LogActivity(RevivingActivity(PlayerSource(target), PlayerSource(medic), target.MaxHealth, item.Definition))
     val magazine = item.Discharge(Some(25))
     target.Zone.AvatarEvents ! AvatarServiceMessage(
       medicName,

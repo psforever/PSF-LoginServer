@@ -137,12 +137,10 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
     bcryptedPassword
   }
 
-  def getAccountLogin(username: String, password: Option[String], token: Option[String]): Unit = {
-
-    if (token.isDefined) {
-      accountLoginWithToken(token.getOrElse(""))
-    } else {
-      accountLogin(username, password.getOrElse(""))
+  def getAccountLogin(username: String, passwordOpt: Option[String], tokenOpt: Option[String]): Unit = {
+    tokenOpt match {
+      case Some(token) => accountLoginWithToken(token)
+      case None        => accountLogin(username, passwordOpt.getOrElse(""))
     }
   }
 
@@ -164,7 +162,8 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       accountOption <- accountsExact.headOption orElse accountsLower.headOption match {
 
         // account found
-        case Some(account) => Future.successful(Some(account))
+        case Some(account) =>
+          Future.successful(Some(account))
 
         // create new account
         case None =>

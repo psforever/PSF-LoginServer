@@ -2,6 +2,9 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.sourcing.AmenitySource
+import net.psforever.objects.vital.TerminalUsedActivity
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 //
@@ -31,7 +34,8 @@ class SessionTerminalHandlers(
     val ItemTransactionMessage(terminalGuid, transactionType, _, itemName, _, _) = pkt
     continent.GUID(terminalGuid) match {
       case Some(term: Terminal) if lastTerminalOrderFulfillment =>
-        log.info(s"${player.Name} is submitting an order - $transactionType of $itemName")
+        val msg: String = if (itemName.nonEmpty) s" of $itemName" else ""
+        log.info(s"${player.Name} is submitting an order - a $transactionType from a ${term.Definition.Name}$msg")
         lastTerminalOrderFulfillment = false
         sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         term.Actor ! Terminal.Request(player, pkt)
@@ -68,8 +72,8 @@ class SessionTerminalHandlers(
     order match {
       case Terminal.BuyEquipment(item)
         if tplayer.avatar.purchaseCooldown(item.Definition).nonEmpty =>
-        lastTerminalOrderFulfillment = true
         sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
+        lastTerminalOrderFulfillment = true
 
       case Terminal.BuyEquipment(item) =>
         avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
@@ -141,6 +145,7 @@ class SessionTerminalHandlers(
             if (GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
               sendResponse(UnuseItemMessage(player.GUID, msg.terminal_guid))
             }
+            player.LogActivity(TerminalUsedActivity(AmenitySource(term), msg.transaction_type))
           }.orElse {
           log.error(
             s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"

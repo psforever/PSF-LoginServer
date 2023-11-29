@@ -150,8 +150,6 @@ case class GameConfig(
     instantAction: InstantActionConfig,
     amenityAutorepairRate: Float,
     amenityAutorepairDrainRate: Float,
-    bepRate: Double,
-    cepRate: Double,
     newAvatar: NewAvatar,
     hart: HartConfig,
     sharedMaxCooldown: Boolean,
@@ -161,7 +159,10 @@ case class GameConfig(
     cavernRotation: CavernRotationConfig,
     savedMsg: SavedMessageEvents,
     playerDraw: PlayerStateDrawSettings,
-    doorsCanBeOpenedByMedAppFromThisDistance: Float
+    doorsCanBeOpenedByMedAppFromThisDistance: Float,
+    experience: Experience,
+    maxBattleRank: Int,
+    promotion: PromotionSystem
 )
 
 case class InstantActionConfig(
@@ -237,3 +238,62 @@ case class PlayerStateDrawSettings(
   assert(ranges.nonEmpty)
   assert(ranges.size == delays.size)
 }
+
+case class Experience(
+    shortContributionTime: Long,
+    longContributionTime: Long,
+    bep: BattleExperiencePoints,
+    sep: SupportExperiencePoints,
+    cep: CommandExperiencePoints
+) {
+  assert(shortContributionTime < longContributionTime)
+}
+
+case class BattleExperiencePoints(
+     base: BattleExperiencePointsBase,
+     rate: Float
+)
+
+case class BattleExperiencePointsBase(
+    bopsMultiplier: Long,
+    asMax: Long,
+    withKills: Long,
+    asMounted: Long,
+    mature: Long
+)
+
+case class SupportExperiencePoints(
+    rate: Float,
+    ntuSiloDepositReward: Long,
+    canNotFindEventDefaultValue: Long,
+    events: Seq[SupportExperienceEvent]
+)
+
+case class SupportExperienceEvent(
+    name: String,
+    base: Long,
+    shotsMax: Int = 50,
+    shotsCutoff: Int = 50,
+    shotsMultiplier: Float = 0f,
+    amountMultiplier: Float = 0f
+)
+
+case class CommandExperiencePoints(
+    rate: Float,
+    lluCarrierModifier: Float,
+    lluSlayerCreditDuration: Duration,
+    lluSlayerCredit: Long,
+    maximumPerSquadSize: Seq[Int],
+    squadSizeLimitOverflow: Int,
+    squadSizeLimitOverflowMultiplier: Float
+)
+
+case class PromotionSystem(
+                            active: Boolean,
+                            broadcastBattleRank: Int,
+                            resetBattleRank: Int,
+                            maxBattleRank: Int,
+                            battleExperiencePointsModifier: Float,
+                            supportExperiencePointsModifier: Float,
+                            captureExperiencePointsModifier: Float
+)

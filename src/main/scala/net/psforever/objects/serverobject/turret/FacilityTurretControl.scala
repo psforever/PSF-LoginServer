@@ -103,7 +103,7 @@ class FacilityTurretControl(turret: FacilityTurret)
           turret.ControlledWeapon(wepNumber = 1).foreach {
             case weapon: Tool =>
               // recharge when last shot fired 3s delay, +1, 200ms interval
-              if (weapon.Magazine < weapon.MaxMagazine && System.nanoTime() - weapon.LastDischarge > 3000000000L) {
+              if (weapon.Magazine < weapon.MaxMagazine && System.currentTimeMillis() - weapon.LastDischarge > 3000L) {
                 weapon.Magazine += 1
                 val seat = turret.Seat(0).get
                 seat.occupant match {

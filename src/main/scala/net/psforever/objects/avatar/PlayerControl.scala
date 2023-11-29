@@ -3,6 +3,7 @@ package net.psforever.objects.avatar
 
 import akka.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
+import net.psforever.actors.zone.ZoneActor
 import net.psforever.login.WorldSession.{DropEquipmentFromInventory, HoldNewEquipmentUp, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
 import net.psforever.objects._
 import net.psforever.objects.ce.Deployable
@@ -32,7 +33,7 @@ import net.psforever.objects.locker.LockerContainerControl
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
-import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.objects.sourcing.{AmenitySource, PlayerSource}
 import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
@@ -355,6 +356,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           }
 
         case Terminal.TerminalMessage(_, msg, order) =>
+          lazy val terminalUsedAction = {
+            player.Zone.GUID(msg.terminal_guid).collect {
+              case t: Terminal =>
+                player.LogActivity(TerminalUsedActivity(AmenitySource(t), msg.transaction_type))
+            }
+          }
           order match {
             case Terminal.BuyExosuit(exosuit, subtype) =>
               val result = setExoSuit(exosuit, subtype)
@@ -365,6 +372,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 player.Name,
                 AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result)
               )
+              terminalUsedAction
 
             case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
               log.info(s"${player.Name} wants to change equipment loadout to their option #${msg.unk1 + 1}")
@@ -507,7 +515,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 player.Name,
                 AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result=true)
               )
-            case _ => assert(assertion=false, msg.toString)
+              terminalUsedAction
+            case _ =>
+              assert(assertion=false, msg.toString)
           }
 
         case Zone.Ground.ItemOnGround(item, _, _) =>
@@ -1052,6 +1062,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case _ =>
         events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
     }
+    zone.actor ! ZoneActor.RewardThisDeath(player)
   }
 
   def suicide() : Unit = {

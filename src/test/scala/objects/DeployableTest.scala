@@ -34,16 +34,17 @@ class DeployableTest extends Specification {
   "Deployable" should {
     "know its owner by GUID" in {
       val obj = new ExplosiveDeployable(GlobalDefinitions.he_mine)
-      obj.Owner.isEmpty mustEqual true
-      obj.Owner = PlanetSideGUID(10)
-      obj.Owner.contains(PlanetSideGUID(10)) mustEqual true
+      obj.OwnerGuid.isEmpty mustEqual true
+      obj.OwnerGuid = PlanetSideGUID(10)
+      obj.OwnerGuid.contains(PlanetSideGUID(10)) mustEqual true
     }
 
     "know its owner by GUID" in {
-      val obj = new ExplosiveDeployable(GlobalDefinitions.he_mine)
-      obj.OwnerName.isEmpty mustEqual true
-      obj.OwnerName = "TestCharacter"
-      obj.OwnerName.contains("TestCharacter") mustEqual true
+//      val obj = new ExplosiveDeployable(GlobalDefinitions.he_mine)
+//      obj.OwnerName.isEmpty mustEqual true
+//      obj.OwnerName = "TestCharacter"
+//      obj.OwnerName.contains("TestCharacter") mustEqual true
+      ko
     }
 
     "know its faction allegiance" in {
@@ -339,8 +340,8 @@ class ExplosiveDeployableJammerTest extends ActorTest {
   guid.register(player2, 4)
   guid.register(weapon, 5)
   j_mine.Zone = zone
-  j_mine.Owner = player2
-  j_mine.OwnerName = player2.Name
+  j_mine.OwnerGuid = player2
+  //j_mine.OwnerName = player2.Name
   j_mine.Faction = PlanetSideEmpire.NC
   j_mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], j_mine), "j-mine-control")
 
@@ -422,8 +423,8 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
   guid.register(player2, 4)
   guid.register(weapon, 5)
   h_mine.Zone = zone
-  h_mine.Owner = player2
-  h_mine.OwnerName = player2.Name
+  h_mine.OwnerGuid = player2
+  //h_mine.OwnerName = player2.Name
   h_mine.Faction = PlanetSideEmpire.NC
   h_mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], h_mine), "h-mine-control")
   zone.blockMap.addTo(player1)
@@ -528,8 +529,8 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
   guid.register(player2, 4)
   guid.register(weapon, 5)
   h_mine.Zone = zone
-  h_mine.Owner = player2
-  h_mine.OwnerName = player2.Name
+  h_mine.OwnerGuid = player2
+  //h_mine.OwnerName = player2.Name
   h_mine.Faction = PlanetSideEmpire.NC
   h_mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], h_mine), "h-mine-control")
 

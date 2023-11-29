@@ -20,10 +20,10 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.objects.sourcing.{SourceEntry, VehicleSource}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
-import net.psforever.objects.vital.{DamagingActivity, InGameActivity, ShieldCharge, SpawningActivity}
+import net.psforever.objects.vital.{DamagingActivity, InGameActivity, ShieldCharge, SpawningActivity, VehicleDismountActivity, VehicleMountActivity}
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.zones._
@@ -143,9 +143,9 @@ class VehicleControl(vehicle: Vehicle)
         }) =>
         sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num))
 
-      case msg @ Mountable.TryDismount(_, seat_num, _) =>
+      case msg @ Mountable.TryDismount(player, seat_num, _) =>
         dismountBehavior.apply(msg)
-        dismountCleanup(seat_num)
+        dismountCleanup(seat_num, player)
 
       case CommonMessages.ChargeShields(amount, motivator) =>
         chargeShields(amount, motivator.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) })
@@ -252,9 +252,9 @@ class VehicleControl(vehicle: Vehicle)
 
   def commonDisabledBehavior: Receive = checkBehavior
     .orElse {
-      case msg @ Mountable.TryDismount(_, seat_num, _) =>
+      case msg @ Mountable.TryDismount(user, seat_num, _) =>
         dismountBehavior.apply(msg)
-        dismountCleanup(seat_num)
+        dismountCleanup(seat_num, user)
 
       case Vehicle.Deconstruct(time) =>
         time match {
@@ -301,7 +301,7 @@ class VehicleControl(vehicle: Vehicle)
     val seatGroup = vehicle.SeatPermissionGroup(seatNumber).getOrElse(AccessPermissionGroup.Passenger)
     val permission = vehicle.PermissionGroup(seatGroup.id).getOrElse(VehicleLockState.Empire)
     (if (seatGroup == AccessPermissionGroup.Driver) {
-      vehicle.Owner.contains(user.GUID) || vehicle.Owner.isEmpty || permission != VehicleLockState.Locked
+      vehicle.OwnerGuid.contains(user.GUID) || vehicle.OwnerGuid.isEmpty || permission != VehicleLockState.Locked
     } else {
       permission != VehicleLockState.Locked
     }) &&
@@ -312,6 +312,8 @@ class VehicleControl(vehicle: Vehicle)
     val obj = MountableObject
     obj.PassengerInSeat(user) match {
       case Some(seatNumber) =>
+        val vsrc = VehicleSource(vehicle)
+        user.LogActivity(VehicleMountActivity(vsrc, PlayerSource.inSeat(user, vsrc, seatNumber), vehicle.Zone.Number))
         //if the driver mount, change ownership if that is permissible for this vehicle
         if (seatNumber == 0 && !obj.OwnerName.contains(user.Name) && obj.Definition.CanBeOwned.nonEmpty) {
           //whatever vehicle was previously owned
@@ -340,7 +342,7 @@ class VehicleControl(vehicle: Vehicle)
     vehicle.DeploymentState == DriveState.Deployed || super.dismountTest(obj, seatNumber, user)
   }
 
-  def dismountCleanup(seatBeingDismounted: Int): Unit = {
+  def dismountCleanup(seatBeingDismounted: Int, user: Player): Unit = {
     val obj = MountableObject
     // Reset velocity to zero when driver dismounts, to allow jacking/repair if vehicle was moving slightly before dismount
     if (!obj.Seats(0).isOccupied) {
@@ -355,6 +357,7 @@ class VehicleControl(vehicle: Vehicle)
       )
     }
     if (!obj.Seats(seatBeingDismounted).isOccupied) { //seat was vacated
+      user.LogActivity(VehicleDismountActivity(VehicleSource(vehicle), PlayerSource(user), vehicle.Zone.Number))
       //we were only owning the vehicle while we sat in its driver seat
       val canBeOwned = obj.Definition.CanBeOwned
       if (canBeOwned.contains(false) && seatBeingDismounted == 0) {
@@ -363,7 +366,7 @@ class VehicleControl(vehicle: Vehicle)
       //are we already decaying? are we unowned? is no one seated anywhere?
       if (!decaying &&
           obj.Definition.undergoesDecay &&
-          obj.Owner.isEmpty &&
+          obj.OwnerGuid.isEmpty &&
           obj.Seats.values.forall(!_.isOccupied)) {
         decaying = true
         decayTimer = context.system.scheduler.scheduleOnce(
@@ -433,7 +436,7 @@ class VehicleControl(vehicle: Vehicle)
     Vehicles.Disown(obj.GUID, obj)
     if (!decaying &&
         obj.Definition.undergoesDecay &&
-        obj.Owner.isEmpty &&
+        obj.OwnerGuid.isEmpty &&
         obj.Seats.values.forall(!_.isOccupied)) {
       decaying = true
       decayTimer = context.system.scheduler.scheduleOnce(
@@ -905,7 +908,7 @@ object VehicleControl {
 
   /**
     * Determine if a given activity entry would invalidate the act of charging vehicle shields this tick.
-    * @param now the current time (in nanoseconds)
+    * @param now the current time (in milliseconds)
     * @param act a `VitalsActivity` entry to test
     * @return `true`, if the shield charge would be blocked;
     *        `false`, otherwise

@@ -429,7 +429,43 @@ class AvatarService(zone: Zone) extends Actor {
             )
           )
 
-        case _ => ;
+        case AvatarAction.UpdateKillsDeathsAssists(charId, stat) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.UpdateKillsDeathsAssists(charId, stat)
+            )
+          )
+
+        case AvatarAction.AwardBep(charId, bep, expType) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.AwardBep(charId, bep, expType)
+            )
+          )
+
+        case AvatarAction.AwardCep(charId, bep) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.AwardCep(charId, bep)
+            )
+          )
+
+        case AvatarAction.FacilityCaptureRewards(building_id, zone_number, exp) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.FacilityCaptureRewards(building_id, zone_number, exp)
+            )
+          )
+
+        case _ => ()
       }
 
     //message to Undertaker

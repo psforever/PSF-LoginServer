@@ -3,7 +3,7 @@ package net.psforever.objects.avatar.scoring
 
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
-import net.psforever.types.{PlanetSideEmpire, StatisticalCategory}
+import net.psforever.types.{PlanetSideEmpire, StatisticalCategory, StatisticalElement}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -18,43 +18,97 @@ class ScoreCard() {
 
   def Lives: Seq[Life] = lives
 
+  def AllLives: Seq[Life] = curr +: lives
+
+  def Kills: Seq[Kill] = lives.flatMap { _.kills } ++ curr.kills
+
   def KillStatistics: Map[Int, Statistic] = killStatistics.toMap
 
   def AssistStatistics: Map[Int, Statistic] = assistStatistics.toMap
 
-  def rate(msg: Any): Unit = {
+  def revive(): Unit = {
+    curr = Life.revive(curr)
+  }
+
+  def respawn(): Unit = {
+    val death = curr
+    curr = Life()
+    lives = death +: lives
+  }
+
+  def initStatisticForKill(targetId: Int, victimFaction: PlanetSideEmpire.Value): Statistic = {
+    ScoreCard.initStatisticsFor(killStatistics, targetId, victimFaction)
+  }
+
+  def rate(msg: Any): Seq[(Int, Statistic)] = {
     msg match {
       case e: EquipmentStat =>
         curr = ScoreCard.updateEquipmentStat(curr, e)
+        Nil
       case k: Kill =>
         curr = curr.copy(kills = k +: curr.kills)
-        curr = ScoreCard.updateEquipmentStat(curr, EquipmentStat(k.info.interaction.cause.attribution, 0, 0, 1))
-        ScoreCard.updateStatisticsFor(killStatistics, k.info.interaction.cause.attribution, k.victim.Faction)
+        //TODO may need to expand these to include other fields later
+        curr = ScoreCard.updateEquipmentStat(curr, EquipmentStat(k.info.interaction.cause.attribution, 0, 0, 1, 0))
+        val wid = StatisticalElement.relatedElement(k.victim.ExoSuit).value
+        Seq((wid, ScoreCard.updateStatisticsFor(killStatistics, wid, k.victim.Faction)))
       case a: Assist =>
         curr = curr.copy(assists = a +: curr.assists)
         val faction = a.victim.Faction
-        a.weapons.foreach { wid =>
-          ScoreCard.updateStatisticsFor(assistStatistics, wid, faction)
+        //TODO may need to expand these to include other fields later
+        a.weapons.map { weq =>
+          val wid = weq.equipment
+          (wid, ScoreCard.updateStatisticsFor(assistStatistics, wid, faction))
         }
       case d: Death =>
-        val expired = curr
-        curr = Life()
-        lives = expired.copy(death = Some(d)) +: lives
-      case _ => ;
+        curr = curr.copy(death = Some(d))
+        Nil
+      case value: Long =>
+        curr = curr.copy(supportExperience = curr.supportExperience + value)
+        Nil
+      case _ =>
+        Nil
     }
   }
 }
 
 object ScoreCard {
+  def reviveCount(card: ScoreCard): Int = {
+    reviveCount(card.CurrentLife)
+  }
+
+  def reviveCount(life: Life): Int = {
+    recursiveReviveCount(life, count = 0)
+  }
+
+  def deathCount(card: ScoreCard): Int = {
+    card.AllLives.foldLeft(0)(_ + deathCount(_))
+  }
+
+  private def deathCount(life: Life): Int = {
+    life.prior match {
+      case None => if (life.death.nonEmpty) 1 else 0
+      case Some(previousLife) => recursiveReviveCount(previousLife, count = 1)
+    }
+  }
+
+  @tailrec
+  private def recursiveReviveCount(life: Life, count: Int): Int = {
+    life.prior match {
+      case None => count + 1
+      case Some(previousLife) => recursiveReviveCount(previousLife, count + 1)
+    }
+  }
+
   private def updateEquipmentStat(curr: Life, entry: EquipmentStat): Life = {
-    updateEquipmentStat(curr, entry, entry.objectId, entry.kills)
+    updateEquipmentStat(curr, entry, entry.objectId, entry.kills, entry.assists)
   }
 
   private def updateEquipmentStat(
                                    curr: Life,
                                    entry: EquipmentStat,
                                    objectId: Int,
-                                   killCount: Int
+                                   killCount: Int,
+                                   assists: Int
                                  ): Life = {
     curr.equipmentStats.indexWhere { a => a.objectId == objectId } match {
       case -1 =>
@@ -73,6 +127,29 @@ object ScoreCard {
   }
 
   @tailrec
+  private def initStatisticsFor(
+                                 statisticMap: mutable.HashMap[Int, Statistic],
+                                 objectId: Int,
+                                 victimFaction: PlanetSideEmpire.Value
+                               ): Statistic = {
+    statisticMap.get(objectId) match {
+      case Some(fields) =>
+        val outEntry = victimFaction match {
+          case PlanetSideEmpire.TR =>      fields.copy(tr_c = fields.tr_c + 1)
+          case PlanetSideEmpire.NC =>      fields.copy(nc_c = fields.nc_c + 1)
+          case PlanetSideEmpire.VS =>      fields.copy(vs_c = fields.vs_c + 1)
+          case PlanetSideEmpire.NEUTRAL => fields.copy(ps_c = fields.ps_c + 1)
+        }
+        statisticMap.put(objectId, outEntry)
+        outEntry
+      case _ =>
+        val out = Statistic(0, 0, 0, 0, 0, 0, 0, 0)
+        statisticMap.put(objectId, out)
+        initStatisticsFor(statisticMap, objectId, victimFaction)
+    }
+  }
+
+  @tailrec
   private def updateStatisticsFor(
                                    statisticMap: mutable.HashMap[Int, Statistic],
                                    objectId: Int,
@@ -81,11 +158,12 @@ object ScoreCard {
     statisticMap.get(objectId) match {
       case Some(fields) =>
         val outEntry = victimFaction match {
-          case PlanetSideEmpire.TR =>      fields.copy(tr_b = fields.tr_b + 1)
-          case PlanetSideEmpire.NC =>      fields.copy(nc_b = fields.nc_b + 1)
-          case PlanetSideEmpire.VS =>      fields.copy(vs_b = fields.vs_b + 1)
-          case PlanetSideEmpire.NEUTRAL => fields.copy(ps_b = fields.ps_b + 1)
+          case PlanetSideEmpire.TR =>      fields.copy(tr_s = fields.tr_s + 1)
+          case PlanetSideEmpire.NC =>      fields.copy(nc_s = fields.nc_s + 1)
+          case PlanetSideEmpire.VS =>      fields.copy(vs_s = fields.vs_s + 1)
+          case PlanetSideEmpire.NEUTRAL => fields.copy(ps_s = fields.ps_s + 1)
         }
+        statisticMap.put(objectId, outEntry)
         outEntry
       case _ =>
         val out = Statistic(0, 0, 0, 0, 0, 0, 0, 0)

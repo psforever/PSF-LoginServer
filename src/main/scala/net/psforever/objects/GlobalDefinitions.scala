@@ -9918,6 +9918,7 @@ object GlobalDefinitions {
     resource_silo.Damageable = false
     resource_silo.Repairable = false
     resource_silo.MaxNtuCapacitor = 1000
+    resource_silo.ChargeTime = 105.seconds //from 0-100% in roughly 105s on live (~20%-100% https://youtu.be/veOWToR2nSk?t=1402)
 
     capture_terminal.Name = "capture_terminal"
     capture_terminal.Damageable = false
@@ -9927,7 +9928,7 @@ object GlobalDefinitions {
     secondary_capture.Name = "secondary_capture"
     secondary_capture.Damageable = false
     secondary_capture.Repairable = false
-    secondary_capture.FacilityHackTime = 1.nanosecond
+    secondary_capture.FacilityHackTime = 1.millisecond
 
     vanu_control_console.Name = "vanu_control_console"
     vanu_control_console.Damageable = false

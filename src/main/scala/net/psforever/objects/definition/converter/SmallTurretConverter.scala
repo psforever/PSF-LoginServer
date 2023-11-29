@@ -26,7 +26,7 @@ class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
               jammered = obj.Jammed,
               Some(true),
               None,
-              obj.Owner match {
+              obj.OwnerGuid match {
                 case Some(owner) => owner
                 case None        => PlanetSideGUID(0)
               }

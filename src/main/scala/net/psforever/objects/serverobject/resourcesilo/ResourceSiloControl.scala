@@ -7,11 +7,13 @@ import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.transfer.TransferBehavior
 import net.psforever.objects.serverobject.structures.Building
-import net.psforever.objects.{GlobalDefinitions, Ntu, NtuContainer, NtuStorageBehavior}
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.objects.zones
+import net.psforever.objects.{GlobalDefinitions, Ntu, NtuContainer, NtuStorageBehavior, Vehicle}
+import net.psforever.types.{ExperienceType, PlanetSideEmpire}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.util.Config
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -181,6 +183,23 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     if (amount != 0) {
       panelAnimationFunc(sender, amount)
       panelAnimationFunc = SkipPanelAnimation
+      (src match {
+        case v: Vehicle => Some(v)
+        case _ => None
+      })
+        .map { v => (v, v.Owners) }
+        .collect { case (vehicle, Some(owner)) =>
+          //experience is reported as normal
+          val deposit: Long =
+            (Config.app.game.experience.sep.ntuSiloDepositReward.toFloat *
+              amount * resourceSilo.Definition.ChargeTime.toSeconds.toFloat / resourceSilo.MaxNtuCapacitor
+              ).toLong
+          vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
+            owner.name,
+            AvatarAction.AwardBep(owner.charId, deposit, ExperienceType.Normal)
+          )
+          zones.exp.ToDatabase.reportNtuActivity(owner.charId, resourceSilo.Zone.Number, resourceSilo.Owner.GUID.guid, deposit)
+        }
     }
   }
 
@@ -192,6 +211,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     * @param trigger if positive, activate the animation;
     *                if negative or zero, disable the animation
     */
+  //noinspection ScalaUnusedSymbol
   def PanelAnimation(source: ActorRef, trigger: Float): Unit = {
     val currentlyHas = resourceSilo.NtuCapacitor
     // do not let the trigger charge go to waste, but also do not let the silo be filled

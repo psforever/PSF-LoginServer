@@ -2,6 +2,8 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.zones.exp.ToDatabase
+
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -43,7 +45,8 @@ private[support] class WeaponAndProjectileOperations(
   var prefire: mutable.Set[PlanetSideGUID] = mutable.Set.empty //if WeaponFireMessage precedes ChangeFireStateMessage_Start
   private[support] var shootingStart: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
   private[support] var shootingStop: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
-  private var ongoingShotsFired: Int = 0
+  private val shotsFired: mutable.HashMap[Int,Int] = mutable.HashMap[Int,Int]()
+  private val shotsLanded: mutable.HashMap[Int,Int] = mutable.HashMap[Int,Int]()
   private[support] var shotsWhileDead: Int = 0
   private val projectiles: Array[Option[Projectile]] =
     Array.fill[Option[Projectile]](Projectile.rangeUID - Projectile.baseUID)(None)
@@ -157,7 +160,7 @@ private[support] class WeaponAndProjectileOperations(
         fireStateStopPlayerMessages(item_guid)
       case Some(_) =>
         fireStateStopMountedMessages(item_guid)
-      case _ => ()
+      case _ =>
         log.warn(s"ChangeFireState_Stop: can not find $item_guid")
     }
     sessionData.progressBarUpdate.cancel()
@@ -275,8 +278,8 @@ private[support] class WeaponAndProjectileOperations(
     val LongRangeProjectileInfoMessage(guid, _, _) = pkt
     FindContainedWeapon match {
       case (Some(_: Vehicle), weapons)
-        if weapons.exists { _.GUID == guid } => ; //now what?
-      case _ => ;
+        if weapons.exists { _.GUID == guid } => () //now what?
+      case _ => ()
     }
   }
 
@@ -329,13 +332,11 @@ private[support] class WeaponAndProjectileOperations(
               _: Vector3,
               hitPos: Vector3
               ) =>
-              ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos) match {
-                case Some(resprojectile) =>
-                  avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(resprojectile.cause.attribution,0,1,0))
-                  sessionData.handleDealingDamage(target, resprojectile)
-                case None => ;
+              ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos).collect { resprojectile =>
+                addShotsLanded(resprojectile.cause.attribution, shots = 1)
+                sessionData.handleDealingDamage(target, resprojectile)
               }
-            case _ => ;
+            case _ => ()
           }
       case None =>
         log.warn(s"ResolveProjectile: expected projectile, but ${projectile_guid.guid} not found")
@@ -368,26 +369,22 @@ private[support] class WeaponAndProjectileOperations(
         sessionData.validObject(direct_victim_uid, decorator = "SplashHit/direct_victim") match {
           case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
             CheckForHitPositionDiscrepancy(projectile_guid, target.Position, target)
-            ResolveProjectileInteraction(projectile, resolution1, target, target.Position) match {
-              case Some(resprojectile) =>
-                avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(resprojectile.cause.attribution,0,1,0))
-                sessionData.handleDealingDamage(target, resprojectile)
-              case None => ;
+            ResolveProjectileInteraction(projectile, resolution1, target, target.Position).collect { resprojectile =>
+              addShotsLanded(resprojectile.cause.attribution, shots = 1)
+              sessionData.handleDealingDamage(target, resprojectile)
             }
-          case _ => ;
+          case _ => ()
         }
         //other victims
         targets.foreach(elem => {
           sessionData.validObject(elem.uid, decorator = "SplashHit/other_victims") match {
             case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
               CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
-              ResolveProjectileInteraction(projectile, resolution2, target, explosion_pos) match {
-                case Some(resprojectile) =>
-                  avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(resprojectile.cause.attribution,0,1,0))
-                  sessionData.handleDealingDamage(target, resprojectile)
-                case None => ;
+              ResolveProjectileInteraction(projectile, resolution2, target, explosion_pos).collect { resprojectile =>
+                addShotsLanded(resprojectile.cause.attribution, shots = 1)
+                sessionData.handleDealingDamage(target, resprojectile)
               }
-            case _ => ;
+            case _ => ()
           }
         })
         //...
@@ -413,7 +410,7 @@ private[support] class WeaponAndProjectileOperations(
             continent.Projectile ! ZoneProjectile.Remove(projectile.GUID)
           }
         }
-      case None => ;
+      case None => ()
     }
   }
 
@@ -422,13 +419,12 @@ private[support] class WeaponAndProjectileOperations(
     sessionData.validObject(victim_guid, decorator = "Lash") match {
       case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
         CheckForHitPositionDiscrepancy(projectile_guid, hit_pos, target)
-        ResolveProjectileInteraction(projectile_guid, DamageResolution.Lash, target, hit_pos) match {
-          case Some(resprojectile) =>
-            avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(resprojectile.cause.attribution,0,1,0))
+        ResolveProjectileInteraction(projectile_guid, DamageResolution.Lash, target, hit_pos).foreach {
+          resprojectile =>
+            addShotsLanded(resprojectile.cause.attribution, shots = 1)
             sessionData.handleDealingDamage(target, resprojectile)
-          case None => ;
         }
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -524,7 +520,7 @@ private[support] class WeaponAndProjectileOperations(
           obj match {
             case turret: FacilityTurret if turret.Definition == GlobalDefinitions.vanu_sentry_turret =>
               turret.Actor ! FacilityTurret.WeaponDischarged()
-            case _ => ;
+            case _ => ()
           }
         } else {
           log.warn(
@@ -532,7 +528,7 @@ private[support] class WeaponAndProjectileOperations(
           )
         }
 
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -552,7 +548,7 @@ private[support] class WeaponAndProjectileOperations(
         case Some(v: Vehicle) =>
           //assert subsystem states
           v.SubsystemMessages().foreach { sendResponse }
-        case _ => ;
+        case _ => ()
       }
     }
     if (enabledTools.nonEmpty) {
@@ -577,8 +573,9 @@ private[support] class WeaponAndProjectileOperations(
               avatarActor ! AvatarActor.ConsumeStamina(avatar.stamina)
             }
             avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)
+            tool.Discharge()
             prefire += weaponGUID
-            ongoingShotsFired = ongoingShotsFired + tool.Discharge()
+            addShotsFired(tool.Definition.ObjectId, tool.AmmoSlot.Chamber)
           }
           (o, Some(tool))
       }
@@ -635,7 +632,7 @@ private[support] class WeaponAndProjectileOperations(
     continent.GUID(weapon_guid) match {
       case Some(tool: Tool) =>
         EmptyMagazine(weapon_guid, tool)
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -719,19 +716,17 @@ private[support] class WeaponAndProjectileOperations(
    */
   def ModifyAmmunitionInMountable(obj: PlanetSideServerObject with Container)(box: AmmoBox, reloadValue: Int): Unit = {
     ModifyAmmunition(obj)(box, reloadValue)
-    obj.Find(box) match {
-      case Some(index) =>
-        continent.VehicleEvents ! VehicleServiceMessage(
-          s"${obj.Actor}",
-          VehicleAction.InventoryState(
-            player.GUID,
-            box,
-            obj.GUID,
-            index,
-            box.Definition.Packet.DetailedConstructorData(box).get
-          )
+    obj.Find(box).collect { index =>
+      continent.VehicleEvents ! VehicleServiceMessage(
+        s"${obj.Actor}",
+        VehicleAction.InventoryState(
+          player.GUID,
+          box,
+          obj.GUID,
+          index,
+          box.Definition.Packet.DetailedConstructorData(box).get
         )
-      case None => ;
+      )
     }
   }
 
@@ -849,7 +844,7 @@ private[support] class WeaponAndProjectileOperations(
                   sessionData.normalItemDrop(player, continent)(previousBox)
               }
               AmmoBox.Split(previousBox) match {
-                case Nil | List(_) => ; //done (the former case is technically not possible)
+                case Nil | List(_) => () //done (the former case is technically not possible)
                 case _ :: toUpdate =>
                   modifyFunc(previousBox, 0) //update to changed capacity value
                   toUpdate.foreach(box => { TaskWorkflow.execute(stowNewFunc(box)) })
@@ -1151,7 +1146,6 @@ private[support] class WeaponAndProjectileOperations(
     prefire -= itemGuid
     shooting += itemGuid
     shootingStart += itemGuid -> System.currentTimeMillis()
-    ongoingShotsFired = 0
   }
 
   private def fireStateStartChargeMode(tool: Tool): Unit = {
@@ -1220,11 +1214,10 @@ private[support] class WeaponAndProjectileOperations(
   used by ChangeFireStateMessage_Stop handling
   */
   private def fireStateStopUpdateChargeAndCleanup(tool: Tool): Unit = {
-    avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(tool.Definition.ObjectId, ongoingShotsFired, 0, 0))
     tool.FireMode match {
       case _: ChargeFireModeDefinition =>
         sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))
-      case _ => ;
+      case _ => ()
     }
     if (tool.Magazine == 0) {
       FireCycleCleanup(tool)
@@ -1365,6 +1358,49 @@ private[support] class WeaponAndProjectileOperations(
     )
   }
 
+  private def addShotsFired(weaponId: Int, shots: Int): Unit = {
+    addShotsToMap(shotsFired, weaponId, shots)
+  }
+
+  private def addShotsLanded(weaponId: Int, shots: Int): Unit = {
+    addShotsToMap(shotsLanded, weaponId, shots)
+  }
+
+  private def addShotsToMap(map: mutable.HashMap[Int, Int], weaponId: Int, shots: Int): Unit = {
+    map.put(
+      weaponId,
+      map.get(weaponId) match {
+        case Some(previousShots) => previousShots + shots
+        case None                => shots
+      }
+    )
+  }
+
+  private[support] def reportOngoingShots(reportFunc: (Long, Int, Int, Int) => Unit): Unit = {
+    reportOngoingShots(player.CharId, reportFunc)
+  }
+
+  private[support] def reportOngoingShots(avatarId: Long, reportFunc: (Long, Int, Int, Int) => Unit): Unit = {
+    //only shots that have been reported as fired count
+    //if somehow shots had reported as landed but never reported as fired, they are ignored
+    //these are just raw counts; there's only numeric connection between the entries of fired and of landed
+    shotsFired.foreach { case (weaponId, fired) =>
+      val landed = math.min(shotsLanded.getOrElse(weaponId, 0), fired)
+      reportFunc(avatarId, weaponId, fired, landed)
+    }
+    shotsFired.clear()
+    shotsLanded.clear()
+  }
+
+  //noinspection ScalaUnusedSymbol
+  private[support] def reportOngoingShotsToAvatar(avatarId: Long, weaponId: Int, fired: Int, landed: Int): Unit = {
+    avatarActor ! AvatarActor.UpdateToolDischarge(EquipmentStat(weaponId, fired, landed, 0, 0))
+  }
+
+  private[support] def reportOngoingShotsToDatabase(avatarId: Long, weaponId: Int, fired: Int, landed: Int): Unit = {
+    ToDatabase.reportToolDischarge(avatarId, EquipmentStat(weaponId, fired, landed, 0, 0))
+  }
+
   override protected[session] def stop(): Unit = {
     if (player != null && player.HasGUID) {
       (prefire ++ shooting).foreach { guid =>
@@ -1373,6 +1409,7 @@ private[support] class WeaponAndProjectileOperations(
         fireStateStopMountedMessages(guid)
       }
       projectiles.indices.foreach { projectiles.update(_, None) }
+      reportOngoingShots(reportOngoingShotsToDatabase)
     }
   }
 }

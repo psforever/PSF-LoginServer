@@ -49,8 +49,7 @@ class DoorCloseActor() extends Actor {
       })
 
       if (openDoors.nonEmpty) {
-        val short_timeout: FiniteDuration =
-          math.max(1, DoorCloseActor.timeout_time - (now - openDoors.head.time)) nanoseconds
+        val short_timeout: FiniteDuration = math.max(1, DoorCloseActor.timeout_time - (now - openDoors.head.time)).milliseconds
         import scala.concurrent.ExecutionContext.Implicits.global
         doorCloserTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, DoorCloseActor.TryCloseDoors())
       }
@@ -67,7 +66,7 @@ class DoorCloseActor() extends Actor {
     * and newer entries are always added to the end of the main `List`,
     * processing in order is always correct.
     * @param list the `List` of entries to divide
-    * @param now the time right now (in nanoseconds)
+    * @param now the time right now (in milliseconds)
     * @see `List.partition`
     * @return a `Tuple` of two `Lists`, whose qualifications are explained above
     */
@@ -84,7 +83,7 @@ class DoorCloseActor() extends Actor {
     * a `List` of elements that have exceeded the time limit,
     * and a `List` of elements that still satisfy the time limit.
     * @param iter the `Iterator` of entries to divide
-    * @param now the time right now (in nanoseconds)
+    * @param now the time right now (in milliseconds)
     * @param index a persistent record of the index where list division should occur;
     *              defaults to 0
     * @return the index where division will occur

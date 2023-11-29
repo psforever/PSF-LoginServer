@@ -50,8 +50,8 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     entryManagementBehaviors
       .orElse {
         case TurretUpgrader.AddTask(turret, zone, upgrade, duration) =>
-          val lengthOfTime = duration.getOrElse(TurretUpgrader.StandardUpgradeLifetime).toNanos
-          if (lengthOfTime > (1 second).toNanos) { //don't even bother if it's too short; it'll revert near instantly
+          val lengthOfTime = duration.getOrElse(TurretUpgrader.StandardUpgradeLifetime).toMillis
+          if (lengthOfTime > (1 second).toMillis) { //don't even bother if it's too short; it'll revert near instantly
             val entry = CreateEntry(turret, zone, TurretUpgrade.None, lengthOfTime)
             UpgradeTurretAmmo(CreateEntry(turret, zone, upgrade, lengthOfTime))
             if (list.isEmpty) {
@@ -73,7 +73,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
 
         case TurretUpgrader.Downgrade() =>
           task.cancel()
-          val now: Long = System.nanoTime
+          val now: Long = System.currentTimeMillis()
           val (in, out) =
             list.partition(entry => {
               now - entry.time >= entry.duration
@@ -85,10 +85,10 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
         case _ => ;
       }
 
-  def RetimeFirstTask(now: Long = System.nanoTime): Unit = {
+  def RetimeFirstTask(now: Long = System.currentTimeMillis()): Unit = {
     task.cancel()
     if (list.nonEmpty) {
-      val short_timeout: FiniteDuration = math.max(1, list.head.duration - (now - list.head.time)) nanoseconds
+      val short_timeout: FiniteDuration = math.max(1, list.head.duration - (now - list.head.time)).milliseconds
       import scala.concurrent.ExecutionContext.Implicits.global
       task = context.system.scheduler.scheduleOnce(short_timeout, self, TurretUpgrader.Downgrade())
     }
@@ -249,7 +249,7 @@ object TurretUpgrader extends SupportActorCaseConversions {
     * @param _obj the target
     * @param _zone the zone in which this target is registered
     * @param upgrade the next upgrade state for this turret
-    * @param _duration how much longer the target will exist in its current state (in nanoseconds)
+    * @param _duration how much longer the target will exist in its current state (in milliseconds)
     */
   case class Entry(_obj: PlanetSideGameObject, _zone: Zone, upgrade: TurretUpgrade.Value, _duration: Long)
       extends SupportActor.Entry(_obj, _zone, _duration)

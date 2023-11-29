@@ -5,13 +5,15 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vital.base.DamageResolution
-import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.interaction.{Adversarial, DamageResult}
 import net.psforever.objects.vital.resolution.ResolutionCalculations
+import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.exp.ToDatabase
+import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types.Vector3
 
 import scala.concurrent.duration._
@@ -212,6 +214,18 @@ trait DamageableVehicle
             zone.id,
             VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, obj.Definition.shieldUiAttribute, 0)
           )
+        }
+        //database entry
+        cause.adversarial.collect {
+          case Adversarial(attacker, victim: VehicleSource, implement) =>
+            ToDatabase.reportMachineDestruction(
+              attacker.CharId,
+              victim,
+              DamageableObject.HackedBy,
+              DamageableObject.MountedIn.nonEmpty,
+              implement,
+              obj.Zone.Number
+            )
         }
         //clean up
         target.Actor ! Vehicle.Deconstruct(Some(1 minute))

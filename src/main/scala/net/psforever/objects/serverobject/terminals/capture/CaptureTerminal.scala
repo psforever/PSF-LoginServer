@@ -12,7 +12,7 @@ class CaptureTerminal(private val idef: CaptureTerminalDefinition) extends Ameni
 
   override def toString: String = {
     val guid = if (HasGUID) {
-      s" ${Continent}-${GUID.guid}"
+      s" $Continent-${GUID.guid}"
     } else {
       ""
     }

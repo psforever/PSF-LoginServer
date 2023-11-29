@@ -112,11 +112,10 @@ object SpecialEmp {
                      faction: PlanetSideEmpire.Value
                    ): (PlanetSideGameObject, PlanetSideGameObject, Float) => Boolean = {
     distanceCheck(new PlanetSideServerObject with OwnableByPlayer {
-      Owner = Some(owner.GUID)
-      OwnerName = owner match {
-        case p: Player          => p.Name
-        case o: OwnableByPlayer => o.OwnerName.getOrElse("")
-        case _                  => ""
+      owner match {
+        case p: Player          => AssignOwnership(p)
+        case o: OwnableByPlayer => AssignOwnership(o)
+        case _                  => OwnerGuid_=(Some(owner.GUID))
       }
       Position = position
       def Faction = faction

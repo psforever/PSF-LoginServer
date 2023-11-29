@@ -165,7 +165,7 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
       val attackerFaction = attacker.Faction
       val noPriorHotSpots = hotspots.isEmpty
       val duration        = zone.HotSpotTimeFunction(defender, attacker)
-      if (duration.toNanos > 0) {
+      if (duration.toMillis > 0) {
         val hotspot = TryHotSpot(zone.HotSpotCoordinateFunction(location))
         trace(
           s"updating activity status for ${zone.id} hotspot x=${hotspot.DisplayLocation.x} y=${hotspot.DisplayLocation.y}"
@@ -191,11 +191,11 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
 
     case ZoneHotSpotProjector.BlankingPhase() | Zone.HotSpot.Cleanup() =>
       blanking.cancel()
-      val curr: Long = System.nanoTime
+      val curr: Long = System.currentTimeMillis()
       //blanking dated activity reports
       val changed = hotspots.flatMap(spot => {
         spot.Activity.collect {
-          case (b, a: ActivityReport) if a.LastReport + a.Duration.toNanos <= curr =>
+          case (b, a: ActivityReport) if a.LastReport + a.Duration.toMillis <= curr =>
             a.Clear() //this faction has no more activity in this sector
             (b, spot)
         }
