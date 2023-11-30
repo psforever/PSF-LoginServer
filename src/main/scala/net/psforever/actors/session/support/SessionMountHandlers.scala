@@ -258,17 +258,17 @@ class SessionMountHandlers(
       case Mountable.CanDismount(obj: Mountable, _, _) =>
         log.warn(s"DismountVehicleMsg: $obj is some dismountable object but nothing will happen for ${player.Name}")
 
-      case Mountable.CanNotMount(obj: Vehicle, mountPoint) =>
-        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's mount $mountPoint, but was not allowed")
-        obj.GetSeatFromMountPoint(mountPoint).collect {
+      case Mountable.CanNotMount(obj: Vehicle, seatNumber) =>
+        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's seat $seatNumber, but was not allowed")
+        obj.GetSeatFromMountPoint(seatNumber).collect {
           case seatNum if obj.SeatPermissionGroup(seatNum).contains(AccessPermissionGroup.Driver) =>
             sendResponse(
               ChatMsg(ChatMessageType.CMT_OPEN, wideContents=false, recipient="", "You are not the driver of this vehicle.", note=None)
             )
         }
 
-      case Mountable.CanNotMount(obj: Mountable, mountPoint) =>
-        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's mount $mountPoint, but was not allowed")
+      case Mountable.CanNotMount(obj: Mountable, seatNumber) =>
+        log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's seat $seatNumber, but was not allowed")
 
       case Mountable.CanNotDismount(obj, seatNum) =>
         log.warn(s"DismountVehicleMsg: ${tplayer.Name} attempted to dismount $obj's mount $seatNum, but was not allowed")

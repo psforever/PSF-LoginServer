@@ -483,8 +483,13 @@ class ChatActor(
                   )
                   buildings foreach { building =>
                     // TODO implement timer
+
+                    val terminal = building.CaptureTerminal.get
+
                     building.Actor ! BuildingActor.SetFaction(faction)
+                    building.Actor ! BuildingActor.AmenityStateChange(terminal, Some(false))
                   }
+
                 case (_, Some(0), _, None, _) =>
                   sessionActor ! SessionActor.SendResponse(
                     ChatMsg(
