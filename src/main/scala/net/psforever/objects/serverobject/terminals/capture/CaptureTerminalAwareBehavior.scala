@@ -18,16 +18,27 @@ trait CaptureTerminalAwareBehavior {
         case true => ; // CC is resecured
         case false => // CC is hacked
           // Remove seated occupants for mountables
-          if (CaptureTerminalAwareObject.isInstanceOf[Mountable]) {
-            CaptureTerminalAwareObject.asInstanceOf[Mountable].Seats.filter(x => x._2.isOccupied).foreach(x => {
-              val (seat_num, seat) = x
-              val user = seat.occupant.get
-              CaptureTerminalAwareObject.Zone.VehicleEvents ! VehicleServiceMessage(
-                CaptureTerminalAwareObject.Zone.id,
-                VehicleAction.KickPassenger(user.GUID, seat_num, true, CaptureTerminalAwareObject.GUID)
-              )
-              seat.unmount(user)
-            })
+          CaptureTerminalAwareObject match {
+            case mountable: Mountable =>
+
+              val guid = mountable.GUID
+              val zone = mountable.Zone
+              val zoneId = zone.id
+              val events = zone.VehicleEvents
+
+              mountable.Seats.values.zipWithIndex.foreach {
+                case (seat, seat_num) =>
+                  seat.occupant match {
+                    case Some(player) =>
+                      seat.unmount(player)
+                      player.VehicleSeated = None
+                      if (player.HasGUID) {
+                        events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, seat_num, true, guid))
+                      }
+                    case None => ;
+                  }
+              }
+            case _ =>
           }
       }
   }
