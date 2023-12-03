@@ -76,10 +76,10 @@ object Vehicles {
         val factionChannel = s"${vehicle.Faction}"
         (0 to 2).foreach(group => {
           vehicle.PermissionGroup(group, empire)
-          vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
+          /*vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
             factionChannel,
             VehicleAction.SeatPermissions(Service.defaultPlayerGUID, guid, group, empire)
-          )
+          )*/
         })
         ReloadAccessPermissions(vehicle, player.Name)
         Some(vehicle)
@@ -135,10 +135,10 @@ object Vehicles {
       val empire = VehicleLockState.Empire.id
       (0 to 2).foreach(group => {
         vehicle.PermissionGroup(group, empire)
-        vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
+        /*vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
           s"${vehicle.Faction}",
           VehicleAction.SeatPermissions(pguid, vguid, group, empire)
-        )
+        )*/
       })
       ReloadAccessPermissions(vehicle, player.Name)
       Some(vehicle)
