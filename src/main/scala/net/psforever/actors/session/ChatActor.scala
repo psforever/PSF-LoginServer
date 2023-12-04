@@ -5,6 +5,9 @@ import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContextExecutor
@@ -488,6 +491,14 @@ class ChatActor(
 
                     building.Actor ! BuildingActor.SetFaction(faction)
                     building.Actor ! BuildingActor.AmenityStateChange(terminal, Some(false))
+
+                    // clear any previous hack via "resecure"
+                    if (building.CaptureTerminalIsHacked) {
+                      building.Zone.LocalEvents ! LocalServiceMessage(terminal.Zone.id,LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody))
+                    }
+
+                    // push any updates this might cause to clients
+                    building.Zone.actor ! ZoneActor.ZoneMapUpdate()
                   }
 
                 case (_, Some(0), _, None, _) =>
