@@ -81,13 +81,13 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
     CommonFieldData(faction, false, false, false, None, false, None, None, PlanetSideGUID(0))
 
   def apply(faction: PlanetSideEmpire.Value, unk: Int): CommonFieldData =
-    CommonFieldData(faction, false, false, unk > 1, None, unk % 1 == 1, None, None, PlanetSideGUID(0))
+    CommonFieldData(faction, false, false, unk > 1, None, unk > 0, None, None, PlanetSideGUID(0))
 
   def apply(faction: PlanetSideEmpire.Value, unk: Int, player_guid: PlanetSideGUID): CommonFieldData =
-    CommonFieldData(faction, false, false, unk > 1, None, unk % 1 == 1, None, None, player_guid)
+    CommonFieldData(faction, false, false, unk > 1, None, unk > 0, None, None, player_guid)
 
   def apply(faction: PlanetSideEmpire.Value, destroyed: Boolean, unk: Int): CommonFieldData =
-    CommonFieldData(faction, false, destroyed, unk > 1, None, unk % 1 == 1, None, None, PlanetSideGUID(0))
+    CommonFieldData(faction, false, destroyed, unk > 1, None, unk > 0, None, None, PlanetSideGUID(0))
 
   def apply(
       faction: PlanetSideEmpire.Value,

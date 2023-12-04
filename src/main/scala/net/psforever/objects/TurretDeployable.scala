@@ -14,7 +14,7 @@ import net.psforever.objects.serverobject.damage.DamageableWeaponTurret
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
-import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret}
+import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior, TurretDefinition, WeaponTurret}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
@@ -26,10 +26,11 @@ class TurretDeployable(tdef: TurretDeployableDefinition)
     extends Deployable(tdef)
     with WeaponTurret
     with JammableUnit
-    with Hackable {
+    with Hackable
+    with AutomatedTurret {
   WeaponTurret.LoadDefinition(this)
 
-  override def Definition = tdef
+  override def Definition: TurretDeployableDefinition = tdef
 }
 
 class TurretDeployableDefinition(private val objectId: Int)
@@ -46,7 +47,7 @@ class TurretDeployableDefinition(private val objectId: Int)
   //override to clarify inheritance conflict
   override def MaxHealth_=(max: Int): Int = super[DeployableDefinition].MaxHealth_=(max)
 
-  override def Initialize(obj: Deployable, context: ActorContext) = {
+  override def Initialize(obj: Deployable, context: ActorContext): Unit = {
     obj.Actor = context.actorOf(Props(classOf[TurretControl], obj), PlanetSideServerObject.UniqueActorName(obj))
   }
 }
@@ -66,13 +67,15 @@ class TurretControl(turret: TurretDeployable)
     with JammableMountedWeapons //note: jammable status is reported as vehicle events, not local events
     with MountableBehavior
     with DamageableWeaponTurret
-    with RepairableWeaponTurret {
-  def DeployableObject = turret
-  def MountableObject  = turret
-  def JammableObject   = turret
-  def FactionObject    = turret
-  def DamageableObject = turret
-  def RepairableObject = turret
+    with RepairableWeaponTurret
+    with AutomatedTurretBehavior {
+  def DeployableObject: TurretDeployable      = turret
+  def MountableObject: TurretDeployable       = turret
+  def JammableObject: TurretDeployable        = turret
+  def FactionObject: TurretDeployable         = turret
+  def DamageableObject: TurretDeployable      = turret
+  def RepairableObject: TurretDeployable      = turret
+  def AutomatedTurretObject: TurretDeployable = turret
 
   override def postStop(): Unit = {
     super.postStop()
@@ -88,8 +91,9 @@ class TurretControl(turret: TurretDeployable)
       .orElse(dismountBehavior)
       .orElse(takesDamage)
       .orElse(canBeRepairedByNanoDispenser)
+      .orElse(automatedTurretBehavior)
       .orElse {
-        case _ => ;
+        case _ => ()
       }
 
   override protected def mountTest(
@@ -122,7 +126,7 @@ class TurretControl(turret: TurretDeployable)
               zone.id,
               VehicleAction.KickPassenger(tplayer.GUID, 4, wasKickedByDriver, turret.GUID)
             )
-          case None => ;
+          case None => ()
         }
       }
       Some(time.getOrElse(Deployable.cleanup) + Deployable.cleanup)
