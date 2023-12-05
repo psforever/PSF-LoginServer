@@ -145,10 +145,7 @@ object KillAssists {
       .orElse {
         limitHistoryToThisLife(history)
           .lastOption
-          .collect { case dam: DamagingActivity
-            if dam.data.adversarial.nonEmpty =>
-            dam.data
-          }
+          .collect { case dam: DamagingActivity if dam.data.adversarial.nonEmpty => dam.data }
           .map { data => (data, data.adversarial.get.attacker) }
       }
   }

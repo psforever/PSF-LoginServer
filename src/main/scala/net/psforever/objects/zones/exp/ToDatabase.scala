@@ -56,14 +56,14 @@ object ToDatabase {
                         ): Unit = {
     ctx.run(query[persistence.Assistactivity]
       .insert(
-        _.killerId      -> lift(avatarId),
-        _.victimId      -> lift(victimId),
-        _.weaponId      -> lift(weaponId),
-        _.zoneId        -> lift(zoneId),
-        _.px            -> lift((position.x * 1000).toInt),
-        _.py            -> lift((position.y * 1000).toInt),
-        _.pz            -> lift((position.z * 1000).toInt),
-        _.exp           -> lift(exp)
+        _.killerId -> lift(avatarId),
+        _.victimId -> lift(victimId),
+        _.weaponId -> lift(weaponId),
+        _.zoneId   -> lift(zoneId),
+        _.px       -> lift((position.x * 1000).toInt),
+        _.py       -> lift((position.y * 1000).toInt),
+        _.pz       -> lift((position.z * 1000).toInt),
+        _.exp      -> lift(exp)
       )
     )
   }
