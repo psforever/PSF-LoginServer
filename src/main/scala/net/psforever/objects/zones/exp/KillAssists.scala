@@ -145,10 +145,11 @@ object KillAssists {
       .orElse {
         limitHistoryToThisLife(history)
           .lastOption
-          .collect { case dam: DamagingActivity =>
-            val res = dam.data
-            (res, res.adversarial.get.attacker)
+          .collect { case dam: DamagingActivity
+            if dam.data.adversarial.nonEmpty =>
+            dam.data
           }
+          .map { data => (data, data.adversarial.get.attacker) }
       }
   }
 
@@ -600,37 +601,49 @@ object KillAssists {
                                                  ): Seq[(Long, Int)] = {
     var amt = amount
     var count = 0
-    var newOrder: Seq[(Long, Int)] = Nil
+    var newOrderPos: Seq[(Long, Int)] = Nil
+    var newOrderNeg: Seq[(Long, Int)] = Nil
     order.takeWhile { entry =>
       val (id, total) = entry
       if (id > 0 && total > 0) {
-        val part = participants(id)
-        if (amount > total) {
-          //drop this entry
-          participants.put(id, part.copy(amount = 0, weapons = Nil)) //just in case
-          amt = amt - total
-        } else {
-          //edit around the inclusion of this entry
-          val newTotal = total - amt
-          val trimmedWeapons = {
-            var index = -1
-            var weaponSum = 0
-            val pweapons = part.weapons
-            while (weaponSum < amt) {
-              index += 1
-              weaponSum = weaponSum + pweapons(index).amount
+        participants.get(id) match {
+          case Some(part) =>
+            val reduceByValue = math.min(amt, total)
+            val trimmedWeapons = {
+              var index = 0
+              var weaponSum = 0
+              val pweapons = part.weapons
+              val pwepiter = pweapons.iterator
+              while (pwepiter.hasNext && weaponSum < reduceByValue) {
+                weaponSum = weaponSum + pwepiter.next().amount
+                index += 1
+              }
+              //output list(s)
+              (if (weaponSum == reduceByValue) {
+                newOrderNeg = newOrderNeg :+ (id, 0)
+                index += 1
+                pweapons.drop(index)
+              } else if (weaponSum > reduceByValue) {
+                newOrderPos = (id, total - amt) +: newOrderPos
+                val remainder = pweapons.drop(index)
+                remainder.headOption.map(_.copy(amount = weaponSum - reduceByValue)) ++ remainder.tail
+              } else {
+                newOrderPos = (id, total - amt) +: newOrderPos
+                val remainder = pweapons.drop(index)
+                remainder.headOption.map(_.copy(amount = reduceByValue - weaponSum)) ++ remainder.tail
+              }) ++ pweapons.take(index).map(_.copy(amount = 0))
             }
-            (pweapons(index).copy(amount = weaponSum - amt) +: pweapons.slice(index+1, pweapons.size)) ++
-              pweapons.slice(0, index).map(_.copy(amount = 0))
-          }
-          newOrder = (id, newTotal) +: newOrder
-          participants.put(id, part.copy(amount = part.amount - amount, weapons = trimmedWeapons))
-          amt = 0
+            participants.put(id, part.copy(amount = part.amount - reduceByValue, weapons = trimmedWeapons.toSeq))
+            amt = amt - reduceByValue
+          case _ =>
+            //we do not have contribution stat data for this id
+            //perform no calculations; devalue the entry
+            newOrderNeg = newOrderNeg :+ (id, 0)
         }
       }
       count += 1
       amt > 0
     }
-    newOrder ++ order.drop(count)
+    newOrderPos ++ order.drop(count) ++ newOrderNeg//.reverse
   }
 }

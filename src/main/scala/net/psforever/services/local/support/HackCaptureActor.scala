@@ -89,7 +89,10 @@ class HackCaptureActor extends Actor {
       val faction = GetHackingFaction(target).getOrElse(target.Faction)
       target.HackedBy = None
       hackedObjects = remainder
+      val now: Long = System.currentTimeMillis()
+      val facilityHackTime: Long = target.Definition.FacilityHackTime.toMillis
       val building = target.Owner.asInstanceOf[Building]
+      val hackTime = results.headOption.map { now - _.hack_timestamp }.getOrElse(facilityHackTime)
       // If LLU exists it was not delivered. Send resecured notifications
       building.GetFlag.collect {
         case flag: CaptureFlag => target.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Resecured)
@@ -99,15 +102,15 @@ class HackCaptureActor extends Actor {
         target.Faction,
         faction,
         hacker,
-        target.Definition.FacilityHackTime.toMillis,
-        System.currentTimeMillis() - results.head.hack_timestamp,
+        facilityHackTime,
+        hackTime,
         isResecured = true
       )
       // Restart the timer in case the object we just removed was the next one scheduled
       RestartTimer()
 
     case HackCaptureActor.FlagCaptured(flag) =>
-      log.warn(hackedObjects.toString())
+      log.debug(hackedObjects.toString())
       val building = flag.Owner.asInstanceOf[Building]
       val bguid = building.CaptureTerminal.map { _.GUID }
       hackedObjects.find(entry => bguid.contains(entry.target.GUID)) match {
@@ -160,13 +163,16 @@ class HackCaptureActor extends Actor {
         RestartTimer()
         spawnCaptureFlag(neighbours, terminal, hackingFaction)
         true
-      case Some((owner, Some(flag), _)) if hackingFaction == flag.Faction =>
+      case Some((_, Some(flag), _)) if hackingFaction == flag.Faction =>
+        log.error(s"TrySpawnCaptureFlag: flag hacked facility can not be hacked twice by $hackingFaction")
+        false
+      case Some((owner, _, _)) if hackingFaction == terminal.Faction =>
         log.error(s"TrySpawnCaptureFlag: owning faction and hacking faction match for facility ${owner.Name}; should we be resecuring instead?")
         false
-      case Some((owner, _, _)) =>
-        log.error(s"TrySpawnCaptureFlag: couldn't find any neighbouring $hackingFaction facilities of ${owner.Name} for LLU hack")
+      case Some((owner, Some(flag), _)) =>
+        log.warn(s"TrySpawnCaptureFlag: couldn't find any neighbouring $hackingFaction facilities of ${owner.Name} for LLU hack")
         owner.GetFlagSocket.foreach { _.clearOldFlagData() }
-        terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(owner.GetFlag.get, CaptureFlagLostReasonEnum.Ended)
+        terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended)
         false
       case _ =>
         log.error(s"TrySpawnCaptureFlag: expecting a terminal ${terminal.GUID.guid} with the ctf owning facility")
