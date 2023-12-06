@@ -2202,7 +2202,7 @@ class SessionData(
 
   /**
    * Calculate the amount of damage to be dealt to an active `target`
-   * using the information reconstructed from a `Resolvedprojectile`
+   * using the information reconstructed from a `ResolvedProjectile`
    * and affect the `target` in a synchronized manner.
    * The active `target` and the target of the `DamageResult` do not have be the same.
    * While the "tell" for being able to sustain damage is an entity of type `Vitality`,

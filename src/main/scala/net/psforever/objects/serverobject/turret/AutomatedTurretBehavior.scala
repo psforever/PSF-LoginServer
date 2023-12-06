@@ -7,7 +7,8 @@ import net.psforever.objects.{Default, Player}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.sourcing.{SourceEntry, SourceUniqueness}
 import net.psforever.objects.vital.Vitality
-import net.psforever.packet.game.{ChangeFireStateMessage_Start, ObjectDetectedMessage}
+import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.{ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ObjectDetectedMessage}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
@@ -100,14 +101,8 @@ trait AutomatedTurretBehavior {
   private def newDetectedTarget(target: Target): Unit = {
     target match {
       case target: Player =>
-        target.Zone.AvatarEvents ! AvatarServiceMessage(
-          target.Name,
-          AvatarAction.SendResponse(PlanetSideGUID(0), ObjectDetectedMessage(AutomatedTurretObject.GUID, AutomatedTurretObject.GUID, 0, List(target.GUID)))
-        )
-        target.Zone.AvatarEvents ! AvatarServiceMessage(
-          target.Name,
-          AvatarAction.SendResponse(PlanetSideGUID(0), ChangeFireStateMessage_Start(AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID))
-        )
+        startTrackingTargets(target.Zone, target.Name, List(target.GUID))
+        startShooting(target.Zone, target.Name, AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID)
       case _ => ()
     }
   }
@@ -115,12 +110,38 @@ trait AutomatedTurretBehavior {
   private def noLongerDetectedTarget(target: Target): Unit = {
     target match {
       case target: Player =>
-        target.Zone.AvatarEvents ! AvatarServiceMessage(
-          target.Name,
-          AvatarAction.SendResponse(PlanetSideGUID(0), ObjectDetectedMessage(AutomatedTurretObject.GUID, AutomatedTurretObject.GUID, 0, List(PlanetSideGUID(0))))
-        )
+        stopTrackingTargets(target.Zone, target.Name)
+        stopShooting(target.Zone, target.Name, AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID)
       case _ => ()
     }
+  }
+
+  def startTrackingTargets(zone: Zone, channel: String, list: List[PlanetSideGUID]): Unit = {
+    zone.AvatarEvents ! AvatarServiceMessage(
+      channel,
+      AvatarAction.SendResponse(PlanetSideGUID(0), ObjectDetectedMessage(AutomatedTurretObject.GUID, AutomatedTurretObject.GUID, 0, list))
+    )
+  }
+
+  def stopTrackingTargets(zone: Zone, channel: String): Unit = {
+    zone.AvatarEvents ! AvatarServiceMessage(
+      channel,
+      AvatarAction.SendResponse(PlanetSideGUID(0), ObjectDetectedMessage(AutomatedTurretObject.GUID, AutomatedTurretObject.GUID, 0, List(PlanetSideGUID(0))))
+    )
+  }
+
+  def startShooting(zone: Zone, channel: String, weaponGuid: PlanetSideGUID): Unit = {
+    zone.AvatarEvents ! AvatarServiceMessage(
+      channel,
+      AvatarAction.SendResponse(PlanetSideGUID(0), ChangeFireStateMessage_Start(weaponGuid))
+    )
+  }
+
+  def stopShooting(zone: Zone, channel: String, weaponGuid: PlanetSideGUID): Unit = {
+    zone.AvatarEvents ! AvatarServiceMessage(
+      channel,
+      AvatarAction.SendResponse(PlanetSideGUID(0), ChangeFireStateMessage_Stop(weaponGuid))
+    )
   }
 
   private def testDistanceCheckQualifications(beforeSize: Int): Unit = {
