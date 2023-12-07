@@ -679,14 +679,18 @@ class VehicleControl(vehicle: Vehicle)
     */
   def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     if (!obj.Destroyed) {
-      PerformDamage(
-        vehicle,
-        DamageInteraction(
-          VehicleSource(vehicle),
-          SuicideReason(),
-          vehicle.Position
-        ).calculate()
-      )
+      vehicle.History.findLast { entry => entry.isInstanceOf[SpawningActivity] } match {
+        case Some(entry) if System.currentTimeMillis() - entry.time > 3000L =>
+          PerformDamage(
+            vehicle,
+            DamageInteraction(
+              VehicleSource(vehicle),
+              SuicideReason(),
+              vehicle.Position
+            ).calculate()
+          )
+        case _ =>
+      }
     }
   }
 

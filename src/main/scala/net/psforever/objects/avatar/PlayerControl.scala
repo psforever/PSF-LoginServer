@@ -1309,7 +1309,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     * @param data additional interaction information, if applicable
     */
   def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    suicide()
+    player.History.findLast { entry => entry.isInstanceOf[ReconstructionActivity] } match {
+      case Some(entry) if System.currentTimeMillis() - entry.time > 3000L => suicide()
+      case _ =>
+    }
   }
 
   //noinspection ScalaUnusedSymbol
