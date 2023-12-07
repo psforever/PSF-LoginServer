@@ -1310,7 +1310,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     */
   def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     player.History.findLast { entry => entry.isInstanceOf[ReconstructionActivity] } match {
-      case Some(entry) if System.currentTimeMillis() - entry.time > 3000L => suicide()
+      case Some(entry) if System.currentTimeMillis() - entry.time > 4000L => suicide()
       case _ =>
     }
   }

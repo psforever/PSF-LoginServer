@@ -23,7 +23,7 @@ import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
-import net.psforever.objects.vital.{DamagingActivity, InGameActivity, ShieldCharge, SpawningActivity, VehicleDismountActivity, VehicleMountActivity}
+import net.psforever.objects.vital.{DamagingActivity, InGameActivity, ReconstructionActivity, ShieldCharge, SpawningActivity, VehicleDismountActivity, VehicleMountActivity}
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.zones._
@@ -679,8 +679,8 @@ class VehicleControl(vehicle: Vehicle)
     */
   def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
     if (!obj.Destroyed) {
-      vehicle.History.findLast { entry => entry.isInstanceOf[SpawningActivity] } match {
-        case Some(entry) if System.currentTimeMillis() - entry.time > 3000L =>
+      vehicle.History.findLast { entry => entry.isInstanceOf[ReconstructionActivity] } match {
+        case Some(entry) if System.currentTimeMillis() - entry.time > 4000L =>
           PerformDamage(
             vehicle,
             DamageInteraction(
