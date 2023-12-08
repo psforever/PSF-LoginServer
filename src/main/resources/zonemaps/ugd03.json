@@ -9823,7 +9823,7 @@
     "AbsY": 1118.002,
     "AbsZ": 73.269,
     "Yaw": 315.0,
-    "GUID": 765,
+    "GUID": 766,
     "MapID": null,
     "IsChildObject": true
   },
@@ -9836,7 +9836,7 @@
     "AbsY": 739.613647,
     "AbsZ": 103.009,
     "Yaw": 340.0,
-    "GUID": 766,
+    "GUID": 765,
     "MapID": null,
     "IsChildObject": true
   },
@@ -11500,7 +11500,7 @@
     "AbsY": 1246.89,
     "AbsZ": 113.509,
     "Yaw": 180.0,
-    "GUID": 894,
+    "GUID": 895,
     "MapID": null,
     "IsChildObject": true
   },
@@ -11513,7 +11513,7 @@
     "AbsY": 1118.83716,
     "AbsZ": 82.769,
     "Yaw": 271.0,
-    "GUID": 895,
+    "GUID": 894,
     "MapID": null,
     "IsChildObject": true
   },
