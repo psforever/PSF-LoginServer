@@ -79,6 +79,11 @@ object DamageableMountable {
       .values
       .flatMap { _.occupant }
       .collect { case player if player.isAlive =>
+        //make llu visible to others in zone if passenger is carrying one
+        val zone         = player.Zone
+        val events       = zone.AvatarEvents
+        val nameChannel  = player.Name
+        events ! AvatarServiceMessage(nameChannel, AvatarAction.DropSpecialItem())
         //player.LogActivity(cause)
         player.Actor ! Player.Die(
           DamageInteraction(interaction.resolution, SourceEntry(player), interaction.cause, interaction.hitPos)
