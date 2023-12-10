@@ -366,10 +366,7 @@ class PersistenceMonitor(
     (inZone.Players.find(p => p.name == name), inZone.LivePlayers.find(p => p.Name == name)) match {
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
         //in case the player is holding the llu and disconnects
-        val zone         = player.Zone
-        val events       = zone.AvatarEvents
-        val nameChannel  = player.Name
-        events ! AvatarServiceMessage(nameChannel, AvatarAction.DropSpecialItem())
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DropSpecialItem())
         //alive or dead in a vehicle
         //if the avatar is dead while in a vehicle, they haven't released yet
         AvatarActor.saveAvatarData(avatar)
@@ -387,10 +384,7 @@ class PersistenceMonitor(
 
       case (Some(avatar), Some(player)) =>
         //in case the player is holding the llu and disconnects
-        val zone         = player.Zone
-        val events       = zone.AvatarEvents
-        val nameChannel  = player.Name
-        events ! AvatarServiceMessage(nameChannel, AvatarAction.DropSpecialItem())
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DropSpecialItem())
         //alive or dead, as standard Infantry
         AvatarActor.saveAvatarData(avatar)
         AvatarActor.finalSavePlayerData(player)
