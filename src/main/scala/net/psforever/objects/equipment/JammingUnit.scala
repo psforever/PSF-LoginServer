@@ -139,7 +139,7 @@ trait JammableBehavior {
     * @param target the objects to be determined if affected by the source's jammering
     * @param cause the source of the "jammered" status
     */
-  def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit =
+  def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
     target match {
       case obj: PlanetSideServerObject =>
         val interaction = cause.interaction
@@ -157,8 +157,9 @@ trait JammableBehavior {
             }
           case None =>
         }
-      case _ => ;
+      case _ => ()
     }
+  }
 
   /**
     * Activate a distinctive buzzing sound effect.

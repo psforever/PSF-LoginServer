@@ -3,7 +3,7 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.objects.zones.Zoning
-import net.psforever.objects.serverobject.turret.AutomatedTurret
+import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.zones.exp.ToDatabase
 
 import scala.collection.mutable
@@ -432,44 +432,52 @@ private[support] class WeaponAndProjectileOperations(
   }
 
   def handleAIDamage(pkt: AIDamage): Unit = {
-    val AIDamage(_, attackerGuid, projectileTypeId, _, _) = pkt
-    sessionData.validObject(attackerGuid, decorator = "AIDamage/Entity")
-      .collect {
-        case turret: AutomatedTurret with OwnableByPlayer =>
-          val owner = sessionData.validObject(turret.OwnerGuid, decorator = "AIDamage/Owner")
-            .collect { case obj: PlanetSideGameObject with FactionAffinity => SourceEntry(obj) }
-            .getOrElse { SourceEntry.None }
-          turret.Weapons
-            .values
-            .flatMap { _.Equipment }
-            .collect { case weapon: Tool => (turret, weapon, owner, weapon.Projectile) }
-            .find { case (_, _, _, p) => p.ObjectId == projectileTypeId }
+    val AIDamage(targetGuid, attackerGuid, projectileTypeId, _, _) = pkt
+    (continent.GUID(player.VehicleSeated) match {
+      case Some(tobj: PlanetSideServerObject with FactionAffinity with Vitality) if tobj.GUID == targetGuid => Some(tobj)
+      case _ if player.GUID == targetGuid => Some(player)
+      case _ => None
+    }).foreach { target =>
+      sessionData.validObject(attackerGuid, decorator = "AIDamage/Attacker")
+        .collect {
+          case turret: AutomatedTurret if turret.Target.isEmpty =>
+            turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
+            None
 
-      }
-      .collect {
-        case Some((obj, tool, owner, projectileInfo)) =>
-          val target = sessionData.validObject(player.VehicleSeated, decorator = "AIDamage/Entity") match {
-            case Some(tobj: PlanetSideGameObject with FactionAffinity with Vitality) => tobj
-            case _ => player
-          }
-          val angle = Vector3.Unit(target.Position - obj.Position)
-          val proj = new Projectile(
-            projectileInfo,
-            tool.Definition,
-            tool.FireMode,
-            None,
-            owner,
-            obj.Definition.ObjectId,
-            obj.Position + Vector3.z(value = 1f),
-            angle,
-            Some(angle * projectileInfo.FinalVelocity)
-          )
-          val hitPos = target.Position + Vector3.z(value = 1f)
-          ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos).collect { resprojectile =>
-            addShotsLanded(resprojectile.cause.attribution, shots = 1)
-            sessionData.handleDealingDamage(target, resprojectile)
-          }
-      }
+          case turret: AutomatedTurret with OwnableByPlayer =>
+            turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
+            val owner = continent.GUID(turret.OwnerGuid)
+              .collect { case obj: PlanetSideGameObject with FactionAffinity => SourceEntry(obj) }
+              .getOrElse { SourceEntry.None }
+            turret.Weapons
+              .values
+              .flatMap { _.Equipment }
+              .collect { case weapon: Tool => (turret, weapon, owner, weapon.Projectile) }
+              .find { case (_, _, _, p) => p.ObjectId == projectileTypeId }
+
+        }
+        .collect {
+          case Some((obj, tool, owner, projectileInfo)) =>
+
+            val angle = Vector3.Unit(target.Position - obj.Position)
+            val proj = new Projectile(
+              projectileInfo,
+              tool.Definition,
+              tool.FireMode,
+              None,
+              owner,
+              obj.Definition.ObjectId,
+              obj.Position + Vector3.z(value = 1f),
+              angle,
+              Some(angle * projectileInfo.FinalVelocity)
+            )
+            val hitPos = target.Position + Vector3.z(value = 1f)
+            ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos).collect { resprojectile =>
+              addShotsLanded(resprojectile.cause.attribution, shots = 1)
+              //sessionData.handleDealingDamage(target, resprojectile)
+            }
+        }
+    }
   }
 
   /* support code */

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import akka.actor.{Actor, ActorContext, Props}
+import akka.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem}
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallTurretConverter
@@ -17,7 +17,8 @@ import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
 import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior, TurretDefinition, WeaponTurret}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
+import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance, Vitality}
+import net.psforever.objects.zones.Zone
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration.FiniteDuration
@@ -28,7 +29,7 @@ class TurretDeployable(tdef: TurretDeployableDefinition)
     with JammableUnit
     with Hackable
     with AutomatedTurret {
-  WeaponTurret.LoadDefinition(this)
+  WeaponTurret.LoadDefinition(turret = this)
 
   override def Definition: TurretDeployableDefinition = tdef
 }
@@ -81,6 +82,7 @@ class TurretControl(turret: TurretDeployable)
     super.postStop()
     deployableBehaviorPostStop()
     damageableWeaponTurretPostStop()
+    automaticTurretPostStop()
   }
 
   def receive: Receive =
@@ -103,7 +105,42 @@ class TurretControl(turret: TurretDeployable)
     (!turret.Definition.FactionLocked || player.Faction == obj.Faction) && !obj.Destroyed
   }
 
+  override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
+    val startsUnjammed = !JammableObject.Jammed
+    super.TryJammerEffectActivate(target, cause)
+    if (startsUnjammed && JammableObject.Jammed) {
+      AutomaticOperation = false
+      //look in direction of source of jamming
+      val zone = JammableObject.Zone
+      TurretControl.getAttackerFromCause(zone, cause).foreach {
+        attacker =>
+          val channel = zone.id
+          val guid = AutomatedTurretObject.GUID
+          AutomatedTurretBehavior.startTrackingTargets(zone, channel, guid, List(attacker.GUID))
+          AutomatedTurretBehavior.stopTrackingTargets(zone, channel, guid) //TODO delay by a few milliseconds?
+      }
+    }
+  }
+
+  override def CancelJammeredStatus(target: Any): Unit = {
+    val startsJammed = JammableObject.Jammed
+    super.CancelJammeredStatus(target)
+    startsJammed && AutomaticOperation_=(state = true)
+  }
+
+  override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any): Unit = {
+    //turret retribution
+    if (AutomaticOperation) {
+      TurretControl.getAttackerFromCause(target.Zone, cause).foreach {
+        attacker =>
+          engageNewDetectedTarget(attacker)
+        }
+    }
+    super.DamageAwareness(target, cause, amount)
+  }
+
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
+    AutomaticOperation = false
     super.DestructionAwareness(target, cause)
     CancelJammeredSound(target)
     CancelJammeredStatus(target)
@@ -111,6 +148,7 @@ class TurretControl(turret: TurretDeployable)
   }
 
   override def deconstructDeployable(time: Option[FiniteDuration]) : Unit = {
+    AutomaticOperation = false
     val zone = turret.Zone
     val seats = turret.Seats.values
     //either we have no seats or no one gets to sit
@@ -136,8 +174,50 @@ class TurretControl(turret: TurretDeployable)
     super.deconstructDeployable(retime)
   }
 
+  override def finalizeDeployable(callback: ActorRef): Unit = {
+    super.finalizeDeployable(callback)
+    AutomaticOperation = true
+  }
+
   override def unregisterDeployable(obj: Deployable): Unit = {
     val zone = obj.Zone
     TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(zone.GUID, turret))
+  }
+}
+
+object TurretControl {
+  private def getAttackerFromCause(zone: Zone, cause: DamageResult): Option[PlanetSideServerObject with Vitality] = {
+    import net.psforever.objects.sourcing._
+    cause
+      .interaction
+      .adversarial
+      .collect { adversarial =>
+        adversarial.attacker match {
+          case p: PlayerSource =>
+            p.seatedIn
+              .map { _._1.unique }
+              .collect {
+                case v: UniqueVehicle => zone.Vehicles.find(SourceEntry(_).unique == v)
+                case a: UniqueAmenity => zone.GUID(a.guid)
+                case d: UniqueDeployable => zone.DeployableList.find(SourceEntry(_).unique == d)
+              }
+              .flatten
+              .orElse {
+                val name = p.Name
+                zone.LivePlayers.find(_.Name.equals(name))
+              }
+          case o =>
+            o.unique match {
+              case v: UniqueVehicle => zone.Vehicles.find(SourceEntry(_).unique == v)
+              case a: UniqueAmenity => zone.GUID(a.guid)
+              case d: UniqueDeployable => zone.DeployableList.find(SourceEntry(_).unique == d)
+              case _ => None
+            }
+        }
+      }
+      .flatten
+      .collect {
+        case out: PlanetSideServerObject with Vitality => out
+      }
   }
 }

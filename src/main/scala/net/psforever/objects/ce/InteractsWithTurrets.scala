@@ -56,7 +56,7 @@ class InteractWithTurrets(val range: Float)
       target.getInteractionSector(),
       target.Position.xy
     ).foreach { turret =>
-      turret.Actor ! AutomatedTurretBehavior.ResetAlerts
+      turret.Actor ! AutomatedTurretBehavior.Reset
     }
   }
 }
