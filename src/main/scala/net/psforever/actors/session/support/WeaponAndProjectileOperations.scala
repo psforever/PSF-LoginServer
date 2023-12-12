@@ -2,6 +2,7 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.zones.Zoning
 import net.psforever.objects.zones.exp.ToDatabase
 
 import scala.collection.mutable
@@ -50,7 +51,8 @@ private[support] class WeaponAndProjectileOperations(
   private[support] var shotsWhileDead: Int = 0
   private val projectiles: Array[Option[Projectile]] =
     Array.fill[Option[Projectile]](Projectile.rangeUID - Projectile.baseUID)(None)
-
+  private var zoningOpt: Option[ZoningOperations] = None
+  def zoning: ZoningOperations = zoningOpt.orNull
   /* packets */
 
   def handleWeaponFire(pkt: WeaponFireMessage): Unit = {
@@ -536,7 +538,9 @@ private[support] class WeaponAndProjectileOperations(
                                       weaponGUID: PlanetSideGUID,
                                       projectileGUID: PlanetSideGUID
                                     ): (Option[PlanetSideGameObject with Container], Option[Tool]) = {
-    sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_fire")
+    if (player.ZoningRequest != Zoning.Method.None) {
+      sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_fire")
+    }
     if (player.isShielded) {
       // Cancel NC MAX shield if it's active
       sessionData.toggleMaxSpecialState(enable = false)
