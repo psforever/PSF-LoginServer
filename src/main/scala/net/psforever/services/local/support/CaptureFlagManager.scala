@@ -113,6 +113,7 @@ class CaptureFlagManager(zone: Zone) extends Actor {
     case CaptureFlagManager.DropFlag(flag: CaptureFlag) =>
       flag.Carrier match {
         case Some(player: Player) =>
+          val newFlag = flag
           // Set the flag position to where the player is that dropped it
           flag.Position = player.Position
           // Remove attached player from flag
@@ -121,6 +122,27 @@ class CaptureFlagManager(zone: Zone) extends Actor {
           flag.Zone.LocalEvents ! LocalServiceMessage(flag.Zone.id, LocalAction.SendPacket(ObjectDetachMessage(player.GUID, flag.GUID, player.Position, 0, 0, 0)))
           // Send dropped chat message
           ChatBroadcast(flag.Zone, CaptureFlagChatMessageStrings.CTF_FlagDropped(player.Name, player.Faction, flag.Owner.asInstanceOf[Building].Name), fanfare = false)
+          HandleFlagDespawn(flag)
+          // Register LLU object create task and callback to create on clients
+          val replacementLlu = CaptureFlag.Constructor(
+            newFlag.Position,
+            newFlag.Orientation,
+            newFlag.Target,
+            newFlag.Owner,
+            player.Faction
+          )
+          // Add the flag as an amenity and track it internally
+          val socket = newFlag.Owner.asInstanceOf[Building].GetFlagSocket.get
+          socket.captureFlag = replacementLlu
+          TrackFlag(replacementLlu)
+          TaskWorkflow.execute(WorldSession.CallBackForTask(
+            GUIDTask.registerObject(socket.Zone.GUID, replacementLlu),
+            socket.Zone.LocalEvents,
+            LocalServiceMessage(
+              socket.Zone.id,
+              LocalAction.LluSpawned(Service.defaultPlayerGUID, replacementLlu)
+            )
+          ))
         case _ =>
           log.warn("Tried to drop flag but flag has no carrier")
       }
