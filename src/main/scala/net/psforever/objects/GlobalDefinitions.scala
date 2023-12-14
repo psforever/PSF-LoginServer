@@ -24,7 +24,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.structures.{AmenityDefinition, AutoRepairStats, BuildingDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
-import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
+import net.psforever.objects.serverobject.turret.{Automation, FacilityTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, UtilityType, VehicleSubsystemEntry}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
@@ -1907,6 +1907,20 @@ object GlobalDefinitions {
            `peregrine_ntu_siphon` | `colossus_ntu_siphon_left` | `peregrine_ntu_siphon_right` |
            `peregrine_sparrow` | `peregrine_sparrow_left` | `peregrine_sparrow_right` |
            `peregrine_particle_cannon` | `peregrine_dual_rocket_pods` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
+   * Using the definition for a `Vehicle` determine whether it is an all-terrain vehicle type.
+   * @param vdef the `VehicleDefinition` of the vehicle
+   * @return `true`, if it is; `false`, otherwise
+   */
+  def isAtvVehicle(vdef: VehicleDefinition): Boolean = {
+    vdef match {
+      case `quadassault` | `fury` | `quadstealth` =>
         true
       case _ =>
         false
@@ -9059,6 +9073,11 @@ object GlobalDefinitions {
     spitfire_turret.DeployTime = Duration.create(5000, "ms")
     spitfire_turret.Model = ComplexDeployableResolutions.calculate
     spitfire_turret.deployAnimation = DeployAnimation.Standard
+    spitfire_turret.AutoFire = Automation(
+      targetingRange = 40f,
+      targetValidation = List(EffectTarget.Validation.ObviousPlayer, EffectTarget.Validation.Vehicle),
+      retaliatoryDuration = 8000L
+    )
     spitfire_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -9085,6 +9104,11 @@ object GlobalDefinitions {
     spitfire_cloaked.DeployTime = Duration.create(5000, "ms")
     spitfire_cloaked.deployAnimation = DeployAnimation.Standard
     spitfire_cloaked.Model = ComplexDeployableResolutions.calculate
+    spitfire_cloaked.AutoFire = Automation(
+      targetingRange = 40f,
+      targetValidation = List(EffectTarget.Validation.ObviousPlayer, EffectTarget.Validation.Vehicle),
+      retaliatoryDuration = 8000L
+    )
     spitfire_cloaked.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 50
@@ -9111,6 +9135,11 @@ object GlobalDefinitions {
     spitfire_aa.DeployTime = Duration.create(5000, "ms")
     spitfire_aa.deployAnimation = DeployAnimation.Standard
     spitfire_aa.Model = ComplexDeployableResolutions.calculate
+    spitfire_aa.AutoFire = Automation(
+      targetingRange = 80f,
+      targetValidation = List(EffectTarget.Validation.Aircraft),
+      retaliatoryDuration = 8000L
+    )
     spitfire_aa.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200

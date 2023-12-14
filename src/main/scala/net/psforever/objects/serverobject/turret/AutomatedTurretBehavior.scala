@@ -2,19 +2,20 @@
 package net.psforever.objects.serverobject.turret
 
 import akka.actor.{Actor, Cancellable}
+import net.psforever.objects.ce.TurretInteraction
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.{Default, Player}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.DamageableEntity
 import net.psforever.objects.sourcing.{SourceEntry, SourceUniqueness}
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{InteractsWithZone, Zone}
 import net.psforever.packet.game.{ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ObjectDetectedMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.FiniteDuration
 
 trait AutomatedTurret
   extends PlanetSideServerObject
@@ -84,9 +85,11 @@ trait AutomatedTurretBehavior {
 
   private var periodicValidationTest: Cancellable = Default.Cancellable
 
+  private lazy val autoStats: Option[Automation] = AutomatedTurretObject.Definition.AutoFire
+
   def AutomatedTurretObject: AutomatedTurret
 
-  val automatedTurretBehavior: Actor.Receive = {
+  val automatedTurretBehavior: Actor.Receive = if (autoStats.isDefined) {
     case AutomatedTurretBehavior.Alert(target) =>
       bringAttentionToTarget(target)
 
@@ -101,19 +104,27 @@ trait AutomatedTurretBehavior {
 
     case AutomatedTurretBehavior.PeriodicCheck =>
       performPeriodicTargetValidation()
+  } else {
+    Actor.emptyBehavior
   }
 
   def AutomaticOperation: Boolean = automaticOperation
 
   def AutomaticOperation_=(state: Boolean): Boolean = {
     val previousState = automaticOperation
-    automaticOperation = state
-    if (!previousState && state) {
-      trySelectNewTarget()
-    } else if (previousState && !state) {
-      currentTarget.foreach { noLongerEngageDetectedTarget }
+    if (autoStats.isDefined) {
+      automaticOperation = state
+      if (!previousState && state) {
+        trySelectNewTarget()
+      } else if (previousState && !state) {
+        currentTarget.foreach {
+          noLongerEngageDetectedTarget
+        }
+      }
+      state
+    } else {
+      false
     }
-    state
   }
 
   private def bringAttentionToTarget(target: Target): Unit = {
@@ -129,10 +140,12 @@ trait AutomatedTurretBehavior {
 
   private def confirmShot(target: Target): Unit = {
     val now = System.currentTimeMillis()
-    if (currentTargetToken.isEmpty || now - currentTargetLastShotReported > 1500L) {
+    if (currentTargetToken.isEmpty || now - currentTargetLastShotReported > autoStats.map { _.targetSelectCooldown }.get) {
       currentTargetLastShotReported = now
       engageNewDetectedTarget(target)
-    } else if (currentTargetToken.contains(SourceEntry(target).unique) && now - currentTargetLastShotReported < 3000L) {
+    } else if (
+      currentTargetToken.contains(SourceEntry(target).unique) &&
+        now - currentTargetLastShotReported < autoStats.map { _.missedShotCooldown }.get) {
       currentTargetLastShotReported = now
     }
   }
@@ -196,32 +209,27 @@ trait AutomatedTurretBehavior {
   private def trySelectNewTarget(): Option[Target] = {
     currentTarget.orElse {
       val turretPosition = AutomatedTurretObject.Position
-      AutomatedTurretObject.Targets
-        .filter { target =>
-          !target.Destroyed && (target match {
-            case p: Player => validTargetCheck(p)
-            case _ => false
-          })
+      val radiusSquared = autoStats.get.targetingRange * autoStats.get.targetingRange
+      val validation = autoStats.get.targetValidation
+      val faction = AutomatedTurretObject.Faction
+      AutomatedTurretObject
+        .Targets
+        .map { target =>
+          (target, Vector3.DistanceSquared(target.Position, turretPosition))
         }
-        .sortBy {
-          target => Vector3.DistanceSquared(target.Position, turretPosition)
+        .collect { case out @ (target, distance)
+          if /*target.Faction != faction &&*/
+            distance < radiusSquared &&
+            validation.exists(func => func(target)) =>
+          out
         }
-        .flatMap { case target: Player =>
+        .sortBy(_._2)
+        .flatMap { case (target: Player, _) =>
           testNewDetectedTarget(target, target.Name)
           Some(target)
         }
         .headOption
     }
-  }
-
-  private def validTargetCheck(target: Target): Boolean = {
-    !target.Destroyed && (target match {
-      case p: Player =>
-        if (p.Cloaked) false
-        else if (p.Crouching) false
-        else p.isMoving(test = 3f)
-      case _ => false
-    })
   }
 
   private def performPeriodicTargetValidation(): List[Target] = {
@@ -237,11 +245,43 @@ trait AutomatedTurretBehavior {
     val pos = AutomatedTurretObject.Position
     val removedTargets = AutomatedTurretObject.Targets
       .collect {
-        case t if t.Destroyed || Vector3.DistanceSquared(t.Position, pos) > 625 =>
+        case t: InteractsWithZone
+          if t.Destroyed || {
+            val range = t.interaction().find(_.Type == TurretInteraction).map(_.range).getOrElse(100f)
+            Vector3.DistanceSquared(t.Position, pos) > range * range
+          } =>
           AutomatedTurretObject.RemoveTarget(t)
           t
       }
     removedTargets
+  }
+
+  private def performCurrentTargetDecayCheck(): Unit = {
+    val now = System.currentTimeMillis()
+    val delay = autoStats.map(_.missedShotCooldown).getOrElse(3000L)
+    currentTarget
+      .collect { target =>
+        if (target.Destroyed) {
+          //if the target died while we were shooting at it, immediately switch to the next target
+          noLongerEngageDetectedTarget(target)
+          currentTargetLastShotReported = now - delay
+          None
+        } else if (System.currentTimeMillis() - currentTargetLastShotReported >= delay) {
+          //if the target goes mia, evaluate a possible cooldown phase before selecting next target
+          noLongerEngageDetectedTarget(target)
+          None
+        } else {
+          //continue shooting
+          Some(target)
+        }
+      }
+      .orElse {
+        //no target; unless we are deactivated or have any unfinished delays, search for new target
+        if (automaticOperation && now - currentTargetLastShotReported >= delay) {
+          trySelectNewTarget()
+        }
+        None
+      }
   }
 
   private def testTargetListQualifications(beforeSize: Int): Boolean = {
@@ -249,27 +289,27 @@ trait AutomatedTurretBehavior {
   }
 
   private def retimePeriodicTargetChecks(beforeSize: Int): Boolean = {
-    if (beforeSize == 0 && AutomatedTurretObject.Targets.nonEmpty) {
-      periodicValidationTest = context.system.scheduler.scheduleWithFixedDelay(
-        Duration.Zero,
-        1.second,
-        self,
-        AutomatedTurretBehavior.PeriodicCheck
-      )
+    if (beforeSize == 0 && AutomatedTurretObject.Targets.nonEmpty && autoStats.isDefined) {
+      val (initial, repeated) = autoStats
+        .map {
+          ta => (ta.initialDetectionSpeed, ta.detectionSpeed)
+        }
+        .get
+      retimePeriodicTargetChecks(initial, repeated)
       true
     } else {
       false
     }
   }
 
-  private def performCurrentTargetDecayCheck(): Unit = {
-    //complete culling and/or check the current selected target
-    if (System.currentTimeMillis() - currentTargetLastShotReported > 3000L) {
-      currentTarget.foreach { noLongerEngageDetectedTarget }
-      if (automaticOperation) {
-        //trySelectNewTarget()
-      }
-    }
+  private def retimePeriodicTargetChecks(initial: FiniteDuration, repeated: FiniteDuration): Unit = {
+    periodicValidationTest.cancel()
+    periodicValidationTest = context.system.scheduler.scheduleWithFixedDelay(
+      initial,
+      repeated,
+      self,
+      AutomatedTurretBehavior.PeriodicCheck
+    )
   }
 
   def automaticTurretPostStop(): Unit = {

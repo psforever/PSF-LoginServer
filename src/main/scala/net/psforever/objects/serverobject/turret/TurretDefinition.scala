@@ -1,15 +1,28 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.{ObjectDefinition, ToolDefinition, WithShields}
 import net.psforever.objects.vehicles.{MountableWeaponsDefinition, Turrets}
 import net.psforever.objects.vital.resistance.ResistanceProfileMutators
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 
 import scala.collection.mutable
+import scala.concurrent.duration._
+
+final case class Automation(
+                             targetingRange: Float,
+                             targetValidation: List[PlanetSideGameObject => Boolean],
+                             retaliatoryDuration: Long = 0,
+                             initialDetectionSpeed: FiniteDuration = Duration.Zero,
+                             detectionSpeed: FiniteDuration = 1.seconds,
+                             targetSelectCooldown: Long = 1500L, //ms
+                             missedShotCooldown: Long = 3000L, //ms
+                             targetEliminationCooldown: Long = 0L //ms
+                           )
 
 /**
-  * The definition for any `MannedTurret`.
+  * The definition for any `WeaponTurret`.
   */
 trait TurretDefinition
   extends MountableWeaponsDefinition
@@ -25,10 +38,11 @@ trait TurretDefinition
   /** can only be mounted by owning faction when `true` */
   private var factionLocked: Boolean = true
 
-  /** creates internal ammunition reserves that can not become depleted
-    * see `MannedTurret.TurretAmmoBox` for details
-    */
+  /** creates internal ammunition reserves that can not become depleted */
   private var hasReserveAmmunition: Boolean = false
+
+  /** */
+  private var turretAutomation: Option[Automation] = None
 
   def WeaponPaths: mutable.HashMap[Int, mutable.HashMap[TurretUpgrade.Value, ToolDefinition]] = weaponPaths
 
@@ -44,5 +58,16 @@ trait TurretDefinition
   def ReserveAmmunition_=(reserved: Boolean): Boolean = {
     hasReserveAmmunition = reserved
     ReserveAmmunition
+  }
+
+  def AutoFire: Option[Automation] = turretAutomation
+
+  def AutoFire_=(auto: Automation): Option[Automation] = {
+    AutoFire_=(Some(auto))
+  }
+
+  def AutoFire_=(auto: Option[Automation]): Option[Automation] = {
+    turretAutomation = auto
+    turretAutomation
   }
 }

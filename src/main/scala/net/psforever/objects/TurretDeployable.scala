@@ -108,9 +108,9 @@ class TurretControl(turret: TurretDeployable)
   override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
     val startsUnjammed = !JammableObject.Jammed
     super.TryJammerEffectActivate(target, cause)
-    if (startsUnjammed && JammableObject.Jammed) {
+    if (startsUnjammed && JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDuration > 0)) {
       AutomaticOperation = false
-      //look in direction of source of jamming
+      //look in direction of cause of jamming
       val zone = JammableObject.Zone
       TurretControl.getAttackerFromCause(zone, cause).foreach {
         attacker =>
@@ -129,10 +129,10 @@ class TurretControl(turret: TurretDeployable)
   }
 
   override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any): Unit = {
-    //turret retribution
-    if (AutomaticOperation) {
-      TurretControl.getAttackerFromCause(target.Zone, cause).foreach {
-        attacker =>
+    if (AutomaticOperation && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDuration > 0)) {
+      //turret retribution
+      TurretControl.getAttackerFromCause(target.Zone, cause).collect {
+        case attacker if attacker.Faction != target.Faction =>
           engageNewDetectedTarget(attacker)
         }
     }
@@ -153,7 +153,7 @@ class TurretControl(turret: TurretDeployable)
     val seats = turret.Seats.values
     //either we have no seats or no one gets to sit
     val retime = if (seats.count(_.isOccupied) > 0) {
-      //unlike with vehicles, it's possible to request deconstruction of one's own field turret while seated in it
+      //it's possible to request deconstruction of one's own field turret while seated in it
       val wasKickedByDriver = false
       seats.foreach { seat =>
         seat.occupant match {

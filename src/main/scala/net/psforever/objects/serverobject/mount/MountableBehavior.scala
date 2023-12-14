@@ -105,7 +105,7 @@ trait MountableBehavior {
                             ): Boolean = {
     obj.PassengerInSeat(user).contains(seatNumber) &&
     (obj.Seats.get(seatNumber) match {
-      case Some(seat) => seat.bailable || !obj.isMoving(test = 1)
+      case Some(seat) => seat.bailable || !obj.isMoving(test = 1f)
       case _          => false
     })
   }

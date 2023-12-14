@@ -5,6 +5,7 @@ import net.psforever.objects._
 import net.psforever.objects.ce.DeployableCategory
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vital.DamagingActivity
+import net.psforever.types.{ExoSuitType, ImplantType}
 
 final case class TargetValidation(category: EffectTarget.Category.Value, test: EffectTarget.Validation.Value)
 
@@ -21,6 +22,7 @@ object EffectTarget {
   object Validation {
     type Value = PlanetSideGameObject => Boolean
 
+    //noinspection ScalaUnusedSymbol
     def Invalid(target: PlanetSideGameObject): Boolean = false
 
     def Medical(target: PlanetSideGameObject): Boolean =
@@ -185,5 +187,36 @@ object EffectTarget {
         case _ =>
           false
       }
+
+    def ObviousPlayer(target: PlanetSideGameObject): Boolean =
+      !target.Destroyed && (target match {
+        case p: Player =>
+          //TODO attacking breaks stealth
+          p.LastDamage.map(_.interaction.hitTime).exists(System.currentTimeMillis() - _ < 3000L) ||
+            p.avatar.implants.flatten.find(a => a.definition.implantType == ImplantType.SilentRun).exists(_.active) ||
+            (p.isMoving(test = 17d) && !p.Crouching) ||
+            p.Jumping
+        case _ =>
+          false
+      })
+
+    def ObviousMax(target: PlanetSideGameObject): Boolean =
+      !target.Destroyed && (target match {
+        case p: Player =>
+          p.ExoSuit == ExoSuitType.MAX && p.isMoving(test = 17d)
+        case _ =>
+          false
+      })
+
+    def VehiclesOnRadar(target: PlanetSideGameObject): Boolean =
+      !target.Destroyed && (target match {
+        case v: Vehicle =>
+          val vdef = v.Definition
+          !(GlobalDefinitions.isAtvVehicle(vdef) ||
+            vdef == GlobalDefinitions.two_man_assault_buggy ||
+            vdef == GlobalDefinitions.skyguard)
+        case _ =>
+          false
+      })
   }
 }

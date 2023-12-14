@@ -25,7 +25,7 @@ class InteractWithTurrets(val range: Float)
       case clarifiedTarget: AutomatedTurret.Target =>
         val posxy = clarifiedTarget.Position.xy
         val unique = SourceEntry(clarifiedTarget).unique
-        val targets = getTurretTargets(sector, posxy).filter { turret => turret.Detected(unique).isEmpty }
+        val targets = getTurretTargets(sector, posxy).filter { turret => turret.Definition.AutoFire.nonEmpty && turret.Detected(unique).isEmpty }
         targets.foreach { t => t.Actor ! AutomatedTurretBehavior.Alert(clarifiedTarget) }
       case _ => ()
     }
