@@ -1617,6 +1617,7 @@ class AvatarActor(
               // If the amount of time that has passed since you entered the world or died is > how long it takes to
               // initialize this implant, initialize it after 1 second.
               if ((System.currentTimeMillis() / 1000) - (lastRespawn / 1000) > implant.definition.InitializationDuration) {
+                implantTimers.get(slot).foreach(_.cancel())
                 implantTimers(slot) = context.scheduleOnce(
                   1.seconds,
                   context.self,
@@ -1630,6 +1631,7 @@ class AvatarActor(
                 // If the implant initialization timer hasn't quite finished, calculate a reduced timer based on last spawn activity
               else {
                 val remainingTime = (lastRespawn / 1000).seconds - (System.currentTimeMillis() / 1000).seconds + implant.definition.InitializationDuration.seconds
+                implantTimers.get(slot).foreach(_.cancel())
                 implantTimers(slot) = context.scheduleOnce(
                   remainingTime,
                   context.self,
