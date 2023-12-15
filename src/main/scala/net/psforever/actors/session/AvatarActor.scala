@@ -10,7 +10,7 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, ScoreCard, SupportActivity}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.sourcing.VehicleSource
-import net.psforever.objects.vital.InGameHistory
+import net.psforever.objects.vital.{InGameHistory, ReconstructionActivity}
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
 import org.joda.time.{LocalDateTime, Seconds}
@@ -235,7 +235,7 @@ object AvatarActor {
 
   final case class SetStamina(stamina: Int) extends Command
 
-  private case class SetImplantInitialized(implantType: ImplantType) extends Command
+  final case class SetImplantInitialized(implantType: ImplantType) extends Command
 
   final case class MemberListRequest(action: MemberAction.Value, name: String) extends Command
 
@@ -1588,8 +1588,66 @@ class AvatarActor(
           Behaviors.same
 
         case ResetImplants() =>
-          deinitializeImplants()
-          initializeImplants()
+          val player = session.get.player
+          // Get time of when you spawned after a deconstruction or zoning activity.
+          val lastDecon: Long = player.History.findLast {entry => entry.isInstanceOf[ReconstructionActivity]} match {
+            case Some(entry) => entry.time
+            case _ => 0L
+          }
+          // Get time of when you entered the world or respawned after death.
+          val lastRespawn: Long = player.History.findLast {entry => entry.isInstanceOf[SpawningActivity]} match {
+            case Some(entry) => entry.time
+            case _ => 0L
+          }
+          // You didn't die. You deconstructed or changed zones via warpgate/IA/recall.
+          // When you respawn after death, it does both recon and spawn activities, hence the minus 3000 to make sure
+          // this doesn't happen at respawn after death.
+          if (lastDecon - 3000 > lastRespawn) {
+            deinitializeImplants()
+            val implants = avatar.implants
+            implants.zipWithIndex.foreach {
+            case (Some(implant), slot) =>
+              sessionActor ! SessionActor.SendResponse(
+                CreateShortcutMessage(
+                  session.get.player.GUID,
+                  slot + 2,
+                  Some(implant.definition.implantType.shortcut)
+                )
+              )
+              // If the amount of time that has passed since you entered the world or died is > how long it takes to
+              // initialize this implant, initialize it after 1 second.
+              if ((System.currentTimeMillis() / 1000) - (lastRespawn / 1000) > implant.definition.InitializationDuration) {
+                implantTimers(slot) = context.scheduleOnce(
+                  1.seconds,
+                  context.self,
+                  SetImplantInitialized(implant.definition.implantType)
+                )
+                session.get.zone.AvatarEvents ! AvatarServiceMessage(
+                  avatar.name,
+                  AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
+                )
+              }
+                // If the implant initialization timer hasn't quite finished, calculate a reduced timer based on last spawn activity
+              else {
+                val remainingTime = (lastRespawn / 1000).seconds - (System.currentTimeMillis() / 1000).seconds + implant.definition.InitializationDuration.seconds
+                implantTimers(slot) = context.scheduleOnce(
+                  remainingTime,
+                  context.self,
+                  SetImplantInitialized(implant.definition.implantType)
+                )
+                session.get.zone.AvatarEvents ! AvatarServiceMessage(
+                  avatar.name,
+                  AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
+                )
+              }
+            case (None, _) =>
+            }
+          }
+            // You just entered the world or died. Implants reset and timers start from scratch
+          else {
+            deinitializeImplants()
+            initializeImplants()
+          }
           Behaviors.same
 
         case UpdateToolDischarge(stats) =>

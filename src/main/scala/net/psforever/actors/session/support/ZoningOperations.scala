@@ -2767,10 +2767,7 @@ class ZoningOperations(
       }
       val originalDeadState = deadState
       deadState = DeadState.Alive
-      if (originalDeadState != DeadState.Alive) {
-        avatarActor ! AvatarActor.ResetImplants()
-      }
-
+      avatarActor ! AvatarActor.ResetImplants()
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
       initializeShortcutsAndBank(guid)
       //Favorites lists
