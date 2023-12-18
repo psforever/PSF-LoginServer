@@ -1,8 +1,9 @@
+// Copyright (c) 2020 PSForever
 package net.psforever.tools.decodePackets
 
-import java.io.{BufferedWriter, File, FileWriter, IOException}
+import java.io.{File, IOException}
 import java.nio.charset.CodingErrorAction
-import java.nio.file.{Files, Paths, StandardCopyOption}
+import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import net.psforever.packet.PacketCoding
 import org.apache.commons.io.FileUtils
 import scodec.Attempt.{Failure, Successful}
@@ -19,11 +20,12 @@ case class Config(
     outDir: String = System.getProperty("user.dir"),
     preprocessed: Boolean = false,
     skipExisting: Boolean = false,
+    errorLogs: Boolean = false,
     files: Seq[File] = Seq()
 )
 
 object DecodePackets {
-  private val decoder = Codec.UTF8.decoder.onMalformedInput(CodingErrorAction.REPORT)
+  private val utf8Decoder = Codec.UTF8.decoder.onMalformedInput(CodingErrorAction.REPORT)
 
   def main(args: Array[String]): Unit = {
     val builder = OParser.builder[Config]
@@ -36,7 +38,10 @@ object DecodePackets {
           .text("Output directory"),
         opt[String]('i', "in-dir")
           .action { (x, c) =>
-            getAllFilesFromDirectory(x, c).copy(inDir = x)
+            c.copy(
+              files = c.files ++ getAllFilePathsFromDirectory(x).collect { case path => path.toFile },
+              inDir = x
+            )
           }
           .text("Input directory"),
         opt[Unit]('p', "preprocessed")
@@ -44,10 +49,14 @@ object DecodePackets {
           .text("Files are already preprocessed gcapy ASCII files"),
         opt[Unit]('s', "skip-existing")
           .action((_, c) => c.copy(skipExisting = true))
-          .text("Skip files that already exist in out-dir"),
+          .text("Skip files that already exist in the output directory"),
+        opt[Unit]('e', "error-logs")
+          .action((_, c) => c.copy(errorLogs = true))
+          .text("Write decoding errors to another file in the output directory"),
         opt[File]('f', "file")
           .unbounded()
           .action((x, c) => c.copy(files = c.files :+ x))
+          .text("Individual files to decode ...")
       )
     }
 
@@ -58,59 +67,136 @@ object DecodePackets {
         sys.exit(1)
     }
 
+    var skipExisting = opts.skipExisting
     val outDir = new File(opts.outDir)
     if (!outDir.exists()) {
+      skipExisting = false
       outDir.mkdirs()
     } else if (outDir.isFile) {
       println(s"error: out-dir is file")
       sys.exit(1)
     }
 
-    if (opts.files.isEmpty) {
-      println("error: input files not defined; set directory or indicate files")
-      sys.exit(1)
-    }
-    opts.files.foreach { file =>
-      if (!file.exists) {
-        println(s"file ${file.getAbsolutePath} does not exist")
-        sys.exit(1)
+    val files: Seq[File] = {
+      val (readable, unreadable) = opts.files.partition(_.exists())
+      if (unreadable.nonEmpty) {
+        println(s"The following ${unreadable.size} input files may not exist and will be skipped:")
+        unreadable.foreach { file => println(s"- ${file.getAbsolutePath}") }
+      }
+      if (skipExisting) {
+        val (skipped, decodable) = filesWithSameNameInDirectory(opts.outDir, readable)
+        if (skipped.nonEmpty) {
+          println(s"The following ${skipped.size} input files will not be decoded (reason: skip-existing flag set):")
+          skipped.foreach { file => println(s"- ${file.getAbsolutePath}") }
+        }
+        decodable
+      } else {
+        readable
       }
     }
+    if (files.isEmpty) {
+      println("No input files are detected.  Please set an input directory with files or indicate individual files.")
+      sys.exit(1)
+    }
+    println(s"${files.size} input file(s) detected.")
 
-    val tmpFolder = new File(System.getProperty("java.io.tmpdir") + "/psforever-decode-packets")
+    var deleteTempFolderAfterwards: Boolean = false
+    val tmpFolderPath = System.getProperty("java.io.tmpdir") + "/psforever-decode-packets"
+    val tmpFolder = new File(tmpFolderPath)
     if (!tmpFolder.exists()) {
+      deleteTempFolderAfterwards = true
       tmpFolder.mkdirs()
+    } else if (getAllFilePathsFromDirectory(tmpFolderPath).isEmpty) {
+      deleteTempFolderAfterwards = true
     }
 
-    println(s"${opts.files.size} files found")
-    if (opts.preprocessed) {
-      decodeFilesUsing(opts.files, extension=".txt", tmpFolder, opts.outDir, opts.skipExisting, preprocessed)
+    val bufferedWriter: (String, String) => WriterWrapper = if (opts.errorLogs) {
+      errorWriter
     } else {
-      decodeFilesUsing(opts.files, extension=".gcap", tmpFolder, opts.outDir, opts.skipExisting, gcapy)
+      normalWriter
     }
-    FileUtils.forceDelete(tmpFolder)
+
+    if (opts.preprocessed) {
+      decodeFilesUsing(files, extension = ".txt", tmpFolder, opts.outDir, bufferedWriter, preprocessed)
+    } else {
+      decodeFilesUsing(files, extension = ".gcap", tmpFolder, opts.outDir, bufferedWriter, gcapy)
+    }
+
+    if (deleteTempFolderAfterwards) {
+      //if the temporary directory only exists because of this script, it should be safe to delete it
+      FileUtils.forceDelete(tmpFolder)
+    } else {
+      //delete just the files that were created (if files were overwrote, nothing we can do)
+      val (deleteThese, _) = filesWithSameNameAs(
+        files,
+        getAllFilePathsFromDirectory(tmpFolder.getAbsolutePath).map(_.toFile)
+      )
+      deleteThese.foreach(FileUtils.forceDelete)
+    }
   }
 
   /**
-   * Enumerate over file names found in the given directory for later.
-   * @param directory where the files are found
-   * @param opts configuration entity where the files are collated
-   * @return configuration entity
+   * Separate files between those that
+   * can be found in a given directory location by comparing against file names
+   * and those that can not.
+   * @param directory where the existing files may be found
+   * @param files files to test for matching names
+   * @return a tuple of file lists, comparing the param files against files in the directory;
+   *         the first are the files whose names match;
+   *         the second are the files whose names do not match
    */
-  private def getAllFilesFromDirectory(directory: String, opts: Config): Config = {
-    val inDir = Paths.get(directory)
-    if (Files.exists(inDir) && Files.isDirectory(inDir)) {
-      var outOpts = opts
-      Files.list(inDir).forEach(file =>
-        outOpts = outOpts.copy(files = outOpts.files :+ file.toFile)
-      )
-      outOpts
-    } else if (!Files.exists(inDir)) {
+  private def filesWithSameNameInDirectory(directory: String, files: Seq[File]): (Seq[File], Seq[File]) = {
+    filesWithSameNameAs(
+      getAllFilePathsFromDirectory(directory).map(_.toFile),
+      files
+    )
+  }
+  /**
+   * Separate files between those that
+   * can be found amongst a group of files by comparing against file names
+   * and those that can not.
+   * @param existingFiles files whose names are to test against
+   * @param files files to test for matching names
+   * @return a tuple of file lists, comparing the param files against files in the directory;
+   *         the first are the files whose names match;
+   *         the second are the files whose names do not match
+   */
+  private def filesWithSameNameAs(existingFiles: Seq[File], files: Seq[File]): (Seq[File], Seq[File]) = {
+    val existingFileNames = existingFiles.map { path => lowercaseFileNameString(path.toString) }
+    files.partition { file => existingFileNames.exists(_.endsWith(lowercaseFileNameString(file.getName))) }
+  }
+
+  /**
+   * Isolate a file's name from a file's path.
+   * The path is recognized as the direstory structure information,
+   * everything to the left of the last file separator character.
+   * The file extension is included.
+   * @param filename file path of questionable content and length, but including the file name
+   * @return file name only
+   */
+  private def lowercaseFileNameString(filename: String): String = {
+    (filename.lastIndexOf(File.separator) match {
+      case -1 => filename
+      case n => filename.substring(n)
+    }).toLowerCase()
+  }
+
+  /**
+   * Enumerate over files found in the given directory for later.
+   * @param directory where the files are found
+   * @return the discovered file paths
+   */
+  private def getAllFilePathsFromDirectory(directory: String): Array[Path] = {
+    val dir = Paths.get(directory)
+    val exists = Files.exists(dir)
+    if (exists && Files.isDirectory(dir)) {
+      dir.toFile.listFiles().map(_.toPath)
+    } else if (!exists) {
       println(s"error: in-dir does not exist")
-      opts
+      Array.empty
     } else {
       println(s"error: in-dir is file")
-      opts
+      Array.empty
     }
   }
 
@@ -122,7 +208,6 @@ object DecodePackets {
    * @param extension file extension being concatenated
    * @param temporaryDirectory destination directory where files temporarily exist while being written
    * @param outDirectory destination directory where the files are stored after being written
-   * @param skipExisting do not write a file that already exists at the destination directory
    * @param readDecodeAndWrite next step of the file decoding process
    */
   private def decodeFilesUsing(
@@ -130,29 +215,25 @@ object DecodePackets {
                                 extension: String,
                                 temporaryDirectory: File,
                                 outDirectory: String,
-                                skipExisting: Boolean,
-                                readDecodeAndWrite: (File,BufferedWriter)=>Unit
+                                writerConstructor: (String, String)=>WriterWrapper,
+                                readDecodeAndWrite: (File,WriterWrapper)=>Unit
                               ): Unit = {
     files.par.foreach { file =>
       val fileName = file.getName.split(extension)(0)
-      val fileNameWithExtension = fileName + ".txt"
-      val outFilePath = outDirectory + "/" + fileNameWithExtension
-      val outFile = new File(outFilePath)
-      if (skipExisting && outFile.exists()) {
-        println(s"file $fileName skipped due to params")
-      } else {
-        val tmpFilePath = temporaryDirectory.getAbsolutePath + "/" + fileNameWithExtension
-        val writer = new BufferedWriter(new FileWriter(new File(tmpFilePath), false))
-        try {
-          readDecodeAndWrite(file, writer)
-          writer.close()
-          Files.move(Paths.get(tmpFilePath), Paths.get(outFilePath), StandardCopyOption.REPLACE_EXISTING)
-        } catch {
-          case e: Throwable =>
-            println(s"File ${file.getName} threw an exception because ${e.getMessage}")
-            writer.close()
-            e.printStackTrace()
+      val outDirPath = outDirectory + File.separator
+      val tmpDirPath = temporaryDirectory.getAbsolutePath + File.separator
+      val writer = writerConstructor(tmpDirPath, fileName)
+      try {
+        readDecodeAndWrite(file, writer)
+        writer.close()
+        writer.getFileNames.foreach { fileNameWithExt =>
+          Files.move(Paths.get(tmpDirPath + fileNameWithExt), Paths.get(outDirPath + fileNameWithExt), StandardCopyOption.REPLACE_EXISTING)
         }
+      } catch {
+        case e: Throwable =>
+          println(s"File ${file.getName} threw an exception because ${e.getMessage}")
+          writer.close()
+          e.printStackTrace()
       }
     }
   }
@@ -162,8 +243,8 @@ object DecodePackets {
    * @param file file to read
    * @param writer writer for output
    */
-  private def preprocessed(file: File, writer: BufferedWriter): Unit = {
-    Using(Source.fromFile(file.getAbsolutePath)(decoder)) { source =>
+  private def preprocessed(file: File, writer: WriterWrapper): Unit = {
+    Using(Source.fromFile(file.getAbsolutePath)(utf8Decoder)) { source =>
       println(s"${decodeFileContents(writer, source.getLines())} lines read from file ${file.getName}")
     }
   }
@@ -173,7 +254,7 @@ object DecodePackets {
    * @param file file to read
    * @param writer writer for output
    */
-  private def gcapy(file: File, writer: BufferedWriter): Unit = {
+  private def gcapy(file: File, writer: WriterWrapper): Unit = {
     Using(Source.fromString(s"gcapy -xa '${file.getAbsolutePath}'" !!)) { source =>
       println(s"${decodeFileContents(writer, source.getLines())} lines read from file ${file.getName}")
     }
@@ -187,7 +268,7 @@ object DecodePackets {
    * @return number of lines read from the source
    */
   @throws(classOf[IOException])
-  private def decodeFileContents(writer: BufferedWriter, lines: Iterator[String]): Int = {
+  private def decodeFileContents(writer: WriterWrapper, lines: Iterator[String]): Int = {
     var linesToSkip = 0
     var linesRead: Int = 0
     for (line <- lines.drop(1)) {
@@ -195,23 +276,20 @@ object DecodePackets {
       if (linesToSkip > 0) {
         linesToSkip -= 1
       } else {
-        val decodedLine = decodePacket(line.drop(line.lastIndexOf(' ')))
-        writer.write(s"${shortGcapyString(line)}")
-        writer.newLine()
-        if (!isNestedPacket(decodedLine)) {
-          // Standard line, output as is with a bit of extra whitespace for readability
-          writer.write(decodedLine.replace(",", ", "))
-          writer.newLine()
-        } else {
+        val decodedLine = decodePacket(
+          shortGcapyString(line),
+          line.drop(line.lastIndexOf(' '))
+        )
+        writer.write(decodedLine)
+        val decodedLineText = decodedLine.text
+        if (isNestedPacket(decodedLineText)) {
           // Packet with nested packets, including possibly other nested packets within e.g. SlottedMetaPacket containing a MultiPacketEx
-          writer.write(s"${decodedLine.replace(",", ", ")}")
-          writer.newLine()
-          val nestedLinesToSkip = recursivelyHandleNestedPacket(decodedLine, writer)
+          val nestedLinesToSkip = recursivelyHandleNestedPacket(decodedLineText, writer)
           // Gcapy output has duplicated lines for SlottedMetaPackets, so we can skip over those if found to reduce noise
           // The only difference between the original and duplicate lines is a slight difference in timestamp of when the packet was processed
-          linesToSkip = decodedLine.indexOf("SlottedMetaPacket") match {
+          linesToSkip = decodedLineText.indexOf("SlottedMetaPacket") match {
             case pos if pos >= 0 && nestedLinesToSkip > 0 =>
-              writer.write(s"Skipping $nestedLinesToSkip duplicate lines")
+              writer.write(str = s"Skipping $nestedLinesToSkip duplicate lines")
               writer.newLine()
               nestedLinesToSkip
             case _ => 0
@@ -236,7 +314,7 @@ object DecodePackets {
   @throws(classOf[IOException])
   private def recursivelyHandleNestedPacket(
                                              decodedLine: String,
-                                             writer: BufferedWriter,
+                                             writer: WriterWrapper,
                                              depth: Int = 0
                                            ): Int = {
     if (decodedLine.indexOf("Failed to parse") >= 0) return depth
@@ -249,8 +327,8 @@ object DecodePackets {
         if (i == 0) writer.write("> ")
         else writer.write("-")
       }
-      val nextDecodedLine = decodePacket(packet)
-      writer.write(s"${nextDecodedLine.replace(",", ", ")}")
+      val nextDecodedLine = decodePacket(header="", packet).text
+      writer.write(nextDecodedLine)
       writer.newLine()
       if (isNestedPacket(nextDecodedLine)) {
         linesToSkip += recursivelyHandleNestedPacket(nextDecodedLine, writer, depth + 1)
@@ -289,10 +367,21 @@ object DecodePackets {
    * @param hexString raw packet data
    * @return decoded packet data
    */
-  private def decodePacket(hexString: String): String = {
-    PacketCoding.decodePacket(ByteVector.fromValidHex(hexString)) match {
-      case Successful(value) => value.toString
-      case Failure(cause)    => s"Decoding error '${cause.toString}'"
+  private def decodePacket(header: String, hexString: String): PacketOutput = {
+    val byteVector = ByteVector.fromValidHex(hexString)
+    PacketCoding.decodePacket(byteVector) match {
+      case Successful(value) => DecodedPacket(header, value.toString.replace(",", ", "))
+      case Failure(cause)    => DecodeError(header, s"Decoding error '${cause.toString}'")
     }
+  }
+
+  /** produce a wrapper that writes decoded packet data */
+  private def normalWriter(directoryPath: String, fileName: String): WriterWrapper = {
+    DecodeWriter(directoryPath, fileName)
+  }
+
+  /** produce a wrapper that writes decoded packet data and writes decode errors to a second file */
+  private def errorWriter(directoryPath: String, fileName: String): WriterWrapper = {
+    DecodeErrorWriter(directoryPath, fileName)
   }
 }
