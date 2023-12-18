@@ -889,7 +889,7 @@ class ZoningOperations(
   def beginZoningCountdown(runnable: Runnable): Unit = {
     val descriptor = zoningType.toString.toLowerCase
     if (zoningStatus == Zoning.Status.Request) {
-      avatarActor ! AvatarActor.DeinitializeImplants()
+      avatarActor ! AvatarActor.DeactivateActiveImplants()
       zoningStatus = Zoning.Status.Countdown
       val (time, origin) = ZoningStartInitialMessageAndTimer()
       zoningCounter = time
@@ -2300,18 +2300,8 @@ class ZoningOperations(
           //vehicle and driver/passenger
           val vdef  = vehicle.Definition
           val vguid = vehicle.GUID
-          val vdata = if (seat == 0) {
-            val seat = vehicle.Seats(0)
-            seat.unmount(player)
-            val _vdata = vdef.Packet.ConstructorData(vehicle).get
-            sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, _vdata))
-            seat.mount(player)
-            _vdata
-          } else {
-            val _vdata = vdef.Packet.ConstructorData(vehicle).get
-            sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, _vdata))
-            _vdata
-          }
+          val vdata = vdef.Packet.ConstructorData(vehicle).get
+          sendResponse(ObjectCreateMessage(vehicle.Definition.ObjectId, vguid, vdata))
           Vehicles.ReloadAccessPermissions(vehicle, continent.id)
           log.debug(s"AvatarCreate (vehicle): ${player.Name}'s ${vehicle.Definition.Name}")
           log.trace(s"AvatarCreate (vehicle): ${player.Name}'s ${vehicle.Definition.Name} - $vguid -> $vdata")
@@ -2777,10 +2767,7 @@ class ZoningOperations(
       }
       val originalDeadState = deadState
       deadState = DeadState.Alive
-      if (originalDeadState != DeadState.Alive) {
-        avatarActor ! AvatarActor.ResetImplants()
-      }
-
+      avatarActor ! AvatarActor.ResetImplants()
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
       initializeShortcutsAndBank(guid)
       //Favorites lists

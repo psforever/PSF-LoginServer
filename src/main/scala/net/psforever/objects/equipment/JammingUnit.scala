@@ -253,7 +253,7 @@ trait JammableMountedWeapons extends JammableBehavior {
 
   override def StartJammeredStatus(target: Any, dur: Int): Unit = {
     target match {
-      case obj: PlanetSideServerObject with MountedWeapons with JammableUnit if !obj.Jammed =>
+      case obj: PlanetSideServerObject with MountedWeapons with JammableUnit =>
         JammableMountedWeaponsJammeredStatus(obj, statusCode = 1)
         super.StartJammeredStatus(target, dur)
       case _ => ;

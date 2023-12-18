@@ -124,7 +124,7 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
 
   override def StartJammeredStatus(target: Any, dur: Int): Unit =
     target match {
-      case obj: PlanetSideServerObject with JammableUnit if !obj.Jammed =>
+      case obj: PlanetSideServerObject with JammableUnit =>
         obj.Zone.VehicleEvents ! VehicleServiceMessage(
           obj.Zone.id,
           VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 27, 1)

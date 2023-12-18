@@ -219,7 +219,7 @@ class SessionData(
     if (isMovingPlus) {
       if (zoning.zoningStatus == Zoning.Status.Deconstructing) {
         stopDeconstructing()
-      } else {
+      } else if (zoning.zoningStatus != Zoning.Status.None) {
         zoning.CancelZoningProcessWithDescriptiveReason("cancel_motion")
       }
     }

@@ -365,6 +365,8 @@ class PersistenceMonitor(
   def PerformLogout(): Unit = {
     (inZone.Players.find(p => p.name == name), inZone.LivePlayers.find(p => p.Name == name)) match {
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
+        //in case the player is holding the llu and disconnects
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DropSpecialItem())
         //alive or dead in a vehicle
         //if the avatar is dead while in a vehicle, they haven't released yet
         AvatarActor.saveAvatarData(avatar)
@@ -381,6 +383,8 @@ class PersistenceMonitor(
         PlayerAvatarLogout(avatar, player)
 
       case (Some(avatar), Some(player)) =>
+        //in case the player is holding the llu and disconnects
+        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DropSpecialItem())
         //alive or dead, as standard Infantry
         AvatarActor.saveAvatarData(avatar)
         AvatarActor.finalSavePlayerData(player)

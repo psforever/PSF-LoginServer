@@ -84,7 +84,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
 
   override def StartJammeredStatus(target: Any, dur: Int): Unit =
     target match {
-      case obj: PlanetSideServerObject with JammableUnit if !obj.Jammed =>
+      case obj: PlanetSideServerObject with JammableUnit =>
         val zone = obj.Zone
         zone.LocalEvents ! LocalServiceMessage(
           zone.id,
