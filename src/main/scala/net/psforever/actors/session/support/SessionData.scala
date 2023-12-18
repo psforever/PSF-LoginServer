@@ -2805,7 +2805,7 @@ class SessionData(
   }
 
   def charSaved(): Unit = {
-    sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@charsaved", None))
+    sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", s"@charsaved ${player.Position.x} ${player.Position.y} ${player.Position.z} ", None))
   }
 
   def startDeconstructing(obj: SpawnTube): Unit = {
