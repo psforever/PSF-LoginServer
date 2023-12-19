@@ -230,7 +230,7 @@ make install PREFIX=$HOME/.local
 ```
 Now you can run the program like that:
 ```
-psf-decode-packets -o ./output-directory foo.gcap bar.gcap
+psf-decode-packets -o ./output-directory -f foo.gcap bar.gcap
 ```
 By default, decodePackets takes in `.gcap` files, but it can also take gcapy ascii files with the
 `-p` option. Run `psf-decode-packets --help` to get usage info.
