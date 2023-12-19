@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.tools.decodePackets
 
-import java.io.{File, IOException}
+import java.io.{File, IOException, OutputStream, PrintStream}
 import java.nio.charset.CodingErrorAction
 import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import net.psforever.packet.PacketCoding
@@ -26,6 +26,12 @@ case class Config(
 
 object DecodePackets {
   private val utf8Decoder = Codec.UTF8.decoder.onMalformedInput(CodingErrorAction.REPORT)
+  private val normalSystemOut = System.out
+  private val outCapture: PrintStream = new PrintStream(new OutputStream() {
+    @Override
+    @throws(classOf[Exception])
+    def write(arg0: Int): Unit = { }
+  })
 
   def main(args: Array[String]): Unit = {
     val builder = OParser.builder[Config]
@@ -141,6 +147,8 @@ object DecodePackets {
    * and those that can not.
    * @param directory where the existing files may be found
    * @param files files to test for matching names
+   * @see `filesWithSameNameAs`
+   * @see `getAllFilePathsFromDirectory`
    * @return a tuple of file lists, comparing the param files against files in the directory;
    *         the first are the files whose names match;
    *         the second are the files whose names do not match
@@ -157,6 +165,7 @@ object DecodePackets {
    * and those that can not.
    * @param existingFiles files whose names are to test against
    * @param files files to test for matching names
+   * @see `lowercaseFileNameString`
    * @return a tuple of file lists, comparing the param files against files in the directory;
    *         the first are the files whose names match;
    *         the second are the files whose names do not match
@@ -184,6 +193,9 @@ object DecodePackets {
   /**
    * Enumerate over files found in the given directory for later.
    * @param directory where the files are found
+   * @see `Files.isDirectory`
+   * @see `Files.exists`
+   * @see `Paths.get`
    * @return the discovered file paths
    */
   private def getAllFilePathsFromDirectory(directory: String): Array[Path] = {
@@ -209,6 +221,9 @@ object DecodePackets {
    * @param temporaryDirectory destination directory where files temporarily exist while being written
    * @param outDirectory destination directory where the files are stored after being written
    * @param readDecodeAndWrite next step of the file decoding process
+   * @see `Files.move`
+   * @see `Paths.get`
+   * @see `System.setOut`
    */
   private def decodeFilesUsing(
                                 files: Seq[File],
@@ -224,7 +239,9 @@ object DecodePackets {
       val tmpDirPath = temporaryDirectory.getAbsolutePath + File.separator
       val writer = writerConstructor(tmpDirPath, fileName)
       try {
+        System.setOut(outCapture)
         readDecodeAndWrite(file, writer)
+        System.setOut(normalSystemOut)
         writer.close()
         writer.getFileNames.foreach { fileNameWithExt =>
           Files.move(Paths.get(tmpDirPath + fileNameWithExt), Paths.get(outDirPath + fileNameWithExt), StandardCopyOption.REPLACE_EXISTING)
@@ -242,6 +259,11 @@ object DecodePackets {
    * Read data from ASCII transcribed gcapy files.
    * @param file file to read
    * @param writer writer for output
+   * @see `decodeFileContents`
+   * @see `File.getAbsolutePath`
+   * @see `Source.fromFile`
+   * @see `Source.getLines`
+   * @see `Using`
    */
   private def preprocessed(file: File, writer: WriterWrapper): Unit = {
     Using(Source.fromFile(file.getAbsolutePath)(utf8Decoder)) { source =>
@@ -253,6 +275,11 @@ object DecodePackets {
    * Read data from gcapy files.
    * @param file file to read
    * @param writer writer for output
+   * @see `decodeFileContents`
+   * @see `File.getAbsolutePath`
+   * @see `Source.fromFile`
+   * @see `Source.getLines`
+   * @see `Using`
    */
   private def gcapy(file: File, writer: WriterWrapper): Unit = {
     Using(Source.fromString(s"gcapy -xa '${file.getAbsolutePath}'" !!)) { source =>
@@ -265,6 +292,10 @@ object DecodePackets {
    * @param writer writer for output
    * @param lines raw packet data from the source
    * @throws java.io.IOException if writing data goes incorrectly
+   * @see `decodePacket`
+   * @see `isNestedPacket`
+   * @see `recursivelyHandleNestedPacket`
+   * @see `shortGcapyString`
    * @return number of lines read from the source
    */
   @throws(classOf[IOException])
@@ -276,15 +307,13 @@ object DecodePackets {
       if (linesToSkip > 0) {
         linesToSkip -= 1
       } else {
-        val decodedLine = decodePacket(
-          shortGcapyString(line),
-          line.drop(line.lastIndexOf(' '))
-        )
+        val header = shortGcapyString(line)
+        val decodedLine = decodePacket(header, line.drop(line.lastIndexOf(' ')))
         writer.write(decodedLine)
         val decodedLineText = decodedLine.text
         if (isNestedPacket(decodedLineText)) {
           // Packet with nested packets, including possibly other nested packets within e.g. SlottedMetaPacket containing a MultiPacketEx
-          val nestedLinesToSkip = recursivelyHandleNestedPacket(decodedLineText, writer)
+          val nestedLinesToSkip = recursivelyHandleNestedPacket(header, decodedLineText, writer)
           // Gcapy output has duplicated lines for SlottedMetaPackets, so we can skip over those if found to reduce noise
           // The only difference between the original and duplicate lines is a slight difference in timestamp of when the packet was processed
           linesToSkip = decodedLineText.indexOf("SlottedMetaPacket") match {
@@ -309,10 +338,16 @@ object DecodePackets {
    * @param writer writer for output
    * @param depth the number of layers to indent
    * @throws java.io.IOException if writing data goes incorrectly
+   * @see `decodePacket`
+   * @see `IOException`
+   * @see `isNestedPacket`
+   * @see `nested`
+   * @see `Regex.findAllIn`
    * @return current indent layer
    */
   @throws(classOf[IOException])
   private def recursivelyHandleNestedPacket(
+                                             header: String,
                                              decodedLine: String,
                                              writer: WriterWrapper,
                                              depth: Int = 0
@@ -323,16 +358,15 @@ object DecodePackets {
     var linesToSkip = 0
     while (matches.hasNext) {
       val packet = matches.next()
-      for (i <- depth to 0 by -1) {
-        if (i == 0) writer.write("> ")
-        else writer.write("-")
+      for (_ <- depth until 0 by -1) {
+        writer.write(str = "-")
       }
-      val nextDecoded = decodePacket(decodedLine, packet)
+      writer.write(str = "> ")
+      val nextDecoded = nested(decodePacket(header, packet))
       val nextDecodedLine = nextDecoded.text
       writer.write(nextDecoded)
-      writer.newLine()
       if (isNestedPacket(nextDecodedLine)) {
-        linesToSkip += recursivelyHandleNestedPacket(nextDecodedLine, writer, depth + 1)
+        linesToSkip += recursivelyHandleNestedPacket(header, nextDecodedLine, writer, depth + 1)
       }
       linesToSkip += 1
     }
@@ -366,19 +400,37 @@ object DecodePackets {
   /**
    * Actually decode the packet data.
    * @param hexString raw packet data
+   * @see `ByteVector.fromValidHex`
+   * @see `DecodeError`
+   * @see `DecodedPacket`
+   * @see `PacketCoding.decodePacket`
    * @return decoded packet data
    */
   private def decodePacket(header: String, hexString: String): PacketOutput = {
     val byteVector = ByteVector.fromValidHex(hexString)
-    PacketCoding.decodePacket(byteVector) match {
-      case Successful(value) => DecodedPacket(header, value.toString.replace(",", ", "))
-      case Failure(cause)    => DecodeError(header, s"Decoding error '${cause.toString}'")
+    val result = PacketCoding.decodePacket(byteVector) match {
+      case Successful(value) => DecodedPacket(Some(header), value.toString.replace(",", ", "))
+      case Failure(cause) => DecodeError(Some(header), s"Decoding error '${cause.toString}'")
     }
+    result
   }
 
   /** produce a wrapper that writes decoded packet data */
   private def normalWriter(directoryPath: String, fileName: String): WriterWrapper = {
     DecodeWriter(directoryPath, fileName)
+  }
+
+  /**
+   * When nested, a normal properly decoded packet does not print header information.
+   * The header usually contains the original encoded hexadecimal string.
+   * @param in decoded packet data
+   * @return decoded packet data, potentially without header information
+   */
+  private def nested(in: PacketOutput): PacketOutput = {
+    in match {
+      case DecodedPacket(_, text) if !in.text.contains("Decoding error") => DecodedPacket(header=None, text)
+      case _ => in
+    }
   }
 
   /** produce a wrapper that writes decoded packet data and writes decode errors to a second file */
