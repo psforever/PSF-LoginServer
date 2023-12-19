@@ -98,8 +98,9 @@ object ObjectCreateBase {
       }
     } catch {
       case ex: Exception =>
-        log.error(s"Decoding error - ${ex.getClass.toString} - ${ex.toString} ($objectClass)")
-        Attempt.failure(Err(ex.getMessage))
+        val msg = s"Decoding error - ${ex.toString} ($objectClass)"
+        log.error(msg)
+        Attempt.failure(Err(msg))
     }
   }
 
