@@ -26,12 +26,10 @@ case class Config(
 
 object DecodePackets {
   private val utf8Decoder = Codec.UTF8.decoder.onMalformedInput(CodingErrorAction.REPORT)
+  /** important: must be Java's System.out! */
   private val normalSystemOut = System.out
-  private val outCapture: PrintStream = new PrintStream(new OutputStream() {
-    @Override
-    @throws(classOf[Exception])
-    def write(arg0: Int): Unit = { }
-  })
+  /** important: must be composed of Java classes; log4j interacts with the system as a Java library */
+  private val outCapture: PrintStream = new PrintStream(new DeafMuteStream())
 
   def main(args: Array[String]): Unit = {
     val builder = OParser.builder[Config]
@@ -139,6 +137,8 @@ object DecodePackets {
       )
       deleteThese.foreach(FileUtils.forceDelete)
     }
+    //close the decoy console output stream that's been running since the application started
+    outCapture.close()
   }
 
   /**
@@ -437,4 +437,14 @@ object DecodePackets {
   private def errorWriter(directoryPath: String, fileName: String): WriterWrapper = {
     DecodeErrorWriter(directoryPath, fileName)
   }
+}
+
+/**
+ * I thought what I'd do was, I'd pretend I was one of those deaf-mutes.
+ * That way I wouldn't have to have any goddam stupid useless conversations with anybody.
+ */
+private class DeafMuteStream() extends OutputStream {
+  override def write(arg0: Int): Unit = { /* do nothing */ }
+  override def write(arg0: Array[Byte]): Unit = { /* do nothing */ }
+  override def write(arg0: Array[Byte],  arg1: Int, arg2: Int): Unit = { /* do nothing */ }
 }
