@@ -29,7 +29,7 @@ object DecodePackets {
   /** important: must be Java's System.out! */
   private val normalSystemOut = System.out
   /** important: must be composed of Java classes; log4j interacts with the system as a Java library */
-  private val outCapture: PrintStream = new PrintStream(new DeafMuteStream())
+  private var outCapture: PrintStream = _
 
   def main(args: Array[String]): Unit = {
     val builder = OParser.builder[Config]
@@ -120,11 +120,16 @@ object DecodePackets {
       normalWriter
     }
 
+    //create a decoy console output stream (suppress output from the decode process)
+    outCapture = new PrintStream(new DeafMuteStream())
     if (opts.preprocessed) {
       decodeFilesUsing(files, extension = ".txt", tmpFolder, opts.outDir, bufferedWriter, preprocessed)
     } else {
       decodeFilesUsing(files, extension = ".gcap", tmpFolder, opts.outDir, bufferedWriter, gcapy)
     }
+    //close and null the decoy console output stream
+    outCapture.close()
+    outCapture = null
 
     if (deleteTempFolderAfterwards) {
       //if the temporary directory only exists because of this script, it should be safe to delete it
@@ -137,8 +142,6 @@ object DecodePackets {
       )
       deleteThese.foreach(FileUtils.forceDelete)
     }
-    //close the decoy console output stream that's been running since the application started
-    outCapture.close()
   }
 
   /**
