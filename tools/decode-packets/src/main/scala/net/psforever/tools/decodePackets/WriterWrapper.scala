@@ -37,7 +37,13 @@ final case class DecodeErrorWriter(directoryPath: String, fileName: String)
   private val log: DecodeWriter = DecodeWriter(directoryPath, fileName)
   private val errorLog: DecodeWriter = DecodeWriter(directoryPath, fileName+".error")
 
-  def write(str: String): Unit = log.write(str)
+  def write(str: String): Unit = {
+    log.write(str)
+    if (str.contains("Decoding error")) {
+      errorLog.write(str)
+      errorLog.newLine()
+    }
+  }
 
   def write(data: PacketOutput): Unit = {
     log.write(data)
@@ -45,6 +51,9 @@ final case class DecodeErrorWriter(directoryPath: String, fileName: String)
     data match {
       case error: DecodeError =>
         errorLog.write(error)
+        errorLog.newLine()
+      case result if result.text.contains("Decoding error") =>
+        errorLog.write(data)
         errorLog.newLine()
       case _ => ()
     }

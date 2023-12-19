@@ -129,7 +129,7 @@ object DecodePackets {
       //delete just the files that were created (if files were overwrote, nothing we can do)
       val (deleteThese, _) = filesWithSameNameAs(
         files,
-        getAllFilePathsFromDirectory(tmpFolder.getAbsolutePath).map(_.toFile)
+        getAllFilePathsFromDirectory(tmpFolder.getAbsolutePath).toIndexedSeq.map(_.toFile)
       )
       deleteThese.foreach(FileUtils.forceDelete)
     }
@@ -147,7 +147,7 @@ object DecodePackets {
    */
   private def filesWithSameNameInDirectory(directory: String, files: Seq[File]): (Seq[File], Seq[File]) = {
     filesWithSameNameAs(
-      getAllFilePathsFromDirectory(directory).map(_.toFile),
+      getAllFilePathsFromDirectory(directory).toIndexedSeq.map(_.toFile),
       files
     )
   }
@@ -327,8 +327,9 @@ object DecodePackets {
         if (i == 0) writer.write("> ")
         else writer.write("-")
       }
-      val nextDecodedLine = decodePacket(header="", packet).text
-      writer.write(nextDecodedLine)
+      val nextDecoded = decodePacket(decodedLine, packet)
+      val nextDecodedLine = nextDecoded.text
+      writer.write(nextDecoded)
       writer.newLine()
       if (isNestedPacket(nextDecodedLine)) {
         linesToSkip += recursivelyHandleNestedPacket(nextDecodedLine, writer, depth + 1)
