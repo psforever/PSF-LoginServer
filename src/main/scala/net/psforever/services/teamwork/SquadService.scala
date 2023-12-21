@@ -6,7 +6,7 @@ import java.io.{PrintWriter, StringWriter}
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 //
-import net.psforever.objects.{Default, LivePlayerList, Player}
+import net.psforever.objects.{LivePlayerList, Player}
 import net.psforever.objects.teamwork.{Member, Squad, SquadFeatures}
 import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.definition.converter.StatConverter
@@ -902,9 +902,8 @@ class SquadService extends Actor {
     val squad = features.Squad
     subs.UserEvents.get(charId) match {
       case Some(events)
-        if !memberToSquad.contains(charId) &&
-          squad.Leader.CharId != charId &&
-          squad.isAvailable(position, player.avatar.certifications) =>
+        if squad.isAvailable(position, player.avatar.certifications) &&
+          EnsureEmptySquad(charId) =>
         memberToSquad(charId) = squad.GUID
         subs.MonitorSquadDetails.subtractOne(charId)
         invitations.handleCleanup(charId)
@@ -1083,6 +1082,7 @@ class SquadService extends Actor {
     pSquadOpt match {
       //member of the squad; leave the squad
       case Some(features) =>
+        LeaveSquad(charId, features)
         val squad = features.Squad
         val size = squad.Size
         subs.UserEvents.remove(charId) match {
@@ -1093,25 +1093,11 @@ class SquadService extends Actor {
         if (size > 2) {
           GetLeadingSquad(charId, pSquadOpt) match {
             case Some(_) =>
-              //leader of a squad; search for a suitable substitute leader
-              squad.Membership.drop(1).find { _.CharId > 0 } match {
-                case Some(member) =>
-                  //leader was shifted into a subordinate position and will retire from duty
-                  SquadActionMembershipPromote(
-                    charId,
-                    member.CharId,
-                    features,
-                    SquadServiceMessage(null, null, SquadAction.Membership(SquadRequestType.Promote, charId, Some(member.CharId), "", None)),
-                    Default.Actor
-                  )
-                  LeaveSquad(charId, features)
-                case _ =>
-                  //the squad will be disbanded
-                  PanicDisbandSquad(
-                    features,
-                    squad.Membership.collect { case member if member.CharId > 0 && member.CharId != charId => member.CharId }
-                  )
-              }
+              //leader of a squad; the squad will be disbanded. Same logic as when a SL uses /leave and the squad is disband.
+              PanicDisbandSquad(
+                features,
+                squad.Membership.collect { case member if member.CharId > 0 && member.CharId != charId => member.CharId }
+              )
             case None =>
               //not the leader of a full squad; tell other members that we are leaving
               SquadSwitchboard.PanicLeaveSquad(

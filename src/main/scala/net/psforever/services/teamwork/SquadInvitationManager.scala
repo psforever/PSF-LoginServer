@@ -165,7 +165,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
     val availableForJoiningSquad = notLimitedByEnrollmentInSquad(invitedPlayerSquadOpt, invitedPlayer)
     acceptedInvite match {
       case Some(RequestRole(petitioner, features, position))
-        if availableForJoiningSquad && canEnrollInSquad(features, petitioner.CharId) =>
+        if canEnrollInSquad(features, petitioner.CharId) =>
         //player requested to join a squad's specific position
         //invitedPlayer is actually the squad leader; petitioner is the actual "invitedPlayer"
         if (JoinSquad(petitioner, features, position)) {
@@ -174,7 +174,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
         }
 
       case Some(IndirectInvite(recruit, features))
-        if availableForJoiningSquad && canEnrollInSquad(features, recruit.CharId) =>
+        if canEnrollInSquad(features, recruit.CharId) =>
         //tplayer / invitedPlayer is actually the squad leader
         val recruitCharId = recruit.CharId
         HandleVacancyInvite(features, recruitCharId, invitedPlayer, recruit) match {
@@ -456,7 +456,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
         (Some(rejectingPlayer), Some(leaderCharId))
 
       case Some(RequestRole(rejected, features, _))
-        if notLeaderOfThisSquad(squadsToLeaders, features.Squad.GUID, rejectingPlayer) =>
+        if notLeaderOfThisSquad(squadsToLeaders, features.Squad.GUID, rejected.CharId) =>
         //rejected is the would-be squad member; rejectingPlayer is the squad leader who rejected the request
         features.DeniedPlayers(rejected.CharId)
         (Some(rejectingPlayer), None)
