@@ -27,16 +27,19 @@ class SessionTerminalHandlers(
                              ) extends CommonSessionInterfacingFunctionality {
   private[support] var lastTerminalOrderFulfillment: Boolean = true
   private[support] var usingMedicalTerminal: Option[PlanetSideGUID] = None
+  //player ran too far away from the terminal after ordering. Allows them to purchase another if they return
+  private var wentOutOfRange = false
 
   /* packets */
 
   def handleItemTransaction(pkt: ItemTransactionMessage): Unit = {
     val ItemTransactionMessage(terminalGuid, transactionType, _, itemName, _, _) = pkt
     continent.GUID(terminalGuid) match {
-      case Some(term: Terminal) if lastTerminalOrderFulfillment =>
+      case Some(term: Terminal) if lastTerminalOrderFulfillment || wentOutOfRange =>
         val msg: String = if (itemName.nonEmpty) s" of $itemName" else ""
         log.info(s"${player.Name} is submitting an order - a $transactionType from a ${term.Definition.Name}$msg")
         lastTerminalOrderFulfillment = false
+        wentOutOfRange = true
         sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         term.Actor ! Terminal.Request(player, pkt)
       case Some(_: Terminal) =>
