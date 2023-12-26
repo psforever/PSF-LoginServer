@@ -1009,6 +1009,8 @@ class SquadService extends Actor {
           subs.Publish(charId, SquadResponse.Detail(PlanetSideGUID(0), completelyBlankSquadDetail))
       }
     UpdateSquadListWhenListed(features.Stop, None)
+    //I think this is right, otherwise squadFeatures will never be empty and TryResetSquadId will not reset to 1
+    squadFeatures.remove(guid)
   }
 
   /**
