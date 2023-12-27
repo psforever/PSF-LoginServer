@@ -3,6 +3,7 @@ package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import scodec.Codec
+import scodec.bits.ByteVector
 import scodec.codecs._
 
 /**
@@ -19,7 +20,8 @@ final case class VoiceHostRequest(
     remote_host: Boolean,
     port: Int,
     bandwidth: Int,
-    remote_ip: String
+    remote_ip: String,
+    data: ByteVector
 ) extends PlanetSideGamePacket {
   require(port > 0)
   require(port <= 65535)
@@ -35,6 +37,7 @@ object VoiceHostRequest extends Marshallable[VoiceHostRequest] {
     ("remote_host" | bool) ::
       ("port" | uint16L) ::
       ("bandwidth" | uint8L) ::
-      ("remote_ip" | PacketHelpers.encodedStringAligned(7))
+      ("remote_ip" | PacketHelpers.encodedStringAligned(7)) ::
+      ("data" | bytes)
     ).as[VoiceHostRequest]
 }
