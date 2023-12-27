@@ -177,7 +177,6 @@ class SquadSwitchboard(
     } else {
       //joining an active squad; different people update differently
       //new member gets full squad UI updates
-      subscriptions.InitSquadDetail(squad.GUID, Seq(charId), squad)
       subscriptions.Publish(
         charId,
         SquadResponse.Join(
@@ -203,6 +202,7 @@ class SquadSwitchboard(
       //update for leader
       subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(charId, role.Name, role.Certifications, 40, 5, role.ZoneId))
       subscriptions.SquadEvents.subscribe(sendTo, s"/$toChannel/Squad")
+      subscriptions.InitSquadDetail(squad.GUID, Seq(charId), squad)
     }
     context.parent ! SquadService.UpdateSquadListWhenListed(
       features,
