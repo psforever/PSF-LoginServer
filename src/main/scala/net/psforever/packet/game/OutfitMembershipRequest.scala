@@ -1,20 +1,19 @@
-// Copyright (c) 2017 PSForever
+// Copyright (c) 2023 PSForever
 package net.psforever.packet.game
 
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import net.psforever.types.PlanetSideGUID
-import scodec.Codec
+import scodec.{Attempt, Codec, Err}
+import scodec.bits.BitVector
 import scodec.codecs._
+import shapeless.{::, HNil}
 
 final case class OutfitMembershipRequest(
     request_type: OutfitMembershipRequest.RequestType.Type,
     avatar_guid: PlanetSideGUID,
     unk1: Int,
-    unk2: String,
-    unk3: Int,
-    unk4: Boolean,
-    outfit_name: String
-) extends PlanetSideGamePacket {
+    action: OutfitAction
+  ) extends PlanetSideGamePacket {
   type Packet = OutfitMembershipRequest
 
   def opcode = GamePacketOpcode.OutfitMembershipRequest
@@ -22,81 +21,161 @@ final case class OutfitMembershipRequest(
   def encode = OutfitMembershipRequest.encode(this)
 }
 
+abstract class OutfitAction(val code: Int)
+object OutfitAction {
+
+  final case class CreateOutfit(unk2: String, unk3: Int, unk4: Boolean, outfit_name: String) extends OutfitAction(code = 0)
+
+  final case class FormOutfit(unk2: String, unk3: Int, unk4: Boolean, outfit_name: String) extends OutfitAction(code = 1)
+
+  final case class AcceptOutfitInvite(unk2: String) extends OutfitAction(code = 3)
+
+  final case class RejectOutfitInvite(unk2: String) extends OutfitAction(code = 4)
+
+  final case class CancelOutfitInvite(unk5: Int, unk6: Int, outfit_name: String) extends OutfitAction(code = 5)
+
+  final case class Unknown(badCode: Int, data: BitVector) extends OutfitAction(badCode)
+
+  /**
+    * The `Codec`s used to transform the input stream into the context of a specific action
+    * and extract the field data from that stream.
+    */
+  object Codecs {
+    private val everFailCondition = conditional(included = false, bool)
+
+    val CreateOutfitCodec =
+      (PacketHelpers.encodedWideString :: uint4L :: bool :: PacketHelpers.encodedWideString).xmap[CreateOutfit](
+        {
+          case unk2 :: unk3 :: unk4 :: outfit_name :: HNil =>
+            CreateOutfit(unk2, unk3, unk4, outfit_name)
+        },
+        {
+          case CreateOutfit(unk2, unk3, unk4, outfit_name) =>
+            unk2 :: unk3 :: unk4 :: outfit_name :: HNil
+        }
+      )
+
+    val FormOutfitCodec =
+      (PacketHelpers.encodedWideString :: uint4L :: bool :: PacketHelpers.encodedWideString).xmap[FormOutfit](
+        {
+          case unk2 :: unk3 :: unk4 :: outfit_name :: HNil =>
+            FormOutfit(unk2, unk3, unk4, outfit_name)
+        },
+        {
+          case FormOutfit(unk2, unk3, unk4, outfit_name) =>
+            unk2 :: unk3 :: unk4 :: outfit_name :: HNil
+        }
+      )
+
+    val AcceptOutfitCodec =
+      (PacketHelpers.encodedWideString).xmap[AcceptOutfitInvite](
+        {
+          case unk2 =>
+            AcceptOutfitInvite(unk2)
+        },
+        {
+          case AcceptOutfitInvite(unk2) =>
+            unk2
+        }
+      )
+
+    val RejectOutfitCodec =
+      (PacketHelpers.encodedWideString).xmap[RejectOutfitInvite](
+        {
+          case unk2 =>
+            RejectOutfitInvite(unk2)
+        },
+        {
+          case RejectOutfitInvite(unk2) =>
+            unk2
+        }
+      )
+
+    val CancelOutfitCodec =
+      (uint16L :: uint16L :: PacketHelpers.encodedWideStringAligned(5)).xmap[CancelOutfitInvite](
+        {
+          case unk5 :: unk6 :: outfit_name :: HNil =>
+            CancelOutfitInvite(unk5, unk6, outfit_name)
+        },
+        {
+          case CancelOutfitInvite(unk5, unk6, outfit_name) =>
+            unk5 :: unk6 :: outfit_name :: HNil
+        }
+      )
+
+    /**
+      * A common form for known action code indexes with an unknown purpose and transformation is an "Unknown" object.
+      * @param action the action behavior code
+      * @return a transformation between the action code and the unknown bit data
+      */
+    def unknownCodec(action: Int) =
+      bits.xmap[Unknown](
+        data => Unknown(action, data),
+        {
+          case Unknown(_, data) => data
+        }
+      )
+
+    /**
+      * The action code was completely unanticipated!
+      * @param action the action behavior code
+      * @return nothing; always fail
+      */
+    def failureCodec(action: Int) =
+      everFailCondition.exmap[OutfitAction](
+        _ => Attempt.failure(Err(s"can not match a codec pattern for decoding $action")),
+        _ => Attempt.failure(Err(s"can not match a codec pattern for encoding $action"))
+      )
+  }
+}
+
 object OutfitMembershipRequest extends Marshallable[OutfitMembershipRequest] {
 
   object RequestType extends Enumeration {
     type Type = Value
 
-    val Create = Value(0x0)
-    val Form   = Value(0x1)
-    val Accept = Value(0x3)
-    val Reject = Value(0x4)
-    val Cancel = Value(0x5)
+    val Create = Value(0)
+    val Form   = Value(1)
+    val Unk2   = Value(2)
+    val Accept = Value(3)
+    val Reject = Value(4)
+    val Cancel = Value(5)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
 
+  def selectFromType(code: Int): Codec[OutfitAction] = {
+    import OutfitAction.Codecs._
+    import scala.annotation.switch
+
+    ((code: @switch) match {
+      case 0 => CreateOutfitCodec
+      case 1 => FormOutfitCodec // so far same as Create
+      case 2 => unknownCodec(action = code)
+      case 3 => AcceptOutfitCodec
+      case 4 => RejectOutfitCodec // so far same as Accept
+      case 5 => CancelOutfitCodec
+      case 6 => unknownCodec(action = code)
+      case 7 => unknownCodec(action = code)
+      // 3 bit limit
+      case _ => failureCodec(code)
+    }).asInstanceOf[Codec[OutfitAction]]
+  }
+
   implicit val codec: Codec[OutfitMembershipRequest] = (
-    ("request_type" | RequestType.codec) ::
-      ("avatar_guid" | PlanetSideGUID.codec) :: // as in DB avatar table
-      ("unk1" | uint16L) :: // avatar2_guid / invited player ?
-      ("unk2" | PacketHelpers.encodedWideString) :: // could be string
-      ("unk3" | uint4L) ::
-      ("unk4" | bool) ::
-      ("outfit_name" | PacketHelpers.encodedWideString)
-  ).as[OutfitMembershipRequest]
+    ("request_type" | RequestType.codec) >>:~ { request_type =>
+      ("avatar_guid" | PlanetSideGUID.codec) ::
+        ("unk1" | uint16L) ::
+        ("action" | selectFromType(request_type.id))
+    }
+  ).xmap[OutfitMembershipRequest](
+    {
+      case request_type :: avatar_guid :: u1 :: action :: HNil =>
+        OutfitMembershipRequest(request_type, avatar_guid, u1, action)
+    },
+    {
+      case OutfitMembershipRequest(request_type, avatar_guid, u1, action) =>
+        request_type :: avatar_guid :: u1 :: action :: HNil
+    }
+  )
 }
-
-/*
-
-/outfitcreate
-
-0 0200 000 1000 83 410042004300 -- /outfitcreate ABC -- from AA       - TR BR 24 CR 0
-0 0200 000 1000 83 410042004300 -- /outfitcreate ABC -- from AA       - TR BR 24 CR 0
-0 1000 000 1000 83 410042004300 -- /outfitcreate ABC -- from TTEESSTT - TR BR 24 CR 0
-
-0 0a00 000 1000 83 310032003300 -- /outfitcreate 123 -- from BBBB - TR BR 1 CR 0
-0 0a00 000 1000 83 310032003300
-0 0a00 000 1000 83 310032003300
-0 0a00 000 1000 83 310032003300
-0 0a00 000 1000 83 410042004300 -- ABC
-
-0 0400 000 1000 83 580059005a00 -- /outfitcreate XYZ -- from BB   - VS BR 24 CR 0
-
-0 1000 000 1000 84 3200320032003200 -- /outfitcreate 2222 -- from TTEESSTT   - TR BR 24 CR 0
-
-/outfitform
-
-20 2000 00 1000 83 610062006300 -- /outfitform abc -- from AA       - TR BR 24 CR 0
-21 0000 00 1000 81 3100         -- /outfitform 1   -- from TTEESSTT - TR BR 24 CR 0
-
-/outfitinvite
-
-3 // guess
-
-/outfitkick
-
-4 // guess
-
-/outfitaccept
-
-60 2000 00 1000 -- from AA  - TR BR 24 CR 0
-60 4000 00 1000 -- from BB  - VS BR 24 CR 0
-
-/outfitreject
-
-80 2000 00 1000 -- from AA  - TR BR 24 CR 0
-80 4000 00 1000 -- from BB  - VS BR 24 CR 0
-80 6000 00 1000 -- from BBB - NC BR 1  CR 0
-
-/outfitcancel
-
-a0 2000 00 0000 0000 1000 -- from AA  - TR BR 24 CR 0
-a0 4000 00 0000 0000 1000 -- from BB  - VS BR 24 CR 0
-a0 6000 00 0000 0000 1000 -- from BBB - NC BR 1  CR 0
-
-a0 2000 00 0000 0000 1060 610064006200 -- /outfitcancel abc      -- from AA - TR BR 24 CR 0
-a0 2000 00 0000 0000 1080 3100320033003400 -- /outfitcancel 1234 -- from AA - TR BR 24 CR 0
-
- */
-
