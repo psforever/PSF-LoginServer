@@ -107,7 +107,7 @@ object KillContributions {
    * @see `CombinedHealthAndArmorContributionProcess`
    * @see `composeContributionOutput`
    * @see `initialScoring`
-   * @see `KillAssists.calculateMenace`
+   * @see `Support.calculateMenace`
    * @see `limitHistoryToThisLife`
    * @see `rewardTheseSupporters`
    * @see `SupportActivity`
@@ -140,7 +140,7 @@ object KillContributions {
     val empty = mutable.ListBuffer[SourceUniqueness]()
     empty.addOne(target.unique)
     val otherContributionCalculations = additionalContributionSources(faction, kill, contributions)(_, _, _)
-    if (longHistory.nonEmpty && KillAssists.calculateMenace(target) > 3) {
+    if (longHistory.nonEmpty && Support.calculateMenace(target) > 3) {
       //long and short history
       val longContributionProcess = new CombinedHealthAndArmorContributionProcess(faction, contributions, Nil)
       val shortContributionProcess = new CombinedHealthAndArmorContributionProcess(faction, contributions, Seq(longContributionProcess))

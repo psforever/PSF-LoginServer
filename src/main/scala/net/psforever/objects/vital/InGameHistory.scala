@@ -50,13 +50,28 @@ trait SupportActivityCausedByAnother {
   def amount: Int
 }
 
+trait ExoSuitChange {
+  def exosuit: ExoSuitType.Value
+}
+
+trait CommonExoSuitChange extends ExoSuitChange {
+  def src: SourceEntry
+
+  def exosuit: ExoSuitType.Value = {
+    src match {
+      case p: PlayerSource => p.ExoSuit
+      case _               => ExoSuitType.Standard
+    }
+  }
+}
+
 trait IncarnationActivity extends GeneralActivity
 
 final case class SpawningActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry])
-  extends IncarnationActivity
+  extends IncarnationActivity with CommonExoSuitChange
 
 final case class ReconstructionActivity(src: SourceEntry, zoneNumber: Int, unit: Option[SourceEntry])
-  extends IncarnationActivity
+  extends IncarnationActivity with CommonExoSuitChange
 
 final case class RevivingActivity(target: SourceEntry, user: PlayerSource, amount: Int, equipment: EquipmentDefinition)
   extends IncarnationActivity with SupportActivityCausedByAnother
@@ -154,7 +169,7 @@ final case class HealFromImplant(implant: ImplantType, amount: Int)
   extends HealingActivity
 
 final case class RepairFromExoSuitChange(exosuit: ExoSuitType.Value, amount: Int)
-  extends RepairingActivity
+  extends RepairingActivity with ExoSuitChange
 
 final case class RepairFromKit(kit_def: KitDefinition, amount: Int)
     extends RepairingActivity()

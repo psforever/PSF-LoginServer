@@ -643,7 +643,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       player.ExoSuit = exosuit //changes the value of MaxArmor to reflect the new exo-suit
       val toMaxArmor = player.MaxArmor
       val toArmor = toMaxArmor
-      if (originalArmor != toMaxArmor) {
+      if (originalSuit != exosuit || originalArmor != toMaxArmor) {
         player.LogActivity(RepairFromExoSuitChange(exosuit, toMaxArmor - originalArmor))
       }
       player.Armor = toMaxArmor

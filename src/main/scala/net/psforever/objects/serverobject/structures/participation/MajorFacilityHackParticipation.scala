@@ -110,10 +110,10 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
         )
         //1) experience from killing opposingFaction across duration of hack
         //The kills that occurred in the facility's attached field tower's sphere of influence have been eliminated from consideration.
-        val baseExperienceFromFacilityCapture: Long = FacilityHackParticipation.calculateExperienceFromKills(
+        val baseExperienceFromFacilityCapture: Long = (FacilityHackParticipation.calculateExperienceFromKills(
           killsByPlayersNotInTower,
           contributionOpposingSize
-        )
+        ) * Config.app.game.experience.facilityCaptureRate).toLong
         val events = building.Zone.AvatarEvents
         val buildingId = building.GUID.guid
         val zoneNumber = building.Zone.Number

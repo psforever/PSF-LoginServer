@@ -50,7 +50,7 @@ final case class TowerHackParticipation(building: Building) extends FacilityHack
       val hackerId = hacker.CharId
       //1) experience from killing opposingFaction
       //Because the hack duration of towers is instantaneous, the prior period of five minutes is artificially selected.
-      val baseExperienceFromFacilityCapture: Long = FacilityHackParticipation.calculateExperienceFromKills(
+      val baseExperienceFromFacilityCapture: Long = (FacilityHackParticipation.calculateExperienceFromKills(
         FacilityHackParticipation.allocateKillsByPlayers(
           building.Position,
           building.Definition.SOIRadius.toFloat,
@@ -60,7 +60,7 @@ final case class TowerHackParticipation(building: Building) extends FacilityHack
           contributionVictor
         ),
         contributionOpposingSize
-      )
+      ) * Config.app.game.experience.facilityCaptureRate).toLong
       //based on this math, the optimal number of enemy for experience gain is 20
       //max value of: 1000 * pop * max(0, (40 - pop)) * 0.1
       if (baseExperienceFromFacilityCapture > 0) {
