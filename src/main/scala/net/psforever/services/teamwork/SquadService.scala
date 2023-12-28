@@ -1084,7 +1084,7 @@ class SquadService extends Actor {
     pSquadOpt match {
       //member of the squad; leave the squad
       case Some(features) =>
-        LeaveSquad(charId, features)
+        LeaveSquad(charId, features) //adding this fixed issue of rejoining the squad on login.
         val squad = features.Squad
         val size = squad.Size
         subs.UserEvents.remove(charId) match {
