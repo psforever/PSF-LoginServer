@@ -1095,7 +1095,7 @@ class SquadService extends Actor {
         if (size > 2) {
           GetLeadingSquad(charId, pSquadOpt) match {
             case Some(_) =>
-              //leader of a squad; the squad will be disbanded. Same logic as when a SL uses /leave and the squad is disband.
+              //leader of a squad; the squad will be disbanded. Same logic as when a SL uses /leave and the squad is disbanded.
               PanicDisbandSquad(
                 features,
                 squad.Membership.collect { case member if member.CharId > 0 && member.CharId != charId => member.CharId }
