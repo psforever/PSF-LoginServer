@@ -950,6 +950,7 @@ class SquadService extends Actor {
     membership.find { case (_member, _) => _member.CharId == charId } match {
       case Some(_) if squad.Leader.CharId != charId =>
         memberToSquad.remove(charId)
+        subs.MonitorSquadDetails.subtractOne(charId)
         features.Switchboard ! SquadSwitchboard.Leave(charId)
         true
       case _ =>

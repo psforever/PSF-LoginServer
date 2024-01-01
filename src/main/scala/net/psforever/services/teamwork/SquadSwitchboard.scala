@@ -171,7 +171,7 @@ class SquadSwitchboard(
       //update for leader
       features.InitialAssociation = false
       subscriptions.Publish(leaderId, SquadResponse.IdentifyAsSquadLeader(squad.GUID))
-      subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(charId, role.Name, role.Certifications, 40, 5, role.ZoneId))
+      subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(charId, role.Name, role.Certifications, player.avatar.br.value, player.avatar.cr.value, role.ZoneId))
       //everyone
       subscriptions.InitSquadDetail(features)
     } else {
@@ -200,7 +200,7 @@ class SquadSwitchboard(
       )
       subscriptions.Publish(toChannel, SquadResponse.Join(squad, List(position), "", self), Seq(charId))
       //update for leader
-      subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(charId, role.Name, role.Certifications, 40, 5, role.ZoneId))
+      subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(charId, role.Name, role.Certifications, player.avatar.br.value, player.avatar.cr.value, role.ZoneId))
       subscriptions.SquadEvents.subscribe(sendTo, s"/$toChannel/Squad")
       subscriptions.InitSquadDetail(squad.GUID, Seq(charId), squad)
     }
@@ -729,6 +729,7 @@ class SquadSwitchboard(
           _.CharId == promotedPlayer
         }
         .foreach { member =>
+          //todo: get member br & cr to replace 40, 5
           subscriptions.Publish(promotedPlayer, SquadResponse.CharacterKnowledge(member.CharId, member.Name, member.Certifications, 40, 5, member.ZoneId))
         }
       //to old and to new squad leader
@@ -904,18 +905,18 @@ class SquadSwitchboard(
           if (leaderCharId != charId) {
             subscriptions.Publish(
               leaderCharId,
-              SquadResponse.CharacterKnowledge(charId, member.Name, certifications, 40, 5, zoneNumber)
+              SquadResponse.CharacterKnowledge(charId, member.Name, certifications, player.avatar.br.value, player.avatar.cr.value, zoneNumber)
             )
           }
           context.parent ! SquadServiceMessage(player, player.Zone, SquadAction.ReloadDecoration())
         } else if (zoneBefore != zoneNumber && leaderCharId != charId) {
           subscriptions.Publish(
             leaderCharId,
-            SquadResponse.CharacterKnowledge(charId, member.Name, certifications, 40, 5, 0)
+            SquadResponse.CharacterKnowledge(charId, member.Name, certifications, player.avatar.br.value, player.avatar.cr.value, 0)
           )
           subscriptions.Publish(
             leaderCharId,
-            SquadResponse.CharacterKnowledge(charId, member.Name, certifications, 40, 5, zoneNumber)
+            SquadResponse.CharacterKnowledge(charId, member.Name, certifications, player.avatar.br.value, player.avatar.cr.value, zoneNumber)
           )
         }
         if (features.LocationFollowsSquadLead) {
