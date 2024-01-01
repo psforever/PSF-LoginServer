@@ -3,7 +3,7 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.objects.zones.Zoning
-import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior}
+import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior, VanuSentry}
 import net.psforever.objects.zones.exp.ToDatabase
 
 import scala.collection.mutable
@@ -52,8 +52,7 @@ private[support] class WeaponAndProjectileOperations(
   private[support] var shotsWhileDead: Int = 0
   private val projectiles: Array[Option[Projectile]] =
     Array.fill[Option[Projectile]](Projectile.rangeUID - Projectile.baseUID)(None)
-  private var zoningOpt: Option[ZoningOperations] = None
-  def zoning: ZoningOperations = zoningOpt.orNull
+
   /* packets */
 
   def handleWeaponFire(pkt: WeaponFireMessage): Unit = {
@@ -568,11 +567,6 @@ private[support] class WeaponAndProjectileOperations(
               s"WeaponFireMessage: ${player.Name}'s ${projectile_info.Name} is a remote projectile"
             )
             continent.Projectile ! ZoneProjectile.Add(player.GUID, qualityprojectile)
-          }
-          obj match {
-            case turret: FacilityTurret if turret.Definition == GlobalDefinitions.vanu_sentry_turret =>
-              turret.Actor ! FacilityTurret.WeaponDischarged()
-            case _ => ()
           }
         } else {
           log.warn(
@@ -1224,6 +1218,10 @@ private[support] class WeaponAndProjectileOperations(
   }
 
   private def fireStateStartMountedMessages(itemGuid: PlanetSideGUID): Unit = {
+    sessionData.findContainedEquipment()._1.collect {
+      case turret: FacilityTurret if continent.map.cavern =>
+        turret.Actor ! VanuSentry.ChangeFireStart
+    }
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
       VehicleAction.ChangeFireState_Start(player.GUID, itemGuid)
@@ -1286,6 +1284,10 @@ private[support] class WeaponAndProjectileOperations(
   }
 
   private def fireStateStopMountedMessages(itemGuid: PlanetSideGUID): Unit = {
+    sessionData.findContainedEquipment()._1.collect {
+      case turret: FacilityTurret if continent.map.cavern =>
+        turret.Actor ! VanuSentry.ChangeFireStop
+    }
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
       VehicleAction.ChangeFireState_Stop(player.GUID, itemGuid)
@@ -1416,6 +1418,7 @@ private[support] class WeaponAndProjectileOperations(
     addShotsToMap(shotsFired, weaponId, shots)
   }
 
+  //noinspection SameParameterValue
   private def addShotsLanded(weaponId: Int, shots: Int): Unit = {
     addShotsToMap(shotsLanded, weaponId, shots)
   }

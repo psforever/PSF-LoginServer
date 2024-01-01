@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.DamageableEntity
 import net.psforever.objects.sourcing.{SourceEntry, SourceUniqueness}
 import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.{InteractsWithZone, Zone}
 import net.psforever.packet.game.{ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ObjectDetectedMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -206,7 +207,7 @@ trait AutomatedTurretBehavior {
     None
   }
 
-  private def trySelectNewTarget(): Option[Target] = {
+  protected def trySelectNewTarget(): Option[Target] = {
     currentTarget.orElse {
       val turretPosition = AutomatedTurretObject.Position
       val radiusSquared = autoStats.get.targetingRange * autoStats.get.targetingRange
@@ -357,5 +358,40 @@ object AutomatedTurretBehavior {
       channel,
       LocalAction.SendResponse(ChangeFireStateMessage_Stop(weaponGuid))
     )
+  }
+
+  def getAttackerFromCause(zone: Zone, cause: DamageResult): Option[PlanetSideServerObject with Vitality] = {
+    import net.psforever.objects.sourcing._
+    cause
+      .interaction
+      .adversarial
+      .collect { adversarial =>
+        adversarial.attacker match {
+          case p: PlayerSource =>
+            p.seatedIn
+              .map { _._1.unique }
+              .collect {
+                case v: UniqueVehicle => zone.Vehicles.find(SourceEntry(_).unique == v)
+                case a: UniqueAmenity => zone.GUID(a.guid)
+                case d: UniqueDeployable => zone.DeployableList.find(SourceEntry(_).unique == d)
+              }
+              .flatten
+              .orElse {
+                val name = p.Name
+                zone.LivePlayers.find(_.Name.equals(name))
+              }
+          case o =>
+            o.unique match {
+              case v: UniqueVehicle => zone.Vehicles.find(SourceEntry(_).unique == v)
+              case a: UniqueAmenity => zone.GUID(a.guid)
+              case d: UniqueDeployable => zone.DeployableList.find(SourceEntry(_).unique == d)
+              case _ => None
+            }
+        }
+      }
+      .flatten
+      .collect {
+        case out: PlanetSideServerObject with Vitality => out
+      }
   }
 }

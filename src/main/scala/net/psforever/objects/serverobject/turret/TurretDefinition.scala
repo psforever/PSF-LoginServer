@@ -18,7 +18,8 @@ final case class Automation(
                              detectionSpeed: FiniteDuration = 1.seconds,
                              targetSelectCooldown: Long = 1500L, //ms
                              missedShotCooldown: Long = 3000L, //ms
-                             targetEliminationCooldown: Long = 0L //ms
+                             targetEliminationCooldown: Long = 0L, //ms
+                             revertToDefaultFireMode: Boolean = true
                            )
 
 /**

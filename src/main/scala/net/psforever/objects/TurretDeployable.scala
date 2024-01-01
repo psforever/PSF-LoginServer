@@ -5,20 +5,17 @@ import akka.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem}
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallTurretConverter
-import net.psforever.objects.equipment.{JammableMountedWeapons, JammableUnit}
+import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.serverobject.damage.DamageableWeaponTurret
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
-import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
-import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior, TurretDefinition, WeaponTurret}
+import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior, MountableTurretControl, TurretDefinition, WeaponTurret}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance, Vitality}
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration.FiniteDuration
@@ -65,11 +62,9 @@ class TurretControl(turret: TurretDeployable)
     extends Actor
     with DeployableBehavior
     with FactionAffinityBehavior.Check
-    with JammableMountedWeapons //note: jammable status is reported as vehicle events, not local events
-    with MountableBehavior
-    with DamageableWeaponTurret
-    with RepairableWeaponTurret
+    with MountableTurretControl
     with AutomatedTurretBehavior {
+  def TurretObject: TurretDeployable          = turret
   def DeployableObject: TurretDeployable      = turret
   def MountableObject: TurretDeployable       = turret
   def JammableObject: TurretDeployable        = turret
@@ -81,18 +76,14 @@ class TurretControl(turret: TurretDeployable)
   override def postStop(): Unit = {
     super.postStop()
     deployableBehaviorPostStop()
-    damageableWeaponTurretPostStop()
     automaticTurretPostStop()
   }
 
   def receive: Receive =
-    deployableBehavior
+    commonBehavior
+      .orElse(deployableBehavior)
       .orElse(checkBehavior)
-      .orElse(jammableBehavior)
       .orElse(mountBehavior)
-      .orElse(dismountBehavior)
-      .orElse(takesDamage)
-      .orElse(canBeRepairedByNanoDispenser)
       .orElse(automatedTurretBehavior)
       .orElse {
         case _ => ()
@@ -112,7 +103,7 @@ class TurretControl(turret: TurretDeployable)
       AutomaticOperation = false
       //look in direction of cause of jamming
       val zone = JammableObject.Zone
-      TurretControl.getAttackerFromCause(zone, cause).foreach {
+      AutomatedTurretBehavior.getAttackerFromCause(zone, cause).foreach {
         attacker =>
           val channel = zone.id
           val guid = AutomatedTurretObject.GUID
@@ -131,7 +122,7 @@ class TurretControl(turret: TurretDeployable)
   override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any): Unit = {
     if (AutomaticOperation && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDuration > 0)) {
       //turret retribution
-      TurretControl.getAttackerFromCause(target.Zone, cause).collect {
+      AutomatedTurretBehavior.getAttackerFromCause(target.Zone, cause).collect {
         case attacker if attacker.Faction != target.Faction =>
           engageNewDetectedTarget(attacker)
         }
@@ -141,7 +132,7 @@ class TurretControl(turret: TurretDeployable)
 
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     AutomaticOperation = false
-    super.DestructionAwareness(target, cause)
+    //super.DestructionAwareness(target, cause)
     CancelJammeredSound(target)
     CancelJammeredStatus(target)
     Deployables.AnnounceDestroyDeployable(turret, None)
@@ -182,42 +173,5 @@ class TurretControl(turret: TurretDeployable)
   override def unregisterDeployable(obj: Deployable): Unit = {
     val zone = obj.Zone
     TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(zone.GUID, turret))
-  }
-}
-
-object TurretControl {
-  private def getAttackerFromCause(zone: Zone, cause: DamageResult): Option[PlanetSideServerObject with Vitality] = {
-    import net.psforever.objects.sourcing._
-    cause
-      .interaction
-      .adversarial
-      .collect { adversarial =>
-        adversarial.attacker match {
-          case p: PlayerSource =>
-            p.seatedIn
-              .map { _._1.unique }
-              .collect {
-                case v: UniqueVehicle => zone.Vehicles.find(SourceEntry(_).unique == v)
-                case a: UniqueAmenity => zone.GUID(a.guid)
-                case d: UniqueDeployable => zone.DeployableList.find(SourceEntry(_).unique == d)
-              }
-              .flatten
-              .orElse {
-                val name = p.Name
-                zone.LivePlayers.find(_.Name.equals(name))
-              }
-          case o =>
-            o.unique match {
-              case v: UniqueVehicle => zone.Vehicles.find(SourceEntry(_).unique == v)
-              case a: UniqueAmenity => zone.GUID(a.guid)
-              case d: UniqueDeployable => zone.DeployableList.find(SourceEntry(_).unique == d)
-              case _ => None
-            }
-        }
-      }
-      .flatten
-      .collect {
-        case out: PlanetSideServerObject with Vitality => out
-      }
   }
 }
