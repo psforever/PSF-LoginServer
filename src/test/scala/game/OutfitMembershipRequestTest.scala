@@ -14,6 +14,7 @@ class OutfitMembershipRequestTest extends Specification {
   val create_2222  = hex"8c 0 1000 000 1000 84 3200320032003200"
   val form_abc     = hex"8c 2 0200 000 1000 83 610062006300"
   val form_1       = hex"8c 2 1000 000 1000 81 3100"
+  val unk3         = hex"8c 5 bb39 9e0 2000 0000 1080 750072006f006200" // -- "urob" -- could be false positive -- seems to gets an OMSResp -> 0x8d271bb399e025af8f405080550072006f0062008080
   val accept_1     = hex"8c 6 0200 000 1000"
   val accept_2     = hex"8c 6 0400 000 1000"
   val reject_1     = hex"8c 8 0200 000 1000"
