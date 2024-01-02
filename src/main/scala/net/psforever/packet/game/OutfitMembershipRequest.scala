@@ -1,6 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.packet.game
 
+import net.psforever.packet.GamePacketOpcode.Type
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import net.psforever.types.PlanetSideGUID
 import scodec.{Attempt, Codec, Err}
@@ -16,9 +17,9 @@ final case class OutfitMembershipRequest(
   ) extends PlanetSideGamePacket {
   type Packet = OutfitMembershipRequest
 
-  def opcode = GamePacketOpcode.OutfitMembershipRequest
+  def opcode: Type = GamePacketOpcode.OutfitMembershipRequest
 
-  def encode = OutfitMembershipRequest.encode(this)
+  def encode: Attempt[BitVector] = OutfitMembershipRequest.encode(this)
 }
 
 abstract class OutfitAction(val code: Int)
@@ -43,7 +44,7 @@ object OutfitAction {
   object Codecs {
     private val everFailCondition = conditional(included = false, bool)
 
-    val CreateOutfitCodec =
+    val CreateOutfitCodec: Codec[CreateOutfit] =
       (PacketHelpers.encodedWideString :: uint4L :: bool :: PacketHelpers.encodedWideString).xmap[CreateOutfit](
         {
           case unk2 :: unk3 :: unk4 :: outfit_name :: HNil =>
@@ -55,7 +56,7 @@ object OutfitAction {
         }
       )
 
-    val FormOutfitCodec =
+    val FormOutfitCodec: Codec[FormOutfit] =
       (PacketHelpers.encodedWideString :: uint4L :: bool :: PacketHelpers.encodedWideString).xmap[FormOutfit](
         {
           case unk2 :: unk3 :: unk4 :: outfit_name :: HNil =>
@@ -67,8 +68,8 @@ object OutfitAction {
         }
       )
 
-    val AcceptOutfitCodec =
-      (PacketHelpers.encodedWideString).xmap[AcceptOutfitInvite](
+    val AcceptOutfitCodec: Codec[AcceptOutfitInvite] =
+      PacketHelpers.encodedWideString.xmap[AcceptOutfitInvite](
         {
           case unk2 =>
             AcceptOutfitInvite(unk2)
@@ -79,8 +80,8 @@ object OutfitAction {
         }
       )
 
-    val RejectOutfitCodec =
-      (PacketHelpers.encodedWideString).xmap[RejectOutfitInvite](
+    val RejectOutfitCodec: Codec[RejectOutfitInvite] =
+      PacketHelpers.encodedWideString.xmap[RejectOutfitInvite](
         {
           case unk2 =>
             RejectOutfitInvite(unk2)
@@ -91,7 +92,7 @@ object OutfitAction {
         }
       )
 
-    val CancelOutfitCodec =
+    val CancelOutfitCodec: Codec[CancelOutfitInvite] =
       (uint16L :: uint16L :: PacketHelpers.encodedWideStringAligned(5)).xmap[CancelOutfitInvite](
         {
           case unk5 :: unk6 :: outfit_name :: HNil =>
@@ -108,7 +109,7 @@ object OutfitAction {
       * @param action the action behavior code
       * @return a transformation between the action code and the unknown bit data
       */
-    def unknownCodec(action: Int) =
+    def unknownCodec(action: Int): Codec[Unknown] =
       bits.xmap[Unknown](
         data => Unknown(action, data),
         {
@@ -121,7 +122,7 @@ object OutfitAction {
       * @param action the action behavior code
       * @return nothing; always fail
       */
-    def failureCodec(action: Int) =
+    def failureCodec(action: Int): Codec[OutfitAction] =
       everFailCondition.exmap[OutfitAction](
         _ => Attempt.failure(Err(s"can not match a codec pattern for decoding $action")),
         _ => Attempt.failure(Err(s"can not match a codec pattern for encoding $action"))
@@ -134,17 +135,19 @@ object OutfitMembershipRequest extends Marshallable[OutfitMembershipRequest] {
   object RequestType extends Enumeration {
     type Type = Value
 
-    val Create = Value(0)
-    val Form   = Value(1)
-    val Unk2   = Value(2)
-    val Accept = Value(3)
-    val Reject = Value(4)
-    val Cancel = Value(5)
+    val Create: RequestType.Value = Value(0)
+    val Form:   RequestType.Value = Value(1)
+    val Unk2:   RequestType.Value = Value(2)
+    val Accept: RequestType.Value = Value(3)
+    val Reject: RequestType.Value = Value(4)
+    val Cancel: RequestType.Value = Value(5)
+    val Unk6:   RequestType.Value = Value(6) // 6 and 7 seen as failed decodes, validity unknown
+    val Unk7:   RequestType.Value = Value(7)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
 
-  def selectFromType(code: Int): Codec[OutfitAction] = {
+  private def selectFromType(code: Int): Codec[OutfitAction] = {
     import OutfitAction.Codecs._
     import scala.annotation.switch
 
