@@ -38,7 +38,7 @@ class Player(var avatar: Avatar)
     with MountableEntity {
   interaction(new InteractWithEnvironment())
   interaction(new InteractWithMinesUnlessSpectating(obj = this, range = 10))
-  interaction(new InteractWithTurrets(range = 100f))
+  interaction(new InteractWithTurrets())
   interaction(new InteractWithRadiationClouds(range = 10f, Some(this)))
 
   private var backpack: Boolean = false

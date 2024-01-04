@@ -2,6 +2,8 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.definition.ProjectileDefinition
+import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.zones.Zoning
 import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior, VanuSentry}
 import net.psforever.objects.zones.exp.ToDatabase
@@ -443,21 +445,19 @@ private[support] class WeaponAndProjectileOperations(
             turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
             None
 
-          case turret: AutomatedTurret with OwnableByPlayer =>
+          case turret: AutomatedTurret with OwnableByPlayer => //most likely a deployable
             turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
             val owner = continent.GUID(turret.OwnerGuid)
               .collect { case obj: PlanetSideGameObject with FactionAffinity => SourceEntry(obj) }
-              .getOrElse { SourceEntry.None }
-            turret.Weapons
-              .values
-              .flatMap { _.Equipment }
-              .collect { case weapon: Tool => (turret, weapon, owner, weapon.Projectile) }
-              .find { case (_, _, _, p) => p.ObjectId == projectileTypeId }
+              .getOrElse(SourceEntry(turret))
+            CompileAutomatedTurretDamageData(turret, owner, projectileTypeId)
 
+          case turret: Amenity with AutomatedTurret => //most likely a facility turret
+            turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
+            CompileAutomatedTurretDamageData(turret, SourceEntry(turret.Owner), projectileTypeId)
         }
         .collect {
           case Some((obj, tool, owner, projectileInfo)) =>
-
             val angle = Vector3.Unit(target.Position - obj.Position)
             val proj = new Projectile(
               projectileInfo,
@@ -1456,6 +1456,18 @@ private[support] class WeaponAndProjectileOperations(
 
   private[support] def reportOngoingShotsToDatabase(avatarId: Long, weaponId: Int, fired: Int, landed: Int): Unit = {
     ToDatabase.reportToolDischarge(avatarId, EquipmentStat(weaponId, fired, landed, 0, 0))
+  }
+
+  private def CompileAutomatedTurretDamageData(
+                                                turret: AutomatedTurret,
+                                                owner: SourceEntry,
+                                                projectileTypeId: Long
+                                              ): Option[(AutomatedTurret, Tool, SourceEntry, ProjectileDefinition)] = {
+    turret.Weapons
+      .values
+      .flatMap { _.Equipment }
+      .collect { case weapon: Tool => (turret, weapon, owner, weapon.Projectile) }
+      .find { case (_, _, _, p) => p.ObjectId == projectileTypeId }
   }
 
   override protected[session] def stop(): Unit = {

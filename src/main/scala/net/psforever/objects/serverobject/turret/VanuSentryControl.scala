@@ -10,15 +10,20 @@ import net.psforever.types.Vector3
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
+/**
+ * A control agency that handles messages being dispatched to a specific `FacilityTurret`.
+ * These turrets are installed tangential to cavern facilities but are independent of the facility.
+ * @param turret the `FacilityTurret` object being governed
+ */
 class VanuSentryControl(turret: FacilityTurret)
   extends ServerObjectControl
     with MountableTurretControl {
-  def TurretObject: FacilityTurret               = turret
-  def FactionObject: FacilityTurret              = turret
-  def MountableObject: FacilityTurret            = turret
-  def JammableObject: FacilityTurret             = turret
-  def DamageableObject: FacilityTurret           = turret
-  def RepairableObject: FacilityTurret           = turret
+  def TurretObject: FacilityTurret     = turret
+  def FactionObject: FacilityTurret    = turret
+  def MountableObject: FacilityTurret  = turret
+  def JammableObject: FacilityTurret   = turret
+  def DamageableObject: FacilityTurret = turret
+  def RepairableObject: FacilityTurret = turret
 
   // Used for timing ammo recharge for vanu turrets in caves
   private var weaponAmmoRechargeTimer: Cancellable = Default.Cancellable

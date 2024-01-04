@@ -11,16 +11,23 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 final case class Automation(
-                             targetingRange: Float,
+                             targetDetectionRange: Float,
+                             targetTriggerRange: Float,
+                             targetEscapeRange: Float,
                              targetValidation: List[PlanetSideGameObject => Boolean],
+                             cylindricalCheck: Boolean = false,
+                             cylindricalHeight: Float = 0,
                              retaliatoryDuration: Long = 0,
+                             retaliationOverridesTarget: Boolean = true,
                              initialDetectionSpeed: FiniteDuration = Duration.Zero,
                              detectionSpeed: FiniteDuration = 1.seconds,
                              targetSelectCooldown: Long = 1500L, //ms
                              missedShotCooldown: Long = 3000L, //ms
                              targetEliminationCooldown: Long = 0L, //ms
                              revertToDefaultFireMode: Boolean = true
-                           )
+                           ) {
+  assert(targetDetectionRange > targetTriggerRange, "trigger range must be less or equal to detection range")
+}
 
 /**
   * The definition for any `WeaponTurret`.

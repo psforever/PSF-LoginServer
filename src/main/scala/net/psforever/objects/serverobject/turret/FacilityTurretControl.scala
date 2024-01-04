@@ -1,7 +1,6 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
-import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.objects.equipment.Ammo
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
@@ -15,16 +14,13 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.ChangeFireModeMessage
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.types.BailType
 
 /**
-  * An `Actor` that handles messages being dispatched to a specific `MannedTurret`.<br>
-  * <br>
-  * Mounted turrets have only slightly different entry requirements than a normal vehicle
-  * because they encompass both faction-specific facility turrets
-  * and faction-blind cavern sentry turrets.
-  *
-  * @param turret the `MannedTurret` object being governed
-  */
+ * A control agency that handles messages being dispatched to a specific `FacilityTurret`.
+ * These turrets are attached specifically to surface-level facilities and field towers.
+ * @param turret the `FacilityTurret` object being governed
+ */
 class FacilityTurretControl(turret: FacilityTurret)
   extends PoweredAmenityControl
     with AmenityAutoRepair
@@ -92,27 +88,31 @@ class FacilityTurretControl(turret: FacilityTurret)
                                     seatNumber: Int,
                                     player: Player): Boolean = {
     super.mountTest(obj, seatNumber, player) &&
-      (!TurretObject.isUpgrading || System.currentTimeMillis() - GenericHackables.getTurretUpgradeTime >= 1500L) &&
-      AutomaticOperation_=(state = false)
+      (!TurretObject.isUpgrading || System.currentTimeMillis() - GenericHackables.getTurretUpgradeTime >= 1500L)
   }
 
-  override protected def dismountTest(obj: Mountable with WorldEntity, seatNumber: Int, user: Player): Boolean = {
-    super.dismountTest(obj, seatNumber, user) &&
-      AutomaticOperation_=(autoTurretFunctionalityChecks)
+  override protected def tryMount(obj: PlanetSideServerObject with Mountable, seatNumber: Int, player: Player): Boolean = {
+    val result = super.tryMount(obj, seatNumber, player)
+    if (result) {
+      AutomaticOperation = false
+    }
+    result
+  }
+
+  override protected def tryDismount(obj: Mountable, seatNumber: Int, player: Player, bailType: BailType.Value): Boolean = {
+    val result = super.tryDismount(obj, seatNumber, player, bailType)
+    if (result) {
+      AutomaticOperation = AutomaticOperationFunctionalityChecks
+    }
+    result
   }
 
   override protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any) : Unit = {
     tryAutoRepair()
-    if (AutomaticOperation) {
-      if (TurretObject.Health < TurretObject.Definition.DamageDisablesAt) {
-        AutomaticOperation = false
-      } else if (AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDuration > 0)) {
-        //turret retribution
-        AutomatedTurretBehavior.getAttackerFromCause(target.Zone, cause).collect {
-          case attacker if attacker.Faction != target.Faction =>
-            engageNewDetectedTarget(attacker)
-        }
-      }
+    if (TurretObject.Health < TurretObject.Definition.DamageDisablesAt) {
+      AutomaticOperation = false
+    } else {
+      attemptRetaliation(target, cause)
     }
     super.DamageAwareness(target, cause, amount)
   }
@@ -133,7 +133,7 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   override def Restoration(obj: Damageable.Target): Unit = {
     super.Restoration(obj)
-    AutomaticOperation = autoTurretFunctionalityChecks
+    AutomaticOperation = AutomaticOperationFunctionalityChecks
   }
 
   override def tryAutoRepair() : Boolean = {
@@ -163,7 +163,7 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   def powerTurnOnCallback(): Unit = {
     tryAutoRepair()
-    AutomaticOperation = autoTurretFunctionalityChecks
+    AutomaticOperation = AutomaticOperationFunctionalityChecks
   }
 
   override def AutomaticOperation_=(state: Boolean): Boolean = {
@@ -172,7 +172,7 @@ class FacilityTurretControl(turret: FacilityTurret)
     result
   }
 
-  private def autoTurretFunctionalityChecks: Boolean = {
+  protected def AutomaticOperationFunctionalityChecks: Boolean = {
     isPowered &&
       !JammableObject.Jammed &&
       TurretObject.Health > TurretObject.Definition.DamageDisablesAt &&
@@ -198,7 +198,7 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   override protected def trySelectNewTarget(): Option[AutomatedTurret.Target] = {
-    if (autoTurretFunctionalityChecks) {
+    if (AutomaticOperationFunctionalityChecks) {
       primaryWeaponFireModeOnly()
       super.trySelectNewTarget()
     } else {
@@ -207,7 +207,7 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   override def engageNewDetectedTarget(target: AutomatedTurret.Target): Unit = {
-    if (autoTurretFunctionalityChecks) {
+    if (AutomaticOperationFunctionalityChecks) {
       primaryWeaponFireModeOnly()
       super.engageNewDetectedTarget(target)
     }
@@ -233,6 +233,6 @@ class FacilityTurretControl(turret: FacilityTurret)
   override def CancelJammeredStatus(target: Any): Unit = {
     val startsJammed = JammableObject.Jammed
     super.CancelJammeredStatus(target)
-    startsJammed && AutomaticOperation_=(autoTurretFunctionalityChecks)
+    startsJammed && AutomaticOperation_=(AutomaticOperationFunctionalityChecks)
   }
 }

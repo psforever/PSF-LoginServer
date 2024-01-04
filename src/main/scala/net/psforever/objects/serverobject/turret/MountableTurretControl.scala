@@ -13,13 +13,13 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 trait MountableTurretControl
-  extends FactionAffinityBehavior.Check
+  extends Actor
+    with FactionAffinityBehavior.Check
     with MountableBehavior
     with DamageableWeaponTurret
     with RepairableWeaponTurret
-    with JammableMountedWeapons
-    with Actor { /* note: jammable status is reported as vehicle events, not local events */
-  def TurretObject: PlanetSideServerObject with WeaponTurret
+    with JammableMountedWeapons { /* note: jammable status is reported as vehicle events, not local events */
+  def TurretObject: PlanetSideServerObject with WeaponTurret with Mountable
 
   override def postStop(): Unit = {
     super.postStop()

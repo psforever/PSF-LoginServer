@@ -9074,8 +9074,10 @@ object GlobalDefinitions {
     spitfire_turret.Model = ComplexDeployableResolutions.calculate
     spitfire_turret.deployAnimation = DeployAnimation.Standard
     spitfire_turret.AutoFire = Automation(
-      targetingRange = 40f,
-      targetValidation = List(EffectTarget.Validation.ObviousPlayer, EffectTarget.Validation.Vehicle),
+      targetDetectionRange = 60f,
+      targetTriggerRange = 50f,
+      targetEscapeRange = 50f,
+      targetValidation = List(EffectTarget.Validation.PlayerOnRadar, EffectTarget.Validation.Vehicle),
       retaliatoryDuration = 8000L
     )
     spitfire_turret.innateDamage = new DamageWithPosition {
@@ -9105,8 +9107,10 @@ object GlobalDefinitions {
     spitfire_cloaked.deployAnimation = DeployAnimation.Standard
     spitfire_cloaked.Model = ComplexDeployableResolutions.calculate
     spitfire_cloaked.AutoFire = Automation(
-      targetingRange = 40f,
-      targetValidation = List(EffectTarget.Validation.ObviousPlayer, EffectTarget.Validation.Vehicle),
+      targetDetectionRange = 50f,
+      targetTriggerRange = 30f,
+      targetEscapeRange = 50f,
+      targetValidation = List(EffectTarget.Validation.PlayerOnRadar, EffectTarget.Validation.VehiclesOnRadar),
       retaliatoryDuration = 8000L
     )
     spitfire_cloaked.innateDamage = new DamageWithPosition {
@@ -9136,9 +9140,14 @@ object GlobalDefinitions {
     spitfire_aa.deployAnimation = DeployAnimation.Standard
     spitfire_aa.Model = ComplexDeployableResolutions.calculate
     spitfire_aa.AutoFire = Automation(
-      targetingRange = 80f,
-      targetValidation = List(EffectTarget.Validation.Aircraft),
-      retaliatoryDuration = 8000L
+      targetDetectionRange = 100f,
+      targetTriggerRange = 90f,
+      targetEscapeRange = 200f,
+      targetValidation = List(EffectTarget.Validation.AircraftOnRadar),
+      retaliatoryDuration = 2000L,
+      retaliationOverridesTarget = false,
+      cylindricalCheck = true,
+      cylindricalHeight = 25f
     )
     spitfire_aa.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -10041,6 +10050,15 @@ object GlobalDefinitions {
     manned_turret.FactionLocked = true
     manned_turret.ReserveAmmunition = false
     manned_turret.RadiationShielding = 0.5f
+    manned_turret.AutoFire = Automation(
+      targetDetectionRange = 100f,
+      targetTriggerRange = 90f,
+      targetEscapeRange = 200f,
+      targetValidation = List(EffectTarget.Validation.MaxOnRadar, EffectTarget.Validation.VehiclesOnRadar),
+      retaliatoryDuration = 8000L,
+      cylindricalCheck = true,
+      cylindricalHeight = 25f
+    )
     manned_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150

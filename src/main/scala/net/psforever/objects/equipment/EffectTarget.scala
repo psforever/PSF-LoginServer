@@ -188,19 +188,19 @@ object EffectTarget {
           false
       }
 
-    def ObviousPlayer(target: PlanetSideGameObject): Boolean =
+    def PlayerOnRadar(target: PlanetSideGameObject): Boolean =
       !target.Destroyed && (target match {
         case p: Player =>
           //TODO attacking breaks stealth
           p.LastDamage.map(_.interaction.hitTime).exists(System.currentTimeMillis() - _ < 3000L) ||
             p.avatar.implants.flatten.find(a => a.definition.implantType == ImplantType.SilentRun).exists(_.active) ||
-            (p.isMoving(test = 17d) && !p.Crouching) ||
+            (p.isMoving(test = 17d) && !(p.Crouching || p.Cloaked)) ||
             p.Jumping
         case _ =>
           false
       })
 
-    def ObviousMax(target: PlanetSideGameObject): Boolean =
+    def MaxOnRadar(target: PlanetSideGameObject): Boolean =
       !target.Destroyed && (target match {
         case p: Player =>
           p.ExoSuit == ExoSuitType.MAX && p.isMoving(test = 17d)
@@ -212,11 +212,22 @@ object EffectTarget {
       !target.Destroyed && (target match {
         case v: Vehicle =>
           val vdef = v.Definition
-          !(GlobalDefinitions.isAtvVehicle(vdef) ||
+          !(v.Cloaked ||
+            GlobalDefinitions.isAtvVehicle(vdef) ||
             vdef == GlobalDefinitions.two_man_assault_buggy ||
             vdef == GlobalDefinitions.skyguard)
         case _ =>
           false
       })
+
+
+
+    def AircraftOnRadar(target: PlanetSideGameObject): Boolean =
+      target match {
+        case v: Vehicle =>
+          GlobalDefinitions.isFlightVehicle(v.Definition) && v.Health > 0 && !v.Cloaked
+        case _ =>
+          false
+      }
   }
 }

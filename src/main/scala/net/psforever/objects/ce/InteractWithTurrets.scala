@@ -1,6 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.ce
 
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.zones.blockmap.SectorPopulation
@@ -13,8 +14,10 @@ case object TurretInteraction extends ZoneInteractionType
 /**
  * ...
  */
-class InteractWithTurrets(val range: Float)
+class InteractWithTurrets()
   extends ZoneInteraction {
+  def range: Float = InteractWithTurrets.Range
+
   def Type: TurretInteraction.type = TurretInteraction
 
   /**
@@ -34,8 +37,8 @@ class InteractWithTurrets(val range: Float)
   private def getTurretTargets(
                                 sector: SectorPopulation,
                                 position: Vector3
-                              ): List[PlanetSideServerObject with AutomatedTurret] = {
-    (sector
+                              ): Iterable[PlanetSideServerObject with AutomatedTurret] = {
+    val list: Iterable[AutomatedTurret] = sector
       .deployableList
       .collect {
         case turret: AutomatedTurret => turret
@@ -43,8 +46,15 @@ class InteractWithTurrets(val range: Float)
       .amenityList
       .collect {
         case turret: AutomatedTurret => turret
-      })
-      .filter { turret => Vector3.DistanceSquared(turret.Position.xy, position) < 625 }
+      }
+   list.collect {
+     case turret: AutomatedTurret
+       if {
+         val stats = turret.Definition.AutoFire
+         stats.nonEmpty &&
+           AutomatedTurretBehavior.shapedDistanceCheckAgainstValue(stats, turret.Position, position, range, result = -1)
+       } => turret
+   }
   }
 
   /**
@@ -58,5 +68,19 @@ class InteractWithTurrets(val range: Float)
     ).foreach { turret =>
       turret.Actor ! AutomatedTurretBehavior.Reset
     }
+  }
+}
+
+object InteractWithTurrets {
+  private val Range: Float = {
+    Seq(
+      GlobalDefinitions.spitfire_turret,
+      GlobalDefinitions.spitfire_cloaked,
+      GlobalDefinitions.spitfire_aa,
+      GlobalDefinitions.manned_turret
+    )
+      .flatMap(_.AutoFire)
+      .map(_.targetDetectionRange)
+      .max
   }
 }

@@ -65,7 +65,7 @@ trait MountableBehavior {
     !obj.Destroyed
   }
 
-  private def tryMount(
+  protected def tryMount(
                         obj: PlanetSideServerObject with Mountable,
                         seatNumber: Int,
                         player: Player
@@ -110,7 +110,7 @@ trait MountableBehavior {
     })
   }
 
-  private def tryDismount(
+  protected def tryDismount(
                            obj: Mountable,
                            seatNumber: Int,
                            user: Player,

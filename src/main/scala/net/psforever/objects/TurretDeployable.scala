@@ -89,6 +89,8 @@ class TurretControl(turret: TurretDeployable)
         case _ => ()
       }
 
+  protected def AutomaticOperationFunctionalityChecks: Boolean = true
+
   override protected def mountTest(
                                     obj: PlanetSideServerObject with Mountable,
                                     seatNumber: Int,
@@ -120,13 +122,7 @@ class TurretControl(turret: TurretDeployable)
   }
 
   override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any): Unit = {
-    if (AutomaticOperation && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDuration > 0)) {
-      //turret retribution
-      AutomatedTurretBehavior.getAttackerFromCause(target.Zone, cause).collect {
-        case attacker if attacker.Faction != target.Faction =>
-          engageNewDetectedTarget(attacker)
-        }
-    }
+    attemptRetaliation(target, cause)
     super.DamageAwareness(target, cause, amount)
   }
 
@@ -147,15 +143,14 @@ class TurretControl(turret: TurretDeployable)
       //it's possible to request deconstruction of one's own field turret while seated in it
       val wasKickedByDriver = false
       seats.foreach { seat =>
-        seat.occupant match {
-          case Some(tplayer) =>
-            seat.unmount(tplayer)
-            tplayer.VehicleSeated = None
+        seat.occupant.collect {
+          case player: Player =>
+            seat.unmount(player)
+            player.VehicleSeated = None
             zone.VehicleEvents ! VehicleServiceMessage(
               zone.id,
-              VehicleAction.KickPassenger(tplayer.GUID, 4, wasKickedByDriver, turret.GUID)
+              VehicleAction.KickPassenger(player.GUID, 4, wasKickedByDriver, turret.GUID)
             )
-          case None => ()
         }
       }
       Some(time.getOrElse(Deployable.cleanup) + Deployable.cleanup)
