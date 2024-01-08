@@ -336,19 +336,19 @@ class SessionSquadHandlers(
           sendResponse(CharacterKnowledgeMessage(charId, Some(CharacterKnowledgeInfo(name, certs, u1, u2, zone))))
 
         case SquadResponse.SquadSearchResults(results) =>
-          //TODO positive squad search results message?
-          if(results.nonEmpty) {
-            results.foreach { guid =>
-              sendResponse(SquadDefinitionActionMessage(
-                guid,
-                0,
-                SquadAction.SquadListDecorator(SquadListDecoration.SearchResult))
-              )
-            }
-          } else {
-            sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.NoSquadSearchResults()))
-          }
-          sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.CancelSquadSearch()))
+            //TODO positive squad search results message?
+//          if(results.nonEmpty) {
+//            results.foreach { guid =>
+//              sendResponse(SquadDefinitionActionMessage(
+//                guid,
+//                0,
+//                SquadAction.SquadListDecorator(SquadListDecoration.SearchResult))
+//              )
+//            }
+//          } else {
+//            sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.NoSquadSearchResults()))
+//          }
+//          sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.CancelSquadSearch()))
 
         case SquadResponse.InitWaypoints(char_id, waypoints) =>
           waypoints.foreach {

@@ -76,7 +76,7 @@ class SquadService extends Actor {
     //squads and members (users)
     squadFeatures.foreach {
       case (_, features) =>
-        CloseSquad(features.Squad)
+        DisbandSquad(features)
     }
     memberToSquad.clear()
     publishedLists.clear()
@@ -686,10 +686,10 @@ class SquadService extends Actor {
         }
         None
       case search: SearchForSquadsWithParticularRole =>
-        SquadActionDefinitionSearchForSquadsWithParticularRole(tplayer, search)
+//        SquadActionDefinitionSearchForSquadsWithParticularRole(tplayer, search)
         None
       case _: CancelSquadSearch =>
-        SquadActionDefinitionCancelSquadSearch(tplayer.CharId)
+//        SquadActionDefinitionCancelSquadSearch(tplayer.CharId)
         None
       case _: DisplaySquad =>
         GetSquad(guid) match {
