@@ -54,7 +54,7 @@ object ToDatabase {
                           position: Vector3,
                           exp: Long
                         ): Unit = {
-    ctx.run(query[persistence.Killactivity]
+    ctx.run(query[persistence.Assistactivity]
       .insert(
         _.killerId -> lift(avatarId),
         _.victimId -> lift(victimId),
@@ -227,6 +227,12 @@ object ToDatabase {
       avatarIdAndExp.map { case (avatarId, exp, expType) =>
         persistence.Buildingcapture(-1, avatarId, zoneId, buildingId, exp, expType)
       }
-    )}.foreach(e => query[persistence.Buildingcapture].insertValue(e)))
+    )}.foreach(e => query[persistence.Buildingcapture].insert(
+      _.avatarId -> e.avatarId,
+      _.zoneId -> e.zoneId,
+      _.buildingId -> e.buildingId,
+      _.exp -> e.exp,
+      _.expType -> e.expType
+    )))
   }
 }

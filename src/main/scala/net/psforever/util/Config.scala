@@ -244,14 +244,27 @@ case class Experience(
     longContributionTime: Long,
     bep: BattleExperiencePoints,
     sep: SupportExperiencePoints,
-    cep: CommandExperiencePoints
+    cep: CommandExperiencePoints,
+    facilityCaptureRate: Float
 ) {
   assert(shortContributionTime < longContributionTime)
 }
 
+case class ThreatAssessment(
+    id: Int,
+    value: Float
+)
+
+case class ThreatLevel(
+    id: Int,
+    level: Long
+)
+
 case class BattleExperiencePoints(
-     base: BattleExperiencePointsBase,
-     rate: Float
+    rate: Float,
+    base: BattleExperiencePointsBase,
+    lifeSpan: BattleExperiencePointsLifespan,
+    revenge: BattleExperiencePointsRevenge
 )
 
 case class BattleExperiencePointsBase(
@@ -259,7 +272,19 @@ case class BattleExperiencePointsBase(
     asMax: Long,
     withKills: Long,
     asMounted: Long,
-    mature: Long
+    mature: Long,
+    maturityTime: Long
+)
+
+case class BattleExperiencePointsLifespan(
+    lifeSpanThreatRate: Float,
+    threatAssessmentOf: List[ThreatAssessment],
+    maxThreatLevel: List[ThreatLevel]
+)
+
+case class BattleExperiencePointsRevenge(
+    rate: Float,
+    experience: Long
 )
 
 case class SupportExperiencePoints(
@@ -289,11 +314,11 @@ case class CommandExperiencePoints(
 )
 
 case class PromotionSystem(
-                            active: Boolean,
-                            broadcastBattleRank: Int,
-                            resetBattleRank: Int,
-                            maxBattleRank: Int,
-                            battleExperiencePointsModifier: Float,
-                            supportExperiencePointsModifier: Float,
-                            captureExperiencePointsModifier: Float
+    active: Boolean,
+    broadcastBattleRank: Int,
+    resetBattleRank: Int,
+    maxBattleRank: Int,
+    battleExperiencePointsModifier: Float,
+    supportExperiencePointsModifier: Float,
+    captureExperiencePointsModifier: Float
 )

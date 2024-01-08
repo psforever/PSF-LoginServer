@@ -8,8 +8,8 @@ import net.psforever.objects.vital.interaction.{Adversarial, DamageResult}
 import net.psforever.objects.vital.{DamagingActivity, HealingActivity, InGameActivity, RepairingActivity, RevivingActivity, SpawningActivity}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.PlanetSideEmpire
+import net.psforever.util.Config
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.duration._
 
@@ -145,159 +145,9 @@ object KillAssists {
       .orElse {
         limitHistoryToThisLife(history)
           .lastOption
-          .collect { case dam: DamagingActivity =>
-            val res = dam.data
-            (res, res.adversarial.get.attacker)
-          }
+          .collect { case dam: DamagingActivity if dam.data.adversarial.nonEmpty => dam.data }
+          .map { data => (data, data.adversarial.get.attacker) }
       }
-  }
-
-  /**
-   * "Menace" is a crude measurement of how much consistent destructive power a player has been demonstrating.
-   * Within the last ten kills, the rate of the player's killing speed is measured.
-   * The measurement - a "streak" in modern lingo - is transformed into the form of an `Integer` for simplicity.
-   * @param player the player
-   * @param mercy a time value that can be used to continue a missed streak
-   * @return an integer between 0 and 7;
-   *         0 is no kills,
-   *         1 is some kills,
-   *         2-7 is a menace score;
-   *         there is no particular meaning behind different menace scores ascribed by this function
-   *         but the range allows for progressive distinction
-   * @see `qualifiedTimeDifferences`
-   * @see `takeWhileLess`
-   */
-  private[exp] def calculateMenace(player: PlayerSource, mercy: Long = 5000L): Int = {
-    val maxDelayDiff: Long = 45000L
-    val minDelayDiff: Long = 20000L
-    val allKills = player.progress.kills
-    //the very first kill must have been within the max delay (but does not count towards menace)
-    if (allKills.headOption.exists { System.currentTimeMillis() - _.time.toDate.getTime < maxDelayDiff}) {
-      allKills match {
-        case _ :: kills if kills.size > 3 =>
-          val (continuations, restsBetweenKills) =
-            qualifiedTimeDifferences(
-              kills.map(_.time.toDate.getTime).iterator,
-              maxValidDiffCount = 10,
-              maxDelayDiff,
-              minDelayDiff
-            )
-              .partition(_ > minDelayDiff)
-          math.max(
-            1,
-            math.floor(math.sqrt(
-              math.max(0, takeWhileLess(restsBetweenKills, testValue = 20000L, mercy).size - 1) + /*max=8*/
-                math.max(0, takeWhileLess(restsBetweenKills, testValue = 10000L, mercy).size - 5) * 3 + /*max=12*/
-                math.max(0, takeWhileLess(restsBetweenKills, testValue = 5000L, mercy = 1000L).size - 4) * 7 /*max=35*/
-            ) - continuations.size)
-          ).toInt
-        case _ =>
-          1
-      }
-    } else {
-      0
-    }
-  }
-
-  /**
-   * Take a list of times
-   * and produce a list of delays between those entries less than a maximum time delay.
-   * These are considered "qualifying".
-   * Count a certain number of time delays that fall within a minimum threshold
-   * and stop when that minimum count is achieved.
-   * These are considered "valid".
-   * The final product should be a new list of the successive delays from the first list
-   * containing both qualified and valid entries,
-   * stopping at either the first unqualified delay or the last valid delay or at exhaustion of the original list.
-   * @param iter unfiltered list of times (ms)
-   * @param maxValidDiffCount maximum number of valid entries in the final list of time differences;
-   *                          see `validTimeEntryCount`
-   * @param maxDiff exclusive amount of time allowed between qualifying entries;
-   *                include any time difference within this delay;
-   *                these entries are "qualifying" but are not "valid"
-   * @param minDiff inclusive amount of time difference allowed between valid entries;
-   *                include time differences in this delay
-   *                these entries are "valid" and should increment the counter `validTimeEntryCount`
-   * @return list of qualifying time differences (ms)
-   */
-  /*
-  Parameters governed by recursion:
-  @param diffList ongoing list of qualifying time differences (ms)
-  @param diffExtensionList accumulation of entries greater than the `minTimeEntryDiff`
-                           but less that the `minTimeEntryDiff`;
-                           holds qualifying time differences
-                           that will be included before the next valid time difference
-  @param validDiffCount currently number of valid time entries in the qualified time list;
-                        see `maxValidTimeEntryCount`
-  @param previousTime previous qualifying entry time;
-                      by default, current time (ms)
-  */
-  @tailrec
-  private def qualifiedTimeDifferences(
-                                        iter: Iterator[Long],
-                                        maxValidDiffCount: Int,
-                                        maxDiff: Long,
-                                        minDiff: Long,
-                                        diffList: Seq[Long] = Nil,
-                                        diffExtensionList: Seq[Long] = Nil,
-                                        validDiffCount: Int = 0,
-                                        previousTime: Long = System.currentTimeMillis()
-                                      ): Iterable[Long] = {
-    if (iter.hasNext && validDiffCount < maxValidDiffCount) {
-      val nextTime = iter.next()
-      val delay = previousTime - nextTime
-      if (delay < maxDiff) {
-        if (delay <= minDiff) {
-          qualifiedTimeDifferences(
-            iter,
-            maxValidDiffCount,
-            maxDiff,
-            minDiff,
-            diffList ++ (diffExtensionList :+ delay),
-            Nil,
-            validDiffCount + 1,
-            nextTime
-          )
-        } else {
-          qualifiedTimeDifferences(
-            iter,
-            maxValidDiffCount,
-            maxDiff,
-            minDiff,
-            diffList,
-            diffExtensionList :+ delay,
-            validDiffCount,
-            nextTime
-          )
-        }
-      } else {
-        diffList
-      }
-    } else {
-      diffList
-    }
-  }
-
-  /**
-   * From a list of values, isolate all values less than than a test value.
-   * @param list list of values
-   * @param testValue test value that all valid values must be less than
-   * @param mercy initial mercy value that values may be tested for being less than the test value
-   * @return list of values less than the test value, including mercy
-   */
-  private def takeWhileLess(list: Iterable[Long], testValue: Long, mercy: Long): Iterable[Long] = {
-    var onGoingMercy: Long = mercy
-    list.filter { value =>
-      if (value < testValue) {
-        true
-      } else if (value - onGoingMercy < testValue) {
-        //mercy is reduced every time it is utilized to find a valid value
-        onGoingMercy = math.ceil(onGoingMercy * 0.8f).toLong
-        true
-      } else {
-        false
-      }
-    }
   }
 
   /**
@@ -308,39 +158,50 @@ object KillAssists {
    * @return the value of the kill in what the game called "battle experience points"
    * @see `BattleRank.withExperience`
    * @see `Support.baseExperience`
+   * @see `Support.calculateMenace`
    */
   private def calculateExperience(
                                    killer: PlayerSource,
                                    victim: PlayerSource,
                                    history: Iterable[InGameActivity]
                                  ): Long = {
-    //base value (the kill experience before modifiers)
-    lazy val base = Support.baseExperience(victim, history)
-    if (killer.Faction == victim.Faction || killer.unique == victim.unique) {
+    val killerUnique = killer.unique
+    if (killer.Faction == victim.Faction || killerUnique == victim.unique) {
       0L
-    } else if (base > 1) {
-      //include battle rank disparity modifier
-      val battleRankDisparity: Long = {
-        import net.psforever.objects.avatar.BattleRank
-        val killerLevel = BattleRank.withExperience(killer.bep).value
-        val victimLevel = BattleRank.withExperience(victim.bep).value
-        val victimMinusKiller = victimLevel - killerLevel
-        if (victimMinusKiller > -1) {
-          victimMinusKiller * 10 + victimLevel
-        } else {
-          val bothLevels = killerLevel + victimLevel
-          val pointFive = (base.toFloat * 0.25f).toInt
-          -1 * (if (bothLevels >= base) {
-            pointFive
-          } else {
-            math.min(bothLevels, pointFive)
-          })
-        }
-      }.toLong
-      //include menace modifier
-      base + battleRankDisparity + (victim.progress.kills.size.toFloat * (1f + calculateMenace(victim).toFloat / 10f)).toLong
     } else {
-      base
+      val base = Support.baseExperience(victim, history)
+      if (base > Support.TheShortestLifeIsWorth) {
+        val bep = Config.app.game.experience.bep
+        //battle rank disparity modifier
+        val battleRankDisparity: Long = {
+          import net.psforever.objects.avatar.BattleRank
+          val killerLevel = BattleRank.withExperience(killer.bep).value
+          val victimLevel = BattleRank.withExperience(victim.bep).value
+          val victimMinusKiller = victimLevel - killerLevel
+          if (victimMinusKiller > -1) {
+            victimMinusKiller * 5 + victimLevel // 5 x (y - x) + y -> min = 1 @ (1, 1), max = 235 @ (40, 1)
+          } else {
+            victimMinusKiller //min = -39, max = -1
+          }
+        }.toLong
+        //revenge modifier
+        val revengeBonus: Long = {
+          val revenge = bep.revenge
+          val victimUnique = victim.unique
+          val lastDeath = killer.progress.prior.flatMap(_.death)
+          val sameLastKiller = lastDeath.map(_.assailant.map(_.unique)).flatMap(_.headOption).contains(victimUnique)
+          if (revenge.experience != 0 && sameLastKiller) {
+            revenge.experience
+          } else if (sameLastKiller) {
+            (lastDeath.map(_.experienceEarned).get * revenge.rate).toLong
+          } else {
+            0L
+          }
+        }
+        base + battleRankDisparity + revengeBonus
+      } else {
+        base
+      }
     }
   }
 
@@ -600,37 +461,49 @@ object KillAssists {
                                                  ): Seq[(Long, Int)] = {
     var amt = amount
     var count = 0
-    var newOrder: Seq[(Long, Int)] = Nil
+    var newOrderPos: Seq[(Long, Int)] = Nil
+    var newOrderNeg: Seq[(Long, Int)] = Nil
     order.takeWhile { entry =>
       val (id, total) = entry
       if (id > 0 && total > 0) {
-        val part = participants(id)
-        if (amount > total) {
-          //drop this entry
-          participants.put(id, part.copy(amount = 0, weapons = Nil)) //just in case
-          amt = amt - total
-        } else {
-          //edit around the inclusion of this entry
-          val newTotal = total - amt
-          val trimmedWeapons = {
-            var index = -1
-            var weaponSum = 0
-            val pweapons = part.weapons
-            while (weaponSum < amt) {
-              index += 1
-              weaponSum = weaponSum + pweapons(index).amount
+        participants.get(id) match {
+          case Some(part) =>
+            val reduceByValue = math.min(amt, total)
+            val trimmedWeapons = {
+              var index = 0
+              var weaponSum = 0
+              val pweapons = part.weapons
+              val pwepiter = pweapons.iterator
+              while (pwepiter.hasNext && weaponSum < reduceByValue) {
+                weaponSum = weaponSum + pwepiter.next().amount
+                index += 1
+              }
+              //output list(s)
+              (if (weaponSum == reduceByValue) {
+                newOrderNeg = newOrderNeg :+ (id, 0)
+                index += 1
+                pweapons.drop(index)
+              } else if (weaponSum > reduceByValue) {
+                newOrderPos = (id, total - amt) +: newOrderPos
+                val remainder = pweapons.drop(index)
+                remainder.headOption.map(_.copy(amount = weaponSum - reduceByValue)) ++ remainder.tail
+              } else {
+                newOrderPos = (id, total - amt) +: newOrderPos
+                val remainder = pweapons.drop(index)
+                remainder.headOption.map(_.copy(amount = reduceByValue - weaponSum)) ++ remainder.tail
+              }) ++ pweapons.take(index).map(_.copy(amount = 0))
             }
-            (pweapons(index).copy(amount = weaponSum - amt) +: pweapons.slice(index+1, pweapons.size)) ++
-              pweapons.slice(0, index).map(_.copy(amount = 0))
-          }
-          newOrder = (id, newTotal) +: newOrder
-          participants.put(id, part.copy(amount = part.amount - amount, weapons = trimmedWeapons))
-          amt = 0
+            participants.put(id, part.copy(amount = part.amount - reduceByValue, weapons = trimmedWeapons.toSeq))
+            amt = amt - reduceByValue
+          case _ =>
+            //we do not have contribution stat data for this id
+            //perform no calculations; devalue the entry
+            newOrderNeg = newOrderNeg :+ (id, 0)
         }
       }
       count += 1
       amt > 0
     }
-    newOrder ++ order.drop(count)
+    newOrderPos ++ order.drop(count) ++ newOrderNeg//.reverse
   }
 }

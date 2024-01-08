@@ -191,6 +191,7 @@ object ExoSuitDefinition {
           case PlanetSideEmpire.TR => GlobalDefinitions.TRMAX.Use
           case PlanetSideEmpire.NC => GlobalDefinitions.NCMAX.Use
           case PlanetSideEmpire.VS => GlobalDefinitions.VSMAX.Use
+          case _                   => GlobalDefinitions.Standard.Use
         }
       case _ => GlobalDefinitions.Standard.Use
     }
