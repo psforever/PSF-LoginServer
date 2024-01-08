@@ -45,7 +45,7 @@ object Support {
     )
     if (shortLifeBonus > TheShortestLifeIsWorth) {
       val longLifeBonus: Long = {
-        val threat = baseExperienceLongLifeFactors(victim, recordOfWornTimes)
+        val threat = baseExperienceLongLifeFactors(victim, recordOfWornTimes, defaultValue = 100f * shortLifeBonus.toFloat)
         if (withKills) {
           threat
         } else {
@@ -74,41 +74,44 @@ object Support {
                                                history: List[InGameActivity],
                                                initialExosuit: ExoSuitType.Value = ExoSuitType.Standard
                                              ): Map[Int, Long] = {
-    val wornTime: mutable.HashMap[Int, Long] =  mutable.HashMap[Int, Long]()
+    val wornTime: mutable.HashMap[Int, Long] = mutable.HashMap[Int, Long]()
     var currentSuit: Int = initialExosuit.id
-    var lastSuitAct: Long = history.head.time
-    var lastDismountAct: Option[VehicleMountChange] = None
+    var lastActTime: Long = history.head.time
     var lastMountAct: Option[VehicleMountChange] = None
     //collect history events that encompass changes to exo-suits and to mounting conditions
     history.collect {
       case suitChange: ExoSuitChange =>
-        //use previous vehicle dismount to distinguish between infantry exo-suit use and pilot exo-suit use
-        val timePassed = lastDismountAct.map(_.time).getOrElse(lastSuitAct) - suitChange.time
-        wornTime.get(currentSuit) match {
-          case None => wornTime.update(currentSuit, timePassed)
-          case Some(oldTime) => wornTime.update(currentSuit, oldTime + timePassed)
-        }
+        updateEquippedEntry(
+          currentSuit,
+          suitChange.time - lastActTime,
+          wornTime
+        )
         currentSuit = suitChange.exosuit.id
-        lastSuitAct = suitChange.time
-        lastDismountAct = None
+        lastActTime = suitChange.time
       case mount: VehicleMountActivity =>
-        wornTime.getOrElseUpdate(mount.vehicle.Definition.ObjectId, 0L)
-        lastDismountAct = None
+        updateEquippedEntry(
+          currentSuit,
+          mount.time - lastActTime,
+          wornTime
+        )
+        lastActTime = mount.time
         lastMountAct = Some(mount)
       case dismount: VehicleDismountActivity
         if dismount.pairedEvent.isEmpty =>
-        //though we have reference to a previous mount activity, only care about the dismount activity's knowledge
-        wornTime.getOrElseUpdate(dismount.vehicle.Definition.ObjectId, 0L)
-        lastDismountAct = Some(dismount)
+        updateEquippedEntry(
+          dismount.vehicle.Definition.ObjectId,
+          dismount.time - lastActTime,
+          wornTime
+        )
+        lastActTime = dismount.time
         lastMountAct = None
       case dismount: VehicleDismountActivity =>
-        val timePassed = dismount.time - dismount.pairedEvent.get.time
-        val input = dismount.vehicle.Definition.ObjectId
-        wornTime.get(input) match {
-          case None => wornTime.update(input, timePassed)
-          case Some(oldTime) => wornTime.update(input, oldTime + timePassed)
-        }
-        lastDismountAct = Some(dismount)
+        updateEquippedEntry(
+          dismount.vehicle.Definition.ObjectId,
+          dismount.time - dismount.pairedEvent.get.time,
+          wornTime
+        )
+        lastActTime = dismount.time
         lastMountAct = None
     }
     //no more changes; add remaining time from unresolved activity
@@ -116,24 +119,50 @@ object Support {
     lastMountAct
       .collect { mount =>
         //dying in a vehicle is a reason to care about the last mount activity
-        val input = mount.vehicle.Definition.ObjectId
-        val lastMountTime = lastTime - mount.time
-        wornTime.get(input) match {
-          case None => wornTime.update(input, lastMountTime)
-          case Some(oldTime) => wornTime.update(input, oldTime + lastMountTime)
-        }
+        updateEquippedEntry(
+          mount.vehicle.Definition.ObjectId,
+          lastTime - mount.time,
+          wornTime
+        )
         Some(mount)
       }
       .orElse {
         //dying while on foot
-        val lastSuitTime = lastTime - lastDismountAct.map(_.time).getOrElse(lastSuitAct)
-        wornTime.get(currentSuit) match {
-          case None => wornTime.update(currentSuit, lastSuitTime)
-          case Some(oldTime) => wornTime.update(currentSuit, oldTime + lastSuitTime)
-        }
+        updateEquippedEntry(
+          currentSuit,
+          lastTime - lastActTime,
+          wornTime
+        )
         None
       }
     wornTime.toMap
+  }
+
+  /**
+   * ...
+   * @param equipmentId the equipment
+   * @param timePassed how long it was in use
+   * @param wornTime mapping between equipment (object class ids) and the time that equipment has been used (ms)
+   * @return the length of time the equipment was used
+   */
+  private def updateEquippedEntry(
+                                   equipmentId: Int,
+                                   timePassed: Long,
+                                   wornTime: mutable.HashMap[Int, Long]
+                                 ): Long = {
+    wornTime
+      .get(equipmentId)
+      .collect {
+        oldTime =>
+          val time = oldTime + timePassed
+          wornTime.update(equipmentId, time)
+          time
+      }
+      .orElse {
+        wornTime.update(equipmentId, timePassed)
+        Some(timePassed)
+      }
+      .get
   }
 
   /**
@@ -200,76 +229,113 @@ object Support {
    */
   private def baseExperienceLongLifeFactors(
                                              player: PlayerSource,
-                                             recordOfWornTimes: Map[Int, Long]
+                                             recordOfWornTimes: Map[Int, Long],
+                                             defaultValue: Float
                                            ): Long = {
-    val bep = Config.app.game.experience.bep
-    //awarded value for a target's lifespan based on the distribution of their tactical choices
-    val threatEstimate = (recordOfWornTimes.foldLeft(0L) {
-      case (sum, (key, amount)) =>
-        if (key > 10) sum + amount
-        else sum + (amount * bep.lifeSpan.threatAssessmentOf.find { case ThreatAssessment(a, _) => a == key }.map(_.value).getOrElse(1.0f)).toLong
-    } * bep.lifeSpan.lifeSpanThreatRate).toLong
-    //maximum award for a target's lifespan based on the greatest potential of their tactical choices
-    val maxThreatLevel : Long = estimateMaxThreatLevel(
-      recordOfWornTimes,
-      recordOfWornTimes.maxBy { case (_, value) => value }._1
-    )
+    //awarded values for a target's lifespan based on the distribution of their tactical choices
+    val individualThreatEstimates: Map[Int, Float] = calculateThreatEstimatesPerEntry(recordOfWornTimes)
+    val totalThreatEstimate: Float = individualThreatEstimates.values.sum
+    val maxThreatCapacity: Float = {
+      val (exosuitTimes, otherTimes) = recordOfWornTimes.partition(_._1 < 10)
+      calculateMaxThreatCapacityPerEntry(
+        (if (exosuitTimes.values.sum > otherTimes.values.sum) {
+          individualThreatEstimates.filter(_._1 < 10)
+        } else {
+          individualThreatEstimates.filter(_._1 > 10)
+        }).maxBy(_._2)._1,
+        defaultValue
+      )
+    }
     //menace modifier -> min = kills, max = 8 x kills
     val menace = (player.progress.kills.size.toFloat * (1f + Support.calculateMenace(player).toFloat)).toLong
-    //cap
-    math.min(threatEstimate + menace, maxThreatLevel)
+    //last kill experience
+    val lastKillExperience = player.progress.kills
+      .lastOption
+      .collect { kill =>
+        val reduce = ((System.currentTimeMillis() - kill.time.toDate.getTime).toFloat * 0.001f).toLong
+        math.max(0L, kill.experienceEarned - reduce)
+      }
+      .getOrElse(0L)
+    //cap lifespan then add extra
+    math.min(totalThreatEstimate, maxThreatCapacity).toLong + menace + lastKillExperience
   }
+
+  /**
+   * Calculate the reward available based on a tactical option by id.
+   * @param recordOfWornTimes between equipment (object class ids) and the time that equipment has been used (ms)
+   * @return value of the equipment
+   */
+  private def calculateThreatEstimatesPerEntry(recordOfWornTimes: Map[Int, Long]): Map[Int, Float] = {
+    recordOfWornTimes.map {
+      case (key, amount) => (key, amount * calculateThreatEstimatesPerEntry(key))
+    }
+  }
+
+  /**
+   * Calculate the reward available based on a tactical option by id.
+   * If not listed in a previous table of values,
+   * obtain the definition associated with the equipment id and test use the mass of the entity.
+   * The default value is 0.
+   * @param key equipment id used to collect the ceiling value
+   * @return value of the equipment
+   * @see `Config.app.game.experience.bep.threatAssessmentOf`
+   * @see `VitalityDefinition.mass`
+   */
+  private def calculateThreatEstimatesPerEntry(key: Int): Float = {
+    Config.app.game.experience.bep.lifeSpan.threatAssessmentOf
+      .find { case ThreatAssessment(a, _) => a == key }
+      .map(_.value)
+      .getOrElse {
+        getDefinitionById(key)
+          .map(o => 2f + math.log10(o.mass.toDouble).toFloat)
+          .getOrElse(0f)
+      }
+  }
+
 
   /**
    * Calculate the maximum possible reward available based on tactical options.
-   * @param recordOfWornTimes between equipment (object class ids) and the time that equipment has been used (ms)
-   * @param testKey equipment id used to estimate one sample for the ceiling value
-   * @param defaultThreatLevel what to use for an unresolved ceiling value;
-   *                           defaults to 0
-   * @return maximum value of the kill in what the game called "battle experience points"
+   * If not listed in a previous table of values,
+   * obtain the definition associated with the equipment id and test use the maximum health of the entity.
+   * @param key equipment id used to estimate one sample for the ceiling value
+   * @param defaultValue what to use for an unresolved ceiling value;
+   *                     defaults to 0
+   * @return maximum value for this equipment
+   * @see `Config.app.game.experience.bep.maxThreatLevel`
+   * @see `VitalityDefinition.MaxHealth`
    */
-  private def estimateMaxThreatLevel(
-                                      recordOfWornTimes: Map[Int, Long],
-                                      testKey: Int,
-                                      defaultThreatLevel: Long = 0L
-                                    ): Long = {
-    val exoSuitMaxThreatId = recordOfWornTimes
-      .filter { case (key, _) => key < 10 }
-      .maxBy { case (_, value) => value }
-      ._1
-    val estimatedExosuitThreatLevel = estimateMaxThreatLevelBasedOnKey(exoSuitMaxThreatId, defaultThreatLevel)
-    math.max(
-      estimateMaxThreatLevelBasedOnKey(testKey, estimatedExosuitThreatLevel),
-      estimatedExosuitThreatLevel
-    )
+  private def calculateMaxThreatCapacityPerEntry(
+                                                  key: Int,
+                                                  defaultValue: Float
+                                                ): Float = {
+    Config.app.game.experience.bep.lifeSpan.maxThreatLevel
+      .find { case ThreatLevel(a, _) => a == key }
+      .map(_.level.toFloat)
+      .getOrElse {
+        getDefinitionById(key)
+          .map(_.MaxHealth.toFloat * 1.2f)
+          .getOrElse(defaultValue)
+      }
   }
 
   /**
-   * Calculate the maximum possible reward available based on a tactical option by id.
-   * @param refId equipment id used to collect the ceiling value
-   * @param defaultThreatLevel what to use for an unresolved ceiling value
-   * @return maximum value of the kill in what the game called "battle experience points"
-   * @see `Config.app.game.experience.bep.maxThreatLevel`
+   * ...
+   * @param key equipment id
+   * @return the definition if the definition can be found;
+   *         `None`, otherwise
    * @see `DefinitionUtil.idToDefinition`
-   * @see `VitalityDefinition.MaxHealth`
+   * @see `GlobalDefinitions`
+   * @see `VitalityDefinition`
    */
-  private def estimateMaxThreatLevelBasedOnKey(
-                                                refId: Int,
-                                                defaultThreatLevel: Long
-                                              ): Long = {
-    Config.app.game.experience.bep.lifeSpan.maxThreatLevel
-      .find { case ThreatLevel(key, _) => key == refId }
-      .map(_.level)
-      .getOrElse(
-        try {
-          DefinitionUtil.idToDefinition(refId) match {
-            case o: VitalityDefinition => (o.MaxHealth * 1.5f).toLong
-            case _                     => defaultThreatLevel
-          }
-        } catch {
-          case _: Exception => defaultThreatLevel
-        }
-      )
+  private def getDefinitionById(key: Int): Option[VitalityDefinition] = {
+    try {
+      DefinitionUtil.idToDefinition(key) match {
+        case o: VitalityDefinition => Some(o)
+        case _                     => None
+      }
+    } catch {
+      case _: Exception => None
+    }
   }
 
   /**
