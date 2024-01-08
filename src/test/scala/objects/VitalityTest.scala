@@ -65,13 +65,14 @@ class VitalityTest extends Specification {
 
       val list = player.ClearHistory()
       player.History.size mustEqual 0
-      list.head.isInstanceOf[PlayerSuicide] mustEqual true
-      list(1).isInstanceOf[ShieldCharge] mustEqual true
-      list(2).isInstanceOf[RepairFromTerminal] mustEqual true
+
+      list.head.isInstanceOf[HealFromKit] mustEqual true
+      list(1).isInstanceOf[HealFromTerminal] mustEqual true
+      list(2).isInstanceOf[HealFromImplant] mustEqual true
       list(3).isInstanceOf[RepairFromExoSuitChange] mustEqual true
-      list(4).isInstanceOf[HealFromImplant] mustEqual true
-      list(5).isInstanceOf[HealFromTerminal] mustEqual true
-      list(6).isInstanceOf[HealFromKit] mustEqual true
+      list(4).isInstanceOf[RepairFromTerminal] mustEqual true
+      list(5).isInstanceOf[ShieldCharge] mustEqual true
+      list(6).isInstanceOf[PlayerSuicide] mustEqual true
     }
 
     "get exactly one entry that was caused by projectile damage" in {
