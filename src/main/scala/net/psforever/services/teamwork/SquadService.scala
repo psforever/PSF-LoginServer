@@ -974,7 +974,6 @@ class SquadService extends Actor {
   def CloseSquad(squad: Squad): Unit = {
     val guid = squad.GUID
     val membership = squad.Membership.zipWithIndex
-    val factionListings = publishedLists(squad.Faction)
     val (updateMembers, updateIndices) = membership.collect {
       case (member, index) if member.CharId > 0 =>
         ((member, member.CharId, index, subs.UserEvents.get(member.CharId)), (member.CharId, index))
@@ -1011,15 +1010,12 @@ class SquadService extends Actor {
           subs.Publish(charId, SquadResponse.Detail(PlanetSideGUID(0), completelyBlankSquadDetail))
       }
     UpdateSquadListWhenListed(features.Stop, None)
-    //I think this is right, otherwise squadFeatures will never be empty and TryResetSquadId will not reset to 1
-    squadFeatures.remove(guid)
-    //for the rare case of a phantom squad that no longer exists but is still on the publishedLists
-    factionListings.find(_ == guid) match {
-      case Some(squad) =>
-        val index = factionListings.indexOf(squad)
-        factionListings.remove(index)
-      case None =>
-    }
+    squadFeatures -= guid
+    //really make sure it is removed
+    publishedLists(squad.Faction) -= guid
+    //testing
+    println(s"AllSquads Removed: $guid - Remaining: $squadFeatures")
+    println(s"ListedSquads: $publishedLists")
   }
 
   /**
