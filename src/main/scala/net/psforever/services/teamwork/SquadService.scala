@@ -1101,10 +1101,7 @@ class SquadService extends Actor {
           GetLeadingSquad(charId, pSquadOpt) match {
             case Some(_) =>
               //leader of a squad; the squad will be disbanded. Same logic as when a SL uses /leave and the squad is disbanded.
-              PanicDisbandSquad(
-                features,
-                squad.Membership.collect { case member if member.CharId > 0 && member.CharId != charId => member.CharId }
-              )
+              DisbandSquad(features)
             case None =>
               //not the leader of a full squad; tell other members that we are leaving
               SquadSwitchboard.PanicLeaveSquad(
@@ -1118,10 +1115,7 @@ class SquadService extends Actor {
           }
         } else {
           //with only two members before our leave, the squad will be disbanded
-          PanicDisbandSquad(
-            features,
-            squad.Membership.collect { case member if member.CharId > 0 && member.CharId != charId => member.CharId }
-          )
+          DisbandSquad(features)
         }
       case None =>
         //not a member of any squad; nothing really to do here
