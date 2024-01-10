@@ -863,6 +863,11 @@ class SquadService extends Actor {
     val sguid        = GetNextSquadId()
     val squad        = new Squad(sguid, faction)
     val leadPosition = squad.Membership(0)
+    //keep publishedLists clear of old squads. PR 1157 for details
+    val factionListings = publishedLists(faction)
+    val guidsToRemove = factionListings.filterNot(squadFeatures.contains).toList
+    guidsToRemove.foreach(factionListings -= _)
+
     leadPosition.Name = name
     leadPosition.CharId = player.CharId
     leadPosition.Health = StatConverter.Health(player.Health, player.MaxHealth, min = 1, max = 64)
