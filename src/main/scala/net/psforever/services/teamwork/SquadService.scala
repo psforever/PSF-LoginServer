@@ -1015,12 +1015,10 @@ class SquadService extends Actor {
           subs.Publish(charId, SquadResponse.Detail(PlanetSideGUID(0), completelyBlankSquadDetail))
       }
     UpdateSquadListWhenListed(features.Stop, None)
+    //remove from list of squads
     squadFeatures -= guid
-    //really make sure it is removed
+    //really make sure it is removed from listed squads
     publishedLists(squad.Faction) -= guid
-    //testing
-    println(s"AllSquads Removed: $guid - Remaining: $squadFeatures")
-    println(s"ListedSquads: $publishedLists")
   }
 
   /**
