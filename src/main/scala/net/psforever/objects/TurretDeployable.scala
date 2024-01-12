@@ -109,8 +109,8 @@ class TurretControl(turret: TurretDeployable)
         attacker =>
           val channel = zone.id
           val guid = AutomatedTurretObject.GUID
-          AutomatedTurretBehavior.startTrackingTargets(zone, channel, guid, List(attacker.GUID))
-          AutomatedTurretBehavior.stopTrackingTargets(zone, channel, guid) //TODO delay by a few milliseconds?
+          AutomatedTurretBehavior.startTracking(attacker, channel, guid, List(attacker.GUID))
+          AutomatedTurretBehavior.stopTracking(attacker, channel, guid) //TODO delay by a few milliseconds?
       }
     }
   }

@@ -435,9 +435,14 @@ private[support] class WeaponAndProjectileOperations(
   def handleAIDamage(pkt: AIDamage): Unit = {
     val AIDamage(targetGuid, attackerGuid, projectileTypeId, _, _) = pkt
     (continent.GUID(player.VehicleSeated) match {
-      case Some(tobj: PlanetSideServerObject with FactionAffinity with Vitality) if tobj.GUID == targetGuid => Some(tobj)
-      case _ if player.GUID == targetGuid => Some(player)
-      case _ => None
+      case Some(tobj: PlanetSideServerObject with FactionAffinity with Vitality with OwnableByPlayer)
+        if tobj.GUID == targetGuid && tobj.OwnerGuid.contains(player.GUID) =>
+        Some(tobj)
+      case _
+        if player.GUID == targetGuid =>
+        Some(player)
+      case _ =>
+        None
     }).foreach { target =>
       sessionData.validObject(attackerGuid, decorator = "AIDamage/Attacker")
         .collect {

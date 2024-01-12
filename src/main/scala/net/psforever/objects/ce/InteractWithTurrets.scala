@@ -26,9 +26,9 @@ class InteractWithTurrets()
   def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit = {
     target match {
       case clarifiedTarget: AutomatedTurret.Target =>
-        val posxy = clarifiedTarget.Position.xy
+        val pos = clarifiedTarget.Position
         val unique = SourceEntry(clarifiedTarget).unique
-        val targets = getTurretTargets(sector, posxy).filter { turret => turret.Definition.AutoFire.nonEmpty && turret.Detected(unique).isEmpty }
+        val targets = getTurretTargets(sector, pos).filter { turret => turret.Definition.AutoFire.nonEmpty && turret.Detected(unique).isEmpty }
         targets.foreach { t => t.Actor ! AutomatedTurretBehavior.Alert(clarifiedTarget) }
       case _ => ()
     }
@@ -72,7 +72,7 @@ class InteractWithTurrets()
 }
 
 object InteractWithTurrets {
-  private val Range: Float = {
+  private lazy val Range: Float = {
     Seq(
       GlobalDefinitions.spitfire_turret,
       GlobalDefinitions.spitfire_cloaked,

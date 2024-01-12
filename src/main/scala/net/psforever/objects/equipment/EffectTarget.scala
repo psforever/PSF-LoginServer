@@ -212,7 +212,8 @@ object EffectTarget {
       !target.Destroyed && (target match {
         case v: Vehicle =>
           val vdef = v.Definition
-          !(v.Cloaked ||
+          !(v.MountedIn.nonEmpty ||
+            v.Cloaked ||
             GlobalDefinitions.isAtvVehicle(vdef) ||
             vdef == GlobalDefinitions.two_man_assault_buggy ||
             vdef == GlobalDefinitions.skyguard)

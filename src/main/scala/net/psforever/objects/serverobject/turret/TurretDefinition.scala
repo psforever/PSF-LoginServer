@@ -26,7 +26,7 @@ final case class Automation(
                              targetEliminationCooldown: Long = 0L, //ms
                              revertToDefaultFireMode: Boolean = true
                            ) {
-  assert(targetDetectionRange > targetTriggerRange, "trigger range must be less or equal to detection range")
+  assert(targetDetectionRange > targetTriggerRange, "trigger range must be less than detection range")
 }
 
 /**

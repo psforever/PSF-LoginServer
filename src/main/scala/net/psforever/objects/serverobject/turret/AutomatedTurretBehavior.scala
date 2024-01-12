@@ -1,7 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.objects.serverobject.turret
 
-import akka.actor.{Actor, Cancellable}
+import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.{Default, Player, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -10,8 +10,11 @@ import net.psforever.objects.sourcing.{SourceEntry, SourceUniqueness}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.{InteractsWithZone, Zone}
+import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ObjectDetectedMessage}
+import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -85,6 +88,8 @@ trait AutomatedTurretBehavior {
 
   private lazy val autoStats: Option[Automation] = AutomatedTurretObject.Definition.AutoFire
 
+  private var previousTestedTargets: Set[Target] = Set()
+
   def AutomatedTurretObject: AutomatedTurret
 
   val automatedTurretBehavior: Actor.Receive = if (autoStats.isDefined) {
@@ -127,6 +132,13 @@ trait AutomatedTurretBehavior {
 
   protected def AutomaticOperationFunctionalityChecks: Boolean
 
+  protected def CurrentTargetLastShotReported: Long = currentTargetLastShotReported
+
+  protected def CurrentTargetLastShotReported_=(value: Long): Long = {
+    currentTargetLastShotReported = value
+    CurrentTargetLastShotReported
+  }
+
   private def bringAttentionToTarget(target: Target): Unit = {
     val targets = AutomatedTurretObject.Targets
     val size = targets.size
@@ -140,12 +152,12 @@ trait AutomatedTurretBehavior {
 
   private def confirmShot(target: Target): Unit = {
     val now = System.currentTimeMillis()
-    if (currentTargetToken.isEmpty || now - currentTargetLastShotReported > autoStats.map { _.targetSelectCooldown }.get) {
+    if (currentTargetToken.isEmpty) {
       currentTargetLastShotReported = now
       engageNewDetectedTarget(target)
     } else if (
-      currentTargetToken.contains(SourceEntry(target).unique) &&
-        now - currentTargetLastShotReported < autoStats.map { _.missedShotCooldown }.get) {
+        currentTargetToken.contains(SourceEntry(target).unique) &&
+        now - currentTargetLastShotReported < autoStats.map(_.missedShotCooldown).getOrElse(0L)) {
       currentTargetLastShotReported = now
     }
   }
@@ -165,27 +177,24 @@ trait AutomatedTurretBehavior {
   }
 
   private def resetAlerts(): Unit = {
-    AutomatedTurretObject.Target.foreach { noLongerEngageDetectedTarget }
+    AutomatedTurretObject.Target.foreach(noLongerEngageDetectedTarget)
+    AutomatedTurretObject.Target = None
     AutomatedTurretObject.Clear()
     testTargetListQualifications(beforeSize = 1)
-  }
-
-  private def testNewDetectedTarget(target: Target, channel: String): Unit = {
-    val zone = target.Zone
-    AutomatedTurretBehavior.startTrackingTargets(zone, channel, AutomatedTurretObject.GUID, List(target.GUID))
-    AutomatedTurretBehavior.startShooting(zone, channel, AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID)
-    context.system.scheduler.scheduleOnce(100.milliseconds, (() => {
-      AutomatedTurretBehavior.stopShooting(zone, channel, AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID)
-    }).asInstanceOf[Runnable])
+    previousTestedTargets.foreach(noLongerEngageTestedTarget)
+    previousTestedTargets = Set()
+    currentTargetToken = None
   }
 
   protected def engageNewDetectedTarget(target: Target): Unit = {
     val zone = target.Zone
     val zoneid = zone.id
-    AutomatedTurretObject.Target = target
+    previousTestedTargets.filterNot(_ == target).foreach(noLongerEngageTestedTarget)
+    previousTestedTargets = Set(target)
     currentTargetToken = Some(SourceEntry(target).unique)
-    AutomatedTurretBehavior.startTrackingTargets(zone, zoneid, AutomatedTurretObject.GUID, List(target.GUID))
-    AutomatedTurretBehavior.startShooting(zone, zoneid, AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID)
+    AutomatedTurretObject.Target = target
+    AutomatedTurretBehavior.startTracking(target, zoneid, AutomatedTurretObject.GUID, List(target.GUID))
+    AutomatedTurretBehavior.startShooting(target, zoneid, AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID)
   }
 
   protected def noLongerDetectTargetIfCurrent(target: Target): Option[Target] = {
@@ -197,22 +206,30 @@ trait AutomatedTurretBehavior {
   }
 
   protected def noLongerEngageDetectedTarget(target: Target): Option[Target] = {
-    val zone = target.Zone
-    val zoneid = zone.id
     AutomatedTurretObject.Target = None
     currentTargetToken = None
-    AutomatedTurretBehavior.stopTrackingTargets(zone, zoneid, AutomatedTurretObject.GUID)
-    AutomatedTurretBehavior.stopShooting(zone, zoneid, AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID)
+    noLongerEngageTestedTarget(target)
+    None
+  }
+
+  private def noLongerEngageTestedTarget(target: Target): Option[Target] = {
+    val zone = target.Zone
+    val zoneid = zone.id
+    AutomatedTurretBehavior.stopTracking(target, zoneid, AutomatedTurretObject.GUID)
+    AutomatedTurretBehavior.stopShooting(target, zoneid, AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID)
     None
   }
 
   protected def trySelectNewTarget(): Option[Target] = {
     AutomatedTurretObject.Target.orElse {
       val turretPosition = AutomatedTurretObject.Position
+      val turretGuid = AutomatedTurretObject.GUID
+      val weaponGuid = AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID
       val radius = autoStats.get.targetTriggerRange
       val validation = autoStats.get.targetValidation
       val faction = AutomatedTurretObject.Faction
-      AutomatedTurretObject
+      //noinspection CollectHeadOption
+      val (targets, forValidation) = AutomatedTurretObject
         .Targets
         .collect { case target
           if /*target.Faction != faction &&*/
@@ -221,18 +238,29 @@ trait AutomatedTurretBehavior {
           target
         }
         .sortBy(target => Vector3.DistanceSquared(target.Position, turretPosition))
-        .collectFirst {
+        .collect {
           case target: Player =>
-            testNewDetectedTarget(target, target.Name)
-            target
+            AutomatedTurretBehavior.Generic.testNewDetected(target, target.Name, turretGuid, weaponGuid)
+            Seq((target, target))
           case target: Vehicle =>
             target.Seats.values
               .flatMap(_.occupants)
-              .foreach { target =>
-                testNewDetectedTarget(target, target.Name)
+              .collectFirst { passenger =>
+                AutomatedTurretBehavior.Generic.testNewDetected(passenger, passenger.Name, turretGuid, weaponGuid)
+                (target, passenger)
               }
-            target
         }
+        .flatten
+        .unzip
+      //call an explicit stop for these targets
+      (for {
+        a <- forValidation
+        b <- previousTestedTargets
+        if SourceEntry(a).unique != SourceEntry(b).unique
+      } yield b)
+        .foreach(noLongerEngageTestedTarget)
+      previousTestedTargets = forValidation.toSet
+      targets.headOption
     }
   }
 
@@ -274,7 +302,7 @@ trait AutomatedTurretBehavior {
       }
       .orElse {
         //no target; unless we are deactivated or have any unfinished delays, search for new target
-        if (automaticOperation && now - currentTargetLastShotReported >= selectDelay) {
+        if (automaticOperation && now - currentTargetLastShotReported >= 0) {
           trySelectNewTarget()
         }
         None
@@ -291,17 +319,17 @@ trait AutomatedTurretBehavior {
     if (target.Destroyed) {
       //if the target died while we were shooting at it
       noLongerEngageDetectedTarget(target)
-      currentTargetLastShotReported = now - eliminationDelay
+      currentTargetLastShotReported = now + eliminationDelay
       None
     } else if (AutomatedTurretBehavior.shapedDistanceCheckAgainstValue(autoStats, target.Position, AutomatedTurretObject.Position, escapeRange)) {
       //if the target made sufficient distance from the turret
       noLongerEngageDetectedTarget(target)
-      currentTargetLastShotReported = now - cooldownDelay
+      currentTargetLastShotReported = now + cooldownDelay
       None
     } else if (now - currentTargetLastShotReported >= cooldownDelay) {
       //if the target goes mia through lack of response
       noLongerEngageDetectedTarget(target)
-      currentTargetLastShotReported = now - selectDelay
+      currentTargetLastShotReported = now + selectDelay
       None
     } else {
       //continue shooting
@@ -377,32 +405,105 @@ object AutomatedTurretBehavior {
 
   private case object PeriodicCheck
 
-  def startTrackingTargets(zone: Zone, channel: String, guid: PlanetSideGUID, list: List[PlanetSideGUID]): Unit = {
-    zone.LocalEvents ! LocalServiceMessage(
-      channel,
-      LocalAction.SendResponse(ObjectDetectedMessage(guid, guid, 0, list))
-    )
+  trait AutomatedTurretDispatch {
+    private val noTargets :List[PlanetSideGUID] = List(Service.defaultPlayerGUID)
+
+    def getEventBus(target: Target): ActorRef
+
+    def composeMessageEnvelope(channel: String, msg: PlanetSideGamePacket): Any
+
+    def startTracking(target: Target, channel: String, turretGuid: PlanetSideGUID, list: List[PlanetSideGUID]): Unit = {
+      getEventBus(target) ! composeMessageEnvelope(channel, startTrackingMsg(turretGuid, list))
+    }
+
+    def stopTracking(target: Target, channel: String, turretGuid: PlanetSideGUID): Unit = {
+      getEventBus(target) ! composeMessageEnvelope(channel, stopTrackingMsg(turretGuid))
+    }
+
+    def startShooting(target: Target, channel: String, weaponGuid: PlanetSideGUID): Unit = {
+      getEventBus(target) ! composeMessageEnvelope(channel, startShootingMsg(weaponGuid))
+    }
+
+    def stopShooting(target: Target, channel: String, weaponGuid: PlanetSideGUID): Unit = {
+      getEventBus(target) ! composeMessageEnvelope(channel, stopShootingMsg(weaponGuid))
+    }
+
+    def testNewDetected(target: Target, channel: String, turretGuid: PlanetSideGUID, weaponGuid: PlanetSideGUID): Unit = {
+      startTracking(target, channel, turretGuid, List(target.GUID))
+      startShooting(target, channel, weaponGuid)
+      stopShooting(target, channel, weaponGuid)
+    }
+
+    private def startTrackingMsg(guid: PlanetSideGUID, list: List[PlanetSideGUID]): PlanetSideGamePacket = {
+      ObjectDetectedMessage(guid, guid, 0, list)
+    }
+
+    private def stopTrackingMsg(turretGuid: PlanetSideGUID): PlanetSideGamePacket = {
+      ObjectDetectedMessage(turretGuid, turretGuid, 0, noTargets)
+    }
+
+    private def startShootingMsg(weaponGuid: PlanetSideGUID): PlanetSideGamePacket = {
+      ChangeFireStateMessage_Start(weaponGuid)
+    }
+
+    private def stopShootingMsg(weaponGuid: PlanetSideGUID): PlanetSideGamePacket = {
+      ChangeFireStateMessage_Stop(weaponGuid)
+    }
   }
 
-  def stopTrackingTargets(zone: Zone, channel: String, guid: PlanetSideGUID): Unit = {
-    zone.LocalEvents ! LocalServiceMessage(
-      channel,
-      LocalAction.SendResponse(ObjectDetectedMessage(guid, guid, 0, List(PlanetSideGUID(0))))
-    )
+  object Generic extends AutomatedTurretDispatch {
+    def getEventBus(target: Target): ActorRef = {
+      target.Zone.LocalEvents
+    }
+
+    def composeMessageEnvelope(channel: String, msg: PlanetSideGamePacket): Any = {
+      LocalServiceMessage(channel, LocalAction.SendResponse(msg))
+    }
   }
 
-  private def startShooting(zone: Zone, channel: String, weaponGuid: PlanetSideGUID): Unit = {
-    zone.LocalEvents ! LocalServiceMessage(
-      channel,
-      LocalAction.SendResponse(ChangeFireStateMessage_Start(weaponGuid))
-    )
+  object Vehicle extends AutomatedTurretDispatch {
+    def getEventBus(target: Target): ActorRef = {
+      target.Zone.VehicleEvents
+    }
+
+    def composeMessageEnvelope(channel: String, msg: PlanetSideGamePacket): Any = {
+      VehicleServiceMessage(channel, VehicleAction.SendResponse(Service.defaultPlayerGUID, msg))
+    }
   }
 
-  private def stopShooting(zone: Zone, channel: String, weaponGuid: PlanetSideGUID): Unit = {
-    zone.LocalEvents ! LocalServiceMessage(
-      channel,
-      LocalAction.SendResponse(ChangeFireStateMessage_Stop(weaponGuid))
-    )
+  def startTracking(target: Target, channel: String, turretGuid: PlanetSideGUID, list: List[PlanetSideGUID]): Unit = {
+    target match {
+      case v: Vehicle => Vehicle.startTracking(v, channel, turretGuid, list)
+      case _          => Generic.startTracking(target, channel, turretGuid, list)
+    }
+  }
+
+  def stopTracking(target: Target, channel: String, turretGuid: PlanetSideGUID): Unit = {
+    target match {
+      case v: Vehicle => Vehicle.stopTracking(v, channel, turretGuid)
+      case _          => Generic.stopTracking(target, channel, turretGuid)
+    }
+  }
+
+  def startShooting(target: Target, channel: String, weaponGuid: PlanetSideGUID): Unit = {
+    target match {
+      case v: Vehicle => Vehicle.startShooting(v, channel, weaponGuid)
+      case _          => Generic.startShooting(target, channel, weaponGuid)
+    }
+  }
+
+  def stopShooting(target: Target, channel: String, weaponGuid: PlanetSideGUID): Unit = {
+    target match {
+      case v: Vehicle => Vehicle.stopShooting(v, channel, weaponGuid)
+      case _          => Generic.stopShooting(target, channel, weaponGuid)
+    }
+  }
+
+  def testNewDetected(target: Target, channel: String, turretGuid: PlanetSideGUID, weaponGuid: PlanetSideGUID): Unit = {
+    target match {
+      case v: Vehicle => Vehicle.testNewDetected(v, channel, turretGuid, weaponGuid)
+      case _          => Generic.testNewDetected(target, channel, turretGuid, weaponGuid)
+    }
   }
 
   def getAttackerFromCause(zone: Zone, cause: DamageResult): Option[PlanetSideServerObject with Vitality] = {
@@ -445,7 +546,7 @@ object AutomatedTurretBehavior {
                                                position: Vector3,
                                                testPosition: Vector3,
                                                testRange: Float,
-                                               result: Int = 1 //by default, calculation > testRange^2
+                                               result: Int = 1 //by default, calculation > input
                                              ): Boolean = {
     val testRangeSq = testRange * testRange
     if (stats.exists(_.cylindricalCheck)) {

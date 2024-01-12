@@ -92,19 +92,24 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   override protected def tryMount(obj: PlanetSideServerObject with Mountable, seatNumber: Int, player: Player): Boolean = {
-    val result = super.tryMount(obj, seatNumber, player)
-    if (result) {
-      AutomaticOperation = false
+    AutomaticOperation = false //turn off
+    if (!super.tryMount(obj, seatNumber, player)) {
+      AutomaticOperation = AutomaticOperationFunctionalityChecks //revert?
+      false
+    } else {
+      true
     }
-    result
   }
 
   override protected def tryDismount(obj: Mountable, seatNumber: Int, player: Player, bailType: BailType.Value): Boolean = {
-    val result = super.tryDismount(obj, seatNumber, player, bailType)
-    if (result) {
-      AutomaticOperation = AutomaticOperationFunctionalityChecks
+    AutomaticOperation = AutomaticOperationFunctionalityChecksExceptMounting //turn on, if can turn on
+    if (!super.tryDismount(obj, seatNumber, player, bailType)) {
+      AutomaticOperation = false //revert
+      false
+    } else {
+      CurrentTargetLastShotReported = System.currentTimeMillis() + 4000L
+      true
     }
-    result
   }
 
   override protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any) : Unit = {
@@ -173,10 +178,13 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   protected def AutomaticOperationFunctionalityChecks: Boolean = {
+    AutomaticOperationFunctionalityChecksExceptMounting && !TurretObject.Seats.values.exists(_.isOccupied)
+  }
+
+  protected def AutomaticOperationFunctionalityChecksExceptMounting: Boolean = {
     isPowered &&
       !JammableObject.Jammed &&
-      TurretObject.Health > TurretObject.Definition.DamageDisablesAt &&
-      !TurretObject.Seats.values.exists(_.isOccupied)
+      TurretObject.Health > TurretObject.Definition.DamageDisablesAt
   }
 
   private def primaryWeaponFireModeOnly(): Unit = {
@@ -224,8 +232,8 @@ class FacilityTurretControl(turret: FacilityTurret)
         attacker =>
           val channel = zone.id
           val guid = AutomatedTurretObject.GUID
-          AutomatedTurretBehavior.startTrackingTargets(zone, channel, guid, List(attacker.GUID))
-          AutomatedTurretBehavior.stopTrackingTargets(zone, channel, guid) //TODO delay by a few milliseconds?
+          AutomatedTurretBehavior.startTracking(attacker, channel, guid, List(attacker.GUID))
+          AutomatedTurretBehavior.stopTracking(attacker, channel, guid) //TODO delay by a few milliseconds?
       }
     }
   }

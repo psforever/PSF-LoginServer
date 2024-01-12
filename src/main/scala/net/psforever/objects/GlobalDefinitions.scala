@@ -10057,7 +10057,8 @@ object GlobalDefinitions {
       targetValidation = List(EffectTarget.Validation.MaxOnRadar, EffectTarget.Validation.VehiclesOnRadar),
       retaliatoryDuration = 8000L,
       cylindricalCheck = true,
-      cylindricalHeight = 25f
+      cylindricalHeight = 25f,
+      detectionSpeed = 2.seconds
     )
     manned_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
