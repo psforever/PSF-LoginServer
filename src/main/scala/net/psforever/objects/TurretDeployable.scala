@@ -13,6 +13,7 @@ import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior, MountableTurretControl, TurretDefinition, WeaponTurret}
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
@@ -27,6 +28,15 @@ class TurretDeployable(tdef: TurretDeployableDefinition)
     with Hackable
     with AutomatedTurret {
   WeaponTurret.LoadDefinition(turret = this)
+
+  def TurretOwner: SourceEntry = {
+    Seats
+      .headOption
+      .collect { case (_, a) => a }
+      .flatMap(_.occupant)
+      .map(SourceEntry(_))
+      .getOrElse(SourceEntry(this))
+  }
 
   override def Definition: TurretDeployableDefinition = tdef
 }
@@ -105,7 +115,7 @@ class TurretControl(turret: TurretDeployable)
       AutomaticOperation = false
       //look in direction of cause of jamming
       val zone = JammableObject.Zone
-      AutomatedTurretBehavior.getAttackerFromCause(zone, cause).foreach {
+      AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach {
         attacker =>
           val channel = zone.id
           val guid = AutomatedTurretObject.GUID

@@ -11,20 +11,21 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 final case class Automation(
-                             targetDetectionRange: Float,
-                             targetTriggerRange: Float,
-                             targetEscapeRange: Float,
+                             targetDetectionRange: Float, //m
+                             targetTriggerRange: Float, //m
+                             targetEscapeRange: Float, //m
                              targetValidation: List[PlanetSideGameObject => Boolean],
                              cylindricalCheck: Boolean = false,
-                             cylindricalHeight: Float = 0,
-                             retaliatoryDuration: Long = 0,
+                             cylindricalHeight: Float = 0, //m
+                             retaliatoryDuration: Long = 0, //ms
                              retaliationOverridesTarget: Boolean = true,
                              initialDetectionSpeed: FiniteDuration = Duration.Zero,
                              detectionSpeed: FiniteDuration = 1.seconds,
                              targetSelectCooldown: Long = 1500L, //ms
                              missedShotCooldown: Long = 3000L, //ms
                              targetEliminationCooldown: Long = 0L, //ms
-                             revertToDefaultFireMode: Boolean = true
+                             revertToDefaultFireMode: Boolean = true,
+                             refireTime: FiniteDuration = 1.seconds //60rpm
                            ) {
   assert(targetDetectionRange > targetTriggerRange, "trigger range must be less than detection range")
 }

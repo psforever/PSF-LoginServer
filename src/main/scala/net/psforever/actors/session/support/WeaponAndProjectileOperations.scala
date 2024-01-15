@@ -3,7 +3,6 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.objects.definition.ProjectileDefinition
-import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.zones.Zoning
 import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior, VanuSentry}
 import net.psforever.objects.zones.exp.ToDatabase
@@ -450,16 +449,9 @@ private[support] class WeaponAndProjectileOperations(
             turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
             None
 
-          case turret: AutomatedTurret with OwnableByPlayer => //most likely a deployable
+          case turret: AutomatedTurret =>
             turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
-            val owner = continent.GUID(turret.OwnerGuid)
-              .collect { case obj: PlanetSideGameObject with FactionAffinity => SourceEntry(obj) }
-              .getOrElse(SourceEntry(turret))
-            CompileAutomatedTurretDamageData(turret, owner, projectileTypeId)
-
-          case turret: Amenity with AutomatedTurret => //most likely a facility turret
-            turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
-            CompileAutomatedTurretDamageData(turret, SourceEntry(turret.Owner), projectileTypeId)
+            CompileAutomatedTurretDamageData(turret, turret.TurretOwner, projectileTypeId)
         }
         .collect {
           case Some((obj, tool, owner, projectileInfo)) =>

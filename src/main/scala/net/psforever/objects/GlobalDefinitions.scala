@@ -9078,7 +9078,8 @@ object GlobalDefinitions {
       targetTriggerRange = 50f,
       targetEscapeRange = 50f,
       targetValidation = List(EffectTarget.Validation.PlayerOnRadar, EffectTarget.Validation.Vehicle),
-      retaliatoryDuration = 8000L
+      retaliatoryDuration = 8000L,
+      refireTime = 200.milliseconds //150.milliseconds
     )
     spitfire_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -9111,7 +9112,8 @@ object GlobalDefinitions {
       targetTriggerRange = 30f,
       targetEscapeRange = 50f,
       targetValidation = List(EffectTarget.Validation.PlayerOnRadar, EffectTarget.Validation.VehiclesOnRadar),
-      retaliatoryDuration = 8000L
+      retaliatoryDuration = 8000L,
+      refireTime = 200.milliseconds //150.milliseconds
     )
     spitfire_cloaked.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -9146,6 +9148,7 @@ object GlobalDefinitions {
       targetValidation = List(EffectTarget.Validation.AircraftOnRadar),
       retaliatoryDuration = 2000L,
       retaliationOverridesTarget = false,
+      refireTime = 350.milliseconds, //300.milliseconds
       cylindricalCheck = true,
       cylindricalHeight = 25f
     )
@@ -10058,7 +10061,8 @@ object GlobalDefinitions {
       retaliatoryDuration = 8000L,
       cylindricalCheck = true,
       cylindricalHeight = 25f,
-      detectionSpeed = 2.seconds
+      detectionSpeed = 2.seconds,
+      refireTime = 362.milliseconds //312.milliseconds
     )
     manned_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One

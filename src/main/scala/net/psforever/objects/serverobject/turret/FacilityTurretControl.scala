@@ -228,7 +228,7 @@ class FacilityTurretControl(turret: FacilityTurret)
       AutomaticOperation = false
       //look in direction of cause of jamming
       val zone = JammableObject.Zone
-      AutomatedTurretBehavior.getAttackerFromCause(zone, cause).foreach {
+      AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach {
         attacker =>
           val channel = zone.id
           val guid = AutomatedTurretObject.GUID
