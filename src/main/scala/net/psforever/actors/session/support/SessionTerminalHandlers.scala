@@ -146,13 +146,15 @@ class SessionTerminalHandlers(
               sendResponse(UnuseItemMessage(player.GUID, msg.terminal_guid))
             }
             player.LogActivity(TerminalUsedActivity(AmenitySource(term), msg.transaction_type))
-          }.orElse {
-          log.error(
-            s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
-          )
-          sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
-          None
-        }
+          }
+          .orElse {
+            log.error(
+              s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
+            )
+            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
+            None
+          }
+        lastTerminalOrderFulfillment = true
 
       case Terminal.NoDeal() if msg != null =>
         val transaction = msg.transaction_type
