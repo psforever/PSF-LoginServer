@@ -19,8 +19,6 @@ import net.psforever.objects.serverobject.llu.{CaptureFlag, CaptureFlagSocket}
 import net.psforever.objects.serverobject.structures.participation.{MajorFacilityHackParticipation, NoParticipation, ParticipationLogic, TowerHackParticipation}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 
-import java.util.concurrent.TimeUnit
-
 class Building(
                 private val name: String,
                 private val building_guid: Int,

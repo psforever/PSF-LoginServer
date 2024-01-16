@@ -523,7 +523,7 @@ object SquadHeader {
       linkedInfo
     } else {
       val (code, data) = infoList.head
-      linkSquadInfo(infoList.tail, LinkedSquadInfo(code, data, Some(linkedInfo)))
+      linkSquadInfo(infoList.drop(1), LinkedSquadInfo(code, data, Some(linkedInfo)))
     }
   }
 

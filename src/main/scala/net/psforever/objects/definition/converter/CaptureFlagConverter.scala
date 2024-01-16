@@ -7,7 +7,6 @@ import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.packet.game.objectcreate.{CaptureFlagData, PlacementData}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
-import java.util.concurrent.TimeUnit
 import scala.util.{Success, Try}
 
 class CaptureFlagConverter extends ObjectCreateConverter[CaptureFlag]() {

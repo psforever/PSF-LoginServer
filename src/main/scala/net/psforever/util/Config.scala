@@ -284,7 +284,8 @@ case class BattleExperiencePointsLifespan(
 
 case class BattleExperiencePointsRevenge(
     rate: Float,
-    experience: Long
+    defaultExperience: Long,
+    maxExperience: Long
 )
 
 case class SupportExperiencePoints(
