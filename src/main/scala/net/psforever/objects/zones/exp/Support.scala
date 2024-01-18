@@ -44,6 +44,7 @@ object Support {
       fullLifespan
     )
     if (shortLifeBonus > TheShortestLifeIsWorth) {
+      //long life factors
       val longLifeBonus: Long = {
         val threat = baseExperienceLongLifeFactors(victim, recordOfWornTimes, defaultValue = 100f * shortLifeBonus.toFloat)
         if (withKills) {
@@ -52,7 +53,6 @@ object Support {
           (threat * 0.85f).toLong
         }
       }
-      //long life factors
       shortLifeBonus + longLifeBonus
     } else {
       //the shortest life is afforded no additional bonuses

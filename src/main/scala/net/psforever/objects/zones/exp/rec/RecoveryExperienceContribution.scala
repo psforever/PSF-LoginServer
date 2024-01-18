@@ -52,7 +52,7 @@ object RecoveryExperienceContribution {
               recoveryParticipants.put(
                 id,
                 entry.copy(
-                  weapons = weapons.head.copy(amount = math.max(0, weapons.head.amount - ramt), time = time) +: weapons.tail,
+                  weapons = weapons.head.copy(amount = math.max(0, weapons.head.amount - ramt), time = time) +: weapons.drop(1),
                   amount = math.max(0, entry.amount - ramt),
                   time = time
                 )
@@ -65,7 +65,7 @@ object RecoveryExperienceContribution {
               recoveryParticipants.put(
                 id,
                 entry.copy(
-                  weapons = weapons.tail :+ weapons.head.copy(amount = 0, time = time),
+                  weapons = weapons.drop(1) :+ weapons.head.copy(amount = 0, time = time),
                   amount = math.max(0, entry.amount - ramt),
                   time = time
                 )
@@ -214,7 +214,7 @@ object RecoveryExperienceContribution {
             recoveryParticipants.put(
               charId,
               entry.copy(
-                weapons = head.copy(amount = head.amount + amtToGain, shots = head.shots + 1, time = time) +: entry.weapons.tail,
+                weapons = head.copy(amount = head.amount + amtToGain, shots = head.shots + 1, time = time) +: entry.weapons.drop(1),
                 amount = entry.amount + amtToGain,
                 total = entry.total + amtToGain,
                 shots = entry.shots + 1,

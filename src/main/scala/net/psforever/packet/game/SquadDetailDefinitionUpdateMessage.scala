@@ -916,7 +916,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
         out
       } else {
         val (code, data) = list.head
-        linkFields(list.tail, LinkedFields(code, data, Some(out)))
+        linkFields(list.drop(1), LinkedFields(code, data, Some(out)))
       }
     }
 
@@ -1184,7 +1184,7 @@ object SquadDetailDefinitionUpdateMessage extends Marshallable[SquadDetailDefini
         out
       } else {
         val (code, data) = list.head
-        linkFields(list.tail, LinkedFields(code, data, Some(out)))
+        linkFields(list.drop(1), LinkedFields(code, data, Some(out)))
       }
     }
 

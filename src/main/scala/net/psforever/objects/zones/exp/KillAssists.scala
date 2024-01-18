@@ -190,10 +190,10 @@ object KillAssists {
           val victimUnique = victim.unique
           val lastDeath = killer.progress.prior.flatMap(_.death)
           val sameLastKiller = lastDeath.map(_.assailant.map(_.unique)).flatMap(_.headOption).contains(victimUnique)
-          if (revenge.experience != 0 && sameLastKiller) {
-            revenge.experience
+          if (revenge.defaultExperience != 0 && sameLastKiller) {
+            revenge.defaultExperience
           } else if (sameLastKiller) {
-            (lastDeath.map(_.experienceEarned).get * revenge.rate).toLong
+            math.min(revenge.maxExperience, (lastDeath.map(_.experienceEarned.toFloat).getOrElse(0f) * revenge.rate).toLong)
           } else {
             0L
           }
@@ -400,7 +400,7 @@ object KillAssists {
                 shots = firstWeapon.shots + 1,
                 time = time,
                 contributions = firstWeapon.contributions + percentage
-              ) +: mod.weapons.tail
+              ) +: mod.weapons.drop(1)
             } else {
               WeaponStats(newEntry, amount, 1, time, percentage) +: mod.weapons
             }
@@ -427,7 +427,7 @@ object KillAssists {
           case 0 =>
             //ongoing attack by same player
             val entry = order.head
-            (entry._1, entry._2 + amount) +: order.tail
+            (entry._1, entry._2 + amount) +: order.drop(1)
           case _ =>
             //different player than immediate prior attacker
             (whoId, amount) +: order
@@ -437,7 +437,7 @@ object KillAssists {
         order.headOption match {
           case Some((id, dam)) =>
             if (id == 0L) {
-              (0L, dam + amount) +: order.tail //pool
+              (0L, dam + amount) +: order.drop(1) //pool
             } else {
               (0L, amount) +: order //new
             }
@@ -486,11 +486,11 @@ object KillAssists {
               } else if (weaponSum > reduceByValue) {
                 newOrderPos = (id, total - amt) +: newOrderPos
                 val remainder = pweapons.drop(index)
-                remainder.headOption.map(_.copy(amount = weaponSum - reduceByValue)) ++ remainder.tail
+                remainder.headOption.map(_.copy(amount = weaponSum - reduceByValue)) ++ remainder.drop(1)
               } else {
                 newOrderPos = (id, total - amt) +: newOrderPos
                 val remainder = pweapons.drop(index)
-                remainder.headOption.map(_.copy(amount = reduceByValue - weaponSum)) ++ remainder.tail
+                remainder.headOption.map(_.copy(amount = reduceByValue - weaponSum)) ++ remainder.drop(1)
               }) ++ pweapons.take(index).map(_.copy(amount = 0))
             }
             participants.put(id, part.copy(amount = part.amount - reduceByValue, weapons = trimmedWeapons.toSeq))
