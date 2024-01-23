@@ -1,14 +1,19 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.objects.serverobject.turret
+package net.psforever.objects.serverobject.turret.auto
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.{Default, Player, Vehicle}
+import net.psforever.objects.avatar.scoring.EquipmentStat
+import net.psforever.objects.equipment.EffectTarget
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.serverobject.damage.DamageableEntity
-import net.psforever.objects.sourcing.{SourceEntry, SourceUniqueness}
+import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
+import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.turret.Automation
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, SourceUniqueness}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.objects.zones.{InteractsWithZone, Zone}
+import net.psforever.objects.{Default, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -23,20 +28,26 @@ trait AutomatedTurretBehavior {
   private var automaticOperation: Boolean = false
   /** quick reference of the current target, if any */
   private var currentTargetToken: Option[SourceUniqueness] = None
+  /** time of the current target's selection or the last target's selection */
+  private var currentTargetSwitchTime: Long = 0L
   /** time of the last confirmed shot hitting the target */
   private var currentTargetLastShotTime: Long = 0L
   /** game world position when the last shot's confirmation was recorded */
   private var currentTargetLocation: Option[Vector3] = None
-  /** targets queued during evaluation of the "next test", and targets to be being confirmed during "this test" */
-  private var previousTestedTargets: Set[Target] = Set()
   /** timer managing the available target qualifications test
    * whether or not a previously valid target is still a valid target */
   private var periodicValidationTest: Cancellable = Default.Cancellable
+
   /** timer managing the trailing target qualifications self test
    * where the a source will shot directly at some target */
   private var selfReportedRefire: Cancellable = Default.Cancellable
-
-  private var confirmShotFunc: Target=>Unit = normalConfirmShot
+  /** self-reported weapon fire produces projectiles that were shot;
+   * due to the call and response nature of this mode, they also count as shots that were landed */
+  private var shotsFired: Int = 0
+  /** self-reported weapon fire produces targets that were eliminated;
+   * due to the call and response nature of this mode, they also count as shots that were landed;
+   * this may duplicate information processed during some other database update call */
+  private var targetsDestroyed: Int = 0
 
   def AutomatedTurretObject: AutomatedTurret
 
@@ -44,11 +55,11 @@ trait AutomatedTurretBehavior {
     case AutomatedTurretBehavior.Alert(target) =>
       bringAttentionToTarget(target)
 
-    case AutomatedTurretBehavior.ConfirmShot(target, None) =>
-      confirmShotFunc(target)
-
     case AutomatedTurretBehavior.ConfirmShot(target, _) =>
-      confirmShotFunc(target)
+      normalConfirmShot(target)
+
+    case SelfReportedConfirmShot(target) =>
+      movementCancelSelfReportingFireConfirmShot(target)
 
     case AutomatedTurretBehavior.Unalert(target) =>
       disregardTarget(target)
@@ -166,8 +177,6 @@ trait AutomatedTurretBehavior {
     AutomatedTurretObject.Target.foreach(noLongerEngageDetectedTarget)
     AutomatedTurretObject.Target = None
     AutomatedTurretObject.Clear()
-    previousTestedTargets.foreach(noLongerEngageTestedTarget)
-    previousTestedTargets = Set()
     currentTargetToken = None
     currentTargetLocation = None
   }
@@ -181,18 +190,26 @@ trait AutomatedTurretBehavior {
    * and, as a result, a message is sent to the turret to encourage it to continue to shoot.
    * If there is no primary target yet, this target becomes primary.
    * @param target something the turret can potentially shoot at
+   * @return `true`, if the target submitted was recognized by the turret;
+   *         `false`, if the target can not be the current target
    */
-  private def normalConfirmShot(target: Target): Unit = {
+  private def normalConfirmShot(target: Target): Boolean = {
     val now = System.currentTimeMillis()
     if (currentTargetToken.isEmpty) {
       currentTargetLastShotTime = now
       currentTargetLocation = Some(target.Position)
+      cancelSelfReportedAutoFire()
       engageNewDetectedTarget(target)
+      true
     } else if (
         currentTargetToken.contains(SourceEntry(target).unique) &&
-        now - currentTargetLastShotTime < autoStats.map(_.missedShotCooldown).getOrElse(0L)) {
+        now - currentTargetLastShotTime < autoStats.map(_.cooldowns.missedShot).getOrElse(0L)) {
       currentTargetLastShotTime = now
       currentTargetLocation = Some(target.Position)
+      cancelSelfReportedAutoFire()
+      true
+    } else {
+      false
     }
   }
 
@@ -207,10 +224,9 @@ trait AutomatedTurretBehavior {
   protected def engageNewDetectedTarget(target: Target): Unit = {
     val zone = target.Zone
     val zoneid = zone.id
-    previousTestedTargets.filterNot(_ == target).foreach(noLongerEngageTestedTarget)
-    previousTestedTargets = Set(target)
     currentTargetToken = Some(SourceEntry(target).unique)
     currentTargetLocation = Some(target.Position)
+    currentTargetSwitchTime = System.currentTimeMillis()
     AutomatedTurretObject.Target = target
     AutomatedTurretBehavior.startTracking(target, zoneid, AutomatedTurretObject.GUID, List(target.GUID))
     AutomatedTurretBehavior.startShooting(target, zoneid, AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID)
@@ -280,30 +296,20 @@ trait AutomatedTurretBehavior {
       val turretPosition = AutomatedTurretObject.Position
       val turretGuid = AutomatedTurretObject.GUID
       val weaponGuid = AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID
-      val radius = autoStats.get.targetTriggerRange
-      val validation = autoStats.get.targetValidation
+      val radius = autoStats.get.ranges.trigger
+      val validation = autoStats.get.checks.validation
       val faction = AutomatedTurretObject.Faction
-      //noinspection CollectHeadOption
-      val (targets, forValidation) = AutomatedTurretObject
+      val selectedTargets = AutomatedTurretObject
         .Targets
         .collect { case target
           if /*target.Faction != faction &&*/
             AutomatedTurretBehavior.shapedDistanceCheckAgainstValue(autoStats, target.Position, turretPosition, radius, result = -1) &&
-            validation.exists(func => func(target)) =>
+            validation.exists(func => func(target))=>
           target
         }
         .sortBy(target => Vector3.DistanceSquared(target.Position, turretPosition))
-        .flatMap { processForTestingDetectedTarget(_, turretGuid, weaponGuid) }
-        .unzip
-      //call an explicit stop for these targets
-      (for {
-        a <- forValidation
-        b <- previousTestedTargets
-        if SourceEntry(a).unique != SourceEntry(b).unique
-      } yield b)
-        .foreach(noLongerEngageTestedTarget)
-      previousTestedTargets = forValidation.toSet
-      targets.headOption
+      selectedTargets.foreach(processForTestingDetectedTarget(_, turretGuid, weaponGuid))
+      selectedTargets.headOption
     }
   }
 
@@ -363,7 +369,7 @@ trait AutomatedTurretBehavior {
   private def performDistanceCheck(): List[Target] = {
     //cull targets
     val pos = AutomatedTurretObject.Position
-    val range = autoStats.map(_.targetDetectionRange).getOrElse(0f)
+    val range = autoStats.map(_.ranges.detection).getOrElse(0f)
     val removedTargets = AutomatedTurretObject.Targets
       .collect {
         case t: InteractsWithZone
@@ -388,10 +394,10 @@ trait AutomatedTurretBehavior {
         generalDecayCheck(
           target,
           now,
-          autoStats.map(_.targetEscapeRange).getOrElse(400f),
-          autoStats.map(_.targetSelectCooldown).getOrElse(3000L),
-          autoStats.map(_.missedShotCooldown).getOrElse(3000L),
-          autoStats.map(_.targetEliminationCooldown).getOrElse(0L)
+          autoStats.map(_.ranges.escape).getOrElse(400f),
+          autoStats.map(_.cooldowns.targetSelect).getOrElse(3000L),
+          autoStats.map(_.cooldowns.missedShot).getOrElse(3000L),
+          autoStats.map(_.cooldowns.targetElimination).getOrElse(0L)
         )
       }
       .orElse {
@@ -409,10 +415,11 @@ trait AutomatedTurretBehavior {
    * An important process loop in the target engagement and target management of an automated turret.
    * If a target has been selected, perform a test to determine whether it remains the selected ("current") target.
    * If the target has been destroyed,
-   * moved beyond the turret's maximum engagement range,
+   * no longer qualifies as a target due to an internal or external change,
+   * has moved beyond the turret's maximum engagement range,
    * or has been missing for a certain amount of time,
    * declare the the turret should no longer be shooting at (whatever) it (was).
-   * Apply appropriate cooldown 6to instruct the turret to wait before attempting to select a new current target.
+   * Apply appropriate cooldown to instruct the turret to wait before attempting to select a new current target.
    * @param target something the turret can potentially shoot at
    * @return something the turret can potentially shoot at
    */
@@ -425,10 +432,16 @@ trait AutomatedTurretBehavior {
                                  eliminationDelay: Long
                                ): Option[Target] = {
     if (target.Destroyed) {
-      //if the target died while we were shooting at it
+      //if the target died or is no longer considered a valid target while we were shooting at it
       cancelSelfReportedAutoFire()
       noLongerEngageDetectedTarget(target)
       currentTargetLastShotTime = now + eliminationDelay
+      None
+    } else if ((AutomatedTurretBehavior.commonBlanking ++ autoStats.map(_.checks.blanking).getOrElse(Nil)).exists(func => func(target))) {
+      //if the target, while being engaged, stops counting as a valid target
+      cancelSelfReportedAutoFire()
+      noLongerEngageDetectedTarget(target)
+      currentTargetLastShotTime = now + selectDelay
       None
     } else if (AutomatedTurretBehavior.shapedDistanceCheckAgainstValue(autoStats, target.Position, AutomatedTurretObject.Position, escapeRange)) {
       //if the target made sufficient distance from the turret
@@ -469,7 +482,7 @@ trait AutomatedTurretBehavior {
    */
   private def retimePeriodicTargetChecks(beforeSize: Int): Boolean = {
     if (beforeSize == 0 && AutomatedTurretObject.Targets.nonEmpty && autoStats.isDefined) {
-      val repeated = autoStats.map(_.detectionSpeed).getOrElse(0.seconds)
+      val repeated = autoStats.map(_.detectionSweepTime).getOrElse(1.seconds)
       retimePeriodicTargetChecks(repeated)
       true
     } else {
@@ -509,9 +522,32 @@ trait AutomatedTurretBehavior {
    * It's like nothing ever happened.
    * @see `Actor.postStop`
    */
-  def automaticTurretPostStop(): Unit = {
+  protected def automaticTurretPostStop(): Unit = {
     resetAlerts()
     AutomatedTurretObject.Targets.foreach { AutomatedTurretObject.RemoveTarget }
+    selfReportingCleanUp()
+  }
+
+  /**
+   * Cleanup for the variables involved in self-reporting.
+   * Set them to zero.
+   */
+  protected def selfReportingCleanUp(): Unit = {
+    shotsFired = 0
+    targetsDestroyed = 0
+  }
+
+  /**
+   * The self-reporting mode for automatic turrets produces weapon fire data that should be sent to the database.
+   * The targets destroyed from self-reported fire are also logged to the database.
+   */
+  protected def selfReportingDatabaseUpdate(): Unit = {
+    AutomatedTurretObject.TurretOwner match {
+      case p: PlayerSource =>
+        val weaponId = AutomatedTurretObject.Weapons.values.head.Equipment.map(_.Definition.ObjectId).getOrElse(0)
+        ToDatabase.reportToolDischarge(p.CharId, EquipmentStat(weaponId, shotsFired, shotsFired, targetsDestroyed, 0))
+      case _ => ()
+    }
   }
 
   /**
@@ -522,7 +558,11 @@ trait AutomatedTurretBehavior {
    * @return something the turret can potentially shoot at
    */
   protected def attemptRetaliation(target: Target, cause: DamageResult): Option[Target] = {
-    if (automaticOperation && autoStats.exists(_.retaliatoryDuration > 0)) {
+    if (
+      automaticOperation &&
+        !currentTargetToken.contains(SourceEntry(target).unique) &&
+        autoStats.exists(_.retaliatoryDelay > 0)
+    ) {
       AutomatedTurretBehavior.getAttackVectorFromCause(target.Zone, cause).collect {
         case attacker if attacker.Faction != target.Faction =>
           performRetaliation(attacker)
@@ -542,7 +582,11 @@ trait AutomatedTurretBehavior {
   private def performRetaliation(target: Target): Option[Target] = {
     AutomatedTurretObject.Target
       .collect {
-        case existingTarget if autoStats.exists(_.retaliationOverridesTarget) =>
+        case existingTarget
+          if autoStats.exists { auto =>
+            auto.retaliationOverridesTarget &&
+              currentTargetSwitchTime + auto.retaliatoryDelay > System.currentTimeMillis()
+          } =>
           cancelSelfReportedAutoFire()
           noLongerEngageDetectedTarget(existingTarget)
           engageNewDetectedTarget(target)
@@ -565,7 +609,14 @@ trait AutomatedTurretBehavior {
    * @param target something the turret can potentially shoot at
    */
   private def movementCancelSelfReportingFireConfirmShot(target: Target): Unit = {
-    normalConfirmShot(target)
+    currentTargetLastShotTime = System.currentTimeMillis()
+    shotsFired += 1
+    target match {
+      case v: Damageable with Mountable
+        if v.Destroyed && v.Seats.values.exists(_.isOccupied) =>
+        targetsDestroyed += 1
+      case _ => ()
+    }
     if (currentTargetLocation.exists(loc => Vector3.DistanceSquared(loc, target.Position) > 1f)) {
       cancelSelfReportedAutoFire()
       noLongerEngageDetectedTarget(target)
@@ -575,7 +626,7 @@ trait AutomatedTurretBehavior {
         AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID
       )
     } else {
-      tryStartSelfReportedAutofire(target)
+      tryPerformSelfReportedAutofire(target)
     }
   }
 
@@ -592,7 +643,9 @@ trait AutomatedTurretBehavior {
   private def trySelfReportedAutofireIfStationary(): Boolean = {
     AutomatedTurretObject.Target
       .collect {
-        case target if currentTargetLocation.exists(loc => Vector3.DistanceSquared(loc, target.Position) > 1f) =>
+        case target
+          if currentTargetLocation.exists(loc => Vector3.DistanceSquared(loc, target.Position) > 1f) &&
+            autoStats.exists(_.refireTime > 0.seconds) =>
           trySelfReportedAutofireTest(target)
       }
       .getOrElse(false)
@@ -606,8 +659,7 @@ trait AutomatedTurretBehavior {
    */
   private def trySelfReportedAutofireTest(target: Target): Boolean = {
     if (selfReportedRefire.isCancelled) {
-      confirmShotFunc = movementCancelSelfReportingFireConfirmShot
-      target.Actor ! AffectedByAutomaticTurretFire.AiDamage(AutomatedTurretObject)
+      target.Actor ! AiDamage(AutomatedTurretObject)
       true
     } else {
       false
@@ -621,14 +673,13 @@ trait AutomatedTurretBehavior {
    * @return `true`, if the self-reporting operation was initiated;
    *         `false`, otherwise
    */
-  private def tryStartSelfReportedAutofire(target: Target): Boolean = {
+  private def tryPerformSelfReportedAutofire(target: Target): Boolean = {
     if (selfReportedRefire.isCancelled) {
-      confirmShotFunc = movementCancelSelfReportingFireConfirmShot
       selfReportedRefire = context.system.scheduler.scheduleWithFixedDelay(
         0.seconds,
-        autoStats.map(_.refireTime).getOrElse(1.second),
+        autoStats.map(_.refireTime).getOrElse(1.seconds),
         target.Actor,
-        AffectedByAutomaticTurretFire.AiDamage(AutomatedTurretObject)
+        AiDamage(AutomatedTurretObject)
       )
       true
     } else {
@@ -638,13 +689,13 @@ trait AutomatedTurretBehavior {
 
   /**
    * Stop directly communicating with a target to simulate weapons fire damage.
+   * Utilized as a p[art of the auto-fire reset process.
    * @return `true`, because we can not fail
    * @see `Default.Cancellable`
    */
   private def cancelSelfReportedAutoFire(): Boolean = {
     selfReportedRefire.cancel()
     selfReportedRefire = Default.Cancellable
-    confirmShotFunc = normalConfirmShot
     true
   }
 }
@@ -660,6 +711,11 @@ object AutomatedTurretBehavior {
   final case object Reset
 
   private case object PeriodicCheck
+
+  final val commonBlanking: List[PlanetSideGameObject => Boolean] = List(
+    EffectTarget.Validation.PlayerUndetectedByAutoTurret,
+    EffectTarget.Validation.VehicleUndetectedByAutoTurret
+  )
 
   /**
    * Are we tracking a `Vehicle` entity?
@@ -801,8 +857,8 @@ object AutomatedTurretBehavior {
                                        result: Int = 1 //by default, calculation > input
                                      ): Boolean = {
     val testRangeSq = range * range
-    if (stats.exists(_.cylindricalCheck)) {
-      val height = range + stats.map(_.cylindricalHeight).getOrElse(0f)
+    if (stats.exists(_.cylindrical)) {
+      val height = range + stats.map(_.cylindricalExtraHeight).getOrElse(0f)
       math.abs(positionA.z - positionB.z).compareTo(height) == result &&
         Vector3.DistanceSquared(positionA.xy, positionB.xy).compareTo(testRangeSq) == result
     } else {

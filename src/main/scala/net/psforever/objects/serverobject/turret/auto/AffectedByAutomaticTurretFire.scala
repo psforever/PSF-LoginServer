@@ -1,5 +1,5 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.objects.serverobject.turret
+package net.psforever.objects.serverobject.turret.auto
 
 import akka.actor.Actor
 import net.psforever.objects.Tool
@@ -20,23 +20,22 @@ import net.psforever.types.Vector3
  */
 trait AffectedByAutomaticTurretFire extends Damageable {
   _: Actor =>
-
   def AffectedObject: AutomatedTurret.Target
 
   val takeAutomatedDamage: Receive = {
-    case AffectedByAutomaticTurretFire.AiDamage(turret) =>
+    case AiDamage(turret) =>
       performAutomatedDamage(turret)
   }
 
-  private def performAutomatedDamage(turret: AutomatedTurret): Unit = {
+  protected def performAutomatedDamage(turret: AutomatedTurret): Unit = {
     val target = AffectedObject
-    val tool = turret.Weapons.values.head.Equipment.collect { case t : Tool => t }.get
+    val tool = turret.Weapons.values.head.Equipment.collect { case t: Tool => t }.get
     val projectileInfo = tool.Projectile
     val targetPos = target.Position
     val turretPos = turret.Position
     val correctedTargetPosition = targetPos + Vector3.z(value = 1f)
     val angle = Vector3.Unit(targetPos - turretPos)
-    turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target, Some(SourceEntry(target)))
+    turret.Actor ! SelfReportedConfirmShot(target)
     val projectile = new Projectile(
       projectileInfo,
       tool.Definition,
@@ -62,8 +61,4 @@ trait AffectedByAutomaticTurretFire extends Damageable {
     )
     PerformDamage(target, resolvedProjectile.calculate())
   }
-}
-
-object AffectedByAutomaticTurretFire {
-  case class AiDamage(turret: AutomatedTurret)
 }

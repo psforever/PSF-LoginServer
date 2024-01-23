@@ -1,8 +1,8 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.objects.serverobject.turret
+package net.psforever.objects.serverobject.turret.auto
 
 import akka.actor.ActorRef
-import net.psforever.objects.serverobject.turret.AutomatedTurret.Target
+import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ObjectDetectedMessage}
 import net.psforever.services.Service

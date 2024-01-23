@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.AmenityAutoRepair
 import net.psforever.objects.serverobject.structures.PoweredAmenityControl
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAwareBehavior
+import net.psforever.objects.serverobject.turret.auto.{AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.ChangeFireModeMessage
 import net.psforever.services.Service
@@ -38,6 +39,8 @@ class FacilityTurretControl(turret: FacilityTurret)
   def CaptureTerminalAwareObject: FacilityTurret = turret
 
   private var testToResetToDefaultFireMode: Boolean = false
+
+  AutomaticOperation = AutomaticOperationFunctionalityChecks
 
   override def postStop(): Unit = {
     super.postStop()
@@ -126,6 +129,7 @@ class FacilityTurretControl(turret: FacilityTurret)
     super.DestructionAwareness(target, cause)
     tryAutoRepair()
     AutomaticOperation = false
+    selfReportingCleanUp()
   }
 
   override def PerformRepairs(target : Damageable.Target, amount : Int) : Int = {
@@ -224,7 +228,7 @@ class FacilityTurretControl(turret: FacilityTurret)
   override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
     val startsUnjammed = !JammableObject.Jammed
     super.TryJammerEffectActivate(target, cause)
-    if (startsUnjammed && JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDuration > 0)) {
+    if (startsUnjammed && JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDelay > 0)) {
       AutomaticOperation = false
       //look in direction of cause of jamming
       val zone = JammableObject.Zone

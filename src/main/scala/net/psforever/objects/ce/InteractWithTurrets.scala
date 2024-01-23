@@ -3,7 +3,7 @@ package net.psforever.objects.ce
 
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior}
+import net.psforever.objects.serverobject.turret.auto.{AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.zones.blockmap.SectorPopulation
 import net.psforever.objects.zones.{InteractsWithZone, ZoneInteraction, ZoneInteractionType}
 import net.psforever.objects.sourcing.SourceEntry
@@ -80,7 +80,7 @@ object InteractWithTurrets {
       GlobalDefinitions.manned_turret
     )
       .flatMap(_.AutoFire)
-      .map(_.targetDetectionRange)
+      .map(_.ranges.detection)
       .max
   }
 }

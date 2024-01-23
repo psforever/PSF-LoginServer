@@ -12,8 +12,9 @@ import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior, MountableTurretControl, TurretDefinition, WeaponTurret}
-import net.psforever.objects.sourcing.SourceEntry
+import net.psforever.objects.serverobject.turret.auto.{AutomatedTurret, AutomatedTurretBehavior}
+import net.psforever.objects.serverobject.turret.{MountableTurretControl, TurretDefinition, WeaponTurret}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
@@ -31,10 +32,11 @@ class TurretDeployable(tdef: TurretDeployableDefinition)
 
   def TurretOwner: SourceEntry = {
     Seats
+      .values
       .headOption
-      .collect { case (_, a) => a }
       .flatMap(_.occupant)
-      .map(SourceEntry(_))
+      .map(p => PlayerSource.inSeat(PlayerSource(p), SourceEntry(this), seatNumber=0))
+      .orElse(Owners.map(PlayerSource(_, Position)))
       .getOrElse(SourceEntry(this))
   }
 
@@ -86,6 +88,7 @@ class TurretControl(turret: TurretDeployable)
   override def postStop(): Unit = {
     super.postStop()
     deployableBehaviorPostStop()
+    selfReportingDatabaseUpdate()
     automaticTurretPostStop()
   }
 
@@ -111,7 +114,7 @@ class TurretControl(turret: TurretDeployable)
   override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
     val startsUnjammed = !JammableObject.Jammed
     super.TryJammerEffectActivate(target, cause)
-    if (startsUnjammed && JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDuration > 0)) {
+    if (startsUnjammed && JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDelay > 0)) {
       AutomaticOperation = false
       //look in direction of cause of jamming
       val zone = JammableObject.Zone
@@ -172,7 +175,7 @@ class TurretControl(turret: TurretDeployable)
 
   override def finalizeDeployable(callback: ActorRef): Unit = {
     super.finalizeDeployable(callback)
-    AutomaticOperation = true
+    AutomaticOperation = AutomaticOperationFunctionalityChecks
   }
 
   override def unregisterDeployable(obj: Deployable): Unit = {

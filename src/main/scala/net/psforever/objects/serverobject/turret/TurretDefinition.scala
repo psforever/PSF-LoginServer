@@ -11,24 +11,59 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 final case class Automation(
-                             targetDetectionRange: Float, //m
-                             targetTriggerRange: Float, //m
-                             targetEscapeRange: Float, //m
-                             targetValidation: List[PlanetSideGameObject => Boolean],
-                             cylindricalCheck: Boolean = false,
-                             cylindricalHeight: Float = 0, //m
-                             retaliatoryDuration: Long = 0, //ms
+                             ranges: AutoRanges,
+                             checks: AutoChecks,
+                             /** the boundary for target searching is typically a sphere of `ranges.detection` radius;
+                              * instead, takes the shape of a cylinder of `ranges.detection` radius and height */
+                             cylindrical: Boolean = false,
+                             /** if target searching is performed in the shape of a cylinder,
+                              * add height on top of the cylinder's normal height */
+                             cylindricalExtraHeight: Float = 0, //m
+                             /** how long after the last target engagement
+                              * or how long into the current target engagement
+                              * before the turret may counterattack damage;
+                              * set to `0L` to never retaliate */
+                             retaliatoryDelay: Long = 0, //ms
+                             /** if the turret has a current target,
+                              * allow for retaliation against a different target */
                              retaliationOverridesTarget: Boolean = true,
-                             initialDetectionSpeed: FiniteDuration = Duration.Zero,
-                             detectionSpeed: FiniteDuration = 1.seconds,
-                             targetSelectCooldown: Long = 1500L, //ms
-                             missedShotCooldown: Long = 3000L, //ms
-                             targetEliminationCooldown: Long = 0L, //ms
+                             /** frequency at which the turret will test target for reachability */
+                             detectionSweepTime: FiniteDuration = 1.seconds,
+                             cooldowns: AutoCooldowns = AutoCooldowns(),
+                             /** if the turret weapon has multiple fire modes,
+                              * revert to the base fire mode before engaging in target testing or other automatic operations */
                              revertToDefaultFireMode: Boolean = true,
+                             /** the simulated weapon fire rate for self-reporting (internal damage loop) */
                              refireTime: FiniteDuration = 1.seconds //60rpm
+                           )
+
+final case class AutoRanges(
+                             /** distance at which a target is first noticed */
+                             detection: Float, //m
+                             /** distance at which the target is tested */
+                             trigger: Float, //m
+                             /** distance away from the source of damage before the turret stops engaging */
+                             escape: Float //m
                            ) {
-  assert(targetDetectionRange > targetTriggerRange, "trigger range must be less than detection range")
+  assert(detection >= trigger, "detection range must be greater than or equal to trigger range")
+  assert(escape >= trigger, "escape range must be greater than or equal to trigger range")
 }
+
+final case class AutoChecks(
+                             /** reasons why this target should be engaged */
+                             validation: List[PlanetSideGameObject => Boolean],
+                             /** reasons why an ongoing target engagement should be stopped */
+                             blanking: List[PlanetSideGameObject => Boolean] = Nil
+                           )
+
+final case class AutoCooldowns(
+                                /** when the target gets switched (generic) */
+                                targetSelect: Long = 1500L, //ms
+                                /** when the target escapes being damaged */
+                                missedShot: Long = 3000L, //ms
+                                /** when the target gets destroyed during an ongoing engagement */
+                                targetElimination: Long = 0L //ms
+                              )
 
 /**
   * The definition for any `WeaponTurret`.

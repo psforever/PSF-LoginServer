@@ -4,6 +4,7 @@ package net.psforever.objects.serverobject.turret
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.structures.{Amenity, AmenityOwner, Building}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAware
+import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.types.Vector3
 

@@ -1,8 +1,9 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.objects.serverobject.turret
+package net.psforever.objects.serverobject.turret.auto
 
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret}
 import net.psforever.objects.sourcing.{SourceEntry, SourceUniqueness}
 import net.psforever.objects.vital.Vitality
 
@@ -14,6 +15,12 @@ trait AutomatedTurret
 
   private var targets: List[Target] = List[Target]()
 
+  /**
+   * The entity that claims responsibility for the actions of the turret
+   * or has authoritative management over the turret.
+   * When no one else steps up to the challenge, the turret can be its own person.
+   * @return owner entity
+   */
   def TurretOwner: SourceEntry
 
   def Target: Option[Target] = currentTarget

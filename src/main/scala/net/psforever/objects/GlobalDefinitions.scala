@@ -24,7 +24,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.structures.{AmenityDefinition, AutoRepairStats, BuildingDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
-import net.psforever.objects.serverobject.turret.{Automation, FacilityTurretDefinition, TurretUpgrade}
+import net.psforever.objects.serverobject.turret.{Automation, AutoChecks, FacilityTurretDefinition, AutoRanges, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, UtilityType, VehicleSubsystemEntry}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
@@ -9074,11 +9074,19 @@ object GlobalDefinitions {
     spitfire_turret.Model = ComplexDeployableResolutions.calculate
     spitfire_turret.deployAnimation = DeployAnimation.Standard
     spitfire_turret.AutoFire = Automation(
-      targetDetectionRange = 60f,
-      targetTriggerRange = 50f,
-      targetEscapeRange = 50f,
-      targetValidation = List(EffectTarget.Validation.PlayerOnRadar, EffectTarget.Validation.Vehicle),
-      retaliatoryDuration = 8000L,
+      AutoRanges(
+        detection = 75f,
+        trigger = 50f,
+        escape = 50f
+      ),
+      AutoChecks(
+        validation = List(
+          EffectTarget.Validation.PlayerDetectedBySpitfireTurret,
+          EffectTarget.Validation.GroundVehicleDetectedByAutoTurret,
+          EffectTarget.Validation.AircraftDetectedByAutoTurret
+        )
+      ),
+      retaliatoryDelay = 2000L, //8000L
       refireTime = 200.milliseconds //150.milliseconds
     )
     spitfire_turret.innateDamage = new DamageWithPosition {
@@ -9108,11 +9116,19 @@ object GlobalDefinitions {
     spitfire_cloaked.deployAnimation = DeployAnimation.Standard
     spitfire_cloaked.Model = ComplexDeployableResolutions.calculate
     spitfire_cloaked.AutoFire = Automation(
-      targetDetectionRange = 50f,
-      targetTriggerRange = 30f,
-      targetEscapeRange = 50f,
-      targetValidation = List(EffectTarget.Validation.PlayerOnRadar, EffectTarget.Validation.VehiclesOnRadar),
-      retaliatoryDuration = 8000L,
+      AutoRanges(
+        detection = 75f,
+        trigger = 50f,
+        escape = 75f
+      ),
+      AutoChecks(
+        validation = List(
+          EffectTarget.Validation.PlayerDetectedBySpitfireTurret,
+          EffectTarget.Validation.GroundVehicleDetectedByAutoTurret,
+          EffectTarget.Validation.AircraftDetectedByAutoTurret
+        )
+      ),
+      retaliatoryDelay = 1L, //8000L
       refireTime = 200.milliseconds //150.milliseconds
     )
     spitfire_cloaked.innateDamage = new DamageWithPosition {
@@ -9142,15 +9158,19 @@ object GlobalDefinitions {
     spitfire_aa.deployAnimation = DeployAnimation.Standard
     spitfire_aa.Model = ComplexDeployableResolutions.calculate
     spitfire_aa.AutoFire = Automation(
-      targetDetectionRange = 100f,
-      targetTriggerRange = 90f,
-      targetEscapeRange = 200f,
-      targetValidation = List(EffectTarget.Validation.AircraftOnRadar),
-      retaliatoryDuration = 2000L,
+      AutoRanges(
+        detection = 125f,
+        trigger = 100f,
+        escape = 200f
+      ),
+      AutoChecks(
+        validation = List(EffectTarget.Validation.AircraftDetectedByAutoTurret)
+      ),
+      retaliatoryDelay = 2000L, //8000L
       retaliationOverridesTarget = false,
-      refireTime = 350.milliseconds, //300.milliseconds
-      cylindricalCheck = true,
-      cylindricalHeight = 25f
+      refireTime = 0.seconds, //300.milliseconds
+      cylindrical = true,
+      cylindricalExtraHeight = 50f
     )
     spitfire_aa.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -10054,14 +10074,22 @@ object GlobalDefinitions {
     manned_turret.ReserveAmmunition = false
     manned_turret.RadiationShielding = 0.5f
     manned_turret.AutoFire = Automation(
-      targetDetectionRange = 100f,
-      targetTriggerRange = 90f,
-      targetEscapeRange = 200f,
-      targetValidation = List(EffectTarget.Validation.MaxOnRadar, EffectTarget.Validation.VehiclesOnRadar),
-      retaliatoryDuration = 8000L,
-      cylindricalCheck = true,
-      cylindricalHeight = 25f,
-      detectionSpeed = 2.seconds,
+      AutoRanges(
+        detection = 125f,
+        trigger = 100f,
+        escape = 200f
+      ),
+      AutoChecks(
+        validation = List(
+          EffectTarget.Validation.MaxDetectedByAutoTurret,
+          EffectTarget.Validation.GroundVehicleDetectedByAutoTurret,
+          EffectTarget.Validation.AircraftDetectedByAutoTurret
+        )
+      ),
+      retaliatoryDelay = 4000L, //8000L
+      cylindrical = true,
+      cylindricalExtraHeight = 50f,
+      detectionSweepTime = 2.seconds,
       refireTime = 362.milliseconds //312.milliseconds
     )
     manned_turret.innateDamage = new DamageWithPosition {

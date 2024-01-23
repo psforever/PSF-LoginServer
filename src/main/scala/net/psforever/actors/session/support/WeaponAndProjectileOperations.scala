@@ -3,8 +3,9 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.objects.definition.ProjectileDefinition
+import net.psforever.objects.serverobject.turret.auto.{AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.zones.Zoning
-import net.psforever.objects.serverobject.turret.{AutomatedTurret, AutomatedTurretBehavior, VanuSentry}
+import net.psforever.objects.serverobject.turret.VanuSentry
 import net.psforever.objects.zones.exp.ToDatabase
 
 import scala.collection.mutable
@@ -470,7 +471,7 @@ private[support] class WeaponAndProjectileOperations(
             val hitPos = target.Position + Vector3.z(value = 1f)
             ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos).collect { resprojectile =>
               addShotsLanded(resprojectile.cause.attribution, shots = 1)
-              //sessionData.handleDealingDamage(target, resprojectile)
+              sessionData.handleDealingDamage(target, resprojectile)
             }
         }
     }
