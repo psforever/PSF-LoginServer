@@ -24,7 +24,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.structures.{AmenityDefinition, AutoRepairStats, BuildingDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
-import net.psforever.objects.serverobject.turret.{Automation, AutoChecks, FacilityTurretDefinition, AutoRanges, TurretUpgrade}
+import net.psforever.objects.serverobject.turret.{AutoChecks, AutoCooldowns, AutoRanges, Automation, FacilityTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, UtilityType, VehicleSubsystemEntry}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
@@ -9128,7 +9128,13 @@ object GlobalDefinitions {
           EffectTarget.Validation.AircraftDetectedByAutoTurret
         )
       ),
+      cooldowns = AutoCooldowns(
+        targetSelect = 0L,
+        missedShot = 0L
+      ),
+      detectionSweepTime = 500.milliseconds,
       retaliatoryDelay = 1L, //8000L
+      retaliationOverridesTarget = false,
       refireTime = 200.milliseconds //150.milliseconds
     )
     spitfire_cloaked.innateDamage = new DamageWithPosition {
