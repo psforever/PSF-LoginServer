@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.serverobject.turret.auto.{AutomatedTurret, AutomatedTurretBehavior}
+import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.serverobject.turret.{MountableTurretControl, TurretDefinition, WeaponTurret}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.damage.DamageCalculations
@@ -75,7 +75,8 @@ class TurretControl(turret: TurretDeployable)
     with DeployableBehavior
     with FactionAffinityBehavior.Check
     with MountableTurretControl
-    with AutomatedTurretBehavior {
+    with AutomatedTurretBehavior
+    with AffectedByAutomaticTurretFire {
   def TurretObject: TurretDeployable          = turret
   def DeployableObject: TurretDeployable      = turret
   def MountableObject: TurretDeployable       = turret
@@ -84,6 +85,7 @@ class TurretControl(turret: TurretDeployable)
   def DamageableObject: TurretDeployable      = turret
   def RepairableObject: TurretDeployable      = turret
   def AutomatedTurretObject: TurretDeployable = turret
+  def AffectedObject: TurretDeployable        = turret
 
   override def postStop(): Unit = {
     super.postStop()
@@ -98,6 +100,7 @@ class TurretControl(turret: TurretDeployable)
       .orElse(checkBehavior)
       .orElse(mountBehavior)
       .orElse(automatedTurretBehavior)
+      .orElse(takeAutomatedDamage)
       .orElse {
         case _ => ()
       }
@@ -141,7 +144,7 @@ class TurretControl(turret: TurretDeployable)
 
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     AutomaticOperation = false
-    //super.DestructionAwareness(target, cause)
+    super.DestructionAwareness(target, cause)
     CancelJammeredSound(target)
     CancelJammeredStatus(target)
     Deployables.AnnounceDestroyDeployable(turret, None)

@@ -9081,9 +9081,9 @@ object GlobalDefinitions {
       ),
       AutoChecks(
         validation = List(
-          EffectTarget.Validation.PlayerDetectedBySpitfireTurret,
-          EffectTarget.Validation.GroundVehicleDetectedByAutoTurret,
-          EffectTarget.Validation.AircraftDetectedByAutoTurret
+          EffectTarget.Validation.SmallRoboticsTurretValidatePlayerTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateGroundVehicleTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget
         )
       ),
       retaliatoryDelay = 2000L, //8000L
@@ -9123,9 +9123,9 @@ object GlobalDefinitions {
       ),
       AutoChecks(
         validation = List(
-          EffectTarget.Validation.PlayerDetectedBySpitfireTurret,
-          EffectTarget.Validation.GroundVehicleDetectedByAutoTurret,
-          EffectTarget.Validation.AircraftDetectedByAutoTurret
+          EffectTarget.Validation.SmallRoboticsTurretValidatePlayerTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateGroundVehicleTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget
         )
       ),
       cooldowns = AutoCooldowns(
@@ -9170,7 +9170,7 @@ object GlobalDefinitions {
         escape = 200f
       ),
       AutoChecks(
-        validation = List(EffectTarget.Validation.AircraftDetectedByAutoTurret)
+        validation = List(EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget)
       ),
       retaliatoryDelay = 2000L, //8000L
       retaliationOverridesTarget = false,
@@ -10066,7 +10066,7 @@ object GlobalDefinitions {
     manned_turret.Name = "manned_turret"
     manned_turret.MaxHealth = 3600
     manned_turret.Damageable = true
-    manned_turret.DamageDisablesAt = 0
+    manned_turret.DamageDisablesAt = 1800
     manned_turret.Repairable = true
     manned_turret.autoRepair = AutoRepairStats(1.0909f, 10000, 1600, 0.05f)
     manned_turret.RepairIfDestroyed = true
@@ -10087,9 +10087,9 @@ object GlobalDefinitions {
       ),
       AutoChecks(
         validation = List(
-          EffectTarget.Validation.MaxDetectedByAutoTurret,
-          EffectTarget.Validation.GroundVehicleDetectedByAutoTurret,
-          EffectTarget.Validation.AircraftDetectedByAutoTurret
+          EffectTarget.Validation.FacilityTurretValidateMaxTarget,
+          EffectTarget.Validation.FacilityTurretValidateGroundVehicleTarget,
+          EffectTarget.Validation.FacilityTurretValidateAircraftTarget
         )
       ),
       retaliatoryDelay = 4000L, //8000L

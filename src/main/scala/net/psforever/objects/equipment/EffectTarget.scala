@@ -189,9 +189,10 @@ object EffectTarget {
           false
       }
 
-    def PlayerDetectedBySpitfireTurret(target: PlanetSideGameObject): Boolean =
-      !target.Destroyed && (target match {
-        case p: Player =>
+    def SmallRoboticsTurretValidatePlayerTarget(target: PlanetSideGameObject): Boolean =
+      target match {
+        case p: Player
+          if p.ExoSuit != ExoSuitType.MAX && p.VehicleSeated.isEmpty =>
           val now = System.currentTimeMillis()
           val pos = p.Position
           val faction = p.Faction
@@ -206,17 +207,51 @@ object EffectTarget {
             }
             .exists(_ < 2000L)
           lazy val silentRunActive = p.avatar.implants.flatten.find(a => a.definition.implantType == ImplantType.SilentRun).exists(_.active)
-          lazy val movingFast = p.isMoving(test = 17d) || p.Jumping
-          p.VehicleSeated.isEmpty &&
-            (if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
-            else if (radarCloakedSensor(sector, pos, faction)) tookDamage || usedEquipment
-            else if (radarEnhancedInterlink(sector, pos, faction) || radarEnhancedSensor(sector, pos, faction)) true
-            else tookDamage || usedEquipment || !silentRunActive && movingFast)
+          lazy val cloakedByInfiltrationSuit = p.ExoSuit == ExoSuitType.Infiltration && p.Cloaked
+          lazy val movingFast = p.isMoving(test = 17d)
+          if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
+          else if (radarCloakedSensor(sector, pos, faction)) tookDamage || usedEquipment
+          else if (radarEnhancedInterlink(sector, pos, faction) || radarEnhancedSensor(sector, pos, faction)) true
+          else tookDamage || usedEquipment || p.Jumping || (cloakedByInfiltrationSuit || !silentRunActive) && movingFast
         case _ =>
           false
-      })
+      }
 
-    def PlayerUndetectedByAutoTurret(target: PlanetSideGameObject): Boolean =
+    def SmallRoboticsTurretValidateMaxTarget(target: PlanetSideGameObject): Boolean =
+      target match {
+        case p: Player
+          if p.ExoSuit == ExoSuitType.MAX && p.VehicleSeated.isEmpty =>
+          val now = System.currentTimeMillis()
+          val pos = p.Position
+          val faction = p.Faction
+          val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
+          lazy val tookDamage = p.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
+          lazy val usedEquipment = p.Holsters().flatMap(_.Equipment)
+            .collect { case t: Tool => now - t.LastDischarge }
+            .exists(_ < 2000L)
+          if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
+          else if (radarCloakedSensor(sector, pos, faction)) tookDamage || usedEquipment
+          else true
+        case _ =>
+          false
+      }
+
+    def FacilityTurretValidateMaxTarget(target: PlanetSideGameObject): Boolean =
+      target match {
+        case p: Player
+          if p.ExoSuit == ExoSuitType.MAX && p.VehicleSeated.isEmpty =>
+          val pos = p.Position
+          val faction = p.Faction
+          val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
+          !(radarCloakedAms(sector, pos) ||
+            radarCloakedAegis(sector, pos) ||
+            radarCloakedSensor(sector, pos, faction)) &&
+            p.isMoving(test = 17d)
+        case _ =>
+          false
+      }
+
+    def AutoTurretBlankPlayerTarget(target: PlanetSideGameObject): Boolean =
       target match {
         case p: Player =>
           val pos = p.Position
@@ -226,38 +261,42 @@ object EffectTarget {
           false
       }
 
-    def MaxDetectedByAutoTurret(target: PlanetSideGameObject): Boolean =
-      !target.Destroyed && (target match {
-        case p: Player =>
-          val now = System.currentTimeMillis()
-          val pos = p.Position
-          val faction = p.Faction
-          val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
-          lazy val tookDamage = p.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
-          lazy val usedEquipment = p.Holsters().flatMap(_.Equipment)
-            .collect { case t: Tool => now - t.LastDischarge }
-            .exists(_ < 2000L)
-          lazy val movingFast = p.isMoving(test = 17d)
-          p.ExoSuit == ExoSuitType.MAX &&
-            p.VehicleSeated.isEmpty &&
-            (if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
-            else if (radarCloakedSensor(sector, pos, faction)) tookDamage || usedEquipment
-            else if (radarEnhancedInterlink(sector, pos, faction) || radarEnhancedSensor(sector, pos, faction)) true
-            else tookDamage || usedEquipment || movingFast)
-        case _ =>
-          false
-      })
-
-    def GroundVehicleDetectedByAutoTurret(target: PlanetSideGameObject): Boolean =
-      !target.Destroyed && (target match {
-        case v: Vehicle =>
+    def SmallRoboticsTurretValidateGroundVehicleTarget(target: PlanetSideGameObject): Boolean =
+      target match {
+        case v: Vehicle
+          if v.MountedIn.isEmpty =>
           val now = System.currentTimeMillis()
           val vdef = v.Definition
           lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime< 2000L)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
-          !GlobalDefinitions.isFlightVehicle(vdef) && v.MountedIn.isEmpty && (
+          !GlobalDefinitions.isFlightVehicle(vdef) && (
+            if (vdef == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) false
+            else !v.Cloaked && ( tookDamage || usedEquipment))
+        case _ =>
+          false
+      }
+
+    def SmallRoboticsTurretValidateAircraftTarget(target: PlanetSideGameObject): Boolean =
+      target match {
+        case v: Vehicle if GlobalDefinitions.isFlightVehicle(v.Definition) =>
+          !v.Cloaked
+        case _ =>
+          false
+      }
+
+    def FacilityTurretValidateGroundVehicleTarget(target: PlanetSideGameObject): Boolean =
+      target match {
+        case v: Vehicle
+          if v.MountedIn.isEmpty =>
+          val now = System.currentTimeMillis()
+          val vdef = v.Definition
+          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime< 2000L)
+          lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
+            .collect { case t: Tool => now - t.LastDischarge }
+            .exists(_ < 2000L)
+          !GlobalDefinitions.isFlightVehicle(vdef) && (
             if (vdef == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) false
             else if (
               v.Cloaked ||
@@ -268,23 +307,23 @@ object EffectTarget {
             else true)
         case _ =>
           false
-      })
+      }
 
-    def VehicleUndetectedByAutoTurret(target: PlanetSideGameObject): Boolean =
+    def FacilityTurretValidateAircraftTarget(target: PlanetSideGameObject): Boolean =
+      target match {
+        case v: Vehicle if GlobalDefinitions.isFlightVehicle(v.Definition) =>
+          v.Definition != GlobalDefinitions.mosquito || !v.Cloaked
+        case _ =>
+          false
+      }
+
+    def AutoTurretBlankVehicleTarget(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle =>
           (v.Definition == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) || v.MountedIn.nonEmpty || v.Cloaked
         case _ =>
           false
       }
-
-    def AircraftDetectedByAutoTurret(target: PlanetSideGameObject): Boolean =
-      !target.Destroyed && (target match {
-        case v: Vehicle =>
-          GlobalDefinitions.isFlightVehicle(v.Definition) && !v.Cloaked
-        case _ =>
-          false
-      })
   }
 
   private def radarEnhancedInterlink(

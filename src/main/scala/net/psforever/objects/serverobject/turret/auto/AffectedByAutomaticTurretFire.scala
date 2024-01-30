@@ -29,36 +29,38 @@ trait AffectedByAutomaticTurretFire extends Damageable {
 
   protected def performAutomatedDamage(turret: AutomatedTurret): Unit = {
     val target = AffectedObject
-    val tool = turret.Weapons.values.head.Equipment.collect { case t: Tool => t }.get
-    val projectileInfo = tool.Projectile
-    val targetPos = target.Position
-    val turretPos = turret.Position
-    val correctedTargetPosition = targetPos + Vector3.z(value = 1f)
-    val angle = Vector3.Unit(targetPos - turretPos)
-    turret.Actor ! SelfReportedConfirmShot(target)
-    val projectile = new Projectile(
-      projectileInfo,
-      tool.Definition,
-      tool.FireMode,
-      None,
-      turret.TurretOwner,
-      turret.Definition.ObjectId,
-      turretPos + Vector3.z(value = 1f),
-      angle,
-      Some(angle * projectileInfo.FinalVelocity)
-    )
-    val modProjectile = ProjectileQuality.modifiers(
-      projectile,
-      DamageResolution.Hit,
-      target,
-      correctedTargetPosition,
-      None
-    )
-    val resolvedProjectile = DamageInteraction(
-      SourceEntry(target),
-      ProjectileReason(DamageResolution.Hit, modProjectile, target.DamageModel),
-      correctedTargetPosition
-    )
-    PerformDamage(target, resolvedProjectile.calculate())
+    if (!target.isMoving(test = 1f)) {
+      val tool = turret.Weapons.values.head.Equipment.collect { case t: Tool => t }.get
+      val projectileInfo = tool.Projectile
+      val targetPos = target.Position
+      val turretPos = turret.Position
+      val correctedTargetPosition = targetPos + Vector3.z(value = 1f)
+      val angle = Vector3.Unit(targetPos - turretPos)
+      turret.Actor ! SelfReportedConfirmShot(target)
+      val projectile = new Projectile(
+        projectileInfo,
+        tool.Definition,
+        tool.FireMode,
+        None,
+        turret.TurretOwner,
+        turret.Definition.ObjectId,
+        turretPos + Vector3.z(value = 1f),
+        angle,
+        Some(angle * projectileInfo.FinalVelocity)
+      )
+      val modProjectile = ProjectileQuality.modifiers(
+        projectile,
+        DamageResolution.Hit,
+        target,
+        correctedTargetPosition,
+        None
+      )
+      val resolvedProjectile = DamageInteraction(
+        SourceEntry(target),
+        ProjectileReason(DamageResolution.Hit, modProjectile, target.DamageModel),
+        correctedTargetPosition
+      )
+      PerformDamage(target, resolvedProjectile.calculate())
+    }
   }
 }

@@ -306,13 +306,16 @@ trait AutomatedTurretBehavior {
       val weaponGuid = AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID
       val radius = autoStats.get.ranges.trigger
       val validation = autoStats.get.checks.validation
+      val disqualifiers = autoStats.get.checks.blanking
       val faction = AutomatedTurretObject.Faction
       val selectedTargets = AutomatedTurretObject
         .Targets
         .collect { case target
-          if target.Faction != faction &&
+          if !target.Destroyed &&
+            target.Faction != faction &&
             AutomatedTurretBehavior.shapedDistanceCheckAgainstValue(autoStats, target.Position, turretPosition, radius, result = -1) &&
-              validation.exists(func => func(target)) =>
+            validation.exists(func => func(target)) &&
+            disqualifiers.takeWhile(func => func(target)).isEmpty =>
           target
         }
       val (previousTargets, newTargets) = selectedTargets.partition(target => previouslyTestedTargets.contains(SourceEntry(target).unique))
@@ -399,7 +402,7 @@ trait AutomatedTurretBehavior {
         AutomatedTurretDispatch.Generic.startShooting(target, target.Name, weaponGuid)
         AutomatedTurretDispatch.Generic.stopShooting(target, target.Name, weaponGuid)
         Some((target, target))
-      case target: Vehicle =>
+      case target: Mountable =>
         target.Seats.values
           .flatMap(_.occupants)
           .collectFirst { passenger =>
@@ -599,27 +602,7 @@ trait AutomatedTurretBehavior {
     selfReportingCleanUp()
   }
 
-  /**
-   * Cleanup for the variables involved in self-reporting.
-   * Set them to zero.
-   */
-  protected def selfReportingCleanUp(): Unit = {
-    shotsFired = 0
-    targetsDestroyed = 0
-  }
-
-  /**
-   * The self-reporting mode for automatic turrets produces weapon fire data that should be sent to the database.
-   * The targets destroyed from self-reported fire are also logged to the database.
-   */
-  protected def selfReportingDatabaseUpdate(): Unit = {
-    AutomatedTurretObject.TurretOwner match {
-      case p: PlayerSource =>
-        val weaponId = AutomatedTurretObject.Weapons.values.head.Equipment.map(_.Definition.ObjectId).getOrElse(0)
-        ToDatabase.reportToolDischarge(p.CharId, EquipmentStat(weaponId, shotsFired, shotsFired, targetsDestroyed, 0))
-      case _ => ()
-    }
-  }
+  /* Retaliation behavior */
 
   /**
    * Retaliation is when a turret returns fire on a potential target that had just previously dealt damage to it.
@@ -656,18 +639,27 @@ trait AutomatedTurretBehavior {
         case existingTarget
           if autoStats.exists { auto =>
             auto.retaliationOverridesTarget &&
-              currentTargetSwitchTime + auto.retaliatoryDelay > System.currentTimeMillis()
+              currentTargetSwitchTime + auto.retaliatoryDelay > System.currentTimeMillis() &&
+              auto.checks.blanking.takeWhile(func => func(target)).isEmpty
           } =>
+          //conditions necessary for overriding the current target
           cancelSelfReportedAutoFire()
           noLongerEngageDetectedTarget(existingTarget)
           engageNewDetectedTarget(target)
           target
+
         case existingTarget =>
+          //stay with the current target
           existingTarget
       }
       .orElse {
-        engageNewDetectedTarget(target)
-        Some(target)
+        //no current target
+        if (autoStats.exists(_.checks.blanking.takeWhile(func => func(target)).isEmpty)) {
+          engageNewDetectedTarget(target)
+          Some(target)
+        } else {
+          None
+        }
       }
   }
 
@@ -769,6 +761,28 @@ trait AutomatedTurretBehavior {
     selfReportedRefire = Default.Cancellable
     true
   }
+
+  /**
+   * Cleanup for the variables involved in self-reporting.
+   * Set them to zero.
+   */
+  protected def selfReportingCleanUp(): Unit = {
+    shotsFired = 0
+    targetsDestroyed = 0
+  }
+
+  /**
+   * The self-reporting mode for automatic turrets produces weapon fire data that should be sent to the database.
+   * The targets destroyed from self-reported fire are also logged to the database.
+   */
+  protected def selfReportingDatabaseUpdate(): Unit = {
+    AutomatedTurretObject.TurretOwner match {
+      case p: PlayerSource =>
+        val weaponId = AutomatedTurretObject.Weapons.values.head.Equipment.map(_.Definition.ObjectId).getOrElse(0)
+        ToDatabase.reportToolDischarge(p.CharId, EquipmentStat(weaponId, shotsFired, shotsFired, targetsDestroyed, 0))
+      case _ => ()
+    }
+  }
 }
 
 object AutomatedTurretBehavior {
@@ -784,8 +798,8 @@ object AutomatedTurretBehavior {
   private case object PeriodicCheck
 
   final val commonBlanking: List[PlanetSideGameObject => Boolean] = List(
-    EffectTarget.Validation.PlayerUndetectedByAutoTurret,
-    EffectTarget.Validation.VehicleUndetectedByAutoTurret
+    EffectTarget.Validation.AutoTurretBlankPlayerTarget,
+    EffectTarget.Validation.AutoTurretBlankVehicleTarget
   )
 
   /**

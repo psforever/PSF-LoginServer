@@ -9,13 +9,13 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.AmenityAutoRepair
 import net.psforever.objects.serverobject.structures.PoweredAmenityControl
-import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAwareBehavior
-import net.psforever.objects.serverobject.turret.auto.{AutomatedTurret, AutomatedTurretBehavior}
+import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAwareBehavior}
+import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.ChangeFireModeMessage
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.types.BailType
+import net.psforever.types.{BailType, PlanetSideEmpire}
 
 /**
  * A control agency that handles messages being dispatched to a specific `FacilityTurret`.
@@ -27,6 +27,7 @@ class FacilityTurretControl(turret: FacilityTurret)
     with AmenityAutoRepair
     with MountableTurretControl
     with AutomatedTurretBehavior
+    with AffectedByAutomaticTurretFire
     with CaptureTerminalAwareBehavior {
   def TurretObject: FacilityTurret               = turret
   def FactionObject: FacilityTurret              = turret
@@ -37,6 +38,7 @@ class FacilityTurretControl(turret: FacilityTurret)
   def AutoRepairObject: FacilityTurret           = turret
   def AutomatedTurretObject: FacilityTurret      = turret
   def CaptureTerminalAwareObject: FacilityTurret = turret
+  def AffectedObject: FacilityTurret             = turret
 
   private var testToResetToDefaultFireMode: Boolean = false
 
@@ -70,6 +72,7 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   override def commonBehavior: Receive = super.commonBehavior
     .orElse(automatedTurretBehavior)
+    .orElse(takeAutomatedDamage)
     .orElse(captureTerminalAwareBehaviour)
 
   override def poweredStateLogic: Receive =
@@ -246,5 +249,23 @@ class FacilityTurretControl(turret: FacilityTurret)
     val startsJammed = JammableObject.Jammed
     super.CancelJammeredStatus(target)
     startsJammed && AutomaticOperation_=(AutomaticOperationFunctionalityChecks)
+  }
+
+  override protected def captureTerminalIsResecured(terminal: CaptureTerminal): Unit = {
+    AutomaticOperation = if (terminal.Owner.Faction == PlanetSideEmpire.NEUTRAL) {
+      false
+    } else if (AutomaticOperation || AutomaticOperationFunctionalityChecks) {
+      AutomaticOperation = false
+      CurrentTargetLastShotReported = System.currentTimeMillis() + 5000L
+      true
+    } else {
+      false
+    }
+    super.captureTerminalIsResecured(terminal)
+  }
+
+  override protected def captureTerminalIsHacked(terminal: CaptureTerminal): Unit = {
+    AutomaticOperation = false
+    super.captureTerminalIsHacked(terminal)
   }
 }
