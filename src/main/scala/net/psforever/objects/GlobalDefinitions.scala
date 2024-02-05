@@ -9082,6 +9082,7 @@ object GlobalDefinitions {
       AutoChecks(
         validation = List(
           EffectTarget.Validation.SmallRoboticsTurretValidatePlayerTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateMaxTarget,
           EffectTarget.Validation.SmallRoboticsTurretValidateGroundVehicleTarget,
           EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget
         )
@@ -9124,6 +9125,7 @@ object GlobalDefinitions {
       AutoChecks(
         validation = List(
           EffectTarget.Validation.SmallRoboticsTurretValidatePlayerTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateMaxTarget,
           EffectTarget.Validation.SmallRoboticsTurretValidateGroundVehicleTarget,
           EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget
         )

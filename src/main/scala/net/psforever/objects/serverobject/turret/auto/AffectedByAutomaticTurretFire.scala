@@ -29,7 +29,7 @@ trait AffectedByAutomaticTurretFire extends Damageable {
 
   protected def performAutomatedDamage(turret: AutomatedTurret): Unit = {
     val target = AffectedObject
-    if (!target.isMoving(test = 1f)) {
+    if (!(target.Destroyed || target.isMoving(test = 1f))) {
       val tool = turret.Weapons.values.head.Equipment.collect { case t: Tool => t }.get
       val projectileInfo = tool.Projectile
       val targetPos = target.Position

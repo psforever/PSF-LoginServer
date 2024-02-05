@@ -9,9 +9,10 @@ import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
-import net.psforever.objects.serverobject.damage.Damageable.Target
+import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
 import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.serverobject.turret.{MountableTurretControl, TurretDefinition, WeaponTurret}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
@@ -19,6 +20,7 @@ import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.types.PlanetSideGUID
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -105,7 +107,63 @@ class TurretControl(turret: TurretDeployable)
         case _ => ()
       }
 
-  protected def AutomaticOperationFunctionalityChecks: Boolean = true
+  protected def engageNewDetectedTarget(
+                                         target: AutomatedTurret.Target,
+                                         channel: String,
+                                         turretGuid: PlanetSideGUID,
+                                         weaponGuid: PlanetSideGUID
+                                       ): Unit = {
+    val zone = target.Zone
+    AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
+    AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
+  }
+
+  protected def noLongerEngageTarget(
+                                      target: AutomatedTurret.Target,
+                                      channel: String,
+                                      turretGuid: PlanetSideGUID,
+                                      weaponGuid: PlanetSideGUID
+                                    ): Option[AutomatedTurret.Target] = {
+    val zone = target.Zone
+    AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
+    AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
+    None
+  }
+
+  protected def testNewDetected(
+                                 target: AutomatedTurret.Target,
+                                 channel: String,
+                                 turretGuid: PlanetSideGUID,
+                                 weaponGuid: PlanetSideGUID
+                               ): Unit = {
+    val zone = target.Zone
+    AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
+    AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
+    AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
+    //AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
+  }
+
+  protected def testKnownDetected(
+                                   target: AutomatedTurret.Target,
+                                   channel: String,
+                                   turretGuid: PlanetSideGUID,
+                                   weaponGuid: PlanetSideGUID
+                                 ): Unit = {
+    val zone = target.Zone
+    //AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
+    AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
+    AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
+    //AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
+  }
+
+  override protected def suspendTargetTesting(
+                                               target: Target,
+                                               channel: String,
+                                               turretGuid: PlanetSideGUID,
+                                               weaponGuid: PlanetSideGUID
+                                             ): Unit = {
+    AutomatedTurretBehavior.stopTracking(target.Zone, channel, turretGuid)
+  }
 
   override protected def mountTest(
                                     obj: PlanetSideServerObject with Mountable,
@@ -121,12 +179,11 @@ class TurretControl(turret: TurretDeployable)
       AutomaticOperation = false
       //look in direction of cause of jamming
       val zone = JammableObject.Zone
-      AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach {
-        attacker =>
-          val channel = zone.id
-          val guid = AutomatedTurretObject.GUID
-          AutomatedTurretBehavior.startTracking(attacker, channel, guid, List(attacker.GUID))
-          AutomatedTurretBehavior.stopTracking(attacker, channel, guid) //TODO delay by a few milliseconds?
+      val channel = zone.id
+      val guid = AutomatedTurretObject.GUID
+      AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach { attacker =>
+        AutomatedTurretBehavior.startTracking(zone, channel, guid, List(attacker.GUID))
+        AutomatedTurretBehavior.stopTracking(zone, channel, guid) //TODO delay by a few milliseconds?
       }
     }
   }
@@ -137,12 +194,12 @@ class TurretControl(turret: TurretDeployable)
     startsJammed && AutomaticOperation_=(state = true)
   }
 
-  override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any): Unit = {
+  override protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any): Unit = {
     attemptRetaliation(target, cause)
     super.DamageAwareness(target, cause, amount)
   }
 
-  override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
+  override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     AutomaticOperation = false
     super.DestructionAwareness(target, cause)
     CancelJammeredSound(target)
@@ -178,7 +235,7 @@ class TurretControl(turret: TurretDeployable)
 
   override def finalizeDeployable(callback: ActorRef): Unit = {
     super.finalizeDeployable(callback)
-    AutomaticOperation = AutomaticOperationFunctionalityChecks
+    AutomaticOperation = true
   }
 
   override def unregisterDeployable(obj: Deployable): Unit = {

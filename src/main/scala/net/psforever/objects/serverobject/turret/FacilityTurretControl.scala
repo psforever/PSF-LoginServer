@@ -8,14 +8,15 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.AmenityAutoRepair
-import net.psforever.objects.serverobject.structures.PoweredAmenityControl
+import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAwareBehavior}
+import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
 import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.ChangeFireModeMessage
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.types.{BailType, PlanetSideEmpire}
+import net.psforever.types.{BailType, PlanetSideEmpire, PlanetSideGUID}
 
 /**
  * A control agency that handles messages being dispatched to a specific `FacilityTurret`.
@@ -42,7 +43,7 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   private var testToResetToDefaultFireMode: Boolean = false
 
-  AutomaticOperation = AutomaticOperationFunctionalityChecks
+  AutomaticOperation = true
 
   override def postStop(): Unit = {
     super.postStop()
@@ -100,7 +101,7 @@ class FacilityTurretControl(turret: FacilityTurret)
   override protected def tryMount(obj: PlanetSideServerObject with Mountable, seatNumber: Int, player: Player): Boolean = {
     AutomaticOperation = false //turn off
     if (!super.tryMount(obj, seatNumber, player)) {
-      AutomaticOperation = AutomaticOperationFunctionalityChecks //revert?
+      AutomaticOperation = true //revert?
       false
     } else {
       true
@@ -145,7 +146,7 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   override def Restoration(obj: Damageable.Target): Unit = {
     super.Restoration(obj)
-    AutomaticOperation = AutomaticOperationFunctionalityChecks
+    AutomaticOperation = true
   }
 
   override def tryAutoRepair() : Boolean = {
@@ -175,7 +176,7 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   def powerTurnOnCallback(): Unit = {
     tryAutoRepair()
-    AutomaticOperation = AutomaticOperationFunctionalityChecks
+    AutomaticOperation = true
   }
 
   override def AutomaticOperation_=(state: Boolean): Boolean = {
@@ -184,12 +185,20 @@ class FacilityTurretControl(turret: FacilityTurret)
     result
   }
 
-  protected def AutomaticOperationFunctionalityChecks: Boolean = {
-    AutomaticOperationFunctionalityChecksExceptMounting && !TurretObject.Seats.values.exists(_.isOccupied)
+  override protected def AutomaticOperationFunctionalityChecks: Boolean = {
+    AutomaticOperationFunctionalityChecksExceptMounting &&
+      !TurretObject.Seats.values.exists(_.isOccupied)
   }
 
-  protected def AutomaticOperationFunctionalityChecksExceptMounting: Boolean = {
-    isPowered &&
+  private def AutomaticOperationFunctionalityChecksExceptMounting: Boolean = {
+    AutomaticOperationFunctionalityChecksExceptMountingAndHacking //&&
+      //!TurretObject.Owner.asInstanceOf[Building].CaptureTerminalIsHacked
+  }
+
+  private def AutomaticOperationFunctionalityChecksExceptMountingAndHacking: Boolean = {
+    super.AutomaticOperationFunctionalityChecks &&
+      isPowered &&
+      TurretObject.Owner.Faction != PlanetSideEmpire.NEUTRAL &&
       !JammableObject.Jammed &&
       TurretObject.Health > TurretObject.Definition.DamageDisablesAt
   }
@@ -213,19 +222,58 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   override protected def trySelectNewTarget(): Option[AutomatedTurret.Target] = {
-    if (AutomaticOperationFunctionalityChecks) {
-      primaryWeaponFireModeOnly()
-      super.trySelectNewTarget()
-    } else {
-      None
-    }
+    primaryWeaponFireModeOnly()
+    super.trySelectNewTarget()
   }
 
-  override def engageNewDetectedTarget(target: AutomatedTurret.Target): Unit = {
-    if (AutomaticOperationFunctionalityChecks) {
-      primaryWeaponFireModeOnly()
-      super.engageNewDetectedTarget(target)
-    }
+  def engageNewDetectedTarget(
+                               target: Target,
+                               channel: String,
+                               turretGuid: PlanetSideGUID,
+                               weaponGuid: PlanetSideGUID
+                             ): Unit = {
+    val zone = target.Zone
+    primaryWeaponFireModeOnly()
+    AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
+    AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
+  }
+
+  protected def noLongerEngageTarget(
+                                      target: Target,
+                                      channel: String,
+                                      turretGuid: PlanetSideGUID,
+                                      weaponGuid: PlanetSideGUID
+                                    ): Option[Target] = {
+    val zone = target.Zone
+    AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
+    AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
+    None
+  }
+
+  protected def testNewDetected(
+                                 target: Target,
+                                 channel: String,
+                                 turretGuid: PlanetSideGUID,
+                                 weaponGuid: PlanetSideGUID
+                               ): Unit = {
+    val zone = target.Zone
+    AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
+    AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
+    AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
+    //AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
+  }
+
+  protected def testKnownDetected(
+                                   target: Target,
+                                   channel: String,
+                                   turretGuid: PlanetSideGUID,
+                                   weaponGuid: PlanetSideGUID
+                                 ): Unit = {
+    val zone = target.Zone
+    //AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
+    AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
+    AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
+    //AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
   }
 
   override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
@@ -235,12 +283,11 @@ class FacilityTurretControl(turret: FacilityTurret)
       AutomaticOperation = false
       //look in direction of cause of jamming
       val zone = JammableObject.Zone
-      AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach {
-        attacker =>
-          val channel = zone.id
-          val guid = AutomatedTurretObject.GUID
-          AutomatedTurretBehavior.startTracking(attacker, channel, guid, List(attacker.GUID))
-          AutomatedTurretBehavior.stopTracking(attacker, channel, guid) //TODO delay by a few milliseconds?
+      val channel = zone.id
+      val guid = AutomatedTurretObject.GUID
+      AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach { attacker =>
+        AutomatedTurretBehavior.startTracking(zone, channel, guid, List(attacker.GUID))
+        AutomatedTurretBehavior.stopTracking(zone, channel, guid) //TODO delay by a few milliseconds?
       }
     }
   }
@@ -248,24 +295,36 @@ class FacilityTurretControl(turret: FacilityTurret)
   override def CancelJammeredStatus(target: Any): Unit = {
     val startsJammed = JammableObject.Jammed
     super.CancelJammeredStatus(target)
-    startsJammed && AutomaticOperation_=(AutomaticOperationFunctionalityChecks)
+    startsJammed && AutomaticOperation_=(state = true)
   }
 
   override protected def captureTerminalIsResecured(terminal: CaptureTerminal): Unit = {
-    AutomaticOperation = if (terminal.Owner.Faction == PlanetSideEmpire.NEUTRAL) {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    import scala.concurrent.duration._
+    val originalState = AutomaticOperation
+    AutomaticOperation = false
+    val newAutomaticOperationState = if (terminal.Owner.Faction == PlanetSideEmpire.NEUTRAL) {
       false
-    } else if (AutomaticOperation || AutomaticOperationFunctionalityChecks) {
-      AutomaticOperation = false
-      CurrentTargetLastShotReported = System.currentTimeMillis() + 5000L
+    } else if (AutomaticOperation || AutomaticOperationFunctionalityChecksExceptMountingAndHacking) {
       true
     } else {
       false
     }
     super.captureTerminalIsResecured(terminal)
+    if (newAutomaticOperationState != originalState) {
+      context.system.scheduler.scheduleOnce(3.seconds) { AutomaticOperation = newAutomaticOperationState }
+    }
   }
 
   override protected def captureTerminalIsHacked(terminal: CaptureTerminal): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    import scala.concurrent.duration._
+    val originalState = AutomaticOperation
     AutomaticOperation = false
     super.captureTerminalIsHacked(terminal)
+    val state = AutomaticOperationFunctionalityChecksExceptMountingAndHacking
+    if (originalState != state && (terminal.HackedBy.isEmpty || terminal.HackedBy.exists(_.hackerFaction == terminal.Faction))) {
+      context.system.scheduler.scheduleOnce(3.seconds) { AutomaticOperation = state }
+    }
   }
 }
