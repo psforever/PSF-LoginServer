@@ -2,7 +2,7 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, ActorRef, Props}
-import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem}
+import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem, InteractWithTurrets}
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallTurretConverter
 import net.psforever.objects.equipment.JammableUnit
@@ -11,25 +11,33 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.mount.{InteractWithRadiationCloudsSeatedInEntity, Mountable}
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
 import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.serverobject.turret.{MountableTurretControl, TurretDefinition, WeaponTurret}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
+import net.psforever.objects.zones.InteractsWithZone
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
 import scala.concurrent.duration.FiniteDuration
 
 class TurretDeployable(tdef: TurretDeployableDefinition)
-    extends Deployable(tdef)
+  extends Deployable(tdef)
+    with AutomatedTurret
     with WeaponTurret
     with JammableUnit
-    with Hackable
-    with AutomatedTurret {
+    with InteractsWithZone
+    with StandardResistanceProfile
+    with Hackable {
+  if (tdef.Seats.nonEmpty) {
+    interaction(new InteractWithTurrets())
+    interaction(new InteractWithRadiationCloudsSeatedInEntity(obj = this, range = 100f))
+  }
   WeaponTurret.LoadDefinition(turret = this)
 
   def TurretOwner: SourceEntry = {
@@ -140,7 +148,6 @@ class TurretControl(turret: TurretDeployable)
     AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
     AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
     AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
-    //AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
   }
 
   protected def testKnownDetected(
@@ -150,10 +157,8 @@ class TurretControl(turret: TurretDeployable)
                                    weaponGuid: PlanetSideGUID
                                  ): Unit = {
     val zone = target.Zone
-    //AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
     AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
     AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
-    //AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
   }
 
   override protected def suspendTargetTesting(
@@ -175,15 +180,14 @@ class TurretControl(turret: TurretDeployable)
   override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
     val startsUnjammed = !JammableObject.Jammed
     super.TryJammerEffectActivate(target, cause)
-    if (startsUnjammed && JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDelay > 0)) {
-      AutomaticOperation = false
+    if (JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDelay > 0)) {
+      if (startsUnjammed) {
+        AutomaticOperation = false
+      }
       //look in direction of cause of jamming
       val zone = JammableObject.Zone
-      val channel = zone.id
-      val guid = AutomatedTurretObject.GUID
       AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach { attacker =>
-        AutomatedTurretBehavior.startTracking(zone, channel, guid, List(attacker.GUID))
-        AutomatedTurretBehavior.stopTracking(zone, channel, guid) //TODO delay by a few milliseconds?
+        AutomatedTurretBehavior.startTracking(zone, zone.id, AutomatedTurretObject.GUID, List(attacker.GUID))
       }
     }
   }
@@ -191,11 +195,17 @@ class TurretControl(turret: TurretDeployable)
   override def CancelJammeredStatus(target: Any): Unit = {
     val startsJammed = JammableObject.Jammed
     super.CancelJammeredStatus(target)
-    startsJammed && AutomaticOperation_=(state = true)
+    if (startsJammed && AutomaticOperation_=(state = true)) {
+      val zone = TurretObject.Zone
+      AutomatedTurretBehavior.stopTracking(zone, zone.id, TurretObject.GUID)
+    }
   }
 
   override protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any): Unit = {
-    attemptRetaliation(target, cause)
+    amount match {
+      case 0 => ()
+      case _ => attemptRetaliation(target, cause)
+    }
     super.DamageAwareness(target, cause, amount)
   }
 

@@ -9084,7 +9084,8 @@ object GlobalDefinitions {
           EffectTarget.Validation.SmallRoboticsTurretValidatePlayerTarget,
           EffectTarget.Validation.SmallRoboticsTurretValidateMaxTarget,
           EffectTarget.Validation.SmallRoboticsTurretValidateGroundVehicleTarget,
-          EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget
+          EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget,
+          EffectTarget.Validation.AutoTurretValidateMountableEntityTarget
         )
       ),
       retaliatoryDelay = 2000L, //8000L
@@ -9127,7 +9128,8 @@ object GlobalDefinitions {
           EffectTarget.Validation.SmallRoboticsTurretValidatePlayerTarget,
           EffectTarget.Validation.SmallRoboticsTurretValidateMaxTarget,
           EffectTarget.Validation.SmallRoboticsTurretValidateGroundVehicleTarget,
-          EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget
+          EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget,
+          EffectTarget.Validation.AutoTurretValidateMountableEntityTarget
         )
       ),
       cooldowns = AutoCooldowns(
@@ -10091,7 +10093,8 @@ object GlobalDefinitions {
         validation = List(
           EffectTarget.Validation.FacilityTurretValidateMaxTarget,
           EffectTarget.Validation.FacilityTurretValidateGroundVehicleTarget,
-          EffectTarget.Validation.FacilityTurretValidateAircraftTarget
+          EffectTarget.Validation.FacilityTurretValidateAircraftTarget,
+          EffectTarget.Validation.AutoTurretValidateMountableEntityTarget
         )
       ),
       retaliatoryDelay = 4000L, //8000L

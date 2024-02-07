@@ -3,8 +3,8 @@ package net.psforever.objects.equipment
 
 import net.psforever.objects._
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
-import net.psforever.objects.serverobject.turret.FacilityTurret
-import net.psforever.objects.vital.DamagingActivity
+import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
+import net.psforever.objects.vital.{DamagingActivity, Vitality}
 import net.psforever.objects.zones.blockmap.SectorPopulation
 import net.psforever.types.{DriveState, ExoSuitType, ImplantType, LatticeBenefit, PlanetSideEmpire, Vector3}
 
@@ -213,8 +213,9 @@ object EffectTarget {
           if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
           else if (radarCloakedSensor(sector, pos, faction)) tookDamage || usedEquipment
           else if (radarEnhancedInterlink(sector, pos, faction)) true
-          else if (radarEnhancedSensor(sector, pos, faction)) !silentRunActive || tookDamage || usedEquipment || isJumping
-          else tookDamage || usedEquipment || isJumping || !(cloakedByInfiltrationSuit || silentRunActive) && movingFast
+          else if (silentRunActive) tookDamage || usedEquipment
+          else if (radarEnhancedSensor(sector, pos, faction)) true
+          else isJumping || movingFast || tookDamage || usedEquipment || !cloakedByInfiltrationSuit
         case _ =>
           false
       }
@@ -234,7 +235,8 @@ object EffectTarget {
           lazy val isMoving = p.isMoving(test = 1d)
           if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
           else if (radarCloakedSensor(sector, pos, faction)) tookDamage || usedEquipment
-          else isMoving
+          else if (radarEnhancedInterlink(sector, pos, faction) || radarEnhancedSensor(sector, pos, faction)) true
+          else isMoving || tookDamage || usedEquipment
         case _ =>
           false
       }
@@ -242,26 +244,31 @@ object EffectTarget {
     def SmallRoboticsTurretValidateGroundVehicleTarget(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle
-          if v.MountedIn.isEmpty =>
+          if v.MountedIn.isEmpty && !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) =>
           val now = System.currentTimeMillis()
           val vdef = v.Definition
-          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime< 2000L)
+          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
           lazy val isMoving = v.isMoving(test = 1d)
-          !GlobalDefinitions.isFlightVehicle(vdef) && (
-            if (vdef == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) false
-            else !v.Cloaked && (isMoving || tookDamage || usedEquipment))
+          if (vdef == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) false
+          else if (v.Cloaked) tookDamage || usedEquipment
+          else isMoving || tookDamage || usedEquipment
         case _ =>
           false
       }
 
     def SmallRoboticsTurretValidateAircraftTarget(target: PlanetSideGameObject): Boolean =
       target match {
-        case v: Vehicle if GlobalDefinitions.isFlightVehicle(v.Definition) =>
-          lazy val isMoving = v.isMoving(test = 1d)
-          !v.Cloaked && isMoving
+        case v: Vehicle
+          if GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) =>
+          val now = System.currentTimeMillis()
+          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
+          lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
+            .collect { case t: Tool => now - t.LastDischarge }
+            .exists(_ < 2000L)
+          !v.Cloaked && (v.isFlying || v.isMoving(test = 1d)) || tookDamage || usedEquipment
         case _ =>
           false
       }
@@ -273,11 +280,8 @@ object EffectTarget {
           val pos = p.Position
           val faction = p.Faction
           val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
-          lazy val isMoving = p.isMoving(test = 1d)
-          !(radarCloakedAms(sector, pos) ||
-            radarCloakedAegis(sector, pos) ||
-            radarCloakedSensor(sector, pos, faction)) &&
-            isMoving
+          if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos) || radarCloakedSensor(sector, pos, faction)) false
+          else p.isMoving(test = 17d)
         case _ =>
           false
       }
@@ -285,36 +289,49 @@ object EffectTarget {
     def FacilityTurretValidateGroundVehicleTarget(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle
-          if v.MountedIn.isEmpty =>
+          if v.MountedIn.isEmpty && !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) =>
           val now = System.currentTimeMillis()
           val vdef = v.Definition
-          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime< 2000L)
+          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
           lazy val isMoving = v.isMoving(test = 1d)
-          !GlobalDefinitions.isFlightVehicle(vdef) && (
-            if ((vdef == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) || v.Cloaked) false
-            else if (
-              GlobalDefinitions.isAtvVehicle(vdef) ||
-                vdef == GlobalDefinitions.two_man_assault_buggy ||
-                vdef == GlobalDefinitions.skyguard
-            ) tookDamage || usedEquipment
-            else isMoving)
+          if (
+            (vdef == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) ||
+              vdef == GlobalDefinitions.two_man_assault_buggy ||
+              GlobalDefinitions.isAtvVehicle(vdef)
+          ) false
+          else isMoving || tookDamage || usedEquipment
         case _ =>
           false
       }
 
     def FacilityTurretValidateAircraftTarget(target: PlanetSideGameObject): Boolean =
       target match {
-        case v: Vehicle if GlobalDefinitions.isFlightVehicle(v.Definition) =>
+        case v: Vehicle
+          if GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) =>
           val now = System.currentTimeMillis()
-          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime< 2000L)
+          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
+          // from the perspective of a mosquito, at 5th gauge, forward velocity is 59~60
+          lazy val movingFast = Vector3.MagnitudeSquared(v.Velocity.getOrElse(Vector3.Zero).xy) > 3721f //61
           lazy val isMoving = v.isMoving(test = 1d)
-          (v.Definition != GlobalDefinitions.mosquito || tookDamage || usedEquipment) && !v.Cloaked && isMoving
+          if (v.Cloaked) false
+          else if (v.Definition == GlobalDefinitions.mosquito) movingFast
+          else isMoving || tookDamage || usedEquipment
+        case _ =>
+          false
+      }
+
+    def AutoTurretValidateMountableEntityTarget(target: PlanetSideGameObject): Boolean =
+      target match {
+        case _: Vehicle =>
+          false //strict vehicles are handled by other validations
+        case t: WeaponTurret with Vitality =>
+          t.Seats.values.exists(_.isOccupied)
         case _ =>
           false
       }
@@ -375,7 +392,7 @@ object EffectTarget {
           v.Definition == GlobalDefinitions.ams &&
           v.DeploymentState == DriveState.Deployed &&
           !v.Jammed &&
-          Vector3.DistanceSquared(v.Position, position) < 144f
+          Vector3.DistanceSquared(v.Position, position) < 169f //12+1m
     }.contains(true)
   }
 
@@ -387,7 +404,7 @@ object EffectTarget {
       case d: ShieldGeneratorDeployable =>
         !d.Destroyed &&
           !d.Jammed &&
-          Vector3.DistanceSquared(d.Position, position) < 100f
+          Vector3.DistanceSquared(d.Position, position) < 121f //10+1m
     }.contains(true)
   }
 
@@ -402,7 +419,7 @@ object EffectTarget {
           d.Definition.Item == DeployedItem.sensor_shield &&
           d.Faction == faction &&
           !d.Jammed &&
-          Vector3.DistanceSquared(d.Position, position) < 900f
+          Vector3.DistanceSquared(d.Position, position) < 961f //30+1m
     }.contains(true)
   }
 }

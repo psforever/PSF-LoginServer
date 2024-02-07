@@ -8,6 +8,7 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.AmenityAutoRepair
+import net.psforever.objects.serverobject.structures.StructureType.Facility
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAwareBehavior}
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
@@ -124,7 +125,10 @@ class FacilityTurretControl(turret: FacilityTurret)
     if (TurretObject.Health < TurretObject.Definition.DamageDisablesAt) {
       AutomaticOperation = false
     } else {
-      attemptRetaliation(target, cause)
+      amount match {
+        case 0 => ()
+        case _ => attemptRetaliation(target, cause)
+      }
     }
     super.DamageAwareness(target, cause, amount)
   }
@@ -191,8 +195,11 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   private def AutomaticOperationFunctionalityChecksExceptMounting: Boolean = {
-    AutomaticOperationFunctionalityChecksExceptMountingAndHacking //&&
-      //!TurretObject.Owner.asInstanceOf[Building].CaptureTerminalIsHacked
+    AutomaticOperationFunctionalityChecksExceptMountingAndHacking &&
+      (TurretObject.Owner match {
+        case b: Building => b.BuildingType == Facility && !b.CaptureTerminalIsHacked
+        case _ => false
+      })
   }
 
   private def AutomaticOperationFunctionalityChecksExceptMountingAndHacking: Boolean = {
@@ -226,12 +233,12 @@ class FacilityTurretControl(turret: FacilityTurret)
     super.trySelectNewTarget()
   }
 
-  def engageNewDetectedTarget(
-                               target: Target,
-                               channel: String,
-                               turretGuid: PlanetSideGUID,
-                               weaponGuid: PlanetSideGUID
-                             ): Unit = {
+  protected def engageNewDetectedTarget(
+                                         target: Target,
+                                         channel: String,
+                                         turretGuid: PlanetSideGUID,
+                                         weaponGuid: PlanetSideGUID
+                                       ): Unit = {
     val zone = target.Zone
     primaryWeaponFireModeOnly()
     AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
@@ -260,7 +267,7 @@ class FacilityTurretControl(turret: FacilityTurret)
     AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
     AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
     AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
-    //AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
+    AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
   }
 
   protected def testKnownDetected(
@@ -270,24 +277,23 @@ class FacilityTurretControl(turret: FacilityTurret)
                                    weaponGuid: PlanetSideGUID
                                  ): Unit = {
     val zone = target.Zone
-    //AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
+    AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
     AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
     AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
-    //AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
+    AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
   }
 
   override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
     val startsUnjammed = !JammableObject.Jammed
     super.TryJammerEffectActivate(target, cause)
-    if (startsUnjammed && JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDelay > 0)) {
-      AutomaticOperation = false
+    if (JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDelay > 0)) {
+      if (startsUnjammed) {
+        AutomaticOperation = false
+      }
       //look in direction of cause of jamming
       val zone = JammableObject.Zone
-      val channel = zone.id
-      val guid = AutomatedTurretObject.GUID
       AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach { attacker =>
-        AutomatedTurretBehavior.startTracking(zone, channel, guid, List(attacker.GUID))
-        AutomatedTurretBehavior.stopTracking(zone, channel, guid) //TODO delay by a few milliseconds?
+        AutomatedTurretBehavior.startTracking(zone, zone.id, JammableObject.GUID, List(attacker.GUID))
       }
     }
   }
@@ -295,36 +301,30 @@ class FacilityTurretControl(turret: FacilityTurret)
   override def CancelJammeredStatus(target: Any): Unit = {
     val startsJammed = JammableObject.Jammed
     super.CancelJammeredStatus(target)
-    startsJammed && AutomaticOperation_=(state = true)
+    if (startsJammed && AutomaticOperation_=(state = true)) {
+      val zone = TurretObject.Zone
+      AutomatedTurretBehavior.stopTracking(zone, zone.id, TurretObject.GUID)
+    }
   }
 
   override protected def captureTerminalIsResecured(terminal: CaptureTerminal): Unit = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    import scala.concurrent.duration._
-    val originalState = AutomaticOperation
-    AutomaticOperation = false
-    val newAutomaticOperationState = if (terminal.Owner.Faction == PlanetSideEmpire.NEUTRAL) {
-      false
-    } else if (AutomaticOperation || AutomaticOperationFunctionalityChecksExceptMountingAndHacking) {
-      true
-    } else {
-      false
-    }
-    super.captureTerminalIsResecured(terminal)
-    if (newAutomaticOperationState != originalState) {
-      context.system.scheduler.scheduleOnce(3.seconds) { AutomaticOperation = newAutomaticOperationState }
-    }
+    captureTerminalChanges(terminal, super.captureTerminalIsResecured, actionDelays = 2000L)
   }
 
   override protected def captureTerminalIsHacked(terminal: CaptureTerminal): Unit = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    import scala.concurrent.duration._
-    val originalState = AutomaticOperation
+    captureTerminalChanges(terminal, super.captureTerminalIsHacked, actionDelays = 3000L)
+  }
+
+  private def captureTerminalChanges(
+                                      terminal: CaptureTerminal,
+                                      changeFunc: CaptureTerminal=>Unit,
+                                      actionDelays: Long
+                                    ): Unit = {
     AutomaticOperation = false
-    super.captureTerminalIsHacked(terminal)
-    val state = AutomaticOperationFunctionalityChecksExceptMountingAndHacking
-    if (originalState != state && (terminal.HackedBy.isEmpty || terminal.HackedBy.exists(_.hackerFaction == terminal.Faction))) {
-      context.system.scheduler.scheduleOnce(3.seconds) { AutomaticOperation = state }
+    changeFunc(terminal)
+    if (AutomaticOperationFunctionalityChecks) {
+      CurrentTargetLastShotReported = System.currentTimeMillis() + actionDelays
+      AutomaticOperation = true
     }
   }
 }

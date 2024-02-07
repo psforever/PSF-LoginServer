@@ -436,10 +436,18 @@ private[support] class WeaponAndProjectileOperations(
     val AIDamage(targetGuid, attackerGuid, projectileTypeId, _, _) = pkt
     (continent.GUID(player.VehicleSeated) match {
       case Some(tobj: PlanetSideServerObject with FactionAffinity with Vitality with OwnableByPlayer)
-        if tobj.GUID == targetGuid && tobj.OwnerGuid.contains(player.GUID) =>
+        if tobj.GUID == targetGuid &&
+          tobj.OwnerGuid.contains(player.GUID) =>
+        //deployable turrets
+        Some(tobj)
+      case Some(tobj: PlanetSideServerObject with FactionAffinity with Vitality with Mountable)
+        if tobj.GUID == targetGuid &&
+        tobj.Seats.values.flatMap(_.occupants.map(_.GUID)).toSeq.contains(player.GUID) =>
+        //facility turrets, etc.
         Some(tobj)
       case _
         if player.GUID == targetGuid =>
+        //player avatars
         Some(player)
       case _ =>
         None

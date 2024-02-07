@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{AggravatedBehavior, DamageableVehicle}
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.hackable.GenericHackables
-import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
+import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior, RadiationInMountableInteraction}
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.turret.auto.AffectedByAutomaticTurretFire
@@ -247,7 +247,7 @@ class VehicleControl(vehicle: Vehicle)
     commonEnabledBehavior
       .orElse {
         case VehicleControl.RadiationTick =>
-          vehicle.interaction().find { _.Type == RadiationInVehicleInteraction } match {
+          vehicle.interaction().find { _.Type == RadiationInMountableInteraction } match {
             case Some(func) => func.interaction(vehicle.getInteractionSector(), vehicle)
             case _ => ;
           }
