@@ -55,17 +55,17 @@ class SessionSquadHandlers(
   /* packet */
 
   def handleSquadDefinitionAction(pkt: SquadDefinitionActionMessage): Unit = {
-//    val SquadDefinitionActionMessage(u1, u2, action) = pkt
-//    squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Definition(u1, u2, action))
+    val SquadDefinitionActionMessage(u1, u2, action) = pkt
+    squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Definition(u1, u2, action))
   }
 
   def handleSquadMemberRequest(pkt: SquadMembershipRequest): Unit = {
-//    val SquadMembershipRequest(request_type, char_id, unk3, player_name, unk5) = pkt
-//    squadService ! SquadServiceMessage(
-//      player,
-//      continent,
-//      SquadServiceAction.Membership(request_type, char_id, unk3, player_name, unk5)
-//    )
+    val SquadMembershipRequest(request_type, char_id, unk3, player_name, unk5) = pkt
+    squadService ! SquadServiceMessage(
+      player,
+      continent,
+      SquadServiceAction.Membership(request_type, char_id, unk3, player_name, unk5)
+    )
   }
 
   def handleSquadWaypointRequest(pkt: SquadWaypointRequest): Unit = {
@@ -336,19 +336,19 @@ class SessionSquadHandlers(
           sendResponse(CharacterKnowledgeMessage(charId, Some(CharacterKnowledgeInfo(name, certs, u1, u2, zone))))
 
         case SquadResponse.SquadSearchResults(results) =>
-          //TODO positive squad search results message?
-          if(results.nonEmpty) {
-            results.foreach { guid =>
-              sendResponse(SquadDefinitionActionMessage(
-                guid,
-                0,
-                SquadAction.SquadListDecorator(SquadListDecoration.SearchResult))
-              )
-            }
-          } else {
-            sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.NoSquadSearchResults()))
-          }
-          sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.CancelSquadSearch()))
+            //TODO positive squad search results message?
+//          if(results.nonEmpty) {
+//            results.foreach { guid =>
+//              sendResponse(SquadDefinitionActionMessage(
+//                guid,
+//                0,
+//                SquadAction.SquadListDecorator(SquadListDecoration.SearchResult))
+//              )
+//            }
+//          } else {
+//            sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.NoSquadSearchResults()))
+//          }
+//          sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.CancelSquadSearch()))
 
         case SquadResponse.InitWaypoints(char_id, waypoints) =>
           waypoints.foreach {

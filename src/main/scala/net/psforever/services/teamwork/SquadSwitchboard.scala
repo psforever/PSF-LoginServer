@@ -171,13 +171,12 @@ class SquadSwitchboard(
       //update for leader
       features.InitialAssociation = false
       subscriptions.Publish(leaderId, SquadResponse.IdentifyAsSquadLeader(squad.GUID))
-      subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(charId, role.Name, role.Certifications, 40, 5, role.ZoneId))
+      subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(charId, role.Name, role.Certifications, player.avatar.br.value, player.avatar.cr.value, role.ZoneId))
       //everyone
       subscriptions.InitSquadDetail(features)
     } else {
       //joining an active squad; different people update differently
       //new member gets full squad UI updates
-      subscriptions.InitSquadDetail(squad.GUID, Seq(charId), squad)
       subscriptions.Publish(
         charId,
         SquadResponse.Join(
@@ -201,8 +200,9 @@ class SquadSwitchboard(
       )
       subscriptions.Publish(toChannel, SquadResponse.Join(squad, List(position), "", self), Seq(charId))
       //update for leader
-      subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(charId, role.Name, role.Certifications, 40, 5, role.ZoneId))
+      subscriptions.Publish(leaderId, SquadResponse.CharacterKnowledge(charId, role.Name, role.Certifications, player.avatar.br.value, player.avatar.cr.value, role.ZoneId))
       subscriptions.SquadEvents.subscribe(sendTo, s"/$toChannel/Squad")
+      subscriptions.InitSquadDetail(squad.GUID, Seq(charId), squad)
     }
     context.parent ! SquadService.UpdateSquadListWhenListed(
       features,
@@ -653,7 +653,7 @@ class SquadSwitchboard(
     if (squad.Leader.CharId == char_id) {
       membership.lift(position) match {
         case Some(toMember) =>
-          SquadActionMembershipPromote(char_id, toMember.CharId)
+          //SquadActionMembershipPromote(char_id, toMember.CharId)
         case _ => ;
       }
     } else {
@@ -684,7 +684,7 @@ class SquadSwitchboard(
   def SquadActionMembership(action: Any): Unit = {
     action match {
       case SquadAction.Membership(SquadRequestType.Promote, promotingPlayer, Some(promotedPlayer), _, _) =>
-        SquadActionMembershipPromote(promotingPlayer, promotedPlayer)
+        //SquadActionMembershipPromote(promotingPlayer, promotedPlayer)
 
       case SquadAction.Membership(event, _, _, _, _) =>
         log.debug(s"SquadAction.Membership: $event is not supported here")
@@ -729,6 +729,7 @@ class SquadSwitchboard(
           _.CharId == promotedPlayer
         }
         .foreach { member =>
+          //todo: get member br & cr to replace 40, 5
           subscriptions.Publish(promotedPlayer, SquadResponse.CharacterKnowledge(member.CharId, member.Name, member.Certifications, 40, 5, member.ZoneId))
         }
       //to old and to new squad leader
@@ -904,18 +905,18 @@ class SquadSwitchboard(
           if (leaderCharId != charId) {
             subscriptions.Publish(
               leaderCharId,
-              SquadResponse.CharacterKnowledge(charId, member.Name, certifications, 40, 5, zoneNumber)
+              SquadResponse.CharacterKnowledge(charId, member.Name, certifications, player.avatar.br.value, player.avatar.cr.value, zoneNumber)
             )
           }
           context.parent ! SquadServiceMessage(player, player.Zone, SquadAction.ReloadDecoration())
         } else if (zoneBefore != zoneNumber && leaderCharId != charId) {
           subscriptions.Publish(
             leaderCharId,
-            SquadResponse.CharacterKnowledge(charId, member.Name, certifications, 40, 5, 0)
+            SquadResponse.CharacterKnowledge(charId, member.Name, certifications, player.avatar.br.value, player.avatar.cr.value, 0)
           )
           subscriptions.Publish(
             leaderCharId,
-            SquadResponse.CharacterKnowledge(charId, member.Name, certifications, 40, 5, zoneNumber)
+            SquadResponse.CharacterKnowledge(charId, member.Name, certifications, player.avatar.br.value, player.avatar.cr.value, zoneNumber)
           )
         }
         if (features.LocationFollowsSquadLead) {

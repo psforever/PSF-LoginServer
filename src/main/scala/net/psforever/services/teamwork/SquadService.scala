@@ -6,7 +6,7 @@ import java.io.{PrintWriter, StringWriter}
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 //
-import net.psforever.objects.{Default, LivePlayerList, Player}
+import net.psforever.objects.{LivePlayerList, Player}
 import net.psforever.objects.teamwork.{Member, Squad, SquadFeatures}
 import net.psforever.objects.avatar.{Avatar, Certification}
 import net.psforever.objects.definition.converter.StatConverter
@@ -76,7 +76,7 @@ class SquadService extends Actor {
     //squads and members (users)
     squadFeatures.foreach {
       case (_, features) =>
-        CloseSquad(features.Squad)
+        DisbandSquad(features)
     }
     memberToSquad.clear()
     publishedLists.clear()
@@ -377,7 +377,7 @@ class SquadService extends Actor {
         SquadActionMembershipCancel(cancellingPlayer)
 
       case SquadAction.Membership(SquadRequestType.Promote, promotingPlayer, Some(_promotedPlayer), promotedName, _) =>
-        SquadActionMembershipPromote(promotingPlayer, _promotedPlayer, promotedName, SquadServiceMessage(tplayer, zone, action), sender())
+        //SquadActionMembershipPromote(promotingPlayer, _promotedPlayer, promotedName, SquadServiceMessage(tplayer, zone, action), sender())
 
       case SquadAction.Membership(event, _, _, _, _) =>
         debug(s"SquadAction.Membership: $event is not yet supported")
@@ -686,10 +686,10 @@ class SquadService extends Actor {
         }
         None
       case search: SearchForSquadsWithParticularRole =>
-        SquadActionDefinitionSearchForSquadsWithParticularRole(tplayer, search)
+//        SquadActionDefinitionSearchForSquadsWithParticularRole(tplayer, search)
         None
       case _: CancelSquadSearch =>
-        SquadActionDefinitionCancelSquadSearch(tplayer.CharId)
+//        SquadActionDefinitionCancelSquadSearch(tplayer.CharId)
         None
       case _: DisplaySquad =>
         GetSquad(guid) match {
@@ -863,6 +863,11 @@ class SquadService extends Actor {
     val sguid        = GetNextSquadId()
     val squad        = new Squad(sguid, faction)
     val leadPosition = squad.Membership(0)
+    //keep publishedLists clear of old squads. PR 1157 for details
+    val factionListings = publishedLists(faction)
+    val guidsToRemove = factionListings.filterNot(squadFeatures.contains).toList
+    guidsToRemove.foreach(factionListings -= _)
+
     leadPosition.Name = name
     leadPosition.CharId = player.CharId
     leadPosition.Health = StatConverter.Health(player.Health, player.MaxHealth, min = 1, max = 64)
@@ -902,9 +907,8 @@ class SquadService extends Actor {
     val squad = features.Squad
     subs.UserEvents.get(charId) match {
       case Some(events)
-        if !memberToSquad.contains(charId) &&
-          squad.Leader.CharId != charId &&
-          squad.isAvailable(position, player.avatar.certifications) =>
+        if squad.isAvailable(position, player.avatar.certifications) &&
+          EnsureEmptySquad(charId) =>
         memberToSquad(charId) = squad.GUID
         subs.MonitorSquadDetails.subtractOne(charId)
         invitations.handleCleanup(charId)
@@ -951,6 +955,7 @@ class SquadService extends Actor {
     membership.find { case (_member, _) => _member.CharId == charId } match {
       case Some(_) if squad.Leader.CharId != charId =>
         memberToSquad.remove(charId)
+        subs.MonitorSquadDetails.subtractOne(charId)
         features.Switchboard ! SquadSwitchboard.Leave(charId)
         true
       case _ =>
@@ -1010,6 +1015,10 @@ class SquadService extends Actor {
           subs.Publish(charId, SquadResponse.Detail(PlanetSideGUID(0), completelyBlankSquadDetail))
       }
     UpdateSquadListWhenListed(features.Stop, None)
+    //remove from list of squads
+    squadFeatures -= guid
+    //really make sure it is removed from listed squads
+    publishedLists(squad.Faction) -= guid
   }
 
   /**
@@ -1083,6 +1092,7 @@ class SquadService extends Actor {
     pSquadOpt match {
       //member of the squad; leave the squad
       case Some(features) =>
+        LeaveSquad(charId, features) //adding this fixed issue of rejoining the squad on login.
         val squad = features.Squad
         val size = squad.Size
         subs.UserEvents.remove(charId) match {
@@ -1093,25 +1103,8 @@ class SquadService extends Actor {
         if (size > 2) {
           GetLeadingSquad(charId, pSquadOpt) match {
             case Some(_) =>
-              //leader of a squad; search for a suitable substitute leader
-              squad.Membership.drop(1).find { _.CharId > 0 } match {
-                case Some(member) =>
-                  //leader was shifted into a subordinate position and will retire from duty
-                  SquadActionMembershipPromote(
-                    charId,
-                    member.CharId,
-                    features,
-                    SquadServiceMessage(null, null, SquadAction.Membership(SquadRequestType.Promote, charId, Some(member.CharId), "", None)),
-                    Default.Actor
-                  )
-                  LeaveSquad(charId, features)
-                case _ =>
-                  //the squad will be disbanded
-                  PanicDisbandSquad(
-                    features,
-                    squad.Membership.collect { case member if member.CharId > 0 && member.CharId != charId => member.CharId }
-                  )
-              }
+              //leader of a squad; the squad will be disbanded. Same logic as when a SL uses /leave and the squad is disbanded.
+              DisbandSquad(features)
             case None =>
               //not the leader of a full squad; tell other members that we are leaving
               SquadSwitchboard.PanicLeaveSquad(
@@ -1125,10 +1118,7 @@ class SquadService extends Actor {
           }
         } else {
           //with only two members before our leave, the squad will be disbanded
-          PanicDisbandSquad(
-            features,
-            squad.Membership.collect { case member if member.CharId > 0 && member.CharId != charId => member.CharId }
-          )
+          DisbandSquad(features)
         }
       case None =>
         //not a member of any squad; nothing really to do here
@@ -1136,7 +1126,8 @@ class SquadService extends Actor {
     }
     subs.SquadEvents.unsubscribe(sender) //just to make certain
     searchData.remove(charId)
-    TryResetSquadId()
+    //todo turn this back on. See PR 1157 for why it was commented out.
+    //TryResetSquadId()
   }
 
   /**
