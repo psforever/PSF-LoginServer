@@ -39,12 +39,12 @@ trait AutomatedTurret
   def Targets: List[Target] = targets
 
   def Detected(target: Target): Option[Target] = {
-    val unique = SourceEntry(target).unique
-    targets.find(SourceEntry(_).unique == unique)
+    val unique = SourceUniqueness(target)
+    targets.find(SourceUniqueness(_) == unique)
   }
 
   def Detected(target: SourceUniqueness): Option[Target] = {
-    targets.find(SourceEntry(_).unique == target)
+    targets.find(SourceUniqueness(_) == target)
   }
 
   def AddTarget(target: Target): Unit = {
@@ -52,8 +52,8 @@ trait AutomatedTurret
   }
 
   def RemoveTarget(target: Target): Unit = {
-    val unique = SourceEntry(target).unique
-    targets = targets.filterNot(SourceEntry(_).unique == unique)
+    val unique = SourceUniqueness(target)
+    targets = targets.filterNot(SourceUniqueness(_) == unique)
   }
 
   def Clear(): List[Target] = {

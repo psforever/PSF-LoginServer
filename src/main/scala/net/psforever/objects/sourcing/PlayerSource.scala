@@ -16,6 +16,12 @@ final case class UniquePlayer(
                                faction: PlanetSideEmpire.Value
                              ) extends SourceUniqueness
 
+object UniquePlayer {
+  def apply(obj: Player): UniquePlayer = {
+    UniquePlayer(obj.CharId, obj.Name, obj.Sex, obj.Faction)
+  }
+}
+
 final case class PlayerSource(
                                Definition: AvatarDefinition,
                                ExoSuit: ExoSuitType.Value,
@@ -121,7 +127,6 @@ object PlayerSource {
    */
   def inSeat(player: Player, source: SourceEntry, seatNumber: Int): PlayerSource = {
     val exosuit = player.ExoSuit
-    val faction = player.Faction
     val avatar = player.avatar
     PlayerSource(
       player.Definition,
@@ -134,10 +139,10 @@ object PlayerSource {
       player.Velocity,
       player.Crouching,
       player.Jumping,
-      ExoSuitDefinition.Select(exosuit, faction),
+      ExoSuitDefinition.Select(exosuit, player.Faction),
       avatar.bep,
       progress = tokenLife,
-      UniquePlayer(player.CharId, player.Name, player.Sex, faction)
+      UniquePlayer(player)
     )
   }
 

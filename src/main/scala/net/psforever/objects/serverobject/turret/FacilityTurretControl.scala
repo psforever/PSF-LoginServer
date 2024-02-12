@@ -8,7 +8,6 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.AmenityAutoRepair
-import net.psforever.objects.serverobject.structures.StructureType.Facility
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAwareBehavior}
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
@@ -16,6 +15,7 @@ import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurret
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.ChangeFireModeMessage
 import net.psforever.services.Service
+import net.psforever.services.vehicle.support.TurretUpgrader
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{BailType, PlanetSideEmpire, PlanetSideGUID}
 
@@ -63,18 +63,22 @@ class FacilityTurretControl(turret: FacilityTurret)
           if TurretObject.Upgrade != upgrade && TurretObject.Definition.WeaponPaths.values
             .flatMap(_.keySet)
             .exists(_ == upgrade) =>
-          TurretObject.setMiddleOfUpgrade(true)
+          AutomaticOperation = false
           sender() ! CommonMessages.Progress(
             1.25f,
             WeaponTurrets.FinishUpgradingMannedTurret(TurretObject, player, item, upgrade),
             GenericHackables.TurretUpgradingTickAction(progressType = 2, player, TurretObject, item.GUID)
           )
       }
+    case TurretUpgrader.UpgradeCompleted(_) =>
+      CurrentTargetLastShotReported = System.currentTimeMillis() + 2000L
+      AutomaticOperation = true
   }
 
   override def commonBehavior: Receive = super.commonBehavior
     .orElse(automatedTurretBehavior)
     .orElse(takeAutomatedDamage)
+    .orElse(autoRepairBehavior)
     .orElse(captureTerminalAwareBehaviour)
 
   override def poweredStateLogic: Receive =
@@ -122,12 +126,14 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   override protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any) : Unit = {
     tryAutoRepair()
-    if (TurretObject.Health < TurretObject.Definition.DamageDisablesAt) {
-      AutomaticOperation = false
-    } else {
-      amount match {
-        case 0 => ()
-        case _ => attemptRetaliation(target, cause)
+    if (AutomaticOperation) {
+      if (TurretObject.Health < TurretObject.Definition.DamageDisablesAt) {
+        AutomaticOperation = false
+      } else {
+        amount match {
+          case 0 => ()
+          case _ => attemptRetaliation(target, cause)
+        }
       }
     }
     super.DamageAwareness(target, cause, amount)
@@ -142,15 +148,13 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   override def PerformRepairs(target : Damageable.Target, amount : Int) : Int = {
     val newHealth = super.PerformRepairs(target, amount)
+    if (!AutomaticOperation && newHealth > target.Definition.DamageDisablesAt) {
+      AutomaticOperation = true
+    }
     if (newHealth == target.Definition.MaxHealth) {
       stopAutoRepair()
     }
     newHealth
-  }
-
-  override def Restoration(obj: Damageable.Target): Unit = {
-    super.Restoration(obj)
-    AutomaticOperation = true
   }
 
   override def tryAutoRepair() : Boolean = {
@@ -197,7 +201,7 @@ class FacilityTurretControl(turret: FacilityTurret)
   private def AutomaticOperationFunctionalityChecksExceptMounting: Boolean = {
     AutomaticOperationFunctionalityChecksExceptMountingAndHacking &&
       (TurretObject.Owner match {
-        case b: Building => b.BuildingType == Facility && !b.CaptureTerminalIsHacked
+        case b: Building => !b.CaptureTerminalIsHacked
         case _ => false
       })
   }
@@ -207,7 +211,8 @@ class FacilityTurretControl(turret: FacilityTurret)
       isPowered &&
       TurretObject.Owner.Faction != PlanetSideEmpire.NEUTRAL &&
       !JammableObject.Jammed &&
-      TurretObject.Health > TurretObject.Definition.DamageDisablesAt
+      TurretObject.Health >= TurretObject.Definition.DamageDisablesAt &&
+      !TurretObject.isUpgrading
   }
 
   private def primaryWeaponFireModeOnly(): Unit = {

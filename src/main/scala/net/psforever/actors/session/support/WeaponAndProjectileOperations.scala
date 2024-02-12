@@ -451,38 +451,34 @@ private[support] class WeaponAndProjectileOperations(
         Some(player)
       case _ =>
         None
-    }).foreach { target =>
-      sessionData.validObject(attackerGuid, decorator = "AIDamage/Attacker")
-        .collect {
-          case turret: AutomatedTurret if turret.Target.isEmpty =>
-            turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
-            None
+    }).collect {
+      case target: AutomatedTurret.Target =>
+        sessionData.validObject(attackerGuid, decorator = "AIDamage/AutomatedTurret")
+          .collect {
+            case turret: AutomatedTurret if turret.Target.isEmpty =>
+              turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
+              Some(target)
 
-          case turret: AutomatedTurret =>
-            turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
-            CompileAutomatedTurretDamageData(turret, turret.TurretOwner, projectileTypeId)
-        }
-        .collect {
-          case Some((obj, tool, owner, projectileInfo)) =>
-            val angle = Vector3.Unit(target.Position - obj.Position)
-            val proj = new Projectile(
-              projectileInfo,
-              tool.Definition,
-              tool.FireMode,
-              None,
-              owner,
-              obj.Definition.ObjectId,
-              obj.Position + Vector3.z(value = 1f),
-              angle,
-              Some(angle * projectileInfo.FinalVelocity)
-            )
-            val hitPos = target.Position + Vector3.z(value = 1f)
-            ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos).collect { resprojectile =>
-              addShotsLanded(resprojectile.cause.attribution, shots = 1)
-              sessionData.handleDealingDamage(target, resprojectile)
-            }
-        }
+            case turret: AutomatedTurret =>
+              turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
+              HandleAIDamage(target, CompileAutomatedTurretDamageData(turret, turret.TurretOwner, projectileTypeId))
+              Some(target)
+          }
     }
+      .orElse {
+        //occasionally, something that is not technically a turret's natural target may be attacked
+        sessionData.validObject(targetGuid, decorator = "AIDamage/Target")
+          .collect {
+            case target: PlanetSideServerObject with FactionAffinity with Vitality =>
+              sessionData.validObject(attackerGuid, decorator = "AIDamage/Attacker")
+                .collect {
+                  case turret: AutomatedTurret if turret.Target.nonEmpty =>
+                    //the turret must be shooting at something (else) first
+                    HandleAIDamage(target, CompileAutomatedTurretDamageData(turret, turret.TurretOwner, projectileTypeId))
+                }
+              Some(target)
+          }
+      }
   }
 
   /* support code */
@@ -1474,6 +1470,32 @@ private[support] class WeaponAndProjectileOperations(
       .flatMap { _.Equipment }
       .collect { case weapon: Tool => (turret, weapon, owner, weapon.Projectile) }
       .find { case (_, _, _, p) => p.ObjectId == projectileTypeId }
+  }
+
+  private def HandleAIDamage(
+                              target: PlanetSideServerObject with FactionAffinity with Vitality,
+                              results: Option[(AutomatedTurret, Tool, SourceEntry, ProjectileDefinition)]
+                            ): Unit = {
+    results.collect {
+      case (obj, tool, owner, projectileInfo) =>
+        val angle = Vector3.Unit(target.Position - obj.Position)
+        val proj = new Projectile(
+          projectileInfo,
+          tool.Definition,
+          tool.FireMode,
+          None,
+          owner,
+          obj.Definition.ObjectId,
+          obj.Position + Vector3.z(value = 1f),
+          angle,
+          Some(angle * projectileInfo.FinalVelocity)
+        )
+        val hitPos = target.Position + Vector3.z(value = 1f)
+        ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos).collect { resprojectile =>
+          addShotsLanded(resprojectile.cause.attribution, shots = 1)
+          sessionData.handleDealingDamage(target, resprojectile)
+        }
+    }
   }
 
   override protected[session] def stop(): Unit = {

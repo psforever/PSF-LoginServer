@@ -4,7 +4,7 @@ package net.psforever.objects.equipment
 import net.psforever.objects._
 import net.psforever.objects.ce.{DeployableCategory, DeployedItem}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
-import net.psforever.objects.vital.{DamagingActivity, Vitality}
+import net.psforever.objects.vital.{DamagingActivity, InGameHistory, Vitality}
 import net.psforever.objects.zones.blockmap.SectorPopulation
 import net.psforever.types.{DriveState, ExoSuitType, ImplantType, LatticeBenefit, PlanetSideEmpire, Vector3}
 
@@ -197,7 +197,6 @@ object EffectTarget {
           val pos = p.Position
           val faction = p.Faction
           val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
-          lazy val tookDamage = p.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
           //todo equipment-use usually a violation for any equipment type
           lazy val usedEquipment = (p.Holsters().flatMap(_.Equipment) ++ p.Inventory.Items.map(_.obj))
             .collect {
@@ -208,14 +207,17 @@ object EffectTarget {
             .exists(_ < 2000L)
           lazy val cloakedByInfiltrationSuit = p.ExoSuit == ExoSuitType.Infiltration && p.Cloaked
           lazy val silentRunActive = p.avatar.implants.flatten.find(a => a.definition.implantType == ImplantType.SilentRun).exists(_.active)
-          lazy val movingFast = p.isMoving(test = 17d)
+          lazy val movingFast = p.isMoving(test = 15.5d)
+          lazy val isCrouched = p.Crouching
+          lazy val isMoving = p.isMoving(test = 1d)
           lazy val isJumping = p.Jumping
           if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
-          else if (radarCloakedSensor(sector, pos, faction)) tookDamage || usedEquipment
+          else if (entityTookDamage(p, now) || usedEquipment) true
+          else if (radarCloakedSensor(sector, pos, faction) || silentRunActive) false
           else if (radarEnhancedInterlink(sector, pos, faction)) true
-          else if (silentRunActive) tookDamage || usedEquipment
-          else if (radarEnhancedSensor(sector, pos, faction)) true
-          else isJumping || movingFast || tookDamage || usedEquipment || !cloakedByInfiltrationSuit
+          else if (radarEnhancedSensor(sector, pos, faction)) !isCrouched && isMoving
+          else if (cloakedByInfiltrationSuit) isJumping || movingFast
+          else isJumping || movingFast
         case _ =>
           false
       }
@@ -228,15 +230,15 @@ object EffectTarget {
           val pos = p.Position
           val faction = p.Faction
           val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
-          lazy val tookDamage = p.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
           lazy val usedEquipment = p.Holsters().flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
           lazy val isMoving = p.isMoving(test = 1d)
           if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
-          else if (radarCloakedSensor(sector, pos, faction)) tookDamage || usedEquipment
-          else if (radarEnhancedInterlink(sector, pos, faction) || radarEnhancedSensor(sector, pos, faction)) true
-          else isMoving || tookDamage || usedEquipment
+          else if (entityTookDamage(p, now) || usedEquipment) true
+          else if (radarCloakedSensor(sector, pos, faction)) false
+          else if (radarEnhancedInterlink(sector, pos, faction)) true
+          else isMoving
         case _ =>
           false
       }
@@ -244,17 +246,14 @@ object EffectTarget {
     def SmallRoboticsTurretValidateGroundVehicleTarget(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle
-          if v.MountedIn.isEmpty && !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) =>
+          if !GlobalDefinitions.isFlightVehicle(v.Definition) && v.MountedIn.isEmpty && v.Seats.values.exists(_.isOccupied) =>
           val now = System.currentTimeMillis()
           val vdef = v.Definition
-          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
-          lazy val isMoving = v.isMoving(test = 1d)
           if (vdef == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) false
-          else if (v.Cloaked) tookDamage || usedEquipment
-          else isMoving || tookDamage || usedEquipment
+          else !v.Cloaked && v.isMoving(test = 1d) || entityTookDamage(v, now) || usedEquipment
         case _ =>
           false
       }
@@ -264,11 +263,10 @@ object EffectTarget {
         case v: Vehicle
           if GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) =>
           val now = System.currentTimeMillis()
-          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
-          !v.Cloaked && (v.isFlying || v.isMoving(test = 1d)) || tookDamage || usedEquipment
+          !v.Cloaked && (v.isFlying || v.isMoving(test = 1d)) || entityTookDamage(v, now) || usedEquipment
         case _ =>
           false
       }
@@ -277,11 +275,17 @@ object EffectTarget {
       target match {
         case p: Player
           if p.ExoSuit == ExoSuitType.MAX && p.VehicleSeated.isEmpty =>
+          val now = System.currentTimeMillis()
           val pos = p.Position
           val faction = p.Faction
           val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
-          if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos) || radarCloakedSensor(sector, pos, faction)) false
-          else p.isMoving(test = 17d)
+          lazy val usedEquipment = p.Holsters().flatMap(_.Equipment)
+            .collect { case t: Tool => now - t.LastDischarge }
+            .exists(_ < 2000L)
+          if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
+          else if (radarCloakedSensor(sector, pos, faction)) entityTookDamage(p, now) || usedEquipment
+          else if (radarEnhancedInterlink(sector, pos, faction)) true
+          else p.isMoving(test = 15.5d)
         case _ =>
           false
       }
@@ -289,20 +293,18 @@ object EffectTarget {
     def FacilityTurretValidateGroundVehicleTarget(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle
-          if v.MountedIn.isEmpty && !GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) =>
+          if !GlobalDefinitions.isFlightVehicle(v.Definition) && v.MountedIn.isEmpty && v.Seats.values.exists(_.isOccupied) =>
           val now = System.currentTimeMillis()
           val vdef = v.Definition
-          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
-          lazy val isMoving = v.isMoving(test = 1d)
           if (
             (vdef == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) ||
               vdef == GlobalDefinitions.two_man_assault_buggy ||
               GlobalDefinitions.isAtvVehicle(vdef)
           ) false
-          else isMoving || tookDamage || usedEquipment
+          else v.isMoving(test = 1d) || entityTookDamage(v, now) || usedEquipment
         case _ =>
           false
       }
@@ -312,7 +314,6 @@ object EffectTarget {
         case v: Vehicle
           if GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) =>
           val now = System.currentTimeMillis()
-          lazy val tookDamage = v.LastDamage.exists(dam => dam.adversarial.nonEmpty && now - dam.interaction.hitTime < 2000L)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
@@ -321,7 +322,7 @@ object EffectTarget {
           lazy val isMoving = v.isMoving(test = 1d)
           if (v.Cloaked) false
           else if (v.Definition == GlobalDefinitions.mosquito) movingFast
-          else isMoving || tookDamage || usedEquipment
+          else v.isFlying && (isMoving || entityTookDamage(v, now) || usedEquipment)
         case _ =>
           false
       }
@@ -421,5 +422,15 @@ object EffectTarget {
           !d.Jammed &&
           Vector3.DistanceSquared(d.Position, position) < 961f //30+1m
     }.contains(true)
+  }
+
+  private def entityTookDamage(
+                                obj: InGameHistory,
+                                now: Long = System.currentTimeMillis(),
+                                interval: Long = 2000L
+                              ): Boolean = {
+    obj.VitalsHistory()
+      .findLast(_.isInstanceOf[DamagingActivity])
+      .exists(dam => now - dam.time < interval)
   }
 }

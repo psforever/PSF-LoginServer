@@ -143,7 +143,7 @@ object FacilityHackParticipation {
           killTime <= end &&
           Vector3.DistanceSquared(centerXY, k.info.interaction.hitPos.xy) < distanceSq
       }
-      (PlayerSource(p).unique, math.min(d, duration).toFloat / duration.toFloat, killList)
+      (UniquePlayer(p), math.min(d, duration).toFloat / duration.toFloat, killList)
     }
   }
 

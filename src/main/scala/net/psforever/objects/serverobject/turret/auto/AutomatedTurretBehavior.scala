@@ -211,7 +211,7 @@ trait AutomatedTurretBehavior {
       engageNewDetectedTarget(target)
       true
     } else if (
-      currentTargetToken.contains(SourceEntry(target).unique) &&
+      currentTargetToken.contains(SourceUniqueness(target)) &&
         now - currentTargetLastShotTime < autoStats.map(_.cooldowns.missedShot).getOrElse(0L)) {
       currentTargetLastShotTime = now
       currentTargetLocation = Some(target.Position)
@@ -233,7 +233,7 @@ trait AutomatedTurretBehavior {
   private def engageNewDetectedTarget(target: Target): Unit = {
     val zone = target.Zone
     val zoneid = zone.id
-    currentTargetToken = Some(SourceEntry(target).unique)
+    currentTargetToken = Some(SourceUniqueness(target))
     currentTargetLocation = Some(target.Position)
     currentTargetSwitchTime = System.currentTimeMillis()
     AutomatedTurretObject.Target = target
@@ -266,7 +266,7 @@ trait AutomatedTurretBehavior {
    * @return something the turret was potentially shoot at
    */
   protected def noLongerDetectTargetIfCurrent(target: Target): Option[Target] = {
-    if (currentTargetToken.contains(SourceEntry(target).unique)) {
+    if (currentTargetToken.contains(SourceUniqueness(target))) {
       cancelSelfReportedAutoFire()
       noLongerEngageDetectedTarget(target)
     } else {
@@ -344,9 +344,9 @@ trait AutomatedTurretBehavior {
         }
       //sort targets into categories
       val (previousTargets, newTargets, staleTargets) = {
-        val previouslyTestedTokens = ongoingTestedTargets.map(target => SourceEntry(target).unique)
-        val (previous_targets, new_targets) = selectedTargets.partition(target => previouslyTestedTokens.contains(SourceEntry(target).unique))
-        val previousTargetTokens = previous_targets.map(target => (SourceEntry(target).unique, target))
+        val previouslyTestedTokens = ongoingTestedTargets.map(target => SourceUniqueness(target))
+        val (previous_targets, new_targets) = selectedTargets.partition(target => previouslyTestedTokens.contains(SourceUniqueness(target)))
+        val previousTargetTokens = previous_targets.map(target => (SourceUniqueness(target), target))
         val stale_targets = {
           for {
             (token, target) <- previousTargetTokens
@@ -653,7 +653,7 @@ trait AutomatedTurretBehavior {
   protected def attemptRetaliation(target: Target, cause: DamageResult): Option[Target] = {
     if (
       automaticOperation &&
-        !currentTargetToken.contains(SourceEntry(target).unique) &&
+        !currentTargetToken.contains(SourceUniqueness(target)) &&
         autoStats.exists(_.retaliatoryDelay > 0)
     ) {
       AutomatedTurretBehavior.getAttackVectorFromCause(target.Zone, cause).collect {
@@ -721,7 +721,7 @@ trait AutomatedTurretBehavior {
     }
     AutomatedTurretObject.Target
       .collect { oldTarget =>
-        if (currentTargetToken.contains(SourceEntry(oldTarget).unique)) {
+        if (currentTargetToken.contains(SourceUniqueness(oldTarget))) {
           //target already being handled
           if (oldTarget.Destroyed || currentTargetLocation.exists(loc => Vector3.DistanceSquared(loc, oldTarget.Position) > 1f)) {
             //stop (destroyed, or movement disqualification)
@@ -935,9 +935,9 @@ object AutomatedTurretBehavior {
             p.seatedIn
               .map { _._1.unique }
               .collect {
-                case v: UniqueVehicle => zone.Vehicles.find(SourceEntry(_).unique == v)
+                case v: UniqueVehicle => zone.Vehicles.find(SourceUniqueness(_) == v)
                 case a: UniqueAmenity => zone.GUID(a.guid)
-                case d: UniqueDeployable => zone.DeployableList.find(SourceEntry(_).unique == d)
+                case d: UniqueDeployable => zone.DeployableList.find(SourceUniqueness(_) == d)
               }
               .flatten
               .orElse {
@@ -946,9 +946,9 @@ object AutomatedTurretBehavior {
               }
           case o =>
             o.unique match {
-              case v: UniqueVehicle => zone.Vehicles.find(SourceEntry(_).unique == v)
+              case v: UniqueVehicle => zone.Vehicles.find(SourceUniqueness(_) == v)
               case a: UniqueAmenity => zone.GUID(a.guid)
-              case d: UniqueDeployable => zone.DeployableList.find(SourceEntry(_).unique == d)
+              case d: UniqueDeployable => zone.DeployableList.find(SourceUniqueness(_) == d)
               case _ => None
             }
         }
@@ -982,7 +982,7 @@ object AutomatedTurretBehavior {
     val testRangeSq = range * range
     if (stats.exists(_.cylindrical)) {
       val height = range + stats.map(_.cylindricalExtraHeight).getOrElse(0f)
-      math.abs(positionA.z - positionB.z).compareTo(height) == result &&
+      (if (positionA.z > positionB.z) positionA.z - positionB.z else positionB.z - positionA.z).compareTo(height) == result &&
         Vector3.DistanceSquared(positionA.xy, positionB.xy).compareTo(testRangeSq) == result
     } else {
       Vector3.DistanceSquared(positionA, positionB).compareTo(testRangeSq) == result

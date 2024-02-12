@@ -46,11 +46,11 @@ trait OwnableByPlayer {
   def AssignOwnership(playerOpt: Option[Player]): OwnableByPlayer = {
     (originalOwnerName, playerOpt) match {
       case (None, Some(player)) =>
-        owner = Some(PlayerSource(player).unique)
+        owner = Some(UniquePlayer(player))
         originalOwnerName = originalOwnerName.orElse { Some(player.Name) }
         OwnerGuid = player
       case (_, Some(player)) =>
-        owner = Some(PlayerSource(player).unique)
+        owner = Some(UniquePlayer(player))
         OwnerGuid = player
       case (_, None) =>
         owner = None

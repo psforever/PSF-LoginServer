@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.turret.auto.{AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.zones.blockmap.SectorPopulation
 import net.psforever.objects.zones.{InteractsWithZone, ZoneInteraction, ZoneInteractionType}
-import net.psforever.objects.sourcing.SourceEntry
+import net.psforever.objects.sourcing.{SourceEntry, SourceUniqueness}
 import net.psforever.types.Vector3
 
 case object TurretInteraction extends ZoneInteractionType
@@ -27,7 +27,7 @@ class InteractWithTurrets()
     target match {
       case clarifiedTarget: AutomatedTurret.Target =>
         val pos = clarifiedTarget.Position
-        val unique = SourceEntry(clarifiedTarget).unique
+        val unique = SourceUniqueness(clarifiedTarget)
         val targets = getTurretTargets(sector, pos).filter { turret => turret.Definition.AutoFire.nonEmpty && turret.Detected(unique).isEmpty }
         targets.foreach { t => t.Actor ! AutomatedTurretBehavior.Alert(clarifiedTarget) }
       case _ => ()
