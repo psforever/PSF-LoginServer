@@ -1,6 +1,6 @@
 # PSForever Server [![Build Status](https://travis-ci.org/psforever/PSF-LoginServer.svg?branch=master)](https://travis-ci.com/psforever/PSF-LoginServer) [![Code coverage](https://codecov.io/gh/psforever/PSF-LoginServer/coverage.svg?branch=master)](https://codecov.io/gh/psforever/PSF-LoginServer/) [![Documentation](https://img.shields.io/badge/documentation-master-lightgrey)](https://psforever.github.io/docs/master/index.html)
 
-<img src="https://psforever.net/index_files/logo_crop.png" align="left" title="PSForever" width="120">
+<img src="https://www.psforever.net/res/logo.png" align="left" title="PSForever" width="120">
 
 Welcome to the recreated login and world servers for PlanetSide 1. We are a community of players and developers who took
 it upon ourselves to preserve PlanetSide 1's unique gameplay and history _forever_.
