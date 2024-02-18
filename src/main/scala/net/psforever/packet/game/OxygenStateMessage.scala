@@ -4,11 +4,12 @@ package net.psforever.packet.game
 import net.psforever.newcodecs.newcodecs
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import net.psforever.types.{OxygenState, PlanetSideGUID}
-import scodec.Codec
+import scodec.bits.BitVector
+import scodec.{Attempt, Codec}
 import scodec.codecs._
 
 /**
-  * Infomation about the progress bar displayed for a certain target's drowning condition.
+  * Information about the progress bar displayed for a certain target's drowning condition.
   * @param guid the target
   * @param progress the remaining countdown
   * @param condition in what state of drowning the target is progressing
@@ -41,8 +42,8 @@ final case class OxygenStateMessage(
                                      vehicle: Option[DrowningTarget]
                                    ) extends PlanetSideGamePacket {
   type Packet = OxygenStateMessage
-  def opcode = GamePacketOpcode.OxygenStateMessage
-  def encode = OxygenStateMessage.encode(this)
+  def opcode: GamePacketOpcode.Type = GamePacketOpcode.OxygenStateMessage
+  def encode: Attempt[BitVector] = OxygenStateMessage.encode(this)
 }
 
 object DrowningTarget {

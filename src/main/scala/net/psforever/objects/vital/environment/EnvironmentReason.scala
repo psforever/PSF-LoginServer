@@ -7,7 +7,8 @@ import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.{DamageAndResistance, DamageResistanceModel}
-import net.psforever.objects.vital.{NoResistanceSelection, SimpleResolutions, Vitality}
+import net.psforever.objects.vital.{NoResistanceSelection, SimpleResolutions}
+import net.psforever.objects.zones.InteractsWithZone
 
 /**
   * A wrapper for a "damage source" in damage calculations
@@ -40,11 +41,11 @@ object EnvironmentReason {
     * @param target the target being involved in this interaction
     * @return an `EnvironmentReason` object
     */
-  def apply(body: PieceOfEnvironment, target: Vitality): EnvironmentReason =
+  def apply(body: PieceOfEnvironment, target: InteractsWithZone): EnvironmentReason =
     EnvironmentReason(body, target.DamageModel.DamageUsing)
 
   /** variable, no resisting, quick and simple */
-  def drm(against: DamageCalculations.Selector) = new DamageResistanceModel {
+  def drm(against: DamageCalculations.Selector): DamageResistanceModel = new DamageResistanceModel {
     DamageUsing = against
     ResistUsing = NoResistanceSelection
     Model = SimpleResolutions.calculate

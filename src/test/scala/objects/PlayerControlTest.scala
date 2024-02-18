@@ -16,7 +16,8 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.environment.{DeepSquare, EnvironmentAttribute, OxygenStateTarget, Pool}
+import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
+import net.psforever.objects.serverobject.environment.{DeepSquare, EnvironmentAttribute, Pool}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -812,7 +813,7 @@ class PlayerControlInteractWithWaterTest extends ActorTest {
         msg_drown match {
           case AvatarServiceMessage(
             "TestCharacter1",
-            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), OxygenState.Suffocation, 100f), _)
+            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), _, OxygenState.Suffocation, 100f), _)
           )      => true
           case _ => false
         }
@@ -866,7 +867,7 @@ class PlayerControlStopInteractWithWaterTest extends ActorTest {
         msg_drown match {
           case AvatarServiceMessage(
             "TestCharacter1",
-            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), OxygenState.Suffocation, 100f), _)
+            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), _, OxygenState.Suffocation, 100f), _)
           )      => true
           case _ => false
         }
@@ -879,7 +880,7 @@ class PlayerControlStopInteractWithWaterTest extends ActorTest {
         msg_recover match {
           case AvatarServiceMessage(
             "TestCharacter1",
-            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), OxygenState.Recovery, _), _)
+            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), _, OxygenState.Recovery, _), _)
           )      => true
           case _ => false
         }

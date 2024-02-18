@@ -7,7 +7,7 @@ import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
-import net.psforever.objects.serverobject.environment.OxygenStateTarget
+import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket

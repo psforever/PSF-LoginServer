@@ -30,15 +30,12 @@ import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.objects.locker.LockerContainerControl
-import net.psforever.objects.serverobject.environment._
+import net.psforever.objects.serverobject.environment.interaction.RespondsToZoneEnvironment
 import net.psforever.objects.serverobject.repair.Repairable
-import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.sourcing.{AmenitySource, PlayerSource}
 import net.psforever.objects.vital.collision.CollisionReason
-import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{Adversarial, DamageInteraction, DamageResult}
-import net.psforever.services.hart.ShuttleState
 import net.psforever.packet.PlanetSideGamePacket
 
 import scala.concurrent.duration._
@@ -66,12 +63,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   ApplicableEffect(Aura.Fire)
 
   def InteractiveObject: Player = player
-  SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
-  SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
-  SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
-  SetInteraction(EnvironmentAttribute.GantryDenialField, doInteractingWithGantryField)
-  SetInteraction(EnvironmentAttribute.MovementFieldTrigger, doInteractingWithMovementTrigger)
-  SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
+
   private[this] val log = org.log4s.getLogger(player.Name)
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
   /** suffocating, or regaining breath? */
@@ -93,6 +85,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     player.avatar.locker.Actor = Default.Actor
     EndAllEffects()
     EndAllAggravation()
+    respondToEnvironmentPostStop()
   }
 
   def receive: Receive =
@@ -1245,159 +1238,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val zone = target.Zone
     val value = target.Aura.foldLeft(0)(_ + PlayerControl.auraEffectToAttributeValue(_))
     zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(target.GUID, 54, value))
-  }
-
-  /**
-    * Water causes players to slowly suffocate.
-    * When they (finally) drown, they will die.
-    * @param obj the target
-    * @param body the environment
-    * @param data additional interaction information, if applicable;
-    *             for players, this will be data from any mounted vehicles
-    */
-  def doInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    val (effect: Boolean, time: Long, percentage: Float) =
-      RespondsToZoneEnvironment.drowningInWateryConditions(obj, submergedCondition, interactionTime)
-    if (effect) {
-      import scala.concurrent.ExecutionContext.Implicits.global
-      interactionTime = System.currentTimeMillis() + time
-      submergedCondition = Some(OxygenState.Suffocation)
-      interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, Player.Die())
-      //inform the player that they are in trouble
-      player.Zone.AvatarEvents ! AvatarServiceMessage(
-        player.Name,
-        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Suffocation, percentage), data)
-      )
-    } else if (data.isDefined) {
-      //inform the player that their mounted vehicle is in trouble (that they are in trouble)
-      player.Zone.AvatarEvents ! AvatarServiceMessage(
-        player.Name,
-        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Suffocation, percentage), data)
-      )
-    }
-  }
-
-  /**
-    * Lava causes players to take (considerable) damage until they inevitably die.
-    * @param obj the target
-    * @param body the environment
-    * @param data additional interaction information, if applicable
-    */
-  def doInteractingWithLava(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    if (player.isAlive) {
-      PerformDamage(
-        player,
-        DamageInteraction(
-          PlayerSource(player),
-          EnvironmentReason(body, player),
-          player.Position
-        ).calculate()
-      )
-      if (player.Health > 0) {
-        StartAuraEffect(Aura.Fire, duration = 1250L) //burn
-        import scala.concurrent.ExecutionContext.Implicits.global
-        interactionTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, InteractingWithEnvironment(player, body, None))
-      }
-    }
-  }
-
-  /**
-    * Death causes players to die outright.
-    * It's not even considered as environmental damage anymore.
-    * @param obj the target
-    * @param body the environment
-    * @param data additional interaction information, if applicable
-    */
-  def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    player.History.findLast { entry => entry.isInstanceOf[ReconstructionActivity] } match {
-      case Some(entry) if System.currentTimeMillis() - entry.time > 4000L => suicide()
-      case _ =>
-    }
-  }
-
-  //noinspection ScalaUnusedSymbol
-  def doInteractingWithGantryField(
-                                    obj: PlanetSideServerObject,
-                                    body: PieceOfEnvironment,
-                                    data: Option[OxygenStateTarget]
-                                  ): Unit = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    val field = body.asInstanceOf[GantryDenialField]
-    val zone = player.Zone
-    (zone.GUID(field.obbasemesh) match {
-      case Some(pad : OrbitalShuttlePad) => zone.GUID(pad.shuttle)
-      case _                             => None
-    }) match {
-      case Some(shuttle: Vehicle)
-        if shuttle.Flying.contains(ShuttleState.State11.id) || shuttle.Faction != player.Faction =>
-        val (pos, zang) = Vehicles.dismountShuttle(shuttle, field.mountPoint)
-        shuttle.Zone.AvatarEvents ! AvatarServiceMessage(
-          player.Name,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            PlayerStateShiftMessage(ShiftState(0, pos, zang, None)))
-        )
-      case Some(_: Vehicle) =>
-        interactionTimer = context.system.scheduler.scheduleOnce(
-          delay = 250 milliseconds,
-          self,
-          InteractingWithEnvironment(player, body, None)
-        )
-      case _ => ;
-        //something configured incorrectly; no need to keep checking
-    }
-  }
-
-  /**
-    * The player will be affected by this action.
-    * @param obj the target
-    * @param body the environment
-    * @param data additional interaction information, if applicable
-    */
-  def doInteractingWithMovementTrigger(
-                                        obj: PlanetSideServerObject,
-                                        body: PieceOfEnvironment,
-                                        data: Option[OxygenStateTarget]
-                                      ): Unit = {
-    body.asInstanceOf[GeneralMovementField].triggerAction(obj)
-  }
-
-  /**
-    * When out of water, the player is no longer suffocating.
-    * The player does have to endure a recovery period to get back to normal, though.
-    * @param obj the target
-    * @param body the environment
-    * @param data additional interaction information, if applicable;
-    *             for players, this will be data from any mounted vehicles
-    */
-  def stopInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    val (effect: Boolean, time: Long, percentage: Float) =
-      RespondsToZoneEnvironment.recoveringFromWateryConditions(obj, submergedCondition, interactionTime)
-    if (percentage == 100f) {
-      recoverFromEnvironmentInteracting()
-    }
-    if (effect) {
-      import scala.concurrent.ExecutionContext.Implicits.global
-      submergedCondition = Some(OxygenState.Recovery)
-      interactionTime = System.currentTimeMillis() + time
-      interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, RecoveredFromEnvironmentInteraction())
-      //inform the player
-      player.Zone.AvatarEvents ! AvatarServiceMessage(
-        player.Name,
-        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Recovery, percentage), data)
-      )
-    } else if (data.isDefined) {
-      //inform the player
-      player.Zone.AvatarEvents ! AvatarServiceMessage(
-        player.Name,
-        AvatarAction.OxygenState(OxygenStateTarget(player.GUID, OxygenState.Recovery, percentage), data)
-      )
-    }
-  }
-
-  override def recoverFromEnvironmentInteracting(): Unit = {
-    super.recoverFromEnvironmentInteracting()
-    submergedCondition = None
   }
 }
 

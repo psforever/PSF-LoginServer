@@ -14,6 +14,8 @@ import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.environment._
+import net.psforever.objects.serverobject.environment.interaction.{EscapeFromEnvironment, InteractingWithEnvironment}
+import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.VehicleLockState
 import net.psforever.objects.vehicles.control.VehicleControl
@@ -617,10 +619,9 @@ class VehicleControlInteractWithWaterPartialTest extends ActorTest {
       assert(
         msg_drown match {
           case InteractingWithEnvironment(
-            p1,
             p2,
-            Some(OxygenStateTarget(PlanetSideGUID(2), OxygenState.Suffocation, 100f))
-          )      => (p1 eq player1) && (p2 eq pool)
+            Some(OxygenStateTarget(PlanetSideGUID(2), _, OxygenState.Suffocation, 100f))
+          )      => (p2 eq pool)
           case _ => false
         }
       )
@@ -679,8 +680,8 @@ class VehicleControlInteractWithWaterTest extends ActorTest {
           case AvatarServiceMessage(
             "TestCharacter1",
             AvatarAction.OxygenState(
-              OxygenStateTarget(PlanetSideGUID(1), OxygenState.Suffocation, 100f),
-              Some(OxygenStateTarget(PlanetSideGUID(2), OxygenState.Suffocation, 100f))
+              OxygenStateTarget(PlanetSideGUID(1), _, OxygenState.Suffocation, 100f),
+              Some(OxygenStateTarget(PlanetSideGUID(2), _, OxygenState.Suffocation, 100f))
             )
           )      => true
           case _ => false
@@ -742,10 +743,9 @@ class VehicleControlStopInteractWithWaterTest extends ActorTest {
       assert(
         msg_drown match {
           case InteractingWithEnvironment(
-            p1,
             p2,
-            Some(OxygenStateTarget(PlanetSideGUID(2), OxygenState.Suffocation, 100f))
-          )      => (p1 eq player1) && (p2 eq pool)
+            Some(OxygenStateTarget(PlanetSideGUID(2), _, OxygenState.Suffocation, 100f))
+          )      => (p2 eq pool)
           case _ => false
         }
       )
@@ -756,10 +756,9 @@ class VehicleControlStopInteractWithWaterTest extends ActorTest {
       assert(
         msg_recover match {
           case EscapeFromEnvironment(
-            p1,
             p2,
-            Some(OxygenStateTarget(PlanetSideGUID(2), OxygenState.Recovery, _))
-          )      => (p1 eq player1) && (p2 eq pool)
+            Some(OxygenStateTarget(PlanetSideGUID(2), _, OxygenState.Recovery, _))
+          )      => (p2 eq pool)
           case _ => false
         }
       )

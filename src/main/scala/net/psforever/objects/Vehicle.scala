@@ -6,14 +6,15 @@ import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
 import net.psforever.objects.serverobject.mount.{MountableEntity, Seat, SeatDefinition}
-import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.{PlanetSideServerObject, environment}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.serverobject.deploy.Deployment
-import net.psforever.objects.serverobject.environment.InteractWithEnvironment
+import net.psforever.objects.serverobject.environment.interaction.common.{WithDeath, WithMovementTrigger}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
+import net.psforever.objects.vehicles.interaction.{WithLava, WithWater}
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
@@ -76,21 +77,26 @@ import scala.util.{Success, Try}
   */
 class Vehicle(private val vehicleDef: VehicleDefinition)
     extends AmenityOwner
-    with BlockMapEntity
-    with MountableWeapons
-    with InteractsWithZone
-    with Hackable
-    with FactionAffinity
-    with Deployment
-    with Vitality
-    with OwnableByPlayer
-    with StandardResistanceProfile
-    with JammableUnit
-    with CommonNtuContainer
-    with Container
-    with AuraContainer
-    with MountableEntity {
-  interaction(new InteractWithEnvironment())
+      with BlockMapEntity
+      with MountableWeapons
+      with InteractsWithZone
+      with Hackable
+      with FactionAffinity
+      with Deployment
+      with Vitality
+      with OwnableByPlayer
+      with StandardResistanceProfile
+      with JammableUnit
+      with CommonNtuContainer
+      with Container
+      with AuraContainer
+      with MountableEntity {
+  interaction(environment.interaction.InteractWithEnvironment(Seq(
+    new WithWater(),
+    new WithLava(),
+    new WithDeath(),
+    new WithMovementTrigger()
+  )))
   interaction(new InteractWithMines(range = 20))
   interaction(new InteractWithRadiationCloudsSeatedInVehicle(obj = this, range = 20))
 
