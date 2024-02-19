@@ -118,8 +118,8 @@ object SpecialEmp {
         case _                  => OwnerGuid_=(Some(owner.GUID))
       }
       Position = position
-      def Faction = faction
-      def Definition = proxy_definition
+      def Faction: PlanetSideEmpire.Value = faction
+      def Definition: ObjectDefinition with VitalityDefinition = proxy_definition
     })
   }
 

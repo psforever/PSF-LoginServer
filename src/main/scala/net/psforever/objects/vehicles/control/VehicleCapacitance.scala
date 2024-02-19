@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vehicles.control
 
-import akka.actor.Actor
+import akka.actor.{Actor, Cancellable}
 import net.psforever.objects._
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -16,7 +16,7 @@ trait VehicleCapacitance {
   _: Actor =>
   def CapacitanceObject: Vehicle
 
-  protected var capacitor = Default.Cancellable
+  protected var capacitor: Cancellable = Default.Cancellable
 
   startCapacitorTimer()
 
