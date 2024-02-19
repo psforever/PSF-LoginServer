@@ -5,7 +5,7 @@ import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.environment.{EnvironmentTrait, PieceOfEnvironment}
 import net.psforever.objects.zones._
-import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorPopulation}
+import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorGroup, SectorPopulation}
 
 import scala.collection.mutable
 
@@ -41,7 +41,7 @@ class InteractWithEnvironment()
   def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit = {
     target match {
       case t: InteractsWithZone =>
-        interactWith = interactionBehavior.perform(t, interactWith, allow=true)
+        interactWith = interactionBehavior.perform(t, sector, interactWith, allow=true)
         interactionBehavior = interactionBehavior.next
       case _ => ()
     }
@@ -60,8 +60,8 @@ class InteractWithEnvironment()
     */
   def resetInteraction(target: InteractsWithZone) : Unit = {
     target match {
-      case t: InteractsWithZone =>
-        AwaitOngoingInteraction(target.Zone).perform(t, interactWith, allow=false)
+      case t: InteractsWithZone with BlockMapEntity =>
+        AwaitOngoingInteraction(target.Zone).perform(t, SectorGroup.emptySector, interactWith, allow=false)
       case _ => ()
     }
     interactWith = Set()
@@ -110,19 +110,17 @@ object InteractWithEnvironment {
   /**
    * Test whether any special terrain component has an affect upon the target entity.
    * @param obj the target entity
+   * @param sector the portion of the block map being tested
    * @return any unstable, interactive, or special terrain that is being interacted
    */
-  def checkAllEnvironmentInteractions(obj: PlanetSideServerObject): Set[PieceOfEnvironment] = {
+  def checkAllEnvironmentInteractions(
+                                       obj: PlanetSideServerObject,
+                                       sector: SectorPopulation
+                                     ): Set[PieceOfEnvironment] = {
     val position = obj.Position
     val depth = GlobalDefinitions.MaxDepth(obj)
-    (obj match {
-      case bme: BlockMapEntity =>
-        obj.Zone.blockMap.sector(bme).environmentList
-      case _ =>
-        obj.Zone.map.environment
-    }).filter { body =>
-      body.attribute.canInteractWith(obj) && body.testInteraction(position, depth)
-    }
+    sector.environmentList
+      .filter(body => body.attribute.canInteractWith(obj) && body.testInteraction(position, depth))
       .distinctBy(_.attribute)
       .toSet
   }
@@ -134,7 +132,11 @@ object InteractWithEnvironment {
    * @param obj the target entity
    * @return any unstable, interactive, or special terrain that is being interacted
    */
-  def checkSpecificEnvironmentInteraction(zone: Zone, body: PieceOfEnvironment, obj: PlanetSideServerObject): Option[PieceOfEnvironment] = {
+  def checkSpecificEnvironmentInteraction(
+                                           zone: Zone,
+                                           body: PieceOfEnvironment,
+                                           obj: PlanetSideServerObject
+                                         ): Option[PieceOfEnvironment] = {
     if ((obj.Zone eq zone) && body.testInteraction(obj.Position, GlobalDefinitions.MaxDepth(obj))) {
       Some(body)
     } else {
@@ -146,7 +148,12 @@ object InteractWithEnvironment {
 trait InteractionBehavior {
   protected var nextstep: InteractionBehavior = this
 
-  def perform(obj: InteractsWithZone, existing: Set[PieceOfEnvironment], allow: Boolean): Set[PieceOfEnvironment]
+  def perform(
+               obj: InteractsWithZone,
+               sector: SectorPopulation,
+               existing: Set[PieceOfEnvironment],
+               allow: Boolean
+             ): Set[PieceOfEnvironment]
 
   def next: InteractionBehavior = {
     val out = nextstep
@@ -166,15 +173,20 @@ case class OnStableEnvironment() extends InteractionBehavior {
    * @see `AwaitOngoingInteraction`
    * @see `OnStableEnvironment`
    * @param obj target entity
+   * @param sector the portion of the block map being tested
    * @param existing not applicable
    * @param allow is this permitted, or will it be blocked?
-   * @return the function literal that represents the next iterative call of ongoing interaction testing;
-   *         may return itself
+   * @return applicable interactive environmental fields
    */
-  def perform(obj: InteractsWithZone, existing: Set[PieceOfEnvironment], allow: Boolean): Set[PieceOfEnvironment] = {
+  def perform(
+               obj: InteractsWithZone,
+               sector: SectorPopulation,
+               existing: Set[PieceOfEnvironment],
+               allow: Boolean
+             ): Set[PieceOfEnvironment] = {
     if (allow) {
       val interactions = obj.interaction().collectFirst { case inter: InteractWithEnvironment => inter.Interactions }
-      val env = InteractWithEnvironment.checkAllEnvironmentInteractions(obj)
+      val env = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
       env.foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
       if (env.nonEmpty) {
         nextstep = AwaitOngoingInteraction(obj.Zone)
@@ -201,21 +213,26 @@ final case class AwaitOngoingInteraction(zone: Zone) extends InteractionBehavior
    * @see `InteractWithEnvironment.checkSpecificEnvironmentInteraction`
    * @see `OnStableEnvironment`
    * @param obj target entity
+   * @param sector the portion of the block map being tested
    * @param existing environment fields from the previous step
    * @param allow is this permitted, or will it be blocked?
-   * @return the function literal that represents the next iterative call of ongoing interaction testing;
-   *         may return itself
+   * @return applicable interactive environmental fields
    */
-  def perform(obj: InteractsWithZone, existing: Set[PieceOfEnvironment], allow: Boolean): Set[PieceOfEnvironment] = {
+  def perform(
+               obj: InteractsWithZone,
+               sector: SectorPopulation,
+               existing: Set[PieceOfEnvironment],
+               allow: Boolean
+             ): Set[PieceOfEnvironment] = {
     val interactions = obj.interaction().collectFirst { case inter: InteractWithEnvironment => inter.Interactions }
     if (allow) {
-      val env = InteractWithEnvironment.checkAllEnvironmentInteractions(obj)
+      val env = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
       val (in, out) = existing.partition(body => InteractWithEnvironment.checkSpecificEnvironmentInteraction(zone, body, obj).nonEmpty)
       env.diff(in).foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
       out.foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.stopInteractingWith(obj, body, None)))
       if (env.isEmpty) {
         val n = OnStableEnvironment()
-        val out = n.perform(obj, Set(), allow)
+        val out = n.perform(obj, sector, Set(), allow)
         nextstep = n.next
         out
       } else {
@@ -236,12 +253,17 @@ case class BlockedFromInteracting() extends InteractionBehavior {
    * Considered tail recursive, but not treated that way.
    * @see `OnStableEnvironment`
    * @param obj target entity
+   * @param sector the portion of the block map being tested
    * @param existing not applicable
    * @param allow is this permitted, or will it be blocked?
-   * @return the function literal that represents the next iterative call of ongoing interaction testing;
-   *         may return itself
+   * @return an empty set
    */
-  def perform(obj: InteractsWithZone, existing: Set[PieceOfEnvironment], allow: Boolean): Set[PieceOfEnvironment] = {
+  def perform(
+               obj: InteractsWithZone,
+               sector: SectorPopulation,
+               existing: Set[PieceOfEnvironment],
+               allow: Boolean
+             ): Set[PieceOfEnvironment] = {
     if (allow) {
       nextstep = OnStableEnvironment()
     }

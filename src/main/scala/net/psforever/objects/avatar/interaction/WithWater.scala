@@ -26,21 +26,23 @@ class WithWater(val channel: String)
                          body: PieceOfEnvironment,
                          data: Option[Any]
                        ): Unit = {
-    val (effect, time, percentage) = Watery.drowningInWateryConditions(obj, condition.map(_.state), waterInteractionTime)
-    val cond = OxygenStateTarget(obj.GUID, body, OxygenState.Suffocation, percentage)
     val extra = data.collect {
       case t: OxygenStateTarget => Some(t)
       case w: Watery => w.Condition
     }.flatten
-    if (effect) {
-      waterInteractionTime = System.currentTimeMillis() + time
-      condition = Some(cond)
-      obj.Actor ! RespondsToZoneEnvironment.Timer(attribute, delay = time milliseconds, obj.Actor, Player.Die())
-      //inform the player that they are in trouble
-      obj.Zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.OxygenState(cond, extra))
-    } else if (extra.isDefined) {
-      //inform the player that their mounted vehicle is in trouble (that they are in trouble)
-      obj.Zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.OxygenState(cond, None))
+    if (extra.isDefined) {
+      //inform the player that their mounted vehicle is in trouble (that they are in trouble (but not from drowning (yet)))
+      stopInteractingWith(obj, body, data)
+    } else {
+      val (effect, time, percentage) = Watery.drowningInWateryConditions(obj, condition.map(_.state), waterInteractionTime)
+      if (effect) {
+        val cond = OxygenStateTarget(obj.GUID, body, OxygenState.Suffocation, percentage)
+        waterInteractionTime = System.currentTimeMillis() + time
+        condition = Some(cond)
+        obj.Actor ! RespondsToZoneEnvironment.Timer(attribute, delay = time milliseconds, obj.Actor, Player.Die())
+        //inform the player that they are in trouble
+        obj.Zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.OxygenState(cond, extra))
+      }
     }
   }
 
@@ -78,6 +80,9 @@ class WithWater(val channel: String)
 
   override def recoverFromInteracting(obj: InteractsWithZone): Unit = {
     super.recoverFromInteracting(obj)
+    if (condition.exists(_.state == OxygenState.Suffocation)) {
+      stopInteractingWith(obj, condition.map(_.body).get, None)
+    }
     waterInteractionTime = 0L
     condition = None
   }

@@ -7,6 +7,7 @@ import net.psforever.objects.serverobject.environment.interaction.{InteractionWi
 import net.psforever.objects.serverobject.environment.interaction.common.Watery
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.environment.{PieceOfEnvironment, interaction}
+import net.psforever.objects.vehicles.control.VehicleControl
 import net.psforever.objects.zones.InteractsWithZone
 import net.psforever.types.OxygenState
 
@@ -38,20 +39,15 @@ class WithWater()
             (a, b, c)
           }
         }
-        val cond = OxygenStateTarget(obj.GUID, body, OxygenState.Suffocation, percentage)
         if (effect) {
-          condition = Some(cond)
+          condition = Some(OxygenStateTarget(obj.GUID, body, OxygenState.Suffocation, percentage))
           waterInteractionTime = System.currentTimeMillis() + time
+          obj.Actor ! RespondsToZoneEnvironment.Timer(attribute, delay = time milliseconds, obj.Actor, VehicleControl.Disable(true))
           doInteractingWithTargets(
             obj,
             percentage,
             body,
-            vehicle.Seats.values
-              .flatMap {
-                case seat if seat.isOccupied => seat.occupants
-                case _ => Nil
-              }
-              .filter { p => p.isAlive && (p.Zone eq obj.Zone) }
+            vehicle.Seats.values.flatMap(_.occupants).filter(p => p.isAlive && (p.Zone eq obj.Zone))
           )
         }
       case _ => ()
@@ -75,21 +71,15 @@ class WithWater()
       case vehicle: Vehicle =>
         val (effect: Boolean, time: Long, percentage: Float) =
           Watery.recoveringFromWateryConditions(obj, condition.map(_.state), waterInteractionTime)
-        val cond = OxygenStateTarget(obj.GUID, body, OxygenState.Recovery, percentage)
         if (effect) {
-          condition = Some(cond)
+          condition = Some(OxygenStateTarget(obj.GUID, body, OxygenState.Recovery, percentage))
           waterInteractionTime = System.currentTimeMillis() + time
           obj.Actor ! RespondsToZoneEnvironment.Timer(attribute, delay = time milliseconds, obj.Actor, interaction.RecoveredFromEnvironmentInteraction(attribute))
           stopInteractingWithTargets(
             obj,
             percentage,
             body,
-            vehicle.Seats.values
-              .flatMap {
-                case seat if seat.isOccupied => seat.occupants
-                case _ => Nil
-              }
-              .filter { p => p.isAlive && (p.Zone eq obj.Zone) }
+            vehicle.Seats.values.flatMap(_.occupants).filter(p => p.isAlive && (p.Zone eq obj.Zone))
           )
         }
       case _ => ()
@@ -98,6 +88,9 @@ class WithWater()
 
   override def recoverFromInteracting(obj: InteractsWithZone): Unit = {
     super.recoverFromInteracting(obj)
+    if (condition.exists(_.state == OxygenState.Suffocation)) {
+      stopInteractingWith(obj, condition.map(_.body).get, None)
+    }
     waterInteractionTime = 0L
     condition = None
   }

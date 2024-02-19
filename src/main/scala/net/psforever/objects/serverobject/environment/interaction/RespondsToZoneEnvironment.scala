@@ -56,6 +56,10 @@ trait RespondsToZoneEnvironment {
       applicableInteractions
         .get(attribute)
         .foreach(_.recoverFromInteracting(InteractiveObject))
+
+    case ResetAllEnvironmentInteractions =>
+      applicableInteractions.values.foreach(_.recoverFromInteracting(InteractiveObject))
+      interactionTimers.values.foreach(_.cancel())
   }
 
   def respondToEnvironmentPostStop(): Unit = {

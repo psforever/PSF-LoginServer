@@ -26,6 +26,11 @@ final case class EscapeFromEnvironment(
                                       )
 
 /**
-  * Completely reset any internal actions or processes related to environment clipping.
+  * Completely reset internal actions or processes related to environment clipping.
   */
 final case class RecoveredFromEnvironmentInteraction(attribute: EnvironmentTrait)
+
+/**
+ * Completely reset internal actions or processes related to environment clipping.
+ */
+case object ResetAllEnvironmentInteractions

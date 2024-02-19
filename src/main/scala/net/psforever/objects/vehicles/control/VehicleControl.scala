@@ -215,8 +215,8 @@ class VehicleControl(vehicle: Vehicle)
           )
         }
 
-      case VehicleControl.Disable() =>
-        PrepareForDisabled(kickPassengers = false)
+      case VehicleControl.Disable(kickPassengers) =>
+        PrepareForDisabled(kickPassengers)
         context.become(Disabled)
 
       case Vehicle.Deconstruct(time) =>
@@ -384,28 +384,20 @@ class VehicleControl(vehicle: Vehicle)
     val zone = vehicle.Zone
     val zoneId = zone.id
     val events = zone.VehicleEvents
-    //miscellaneous changes
-    //recoverFromEnvironmentInteracting()
     //escape being someone else's cargo
-    vehicle.MountedIn match {
-      case Some(_) =>
-        startCargoDismounting(bailed = true)
-      case _ => ;
-    }
+    vehicle.MountedIn.foreach(_ => startCargoDismounting(bailed = true))
     if (!vehicle.isFlying || kickPassengers) {
       //kick all passengers (either not flying, or being explicitly instructed)
       vehicle.Seats.values.foreach { seat =>
-        seat.occupant match {
-          case Some(player) =>
-            seat.unmount(player, BailType.Kicked)
-            player.VehicleSeated = None
-            if (player.isAlive) {
-              zone.actor ! ZoneActor.AddToBlockMap(player, vehicle.Position)
-            }
-            if (player.HasGUID) {
-              events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2 = true, guid))
-            }
-          case None => ;
+        seat.occupant.foreach { player =>
+          seat.unmount(player, BailType.Kicked)
+          player.VehicleSeated = None
+          if (player.isAlive) {
+            zone.actor ! ZoneActor.AddToBlockMap(player, vehicle.Position)
+          }
+          if (player.HasGUID) {
+            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2 = true, guid))
+          }
         }
       }
     }
@@ -722,7 +714,7 @@ object VehicleControl {
 
   private case class PrepareForDeletion()
 
-  private[vehicles] case class Disable()
+  final case class Disable(kickPassengers: Boolean = false)
 
   private case class Deletion()
 
