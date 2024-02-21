@@ -350,6 +350,7 @@ class SessionAvatarHandlers(
             sendResponse(ObjectDeleteMessage(objGuid, unk1=0))
             TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj))
         }
+        drops.foreach(item => sendResponse(ObjectDeleteMessage(item.obj.GUID, unk1=0)))
         //redraw
         if (maxhand) {
           TaskWorkflow.execute(HoldNewEquipmentUp(player)(
