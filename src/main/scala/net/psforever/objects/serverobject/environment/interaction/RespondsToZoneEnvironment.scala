@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.environment.interaction
 
 import akka.actor.{Actor, ActorRef, Cancellable}
+import net.psforever.objects.Default
 import net.psforever.objects.serverobject.environment.EnvironmentTrait
 import net.psforever.objects.zones.InteractsWithZone
 
@@ -41,6 +42,7 @@ trait RespondsToZoneEnvironment {
 
     case RespondsToZoneEnvironment.StopTimer(attribute) =>
       interactionTimers.get(attribute).foreach(_.cancel())
+      interactionTimers.update(attribute, Default.Cancellable)
 
     case InteractingWithEnvironment(body, optional) =>
       applicableInteractions
