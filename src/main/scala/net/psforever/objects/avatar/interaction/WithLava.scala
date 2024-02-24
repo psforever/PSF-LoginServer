@@ -46,6 +46,5 @@ class WithLava()
 
   override def stopInteractingWith(obj: InteractsWithZone, body: PieceOfEnvironment, parentInfo: Option[Any]): Unit = {
     stopBurn = true
-    obj.Actor ! RespondsToZoneEnvironment.StopTimer(attribute)
   }
 }
