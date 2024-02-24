@@ -651,14 +651,21 @@ trait AutomatedTurretBehavior {
    * @return something the turret can potentially shoot at
    */
   protected def attemptRetaliation(target: Target, cause: DamageResult): Option[Target] = {
+    val unique = SourceUniqueness(target)
     if (
       automaticOperation &&
-        !currentTargetToken.contains(SourceUniqueness(target)) &&
+        !currentTargetToken.contains(unique) &&
         autoStats.exists(_.retaliatoryDelay > 0)
     ) {
       AutomatedTurretBehavior.getAttackVectorFromCause(target.Zone, cause).collect {
-        case attacker if attacker.Faction != target.Faction =>
-          performRetaliation(attacker)
+        case attacker
+          if attacker.Faction != target.Faction &&
+            performRetaliation(attacker).nonEmpty &&
+            currentTargetToken.contains(unique) =>
+          if (periodicValidationTest.isCancelled) {
+            //timer may need to be started, for example if damaged by things outside of detection perimeter
+            retimePeriodicTargetChecks(autoStats.map(_.detectionSweepTime).getOrElse(1.seconds))
+          }
           attacker
       }
     } else {

@@ -1,7 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.sourcing.{PlayerSource, UniquePlayer}
+import net.psforever.objects.sourcing.UniquePlayer
 import net.psforever.types.PlanetSideGUID
 
 trait OwnableByPlayer {
