@@ -364,7 +364,13 @@ object EffectTarget {
     def AutoTurretBlankVehicleTarget(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle =>
-          (v.Definition == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) || v.MountedIn.nonEmpty || v.Cloaked
+          val pos = v.Position
+          lazy val sector = v.Zone.blockMap.sector(pos, range = 51f)
+          (v.Definition == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) ||
+            v.MountedIn.nonEmpty ||
+            v.Cloaked ||
+            radarCloakedAms(sector, pos) ||
+            radarCloakedAegis(sector, pos)
         case _ =>
           false
       }
