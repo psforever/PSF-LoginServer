@@ -75,10 +75,10 @@ object EffectTarget {
       }
 
     /**
-     * To repair at this landing pad, the vehicle:
+     * To repair at this landing pad, the vehicle must:
      * be a flight vehicle,
-     * must have some health already, but does not have all its health,
-     * and can not have taken damage in the last five seconds.
+     * have some health already, but does not have all its health, and
+     * have not taken damage in the last five seconds.
      */
     def PadLanding(target: PlanetSideGameObject): Boolean =
       target match {
@@ -196,7 +196,7 @@ object EffectTarget {
           val now = System.currentTimeMillis()
           val pos = p.Position
           val faction = p.Faction
-          val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
+          val sector = p.Zone.blockMap.sector(pos, range = 51f)
           //todo equipment-use usually a violation for any equipment type
           lazy val usedEquipment = (p.Holsters().flatMap(_.Equipment) ++ p.Inventory.Items.map(_.obj))
             .collect {
@@ -229,7 +229,7 @@ object EffectTarget {
           val now = System.currentTimeMillis()
           val pos = p.Position
           val faction = p.Faction
-          val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
+          val sector = p.Zone.blockMap.sector(pos, range = 51f)
           lazy val usedEquipment = p.Holsters().flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
@@ -249,10 +249,15 @@ object EffectTarget {
           if !GlobalDefinitions.isFlightVehicle(v.Definition) && v.MountedIn.isEmpty && v.Seats.values.exists(_.isOccupied) =>
           val now = System.currentTimeMillis()
           val vdef = v.Definition
+          val pos = v.Position
+          lazy val sector = v.Zone.blockMap.sector(pos, range = 51f)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
-          if (vdef == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) false
+          if (
+            (vdef == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) ||
+              radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)
+          ) false
           else !v.Cloaked && v.isMoving(test = 1d) || entityTookDamage(v, now) || usedEquipment
         case _ =>
           false
@@ -263,10 +268,13 @@ object EffectTarget {
         case v: Vehicle
           if GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) =>
           val now = System.currentTimeMillis()
+          val pos = v.Position
+          val sector = v.Zone.blockMap.sector(pos, range = 51f)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
-          !v.Cloaked && (v.isFlying || v.isMoving(test = 1d)) || entityTookDamage(v, now) || usedEquipment
+          if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
+          else !v.Cloaked && (v.isFlying || v.isMoving(test = 1d)) || entityTookDamage(v, now) || usedEquipment
         case _ =>
           false
       }
@@ -296,13 +304,17 @@ object EffectTarget {
           if !GlobalDefinitions.isFlightVehicle(v.Definition) && v.MountedIn.isEmpty && v.Seats.values.exists(_.isOccupied) =>
           val now = System.currentTimeMillis()
           val vdef = v.Definition
+          val pos = v.Position
+          lazy val sector = v.Zone.blockMap.sector(pos, range = 51f)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
           if (
             (vdef == GlobalDefinitions.ams && v.DeploymentState == DriveState.Deployed) ||
               vdef == GlobalDefinitions.two_man_assault_buggy ||
-              GlobalDefinitions.isAtvVehicle(vdef)
+              GlobalDefinitions.isAtvVehicle(vdef) || //todo should all ATV types get carte blanche treatment?
+              radarCloakedAms(sector, pos) ||
+              radarCloakedAegis(sector, pos)
           ) false
           else v.isMoving(test = 1d) || entityTookDamage(v, now) || usedEquipment
         case _ =>
@@ -314,13 +326,15 @@ object EffectTarget {
         case v: Vehicle
           if GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) =>
           val now = System.currentTimeMillis()
+          val pos = v.Position
+          lazy val sector = v.Zone.blockMap.sector(pos, range = 51f)
           lazy val usedEquipment = v.Weapons.values.flatMap(_.Equipment)
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
           // from the perspective of a mosquito, at 5th gauge, forward velocity is 59~60
           lazy val movingFast = Vector3.MagnitudeSquared(v.Velocity.getOrElse(Vector3.Zero).xy) > 3721f //61
           lazy val isMoving = v.isMoving(test = 1d)
-          if (v.Cloaked) false
+          if (v.Cloaked || radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
           else if (v.Definition == GlobalDefinitions.mosquito) movingFast
           else v.isFlying && (isMoving || entityTookDamage(v, now) || usedEquipment)
         case _ =>
@@ -341,7 +355,7 @@ object EffectTarget {
       target match {
         case p: Player =>
           val pos = p.Position
-          val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
+          lazy val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
           p.VehicleSeated.nonEmpty || radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)
         case _ =>
           false

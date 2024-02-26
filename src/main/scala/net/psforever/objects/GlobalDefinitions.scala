@@ -9246,9 +9246,10 @@ object GlobalDefinitions {
     portable_manned_turret.Damageable = true
     portable_manned_turret.Repairable = true
     portable_manned_turret.RepairIfDestroyed = false
-    portable_manned_turret.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret.WeaponPaths(1) += TurretUpgrade.None -> energy_gun
+    portable_manned_turret.Seats += 0 -> new SeatDefinition()
+    portable_manned_turret.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret.MountPoints += 1 -> MountInfo(0)
     portable_manned_turret.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret.ReserveAmmunition = true
@@ -9280,6 +9281,7 @@ object GlobalDefinitions {
     portable_manned_turret_nc.RepairIfDestroyed = false
     portable_manned_turret_nc.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_nc.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_nc
+    portable_manned_turret_nc.Seats += 0 -> new SeatDefinition()
     portable_manned_turret_nc.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret_nc.MountPoints += 1 -> MountInfo(0)
     portable_manned_turret_nc.MountPoints += 2 -> MountInfo(0)
@@ -9311,6 +9313,7 @@ object GlobalDefinitions {
     portable_manned_turret_tr.RepairIfDestroyed = false
     portable_manned_turret_tr.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_tr.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_tr
+    portable_manned_turret_tr.Seats += 0 -> new SeatDefinition()
     portable_manned_turret_tr.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret_tr.MountPoints += 1 -> MountInfo(0)
     portable_manned_turret_tr.MountPoints += 2 -> MountInfo(0)
@@ -9342,6 +9345,7 @@ object GlobalDefinitions {
     portable_manned_turret_vs.RepairIfDestroyed = false
     portable_manned_turret_vs.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_vs.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_vs
+    portable_manned_turret_vs.Seats += 0 -> new SeatDefinition()
     portable_manned_turret_vs.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret_vs.MountPoints += 1 -> MountInfo(0)
     portable_manned_turret_vs.MountPoints += 2 -> MountInfo(0)
@@ -10078,6 +10082,7 @@ object GlobalDefinitions {
     manned_turret.WeaponPaths(1) += TurretUpgrade.None      -> phalanx_sgl_hevgatcan
     manned_turret.WeaponPaths(1) += TurretUpgrade.AVCombo   -> phalanx_avcombo
     manned_turret.WeaponPaths(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
+    manned_turret.Seats += 0 -> new SeatDefinition()
     manned_turret.controlledWeapons(seat = 0, weapon = 1)
     manned_turret.MountPoints += 1                          -> MountInfo(0)
     manned_turret.FactionLocked = true
@@ -10122,6 +10127,7 @@ object GlobalDefinitions {
     vanu_sentry_turret.RepairIfDestroyed = true
     vanu_sentry_turret.WeaponPaths += 1                     -> new mutable.HashMap()
     vanu_sentry_turret.WeaponPaths(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
+    vanu_sentry_turret.Seats += 0 -> new SeatDefinition()
     vanu_sentry_turret.controlledWeapons(seat = 0, weapon = 1)
     vanu_sentry_turret.MountPoints += 1                     -> MountInfo(0)
     vanu_sentry_turret.MountPoints += 2                     -> MountInfo(0)

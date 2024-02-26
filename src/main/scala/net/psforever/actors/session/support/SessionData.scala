@@ -4,6 +4,7 @@ package net.psforever.actors.session.support
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
+import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.zones.blockmap.{SectorGroup, SectorPopulation}
 
 import scala.collection.mutable
@@ -882,13 +883,7 @@ class SessionData(
       case (None, _, _) => ()
 
       case (Some(us: PlanetSideServerObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>
-        if (collisionHistory.get(us.Actor) match {
-          case Some(lastCollision) if curr - lastCollision <= 1000L =>
-            false
-          case _ =>
-            collisionHistory.put(us.Actor, curr)
-            true
-        }) {
+        if (updateCollisionHistoryForTarget(us, curr)) {
           if (!bailProtectStatus) {
             handleDealingDamage(
               us,
@@ -901,40 +896,26 @@ class SessionData(
           }
         }
 
+      case (Some(us: Vehicle), _, Some(victim: SensorDeployable)) =>
+        collisionBetweenVehicleAndFragileDeployable(us, ppos, victim, tpos, velocity - tv, fallHeight, curr)
+
+      case (Some(us: Vehicle), _, Some(victim: TurretDeployable)) if victim.Seats.isEmpty =>
+        collisionBetweenVehicleAndFragileDeployable(us, ppos, victim, tpos, velocity - tv, fallHeight, curr)
+
       case (
         Some(us: PlanetSideServerObject with Vitality with FactionAffinity), _,
         Some(victim: PlanetSideServerObject with Vitality with FactionAffinity)
         ) =>
-        if (collisionHistory.get(victim.Actor) match {
-          case Some(lastCollision) if curr - lastCollision <= 1000L =>
-            false
-          case _ =>
-            collisionHistory.put(victim.Actor, curr)
-            true
-        }) {
+        if (updateCollisionHistoryForTarget(victim, curr)) {
           val usSource = SourceEntry(us)
           val victimSource = SourceEntry(victim)
           //we take damage from the collision
           if (!bailProtectStatus) {
-            handleDealingDamage(
-              us,
-              DamageInteraction(
-                usSource,
-                CollisionWithReason(CollisionReason(velocity - tv, fallHeight, us.DamageModel), victimSource),
-                ppos
-              )
-            )
+            performCollisionWithSomethingDamage(us, usSource, ppos, victimSource, fallHeight, velocity - tv)
           }
           //get dealt damage from our own collision (no protection)
           collisionHistory.put(us.Actor, curr)
-          handleDealingDamage(
-            victim,
-            DamageInteraction(
-              victimSource,
-              CollisionWithReason(CollisionReason(tv - velocity, 0, victim.DamageModel), usSource),
-              tpos
-            )
-          )
+          performCollisionWithSomethingDamage(victim, victimSource, tpos, usSource, fallHeight = 0f, tv - velocity)
         }
 
       case _ => ()
@@ -2834,6 +2815,59 @@ class SessionData(
       sendResponse(PlayerStateShiftMessage(ShiftState(0, tube.Position, tube.Orientation.z)))
       zoning.spawn.nextSpawnPoint = None
     }
+  }
+
+  private def updateCollisionHistoryForTarget(
+                                               target: PlanetSideServerObject with Vitality with FactionAffinity,
+                                               curr: Long
+                                             ): Boolean = {
+    collisionHistory.get(target.Actor) match {
+      case Some(lastCollision) if curr - lastCollision <= 1000L =>
+        false
+      case _ =>
+        collisionHistory.put(target.Actor, curr)
+        true
+    }
+  }
+
+  private def collisionBetweenVehicleAndFragileDeployable(
+                                                         vehicle: Vehicle,
+                                                         vehiclePosition: Vector3,
+                                                         smallDeployable: Deployable,
+                                                         smallDeployablePosition: Vector3,
+                                                         velocity: Vector3,
+                                                         fallHeight: Float,
+                                                         collisionTime: Long
+                                                       ): Unit = {
+    if (updateCollisionHistoryForTarget(smallDeployable, collisionTime)) {
+      val smallDeployableSource = SourceEntry(smallDeployable)
+      //vehicle takes damage from the collision (ignore bail protection in this case)
+      performCollisionWithSomethingDamage(vehicle, SourceEntry(vehicle), vehiclePosition, smallDeployableSource, fallHeight, velocity)
+      //deployable gets absolutely destroyed
+      collisionHistory.put(vehicle.Actor, collisionTime)
+      handleDealingDamage(
+        smallDeployable,
+        DamageInteraction(smallDeployableSource, SuicideReason(), smallDeployablePosition)
+      )
+    }
+  }
+
+  private def performCollisionWithSomethingDamage(
+                                                   target: PlanetSideServerObject with Vitality with FactionAffinity,
+                                                   targetSource: SourceEntry,
+                                                   targetPosition: Vector3,
+                                                   victimSource: SourceEntry,
+                                                   fallHeight: Float,
+                                                   velocity: Vector3
+                                                 ): Unit = {
+    handleDealingDamage(
+      target,
+      DamageInteraction(
+        targetSource,
+        CollisionWithReason(CollisionReason(velocity, fallHeight, target.DamageModel), victimSource),
+        targetPosition
+      )
+    )
   }
 
   def failWithError(error: String): Unit = {
