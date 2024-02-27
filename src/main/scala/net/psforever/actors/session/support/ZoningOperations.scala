@@ -656,7 +656,6 @@ class ZoningOperations(
             spawn.handleNewPlayerLoaded(player)
           } else {
             //alive but doesn't have a GUID; probably logging in?
-            session = session.copy(zone = Zone.Nowhere)
             context.self ! ICS.ZoneResponse(Some(player.Zone))
           }
         } else {

@@ -2,15 +2,21 @@ package net.psforever.objects.zones
 
 import enumeratum.values.{IntEnum, IntEnumEntry}
 
+final case class AliasLookup(
+                              zone: Seq[String] = Seq(),
+                              facilities: Map[String, String] = Map()
+                            )
+
 sealed abstract class ZoneInfo(
     val value: Int,
     val name: String,
     val id: String,
     val map: MapInfo,
-    val aliases: Seq[String] = Seq()
+    val aliases: AliasLookup = ZoneInfo.defaultAliases,
 ) extends IntEnumEntry {}
 
 case object ZoneInfo extends IntEnum[ZoneInfo] {
+  private val defaultAliases = AliasLookup(Nil, Map.empty[String, String])
 
   case object Solsar
       extends ZoneInfo(
@@ -98,7 +104,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "NC Sanctuary",
         id = "home1",
         map = MapInfo.Map11,
-        aliases = Seq("nc-sanctuary")
+        aliases = AliasLookup(zone = Seq("nc-sanctuary"))
       )
 
   case object TrSanctuary
@@ -107,7 +113,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "TR Sanctuary",
         id = "home2",
         map = MapInfo.Map12,
-        aliases = Seq("tr-sanctuary")
+        aliases = AliasLookup(zone = Seq("tr-sanctuary"))
       )
 
   case object VsSanctuary
@@ -116,7 +122,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         name = "VS Sanctuary",
         id = "home3",
         map = MapInfo.Map13,
-        aliases = Seq("vs-sanctuary")
+        aliases = AliasLookup(zone = Seq("vs-sanctuary"))
       )
 
   case object tzshtr
@@ -124,7 +130,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 14,
         name = "tzshtr",
         id = "tzshtr",
-        map = MapInfo.Map14
+        map = MapInfo.Map14,
+        aliases = AliasLookup(zone = Seq("tr-shooting"))
       )
 
   case object tzdrtr
@@ -132,7 +139,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 15,
         name = "tzdrtr",
         id = "tzdrtr",
-        map = MapInfo.Map15
+        map = MapInfo.Map15,
+        aliases = AliasLookup(zone = Seq("tr-driving"))
       )
 
   case object tzcotr
@@ -148,7 +156,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 17,
         name = "tzshnc",
         id = "tzshnc",
-        map = MapInfo.Map14
+        map = MapInfo.Map14,
+        aliases = AliasLookup(zone = Seq("nc-shooting"))
       )
 
   case object tzdrnc
@@ -156,7 +165,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 18,
         name = "tzdrnc",
         id = "tzdrnc",
-        map = MapInfo.Map15
+        map = MapInfo.Map15,
+        aliases = AliasLookup(zone = Seq("nc-driving"))
       )
 
   case object tzconc
@@ -172,7 +182,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 20,
         name = "tzshvs",
         id = "tzshvs",
-        map = MapInfo.Map14
+        map = MapInfo.Map14,
+        aliases = AliasLookup(zone = Seq("vs-shooting"))
       )
 
   case object tzdrvs
@@ -180,7 +191,8 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 21,
         name = "tzdrvs",
         id = "tzdrvs",
-        map = MapInfo.Map15
+        map = MapInfo.Map15,
+        aliases = AliasLookup(zone = Seq("vs-driving"))
       )
 
   case object tzcovs
@@ -244,7 +256,12 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 29,
         name = "Extinction",
         id = "i1",
-        map = MapInfo.Map99
+        map = MapInfo.Map99,
+        aliases = AliasLookup(facilities = Map(
+          ("Mithra", "Blue_Base"),
+          ("Yazata", "Red_Base"),
+          ("Hvar", "Indigo_Base")
+        ))
       )
 
   case object Ascension
@@ -252,7 +269,12 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 30,
         name = "Ascension",
         id = "i2",
-        map = MapInfo.Map98
+        map = MapInfo.Map98,
+        aliases = AliasLookup(facilities = Map(
+          ("Zal", "Base_Alpha"),
+          ("Rashnu", "Base_Bravo"),
+          ("Sraosha ", "Base_Charlie")
+        ))
       )
 
   case object Desolation
@@ -260,7 +282,12 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 31,
         name = "Desolation",
         id = "i3",
-        map = MapInfo.Map97
+        map = MapInfo.Map97,
+        aliases = AliasLookup(facilities = Map(
+          ("Dahaka", "Red_Base_97"),
+          ("Jamshid", "Blue_Base_97"),
+          ("Izha", "Indigo_Base_97")
+        ))
       )
 
   case object Nexus
@@ -268,16 +295,20 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         value = 32,
         name = "Nexus",
         id = "i4",
-        map = MapInfo.Map96
+        map = MapInfo.Map96,
+        aliases = AliasLookup(facilities = Map(
+          ("Atar", "Nexus_base")
+        ))
       )
 
   val values: IndexedSeq[ZoneInfo] = findValues
 
   def findName(name: String): ZoneInfo = findNameOpt(name).get
 
-  def findNameOpt(name: String): Option[ZoneInfo] =
+  def findNameOpt(name: String): Option[ZoneInfo] = {
+    val lowerName = name.toLowerCase()
     values.find(v =>
-      v.name.toLowerCase() == name.toLowerCase() || v.aliases.map(_.toLowerCase()).contains(name.toLowerCase())
+      v.name.toLowerCase().equals(lowerName) || v.aliases.zone.map(_.toLowerCase()).contains(lowerName)
     )
-
+  }
 }

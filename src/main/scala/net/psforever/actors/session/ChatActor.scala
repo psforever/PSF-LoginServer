@@ -7,6 +7,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.objects.zones.ZoneInfo
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.collection.mutable
@@ -204,7 +205,8 @@ class ChatActor(
     Behaviors
       .receiveMessagePartial[Command] {
         case SetSession(newSession) =>
-          active(newSession, chatService,cluster)
+          this.session = Some(newSession)
+          active(newSession, chatService, cluster)
 
         case JoinChannel(channel) =>
           chatService ! ChatService.JoinChannel(chatServiceAdapter, session, channel)
@@ -434,8 +436,17 @@ class ChatActor(
                     Some(pos)
                   )
                 case (name: String, pos) =>
+                  val trueName: String = ZoneInfo
+                    .values
+                    .find(_.id.equals(session.zone.id))
+                    .flatMap { info =>
+                      info.aliases
+                        .facilities
+                        .collectFirst { case (key, internalName) if key.equalsIgnoreCase(name) => internalName }
+                    }
+                    .getOrElse(name)
                   session.zone.Buildings.find {
-                    case (_, building) => name.equalsIgnoreCase(building.Name) && building.CaptureTerminal.isDefined
+                    case (_, building) => trueName.equalsIgnoreCase(building.Name) && building.CaptureTerminal.isDefined
                   } match {
                     case Some((_, building)) => Some(Some(Seq(building)), Some(pos))
                     case None =>
