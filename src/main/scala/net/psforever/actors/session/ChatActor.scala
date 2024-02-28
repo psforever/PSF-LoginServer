@@ -10,7 +10,8 @@ import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.ZoneInfo
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
-import scala.collection.mutable
+import scala.annotation.unused
+import scala.collection.{Seq, mutable}
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 //
@@ -400,142 +401,114 @@ class ChatActor(
             case (U_CMT_ZONEROTATE, _, contents) if gmCommandAllowed =>
               cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryNextRotation)
 
-            /** Messages starting with ! are custom chat commands */
-            case (_, _, contents) if contents.startsWith("!") &&
-                customCommandMessages(message, session, chatService, cluster, gmCommandAllowed) => ;
-
             case (CMT_CAPTUREBASE, _, contents) if gmCommandAllowed =>
-              val args = contents.split(" ").filter(_ != "")
-              val (faction, factionPos): (PlanetSideEmpire.Value, Option[Int]) = args.zipWithIndex
-                .map { case (factionName, pos) => (factionName.toLowerCase, pos) }
-                .flatMap {
-                  case ("tr", pos)      => Some(PlanetSideEmpire.TR, pos)
-                  case ("nc", pos)      => Some(PlanetSideEmpire.NC, pos)
-                  case ("vs", pos)      => Some(PlanetSideEmpire.VS, pos)
-                  case ("none", pos)    => Some(PlanetSideEmpire.NEUTRAL, pos)
-                  case ("bo", pos)      => Some(PlanetSideEmpire.NEUTRAL, pos)
-                  case ("neutral", pos) => Some(PlanetSideEmpire.NEUTRAL, pos)
-                  case _                => None
-                }
-                .headOption match {
-                case Some((isFaction, pos)) => (isFaction, Some(pos))
-                case None                   => (session.player.Faction, None)
-              }
-              val (buildingsOption, buildingPos): (Option[Seq[Building]], Option[Int]) = args.zipWithIndex.flatMap {
-                case (_, pos) if factionPos.isDefined && factionPos.get == pos => None
-                case ("all", pos) =>
-                  Some(
-                    Some(
-                      session.zone.Buildings
-                        .filter {
-                          case (_, building) => building.CaptureTerminal.isDefined
-                        }
-                        .values
-                        .toSeq
-                    ),
-                    Some(pos)
-                  )
-                case (name: String, pos) =>
-                  val trueName: String = ZoneInfo
-                    .values
-                    .find(_.id.equals(session.zone.id))
-                    .flatMap { info =>
-                      info.aliases
-                        .facilities
-                        .collectFirst { case (key, internalName) if key.equalsIgnoreCase(name) => internalName }
-                    }
-                    .getOrElse(name)
-                  session.zone.Buildings.find {
-                    case (_, building) => trueName.equalsIgnoreCase(building.Name) && building.CaptureTerminal.isDefined
-                  } match {
-                    case Some((_, building)) => Some(Some(Seq(building)), Some(pos))
-                    case None =>
-                      try {
-                        // check if we have a timer
-                        name.toInt
+              val buffer = contents.split(" ").filterNot(_ == "").take(3)
+              //walk through the param buffer
+              val (foundFacilities, foundFacilitiesTag, factionBuffer) = firstParam(session, buffer, captureBaseParamFacilities)
+              val (foundFaction, foundFactionTag, timerBuffer) = firstParam(session, factionBuffer, captureBaseParamFaction)
+              val (foundTimer, foundTimerTag, _) = firstParam(session, timerBuffer, captureBaseParamTimer)
+              //resolve issues with the initial params
+              var facilityError: Int = 0
+              var factionError: Boolean = false
+              var timerError: Boolean = false
+              var usageMessage: Boolean = false
+              val resolvedFacilities = foundFacilities
+                .orElse {
+                  if (foundFacilitiesTag.nonEmpty) {
+                    if (foundFaction.isEmpty) {
+                      /* /capturebase <bad_facility> OR /capturebase <bad_facility> <no_faction> */
+                      //malformed facility tag error
+                      facilityError = 2
+                      None
+                    } else if (!foundFacilitiesTag.contains("curr")) { //did we do this next check already
+                      /* /capturebase <faction>, potentially */
+                      val buildings = captureBaseCurrSoi(session)
+                      if (buildings.nonEmpty) {
+                        //convert facilities to faction
+                        Some(buildings.toSeq)
+                      } else {
+                        //no facilities error
+                        facilityError = 1
                         None
-                      } catch {
-                        case _: Throwable =>
-                          Some(None, Some(pos))
                       }
-                  }
-              }.headOption match {
-                case Some((buildings, pos)) => (buildings, pos)
-                case None                   => (None, None)
-              }
-              val (timerOption, timerPos): (Option[Int], Option[Int]) = args.zipWithIndex.flatMap {
-                case (_, pos)
-                    if factionPos.isDefined && factionPos.get == pos || buildingPos.isDefined && buildingPos.get == pos =>
-                  None
-                case (timer: String, pos) =>
-                  try {
-                    val t = timer.toInt // TODO what is the timer format supposed to be?
-                    Some(Some(t), Some(pos))
-                  } catch {
-                    case _: Throwable =>
-                      Some(None, Some(pos))
-                  }
-              }.headOption match {
-                case Some((timer, posOption)) => (timer, posOption)
-                case None                     => (None, None)
-              }
-
-              (factionPos, buildingPos, timerPos, buildingsOption, timerOption) match {
-                case // [[<empire>|none [<timer>]]
-                    (Some(0), None, Some(1), None, Some(_)) | (Some(0), None, None, None, None) |
-                    (None, None, None, None, None) |
-                    // [<building name> [<empire>|none [timer]]]
-                    (None | Some(1), Some(0), None, Some(_), None) | (Some(1), Some(0), Some(2), Some(_), Some(_)) |
-                    // [all [<empire>|none]]
-                    (Some(1) | None, Some(0), None, Some(_), None) =>
-                  val buildings: Seq[Building] = buildingsOption.getOrElse(
-                    session.zone.Buildings.values.filter { building =>
-                      building.PlayersInSOI.exists { soiPlayer =>
-                        session.player.CharId == soiPlayer.CharId
-                      }
-                    }.toSeq
-                  )
-                  buildings foreach { building =>
-                    // TODO implement timer
-
-                    val terminal = building.CaptureTerminal.get
-
-                    building.Actor ! BuildingActor.SetFaction(faction)
-                    building.Actor ! BuildingActor.AmenityStateChange(terminal, Some(false))
-
-                    // clear any previous hack via "resecure"
-                    if (building.CaptureTerminalIsHacked) {
-                      building.Zone.LocalEvents ! LocalServiceMessage(terminal.Zone.id,LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody))
+                    } else {
+                      //no facilities error
+                      facilityError = 1
+                      None
                     }
-
-                    // push any updates this might cause to clients
-                    building.Zone.actor ! ZoneActor.ZoneMapUpdate()
+                  } else {
+                    //no params; post command usage reminder
+                    usageMessage = true
+                    None
                   }
-
-                case (_, Some(0), _, None, _) =>
-                  sessionActor ! SessionActor.SendResponse(
-                    ChatMsg(
-                      UNK_229,
-                      wideContents=true,
-                      "",
-                      s"\\#FF4040ERROR - \'${args(0)}\' is not a valid building name.",
+                }
+              val resolvedFaction = foundFaction
+                .orElse {
+                  if (resolvedFacilities.nonEmpty) {
+                    /* /capturebase <facility> OR /capturebase <facility> <timer> */
+                    if (foundFactionTag.isEmpty || foundTimer.nonEmpty) {
+                      //convert facilities to OUR PLAYER'S faction
+                      Some(session.player.Faction)
+                    } else {
+                      //malformed faction tag error
+                      factionError = true
                       None
-                    )
-                  )
-                case (Some(0), _, Some(1), _, None) | (Some(1), Some(0), Some(2), _, None) =>
-                  sessionActor ! SessionActor.SendResponse(
-                    ChatMsg(
-                      UNK_229,
-                      wideContents=true,
-                      "",
-                      s"\\#FF4040ERROR - \'${args(timerPos.get)}\' is not a valid timer value.",
-                      None
-                    )
-                  )
+                    }
+                  } else {
+                    //incorrect params; already posted an error message
+                    None
+                  }
+                }
+              val resolvedTimer = foundTimer
+                .orElse {
+                  //todo stop command execution? post command usage reminder?
+                  if (resolvedFaction.nonEmpty && foundTimerTag.nonEmpty) {
+                    /* /capturebase <?> <?> <bad_timer> */
+                    //malformed timer tag error
+                    timerError = true
+                    None
+                  } else {
+                    //eh
+                    Some(1)
+                  }
+                }
+              //evaluate results
+              (resolvedFacilities, resolvedFaction, resolvedTimer) match {
+                case (Some(buildings), Some(faction), Some(_)) =>
+                  buildings.foreach { building =>
+                    //TODO implement timer
+                    val terminal = building.CaptureTerminal.get
+                    val zone = building.Zone
+                    val zoneActor = zone.actor
+                    val buildingActor = building.Actor
+                    //clear any previous hack
+                    if (building.CaptureTerminalIsHacked) {
+                      zone.LocalEvents ! LocalServiceMessage(
+                        zone.id,
+                        LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody)
+                      )
+                    }
+                    //push any updates this might cause
+                    zoneActor ! ZoneActor.ZoneMapUpdate()
+                    //convert faction affiliation
+                    buildingActor ! BuildingActor.SetFaction(faction)
+                    buildingActor ! BuildingActor.AmenityStateChange(terminal, Some(false))
+                    //push for map updates again
+                    zoneActor ! ZoneActor.ZoneMapUpdate()
+                  }
                 case _ =>
-                  sessionActor ! SessionActor.SendResponse(
-                    message.copy(messageType = UNK_229, contents = "@CMT_CAPTUREBASE_usage")
-                  )
+                  if (usageMessage) {
+                    sessionActor ! SessionActor.SendResponse(
+                      message.copy(messageType = UNK_229, contents = "@CMT_CAPTUREBASE_usage")
+                    )
+                  } else {
+                    val msg = if (facilityError == 1) { "can not contextually determine building target" }
+                    else if (facilityError == 2) { s"\'${foundFacilitiesTag.get}\' is not a valid building name" }
+                    else if (factionError) { s"\'${foundFactionTag.get}\' is not a valid faction designation" }
+                    else if (timerError) { s"\'${foundTimerTag.get}\' is not a valid timer value" }
+                    else { "malformed params; check usage" }
+                    sessionActor ! SessionActor.SendResponse(ChatMsg(UNK_229, wideContents=true, "", s"\\#FF4040ERROR - $msg", None))
+                  }
               }
 
             case (CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_VS | CMT_GMBROADCAST_TR, _, _)
@@ -558,26 +531,6 @@ class ChatActor(
                 session,
                 message.copy(recipient = session.player.Name),
                 ChatChannel.Default()
-              )
-
-            case (_, "tr", contents) =>
-              sessionActor ! SessionActor.SendResponse(
-                ZonePopulationUpdateMessage(4, 414, 138, contents.toInt, 138, contents.toInt / 2, 138, 0, 138, 0)
-              )
-
-            case (_, "nc", contents) =>
-              sessionActor ! SessionActor.SendResponse(
-                ZonePopulationUpdateMessage(4, 414, 138, 0, 138, contents.toInt, 138, contents.toInt / 3, 138, 0)
-              )
-
-            case (_, "vs", contents) =>
-              sessionActor ! SessionActor.SendResponse(
-                ZonePopulationUpdateMessage(4, 414, 138, contents.toInt * 2, 138, 0, 138, contents.toInt, 138, 0)
-              )
-
-            case (_, "bo", contents) =>
-              sessionActor ! SessionActor.SendResponse(
-                ZonePopulationUpdateMessage(4, 414, 138, 0, 138, 0, 138, 0, 138, contents.toInt)
               )
 
             case (CMT_OPEN, _, _) if !session.player.silenced =>
@@ -925,6 +878,30 @@ class ChatActor(
                     )
                   )
               }
+
+            case (_, "tr", contents) =>
+              sessionActor ! SessionActor.SendResponse(
+                ZonePopulationUpdateMessage(4, 414, 138, contents.toInt, 138, contents.toInt / 2, 138, 0, 138, 0)
+              )
+
+            case (_, "nc", contents) =>
+              sessionActor ! SessionActor.SendResponse(
+                ZonePopulationUpdateMessage(4, 414, 138, 0, 138, contents.toInt, 138, contents.toInt / 3, 138, 0)
+              )
+
+            case (_, "vs", contents) =>
+              sessionActor ! SessionActor.SendResponse(
+                ZonePopulationUpdateMessage(4, 414, 138, contents.toInt * 2, 138, 0, 138, contents.toInt, 138, 0)
+              )
+
+            case (_, "bo", contents) =>
+              sessionActor ! SessionActor.SendResponse(
+                ZonePopulationUpdateMessage(4, 414, 138, 0, 138, 0, 138, 0, 138, contents.toInt)
+              )
+
+            /** Messages starting with ! are custom chat commands */
+            case (_, _, contents) if contents.startsWith("!") &&
+              customCommandMessages(message, session, chatService, cluster, gmCommandAllowed) => ;
 
             case _ =>
               log.warn(s"Unhandled chat message $message")
@@ -1396,5 +1373,84 @@ class ChatActor(
       case _ =>
         false
     }
+  }
+
+  private def captureBaseParamFacilities(session: Session, token: Option[String]): Option[Seq[Building]] = {
+    token.collect {
+      case "curr" =>
+        val list = captureBaseCurrSoi(session)
+        if (list.nonEmpty) {
+          Some(list.toSeq)
+        } else {
+          None
+        }
+      case "all" =>
+        val list = session.zone.Buildings.values.filter(_.CaptureTerminal.isDefined)
+        if (list.nonEmpty) {
+          Some(list.toSeq)
+        } else {
+          None
+        }
+      case name =>
+        val trueName = ZoneInfo
+          .values
+          .find(_.id.equals(session.zone.id))
+          .flatMap { info =>
+            info.aliases
+              .facilities
+              .collectFirst { case (key, internalName) if key.equalsIgnoreCase(name) => internalName }
+          }
+          .getOrElse(name)
+        session.zone.Buildings
+          .values
+          .find {
+            building => trueName.equalsIgnoreCase(building.Name) && building.CaptureTerminal.isDefined
+          }
+          .map(b => Seq(b))
+    }
+      .flatten
+  }
+
+  private def captureBaseCurrSoi(session: Session): Iterable[Building] = {
+    val charId = session.player.CharId
+    session.zone.Buildings.values.filter { building =>
+      building.PlayersInSOI.exists(_.CharId == charId)
+    }
+  }
+
+  private def captureBaseParamFaction(@unused session: Session, token: Option[String]): Option[PlanetSideEmpire.Value] = {
+    token.collect {
+      case faction =>
+        faction.toLowerCase() match {
+          case "tr"      => Some(PlanetSideEmpire.TR)
+          case "nc"      => Some(PlanetSideEmpire.NC)
+          case "vs"      => Some(PlanetSideEmpire.VS)
+          case "none"    => Some(PlanetSideEmpire.NEUTRAL)
+          case "bo"      => Some(PlanetSideEmpire.NEUTRAL)
+          case "neutral" => Some(PlanetSideEmpire.NEUTRAL)
+          case _         => None
+        }
+    }.flatten
+  }
+
+  private def captureBaseParamTimer(@unused session: Session, token: Option[String]): Option[Int] = {
+    token.collect {
+      case n if n.forall(Character.isDigit) => n.toInt
+    }
+  }
+
+  private def firstParam[T](
+                            session: Session,
+                            buffer: Array[String],
+                            func: (Session, Option[String])=>Option[T]
+                          ): (Option[T], Option[String], Array[String]) = {
+    val tokenOpt = buffer.headOption
+    val valueOpt = func(session, tokenOpt)
+    val outBuffer = if (valueOpt.nonEmpty) {
+      buffer.tail
+    } else {
+      buffer
+    }
+    (valueOpt, tokenOpt, outBuffer)
   }
 }
