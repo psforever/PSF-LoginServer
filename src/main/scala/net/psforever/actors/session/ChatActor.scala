@@ -1447,7 +1447,7 @@ class ChatActor(
     val tokenOpt = buffer.headOption
     val valueOpt = func(session, tokenOpt)
     val outBuffer = if (valueOpt.nonEmpty) {
-      buffer.tail
+      buffer.drop(1)
     } else {
       buffer
     }

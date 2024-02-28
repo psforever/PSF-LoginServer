@@ -273,7 +273,7 @@ case object ZoneInfo extends IntEnum[ZoneInfo] {
         aliases = AliasLookup(facilities = Map(
           ("Zal", "Base_Alpha"),
           ("Rashnu", "Base_Bravo"),
-          ("Sraosha ", "Base_Charlie")
+          ("Sraosha", "Base_Charlie")
         ))
       )
 
