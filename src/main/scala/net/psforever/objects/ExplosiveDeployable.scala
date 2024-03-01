@@ -54,7 +54,7 @@ class ExplosiveDeployableDefinition(private val objectId: Int)
     DetonateOnJamming
   }
 
-  override def Initialize(obj: Deployable, context: ActorContext) = {
+  override def Initialize(obj: Deployable, context: ActorContext): Unit = {
     obj.Actor =
       context.actorOf(Props(classOf[MineDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
   }
@@ -70,8 +70,8 @@ abstract class ExplosiveDeployableControl(mine: ExplosiveDeployable)
   extends Actor
   with DeployableBehavior
   with Damageable {
-  def DeployableObject = mine
-  def DamageableObject = mine
+  def DeployableObject: ExplosiveDeployable = mine
+  def DamageableObject: ExplosiveDeployable = mine
 
   override def postStop(): Unit = {
     super.postStop()
