@@ -249,7 +249,7 @@ class VehicleControl(vehicle: Vehicle)
       .orElse {
         case VehicleControl.RadiationTick =>
           vehicle.interaction().find { _.Type == RadiationInMountableInteraction } match {
-            case Some(func) => func.interaction(vehicle.getInteractionSector(), vehicle)
+            case Some(func) => func.interaction(vehicle.getInteractionSector, vehicle)
             case _ => ()
           }
         case _ => ()
