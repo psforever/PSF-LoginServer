@@ -327,7 +327,7 @@ trait InGameHistory {
     if (target eq this) {
       None
     } else {
-      val uniqueTarget = SourceEntry(target).unique
+      val uniqueTarget = SourceUniqueness(target)
       (target.GetContribution(), contributionInheritance.get(uniqueTarget)) match {
         case (Some(in), Some(curr)) =>
           val end = curr.end
@@ -395,6 +395,6 @@ object InGameHistory {
   def ContributionFrom(target: PlanetSideGameObject with FactionAffinity with InGameHistory): Option[Contribution] = {
     target
       .GetContribution()
-      .collect { case events => Contribution(SourceEntry(target).unique, events) }
+      .collect { case events => Contribution(SourceUniqueness(target), events) }
   }
 }

@@ -19,9 +19,10 @@ import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.environment.interaction.common.Watery
 import net.psforever.objects.serverobject.environment.interaction.{InteractWithEnvironment, RespondsToZoneEnvironment}
 import net.psforever.objects.serverobject.hackable.GenericHackables
-import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
+import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior, RadiationInMountableInteraction}
 import net.psforever.objects.serverobject.repair.RepairableVehicle
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.turret.auto.AffectedByAutomaticTurretFire
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.interaction.WithWater
@@ -58,7 +59,8 @@ class VehicleControl(vehicle: Vehicle)
     with ContainableBehavior
     with AggravatedBehavior
     with RespondsToZoneEnvironment
-    with CargoBehavior {
+    with CargoBehavior
+    with AffectedByAutomaticTurretFire {
   //make control actors belonging to utilities when making control actor belonging to vehicle
   vehicle.Utilities.foreach { case (_, util) => util.Setup }
 
@@ -71,6 +73,7 @@ class VehicleControl(vehicle: Vehicle)
   def ContainerObject: Vehicle = vehicle
   def InteractiveObject: Vehicle = vehicle
   def CargoObject: Vehicle = vehicle
+  def AffectedObject: Vehicle = vehicle
 
 //  SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
 //  SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
@@ -115,6 +118,7 @@ class VehicleControl(vehicle: Vehicle)
     .orElse(containerBehavior)
     .orElse(environmentBehavior)
     .orElse(cargoBehavior)
+    .orElse(takeAutomatedDamage)
     .orElse {
       case Vehicle.Ownership(None) =>
         LoseOwnership()
@@ -244,11 +248,11 @@ class VehicleControl(vehicle: Vehicle)
     commonEnabledBehavior
       .orElse {
         case VehicleControl.RadiationTick =>
-          vehicle.interaction().find { _.Type == RadiationInVehicleInteraction } match {
-            case Some(func) => func.interaction(vehicle.getInteractionSector, vehicle)
-            case _ => ;
+          vehicle.interaction().find { _.Type == RadiationInMountableInteraction } match {
+            case Some(func) => func.interaction(vehicle.getInteractionSector(), vehicle)
+            case _ => ()
           }
-        case _ => ;
+        case _ => ()
       }
 
   def commonDisabledBehavior: Receive = checkBehavior

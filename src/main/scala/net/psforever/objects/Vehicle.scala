@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.ce.InteractWithMines
+import net.psforever.objects.ce.{InteractWithMines, InteractWithTurrets}
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
 import net.psforever.objects.inventory.{Container, GridInventory, InventoryItem, InventoryTile}
@@ -98,6 +98,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     new WithMovementTrigger()
   )))
   interaction(new InteractWithMines(range = 20))
+  interaction(new InteractWithTurrets())
   interaction(new InteractWithRadiationCloudsSeatedInVehicle(obj = this, range = 20))
 
   private var faction: PlanetSideEmpire.Value     = PlanetSideEmpire.NEUTRAL

@@ -11,8 +11,6 @@ import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.{PlanetSideGameObject, Player, TurretDeployable, Vehicle}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
-trait SourceUniqueness
-
 trait SourceEntry {
   def Name: String
   def Definition: ObjectDefinition with VitalityDefinition

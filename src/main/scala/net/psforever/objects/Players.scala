@@ -110,25 +110,34 @@ object Players {
     * For any slots that are not yet occupied by an item, search through the `List` and find an item that fits in that slot.
     * Add that item to the slot and remove it from the list.
     * @param iter the `Iterator` of `EquipmentSlot`s
-    * @param list a `List` of all `Equipment` that is not yet assigned to a holster slot or an inventory slot
-    * @return the `List` of all `Equipment` not yet assigned to a holster slot or an inventory slot
+    * @param list a list of all `Equipment` not assigned to a new slot
+    * @param slotNum current slot index associated with the value extracted from `iter` param
+    * @param placedList a list of all `Equipment` reassigned to a slot
+    * @return two lists:
+   *         all `Equipment` reassigned to a slot, and
+   *         all `Equipment` not assigned to a new slot
     */
-  @tailrec def fillEmptyHolsters(iter: Iterator[EquipmentSlot], list: List[InventoryItem]): List[InventoryItem] = {
+  @tailrec def fillEmptyHolsters(
+                                  iter: Iterator[EquipmentSlot],
+                                  list: List[InventoryItem],
+                                  slotNum: Int = 0,
+                                  placedList: List[InventoryItem] = Nil
+                                ): (List[InventoryItem], List[InventoryItem]) = {
     if (!iter.hasNext) {
-      list
+      (placedList, list)
     } else {
       val slot = iter.next()
       if (slot.Equipment.isEmpty) {
-        list.find(item => item.obj.Size == slot.Size) match {
-          case Some(obj) =>
-            val index = list.indexOf(obj)
-            slot.Equipment = obj.obj
-            fillEmptyHolsters(iter, list.take(index) ++ list.drop(index + 1))
-          case None =>
-            fillEmptyHolsters(iter, list)
+        list.indexWhere(item => item.obj.Size == slot.Size) match {
+          case -1 =>
+            fillEmptyHolsters(iter, list, slotNum + 1, placedList)
+          case index =>
+            val entry = list(index)
+            entry.start = slotNum
+            fillEmptyHolsters(iter, list.take(index) ++ list.drop(index + 1), slotNum + 1, placedList :+ entry)
         }
       } else {
-        fillEmptyHolsters(iter, list)
+        fillEmptyHolsters(iter, list, slotNum + 1, placedList)
       }
     }
   }

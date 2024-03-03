@@ -10,6 +10,12 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 final case class UniqueObject(objectId: Int) extends SourceUniqueness
 
+object UniqueObject {
+  def apply(obj: PlanetSideGameObject): UniqueObject = {
+    UniqueObject(obj.Definition.ObjectId)
+  }
+}
+
 final case class ObjectSource(
                                private val obj_def: ObjectDefinition,
                                Faction: PlanetSideEmpire.Value,
@@ -44,7 +50,7 @@ object ObjectSource {
       obj.Position,
       obj.Orientation,
       obj.Velocity,
-      UniqueObject(obj.Definition.ObjectId)
+      UniqueObject(obj)
     )
   }
 }

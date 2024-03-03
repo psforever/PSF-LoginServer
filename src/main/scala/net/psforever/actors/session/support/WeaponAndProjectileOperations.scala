@@ -2,7 +2,10 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.definition.ProjectileDefinition
+import net.psforever.objects.serverobject.turret.auto.{AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.zones.Zoning
+import net.psforever.objects.serverobject.turret.VanuSentry
 import net.psforever.objects.zones.exp.ToDatabase
 
 import scala.collection.mutable
@@ -51,8 +54,7 @@ private[support] class WeaponAndProjectileOperations(
   private[support] var shotsWhileDead: Int = 0
   private val projectiles: Array[Option[Projectile]] =
     Array.fill[Option[Projectile]](Projectile.rangeUID - Projectile.baseUID)(None)
-  private var zoningOpt: Option[ZoningOperations] = None
-  def zoning: ZoningOperations = zoningOpt.orNull
+
   /* packets */
 
   def handleWeaponFire(pkt: WeaponFireMessage): Unit = {
@@ -430,6 +432,55 @@ private[support] class WeaponAndProjectileOperations(
     }
   }
 
+  def handleAIDamage(pkt: AIDamage): Unit = {
+    val AIDamage(targetGuid, attackerGuid, projectileTypeId, _, _) = pkt
+    (continent.GUID(player.VehicleSeated) match {
+      case Some(tobj: PlanetSideServerObject with FactionAffinity with Vitality with OwnableByPlayer)
+        if tobj.GUID == targetGuid &&
+          tobj.OwnerGuid.contains(player.GUID) =>
+        //deployable turrets
+        Some(tobj)
+      case Some(tobj: PlanetSideServerObject with FactionAffinity with Vitality with Mountable)
+        if tobj.GUID == targetGuid &&
+        tobj.Seats.values.flatMap(_.occupants.map(_.GUID)).toSeq.contains(player.GUID) =>
+        //facility turrets, etc.
+        Some(tobj)
+      case _
+        if player.GUID == targetGuid =>
+        //player avatars
+        Some(player)
+      case _ =>
+        None
+    }).collect {
+      case target: AutomatedTurret.Target =>
+        sessionData.validObject(attackerGuid, decorator = "AIDamage/AutomatedTurret")
+          .collect {
+            case turret: AutomatedTurret if turret.Target.isEmpty =>
+              turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
+              Some(target)
+
+            case turret: AutomatedTurret =>
+              turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
+              HandleAIDamage(target, CompileAutomatedTurretDamageData(turret, turret.TurretOwner, projectileTypeId))
+              Some(target)
+          }
+    }
+      .orElse {
+        //occasionally, something that is not technically a turret's natural target may be attacked
+        sessionData.validObject(targetGuid, decorator = "AIDamage/Target")
+          .collect {
+            case target: PlanetSideServerObject with FactionAffinity with Vitality =>
+              sessionData.validObject(attackerGuid, decorator = "AIDamage/Attacker")
+                .collect {
+                  case turret: AutomatedTurret if turret.Target.nonEmpty =>
+                    //the turret must be shooting at something (else) first
+                    HandleAIDamage(target, CompileAutomatedTurretDamageData(turret, turret.TurretOwner, projectileTypeId))
+                }
+              Some(target)
+          }
+      }
+  }
+
   /* support code */
 
   def HandleWeaponFireOperations(
@@ -518,11 +569,6 @@ private[support] class WeaponAndProjectileOperations(
               s"WeaponFireMessage: ${player.Name}'s ${projectile_info.Name} is a remote projectile"
             )
             continent.Projectile ! ZoneProjectile.Add(player.GUID, qualityprojectile)
-          }
-          obj match {
-            case turret: FacilityTurret if turret.Definition == GlobalDefinitions.vanu_sentry_turret =>
-              turret.Actor ! FacilityTurret.WeaponDischarged()
-            case _ => ()
           }
         } else {
           log.warn(
@@ -1174,6 +1220,10 @@ private[support] class WeaponAndProjectileOperations(
   }
 
   private def fireStateStartMountedMessages(itemGuid: PlanetSideGUID): Unit = {
+    sessionData.findContainedEquipment()._1.collect {
+      case turret: FacilityTurret if continent.map.cavern =>
+        turret.Actor ! VanuSentry.ChangeFireStart
+    }
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
       VehicleAction.ChangeFireState_Start(player.GUID, itemGuid)
@@ -1236,6 +1286,10 @@ private[support] class WeaponAndProjectileOperations(
   }
 
   private def fireStateStopMountedMessages(itemGuid: PlanetSideGUID): Unit = {
+    sessionData.findContainedEquipment()._1.collect {
+      case turret: FacilityTurret if continent.map.cavern =>
+        turret.Actor ! VanuSentry.ChangeFireStop
+    }
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
       VehicleAction.ChangeFireState_Stop(player.GUID, itemGuid)
@@ -1366,6 +1420,7 @@ private[support] class WeaponAndProjectileOperations(
     addShotsToMap(shotsFired, weaponId, shots)
   }
 
+  //noinspection SameParameterValue
   private def addShotsLanded(weaponId: Int, shots: Int): Unit = {
     addShotsToMap(shotsLanded, weaponId, shots)
   }
@@ -1403,6 +1458,44 @@ private[support] class WeaponAndProjectileOperations(
 
   private[support] def reportOngoingShotsToDatabase(avatarId: Long, weaponId: Int, fired: Int, landed: Int): Unit = {
     ToDatabase.reportToolDischarge(avatarId, EquipmentStat(weaponId, fired, landed, 0, 0))
+  }
+
+  private def CompileAutomatedTurretDamageData(
+                                                turret: AutomatedTurret,
+                                                owner: SourceEntry,
+                                                projectileTypeId: Long
+                                              ): Option[(AutomatedTurret, Tool, SourceEntry, ProjectileDefinition)] = {
+    turret.Weapons
+      .values
+      .flatMap { _.Equipment }
+      .collect { case weapon: Tool => (turret, weapon, owner, weapon.Projectile) }
+      .find { case (_, _, _, p) => p.ObjectId == projectileTypeId }
+  }
+
+  private def HandleAIDamage(
+                              target: PlanetSideServerObject with FactionAffinity with Vitality,
+                              results: Option[(AutomatedTurret, Tool, SourceEntry, ProjectileDefinition)]
+                            ): Unit = {
+    results.collect {
+      case (obj, tool, owner, projectileInfo) =>
+        val angle = Vector3.Unit(target.Position - obj.Position)
+        val proj = new Projectile(
+          projectileInfo,
+          tool.Definition,
+          tool.FireMode,
+          None,
+          owner,
+          obj.Definition.ObjectId,
+          obj.Position + Vector3.z(value = 1f),
+          angle,
+          Some(angle * projectileInfo.FinalVelocity)
+        )
+        val hitPos = target.Position + Vector3.z(value = 1f)
+        ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos).collect { resprojectile =>
+          addShotsLanded(resprojectile.cause.attribution, shots = 1)
+          sessionData.handleDealingDamage(target, resprojectile)
+        }
+    }
   }
 
   override protected[session] def stop(): Unit = {

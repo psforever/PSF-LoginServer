@@ -33,15 +33,9 @@ object TurretSource {
     val position = obj.Position
     val identifer = obj match {
       case o: TurretDeployable =>
-        UniqueDeployable(
-          o.History.headOption match {
-            case Some(entry) => entry.time
-            case None => 0L
-          },
-          o.OriginalOwnerName.getOrElse("none")
-        )
+        UniqueDeployable(o)
       case o: FacilityTurret =>
-        UniqueAmenity(o.Zone.Number, o.GUID, position)
+        UniqueAmenity(o)
       case o =>
         throw new IllegalArgumentException(s"was given ${o.Actor.toString()} when only wanted to model turrets")
     }

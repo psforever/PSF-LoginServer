@@ -52,13 +52,7 @@ object DeployableSource {
       obj.Position,
       obj.Orientation,
       occupants,
-      UniqueDeployable(
-        obj.History.headOption match {
-          case Some(entry) => entry.time
-          case None => 0L
-        },
-        obj.OriginalOwnerName.getOrElse("none")
-      )
+      UniqueDeployable(obj)
     )
   }
 }

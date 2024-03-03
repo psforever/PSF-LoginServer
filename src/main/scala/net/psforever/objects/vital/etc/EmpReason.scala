@@ -1,9 +1,9 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vital.etc
 
-import net.psforever.objects.PlanetSideGameObject
+import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.sourcing.SourceEntry
+import net.psforever.objects.sourcing.{SourceEntry, VehicleSource}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
 import net.psforever.objects.vital.prop.DamageWithPosition
@@ -41,6 +41,10 @@ object EmpReason {
              source: DamageWithPosition,
              target: PlanetSideGameObject with Vitality
            ): EmpReason = {
-    EmpReason(SourceEntry(owner), source, target.DamageModel, owner.Definition.ObjectId)
+    val ownerSource = owner match {
+      case v: Vehicle => VehicleSource(v).occupants.head
+      case _ => SourceEntry(owner)
+    }
+    EmpReason(ownerSource, source, target.DamageModel, owner.Definition.ObjectId)
   }
 }

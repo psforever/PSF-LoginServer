@@ -24,7 +24,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
 import net.psforever.objects.serverobject.structures.{AmenityDefinition, AutoRepairStats, BuildingDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalDefinition, ImplantTerminalMechDefinition}
-import net.psforever.objects.serverobject.turret.{FacilityTurretDefinition, TurretUpgrade}
+import net.psforever.objects.serverobject.turret.{AutoChecks, AutoCooldowns, AutoRanges, Automation, FacilityTurretDefinition, TurretUpgrade}
 import net.psforever.objects.vehicles.{DestroyedVehicle, InternalTelepadDefinition, UtilityType, VehicleSubsystemEntry}
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage._
@@ -1907,6 +1907,20 @@ object GlobalDefinitions {
            `peregrine_ntu_siphon` | `colossus_ntu_siphon_left` | `peregrine_ntu_siphon_right` |
            `peregrine_sparrow` | `peregrine_sparrow_left` | `peregrine_sparrow_right` |
            `peregrine_particle_cannon` | `peregrine_dual_rocket_pods` =>
+        true
+      case _ =>
+        false
+    }
+  }
+
+  /**
+   * Using the definition for a `Vehicle` determine whether it is an all-terrain vehicle type.
+   * @param vdef the `VehicleDefinition` of the vehicle
+   * @return `true`, if it is; `false`, otherwise
+   */
+  def isAtvVehicle(vdef: VehicleDefinition): Boolean = {
+    vdef match {
+      case `quadassault` | `fury` | `quadstealth` =>
         true
       case _ =>
         false
@@ -9059,6 +9073,24 @@ object GlobalDefinitions {
     spitfire_turret.DeployTime = Duration.create(5000, "ms")
     spitfire_turret.Model = ComplexDeployableResolutions.calculate
     spitfire_turret.deployAnimation = DeployAnimation.Standard
+    spitfire_turret.AutoFire = Automation(
+      AutoRanges(
+        detection = 75f,
+        trigger = 50f,
+        escape = 50f
+      ),
+      AutoChecks(
+        validation = List(
+          EffectTarget.Validation.SmallRoboticsTurretValidatePlayerTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateMaxTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateGroundVehicleTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget,
+          EffectTarget.Validation.AutoTurretValidateMountableEntityTarget
+        )
+      ),
+      retaliatoryDelay = 2000L, //8000L
+      refireTime = 200.milliseconds //150.milliseconds
+    )
     spitfire_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -9085,6 +9117,30 @@ object GlobalDefinitions {
     spitfire_cloaked.DeployTime = Duration.create(5000, "ms")
     spitfire_cloaked.deployAnimation = DeployAnimation.Standard
     spitfire_cloaked.Model = ComplexDeployableResolutions.calculate
+    spitfire_cloaked.AutoFire = Automation(
+      AutoRanges(
+        detection = 75f,
+        trigger = 50f,
+        escape = 75f
+      ),
+      AutoChecks(
+        validation = List(
+          EffectTarget.Validation.SmallRoboticsTurretValidatePlayerTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateMaxTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateGroundVehicleTarget,
+          EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget,
+          EffectTarget.Validation.AutoTurretValidateMountableEntityTarget
+        )
+      ),
+      cooldowns = AutoCooldowns(
+        targetSelect = 0L,
+        missedShot = 0L
+      ),
+      detectionSweepTime = 500.milliseconds,
+      retaliatoryDelay = 1L, //8000L
+      retaliationOverridesTarget = false,
+      refireTime = 200.milliseconds //150.milliseconds
+    )
     spitfire_cloaked.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 50
@@ -9111,6 +9167,21 @@ object GlobalDefinitions {
     spitfire_aa.DeployTime = Duration.create(5000, "ms")
     spitfire_aa.deployAnimation = DeployAnimation.Standard
     spitfire_aa.Model = ComplexDeployableResolutions.calculate
+    spitfire_aa.AutoFire = Automation(
+      AutoRanges(
+        detection = 125f,
+        trigger = 100f,
+        escape = 200f
+      ),
+      AutoChecks(
+        validation = List(EffectTarget.Validation.SmallRoboticsTurretValidateAircraftTarget)
+      ),
+      retaliatoryDelay = 2000L, //8000L
+      retaliationOverridesTarget = false,
+      refireTime = 0.seconds, //300.milliseconds
+      cylindrical = true,
+      cylindricalExtraHeight = 50f
+    )
     spitfire_aa.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 200
@@ -9175,9 +9246,10 @@ object GlobalDefinitions {
     portable_manned_turret.Damageable = true
     portable_manned_turret.Repairable = true
     portable_manned_turret.RepairIfDestroyed = false
-    portable_manned_turret.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret.WeaponPaths(1) += TurretUpgrade.None -> energy_gun
+    portable_manned_turret.Seats += 0 -> new SeatDefinition()
+    portable_manned_turret.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret.MountPoints += 1 -> MountInfo(0)
     portable_manned_turret.MountPoints += 2 -> MountInfo(0)
     portable_manned_turret.ReserveAmmunition = true
@@ -9209,6 +9281,7 @@ object GlobalDefinitions {
     portable_manned_turret_nc.RepairIfDestroyed = false
     portable_manned_turret_nc.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_nc.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_nc
+    portable_manned_turret_nc.Seats += 0 -> new SeatDefinition()
     portable_manned_turret_nc.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret_nc.MountPoints += 1 -> MountInfo(0)
     portable_manned_turret_nc.MountPoints += 2 -> MountInfo(0)
@@ -9240,6 +9313,7 @@ object GlobalDefinitions {
     portable_manned_turret_tr.RepairIfDestroyed = false
     portable_manned_turret_tr.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_tr.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_tr
+    portable_manned_turret_tr.Seats += 0 -> new SeatDefinition()
     portable_manned_turret_tr.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret_tr.MountPoints += 1 -> MountInfo(0)
     portable_manned_turret_tr.MountPoints += 2 -> MountInfo(0)
@@ -9271,6 +9345,7 @@ object GlobalDefinitions {
     portable_manned_turret_vs.RepairIfDestroyed = false
     portable_manned_turret_vs.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_vs.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_vs
+    portable_manned_turret_vs.Seats += 0 -> new SeatDefinition()
     portable_manned_turret_vs.controlledWeapons(seat = 0, weapon = 1)
     portable_manned_turret_vs.MountPoints += 1 -> MountInfo(0)
     portable_manned_turret_vs.MountPoints += 2 -> MountInfo(0)
@@ -9999,7 +10074,7 @@ object GlobalDefinitions {
     manned_turret.Name = "manned_turret"
     manned_turret.MaxHealth = 3600
     manned_turret.Damageable = true
-    manned_turret.DamageDisablesAt = 0
+    manned_turret.DamageDisablesAt = 1800
     manned_turret.Repairable = true
     manned_turret.autoRepair = AutoRepairStats(1.0909f, 10000, 1600, 0.05f)
     manned_turret.RepairIfDestroyed = true
@@ -10007,11 +10082,32 @@ object GlobalDefinitions {
     manned_turret.WeaponPaths(1) += TurretUpgrade.None      -> phalanx_sgl_hevgatcan
     manned_turret.WeaponPaths(1) += TurretUpgrade.AVCombo   -> phalanx_avcombo
     manned_turret.WeaponPaths(1) += TurretUpgrade.FlakCombo -> phalanx_flakcombo
+    manned_turret.Seats += 0 -> new SeatDefinition()
     manned_turret.controlledWeapons(seat = 0, weapon = 1)
     manned_turret.MountPoints += 1                          -> MountInfo(0)
     manned_turret.FactionLocked = true
     manned_turret.ReserveAmmunition = false
     manned_turret.RadiationShielding = 0.5f
+    manned_turret.AutoFire = Automation(
+      AutoRanges(
+        detection = 125f,
+        trigger = 100f,
+        escape = 200f
+      ),
+      AutoChecks(
+        validation = List(
+          EffectTarget.Validation.FacilityTurretValidateMaxTarget,
+          EffectTarget.Validation.FacilityTurretValidateGroundVehicleTarget,
+          EffectTarget.Validation.FacilityTurretValidateAircraftTarget,
+          EffectTarget.Validation.AutoTurretValidateMountableEntityTarget
+        )
+      ),
+      retaliatoryDelay = 4000L, //8000L
+      cylindrical = true,
+      cylindricalExtraHeight = 50f,
+      detectionSweepTime = 2.seconds,
+      refireTime = 362.milliseconds //312.milliseconds
+    )
     manned_turret.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
       Damage0 = 150
@@ -10031,6 +10127,7 @@ object GlobalDefinitions {
     vanu_sentry_turret.RepairIfDestroyed = true
     vanu_sentry_turret.WeaponPaths += 1                     -> new mutable.HashMap()
     vanu_sentry_turret.WeaponPaths(1) += TurretUpgrade.None -> vanu_sentry_turret_weapon
+    vanu_sentry_turret.Seats += 0 -> new SeatDefinition()
     vanu_sentry_turret.controlledWeapons(seat = 0, weapon = 1)
     vanu_sentry_turret.MountPoints += 1                     -> MountInfo(0)
     vanu_sentry_turret.MountPoints += 2                     -> MountInfo(0)

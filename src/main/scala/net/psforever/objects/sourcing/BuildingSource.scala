@@ -12,6 +12,12 @@ final case class UniqueBuilding(
                                  building_guid: PlanetSideGUID
                                ) extends SourceUniqueness
 
+object UniqueBuilding {
+  def apply(obj: Building): UniqueBuilding = {
+    UniqueBuilding(obj.Zone.Number, obj.GUID)
+  }
+}
+
 final case class BuildingSource(
                                  private val obj_def: BuildingDefinition,
                                  Faction: PlanetSideEmpire.Value,
@@ -35,7 +41,7 @@ object BuildingSource {
       b.Position,
       b.Orientation,
       b.latticeConnectedFacilityBenefits(),
-      UniqueBuilding(b.Zone.Number, b.GUID)
+      UniqueBuilding(b)
     )
   }
 }

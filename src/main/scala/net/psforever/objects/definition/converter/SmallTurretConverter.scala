@@ -21,9 +21,9 @@ class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
               obj.Faction,
               bops = false,
               alternate = false,
-              false,
+              v1 = true,
               None,
-              jammered = obj.Jammed,
+              obj.Jammed,
               Some(true),
               None,
               obj.OwnerGuid match {
@@ -45,9 +45,9 @@ class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
               obj.Faction,
               bops = false,
               alternate = true,
-              false,
+              v1 = false,
               None,
-              false,
+              jammered = false,
               Some(false),
               None,
               PlanetSideGUID(0)
