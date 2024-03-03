@@ -63,7 +63,7 @@ class InteractWithTurrets()
    */
   def resetInteraction(target: InteractsWithZone): Unit = {
     getTurretTargets(
-      target.getInteractionSector(),
+      target.getInteractionSector,
       target.Position.xy
     ).foreach { turret =>
       turret.Actor ! AutomatedTurretBehavior.Reset
