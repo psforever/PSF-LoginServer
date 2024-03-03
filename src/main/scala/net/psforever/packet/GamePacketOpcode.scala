@@ -487,7 +487,7 @@ object GamePacketOpcode extends Enumeration {
       case 0x99 => noDecoder(EmpireIncentivesMessage)
       case 0x9a => game.InvalidTerrainMessage.decode
       case 0x9b => noDecoder(SyncMessage)
-      case 0x9c => noDecoder(DebugDrawMessage)
+      case 0x9c => game.DebugDrawMessage.decode
       case 0x9d => noDecoder(SoulMarkMessage)
       case 0x9e => noDecoder(UplinkPositionEvent)
       case 0x9f => game.HotSpotUpdateMessage.decode
