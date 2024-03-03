@@ -273,6 +273,9 @@ class SectorGroup(
   extends SectorPopulation
 
 object SectorGroup {
+  /** cached sector of no range and no entity coverage */
+  final val emptySector: SectorGroup = SectorGroup(range = 0, sectors = Nil)
+
   /**
     * Overloaded constructor that takes a single sector
     * and transfers the lists of entities into a single conglomeration of the sector populations.
@@ -326,7 +329,7 @@ object SectorGroup {
     */
   def apply(sectors: Iterable[Sector]): SectorGroup = {
     if (sectors.isEmpty) {
-      SectorGroup(range = 0, sectors = Nil)
+      SectorGroup.emptySector
     } else if (sectors.size == 1) {
       SectorGroup(sectors.head.rangeX, sectors.head.rangeY, sectors)
     } else {

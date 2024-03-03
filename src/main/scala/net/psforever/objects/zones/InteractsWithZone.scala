@@ -1,11 +1,14 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.zones
 
+import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.vital.{Vitality, VitalityDefinition}
 import net.psforever.objects.zones.blockmap.SectorPopulation
 
 trait InteractsWithZone
-  extends PlanetSideServerObject {
+  extends PlanetSideServerObject
+    with Vitality {
   /** interactions for this particular entity is allowed */
   private var _allowInteraction: Boolean = true
   /** maximum interaction range used to generate the commonly tested sector */
@@ -47,12 +50,12 @@ trait InteractsWithZone
 
   def interaction(): List[ZoneInteraction] = interactions
 
-  def getInteractionSector(): SectorPopulation = {
+  def getInteractionSector: SectorPopulation = {
     this.Zone.blockMap.sector(this.Position, interactionRange)
   }
 
   def doInteractions(): Unit = {
-    val sector = getInteractionSector()
+    val sector = getInteractionSector
     //println(sector.environmentList.map { _.attribute }.mkString(" "))
     interactions.foreach { _.interaction(sector, target = this) }
   }
@@ -66,6 +69,8 @@ trait InteractsWithZone
   def resetInteractions(): Unit = {
     interactions.foreach { _.resetInteraction(target = this) }
   }
+
+  override def Definition: ObjectDefinition with VitalityDefinition
 }
 
 trait ZoneInteractionType

@@ -16,6 +16,8 @@ import net.psforever.objects.serverobject.containable.{Containable, ContainableB
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{AggravatedBehavior, DamageableVehicle}
 import net.psforever.objects.serverobject.environment._
+import net.psforever.objects.serverobject.environment.interaction.common.Watery
+import net.psforever.objects.serverobject.environment.interaction.{InteractWithEnvironment, RespondsToZoneEnvironment}
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior, RadiationInMountableInteraction}
 import net.psforever.objects.serverobject.repair.RepairableVehicle
@@ -23,10 +25,9 @@ import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.turret.auto.AffectedByAutomaticTurretFire
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vehicles._
-import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
-import net.psforever.objects.vital.{DamagingActivity, InGameActivity, ReconstructionActivity, ShieldCharge, SpawningActivity, VehicleDismountActivity, VehicleMountActivity}
-import net.psforever.objects.vital.environment.EnvironmentReason
-import net.psforever.objects.vital.etc.SuicideReason
+import net.psforever.objects.vehicles.interaction.WithWater
+import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.objects.vital.{DamagingActivity, InGameActivity, ShieldCharge, SpawningActivity, VehicleDismountActivity, VehicleMountActivity}
 import net.psforever.objects.zones._
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
@@ -74,14 +75,14 @@ class VehicleControl(vehicle: Vehicle)
   def CargoObject: Vehicle = vehicle
   def AffectedObject: Vehicle = vehicle
 
-  SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
-  SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
-  SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
-  SetInteraction(EnvironmentAttribute.MovementFieldTrigger, doInteractingWithMovementTrigger)
-  if (!GlobalDefinitions.isFlightVehicle(vehicle.Definition)) {
-    //can recover from sinking disability
-    SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
-  }
+//  SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
+//  SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
+//  SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
+//  SetInteraction(EnvironmentAttribute.MovementFieldTrigger, doInteractingWithMovementTrigger)
+//  if (!GlobalDefinitions.isFlightVehicle(vehicle.Definition)) {
+//    //can recover from sinking disability
+//    SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
+//  }
 
   /** cheap flag for whether the vehicle is decaying */
   var decaying : Boolean = false
@@ -104,7 +105,7 @@ class VehicleControl(vehicle: Vehicle)
       context.stop(util().Actor)
       util().Actor = Default.Actor
     }
-    recoverFromEnvironmentInteracting()
+    respondToEnvironmentPostStop()
     endAllCargoOperations()
   }
 
@@ -218,8 +219,8 @@ class VehicleControl(vehicle: Vehicle)
           )
         }
 
-      case VehicleControl.Disable() =>
-        PrepareForDisabled(kickPassengers = false)
+      case VehicleControl.Disable(kickPassengers) =>
+        PrepareForDisabled(kickPassengers)
         context.become(Disabled)
 
       case Vehicle.Deconstruct(time) =>
@@ -249,9 +250,9 @@ class VehicleControl(vehicle: Vehicle)
         case VehicleControl.RadiationTick =>
           vehicle.interaction().find { _.Type == RadiationInMountableInteraction } match {
             case Some(func) => func.interaction(vehicle.getInteractionSector(), vehicle)
-            case _ => ;
+            case _ => ()
           }
-        case _ => ;
+        case _ => ()
       }
 
   def commonDisabledBehavior: Receive = checkBehavior
@@ -387,28 +388,20 @@ class VehicleControl(vehicle: Vehicle)
     val zone = vehicle.Zone
     val zoneId = zone.id
     val events = zone.VehicleEvents
-    //miscellaneous changes
-    recoverFromEnvironmentInteracting()
     //escape being someone else's cargo
-    vehicle.MountedIn match {
-      case Some(_) =>
-        startCargoDismounting(bailed = true)
-      case _ => ;
-    }
+    vehicle.MountedIn.foreach(_ => startCargoDismounting(bailed = true))
     if (!vehicle.isFlying || kickPassengers) {
       //kick all passengers (either not flying, or being explicitly instructed)
       vehicle.Seats.values.foreach { seat =>
-        seat.occupant match {
-          case Some(player) =>
-            seat.unmount(player, BailType.Kicked)
-            player.VehicleSeated = None
-            if (player.isAlive) {
-              zone.actor ! ZoneActor.AddToBlockMap(player, vehicle.Position)
-            }
-            if (player.HasGUID) {
-              events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2 = true, guid))
-            }
-          case None => ;
+        seat.occupant.foreach { player =>
+          seat.unmount(player, BailType.Kicked)
+          player.VehicleSeated = None
+          if (player.isAlive) {
+            zone.actor ! ZoneActor.AddToBlockMap(player, vehicle.Position)
+          }
+          if (player.HasGUID) {
+            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2 = true, guid))
+          }
         }
       }
     }
@@ -595,218 +588,39 @@ class VehicleControl(vehicle: Vehicle)
   }
 
   /**
-    * Water causes vehicles to become disabled if they dive off too far, too deep.
-    * Flying vehicles do not display progress towards being waterlogged.  They just disable outright.
-    * @param obj the target
-    * @param body the environment
-    * @param data additional interaction information, if applicable
-    */
-  def doInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    val (effect: Boolean, time: Long, percentage: Float) = {
-      val (a, b, c) = RespondsToZoneEnvironment.drowningInWateryConditions(obj, submergedCondition, interactionTime)
-      if (a && GlobalDefinitions.isFlightVehicle(vehicle.Definition)) {
-        (true, 0L, 0f) //no progress bar
-      } else {
-        (a, b, c)
-      }
-    }
-    if (effect) {
-      import scala.concurrent.ExecutionContext.Implicits.global
-      submergedCondition = Some(OxygenState.Suffocation)
-      interactionTime = System.currentTimeMillis() + time
-      interactionTimer = context.system.scheduler.scheduleOnce(delay = time.milliseconds, self, VehicleControl.Disable())
-      doInteractingWithWaterToTargets(
-        percentage,
-        body,
-        vehicle.Seats.values
-          .flatMap {
-            case seat if seat.isOccupied => seat.occupants
-            case _ => Nil
-          }
-          .filter { p => p.isAlive && (p.Zone eq vehicle.Zone) }
-      )
-    }
-  }
-
-  /**
-    * Tell the given targets that
-    * water causes vehicles to become disabled if they dive off too far, too deep.
-    * @see `InteractingWithEnvironment`
-    * @see `OxygenState`
-    * @see `OxygenStateTarget`
-    * @param percentage the progress bar completion state
-    * @param body the environment
-    * @param targets recipients of the information
-    */
-  def doInteractingWithWaterToTargets(
-                                       percentage: Float,
-                                       body: PieceOfEnvironment,
-                                       targets: Iterable[PlanetSideServerObject]
-                                     ): Unit = {
-    val vtarget = Some(OxygenStateTarget(vehicle.GUID, OxygenState.Suffocation, percentage))
-    targets.foreach { target =>
-      target.Actor ! InteractingWithEnvironment(target, body, vtarget)
-    }
-  }
-
-  /**
-    * Lava causes vehicles to take (considerable) damage until they are inevitably destroyed.
-    * @param obj the target
-    * @param body the environment
-    * @param data additional interaction information, if applicable
-    */
-  def doInteractingWithLava(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    val vehicle = DamageableObject
-    if (!obj.Destroyed) {
-      PerformDamage(
-        vehicle,
-        DamageInteraction(
-          VehicleSource(vehicle),
-          EnvironmentReason(body, vehicle),
-          vehicle.Position
-        ).calculate()
-      )
-      //keep doing damage
-      if (vehicle.Health > 0) {
-        import scala.concurrent.ExecutionContext.Implicits.global
-        interactionTimer = context.system.scheduler.scheduleOnce(delay = 250 milliseconds, self, InteractingWithEnvironment(obj, body, None))
-      }
-    }
-  }
-
-  /**
-    * Death causes vehicles to be destroyed outright.
-    * It's not even considered as environmental damage anymore.
-    * @param obj the target
-    * @param body the environment
-    * @param data additional interaction information, if applicable
-    */
-  def doInteractingWithDeath(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    if (!obj.Destroyed) {
-      vehicle.History.findLast { entry => entry.isInstanceOf[ReconstructionActivity] } match {
-        case Some(entry) if System.currentTimeMillis() - entry.time > 4000L =>
-          PerformDamage(
-            vehicle,
-            DamageInteraction(
-              VehicleSource(vehicle),
-              SuicideReason(),
-              vehicle.Position
-            ).calculate()
-          )
-        case _ =>
-      }
-    }
-  }
-
-  /**
-    * The vehicle will be affected by this action.
-    * @param obj the target
-    * @param body the environment
-    * @param data additional interaction information, if applicable
-    */
-  def doInteractingWithMovementTrigger(
-                                        obj: PlanetSideServerObject,
-                                        body: PieceOfEnvironment,
-                                        data: Option[OxygenStateTarget]
-                                      ): Unit = {
-    body.asInstanceOf[GeneralMovementField].triggerAction(obj)
-  }
-
-  /**
-    * When out of water, the vehicle no longer risks becoming disabled.
-    * It does have to endure a recovery period to get back to full dehydration
-    * Flying vehicles are exempt from this process due to the abrupt disability they experience.
-    * @param obj the target
-    * @param body the environment
-    * @param data additional interaction information, if applicable
-    */
-  def stopInteractingWithWater(obj: PlanetSideServerObject, body: PieceOfEnvironment, data: Option[OxygenStateTarget]): Unit = {
-    val (effect: Boolean, time: Long, percentage: Float) =
-      RespondsToZoneEnvironment.recoveringFromWateryConditions(obj, submergedCondition, interactionTime)
-    if (effect) {
-      recoverFromEnvironmentInteracting()
-      import scala.concurrent.ExecutionContext.Implicits.global
-      submergedCondition = Some(OxygenState.Recovery)
-      interactionTime = System.currentTimeMillis() + time
-      interactionTimer = context.system.scheduler.scheduleOnce(delay = time milliseconds, self, RecoveredFromEnvironmentInteraction())
-      stopInteractingWithWaterToTargets(
-        percentage,
-        body,
-        vehicle.Seats.values
-          .flatMap {
-            case seat if seat.isOccupied => seat.occupants
-            case _                       => Nil
-          }
-          .filter { p => p.isAlive && (p.Zone eq vehicle.Zone) }
-      )
-    }
-  }
-
-  /**
-    * Tell the given targets that,
-    * when out of water, the vehicle no longer risks becoming disabled.
-    * @see `EscapeFromEnvironment`
-    * @see `OxygenState`
-    * @see `OxygenStateTarget`
-    * @param percentage the progress bar completion state
-    * @param body the environment
-    * @param targets recipients of the information
-    */
-  def stopInteractingWithWaterToTargets(
-                                         percentage: Float,
-                                         body: PieceOfEnvironment,
-                                         targets: Iterable[PlanetSideServerObject]
-                                       ): Unit = {
-    val vtarget = Some(OxygenStateTarget(vehicle.GUID, OxygenState.Recovery, percentage))
-    targets.foreach { target =>
-      target.Actor ! EscapeFromEnvironment(target, body, vtarget)
-    }
-  }
-
-  /**
-    * Reset the environment encounter fields and completely stop whatever is the current mechanic.
-    * This does not perform messaging relay either with mounted occupants or with any other service.
-    */
-  override def recoverFromEnvironmentInteracting(): Unit = {
-    super.recoverFromEnvironmentInteracting()
-    submergedCondition = None
-  }
-
-  /**
     * Without altering the state or progress of a zone interaction related to water,
     * update the visual progress element (progress bar) that is visible to the recipient's client.
     * @param player the recipient of this ui update
     */
-  def updateZoneInteractionProgressUI(player : Player) : Unit = {
-    submergedCondition match {
-      case Some(OxygenState.Suffocation) =>
-        interactWith match {
-          case Some(body) =>
-            val percentage: Float = {
-              val (a, _, c) = RespondsToZoneEnvironment.drowningInWateryConditions(vehicle, submergedCondition, interactionTime)
-              if (a && GlobalDefinitions.isFlightVehicle(vehicle.Definition)) {
-                0f //no progress bar
-              } else {
-                c
-              }
+  def updateZoneInteractionProgressUI(player: Player) : Unit = {
+    val interactions = vehicle
+      .interaction()
+      .collectFirst { case inter: InteractWithEnvironment => inter.Interactions }
+      .getOrElse(RespondsToZoneEnvironment.defaultInteractions)
+    //water
+    interactions
+      .get(EnvironmentAttribute.Water)
+      .collect {
+        case watery: WithWater if watery.Condition.map(_.state).contains(OxygenState.Suffocation) =>
+          val percentage: Float = {
+            val (a, _, c) = Watery.drowningInWater(vehicle, watery)
+            if (a && GlobalDefinitions.isFlightVehicle(vehicle.Definition)) {
+              0f //no progress bar
+            } else {
+              c
             }
-            doInteractingWithWaterToTargets(percentage, body, List(player))
-          case _ =>
-            recoverFromEnvironmentInteracting()
-        }
-      case Some(OxygenState.Recovery) =>
-        vehicle.Zone.map.environment.find { _.attribute == EnvironmentAttribute.Water } match {
-          case Some(body) => //any body of water will do ...
-            stopInteractingWithWaterToTargets(
-              RespondsToZoneEnvironment.recoveringFromWateryConditions(vehicle, submergedCondition, interactionTime)._3,
-              body,
-              List(player)
-            )
-          case _ =>
-            recoverFromEnvironmentInteracting()
-        }
-      case None => ;
-    }
+          }
+          watery.doInteractingWithTargets(player, percentage, watery.Condition.map(_.body).get, List(player))
+        case watery: WithWater if watery.Condition.map(_.state).contains(OxygenState.Recovery) =>
+          watery.stopInteractingWithTargets(
+            player,
+            Watery.recoveringFromWater(vehicle, watery)._3,
+            watery.Condition.map(_.body).get,
+            List(player)
+          )
+        case watery: WithWater =>
+          watery.recoverFromInteracting(player)
+      }
   }
 
   override def parseAttribute(attribute: Int, value: Long, other: Option[Any]) : Unit = {
@@ -904,7 +718,7 @@ object VehicleControl {
 
   private case class PrepareForDeletion()
 
-  private case class Disable()
+  final case class Disable(kickPassengers: Boolean = false)
 
   private case class Deletion()
 

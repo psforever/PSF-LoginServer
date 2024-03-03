@@ -3,6 +3,7 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.environment.interaction.ResetAllEnvironmentInteractions
 import net.psforever.objects.vital.InGameHistory
 
 import scala.concurrent.duration._
@@ -61,6 +62,7 @@ class SessionMountHandlers(
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=45, obj.NtuCapacitorScaled))
         sendResponse(GenericObjectActionMessage(obj_guid, code=11))
         sessionData.accessContainer(obj)
+        tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
@@ -76,6 +78,7 @@ class SessionMountHandlers(
         obj.Cloaked = tplayer.Cloaked
         sendResponse(GenericObjectActionMessage(obj_guid, code=11))
         sessionData.accessContainer(obj)
+        tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
@@ -90,6 +93,7 @@ class SessionMountHandlers(
         sendResponse(GenericObjectActionMessage(obj_guid, code=11))
         sessionData.accessContainer(obj)
         sessionData.updateWeaponAtSeatPosition(obj, seatNumber)
+        tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
@@ -103,6 +107,7 @@ class SessionMountHandlers(
         sendResponse(GenericObjectActionMessage(obj_guid, code=11))
         sessionData.accessContainer(obj)
         sessionData.updateWeaponAtSeatPosition(obj, seatNumber)
+        tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
@@ -122,6 +127,7 @@ class SessionMountHandlers(
         sessionData.accessContainer(obj)
         sessionData.updateWeaponAtSeatPosition(obj, seatNumber)
         sessionData.keepAliveFunc = sessionData.keepAlivePersistence
+        tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _) =>
@@ -139,6 +145,7 @@ class SessionMountHandlers(
         sessionData.accessContainer(obj)
         sessionData.updateWeaponAtSeatPosition(obj, seatNumber)
         sessionData.keepAliveFunc = sessionData.keepAlivePersistence
+        tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: FacilityTurret, seatNumber, _)
@@ -173,7 +180,7 @@ class SessionMountHandlers(
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Mountable, _, _) =>
-        log.warn(s"MountVehicleMsg: $obj is some mountable object and nothing will happen for ${player.Name}")
+        log.warn(s"MountVehicleMsg: $obj is some kind of mountable object but nothing will happen for ${player.Name}")
 
       case Mountable.CanDismount(obj: ImplantTerminalMech, seatNum, _) =>
         log.info(s"${tplayer.Name} dismounts the implant terminal")

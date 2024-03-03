@@ -67,7 +67,11 @@ object EnvironmentAttribute extends Enum[EnvironmentTrait] {
     /** water can only interact with objects that are negatively affected by being exposed to water;
       * it's better this way */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = {
-      obj.Definition.DrownAtMaxDepth || obj.Definition.DisableAtMaxDepth
+      obj.Definition.DrownAtMaxDepth || obj.Definition.DisableAtMaxDepth || (obj match {
+        case p: Player => p.VehicleSeated.isEmpty
+        case v: Vehicle => v.MountedIn.isEmpty
+        case _ => true
+      })
     }
   }
 
