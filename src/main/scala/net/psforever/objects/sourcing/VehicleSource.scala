@@ -8,6 +8,18 @@ import net.psforever.types.{DriveState, PlanetSideEmpire, Vector3}
 
 final case class UniqueVehicle(spawnTime: Long, originalOwnerName: String) extends SourceUniqueness
 
+object UniqueVehicle {
+  def apply(obj: Vehicle): UniqueVehicle = {
+    UniqueVehicle(
+      obj.History.headOption match {
+        case Some(entry) => entry.time
+        case None => 0L
+      },
+      obj.OriginalOwnerName.getOrElse("none")
+    )
+  }
+}
+
 final case class VehicleSource(
                                 Definition: VehicleDefinition,
                                 Faction: PlanetSideEmpire.Value,
@@ -46,13 +58,7 @@ object VehicleSource {
       None,
       Nil,
       obj.Definition.asInstanceOf[ResistanceProfile],
-      UniqueVehicle(
-        obj.History.headOption match {
-          case Some(entry) => entry.time
-          case None => 0L
-        },
-        obj.OriginalOwnerName.getOrElse("none")
-      )
+      UniqueVehicle(obj)
     )
     //shallow information that references the existing source entry
     vehicle.copy(

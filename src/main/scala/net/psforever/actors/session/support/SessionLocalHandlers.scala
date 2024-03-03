@@ -208,6 +208,7 @@ class SessionLocalHandlers(
         continent.GUID(vehicleGuid)
           .collect { case vehicle: MountableWeapons => (vehicle, vehicle.PassengerInSeat(player)) }
           .collect { case (vehicle, Some(seat_num)) => vehicle.WeaponControlledFromSeat(seat_num) }
+          .getOrElse(Set.empty)
           .collect { case weapon: Tool if weapon.GUID == weaponGuid =>
             sendResponse(InventoryStateMessage(weapon.AmmoSlot.Box.GUID, weapon.GUID, weapon.Magazine))
           }

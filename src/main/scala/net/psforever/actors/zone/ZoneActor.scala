@@ -13,6 +13,8 @@ import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.building.MajorFacilityLogic
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAwareBehavior
+import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.{InGameActivity, InGameHistory}
 import net.psforever.objects.zones.exp.{ExperienceCalculator, SupportExperienceCalculator}
@@ -96,14 +98,18 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
     case Success(buildings) =>
       buildings.foreach { building =>
         zone.BuildingByMapId(building.localId) match {
-          case Some(_: WarpGate) => ;
+          case Some(_: WarpGate) => ()
             //warp gates are controlled by game logic and are better off not restored via the database
           case Some(b) =>
             if ((b.Faction = PlanetSideEmpire(building.factionId)) != PlanetSideEmpire.NEUTRAL) {
               b.ForceDomeActive = MajorFacilityLogic.checkForceDomeStatus(b).getOrElse(false)
-              b.Neighbours.getOrElse(Nil).foreach { _.Actor ! BuildingActor.AlertToFactionChange(b) }
+              b.Neighbours.getOrElse(Nil).foreach(_.Actor ! BuildingActor.AlertToFactionChange(b))
+              b.CaptureTerminal.collect { terminal =>
+                val msg = CaptureTerminalAwareBehavior.TerminalStatusChanged(terminal, isResecured = true)
+                b.Amenities.collect { case turret: FacilityTurret => turret.Actor ! msg }
+              }
             }
-          case None => ;
+          case None => ()
           // TODO this happens during testing, need a way to not always persist during tests
         }
       }

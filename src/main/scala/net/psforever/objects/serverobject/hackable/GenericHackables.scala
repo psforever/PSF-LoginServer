@@ -84,7 +84,7 @@ object GenericHackables {
       HackState.Start
     } else if (progress >= 100L) {
       HackState.Finished
-    } else if (target.isMoving(1f)) {
+    } else if (target.isMoving(test = 1f)) {
       // If the object is moving (more than slightly to account for things like magriders rotating, or the last velocity reported being the magrider dipping down on dismount) then cancel the hack
       HackState.Cancelled
     } else {

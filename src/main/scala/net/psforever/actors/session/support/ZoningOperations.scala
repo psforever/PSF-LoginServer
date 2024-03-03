@@ -12,9 +12,10 @@ import net.psforever.objects.avatar.scoring.{CampaignStatistics, ScoreCard, Sess
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.mount.Seat
 import net.psforever.objects.serverobject.tube.SpawnTube
+import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
-import net.psforever.packet.game.{CampaignStatistic, MailMessage, SessionStatistic}
+import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, MailMessage, ObjectDetectedMessage, SessionStatistic}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -259,6 +260,19 @@ class ZoningOperations(
               )
             }
         }
+      //auto turret behavior
+      (obj match {
+        case turret: AutomatedTurret with JammableUnit => turret.Target
+        case _ => None
+      }).collect {
+        target =>
+          val guid = obj.GUID
+          val turret = obj.asInstanceOf[AutomatedTurret]
+          sendResponse(ObjectDetectedMessage(guid, guid, 0, List(target.GUID)))
+          if (!obj.asInstanceOf[JammableUnit].Jammed) {
+            sendResponse(ChangeFireStateMessage_Start(turret.Weapons.values.head.Equipment.get.GUID))
+          }
+      }
     })
     //sensor animation
     normal
@@ -554,6 +568,14 @@ class ZoningOperations(
                 )
               )
             case _ => ;
+          }
+          turret.Target.collect {
+            target =>
+              val guid = turret.GUID
+              sendResponse(ObjectDetectedMessage(guid, guid, 0, List(target.GUID)))
+              if (!turret.Jammed) {
+                sendResponse(ChangeFireStateMessage_Start(turret.Weapons.values.head.Equipment.get.GUID))
+              }
           }
       }
     //remote projectiles and radiation clouds

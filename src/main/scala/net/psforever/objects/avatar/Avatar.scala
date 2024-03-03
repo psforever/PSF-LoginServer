@@ -224,6 +224,10 @@ case class Avatar(
         false
     }
 
+  override def hashCode(): Int = {
+    id
+  }
+
   /** Avatar assertions
     * These protect against programming errors by asserting avatar properties have correct values
     * They may or may not be disabled for live applications

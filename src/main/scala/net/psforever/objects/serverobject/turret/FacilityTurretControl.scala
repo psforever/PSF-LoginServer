@@ -1,176 +1,160 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.turret
 
-import akka.actor.Cancellable
-import net.psforever.objects.{Default, GlobalDefinitions, Player, Tool}
-import net.psforever.objects.equipment.{Ammo, JammableMountedWeapons}
+import net.psforever.objects.{GlobalDefinitions, Player, Tool}
+import net.psforever.objects.equipment.Ammo
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
-import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
-import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
-import net.psforever.objects.serverobject.damage.{Damageable, DamageableWeaponTurret}
+import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.hackable.GenericHackables
-import net.psforever.objects.serverobject.hackable.GenericHackables.getTurretUpgradeTime
-import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableWeaponTurret}
-import net.psforever.objects.serverobject.structures.PoweredAmenityControl
-import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAwareBehavior
+import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.repair.AmenityAutoRepair
+import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAwareBehavior}
+import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
+import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.packet.game.ChangeFireModeMessage
+import net.psforever.services.Service
+import net.psforever.services.vehicle.support.TurretUpgrader
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import net.psforever.types.{BailType, PlanetSideEmpire, PlanetSideGUID}
 
 /**
-  * An `Actor` that handles messages being dispatched to a specific `MannedTurret`.<br>
-  * <br>
-  * Mounted turrets have only slightly different entry requirements than a normal vehicle
-  * because they encompass both faction-specific facility turrets
-  * and faction-blind cavern sentry turrets.
-  *
-  * @param turret the `MannedTurret` object being governed
-  */
+ * A control agency that handles messages being dispatched to a specific `FacilityTurret`.
+ * These turrets are attached specifically to surface-level facilities and field towers.
+ * @param turret the `FacilityTurret` object being governed
+ */
 class FacilityTurretControl(turret: FacilityTurret)
-    extends PoweredAmenityControl
-    with FactionAffinityBehavior.Check
-    with MountableBehavior
-    with DamageableWeaponTurret
-    with RepairableWeaponTurret
+  extends PoweredAmenityControl
     with AmenityAutoRepair
-    with JammableMountedWeapons
+    with MountableTurretControl
+    with AutomatedTurretBehavior
+    with AffectedByAutomaticTurretFire
     with CaptureTerminalAwareBehavior {
+  def TurretObject: FacilityTurret               = turret
   def FactionObject: FacilityTurret              = turret
   def MountableObject: FacilityTurret            = turret
   def JammableObject: FacilityTurret             = turret
   def DamageableObject: FacilityTurret           = turret
   def RepairableObject: FacilityTurret           = turret
   def AutoRepairObject: FacilityTurret           = turret
+  def AutomatedTurretObject: FacilityTurret      = turret
   def CaptureTerminalAwareObject: FacilityTurret = turret
+  def AffectedObject: FacilityTurret             = turret
 
-  // Used for timing ammo recharge for vanu turrets in caves
-  var weaponAmmoRechargeTimer: Cancellable = Default.Cancellable
+  private var testToResetToDefaultFireMode: Boolean = false
+
+  AutomaticOperation = true
 
   override def postStop(): Unit = {
     super.postStop()
     damageableWeaponTurretPostStop()
+    automaticTurretPostStop()
     stopAutoRepair()
   }
 
-  def commonBehavior: Receive =
-    checkBehavior
-      .orElse(jammableBehavior)
-      .orElse(dismountBehavior)
-      .orElse(takesDamage)
-      .orElse(canBeRepairedByNanoDispenser)
-      .orElse(autoRepairBehavior)
-      .orElse(captureTerminalAwareBehaviour)
+  private val upgradeableTurret: Receive = {
+    case CommonMessages.Use(player, Some((item: Tool, upgradeValue: Int)))
+      if player.Faction == TurretObject.Faction &&
+        item.Definition == GlobalDefinitions.nano_dispenser && item.AmmoType == Ammo.upgrade_canister &&
+        item.Magazine > 0 && TurretObject.Seats.values.forall(!_.isOccupied) =>
+      TurretUpgrade.values.find(_.id == upgradeValue).foreach {
+        case upgrade
+          if TurretObject.Upgrade != upgrade && TurretObject.Definition.WeaponPaths.values
+            .flatMap(_.keySet)
+            .exists(_ == upgrade) =>
+          AutomaticOperation = false
+          sender() ! CommonMessages.Progress(
+            1.25f,
+            WeaponTurrets.FinishUpgradingMannedTurret(TurretObject, player, item, upgrade),
+            GenericHackables.TurretUpgradingTickAction(progressType = 2, player, TurretObject, item.GUID)
+          )
+      }
+    case TurretUpgrader.UpgradeCompleted(_) =>
+      CurrentTargetLastShotReported = System.currentTimeMillis() + 2000L
+      AutomaticOperation = true
+  }
 
-  def poweredStateLogic: Receive =
+  override def commonBehavior: Receive = super.commonBehavior
+    .orElse(automatedTurretBehavior)
+    .orElse(takeAutomatedDamage)
+    .orElse(autoRepairBehavior)
+    .orElse(captureTerminalAwareBehaviour)
+
+  override def poweredStateLogic: Receive =
     commonBehavior
       .orElse(mountBehavior)
+      .orElse(upgradeableTurret)
       .orElse {
-        case CommonMessages.Use(player, Some((item: Tool, upgradeValue: Int)))
-            if player.Faction == turret.Faction &&
-              item.Definition == GlobalDefinitions.nano_dispenser && item.AmmoType == Ammo.upgrade_canister &&
-              item.Magazine > 0 && turret.Seats.values.forall(!_.isOccupied) =>
-          TurretUpgrade.values.find(_.id == upgradeValue) match {
-            case Some(upgrade)
-                if turret.Upgrade != upgrade && turret.Definition.WeaponPaths.values
-                  .flatMap(_.keySet)
-                  .exists(_ == upgrade) =>
-              turret.setMiddleOfUpgrade(true)
-              sender() ! CommonMessages.Progress(
-                1.25f,
-                WeaponTurrets.FinishUpgradingMannedTurret(turret, player, item, upgrade),
-                GenericHackables.TurretUpgradingTickAction(progressType = 2, player, turret, item.GUID)
-              )
-            case _ => ;
-          }
-
-        case FacilityTurret.WeaponDischarged() =>
-          if (weaponAmmoRechargeTimer != Default.Cancellable) {
-            weaponAmmoRechargeTimer.cancel()
-          }
-
-          weaponAmmoRechargeTimer = context.system.scheduler.scheduleWithFixedDelay(
-            3 seconds,
-            200 milliseconds,
-            self,
-            FacilityTurret.RechargeAmmo()
-          )
-
-        case FacilityTurret.RechargeAmmo() =>
-          turret.ControlledWeapon(wepNumber = 1).foreach {
-            case weapon: Tool =>
-              // recharge when last shot fired 3s delay, +1, 200ms interval
-              if (weapon.Magazine < weapon.MaxMagazine && System.currentTimeMillis() - weapon.LastDischarge > 3000L) {
-                weapon.Magazine += 1
-                val seat = turret.Seat(0).get
-                seat.occupant match {
-                  case Some(player : Player) =>
-                    turret.Zone.LocalEvents ! LocalServiceMessage(
-                      turret.Zone.id,
-                      LocalAction.RechargeVehicleWeapon(player.GUID, turret.GUID, weapon.GUID)
-                    )
-                  case _ => ;
-                }
-              }
-              else if (weapon.Magazine == weapon.MaxMagazine && weaponAmmoRechargeTimer != Default.Cancellable) {
-                weaponAmmoRechargeTimer.cancel()
-                weaponAmmoRechargeTimer = Default.Cancellable
-              }
-            case _ => ;
-          }
-
-        case _ => ;
+        case _ => ()
       }
 
-  def unpoweredStateLogic: Receive =
+  override def unpoweredStateLogic: Receive =
     commonBehavior
       .orElse {
-        case _ => ;
+        case _ => ()
       }
 
   override protected def mountTest(
                                     obj: PlanetSideServerObject with Mountable,
                                     seatNumber: Int,
                                     player: Player): Boolean = {
-    (!turret.Definition.FactionLocked || player.Faction == obj.Faction) && !obj.Destroyed && !turret.isUpgrading ||
-      System.currentTimeMillis() - getTurretUpgradeTime >= 1500L
+    super.mountTest(obj, seatNumber, player) &&
+      (!TurretObject.isUpgrading || System.currentTimeMillis() - GenericHackables.getTurretUpgradeTime >= 1500L)
+  }
+
+  override protected def tryMount(obj: PlanetSideServerObject with Mountable, seatNumber: Int, player: Player): Boolean = {
+    AutomaticOperation = false //turn off
+    if (!super.tryMount(obj, seatNumber, player)) {
+      AutomaticOperation = true //revert?
+      false
+    } else {
+      true
+    }
+  }
+
+  override protected def tryDismount(obj: Mountable, seatNumber: Int, player: Player, bailType: BailType.Value): Boolean = {
+    AutomaticOperation = AutomaticOperationFunctionalityChecksExceptMounting //turn on, if can turn on
+    if (!super.tryDismount(obj, seatNumber, player, bailType)) {
+      AutomaticOperation = false //revert
+      false
+    } else {
+      CurrentTargetLastShotReported = System.currentTimeMillis() + 4000L
+      true
+    }
   }
 
   override protected def DamageAwareness(target: Damageable.Target, cause: DamageResult, amount: Any) : Unit = {
     tryAutoRepair()
+    if (AutomaticOperation) {
+      if (TurretObject.Health < TurretObject.Definition.DamageDisablesAt) {
+        AutomaticOperation = false
+      } else {
+        amount match {
+          case 0 => ()
+          case _ => attemptRetaliation(target, cause)
+        }
+      }
+    }
     super.DamageAwareness(target, cause, amount)
   }
 
   override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
-    tryAutoRepair()
     super.DestructionAwareness(target, cause)
-    val zone   = target.Zone
-    val zoneId = zone.id
-    val events = zone.AvatarEvents
-    val tguid  = target.GUID
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 1))
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 1))
+    tryAutoRepair()
+    AutomaticOperation = false
+    selfReportingCleanUp()
   }
 
   override def PerformRepairs(target : Damageable.Target, amount : Int) : Int = {
     val newHealth = super.PerformRepairs(target, amount)
-    if(newHealth == target.Definition.MaxHealth) {
+    if (!AutomaticOperation && newHealth > target.Definition.DamageDisablesAt) {
+      AutomaticOperation = true
+    }
+    if (newHealth == target.Definition.MaxHealth) {
       stopAutoRepair()
     }
     newHealth
-  }
-
-  override def Restoration(obj: Damageable.Target): Unit = {
-    super.Restoration(obj)
-    val zone   = turret.Zone
-    val zoneId = zone.id
-    val events = zone.AvatarEvents
-    val tguid  = turret.GUID
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 0))
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 0))
   }
 
   override def tryAutoRepair() : Boolean = {
@@ -179,12 +163,13 @@ class FacilityTurretControl(turret: FacilityTurret)
 
   def powerTurnOffCallback(): Unit = {
     stopAutoRepair()
+    AutomaticOperation = false
     //kick all occupants
-    val guid = turret.GUID
-    val zone = turret.Zone
+    val guid = TurretObject.GUID
+    val zone = TurretObject.Zone
     val zoneId = zone.id
     val events = zone.VehicleEvents
-    turret.Seats.values.foreach(seat =>
+    TurretObject.Seats.values.foreach(seat =>
       seat.occupant match {
         case Some(player) =>
           seat.unmount(player)
@@ -192,12 +177,159 @@ class FacilityTurretControl(turret: FacilityTurret)
           if (player.HasGUID) {
             events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2=false, guid))
           }
-        case None => ;
+        case None => ()
       }
     )
   }
 
   def powerTurnOnCallback(): Unit = {
     tryAutoRepair()
+    AutomaticOperation = true
+  }
+
+  override def AutomaticOperation_=(state: Boolean): Boolean = {
+    val result = super.AutomaticOperation_=(state)
+    testToResetToDefaultFireMode = result && TurretObject.Definition.AutoFire.exists(_.revertToDefaultFireMode)
+    result
+  }
+
+  override protected def AutomaticOperationFunctionalityChecks: Boolean = {
+    AutomaticOperationFunctionalityChecksExceptMounting &&
+      !TurretObject.Seats.values.exists(_.isOccupied)
+  }
+
+  private def AutomaticOperationFunctionalityChecksExceptMounting: Boolean = {
+    AutomaticOperationFunctionalityChecksExceptMountingAndHacking &&
+      (TurretObject.Owner match {
+        case b: Building => !b.CaptureTerminalIsHacked
+        case _ => false
+      })
+  }
+
+  private def AutomaticOperationFunctionalityChecksExceptMountingAndHacking: Boolean = {
+    super.AutomaticOperationFunctionalityChecks &&
+      isPowered &&
+      TurretObject.Owner.Faction != PlanetSideEmpire.NEUTRAL &&
+      !JammableObject.Jammed &&
+      TurretObject.Health >= TurretObject.Definition.DamageDisablesAt &&
+      !TurretObject.isUpgrading
+  }
+
+  private def primaryWeaponFireModeOnly(): Unit = {
+    if (testToResetToDefaultFireMode) {
+      val zone = TurretObject.Zone
+      val zoneid = zone.id
+      val events = zone.VehicleEvents
+      TurretObject.Weapons.values
+        .flatMap(_.Equipment)
+        .collect { case weapon: Tool if weapon.FireModeIndex > 0 =>
+          weapon.FireModeIndex = 0
+          events ! VehicleServiceMessage(
+            zoneid,
+            VehicleAction.SendResponse(Service.defaultPlayerGUID, ChangeFireModeMessage(weapon.GUID, 0))
+          )
+        }
+    }
+    testToResetToDefaultFireMode = false
+  }
+
+  override protected def trySelectNewTarget(): Option[AutomatedTurret.Target] = {
+    primaryWeaponFireModeOnly()
+    super.trySelectNewTarget()
+  }
+
+  protected def engageNewDetectedTarget(
+                                         target: Target,
+                                         channel: String,
+                                         turretGuid: PlanetSideGUID,
+                                         weaponGuid: PlanetSideGUID
+                                       ): Unit = {
+    val zone = target.Zone
+    primaryWeaponFireModeOnly()
+    AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
+    AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
+  }
+
+  protected def noLongerEngageTarget(
+                                      target: Target,
+                                      channel: String,
+                                      turretGuid: PlanetSideGUID,
+                                      weaponGuid: PlanetSideGUID
+                                    ): Option[Target] = {
+    val zone = target.Zone
+    AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
+    AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
+    None
+  }
+
+  protected def testNewDetected(
+                                 target: Target,
+                                 channel: String,
+                                 turretGuid: PlanetSideGUID,
+                                 weaponGuid: PlanetSideGUID
+                               ): Unit = {
+    val zone = target.Zone
+    AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
+    AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
+    AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
+    AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
+  }
+
+  protected def testKnownDetected(
+                                   target: Target,
+                                   channel: String,
+                                   turretGuid: PlanetSideGUID,
+                                   weaponGuid: PlanetSideGUID
+                                 ): Unit = {
+    val zone = target.Zone
+    AutomatedTurretBehavior.startTracking(zone, channel, turretGuid, List(target.GUID))
+    AutomatedTurretBehavior.startShooting(zone, channel, weaponGuid)
+    AutomatedTurretBehavior.stopShooting(zone, channel, weaponGuid)
+    AutomatedTurretBehavior.stopTracking(zone, channel, turretGuid)
+  }
+
+  override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
+    val startsUnjammed = !JammableObject.Jammed
+    super.TryJammerEffectActivate(target, cause)
+    if (JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDelay > 0)) {
+      if (startsUnjammed) {
+        AutomaticOperation = false
+      }
+      //look in direction of cause of jamming
+      val zone = JammableObject.Zone
+      AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach { attacker =>
+        AutomatedTurretBehavior.startTracking(zone, zone.id, JammableObject.GUID, List(attacker.GUID))
+      }
+    }
+  }
+
+  override def CancelJammeredStatus(target: Any): Unit = {
+    val startsJammed = JammableObject.Jammed
+    super.CancelJammeredStatus(target)
+    if (startsJammed && AutomaticOperation_=(state = true)) {
+      val zone = TurretObject.Zone
+      AutomatedTurretBehavior.stopTracking(zone, zone.id, TurretObject.GUID)
+    }
+  }
+
+  override protected def captureTerminalIsResecured(terminal: CaptureTerminal): Unit = {
+    captureTerminalChanges(terminal, super.captureTerminalIsResecured, actionDelays = 2000L)
+  }
+
+  override protected def captureTerminalIsHacked(terminal: CaptureTerminal): Unit = {
+    captureTerminalChanges(terminal, super.captureTerminalIsHacked, actionDelays = 3000L)
+  }
+
+  private def captureTerminalChanges(
+                                      terminal: CaptureTerminal,
+                                      changeFunc: CaptureTerminal=>Unit,
+                                      actionDelays: Long
+                                    ): Unit = {
+    AutomaticOperation = false
+    changeFunc(terminal)
+    if (AutomaticOperationFunctionalityChecks) {
+      CurrentTargetLastShotReported = System.currentTimeMillis() + actionDelays
+      AutomaticOperation = true
+    }
   }
 }

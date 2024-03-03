@@ -9,7 +9,7 @@ import scala.util.{Success, Try}
 
 class AmmoBoxConverter extends ObjectCreateConverter[AmmoBox] {
   override def ConstructorData(obj: AmmoBox): Try[CommonFieldData] = {
-    Success(CommonFieldData()(false))
+    Success(CommonFieldData()(flag = false))
   }
 
   override def DetailedConstructorData(obj: AmmoBox): Try[DetailedAmmoBoxData] = {
@@ -19,9 +19,9 @@ class AmmoBoxConverter extends ObjectCreateConverter[AmmoBox] {
           PlanetSideEmpire.NEUTRAL,
           bops = false,
           alternate = false,
-          true,
+          v1 = true,
           None,
-          false,
+          jammered = false,
           None,
           None,
           PlanetSideGUID(0)

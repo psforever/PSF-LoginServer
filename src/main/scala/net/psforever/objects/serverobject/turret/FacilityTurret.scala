@@ -2,16 +2,35 @@
 package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.equipment.JammableUnit
-import net.psforever.objects.serverobject.structures.Amenity
+import net.psforever.objects.serverobject.structures.{Amenity, AmenityOwner, Building}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAware
+import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
+import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.types.Vector3
 
 class FacilityTurret(tDef: FacilityTurretDefinition)
   extends Amenity
-    with WeaponTurret
+    with AutomatedTurret
     with JammableUnit
     with CaptureTerminalAware {
-  WeaponTurret.LoadDefinition(this)
+  WeaponTurret.LoadDefinition(turret = this)
+
+  def TurretOwner: SourceEntry = {
+    Seats
+      .headOption
+      .collect { case (_, a) => a }
+      .flatMap(_.occupant)
+      .map(SourceEntry(_))
+      .getOrElse(SourceEntry(Owner))
+  }
+
+  override def Owner: AmenityOwner = {
+    if (Zone.map.cavern) {
+      Building.NoBuilding
+    } else {
+      super.Owner
+    }
+  }
 
   def Definition: FacilityTurretDefinition = tDef
 }
@@ -26,9 +45,6 @@ object FacilityTurret {
   def apply(tDef: FacilityTurretDefinition): FacilityTurret = {
     new FacilityTurret(tDef)
   }
-
-  final case class RechargeAmmo()
-  final case class WeaponDischarged()
 
   import akka.actor.ActorContext
 

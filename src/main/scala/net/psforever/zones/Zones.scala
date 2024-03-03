@@ -23,7 +23,7 @@ import net.psforever.objects.serverobject.structures.{Building, BuildingDefiniti
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalDefinition}
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.tube.SpawnTube
-import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition}
+import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition, VanuSentry}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
 import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, TurretSource, VehicleSource}
 import net.psforever.objects.zones.{MapInfo, Zone, ZoneInfo, ZoneMap}
@@ -585,10 +585,21 @@ object Zones {
             case _ => ;
           }
 
-        case "manned_turret" | "vanu_sentry_turret" =>
+        case "manned_turret" =>
           zoneMap.addLocalObject(
             obj.guid,
             FacilityTurret.Constructor(
+              obj.position,
+              obj.objectDefinition.asInstanceOf[FacilityTurretDefinition]
+            ),
+            owningBuildingGuid = ownerGuid
+          )
+          zoneMap.linkTurretToWeapon(obj.guid, turretWeaponGuid.getAndIncrement())
+
+        case "vanu_sentry_turret" =>
+          zoneMap.addLocalObject(
+            obj.guid,
+            VanuSentry.Constructor(
               obj.position,
               obj.objectDefinition.asInstanceOf[FacilityTurretDefinition]
             ),

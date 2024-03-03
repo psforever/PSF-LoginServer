@@ -15,13 +15,14 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
   var task: Cancellable = Default.Cancellable
 
   var list: List[TurretUpgrader.Entry] = List()
 
-  val sameEntryComparator = new SimilarityComparator[TurretUpgrader.Entry]() {
+  val sameEntryComparator: SimilarityComparator[TurretUpgrader.Entry] = new SimilarityComparator[TurretUpgrader.Entry]() {
     def Test(entry1: TurretUpgrader.Entry, entry2: TurretUpgrader.Entry): Boolean = {
       entry1.obj == entry2.obj && entry1.zone == entry2.zone && entry1.obj.GUID == entry2.obj.GUID
     }
@@ -41,7 +42,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     list = Nil
   }
 
-  def CreateEntry(obj: PlanetSideGameObject, zone: Zone, upgrade: TurretUpgrade.Value, duration: Long) =
+  def CreateEntry(obj: PlanetSideGameObject, zone: Zone, upgrade: TurretUpgrade.Value, duration: Long): TurretUpgrader.Entry =
     TurretUpgrader.Entry(obj, zone, upgrade, duration)
 
   def InclusionTest(entry: TurretUpgrader.Entry): Boolean = entry.obj.isInstanceOf[FacilityTurret]
@@ -89,7 +90,6 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     task.cancel()
     if (list.nonEmpty) {
       val short_timeout: FiniteDuration = math.max(1, list.head.duration - (now - list.head.time)).milliseconds
-      import scala.concurrent.ExecutionContext.Implicits.global
       task = context.system.scheduler.scheduleOnce(short_timeout, self, TurretUpgrader.Downgrade())
     }
   }
@@ -150,6 +150,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     val upgrade    = entry.upgrade
     val guid       = zone.GUID
     val turretGUID = target.GUID
+    target.setMiddleOfUpgrade(true)
     //kick all occupying players for duration of conversion
     target.Seats.values
       .filter { _.isOccupied }
@@ -160,7 +161,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
         if (tplayer.HasGUID) {
           context.parent ! VehicleServiceMessage(
             zoneId,
-            VehicleAction.KickPassenger(tplayer.GUID, 4, false, turretGUID)
+            VehicleAction.KickPassenger(tplayer.GUID, 4, unk2=false, turretGUID)
           )
         }
       })
@@ -174,7 +175,6 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
       .filterNot { box => newBoxes.exists(_ eq box) }
       .map(box => GUIDTask.unregisterEquipment(guid, box))
       .toList
-    import scala.concurrent.ExecutionContext.Implicits.global
     val newBoxesTask = TaskBundle(
       new StraightforwardTask() {
         private val localFunc: () => Unit = FinishUpgradingTurret(entry)
@@ -189,22 +189,25 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
         .map(box => GUIDTask.registerEquipment(guid, box))
         .toList
     )
-    TaskWorkflow.execute(TaskBundle(
+    val mainTask = TaskWorkflow.execute(TaskBundle(
       new StraightforwardTask() {
         private val tasks = oldBoxesTask
 
         def action(): Future[Any] = {
-          tasks.foreach { TaskWorkflow.execute }
+          tasks.foreach(TaskWorkflow.execute)
           Future(this)
         }
       },
       newBoxesTask
     ))
+    mainTask.recoverWith {
+      case _: Exception => Finalize(target, upgrade); Future(true)
+    }
   }
 
   /**
     * From an object that has mounted weapons, parse all of the internal ammunition loaded into all of the weapons.
-    * @param target the object with mounted weaponry
+    * @param target entity with mounted weaponry
     * @return all of the internal ammunition objects
     */
   def AllMountedWeaponMagazines(target: MountedWeapons): Iterable[AmmoBox] = {
@@ -224,11 +227,10 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     val target = entry.obj.asInstanceOf[FacilityTurret]
     val zone   = entry.zone
     trace(s"Wall turret finished ${target.Upgrade} upgrade")
-    target.ConfirmUpgrade(entry.upgrade)
     val targetGUID = target.GUID
     if (target.Health > 0) {
       target.Weapons
-        .map({ case (index: Int, slot: EquipmentSlot) => (index, slot.Equipment) })
+        .map { case (index: Int, slot: EquipmentSlot) => (index, slot.Equipment) }
         .collect {
           case (index, Some(tool: Tool)) =>
             context.parent ! VehicleServiceMessage(
@@ -237,6 +239,17 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
             )
         }
     }
+    Finalize(target, entry.upgrade)
+  }
+
+  /**
+   * Dispatch messages to report on the completion of this effort.
+   * @param target the object with mounted weaponry
+   * @param upgrade the path of the turret's progression
+   */
+  def Finalize(target: FacilityTurret, upgrade: TurretUpgrade.Value): Unit = {
+    target.ConfirmUpgrade(upgrade)
+    target.Actor ! TurretUpgrader.UpgradeCompleted(target.GUID)
   }
 }
 
@@ -262,6 +275,8 @@ object TurretUpgrader extends SupportActorCaseConversions {
   )
 
   final case class Downgrade()
+
+  final case class UpgradeCompleted(targetGuid: PlanetSideGUID)
 
   private def Similarity(entry1: TurretUpgrader.Entry, entry2: TurretUpgrader.Entry): Boolean = {
     entry1.obj == entry2.obj && entry1.zone == entry2.zone && entry1.obj.GUID == entry2.obj.GUID

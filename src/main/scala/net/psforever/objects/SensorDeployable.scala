@@ -17,6 +17,7 @@ import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
+import scala.annotation.unused
 import scala.concurrent.duration._
 
 class SensorDeployable(cdef: SensorDeployableDefinition) extends Deployable(cdef) with Hackable with JammableUnit
@@ -27,7 +28,7 @@ class SensorDeployableDefinition(private val objectId: Int) extends DeployableDe
   Model = SimpleResolutions.calculate
   Packet = new SmallDeployableConverter
 
-  override def Initialize(obj: Deployable, context: ActorContext) = {
+  override def Initialize(obj: Deployable, context: ActorContext): Unit = {
     obj.Actor =
       context.actorOf(Props(classOf[SensorDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
   }
@@ -45,10 +46,10 @@ class SensorDeployableControl(sensor: SensorDeployable)
     with JammableBehavior
     with DamageableEntity
     with RepairableEntity {
-  def DeployableObject = sensor
-  def JammableObject   = sensor
-  def DamageableObject = sensor
-  def RepairableObject = sensor
+  def DeployableObject: SensorDeployable = sensor
+  def JammableObject: SensorDeployable   = sensor
+  def DamageableObject: SensorDeployable = sensor
+  def RepairableObject: SensorDeployable = sensor
 
   override def postStop(): Unit = {
     super.postStop()
@@ -64,7 +65,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
         case _ => ;
       }
 
-  override protected def DamageLog(msg: String): Unit = {}
+  override protected def DamageLog(@unused msg: String): Unit = {}
 
   override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult): Unit = {
     super.DestructionAwareness(target, cause)
@@ -88,7 +89,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
         val zone = obj.Zone
         zone.LocalEvents ! LocalServiceMessage(
           zone.id,
-          LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, false, 1000)
+          LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, unk1=false, 1000)
         )
         super.StartJammeredStatus(obj, dur)
       case _ => ;
@@ -113,7 +114,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
         val zone = sensor.Zone
         zone.LocalEvents ! LocalServiceMessage(
           zone.id,
-          LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, true, 1000)
+          LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, unk1=true, 1000)
         )
       case _ => ;
     }
@@ -125,7 +126,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
     val zone = sensor.Zone
     zone.LocalEvents ! LocalServiceMessage(
       zone.id,
-      LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", sensor.GUID, true, 1000)
+      LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", sensor.GUID, unk1=true, 1000)
     )
   }
 }
@@ -142,7 +143,7 @@ object SensorDeployableControl {
     val zone = target.Zone
     zone.LocalEvents ! LocalServiceMessage(
       zone.id,
-      LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, false, 1000)
+      LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, unk1=false, 1000)
     )
     //position the explosion effect near the bulky area of the sensor stalk
     val ang = target.Orientation

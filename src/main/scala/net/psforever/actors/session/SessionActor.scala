@@ -518,6 +518,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case packet: LashMessage =>
       sessionFuncs.shooting.handleLashHit(packet)
 
+    case packet: AIDamage =>
+      sessionFuncs.shooting.handleAIDamage(packet)
+
     case packet: AvatarFirstTimeEventMessage =>
       sessionFuncs.handleAvatarFirstTimeEvent(packet)
 

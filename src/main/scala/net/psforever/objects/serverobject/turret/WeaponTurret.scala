@@ -6,7 +6,7 @@ import net.psforever.objects.definition.{AmmoBoxDefinition, ToolDefinition}
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.inventory.{Container, GridInventory}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.serverobject.mount.{SeatDefinition, Seat => Chair}
+import net.psforever.objects.serverobject.mount.{Seat => Chair}
 import net.psforever.objects.vehicles.MountableWeapons
 
 trait WeaponTurret
@@ -14,10 +14,6 @@ trait WeaponTurret
   with MountableWeapons
   with Container {
   _: PlanetSideGameObject =>
-
-  /** manned turrets have just one mount; this is just standard interface */
-  seats = Map(0 -> new Chair(new SeatDefinition()))
-
   /** may or may not have inaccessible inventory space
     * see `ReserveAmmunition` in the definition
     */
@@ -84,25 +80,27 @@ trait WeaponTurret
 }
 
 object WeaponTurret {
-
   /**
-    * Use the `*Definition` that was provided to this object to initialize its fields and settings.
-    * @see `{object}.LoadDefinition`
-    * @param turret the `MannedTurret` being initialized
+    * Use the definition that was provided to this object to initialize its fields and settings.
+    * @see `WeaponTurret.LoadDefinition(WeaponTurret, TurretDefinition)`
+    * @param turret turret being initialized
     */
   def LoadDefinition(turret: WeaponTurret): WeaponTurret = {
     LoadDefinition(turret, turret.Definition)
   }
 
   /**
-    * Use the `*Definition` that was provided to this object to initialize its fields and settings.
-    * A default definition is provided to be used.
-    * @see `{object}.LoadDefinition`
-    * @param turret the `MannedTurret` being initialized
-    * @param tdef the object definition
+    * Use the definition that was provided to this object to initialize its fields and settings.
+    * @see `WeaponTurret.LoadDefinition(WeaponTurret)`
+    * @param turret turret being initialized
+    * @param tdef object's specific definition
     */
   def LoadDefinition(turret: WeaponTurret, tdef: TurretDefinition): WeaponTurret = {
     import net.psforever.objects.equipment.EquipmentSize.BaseTurretWeapon
+    //create seats, if any
+    turret.seats = tdef.Seats.map {
+      case (num, definition) => num -> new Chair(definition)
+    }.toMap
     //create weapons; note the class
     turret.weapons = tdef.WeaponPaths
       .map({
@@ -160,17 +158,18 @@ class TurretWeapon(
     Upgrade
   }
 
-  override def Definition = udefs(Upgrade)
+  override def Definition: ToolDefinition = udefs(Upgrade)
 }
 
 /**
-  * A special type of ammunition box contained within a `MannedTurret` for the purposes of infinite reloads.
+  * A special type of ammunition box contained for the purposes of infinite reloads.
   * The original quantity of ammunition does not change.
   * @param adef ammunition definition
   */
-class TurretAmmoBox(private val adef: AmmoBoxDefinition) extends AmmoBox(adef, Some(65535)) {
+class TurretAmmoBox(private val adef: AmmoBoxDefinition)
+  extends AmmoBox(adef, Some(65535)) {
   import net.psforever.objects.inventory.InventoryTile
-  override def Tile = InventoryTile.Tile11
+  override def Tile: InventoryTile = InventoryTile.Tile11
 
-  override def Capacity_=(toCapacity: Int) = Capacity
+  override def Capacity_=(toCapacity: Int): Int = Capacity
 }

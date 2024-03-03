@@ -32,10 +32,16 @@ trait WorldEntity {
   def isMoving(test: Vector3): Boolean = WorldEntity.isMoving(Velocity, test)
 
   /**
-    * This object is not considered moving unless it is moving at least as fast as a certain velocity.
-    * @param test the (squared) velocity to test against
-    * @return `true`, if we are moving; `false`, otherwise
-    */
+   * This object is not considered moving unless it is moving at least as fast as a certain velocity.
+   * @param test the velocity to test against
+   * @return `true`, if we are moving; `false`, otherwise
+   */
+  def isMoving(test: Double): Boolean = WorldEntity.isMoving(Velocity, (test * test).toFloat)
+  /**
+   * This object is not considered moving unless it is moving at least as fast as a certain velocity.
+   * @param test the (squared) velocity to test against
+   * @return `true`, if we are moving; `false`, otherwise
+   */
   def isMoving(test: Float): Boolean = WorldEntity.isMoving(Velocity, test)
 }
 

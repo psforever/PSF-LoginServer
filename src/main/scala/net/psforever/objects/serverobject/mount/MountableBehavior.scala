@@ -65,7 +65,7 @@ trait MountableBehavior {
     !obj.Destroyed
   }
 
-  private def tryMount(
+  protected def tryMount(
                         obj: PlanetSideServerObject with Mountable,
                         seatNumber: Int,
                         player: Player
@@ -105,12 +105,12 @@ trait MountableBehavior {
                             ): Boolean = {
     obj.PassengerInSeat(user).contains(seatNumber) &&
     (obj.Seats.get(seatNumber) match {
-      case Some(seat) => seat.bailable || !obj.isMoving(test = 1)
+      case Some(seat) => seat.bailable || !obj.isMoving(test = 1f)
       case _          => false
     })
   }
 
-  private def tryDismount(
+  protected def tryDismount(
                            obj: Mountable,
                            seatNumber: Int,
                            user: Player,
