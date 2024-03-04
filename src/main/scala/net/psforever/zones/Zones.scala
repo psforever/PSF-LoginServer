@@ -177,23 +177,44 @@ object Zones {
   )
 
   private val doorTypes = Seq(
-    "gr_door_garage_int",
-    "gr_door_int",
-    "gr_door_med",
-    "spawn_tube_door",
     "amp_cap_door",
+    "ancient_door",
+    "ancient_garage_door",
+    "cryo_med_door",
+    "cryo_room_door",
+    "door",
+    "door_airlock",
+    "door_airlock_orb",
     "door_dsp",
+    "door_garage",
+    "door_interior",
+    "door_mb",
+    "door_mb_garage",
+    "door_mb_main",
+    "door_mb_orb",
+    "door_mb_side",
+    "door_nc_garage",
+    "door_nc_rotating",
+    "door_ncside",
+    "door_orbspawn",
+    "door_spawn_mb",
+    "garage_door",
+    "gr_door_airlock",
     "gr_door_ext",
     "gr_door_garage_ext",
+    "gr_door_garage_int",
+    "gr_door_int",
     "gr_door_main",
     "gr_door_mb_ext",
     "gr_door_mb_int",
     "gr_door_mb_lrg",
     "gr_door_mb_obsd",
     "gr_door_mb_orb",
-    "door_spawn_mb",
-    "ancient_door",
-    "ancient_garage_door"
+    "gr_door_med",
+    "main_door",
+    "shield_door",
+    "spawn_tube_door",
+    "spawn_tube_door_coffin"
   )
 
   lazy val zoneMaps: Seq[ZoneMap] = {
@@ -384,14 +405,6 @@ object Zones {
             owningBuildingGuid = ownerGuid
           )
 
-        case "gr_door_mb_orb" =>
-          zoneMap
-            .addLocalObject(
-              obj.guid,
-              Door.Constructor(obj.position, GlobalDefinitions.gr_door_mb_orb),
-              owningBuildingGuid = ownerGuid
-            )
-
         case doorType if doorType.equals("door_spawn_mb") || doorType.equals("spawn_tube_door") =>
           zoneMap.addLocalObject(
             obj.guid,
@@ -404,7 +417,14 @@ object Zones {
 
         case objectType if doorTypes.contains(objectType) =>
           zoneMap
-            .addLocalObject(obj.guid, Door.Constructor(obj.position), owningBuildingGuid = ownerGuid)
+            .addLocalObject(
+              obj.guid,
+              Door.Constructor(
+                obj.position,
+                DefinitionUtil.fromString(objectType).asInstanceOf[DoorDefinition]
+              ),
+              owningBuildingGuid = ownerGuid
+            )
 
         case "locker_cryo" | "locker_med" | "mb_locker" =>
           zoneMap
@@ -798,7 +818,7 @@ object Zones {
     }
   }
 
-  lazy val cavernLattice = {
+  lazy val cavernLattice: Map[String, Iterable[Iterable[String]]] = {
     val res  = Source.fromResource(s"zonemaps/lattice.json")
     val json = res.mkString
     res.close()

@@ -1,9 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.environment
 
-import enumeratum.{Enum, EnumEntry}
-import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
-import net.psforever.objects.vital.Vitality
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
@@ -52,69 +50,24 @@ trait PieceOfEnvironment
   def Velocity_=(vec: Option[Vector3]): Option[Vector3] = None
 }
 
-/**
-  * A general description of environment and its interactive possibilities.
-  */
-sealed abstract class EnvironmentTrait extends EnumEntry {
-  def canInteractWith(obj: PlanetSideGameObject): Boolean
-}
-
-object EnvironmentAttribute extends Enum[EnvironmentTrait] {
-  /** glue connecting `EnumEntry` to `Enumeration` */
-  val values: IndexedSeq[EnvironmentTrait] = findValues
-
-  case object Water extends EnvironmentTrait {
-    /** water can only interact with objects that are negatively affected by being exposed to water;
-      * it's better this way */
-    def canInteractWith(obj: PlanetSideGameObject): Boolean = {
-      obj.Definition.DrownAtMaxDepth || obj.Definition.DisableAtMaxDepth || (obj match {
-        case p: Player => p.VehicleSeated.isEmpty
-        case v: Vehicle => v.MountedIn.isEmpty
-        case _ => true
-      })
-    }
-  }
-
-  case object Lava extends EnvironmentTrait {
-    /** lava can only interact with anything capable of registering damage */
-    def canInteractWith(obj: PlanetSideGameObject): Boolean = {
-      obj match {
-        case o: Vitality => o.Definition.Damageable
-        case _ => false
-      }
-    }
-  }
-
-  case object Death extends EnvironmentTrait {
-    /** death can only interact with anything capable of registering damage */
-    def canInteractWith(obj: PlanetSideGameObject): Boolean = {
-      obj match {
-        case o: Vitality => o.Definition.Damageable
-        case _ => false
-      }
-    }
-  }
-
-  case object GantryDenialField
-    extends EnvironmentTrait {
-    /** only interact with living player characters */
-    def canInteractWith(obj: PlanetSideGameObject): Boolean = {
-      obj match {
-        case p: Player => p.isAlive
-        case _         => false
-      }
-    }
-  }
-
-  case object MovementFieldTrigger
-    extends EnvironmentTrait {
-    /** only interact with living player characters or vehicles */
-    def canInteractWith(obj: PlanetSideGameObject): Boolean = {
-      obj match {
-        case p: Player  => p.isAlive && p.Position != Vector3.Zero
-        case v: Vehicle => !v.Destroyed && v.Position != Vector3.Zero
-        case _          => false
-      }
+object PieceOfEnvironment {
+  /**
+   * Did the test point move into or leave the bounds of the represented environment since its previous test?
+   * @param body the environment
+   * @param pos the test point
+   * @param previousPos the previous test point which is being compared against
+   * @param varDepth how far "into" the environment the point must be
+   * @return `Some(true)`, if the point has become sufficiently "deep";
+   *        `Some(false)`, if the point has left the sufficiently "deep" region;
+   *        `None`, if the described points only exist outside of or only exists inside of the critical region
+   */
+  def testStepIntoInteraction(body: PieceOfEnvironment, pos: Vector3, previousPos: Vector3, varDepth: Float): Option[Boolean] = {
+    val isEncroaching = body.collision.testInteraction(pos, varDepth)
+    val wasEncroaching = body.collision.testInteraction(previousPos, varDepth)
+    if (isEncroaching != wasEncroaching) {
+      Some(isEncroaching)
+    } else {
+      None
     }
   }
 }
@@ -171,34 +124,12 @@ final case class GantryDenialField(
                                     mountPoint: Int,
                                     collision: EnvironmentCollision
                                   ) extends PieceOfEnvironment {
-  def attribute = EnvironmentAttribute.GantryDenialField
+  def attribute: EnvironmentTrait = EnvironmentAttribute.GantryDenialField
 }
 
 final case class GeneralMovementField(
                                        triggerAction: PlanetSideGameObject => Unit,
                                        collision: EnvironmentCollision
                                      ) extends PieceOfEnvironment {
-  def attribute = EnvironmentAttribute.MovementFieldTrigger
-}
-
-object PieceOfEnvironment {
-  /**
-    * Did the test point move into or leave the bounds of the represented environment since its previous test?
-    * @param body the environment
-    * @param pos the test point
-    * @param previousPos the previous test point which is being compared against
-    * @param varDepth how far "into" the environment the point must be
-    * @return `Some(true)`, if the point has become sufficiently "deep";
-    *        `Some(false)`, if the point has left the sufficiently "deep" region;
-    *        `None`, if the described points only exist outside of or only exists inside of the critical region
-    */
-  def testStepIntoInteraction(body: PieceOfEnvironment, pos: Vector3, previousPos: Vector3, varDepth: Float): Option[Boolean] = {
-    val isEncroaching = body.collision.testInteraction(pos, varDepth)
-    val wasEncroaching = body.collision.testInteraction(previousPos, varDepth)
-    if (isEncroaching != wasEncroaching) {
-      Some(isEncroaching)
-    } else {
-      None
-    }
-  }
+  def attribute: EnvironmentTrait = EnvironmentAttribute.MovementFieldTrigger
 }
