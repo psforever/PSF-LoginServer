@@ -9,6 +9,7 @@ Code Contributors
 * aphedox
 * L-11
 * xTriad (initial database schema)
+* Jakob
 
 Packet Capturing 2015-2016 (in order of most packets captured)
 =================
