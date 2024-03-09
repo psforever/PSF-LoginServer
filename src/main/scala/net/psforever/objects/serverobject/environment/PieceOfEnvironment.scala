@@ -18,12 +18,12 @@ trait PieceOfEnvironment
 
   /**
     * Is the test point "within" the bounds of the represented environment?
-    * @param pos the test point
+    * @param obj entity to test
     * @param varDepth how far "into" the environment the point must be
     * @return `true`, if the point is sufficiently "deep";
     *        `false`, otherwise
     */
-  def testInteraction(pos: Vector3, varDepth: Float): Boolean = collision.testInteraction(pos, varDepth)
+  def testInteraction(obj: PlanetSideGameObject, varDepth: Float): Boolean = collision.testInteraction(obj, varDepth)
 
   /**
     * Did the test point move into or leave the bounds of the represented environment since its previous test?
@@ -34,8 +34,8 @@ trait PieceOfEnvironment
     *        `Some(false)`, if the point has left the sufficiently "deep" region;
     *        `None`, otherwise
     */
-  def testStepIntoInteraction(pos: Vector3, previousPos: Vector3, varDepth: Float): Option[Boolean] =
-    PieceOfEnvironment.testStepIntoInteraction(body = this, pos, previousPos, varDepth)
+  def testStepIntoInteraction(pos: Vector3, obj: PlanetSideGameObject, previousPos: Vector3, varDepth: Float): Option[Boolean] =
+    PieceOfEnvironment.testStepIntoInteraction(body = this, obj, pos, previousPos, varDepth)
 
   def Position: Vector3 = collision.bounding.center.asVector3 + Vector3.z(collision.altitude)
 
@@ -61,9 +61,19 @@ object PieceOfEnvironment {
    *        `Some(false)`, if the point has left the sufficiently "deep" region;
    *        `None`, if the described points only exist outside of or only exists inside of the critical region
    */
-  def testStepIntoInteraction(body: PieceOfEnvironment, pos: Vector3, previousPos: Vector3, varDepth: Float): Option[Boolean] = {
-    val isEncroaching = body.collision.testInteraction(pos, varDepth)
-    val wasEncroaching = body.collision.testInteraction(previousPos, varDepth)
+  def testStepIntoInteraction(
+                               body: PieceOfEnvironment,
+                               obj: PlanetSideGameObject,
+                               pos: Vector3,
+                               previousPos: Vector3,
+                               varDepth: Float
+                             ): Option[Boolean] = {
+    val originalPosition = obj.Position
+    obj.Position = pos
+    val isEncroaching = body.collision.testInteraction(obj, varDepth)
+    obj.Position = previousPos
+    val wasEncroaching = body.collision.testInteraction(obj, varDepth)
+    obj.Position = originalPosition
     if (isEncroaching != wasEncroaching) {
       Some(isEncroaching)
     } else {

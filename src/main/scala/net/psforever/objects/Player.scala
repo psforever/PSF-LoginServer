@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.avatar.interaction.{WithGantry, WithLava, WithWater}
+import net.psforever.objects.avatar.interaction.{WithEntrance, WithGantry, WithLava, WithWater}
 import net.psforever.objects.avatar.{Avatar, LoadoutManager, SpecialCarry}
 import net.psforever.objects.ballistics.InteractWithRadiationClouds
 import net.psforever.objects.ce.{Deployable, InteractWithMines, InteractWithTurrets}
@@ -12,6 +12,7 @@ import net.psforever.objects.serverobject.{PlanetSideServerObject, environment}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.serverobject.environment.interaction.common.{WithDeath, WithMovementTrigger}
+import net.psforever.objects.serverobject.interior.InteriorAwareFromInteraction
 import net.psforever.objects.serverobject.mount.MountableEntity
 import net.psforever.objects.vital.resistance.ResistanceProfile
 import net.psforever.objects.vital.{HealFromEquipment, InGameActivity, RepairFromEquipment, Vitality}
@@ -35,9 +36,11 @@ class Player(var avatar: Avatar)
     with Container
     with JammableUnit
     with ZoneAware
+    with InteriorAwareFromInteraction
     with AuraContainer
     with MountableEntity {
   interaction(environment.interaction.InteractWithEnvironment(Seq(
+    new WithEntrance(avatar.name),
     new WithWater(avatar.name),
     new WithLava(),
     new WithDeath(),

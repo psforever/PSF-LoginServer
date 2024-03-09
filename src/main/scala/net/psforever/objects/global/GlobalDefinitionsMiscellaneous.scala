@@ -483,7 +483,7 @@ object GlobalDefinitionsMiscellaneous {
     repair_silo.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.RepairSilo
     repair_silo.Damageable = false
     repair_silo.Repairable = false
-
+    
     recharge_terminal.Name = "recharge_terminal"
     recharge_terminal.Interval = 1000
     recharge_terminal.UseRadius = 20
@@ -598,21 +598,91 @@ object GlobalDefinitionsMiscellaneous {
     lock_external.Damageable = false
     lock_external.Repairable = false
 
+    amp_cap_door.Name = "amp_cap_door"
+
+    ancient_door.Name = "ancient_door"
+    ancient_door.geometryInteractionRadius = Some(1)
+
+    ancient_garage_door.Name = "ancient_garage_door"
+    ancient_garage_door.geometryInteractionRadius = Some(1)
+
+    cryo_med_door.Name = "cryo_med_door"
+
+    cryo_room_door.Name = "cryo_room_door"
+
     door.Name = "door"
-    door.Damageable = false
-    door.Repairable = false
+
+    door_airlock.Name = "door_airlock"
+
+    door_airlock_orb.Name = "door_airlock_orb"
+
+    door_dsp.Name = "door_dsp"
+
+    door_garage.Name = "door_garage"
+
+    door_interior.Name = "door_interior"
+
+    door_mb.Name = "door_mb"
+
+    door_mb_garage.Name = "door_mb_garage"
+
+    door_mb_main.Name = "door_mb_main"
+
+    door_mb_orb.Name = "door_mb_orb"
+
+    door_mb_side.Name = "door_mb_side"
+
+    door_nc_garage.Name = "door_nc_garage"
+
+    door_nc_rotating.Name = "door_nc_rotating"
+
+    door_ncside.Name = "door_ncside"
+
+    door_orbspawn.Name = "door_orbspawn"
 
     door_spawn_mb.Name = "door_spawn_mb"
     door_spawn_mb.Damageable = true
-    door_spawn_mb.Repairable = false
+
+    garage_door.Name = "garage_door"
+
+    gr_door_airlock.Name = "gr_door_airlock"
+
+    gr_door_ext.Name = "gr_door_ext"
+    gr_door_ext.geometryInteractionRadius = Some(1)
+
+    gr_door_garage_ext.Name = "gr_door_garage_ext"
+    gr_door_garage_ext.geometryInteractionRadius = Some(1)
+
+    gr_door_garage_int.Name = "gr_door_garage_int"
+
+    gr_door_int.Name = "gr_door_int"
+
+    gr_door_main.Name = "gr_door_main"
+    gr_door_main.geometryInteractionRadius = Some(1)
+
+    gr_door_mb_ext.Name = "gr_door_mb_ext"
+    gr_door_mb_ext.geometryInteractionRadius = Some(1)
+
+    gr_door_mb_int.Name = "gr_door_mb_int"
+
+    gr_door_mb_lrg.Name = "gr_door_mb_lrg"
+    gr_door_mb_lrg.geometryInteractionRadius = Some(1)
+
+    gr_door_mb_obsd.Name = "gr_door_mb_obsd"
 
     gr_door_mb_orb.Name = "gr_door_mb_orb"
-    gr_door_mb_orb.Damageable = false
-    gr_door_mb_orb.Repairable = false
+
+    gr_door_med.Name = "gr_door_med"
+
+    main_door.Name = "main_door"
+
+    shield_door.Name = "shield_door"
 
     spawn_tube_door.Name = "spawn_tube_door"
     spawn_tube_door.Damageable = true
-    spawn_tube_door.Repairable = false
+
+    spawn_tube_door_coffin.Name = "spawn_tube_door_coffin"
+    spawn_tube_door_coffin.Damageable = true
 
     resource_silo.Name = "resource_silo"
     resource_silo.Damageable = false

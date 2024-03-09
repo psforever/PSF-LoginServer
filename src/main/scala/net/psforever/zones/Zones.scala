@@ -431,16 +431,15 @@ object Zones {
             .addLocalObject(obj.guid, Locker.Constructor(obj.position), owningBuildingGuid = ownerGuid)
 
         case "lock_external" | "lock_garage" | "lock_small" =>
-          val closestDoor = doors.minBy(d => Vector3.Distance(d.position, obj.position))
-
-          // Since tech plant garage locks are the only type where the lock does not face the same direction as the door we need to apply an offset for those, otherwise the door won't operate properly when checking inside/outside angles.
-          val yawOffset = if (obj.objectType == "lock_garage") 90 else 0
-
+          val position = obj.position
+          val closestDoor = doors.minBy(d => Vector3.Distance(d.position, position))
           // Ignore duplicate lock objects, for example Sobek (and other Dropship Centers) CC door has 2 locks stacked on top of each other
           if (!zoneMap.doorToLock.keys.iterator.contains(closestDoor.guid)) {
+            // Since tech plant garage locks are the only type where the lock does not face the same direction as the door we need to apply an offset for those, otherwise the door won't operate properly when checking inside/outside angles.
+            val yawOffset = if (obj.objectType == "lock_garage") 90 else 0
             zoneMap.addLocalObject(
               obj.guid,
-              IFFLock.Constructor(obj.position, Vector3(0, 0, obj.yaw + yawOffset)),
+              IFFLock.Constructor(position, Vector3.z(obj.yaw + yawOffset)),
               owningBuildingGuid = ownerGuid,
               doorGuid = closestDoor.guid
             )

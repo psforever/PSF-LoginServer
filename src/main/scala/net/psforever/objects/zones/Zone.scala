@@ -52,6 +52,7 @@ import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.blockmap.BlockMap
 import net.psforever.services.Service
+import net.psforever.zones.Zones
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -664,13 +665,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
           case (Some(_), _) | (None, _) | (_, None) => ; //let ZoneActor's sanity check catch this error
         }
     })
-    //doors with nearby locks use those locks as their unlocking mechanism
-    //let ZoneActor's sanity check catch missing entities
-    map.doorToLock
-      .map { case(doorGUID: Int, lockGUID: Int) => (guid(doorGUID), guid(lockGUID)) }
-      .collect { case (Some(door: Door), Some(lock: IFFLock)) =>
-        door.Actor ! Door.UpdateMechanism(IFFLock.testLock(lock))
-      }
+    Zone.AssignDoors(zone = this)
     //ntu management (eventually move to a generic building startup function)
     buildings.values
       .flatMap(_.Amenities.filter(_.Definition == GlobalDefinitions.resource_silo))
@@ -882,6 +877,124 @@ object Zone {
     */
   def apply(id: String, map: ZoneMap, number: Int): Zone = {
     new Zone(id, map, number)
+  }
+
+  private def AssignDoors(zone: Zone): Unit = {
+    //let ZoneActor's sanity check catch any missing entities
+    val map = zone.map
+    val guid = zone.guid
+    val invalidOutwards = Vector3(0,0,-1) //down
+    if (map.cavern) {
+      //cavern doors
+      //todo what do?
+      //almost all are type ancient_door and don't have many hints to determine outward-ness; there are no IFF locks
+    } else if (
+      PlanetSideEmpire.values
+        .filterNot(_ == PlanetSideEmpire.NEUTRAL)
+        .exists(fac => Zones.sanctuaryZoneNumber(fac) == zone.Number)
+    ) {
+      //sanctuary doors
+      AssignIFFLockedDoors(zone)
+      //spawn building doors
+      val buildings = zone.Buildings.values
+      val amenityList = buildings
+        .collect {
+          case b
+            if b.Definition.Name.startsWith("VT_building_") =>
+            val amenities = b.Amenities
+            (
+              amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_ext),
+              amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_lrg),
+              amenities.filter(_.Definition == GlobalDefinitions.order_terminal),
+              amenities.filter(_.Definition == GlobalDefinitions.respawn_tube_sanctuary)
+            )
+        }
+      amenityList.foreach { case (entranceDoors, _, terminals, tubes) =>
+        entranceDoors.foreach { door =>
+          val doorPosition = door.Position
+          val closestTerminal = terminals.minBy(t => Vector3.DistanceSquared(doorPosition, t.Position))
+          val closestTube = tubes.minBy(t => Vector3.DistanceSquared(doorPosition, t.Position))
+          door.asInstanceOf[Door].Outwards = Vector3.Unit(closestTerminal.Position.xy - closestTube.Position.xy)
+        }
+        //todo training zone warp chamber doors
+      }
+      //hart building doors
+      buildings
+        .collect {
+          case b
+            if b.Definition.Name.startsWith("orbital_building_") =>
+            val amenities = b.Amenities
+            (
+              amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_ext),
+              amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_orb)
+            )
+        }
+        .foreach { case (entranceDoors, hartDoors) =>
+          entranceDoors.foreach { door =>
+            val doorPosition = door.Position
+            val closestHartDoor = hartDoors.minBy(t => Vector3.DistanceSquared(doorPosition, t.Position))
+            door.asInstanceOf[Door].Outwards = Vector3.Unit(doorPosition.xy - closestHartDoor.Position.xy)
+          }
+        }
+    } else {
+      //above ground zone doors
+      AssignIFFLockedDoors(zone)
+      //for major facilities, external doors in the courtyard are without locks but are paired in opposing directions
+      val unpairedDoors = zone.Buildings
+        .values
+        .collect {
+          case b
+            if b.BuildingType == StructureType.Facility && b.Amenities.nonEmpty =>
+            b.Amenities.collect {
+              case d: Door
+                if d.Definition == GlobalDefinitions.gr_door_ext && d.Outwards == Vector3.Zero =>
+                d
+            }
+        }
+      var pairedDoors = Seq[(Door, Door)]()
+      unpairedDoors.foreach { buildingUnPairedDoors =>
+        var volatileUnpairedDoors = buildingUnPairedDoors
+        while (volatileUnpairedDoors.size > 1) {
+          val sampleDoor = volatileUnpairedDoors.head
+          val sampleDoorPosition = sampleDoor.Position.xy
+          val distances = Float.MaxValue +: volatileUnpairedDoors
+            .map(d => Vector3.DistanceSquared(d.Position.xy, sampleDoorPosition))
+            .drop(1)
+          val min = distances.min
+          val indexOfClosestDoor = distances.indexWhere(_ == min)
+          val otherDoor = volatileUnpairedDoors(indexOfClosestDoor)
+          volatileUnpairedDoors = volatileUnpairedDoors.slice(1, indexOfClosestDoor) ++ volatileUnpairedDoors.drop(indexOfClosestDoor + 1)
+          pairedDoors = pairedDoors :+ (sampleDoor, otherDoor)
+        }
+        volatileUnpairedDoors.foreach { door =>
+          door.Outwards = invalidOutwards
+        }
+      }
+      pairedDoors.foreach { case (door1, door2) =>
+        //give each paired courtyard door an outward-ness
+        val outwards = Vector3.Unit(door1.Position.xy - door2.Position.xy)
+        door1.Outwards = outwards
+        door2.Outwards = Vector3.neg(outwards)
+      }
+      //bunker doors do not define an interior
+    }
+  }
+
+  private def AssignIFFLockedDoors(zone: Zone): Unit = {
+    val map = zone.map
+    val guid = zone.guid
+    val invalidOutwards = Vector3(0,0,-1) //down
+    //doors with nearby locks use those locks as their unlocking mechanism and their outwards indication
+    map.doorToLock
+      .map { case (doorGUID: Int, lockGUID: Int) => (guid(doorGUID), guid(lockGUID)) }
+      .collect {
+        case (Some(door: Door), Some(lock: IFFLock)) =>
+          door.Outwards = lock.Outwards
+          door.Actor ! Door.UpdateMechanism(IFFLock.testLock(lock))
+        case (Some(door: Door), _) =>
+          door.Outwards = invalidOutwards
+        case _ => ()
+      }
   }
 
   object Population {

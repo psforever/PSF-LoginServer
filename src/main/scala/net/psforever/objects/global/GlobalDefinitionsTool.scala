@@ -9,7 +9,7 @@ import net.psforever.objects.definition.converter._
 import net.psforever.objects.equipment._
 import net.psforever.objects.inventory.InventoryTile
 
-object GlobalDefinitionsTools {
+object GlobalDefinitionsTool {
   import GlobalDefinitions._
 
   /**

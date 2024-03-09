@@ -1,7 +1,7 @@
 // Copyright (c) 2020-2024 PSForever
 package net.psforever.objects.serverobject.environment
 
-import enumeratum.{Enum, EnumEntry}
+import net.psforever.objects.serverobject.interior.InteriorAware
 import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.vital.Vitality
 import net.psforever.types.Vector3
@@ -9,14 +9,11 @@ import net.psforever.types.Vector3
 /**
  * A general description of environment and its interactive possibilities.
  */
-sealed abstract class EnvironmentTrait extends EnumEntry {
+abstract class EnvironmentTrait {
   def canInteractWith(obj: PlanetSideGameObject): Boolean
 }
 
-object EnvironmentAttribute extends Enum[EnvironmentTrait] {
-  /** glue connecting `EnumEntry` to `Enumeration` */
-  val values: IndexedSeq[EnvironmentTrait] = findValues
-
+object EnvironmentAttribute {
   case object Water extends EnvironmentTrait {
     /** water can only interact with objects that are negatively affected by being exposed to water;
      * it's better this way */
@@ -68,6 +65,16 @@ object EnvironmentAttribute extends Enum[EnvironmentTrait] {
         case p: Player  => p.isAlive && p.Position != Vector3.Zero
         case v: Vehicle => !v.Destroyed && v.Position != Vector3.Zero
         case _          => false
+      }
+    }
+  }
+
+  case object InteriorField
+    extends EnvironmentTrait {
+    def canInteractWith(obj: PlanetSideGameObject): Boolean = {
+      obj match {
+        case _: InteriorAware => true
+        case _                => false
       }
     }
   }
