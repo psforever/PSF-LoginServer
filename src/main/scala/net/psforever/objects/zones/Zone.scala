@@ -40,6 +40,7 @@ import net.psforever.objects.guid.pool.NumberPool
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.interior.{InteriorAware, Sidedness}
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
@@ -882,8 +883,6 @@ object Zone {
   private def AssignDoors(zone: Zone): Unit = {
     //let ZoneActor's sanity check catch any missing entities
     val map = zone.map
-    val guid = zone.guid
-    val invalidOutwards = Vector3(0,0,-1) //down
     if (map.cavern) {
       //cavern doors
       //todo what do?
@@ -965,9 +964,6 @@ object Zone {
           val otherDoor = volatileUnpairedDoors(indexOfClosestDoor)
           volatileUnpairedDoors = volatileUnpairedDoors.slice(1, indexOfClosestDoor) ++ volatileUnpairedDoors.drop(indexOfClosestDoor + 1)
           pairedDoors = pairedDoors :+ (sampleDoor, otherDoor)
-        }
-        volatileUnpairedDoors.foreach { door =>
-          door.Outwards = invalidOutwards
         }
       }
       pairedDoors.foreach { case (door1, door2) =>
@@ -1455,7 +1451,10 @@ object Zone {
                       source: PlanetSideGameObject with Vitality,
                       damagePropertiesBySource: DamageWithPosition
                     ): List[PlanetSideServerObject with Vitality] = {
-    findAllTargets(zone, source.Position, damagePropertiesBySource).filter { target => target ne source }
+    allOnSameSide(
+      source,
+      findAllTargets(zone, source.Position, damagePropertiesBySource).filter { target => target ne source }
+    )
   }
 
   /**
@@ -1477,7 +1476,28 @@ object Zone {
                       source: PlanetSideGameObject with Vitality,
                       damagePropertiesBySource: DamageWithPosition
                     ): List[PlanetSideServerObject with Vitality] = {
-    findAllTargets(zone, sourcePosition, damagePropertiesBySource).filter { target => target ne source }
+    allOnSameSide(
+      source,
+      findAllTargets(zone, sourcePosition, damagePropertiesBySource).filter { target => target ne source }
+    )
+  }
+
+  private def allOnSameSide(
+                             source: PlanetSideGameObject with Vitality,
+                             targets: List[PlanetSideServerObject with Vitality]
+                           ): List[PlanetSideServerObject with Vitality] = {
+    source match {
+      case awareSource: InteriorAware =>
+        val awareSide = awareSource.WhichSide
+        targets.flatMap {
+          case awareTarget: InteriorAware if !Sidedness.equals(awareSide, awareTarget.WhichSide) =>
+            None
+          case anyTarget =>
+            Some(anyTarget)
+        }
+      case _ =>
+        targets
+    }
   }
 
   /**
@@ -1524,7 +1544,9 @@ object Zone {
                        target: PlanetSideGameObject with FactionAffinity with Vitality
                      ): DamageInteraction = {
     explosionDamage(instigation, target.Position)(source, target)
-  }/**
+  }
+
+  /**
     * na
     * @param instigation what previous event happened, if any, that caused this explosion
     * @param explosionPosition the coordinates of the detected explosion

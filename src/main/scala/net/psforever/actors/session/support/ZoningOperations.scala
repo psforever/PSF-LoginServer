@@ -10,6 +10,7 @@ import net.psforever.login.WorldSession
 import net.psforever.objects.avatar.BattleRank
 import net.psforever.objects.avatar.scoring.{CampaignStatistics, ScoreCard, SessionStatistics}
 import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.mount.Seat
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
@@ -2630,15 +2631,19 @@ class ZoningOperations(
       } else {
         Zones.zones.find { _.id.equals(zoneId) }.orElse(Some(Zone.Nowhere)).get.Number
       }
+      val toSide = physSpawnPoint.map(_.Owner) match {
+        case Some(_: WarpGate) => Sidedness.OutsideOf
+        case Some(_: Building) => Sidedness.InsideOf
+        case Some(v: Vehicle) => v.WhichSide //though usually OutsideOf
+        case _ => Sidedness.StrictlyBetweenSides //todo needs better determination
+      }
       val toSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) }
       respawnTimer = context.system.scheduler.scheduleOnce(respawnTime) {
         if (player.isBackpack) { // if the player is dead, he is handled as dead infantry, even if he died in a vehicle
           // new player is spawning
           val newPlayer = RespawnClone(player)
-          newPlayer.Position = pos
-          newPlayer.Orientation = ori
           newPlayer.LogActivity(SpawningActivity(PlayerSource(newPlayer), toZoneNumber, toSpawnPoint))
-          LoadZoneAsPlayer(newPlayer, zoneId)
+          LoadZoneAsPlayUsing(newPlayer, pos, ori, toSide, zoneId)
         } else {
           avatarActor ! AvatarActor.DeactivateActiveImplants()
           val betterSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity with InGameHistory => o }
@@ -2646,6 +2651,7 @@ class ZoningOperations(
             case Some(vehicle: Vehicle) => // driver or passenger in vehicle using a warp gate, or a droppod
               InGameHistory.SpawnReconstructionActivity(vehicle, toZoneNumber, betterSpawnPoint)
               InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
+              vehicle.WhichSide = toSide
               LoadZoneInVehicle(vehicle, pos, ori, zoneId)
 
             case _ if player.HasGUID => // player is deconstructing self or instant action
@@ -2655,19 +2661,36 @@ class ZoningOperations(
                 continent.id,
                 AvatarAction.ObjectDelete(player_guid, player_guid, 4)
               )
-              player.Position = pos
-              player.Orientation = ori
               InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
-              LoadZoneAsPlayer(player, zoneId)
+              LoadZoneAsPlayUsing(player, pos, ori, toSide, zoneId)
 
             case _ => //player is logging in
-              player.Position = pos
-              player.Orientation = ori
               InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
-              LoadZoneAsPlayer(player, zoneId)
+              LoadZoneAsPlayUsing(player, pos, ori, toSide, zoneId)
           }
         }
       }
+    }
+
+    /**
+     * na
+     * @param target player being spawned
+     * @param position where player is being placed in the game wqrld
+     * @param orientation in what direction the player is facing in the game world
+     * @param onThisSide description of the containing environment
+     * @param goingToZone common designation for the zone
+     */
+    private def LoadZoneAsPlayUsing(
+                                     target: Player,
+                                     position: Vector3,
+                                     orientation: Vector3,
+                                     onThisSide: Sidedness,
+                                     goingToZone: String
+                                   ): Unit = {
+      target.Position = position
+      target.Orientation = orientation
+      target.WhichSide = onThisSide
+      LoadZoneAsPlayer(target, goingToZone)
     }
 
     /**

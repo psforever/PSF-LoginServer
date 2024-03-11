@@ -319,11 +319,12 @@ class VehicleControl(vehicle: Vehicle)
       case Some(seatNumber) =>
         val vsrc = VehicleSource(vehicle)
         user.LogActivity(VehicleMountActivity(vsrc, PlayerSource.inSeat(user, vsrc, seatNumber), vehicle.Zone.Number))
+        obj.WhichSide = user.WhichSide
         //if the driver mount, change ownership if that is permissible for this vehicle
         if (seatNumber == 0 && !obj.OwnerName.contains(user.Name) && obj.Definition.CanBeOwned.nonEmpty) {
           //whatever vehicle was previously owned
           vehicle.Zone.GUID(user.avatar.vehicle) match {
-            case Some(v : Vehicle) =>
+            case Some(v: Vehicle) =>
               v.Actor ! Vehicle.Ownership(None)
             case _ =>
               user.avatar.vehicle = None

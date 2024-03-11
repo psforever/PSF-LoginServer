@@ -5,7 +5,7 @@ import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.geometry.d2.Rectangle
 import net.psforever.objects.geometry.d3.VolumetricGeometry
 import net.psforever.objects.serverobject.doors.Door
-import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, EnvironmentCollision, EnvironmentTrait, PieceOfEnvironment}
+import net.psforever.objects.serverobject.environment.EnvironmentCollision
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
 

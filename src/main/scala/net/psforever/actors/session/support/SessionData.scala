@@ -641,6 +641,7 @@ class SessionData(
         val dObj: Deployable = Deployables.Make(ammoType)()
         dObj.Position = pos
         dObj.Orientation = orient
+        dObj.WhichSide = player.WhichSide
         dObj.Faction = player.Faction
         dObj.AssignOwnership(player)
         val tasking: TaskBundle = dObj match {

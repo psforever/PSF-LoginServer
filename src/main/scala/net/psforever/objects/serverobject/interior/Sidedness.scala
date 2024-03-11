@@ -1,22 +1,60 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.objects.serverobject.interior
 
-sealed trait Sidedness
+import net.psforever.objects.serverobject.doors.Door
 
-sealed trait Inside
+sealed trait SidenessComparison
 
-sealed trait Outside
-
-sealed trait InBetween extends Inside with Outside
+sealed trait Sidedness {
+  protected def value: SidenessComparison
+}
 
 object Sidedness {
-  case object InsideOf extends Inside with Sidedness
+  sealed trait Inside
 
-  case object OutsideOf extends Outside with Sidedness
+  sealed trait Outside
 
-  case object InBetweenSides extends InBetween with Sidedness
+  /* Comparison values */
+  private case object IsInside extends SidenessComparison
+
+  private case object IsOutside extends SidenessComparison
+
+  private case object IsBetween extends SidenessComparison
+
+  /* Immutable value containers */
+  case object InsideOf extends Inside with Sidedness {
+    protected def value: SidenessComparison = IsInside
+  }
+
+  case object OutsideOf extends Outside with Sidedness {
+    protected def value: SidenessComparison = IsOutside
+  }
+
+  case object StrictlyBetweenSides extends Inside with Outside with Sidedness {
+    protected def value: SidenessComparison = IsBetween
+  }
+
+  /* Mutable value container */
+  class InBetweenSides(
+                        private val door: Door,
+                        private val strictly: Sidedness
+                      ) extends Inside with Outside with Sidedness {
+    protected def value: SidenessComparison = {
+      if (door.isOpen) {
+        IsBetween
+      } else {
+        strictly.value
+      }
+    }
+  }
+
+  object InBetweenSides {
+    def apply(door: Door, strictly: Sidedness): InBetweenSides = new InBetweenSides(door, strictly)
+  }
 
   def equals(a: Sidedness, b: Sidedness): Boolean = {
-    (a eq b) || a == Sidedness.InBetweenSides || b == Sidedness.InBetweenSides
+    val avalue = a.value
+    val bvalue = b.value
+    (avalue eq bvalue) || avalue == IsBetween || bvalue == IsBetween
   }
 }

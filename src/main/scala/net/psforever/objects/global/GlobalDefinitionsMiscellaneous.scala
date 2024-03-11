@@ -648,25 +648,31 @@ object GlobalDefinitionsMiscellaneous {
     gr_door_airlock.Name = "gr_door_airlock"
 
     gr_door_ext.Name = "gr_door_ext"
-    gr_door_ext.geometryInteractionRadius = Some(1)
+    gr_door_ext.geometryInteractionRadius = Some(1.9f)
 
     gr_door_garage_ext.Name = "gr_door_garage_ext"
-    gr_door_garage_ext.geometryInteractionRadius = Some(1)
+    gr_door_garage_ext.initialOpeningDistance = 8f
+    gr_door_garage_ext.continuousOpenDistance = 9f
+    gr_door_garage_ext.geometryInteractionRadius = Some(11)
+    gr_door_garage_ext.geometryInteractionHeight = Some(-11)
+    gr_door_garage_ext.geometryInteractionCenterOn = true
 
     gr_door_garage_int.Name = "gr_door_garage_int"
+    gr_door_garage_int.initialOpeningDistance = 8f
+    gr_door_garage_int.continuousOpenDistance = 9f
 
     gr_door_int.Name = "gr_door_int"
 
     gr_door_main.Name = "gr_door_main"
-    gr_door_main.geometryInteractionRadius = Some(1)
+    gr_door_main.geometryInteractionRadius = Some(2.75f)
 
     gr_door_mb_ext.Name = "gr_door_mb_ext"
-    gr_door_mb_ext.geometryInteractionRadius = Some(1)
+    gr_door_mb_ext.geometryInteractionRadius = Some(2)
 
     gr_door_mb_int.Name = "gr_door_mb_int"
 
     gr_door_mb_lrg.Name = "gr_door_mb_lrg"
-    gr_door_mb_lrg.geometryInteractionRadius = Some(1)
+    gr_door_mb_lrg.geometryInteractionRadius = Some(2.5f)
 
     gr_door_mb_obsd.Name = "gr_door_mb_obsd"
 

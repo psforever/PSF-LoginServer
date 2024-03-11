@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.doors
 
 import net.psforever.objects.geometry.GeometryForm
+import net.psforever.objects.geometry.d3.VolumetricGeometry
 import net.psforever.objects.serverobject.structures.AmenityDefinition
 
 /**
@@ -18,12 +19,15 @@ class DoorDefinition(objectId: Int)
 
   var geometryInteractionRadius: Option[Float] = None
   var geometryInteractionHeight: Option[Float] = None
+  var geometryInteractionCenterOn: Boolean = false
 
-  Geometry = {
-   (geometryInteractionRadius, geometryInteractionHeight) match {
-     case (Some(r), Some(h)) => GeometryForm.representByCylinder(r, h)
-     case (Some(r), None)    => GeometryForm.representBySphereOnBase(r)
-     case _                  => super.Geometry
+  override def Geometry: Any => VolumetricGeometry = {
+   (geometryInteractionRadius, geometryInteractionHeight, geometryInteractionCenterOn) match {
+     case (Some(r), Some(h), false) => GeometryForm.representByCylinder(r, h)
+     case (Some(r), Some(h), true)  => GeometryForm.representByRaisedCylinder(r, h)
+     case (Some(r), None, false)    => GeometryForm.representBySphereOnBase(r)
+     case (Some(r), None, true)     => GeometryForm.representBySphere(r)
+     case _                         => super.Geometry
     }
   }
 }

@@ -40,7 +40,7 @@ class Player(var avatar: Avatar)
     with AuraContainer
     with MountableEntity {
   interaction(environment.interaction.InteractWithEnvironment(Seq(
-    new WithEntrance(avatar.name),
+    new WithEntrance(),
     new WithWater(avatar.name),
     new WithLava(),
     new WithDeath(),

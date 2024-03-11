@@ -5,6 +5,7 @@ import net.psforever.objects._
 import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.interior.TraditionalInteriorAware
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.objects.zones.ZoneAware
@@ -18,7 +19,8 @@ trait BaseDeployable
     with BlockMapEntity
     with Vitality
     with OwnableByPlayer
-    with ZoneAware {
+    with ZoneAware
+    with TraditionalInteriorAware {
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var shields: Int = 0
 

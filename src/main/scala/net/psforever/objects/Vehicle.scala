@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.avatar.interaction.WithEntrance
 import net.psforever.objects.ce.{InteractWithMines, InteractWithTurrets}
 import net.psforever.objects.definition.{ToolDefinition, VehicleDefinition}
 import net.psforever.objects.equipment.{Equipment, EquipmentSize, EquipmentSlot, JammableUnit}
@@ -12,9 +13,10 @@ import net.psforever.objects.serverobject.aura.AuraContainer
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.environment.interaction.common.{WithDeath, WithMovementTrigger}
 import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.interior.{InteriorAwareFromInteraction, Sidedness}
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
-import net.psforever.objects.vehicles.interaction.{WithLava, WithWater}
+import net.psforever.objects.vehicles.interaction.{WithEntranceInVehicle, WithLava, WithWater}
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
@@ -90,8 +92,10 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
       with CommonNtuContainer
       with Container
       with AuraContainer
-      with MountableEntity {
+      with MountableEntity
+      with InteriorAwareFromInteraction {
   interaction(environment.interaction.InteractWithEnvironment(Seq(
+    new WithEntrance(),
     new WithWater(),
     new WithLava(),
     new WithDeath(),
@@ -511,6 +515,12 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   override def BailProtection_=(protect: Boolean): Boolean = {
     !Definition.CanFly && super.BailProtection_=(protect)
+  }
+
+  override def WhichSide_=(thisSide: Sidedness): Sidedness = {
+    val toSide = super.WhichSide_=(thisSide)
+    (Seats.values ++ CargoHolds.values).flatMap(_.occupants).foreach(_.WhichSide = toSide)
+    toSide
   }
 
   /**

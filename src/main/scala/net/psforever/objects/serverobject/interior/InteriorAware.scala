@@ -12,6 +12,18 @@ trait InteriorAware {
   def WhichSide_=(@unused thisSide: Sidedness): Sidedness
 }
 
+trait TraditionalInteriorAware
+  extends InteriorAware {
+  private var side: Sidedness = Sidedness.StrictlyBetweenSides
+
+  def WhichSide: Sidedness = side
+
+  def WhichSide_=(thisSide: Sidedness): Sidedness = {
+    side = thisSide
+    WhichSide
+  }
+}
+
 trait InteriorAwareFromInteraction
   extends InteriorAware {
   awareness: InteractsWithZone =>
@@ -24,11 +36,11 @@ trait InteriorAwareFromInteraction
   }
 
   def WhichSide: Sidedness = {
-    withEntrance.map(_.ThisSide).getOrElse(Sidedness.InBetweenSides)
+    withEntrance.map(_.WhichSide).getOrElse(Sidedness.StrictlyBetweenSides)
   }
 
   def WhichSide_=(thisSide: Sidedness): Sidedness = {
-    withEntrance.foreach(_.ThisSide = thisSide)
+    withEntrance.foreach(_.WhichSide = thisSide)
     WhichSide
   }
 }
