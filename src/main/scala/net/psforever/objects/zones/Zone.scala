@@ -51,7 +51,7 @@ import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.zones.blockmap.BlockMap
+import net.psforever.objects.zones.blockmap.{BlockMap, SectorPopulation}
 import net.psforever.services.Service
 import net.psforever.zones.Zones
 
@@ -1438,6 +1438,48 @@ object Zone {
   }
 
   /**
+   * na
+   * @param source na
+   * @param damageProperties na
+   * @param targets na
+   * @return na
+   */
+  def allOnSameSide(
+                     source: PlanetSideGameObject,
+                     damageProperties: DamageWithPosition,
+                     targets: List[PlanetSideServerObject with Vitality]
+                   ): List[PlanetSideServerObject with Vitality] = {
+    source match {
+      case awareSource: InteriorAware if !damageProperties.DamageThroughWalls =>
+        allOnSameSide(awareSource.WhichSide, targets)
+      case _ if !damageProperties.DamageThroughWalls =>
+        val sourcePosition = source.Position
+        targets
+          .sortBy(t => Vector3.DistanceSquared(sourcePosition, t.Position))
+          .collectFirst { case awareSource: InteriorAware => allOnSameSide(awareSource.WhichSide, targets) }
+          .getOrElse(targets)
+      case _ =>
+        targets
+    }
+  }
+
+  /**
+   * na
+   * @param side na
+   * @param targets na
+   * @return na
+   */
+  def allOnSameSide(
+                     side: Sidedness,
+                     targets: List[PlanetSideServerObject with Vitality]
+                   ): List[PlanetSideServerObject with Vitality] = {
+    targets.flatMap {
+      case awareTarget: InteriorAware if !Sidedness.equals(side, awareTarget.WhichSide) => None
+      case anyTarget => Some(anyTarget)
+    }
+  }
+
+  /**
     * na
     * @see `DamageWithPosition`
     * @see `Zone.blockMap.sector`
@@ -1451,9 +1493,13 @@ object Zone {
                       source: PlanetSideGameObject with Vitality,
                       damagePropertiesBySource: DamageWithPosition
                     ): List[PlanetSideServerObject with Vitality] = {
-    allOnSameSide(
+    findAllTargets(
+      zone,
       source,
-      findAllTargets(zone, source.Position, damagePropertiesBySource).filter { target => target ne source }
+      source.Position,
+      damagePropertiesBySource,
+      damagePropertiesBySource.DamageRadius,
+      getAllTargets
     )
   }
 
@@ -1461,43 +1507,27 @@ object Zone {
     * na
     * @see `DamageWithPosition`
     * @see `Zone.blockMap.sector`
+    * @param zone   the zone in which the explosion should occur
     * @param sourcePosition a custom position that is used as the origin of the explosion;
     *                       not necessarily related to source
-    * @param zone   the zone in which the explosion should occur
     * @param source a game entity that is treated as the origin and is excluded from results
     * @param damagePropertiesBySource information about the effect/damage
     * @return a list of affected entities
     */
   def findAllTargets(
-                      sourcePosition: Vector3
-                    )
-                    (
                       zone: Zone,
                       source: PlanetSideGameObject with Vitality,
+                      sourcePosition: Vector3,
                       damagePropertiesBySource: DamageWithPosition
                     ): List[PlanetSideServerObject with Vitality] = {
-    allOnSameSide(
+    findAllTargets(
+      zone,
       source,
-      findAllTargets(zone, sourcePosition, damagePropertiesBySource).filter { target => target ne source }
+      sourcePosition,
+      damagePropertiesBySource,
+      damagePropertiesBySource.DamageRadius,
+      getAllTargets
     )
-  }
-
-  private def allOnSameSide(
-                             source: PlanetSideGameObject with Vitality,
-                             targets: List[PlanetSideServerObject with Vitality]
-                           ): List[PlanetSideServerObject with Vitality] = {
-    source match {
-      case awareSource: InteriorAware =>
-        val awareSide = awareSource.WhichSide
-        targets.flatMap {
-          case awareTarget: InteriorAware if !Sidedness.equals(awareSide, awareTarget.WhichSide) =>
-            None
-          case anyTarget =>
-            Some(anyTarget)
-        }
-      case _ =>
-        targets
-    }
   }
 
   /**
@@ -1507,24 +1537,66 @@ object Zone {
     * @param zone   the zone in which the explosion should occur
     * @param sourcePosition a position that is used as the origin of the explosion
     * @param damagePropertiesBySource information about the effect/damage
+    * @param getTargetsFromSector get this list of entities from a sector
     * @return a list of affected entities
     */
   def findAllTargets(
                       zone: Zone,
+                      source: PlanetSideGameObject with Vitality,
                       sourcePosition: Vector3,
-                      damagePropertiesBySource: DamageWithPosition
+                      damagePropertiesBySource: DamageWithPosition,
+                      radius: Float,
+                      getTargetsFromSector: SectorPopulation => List[PlanetSideServerObject with Vitality]
                     ): List[PlanetSideServerObject with Vitality] = {
-    val sourcePositionXY = sourcePosition.xy
-    val sectors = zone.blockMap.sector(sourcePositionXY, damagePropertiesBySource.DamageRadius)
+    allOnSameSide(
+      source,
+      damagePropertiesBySource,
+      findAllTargets(zone, sourcePosition, radius, getTargetsFromSector).filter { target => target ne source }
+    )
+  }
+
+  def findAllTargets(
+                      sector: SectorPopulation,
+                      source: PlanetSideGameObject with Vitality,
+                      damagePropertiesBySource: DamageWithPosition,
+                      getTargetsFromSector: SectorPopulation => List[PlanetSideServerObject with Vitality]
+                    ): List[PlanetSideServerObject with Vitality] = {
+    allOnSameSide(
+      source,
+      damagePropertiesBySource,
+      getTargetsFromSector(sector)
+    )
+  }
+
+  /**
+   * na
+   * @see `DamageWithPosition`
+   * @see `Zone.blockMap.sector`
+   * @param zone   the zone in which the explosion should occur
+   * @param sourcePosition a position that is used as the origin of the explosion
+   * @param radius idistance
+   * @param getTargetsFromSector get this list of entities from a sector
+   * @return a list of affected entities
+   */
+  def findAllTargets(
+                      zone: Zone,
+                      sourcePosition: Vector3,
+                      radius: Float,
+                      getTargetsFromSector: SectorPopulation => List[PlanetSideServerObject with Vitality]
+                    ): List[PlanetSideServerObject with Vitality] = {
+    getTargetsFromSector(zone.blockMap.sector(sourcePosition.xy, radius))
+  }
+
+  def getAllTargets(sector: SectorPopulation): List[PlanetSideServerObject with Vitality] = {
     //collect all targets that can be damaged
     //players
-    val playerTargets = sectors.livePlayerList.filterNot { _.VehicleSeated.nonEmpty }
+    val playerTargets = sector.livePlayerList.filterNot { _.VehicleSeated.nonEmpty }
     //vehicles
-    val vehicleTargets = sectors.vehicleList.filterNot { v => v.Destroyed || v.MountedIn.nonEmpty }
+    val vehicleTargets = sector.vehicleList.filterNot { v => v.Destroyed || v.MountedIn.nonEmpty }
     //deployables
-    val deployableTargets = sectors.deployableList.filterNot { _.Destroyed }
+    val deployableTargets = sector.deployableList.filterNot { _.Destroyed }
     //amenities
-    val soiTargets = sectors.amenityList.collect { case amenity: Vitality if !amenity.Destroyed => amenity }
+    val soiTargets = sector.amenityList.collect { case amenity: Vitality if !amenity.Destroyed => amenity }
     //altogether ...
     playerTargets ++ vehicleTargets ++ deployableTargets ++ soiTargets
   }

@@ -6,6 +6,8 @@ import net.psforever.objects.serverobject.doors.Door
 sealed trait SidenessComparison
 
 sealed trait Sidedness {
+  def opposite: Sidedness
+
   protected def value: SidenessComparison
 }
 
@@ -23,14 +25,17 @@ object Sidedness {
 
   /* Immutable value containers */
   case object InsideOf extends Inside with Sidedness {
+    def opposite: Sidedness = OutsideOf
     protected def value: SidenessComparison = IsInside
   }
 
   case object OutsideOf extends Outside with Sidedness {
+    def opposite: Sidedness = InsideOf
     protected def value: SidenessComparison = IsOutside
   }
 
   case object StrictlyBetweenSides extends Inside with Outside with Sidedness {
+    def opposite: Sidedness = this
     protected def value: SidenessComparison = IsBetween
   }
 
@@ -39,6 +44,7 @@ object Sidedness {
                         private val door: Door,
                         private val strictly: Sidedness
                       ) extends Inside with Outside with Sidedness {
+    def opposite: Sidedness = this
     protected def value: SidenessComparison = {
       if (door.isOpen) {
         IsBetween

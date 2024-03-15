@@ -1040,7 +1040,7 @@ object GlobalDefinitionsProjectile {
 
     maelstrom_grenade_damager.Name = "maelstrom_grenade_damager"
     maelstrom_grenade_damager.ProjectileDamageType = DamageType.Direct
-    //the maelstrom_grenade_damage is something of a broken entity atm
+    //the maelstrom_grenade_damage will be treated as a broken entity
 
     maelstrom_grenade_projectile.Name = "maelstrom_grenade_projectile"
     maelstrom_grenade_projectile.Damage0 = 32
@@ -1049,6 +1049,7 @@ object GlobalDefinitionsProjectile {
     maelstrom_grenade_projectile.LashRadius = 5f
     maelstrom_grenade_projectile.GrenadeProjectile = true
     maelstrom_grenade_projectile.ProjectileDamageType = DamageType.Direct
+    maelstrom_grenade_projectile.DamageThroughWalls = true
     maelstrom_grenade_projectile.InitialVelocity = 30
     maelstrom_grenade_projectile.Lifespan = 2f
     maelstrom_grenade_projectile.DamageProxy = 464 //maelstrom_grenade_damager
@@ -1063,6 +1064,7 @@ object GlobalDefinitionsProjectile {
     maelstrom_grenade_projectile_contact.LashRadius = 5f
     maelstrom_grenade_projectile_contact.GrenadeProjectile = true
     maelstrom_grenade_projectile_contact.ProjectileDamageType = DamageType.Direct
+    maelstrom_grenade_projectile_contact.DamageThroughWalls = true
     maelstrom_grenade_projectile_contact.InitialVelocity = 30
     maelstrom_grenade_projectile_contact.Lifespan = 15f
     maelstrom_grenade_projectile_contact.DamageProxy = 464 //maelstrom_grenade_damager
@@ -1533,6 +1535,7 @@ object GlobalDefinitionsProjectile {
     radiator_cloud.DamageToHealthOnly = true
     radiator_cloud.radiation_cloud = true
     radiator_cloud.ProjectileDamageType = DamageType.Radiation
+    radiator_cloud.DamageThroughWalls = true
     //custom aggravated information
     radiator_cloud.ProjectileDamageTypeSecondary = DamageType.Aggravated
     radiator_cloud.Aggravated = AggravatedDamage(
@@ -2017,6 +2020,7 @@ object GlobalDefinitionsProjectile {
     aphelion_plasma_cloud.DamageRadius = 3f
     aphelion_plasma_cloud.radiation_cloud = true
     aphelion_plasma_cloud.ProjectileDamageType = DamageType.Aggravated
+    //aphelion_plasma_cloud.DamageThroughWalls = true
     aphelion_plasma_cloud.Aggravated = AggravatedDamage(
       AggravatedInfo(DamageType.Splash, 0.5f, 1000),
       Aura.Napalm,
@@ -2229,6 +2233,7 @@ object GlobalDefinitionsProjectile {
     peregrine_particle_cannon_radiation_cloud.DamageRadius = 3f
     peregrine_particle_cannon_radiation_cloud.radiation_cloud = true
     peregrine_particle_cannon_radiation_cloud.ProjectileDamageType = DamageType.Radiation
+    peregrine_particle_cannon_radiation_cloud.DamageThroughWalls = true
     peregrine_particle_cannon_radiation_cloud.Lifespan = 5.0f
     ProjectileDefinition.CalculateDerivedFields(peregrine_particle_cannon_radiation_cloud)
     peregrine_particle_cannon_radiation_cloud.registerAs = "rc-projectiles"

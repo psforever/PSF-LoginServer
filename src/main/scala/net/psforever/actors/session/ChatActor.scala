@@ -224,6 +224,10 @@ class ChatActor(
             session.account.gm || Config.app.development.unprivilegedGmCommands.contains(message.messageType)
 
           (message.messageType, message.recipient.trim, message.contents.trim) match {
+            /** Messages starting with ! are custom chat commands */
+            case (_, _, contents) if contents.startsWith("!") &&
+              customCommandMessages(message, session, chatService, cluster, gmCommandAllowed) => ()
+
             case (CMT_FLY, recipient, contents) if gmCommandAllowed =>
               val flying = contents match {
                 case "on"  => true
@@ -899,10 +903,6 @@ class ChatActor(
                 ZonePopulationUpdateMessage(4, 414, 138, 0, 138, 0, 138, 0, 138, contents.toInt)
               )
 
-            /** Messages starting with ! are custom chat commands */
-            case (_, _, contents) if contents.startsWith("!") &&
-              customCommandMessages(message, session, chatService, cluster, gmCommandAllowed) => ;
-
             case _ =>
               log.warn(s"Unhandled chat message $message")
           }
@@ -1126,7 +1126,7 @@ class ChatActor(
         )
         true
 
-      } else if (contents.startsWith("!loc ")) {
+      } else if (contents.startsWith("!loc")) {
         val continent = session.zone
         val player = session.player
         val loc =
