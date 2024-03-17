@@ -42,8 +42,10 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.interior.{InteriorAware, Sidedness}
 import net.psforever.objects.serverobject.locks.IFFLock
+import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
+import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vehicles.{MountedWeapons, UtilityType}
@@ -662,11 +664,11 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
         (buildings.get(building_id), guid(object_guid)) match {
           case (Some(building), Some(amenity: Amenity)) =>
             building.Amenities = amenity
-            //amenity.History(EntitySpawn(SourceEntry(amenity), this))
-          case (Some(_), _) | (None, _) | (_, None) => ; //let ZoneActor's sanity check catch this error
+          case (Some(_), _) | (None, _) | (_, None) => () //let ZoneActor's sanity check catch this error
         }
     })
-    Zone.AssignDoors(zone = this)
+    Zone.AssignOutwardSideToDoors(zone = this)
+    Zone.AssignSidednessToAmenities(zone = this)
     //ntu management (eventually move to a generic building startup function)
     buildings.values
       .flatMap(_.Amenities.filter(_.Definition == GlobalDefinitions.resource_silo))
@@ -880,11 +882,10 @@ object Zone {
     new Zone(id, map, number)
   }
 
-  private def AssignDoors(zone: Zone): Unit = {
+  private def AssignOutwardSideToDoors(zone: Zone): Unit = {
     //let ZoneActor's sanity check catch any missing entities
-    val map = zone.map
-    if (map.cavern) {
-      //cavern doors
+    //todo there are no doors in the training zones so we may skip that
+    if (zone.map.cavern) {
       //todo what do?
       //almost all are type ancient_door and don't have many hints to determine outward-ness; there are no IFF locks
     } else if (
@@ -892,104 +893,266 @@ object Zone {
         .filterNot(_ == PlanetSideEmpire.NEUTRAL)
         .exists(fac => Zones.sanctuaryZoneNumber(fac) == zone.Number)
     ) {
-      //sanctuary doors
-      AssignIFFLockedDoors(zone)
-      //spawn building doors
-      val buildings = zone.Buildings.values
-      val amenityList = buildings
-        .collect {
-          case b
-            if b.Definition.Name.startsWith("VT_building_") =>
-            val amenities = b.Amenities
-            (
-              amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_ext),
-              amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_lrg),
-              amenities.filter(_.Definition == GlobalDefinitions.order_terminal),
-              amenities.filter(_.Definition == GlobalDefinitions.respawn_tube_sanctuary)
-            )
-        }
-      amenityList.foreach { case (entranceDoors, _, terminals, tubes) =>
-        entranceDoors.foreach { door =>
-          val doorPosition = door.Position
-          val closestTerminal = terminals.minBy(t => Vector3.DistanceSquared(doorPosition, t.Position))
-          val closestTube = tubes.minBy(t => Vector3.DistanceSquared(doorPosition, t.Position))
-          door.asInstanceOf[Door].Outwards = Vector3.Unit(closestTerminal.Position.xy - closestTube.Position.xy)
-        }
-        //todo training zone warp chamber doors
-      }
-      //hart building doors
-      buildings
-        .collect {
-          case b
-            if b.Definition.Name.startsWith("orbital_building_") =>
-            val amenities = b.Amenities
-            (
-              amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_ext),
-              amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_orb)
-            )
-        }
-        .foreach { case (entranceDoors, hartDoors) =>
-          entranceDoors.foreach { door =>
-            val doorPosition = door.Position
-            val closestHartDoor = hartDoors.minBy(t => Vector3.DistanceSquared(doorPosition, t.Position))
-            door.asInstanceOf[Door].Outwards = Vector3.Unit(doorPosition.xy - closestHartDoor.Position.xy)
-          }
-        }
+      AssignOutwardSideToSanctuaryDoors(zone)
     } else {
-      //above ground zone doors
-      AssignIFFLockedDoors(zone)
-      //for major facilities, external doors in the courtyard are without locks but are paired in opposing directions
-      val unpairedDoors = zone.Buildings
-        .values
-        .collect {
-          case b
-            if b.BuildingType == StructureType.Facility && b.Amenities.nonEmpty =>
-            b.Amenities.collect {
-              case d: Door
-                if d.Definition == GlobalDefinitions.gr_door_ext && d.Outwards == Vector3.Zero =>
-                d
-            }
+      AssignOutwardSidetoContinentDoors(zone)
+    }
+  }
+
+  private def AssignOutwardSideToSanctuaryDoors(zone: Zone): Unit = {
+    val map = zone.map
+    val guid = zone.guid
+    AssignOutwardsToIFFLockedDoors(zone)
+    //doors with IFF locks belong to towers and are always between; the locks are always outside
+    map.doorToLock
+      .map { case (door, lock) => (guid(door), guid(lock)) }
+      .collect { case (Some(door: Door), Some(lock: IFFLock)) =>
+        door.WhichSide = Sidedness.StrictlyBetweenSides
+        lock.WhichSide = Sidedness.OutsideOf
+      }
+    //spawn building doors
+    val buildings = zone.Buildings.values
+    val amenityList = buildings
+      .collect {
+        case b
+          if b.Definition.Name.startsWith("VT_building_") =>
+          val amenities = b.Amenities
+          (
+            amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_ext),
+            amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_lrg),
+            amenities.filter(_.Definition == GlobalDefinitions.order_terminal),
+            amenities.filter(_.Definition == GlobalDefinitions.respawn_tube_sanctuary)
+          )
+      }
+    amenityList.foreach { case (entranceDoors, _, terminals, tubes) =>
+      entranceDoors.foreach { door =>
+        val isReallyADoor = door.asInstanceOf[Door]
+        val doorPosition = door.Position
+        val closestTerminal = terminals.minBy(t => Vector3.DistanceSquared(doorPosition, t.Position))
+        val closestTube = tubes.minBy(t => Vector3.DistanceSquared(doorPosition, t.Position))
+        isReallyADoor.WhichSide = Sidedness.StrictlyBetweenSides
+        isReallyADoor.Outwards = Vector3.Unit(closestTerminal.Position.xy - closestTube.Position.xy)
+      }
+      //todo training zone warp chamber doors
+    }
+    //hart building doors
+    buildings
+      .collect {
+        case b
+          if b.Definition.Name.startsWith("orbital_building_") =>
+          val amenities = b.Amenities
+          (
+            amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_ext),
+            amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_orb)
+          )
+      }
+      .foreach { case (entranceDoors, hartDoors) =>
+        entranceDoors.foreach { door =>
+          val isReallyADoor = door.asInstanceOf[Door]
+          val doorPosition = door.Position
+          val closestHartDoor = hartDoors.minBy(t => Vector3.DistanceSquared(doorPosition, t.Position))
+          isReallyADoor.WhichSide = Sidedness.StrictlyBetweenSides
+          isReallyADoor.Outwards = Vector3.Unit(doorPosition.xy - closestHartDoor.Position.xy)
         }
-      var pairedDoors = Seq[(Door, Door)]()
-      unpairedDoors.foreach { buildingUnPairedDoors =>
-        var volatileUnpairedDoors = buildingUnPairedDoors
-        while (volatileUnpairedDoors.size > 1) {
-          val sampleDoor = volatileUnpairedDoors.head
+      }
+  }
+
+  private def AssignOutwardSidetoContinentDoors(zone: Zone): Unit = {
+    val map = zone.map
+    val guid = zone.guid
+    AssignOutwardsToIFFLockedDoors(zone)
+    val buildingsToDoors = zone.Buildings.values.map(b => (b, b.Amenities.collect { case d: Door => d })).toMap
+    //external doors with IFF locks are always between and outside, respectively
+    map.doorToLock
+      .map { case (door, lock) => (guid(door), guid(lock)) }
+      .collect { case (Some(door: Door), Some(lock: IFFLock))
+        if door.Definition.geometryInteractionRadius.nonEmpty =>
+        door.WhichSide = Sidedness.StrictlyBetweenSides
+        lock.WhichSide = Sidedness.OutsideOf
+      }
+    //for major facilities, external doors in the courtyard are paired, connected by a passage between ground and walls
+    //they are the only external doors that do not have iff locks
+    buildingsToDoors
+      .filter { case (b, _) => b.BuildingType == StructureType.Facility }
+      .foreach { case (_, doors) =>
+        var unpairedDoors = doors.collect {
+          case d: Door
+            if d.Definition == GlobalDefinitions.gr_door_ext && !map.doorToLock.contains(d.GUID.guid) =>
+            d
+        }
+        var pairedDoors = Seq[(Door, Door)]()
+        while (unpairedDoors.size > 1) {
+          val sampleDoor = unpairedDoors.head
           val sampleDoorPosition = sampleDoor.Position.xy
-          val distances = Float.MaxValue +: volatileUnpairedDoors
+          val distances = Float.MaxValue +: unpairedDoors
             .map(d => Vector3.DistanceSquared(d.Position.xy, sampleDoorPosition))
             .drop(1)
           val min = distances.min
           val indexOfClosestDoor = distances.indexWhere(_ == min)
-          val otherDoor = volatileUnpairedDoors(indexOfClosestDoor)
-          volatileUnpairedDoors = volatileUnpairedDoors.slice(1, indexOfClosestDoor) ++ volatileUnpairedDoors.drop(indexOfClosestDoor + 1)
+          val otherDoor = unpairedDoors(indexOfClosestDoor)
+          unpairedDoors = unpairedDoors.slice(1, indexOfClosestDoor) ++ unpairedDoors.drop(indexOfClosestDoor + 1)
           pairedDoors = pairedDoors :+ (sampleDoor, otherDoor)
         }
+        pairedDoors.foreach { case (door1, door2) =>
+          //give each paired courtyard door an outward-ness
+          val outwards = Vector3.Unit(door1.Position.xy - door2.Position.xy)
+          door1.Outwards = outwards
+          door1.WhichSide = Sidedness.StrictlyBetweenSides
+          door2.Outwards = Vector3.neg(outwards)
+          door2.WhichSide = Sidedness.StrictlyBetweenSides
+        }
       }
-      pairedDoors.foreach { case (door1, door2) =>
-        //give each paired courtyard door an outward-ness
-        val outwards = Vector3.Unit(door1.Position.xy - door2.Position.xy)
-        door1.Outwards = outwards
-        door2.Outwards = Vector3.neg(outwards)
+    //bunkers do not define a formal interior, so their doors are solely exterior
+    buildingsToDoors
+      .filter { case (b, _) => b.BuildingType == StructureType.Bunker }
+      .foreach { case (_, doors) =>
+        doors.foreach(_.WhichSide = Sidedness.OutsideOf)
       }
-      //bunker doors do not define an interior
-    }
   }
 
-  private def AssignIFFLockedDoors(zone: Zone): Unit = {
-    val map = zone.map
+  private def AssignOutwardsToIFFLockedDoors(zone: Zone): Unit = {
     val guid = zone.guid
-    val invalidOutwards = Vector3(0,0,-1) //down
     //doors with nearby locks use those locks as their unlocking mechanism and their outwards indication
-    map.doorToLock
+    zone.map.doorToLock
       .map { case (doorGUID: Int, lockGUID: Int) => (guid(doorGUID), guid(lockGUID)) }
       .collect {
         case (Some(door: Door), Some(lock: IFFLock)) =>
           door.Outwards = lock.Outwards
           door.Actor ! Door.UpdateMechanism(IFFLock.testLock(lock))
-        case (Some(door: Door), _) =>
-          door.Outwards = invalidOutwards
         case _ => ()
+      }
+  }
+
+  private def AssignSidednessToAmenities(zone: Zone): Unit = {
+    //let ZoneActor's sanity check catch any missing entities
+    //todo training zones, where everything is outside
+    if (zone.map.cavern) {
+      //todo what do?
+      /*
+      quite a few amenities are disconnected from buildings
+      there are two orientations of terminal/spawn pad
+      as aforementioned, door outwards and sidedness is not assignable at the moment
+      */
+    } else if (
+      PlanetSideEmpire.values
+        .filterNot(_ == PlanetSideEmpire.NEUTRAL)
+        .exists(fac => Zones.sanctuaryZoneNumber(fac) == zone.Number)
+    ) {
+      AssignSidednessToSanctuaryAmenities(zone)
+    } else {
+      AssignSidednessToContinentAmenities(zone)
+    }
+  }
+
+  private def AssignSidednessToSanctuaryAmenities(zone: Zone): Unit = {
+    val map = zone.map
+    val guid = zone.guid
+    //only tower doors possess locks and those are always external
+    map.doorToLock
+      .map { case (_, lock) => guid(lock) }
+      .collect {
+        case Some(lock: IFFLock) =>
+          lock.WhichSide = Sidedness.OutsideOf
+      }
+    //medical terminals are always inside
+    zone.buildings
+      .values
+      .flatMap(_.Amenities)
+      .collect {
+        case pt: ProximityTerminal if pt.Definition == GlobalDefinitions.medical_terminal =>
+          pt.WhichSide = Sidedness.InsideOf
+      }
+    //repair silos and landing pads have multiple components and all of these are outside
+    //we have to search all terminal entities because the repair silos are not installed anywhere
+    guid
+      .GetPool(name = "terminals")
+      .map(_.Numbers.flatMap(number => guid(number)))
+      .getOrElse(List())
+      .collect {
+        case pt: ProximityTerminal
+          if pt.Definition == GlobalDefinitions.repair_silo =>
+          val guid = pt.GUID.guid
+          Seq(guid, guid + 1, guid + 2, guid + 3)
+        case pt: ProximityTerminal
+          if pt.Definition.Name.startsWith("pad_landing_") =>
+          val guid = pt.GUID.guid
+          Seq(guid, guid + 1, guid + 2)
+      }
+      .flatten[Int]
+      .map(guid(_))
+      .collect {
+        case Some(pt: ProximityTerminal) =>
+          pt.WhichSide = Sidedness.OutsideOf
+      }
+    //the following terminals are installed outside
+    map.terminalToSpawnPad
+      .keys
+      .flatMap(guid(_))
+      .collect {
+        case terminal: Terminal =>
+          terminal.WhichSide = Sidedness.OutsideOf
+      }
+  }
+
+  private def AssignSidednessToContinentAmenities(zone: Zone): Unit = {
+    val map = zone.map
+    val guid = zone.guid
+    val buildingsMap = zone.buildings.values
+    //door locks on external doors are also external while the door is merely "between"; all other locks are internal
+    map.doorToLock
+      .map { case (door, lock) => (guid(door), guid(lock))}
+      .collect {
+        case (Some(door: Door), Some(lock: IFFLock))
+          if door.Definition.geometryInteractionRadius.nonEmpty =>
+          lock.WhichSide = Sidedness.OutsideOf
+      }
+    //medical terminals are always inside
+    buildingsMap
+      .flatMap(_.Amenities)
+      .collect {
+        case pt: ProximityTerminal
+          if pt.Definition == GlobalDefinitions.medical_terminal || pt.Definition == GlobalDefinitions.adv_med_terminal =>
+          pt.WhichSide = Sidedness.InsideOf
+      }
+    //repair silos and landing pads have multiple components and all of these are outside
+    buildingsMap
+      .flatMap(_.Amenities)
+      .collect {
+        case pt: ProximityTerminal
+          if pt.Definition == GlobalDefinitions.repair_silo =>
+          val guid = pt.GUID.guid
+          Seq(guid, guid + 1, guid + 2, guid + 3)
+        case pt: ProximityTerminal
+          if pt.Definition.Name.startsWith("pad_landing_") =>
+          val guid = pt.GUID.guid
+          Seq(guid, guid + 1, guid + 2)
+      }
+      .toSeq
+      .flatten[Int]
+      .map(guid(_))
+      .collect {
+        case Some(pt: ProximityTerminal) =>
+          pt.WhichSide = Sidedness.OutsideOf
+      }
+    //all vehicle spawn pads are outside, save for the ground vehicle pad in the tech plants
+    buildingsMap.collect {
+      case b
+        if b.Definition == GlobalDefinitions.tech_plant =>
+        b.Amenities
+          .collect { case pad: VehicleSpawnPad => pad }
+          .minBy(_.Position.z)
+          .WhichSide = Sidedness.InsideOf
+    }
+    //all vehicle terminals are outside of their owning facilities in the courtyard
+    //the only exceptions are vehicle terminals in tech plants and the dropship center air terminal
+    map.terminalToSpawnPad
+      .keys
+      .flatMap(guid(_))
+      .collect {
+        case terminal: Terminal
+          if terminal.Definition != GlobalDefinitions.dropship_vehicle_terminal &&
+            terminal.Owner.asInstanceOf[Building].Definition != GlobalDefinitions.tech_plant =>
+          terminal.WhichSide = Sidedness.OutsideOf
       }
   }
 

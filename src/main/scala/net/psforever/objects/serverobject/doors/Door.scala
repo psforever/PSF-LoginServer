@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.doors
 
 import net.psforever.objects.Player
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.UseItemMessage
 import net.psforever.types.Vector3
@@ -14,6 +15,13 @@ import net.psforever.types.Vector3
 class Door(private val ddef: DoorDefinition) extends Amenity {
   private var openState: Option[Player] = None
   private var outwards: Option[Vector3] = None
+  /*
+   * Door sidedness does not reflect on the actual sidedness of anything that is in the door.
+   * While sidedness will be correct for internal doors -
+   * they are always passages between different between interior rooms in a facility -
+   * external doors cross between the outside world and a interior room of a facility.
+   */
+  WhichSide = Sidedness.InsideOf
 
   def isOpen: Boolean = openState.isDefined
 
