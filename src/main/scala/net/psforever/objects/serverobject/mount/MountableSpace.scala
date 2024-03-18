@@ -1,7 +1,6 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject.mount
 
-import net.psforever.objects.Player
 import net.psforever.types.BailType
 
 trait MountableSpace[A <: MountableEntity] {
@@ -93,10 +92,6 @@ trait MountableSpace[A <: MountableEntity] {
       case Some(p) if testToUnmount(p) =>
         _occupant = None
         p.BailProtection = bailable && (bailType == BailType.Bailed || bailType == BailType.Kicked)
-        p match {
-          case player: Player =>
-            player.VehicleSeated = None
-        }
         None
       case _ =>
         occupant
