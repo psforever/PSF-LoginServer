@@ -93,7 +93,7 @@ class BlockMap(fullMapWidth: Int, fullMapHeight: Int, desiredSpanSize: Int) {
    * @return a conglomerate sector which lists all of the entities in the discovered sector(s)
    */
   def sector(indices: Iterable[Int], range: Float): SectorPopulation = {
-    if (indices.max < blocks.size) {
+    if (indices.nonEmpty && indices.max < blocks.size) {
       BlockMap.quickToSectorGroup(range, BlockMap.sectorsOnlyWithinBlockStructure(indices, blocks) )
     } else {
       SectorGroup(Nil)
@@ -527,7 +527,7 @@ object BlockMap {
                                                list: Iterable[Int],
                                                structure: Iterable[Sector]
                                              ): Iterable[Sector] = {
-    if (list.max < structure.size) {
+    if (list.nonEmpty && list.max < structure.size) {
       val structureSeq = structure.toSeq
       list.toSet.map { structureSeq }
     } else {
