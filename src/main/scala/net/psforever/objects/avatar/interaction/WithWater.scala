@@ -58,15 +58,36 @@ class WithWater(val channel: String)
                                     data: Option[Any]
                                   ): Unit = {
     val (effect, time, percentage) = Watery.recoveringFromWateryConditions(obj, condition.map(_.state), waterInteractionTime)
+    if (percentage > 99f) {
+      recoverFromInteracting(obj)
+    } else {
+      stopInteractingAction(obj, body, data, effect, time, percentage)
+    }
+  }
+
+  /**
+   * When out of water, the player is no longer suffocating.
+   * The player does have to endure a recovery period to get back to normal, though.
+   * @param obj the target
+   * @param body the environment
+   * @param effect na
+   * @param time current time until completion of the next effect
+   * @param percentage value to display in the drowning UI progress bar
+   */
+  private def stopInteractingAction(
+                                     obj: InteractsWithZone,
+                                     body: PieceOfEnvironment,
+                                     data: Option[Any],
+                                     effect: Boolean,
+                                     time: Long,
+                                     percentage: Float
+                                   ): Unit = {
     val cond = OxygenStateTarget(obj.GUID, body, OxygenState.Recovery, percentage)
     val extra = data.collect {
       case t: OxygenStateTarget => Some(t)
       case w: Watery => w.Condition
     }.flatten
-    if (percentage > 99f) {
-      recoverFromInteracting(obj)
-    }
-    if (effect) {
+   if (effect) {
       condition = Some(cond)
       waterInteractionTime = System.currentTimeMillis() + time
       obj.Actor ! RespondsToZoneEnvironment.Timer(attribute, delay = time milliseconds, obj.Actor, interaction.RecoveredFromEnvironmentInteraction(attribute))
@@ -81,7 +102,8 @@ class WithWater(val channel: String)
   override def recoverFromInteracting(obj: InteractsWithZone): Unit = {
     super.recoverFromInteracting(obj)
     if (condition.exists(_.state == OxygenState.Suffocation)) {
-      stopInteractingWith(obj, condition.map(_.body).get, None)
+      val (effect, time, percentage) = Watery.recoveringFromWateryConditions(obj, condition.map(_.state), waterInteractionTime)
+      stopInteractingAction(obj, condition.map(_.body).get, None, effect, time, percentage)
     }
     waterInteractionTime = 0L
     condition = None
