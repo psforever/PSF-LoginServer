@@ -140,20 +140,32 @@ case object MapInfo extends StringEnum[MapInfo] {
         scale = MapScale.Dim8192,
         hotSpotSpan = 80,
         environment = List(
-          SeaLevel(EnvironmentAttribute.Water, 35.015625f),
+          //ocean
+          Pool(EnvironmentAttribute.Water, 35.015625f, 8192f, 2648f, 0f, 0f), //west
+          Pool(EnvironmentAttribute.Water, 35.015625f, 8192f, 6093f, 5968f, 2648f), //north
+          Pool(EnvironmentAttribute.Water, 35.015625f, 8192f, 8192f, 0f, 6093f), //east
+          Pool(EnvironmentAttribute.Water, 35.015625f, 1709f, 6093f, 0f, 2648f), //south
+          Pool(EnvironmentAttribute.Water, 35.015625f, 5968f, 4465f, 5130f, 2648f), //northwest
+          Pool(EnvironmentAttribute.Water, 35.015625f, 5968f, 6093f, 5415f, 5088f), //northeast
+          Pool(EnvironmentAttribute.Water, 35.015625f, 2515f, 3356f, 1709f, 2648f), //southwest
+          Pool(EnvironmentAttribute.Water, 35.015625f, 3136f, 6093f, 1709f, 5516f), //southeast
+          //lakes and ponds
           Pool(EnvironmentAttribute.Water, 51.875f, 4571.8125f, 3015.5547f, 4455.8047f, 2852.711f), //down the road, west of bel
           Pool(EnvironmentAttribute.Water, 49.8125f, 4902.336f, 3413.461f, 4754.0938f, 3210.8125f), //west of bel
           Pool(EnvironmentAttribute.Water, 49.515625f, 4044.3984f, 4700.8516f, 3999.9688f, 4517.375f), //southeast of neit
           Pool(EnvironmentAttribute.Water, 48.515625f, 4553.75f, 4110.2188f, 4438.6875f, 3995.3125f), //northwest of neit
           Pool(EnvironmentAttribute.Water, 48.28125f, 4474.3906f, 4551.2812f, 4339.3984f, 4472.4375f), //northeast of neit
-          Pool(EnvironmentAttribute.Water, 45.828125f, 3808.0547f, 3901.3828f, 1432.5625f, 3720.9844f), //J17
+          Pool(EnvironmentAttribute.Water, 45.828125f, 1669f, 3903f, 1432.5625f, 3720.9844f), //J17
           Pool(EnvironmentAttribute.Water, 43.765625f, 3997.2812f, 3991.539f, 3937.8906f, 3937.875f), //southwest of neit
           Pool(EnvironmentAttribute.Water, 43.671875f, 2694.2031f, 3079.875f, 2552.414f, 2898.8203f), //west of anu
+          Pool(EnvironmentAttribute.Water, 43.470588f, 4910f, 6106f, 4843f, 6006f), //south of lugh
           Pool(EnvironmentAttribute.Water, 42.671875f, 5174.4844f, 5930.133f, 4981.4297f, 5812.383f), //west of lugh
           Pool(EnvironmentAttribute.Water, 42.203125f, 4935.742f, 5716.086f, 4711.289f, 5444.5625f), //across road, west of lugh
           Pool(EnvironmentAttribute.Water, 41.765625f, 2073.914f, 4982.5938f, 1995.4688f, 4899.086f), //L15-M16
           Pool(EnvironmentAttribute.Water, 41.3125f, 3761.1484f, 2616.75f, 3627.4297f, 2505.1328f), //G11, south
-          Pool(EnvironmentAttribute.Water, 40.421875f, 4058.8281f, 2791.6562f, 3985.1016f, 2685.3672f) //G11, north
+          Pool(EnvironmentAttribute.Water, 40.421875f, 4058.8281f, 2791.6562f, 3985.1016f, 2685.3672f), //G11, north
+          Pool(EnvironmentAttribute.Water, 35.015625f, 2932f, 3367f, 2816f, 3234f), //north of anu
+          Pool(EnvironmentAttribute.Water, 35.015625f, 2564f, 4518f, 1972f, 3770f) //between anu and caer
         ) ++ MapEnvironment.zoneMapEdgeKillPlane(
           MapScale.Dim8192,
           (400, 10, 200, 400),
