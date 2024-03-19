@@ -19,15 +19,15 @@ object DeployAnimation extends Enumeration {
 }
 
 trait BaseDeployableDefinition {
-  private var category: DeployableCategory.Value = DeployableCategory.Boomers
+  private var category: DeployableCategory       = DeployableCategory.None
   private var deployTime: Long                   = (1 second).toMillis //ms
   var deployAnimation: DeployAnimation.Value     = DeployAnimation.None
 
   def Item: DeployedItem.Value
 
-  def DeployCategory: DeployableCategory.Value = category
+  def DeployCategory: DeployableCategory = category
 
-  def DeployCategory_=(cat: DeployableCategory.Value): DeployableCategory.Value = {
+  def DeployCategory_=(cat: DeployableCategory): DeployableCategory = {
     category = cat
     DeployCategory
   }
