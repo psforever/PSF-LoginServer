@@ -3,7 +3,22 @@ package net.psforever.objects.serverobject.doors
 
 import net.psforever.objects.geometry.GeometryForm
 import net.psforever.objects.geometry.d3.VolumetricGeometry
-import net.psforever.objects.serverobject.structures.AmenityDefinition
+import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, EnvironmentTrait, PieceOfEnvironment}
+import net.psforever.objects.serverobject.structures.{Amenity, AmenityDefinition, CreateEnvironmentField}
+
+final case class InteriorDoorField(
+                                    cylinderHeight: Option[Float] = None,
+                                    centerOn: Boolean = false
+                                  ) extends CreateEnvironmentField {
+  def attribute: EnvironmentTrait = EnvironmentAttribute.InteriorField
+
+  def create(obj: Amenity): PieceOfEnvironment = {
+    obj match {
+      case door: Door => InteriorDoorPassage(door, cylinderHeight, centerOn)
+      case _ => throw new IllegalArgumentException("expecting door")
+    }
+  }
+}
 
 /**
   * The definition for any `Door`.
@@ -17,17 +32,5 @@ class DoorDefinition(objectId: Int)
   /** range within which the door must detect a target player to remain open */
   var continuousOpenDistance: Float = 5.05f
 
-  var geometryInteractionRadius: Option[Float] = None
-  var geometryInteractionHeight: Option[Float] = None
-  var geometryInteractionCenterOn: Boolean = false
-
-  override def Geometry: Any => VolumetricGeometry = {
-   (geometryInteractionRadius, geometryInteractionHeight, geometryInteractionCenterOn) match {
-     case (Some(r), Some(h), false) => GeometryForm.representByCylinder(r, h)
-     case (Some(r), Some(h), true)  => GeometryForm.representByRaisedCylinder(r, h)
-     case (Some(r), None, false)    => GeometryForm.representBySphereOnBase(r)
-     case (Some(r), None, true)     => GeometryForm.representBySphere(r)
-     case _                         => super.Geometry
-    }
-  }
+  override def Geometry: Any => VolumetricGeometry = GeometryForm.representBySphere(UseRadius)
 }

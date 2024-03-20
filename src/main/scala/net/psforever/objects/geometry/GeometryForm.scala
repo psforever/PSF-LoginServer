@@ -106,8 +106,8 @@ object GeometryForm {
     */
   def representByCylinder(radius: Float, height: Float)(o: Any): VolumetricGeometry = {
     o match {
-      case p: PlanetSideGameObject => Cylinder(p.Position, Vector3.relativeUp(p.Orientation), radius, height)
-      case s: SourceEntry          => Cylinder(s.Position, Vector3.relativeUp(s.Orientation), radius, height)
+      case p: PlanetSideGameObject => Cylinder(p.Position, Vector3.relativeUp(p.Orientation), radius, math.abs(height))
+      case s: SourceEntry          => Cylinder(s.Position, Vector3.relativeUp(s.Orientation), radius, math.abs(height))
       case _                       => invalidCylinder
     }
   }

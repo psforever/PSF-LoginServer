@@ -6,6 +6,7 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.objects.equipment.EffectTarget
 import net.psforever.objects.geometry.GeometryForm
 import net.psforever.objects.geometry.d3.VolumetricGeometry
+import net.psforever.objects.serverobject.doors.InteriorDoorField
 import net.psforever.objects.serverobject.mount.{MountInfo, SeatDefinition}
 import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
 import net.psforever.objects.serverobject.structures.AutoRepairStats
@@ -601,10 +602,12 @@ object GlobalDefinitionsMiscellaneous {
     amp_cap_door.Name = "amp_cap_door"
 
     ancient_door.Name = "ancient_door"
-    ancient_door.geometryInteractionRadius = Some(1)
+    ancient_door.UseRadius = 1f
+    //ancient_door.environmentField = InteriorDoorField()
 
     ancient_garage_door.Name = "ancient_garage_door"
-    ancient_garage_door.geometryInteractionRadius = Some(1)
+    ancient_garage_door.UseRadius = 1f
+    //ancient_garage_door.environmentField = InteriorDoorField()
 
     cryo_med_door.Name = "cryo_med_door"
 
@@ -648,14 +651,14 @@ object GlobalDefinitionsMiscellaneous {
     gr_door_airlock.Name = "gr_door_airlock"
 
     gr_door_ext.Name = "gr_door_ext"
-    gr_door_ext.geometryInteractionRadius = Some(1.9f)
+    gr_door_ext.UseRadius = 1.9f
+    gr_door_ext.environmentField = InteriorDoorField()
 
     gr_door_garage_ext.Name = "gr_door_garage_ext"
+    gr_door_garage_ext.UseRadius = 11f
     gr_door_garage_ext.initialOpeningDistance = 8f
     gr_door_garage_ext.continuousOpenDistance = 9f
-    gr_door_garage_ext.geometryInteractionRadius = Some(11)
-    gr_door_garage_ext.geometryInteractionHeight = Some(-11)
-    gr_door_garage_ext.geometryInteractionCenterOn = true
+    gr_door_garage_ext.environmentField = InteriorDoorField(Some(-11), centerOn = true)
 
     gr_door_garage_int.Name = "gr_door_garage_int"
     gr_door_garage_int.initialOpeningDistance = 8f
@@ -664,15 +667,18 @@ object GlobalDefinitionsMiscellaneous {
     gr_door_int.Name = "gr_door_int"
 
     gr_door_main.Name = "gr_door_main"
-    gr_door_main.geometryInteractionRadius = Some(2.75f)
+    gr_door_main.UseRadius = 2.75f
+    gr_door_main.environmentField = InteriorDoorField()
 
     gr_door_mb_ext.Name = "gr_door_mb_ext"
-    gr_door_mb_ext.geometryInteractionRadius = Some(2)
+    gr_door_mb_ext.UseRadius = 2f
+    gr_door_mb_ext.environmentField = InteriorDoorField()
 
     gr_door_mb_int.Name = "gr_door_mb_int"
 
     gr_door_mb_lrg.Name = "gr_door_mb_lrg"
-    gr_door_mb_lrg.geometryInteractionRadius = Some(2.5f)
+    gr_door_mb_lrg.UseRadius = 2.5f
+    gr_door_mb_lrg.environmentField = InteriorDoorField()
 
     gr_door_mb_obsd.Name = "gr_door_mb_obsd"
 

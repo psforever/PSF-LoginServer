@@ -40,6 +40,7 @@ import net.psforever.objects.guid.pool.NumberPool
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.environment.EnvironmentAttribute
 import net.psforever.objects.serverobject.interior.{InteriorAware, Sidedness}
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
@@ -966,7 +967,7 @@ object Zone {
     map.doorToLock
       .map { case (door, lock) => (guid(door), guid(lock)) }
       .collect { case (Some(door: Door), Some(lock: IFFLock))
-        if door.Definition.geometryInteractionRadius.nonEmpty =>
+        if door.Definition.environmentField.exists(f => f.attribute == EnvironmentAttribute.InteriorField) =>
         door.WhichSide = Sidedness.StrictlyBetweenSides
         lock.WhichSide = Sidedness.OutsideOf
       }
@@ -1103,7 +1104,7 @@ object Zone {
       .map { case (door, lock) => (guid(door), guid(lock))}
       .collect {
         case (Some(door: Door), Some(lock: IFFLock))
-          if door.Definition.geometryInteractionRadius.nonEmpty =>
+          if door.Definition.environmentField.exists(f => f.attribute == EnvironmentAttribute.InteriorField) =>
           lock.WhichSide = Sidedness.OutsideOf
       }
     //medical terminals are always inside

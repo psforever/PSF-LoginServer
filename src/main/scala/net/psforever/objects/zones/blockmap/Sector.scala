@@ -4,7 +4,6 @@ package net.psforever.objects.zones.blockmap
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.serverobject.doors.{Door, InteriorDoorPassage}
 import net.psforever.objects.serverobject.environment.PieceOfEnvironment
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.{Player, Vehicle}
@@ -200,14 +199,12 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
         deployables.list.size < deployables.addTo(d).size
       case b: Building =>
         buildings.list.size < buildings.addTo(b).size
-      case d: Door =>
-        val doorAdded = amenities.list.size < amenities.addTo(d).size
-        d.Definition.geometryInteractionRadius.collect {
-          case _ if doorAdded => environment.addTo(InteriorDoorPassage(d))
-        }
-        doorAdded
       case a: Amenity =>
-        amenities.list.size < amenities.addTo(a).size
+        val added = amenities.list.size < amenities.addTo(a).size
+        if (added) {
+          a.Definition.environmentField.foreach(field => environment.addTo(field.create(a)))
+        }
+        added
       case e: PieceOfEnvironment =>
         environment.list.size < environment.addTo(e).size
       case p: Projectile =>

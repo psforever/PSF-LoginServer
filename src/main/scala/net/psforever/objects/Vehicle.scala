@@ -16,7 +16,7 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.interior.{InteriorAwareFromInteraction, Sidedness}
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
-import net.psforever.objects.vehicles.interaction.{WithEntranceInVehicle, WithLava, WithWater}
+import net.psforever.objects.vehicles.interaction.{WithLava, WithWater}
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel

@@ -1515,7 +1515,7 @@ private[support] class WeaponAndProjectileOperations(
           origin,
           hitPosition,
           door.Position,
-          door.Definition.geometryInteractionRadius.get + 0.1f
+          door.Definition.UseRadius + 0.1f
         )
         (door, intersectTest)
       }
