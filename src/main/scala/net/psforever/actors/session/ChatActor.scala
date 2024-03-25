@@ -224,6 +224,10 @@ class ChatActor(
             session.account.gm || Config.app.development.unprivilegedGmCommands.contains(message.messageType)
 
           (message.messageType, message.recipient.trim, message.contents.trim) match {
+            /** Messages starting with ! are custom chat commands */
+            case (_, _, contents) if contents.startsWith("!") &&
+              customCommandMessages(message, session, chatService, cluster, gmCommandAllowed) => ;
+
             case (CMT_FLY, recipient, contents) if gmCommandAllowed =>
               val flying = contents match {
                 case "on"  => true
@@ -899,10 +903,6 @@ class ChatActor(
                 ZonePopulationUpdateMessage(4, 414, 138, 0, 138, 0, 138, 0, 138, contents.toInt)
               )
 
-            /** Messages starting with ! are custom chat commands */
-            case (_, _, contents) if contents.startsWith("!") &&
-              customCommandMessages(message, session, chatService, cluster, gmCommandAllowed) => ;
-
             case _ =>
               log.warn(s"Unhandled chat message $message")
           }
@@ -1107,212 +1107,379 @@ class ChatActor(
     }
   }
 
-  def customCommandMessages(
+  private def customCommandMessages(
                              message: ChatMsg,
                              session: Session,
                              chatService: ActorRef[ChatService.Command],
                              cluster: ActorRef[InterstellarClusterService.Command],
-                             gmCommandAllowed: Boolean
+                             isGM: Boolean
                            ): Boolean = {
-//    val messageType = message.messageType
-//    val recipient = message.recipient
-    val contents = message.contents
-    if (contents.startsWith("!")) {
-      if (contents.startsWith("!whitetext ") && gmCommandAllowed) {
-        chatService ! ChatService.Message(
-          session,
-          ChatMsg(UNK_227, wideContents=true, "", contents.replace("!whitetext ", ""), None),
-          ChatChannel.Default()
+
+    var content = message.contents
+
+    // stop processing if content is not a custom command
+    if (!content.startsWith("!")) {
+      return false
+    }
+
+    // remove ! character
+    content = content.drop(1)
+
+    // get command from contents
+    val command = content.split(" ")(0)
+
+    // remove command and space from contents
+    content = content.drop(command.length() + 1)
+
+    // match command and execute relevant function
+    // if player is GM, process GM commands first
+    if (isGM) {
+
+      val handled = command match {
+
+        case "whitetext" => commandGMWhiteText(message, command, content, session, chatService, cluster, isGM);
+        case "loc" => commandGMLoc(message, command, content, session, chatService, cluster, isGM);
+        case "list" => commandGMList(message, command, content, session, chatService, cluster, isGM);
+        case "ntu" => commandGMNTU(message, command, content, session, chatService, cluster, isGM);
+        case "zonerotate" => commandGMZoneRotate(message, command, content, session, chatService, cluster, isGM);
+
+        // command is not a GM command, continue with normal commands
+        case _ => false;
+      }
+
+      // stop processing if GM command was handled
+      if (handled) {
+        return true
+      }
+
+    }
+
+    // process commands accessible to all players
+    val handled = command match {
+
+      case "suicide" => commandSuicide(message, command, content, session, chatService, cluster, isGM);
+      case "grenade" => commandGrenade(message, command, content, session, chatService, cluster, isGM);
+      case "macro" => commandMacro(message, command, content, session, chatService, cluster, isGM);
+      case "progress" => commandProgress(message, command, content, session, chatService, cluster, isGM);
+
+      // if no command was matched the command does not exist / is a GM only command but player is not GM
+      case _ => false;
+    }
+
+    if (handled) {
+      return true
+    }
+
+    // command was not handled
+    sessionActor ! SessionActor.SendResponse(
+      ChatMsg(
+        CMT_GMOPEN, // CMT_GMTELL
+        message.wideContents,
+        "Server",
+        s"Unknown command !$command",
+        message.note
+      )
+    )
+
+    // stop sending the failed command in chat
+    true
+  }
+
+  private def commandGMWhiteText(
+                          message: ChatMsg,
+                          command: String,
+                          content: String,
+                          session: Session,
+                          chatService: ActorRef[ChatService.Command],
+                          cluster: ActorRef[InterstellarClusterService.Command],
+                          isGM: Boolean
+                        ): Boolean = {
+
+    chatService ! ChatService.Message(
+      session,
+      ChatMsg(UNK_227, wideContents = true, "", content, None),
+      ChatChannel.Default()
+    )
+
+    true
+  }
+
+  private def commandGMLoc(
+                    message: ChatMsg,
+                    command: String,
+                    content: String,
+                    session: Session,
+                    chatService: ActorRef[ChatService.Command],
+                    cluster: ActorRef[InterstellarClusterService.Command],
+                    isGM: Boolean
+                  ): Boolean = {
+
+    val continent = session.zone
+    val player = session.player
+    val loc = s"zone=${continent.id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
+
+    log.info(loc)
+    sessionActor ! SessionActor.SendResponse(message.copy(contents = loc))
+
+    true
+  }
+
+  private def commandGMList(
+                     message: ChatMsg,
+                     command: String,
+                     content: String,
+                     session: Session,
+                     chatService: ActorRef[ChatService.Command],
+                     cluster: ActorRef[InterstellarClusterService.Command],
+                     isGM: Boolean
+                   ): Boolean = {
+
+    val zone = content.split(" ").lift(0) match {
+      case Some("") =>
+        Some(session.zone)
+      case Some(id) =>
+        Zones.zones.find(_.id == id)
+    }
+
+    zone match {
+
+      case Some(inZone) =>
+        sessionActor ! SessionActor.SendResponse(
+          ChatMsg(
+            CMT_GMOPEN,
+            message.wideContents,
+            "Server",
+            "\\#8Name (Faction) [ID] at PosX PosY PosZ",
+            message.note
+          )
         )
-        true
-
-      } else if (contents.startsWith("!loc ")) {
-        val continent = session.zone
-        val player = session.player
-        val loc =
-          s"zone=${continent.id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
-        log.info(loc)
-        sessionActor ! SessionActor.SendResponse(message.copy(contents = loc))
-        true
-
-      } else if (contents.startsWith("!list")) {
-        val zone = dropFirstWord(contents).split("\\s+").headOption match {
-          case Some("") | None =>
-            Some(session.zone)
-          case Some(id) =>
-            Zones.zones.find(_.id == id)
-        }
-        zone match {
-          case Some(inZone) =>
+        (inZone.LivePlayers ++ inZone.Corpses)
+          .filter(_.CharId != session.player.CharId)
+          .filter(!_.spectator)
+          .sortBy(p => (p.Name, !p.isAlive))
+          .foreach(player => {
+            val color = if (!player.isAlive) "\\#7" else ""
             sessionActor ! SessionActor.SendResponse(
               ChatMsg(
                 CMT_GMOPEN,
                 message.wideContents,
                 "Server",
-                "\\#8Name (Faction) [ID] at PosX PosY PosZ",
+                s"$color${player.Name} (${player.Faction}) [${player.CharId}] at ${player.Position.x.toInt} ${player.Position.y.toInt} ${player.Position.z.toInt}",
                 message.note
               )
             )
-            (inZone.LivePlayers ++ inZone.Corpses)
-              .filter(_.CharId != session.player.CharId)
-              .sortBy(p => (p.Name, !p.isAlive))
-              .foreach(player => {
-                val color = if (!player.isAlive) "\\#7" else ""
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(
-                    CMT_GMOPEN,
-                    message.wideContents,
-                    "Server",
-                    s"$color${player.Name} (${player.Faction}) [${player.CharId}] at ${player.Position.x.toInt} ${player.Position.y.toInt} ${player.Position.z.toInt}",
-                    message.note
-                  )
-                )
-              })
-          case None =>
-            sessionActor ! SessionActor.SendResponse(
-              ChatMsg(
-                CMT_GMOPEN,
-                message.wideContents,
-                "Server",
-                "Invalid zone ID",
-                message.note
-              )
-            )
-        }
-        true
+          })
 
-      } else if (contents.startsWith("!ntu") && gmCommandAllowed) {
-        val buffer = dropFirstWord(contents).split("\\s+")
-        val (facility, customNtuValue) = (buffer.headOption, buffer.lift(1)) match {
-          case (Some(x), Some(y)) if y.toIntOption.nonEmpty => (Some(x), Some(y.toInt))
-          case (Some(x), None) if x.toIntOption.nonEmpty => (None, Some(x.toInt))
-          case _ => (None, None)
-        }
-        val silos = (facility match {
-          case Some(cur) if cur.toLowerCase().startsWith("curr") =>
-            val position = session.player.Position
-            session.zone.Buildings.values
-              .filter { building =>
-                val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
-                Vector3.DistanceSquared(building.Position, position) < soi2
-              }
-          case Some(all) if all.toLowerCase.startsWith("all") =>
-            session.zone.Buildings.values
-          case Some(x) =>
-            session.zone.Buildings.values.find {
-              _.Name.equalsIgnoreCase(x)
-            }.toList
-          case _ =>
-            session.zone.Buildings.values
-        })
-          .flatMap { building =>
-            building.Amenities.filter {
-              _.isInstanceOf[ResourceSilo]
-            }
+      case None =>
+        sessionActor ! SessionActor.SendResponse(
+          ChatMsg(
+            CMT_GMOPEN,
+            message.wideContents,
+            "Server",
+            "Invalid zone ID",
+            message.note
+          )
+        )
+    }
+
+    true
+  }
+
+  private def commandGMNTU(
+                    message: ChatMsg,
+                    command: String,
+                    content: String,
+                    session: Session,
+                    chatService: ActorRef[ChatService.Command],
+                    cluster: ActorRef[InterstellarClusterService.Command],
+                    isGM: Boolean
+                  ): Boolean = {
+
+    val buffer = content.toLowerCase.split("\\s+")
+    val (facility, customNtuValue) = (buffer.headOption, buffer.lift(1)) match {
+      case (Some(x), Some(y)) if y.toIntOption.nonEmpty => (Some(x), Some(y.toInt))
+      case (Some(x), None) if x.toIntOption.nonEmpty => (None, Some(x.toInt))
+      case _ => (None, None)
+    }
+
+    val silos = (facility match {
+
+      case Some(cur) if cur.toLowerCase().startsWith("curr") =>
+        val position = session.player.Position
+        session.zone.Buildings.values
+          .filter { building =>
+            val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
+            Vector3.DistanceSquared(building.Position, position) < soi2
           }
-        ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent = s"$facility")
-        true
 
-      } else if (contents.startsWith("!zonerotate") && gmCommandAllowed) {
-        val buffer = dropFirstWord(contents).split("\\s+")
-        cluster ! InterstellarClusterService.CavernRotation(buffer.headOption match {
-          case Some("-list") | Some("-l") =>
-            CavernRotationService.ReportRotationOrder(sessionActor.toClassic)
-          case _ =>
-            CavernRotationService.HurryNextRotation
-        })
-        true
+      case Some(all) if all.toLowerCase.startsWith("all") =>
+        session.zone.Buildings.values
 
-      } else if (contents.startsWith("!suicide")) {
-        //this is like CMT_SUICIDE but it ignores checks and forces a suicide state
-        val tplayer = session.player
-        tplayer.Revive
-        tplayer.Actor ! Player.Die()
-        true
+      case Some(x) =>
+        session.zone.Buildings.values.find {
+          _.Name.equalsIgnoreCase(x)
+        }.toList
 
-      } else if (contents.startsWith("!grenade")) {
-        WorldSession.QuickSwapToAGrenade(session.player, DrawnSlot.Pistol1.id, log)
-        true
+      case _ =>
+        session.zone.Buildings.values
+    })
+      .flatMap { building =>
+        building.Amenities.filter {
+          _.isInstanceOf[ResourceSilo]
+        }
+      }
 
-      } else if (contents.startsWith("!macro")) {
-        val avatar = session.avatar
-        val args = dropFirstWord(contents).split(" ").filter(_ != "")
-        (args.headOption, args.lift(1)) match {
-          case (Some(cmd), other) =>
-            cmd.toLowerCase() match {
-              case "medkit" =>
-                medkitSanityTest(session.player.GUID, avatar.shortcuts)
+    ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent = s"$facility")
+
+    true
+  }
+
+  private def commandGMZoneRotate(
+                           message: ChatMsg,
+                           command: String,
+                           content: String,
+                           session: Session,
+                           chatService: ActorRef[ChatService.Command],
+                           cluster: ActorRef[InterstellarClusterService.Command],
+                           isGM: Boolean
+                         ): Boolean = {
+
+    val buffer = content.toLowerCase.split("\\s+")
+    cluster ! InterstellarClusterService.CavernRotation(buffer.headOption match {
+      case Some("-list") | Some("-l") =>
+        CavernRotationService.ReportRotationOrder(sessionActor.toClassic)
+      case _ =>
+        CavernRotationService.HurryNextRotation
+    })
+
+    true
+  }
+
+  private def commandSuicide(
+                      message: ChatMsg,
+                      command: String,
+                      content: String,
+                      session: Session,
+                      chatService: ActorRef[ChatService.Command],
+                      cluster: ActorRef[InterstellarClusterService.Command],
+                      isGM: Boolean
+                    ): Boolean = {
+
+    // this is like CMT_SUICIDE but it ignores checks and forces a suicide state
+    val tplayer = session.player
+
+    tplayer.Revive
+    tplayer.Actor ! Player.Die()
+
+    true
+  }
+
+  private def commandGrenade(
+                      message: ChatMsg,
+                      command: String,
+                      content: String,
+                      session: Session,
+                      chatService: ActorRef[ChatService.Command],
+                      cluster: ActorRef[InterstellarClusterService.Command],
+                      isGM: Boolean
+                    ): Boolean = {
+
+    WorldSession.QuickSwapToAGrenade(session.player, DrawnSlot.Pistol1.id, log)
+    true
+  }
+
+  private def commandMacro(
+                    message: ChatMsg,
+                    command: String,
+                    content: String,
+                    session: Session,
+                    chatService: ActorRef[ChatService.Command],
+                    cluster: ActorRef[InterstellarClusterService.Command],
+                    isGM: Boolean
+                  ): Boolean = {
+
+    val avatar = session.avatar
+    val args = content.split(" ").filter(_ != "")
+
+    (args.headOption, args.lift(1)) match {
+
+      case (Some(cmd), other) =>
+        cmd.toLowerCase() match {
+
+          case "medkit" =>
+            medkitSanityTest(session.player.GUID, avatar.shortcuts)
+            true
+
+          case "implants" =>
+            //implant shortcut sanity test
+            implantSanityTest(
+              session.player.GUID,
+              avatar.implants.collect {
+                case Some(implant) if implant.definition.implantType != ImplantType.None => implant.definition
+              },
+              avatar.shortcuts
+            )
+            true
+
+          case name
+            if ImplantType.values.exists { a => a.shortcut.tile.equals(name) } =>
+            avatar.implants.find {
+              case Some(implant) => implant.definition.Name.equalsIgnoreCase(name)
+              case None => false
+            } match {
+
+              case Some(Some(implant)) =>
+                //specific implant shortcut sanity test
+                implantSanityTest(session.player.GUID, Seq(implant.definition), avatar.shortcuts)
                 true
 
-              case "implants" =>
-                //implant shortcut sanity test
-                implantSanityTest(
-                  session.player.GUID,
-                  avatar.implants.collect {
-                    case Some(implant) if implant.definition.implantType != ImplantType.None => implant.definition
-                  },
-                  avatar.shortcuts
-                )
-                true
-
-              case name
-                if ImplantType.values.exists { a => a.shortcut.tile.equals(name) } =>
-                avatar.implants.find {
-                  case Some(implant) => implant.definition.Name.equalsIgnoreCase(name)
-                  case None => false
-                } match {
-                  case Some(Some(implant)) =>
-                    //specific implant shortcut sanity test
-                    implantSanityTest(session.player.GUID, Seq(implant.definition), avatar.shortcuts)
-                    true
-                  case _ if other.nonEmpty =>
-                    //add macro?
-                    macroSanityTest(session.player.GUID, name, args.drop(2).mkString(" "), avatar.shortcuts)
-                    true
-                  case _ =>
-                    false
-                }
-
-              case name
-                if name.nonEmpty && other.nonEmpty =>
-                //add macro
+              case _ if other.nonEmpty =>
+                //add macro?
                 macroSanityTest(session.player.GUID, name, args.drop(2).mkString(" "), avatar.shortcuts)
                 true
 
               case _ =>
                 false
             }
+
+          case name
+            if name.nonEmpty && other.nonEmpty =>
+            //add macro
+            macroSanityTest(session.player.GUID, name, args.drop(2).mkString(" "), avatar.shortcuts)
+            true
+
           case _ =>
             false
         }
-      } else if (contents.startsWith("!progress")) {
-        val ourRank = BattleRank.withExperience(session.avatar.bep).value
-        if (!session.account.gm &&
-          (ourRank <= Config.app.game.promotion.broadcastBattleRank ||
-          ourRank > Config.app.game.promotion.resetBattleRank && ourRank < Config.app.game.promotion.maxBattleRank + 1)) {
-          setBattleRank(dropFirstWord(contents), session, AvatarActor.Progress)
-          true
-        } else {
-          setBattleRank(contents="1", session, AvatarActor.Progress)
-          false
-        }
-      } else {
-        false // unknown ! commands are ignored
-      }
+
+      case _ =>
+        false
+    }
+  }
+
+  private def commandProgress(
+                            message: ChatMsg,
+                            command: String,
+                            content: String,
+                            session: Session,
+                            chatService: ActorRef[ChatService.Command],
+                            cluster: ActorRef[InterstellarClusterService.Command],
+                            isGM: Boolean
+                          ): Boolean = {
+
+    val ourRank = BattleRank.withExperience(session.avatar.bep).value
+    if (!session.account.gm &&
+      (ourRank <= Config.app.game.promotion.broadcastBattleRank ||
+        ourRank > Config.app.game.promotion.resetBattleRank && ourRank < Config.app.game.promotion.maxBattleRank + 1)) {
+      setBattleRank(content, session, AvatarActor.Progress)
+      true
     } else {
-      false // unknown ! commands are ignored
+      setBattleRank(contents = "1", session, AvatarActor.Progress)
+      false
     }
   }
 
-  private def dropFirstWord(str: String): String = {
-    val noExtraSpaces = str.replaceAll("\\s+", " ").toLowerCase.trim
-    noExtraSpaces.indexOf(" ") match {
-      case -1               => ""
-      case beforeFirstBlank => noExtraSpaces.drop(beforeFirstBlank + 1)
-    }
-  }
-
-  def setBattleRank(
+  private def setBattleRank(
                      contents: String,
                      session: Session,
                      msgFunc: Long => AvatarActor.Command
@@ -1345,7 +1512,7 @@ class ChatActor(
     }
   }
 
-  def setCommandRank(
+  private def setCommandRank(
                       contents: String,
                       session: Session
                     ): Boolean = {
