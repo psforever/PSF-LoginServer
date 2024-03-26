@@ -355,9 +355,7 @@ object ChatActor {
                                      @unused session: Session,
                                      token: Option[String]
                                    ): Option[Int] = {
-    token.collect {
-      case n if n.forall(Character.isDigit) => n.toInt
-    }
+    token.flatMap(_.toIntOption)
   }
 
 
