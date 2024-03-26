@@ -8,6 +8,7 @@ import net.psforever.objects.serverobject.interior.{Sidedness, TraditionalInteri
 import net.psforever.objects.zones.InteractsWithZone
 import net.psforever.types.Vector3
 
+import scala.annotation.unused
 import scala.concurrent.duration._
 
 class WithEntrance()
@@ -25,14 +26,7 @@ class WithEntrance()
     if (stopTest && data.contains("bellybutton")) {
       stopTest = false
     } else {
-      val door = body.asInstanceOf[InteriorDoorPassage].door
-      val strictly = performInteriorCheck(obj, door)
-      val value = if (door.isOpen) {
-        Sidedness.InBetweenSides(door, strictly)
-      } else {
-        strictly
-      }
-      WhichSide_=(value)
+      doorInteriorCheck(obj, body.asInstanceOf[InteriorDoorPassage].door)
       obj.Actor ! RespondsToZoneEnvironment.Timer(attribute, delay = 250.milliseconds, obj.Actor, interaction.InteractingWithEnvironment(body, Some("bellybutton")))
     }
   }
@@ -42,22 +36,54 @@ class WithEntrance()
                                     body: PieceOfEnvironment,
                                     data: Option[Any]
                                   ): Unit = {
-    WhichSide_=(performInteriorCheck(obj, body.asInstanceOf[InteriorDoorPassage].door))
+    straightforwardInteriorCheck(obj, body.asInstanceOf[InteriorDoorPassage].door)
     stopTest = true
   }
 
-  private def performInteriorCheck(
-                                    obj: InteractsWithZone,
-                                    door: Door
-                                  ): Sidedness = {
-    debugInteriorCheck(obj, door)
-//    if (Vector3.DotProduct(Vector3.Unit(obj.Position - door.Position), door.Outwards) > 0f) {
-//      Sidedness.OutsideOf
-//    } else {
-//      Sidedness.InsideOf
-//    }
+  private def doorInteriorCheck(
+                                 obj: InteractsWithZone,
+                                 door: Door
+                               ): Sidedness = {
+    val strictly = interiorCheck(obj, door)
+    val value = if (door.isOpen) {
+      Sidedness.InBetweenSides(door, strictly)
+    } else {
+      strictly
+    }
+    WhichSide_=(value)
+    value
   }
 
+  private def straightforwardInteriorCheck(
+                                            obj: InteractsWithZone,
+                                            door: Door
+                                          ): Sidedness = {
+    WhichSide_=(interiorCheck(obj, door))
+  }
+
+  private def interiorCheck(
+                             obj: InteractsWithZone,
+                             door: Door
+                           ): Sidedness = {
+    //debugInteriorCheck(obj, door)
+    strictInteriorCheck(obj, door)
+  }
+
+  @unused
+  private def strictInteriorCheck(
+                                   obj: InteractsWithZone,
+                                   door: Door
+                                 ): Sidedness = {
+    if (door.Outwards == Vector3.Zero) {
+      WhichSide
+    } else if (Vector3.DotProduct(Vector3.Unit(obj.Position - door.Position), door.Outwards) > 0f) {
+      Sidedness.OutsideOf
+    } else {
+      Sidedness.InsideOf
+    }
+  }
+
+  @unused
   private def debugInteriorCheck(
                                   obj: InteractsWithZone,
                                   door: Door
@@ -71,23 +97,31 @@ class WithEntrance()
       case v: Vehicle => v.Actor.toString()
       case _ => ""
     }
-    val result = Vector3.DotProduct(Vector3.Unit(obj.Position - door.Position), door.Outwards) > 0f
-    if (result && WhichSide != Sidedness.OutsideOf) {
-      //outside
+    if (door.Outwards == Vector3.Zero) {
       obj.Zone.AvatarEvents ! AvatarServiceMessage(
         channel,
-        AvatarAction.SendResponse(PlanetSideGUID(0), ChatMsg(ChatMessageType.UNK_229, "You are now outside"))
+        AvatarAction.SendResponse(PlanetSideGUID(0), ChatMsg(ChatMessageType.UNK_229, "Door not configured."))
       )
-      Sidedness.OutsideOf
-    } else if (!result && WhichSide != Sidedness.InsideOf) {
-      //inside
-      obj.Zone.AvatarEvents ! AvatarServiceMessage(
-        channel,
-        AvatarAction.SendResponse(PlanetSideGUID(0), ChatMsg(ChatMessageType.UNK_229, "You are now inside"))
-      )
-      Sidedness.InsideOf
-    } else {
       WhichSide
+    } else {
+      val result = Vector3.DotProduct(Vector3.Unit(obj.Position - door.Position), door.Outwards) > 0f
+      if (result && WhichSide != Sidedness.OutsideOf) {
+        //outside
+        obj.Zone.AvatarEvents ! AvatarServiceMessage(
+          channel,
+          AvatarAction.SendResponse(PlanetSideGUID(0), ChatMsg(ChatMessageType.UNK_229, "You are now outside"))
+        )
+        Sidedness.OutsideOf
+      } else if (!result && WhichSide != Sidedness.InsideOf) {
+        //inside
+        obj.Zone.AvatarEvents ! AvatarServiceMessage(
+          channel,
+          AvatarAction.SendResponse(PlanetSideGUID(0), ChatMsg(ChatMessageType.UNK_229, "You are now inside"))
+        )
+        Sidedness.InsideOf
+      } else {
+        WhichSide
+      }
     }
   }
 }

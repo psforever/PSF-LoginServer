@@ -1450,6 +1450,7 @@ class SessionData(
       }) match {
         case Some((vehicle: Vehicle, Some(util: Utility.InternalTelepad))) =>
           zoning.CancelZoningProcessWithDescriptiveReason("cancel")
+          player.WhichSide = vehicle.WhichSide
           useRouterTelepadSystem(
             router = vehicle,
             internalTelepad = util,
@@ -1475,6 +1476,7 @@ class SessionData(
     continent.GUID(obj.Telepad) match {
       case Some(pad: TelepadDeployable) =>
         zoning.CancelZoningProcessWithDescriptiveReason("cancel")
+        player.WhichSide = pad.WhichSide
         useRouterTelepadSystem(
           router = obj.Owner.asInstanceOf[Vehicle],
           internalTelepad = obj,

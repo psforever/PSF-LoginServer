@@ -9,6 +9,7 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.ZoneInfo
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import org.log4s.Logger
 
 import scala.annotation.unused
 import scala.collection.{Seq, mutable}
@@ -113,6 +114,504 @@ object ChatActor {
             )
         }
     }
+  }
+
+  /**
+   * Create a medkit shortcut if there is no medkit shortcut on the hotbar.
+   * Bounce the packet to the client and the client will bounce it back to the server to continue the setup,
+   * or cancel / invalidate the shortcut creation.
+   * @see `Array::indexWhere`
+   * @see `CreateShortcutMessage`
+   * @see `net.psforever.objects.avatar.Shortcut`
+   * @see `net.psforever.packet.game.Shortcut.Medkit`
+   * @see `SessionActor.SendResponse`
+   * @param guid current player unique identifier for the target client
+   * @param shortcuts list of all existing shortcuts, used for early validation
+   */
+  private def medkitSanityTest(
+                                guid: PlanetSideGUID,
+                                shortcuts: Array[Option[AvatarShortcut]],
+                                sendTo: ActorRef[SessionActor.Command]
+                              ): Unit = {
+    if (!shortcuts.exists {
+      case Some(a) => a.purpose == 0
+      case None    => false
+    }) {
+      shortcuts.indexWhere(_.isEmpty) match {
+        case -1 => ()
+        case index =>
+          //new shortcut
+          sendTo ! SessionActor.SendResponse(CreateShortcutMessage(
+            guid,
+            index + 1,
+            Some(Shortcut.Medkit())
+          ))
+      }
+    }
+  }
+
+  /**
+   * Create all implant macro shortcuts for all implants whose shortcuts have been removed from the hotbar.
+   * Bounce the packet to the client and the client will bounce it back to the server to continue the setup,
+   * or cancel / invalidate the shortcut creation.
+   * @see `CreateShortcutMessage`
+   * @see `ImplantDefinition`
+   * @see `net.psforever.objects.avatar.Shortcut`
+   * @see `SessionActor.SendResponse`
+   * @param guid current player unique identifier for the target client
+   * @param haveImplants list of implants the player possesses
+   * @param shortcuts list of all existing shortcuts, used for early validation
+   */
+  private def implantSanityTest(
+                                 guid: PlanetSideGUID,
+                                 haveImplants: Iterable[ImplantDefinition],
+                                 shortcuts: Array[Option[AvatarShortcut]],
+                                 sendTo: ActorRef[SessionActor.Command]
+                               ): Unit = {
+    val haveImplantShortcuts = shortcuts.collect {
+      case Some(shortcut) if shortcut.purpose == 2 => shortcut.tile
+    }
+    var start: Int = 0
+    haveImplants.filterNot { imp => haveImplantShortcuts.contains(imp.Name) }
+      .foreach { implant =>
+        shortcuts.indexWhere(_.isEmpty, start) match {
+          case -1 => ()
+          case index =>
+            //new shortcut
+            start = index + 1
+            sendTo ! SessionActor.SendResponse(CreateShortcutMessage(
+              guid,
+              start,
+              Some(implant.implantType.shortcut)
+            ))
+        }
+      }
+  }
+
+  /**
+   * Create a text chat macro shortcut if it doesn't already exist.
+   * Bounce the packet to the client and the client will bounce it back to the server to continue the setup,
+   * or cancel / invalidate the shortcut creation.
+   * @see `Array::indexWhere`
+   * @see `CreateShortcutMessage`
+   * @see `net.psforever.objects.avatar.Shortcut`
+   * @see `net.psforever.packet.game.Shortcut.Macro`
+   * @see `SessionActor.SendResponse`
+   * @param guid current player unique identifier for the target client
+   * @param acronym three letters emblazoned on the shortcut icon
+   * @param msg the message published to text chat
+   * @param shortcuts a list of all existing shortcuts, used for early validation
+   */
+  private def macroSanityTest(
+                               guid: PlanetSideGUID,
+                               acronym: String,
+                               msg: String,
+                               shortcuts: Array[Option[AvatarShortcut]],
+                               sendTo: ActorRef[SessionActor.Command]
+                             ): Unit = {
+    shortcuts.indexWhere(_.isEmpty) match {
+      case -1 => ()
+      case index =>
+        //new shortcut
+        sendTo ! SessionActor.SendResponse(CreateShortcutMessage(
+          guid,
+          index + 1,
+          Some(Shortcut.Macro(acronym, msg))
+        ))
+    }
+  }
+
+  private def setBattleRank(
+                             session: Session,
+                             params: Seq[String],
+                             msgFunc: Long => AvatarActor.Command,
+                             sendTo: ActorRef[AvatarActor.Command]
+                           ): Boolean = {
+    val (target, rank) = (params.headOption, params.lift(1)) match {
+      case (Some(target), Some(rank)) if target == session.avatar.name =>
+        rank.toIntOption match {
+          case Some(rank) => (None, BattleRank.withValueOpt(rank))
+          case None       => (None, None)
+        }
+      case (Some("-h"), _) | (Some("-help"), _) =>
+        (None, Some(BattleRank.BR1))
+      case (Some(_), Some(_)) =>
+        // picking other targets is not supported for now
+        (None, None)
+      case (Some(rank), None) =>
+        rank.toIntOption match {
+          case Some(rank) => (None, BattleRank.withValueOpt(rank))
+          case None       => (None, None)
+        }
+      case _ => (None, None)
+    }
+    (target, rank) match {
+      case (_, Some(rank)) if rank.value <= Config.app.game.maxBattleRank =>
+        sendTo ! msgFunc(rank.experience)
+        true
+      case _ =>
+        false
+    }
+  }
+
+  private def setCommandRank(
+                              contents: String,
+                              session: Session,
+                              sendTo: ActorRef[AvatarActor.Command]
+                            ): Boolean = {
+    val buffer = cliTokenization(contents)
+    val (target, rank) = (buffer.headOption, buffer.lift(1)) match {
+      case (Some(target), Some(rank)) if target == session.avatar.name =>
+        rank.toIntOption match {
+          case Some(rank) => (None, CommandRank.withValueOpt(rank))
+          case None       => (None, None)
+        }
+      case (Some(_), Some(_)) =>
+        // picking other targets is not supported for now
+        (None, None)
+      case (Some(rank), None) =>
+        rank.toIntOption match {
+          case Some(rank) => (None, CommandRank.withValueOpt(rank))
+          case None       => (None, None)
+        }
+      case _ => (None, None)
+    }
+    (target, rank) match {
+      case (_, Some(rank)) =>
+        sendTo ! AvatarActor.SetCep(rank.experience)
+        true
+      case _ =>
+        false
+    }
+  }
+
+  private def captureBaseParamFacilities(
+                                          session: Session,
+                                          token: Option[String]
+                                        ): Option[Seq[Building]] = {
+    token.collect {
+      case "curr" =>
+        val list = captureBaseCurrSoi(session)
+        if (list.nonEmpty) {
+          Some(list.toSeq)
+        } else {
+          None
+        }
+      case "all" =>
+        val list = session.zone.Buildings.values.filter(_.CaptureTerminal.isDefined)
+        if (list.nonEmpty) {
+          Some(list.toSeq)
+        } else {
+          None
+        }
+      case name =>
+        val trueName = ZoneInfo
+          .values
+          .find(_.id.equals(session.zone.id))
+          .flatMap { info =>
+            info.aliases
+              .facilities
+              .collectFirst { case (key, internalName) if key.equalsIgnoreCase(name) => internalName }
+          }
+          .getOrElse(name)
+        session.zone.Buildings
+          .values
+          .find {
+            building => trueName.equalsIgnoreCase(building.Name) && building.CaptureTerminal.isDefined
+          }
+          .map(b => Seq(b))
+    }
+      .flatten
+  }
+
+  private def captureBaseCurrSoi(
+                                  session: Session
+                                ): Iterable[Building] = {
+    val charId = session.player.CharId
+    session.zone.Buildings.values.filter { building =>
+      building.PlayersInSOI.exists(_.CharId == charId)
+    }
+  }
+
+  private def captureBaseParamFaction(
+                                       @unused session: Session,
+                                       token: Option[String]
+                                     ): Option[PlanetSideEmpire.Value] = {
+    token.collect {
+      case faction =>
+        faction.toLowerCase() match {
+          case "tr"      => Some(PlanetSideEmpire.TR)
+          case "nc"      => Some(PlanetSideEmpire.NC)
+          case "vs"      => Some(PlanetSideEmpire.VS)
+          case "none"    => Some(PlanetSideEmpire.NEUTRAL)
+          case "bo"      => Some(PlanetSideEmpire.NEUTRAL)
+          case "neutral" => Some(PlanetSideEmpire.NEUTRAL)
+          case _         => None
+        }
+    }.flatten
+  }
+
+  private def captureBaseParamTimer(
+                                     @unused session: Session,
+                                     token: Option[String]
+                                   ): Option[Int] = {
+    token.collect {
+      case n if n.forall(Character.isDigit) => n.toInt
+    }
+  }
+
+
+
+  private def customCommandWhitetext(
+                                      session: Session,
+                                      content: Seq[String],
+                                      sendTo: ActorRef[ChatService.Command]
+                                    ): Boolean = {
+    sendTo ! ChatService.Message(
+      session,
+      ChatMsg(UNK_227, wideContents=true, "", content.mkString(" "), None),
+      ChatChannel.Default()
+    )
+    true
+  }
+
+  private def customCommandLoc(
+                                session: Session,
+                                message: ChatMsg,
+                                sendTo: ActorRef[SessionActor.Command]
+                              ): Boolean = {
+    val continent = session.zone
+    val player = session.player
+    val loc =
+      s"zone=${continent.id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
+    sendTo ! SessionActor.SendResponse(message.copy(contents = loc))
+    true
+  }
+
+  private def customCommandList(
+                                 session: Session,
+                                 params: Seq[String],
+                                 message: ChatMsg,
+                                 sendTo: ActorRef[SessionActor.Command]
+                               ): Boolean = {
+    val zone = params.headOption match {
+      case Some("") | None =>
+        Some(session.zone)
+      case Some(id) =>
+        Zones.zones.find(_.id == id)
+    }
+    zone match {
+      case Some(inZone) =>
+        sendTo ! SessionActor.SendResponse(
+          ChatMsg(
+            CMT_GMOPEN,
+            message.wideContents,
+            "Server",
+            "\\#8Name (Faction) [ID] at PosX PosY PosZ",
+            message.note
+          )
+        )
+        (inZone.LivePlayers ++ inZone.Corpses)
+          .filter(_.CharId != session.player.CharId)
+          .sortBy(p => (p.Name, !p.isAlive))
+          .foreach(player => {
+            val color = if (!player.isAlive) "\\#7" else ""
+            sendTo ! SessionActor.SendResponse(
+              ChatMsg(
+                CMT_GMOPEN,
+                message.wideContents,
+                "Server",
+                s"$color${player.Name} (${player.Faction}) [${player.CharId}] at ${player.Position.x.toInt} ${player.Position.y.toInt} ${player.Position.z.toInt}",
+                message.note
+              )
+            )
+          })
+      case None =>
+        sendTo ! SessionActor.SendResponse(
+          ChatMsg(
+            CMT_GMOPEN,
+            message.wideContents,
+            "Server",
+            "Invalid zone ID",
+            message.note
+          )
+        )
+    }
+    true
+  }
+
+  private def customCommandNtu(
+                                session: Session,
+                                params: Seq[String],
+                                sendTo: ActorRef[SessionActor.Command]
+                              ): Boolean = {
+    val (facility, customNtuValue) = (params.headOption, params.lift(1)) match {
+      case (Some(x), Some(y)) if y.toIntOption.nonEmpty => (Some(x), Some(y.toInt))
+      case (Some(x), None) if x.toIntOption.nonEmpty => (None, Some(x.toInt))
+      case _ => (None, None)
+    }
+    val silos = (facility match {
+      case Some(cur) if cur.toLowerCase().startsWith("curr") =>
+        val position = session.player.Position
+        session.zone.Buildings.values
+          .filter { building =>
+            val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
+            Vector3.DistanceSquared(building.Position, position) < soi2
+          }
+      case Some(all) if all.toLowerCase.startsWith("all") =>
+        session.zone.Buildings.values
+      case Some(x) =>
+        session.zone.Buildings.values.find(_.Name.equalsIgnoreCase(x)).toList
+      case _ =>
+        session.zone.Buildings.values
+    })
+      .flatMap { building =>
+        building.Amenities.filter(_.isInstanceOf[ResourceSilo])
+      }
+    ChatActor.setBaseResources(sendTo, customNtuValue, silos, debugContent = s"$facility")
+    true
+  }
+
+  private def customCommandZonerotate(
+                                       params: Seq[String],
+                                       sendTo: ActorRef[InterstellarClusterService.Command],
+                                       replyTo: ActorRef[SessionActor.Command]
+                                     ): Boolean = {
+    sendTo ! InterstellarClusterService.CavernRotation(params.headOption match {
+      case Some("-list") | Some("-l") =>
+        CavernRotationService.ReportRotationOrder(replyTo.toClassic)
+      case _ =>
+        CavernRotationService.HurryNextRotation
+    })
+    true
+  }
+
+  private def customCommandSuicide(
+                                    session: Session
+                                  ): Boolean = {
+    //this is like CMT_SUICIDE but it ignores checks and forces a suicide state
+    val tplayer = session.player
+    tplayer.Revive
+    tplayer.Actor ! Player.Die()
+    true
+  }
+
+  private def customCommandGrenade(
+                                    session: Session,
+                                    log: Logger
+                                  ): Boolean = {
+    WorldSession.QuickSwapToAGrenade(session.player, DrawnSlot.Pistol1.id, log)
+    true
+  }
+
+  private def customCommandMacro(
+                                  session: Session,
+                                  params: Seq[String],
+                                  sendTo: ActorRef[SessionActor.Command]
+                                ): Boolean = {
+    val avatar = session.avatar
+    (params.headOption, params.lift(1)) match {
+      case (Some(cmd), other) =>
+        cmd.toLowerCase() match {
+          case "medkit" =>
+            medkitSanityTest(session.player.GUID, avatar.shortcuts, sendTo)
+            true
+
+          case "implants" =>
+            //implant shortcut sanity test
+            implantSanityTest(
+              session.player.GUID,
+              avatar.implants.collect {
+                case Some(implant) if implant.definition.implantType != ImplantType.None => implant.definition
+              },
+              avatar.shortcuts,
+              sendTo
+            )
+            true
+
+          case name
+            if ImplantType.values.exists { a => a.shortcut.tile.equals(name) } =>
+            avatar.implants.find {
+              case Some(implant) => implant.definition.Name.equalsIgnoreCase(name)
+              case None => false
+            } match {
+              case Some(Some(implant)) =>
+                //specific implant shortcut sanity test
+                implantSanityTest(session.player.GUID, Seq(implant.definition), avatar.shortcuts, sendTo)
+                true
+              case _ if other.nonEmpty =>
+                //add macro?
+                macroSanityTest(session.player.GUID, name, params.drop(2).mkString(" "), avatar.shortcuts, sendTo)
+                true
+              case _ =>
+                false
+            }
+
+          case name
+            if name.nonEmpty && other.nonEmpty =>
+            //add macro
+            macroSanityTest(session.player.GUID, name, params.drop(2).mkString(" "), avatar.shortcuts, sendTo)
+            true
+
+          case _ =>
+            false
+        }
+      case _ =>
+        false
+    }
+  }
+
+  private def customCommandProgress(
+                                     session: Session,
+                                     params: Seq[String],
+                                     sendTo: ActorRef[AvatarActor.Command]
+                                   ): Boolean = {
+    val ourRank = BattleRank.withExperience(session.avatar.bep).value
+    if (!session.account.gm &&
+      (ourRank <= Config.app.game.promotion.broadcastBattleRank ||
+        ourRank > Config.app.game.promotion.resetBattleRank && ourRank < Config.app.game.promotion.maxBattleRank + 1)) {
+      setBattleRank(session, params, AvatarActor.Progress, sendTo)
+      true
+    } else {
+      setBattleRank(session, Seq("1"), AvatarActor.Progress, sendTo)
+      false
+    }
+  }
+
+  private def customCommandNearby(
+                                   session: Session,
+                                   sendTo: ActorRef[SessionActor.Command]
+                                 ): Boolean = {
+    val playerPos = session.player.Position.xy
+    val closest = session.zone
+      .Buildings
+      .values
+      .toSeq
+      .minByOption(base => Vector3.DistanceSquared(playerPos, base.Position.xy))
+      .map(base => s"${base.Name} - ${base.Definition.Name}")
+    sendTo ! SessionActor.SendResponse(
+      ChatMsg(CMT_GMOPEN, wideContents = false, "Server", s"closest facility: $closest", None)
+    )
+    true
+  }
+
+  private def firstParam[T](
+                             session: Session,
+                             buffer: Iterable[String],
+                             func: (Session, Option[String])=>Option[T]
+                           ): (Option[T], Option[String], Iterable[String]) = {
+    val tokenOpt = buffer.headOption
+    val valueOpt = func(session, tokenOpt)
+    val outBuffer = if (valueOpt.nonEmpty) {
+      buffer.drop(1)
+    } else {
+      buffer
+    }
+    (valueOpt, tokenOpt, outBuffer)
+  }
+
+  private def cliTokenization(str: String): List[String] = {
+    str.replaceAll("\\s+", " ").toLowerCase.trim.split("\\s").toList
   }
 }
 
@@ -229,14 +728,14 @@ class ChatActor(
               customCommandMessages(message, session, chatService, cluster, gmCommandAllowed) => ()
 
             case (CMT_FLY, recipient, contents) if gmCommandAllowed =>
-              val flying = contents match {
-                case "on"  => true
-                case "off" => false
-                case _     => !session.flying
+              val (token, flying) = contents match {
+                case "on"  => (contents, true)
+                case "off" => (contents, false)
+                case _     => ("off", false)
               }
               sessionActor ! SessionActor.SetFlying(flying)
               sessionActor ! SessionActor.SendResponse(
-                ChatMsg(CMT_FLY, wideContents=false, recipient, if (flying) "on" else "off", None)
+                ChatMsg(CMT_FLY, wideContents=false, recipient, token, None)
               )
 
             case (CMT_ANONYMOUS, _, _) =>
@@ -252,7 +751,7 @@ class ChatActor(
                 else 50
               sessionActor ! SessionActor.SetConnectionState(connectionState)
 
-            case (CMT_SPEED, recipient, contents) if gmCommandAllowed =>
+            case (CMT_SPEED, _, contents) if gmCommandAllowed =>
               val speed =
                 try {
                   contents.toFloat
@@ -353,7 +852,7 @@ class ChatActor(
               sessionActor ! SessionActor.SendResponse(message)
 
             case (CMT_SETBASERESOURCES, _, contents) if gmCommandAllowed =>
-              val buffer = contents.toLowerCase.split("\\s+")
+              val buffer = cliTokenization(contents)
               val customNtuValue = buffer.lift(1) match {
                 case Some(x) if x.toIntOption.nonEmpty => Some(x.toInt)
                 case _                                 => None
@@ -370,7 +869,7 @@ class ChatActor(
               ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent="")
 
             case (CMT_ZONELOCK, _, contents) if gmCommandAllowed =>
-              val buffer = contents.toLowerCase.split("\\s+")
+              val buffer = cliTokenization(contents)
               val (zoneOpt, lockVal) = (buffer.lift(1), buffer.lift(2)) match {
                 case (Some(x), Some(y)) =>
                   val zone = if (x.toIntOption.nonEmpty) {
@@ -389,24 +888,24 @@ class ChatActor(
                   (None, None)
               }
               (zoneOpt, lockVal) match {
-                case (Some(zone), Some(lock)) if zone.id.startsWith("c") =>
+                case (Some(zone), Some(lock)) if zone.map.cavern =>
                   //caverns must be rotated in an order
                   if (lock == 0) {
                     cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryRotationToZoneUnlock(zone.id))
                   } else {
                     cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryRotationToZoneLock(zone.id))
                   }
-                case (Some(zone), Some(lock)) =>
+                case (Some(_), Some(_)) =>
                   //normal zones can lock when all facilities and towers on it belong to the same faction
                   //normal zones can lock when ???
                 case _ => ;
               }
 
-            case (U_CMT_ZONEROTATE, _, contents) if gmCommandAllowed =>
+            case (U_CMT_ZONEROTATE, _, _) if gmCommandAllowed =>
               cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryNextRotation)
 
             case (CMT_CAPTUREBASE, _, contents) if gmCommandAllowed =>
-              val buffer = contents.split(" ").filterNot(_ == "").take(3)
+              val buffer = cliTokenization(contents).take(3)
               //walk through the param buffer
               val (foundFacilities, foundFacilitiesTag, factionBuffer) = firstParam(session, buffer, captureBaseParamFacilities)
               val (foundFaction, foundFactionTag, timerBuffer) = firstParam(session, factionBuffer, captureBaseParamFaction)
@@ -640,8 +1139,8 @@ class ChatActor(
               }
 
             case (CMT_ZONE, _, contents) if gmCommandAllowed =>
-              val buffer = contents.toLowerCase.split("\\s+")
-              val (zone, gate, list) = (buffer.lift(0), buffer.lift(1)) match {
+              val buffer = cliTokenization(contents)
+              val (zone, gate, list) = (buffer.headOption, buffer.lift(1)) match {
                 case (Some("-list"), None) =>
                   (None, None, true)
                 case (Some(zoneId), Some("-list")) =>
@@ -670,7 +1169,7 @@ class ChatActor(
                   sessionActor ! SessionActor.SendResponse(
                     ChatMsg(UNK_229, wideContents=true, "", "Gate id not defined (use '/zone <zone> -list')", None)
                   )
-                case (_, _, _) if buffer.isEmpty || buffer(0).equals("-help") =>
+                case (_, _, _) if buffer.isEmpty || buffer.headOption.contains("-help") =>
                   sessionActor ! SessionActor.SendResponse(
                     message.copy(messageType = UNK_229, contents = "@CMT_ZONE_usage")
                   )
@@ -678,11 +1177,11 @@ class ChatActor(
               }
 
             case (CMT_WARP, _, contents) if gmCommandAllowed =>
-              val buffer = contents.toLowerCase.split("\\s+")
-              val (coordinates, waypoint) = (buffer.lift(0), buffer.lift(1), buffer.lift(2)) match {
+              val buffer = cliTokenization(contents)
+              val (coordinates, waypoint) = (buffer.headOption, buffer.lift(1), buffer.lift(2)) match {
                 case (Some(x), Some(y), Some(z))                       => (Some(x, y, z), None)
-                case (Some("to"), Some(character), None)               => (None, None) // TODO not implemented
-                case (Some("near"), Some(objectName), None)            => (None, None) // TODO not implemented
+                case (Some("to"), Some(_/*character*/), None)          => (None, None) // TODO not implemented
+                case (Some("near"), Some(_/*objectName*/), None)       => (None, None) // TODO not implemented
                 case (Some(waypoint), None, None) if waypoint.nonEmpty => (None, Some(waypoint))
                 case _                                                 => (None, None)
               }
@@ -716,14 +1215,14 @@ class ChatActor(
               }
 
             case (CMT_SETBATTLERANK, _, contents) if gmCommandAllowed =>
-              if (!setBattleRank(contents, session, AvatarActor.SetBep)) {
+              if (!setBattleRank(session, cliTokenization(contents), AvatarActor.SetBep, avatarActor)) {
                 sessionActor ! SessionActor.SendResponse(
                   message.copy(messageType = UNK_229, contents = "@CMT_SETBATTLERANK_usage")
                 )
               }
 
             case (CMT_SETCOMMANDRANK, _, contents) if gmCommandAllowed =>
-              if (!setCommandRank(contents, session)) {
+              if (!setCommandRank(contents, session, avatarActor)) {
                 sessionActor ! SessionActor.SendResponse(
                   message.copy(messageType = UNK_229, contents = "@CMT_SETCOMMANDRANK_usage")
                 )
@@ -800,23 +1299,13 @@ class ChatActor(
               )
 
             case (CMT_ADDCERTIFICATION, _, contents) if gmCommandAllowed =>
-              val certs = contents.split(" ").filter(_ != "").map(name => Certification.values.find(_.name == name))
-              if (certs.nonEmpty) {
+              val certs = cliTokenization(contents).map(name => Certification.values.find(_.name == name))
+              val result = if (certs.nonEmpty) {
                 if (certs.contains(None)) {
-                  sessionActor ! SessionActor.SendResponse(
-                    message.copy(
-                      messageType = UNK_229,
-                      contents = s"@AckErrorCertifications"
-                    )
-                  )
+                  s"@AckErrorCertifications"
                 } else {
                   avatarActor ! AvatarActor.SetCertifications(session.avatar.certifications ++ certs.flatten)
-                  sessionActor ! SessionActor.SendResponse(
-                    message.copy(
-                      messageType = UNK_229,
-                      contents = s"@AckSuccessCertifications"
-                    )
-                  )
+                  s"@AckSuccessCertifications"
                 }
               } else {
                 if (session.avatar.certifications.size < Certification.values.size) {
@@ -824,16 +1313,12 @@ class ChatActor(
                 } else {
                   avatarActor ! AvatarActor.SetCertifications(Certification.values.filter(_.cost == 0).toSet)
                 }
-                sessionActor ! SessionActor.SendResponse(
-                  message.copy(
-                    messageType = UNK_229,
-                    contents = s"@AckSuccessCertifications"
-                  )
-                )
+                s"@AckSuccessCertifications"
               }
+              sessionActor ! SessionActor.SendResponse(message.copy(messageType = UNK_229, contents = result))
 
             case (CMT_KICK, _, contents) if gmCommandAllowed =>
-              val inputs = contents.split("\\s+").filter(_ != "")
+              val inputs = cliTokenization(contents)
               inputs.headOption match {
                 case Some(input) =>
                   val determination: Player => Boolean = input.toLongOption match {
@@ -908,7 +1393,7 @@ class ChatActor(
           }
           Behaviors.same
 
-        case IncomingMessage(fromSession, message, channel) =>
+        case IncomingMessage(fromSession, message, _/*channel*/) =>
           message.messageType match {
             case CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | CMT_NOTE =>
               if (AvatarActor.onlineIfNotIgnored(session.avatar, message.recipient)) {
@@ -952,8 +1437,8 @@ class ChatActor(
                 }
               }
             case CMT_SILENCE =>
-              val args = message.contents.split(" ")
-              val (name, time) = (args.lift(0), args.lift(1)) match {
+              val args = cliTokenization(message.contents)
+              val (name, time) = (args.headOption, args.lift(1)) match {
                 case (Some(name), _) if name != session.player.Name =>
                   log.error("Received silence message for other player")
                   (None, None)
@@ -1005,452 +1490,61 @@ class ChatActor(
       }
   }
 
-  /**
-   * Create a medkit shortcut if there is no medkit shortcut on the hotbar.
-   * Bounce the packet to the client and the client will bounce it back to the server to continue the setup,
-   * or cancel / invalidate the shortcut creation.
-   * @see `Array::indexWhere`
-   * @see `CreateShortcutMessage`
-   * @see `net.psforever.objects.avatar.Shortcut`
-   * @see `net.psforever.packet.game.Shortcut.Medkit`
-   * @see `SessionActor.SendResponse`
-   * @param guid current player unique identifier for the target client
-   * @param shortcuts list of all existing shortcuts, used for early validation
-   */
-  def medkitSanityTest(
-                        guid: PlanetSideGUID,
-                        shortcuts: Array[Option[AvatarShortcut]]
-                      ): Unit = {
-    if (!shortcuts.exists {
-      case Some(a) => a.purpose == 0
-      case None    => false
-    }) {
-      shortcuts.indexWhere(_.isEmpty) match {
-        case -1 => ;
-        case index =>
-          //new shortcut
-          sessionActor ! SessionActor.SendResponse(CreateShortcutMessage(
-            guid,
-            index + 1,
-            Some(Shortcut.Medkit())
-          ))
-      }
-    }
-  }
-
-  /**
-   * Create all implant macro shortcuts for all implants whose shortcuts have been removed from the hotbar.
-   * Bounce the packet to the client and the client will bounce it back to the server to continue the setup,
-   * or cancel / invalidate the shortcut creation.
-   * @see `CreateShortcutMessage`
-   * @see `ImplantDefinition`
-   * @see `net.psforever.objects.avatar.Shortcut`
-   * @see `SessionActor.SendResponse`
-   * @param guid current player unique identifier for the target client
-   * @param haveImplants list of implants the player possesses
-   * @param shortcuts list of all existing shortcuts, used for early validation
-   */
-  def implantSanityTest(
-                         guid: PlanetSideGUID,
-                         haveImplants: Iterable[ImplantDefinition],
-                         shortcuts: Array[Option[AvatarShortcut]]
-                       ): Unit = {
-    val haveImplantShortcuts = shortcuts.collect {
-      case Some(shortcut) if shortcut.purpose == 2 => shortcut.tile
-    }
-    var start: Int = 0
-    haveImplants.filterNot { imp => haveImplantShortcuts.contains(imp.Name) }
-      .foreach { implant =>
-        shortcuts.indexWhere(_.isEmpty, start) match {
-          case -1 => ;
-          case index => ;
-            //new shortcut
-            start = index + 1
-            sessionActor ! SessionActor.SendResponse(CreateShortcutMessage(
-              guid,
-              start,
-              Some(implant.implantType.shortcut)
-            ))
-        }
-      }
-  }
-
-  /**
-   * Create a text chat macro shortcut if it doesn't already exist.
-   * Bounce the packet to the client and the client will bounce it back to the server to continue the setup,
-   * or cancel / invalidate the shortcut creation.
-   * @see `Array::indexWhere`
-   * @see `CreateShortcutMessage`
-   * @see `net.psforever.objects.avatar.Shortcut`
-   * @see `net.psforever.packet.game.Shortcut.Macro`
-   * @see `SessionActor.SendResponse`
-   * @param guid current player unique identifier for the target client
-   * @param acronym three letters emblazoned on the shortcut icon
-   * @param msg the message published to text chat
-   * @param shortcuts a list of all existing shortcuts, used for early validation
-   */
-  def macroSanityTest(
-                        guid: PlanetSideGUID,
-                        acronym: String,
-                        msg: String,
-                        shortcuts: Array[Option[AvatarShortcut]]
-                      ): Unit = {
-    shortcuts.indexWhere(_.isEmpty) match {
-      case -1 => ;
-      case index => ;
-        //new shortcut
-        sessionActor ! SessionActor.SendResponse(CreateShortcutMessage(
-          guid,
-          index + 1,
-          Some(Shortcut.Macro(acronym, msg))
-        ))
-    }
-  }
-
-  def customCommandMessages(
-                             message: ChatMsg,
-                             session: Session,
-                             chatService: ActorRef[ChatService.Command],
-                             cluster: ActorRef[InterstellarClusterService.Command],
-                             gmCommandAllowed: Boolean
-                           ): Boolean = {
-//    val messageType = message.messageType
-//    val recipient = message.recipient
+  private def customCommandMessages(
+                                     message: ChatMsg,
+                                     session: Session,
+                                     chatService: ActorRef[ChatService.Command],
+                                     cluster: ActorRef[InterstellarClusterService.Command],
+                                     gmCommandAllowed: Boolean
+                                   ): Boolean = {
     val contents = message.contents
     if (contents.startsWith("!")) {
-      if (contents.startsWith("!whitetext ") && gmCommandAllowed) {
-        chatService ! ChatService.Message(
-          session,
-          ChatMsg(UNK_227, wideContents=true, "", contents.replace("!whitetext ", ""), None),
-          ChatChannel.Default()
-        )
-        true
-
-      } else if (contents.startsWith("!loc")) {
-        val continent = session.zone
-        val player = session.player
-        val loc =
-          s"zone=${continent.id} pos=${player.Position.x},${player.Position.y},${player.Position.z}; ori=${player.Orientation.x},${player.Orientation.y},${player.Orientation.z}"
-        log.info(loc)
-        sessionActor ! SessionActor.SendResponse(message.copy(contents = loc))
-        true
-
-      } else if (contents.startsWith("!list")) {
-        val zone = dropFirstWord(contents).split("\\s+").headOption match {
-          case Some("") | None =>
-            Some(session.zone)
-          case Some(id) =>
-            Zones.zones.find(_.id == id)
-        }
-        zone match {
-          case Some(inZone) =>
-            sessionActor ! SessionActor.SendResponse(
-              ChatMsg(
-                CMT_GMOPEN,
-                message.wideContents,
-                "Server",
-                "\\#8Name (Faction) [ID] at PosX PosY PosZ",
-                message.note
-              )
-            )
-            (inZone.LivePlayers ++ inZone.Corpses)
-              .filter(_.CharId != session.player.CharId)
-              .sortBy(p => (p.Name, !p.isAlive))
-              .foreach(player => {
-                val color = if (!player.isAlive) "\\#7" else ""
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(
-                    CMT_GMOPEN,
-                    message.wideContents,
-                    "Server",
-                    s"$color${player.Name} (${player.Faction}) [${player.CharId}] at ${player.Position.x.toInt} ${player.Position.y.toInt} ${player.Position.z.toInt}",
-                    message.note
-                  )
-                )
-              })
-          case None =>
-            sessionActor ! SessionActor.SendResponse(
-              ChatMsg(
-                CMT_GMOPEN,
-                message.wideContents,
-                "Server",
-                "Invalid zone ID",
-                message.note
-              )
-            )
-        }
-        true
-
-      } else if (contents.startsWith("!ntu") && gmCommandAllowed) {
-        val buffer = dropFirstWord(contents).split("\\s+")
-        val (facility, customNtuValue) = (buffer.headOption, buffer.lift(1)) match {
-          case (Some(x), Some(y)) if y.toIntOption.nonEmpty => (Some(x), Some(y.toInt))
-          case (Some(x), None) if x.toIntOption.nonEmpty => (None, Some(x.toInt))
-          case _ => (None, None)
-        }
-        val silos = (facility match {
-          case Some(cur) if cur.toLowerCase().startsWith("curr") =>
-            val position = session.player.Position
-            session.zone.Buildings.values
-              .filter { building =>
-                val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
-                Vector3.DistanceSquared(building.Position, position) < soi2
-              }
-          case Some(all) if all.toLowerCase.startsWith("all") =>
-            session.zone.Buildings.values
-          case Some(x) =>
-            session.zone.Buildings.values.find {
-              _.Name.equalsIgnoreCase(x)
-            }.toList
-          case _ =>
-            session.zone.Buildings.values
-        })
-          .flatMap { building =>
-            building.Amenities.filter {
-              _.isInstanceOf[ResourceSilo]
-            }
-          }
-        ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent = s"$facility")
-        true
-
-      } else if (contents.startsWith("!zonerotate") && gmCommandAllowed) {
-        val buffer = dropFirstWord(contents).split("\\s+")
-        cluster ! InterstellarClusterService.CavernRotation(buffer.headOption match {
-          case Some("-list") | Some("-l") =>
-            CavernRotationService.ReportRotationOrder(sessionActor.toClassic)
-          case _ =>
-            CavernRotationService.HurryNextRotation
-        })
-        true
-
-      } else if (contents.startsWith("!suicide")) {
-        //this is like CMT_SUICIDE but it ignores checks and forces a suicide state
-        val tplayer = session.player
-        tplayer.Revive
-        tplayer.Actor ! Player.Die()
-        true
-
-      } else if (contents.startsWith("!grenade")) {
-        WorldSession.QuickSwapToAGrenade(session.player, DrawnSlot.Pistol1.id, log)
-        true
-
-      } else if (contents.startsWith("!macro")) {
-        val avatar = session.avatar
-        val args = dropFirstWord(contents).split(" ").filter(_ != "")
-        (args.headOption, args.lift(1)) match {
-          case (Some(cmd), other) =>
-            cmd.toLowerCase() match {
-              case "medkit" =>
-                medkitSanityTest(session.player.GUID, avatar.shortcuts)
-                true
-
-              case "implants" =>
-                //implant shortcut sanity test
-                implantSanityTest(
-                  session.player.GUID,
-                  avatar.implants.collect {
-                    case Some(implant) if implant.definition.implantType != ImplantType.None => implant.definition
-                  },
-                  avatar.shortcuts
-                )
-                true
-
-              case name
-                if ImplantType.values.exists { a => a.shortcut.tile.equals(name) } =>
-                avatar.implants.find {
-                  case Some(implant) => implant.definition.Name.equalsIgnoreCase(name)
-                  case None => false
-                } match {
-                  case Some(Some(implant)) =>
-                    //specific implant shortcut sanity test
-                    implantSanityTest(session.player.GUID, Seq(implant.definition), avatar.shortcuts)
-                    true
-                  case _ if other.nonEmpty =>
-                    //add macro?
-                    macroSanityTest(session.player.GUID, name, args.drop(2).mkString(" "), avatar.shortcuts)
-                    true
-                  case _ =>
-                    false
-                }
-
-              case name
-                if name.nonEmpty && other.nonEmpty =>
-                //add macro
-                macroSanityTest(session.player.GUID, name, args.drop(2).mkString(" "), avatar.shortcuts)
-                true
-
-              case _ =>
-                false
-            }
-          case _ =>
-            false
-        }
-      } else if (contents.startsWith("!progress")) {
-        val ourRank = BattleRank.withExperience(session.avatar.bep).value
-        if (!session.account.gm &&
-          (ourRank <= Config.app.game.promotion.broadcastBattleRank ||
-          ourRank > Config.app.game.promotion.resetBattleRank && ourRank < Config.app.game.promotion.maxBattleRank + 1)) {
-          setBattleRank(dropFirstWord(contents), session, AvatarActor.Progress)
-          true
-        } else {
-          setBattleRank(contents="1", session, AvatarActor.Progress)
-          false
+      val (command, params) = cliTokenization(contents.drop(1)) match {
+        case a :: b => (a, b)
+        case _ => ("", Seq(""))
+      }
+      //try gm commands
+      val tryGmCommandResult = if (gmCommandAllowed) {
+        command match {
+          case "whitetext" => Some(customCommandWhitetext(session, params, chatService))
+          case "list" => Some(customCommandList(session, params, message, sessionActor))
+          case "ntu" => Some(customCommandNtu(session, params, sessionActor))
+          case "zonerotate" => Some(customCommandZonerotate(params, cluster, sessionActor))
+          case "nearby" => Some(customCommandNearby(session, sessionActor))
+          case _ => None
         }
       } else {
-        false // unknown ! commands are ignored
+        None
       }
-    } else {
-      false // unknown ! commands are ignored
-    }
-  }
-
-  private def dropFirstWord(str: String): String = {
-    val noExtraSpaces = str.replaceAll("\\s+", " ").toLowerCase.trim
-    noExtraSpaces.indexOf(" ") match {
-      case -1               => ""
-      case beforeFirstBlank => noExtraSpaces.drop(beforeFirstBlank + 1)
-    }
-  }
-
-  def setBattleRank(
-                     contents: String,
-                     session: Session,
-                     msgFunc: Long => AvatarActor.Command
-                   ): Boolean = {
-    val buffer = contents.toLowerCase.split("\\s+")
-    val (target, rank) = (buffer.lift(0), buffer.lift(1)) match {
-      case (Some(target), Some(rank)) if target == session.avatar.name =>
-        rank.toIntOption match {
-          case Some(rank) => (None, BattleRank.withValueOpt(rank))
-          case None       => (None, None)
-        }
-      case (Some("-h"), _) | (Some("-help"), _) =>
-        (None, Some(BattleRank.BR1))
-      case (Some(_), Some(_)) =>
-        // picking other targets is not supported for now
-        (None, None)
-      case (Some(rank), None) =>
-        rank.toIntOption match {
-          case Some(rank) => (None, BattleRank.withValueOpt(rank))
-          case None       => (None, None)
-        }
-      case _ => (None, None)
-    }
-    (target, rank) match {
-      case (_, Some(rank)) if rank.value <= Config.app.game.maxBattleRank =>
-        avatarActor ! msgFunc(rank.experience)
-        true
-      case _ =>
-        false
-    }
-  }
-
-  def setCommandRank(
-                      contents: String,
-                      session: Session
-                    ): Boolean = {
-    val buffer = contents.toLowerCase.split("\\s+")
-    val (target, rank) = (buffer.lift(0), buffer.lift(1)) match {
-      case (Some(target), Some(rank)) if target == session.avatar.name =>
-        rank.toIntOption match {
-          case Some(rank) => (None, CommandRank.withValueOpt(rank))
-          case None       => (None, None)
-        }
-      case (Some(_), Some(_)) =>
-        // picking other targets is not supported for now
-        (None, None)
-      case (Some(rank), None) =>
-        rank.toIntOption match {
-          case Some(rank) => (None, CommandRank.withValueOpt(rank))
-          case None       => (None, None)
-        }
-      case _ => (None, None)
-    }
-    (target, rank) match {
-      case (_, Some(rank)) =>
-        avatarActor ! AvatarActor.SetCep(rank.experience)
-        true
-      case _ =>
-        false
-    }
-  }
-
-  private def captureBaseParamFacilities(session: Session, token: Option[String]): Option[Seq[Building]] = {
-    token.collect {
-      case "curr" =>
-        val list = captureBaseCurrSoi(session)
-        if (list.nonEmpty) {
-          Some(list.toSeq)
-        } else {
-          None
-        }
-      case "all" =>
-        val list = session.zone.Buildings.values.filter(_.CaptureTerminal.isDefined)
-        if (list.nonEmpty) {
-          Some(list.toSeq)
-        } else {
-          None
-        }
-      case name =>
-        val trueName = ZoneInfo
-          .values
-          .find(_.id.equals(session.zone.id))
-          .flatMap { info =>
-            info.aliases
-              .facilities
-              .collectFirst { case (key, internalName) if key.equalsIgnoreCase(name) => internalName }
+      //try commands for all players if not caught as a gm command
+      val result = tryGmCommandResult match {
+        case None =>
+          command match {
+            case "loc" => customCommandLoc(session, message, sessionActor)
+            case "suicide" => customCommandSuicide(session)
+            case "grenade" => customCommandGrenade(session, log)
+            case "macro" => customCommandMacro(session, params, sessionActor)
+            case "progress" => customCommandProgress(session, params, avatarActor)
+            case _ => false
           }
-          .getOrElse(name)
-        session.zone.Buildings
-          .values
-          .find {
-            building => trueName.equalsIgnoreCase(building.Name) && building.CaptureTerminal.isDefined
-          }
-          .map(b => Seq(b))
-    }
-      .flatten
-  }
-
-  private def captureBaseCurrSoi(session: Session): Iterable[Building] = {
-    val charId = session.player.CharId
-    session.zone.Buildings.values.filter { building =>
-      building.PlayersInSOI.exists(_.CharId == charId)
-    }
-  }
-
-  private def captureBaseParamFaction(@unused session: Session, token: Option[String]): Option[PlanetSideEmpire.Value] = {
-    token.collect {
-      case faction =>
-        faction.toLowerCase() match {
-          case "tr"      => Some(PlanetSideEmpire.TR)
-          case "nc"      => Some(PlanetSideEmpire.NC)
-          case "vs"      => Some(PlanetSideEmpire.VS)
-          case "none"    => Some(PlanetSideEmpire.NEUTRAL)
-          case "bo"      => Some(PlanetSideEmpire.NEUTRAL)
-          case "neutral" => Some(PlanetSideEmpire.NEUTRAL)
-          case _         => None
-        }
-    }.flatten
-  }
-
-  private def captureBaseParamTimer(@unused session: Session, token: Option[String]): Option[Int] = {
-    token.collect {
-      case n if n.forall(Character.isDigit) => n.toInt
-    }
-  }
-
-  private def firstParam[T](
-                            session: Session,
-                            buffer: Array[String],
-                            func: (Session, Option[String])=>Option[T]
-                          ): (Option[T], Option[String], Array[String]) = {
-    val tokenOpt = buffer.headOption
-    val valueOpt = func(session, tokenOpt)
-    val outBuffer = if (valueOpt.nonEmpty) {
-      buffer.drop(1)
+        case Some(out) =>
+          out
+      }
+      if (!result) {
+        // command was not handled
+        sessionActor ! SessionActor.SendResponse(
+          ChatMsg(
+            CMT_GMOPEN, // CMT_GMTELL
+            message.wideContents,
+            "Server",
+            s"Unknown command !$command",
+            message.note
+          )
+        )
+      }
+      result
     } else {
-      buffer
+      false // not a handled command
     }
-    (valueOpt, tokenOpt, outBuffer)
   }
 }

@@ -35,6 +35,7 @@ import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.actors.zone.building.WarpGateLogic
 import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.geometry.d3.VolumetricGeometry
 import net.psforever.objects.guid.pool.NumberPool
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -472,6 +473,33 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     } else {
       None
     }
+  }
+
+  def GetEntities(definition: ObjectDefinition): List[PlanetSideGameObject] = {
+    GetEntities(List(definition))
+  }
+
+  def GetEntities(definitions: List[ObjectDefinition]): List[PlanetSideGameObject] = {
+    definitions
+      .distinct
+      .groupBy(_.registerAs)
+      .flatMap { case (registerName, defs) =>
+        GetEntities(registerName)
+          .filter(obj => defs.contains(obj.Definition))
+      }
+      .toList
+  }
+
+  def GetEntities(name: String): List[PlanetSideGameObject] = {
+    guid
+      .GetPool(name)
+      .map { pool =>
+        pool
+          .Numbers
+          .flatMap(guid.apply(_))
+          .collect { case obj: PlanetSideGameObject => obj }
+      }
+      .getOrElse(List[PlanetSideGameObject]())
   }
 
   /**
@@ -919,22 +947,40 @@ object Zone {
           if b.Definition.Name.startsWith("VT_building_") =>
           val amenities = b.Amenities
           (
-            amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_ext),
-            amenities.filter(_.Definition == GlobalDefinitions.gr_door_mb_lrg),
+            amenities.collect { case door: Door if door.Definition == GlobalDefinitions.gr_door_mb_ext => door },
+            amenities.collect { case door: Door if door.Definition == GlobalDefinitions.gr_door_mb_lrg => door },
             amenities.filter(_.Definition == GlobalDefinitions.order_terminal),
             amenities.filter(_.Definition == GlobalDefinitions.respawn_tube_sanctuary)
           )
       }
-    amenityList.foreach { case (entranceDoors, _, terminals, tubes) =>
+    amenityList.foreach { case (entranceDoors, trainingRangeDoors, terminals, tubes) =>
       entranceDoors.foreach { door =>
-        val isReallyADoor = door.asInstanceOf[Door]
         val doorPosition = door.Position
         val closestTerminal = terminals.minBy(t => Vector3.DistanceSquared(doorPosition, t.Position))
         val closestTube = tubes.minBy(t => Vector3.DistanceSquared(doorPosition, t.Position))
-        isReallyADoor.WhichSide = Sidedness.StrictlyBetweenSides
-        isReallyADoor.Outwards = Vector3.Unit(closestTerminal.Position.xy - closestTube.Position.xy)
+        door.WhichSide = Sidedness.StrictlyBetweenSides
+        door.Outwards = Vector3.Unit(closestTerminal.Position.xy - closestTube.Position.xy)
       }
-      //todo training zone warp chamber doors
+      //training zone warp doors
+      val sampleDoor = entranceDoors.head.Position.xy;
+      {
+        val doorToDoorVector = Vector3.Unit(sampleDoor - entranceDoors(1).Position.xy)
+        val (listADoors, listBDoors) = trainingRangeDoors
+          .sortBy(door => Vector3.DistanceSquared(door.Position.xy, sampleDoor))
+          .partition { door =>
+            Vector3.ScalarProjection(doorToDoorVector, Vector3.Unit(door.Position.xy - sampleDoor)) > 0f
+          }
+       Seq(listADoors, listBDoors)
+      }.foreach { doors =>
+        val door0PosXY = doors.head.Position.xy
+        val door1PosXY = doors(1).Position.xy
+        val door2PosXY = doors(2).Position.xy
+        val outwardsMiddle = Vector3.Unit((door0PosXY + door2PosXY) * 0.5f - door1PosXY)
+        val center = door1PosXY + (outwardsMiddle * 19.5926f)
+        doors.head.Outwards = Vector3.Unit(center - door0PosXY)
+        doors(1).Outwards = outwardsMiddle
+        doors(2).Outwards = Vector3.Unit(center - door2PosXY)
+      }
     }
     //hart building doors
     buildings
