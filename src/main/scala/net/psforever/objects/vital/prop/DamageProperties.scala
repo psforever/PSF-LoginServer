@@ -42,6 +42,11 @@ trait DamageProperties
   private var charging: Option[ChargeDamage]             = None
   /** a destroyed mine will detonate rather than fizzle-out */
   private var sympathy: Boolean                          = false
+  /** radiation clouds create independent damage-dealing areas in a zone that last for the projectile's lifespan;
+   * not implicate a damage type (primary or secondary or aggravated) of `Radiation` */
+  private var radiationCloud: Boolean = false
+  /** server damage is applied when comparing against sided-ness of the source and the target */
+  private var damageThroughWalls: Boolean = false
 
   def UseDamage1Subtract: Boolean                        = useDamage1Subtract
 
@@ -131,5 +136,19 @@ trait DamageProperties
   def SympatheticExplosion_=(chain: Boolean): Boolean = {
     sympathy = chain
     SympatheticExplosion
+  }
+
+  def radiation_cloud: Boolean = radiationCloud
+
+  def radiation_cloud_=(isCloud: Boolean): Boolean = {
+    radiationCloud = isCloud
+    radiation_cloud
+  }
+
+  def DamageThroughWalls: Boolean = damageThroughWalls
+
+  def DamageThroughWalls_=(through: Boolean): Boolean = {
+    damageThroughWalls = through
+    DamageThroughWalls
   }
 }

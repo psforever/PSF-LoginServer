@@ -106,8 +106,24 @@ object GeometryForm {
     */
   def representByCylinder(radius: Float, height: Float)(o: Any): VolumetricGeometry = {
     o match {
-      case p: PlanetSideGameObject => Cylinder(p.Position, Vector3.relativeUp(p.Orientation), radius, height)
-      case s: SourceEntry          => Cylinder(s.Position, Vector3.relativeUp(s.Orientation), radius, height)
+      case p: PlanetSideGameObject => Cylinder(p.Position, Vector3.relativeUp(p.Orientation), radius, math.abs(height))
+      case s: SourceEntry          => Cylinder(s.Position, Vector3.relativeUp(s.Orientation), radius, math.abs(height))
+      case _                       => invalidCylinder
+    }
+  }
+
+  /**
+   * The geometric representation is a cylinder
+   * offset with respects to the height of the entity's base.
+   * @param radius half the distance across
+   * @param height how tall the cylinder is (the distance of the top to the base)
+   * @param o the entity
+   * @return the representation
+   */
+  def representByRaisedCylinder(radius: Float, height: Float)(o: Any): VolumetricGeometry = {
+    o match {
+      case p: PlanetSideGameObject => Cylinder(p.Position + Vector3.z(height * 0.5f), Vector3.relativeUp(p.Orientation), radius, math.abs(height))
+      case s: SourceEntry          => Cylinder(s.Position + Vector3.z(height * 0.5f), Vector3.relativeUp(s.Orientation), radius, math.abs(height))
       case _                       => invalidCylinder
     }
   }

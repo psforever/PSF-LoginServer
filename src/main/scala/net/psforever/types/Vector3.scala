@@ -101,6 +101,8 @@ final case class Vector3(x: Float, y: Float, z: Float) {
 object Vector3 {
   final val Zero: Vector3 = Vector3(0f, 0f, 0f)
 
+  def unapply(v: Vector3): Option[(Float, Float, Float)] = Some((v.x, v.y, v.z))
+
   private def closeToInsignificance(d: Float, epsilon: Float = 10f): Float = {
     val ulp = math.ulp(epsilon)
     math.signum(d) match {

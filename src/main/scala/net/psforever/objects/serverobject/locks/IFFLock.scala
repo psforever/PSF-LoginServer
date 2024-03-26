@@ -5,6 +5,7 @@ import akka.actor.ActorRef
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.Vector3
@@ -23,6 +24,7 @@ class IFFLock(private val idef: IFFLockDefinition) extends Amenity with Hackable
   HackSound = TriggeredSound.HackDoor
   HackEffectDuration = Array(60, 180, 300, 360)
   HackDuration = Array(5, 3, 1, 1)
+  WhichSide = Sidedness.InsideOf
 
   /** a vector in the direction of the "outside" of a room;
     * typically, any locking utility is on that same "outside"

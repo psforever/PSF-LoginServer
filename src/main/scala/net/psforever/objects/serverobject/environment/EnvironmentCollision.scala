@@ -1,6 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.environment
 
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.geometry.d2.Rectangle
 import net.psforever.types.Vector3
 
@@ -14,13 +15,21 @@ trait EnvironmentCollision {
   def altitude: Float
 
   /**
+   * Is the test point "within" the bounds of the represented environment?
+   * @param obj entity to test
+   * @return `true`, if the point is sufficiently "deep";
+   *        `false`, otherwise
+   */
+  def testInteraction(obj: PlanetSideGameObject): Boolean = testInteraction(obj, varDepth = 0)
+
+  /**
     * Is the test point "within" the bounds of the represented environment?
-    * @param pos the test point
+    * @param obj entity to test
     * @param varDepth how far "into" the environment the point must be
     * @return `true`, if the point is sufficiently "deep";
     *        `false`, otherwise
     */
-  def testInteraction(pos: Vector3, varDepth: Float): Boolean
+  def testInteraction(obj: PlanetSideGameObject, varDepth: Float): Boolean
 
   def bounding: Rectangle
 }
@@ -32,8 +41,8 @@ trait EnvironmentCollision {
   */
 final case class DeepPlane(altitude: Float)
   extends EnvironmentCollision {
-  def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
-    pos.z + varDepth < altitude
+  def testInteraction(obj: PlanetSideGameObject, varDepth: Float): Boolean = {
+    obj.Position.z + varDepth < altitude
   }
 
   def bounding: Rectangle = {
@@ -55,7 +64,8 @@ final case class DeepPlane(altitude: Float)
   */
 final case class DeepSquare(altitude: Float, north: Float, east: Float, south: Float, west: Float)
   extends EnvironmentCollision {
-  def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
+  def testInteraction(obj: PlanetSideGameObject, varDepth: Float): Boolean = {
+    val pos = obj.Position
     pos.z + varDepth < altitude && north > pos.y && pos.y >= south && east > pos.x && pos.x >= west
   }
 
@@ -76,7 +86,8 @@ final case class DeepSquare(altitude: Float, north: Float, east: Float, south: F
   */
 final case class DeepSurface(altitude: Float, north: Float, east: Float, south: Float, west: Float)
   extends EnvironmentCollision {
-  def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
+  def testInteraction(obj: PlanetSideGameObject, varDepth: Float): Boolean = {
+    val pos = obj.Position
     pos.z < altitude && north > pos.y && pos.y >= south && east > pos.x && pos.x >= west
   }
 
@@ -95,7 +106,8 @@ final case class DeepCircularSurface(center: Vector3, radius: Float)
 
   def bounding: Rectangle = Rectangle(center.y + radius, center.x + radius, center.y - radius, center.x - radius)
 
-  def testInteraction(pos: Vector3, varDepth: Float): Boolean = {
+  def testInteraction(obj: PlanetSideGameObject, varDepth: Float): Boolean = {
+    val pos = obj.Position
     pos.z < center.z && Vector3.DistanceSquared(pos.xy, center.xy) < radius * radius
   }
 }

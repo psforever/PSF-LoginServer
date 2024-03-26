@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.mount
 import net.psforever.objects.ballistics.{Projectile, ProjectileQuality}
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.vital.base.{DamageResolution, DamageType}
+import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.etc.RadiationReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
@@ -38,17 +38,16 @@ class InteractWithRadiationCloudsSeatedInEntity(
    */
   override def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit = {
     val position = target.Position
+    val targetList = List(target)
     //collect all projectiles in sector/range
     val projectiles = sector
       .projectileList
       .filter { cloud =>
         val definition = cloud.Definition
+        val radius = definition.DamageRadius
         definition.radiation_cloud &&
-          definition.AllDamageTypes.contains(DamageType.Radiation) &&
-          {
-            val radius = definition.DamageRadius
-            Zone.distanceCheck(target, cloud, radius * radius)
-          }
+          Zone.allOnSameSide(cloud, definition, targetList).nonEmpty &&
+          Zone.distanceCheck(target, cloud, radius * radius)
       }
       .distinct
     val notSkipped = projectiles.filterNot { t => skipTargets.contains(t.GUID) }

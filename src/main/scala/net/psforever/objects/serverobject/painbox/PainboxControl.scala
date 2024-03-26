@@ -164,7 +164,7 @@ object PainboxControl {
                   || amenity.Definition == GlobalDefinitions.respawn_tube
                   || amenity.Definition == GlobalDefinitions.spawn_terminal
                   || amenity.Definition == GlobalDefinitions.order_terminal
-                  || amenity.Definition == GlobalDefinitions.door)
+                  || amenity.isInstanceOf[Door])
               && amenity.Position.x > painbox.Position.x - planarRange && amenity.Position.x < painbox.Position.x + planarRange
               && amenity.Position.y > painbox.Position.y - planarRange && amenity.Position.y < painbox.Position.y + planarRange
               && amenity.Position.z > painbox.Position.z - belowRange && amenity.Position.z < painbox.Position.z + aboveRange

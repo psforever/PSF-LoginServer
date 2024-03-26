@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad.process
 
-import akka.actor.Props
+import akka.actor.{ActorRef, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import net.psforever.objects.GlobalDefinitions
@@ -29,11 +29,11 @@ import scala.util.Success
 class VehicleSpawnControlLoadVehicle(pad: VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
   def LogId = "-loader"
 
-  val railJack = context.actorOf(Props(classOf[VehicleSpawnControlRailJack], pad), s"${context.parent.path.name}-rails")
+  val railJack: ActorRef = context.actorOf(Props(classOf[VehicleSpawnControlRailJack], pad), s"${context.parent.path.name}-rails")
 
   var temp: Option[VehicleSpawnControl.Order] = None
 
-  implicit val timeout = Timeout(3.seconds)
+  implicit val timeout: Timeout = Timeout(3.seconds)
 
   def receive: Receive = {
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
@@ -42,6 +42,7 @@ class VehicleSpawnControlLoadVehicle(pad: VehicleSpawnPad) extends VehicleSpawnC
         vehicle.Position = vehicle.Position - Vector3.z(
           if (GlobalDefinitions.isFlightVehicle(vehicle.Definition)) 9 else 5
         ) //appear below the trench and doors
+        vehicle.WhichSide = pad.WhichSide
         vehicle.Cloaked = vehicle.Definition.CanCloak && driver.Cloaked
 
         temp = Some(order)

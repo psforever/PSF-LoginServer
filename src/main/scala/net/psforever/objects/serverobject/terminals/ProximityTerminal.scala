@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.{Default, Player}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.structures.Amenity
@@ -17,6 +18,8 @@ import net.psforever.services.Service
   * @param tdef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class ProximityTerminal(tdef: ProximityTerminalDefinition) extends Terminal(tdef) with ProximityUnit {
+  WhichSide = Sidedness.StrictlyBetweenSides
+
   override def Request(player: Player, msg: Any): Terminal.Exchange = {
     msg match {
       case message: CommonMessages.Use =>

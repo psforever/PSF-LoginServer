@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.ballistics
 
+import net.psforever.objects.serverobject.interior.TraditionalInteriorAware
 import net.psforever.objects.sourcing.SourceEntry
 
 import java.util.concurrent.atomic.AtomicLong
@@ -53,7 +54,8 @@ final case class Projectile(
                              id: Long = Projectile.idGenerator.getAndIncrement(),
                              fire_time: Long = System.currentTimeMillis()
                            ) extends PlanetSideGameObject
-  with BlockMapEntity {
+  with BlockMapEntity
+  with TraditionalInteriorAware {
   Position = shot_origin
   Orientation = shot_angle
   Velocity = shot_velocity.getOrElse {
@@ -73,7 +75,8 @@ final case class Projectile(
    * Create a copy of this projectile with all the same information
    * save for the quality.
    * Used mainly for aggravated damage.
-   * It is important to note that the new projectile shares the (otherwise) exclusive id of the original.
+   * It is important to note that the new projectile shares the (otherwise) exclusive id of the original
+   * and that it is not added to a block map structure.
    * @param value the new quality
    * @return a new `Projectile` entity
    */
@@ -94,6 +97,7 @@ final case class Projectile(
     )
     if(isMiss) projectile.Miss()
     else if(isResolved) projectile.Resolve()
+    projectile.WhichSide = this.WhichSide
     projectile
   }
 

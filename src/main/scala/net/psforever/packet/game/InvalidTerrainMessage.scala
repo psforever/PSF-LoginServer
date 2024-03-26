@@ -1,10 +1,12 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.packet.game
 
+import net.psforever.packet.GamePacketOpcode.Type
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import scodec.Attempt.Successful
-import scodec.Codec
+import scodec.bits.BitVector
+import scodec.{Attempt, Codec}
 import scodec.codecs._
 import shapeless.{::, HNil}
 
@@ -15,7 +17,7 @@ object TerrainCondition extends Enumeration {
   type Type = Value
   val Safe, Unsafe = Value
 
-  implicit val codec = PacketHelpers.createEnumerationCodec(e = this, uint(bits = 1))
+  implicit val codec: Codec[TerrainCondition.Value] = PacketHelpers.createEnumerationCodec(e = this, uint(bits = 1))
 }
 
 /**
@@ -34,8 +36,8 @@ final case class InvalidTerrainMessage(
     pos: Vector3
 ) extends PlanetSideGamePacket {
   type Packet = InvalidTerrainMessage
-  def opcode = GamePacketOpcode.InvalidTerrainMessage
-  def encode = InvalidTerrainMessage.encode(this)
+  def opcode: Type = GamePacketOpcode.InvalidTerrainMessage
+  def encode: Attempt[BitVector] = InvalidTerrainMessage.encode(this)
 }
 
 object InvalidTerrainMessage extends Marshallable[InvalidTerrainMessage] {

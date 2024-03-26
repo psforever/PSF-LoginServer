@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.equipment.JammableUnit
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.structures.{Amenity, AmenityOwner, Building}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAware
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
@@ -14,6 +15,7 @@ class FacilityTurret(tDef: FacilityTurretDefinition)
     with JammableUnit
     with CaptureTerminalAware {
   WeaponTurret.LoadDefinition(turret = this)
+  WhichSide = Sidedness.OutsideOf
 
   def TurretOwner: SourceEntry = {
     Seats
@@ -36,7 +38,6 @@ class FacilityTurret(tDef: FacilityTurretDefinition)
 }
 
 object FacilityTurret {
-
   /**
     * Overloaded constructor.
     * @param tDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
