@@ -723,7 +723,7 @@ class ChatActor(
           (message.messageType, message.recipient.trim, message.contents.trim) match {
             /** Messages starting with ! are custom chat commands */
             case (_, _, contents) if contents.startsWith("!") &&
-              customCommandMessages(message, session, chatService, cluster, gmCommandAllowed) => ()
+              customCommandMessages(message, session, chatService, cluster) => ()
 
             case (CMT_FLY, recipient, contents) if gmCommandAllowed =>
               val (token, flying) = contents match {
@@ -1492,8 +1492,7 @@ class ChatActor(
                                      message: ChatMsg,
                                      session: Session,
                                      chatService: ActorRef[ChatService.Command],
-                                     cluster: ActorRef[InterstellarClusterService.Command],
-                                     gmCommandAllowed: Boolean
+                                     cluster: ActorRef[InterstellarClusterService.Command]
                                    ): Boolean = {
     val contents = message.contents
     if (contents.startsWith("!")) {
@@ -1501,8 +1500,9 @@ class ChatActor(
         case a :: b => (a, b)
         case _ => ("", Seq(""))
       }
+      val gmBangCommandAllowed = session.account.gm || Config.app.development.unprivilegedGmBangCommands.contains(command)
       //try gm commands
-      val tryGmCommandResult = if (gmCommandAllowed) {
+      val tryGmCommandResult = if (gmBangCommandAllowed) {
         command match {
           case "whitetext" => Some(customCommandWhitetext(session, params, chatService))
           case "list" => Some(customCommandList(session, params, message, sessionActor))
