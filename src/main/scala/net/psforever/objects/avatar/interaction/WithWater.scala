@@ -80,7 +80,7 @@ class WithWater(val channel: String)
 
   override def recoverFromInteracting(obj: InteractsWithZone): Unit = {
     super.recoverFromInteracting(obj)
-    if (condition.exists(_.state == OxygenState.Suffocation)) {
+    if (condition.exists(info => info.state == OxygenState.Suffocation && info.progress < 99f)) {
       stopInteractingWith(obj, condition.map(_.body).get, None)
     }
     waterInteractionTime = 0L

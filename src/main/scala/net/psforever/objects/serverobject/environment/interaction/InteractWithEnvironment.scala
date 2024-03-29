@@ -117,10 +117,9 @@ object InteractWithEnvironment {
                                        obj: PlanetSideServerObject,
                                        sector: SectorPopulation
                                      ): Set[PieceOfEnvironment] = {
-    val position = obj.Position
     val depth = GlobalDefinitions.MaxDepth(obj)
     sector.environmentList
-      .filter(body => body.attribute.canInteractWith(obj) && body.testInteraction(position, depth))
+      .filter(body => body.attribute.canInteractWith(obj) && body.testInteraction(obj, depth))
       .distinctBy(_.attribute)
       .toSet
   }
@@ -137,7 +136,7 @@ object InteractWithEnvironment {
                                            body: PieceOfEnvironment,
                                            obj: PlanetSideServerObject
                                          ): Option[PieceOfEnvironment] = {
-    if ((obj.Zone eq zone) && body.testInteraction(obj.Position, GlobalDefinitions.MaxDepth(obj))) {
+    if ((obj.Zone eq zone) && body.testInteraction(obj, GlobalDefinitions.MaxDepth(obj))) {
       Some(body)
     } else {
       None

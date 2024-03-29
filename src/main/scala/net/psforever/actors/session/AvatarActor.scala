@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, ScoreCard, SupportActivity}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.sourcing.VehicleSource
+import net.psforever.objects.sourcing.{TurretSource, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, ReconstructionActivity}
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
@@ -3188,10 +3188,16 @@ class AvatarActor(
       player.HistoryAndContributions()
     }
     val target = killStat.info.targetAfter.asInstanceOf[PlayerSource]
-    val targetMounted = target.seatedIn.map { case (v: VehicleSource, seat) =>
-      val definition = v.Definition
-      definition.ObjectId * 10 + Vehicles.SeatPermissionGroup(definition, seat).map { _.id }.getOrElse(0)
-    }.getOrElse(0)
+    val targetMounted = target.seatedIn
+      .collect {
+        case (v: VehicleSource, seat) =>
+          val definition = v.Definition
+          definition.ObjectId * 10 + Vehicles.SeatPermissionGroup(definition, seat).map { _.id }.getOrElse(0)
+        case (t: TurretSource, seat) =>
+          val definition = t.Definition
+          definition.ObjectId * 10 + seat
+      }
+      .getOrElse(0)
     zones.exp.ToDatabase.reportKillBy(
       avatar.id.toLong,
       target.CharId,

@@ -2,14 +2,18 @@
 package objects
 
 import net.psforever.objects.avatar.Avatar
-import net.psforever.objects.{GlobalDefinitions, Player, Tool, Vehicle}
-import net.psforever.objects.definition.VehicleDefinition
+import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player, Tool, Vehicle}
+import net.psforever.objects.definition.{ObjectDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.terminals.{Terminal, TerminalDefinition}
 import net.psforever.objects.vital.Vitality
 import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.types._
 import org.specs2.mutable.Specification
+
+private class PSGOTest() extends PlanetSideGameObject() {
+  override def Definition: ObjectDefinition = null
+}
 
 class EnvironmentCollisionTest extends Specification {
   "DeepPlane" should {
@@ -21,15 +25,23 @@ class EnvironmentCollisionTest extends Specification {
     }
 
     "must have interaction that passes" in {
-      plane.testInteraction(Vector3(0,0,10), varDepth = -1) mustEqual true
-      plane.testInteraction(Vector3(0,0, 9), varDepth =  0) mustEqual true
-      plane.testInteraction(Vector3(0,0, 8), varDepth =  1) mustEqual true
+      val obj = new PSGOTest()
+      obj.Position = Vector3(0,0,10)
+      plane.testInteraction(obj, varDepth = -1) mustEqual true
+      obj.Position = Vector3(0,0,9)
+      plane.testInteraction(obj, varDepth =  0) mustEqual true
+      obj.Position = Vector3(0,0,8)
+      plane.testInteraction(obj, varDepth =  1) mustEqual true
     }
 
     "must have interaction that fails" in {
-      plane.testInteraction(Vector3(0,0,11), varDepth = -1) mustEqual false
-      plane.testInteraction(Vector3(0,0,10), varDepth =  0) mustEqual false
-      plane.testInteraction(Vector3(0,0, 9), varDepth =  1) mustEqual false
+      val obj = new PSGOTest()
+      obj.Position = Vector3(0,0,11)
+      plane.testInteraction(obj, varDepth = -1) mustEqual false
+      obj.Position = Vector3(0,0,10)
+      plane.testInteraction(obj, varDepth =  0) mustEqual false
+      obj.Position = Vector3(0,0,9)
+      plane.testInteraction(obj, varDepth =  1) mustEqual false
     }
   }
 
@@ -42,23 +54,39 @@ class EnvironmentCollisionTest extends Specification {
     }
 
     "must have interaction that passes" in {
-      square.testInteraction(Vector3(1,1, 0), varDepth =  0) mustEqual true
-      square.testInteraction(Vector3(1,8, 0), varDepth =  0) mustEqual true
-      square.testInteraction(Vector3(8,8, 0), varDepth =  0) mustEqual true
-      square.testInteraction(Vector3(8,1, 0), varDepth =  0) mustEqual true
-      square.testInteraction(Vector3(1,1,10), varDepth = -1) mustEqual true
-      square.testInteraction(Vector3(1,1, 9), varDepth =  0) mustEqual true
-      square.testInteraction(Vector3(1,1, 8), varDepth =  1) mustEqual true
+      val obj = new PSGOTest()
+      obj.Position = Vector3(1,1, 0)
+      square.testInteraction(obj, varDepth =  0) mustEqual true
+      obj.Position = Vector3(1,8, 0)
+      square.testInteraction(obj, varDepth =  0) mustEqual true
+      obj.Position = Vector3(8,8, 0)
+      square.testInteraction(obj, varDepth =  0) mustEqual true
+      obj.Position = Vector3(8,1, 0)
+      square.testInteraction(obj, varDepth =  0) mustEqual true
+      obj.Position = Vector3(1,1,10)
+      square.testInteraction(obj, varDepth = -1) mustEqual true
+      obj.Position = Vector3(1,1, 9)
+      square.testInteraction(obj, varDepth =  0) mustEqual true
+      obj.Position = Vector3(1,1, 8)
+      square.testInteraction(obj, varDepth =  1) mustEqual true
     }
 
     "must have interaction that fails" in {
-      square.testInteraction(Vector3(1,0, 0), varDepth =  0) mustEqual false
-      square.testInteraction(Vector3(1,9, 0), varDepth =  0) mustEqual false
-      square.testInteraction(Vector3(0,9, 0), varDepth =  0) mustEqual false
-      square.testInteraction(Vector3(0,1, 0), varDepth =  0) mustEqual false
-      square.testInteraction(Vector3(1,1,11), varDepth = -1) mustEqual false
-      square.testInteraction(Vector3(1,1,10), varDepth =  0) mustEqual false
-      square.testInteraction(Vector3(1,1, 9), varDepth =  1) mustEqual false
+      val obj = new PSGOTest()
+      obj.Position = Vector3(1,0, 0)
+      square.testInteraction(obj, varDepth =  0) mustEqual false
+      obj.Position = Vector3(1,9, 0)
+      square.testInteraction(obj, varDepth =  0) mustEqual false
+      obj.Position = Vector3(0,9, 0)
+      square.testInteraction(obj, varDepth =  0) mustEqual false
+      obj.Position = Vector3(0,1, 0)
+      square.testInteraction(obj, varDepth =  0) mustEqual false
+      obj.Position = Vector3(1,1,11)
+      square.testInteraction(obj, varDepth = -1) mustEqual false
+      obj.Position = Vector3(1,1,10)
+      square.testInteraction(obj, varDepth =  0) mustEqual false
+      obj.Position = Vector3(1,1, 9)
+      square.testInteraction(obj, varDepth =  1) mustEqual false
     }
   }
 
@@ -71,22 +99,37 @@ class EnvironmentCollisionTest extends Specification {
     }
 
     "must have interaction that passes" in {
-      surface.testInteraction(Vector3(1,1,0), varDepth =  0) mustEqual true
-      surface.testInteraction(Vector3(1,8,0), varDepth =  0) mustEqual true
-      surface.testInteraction(Vector3(8,8,0), varDepth =  0) mustEqual true
-      surface.testInteraction(Vector3(8,1,0), varDepth =  0) mustEqual true
-      surface.testInteraction(Vector3(1,1,9), varDepth = -1) mustEqual true
-      surface.testInteraction(Vector3(1,1,9), varDepth =  0) mustEqual true
-      surface.testInteraction(Vector3(1,1,9), varDepth =  1) mustEqual true
+      val obj = new PSGOTest()
+      obj.Position = Vector3(1,1,0)
+      surface.testInteraction(obj, varDepth =  0) mustEqual true
+      obj.Position = Vector3(1,8,0)
+      surface.testInteraction(obj, varDepth =  0) mustEqual true
+      obj.Position = Vector3(8,8,0)
+      surface.testInteraction(obj, varDepth =  0) mustEqual true
+      obj.Position = Vector3(8,1,0)
+      surface.testInteraction(obj, varDepth =  0) mustEqual true
+      obj.Position = Vector3(1,1,9)
+      surface.testInteraction(obj, varDepth = -1) mustEqual true
+      obj.Position = Vector3(1,1,9)
+      surface.testInteraction(obj, varDepth =  0) mustEqual true
+      obj.Position = Vector3(1,1,9)
+      surface.testInteraction(obj, varDepth =  1) mustEqual true
     }
 
     "must have interaction that fails" in {
-      surface.testInteraction(Vector3(1,0, 0), varDepth =  0) mustEqual false
-      surface.testInteraction(Vector3(1,9, 0), varDepth =  0) mustEqual false
-      surface.testInteraction(Vector3(0,9, 0), varDepth =  0) mustEqual false
-      surface.testInteraction(Vector3(0,1, 0), varDepth =  0) mustEqual false
-      surface.testInteraction(Vector3(1,1,11), varDepth = -1) mustEqual false
-      surface.testInteraction(Vector3(1,1,10), varDepth =  0) mustEqual false
+      val obj = new PSGOTest()
+      obj.Position = Vector3(1,0, 0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual false
+      obj.Position = Vector3(1,9, 0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual false
+      obj.Position = Vector3(0,9, 0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual false
+      obj.Position = Vector3(0,1, 0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual false
+      obj.Position = Vector3(1,1,11)
+      surface.testInteraction(obj, varDepth = -1) mustEqual false
+      obj.Position = Vector3(1,1,10)
+      surface.testInteraction(obj, varDepth = 0) mustEqual false
     }
   }
 
@@ -100,22 +143,37 @@ class EnvironmentCollisionTest extends Specification {
     }
 
     "must have interaction that passes" in {
-      surface.testInteraction(Vector3(3,1,0), varDepth =  0) mustEqual true
-      surface.testInteraction(Vector3(1,3,0), varDepth =  0) mustEqual true
-      surface.testInteraction(Vector3(3,5,0), varDepth =  0) mustEqual true
-      surface.testInteraction(Vector3(5,3,0), varDepth =  0) mustEqual true
-      surface.testInteraction(Vector3(2,2,9), varDepth = -1) mustEqual true
-      surface.testInteraction(Vector3(2,2,9), varDepth =  0) mustEqual true
-      surface.testInteraction(Vector3(2,2,9), varDepth =  1) mustEqual true
+      val obj = new PSGOTest()
+      obj.Position = Vector3(3,1,0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual true
+      obj.Position = Vector3(1,3,0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual true
+      obj.Position = Vector3(3,5,0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual true
+      obj.Position = Vector3(5,3,0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual true
+      obj.Position = Vector3(2,2,9)
+      surface.testInteraction(obj, varDepth = -1) mustEqual true
+      obj.Position = Vector3(2,2,9)
+      surface.testInteraction(obj, varDepth = 0) mustEqual true
+      obj.Position = Vector3(2,2,9)
+      surface.testInteraction(obj, varDepth = 1) mustEqual true
     }
 
     "must have interaction that fails" in {
-      surface.testInteraction(Vector3(3,0, 0), varDepth =  0) mustEqual false
-      surface.testInteraction(Vector3(0,3, 0), varDepth =  0) mustEqual false
-      surface.testInteraction(Vector3(3,6, 0), varDepth =  0) mustEqual false
-      surface.testInteraction(Vector3(6,3, 0), varDepth =  0) mustEqual false
-      surface.testInteraction(Vector3(2,2,11), varDepth = -1) mustEqual false
-      surface.testInteraction(Vector3(2,2,10), varDepth =  0) mustEqual false
+      val obj = new PSGOTest()
+      obj.Position = Vector3(3,0, 0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual false
+      obj.Position = Vector3(0,3, 0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual false
+      obj.Position = Vector3(3,6, 0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual false
+      obj.Position = Vector3(6,3, 0)
+      surface.testInteraction(obj, varDepth = 0) mustEqual false
+      obj.Position = Vector3(2,2,11)
+      surface.testInteraction(obj, varDepth = -1) mustEqual false
+      obj.Position = Vector3(2,2,10)
+      surface.testInteraction(obj, varDepth = 0) mustEqual false
     }
   }
 }
@@ -237,21 +295,23 @@ class SeaLevelTest extends Specification {
     }
 
     "must have interaction that passes (same as DeepPlane)" in {
-      plane.testInteraction(Vector3(0,0,10), varDepth = -1) mustEqual
-        level.testInteraction(Vector3(0,0,10), varDepth = -1)
-      plane.testInteraction(Vector3(0,0, 9), varDepth =  0) mustEqual
-        level.testInteraction(Vector3(0,0, 9), varDepth =  0)
-      plane.testInteraction(Vector3(0,0, 8), varDepth =  1) mustEqual
-        level.testInteraction(Vector3(0,0, 8), varDepth =  1)
+      val obj = new PSGOTest()
+      obj.Position = Vector3(0,0,10)
+      plane.testInteraction(obj, varDepth = -1) mustEqual level.testInteraction(obj, varDepth = -1)
+      obj.Position = Vector3(0,0, 9)
+      plane.testInteraction(obj, varDepth = 0) mustEqual level.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(0,0, 8)
+      plane.testInteraction(obj, varDepth = 1) mustEqual level.testInteraction(obj, varDepth = 1)
     }
 
     "must have interaction that fails (same as DeepPlane)" in {
-      plane.testInteraction(Vector3(0,0,11), varDepth = -1) mustEqual
-        level.testInteraction(Vector3(0,0,11), varDepth = -1)
-      plane.testInteraction(Vector3(0,0,10), varDepth =  0) mustEqual
-        level.testInteraction(Vector3(0,0,10), varDepth =  0)
-      plane.testInteraction(Vector3(0,0, 9), varDepth =  1) mustEqual
-        level.testInteraction(Vector3(0,0, 9), varDepth =  1)
+      val obj = new PSGOTest()
+      obj.Position = Vector3(0,0,11)
+      plane.testInteraction(obj, varDepth = -1) mustEqual level.testInteraction(obj, varDepth = -1)
+      obj.Position = Vector3(0,0,10)
+      plane.testInteraction(obj, varDepth = 0) mustEqual level.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(0,0, 9)
+      plane.testInteraction(obj, varDepth = 1) mustEqual level.testInteraction(obj, varDepth = 1)
     }
   }
 }
@@ -267,43 +327,45 @@ class PoolTest extends Specification {
     }
 
     "must have interaction that passes (same as DeepSquare)" in {
-      pool.testInteraction(Vector3(1,1, 0), varDepth =  0) mustEqual
-        square.testInteraction(Vector3(1,1, 0), varDepth =  0)
-      pool.testInteraction(Vector3(1,8, 0), varDepth =  0) mustEqual
-        square.testInteraction(Vector3(1,8, 0), varDepth =  0)
-      pool.testInteraction(Vector3(8,8, 0), varDepth =  0) mustEqual
-        square.testInteraction(Vector3(8,8, 0), varDepth =  0)
-      pool.testInteraction(Vector3(8,1, 0), varDepth =  0) mustEqual
-        square.testInteraction(Vector3(8,1, 0), varDepth =  0)
-      pool.testInteraction(Vector3(1,1,10), varDepth = -1) mustEqual
-        square.testInteraction(Vector3(1,1,10), varDepth = -1)
-      pool.testInteraction(Vector3(1,1, 9), varDepth =  0) mustEqual
-        square.testInteraction(Vector3(1,1, 9), varDepth =  0)
-      pool.testInteraction(Vector3(1,1, 8), varDepth =  1) mustEqual
-        square.testInteraction(Vector3(1,1, 8), varDepth =  1)
+      val obj = new PSGOTest()
+      obj.Position = Vector3(1,1, 0)
+      pool.testInteraction(obj, varDepth = 0) mustEqual square.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(1,8, 0)
+      pool.testInteraction(obj, varDepth = 0) mustEqual square.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(8,8, 0)
+      pool.testInteraction(obj, varDepth = 0) mustEqual square.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(8,1, 0)
+      pool.testInteraction(obj, varDepth = 0) mustEqual square.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(1,1,10)
+      pool.testInteraction(obj, varDepth = -1) mustEqual square.testInteraction(obj, varDepth = -1)
+      obj.Position = Vector3(1,1, 9)
+      pool.testInteraction(obj, varDepth = 0) mustEqual square.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(1,1, 8)
+      pool.testInteraction(obj, varDepth = 1) mustEqual square.testInteraction(obj, varDepth = 1)
     }
 
     "must have interaction that fails (same as DeepSquare)" in {
-      pool.testInteraction(Vector3(1,0, 0), varDepth =  0) mustEqual
-        square.testInteraction(Vector3(1,0, 0), varDepth =  0)
-      pool.testInteraction(Vector3(1,9, 0), varDepth =  0) mustEqual
-        square.testInteraction(Vector3(1,9, 0), varDepth =  0)
-      pool.testInteraction(Vector3(0,9, 0), varDepth =  0) mustEqual
-        square.testInteraction(Vector3(0,9, 0), varDepth =  0)
-      pool.testInteraction(Vector3(0,1, 0), varDepth =  0) mustEqual
-        square.testInteraction(Vector3(0,1, 0), varDepth =  0)
-      pool.testInteraction(Vector3(1,1,11), varDepth = -1) mustEqual
-        square.testInteraction(Vector3(1,1,11), varDepth = -1)
-      pool.testInteraction(Vector3(1,1,10), varDepth =  0) mustEqual
-        square.testInteraction(Vector3(1,1,10), varDepth =  0)
-      pool.testInteraction(Vector3(1,1, 9), varDepth =  1) mustEqual
-        square.testInteraction(Vector3(1,1, 9), varDepth =  1)
+      val obj = new PSGOTest()
+      obj.Position = Vector3(1,0, 0)
+      pool.testInteraction(obj, varDepth = 0) mustEqual square.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(1,9, 0)
+      pool.testInteraction(obj, varDepth = 0) mustEqual square.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(0,9, 0)
+      pool.testInteraction(obj, varDepth = 0) mustEqual square.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(0,1, 0)
+      pool.testInteraction(obj, varDepth = 0) mustEqual square.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(1,1,11)
+      pool.testInteraction(obj, varDepth = -1) mustEqual square.testInteraction(obj, varDepth = -1)
+      obj.Position = Vector3(1,1,10)
+      pool.testInteraction(obj, varDepth = 0) mustEqual square.testInteraction(obj, varDepth = 0)
+      obj.Position = Vector3(1,1, 9)
+      pool.testInteraction(obj, varDepth = 1) mustEqual square.testInteraction(obj, varDepth = 1)
     }
   }
 }
 
 class GantryDenialField extends Specification {
-  val square = DeepSquare(0, 1, 10, 10, 1)
+  val square: DeepSquare = DeepSquare(0, 1, 10, 10, 1)
 
   "GantryDenialField" should {
     "always has the environmental attribute of 'GantryDenialField'" in {
@@ -319,19 +381,19 @@ class PieceOfEnvironmentTest extends Specification {
     val level = SeaLevel(10f)
 
     "detect entering a critical region" in {
-      testStepIntoInteraction(level, Vector3(0,0,9), Vector3(0,0,11), varDepth = 0).contains(true) mustEqual true
+      testStepIntoInteraction(level, new PSGOTest(), Vector3(0,0,9), Vector3(0,0,11), varDepth = 0).contains(true) mustEqual true
     }
 
     "detect leaving a critical region" in {
-      testStepIntoInteraction(level, Vector3(0,0,11), Vector3(0,0,9), varDepth = 0).contains(false) mustEqual true
+      testStepIntoInteraction(level, new PSGOTest(), Vector3(0,0,11), Vector3(0,0,9), varDepth = 0).contains(false) mustEqual true
     }
 
     "not detect moving outside of a critical region" in {
-      testStepIntoInteraction(level, Vector3(0,0,12), Vector3(0,0,11), varDepth = 0).isEmpty mustEqual true
+      testStepIntoInteraction(level, new PSGOTest(), Vector3(0,0,12), Vector3(0,0,11), varDepth = 0).isEmpty mustEqual true
     }
 
     "not detect moving within a critical region" in {
-      testStepIntoInteraction(level, Vector3(0,0,9), Vector3(0,0,8), varDepth = 0).isEmpty mustEqual true
+      testStepIntoInteraction(level, new PSGOTest(), Vector3(0,0,9), Vector3(0,0,8), varDepth = 0).isEmpty mustEqual true
     }
   }
 }

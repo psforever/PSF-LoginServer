@@ -58,6 +58,16 @@ object Segment {
   }
 
   /**
+   * An overloaded constructor that uses individual coordinates.
+   * @param a origin
+   * @param b destination
+   * @return a `Segment` entity
+   */
+  def apply(a: Vector3, b: Vector3): Segment = {
+    Segment(Point(a), Point(b))
+  }
+
+  /**
     * An overloaded constructor that uses individual coordinates.
     * @param x the 'x' coordinate of the position
     * @param y the 'y' coordinate of the position
