@@ -323,7 +323,7 @@ class VehicleControl(vehicle: Vehicle)
         if (seatNumber == 0 && !obj.OwnerName.contains(user.Name) && obj.Definition.CanBeOwned.nonEmpty) {
           //whatever vehicle was previously owned
           vehicle.Zone.GUID(user.avatar.vehicle) match {
-            case Some(v : Vehicle) =>
+            case Some(v: Vehicle) =>
               v.Actor ! Vehicle.Ownership(None)
             case _ =>
               user.avatar.vehicle = None

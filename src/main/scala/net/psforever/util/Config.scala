@@ -182,6 +182,7 @@ case class HartConfig(
 
 case class DevelopmentConfig(
     unprivilegedGmCommands: Seq[ChatMessageType],
+    unprivilegedGmBangCommands: Seq[String],
     netSim: NetSimConfig
 )
 

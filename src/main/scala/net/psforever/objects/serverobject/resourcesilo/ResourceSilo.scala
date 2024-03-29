@@ -2,10 +2,13 @@
 package net.psforever.objects.serverobject.resourcesilo
 
 import akka.actor.{ActorContext, Props}
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.{CommonNtuContainer, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.packet.game.UseItemMessage
 import net.psforever.types.Vector3
+
+import scala.annotation.unused
 
 class ResourceSilo extends Amenity with CommonNtuContainer {
 
@@ -16,6 +19,7 @@ class ResourceSilo extends Amenity with CommonNtuContainer {
   // For the NTU display bar
   private var capacitorDisplay: Long = 0
   NtuCapacitor = Definition.MaxNtuCapacitor
+  WhichSide = Sidedness.OutsideOf
 
   def MaxNtuCapacitor : Float = Definition.MaxNtuCapacitor
 
@@ -37,7 +41,7 @@ class ResourceSilo extends Amenity with CommonNtuContainer {
 
   def Definition: ResourceSiloDefinition = GlobalDefinitions.resource_silo
 
-  def Use(player: Player, msg: UseItemMessage): ResourceSilo.Exchange = {
+  def Use(@unused player: Player, @unused msg: UseItemMessage): ResourceSilo.Exchange = {
     ResourceSilo.ChargeEvent()
   }
 }

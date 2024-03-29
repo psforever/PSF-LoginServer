@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad
 
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.terminals.Terminal
@@ -18,6 +19,8 @@ import net.psforever.types.PlanetSideGUID
   * @param spDef the `ObjectDefinition` that constructs this object and maintains some of its immutable fields
   */
 class VehicleSpawnPad(spDef: VehicleSpawnPadDefinition) extends Amenity {
+  WhichSide = Sidedness.OutsideOf
+
   def Definition: VehicleSpawnPadDefinition = spDef
 }
 
