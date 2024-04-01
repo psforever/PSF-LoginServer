@@ -1080,4 +1080,22 @@ object WorldSession {
       task
     )
   }
+
+  def CallBackForTask(task: TaskBundle, sendTo: ActorRef, pass: Any, replyTo: ActorRef): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
+        private val localDesc   = task.description()
+        private val destination = sendTo
+        private val passMsg     = pass
+
+        override def description(): String = s"callback for tasking $localDesc"
+
+        def action() : Future[Any] = {
+          destination.tell(passMsg, replyTo)
+          Future(this)
+        }
+      },
+      task
+    )
+  }
 }

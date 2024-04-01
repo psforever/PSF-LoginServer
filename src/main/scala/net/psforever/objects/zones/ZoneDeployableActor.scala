@@ -5,10 +5,10 @@ import akka.actor.Actor
 import net.psforever.objects.Player
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.ce.Deployable
+import net.psforever.objects.serverobject.deploy.Interference
 import net.psforever.objects.sourcing.ObjectSource
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.vital.SpawningActivity
-import net.psforever.types.Vector3
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -87,11 +87,11 @@ class ZoneDeployableActor(
         obj.ClearHistory()
       }
 
-    case Zone.Deployable.IsBuilt(_) => ;
+    case Zone.Deployable.IsBuilt(_) => ()
 
-    case Zone.Deployable.IsDismissed(_) => ;
+    case Zone.Deployable.IsDismissed(_) => ()
 
-    case _ => ;
+    case _ => ()
   }
 }
 
@@ -102,17 +102,8 @@ object ZoneDeployableActor {
                        deployableList: ListBuffer[Deployable]
                      ): Boolean = {
     val position = obj.Position
-    val positionxy = position.xy
-    deployableList.find(d => d == obj) match {
-      case None if {
-        val interference = obj.Definition.interference
-        val category = obj.Definition.DeployCategory
-        val sector = zone.blockMap.sector(position, interference.main)
-        !sector.deployableList.exists { p =>
-          p.Definition.DeployCategory == category ||
-            Vector3.DistanceSquared(positionxy, p.Position.xy).toDouble < math.pow(p.Definition.interference.deployable.toDouble, 2)
-        }
-      } =>
+    deployableList.find(_ eq obj) match {
+      case None if Interference.Test(zone, obj).isEmpty =>
         deployableList += obj
         zone.actor ! ZoneActor.AddToBlockMap(obj, position)
         true

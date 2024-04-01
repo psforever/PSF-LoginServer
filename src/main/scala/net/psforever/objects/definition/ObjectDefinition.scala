@@ -5,60 +5,8 @@ import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.converter.{ObjectCreateConverter, PacketConverter}
 import net.psforever.objects.geometry.GeometryForm
 import net.psforever.objects.geometry.d3.VolumetricGeometry
+import net.psforever.objects.serverobject.deploy.{Interference, InterferenceRange}
 import net.psforever.types.OxygenState
-
-/*
-Line  1316: add_property ams interference_range 125
-Line  1392: add_property ams shared_interference_range 30
-Line  5977: add_property boomer interference_range 0.2
-Line  8735: add_property deployable_shield_generator deployable_interference_range 2.0
-Line  8775: add_property deployable_shield_generator interference_range 125
-Line  8798: add_property deployable_shield_generator shared_interference_range 60
-Line 13684: add_property he_mine deployable_interference_range 0.1
-Line 13695: add_property he_mine interference_range 7
-Line 13709: add_property he_mine shared_interference_range 7
-Line 14634: add_property jammer_mine deployable_interference_range 0.1
-Line 14645: add_property jammer_mine interference_range 7
-Line 14661: add_property jammer_mine shared_interference_range 7
-Line 21038: add_property motion_alarm_sensor_dest interference_range 15
-Line 21057: add_property motionalarmsensor deployable_interference_range 0.1
-Line 21072: add_property motionalarmsensor interference_range 25
-Line 24898: add_property portable_manned_turret deployable_interference_range 2.5
-Line 24915: add_property portable_manned_turret interference_range 60
-Line 24981: add_property portable_manned_turret shared_interference_range 40
-Line 28196: add_property sensor_shield deployable_interference_range 0.1
-Line 28205: add_property sensor_shield interference_range 20
-Line 29572: add_property spitfire_aa deployable_interference_range 0.1
-Line 29584: add_property spitfire_aa interference_range 25
-Line 29608: add_property spitfire_aa shared_interference_range 25
-Line 29819: add_property spitfire_cloaked deployable_interference_range 0.1
-Line 29831: add_property spitfire_cloaked interference_range 25
-Line 29855: add_property spitfire_cloaked shared_interference_range 25
-Line 29939: add_property spitfire_turret deployable_interference_range 0.1
-Line 29951: add_property spitfire_turret interference_range 25
-Line 29975: add_property spitfire_turret shared_interference_range 25
-Line 30231: add_property stationaryteleportpad deployable_interference_range 5.5
-Line 30933: add_property tank_traps deployable_interference_range 3.0
-Line 30943: add_property tank_traps interference_range 3.5
-Line 30944: add_property tank_traps interference_range2 60
-Line 30969: add_property tank_traps shared_interference_range 60
-Line 37319: add_property zipline deployable_interference_range 5.5
- */
-/**
- * Block the deployment of certain entities within a certain distance.
- * Deployable vehicles and combat engineer entities both have a deployment condition that can be influenced by these ranges.
- * Vehicles of an object type block other vehicles of that object type.
- * Combat engineering entities block combat engineering entities of the same category.
- * @param main distance between which similar deployable entities block one another (m)
- * @param shared na
- * @param deployable distance between which this entity may block deployment of other combat engineering entities (m);
- *                   defaults to 0
- */
-final case class InterferenceRange(main: Float, shared: Float, deployable: Float = 0f)
-
-object InterferenceRange {
-  val None: InterferenceRange = InterferenceRange(0f, 0f)
-}
 
 /**
   * Associate an object's canned in-game representation with its basic game identification unit.
@@ -177,7 +125,7 @@ abstract class ObjectDefinition(private val objectId: Int)
   /**
    * na
    */
-  var interference: InterferenceRange = InterferenceRange.None
+  var interference: InterferenceRange = Interference.AllowAll
 
   def ObjectId: Int = objectId
 }

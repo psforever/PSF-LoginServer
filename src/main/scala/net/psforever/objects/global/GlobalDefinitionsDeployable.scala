@@ -8,6 +8,7 @@ import net.psforever.objects.definition.converter.{FieldTurretConverter, Interna
 import net.psforever.objects.equipment.{EffectTarget, TargetValidation}
 import net.psforever.objects.geometry.GeometryForm
 import net.psforever.objects.geometry.d3.VolumetricGeometry
+import net.psforever.objects.serverobject.deploy.InterferenceRange
 import net.psforever.objects.serverobject.mount.{MountInfo, SeatDefinition}
 import net.psforever.objects.serverobject.turret.{AutoChecks, AutoCooldowns, AutoRanges, Automation, TurretUpgrade}
 import net.psforever.objects.vital.{CollisionXYData, CollisionZData, ComplexDeployableResolutions, SimpleResolutions}
@@ -40,6 +41,7 @@ object GlobalDefinitionsDeployable {
     boomer.DeployCategory = DeployableCategory.Boomers
     boomer.DeployTime = Duration.create(1000, "ms")
     boomer.deployAnimation = DeployAnimation.Standard
+    boomer.interference = InterferenceRange(main = 0.2f)
     boomer.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
       SympatheticExplosion = true
@@ -62,6 +64,7 @@ object GlobalDefinitionsDeployable {
     he_mine.Repairable = false
     he_mine.DeployTime = Duration.create(1000, "ms")
     he_mine.deployAnimation = DeployAnimation.Standard
+    he_mine.interference = InterferenceRange(main = 7f, sharedGroupId = 1, shared = 7f, deployables = 0.1f)
     he_mine.triggerRadius = 3f
     he_mine.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
@@ -85,6 +88,7 @@ object GlobalDefinitionsDeployable {
     jammer_mine.Repairable = false
     jammer_mine.DeployTime = Duration.create(1000, "ms")
     jammer_mine.deployAnimation = DeployAnimation.Standard
+    jammer_mine.interference = InterferenceRange(main = 7f, sharedGroupId = 1, shared = 7f, deployables = 0.1f)
     jammer_mine.DetonateOnJamming = false
     jammer_mine.triggerRadius = 3f
     jammer_mine.innateDamage = new DamageWithPosition {
@@ -133,6 +137,7 @@ object GlobalDefinitionsDeployable {
     spitfire_turret.DeployTime = Duration.create(5000, "ms")
     spitfire_turret.Model = ComplexDeployableResolutions.calculate
     spitfire_turret.deployAnimation = DeployAnimation.Standard
+    spitfire_turret.interference = InterferenceRange(main = 25f, sharedGroupId = 2, shared = 25f, deployables = 0.1f)
     spitfire_turret.AutoFire = Automation(
       AutoRanges(
         detection = 75f,
@@ -176,6 +181,7 @@ object GlobalDefinitionsDeployable {
     spitfire_cloaked.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_cloaked.DeployTime = Duration.create(5000, "ms")
     spitfire_cloaked.deployAnimation = DeployAnimation.Standard
+    spitfire_cloaked.interference = InterferenceRange(main = 25f, sharedGroupId = 2, shared = 25f, deployables = 0.1f)
     spitfire_cloaked.Model = ComplexDeployableResolutions.calculate
     spitfire_cloaked.AutoFire = Automation(
       AutoRanges(
@@ -226,6 +232,7 @@ object GlobalDefinitionsDeployable {
     spitfire_aa.DeployCategory = DeployableCategory.SmallTurrets
     spitfire_aa.DeployTime = Duration.create(5000, "ms")
     spitfire_aa.deployAnimation = DeployAnimation.Standard
+    spitfire_aa.interference = InterferenceRange(main = 25f, sharedGroupId = 2, shared = 25f, deployables = 0.1f)
     spitfire_aa.Model = ComplexDeployableResolutions.calculate
     spitfire_aa.AutoFire = Automation(
       AutoRanges(
@@ -263,6 +270,7 @@ object GlobalDefinitionsDeployable {
     motionalarmsensor.RepairIfDestroyed = false
     motionalarmsensor.DeployTime = Duration.create(1000, "ms")
     motionalarmsensor.deployAnimation = DeployAnimation.Standard
+    motionalarmsensor.interference = InterferenceRange(main = 25f, deployables = 0.1f)
     motionalarmsensor.Geometry = sensor
 
     sensor_shield.Name = "sensor_shield"
@@ -273,6 +281,7 @@ object GlobalDefinitionsDeployable {
     sensor_shield.RepairIfDestroyed = false
     sensor_shield.DeployTime = Duration.create(5000, "ms")
     sensor_shield.deployAnimation = DeployAnimation.Standard
+    sensor_shield.interference = InterferenceRange(main = 20f, deployables = 0.1f)
     sensor_shield.Geometry = sensor
 
     tank_traps.Name = "tank_traps"
@@ -284,6 +293,8 @@ object GlobalDefinitionsDeployable {
     tank_traps.DeployCategory = DeployableCategory.TankTraps
     tank_traps.DeployTime = Duration.create(6000, "ms")
     tank_traps.deployAnimation = DeployAnimation.Fdu
+    tank_traps.interference = InterferenceRange(main = 3.5f, sharedGroupId = 3, shared = 60f, deployables = 3f)
+    //todo what is tank_traps interference2 60
     //tank_traps do not explode
     tank_traps.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -318,6 +329,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret.deployAnimation = DeployAnimation.Fdu
+    portable_manned_turret.interference = InterferenceRange(main = 60f, sharedGroupId = 3, shared = 40f, deployables = 2.5f)
     portable_manned_turret.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret.RadiationShielding = 0.5f
     portable_manned_turret.innateDamage = new DamageWithPosition {
@@ -351,6 +363,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret_nc.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_nc.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_nc.deployAnimation = DeployAnimation.Fdu
+    portable_manned_turret_nc.interference = InterferenceRange(main = 60f, sharedGroupId = 3, shared = 40f, deployables = 2.5f)
     portable_manned_turret_nc.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret_nc.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -383,6 +396,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret_tr.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_tr.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_tr.deployAnimation = DeployAnimation.Fdu
+    portable_manned_turret_tr.interference = InterferenceRange(main = 60f, sharedGroupId = 3, shared = 40f, deployables = 2.5f)
     portable_manned_turret_tr.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret_tr.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -415,6 +429,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret_vs.DeployCategory = DeployableCategory.FieldTurrets
     portable_manned_turret_vs.DeployTime = Duration.create(6000, "ms")
     portable_manned_turret_vs.deployAnimation = DeployAnimation.Fdu
+    portable_manned_turret_vs.interference = InterferenceRange(main = 60f, sharedGroupId = 3, shared = 40f, deployables = 2.5f)
     portable_manned_turret_vs.Model = ComplexDeployableResolutions.calculate
     portable_manned_turret_vs.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.One
@@ -437,6 +452,7 @@ object GlobalDefinitionsDeployable {
     deployable_shield_generator.RepairIfDestroyed = false
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")
     deployable_shield_generator.deployAnimation = DeployAnimation.Fdu
+    deployable_shield_generator.interference = InterferenceRange(main = 125f, sharedGroupId = 3, shared = 60f, deployables = 2f)
     deployable_shield_generator.Model = ComplexDeployableResolutions.calculate
     deployable_shield_generator.Geometry = GeometryForm.representByCylinder(radius = 0.6562f, height = 2.17188f)
 
