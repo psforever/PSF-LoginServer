@@ -3,9 +3,10 @@ package net.psforever.objects.zones
 
 import akka.actor.Actor
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.serverobject.deploy.{Deployment, Interference}
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.objects.{Default, Vehicle}
-import net.psforever.types.Vector3
+import net.psforever.types.{DriveState, Vector3}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -73,15 +74,24 @@ class ZoneVehicleActor(
           vehicle.ClearHistory()
           zone.actor ! ZoneActor.RemoveFromBlockMap(vehicle)
           sender() ! Zone.Vehicle.HasDespawned(zone, vehicle)
-        case None => ;
+        case None =>
           sender() ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")
       }
 
-    case Zone.Vehicle.HasDespawned(_, _) => ;
+    case Zone.Vehicle.TryDeploymentChange(vehicle, toDeployState)
+      if toDeployState > DriveState.Undeploying && Interference.Test(zone, vehicle).nonEmpty =>
+      sender() ! Zone.Vehicle.CanNotDeploy(zone, vehicle, toDeployState, "blocked by a nearby entity")
 
-    case Zone.Vehicle.CanNotDespawn(_, _, _) => ;
+    case Zone.Vehicle.TryDeploymentChange(vehicle, toDeployState) =>
+      vehicle.Actor.tell(Deployment.TryDeploymentChange(toDeployState), sender())
 
-    case _ => ;
+    case Zone.Vehicle.HasDespawned(_, _) => ()
+
+    case Zone.Vehicle.CanNotDespawn(_, _, _) => ()
+
+    case Zone.Vehicle.CanNotDeploy(_, _, _, _) => ()
+
+    case _ => ()
   }
 }
 

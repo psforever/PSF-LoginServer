@@ -85,10 +85,10 @@ object Interference {
     val pDefinition = p.Definition
     val otherInterference = pDefinition.interference
     (otherInterference ne Interference.AllowAll) && {
-      lazy val distanceSq = Vector3.DistanceSquared(position, p.Position).toDouble
-      (pDefinition == objectDefinition && distanceSq < math.pow(otherInterference.main.toDouble, 2)) ||
-        (inAGroup && sharedGroupId == otherInterference.sharedGroupId && distanceSq < math.pow(otherInterference.shared.toDouble, 2)) ||
-        distanceSq < math.pow(otherInterference.deployables.toDouble, 2)
+      lazy val distanceSq = Vector3.DistanceSquared(position, p.Position)
+      (pDefinition == objectDefinition && distanceSq < otherInterference.main * otherInterference.main) ||
+        (inAGroup && sharedGroupId == otherInterference.sharedGroupId && distanceSq < otherInterference.shared * otherInterference.shared) ||
+        distanceSq < otherInterference.deployables * otherInterference.deployables
     }
   }
 }
