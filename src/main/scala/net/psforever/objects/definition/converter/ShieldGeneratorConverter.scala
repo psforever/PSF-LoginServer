@@ -19,7 +19,7 @@ class ShieldGeneratorConverter extends ObjectCreateConverter[ShieldGeneratorDepl
               obj.Faction,
               bops = false,
               alternate = false,
-              v1 = false,
+              v1 = true,
               v2 = None,
               jammered = obj.Jammed,
               None,

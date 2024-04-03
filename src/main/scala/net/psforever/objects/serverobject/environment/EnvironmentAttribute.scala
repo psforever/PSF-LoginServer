@@ -17,9 +17,8 @@ object EnvironmentAttribute {
     /** water can only interact with objects that are negatively affected by being exposed to water;
      * it's better this way */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = {
-      obj.Definition.DrownAtMaxDepth ||
-        obj.Definition.DisableAtMaxDepth ||
-        canInteractWithPlayersAndVehicles(obj) ||
+      (obj.Definition.DrownAtMaxDepth || obj.Definition.DisableAtMaxDepth) &&
+        canInteractWithPlayersAndVehicles(obj) &&
         (obj match {
           case p: Player  => p.VehicleSeated.isEmpty
           case v: Vehicle => v.MountedIn.isEmpty

@@ -12,7 +12,7 @@ import net.psforever.objects.avatar.{Avatar, Certification, PlayerControl}
 import net.psforever.objects.ballistics._
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
-import net.psforever.objects.vital.Vitality
+import net.psforever.objects.vital.{SpawningActivity, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects._
 import net.psforever.objects.serverobject.CommonMessages
@@ -948,7 +948,7 @@ class PlayerControlInteractWithLavaTest extends ActorTest {
         }
       )
       assert(player1.Health > 0) //still alive?
-      probe.receiveOne(65 seconds) //wait until player1's implants deinitialize
+      probe.receiveOne(65 seconds)
       assert(player1.Health == 0) //ded
     }
   }
@@ -959,7 +959,7 @@ class PlayerControlInteractWithDeathTest extends ActorTest {
     Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val avatarProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
-  val pool = Pool(EnvironmentAttribute.Death, DeepSquare(-1, 10, 10, 0, 0))
+  val pool = Pool(EnvironmentAttribute.Death, DeepSquare(10, 10, 10, 0, 0))
   val zone = new Zone(
     id = "test-map",
     new ZoneMap(name = "test-map") {
@@ -973,24 +973,23 @@ class PlayerControlInteractWithDeathTest extends ActorTest {
     override def AvatarEvents = avatarProbe.ref
     override def Activity = TestProbe().ref
   }
-  zone.blockMap.addTo(player1)
-  zone.blockMap.addTo(pool)
+  guid.register(player1, 1)
+  guid.register(player1.avatar.locker, 5)
 
   player1.Zone = zone
   player1.Spawn()
-  guid.register(player1.avatar.locker, 5)
+  player1.Position = Vector3(5,5,3) //right in the pool
+  zone.blockMap.addTo(player1)
+  zone.blockMap.addTo(pool)
   val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1, avatarActor), "player1-control")
-
-  guid.register(player1, 1)
+  player1.LogActivity(SpawningActivity(PlayerSource(player1), 0, None))
 
   "PlayerControl" should {
     "take continuous damage if player steps into a pool of death" in {
       assert(player1.Health == 100) //alive
-      player1.Position = Vector3(5,5,-3) //right in the pool
+      probe.expectNoMessage(5.seconds)
       player1.zoneInteractions() //trigger
-
-      probe.receiveOne(250 milliseconds) //wait until oplayer1's implants deinitialize
       assert(player1.Health == 0) //ded
     }
   }

@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, Env
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.vital.interaction.DamageInteraction
-import net.psforever.objects.vital.{ReconstructionActivity, Vitality}
+import net.psforever.objects.vital.{IncarnationActivity, ReconstructionActivity, Vitality}
 import net.psforever.objects.zones.InteractsWithZone
 
 import scala.annotation.unused
@@ -29,7 +29,7 @@ class WithDeath()
                          @unused data: Option[Any]
                        ): Unit = {
     if (!obj.Destroyed) {
-      obj.History.findLast { entry => entry.isInstanceOf[ReconstructionActivity] } match {
+      obj.History.findLast { entry => entry.isInstanceOf[IncarnationActivity] } match {
         case Some(entry) if System.currentTimeMillis() - entry.time > 4000L =>
           obj.Actor ! Vitality.Damage(
             DamageInteraction(

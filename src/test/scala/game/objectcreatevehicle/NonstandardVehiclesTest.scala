@@ -22,7 +22,7 @@ class NonstandardVehiclesTest extends Specification {
           guid mustEqual PlanetSideGUID(3595)
           parent.isDefined mustEqual false
           data match {
-            case DroppodData(basic, health, burn, unk) =>
+            case DroppodData(basic, health, burn, _) =>
               basic.pos.coord mustEqual Vector3(5108.0f, 6164.0f, 1023.9844f)
               basic.pos.orient mustEqual Vector3.z(90.0f)
 
@@ -88,7 +88,17 @@ class NonstandardVehiclesTest extends Specification {
       val obj = DroppodData(
         CommonFieldDataWithPlacement(
           PlacementData(5108.0f, 6164.0f, 1023.9844f, 0f, 0f, 90.0f),
-          CommonFieldData(PlanetSideEmpire.VS, 2)
+          CommonFieldData(
+            PlanetSideEmpire.VS,
+            bops = false,
+            alternate = false,
+            v1 = true,
+            v2 = None,
+            jammered = false,
+            v4 = None,
+            v5 = None,
+            PlanetSideGUID(0)
+          )
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.droppod, PlanetSideGUID(3595), obj)

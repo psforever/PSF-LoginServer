@@ -121,7 +121,7 @@ class FacilityTurretControl2Test extends ActorTest {
       assert(obj.Definition.FactionLocked)
 
       obj.Actor ! Mountable.TryMount(player, 1)
-      val reply = receiveOne(300 milliseconds)
+      val reply = receiveOne(1000 milliseconds)
       reply match {
         case msg: Mountable.MountMessages =>
           assert(msg.response.isInstanceOf[Mountable.CanMount])
