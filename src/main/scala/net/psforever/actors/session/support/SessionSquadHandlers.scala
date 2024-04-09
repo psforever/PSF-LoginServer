@@ -27,7 +27,7 @@ object SessionSquadHandlers {
 }
 
 class SessionSquadHandlers(
-                            val sessionData: SessionData,
+                            val sessionLogic: SessionLogic,
                             avatarActor: typed.ActorRef[AvatarActor.Command],
                             chatActor: typed.ActorRef[ChatActor.Command],
                             squadService: ActorRef,

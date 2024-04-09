@@ -2,21 +2,34 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, typed}
-import scala.concurrent.duration._
+import net.psforever.packet.PlanetSideGamePacket
+import net.psforever.packet.game.FriendsResponse
+import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 //
 import net.psforever.actors.session.AvatarActor
-import net.psforever.objects.Vehicle
-import net.psforever.packet.game.{AvatarDeadStateMessage, BroadcastWarpgateUpdateMessage, DeadState, HotSpotInfo => PacketHotSpotInfo, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage}
-import net.psforever.services.Service
+import net.psforever.packet.game.{BroadcastWarpgateUpdateMessage, HotSpotInfo => PacketHotSpotInfo, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage}
 import net.psforever.services.galaxy.GalaxyResponse
 import net.psforever.types.{MemberAction, PlanetSideEmpire}
 
 class SessionGalaxyHandlers(
-                             val sessionData: SessionData,
+                             val sessionLogic: SessionLogic,
                              avatarActor: typed.ActorRef[AvatarActor.Command],
                              galaxyService: ActorRef,
                              implicit val context: ActorContext
                            ) extends CommonSessionInterfacingFunctionality {
+  /* packets */
+
+  def handleUpdateIgnoredPlayers: PlanetSideGamePacket => Unit = {
+    case msg: FriendsResponse =>
+      sendResponse(msg)
+      msg.friends.foreach { f =>
+        galaxyService ! GalaxyServiceMessage(GalaxyAction.LogStatusChange(f.name))
+      }
+    case _ => ()
+  }
+
+  /* response handlers */
+
   def handle(reply: GalaxyResponse.Response): Unit = {
     reply match {
       case GalaxyResponse.HotSpotUpdate(zone_index, priority, hot_spot_info) =>
@@ -45,7 +58,7 @@ class SessionGalaxyHandlers(
         sendResponse(msg)
 
       case GalaxyResponse.TransferPassenger(temp_channel, vehicle, _, manifest) =>
-        sessionData.zoning.handleTransferPassenger(temp_channel, vehicle, manifest)
+        sessionLogic.zoning.handleTransferPassenger(temp_channel, vehicle, manifest)
 
       case GalaxyResponse.LockedZoneUpdate(zone, time) =>
         sendResponse(ZoneInfoMessage(zone.Number, empire_status=false, lock_time=time))
@@ -58,7 +71,7 @@ class SessionGalaxyHandlers(
         val popVS = zone.Players.count(_.faction == PlanetSideEmpire.VS)
         sendResponse(ZonePopulationUpdateMessage(zone.Number, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
 
-      case GalaxyResponse.LogStatusChange(name) if (avatar.people.friend.exists { _.name.equals(name) })  =>
+      case GalaxyResponse.LogStatusChange(name) if avatar.people.friend.exists(_.name.equals(name)) =>
         avatarActor ! AvatarActor.MemberListRequest(MemberAction.UpdateFriend, name)
 
       case GalaxyResponse.SendResponse(msg) =>

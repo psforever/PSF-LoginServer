@@ -1,20 +1,16 @@
-// Copyright (c) 2023 PSForever
+// Copyright (c) 2024 PSForever
 package net.psforever.actors.session.support
 
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.etc.SuicideReason
-import net.psforever.objects.zones.blockmap.{SectorGroup, SectorPopulation}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration._
 //
-import net.psforever.actors.net.MiddlewareActor
 import net.psforever.actors.session.{AvatarActor, ChatActor, SessionActor}
-import net.psforever.actors.zone.ZoneActor
 import net.psforever.login.WorldSession._
 import net.psforever.objects._
 import net.psforever.objects.avatar._
@@ -27,7 +23,6 @@ import net.psforever.objects.guid._
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.llu.CaptureFlag
@@ -35,7 +30,7 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
-import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
+import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
@@ -48,7 +43,6 @@ import net.psforever.objects.vital._
 import net.psforever.objects.vital.collision.{CollisionReason, CollisionWithReason}
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones._
-import net.psforever.objects.zones.blockmap.{BlockMap, BlockMapEntity}
 import net.psforever.packet._
 import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeShortcutBankMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FavoritesRequest, FriendsRequest, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, SetChatFilterMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, ZipLineMessage}
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
@@ -56,110 +50,31 @@ import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game._
 import net.psforever.services.account.{AccountPersistenceService, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.ServiceManager.LookupResult
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.services.{RemoverActor, Service, InterstellarClusterService => ICS}
+import net.psforever.services.{RemoverActor, Service}
 import net.psforever.types._
 import net.psforever.util.Config
 
-object SessionData {
-  //noinspection ScalaUnusedSymbol
-  private def NoTurnCounterYet(guid: PlanetSideGUID): Unit = { }
-}
-
-class SessionData(
-                   middlewareActor: typed.ActorRef[MiddlewareActor.Command],
-                   implicit val context: ActorContext
-                 ) {
-  /**
-   * Hardwire an implicit `sender` to be the same as `context.self` of the `SessionActor` actor class
-   * for which this support class was initialized.
-   * Allows for proper use for `ActorRef.tell` or an actor's `!` in the support class,
-   * one where the result is always directed back to the same `SessionActor` instance.
-   * If there is a different packet "sender" that has to be respected by a given method,
-   * pass that `ActorRef` into the method as a parameter.
-   * @see `ActorRef.!(Any)(ActorRef)`
-   * @see `ActorRef.tell(Any)(ActorRef)`
-   */
-  private[this] implicit val sender: ActorRef = context.self
-
-  private val avatarActor: typed.ActorRef[AvatarActor.Command] = context.spawnAnonymous(AvatarActor(context.self))
-  private val chatActor: typed.ActorRef[ChatActor.Command] = context.spawnAnonymous(ChatActor(context.self, avatarActor))
-
-  private[support] val log = org.log4s.getLogger
-  private[support] var theSession: Session = Session()
-  private[support] var accountIntermediary: ActorRef = Default.Actor
-  private[support] var accountPersistence: ActorRef = Default.Actor
-  private[support] var galaxyService: ActorRef = Default.Actor
-  private[support] var squadService: ActorRef = Default.Actor
-  private[support] var cluster: typed.ActorRef[ICS.Command] = Default.typed.Actor
+class GeneralOperations(
+                         val sessionLogic: SessionLogic,
+                         avatarActor: typed.ActorRef[AvatarActor.Command],
+                         chatActor: typed.ActorRef[ChatActor.Command],
+                         implicit val context: ActorContext
+                       ) extends CommonSessionInterfacingFunctionality {
   private[support] var progressBarValue: Option[Float] = None
   private[support] var accessedContainer: Option[PlanetSideGameObject with Container] = None
-  private[session] var connectionState: Int = 25
-  private var recentTeleportAttempt: Long = 0
+  private[support] var recentTeleportAttempt: Long = 0
   private[support] var kitToBeUsed: Option[PlanetSideGUID] = None
-  private[support] var persistFunc: () => Unit = noPersistence
-  private[support] var persist: () => Unit = updatePersistenceOnly
-  private[support] var specialItemSlotGuid: Option[PlanetSideGUID] =
-    None // If a special item (e.g. LLU) has been attached to the player the GUID should be stored here, or cleared when dropped, since the drop hotkey doesn't send the GUID of the object to be dropped.
-  private[support] var serverTime: Long = 0 //unused?
-  private[session] var keepAliveFunc: () => Unit = keepAlivePersistenceInitial
-  private[support] var turnCounterFunc: PlanetSideGUID => Unit = SessionData.NoTurnCounterYet
+  // If a special item (e.g. LLU) has been attached to the player the GUID should be stored here, or cleared when dropped, since the drop hotkey doesn't send the GUID of the object to be dropped.
+  private[support] var specialItemSlotGuid: Option[PlanetSideGUID] = None
+  private[support] val collisionHistory: mutable.HashMap[ActorRef, Long] = mutable.HashMap()
   private var heightLast: Float = 0f
   private var heightTrend: Boolean = false //up = true, down = false
   private var heightHistory: Float = 0f
-  private var contextSafeEntity: PlanetSideGUID = PlanetSideGUID(0)
-  private val collisionHistory: mutable.HashMap[ActorRef, Long] = mutable.HashMap()
-
-  private var clientKeepAlive: Cancellable = Default.Cancellable
   private[support] var progressBarUpdate: Cancellable = Default.Cancellable
   private var charSavedTimer: Cancellable = Default.Cancellable
-
-  val shooting: WeaponAndProjectileOperations =
-    new WeaponAndProjectileOperations(sessionData=this, avatarActor, chatActor, context)
-  val vehicles: VehicleOperations =
-    new VehicleOperations(sessionData=this, avatarActor, context)
-  val avatarResponse: SessionAvatarHandlers =
-    new SessionAvatarHandlers(sessionData=this, avatarActor, chatActor, context)
-  val localResponse: SessionLocalHandlers =
-    new SessionLocalHandlers(sessionData=this, context)
-  val mountResponse: SessionMountHandlers =
-    new SessionMountHandlers(sessionData=this, avatarActor, context)
-  val terminals: SessionTerminalHandlers =
-    new SessionTerminalHandlers(sessionData=this, avatarActor, context)
-  private var vehicleResponseOpt: Option[SessionVehicleHandlers] = None
-  private var galaxyResponseOpt: Option[SessionGalaxyHandlers] = None
-  private var squadResponseOpt: Option[SessionSquadHandlers] = None
-  private var zoningOpt: Option[ZoningOperations] = None
-  def vehicleResponseOperations: SessionVehicleHandlers = vehicleResponseOpt.orNull
-  def galaxyResponseHanders: SessionGalaxyHandlers = galaxyResponseOpt.orNull
-  def squad: SessionSquadHandlers = squadResponseOpt.orNull
-  def zoning: ZoningOperations = zoningOpt.orNull
-
-  /**
-   * updated when an upstream packet arrives;
-   * allow to be a little stale for a short while
-   */
-  private[support] var localSector: SectorPopulation = SectorGroup(Nil)
-
-  def session: Session = theSession
-
-  def session_=(session: Session): Unit = {
-    chatActor ! ChatActor.SetSession(session)
-    avatarActor ! AvatarActor.SetSession(session)
-    theSession = session
-  }
-
-  def account: Account = theSession.account
-
-  def continent: Zone = theSession.zone
-
-  def player: Player = theSession.player
-
-  def avatar: Avatar = theSession.avatar
 
   /* packets */
 
@@ -169,15 +84,7 @@ class SessionData(
       s"ConnectToWorldRequestMessage: client with versioning $majorVersion.$minorVersion.$revision, $buildDate has sent a token to the server"
     )
     sendResponse(ChatMsg(ChatMessageType.CMT_CULLWATERMARK, wideContents=false, "", "", None))
-    import scala.concurrent.ExecutionContext.Implicits.global
-    clientKeepAlive.cancel()
-    clientKeepAlive = context.system.scheduler.scheduleWithFixedDelay(
-      initialDelay = 0.seconds,
-      delay = 500.milliseconds,
-      context.self,
-      SessionActor.PokeClient()
-    )
-    accountIntermediary ! RetrieveAccountData(token)
+    sessionLogic.accountIntermediary ! RetrieveAccountData(token)
   }
 
   def handleCharacterCreateRequest(pkt: CharacterCreateRequestMessage): Unit = {
@@ -212,22 +119,22 @@ class SessionData(
     _,
     _
     )= pkt
-    persist()
-    turnCounterFunc(avatarGuid)
-    updateBlockMap(player, pos)
+    sessionLogic.persist()
+    sessionLogic.turnCounterFunc(avatarGuid)
+    sessionLogic.updateBlockMap(player, pos)
     val isMoving     = WorldEntity.isMoving(vel)
     val isMovingPlus = isMoving || isJumping || jumpThrust
     if (isMovingPlus) {
-      if (zoning.zoningStatus == Zoning.Status.Deconstructing) {
-        stopDeconstructing()
-      } else if (zoning.zoningStatus != Zoning.Status.None) {
-        zoning.CancelZoningProcessWithDescriptiveReason("cancel_motion")
+      if (sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing) {
+        sessionLogic.zoning.spawn.stopDeconstructing()
+      } else if (sessionLogic.zoning.zoningStatus != Zoning.Status.None) {
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_motion")
       }
     }
     fallHeightTracker(pos.z)
-//    if (isCrouching && !player.Crouching) {
-//      //dev stuff goes here
-//    }
+    //    if (isCrouching && !player.Crouching) {
+    //      //dev stuff goes here
+    //    }
     player.Position = pos
     player.Velocity = vel
     player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -235,14 +142,14 @@ class SessionData(
     player.Crouching = isCrouching
     player.Jumping = isJumping
     if (isCloaking && !player.Cloaked) {
-      zoning.CancelZoningProcessWithDescriptiveReason("cancel_cloak")
+      sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_cloak")
     }
     player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && isCloaking
     maxCapacitorTick(jumpThrust)
-    if (isMovingPlus && terminals.usingMedicalTerminal.isDefined) {
-      continent.GUID(terminals.usingMedicalTerminal) match {
+    if (isMovingPlus && sessionLogic.terminals.usingMedicalTerminal.isDefined) {
+      continent.GUID(sessionLogic.terminals.usingMedicalTerminal) match {
         case Some(term: Terminal with ProximityUnit) =>
-          terminals.StopUsingProximityUnit(term)
+          sessionLogic.terminals.StopUsingProximityUnit(term)
         case _ => ()
       }
     }
@@ -271,8 +178,8 @@ class SessionData(
     }
     val eagleEye: Boolean = canSeeReallyFar
     val isNotVisible: Boolean = player.spectator ||
-      zoning.zoningStatus == Zoning.Status.Deconstructing ||
-      (player.isAlive && zoning.spawn.deadState == DeadState.RespawnTime)
+      sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing ||
+      (player.isAlive && sessionLogic.zoning.spawn.deadState == DeadState.RespawnTime)
     continent.AvatarEvents ! AvatarServiceMessage(
       continent.id,
       AvatarAction.PlayerState(
@@ -291,9 +198,9 @@ class SessionData(
         eagleEye
       )
     )
-    squad.updateSquad()
+    sessionLogic.squad.updateSquad()
     if (player.death_by == -1) {
-      kickedByAdministration()
+      sessionLogic.kickedByAdministration()
     }
     player.zoneInteractions()
   }
@@ -329,14 +236,14 @@ class SessionData(
 
   def handleDropItem(pkt: DropItemMessage): Unit = {
     val DropItemMessage(itemGuid) = pkt
-    (validObject(itemGuid, decorator = "DropItem"), player.FreeHand.Equipment) match {
+    (sessionLogic.validObject(itemGuid, decorator = "DropItem"), player.FreeHand.Equipment) match {
       case (Some(anItem: Equipment), Some(heldItem))
         if (anItem eq heldItem) && continent.GUID(player.VehicleSeated).nonEmpty =>
-        zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         RemoveOldEquipmentFromInventory(player)(heldItem)
       case (Some(anItem: Equipment), Some(heldItem))
         if anItem eq heldItem =>
-        zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         DropEquipmentFromInventory(player)(heldItem)
       case (Some(anItem: Equipment), _)
         if continent.GUID(player.VehicleSeated).isEmpty =>
@@ -350,9 +257,9 @@ class SessionData(
 
   def handlePickupItem(pkt: PickupItemMessage): Unit = {
     val PickupItemMessage(itemGuid, _, _, _) = pkt
-    validObject(itemGuid, decorator = "PickupItem").collect {
+    sessionLogic.validObject(itemGuid, decorator = "PickupItem").collect {
       case item: Equipment if player.Fit(item).nonEmpty =>
-        zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         PickUpEquipmentFromGround(player)(item)
       case _: Equipment =>
         sendResponse(ActionResultMessage.Fail(16)) //error code?
@@ -374,13 +281,13 @@ class SessionData(
     val ZipLineMessage(playerGuid, forwards, action, pathId, pos) = pkt
     continent.zipLinePaths.find(x => x.PathId == pathId) match {
       case Some(path) if path.IsTeleporter =>
-        zoning.CancelZoningProcessWithDescriptiveReason("cancel")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel")
         val endPoint = path.ZipLinePoints.last
         sendResponse(ZipLineMessage(PlanetSideGUID(0), forwards, 0, pathId, pos))
         //todo: send to zone to show teleport animation to all clients
         sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, (player.Orientation.z + player.FacingYawUpper) % 360f, None)))
       case Some(_) =>
-        zoning.CancelZoningProcessWithDescriptiveReason("cancel_motion")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_motion")
         action match {
           case 0 =>
             //travel along the zipline in the direction specified
@@ -404,7 +311,7 @@ class SessionData(
   def handleRequestDestroy(pkt: RequestDestroyMessage): Unit = {
     val RequestDestroyMessage(objectGuid) = pkt
     //make sure this is the correct response for all cases
-    validObject(objectGuid, decorator = "RequestDestroy") match {
+    sessionLogic.validObject(objectGuid, decorator = "RequestDestroy") match {
       case Some(vehicle: Vehicle) =>
         /* line 1a: player is admin (and overrules other access requirements) */
         /* line 1b: vehicle and player (as the owner) acknowledge each other */
@@ -464,7 +371,7 @@ class SessionData(
     (
       continent.GUID(sourceGuid),
       continent.GUID(destinationGuid),
-      validObject(itemGuid, decorator = "MoveItem")
+      sessionLogic.validObject(itemGuid, decorator = "MoveItem")
     ) match {
       case (
         Some(source: PlanetSideServerObject with Container),
@@ -490,7 +397,7 @@ class SessionData(
 
   def handleLootItem(pkt: LootItemMessage): Unit = {
     val LootItemMessage(itemGuid, targetGuid) = pkt
-    (validObject(itemGuid, decorator = "LootItem"), continent.GUID(targetGuid)) match {
+    (sessionLogic.validObject(itemGuid, decorator = "LootItem"), continent.GUID(targetGuid)) match {
       case (Some(item: Equipment), Some(destination: PlanetSideServerObject with Container)) =>
         //figure out the source
         (
@@ -531,9 +438,9 @@ class SessionData(
   def handleAvatarImplant(pkt: AvatarImplantMessage): Unit = {
     val AvatarImplantMessage(_, action, slot, status) = pkt
     if (action == ImplantAction.Activation) {
-      if (zoning.zoningStatus == Zoning.Status.Deconstructing) {
+      if (sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing) {
         //do not activate; play deactivation sound instead
-        stopDeconstructing()
+        sessionLogic.zoning.spawn.stopDeconstructing()
         avatar.implants(slot).collect {
           case implant if implant.active =>
             avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
@@ -541,7 +448,7 @@ class SessionData(
             sendResponse(PlanetsideAttributeMessage(player.GUID, 28, implant.definition.implantType.value * 2))
         }
       } else {
-        zoning.CancelZoningProcessWithDescriptiveReason("cancel_implant")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_implant")
         avatar.implants(slot) match {
           case Some(implant) =>
             if (status == 1) {
@@ -559,13 +466,13 @@ class SessionData(
   def handleUseItem(pkt: UseItemMessage): Unit = {
     val equipment = findContainedEquipment(pkt.item_used_guid) match {
       case (o @ Some(_), a) if a.exists(_.isInstanceOf[Tool]) =>
-        shooting.FindEnabledWeaponsToHandleWeaponFireAccountability(o, a.collect { case w: Tool => w })._2.headOption
+        sessionLogic.shooting.FindEnabledWeaponsToHandleWeaponFireAccountability(o, a.collect { case w: Tool => w })._2.headOption
       case (Some(_), a) =>
         a.headOption
       case _ =>
         None
     }
-    validObject(pkt.object_guid, decorator = "UseItem") match {
+    sessionLogic.validObject(pkt.object_guid, decorator = "UseItem") match {
       case Some(door: Door) =>
         handleUseDoor(door, equipment)
       case Some(resourceSilo: ResourceSilo) =>
@@ -614,10 +521,10 @@ class SessionData(
 
   def handleUnuseItem(pkt: UnuseItemMessage): Unit = {
     val UnuseItemMessage(_, objectGuid) = pkt
-    validObject(objectGuid, decorator = "UnuseItem") match {
+    sessionLogic.validObject(objectGuid, decorator = "UnuseItem") match {
       case Some(obj: Player) =>
         unaccessContainer(obj)
-        zoning.spawn.TryDisposeOfLootedCorpse(obj)
+        sessionLogic.zoning.spawn.TryDisposeOfLootedCorpse(obj)
       case Some(obj: Container) =>
         // Make sure we don't unload the contents of the vehicle the player is seated in
         // An example scenario of this would be closing the trunk contents when rearming at a landing pad
@@ -637,7 +544,7 @@ class SessionData(
           case dtype                               => dtype
         }
         log.info(s"${player.Name} is constructing a $ammoType deployable")
-        zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         val dObj: Deployable = Deployables.Make(ammoType)()
         dObj.Position = pos
         dObj.Orientation = orient
@@ -660,7 +567,7 @@ class SessionData(
 
   def handlePlanetsideAttribute(pkt: PlanetsideAttributeMessage): Unit = {
     val PlanetsideAttributeMessage(objectGuid, attributeType, attributeValue) = pkt
-    validObject(objectGuid, decorator = "PlanetsideAttribute") match {
+    sessionLogic.validObject(objectGuid, decorator = "PlanetsideAttribute") match {
       case Some(vehicle: Vehicle) if player.avatar.vehicle.contains(vehicle.GUID) =>
         vehicle.Actor ! ServerObject.AttributeMsg(attributeType, attributeValue)
       case Some(vehicle: Vehicle) =>
@@ -676,7 +583,7 @@ class SessionData(
 
   def handleGenericObjectAction(pkt: GenericObjectActionMessage): Unit = {
     val GenericObjectActionMessage(objectGuid, code) = pkt
-    validObject(objectGuid, decorator = "GenericObjectAction") match {
+    sessionLogic.validObject(objectGuid, decorator = "GenericObjectAction") match {
       case Some(vehicle: Vehicle)
         if vehicle.OwnerName.contains(player.Name) =>
         vehicle.Actor ! ServerObject.GenericObjectAction(objectGuid, code, Some(player.GUID))
@@ -687,9 +594,9 @@ class SessionData(
         ) {
           //maelstrom primary fire mode discharge (no target)
           //aphelion_laser discharge (no target)
-          shooting.HandleWeaponFireAccountability(objectGuid, PlanetSideGUID(Projectile.baseUID))
+          sessionLogic.shooting.HandleWeaponFireAccountability(objectGuid, PlanetSideGUID(Projectile.baseUID))
         } else {
-          validObject(player.VehicleSeated, decorator = "GenericObjectAction/Vehicle") match {
+          sessionLogic.validObject(player.VehicleSeated, decorator = "GenericObjectAction/Vehicle") match {
             case Some(vehicle: Vehicle)
               if vehicle.OwnerName.contains(player.Name) =>
               vehicle.Actor ! ServerObject.GenericObjectAction(objectGuid, code, Some(tool))
@@ -703,9 +610,9 @@ class SessionData(
 
   def handleGenericObjectActionAtPosition(pkt: GenericObjectActionAtPositionMessage): Unit = {
     val GenericObjectActionAtPositionMessage(objectGuid, _, _) = pkt
-    validObject(objectGuid, decorator = "GenericObjectActionAtPosition") match {
+    sessionLogic.validObject(objectGuid, decorator = "GenericObjectActionAtPosition") match {
       case Some(tool: Tool) if GlobalDefinitions.isBattleFrameNTUSiphon(tool.Definition) =>
-        shooting.FindContainedWeapon match {
+        sessionLogic.shooting.FindContainedWeapon match {
           case (Some(vehicle: Vehicle), weps) if weps.exists(_.GUID == objectGuid) =>
             vehicle.Actor ! SpecialEmp.Burst()
           case _ => ()
@@ -807,11 +714,11 @@ class SessionData(
             Config.app.game.savedMsg.renewal.variable
           )
         case GenericAction.LookingForSquad_RCV => //Looking For Squad ON
-          if (!avatar.lookingForSquad && (squad.squadUI.isEmpty || squad.squadUI(player.CharId).index == 0)) {
+          if (!avatar.lookingForSquad && (sessionLogic.squad.squadUI.isEmpty || sessionLogic.squad.squadUI(player.CharId).index == 0)) {
             avatarActor ! AvatarActor.SetLookingForSquad(true)
           }
         case GenericAction.NotLookingForSquad_RCV => //Looking For Squad OFF
-          if (avatar.lookingForSquad && (squad.squadUI.isEmpty || squad.squadUI(player.CharId).index == 0)) {
+          if (avatar.lookingForSquad && (sessionLogic.squad.squadUI.isEmpty || sessionLogic.squad.squadUI(player.CharId).index == 0)) {
             avatarActor ! AvatarActor.SetLookingForSquad(false)
           }
         case _ =>
@@ -822,7 +729,7 @@ class SessionData(
 
   def handleFavoritesRequest(pkt: FavoritesRequest): Unit = {
     val FavoritesRequest(_, loadoutType, action, line, label) = pkt
-    zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
     action match {
       case FavoritesAction.Save   =>
         avatarActor ! AvatarActor.SaveLoadout(player, loadoutType, label, line)
@@ -851,7 +758,7 @@ class SessionData(
         0f
       }
     }
-    val (target1, target2, bailProtectStatus, velocity) = (ctype, validObject(p, decorator = "GenericCollision/Primary")) match {
+    val (target1, target2, bailProtectStatus, velocity) = (ctype, sessionLogic.validObject(p, decorator = "GenericCollision/Primary")) match {
       case (CollisionIs.OfInfantry, out @ Some(user: Player))
         if user == player =>
         val bailStatus = session.flying || player.spectator || session.speed > 1f || player.BailProtection
@@ -869,10 +776,10 @@ class SessionData(
         if v.Seats(0).occupant.contains(player) =>
         val bailStatus = v.BailProtection
         v.BailProtection = false
-        (out, validObject(t, decorator = "GenericCollision/GroundVehicle"), bailStatus, pv)
+        (out, sessionLogic.validObject(t, decorator = "GenericCollision/GroundVehicle"), bailStatus, pv)
       case (CollisionIs.OfAircraft, out @ Some(v: Vehicle))
         if v.Definition.CanFly && v.Seats(0).occupant.contains(player) =>
-        (out, validObject(t, decorator = "GenericCollision/Aircraft"), false, pv)
+        (out, sessionLogic.validObject(t, decorator = "GenericCollision/Aircraft"), false, pv)
       case (CollisionIs.BetweenThings, _) =>
         log.warn("GenericCollision: CollisionIs.BetweenThings detected - no handling case")
         (None, None, false, Vector3.Zero)
@@ -886,7 +793,7 @@ class SessionData(
       case (Some(us: PlanetSideServerObject with Vitality with FactionAffinity), PlanetSideGUID(0), _) =>
         if (updateCollisionHistoryForTarget(us, curr)) {
           if (!bailProtectStatus) {
-            handleDealingDamage(
+            sessionLogic.handleDealingDamage(
               us,
               DamageInteraction(
                 SourceEntry(us),
@@ -1036,10 +943,10 @@ class SessionData(
 
   def handleObjectDetected(pkt: ObjectDetectedMessage): Unit = {
     val ObjectDetectedMessage(_, _, _, targets) = pkt
-    shooting.FindWeapon.foreach {
+    sessionLogic.shooting.FindWeapon.foreach {
       case weapon if weapon.Projectile.AutoLock =>
         //projectile with auto-lock instigates a warning on the target
-        val detectedTargets = shooting.FindDetectedProjectileTargets(targets)
+        val detectedTargets = sessionLogic.shooting.FindDetectedProjectileTargets(targets)
         val mode = 7 + (weapon.Projectile == GlobalDefinitions.wasp_rocket_projectile)
         detectedTargets.foreach { target =>
           continent.AvatarEvents ! AvatarServiceMessage(target, AvatarAction.ProjectileAutoLockAwareness(mode))
@@ -1090,15 +997,6 @@ class SessionData(
     avatarActor ! AvatarActor.SetAccount(account)
   }
 
-  def handleUpdateIgnoredPlayers: PlanetSideGamePacket => Unit = {
-    case msg: FriendsResponse =>
-      sendResponse(msg)
-      msg.friends.foreach { f =>
-        galaxyService ! GalaxyServiceMessage(GalaxyAction.LogStatusChange(f.name))
-      }
-    case _ => ()
-  }
-
   def handleUseCooldownRenew: BasicDefinition => Unit = {
     case _: KitDefinition => kitToBeUsed = None
     case _ => ()
@@ -1106,7 +1004,7 @@ class SessionData(
 
   def handleAvatarResponse(avatar: Avatar): Unit = {
     session = session.copy(avatar = avatar)
-    accountPersistence ! AccountPersistenceService.Login(avatar.name, avatar.id)
+    sessionLogic.accountPersistence ! AccountPersistenceService.Login(avatar.name, avatar.id)
   }
 
   def handleSetSpeed(speed: Float): Unit = {
@@ -1123,7 +1021,7 @@ class SessionData(
 
   def handleKick(player: Player, time: Option[Long]): Unit = {
     administrativeKick(player)
-    accountPersistence ! AccountPersistenceService.Kick(player.Name, time)
+    sessionLogic.accountPersistence ! AccountPersistenceService.Kick(player.Name, time)
   }
 
   def handleSilenced(isSilenced: Boolean): Unit = {
@@ -1132,126 +1030,28 @@ class SessionData(
 
   /* supporting functions */
 
-  def buildDependentOperationsForGalaxy(galaxyActor: ActorRef): Unit = {
-    if (vehicleResponseOpt.isEmpty && galaxyActor != Default.Actor) {
-      galaxyResponseOpt = Some(new SessionGalaxyHandlers(sessionData=this, avatarActor, galaxyActor, context))
-      vehicleResponseOpt = Some(new SessionVehicleHandlers(sessionData=this, avatarActor, galaxyActor, context))
-    }
-  }
-
-  def buildDependentOperations(galaxyActor: ActorRef, clusterActor: typed.ActorRef[ICS.Command]): Unit = {
-    if (zoningOpt.isEmpty && galaxyActor != Default.Actor && clusterActor != Default.typed.Actor) {
-      zoningOpt = Some(new ZoningOperations(sessionData=this, avatarActor, galaxyActor, clusterActor, context))
-    }
-  }
-
-  def buildDependentOperationsForSquad(squadActor: ActorRef): Unit = {
-    if (squadResponseOpt.isEmpty && squadActor != Default.Actor) {
-      squadResponseOpt = Some(new SessionSquadHandlers(sessionData=this, avatarActor, chatActor, squadActor, context))
-    }
-  }
-
-  def assignEventBus(msg: Any): Boolean = {
-    msg match {
-      case LookupResult("accountIntermediary", endpoint) =>
-        accountIntermediary = endpoint
-        true
-      case LookupResult("accountPersistence", endpoint) =>
-        accountPersistence = endpoint
-        true
-      case LookupResult("galaxy", endpoint) =>
-        galaxyService = endpoint
-        buildDependentOperationsForGalaxy(endpoint)
-        buildDependentOperations(endpoint, cluster)
-        true
-      case LookupResult("squad", endpoint) =>
-        squadService = endpoint
-        buildDependentOperationsForSquad(endpoint)
-        true
-      case ICS.InterstellarClusterServiceKey.Listing(listings) =>
-        cluster = listings.head
-        buildDependentOperations(galaxyService, cluster)
-        true
-
-      case _ =>
-        false
-    }
-  }
-
-  def whenAllEventBusesLoaded(): Boolean = {
-    accountIntermediary != Default.Actor &&
-      accountPersistence != Default.Actor &&
-      vehicleResponseOpt.nonEmpty &&
-      galaxyResponseOpt.nonEmpty &&
-      squadResponseOpt.nonEmpty &&
-      zoningOpt.nonEmpty
-  }
-
-  def validObject(id: Int): Option[PlanetSideGameObject] = validObject(Some(PlanetSideGUID(id)), decorator = "")
-
-  def validObject(id: Int, decorator: String): Option[PlanetSideGameObject] = validObject(Some(PlanetSideGUID(id)), decorator)
-
-  def validObject(id: PlanetSideGUID): Option[PlanetSideGameObject] = validObject(Some(id), decorator = "")
-
-  def validObject(id: PlanetSideGUID, decorator: String): Option[PlanetSideGameObject] = validObject(Some(id), decorator)
-
-  def validObject(id: Option[PlanetSideGUID]): Option[PlanetSideGameObject] = validObject(id, decorator = "")
-
-  def validObject(id: Option[PlanetSideGUID], decorator: String): Option[PlanetSideGameObject] = {
-    val elevatedDecorator = if (decorator.nonEmpty) decorator else "ValidObject"
-    id match {
-      case Some(guid) =>
-        val hint = oldRefsMap.getOrElse(guid, "thing")
-        continent.GUID(guid) match {
-          case Some(_: LocalProjectile) =>
-            shooting.FindProjectileEntry(guid)
-
-          case Some(_: LocalLockerItem) =>
-            player.avatar.locker.Inventory.hasItem(guid) match {
-              case out @ Some(_) =>
-                contextSafeEntity = guid
-                out
-              case None if contextSafeEntity == guid =>
-                //safeguard
-                None
-              case None =>
-                //delete stale entity reference from client
-                log.warn(
-                  s"$elevatedDecorator: ${player.Name} is looking for an invalid GUID $guid, believing it a $hint in ${player.Sex.possessive} locker"
-                )
-                sendResponse(ObjectDeleteMessage(guid, 0))
-                None
-            }
-
-          case Some(obj) if obj.HasGUID && obj.GUID != guid =>
-            log.error(
-              s"$elevatedDecorator: ${player.Name} found a ${obj.Definition.Name} that isn't the $hint ${player.Sex.pronounSubject} thought it was in zone ${continent.id}"
-            )
-            log.debug(
-              s"$elevatedDecorator: potentially fatal error in ${continent.id} - requested $hint with $guid, got ${obj.Definition.Name} with ${obj.GUID}; mismatch"
-            )
-            None
-
-          case out @ Some(obj) if obj.HasGUID =>
-            out
-
-          case None if !id.contains(PlanetSideGUID(0)) =>
-            //delete stale entity reference from client
-            //deleting guid=0 will cause BAD things to happen
-            log.error(s"$elevatedDecorator: ${player.Name} has an invalid reference to $hint with GUID $guid in zone ${continent.id}")
-            sendResponse(ObjectDeleteMessage(guid, 0))
-            None
-
-          case None if contextSafeEntity == guid =>
-            //safeguard
-            None
-
-          case _ =>
-            None
-        }
-
-      case None =>
-        None
+  /**
+   * Enforce constraints on bulk purchases as determined by a given player's previous purchase times and hard acquisition delays.
+   * Intended to assist in sanitizing loadout information from the perspective of the player, or target owner.
+   * The equipment is expected to be unregistered and already fitted to their ultimate slot in the target container.
+   * @param player the player whose purchasing constraints are to be tested
+   * @param target the location in which the equipment will be stowed
+   * @param slots  the equipment, in the standard object-slot format container
+   */
+  def applyPurchaseTimersBeforePackingLoadout(
+                                               player: Player,
+                                               target: PlanetSideServerObject with Container,
+                                               slots: List[InventoryItem]
+                                             ): Unit = {
+    slots.foreach { item =>
+      player.avatar.purchaseCooldown(item.obj.Definition) match {
+        case Some(_) => ()
+        case None if Avatar.purchaseCooldowns.contains(item.obj.Definition) =>
+          avatarActor ! AvatarActor.UpdatePurchaseTime(item.obj.Definition)
+          TaskWorkflow.execute(PutLoadoutEquipmentInInventory(target)(item.obj, item.start))
+        case None =>
+          TaskWorkflow.execute(PutLoadoutEquipmentInInventory(target)(item.obj, item.start))
+      }
     }
   }
 
@@ -1269,7 +1069,7 @@ class SessionData(
   }
 
   private def handleUseResourceSilo(resourceSilo: ResourceSilo, equipment: Option[Equipment]): Unit = {
-    zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
     (continent.GUID(player.VehicleSeated), equipment) match {
       case (Some(vehicle: Vehicle), Some(item))
         if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) &&
@@ -1281,7 +1081,7 @@ class SessionData(
   }
 
   private def handleUsePlayer(obj: Player, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
-    zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
     if (obj.isBackpack) {
       if (equipment.isEmpty) {
         log.info(s"${player.Name} is looting the corpse of ${obj.Name}")
@@ -1318,7 +1118,7 @@ class SessionData(
         sendUseGeneralEntityMessage(locker, item)
       case None if locker.Faction == player.Faction || locker.HackedBy.nonEmpty =>
         log.info(s"${player.Name} is accessing a locker")
-        zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         val playerLocker = player.avatar.locker
         sendResponse(msg.copy(object_guid = playerLocker.GUID, object_id = 456))
         accessContainer(playerLocker)
@@ -1365,7 +1165,7 @@ class SessionData(
               .contains(player.GUID))
         ) {
           log.info(s"${player.Name} is looking in the ${obj.Definition.Name}'s trunk")
-          zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           obj.AccessingTrunk = player.GUID
           accessContainer(obj)
           sendResponse(msg)
@@ -1384,7 +1184,7 @@ class SessionData(
         val tdef = terminal.Definition
         if (tdef.isInstanceOf[MatrixTerminalDefinition]) {
           //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
-          zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           sendResponse(
             BindPlayerMessage(BindStatus.Bind, "", display_icon=true, logging=true, SpawnGroup.Sanctuary, 0, 0, terminal.Position)
           )
@@ -1405,7 +1205,7 @@ class SessionData(
         } else if (tdef == GlobalDefinitions.teleportpad_terminal) {
           //explicit request
           log.info(s"${player.Name} is purchasing a router telepad")
-          zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           terminal.Actor ! Terminal.Request(
             player,
             ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
@@ -1413,14 +1213,14 @@ class SessionData(
         } else if (tdef == GlobalDefinitions.targeting_laser_dispenser) {
           //explicit request
           log.info(s"${player.Name} is purchasing a targeting laser")
-          zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           terminal.Actor ! Terminal.Request(
             player,
             ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "flail_targeting_laser", 0, PlanetSideGUID(0))
           )
         } else {
           log.info(s"${player.Name} is accessing a ${terminal.Definition.Name}")
-          zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           sendResponse(msg)
         }
       case _ => ()
@@ -1433,10 +1233,10 @@ class SessionData(
         sendUseGeneralEntityMessage(obj, item)
       case None if player.Faction == obj.Faction =>
         //deconstruction
-        zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
-        playerActionsToCancel()
-        terminals.CancelAllProximityUnits()
-        startDeconstructing(obj)
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+        sessionLogic.actionsToCancel()
+        sessionLogic.terminals.CancelAllProximityUnits()
+        sessionLogic.zoning.spawn.startDeconstructing(obj)
       case _ => ()
     }
   }
@@ -1449,7 +1249,7 @@ class SessionData(
         case None => None
       }) match {
         case Some((vehicle: Vehicle, Some(util: Utility.InternalTelepad))) =>
-          zoning.CancelZoningProcessWithDescriptiveReason("cancel")
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel")
           player.WhichSide = vehicle.WhichSide
           useRouterTelepadSystem(
             router = vehicle,
@@ -1475,7 +1275,7 @@ class SessionData(
   private def handleUseInternalTelepad(obj: InternalTelepad, msg: UseItemMessage): Unit = {
     continent.GUID(obj.Telepad) match {
       case Some(pad: TelepadDeployable) =>
-        zoning.CancelZoningProcessWithDescriptiveReason("cancel")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel")
         player.WhichSide = pad.WhichSide
         useRouterTelepadSystem(
           router = obj.Owner.asInstanceOf[Vehicle],
@@ -1511,7 +1311,7 @@ class SessionData(
   }
 
   private def handleUseWarpGate(equipment: Option[Equipment]): Unit = {
-    zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
     (continent.GUID(player.VehicleSeated), equipment) match {
       case (Some(vehicle: Vehicle), Some(item))
         if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) &&
@@ -1523,18 +1323,18 @@ class SessionData(
 
   private def handleUseGeneralEntity(obj: PlanetSideServerObject, equipment: Option[Equipment]): Unit = {
     equipment.foreach { item =>
-      zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+      sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
       obj.Actor ! CommonMessages.Use(player, Some(item))
     }
   }
 
   private def sendUseGeneralEntityMessage(obj: PlanetSideServerObject, equipment: Equipment): Unit = {
-    zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
     obj.Actor ! CommonMessages.Use(player, Some(equipment))
   }
 
   private def handleUseDefaultEntity(obj: PlanetSideGameObject, equipment: Option[Equipment]): Unit = {
-    zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
     equipment match {
       case Some(item)
         if GlobalDefinitions.isBattleFrameArmorSiphon(item.Definition) ||
@@ -1543,20 +1343,6 @@ class SessionData(
         log.warn(s"UseItem: ${player.Name} does not know how to handle $obj")
     }
   }
-
-  /**
-   * Update this player avatar for persistence.
-   * Set to `persist` initially.
-   */
-  def updatePersistenceOnly(): Unit = {
-    persistFunc()
-  }
-
-  /**
-   * Do not update this player avatar for persistence.
-   * Set to `persistFunc` initially.
-   */
-  def noPersistence(): Unit = { }
 
   def dropSpecialSlotItem(): Unit = {
     specialItemSlotGuid.foreach { guid =>
@@ -1596,35 +1382,10 @@ class SessionData(
     }
   }
 
-  /**
-   * Enforce constraints on bulk purchases as determined by a given player's previous purchase times and hard acquisition delays.
-   * Intended to assist in sanitizing loadout information from the perspective of the player, or target owner.
-   * The equipment is expected to be unregistered and already fitted to their ultimate slot in the target container.
-   * @param player the player whose purchasing constraints are to be tested
-   * @param target the location in which the equipment will be stowed
-   * @param slots  the equipment, in the standard object-slot format container
-   */
-  def applyPurchaseTimersBeforePackingLoadout(
-                                               player: Player,
-                                               target: PlanetSideServerObject with Container,
-                                               slots: List[InventoryItem]
-                                             ): Unit = {
-    slots.foreach { item =>
-      player.avatar.purchaseCooldown(item.obj.Definition) match {
-        case Some(_) => ()
-        case None if Avatar.purchaseCooldowns.contains(item.obj.Definition) =>
-          avatarActor ! AvatarActor.UpdatePurchaseTime(item.obj.Definition)
-          TaskWorkflow.execute(PutLoadoutEquipmentInInventory(target)(item.obj, item.start))
-        case None =>
-          TaskWorkflow.execute(PutLoadoutEquipmentInInventory(target)(item.obj, item.start))
-      }
-    }
-  }
-
   def setupProgressChange(rate: Float, finishedAction: () => Unit, stepAction: Float => Boolean): Unit = {
     if (progressBarValue.isEmpty) {
       progressBarValue = Some(-rate)
-      context.self ! SessionActor.ProgressEvent(rate, finishedAction, stepAction)
+      context.self ! CommonMessages.ProgressEvent(rate, finishedAction, stepAction)
     }
   }
 
@@ -1673,7 +1434,7 @@ class SessionData(
           progressBarUpdate = context.system.scheduler.scheduleOnce(
             delay = 100 milliseconds,
             context.self,
-            SessionActor.ProgressEvent(delta, completionAction, tickAction)
+            CommonMessages.ProgressEvent(delta, completionAction, tickAction)
           )
         } else {
           progressBarValue = None
@@ -1686,115 +1447,13 @@ class SessionData(
           progressBarUpdate = context.system.scheduler.scheduleOnce(
             tick.milliseconds,
             context.self,
-            SessionActor.ProgressEvent(delta, completionAction, tickAction, tick)
+            CommonMessages.ProgressEvent(delta, completionAction, tickAction, tick)
           )
         } else {
           progressBarValue = None
         }
       }
     }
-  }
-
-  /**
-   * Construct tasking that registers all aspects of a `Player` avatar
-   * as if that player is only just being introduced.
-   * `Players` are complex objects that contain a variety of other register-able objects and each of these objects much be handled.
-   * @param tplayer the avatar `Player`
-   * @return a `TaskBundle` message
-   */
-  private[session] def registerNewAvatar(tplayer: Player): TaskBundle = {
-    TaskBundle(
-      new StraightforwardTask() {
-        private val localPlayer   = tplayer
-        private val localAnnounce = context.self
-
-        override def description(): String = s"register new player avatar ${localPlayer.Name}"
-
-        def action(): Future[Any] = {
-          localAnnounce ! SessionActor.NewPlayerLoaded(localPlayer)
-          Future(true)
-        }
-      },
-      List(GUIDTask.registerAvatar(continent.GUID, tplayer))
-    )
-  }
-
-  /**
-   * Construct tasking that registers all aspects of a `Player` avatar
-   * as if that player was already introduced and is just being renewed.
-   * `Players` are complex objects that contain a variety of other register-able objects and each of these objects much be handled.
-   * @param tplayer the avatar `Player`
-   * @return a `TaskBundle` message
-   */
-  private[session] def registerAvatar(tplayer: Player): TaskBundle = {
-    TaskBundle(
-      new StraightforwardTask() {
-        private val localPlayer   = tplayer
-        private val localAnnounce = context.self
-
-        override def description(): String = s"register player avatar ${localPlayer.Name}"
-
-        def action(): Future[Any] = {
-          localAnnounce ! SessionActor.PlayerLoaded(localPlayer)
-          Future(true)
-        }
-      },
-      List(GUIDTask.registerPlayer(continent.GUID, tplayer))
-    )
-  }
-
-  /**
-   * Construct tasking that adds a completed and registered vehicle into the scene.
-   * Use this function to renew the globally unique identifiers on a vehicle that has already been added to the scene once.
-   * @param vehicle the `Vehicle` object
-   * @see `RegisterVehicleFromSpawnPad`
-   * @return a `TaskBundle` message
-   */
-  private[session] def registerVehicle(vehicle: Vehicle): TaskBundle = {
-    TaskBundle(
-      new StraightforwardTask() {
-        private val localVehicle = vehicle
-
-        override def description(): String = s"register a ${localVehicle.Definition.Name}"
-
-        def action(): Future[Any] = Future(true)
-      },
-      List(GUIDTask.registerVehicle(continent.GUID, vehicle))
-    )
-  }
-
-  private[session] def registerDrivenVehicle(vehicle: Vehicle, driver: Player): TaskBundle = {
-    TaskBundle(
-      new StraightforwardTask() {
-        private val localVehicle  = vehicle
-        private val localDriver   = driver
-        private val localAnnounce = context.self
-
-        override def description(): String = s"register a ${localVehicle.Definition.Name} driven by ${localDriver.Name}"
-
-        def action(): Future[Any] = {
-          localDriver.VehicleSeated = localVehicle.GUID
-          Vehicles.Own(localVehicle, localDriver)
-          localAnnounce ! SessionActor.NewPlayerLoaded(localDriver)
-          Future(true)
-        }
-      },
-      List(GUIDTask.registerAvatar(continent.GUID, driver), GUIDTask.registerVehicle(continent.GUID, vehicle))
-    )
-  }
-
-  private[session] def unregisterDrivenVehicle(vehicle: Vehicle, driver: Player): TaskBundle = {
-    TaskBundle(
-      new StraightforwardTask() {
-        private val localVehicle  = vehicle
-        private val localDriver   = driver
-
-        override def description(): String = s"unregister a ${localVehicle.Definition.Name} driven by ${localDriver.Name}"
-
-        def action(): Future[Any] = Future(true)
-      },
-      List(GUIDTask.unregisterAvatar(continent.GUID, driver), GUIDTask.unregisterVehicle(continent.GUID, vehicle))
-    )
   }
 
   def accessContainer(container: Container): Unit = {
@@ -1811,7 +1470,7 @@ class SessionData(
     }
   }
 
-  def accessGenericContainer(container: PlanetSideServerObject with Container): Unit = {
+  private def accessGenericContainer(container: PlanetSideServerObject with Container): Unit = {
     accessedContainer = Some(container)
     displayContainerContents(container.GUID, container.Inventory.Items)
   }
@@ -1824,7 +1483,7 @@ class SessionData(
    * @see `GridInventory.Items`
    * @param vehicle the vehicle
    */
-  def accessVehicleContents(vehicle: Vehicle): Unit = {
+  private def accessVehicleContents(vehicle: Vehicle): Unit = {
     accessedContainer = Some(vehicle)
     accessContainerChannel(continent.VehicleEvents, vehicle.Actor.toString)
     displayContainerContents(vehicle.GUID, vehicle.Inventory.Items)
@@ -1839,7 +1498,7 @@ class SessionData(
    * @see `Player.HolsterItems`
    * @param tplayer the corpse
    */
-  def accessCorpseContents(tplayer: Player): Unit = {
+  private def accessCorpseContents(tplayer: Player): Unit = {
     accessedContainer = Some(tplayer)
     accessContainerChannel(continent.AvatarEvents, tplayer.Actor.toString)
     displayContainerContents(tplayer.GUID, tplayer.HolsterItems())
@@ -1851,7 +1510,7 @@ class SessionData(
    * @param events the event system bus to which to subscribe
    * @param channel the channel name
    */
-  def accessContainerChannel(events: ActorRef, channel: String): Unit = {
+  private def accessContainerChannel(events: ActorRef, channel: String): Unit = {
     events ! Service.Join(channel)
   }
 
@@ -1864,7 +1523,7 @@ class SessionData(
    * @param containerId the container's unique identifier
    * @param items a list of the entities to be depicted
    */
-  def displayContainerContents(containerId: PlanetSideGUID, items: Iterable[InventoryItem]): Unit = {
+  private def displayContainerContents(containerId: PlanetSideGUID, items: Iterable[InventoryItem]): Unit = {
     items.foreach(entry => {
       val obj    = entry.obj
       val objDef = obj.Definition
@@ -1905,7 +1564,7 @@ class SessionData(
     }
   }
 
-  def unaccessGenericContainer(container: Container): Unit = {
+  private def unaccessGenericContainer(container: Container): Unit = {
     accessedContainer = None
     hideContainerContents(container.Inventory.Items)
   }
@@ -1916,7 +1575,7 @@ class SessionData(
    * Deconstruct every object in the vehicle's inventory.
    * @param vehicle the vehicle
    */
-  def unaccessVehicleContainer(vehicle: Vehicle): Unit = {
+  private def unaccessVehicleContainer(vehicle: Vehicle): Unit = {
     accessedContainer = None
     if (vehicle.AccessingTrunk.contains(player.GUID)) {
       vehicle.AccessingTrunk = None
@@ -1931,7 +1590,7 @@ class SessionData(
    * Deconstruct every object in the backpack's inventory.
    * @param tplayer the corpse
    */
-  def unaccessCorpseContainer(tplayer: Player): Unit = {
+  private def unaccessCorpseContainer(tplayer: Player): Unit = {
     accessedContainer = None
     unaccessContainerChannel(continent.AvatarEvents, tplayer.Actor.toString)
     hideContainerContents(tplayer.HolsterItems())
@@ -1943,7 +1602,7 @@ class SessionData(
    * @param events the event system bus to which to subscribe
    * @param channel the channel name
    */
-  def unaccessContainerChannel(events: ActorRef, channel: String): Unit = {
+  private def unaccessContainerChannel(events: ActorRef, channel: String): Unit = {
     events ! Service.Leave(Some(channel))
   }
 
@@ -1953,7 +1612,7 @@ class SessionData(
    * @see `ObjectDeleteMessage`
    * @param items a list of the entities to be depicted
    */
-  def hideContainerContents(items: List[InventoryItem]): Unit = {
+  private def hideContainerContents(items: List[InventoryItem]): Unit = {
     items.foreach { entry =>
       sendResponse(ObjectDeleteMessage(entry.obj.GUID, 0))
     }
@@ -2065,38 +1724,13 @@ class SessionData(
   }
 
   /**
-   * Common reporting behavior when a `Deployment` object fails to properly transition between states.
-   * @param obj the game object that could not
-   * @param state the `DriveState` that could not be promoted
-   * @param reason a string explaining why the state can not or will not change
-   */
-  def youCanNotChangeDeployment(
-                                 obj: PlanetSideServerObject with Deployment,
-                                 state: DriveState.Value,
-                                 reason: String
-                               ): Unit = {
-    val mobileShift: String = if (obj.DeploymentState != DriveState.Mobile) {
-      obj.DeploymentState = DriveState.Mobile
-      sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Mobile, 0, unk3=false, Vector3.Zero))
-      continent.VehicleEvents ! VehicleServiceMessage(
-        continent.id,
-        VehicleAction.DeployRequest(player.GUID, obj.GUID, DriveState.Mobile, 0, unk2=false, Vector3.Zero)
-      )
-      "; enforcing Mobile deployment state"
-    } else {
-      ""
-    }
-    log.error(s"DeployRequest: ${player.Name} can not transition $obj to $state - $reason$mobileShift")
-  }
-
-  /**
    * na
    * @param targetGuid na
    * @param unk1 na
    * @param unk2 na
    */
   def hackObject(targetGuid: PlanetSideGUID, unk1: Long, unk2: Long): Unit = {
-    sendResponse(HackMessage(0, targetGuid, PlanetSideGUID(0), 100, unk1, HackState.Hacked, unk2))
+    sendResponse(HackMessage(unk1=0, targetGuid, player_guid=Service.defaultPlayerGUID, progress=100, unk1, HackState.Hacked, unk2))
   }
 
   /**
@@ -2125,160 +1759,6 @@ class SessionData(
   }
 
   /**
-   * An event has occurred that would cause the player character to stop certain stateful activities.
-   * These activities include shooting, the weapon being drawn, hacking, accessing (a container), flying, and running.
-   * Other players in the same zone must be made aware that the player has stopped as well.<br>
-   * <br>
-   * Things whose configuration should not be changed:<br>
-   * - if the player is seated<br>
-   * - if the player is anchored<br>
-   * This is not a complete list but, for the purpose of enforcement, some pointers will be documented here.
-   */
-  def playerActionsToCancel(): Unit = {
-    shooting.shootingStart.clear()
-    shooting.shootingStop.clear()
-    progressBarUpdate.cancel()
-    progressBarValue = None
-    terminals.lastTerminalOrderFulfillment = true
-    kitToBeUsed = None
-    collisionHistory.clear()
-    accessedContainer match {
-      case Some(v: Vehicle) =>
-        val vguid = v.GUID
-        vehicles.ConditionalDriverVehicleControl(v)
-        if (v.AccessingTrunk.contains(player.GUID)) {
-          if (player.VehicleSeated.contains(vguid)) {
-            v.AccessingTrunk = None //player is seated; just stop accessing trunk
-            if (player.isAlive) {
-              sendResponse(UnuseItemMessage(player.GUID, vguid))
-            }
-          } else {
-            unaccessContainer(v)
-          }
-        }
-
-      case Some(o) =>
-        unaccessContainer(o)
-        if (player.isAlive) {
-          sendResponse(UnuseItemMessage(player.GUID, o.GUID))
-        }
-
-      case None => ()
-    }
-    (shooting.prefire ++ shooting.shooting).foreach { guid =>
-      sendResponse(ChangeFireStateMessage_Stop(guid))
-      continent.AvatarEvents ! AvatarServiceMessage(
-        continent.id,
-        AvatarAction.ChangeFireState_Stop(player.GUID, guid)
-      )
-    }
-    shooting.prefire.clear()
-    shooting.shooting.clear()
-    if (session.flying) {
-      session = session.copy(flying = false)
-      chatActor ! ChatActor.Message(ChatMsg(ChatMessageType.CMT_FLY, wideContents=false, "", "off", None))
-    }
-    if (session.speed > 1) {
-      session = session.copy(speed = 1)
-      chatActor ! ChatActor.Message(ChatMsg(ChatMessageType.CMT_SPEED, wideContents=false, "", "1.000", None))
-    }
-  }
-
-  /**
-   * Calculate the amount of damage to be dealt to an active `target`
-   * using the information reconstructed from a `ResolvedProjectile`
-   * and affect the `target` in a synchronized manner.
-   * The active `target` and the target of the `DamageResult` do not have be the same.
-   * While the "tell" for being able to sustain damage is an entity of type `Vitality`,
-   * only specific `Vitality` entity types are being screened for sustaining damage.
-   * @see `DamageResistanceModel`
-   * @see `Vitality`
-   * @param target a valid game object that is known to the server
-   * @param data a projectile that will affect the target
-   */
-  def handleDealingDamage(target: PlanetSideGameObject with Vitality, data: DamageInteraction): Unit = {
-    val func = data.calculate()
-    target match {
-      case obj: Player if obj.CanDamage && obj.Actor != Default.Actor =>
-        if (obj.CharId != player.CharId) {
-          log.info(s"${player.Name} is attacking ${obj.Name}")
-        } else {
-          log.info(s"${player.Name} hurt ${player.Sex.pronounObject}self")
-        }
-        // auto kick players damaging spectators
-        if (obj.spectator && obj != player) {
-          administrativeKick(player)
-        } else {
-          obj.Actor ! Vitality.Damage(func)
-        }
-
-      case obj: Vehicle if obj.CanDamage =>
-        val name = player.Name
-        val ownerName = obj.OwnerName.getOrElse("someone")
-        if (ownerName.equals(name)) {
-          log.info(s"$name is damaging ${player.Sex.possessive} own ${obj.Definition.Name}")
-        } else {
-          log.info(s"$name is attacking $ownerName's ${obj.Definition.Name}")
-        }
-        obj.Actor ! Vitality.Damage(func)
-
-      case obj: Amenity if obj.CanDamage =>
-        obj.Actor ! Vitality.Damage(func)
-
-      case obj: Deployable if obj.CanDamage =>
-        val name = player.Name
-        val ownerName = obj.OwnerName.getOrElse("someone")
-        if (ownerName.equals(name)) {
-          log.info(s"$name is damaging ${player.Sex.possessive} own ${obj.Definition.Name}")
-        } else {
-          log.info(s"$name is attacking $ownerName's ${obj.Definition.Name}")
-        }
-        obj.Actor ! Vitality.Damage(func)
-
-      case _ => ()
-    }
-  }
-
-  /**
-   * Properly format a `DestroyDisplayMessage` packet
-   * given sufficient information about a target (victim) and an actor (killer).
-   * For the packet, the `charId` field is important for determining distinction between players.
-   * @param killer the killer's entry
-   * @param victim the victim's entry
-   * @param method the manner of death
-   * @param unk na;
-   *            defaults to 121, the object id of `avatar`
-   * @return a `DestroyDisplayMessage` packet that is properly formatted
-   */
-  def destroyDisplayMessage(
-                             killer: SourceEntry,
-                             victim: SourceEntry,
-                             method: Int,
-                             unk: Int = 121
-                           ): DestroyDisplayMessage = {
-    val killerSeated = killer match {
-      case obj: PlayerSource => obj.Seated
-      case _                 => false
-    }
-    val victimSeated = victim match {
-      case obj: PlayerSource => obj.Seated
-      case _                 => false
-    }
-    new DestroyDisplayMessage(
-      killer.Name,
-      killer.CharId,
-      killer.Faction,
-      killerSeated,
-      unk,
-      method,
-      victim.Name,
-      victim.CharId,
-      victim.Faction,
-      victimSeated
-    )
-  }
-
-  /**
    * Initialize the deployables user interface elements.<br>
    * <br>
    * All element initializations require both the maximum deployable amount and the current deployables active counts.
@@ -2302,19 +1782,6 @@ class SessionData(
         sendResponse(PlanetsideAttributeMessage(guid, maxElem, max))
         sendResponse(PlanetsideAttributeMessage(guid, currElem, curr))
     }
-  }
-
-  /**
-   * Common actions related to constructing a new `Deployable` object in the game environment.<br>
-   * <br>
-   * The map icon for the deployable just introduced is also created on the clients of all faction-affiliated players.
-   * This icon is important as, short of destroying it,
-   * the owner has no other means of controlling the created object that it is associated with.
-   * @param obj the `Deployable` object to be built
-   */
-  def deployableBuildActivity(obj: Deployable): Unit = {
-    sendResponse(GenericObjectActionMessage(obj.GUID, 21)) //reset build cooldown
-    updateDeployableUIElements(avatar.deployables.UpdateUIElement(obj.Definition.Item))
   }
 
   /**
@@ -2375,53 +1842,6 @@ class SessionData(
             false
         }
     }
-  }
-
-  /**
-   * Common behavior for deconstructing deployables in the game environment.
-   * @param obj the deployable
-   * @param guid the globally unique identifier for the deployable
-   * @param pos the previous position of the deployable
-   * @param orient the previous orientation of the deployable
-   * @param deletionType the value passed to `ObjectDeleteMessage` concerning the deconstruction animation
-   */
-  def deconstructDeployable(
-                             obj: Deployable,
-                             guid: PlanetSideGUID,
-                             pos: Vector3,
-                             orient: Vector3,
-                             deletionType: Int
-                           ): Unit = {
-    sendResponse(TriggerEffectMessage("spawn_object_failed_effect", pos, orient))
-    sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //make deployable vanish
-    sendResponse(ObjectDeleteMessage(guid, deletionType))
-  }
-
-  /**
-   * Search through the player's holsters and their inventory space
-   * and remove all `BoomerTrigger` objects, both functionally and visually.
-   * @return all discovered `BoomTrigger` objects
-   */
-  def removeBoomerTriggersFromInventory(): List[BoomerTrigger] = {
-    val events = continent.AvatarEvents
-    val zoneId = continent.id
-    (player.Inventory.Items ++ player.HolsterItems())
-      .collect { case InventoryItem(obj: BoomerTrigger, index) =>
-        player.Slot(index).Equipment = None
-        continent.GUID(obj.Companion) match {
-          case Some(mine: BoomerDeployable) => mine.Actor ! Deployable.Ownership(None)
-          case _ => ()
-        }
-        if (player.VisibleSlots.contains(index)) {
-          events ! AvatarServiceMessage(
-            zoneId,
-            AvatarAction.ObjectDelete(Service.defaultPlayerGUID, obj.GUID)
-          )
-        } else {
-          sendResponse(ObjectDeleteMessage(obj.GUID, 0))
-        }
-        obj
-      }
   }
 
   /**
@@ -2500,24 +1920,6 @@ class SessionData(
     sendResponse(PlanetsideAttributeMessage(playerGUID, 64, 1)) //what does this do?
     sendResponse(GenericObjectActionMessage(srcGUID, 31))
     sendResponse(GenericObjectActionMessage(destGUID, 32))
-  }
-
-  /**
-   * From a mount, find the weapon controlled from it, and update the ammunition counts for that weapon's magazines.
-   * @param objWithSeat the object that owns seats (and weaponry)
-   * @param seatNum the mount
-   */
-  def updateWeaponAtSeatPosition(objWithSeat: MountableWeapons, seatNum: Int): Unit = {
-    objWithSeat.WeaponControlledFromSeat(seatNum) foreach {
-      case weapon: Tool =>
-        //update mounted weapon belonging to mount
-        weapon.AmmoSlots.foreach(slot => {
-          //update the magazine(s) in the weapon, specifically
-          val magazine = slot.Box
-          sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, magazine.Capacity.toLong))
-        })
-      case _ => () //no weapons to update
-    }
   }
 
   def maxCapacitorTick(jumpThrust: Boolean): Unit = {
@@ -2618,43 +2020,12 @@ class SessionData(
     )
   }
 
-  /**
-   * The atypical response to receiving a `KeepAliveMessage` packet from the client.<br>
-   * <br>
-   * `KeepAliveMessage` packets are the primary vehicle for persistence due to client reporting
-   * in the case where the player's avatar is riding in a vehicle in a mount with no weapon to control.
-   * @see `KeepAliveMessage`
-   * @see `keepAliveFunc`
-   * @see `turnCounterFunc`
-   * @see `persist`
-   */
-  def keepAlivePersistence(): Unit = {
-    zoning.spawn.interimUngunnedVehicle = None
-    persist()
-    if (player.HasGUID) {
-      turnCounterFunc(player.GUID)
-    } else {
-      turnCounterFunc(PlanetSideGUID(0))
-    }
-  }
-
-  /**
-   *  A really atypical response to receiving a `KeepAliveMessage` packet from the client
-   *  that applies only during the character select portion and part of the first zone load activity.
-   */
-  def keepAlivePersistenceInitial(): Unit = {
-    persist()
-    if (player != null && player.HasGUID) {
-      keepAliveFunc = keepAlivePersistence
-    }
-  }
-
   def administrativeKick(tplayer: Player): Unit = {
     log.warn(s"${tplayer.Name} has been kicked by ${player.Name}")
     tplayer.death_by = -1
-    accountPersistence ! AccountPersistenceService.Kick(tplayer.Name)
+    sessionLogic.accountPersistence ! AccountPersistenceService.Kick(tplayer.Name)
     //get out of that vehicle
-    vehicles.GetMountableAndSeat(None, tplayer, continent) match {
+    sessionLogic.vehicles.GetMountableAndSeat(None, tplayer, continent) match {
       case (Some(obj), Some(seatNum)) =>
         tplayer.VehicleSeated = None
         obj.Seats(seatNum).unmount(tplayer)
@@ -2663,82 +2034,6 @@ class SessionData(
           VehicleAction.KickPassenger(tplayer.GUID, seatNum, unk2=false, obj.GUID)
         )
       case _ => ()
-    }
-  }
-
-  def kickedByAdministration(): Unit = {
-    sendResponse(DisconnectMessage("@kick_w"))
-    context.system.scheduler.scheduleOnce(
-      delay = 300 milliseconds,
-      middlewareActor.toClassic,
-      MiddlewareActor.Teardown()
-    )
-  }
-
-  def immediateDisconnect(): Unit = {
-    if (avatar != null) {
-      accountPersistence ! AccountPersistenceService.Logout(avatar.name)
-    }
-    middlewareActor ! MiddlewareActor.Teardown()
-  }
-
-  def updateBlockMap(target: BlockMapEntity, newCoords: Vector3): Unit = {
-    target.blockMapEntry.foreach { entry =>
-      val sectorIndices = BlockMap.findSectorIndices(continent.blockMap, newCoords, entry.rangeX, entry.rangeY).toSet
-      if (sectorIndices.equals(entry.sectors)) {
-        target.updateBlockMapEntry(newCoords) //soft update
-        localSector = continent.blockMap.sector(sectorIndices, Config.app.game.playerDraw.rangeMax.toFloat)
-      } else {
-        continent.actor ! ZoneActor.UpdateBlockMap(target, newCoords) //hard update
-      }
-    }
-  }
-
-  def updateLocalBlockMap(pos: Vector3): Unit = {
-    localSector = continent.blockMap.sector(pos, Config.app.game.playerDraw.rangeMax.toFloat)
-  }
-
-  private[support] var oldRefsMap: mutable.HashMap[PlanetSideGUID, String] = new mutable.HashMap[PlanetSideGUID, String]()
-  def updateOldRefsMap(): Unit = {
-    if(player.HasGUID) {
-      oldRefsMap.addAll(
-        (continent.GUID(player.VehicleSeated) match {
-          case Some(v : Vehicle) =>
-            v.Weapons.toList.collect {
-              case (_, slot : EquipmentSlot) if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
-            }.flatten ++
-              updateOldRefsMap(v.Inventory)
-          case _ =>
-            Map.empty[PlanetSideGUID, String]
-        }) ++
-          (accessedContainer match {
-            case Some(cont) => updateOldRefsMap(cont.Inventory)
-            case None => Map.empty[PlanetSideGUID, String]
-          }) ++
-          player.Holsters().toList.collect {
-            case slot if slot.Equipment.nonEmpty => updateOldRefsMap(slot.Equipment.get)
-          }.flatten ++
-          updateOldRefsMap(player.Inventory) ++
-          updateOldRefsMap(player.avatar.locker.Inventory)
-      )
-    }
-  }
-
-  def updateOldRefsMap(inventory: net.psforever.objects.inventory.GridInventory): IterableOnce[(PlanetSideGUID, String)] = {
-    inventory.Items.flatMap {
-      case InventoryItem(o, _) => updateOldRefsMap(o)
-    }
-  }
-
-  def updateOldRefsMap(item: PlanetSideGameObject): IterableOnce[(PlanetSideGUID, String)] = {
-    item match {
-      case t: Tool =>
-        t.AmmoSlots.map { slot =>
-          val box = slot.Box
-          box.GUID -> box.Definition.Name
-        } :+ (t.GUID -> t.Definition.Name)
-      case _ =>
-        Seq(item.GUID -> item.Definition.Name)
     }
   }
 
@@ -2752,7 +2047,7 @@ class SessionData(
   }
 
   def canSeeReallyFar: Boolean = {
-    shooting.FindContainedWeapon match {
+    sessionLogic.shooting.FindContainedWeapon match {
       case (Some(_: Vehicle), weapons) if weapons.nonEmpty =>
         player.avatar
           .implants
@@ -2792,34 +2087,6 @@ class SessionData(
     sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@charsaved", None))
   }
 
-  def startDeconstructing(obj: SpawnTube): Unit = {
-    log.info(s"${player.Name} is deconstructing at the ${obj.Owner.Definition.Name}'s spawns")
-    avatar.implants.collect {
-      case Some(implant) if implant.active && !implant.definition.Passive =>
-        avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
-    }
-    if (player.ExoSuit != ExoSuitType.MAX) {
-      player.Actor ! PlayerControl.ObjectHeld(Player.HandsDownSlot, updateMyHolsterArm = true)
-    }
-    zoning.spawn.nextSpawnPoint = Some(obj) //set fallback
-    zoning.zoningStatus = Zoning.Status.Deconstructing
-    player.allowInteraction = false
-    if (player.death_by == 0) {
-      player.death_by = 1
-    }
-    zoning.spawn.GoToDeploymentMap()
-  }
-
-  def stopDeconstructing(): Unit = {
-    zoning.zoningStatus = Zoning.Status.None
-    player.death_by = math.min(player.death_by, 0)
-    player.allowInteraction = true
-    zoning.spawn.nextSpawnPoint.foreach { tube =>
-      sendResponse(PlayerStateShiftMessage(ShiftState(0, tube.Position, tube.Orientation.z)))
-      zoning.spawn.nextSpawnPoint = None
-    }
-  }
-
   private def updateCollisionHistoryForTarget(
                                                target: PlanetSideServerObject with Vitality with FactionAffinity,
                                                curr: Long
@@ -2834,21 +2101,21 @@ class SessionData(
   }
 
   private def collisionBetweenVehicleAndFragileDeployable(
-                                                         vehicle: Vehicle,
-                                                         vehiclePosition: Vector3,
-                                                         smallDeployable: Deployable,
-                                                         smallDeployablePosition: Vector3,
-                                                         velocity: Vector3,
-                                                         fallHeight: Float,
-                                                         collisionTime: Long
-                                                       ): Unit = {
+                                                           vehicle: Vehicle,
+                                                           vehiclePosition: Vector3,
+                                                           smallDeployable: Deployable,
+                                                           smallDeployablePosition: Vector3,
+                                                           velocity: Vector3,
+                                                           fallHeight: Float,
+                                                           collisionTime: Long
+                                                         ): Unit = {
     if (updateCollisionHistoryForTarget(smallDeployable, collisionTime)) {
       val smallDeployableSource = SourceEntry(smallDeployable)
       //vehicle takes damage from the collision (ignore bail protection in this case)
       performCollisionWithSomethingDamage(vehicle, SourceEntry(vehicle), vehiclePosition, smallDeployableSource, fallHeight, velocity)
       //deployable gets absolutely destroyed
       collisionHistory.put(vehicle.Actor, collisionTime)
-      handleDealingDamage(
+      sessionLogic.handleDealingDamage(
         smallDeployable,
         DamageInteraction(smallDeployableSource, SuicideReason(), smallDeployablePosition)
       )
@@ -2863,7 +2130,7 @@ class SessionData(
                                                    fallHeight: Float,
                                                    velocity: Vector3
                                                  ): Unit = {
-    handleDealingDamage(
+    sessionLogic.handleDealingDamage(
       target,
       DamageInteraction(
         targetSource,
@@ -2873,37 +2140,37 @@ class SessionData(
     )
   }
 
-  def failWithError(error: String): Unit = {
-    log.error(error)
-    middlewareActor ! MiddlewareActor.Teardown()
-  }
+  override protected[support] def actionsToCancel(): Unit = {
+    progressBarValue = None
+    kitToBeUsed = None
+    collisionHistory.clear()
+    accessedContainer match {
+      case Some(v: Vehicle) =>
+        val vguid = v.GUID
+        sessionLogic.vehicles.ConditionalDriverVehicleControl(v)
+        if (v.AccessingTrunk.contains(player.GUID)) {
+          if (player.VehicleSeated.contains(vguid)) {
+            v.AccessingTrunk = None //player is seated; just stop accessing trunk
+            if (player.isAlive) {
+              sendResponse(UnuseItemMessage(player.GUID, vguid))
+            }
+          } else {
+            unaccessContainer(v)
+          }
+        }
 
-  def sendResponse(packet: PlanetSidePacket): Unit = {
-    middlewareActor ! MiddlewareActor.Send(packet)
-  }
+      case Some(o) =>
+        unaccessContainer(o)
+        if (player.isAlive) {
+          sendResponse(UnuseItemMessage(player.GUID, o.GUID))
+        }
 
-  def stop(): Unit = {
-    continent.AvatarEvents ! Service.Leave()
-    continent.LocalEvents ! Service.Leave()
-    continent.VehicleEvents ! Service.Leave()
-    context.stop(avatarActor)
-    context.stop(chatActor)
-    galaxyService ! Service.Leave()
-    if (avatar != null && squadService != Default.Actor) {
-      squadService ! Service.Leave(Some(s"${avatar.faction}"))
+      case None => ()
     }
-    clientKeepAlive.cancel()
+  }
+
+  override protected[support] def stop(): Unit = {
     progressBarUpdate.cancel()
     charSavedTimer.cancel()
-    shooting.stop()
-    vehicles.stop()
-    avatarResponse.stop()
-    localResponse.stop()
-    mountResponse.stop()
-    terminals.stop()
-    vehicleResponseOpt.foreach { _.stop() }
-    galaxyResponseOpt.foreach { _.stop() }
-    squadResponseOpt.foreach { _.stop() }
-    zoningOpt.foreach { _.stop() }
   }
 }

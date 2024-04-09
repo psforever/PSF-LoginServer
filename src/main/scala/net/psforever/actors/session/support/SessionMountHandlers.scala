@@ -2,9 +2,12 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.Tool
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.environment.interaction.ResetAllEnvironmentInteractions
+import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects.vital.InGameHistory
+import net.psforever.packet.game.InventoryStateMessage
 
 import scala.concurrent.duration._
 //
@@ -24,7 +27,7 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{BailType, ChatMessageType, PlanetSideGUID, Vector3}
 
 class SessionMountHandlers(
-                            val sessionData: SessionData,
+                            val sessionLogic: SessionLogic,
                             avatarActor: typed.ActorRef[AvatarActor.Command],
                             implicit val context: ActorContext
                           ) extends CommonSessionInterfacingFunctionality {
@@ -37,82 +40,82 @@ class SessionMountHandlers(
   def handle(tplayer: Player, reply: Mountable.Exchange): Unit = {
     reply match {
       case Mountable.CanMount(obj: ImplantTerminalMech, seatNumber, _) =>
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         log.info(s"${player.Name} mounts an implant terminal")
-        sessionData.terminals.CancelAllProximityUnits()
+        sessionLogic.terminals.CancelAllProximityUnits()
         MountingAction(tplayer, obj, seatNumber)
-        sessionData.keepAliveFunc = sessionData.keepAlivePersistence
+        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
         if obj.Definition == GlobalDefinitions.orbital_shuttle =>
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the orbital shuttle")
-        sessionData.terminals.CancelAllProximityUnits()
+        sessionLogic.terminals.CancelAllProximityUnits()
         MountingAction(tplayer, obj, seatNumber)
-        sessionData.keepAliveFunc = sessionData.keepAlivePersistence
+        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
         if obj.Definition == GlobalDefinitions.ant =>
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the driver seat of the ${obj.Definition.Name}")
         val obj_guid: PlanetSideGUID = obj.GUID
-        sessionData.terminals.CancelAllProximityUnits()
+        sessionLogic.terminals.CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, obj.Definition.shieldUiAttribute, obj.Shields))
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=45, obj.NtuCapacitorScaled))
         sendResponse(GenericObjectActionMessage(obj_guid, code=11))
-        sessionData.accessContainer(obj)
+        sessionLogic.general.accessContainer(obj)
         tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
         if obj.Definition == GlobalDefinitions.quadstealth =>
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the driver seat of the ${obj.Definition.Name}")
         val obj_guid: PlanetSideGUID = obj.GUID
-        sessionData.terminals.CancelAllProximityUnits()
+        sessionLogic.terminals.CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, obj.Definition.shieldUiAttribute, obj.Shields))
         //exclusive to the wraith, cloak state matches the cloak state of the driver
         //phantasm doesn't uncloak if the driver is uncloaked and no other vehicle cloaks
         obj.Cloaked = tplayer.Cloaked
         sendResponse(GenericObjectActionMessage(obj_guid, code=11))
-        sessionData.accessContainer(obj)
+        sessionLogic.general.accessContainer(obj)
         tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
         if seatNumber == 0 && obj.Definition.MaxCapacitor > 0 =>
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the driver seat of the ${obj.Definition.Name}")
         val obj_guid: PlanetSideGUID = obj.GUID
-        sessionData.terminals.CancelAllProximityUnits()
+        sessionLogic.terminals.CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, obj.Definition.shieldUiAttribute, obj.Shields))
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=113, obj.Capacitor))
         sendResponse(GenericObjectActionMessage(obj_guid, code=11))
-        sessionData.accessContainer(obj)
-        sessionData.updateWeaponAtSeatPosition(obj, seatNumber)
+        sessionLogic.general.accessContainer(obj)
+        updateWeaponAtSeatPosition(obj, seatNumber)
         tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
         if seatNumber == 0 =>
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the driver seat of the ${obj.Definition.Name}")
         val obj_guid: PlanetSideGUID = obj.GUID
-        sessionData.terminals.CancelAllProximityUnits()
+        sessionLogic.terminals.CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, obj.Definition.shieldUiAttribute, obj.Shields))
         sendResponse(GenericObjectActionMessage(obj_guid, code=11))
-        sessionData.accessContainer(obj)
-        sessionData.updateWeaponAtSeatPosition(obj, seatNumber)
+        sessionLogic.general.accessContainer(obj)
+        updateWeaponAtSeatPosition(obj, seatNumber)
         tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
         if obj.Definition.MaxCapacitor > 0 =>
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts ${
           obj.SeatPermissionGroup(seatNumber) match {
             case Some(seatType) => s"a $seatType seat (#$seatNumber)"
@@ -120,18 +123,18 @@ class SessionMountHandlers(
           }
         } of the ${obj.Definition.Name}")
         val obj_guid: PlanetSideGUID = obj.GUID
-        sessionData.terminals.CancelAllProximityUnits()
+        sessionLogic.terminals.CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, obj.Definition.shieldUiAttribute, obj.Shields))
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=113, obj.Capacitor))
-        sessionData.accessContainer(obj)
-        sessionData.updateWeaponAtSeatPosition(obj, seatNumber)
-        sessionData.keepAliveFunc = sessionData.keepAlivePersistence
+        sessionLogic.general.accessContainer(obj)
+        updateWeaponAtSeatPosition(obj, seatNumber)
+        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
         tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _) =>
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the ${
           obj.SeatPermissionGroup(seatNumber) match {
             case Some(seatType) => s"a $seatType seat (#$seatNumber)"
@@ -139,44 +142,44 @@ class SessionMountHandlers(
           }
         } of the ${obj.Definition.Name}")
         val obj_guid: PlanetSideGUID = obj.GUID
-        sessionData.terminals.CancelAllProximityUnits()
+        sessionLogic.terminals.CancelAllProximityUnits()
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=0, obj.Health))
         sendResponse(PlanetsideAttributeMessage(obj_guid, obj.Definition.shieldUiAttribute, obj.Shields))
-        sessionData.accessContainer(obj)
-        sessionData.updateWeaponAtSeatPosition(obj, seatNumber)
-        sessionData.keepAliveFunc = sessionData.keepAlivePersistence
+        sessionLogic.general.accessContainer(obj)
+        updateWeaponAtSeatPosition(obj, seatNumber)
+        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
         tplayer.Actor ! ResetAllEnvironmentInteractions
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: FacilityTurret, seatNumber, _)
         if obj.Definition == GlobalDefinitions.vanu_sentry_turret =>
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the ${obj.Definition.Name}")
         obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.id, LocalAction.SetEmpire(obj.GUID, player.Faction))
         sendResponse(PlanetsideAttributeMessage(obj.GUID, attribute_type=0, obj.Health))
-        sessionData.updateWeaponAtSeatPosition(obj, seatNumber)
+        updateWeaponAtSeatPosition(obj, seatNumber)
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: FacilityTurret, seatNumber, _)
         if !obj.isUpgrading || System.currentTimeMillis() - getTurretUpgradeTime >= 1500L =>
         obj.setMiddleOfUpgrade(false)
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the ${obj.Definition.Name}")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, attribute_type=0, obj.Health))
-        sessionData.updateWeaponAtSeatPosition(obj, seatNumber)
+        updateWeaponAtSeatPosition(obj, seatNumber)
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: FacilityTurret, _, _) =>
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.warn(
           s"MountVehicleMsg: ${tplayer.Name} wants to mount turret ${obj.GUID.guid}, but needs to wait until it finishes updating"
         )
 
       case Mountable.CanMount(obj: PlanetSideGameObject with FactionAffinity with WeaponTurret with InGameHistory, seatNumber, _) =>
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         log.info(s"${player.Name} mounts the ${obj.Definition.asInstanceOf[BasicDefinition].Name}")
         sendResponse(PlanetsideAttributeMessage(obj.GUID, attribute_type=0, obj.Health))
-        sessionData.updateWeaponAtSeatPosition(obj, seatNumber)
+        updateWeaponAtSeatPosition(obj, seatNumber)
         MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: Mountable, _, _) =>
@@ -199,7 +202,7 @@ class SessionMountHandlers(
           continent.id,
           LocalAction.SendResponse(ObjectDetachMessage(sguid, pguid, pos, roll=0, pitch=0, zang))
         )
-        sessionData.keepAliveFunc = sessionData.zoning.NormalKeepAlive
+        sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
 
       case Mountable.CanDismount(obj: Vehicle, seatNum, _)
         if obj.Definition == GlobalDefinitions.orbital_shuttle =>
@@ -229,12 +232,12 @@ class SessionMountHandlers(
           continent.id,
           VehicleAction.SendResponse(pguid, GenericObjectActionMessage(pguid, code=9)) //conceal the player
         )
-        sessionData.keepAliveFunc = sessionData.zoning.NormalKeepAlive
+        sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
 
       case Mountable.CanDismount(obj: Vehicle, seatNum, _)
         if obj.Definition == GlobalDefinitions.droppod =>
         log.info(s"${tplayer.Name} has landed on ${continent.id}")
-        sessionData.unaccessContainer(obj)
+        sessionLogic.general.unaccessContainer(obj)
         DismountAction(tplayer, obj, seatNum)
         obj.Actor ! Vehicle.Deconstruct()
 
@@ -248,8 +251,8 @@ class SessionMountHandlers(
             case None => "seat"
           }
         }")
-        sessionData.vehicles.ConditionalDriverVehicleControl(obj)
-        sessionData.unaccessContainer(obj)
+        sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
+        sessionLogic.general.unaccessContainer(obj)
         DismountVehicleAction(tplayer, obj, seatNum)
 
       case Mountable.CanDismount(obj: Vehicle, seat_num, _) =>
@@ -291,7 +294,7 @@ class SessionMountHandlers(
   def MountingAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
     val playerGuid: PlanetSideGUID = tplayer.GUID
     val objGuid: PlanetSideGUID    = obj.GUID
-    sessionData.playerActionsToCancel()
+    sessionLogic.actionsToCancel()
     avatarActor ! AvatarActor.DeactivateActiveImplants()
     avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)
     sendResponse(ObjectAttachMessage(objGuid, playerGuid, seatNum))
@@ -313,8 +316,8 @@ class SessionMountHandlers(
     obj match {
       case v: Vehicle
         if seatNum == 0 && Vector3.MagnitudeSquared(v.Velocity.getOrElse(Vector3.Zero)) > 0f =>
-        sessionData.vehicles.serverVehicleControlVelocity.collect { _ =>
-          sessionData.vehicles.ServerVehicleOverrideStop(v)
+        sessionLogic.vehicles.serverVehicleControlVelocity.collect { _ =>
+          sessionLogic.vehicles.ServerVehicleOverrideStop(v)
         }
         v.Velocity = Vector3.Zero
         continent.VehicleEvents ! VehicleServiceMessage(
@@ -347,7 +350,7 @@ class SessionMountHandlers(
   def DismountAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
     val playerGuid: PlanetSideGUID = tplayer.GUID
     tplayer.ContributionFrom(obj)
-    sessionData.keepAliveFunc = sessionData.zoning.NormalKeepAlive
+    sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
     val bailType = if (tplayer.BailProtection) {
       BailType.Bailed
     } else {
@@ -358,5 +361,23 @@ class SessionMountHandlers(
       continent.id,
       VehicleAction.DismountVehicle(playerGuid, bailType, unk2 = false)
     )
+  }
+
+  /**
+   * From a mount, find the weapon controlled from it, and update the ammunition counts for that weapon's magazines.
+   * @param objWithSeat the object that owns seats (and weaponry)
+   * @param seatNum the mount
+   */
+  def updateWeaponAtSeatPosition(objWithSeat: MountableWeapons, seatNum: Int): Unit = {
+    objWithSeat.WeaponControlledFromSeat(seatNum) foreach {
+      case weapon: Tool =>
+        //update mounted weapon belonging to mount
+        weapon.AmmoSlots.foreach(slot => {
+          //update the magazine(s) in the weapon, specifically
+          val magazine = slot.Box
+          sendResponse(InventoryStateMessage(magazine.GUID, weapon.GUID, magazine.Capacity.toLong))
+        })
+      case _ => () //no weapons to update
+    }
   }
 }

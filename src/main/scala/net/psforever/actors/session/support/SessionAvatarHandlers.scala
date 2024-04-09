@@ -3,6 +3,7 @@ package net.psforever.actors.session.support
 
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.services.Service
 import net.psforever.objects.zones.exp
@@ -29,7 +30,7 @@ import net.psforever.util.Config
 import net.psforever.zones.Zones
 
 class SessionAvatarHandlers(
-                             val sessionData: SessionData,
+                             val sessionLogic: SessionLogic,
                              avatarActor: typed.ActorRef[AvatarActor.Command],
                              chatActor: typed.ActorRef[ChatActor.Command],
                              implicit val context: ActorContext
@@ -86,7 +87,7 @@ class SessionAvatarHandlers(
         val inDrawableRange = currentDistance <= maxRange
         val now = System.currentTimeMillis() //ms
         if (
-          sessionData.zoning.zoningStatus != Zoning.Status.Deconstructing &&
+          sessionLogic.zoning.zoningStatus != Zoning.Status.Deconstructing &&
           !isNotRendered && inDrawableRange
         ) {
           //conditions where visibility is assured
@@ -95,7 +96,7 @@ class SessionAvatarHandlers(
           lazy val targetDelay = {
             val populationOver = math.max(
               0,
-              sessionData.localSector.livePlayerList.size - drawConfig.populationThreshold
+              sessionLogic.localSector.livePlayerList.size - drawConfig.populationThreshold
             )
             val distanceAdjustment = math.pow(populationOver / drawConfig.populationStep * drawConfig.rangeStep, 2) //sq.m
             val adjustedDistance = currentDistance + distanceAdjustment //sq.m
@@ -110,7 +111,7 @@ class SessionAvatarHandlers(
             (!lastMsg.contains(pstateToSave) &&
               (canSeeReallyFar ||
                 currentDistance < drawConfig.rangeMin * drawConfig.rangeMin ||
-                sessionData.canSeeReallyFar ||
+                sessionLogic.general.canSeeReallyFar ||
                 durationSince > targetDelay
                 )
               )
@@ -164,11 +165,11 @@ class SessionAvatarHandlers(
         if isSameTarget && player.VisibleSlots.contains(slot) =>
         sendResponse(ObjectHeldMessage(guid, slot, unk1=true))
         //Stop using proximity terminals if player unholsters a weapon
-        continent.GUID(sessionData.terminals.usingMedicalTerminal).collect {
-          case term: Terminal with ProximityUnit => sessionData.terminals.StopUsingProximityUnit(term)
+        continent.GUID(sessionLogic.terminals.usingMedicalTerminal).collect {
+          case term: Terminal with ProximityUnit => sessionLogic.terminals.StopUsingProximityUnit(term)
         }
-        if (sessionData.zoning.zoningStatus == Zoning.Status.Deconstructing) {
-          sessionData.stopDeconstructing()
+        if (sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing) {
+          sessionLogic.zoning.spawn.stopDeconstructing()
         }
 
       case AvatarResponse.ObjectHeld(slot, _)
@@ -221,32 +222,28 @@ class SessionAvatarHandlers(
 
       case AvatarResponse.HitHint(sourceGuid) if player.isAlive =>
         sendResponse(HitHint(sourceGuid, guid))
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_dmg")
-
-      case AvatarResponse.DestroyDisplay(killer, victim, method, unk)
-        if killer.CharId == avatar.id && killer.Faction != victim.Faction =>
-        sendResponse(sessionData.destroyDisplayMessage(killer, victim, method, unk))
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_dmg")
 
       case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
         // guid = victim // killer = killer
         sendResponse(DestroyMessage(victim, killer, weapon, pos))
 
       case AvatarResponse.DestroyDisplay(killer, victim, method, unk) =>
-        sendResponse(sessionData.destroyDisplayMessage(killer, victim, method, unk))
+        sendResponse(destroyDisplayMessage(killer, victim, method, unk))
 
       case AvatarResponse.TerminalOrderResult(terminalGuid, action, result)
         if result && (action == TransactionType.Buy || action == TransactionType.Loadout) =>
         sendResponse(ItemTransactionResultMessage(terminalGuid, action, result))
-        sessionData.terminals.lastTerminalOrderFulfillment = true
+        sessionLogic.terminals.lastTerminalOrderFulfillment = true
         AvatarActor.savePlayerData(player)
-        sessionData.renewCharSavedTimer(
+        sessionLogic.general.renewCharSavedTimer(
           Config.app.game.savedMsg.interruptedByAction.fixed,
           Config.app.game.savedMsg.interruptedByAction.variable
         )
 
       case AvatarResponse.TerminalOrderResult(terminalGuid, action, result) =>
         sendResponse(ItemTransactionResultMessage(terminalGuid, action, result))
-        sessionData.terminals.lastTerminalOrderFulfillment = true
+        sessionLogic.terminals.lastTerminalOrderFulfillment = true
 
       case AvatarResponse.ChangeExosuit(
       target,
@@ -358,7 +355,7 @@ class SessionAvatarHandlers(
             slot = 0
           ))
         }
-        sessionData.applyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
+        sessionLogic.general.applyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
         DropLeftovers(player)(drops)
 
       case AvatarResponse.ChangeLoadout(target, armor, exosuit, subtype, slot, _, oldHolsters, _, _, _, _) =>
@@ -389,10 +386,10 @@ class SessionAvatarHandlers(
         sendResponse(ObjectDeleteMessage(kguid, unk1=0))
 
       case AvatarResponse.KitNotUsed(_, "") =>
-        sessionData.kitToBeUsed = None
+        sessionLogic.general.kitToBeUsed = None
 
       case AvatarResponse.KitNotUsed(_, msg) =>
-        sessionData.kitToBeUsed = None
+        sessionLogic.general.kitToBeUsed = None
         sendResponse(ChatMsg(ChatMessageType.UNK_225, msg))
 
       case AvatarResponse.UpdateKillsDeathsAssists(_, kda) =>
@@ -439,40 +436,40 @@ class SessionAvatarHandlers(
           adversarial.map {_.Name }.orElse { Some(s"a ${reason.getClass.getSimpleName}") }
         }.getOrElse { s"an unfortunate circumstance (probably ${player.Sex.pronounObject} own fault)" }
         log.info(s"${player.Name} has died, killed by $cause")
-        if (sessionData.shooting.shotsWhileDead > 0) {
+        if (sessionLogic.shooting.shotsWhileDead > 0) {
           log.warn(
-            s"SHOTS_WHILE_DEAD: client of ${avatar.name} fired ${sessionData.shooting.shotsWhileDead} rounds while character was dead on server"
+            s"SHOTS_WHILE_DEAD: client of ${avatar.name} fired ${sessionLogic.shooting.shotsWhileDead} rounds while character was dead on server"
           )
-          sessionData.shooting.shotsWhileDead = 0
+          sessionLogic.shooting.shotsWhileDead = 0
         }
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason(msg = "cancel")
-        sessionData.renewCharSavedTimer(fixedLen = 1800L, varLen = 0L)
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason(msg = "cancel")
+        sessionLogic.general.renewCharSavedTimer(fixedLen = 1800L, varLen = 0L)
 
         //player state changes
         AvatarActor.updateToolDischargeFor(avatar)
         player.FreeHand.Equipment.foreach { item =>
           DropEquipmentFromInventory(player)(item)
         }
-        sessionData.dropSpecialSlotItem()
-        sessionData.toggleMaxSpecialState(enable = false)
-        sessionData.keepAliveFunc = sessionData.zoning.NormalKeepAlive
-        sessionData.zoning.zoningStatus = Zoning.Status.None
-        sessionData.zoning.spawn.deadState = DeadState.Dead
+        sessionLogic.general.dropSpecialSlotItem()
+        sessionLogic.general.toggleMaxSpecialState(enable = false)
+        sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
+        sessionLogic.zoning.zoningStatus = Zoning.Status.None
+        sessionLogic.zoning.spawn.deadState = DeadState.Dead
         continent.GUID(mount).collect { case obj: Vehicle =>
-          sessionData.vehicles.ConditionalDriverVehicleControl(obj)
-          sessionData.unaccessContainer(obj)
+          sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
+          sessionLogic.general.unaccessContainer(obj)
         }
-        sessionData.playerActionsToCancel()
-        sessionData.terminals.CancelAllProximityUnits()
+        sessionLogic.actionsToCancel()
+        sessionLogic.terminals.CancelAllProximityUnits()
         AvatarActor.savePlayerLocation(player)
-        sessionData.zoning.spawn.shiftPosition = Some(player.Position)
+        sessionLogic.zoning.spawn.shiftPosition = Some(player.Position)
 
         //respawn
         val respawnTimer = 300.seconds
-        sessionData.zoning.spawn.reviveTimer.cancel()
+        sessionLogic.zoning.spawn.reviveTimer.cancel()
         if (player.death_by == 0) {
-          sessionData.zoning.spawn.reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer) {
-            sessionData.cluster ! ICS.GetRandomSpawnPoint(
+          sessionLogic.zoning.spawn.reviveTimer = context.system.scheduler.scheduleOnce(respawnTimer) {
+            sessionLogic.cluster ! ICS.GetRandomSpawnPoint(
               Zones.sanctuaryZoneNumber(player.Faction),
               player.Faction,
               Seq(SpawnGroup.Sanctuary),
@@ -480,16 +477,16 @@ class SessionAvatarHandlers(
             )
           }
         } else {
-          sessionData.zoning.spawn.HandleReleaseAvatar(player, continent)
+          sessionLogic.zoning.spawn.HandleReleaseAvatar(player, continent)
         }
 
       case AvatarResponse.Release(tplayer) if isNotSameTarget =>
-        sessionData.zoning.spawn.DepictPlayerAsCorpse(tplayer)
+        sessionLogic.zoning.spawn.DepictPlayerAsCorpse(tplayer)
 
       case AvatarResponse.Revive(revivalTargetGuid) if resolvedPlayerGuid == revivalTargetGuid =>
         log.info(s"No time for rest, ${player.Name}.  Back on your feet!")
-        sessionData.zoning.spawn.reviveTimer.cancel()
-        sessionData.zoning.spawn.deadState = DeadState.Alive
+        sessionLogic.zoning.spawn.reviveTimer.cancel()
+        sessionLogic.zoning.spawn.deadState = DeadState.Alive
         player.Revive
         val health = player.Health
         sendResponse(PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
@@ -517,7 +514,7 @@ class SessionAvatarHandlers(
 
       case AvatarResponse.EnvironmentalDamage(_, _, _) =>
         //TODO damage marker?
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_dmg")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_dmg")
 
       case AvatarResponse.DropItem(pkt) if isNotSameTarget =>
         sendResponse(pkt)
@@ -530,7 +527,7 @@ class SessionAvatarHandlers(
         sendResponse(SetEmpireMessage(objectGuid, faction))
 
       case AvatarResponse.DropSpecialItem() =>
-        sessionData.dropSpecialSlotItem()
+        sessionLogic.general.dropSpecialSlotItem()
 
       case AvatarResponse.OxygenState(player, vehicle) =>
         sendResponse(OxygenStateMessage(
@@ -612,7 +609,7 @@ class SessionAvatarHandlers(
     //TODO squad services deactivated, participation trophy rewards for now - 11-20-2023
     //must be in a squad to earn experience
     val charId = player.CharId
-    val squadUI = sessionData.squad.squadUI
+    val squadUI = sessionLogic.squad.squadUI
     val participation = continent
       .Building(buildingId)
       .map { building =>
@@ -671,6 +668,45 @@ class SessionAvatarHandlers(
           avatarActor ! AvatarActor.AwardFacilityCaptureBep(modifiedExp)
           Some(modifiedExp)
       }
+  }
+
+  /**
+   * Properly format a `DestroyDisplayMessage` packet
+   * given sufficient information about a target (victim) and an actor (killer).
+   * For the packet, the `charId` field is important for determining distinction between players.
+   * @param killer the killer's entry
+   * @param victim the victim's entry
+   * @param method the manner of death
+   * @param unk na;
+   *            defaults to 121, the object id of `avatar`
+   * @return a `DestroyDisplayMessage` packet that is properly formatted
+   */
+  def destroyDisplayMessage(
+                             killer: SourceEntry,
+                             victim: SourceEntry,
+                             method: Int,
+                             unk: Int = 121
+                           ): DestroyDisplayMessage = {
+    val killerSeated = killer match {
+      case obj: PlayerSource => obj.Seated
+      case _                 => false
+    }
+    val victimSeated = victim match {
+      case obj: PlayerSource => obj.Seated
+      case _                 => false
+    }
+    new DestroyDisplayMessage(
+      killer.Name,
+      killer.CharId,
+      killer.Faction,
+      killerSeated,
+      unk,
+      method,
+      victim.Name,
+      victim.CharId,
+      victim.Faction,
+      victimSeated
+    )
   }
 }
 

@@ -15,7 +15,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 //
-import net.psforever.actors.session.{AvatarActor, ChatActor, SessionActor}
+import net.psforever.actors.session.{AvatarActor, ChatActor}
 import net.psforever.login.WorldSession.{CountAmmunition, CountGrenades, FindAmmoBoxThatUses, FindEquipmentStock, FindToolThatUses, PutEquipmentInInventoryOrDrop, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
 import net.psforever.objects.avatar.scoring.EquipmentStat
 import net.psforever.objects.ballistics.{Projectile, ProjectileQuality}
@@ -42,10 +42,10 @@ import net.psforever.types.{ExoSuitType, PlanetSideGUID, Vector3}
 import net.psforever.util.Config
 
 private[support] class WeaponAndProjectileOperations(
-                                     val sessionData: SessionData,
-                                     avatarActor: typed.ActorRef[AvatarActor.Command],
-                                     chatActor: typed.ActorRef[ChatActor.Command],
-                                     implicit val context: ActorContext
+                                                      val sessionLogic: SessionLogic,
+                                                      avatarActor: typed.ActorRef[AvatarActor.Command],
+                                                      chatActor: typed.ActorRef[ChatActor.Command],
+                                                      implicit val context: ActorContext
                                    ) extends CommonSessionInterfacingFunctionality {
   var shooting: mutable.Set[PlanetSideGUID] = mutable.Set.empty //ChangeFireStateMessage_Start
   var prefire: mutable.Set[PlanetSideGUID] = mutable.Set.empty //if WeaponFireMessage precedes ChangeFireStateMessage_Start
@@ -111,8 +111,8 @@ private[support] class WeaponAndProjectileOperations(
     val WeaponLazeTargetPositionMessage(_, _, _) = pkt
     //do not need to handle the progress bar animation/state on the server
     //laze waypoint is requested by client upon completion (see SquadWaypointRequest)
-    val purpose = if (sessionData.squad.squad_supplement_id > 0) {
-      s" for ${player.Sex.possessive} squad (#${sessionData.squad.squad_supplement_id -1})"
+    val purpose = if (sessionLogic.squad.squad_supplement_id > 0) {
+      s" for ${player.Sex.possessive} squad (#${sessionLogic.squad.squad_supplement_id -1})"
     } else {
       " ..."
     }
@@ -128,7 +128,7 @@ private[support] class WeaponAndProjectileOperations(
   def handleChangeFireStateStart(pkt: ChangeFireStateMessage_Start)(implicit context: ActorContext): Unit = {
     val ChangeFireStateMessage_Start(item_guid) = pkt
     if (shooting.isEmpty) {
-      sessionData.findEquipment(item_guid) match {
+      sessionLogic.findEquipment(item_guid) match {
         case Some(tool: Tool) if player.VehicleSeated.isEmpty =>
           fireStateStartWhenPlayer(tool, item_guid)
         case Some(tool: Tool) =>
@@ -151,7 +151,7 @@ private[support] class WeaponAndProjectileOperations(
     prefire -= item_guid
     shootingStop += item_guid -> now
     shooting -= item_guid
-    sessionData.findEquipment(item_guid) match {
+    sessionLogic.findEquipment(item_guid) match {
       case Some(tool: Tool) if player.VehicleSeated.isEmpty =>
         fireStateStopWhenPlayer(tool, item_guid)
       case Some(tool: Tool) =>
@@ -169,8 +169,8 @@ private[support] class WeaponAndProjectileOperations(
       case _ =>
         log.warn(s"ChangeFireState_Stop: can not find $item_guid")
     }
-    sessionData.progressBarUpdate.cancel()
-    sessionData.progressBarValue = None
+    sessionLogic.general.progressBarUpdate.cancel()
+    sessionLogic.general.progressBarValue = None
   }
 
   def handleReload(pkt: ReloadMessage): Unit = {
@@ -187,7 +187,7 @@ private[support] class WeaponAndProjectileOperations(
 
   def handleChangeAmmo(pkt: ChangeAmmoMessage): Unit = {
     val ChangeAmmoMessage(item_guid, _) = pkt
-    val (thing, equipment) = sessionData.findContainedEquipment()
+    val (thing, equipment) = sessionLogic.findContainedEquipment()
     if (equipment.isEmpty) {
       log.warn(s"ChangeAmmo: either can not find $item_guid or the object found was not Equipment")
     } else {
@@ -216,7 +216,7 @@ private[support] class WeaponAndProjectileOperations(
 
   def handleChangeFireMode(pkt: ChangeFireModeMessage): Unit = {
     val ChangeFireModeMessage(item_guid, _/*fire_mode*/) = pkt
-    sessionData.findEquipment(item_guid) match {
+    sessionLogic.findEquipment(item_guid) match {
       case Some(obj: PlanetSideGameObject with FireModeSwitch[_]) =>
         val originalModeIndex = obj.FireModeIndex
         if (obj match {
@@ -306,7 +306,7 @@ private[support] class WeaponAndProjectileOperations(
         (hit_info match {
           case Some(hitInfo) =>
             val hitPos = hitInfo.hit_pos
-            sessionData.validObject(hitInfo.hitobject_guid, decorator = "Hit/hitInfo") match {
+            sessionLogic.validObject(hitInfo.hitobject_guid, decorator = "Hit/hitInfo") match {
               case _ if projectile.profile == GlobalDefinitions.flail_projectile =>
                 val radius  = projectile.profile.DamageRadius * projectile.profile.DamageRadius
                 val targets = Zone.findAllTargets(continent, player, hitPos, projectile.profile)
@@ -340,7 +340,7 @@ private[support] class WeaponAndProjectileOperations(
               ) =>
               ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos).collect { resprojectile =>
                 addShotsLanded(resprojectile.cause.attribution, shots = 1)
-                sessionData.handleDealingDamage(target, resprojectile)
+                sessionLogic.handleDealingDamage(target, resprojectile)
               }
             case _ => ()
           }
@@ -371,23 +371,23 @@ private[support] class WeaponAndProjectileOperations(
             (DamageResolution.Splash, DamageResolution.Splash)
         }
         //direct_victim_uid
-        sessionData.validObject(direct_victim_uid, decorator = "SplashHit/direct_victim") match {
+        sessionLogic.validObject(direct_victim_uid, decorator = "SplashHit/direct_victim") match {
           case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
             CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
             ResolveProjectileInteraction(projectile, resolution1, target, target.Position).collect { resprojectile =>
               addShotsLanded(resprojectile.cause.attribution, shots = 1)
-              sessionData.handleDealingDamage(target, resprojectile)
+              sessionLogic.handleDealingDamage(target, resprojectile)
             }
           case _ => ()
         }
         //other victims
         targets.foreach(elem => {
-          sessionData.validObject(elem.uid, decorator = "SplashHit/other_victims") match {
+          sessionLogic.validObject(elem.uid, decorator = "SplashHit/other_victims") match {
             case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
               CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
               ResolveProjectileInteraction(projectile, resolution2, target, explosion_pos).collect { resprojectile =>
                 addShotsLanded(resprojectile.cause.attribution, shots = 1)
-                sessionData.handleDealingDamage(target, resprojectile)
+                sessionLogic.handleDealingDamage(target, resprojectile)
               }
             case _ => ()
           }
@@ -421,13 +421,13 @@ private[support] class WeaponAndProjectileOperations(
 
   def handleLashHit(pkt: LashMessage): Unit = {
     val LashMessage(_, _, victim_guid, projectile_guid, hit_pos, _) = pkt
-    sessionData.validObject(victim_guid, decorator = "Lash") match {
+    sessionLogic.validObject(victim_guid, decorator = "Lash") match {
       case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
         CheckForHitPositionDiscrepancy(projectile_guid, hit_pos, target)
         ResolveProjectileInteraction(projectile_guid, DamageResolution.Lash, target, hit_pos).foreach {
           resprojectile =>
             addShotsLanded(resprojectile.cause.attribution, shots = 1)
-            sessionData.handleDealingDamage(target, resprojectile)
+            sessionLogic.handleDealingDamage(target, resprojectile)
         }
       case _ => ()
     }
@@ -454,7 +454,7 @@ private[support] class WeaponAndProjectileOperations(
         None
     }).collect {
       case target: AutomatedTurret.Target =>
-        sessionData.validObject(attackerGuid, decorator = "AIDamage/AutomatedTurret")
+        sessionLogic.validObject(attackerGuid, decorator = "AIDamage/AutomatedTurret")
           .collect {
             case turret: AutomatedTurret if turret.Target.isEmpty =>
               turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
@@ -468,10 +468,10 @@ private[support] class WeaponAndProjectileOperations(
     }
       .orElse {
         //occasionally, something that is not technically a turret's natural target may be attacked
-        sessionData.validObject(targetGuid, decorator = "AIDamage/Target")
+        sessionLogic.validObject(targetGuid, decorator = "AIDamage/Target")
           .collect {
             case target: PlanetSideServerObject with FactionAffinity with Vitality =>
-              sessionData.validObject(attackerGuid, decorator = "AIDamage/Attacker")
+              sessionLogic.validObject(attackerGuid, decorator = "AIDamage/Attacker")
                 .collect {
                   case turret: AutomatedTurret if turret.Target.nonEmpty =>
                     //the turret must be shooting at something (else) first
@@ -587,11 +587,11 @@ private[support] class WeaponAndProjectileOperations(
                                       projectileGUID: PlanetSideGUID
                                     ): (Option[PlanetSideGameObject with Container], Option[Tool]) = {
     if (player.ZoningRequest != Zoning.Method.None) {
-      sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_fire")
+      sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_fire")
     }
     if (player.isShielded) {
       // Cancel NC MAX shield if it's active
-      sessionData.toggleMaxSpecialState(enable = false)
+      sessionLogic.general.toggleMaxSpecialState(enable = false)
     }
     val (o, tools) = FindContainedWeapon
     val (_, enabledTools) = FindEnabledWeaponsToHandleWeaponFireAccountability(o, tools)
@@ -893,7 +893,7 @@ private[support] class WeaponAndProjectileOperations(
                 case Some(_) =>
                   stowFunc(previousBox)
                 case None =>
-                  sessionData.normalItemDrop(player, continent)(previousBox)
+                  sessionLogic.general.normalItemDrop(player, continent)(previousBox)
               }
               AmmoBox.Split(previousBox) match {
                 case Nil | List(_) => () //done (the former case is technically not possible)
@@ -919,7 +919,7 @@ private[support] class WeaponAndProjectileOperations(
    */
   def FindDetectedProjectileTargets(targets: Iterable[PlanetSideGUID]): Iterable[String] = {
     targets
-      .map { sessionData.validObject(_, decorator="FindDetectedProjectileTargets") }
+      .map { sessionLogic.validObject(_, decorator="FindDetectedProjectileTargets") }
       .flatMap {
         case Some(obj: Vehicle) if !obj.Cloaked =>
           //TODO hint: vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.ProjectileAutoLockAwareness(mode))
@@ -1163,7 +1163,7 @@ private[support] class WeaponAndProjectileOperations(
    *         the second value is an `Tool` object in the former
    */
   def FindContainedWeapon: (Option[PlanetSideGameObject with Container], Set[Tool]) = {
-    sessionData.findContainedEquipment() match {
+    sessionLogic.findContainedEquipment() match {
       case (container, equipment) =>
         (container, equipment collect { case t: Tool => t })
       case _ =>
@@ -1207,11 +1207,11 @@ private[support] class WeaponAndProjectileOperations(
     //charge ammunition drain
     tool.FireMode match {
       case mode: ChargeFireModeDefinition =>
-        sessionData.progressBarValue = Some(0f)
-        sessionData.progressBarUpdate = context.system.scheduler.scheduleOnce(
+        sessionLogic.general.progressBarValue = Some(0f)
+        sessionLogic.general.progressBarUpdate = context.system.scheduler.scheduleOnce(
           (mode.Time + mode.DrainInterval) milliseconds,
           context.self,
-          SessionActor.ProgressEvent(1f, () => {}, Tools.ChargeFireMode(player, tool), mode.DrainInterval)
+          CommonMessages.ProgressEvent(1f, () => {}, Tools.ChargeFireMode(player, tool), mode.DrainInterval)
         )
       case _ => ()
     }
@@ -1225,7 +1225,7 @@ private[support] class WeaponAndProjectileOperations(
   }
 
   private def fireStateStartMountedMessages(itemGuid: PlanetSideGUID): Unit = {
-    sessionData.findContainedEquipment()._1.collect {
+    sessionLogic.findContainedEquipment()._1.collect {
       case turret: FacilityTurret if continent.map.cavern =>
         turret.Actor ! VanuSentry.ChangeFireStart
     }
@@ -1291,7 +1291,7 @@ private[support] class WeaponAndProjectileOperations(
   }
 
   private def fireStateStopMountedMessages(itemGuid: PlanetSideGUID): Unit = {
-    sessionData.findContainedEquipment()._1.collect {
+    sessionLogic.findContainedEquipment()._1.collect {
       case turret: FacilityTurret if continent.map.cavern =>
         turret.Actor ! VanuSentry.ChangeFireStop
     }
@@ -1498,7 +1498,7 @@ private[support] class WeaponAndProjectileOperations(
         val hitPos = target.Position + Vector3.z(value = 1f)
         ResolveProjectileInteraction(proj, DamageResolution.Hit, target, hitPos).collect { resprojectile =>
           addShotsLanded(resprojectile.cause.attribution, shots = 1)
-          sessionData.handleDealingDamage(target, resprojectile)
+          sessionLogic.handleDealingDamage(target, resprojectile)
         }
     }
   }
@@ -1585,7 +1585,21 @@ private[support] class WeaponAndProjectileOperations(
     }.filter(p => Vector3.DistanceSquared(start, p) <= a)
   }
 
-  override protected[session] def stop(): Unit = {
+  override protected[support] def actionsToCancel(): Unit = {
+    shootingStart.clear()
+    shootingStop.clear()
+    (prefire ++ shooting).foreach { guid =>
+      sendResponse(ChangeFireStateMessage_Stop(guid))
+      continent.AvatarEvents ! AvatarServiceMessage(
+        continent.id,
+        AvatarAction.ChangeFireState_Stop(player.GUID, guid)
+      )
+    }
+    prefire.clear()
+    shooting.clear()
+  }
+
+  override protected[support] def stop(): Unit = {
     if (player != null && player.HasGUID) {
       (prefire ++ shooting).foreach { guid =>
         //do I need to do this? (maybe)

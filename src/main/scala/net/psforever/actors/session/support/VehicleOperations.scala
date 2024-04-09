@@ -15,7 +15,7 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{BailType, DriveState, Vector3}
 
 class VehicleOperations(
-                         val sessionData: SessionData,
+                         val sessionLogic: SessionLogic,
                          avatarActor: typed.ActorRef[AvatarActor.Command],
                          implicit val context: ActorContext
                        ) extends CommonSessionInterfacingFunctionality {
@@ -40,11 +40,11 @@ class VehicleOperations(
     GetVehicleAndSeat() match {
       case (Some(obj), Some(0)) =>
         //we're driving the vehicle
-        sessionData.persist()
-        sessionData.turnCounterFunc(player.GUID)
-        sessionData.fallHeightTracker(pos.z)
+        sessionLogic.persist()
+        sessionLogic.turnCounterFunc(player.GUID)
+        sessionLogic.general.fallHeightTracker(pos.z)
         if (obj.MountedIn.isEmpty) {
-          sessionData.updateBlockMap(obj, pos)
+          sessionLogic.updateBlockMap(obj, pos)
         }
         player.Position = pos //convenient
         if (obj.WeaponControlledFromSeat(0).isEmpty) {
@@ -87,7 +87,7 @@ class VehicleOperations(
             obj.Cloaked
           )
         )
-        sessionData.squad.updateSquad()
+        sessionLogic.squad.updateSquad()
         obj.zoneInteractions()
       case (None, _) =>
       //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
@@ -99,7 +99,7 @@ class VehicleOperations(
       case _ => ;
     }
     if (player.death_by == -1) {
-      sessionData.kickedByAdministration()
+      sessionLogic.kickedByAdministration()
     }
   }
 
@@ -123,11 +123,11 @@ class VehicleOperations(
     GetVehicleAndSeat() match {
       case (Some(obj), Some(0)) =>
         //we're driving the vehicle
-        sessionData.persist()
-        sessionData.turnCounterFunc(player.GUID)
+        sessionLogic.persist()
+        sessionLogic.turnCounterFunc(player.GUID)
         val (position, angle, velocity, notMountedState) = continent.GUID(obj.MountedIn) match {
           case Some(v: Vehicle) =>
-            sessionData.updateBlockMap(obj, pos)
+            sessionLogic.updateBlockMap(obj, pos)
             (pos, v.Orientation - Vector3.z(value = 90f) * Vehicles.CargoOrientation(obj).toFloat, v.Velocity, false)
           case _ =>
             (pos, ang, vel, true)
@@ -186,7 +186,7 @@ class VehicleOperations(
             unkA
           )
         )
-        sessionData.squad.updateSquad()
+        sessionLogic.squad.updateSquad()
       case (None, _) =>
       //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
       //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
@@ -197,13 +197,13 @@ class VehicleOperations(
       case _ => ;
     }
     if (player.death_by == -1) {
-      sessionData.kickedByAdministration()
+      sessionLogic.kickedByAdministration()
     }
   }
 
   def handleChildObjectState(pkt: ChildObjectStateMessage): Unit = {
     val ChildObjectStateMessage(object_guid, pitch, yaw) = pkt
-    val (o, tools) = sessionData.shooting.FindContainedWeapon
+    val (o, tools) = sessionLogic.shooting.FindContainedWeapon
     //is COSM our primary upstream packet?
     (o match {
       case Some(mount: Mountable) => (o, mount.PassengerInSeat(player))
@@ -211,8 +211,8 @@ class VehicleOperations(
     }) match {
       case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ;
       case _ =>
-        sessionData.persist()
-        sessionData.turnCounterFunc(player.GUID)
+        sessionLogic.persist()
+        sessionLogic.turnCounterFunc(player.GUID)
     }
     //the majority of the following check retrieves information to determine if we are in control of the child
     tools.find { _.GUID == object_guid } match {
@@ -231,19 +231,19 @@ class VehicleOperations(
     }
     //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
     if (player.death_by == -1) {
-      sessionData.kickedByAdministration()
+      sessionLogic.kickedByAdministration()
     }
   }
 
   def handleVehicleSubState(pkt: VehicleSubStateMessage): Unit = {
     val VehicleSubStateMessage(vehicle_guid, _, pos, ang, vel, unk1, _) = pkt
-    sessionData.validObject(vehicle_guid, decorator = "VehicleSubState") match {
+    sessionLogic.validObject(vehicle_guid, decorator = "VehicleSubState") match {
       case Some(obj: Vehicle) =>
         import net.psforever.login.WorldSession.boolToInt
         obj.Position = pos
         obj.Orientation = ang
         obj.Velocity = vel
-        sessionData.updateBlockMap(obj, pos)
+        sessionLogic.updateBlockMap(obj, pos)
         obj.zoneInteractions()
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
@@ -268,7 +268,7 @@ class VehicleOperations(
 
   def handleMountVehicle(pkt: MountVehicleMsg): Unit = {
     val MountVehicleMsg(_, mountable_guid, entry_point) = pkt
-    sessionData.validObject(mountable_guid, decorator = "MountVehicle").collect {
+    sessionLogic.validObject(mountable_guid, decorator = "MountVehicle").collect {
       case obj: Mountable =>
         obj.Actor ! Mountable.TryMount(player, entry_point)
       case _ =>
@@ -283,7 +283,7 @@ class VehicleOperations(
     //common warning for this section
     if (player.GUID == player_guid) {
       //normally disembarking from a mount
-      (sessionData.zoning.interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
+      (sessionLogic.zoning.interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
         case out @ Some(obj: Vehicle) =>
           continent.GUID(obj.MountedIn) match {
             case Some(_: Vehicle) => None //cargo vehicle
@@ -300,7 +300,7 @@ class VehicleOperations(
             case Some(seat_num) =>
               obj.Actor ! Mountable.TryDismount(player, seat_num, bailType)
               //short-circuit the temporary channel for transferring between zones, the player is no longer doing that
-              sessionData.zoning.interstellarFerry = None
+              sessionLogic.zoning.interstellarFerry = None
               // Deconstruct the vehicle if the driver has bailed out and the vehicle is capable of flight
               //todo: implement auto landing procedure if the pilot bails but passengers are still present instead of deconstructing the vehicle
               //todo: continue flight path until aircraft crashes if no passengers present (or no passenger seats), then deconstruct.
@@ -327,8 +327,8 @@ class VehicleOperations(
         case Some(obj_guid) =>
           (
             (
-              sessionData.validObject(obj_guid, decorator = "DismountVehicle/Vehicle"),
-              sessionData.validObject(player_guid, decorator = "DismountVehicle/Player")
+              sessionLogic.validObject(obj_guid, decorator = "DismountVehicle/Vehicle"),
+              sessionLogic.validObject(player_guid, decorator = "DismountVehicle/Player")
             ) match {
               case (vehicle @ Some(obj: Vehicle), tplayer) =>
                 if (obj.MountedIn.isEmpty) (vehicle, tplayer) else (None, None)
@@ -508,7 +508,7 @@ class VehicleOperations(
    *         `(None, None)`, otherwise (even if the vehicle can be determined)
    */
   def GetKnownVehicleAndSeat(): (Option[Vehicle], Option[Int]) =
-    GetMountableAndSeat(sessionData.zoning.interstellarFerry, player, continent) match {
+    GetMountableAndSeat(sessionLogic.zoning.interstellarFerry, player, continent) match {
       case (Some(v: Vehicle), Some(seat)) => (Some(v), Some(seat))
       case _                              => (None, None)
     }

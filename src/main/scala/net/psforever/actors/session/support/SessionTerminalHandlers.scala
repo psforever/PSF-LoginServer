@@ -2,6 +2,7 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.guid.GUIDTask
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.TerminalUsedActivity
 
@@ -21,7 +22,7 @@ import net.psforever.packet.game.{ItemTransactionMessage, ItemTransactionResultM
 import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
 
 class SessionTerminalHandlers(
-                               val sessionData: SessionData,
+                               val sessionLogic: SessionLogic,
                                avatarActor: typed.ActorRef[AvatarActor.Command],
                                implicit val context: ActorContext
                              ) extends CommonSessionInterfacingFunctionality {
@@ -37,7 +38,7 @@ class SessionTerminalHandlers(
         val msg: String = if (itemName.nonEmpty) s" of $itemName" else ""
         log.info(s"${player.Name} is submitting an order - a $transactionType from a ${term.Definition.Name}$msg")
         lastTerminalOrderFulfillment = false
-        sessionData.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         term.Actor ! Terminal.Request(player, pkt)
       case Some(_: Terminal) =>
         log.warn(s"Please Wait until your previous order has been fulfilled, ${player.Name}")
@@ -203,7 +204,7 @@ class SessionTerminalHandlers(
           Future(true)
         }
       },
-      List(sessionData.registerVehicle(vehicle))
+      List(registerVehicle(vehicle))
     )
   }
 
@@ -293,7 +294,7 @@ class SessionTerminalHandlers(
 
   /**
    * Cease all current interactions with proximity-based units.
-   * Pair with `PlayerActionsToCancel`, except when logging out (stopping).
+   * Pair with `actionsToCancel`, except when logging out (stopping).
    * This operations may invoke callback messages.
    * @see `postStop`
    */
@@ -303,7 +304,7 @@ class SessionTerminalHandlers(
 
   /**
    * Cease all current interactions with proximity-based units.
-   * Pair with `PlayerActionsToCancel`, except when logging out (stopping).
+   * Pair with `actionsToCancel`, except when logging out (stopping).
    * This operations may invoke callback messages.
    * @param guid globally unique identifier for a proximity terminal
    * @see `postStop`
@@ -325,5 +326,29 @@ class SessionTerminalHandlers(
     if (usingMedicalTerminal.contains(termGuid)) {
       usingMedicalTerminal = None
     }
+  }
+
+  /**
+   * Construct tasking that adds a completed and registered vehicle into the scene.
+   * Use this function to renew the globally unique identifiers on a vehicle that has already been added to the scene once.
+   * @param vehicle the `Vehicle` object
+   * @see `RegisterVehicleFromSpawnPad`
+   * @return a `TaskBundle` message
+   */
+  private[session] def registerVehicle(vehicle: Vehicle): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
+        private val localVehicle = vehicle
+
+        override def description(): String = s"register a ${localVehicle.Definition.Name}"
+
+        def action(): Future[Any] = Future(true)
+      },
+      List(GUIDTask.registerVehicle(continent.GUID, vehicle))
+    )
+  }
+
+  override protected[support] def actionsToCancel(): Unit = {
+    lastTerminalOrderFulfillment = true
   }
 }

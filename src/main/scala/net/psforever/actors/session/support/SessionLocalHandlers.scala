@@ -5,14 +5,13 @@ import akka.actor.ActorContext
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects._
-import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game._
 import net.psforever.services.Service
 import net.psforever.services.local.LocalResponse
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, Vector3}
 
 class SessionLocalHandlers(
-                            val sessionData: SessionData,
+                            val sessionLogic: SessionLogic,
                             implicit val context: ActorContext
                           ) extends CommonSessionInterfacingFunctionality {
   /**
@@ -33,7 +32,7 @@ class SessionLocalHandlers(
         sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
 
       case LocalResponse.DeployableUIFor(item) =>
-        sessionData.updateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
+        sessionLogic.general.updateDeployableUIElements(avatar.deployables.UpdateUIElement(item))
 
       case LocalResponse.Detonate(dguid, _: BoomerDeployable) =>
         sendResponse(TriggerEffectMessage(dguid, "detonate_boomer"))
@@ -112,10 +111,10 @@ class SessionLocalHandlers(
         sendResponse(HackMessage(unk1=0, targetGuid, guid, progress=0, unk1, HackState.HackCleared, unk2))
 
       case LocalResponse.HackObject(targetGuid, unk1, unk2) =>
-        HackObject(targetGuid, unk1, unk2)
+        sessionLogic.general.hackObject(targetGuid, unk1, unk2)
 
       case LocalResponse.PlanetsideAttribute(targetGuid, attributeType, attributeValue) =>
-        SendPlanetsideAttributeMessage(targetGuid, attributeType, attributeValue)
+        sessionLogic.general.sendPlanetsideAttributeMessage(targetGuid, attributeType, attributeValue)
 
       case LocalResponse.GenericObjectAction(targetGuid, actionNumber) =>
         sendResponse(GenericObjectActionMessage(targetGuid, actionNumber))
@@ -142,8 +141,8 @@ class SessionLocalHandlers(
         sendResponse(TriggerSoundMessage(TriggeredSound.LLUDeconstruct, position, unk=20, volume=0.8000001f))
         sendResponse(ObjectDeleteMessage(lluGuid, unk1=0))
         // If the player was holding the LLU, remove it from their tracked special item slot
-        sessionData.specialItemSlotGuid.collect { case guid if guid == lluGuid =>
-          sessionData.specialItemSlotGuid = None
+        sessionLogic.general.specialItemSlotGuid.collect { case guid if guid == lluGuid =>
+          sessionLogic.general.specialItemSlotGuid = None
           player.Carrying = None
         }
 
@@ -155,13 +154,13 @@ class SessionLocalHandlers(
 
       case LocalResponse.ProximityTerminalEffect(objectGuid, false) =>
         sendResponse(ProximityTerminalUseMessage(Service.defaultPlayerGUID, objectGuid, unk=false))
-        sessionData.terminals.ForgetAllProximityTerminals(objectGuid)
+        sessionLogic.terminals.ForgetAllProximityTerminals(objectGuid)
 
       case LocalResponse.RouterTelepadMessage(msg) =>
         sendResponse(ChatMsg(ChatMessageType.UNK_229, wideContents=false, recipient="", msg, note=None))
 
       case LocalResponse.RouterTelepadTransport(passengerGuid, srcGuid, destGuid) =>
-        sessionData.useRouterTelepadEffect(passengerGuid, srcGuid, destGuid)
+        sessionLogic.general.useRouterTelepadEffect(passengerGuid, srcGuid, destGuid)
 
       case LocalResponse.SendResponse(msg) =>
         sendResponse(msg)
@@ -190,7 +189,7 @@ class SessionLocalHandlers(
         sendResponse(VehicleStateMessage(sguid, unk1=0, pos, orient, vel=None, Some(state), unk3=0, unk4=0, wheel_direction=15, is_decelerating=false, is_cloaked=false))
 
       case LocalResponse.ToggleTeleportSystem(router, systemPlan) =>
-        sessionData.toggleTeleportSystem(router, systemPlan)
+        sessionLogic.general.toggleTeleportSystem(router, systemPlan)
 
       case LocalResponse.TriggerEffect(targetGuid, effect, effectInfo, triggerLocation) =>
         sendResponse(TriggerEffectMessage(targetGuid, effect, effectInfo, triggerLocation))
@@ -235,29 +234,5 @@ class SessionLocalHandlers(
     sendResponse(TriggerEffectMessage("spawn_object_failed_effect", pos, orient))
     sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //make deployable vanish
     sendResponse(ObjectDeleteMessage(guid, deletionType))
-  }
-
-  /**
-   * na
-   * @param targetGuid na
-   * @param unk1 na
-   * @param unk2 na
-   */
-  def HackObject(targetGuid: PlanetSideGUID, unk1: Long, unk2: Long): Unit = {
-    sendResponse(HackMessage(unk1=0, targetGuid, player_guid=Service.defaultPlayerGUID, progress=100, unk1, HackState.Hacked, unk2))
-  }
-
-  /**
-   * Send a PlanetsideAttributeMessage packet to the client
-   * @param targetGuid The target of the attribute
-   * @param attributeType The attribute number
-   * @param attributeValue The attribute value
-   */
-  def SendPlanetsideAttributeMessage(
-                                      targetGuid: PlanetSideGUID,
-                                      attributeType: PlanetsideAttributeEnum,
-                                      attributeValue: Long
-                                    ): Unit = {
-    sendResponse(PlanetsideAttributeMessage(targetGuid, attributeType, attributeValue))
   }
 }
