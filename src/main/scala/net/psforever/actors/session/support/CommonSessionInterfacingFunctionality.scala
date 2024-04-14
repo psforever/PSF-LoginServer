@@ -23,7 +23,7 @@ trait CommonSessionInterfacingFunctionality {
 
   protected def context: ActorContext
 
-  protected def sessionLogic: SessionLogic
+  protected def sessionLogic: SessionData
 
   protected def session: Session = sessionLogic.session
 

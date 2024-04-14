@@ -1,10 +1,11 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.actors.session.support
+package net.psforever.actors.session.normal
 
 import akka.actor.Actor.Receive
-import akka.actor.{ActorContext, ActorRef, typed}
-import net.psforever.actors.net.MiddlewareActor
+import akka.actor.ActorRef
+//
 import net.psforever.actors.session.{AvatarActor, SessionActor}
+import net.psforever.actors.session.support.{ModeLogic, PlayerMode, SessionData, ZoningOperations}
 import net.psforever.objects.TurretDeployable
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.CommonMessages
@@ -27,10 +28,18 @@ import net.psforever.services.teamwork.SquadServiceResponse
 import net.psforever.services.vehicle.VehicleServiceResponse
 import net.psforever.util.Config
 
-class NormalUser(
-                  val middlewareActor: typed.ActorRef[MiddlewareActor.Command],
-                  implicit val context: ActorContext
-                ) extends SessionLogic {
+class NormalModeLogic(data: SessionData) extends ModeLogic {
+  val avatarResponse = new AvatarHandlerLogic(data.avatarResponse)
+  val galaxy = new GalaxyHandlerLogic(data.galaxyResponseHandlers)
+  val general = new GeneralLogic(data.general)
+  val local = new LocalHandlerLogic(data.localResponse)
+  val mountResponse = new MountHandlerLogic(data.mountResponse)
+  val shooting = new WeaponAndProjectileLogic(data.shooting)
+  val squad = new SquadHandlerLogic(data.squad)
+  val terminals = new TerminalHandlerLogic(data.terminals)
+  val vehicles = new VehicleLogic(data.vehicles)
+  val vehicleResponse = new VehicleHandlerLogic(data.vehicleResponseOperations)
+
   def parse(sender: ActorRef): Receive = {
     /* really common messages (very frequently, every life) */
     case packet: PlanetSideGamePacket =>
@@ -40,10 +49,10 @@ class NormalUser(
       avatarResponse.handle(toChannel, guid, reply)
 
     case GalaxyServiceResponse(_, reply) =>
-      galaxyResponseHandlers.handle(reply)
+      galaxy.handle(reply)
 
     case LocalServiceResponse(toChannel, guid, reply) =>
-      localResponse.handle(toChannel, guid, reply)
+      local.handle(toChannel, guid, reply)
 
     case Mountable.MountMessages(tplayer, reply) =>
       mountResponse.handle(tplayer, reply)
@@ -55,81 +64,81 @@ class NormalUser(
       terminals.handle(tplayer, msg, order)
 
     case VehicleServiceResponse(toChannel, guid, reply) =>
-      vehicleResponseOperations.handle(toChannel, guid, reply)
+      vehicleResponse.handle(toChannel, guid, reply)
 
     case SessionActor.PokeClient() =>
-      sendResponse(KeepAliveMessage())
+      data.sendResponse(KeepAliveMessage())
 
     case SessionActor.SendResponse(packet) =>
-      sendResponse(packet)
+      data.sendResponse(packet)
 
     case SessionActor.CharSaved =>
-      general.renewCharSavedTimer(
+      general.ops.renewCharSavedTimer(
         Config.app.game.savedMsg.interruptedByAction.fixed,
         Config.app.game.savedMsg.interruptedByAction.variable
       )
 
     case SessionActor.CharSavedMsg =>
-      general.displayCharSavedMsgThenRenewTimer(
+      general.ops.displayCharSavedMsgThenRenewTimer(
         Config.app.game.savedMsg.renewal.fixed,
         Config.app.game.savedMsg.renewal.variable
       )
 
     /* common messages (maybe once every respawn) */
     case ICS.SpawnPointResponse(response) =>
-      zoning.handleSpawnPointResponse(response)
+      data.zoning.handleSpawnPointResponse(response)
 
     case SessionActor.NewPlayerLoaded(tplayer) =>
-      zoning.spawn.handleNewPlayerLoaded(tplayer)
+      data.zoning.spawn.handleNewPlayerLoaded(tplayer)
 
     case SessionActor.PlayerLoaded(tplayer) =>
-      zoning.spawn.handlePlayerLoaded(tplayer)
+      data.zoning.spawn.handlePlayerLoaded(tplayer)
 
     case Zone.Population.PlayerHasLeft(zone, None) =>
-      log.debug(s"PlayerHasLeft: ${player.Name} does not have a body on ${zone.id}")
+      data.log.debug(s"PlayerHasLeft: ${data.player.Name} does not have a body on ${zone.id}")
 
     case Zone.Population.PlayerHasLeft(zone, Some(tplayer)) =>
       if (tplayer.isAlive) {
-        log.info(s"${tplayer.Name} has left zone ${zone.id}")
+        data.log.info(s"${tplayer.Name} has left zone ${zone.id}")
       }
 
     case Zone.Population.PlayerCanNotSpawn(zone, tplayer) =>
-      log.warn(s"${tplayer.Name} can not spawn in zone ${zone.id}; why?")
+      data.log.warn(s"${tplayer.Name} can not spawn in zone ${zone.id}; why?")
 
     case Zone.Population.PlayerAlreadySpawned(zone, tplayer) =>
-      log.warn(s"${tplayer.Name} is already spawned on zone ${zone.id}; is this a clerical error?")
+      data.log.warn(s"${tplayer.Name} is already spawned on zone ${zone.id}; is this a clerical error?")
 
     case Zone.Vehicle.CanNotSpawn(zone, vehicle, reason) =>
-      log.warn(
-        s"${player.Name}'s ${vehicle.Definition.Name} can not spawn in ${zone.id} because $reason"
+      data.log.warn(
+        s"${data.player.Name}'s ${vehicle.Definition.Name} can not spawn in ${zone.id} because $reason"
       )
 
     case Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
-      log.warn(
-        s"${player.Name}'s ${vehicle.Definition.Name} can not deconstruct in ${zone.id} because $reason"
+      data.log.warn(
+        s"${data.player.Name}'s ${vehicle.Definition.Name} can not deconstruct in ${zone.id} because $reason"
       )
 
     case ICS.ZoneResponse(Some(zone)) =>
-      zoning.handleZoneResponse(zone)
+      data.zoning.handleZoneResponse(zone)
 
     /* uncommon messages (once a session) */
     case ICS.ZonesResponse(zones) =>
-      zoning.handleZonesResponse(zones)
+      data.zoning.handleZonesResponse(zones)
 
     case SessionActor.SetAvatar(avatar) =>
       general.handleSetAvatar(avatar)
 
     case PlayerToken.LoginInfo(name, Zone.Nowhere, _) =>
-      zoning.spawn.handleLoginInfoNowhere(name, sender)
+      data.zoning.spawn.handleLoginInfoNowhere(name, sender)
 
     case PlayerToken.LoginInfo(name, inZone, optionalSavedData) =>
-      zoning.spawn.handleLoginInfoSomewhere(name, inZone, optionalSavedData, sender)
+      data.zoning.spawn.handleLoginInfoSomewhere(name, inZone, optionalSavedData, sender)
 
     case PlayerToken.RestoreInfo(playerName, inZone, pos) =>
-      zoning.spawn.handleLoginInfoRestore(playerName, inZone, pos, sender)
+      data.zoning.spawn.handleLoginInfoRestore(playerName, inZone, pos, sender)
 
     case PlayerToken.CanNotLogin(playerName, reason) =>
-      zoning.spawn.handleLoginCanNot(playerName, reason)
+      data.zoning.spawn.handleLoginCanNot(playerName, reason)
 
     case ReceiveAccountData(account) =>
       general.handleReceiveAccountData(account)
@@ -138,35 +147,35 @@ class NormalUser(
       general.handleAvatarResponse(avatar)
 
     case AvatarActor.AvatarLoginResponse(avatar) =>
-      zoning.spawn.avatarLoginResponse(avatar)
+      data.zoning.spawn.avatarLoginResponse(avatar)
 
     case SessionActor.SetCurrentAvatar(tplayer, max_attempts, attempt) =>
-      zoning.spawn.ReadyToSetCurrentAvatar(tplayer, max_attempts, attempt)
+      data.zoning.spawn.ReadyToSetCurrentAvatar(tplayer, max_attempts, attempt)
 
     case SessionActor.SetConnectionState(state) =>
-      connectionState = state
+      data.connectionState = state
 
     case SessionActor.AvatarLoadingSync(state) =>
-      zoning.spawn.handleAvatarLoadingSync(state)
+      data.zoning.spawn.handleAvatarLoadingSync(state)
 
     /* uncommon messages (utility, or once in a while) */
     case ZoningOperations.AvatarAwardMessageBundle(pkts, delay) =>
-      zoning.spawn.performAvatarAwardMessageDelivery(pkts, delay)
+      data.zoning.spawn.performAvatarAwardMessageDelivery(pkts, delay)
 
     case CommonMessages.ProgressEvent(delta, finishedAction, stepAction, tick) =>
-      general.handleProgressChange(delta, finishedAction, stepAction, tick)
+      general.ops.handleProgressChange(delta, finishedAction, stepAction, tick)
 
     case CommonMessages.Progress(rate, finishedAction, stepAction) =>
-      general.setupProgressChange(rate, finishedAction, stepAction)
+      general.ops.setupProgressChange(rate, finishedAction, stepAction)
 
     case CavernRotationService.CavernRotationServiceKey.Listing(listings) =>
-      listings.head ! SendCavernRotationUpdates(context.self)
+      listings.head ! SendCavernRotationUpdates(data.context.self)
 
     case LookupResult("propertyOverrideManager", endpoint) =>
-      zoning.propertyOverrideManagerLoadOverrides(endpoint)
+      data.zoning.propertyOverrideManagerLoadOverrides(endpoint)
 
     case SessionActor.UpdateIgnoredPlayers(msg) =>
-      galaxyResponseHandlers.handleUpdateIgnoredPlayers(msg)
+      galaxy.handleUpdateIgnoredPlayers(msg)
 
     case SessionActor.UseCooldownRenewed(definition, _) =>
       general.handleUseCooldownRenew(definition)
@@ -182,28 +191,28 @@ class NormalUser(
 
     /* rare messages */
     case ProximityUnit.StopAction(term, _) =>
-      terminals.LocalStopUsingProximityUnit(term)
+      terminals.ops.LocalStopUsingProximityUnit(term)
 
     case SessionActor.Suicide() =>
-      general.suicide(player)
+      general.ops.suicide(data.player)
 
     case SessionActor.Recall() =>
-      zoning.handleRecall()
+      data.zoning.handleRecall()
 
     case SessionActor.InstantAction() =>
-      zoning.handleInstantAction()
+      data.zoning.handleInstantAction()
 
     case SessionActor.Quit() =>
-      zoning.handleQuit()
+      data.zoning.handleQuit()
 
     case ICS.DroppodLaunchDenial(errorCode, _) =>
-      zoning.handleDroppodLaunchDenial(errorCode)
+      data.zoning.handleDroppodLaunchDenial(errorCode)
 
     case ICS.DroppodLaunchConfirmation(zone, position) =>
-      zoning.LoadZoneLaunchDroppod(zone, position)
+      data.zoning.LoadZoneLaunchDroppod(zone, position)
 
     case SessionActor.PlayerFailedToLoad(tplayer) =>
-      failWithError(s"${tplayer.Name} failed to load anywhere")
+      data.failWithError(s"${tplayer.Name} failed to load anywhere")
 
     /* csr only */
     case SessionActor.SetSpeed(speed) =>
@@ -219,10 +228,10 @@ class NormalUser(
       general.handleKick(player, time)
 
     case SessionActor.SetZone(zoneId, position) =>
-      zoning.handleSetZone(zoneId, position)
+      data.zoning.handleSetZone(zoneId, position)
 
     case SessionActor.SetPosition(position) =>
-      zoning.spawn.handleSetPosition(position)
+      data.zoning.spawn.handleSetPosition(position)
 
     case SessionActor.SetSilenced(silenced) =>
       general.handleSilenced(silenced)
@@ -235,19 +244,19 @@ class NormalUser(
     case _: Zone.Vehicle.HasDespawned => ;
 
     case Zone.Deployable.IsDismissed(obj: TurretDeployable) => //only if target deployable was never fully introduced
-      TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(continent.GUID, obj))
+      TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(data.continent.GUID, obj))
 
     case Zone.Deployable.IsDismissed(obj) => //only if target deployable was never fully introduced
-      TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, obj))
+      TaskWorkflow.execute(GUIDTask.unregisterObject(data.continent.GUID, obj))
 
     case msg: Containable.ItemPutInSlot =>
-      log.debug(s"ItemPutInSlot: $msg")
+      data.log.debug(s"ItemPutInSlot: $msg")
 
     case msg: Containable.CanNotPutItemInSlot =>
-      log.debug(s"CanNotPutItemInSlot: $msg")
+      data.log.debug(s"CanNotPutItemInSlot: $msg")
 
     case default =>
-      log.warn(s"Invalid packet class received: $default from $sender")
+      data.log.warn(s"Invalid packet class received: $default from $sender")
   }
 
   private def handleGamePkt: PlanetSideGamePacket => Unit = {
@@ -255,10 +264,10 @@ class NormalUser(
       general.handleConnectToWorldRequest(packet)
 
     case packet: MountVehicleCargoMsg =>
-      vehicles.handleMountVehicleCargo(packet)
+      mountResponse.handleMountVehicleCargo(packet)
 
     case packet: DismountVehicleCargoMsg =>
-      vehicles.handleDismountVehicleCargo(packet)
+      mountResponse.handleDismountVehicleCargo(packet)
 
     case packet: CharacterCreateRequestMessage =>
       general.handleCharacterCreateRequest(packet)
@@ -267,10 +276,10 @@ class NormalUser(
       general.handleCharacterRequest(packet)
 
     case _: KeepAliveMessage =>
-      keepAliveFunc()
+      data.keepAliveFunc()
 
     case packet: BeginZoningMessage =>
-      zoning.handleBeginZoning(packet)
+      data.zoning.handleBeginZoning(packet)
 
     case packet: PlayerStateMessageUpstream =>
       general.handlePlayerStateUpstream(packet)
@@ -294,10 +303,10 @@ class NormalUser(
       shooting.handleLongRangeProjectileState(packet)
 
     case packet: ReleaseAvatarRequestMessage =>
-      zoning.spawn.handleReleaseAvatarRequest(packet)
+      data.zoning.spawn.handleReleaseAvatarRequest(packet)
 
     case packet: SpawnRequestMessage =>
-      zoning.spawn.handleSpawnRequest(packet)
+      data.zoning.spawn.handleSpawnRequest(packet)
 
     case packet: ChatMsg =>
       general.handleChat(packet)
@@ -384,7 +393,7 @@ class NormalUser(
       terminals.handleItemTransaction(packet)
 
     case packet: FavoritesRequest =>
-      general.handleFavoritesRequest(packet)
+      terminals.handleFavoritesRequest(packet)
 
     case packet: WeaponDelayFireMessage =>
       shooting.handleWeaponDelayFire(packet)
@@ -414,13 +423,13 @@ class NormalUser(
       general.handleAvatarFirstTimeEvent(packet)
 
     case packet: WarpgateRequest =>
-      zoning.handleWarpgateRequest(packet)
+      data.zoning.handleWarpgateRequest(packet)
 
     case packet: MountVehicleMsg =>
-      vehicles.handleMountVehicle(packet)
+      mountResponse.handleMountVehicle(packet)
 
     case packet: DismountVehicleMsg =>
-      vehicles.handleDismountVehicle(packet)
+      mountResponse.handleDismountVehicle(packet)
 
     case packet: DeployRequestMessage =>
       vehicles.handleDeployRequest(packet)
@@ -465,7 +474,7 @@ class NormalUser(
       general.handleFriendRequest(packet)
 
     case packet: DroppodLaunchRequestMessage =>
-      zoning.handleDroppodLaunchRequest(packet)
+      data.zoning.handleDroppodLaunchRequest(packet)
 
     case packet: InvalidTerrainMessage =>
       general.handleInvalidTerrain(packet)
@@ -491,6 +500,12 @@ class NormalUser(
     case _: OutfitRequest => ()
 
     case pkt =>
-      log.warn(s"Unhandled GamePacket $pkt")
+      data.log.warn(s"Unhandled GamePacket $pkt")
+  }
+}
+
+case object NormalMode extends PlayerMode {
+  def setup(data: SessionData): ModeLogic = {
+    new NormalModeLogic(data)
   }
 }

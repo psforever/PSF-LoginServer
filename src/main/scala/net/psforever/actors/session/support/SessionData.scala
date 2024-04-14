@@ -1,14 +1,9 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.Actor.Receive
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, typed}
-import net.psforever.objects.zones.blockmap.{SectorGroup, SectorPopulation}
-import net.psforever.services.ServiceManager
-import net.psforever.services.ServiceManager.Lookup
-
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -27,7 +22,9 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones._
-import net.psforever.objects.zones.blockmap.{BlockMap, BlockMapEntity}
+import net.psforever.objects.zones.blockmap.{BlockMap, BlockMapEntity, SectorGroup, SectorPopulation}
+import net.psforever.services.ServiceManager
+import net.psforever.services.ServiceManager.Lookup
 import net.psforever.packet._
 import net.psforever.packet.game._
 import net.psforever.services.account.AccountPersistenceService
@@ -37,7 +34,7 @@ import net.psforever.services.{Service, InterstellarClusterService => ICS}
 import net.psforever.types._
 import net.psforever.util.Config
 
-object SessionLogic {
+object SessionData {
   //noinspection ScalaUnusedSymbol
   private def NoTurnCounterYet(guid: PlanetSideGUID): Unit = { }
 
@@ -60,11 +57,10 @@ object SessionLogic {
   }
 }
 
-trait SessionLogic {
-  def middlewareActor: typed.ActorRef[MiddlewareActor.Command]
-
-  implicit def context: ActorContext
-
+class SessionData(
+                   val middlewareActor: typed.ActorRef[MiddlewareActor.Command],
+                   implicit val context: ActorContext
+                 ) {
   /**
    * Hardwire an implicit `sender` to be the same as `context.self` of the `SessionActor` actor class
    * for which this support class was initialized.
@@ -80,19 +76,19 @@ trait SessionLogic {
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = context.spawnAnonymous(AvatarActor(context.self))
   private val chatActor: typed.ActorRef[ChatActor.Command] = context.spawnAnonymous(ChatActor(context.self, avatarActor))
 
-  private[support] val log = org.log4s.getLogger
-  private[support] var theSession: Session = Session()
-  private[support] var accountIntermediary: ActorRef = Default.Actor
-  private[support] var accountPersistence: ActorRef = Default.Actor
-  private[support] var galaxyService: ActorRef = Default.Actor
-  private[support] var squadService: ActorRef = Default.Actor
-  private[support] var cluster: typed.ActorRef[ICS.Command] = Default.typed.Actor
+  private[session] val log = org.log4s.getLogger
+  private[session] var theSession: Session = Session()
+  private[session] var accountIntermediary: ActorRef = Default.Actor
+  private[session] var accountPersistence: ActorRef = Default.Actor
+  private[session] var galaxyService: ActorRef = Default.Actor
+  private[session] var squadService: ActorRef = Default.Actor
+  private[session] var cluster: typed.ActorRef[ICS.Command] = Default.typed.Actor
   private[session] var connectionState: Int = 25
-  private[support] var persistFunc: () => Unit = noPersistence
-  private[support] var persist: () => Unit = updatePersistenceOnly
+  private[session] var persistFunc: () => Unit = noPersistence
+  private[session] var persist: () => Unit = updatePersistenceOnly
   private[session] var keepAliveFunc: () => Unit = keepAlivePersistenceInitial
-  private[support] var turnCounterFunc: PlanetSideGUID => Unit = SessionLogic.NoTurnCounterYet
-  private[support] val oldRefsMap: mutable.HashMap[PlanetSideGUID, String] = new mutable.HashMap[PlanetSideGUID, String]()
+  private[session] var turnCounterFunc: PlanetSideGUID => Unit = SessionData.NoTurnCounterYet
+  private[session] val oldRefsMap: mutable.HashMap[PlanetSideGUID, String] = new mutable.HashMap[PlanetSideGUID, String]()
   private var contextSafeEntity: PlanetSideGUID = PlanetSideGUID(0)
 
   val general: GeneralOperations =
@@ -128,7 +124,7 @@ trait SessionLogic {
    * updated when an upstream packet arrives;
    * allow to be a little stale for a short while
    */
-  private[support] var localSector: SectorPopulation = SectorGroup(Nil)
+  private[session] var localSector: SectorPopulation = SectorGroup(Nil)
 
   def session: Session = theSession
 
@@ -159,7 +155,7 @@ trait SessionLogic {
       case LookupResult("galaxy", endpoint) =>
         galaxyService = endpoint
         buildDependentOperationsForGalaxy(endpoint)
-        buildDependentOperations(endpoint, cluster)
+        buildDependentOperationsForZoning(endpoint, cluster)
         true
       case LookupResult("squad", endpoint) =>
         squadService = endpoint
@@ -167,7 +163,7 @@ trait SessionLogic {
         true
       case ICS.InterstellarClusterServiceKey.Listing(listings) =>
         cluster = listings.head
-        buildDependentOperations(galaxyService, cluster)
+        buildDependentOperationsForZoning(galaxyService, cluster)
         true
 
       case _ =>
@@ -182,7 +178,7 @@ trait SessionLogic {
     }
   }
 
-  def buildDependentOperations(galaxyActor: ActorRef, clusterActor: typed.ActorRef[ICS.Command]): Unit = {
+  def buildDependentOperationsForZoning(galaxyActor: ActorRef, clusterActor: typed.ActorRef[ICS.Command]): Unit = {
     if (zoningOpt.isEmpty && galaxyActor != Default.Actor && clusterActor != Default.typed.Actor) {
       zoningOpt = Some(new ZoningOperations(sessionLogic=this, avatarActor, galaxyActor, clusterActor, context))
     }
@@ -202,10 +198,6 @@ trait SessionLogic {
       squadResponseOpt.nonEmpty &&
       zoningOpt.nonEmpty
   }
-
-  /* message processing  */
-
-  def parse(sender: ActorRef): Receive
 
   /* support functions */
 
@@ -487,21 +479,21 @@ trait SessionLogic {
         (continent.GUID(player.VehicleSeated) match {
           case Some(v : Vehicle) =>
             v.Weapons.toList.collect {
-              case (_, slot : EquipmentSlot) if slot.Equipment.nonEmpty => SessionLogic.updateOldRefsMap(slot.Equipment.get)
+              case (_, slot : EquipmentSlot) if slot.Equipment.nonEmpty => SessionData.updateOldRefsMap(slot.Equipment.get)
             }.flatten ++
-              SessionLogic.updateOldRefsMap(v.Inventory)
+              SessionData.updateOldRefsMap(v.Inventory)
           case _ =>
             Map.empty[PlanetSideGUID, String]
         }) ++
           (general.accessedContainer match {
-            case Some(cont) => SessionLogic.updateOldRefsMap(cont.Inventory)
+            case Some(cont) => SessionData.updateOldRefsMap(cont.Inventory)
             case None => Map.empty[PlanetSideGUID, String]
           }) ++
           player.Holsters().toList.collect {
-            case slot if slot.Equipment.nonEmpty => SessionLogic.updateOldRefsMap(slot.Equipment.get)
+            case slot if slot.Equipment.nonEmpty => SessionData.updateOldRefsMap(slot.Equipment.get)
           }.flatten ++
-          SessionLogic.updateOldRefsMap(player.Inventory) ++
-          SessionLogic.updateOldRefsMap(player.avatar.locker.Inventory)
+          SessionData.updateOldRefsMap(player.Inventory) ++
+          SessionData.updateOldRefsMap(player.avatar.locker.Inventory)
       )
     }
   }

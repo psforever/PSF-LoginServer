@@ -3,181 +3,41 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.objects.guid.GUIDTask
-import net.psforever.objects.sourcing.AmenitySource
-import net.psforever.objects.vital.TerminalUsedActivity
+import net.psforever.packet.game.FavoritesRequest
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 //
 import net.psforever.actors.session.AvatarActor
-import net.psforever.login.WorldSession.{BuyNewEquipmentPutInInventory, SellEquipmentFromInventory}
 import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
-import net.psforever.objects.guid.{StraightforwardTask, TaskBundle, TaskWorkflow}
+import net.psforever.objects.guid.{StraightforwardTask, TaskBundle}
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.equipment.EffectTarget
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.{ProximityDefinition, ProximityUnit, Terminal}
-import net.psforever.packet.game.{ItemTransactionMessage, ItemTransactionResultMessage,ProximityTerminalUseMessage, UnuseItemMessage}
-import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
+import net.psforever.packet.game.{ItemTransactionMessage,ProximityTerminalUseMessage}
+import net.psforever.types.PlanetSideGUID
+
+trait TerminalHandlerFunctions extends CommonSessionInterfacingFunctionality {
+  def ops: SessionTerminalHandlers
+
+  def handleItemTransaction(pkt: ItemTransactionMessage): Unit
+
+  def handleProximityTerminalUse(pkt: ProximityTerminalUseMessage): Unit
+
+  def handleFavoritesRequest(pkt: FavoritesRequest): Unit
+
+  def handle(tplayer: Player, msg: ItemTransactionMessage, order: Terminal.Exchange): Unit
+}
 
 class SessionTerminalHandlers(
-                               val sessionLogic: SessionLogic,
-                               avatarActor: typed.ActorRef[AvatarActor.Command],
+                               val sessionLogic: SessionData,
+                               val avatarActor: typed.ActorRef[AvatarActor.Command],
                                implicit val context: ActorContext
                              ) extends CommonSessionInterfacingFunctionality {
-  private[support] var lastTerminalOrderFulfillment: Boolean = true
-  private[support] var usingMedicalTerminal: Option[PlanetSideGUID] = None
-
-  /* packets */
-
-  def handleItemTransaction(pkt: ItemTransactionMessage): Unit = {
-    val ItemTransactionMessage(terminalGuid, transactionType, _, itemName, _, _) = pkt
-    continent.GUID(terminalGuid) match {
-      case Some(term: Terminal) if lastTerminalOrderFulfillment =>
-        val msg: String = if (itemName.nonEmpty) s" of $itemName" else ""
-        log.info(s"${player.Name} is submitting an order - a $transactionType from a ${term.Definition.Name}$msg")
-        lastTerminalOrderFulfillment = false
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
-        term.Actor ! Terminal.Request(player, pkt)
-      case Some(_: Terminal) =>
-        log.warn(s"Please Wait until your previous order has been fulfilled, ${player.Name}")
-      case Some(obj) =>
-        log.error(s"ItemTransaction: ${obj.Definition.Name} is not a terminal, ${player.Name}")
-      case _ =>
-        log.error(s"ItemTransaction: entity with guid=${terminalGuid.guid} does not exist, ${player.Name}")
-    }
-  }
-
-  def handleProximityTerminalUse(pkt: ProximityTerminalUseMessage): Unit = {
-    val ProximityTerminalUseMessage(_, objectGuid, _) = pkt
-    continent.GUID(objectGuid) match {
-      case Some(obj: Terminal with ProximityUnit) =>
-        HandleProximityTerminalUse(obj)
-      case Some(obj) =>
-        log.warn(s"ProximityTerminalUse: ${obj.Definition.Name} guid=${objectGuid.guid} is not ready to implement proximity effects")
-      case None =>
-        log.error(s"ProximityTerminalUse: ${player.Name} can not find an object with guid ${objectGuid.guid}")
-    }
-  }
-
-  /* response handler */
-
-  /**
-   * na
-   * @param tplayer na
-   * @param msg     na
-   * @param order   na
-   */
-  def handle(tplayer: Player, msg: ItemTransactionMessage, order: Terminal.Exchange): Unit = {
-    order match {
-      case Terminal.BuyEquipment(item)
-        if tplayer.avatar.purchaseCooldown(item.Definition).nonEmpty =>
-        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
-        lastTerminalOrderFulfillment = true
-
-      case Terminal.BuyEquipment(item) =>
-        avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
-        TaskWorkflow.execute(BuyNewEquipmentPutInInventory(
-          continent.GUID(tplayer.VehicleSeated) match {
-            case Some(v: Vehicle) => v
-            case _ => player
-          },
-          tplayer,
-          msg.terminal_guid
-        )(item))
-
-      case Terminal.SellEquipment() =>
-        SellEquipmentFromInventory(tplayer, tplayer, msg.terminal_guid)(Player.FreeHandSlot)
-
-      case Terminal.LearnCertification(cert) =>
-        avatarActor ! AvatarActor.LearnCertification(msg.terminal_guid, cert)
-        lastTerminalOrderFulfillment = true
-
-      case Terminal.SellCertification(cert) =>
-        avatarActor ! AvatarActor.SellCertification(msg.terminal_guid, cert)
-        lastTerminalOrderFulfillment = true
-
-      case Terminal.LearnImplant(implant) =>
-        avatarActor ! AvatarActor.LearnImplant(msg.terminal_guid, implant)
-        lastTerminalOrderFulfillment = true
-
-      case Terminal.SellImplant(implant) =>
-        avatarActor ! AvatarActor.SellImplant(msg.terminal_guid, implant)
-        lastTerminalOrderFulfillment = true
-
-      case Terminal.BuyVehicle(vehicle, _, _)
-        if tplayer.avatar.purchaseCooldown(vehicle.Definition).nonEmpty || tplayer.spectator =>
-        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
-        lastTerminalOrderFulfillment = true
-
-      case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
-        continent.map.terminalToSpawnPad
-          .find { case (termid, _) => termid == msg.terminal_guid.guid }
-          .map { case (a: Int, b: Int) => (continent.GUID(a), continent.GUID(b)) }
-          .collect { case (Some(term: Terminal), Some(pad: VehicleSpawnPad)) =>
-            avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
-            vehicle.Faction = tplayer.Faction
-            vehicle.Position = pad.Position
-            vehicle.Orientation = pad.Orientation + Vector3.z(pad.Definition.VehicleCreationZOrientOffset)
-            //default loadout, weapons
-            val vWeapons = vehicle.Weapons
-            weapons.foreach { entry =>
-              vWeapons.get(entry.start) match {
-                case Some(slot) =>
-                  entry.obj.Faction = tplayer.Faction
-                  slot.Equipment = None
-                  slot.Equipment = entry.obj
-                case None =>
-                  log.warn(
-                    s"BuyVehicle: ${player.Name} tries to apply default loadout to $vehicle on spawn, but can not find a mounted weapon for ${entry.start}"
-                  )
-              }
-            }
-            //default loadout, trunk
-            val vTrunk = vehicle.Trunk
-            vTrunk.Clear()
-            trunk.foreach { entry =>
-              entry.obj.Faction = tplayer.Faction
-              vTrunk.InsertQuickly(entry.start, entry.obj)
-            }
-            TaskWorkflow.execute(registerVehicleFromSpawnPad(vehicle, pad, term))
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = true))
-            if (GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
-              sendResponse(UnuseItemMessage(player.GUID, msg.terminal_guid))
-            }
-            player.LogActivity(TerminalUsedActivity(AmenitySource(term), msg.transaction_type))
-          }
-          .orElse {
-            log.error(
-              s"${tplayer.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${msg.terminal_guid} to accept it"
-            )
-            sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
-            None
-          }
-        lastTerminalOrderFulfillment = true
-
-      case Terminal.NoDeal() if msg != null =>
-        val transaction = msg.transaction_type
-        log.warn(s"NoDeal: ${tplayer.Name} made a request but the terminal rejected the ${transaction.toString} order")
-        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, transaction, success = false))
-        lastTerminalOrderFulfillment = true
-
-      case _ =>
-        val terminal = msg.terminal_guid.guid
-        continent.GUID(terminal) match {
-          case Some(term: Terminal) =>
-            log.warn(s"NoDeal?: ${tplayer.Name} made a request but the ${term.Definition.Name}#$terminal rejected the missing order")
-          case Some(_) =>
-            log.warn(s"NoDeal?: ${tplayer.Name} made a request to a non-terminal entity#$terminal")
-          case None =>
-            log.warn(s"NoDeal?: ${tplayer.Name} made a request to a missing entity#$terminal")
-        }
-        lastTerminalOrderFulfillment = true
-    }
-  }
-
-  /* support */
+  private[session] var lastTerminalOrderFulfillment: Boolean = true
+  private[session] var usingMedicalTerminal: Option[PlanetSideGUID] = None
 
   /**
    * Construct tasking that adds a completed and registered vehicle into the scene.
@@ -189,7 +49,7 @@ class SessionTerminalHandlers(
    * @see `RegisterVehicle`
    * @return a `TaskBundle` message
    */
-  private[session] def registerVehicleFromSpawnPad(vehicle: Vehicle, pad: VehicleSpawnPad, terminal: Terminal): TaskBundle = {
+  def registerVehicleFromSpawnPad(vehicle: Vehicle, pad: VehicleSpawnPad, terminal: Terminal): TaskBundle = {
     TaskBundle(
       new StraightforwardTask() {
         private val localVehicle  = vehicle
@@ -335,7 +195,7 @@ class SessionTerminalHandlers(
    * @see `RegisterVehicleFromSpawnPad`
    * @return a `TaskBundle` message
    */
-  private[session] def registerVehicle(vehicle: Vehicle): TaskBundle = {
+  def registerVehicle(vehicle: Vehicle): TaskBundle = {
     TaskBundle(
       new StraightforwardTask() {
         private val localVehicle = vehicle
@@ -350,5 +210,6 @@ class SessionTerminalHandlers(
 
   override protected[support] def actionsToCancel(): Unit = {
     lastTerminalOrderFulfillment = true
+    usingMedicalTerminal = None
   }
 }

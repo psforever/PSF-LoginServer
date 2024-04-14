@@ -2,19 +2,19 @@
 package net.psforever.actors.session
 
 import akka.actor.{Actor, Cancellable, MDCContextAware, typed}
-import net.psforever.actors.session.support.NormalUser
 import org.joda.time.LocalDateTime
 import org.log4s.MDC
+import scala.collection.mutable
 //
 import net.psforever.actors.net.MiddlewareActor
+import net.psforever.actors.session.normal.NormalMode
+import net.psforever.actors.session.support.{ModeLogic, PlayerMode, SessionData}
 import net.psforever.objects.{Default, Player}
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.definition.BasicDefinition
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.packet.game.{FriendsResponse, KeepAliveMessage}
 import net.psforever.types.Vector3
-
-import scala.collection.mutable
 
 object SessionActor {
   sealed trait Command
@@ -68,29 +68,34 @@ object SessionActor {
   final case object CharSaved extends Command
 
   private[session] case object CharSavedMsg extends Command
+
+  final case class SetMode(mode: PlayerMode) extends Command
 }
 
 class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
-    extends Actor
+  extends Actor
     with MDCContextAware {
   MDC("connectionId") = connectionId
 
   private var clientKeepAlive: Cancellable = Default.Cancellable
   private[this] val buffer: mutable.ListBuffer[Any] = new mutable.ListBuffer[Any]()
-  private[this] val logic = new NormalUser(middlewareActor, context)
+  private[this] val data = new SessionData(middlewareActor, context)
+  private[this] var mode: PlayerMode = NormalMode
+  private[this] var logic: ModeLogic = _
 
   override def postStop(): Unit = {
     clientKeepAlive.cancel()
-    logic.stop()
+    data.stop()
   }
 
   def receive: Receive = startup
 
   private def startup: Receive = {
-    case msg if !logic.assignEventBus(msg) =>
+    case msg if !data.assignEventBus(msg) =>
       buffer.addOne(msg)
-    case _ if logic.whenAllEventBusesLoaded() =>
+    case _ if data.whenAllEventBusesLoaded() =>
       context.become(inTheGame)
+      logic = mode.setup(data)
       startHeartbeat()
       buffer.foreach { self.tell(_, self) } //we forget the original sender, shouldn't be doing callbacks at this point
       buffer.clear()
@@ -110,9 +115,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   private def inTheGame: Receive = {
-    /* used for the game's heartbeat*/
+    /* used for the game's heartbeat */
     case SessionActor.PokeClient() =>
       middlewareActor ! MiddlewareActor.Send(KeepAliveMessage())
+
+    case SessionActor.SetMode(newMode) =>
+      mode = newMode
+      logic = mode.setup(data)
 
     case packet =>
       logic.parse(sender())(packet)

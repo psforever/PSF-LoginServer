@@ -73,7 +73,7 @@ import net.psforever.util.{Config, DefinitionUtil}
 import net.psforever.zones.Zones
 
 object ZoningOperations {
-  private[support] final case class AvatarAwardMessageBundle(
+  private[session] final case class AvatarAwardMessageBundle(
                                                               bundle: Iterable[Iterable[PlanetSideGamePacket]],
                                                               delay: Long
                                                             )
@@ -106,24 +106,26 @@ object ZoningOperations {
 }
 
 class ZoningOperations(
-                        val sessionLogic: SessionLogic,
+                        val sessionLogic: SessionData,
                         avatarActor: typed.ActorRef[AvatarActor.Command],
                         galaxyService: ActorRef,
                         cluster: typed.ActorRef[ICS.Command],
                         implicit val context: ActorContext
                       ) extends CommonSessionInterfacingFunctionality {
-  private var zoningType: Zoning.Method = Zoning.Method.None
-  private var zoningChatMessageType: ChatMessageType = ChatMessageType.CMT_QUIT
-  private[support] var zoningStatus: Zoning.Status = Zoning.Status.None
-  private var zoningCounter: Int = 0
-  private var instantActionFallbackDestination: Option[Zoning.InstantAction.Located] = None
+  private[session] var zoningStatus: Zoning.Status = Zoning.Status.None
+  /** a flag for the zone having finished loading during zoning
+   * `None` when no zone is loaded
+   * `Some(true)` when a zone has successfully loaded
+   * `Some(false)` when the loading process has failed or was executed but did not complete for some reason
+   */
+  private[session] var zoneLoaded: Option[Boolean] = None
   /**
    * used during zone transfers to maintain reference to seated vehicle (which does not yet exist in the new zone)
    * used during intrazone gate transfers, but not in a way distinct from prior zone transfer procedures
    * should only be set during the transient period when moving between one spawn point and the next
    * leaving set prior to a subsequent transfers may cause unstable vehicle associations, with memory leak potential
    */
-  private[support] var interstellarFerry: Option[Vehicle] = None
+  private[session] var interstellarFerry: Option[Vehicle] = None
   /**
    * used during zone transfers for cleanup to refer to the vehicle that instigated a transfer
    * "top level" is the carrier in a carrier/ferried association or a projected carrier/(ferried carrier)/ferried association
@@ -131,19 +133,17 @@ class ZoningOperations(
    * the old-zone unique identifier for the carrier
    * no harm should come from leaving the field set to an old unique identifier value after the transfer period
    */
-  private[support] var interstellarFerryTopLevelGUID: Option[PlanetSideGUID] = None
-  private var loadConfZone: Boolean = false
-  /** a flag for the zone having finished loading during zoning
-   * `None` when no zone is loaded
-   * `Some(true)` when a zone has successfully loaded
-   * `Some(false)` when the loading process has failed or was executed but did not complete for some reason
-   */
-  private[support] var zoneLoaded: Option[Boolean] = None
+  private[session] var interstellarFerryTopLevelGUID: Option[PlanetSideGUID] = None
   /** a flag that forces the current zone to reload itself during a zoning operation */
-  private[support] var zoneReload: Boolean = false
-  private var zoningTimer: Cancellable = Default.Cancellable
-
+  private[session] var zoneReload: Boolean = false
   private[session] val spawn: SpawnOperations = new SpawnOperations()
+
+  private var loadConfZone: Boolean = false
+  private var instantActionFallbackDestination: Option[Zoning.InstantAction.Located] = None
+  private var zoningType: Zoning.Method = Zoning.Method.None
+  private var zoningChatMessageType: ChatMessageType = ChatMessageType.CMT_QUIT
+  private var zoningCounter: Int = 0
+  private var zoningTimer: Cancellable = Default.Cancellable
 
   /* packets */
 
@@ -181,7 +181,7 @@ class ZoningOperations(
     }
   }
 
-  def handleDroppodLaunchRequest(pkt: DroppodLaunchRequestMessage)(implicit context: ActorContext): Unit = {
+  def handleDroppodLaunchRequest(pkt: DroppodLaunchRequestMessage): Unit = {
     val DroppodLaunchRequestMessage(info, _) = pkt
     cluster ! ICS.DroppodLaunchRequest(
       info.zone_number,
@@ -1752,15 +1752,15 @@ class ZoningOperations(
   /* nested class - spawn operations */
 
   class SpawnOperations() {
-    private[support] var deadState: DeadState.Value = DeadState.Dead
-    private[support] var loginChatMessage: mutable.ListBuffer[String] = new mutable.ListBuffer[String]()
-    private[support] var amsSpawnPoints: List[SpawnPoint] = Nil
-    private[support] var noSpawnPointHere: Boolean = false
-    private[support] var setupAvatarFunc: () => Unit = AvatarCreate
-    private[support] var setCurrentAvatarFunc: Player => Unit = SetCurrentAvatarNormally
-    private[support] var nextSpawnPoint: Option[SpawnPoint] = None
-    private[support] var interimUngunnedVehicle: Option[PlanetSideGUID] = None
-    private[support] var interimUngunnedVehicleSeat: Option[Int] = None
+    private[session] var deadState: DeadState.Value = DeadState.Dead
+    private[session] var loginChatMessage: mutable.ListBuffer[String] = new mutable.ListBuffer[String]()
+    private[session] var amsSpawnPoints: List[SpawnPoint] = Nil
+    private[session] var noSpawnPointHere: Boolean = false
+    private[session] var setupAvatarFunc: () => Unit = AvatarCreate
+    private[session] var setCurrentAvatarFunc: Player => Unit = SetCurrentAvatarNormally
+    private[session] var nextSpawnPoint: Option[SpawnPoint] = None
+    private[session] var interimUngunnedVehicle: Option[PlanetSideGUID] = None
+    private[session] var interimUngunnedVehicleSeat: Option[Int] = None
     /** Upstream message counter<br>
      * Checks for server acknowledgement of the following messages in the following conditions:<br>
      * `PlayerStateMessageUpstream` (infantry)<br>
@@ -1769,14 +1769,14 @@ class ZoningOperations(
      * `KeepAliveMessage` (any passenger mount that is not the driver)<br>
      * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second
      */
-    private[support] var upstreamMessageCount: Int = 0
-    private[support] var shiftPosition: Option[Vector3] = None
-    private[support] var shiftOrientation: Option[Vector3] = None
-    private[support] var drawDeloyableIcon: PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
-    private[support] var populateAvatarAwardRibbonsFunc: (Int, Long) => Unit = setupAvatarAwardMessageDelivery
-    private[support] var setAvatar: Boolean = false
-    private[support] var reviveTimer: Cancellable = Default.Cancellable
-    private[support] var respawnTimer: Cancellable = Default.Cancellable
+    private[session] var upstreamMessageCount: Int = 0
+    private[session] var shiftPosition: Option[Vector3] = None
+    private[session] var shiftOrientation: Option[Vector3] = None
+    private[session] var drawDeloyableIcon: PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
+    private[session] var populateAvatarAwardRibbonsFunc: (Int, Long) => Unit = setupAvatarAwardMessageDelivery
+    private[session] var setAvatar: Boolean = false
+    private[session] var reviveTimer: Cancellable = Default.Cancellable
+    private[session] var respawnTimer: Cancellable = Default.Cancellable
 
     private var statisticsPacketFunc: () => Unit = loginAvatarStatisticsFields
 
@@ -1790,7 +1790,7 @@ class ZoningOperations(
       HandleReleaseAvatar(player, continent)
     }
 
-    def handleSpawnRequest(pkt: SpawnRequestMessage)(implicit context: ActorContext): Unit = {
+    def handleSpawnRequest(pkt: SpawnRequestMessage): Unit = {
       val SpawnRequestMessage(_, spawnGroup, _, _, zoneNumber) = pkt
       log.info(s"${player.Name} on ${continent.id} wants to respawn in zone #$zoneNumber")
       if (deadState != DeadState.RespawnTime) {
@@ -3565,6 +3565,17 @@ class ZoningOperations(
       nextSpawnPoint.foreach { tube =>
         sendResponse(PlayerStateShiftMessage(ShiftState(0, tube.Position, tube.Orientation.z)))
         nextSpawnPoint = None
+      }
+    }
+
+    def randomRespawn(time: FiniteDuration = 300.seconds): Unit = {
+      reviveTimer = context.system.scheduler.scheduleOnce(time) {
+        cluster ! ICS.GetRandomSpawnPoint(
+          Zones.sanctuaryZoneNumber(player.Faction),
+          player.Faction,
+          Seq(SpawnGroup.Sanctuary),
+          context.self
+        )
       }
     }
   }
