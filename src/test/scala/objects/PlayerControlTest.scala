@@ -986,9 +986,9 @@ class PlayerControlInteractWithDeathTest extends ActorTest {
   player1.LogActivity(SpawningActivity(PlayerSource(player1), 0, None))
 
   "PlayerControl" should {
-    "take continuous damage if player steps into a pool of death" in {
+    "kill the player if that player steps into a pool of death" in {
       assert(player1.Health == 100) //alive
-      probe.expectNoMessage(5.seconds)
+      probe.expectNoMessage(6.seconds)
       player1.zoneInteractions() //trigger
       assert(player1.Health == 0) //ded
     }

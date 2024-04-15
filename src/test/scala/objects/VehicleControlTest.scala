@@ -17,9 +17,10 @@ import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.environment.interaction.{EscapeFromEnvironment, InteractingWithEnvironment, RespondsToZoneEnvironment}
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vehicles.VehicleLockState
 import net.psforever.objects.vehicles.control.VehicleControl
-import net.psforever.objects.vital.{ShieldCharge, Vitality}
+import net.psforever.objects.vital.{ShieldCharge, SpawningActivity, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
@@ -822,7 +823,7 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
   val player1 =
     Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val guid = new NumberPoolHub(new MaxNumberSource(15))
-  val pool = Pool(EnvironmentAttribute.Death, DeepSquare(-1, 10, 10, 0, 0))
+  val pool = Pool(EnvironmentAttribute.Death, DeepSquare(5, 10, 10, 0, 0))
   val zone = new Zone(
     id = "test-zone",
     new ZoneMap(name = "test-map") {
@@ -853,15 +854,17 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
   val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1, avatarActor), "player1-control")
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-control")
+  vehicle.LogActivity(SpawningActivity(VehicleSource(vehicle), 0, None))
 
   "VehicleControl" should {
     "take continuous damage if vehicle drives into a pool of death" in {
       assert(vehicle.Health > 0) //alive
       assert(player1.Health == 100) //alive
-      vehicle.Position = Vector3(5,5,-3) //right in the pool
+      vehicle.Position = Vector3(5,5,1) //right in the pool
+      probe.expectNoMessage(5 seconds)
       vehicle.zoneInteractions() //trigger
 
-      probe.receiveOne(2 seconds) //wait until player1's implants deinitialize
+      probe.receiveOne(2 seconds)
       assert(vehicle.Health == 0) //ded
       assert(player1.Health == 0) //ded
     }

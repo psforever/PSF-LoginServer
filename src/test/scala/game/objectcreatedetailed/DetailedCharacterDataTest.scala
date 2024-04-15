@@ -1655,7 +1655,10 @@ class DetailedCharacterDataTest extends Specification {
               List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(81), 0, DetailedAmmoBoxData(8, 1)))
             )
           ),
-          InventoryItemData(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedLockerContainerData(8)),
+          InventoryItemData(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedLockerContainerData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            None
+          )),
           InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, DetailedAmmoBoxData(8, 50)),
           InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(84), 9, DetailedAmmoBoxData(8, 50)),
           InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(85), 12, DetailedAmmoBoxData(8, 50)),
@@ -1837,7 +1840,10 @@ class DetailedCharacterDataTest extends Specification {
               List(InternalSlot(ObjectClass.melee_ammo, PlanetSideGUID(81), 0, DetailedAmmoBoxData(8, 1)))
             )
           ),
-          InventoryItemData(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedLockerContainerData(8)),
+          InventoryItemData(ObjectClass.locker_container, PlanetSideGUID(82), 5, DetailedLockerContainerData(
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            None
+          )),
           InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(83), 6, DetailedAmmoBoxData(8, 50)),
           InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(84), 9, DetailedAmmoBoxData(8, 50)),
           InventoryItemData(ObjectClass.bullet_9mm, PlanetSideGUID(85), 12, DetailedAmmoBoxData(8, 50)),
