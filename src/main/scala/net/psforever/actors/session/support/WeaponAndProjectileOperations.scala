@@ -102,11 +102,14 @@ class WeaponAndProjectileOperations(
           if (tool.Magazine <= 0) { //safety: enforce ammunition depletion
             prefire -= weaponGUID
             EmptyMagazine(weaponGUID, tool)
+            projectiles(projectileGUID.guid - Projectile.baseUID) = None
+            (None, None)
           } else if (!player.isAlive) { //proper internal accounting, but no projectile
             prefire += weaponGUID
             tool.Discharge()
             projectiles(projectileGUID.guid - Projectile.baseUID) = None
             shotsWhileDead += 1
+            (None, None)
           } else { //shooting
             if (
               avatar.stamina > 0 &&
@@ -121,8 +124,8 @@ class WeaponAndProjectileOperations(
             tool.Discharge()
             prefire += weaponGUID
             addShotsFired(tool.Definition.ObjectId, tool.AmmoSlot.Chamber)
+            (o, Some(tool))
           }
-          (o, Some(tool))
       }
       collectedTools.headOption.getOrElse((None, None))
     } else {
