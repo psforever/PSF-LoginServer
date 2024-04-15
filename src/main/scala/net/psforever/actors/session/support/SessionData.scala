@@ -2208,6 +2208,8 @@ class SessionData(
         // auto kick players damaging spectators
         if (obj.spectator && obj != player) {
           administrativeKick(player)
+        } else if (!player.isAlive) {
+
         } else {
           obj.Actor ! Vitality.Damage(func)
         }
