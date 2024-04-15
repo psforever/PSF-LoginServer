@@ -6,6 +6,7 @@ import net.psforever.objects.avatar.scoring.EquipmentStat
 import net.psforever.objects.equipment.EffectTarget
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.DamageableEntity
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.turret.Automation
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, SourceUniqueness}
@@ -326,6 +327,7 @@ trait AutomatedTurretBehavior {
     AutomatedTurretObject.Target.orElse {
       val turretPosition = AutomatedTurretObject.Position
       val turretGuid = AutomatedTurretObject.GUID
+      val side = AutomatedTurretObject.WhichSide
       val weaponGuid = AutomatedTurretObject.Weapons.values.head.Equipment.get.GUID
       val radius = autoStats.get.ranges.trigger
       val validation = autoStats.get.checks.validation
@@ -337,6 +339,7 @@ trait AutomatedTurretBehavior {
         .collect { case target
           if !target.Destroyed &&
             target.Faction != faction &&
+            Sidedness.equals(target.WhichSide, side) &&
             AutomatedTurretBehavior.shapedDistanceCheckAgainstValue(autoStats, target.Position, turretPosition, radius, result = -1) &&
             validation.exists(func => func(target)) &&
             disqualifiers.takeWhile(func => func(target)).isEmpty =>
@@ -650,7 +653,7 @@ trait AutomatedTurretBehavior {
    * @param cause information about the damaging incident that caused the turret to consider retaliation
    * @return something the turret can potentially shoot at
    */
-  protected def attemptRetaliation(target: Target, cause: DamageResult): Option[Target] = {
+  protected def attemptRetaliation(target: PlanetSideServerObject with Vitality, cause: DamageResult): Option[PlanetSideServerObject with Vitality] = {
     val unique = SourceUniqueness(target)
     if (
       automaticOperation &&
@@ -931,7 +934,7 @@ object AutomatedTurretBehavior {
    * @return entity that caused the damage
    * @see `Vitality`
    */
-  def getAttackVectorFromCause(zone: Zone, cause: DamageResult): Option[PlanetSideServerObject with Vitality] = {
+  def getAttackVectorFromCause(zone: Zone, cause: DamageResult): Option[AutomatedTurret.Target] = {
     import net.psforever.objects.sourcing._
     cause
       .interaction
@@ -962,7 +965,7 @@ object AutomatedTurretBehavior {
       }
       .flatten
       .collect {
-        case out: PlanetSideServerObject with Vitality => out
+        case out: AutomatedTurret.Target => out
       }
   }
 
