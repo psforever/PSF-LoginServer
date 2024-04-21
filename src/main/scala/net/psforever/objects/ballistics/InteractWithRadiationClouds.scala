@@ -29,7 +29,7 @@ class InteractWithRadiationClouds(
     */
   private var skipTargets: List[PlanetSideGUID] = List()
 
-  def Type = RadiationInteraction
+  def Type: ZoneInteractionType = RadiationInteraction
 
   /**
     * Wander into a radiation cloud and suffer the consequences.
@@ -40,12 +40,16 @@ class InteractWithRadiationClouds(
     target match {
       case t: Vitality =>
         val position = target.Position
+        val targetList = List(target)
         //collect all projectiles in sector/range
         val projectiles = sector
           .projectileList
           .filter { cloud =>
-            val radius = cloud.Definition.DamageRadius
-            cloud.Definition.radiation_cloud && Zone.distanceCheck(target, cloud, radius * radius)
+            val definition = cloud.Definition
+            val radius = definition.DamageRadius
+            definition.radiation_cloud &&
+              Zone.allOnSameSide(cloud, definition, targetList).nonEmpty &&
+              Zone.distanceCheck(target, cloud, radius * radius)
           }
           .distinct
         val notSkipped = projectiles.filterNot { t => skipTargets.contains(t.GUID) }

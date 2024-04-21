@@ -200,7 +200,11 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
       case b: Building =>
         buildings.list.size < buildings.addTo(b).size
       case a: Amenity =>
-        amenities.list.size < amenities.addTo(a).size
+        val added = amenities.list.size < amenities.addTo(a).size
+        if (added) {
+          a.Definition.environmentField.foreach(field => environment.addTo(field.create(a)))
+        }
+        added
       case e: PieceOfEnvironment =>
         environment.list.size < environment.addTo(e).size
       case p: Projectile =>

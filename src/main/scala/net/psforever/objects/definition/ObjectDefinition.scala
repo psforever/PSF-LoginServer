@@ -20,12 +20,22 @@ import net.psforever.types.OxygenState
   * So long as it is an `ObjectCreatePacket`, those methods can be called correctly for a game object of the desired type.
   * @param objectId the object's identifier number
   */
-abstract class ObjectDefinition(private val objectId: Int) extends BasicDefinition {
+abstract class ObjectDefinition(private val objectId: Int)
+  extends BasicDefinition {
   var registerAs: String = "generic"
 
   /** a data converter for this type of object */
   protected var packet: PacketConverter = new ObjectCreateConverter[PlanetSideGameObject]() {}
   Name = "object_definition"
+
+  private var useRadius: Float = 0f
+
+  def UseRadius: Float = useRadius
+
+  def UseRadius_=(radius: Float): Float = {
+    useRadius = radius
+    UseRadius
+  }
 
   /**
     * Get the conversion object.

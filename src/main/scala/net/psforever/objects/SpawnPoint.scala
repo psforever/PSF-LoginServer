@@ -162,17 +162,9 @@ object SpawnPoint {
 }
 
 trait SpawnPointDefinition {
-  private var radius: Float                                                          = 0f //m
   private var delay: Long                                                            = 0  //s
   private var noWarp: Option[mutable.Set[VehicleDefinition]]                         = None
   private var spawningFunc: (SpawnPoint, PlanetSideGameObject) => (Vector3, Vector3) = SpawnPoint.Default
-
-  def UseRadius: Float = radius
-
-  def UseRadius_=(rad: Float): Float = {
-    radius = rad
-    UseRadius
-  }
 
   def Delay: Long = delay
 

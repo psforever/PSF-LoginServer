@@ -683,7 +683,6 @@ object CarrierBehavior {
                                    hold: Cargo,
                                    bailType: BailType.Value
                                  ): Unit = {
-    cargo.MountedIn = None
     hold.unmount(cargo, bailType)
     val event = VehicleCargoMountActivity(VehicleSource(carrier), VehicleSource(cargo), carrier.Zone.Number)
     cargo.LogActivity(event)

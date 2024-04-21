@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.structures
 
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.interior.{Sidedness, TraditionalInteriorAware}
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageAndResistance
@@ -25,7 +26,8 @@ abstract class Amenity
   extends PlanetSideServerObject
     with Vitality
     with StandardResistanceProfile
-    with BlockMapEntity {
+    with BlockMapEntity
+    with TraditionalInteriorAware {
   private[this] val log = org.log4s.getLogger("Amenity")
 
   /** what other entity has authority over this amenity; usually either a building or a vehicle */
@@ -33,6 +35,8 @@ abstract class Amenity
 
   /** if the entity exists at a specific position relative to the owner's position */
   private var offset: Option[Vector3] = None
+
+  WhichSide = Sidedness.InsideOf
 
   def Faction: PlanetSideEmpire.Value = Owner.Faction
 

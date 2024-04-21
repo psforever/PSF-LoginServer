@@ -247,7 +247,7 @@ object ChatMessageType extends Enum[ChatMessageType] {
   case object CMT_ADD_VANUMODULE         extends ChatMessageType // /moduleadd
   case object CMT_REMOVE_VANUMODULE      extends ChatMessageType // /moduleremove OR /modulerm
   case object CMT_DEBUG_MASSIVE          extends ChatMessageType // /debugmassive
-  case object CMT_WARP_TO_NEXT_BILLBOARD extends ChatMessageType // ???
+  case object CMT_WARP_TO_NEXT_BILLBOARD extends ChatMessageType // The "Next" button on the /debugmassive UI produces this message.
   case object UNK_222                    extends ChatMessageType // "CTF Flag stolen"
                                                                  // Plays a trumpet-like sound and displays the message: "<Base Type> <Base Name> has spawned a LLU"
                                                                  // "It must be taken to <Base Type> <Base Name>'s Control Console within 15 minutes or the hack will fail!"

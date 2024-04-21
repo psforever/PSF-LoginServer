@@ -3,6 +3,8 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.objects.definition.ProjectileDefinition
+import net.psforever.objects.serverobject.doors.InteriorDoorPassage
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.turret.auto.{AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.zones.Zoning
 import net.psforever.objects.serverobject.turret.VanuSentry
@@ -303,11 +305,11 @@ private[support] class WeaponAndProjectileOperations(
         //find target(s)
         (hit_info match {
           case Some(hitInfo) =>
-            val hitPos     = hitInfo.hit_pos
+            val hitPos = hitInfo.hit_pos
             sessionData.validObject(hitInfo.hitobject_guid, decorator = "Hit/hitInfo") match {
               case _ if projectile.profile == GlobalDefinitions.flail_projectile =>
                 val radius  = projectile.profile.DamageRadius * projectile.profile.DamageRadius
-                val targets = Zone.findAllTargets(hitPos)(continent, player, projectile.profile)
+                val targets = Zone.findAllTargets(continent, player, hitPos, projectile.profile)
                   .filter { target =>
                     Vector3.DistanceSquared(target.Position, hitPos) <= radius
                   }
@@ -361,7 +363,6 @@ private[support] class WeaponAndProjectileOperations(
     FindProjectileEntry(projectile_guid) match {
       case Some(projectile) =>
         val profile = projectile.profile
-        projectile.Position = explosion_pos
         projectile.Velocity = projectile_vel
         val (resolution1, resolution2) = profile.Aggravated match {
           case Some(_) if profile.ProjectileDamageTypes.contains(DamageType.Aggravated) =>
@@ -372,7 +373,7 @@ private[support] class WeaponAndProjectileOperations(
         //direct_victim_uid
         sessionData.validObject(direct_victim_uid, decorator = "SplashHit/direct_victim") match {
           case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-            CheckForHitPositionDiscrepancy(projectile_guid, target.Position, target)
+            CheckForHitPositionDiscrepancy(projectile_guid, explosion_pos, target)
             ResolveProjectileInteraction(projectile, resolution1, target, target.Position).collect { resprojectile =>
               addShotsLanded(resprojectile.cause.attribution, shots = 1)
               sessionData.handleDealingDamage(target, resprojectile)
@@ -563,6 +564,7 @@ private[support] class WeaponAndProjectileOperations(
               ProjectileQuality.Normal
           }
           val qualityprojectile = projectile.quality(initialQuality)
+          qualityprojectile.WhichSide = player.WhichSide
           projectiles(projectileIndex) = Some(qualityprojectile)
           if (projectile_info.ExistsOnRemoteClients) {
             log.trace(
@@ -607,11 +609,13 @@ private[support] class WeaponAndProjectileOperations(
           if (tool.Magazine <= 0) { //safety: enforce ammunition depletion
             prefire -= weaponGUID
             EmptyMagazine(weaponGUID, tool)
+            (o, Some(tool))
           } else if (!player.isAlive) { //proper internal accounting, but no projectile
             prefire += weaponGUID
             tool.Discharge()
             projectiles(projectileGUID.guid - Projectile.baseUID) = None
             shotsWhileDead += 1
+            (None, None)
           } else { //shooting
             if (
               avatar.stamina > 0 &&
@@ -626,8 +630,8 @@ private[support] class WeaponAndProjectileOperations(
             tool.Discharge()
             prefire += weaponGUID
             addShotsFired(tool.Definition.ObjectId, tool.AmmoSlot.Chamber)
+            (o, Some(tool))
           }
-          (o, Some(tool))
       }
       collectedTools.headOption.getOrElse((None, None))
     } else {
@@ -1048,19 +1052,22 @@ private[support] class WeaponAndProjectileOperations(
     GlobalDefinitions.getDamageProxy(projectile, hitPos) match {
       case Nil =>
         Nil
+      case list if list.isEmpty =>
+        Nil
       case list =>
         HandleDamageProxySetupLittleBuddy(list, hitPos)
+        UpdateProjectileSidednessAfterHit(projectile, hitPos)
+        val projectileSide = projectile.WhichSide
         list.flatMap { proxy =>
           if (proxy.profile.ExistsOnRemoteClients) {
             proxy.Position = hitPos
+            proxy.WhichSide = projectileSide
             continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
             Nil
           } else if (proxy.tool_def == GlobalDefinitions.maelstrom) {
             //server-side maelstrom grenade target selection
             val radius = proxy.profile.LashRadius * proxy.profile.LashRadius
-            val targets = continent.blockMap
-              .sector(hitPos, proxy.profile.LashRadius)
-              .livePlayerList
+            val targets = Zone.findAllTargets(continent, hitPos, proxy.profile.LashRadius, { _.livePlayerList })
               .filter { target =>
                 Vector3.DistanceSquared(target.Position, hitPos) <= radius
               }
@@ -1496,6 +1503,88 @@ private[support] class WeaponAndProjectileOperations(
           sessionData.handleDealingDamage(target, resprojectile)
         }
     }
+  }
+
+  private def UpdateProjectileSidednessAfterHit(projectile: Projectile, hitPosition: Vector3): Unit = {
+    val origin = projectile.Position
+    val distance = Vector3.Magnitude(hitPosition - origin)
+    continent.blockMap
+      .sector(hitPosition, distance)
+      .environmentList
+      .collect { case o: InteriorDoorPassage =>
+        val door = o.door
+        val intersectTest = quickLineSphereIntersectionPoints(
+          origin,
+          hitPosition,
+          door.Position,
+          door.Definition.UseRadius + 0.1f
+        )
+        (door, intersectTest)
+      }
+      .collect { case (door, intersectionTest) if intersectionTest.nonEmpty =>
+        (door, Vector3.Magnitude(hitPosition - door.Position), intersectionTest)
+      }
+      .minByOption { case (_, dist, _) => dist }
+      .foreach { case (door, _, intersects) =>
+        val strictly = if (Vector3.DotProduct(Vector3.Unit(hitPosition - door.Position), door.Outwards) > 0f) {
+          Sidedness.OutsideOf
+        } else {
+          Sidedness.InsideOf
+        }
+        projectile.WhichSide = if (intersects.size == 1) {
+          Sidedness.InBetweenSides(door, strictly)
+        } else {
+          strictly
+        }
+      }
+  }
+
+  /**
+   * Does a line segment line intersect with a sphere?<br>
+   * This most likely belongs in `Geometry` or `GeometryForm` or somehow in association with the `\objects\geometry\` package.
+   * @param start first point of the line segment
+   * @param end second point of the line segment
+   * @param center center of the sphere
+   * @param radius radius of the sphere
+   * @return list of all points of intersection, if any
+   * @see `Vector3.DistanceSquared`
+   * @see `Vector3.MagnitudeSquared`
+   */
+  private def quickLineSphereIntersectionPoints(
+                                                 start: Vector3,
+                                                 end: Vector3,
+                                                 center: Vector3,
+                                                 radius: Float
+                                               ): Iterable[Vector3] = {
+    /*
+    Algorithm adapted from code found on https://paulbourke.net/geometry/circlesphere/index.html#linesphere,
+     because I kept messing up proper substitution of the line formula and the circle formula into the quadratic equation.
+     */
+    val Vector3(cx, cy, cz) = center
+    val Vector3(sx, sy, sz) = start
+    val vector = end - start
+    //speed our way through a quadratic equation
+    val (a, b) = {
+      val Vector3(dx, dy, dz) = vector
+      (
+        dx * dx + dy * dy + dz * dz,
+        2f * (dx * (sx - cx) + dy * (sy - cy) + dz * (sz - cz))
+      )
+    }
+    val c = Vector3.MagnitudeSquared(center) + Vector3.MagnitudeSquared(start) - 2f * (cx * sx + cy * sy + cz * sz) - radius * radius
+    val result = b * b - 4 * a * c
+    if (result < 0f) {
+      //negative, no intersection
+      Seq()
+    } else if (result < 0.00001f) {
+      //zero-ish, one intersection point
+      Seq(start - vector * (b / (2f * a)))
+    } else {
+      //positive, two intersection points
+      val sqrt = math.sqrt(result).toFloat
+      val endStart = vector / (2f * a)
+      Seq(start + endStart * (sqrt - b), start + endStart * (b + sqrt) * -1f)
+    }.filter(p => Vector3.DistanceSquared(start, p) <= a)
   }
 
   override protected[session] def stop(): Unit = {
