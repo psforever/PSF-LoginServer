@@ -1,4 +1,4 @@
-// Copyright (c) 2023 PSForever
+// Copyright (c) 2024 PSForever
 package net.psforever.packet.game
 
 import net.psforever.packet.GamePacketOpcode.Type
@@ -139,13 +139,13 @@ object OutfitMembershipRequest extends Marshallable[OutfitMembershipRequest] {
     type Type = Value
 
     val Create: RequestType.Value = Value(0)
-    val Form: RequestType.Value = Value(1)
-    val Unk2: RequestType.Value = Value(2)
+    val Form:   RequestType.Value = Value(1)
+    val Unk2:   RequestType.Value = Value(2)
     val Accept: RequestType.Value = Value(3)
     val Reject: RequestType.Value = Value(4)
     val Cancel: RequestType.Value = Value(5)
-    val Unk6: RequestType.Value = Value(6) // 6 and 7 seen as failed decodes, validity unknown
-    val Unk7: RequestType.Value = Value(7)
+    val Unk6:   RequestType.Value = Value(6) // 6 and 7 seen as failed decodes, validity unknown
+    val Unk7:   RequestType.Value = Value(7)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }

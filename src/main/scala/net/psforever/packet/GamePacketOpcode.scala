@@ -471,11 +471,11 @@ object GamePacketOpcode extends Enumeration {
       case 0x8c => game.OutfitMembershipRequest.decode
       case 0x8d => game.OutfitMembershipResponse.decode
       case 0x8e => game.OutfitRequest.decode
-      case 0x8f => noDecoder(OutfitEvent)
+      case 0x8f => game.OutfitEvent.decode
 
       // OPCODES 0x90-9f
       case 0x90 => noDecoder(OutfitMemberEvent)
-      case 0x91 => noDecoder(OutfitMemberUpdate)
+      case 0x91 => game.OutfitMemberUpdate.decode
       case 0x92 => game.PlanetsideStringAttributeMessage.decode
       case 0x93 => game.DataChallengeMessage.decode
       case 0x94 => game.DataChallengeMessageResp.decode
