@@ -1,5 +1,5 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.actors.session.normal
+package net.psforever.actors.session.spectator
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.AvatarActor
@@ -198,7 +198,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         log.error(
           s"VehicleState: ${player.Name} should not be dispatching this kind of packet from vehicle ${vehicle_guid.guid} when not the driver (actually, seat $index)"
         )
-      case _ => ;
+      case _ => ()
     }
     if (player.death_by == -1) {
       sessionLogic.kickedByAdministration()
@@ -213,27 +213,16 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
       case Some(mount: Mountable) => (o, mount.PassengerInSeat(player))
       case _                      => (None, None)
     }) match {
-      case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ;
+      case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ()
       case _ =>
         sessionLogic.persist()
         sessionLogic.turnCounterFunc(player.GUID)
     }
     //the majority of the following check retrieves information to determine if we are in control of the child
     tools.find { _.GUID == object_guid } match {
-      case None =>
-      //todo: old warning; this state is problematic, but can trigger in otherwise valid instances
-      //log.warn(
-      //  s"ChildObjectState: ${player.Name} is using a different controllable agent than entity ${object_guid.guid}"
-      //)
-      case Some(_) =>
-        //TODO set tool orientation?
-        player.Orientation = Vector3(0f, pitch, yaw)
-        continent.VehicleEvents ! VehicleServiceMessage(
-          continent.id,
-          VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw)
-        )
+      case None => ()
+      case Some(_) => player.Orientation = Vector3(0f, pitch, yaw)
     }
-    //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
     if (player.death_by == -1) {
       sessionLogic.kickedByAdministration()
     }
@@ -277,39 +266,22 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
       if (vehicle == player.VehicleSeated) {
         continent.GUID(vehicle_guid) match {
           case Some(obj: Vehicle) =>
-            log.info(s"${player.Name} is requesting a deployment change for ${obj.Definition.Name} - $deploy_state")
-            obj.Actor ! Deployment.TryDeploymentChange(deploy_state)
-
-          case _ =>
-            log.error(s"DeployRequest: ${player.Name} can not find vehicle $vehicle_guid")
+            if (obj.DeploymentState == DriveState.Deployed) {
+              obj.Actor ! Deployment.TryDeploymentChange(deploy_state)
+            }
+          case _ => ()
             avatarActor ! AvatarActor.SetVehicle(None)
         }
-      } else {
-        log.warn(s"${player.Name} must be mounted to request a deployment change")
       }
-    } else {
-      log.warn(s"DeployRequest: ${player.Name} does not own the deploying $vehicle_guid object")
     }
   }
 
   /* messages */
 
-  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
-    if (state == DriveState.Deploying) {
-      log.trace(s"DeployRequest: $obj transitioning to deploy state")
-    } else if (state == DriveState.Deployed) {
-      log.trace(s"DeployRequest: $obj has been Deployed")
-    } else {
-      CanNotChangeDeployment(obj, state, "incorrect deploy state")
-    }
-  }
+  def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = { /* intentionally blank */ }
 
   def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
-    if (state == DriveState.Undeploying) {
-      log.trace(s"DeployRequest: $obj transitioning to undeploy state")
-    } else if (state == DriveState.Mobile) {
-      log.trace(s"DeployRequest: $obj is Mobile")
-    } else {
+    if (state != DriveState.Undeploying && state != DriveState.Mobile) {
       CanNotChangeDeployment(obj, state, "incorrect undeploy state")
     }
   }

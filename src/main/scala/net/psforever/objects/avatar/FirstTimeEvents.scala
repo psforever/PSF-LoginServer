@@ -463,4 +463,9 @@ object FirstTimeEvents {
     "xpe_th_flail",
     "xpe_th_bfr"
   )
+
+  val All: Set[String] = NC.All ++ TR.All ++ VS.All ++
+    Standard.All ++ Cavern.All ++
+    Maps ++ Monoliths ++ Gingerman ++ Sled ++ Snowman ++ Charlie ++ BattleRanks ++ CommandRanks ++
+    Training ++ OldTraining ++ Generic
 }

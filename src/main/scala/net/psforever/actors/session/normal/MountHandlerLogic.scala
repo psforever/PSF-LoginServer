@@ -23,10 +23,14 @@ import net.psforever.types.{BailType, ChatMessageType, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration._
 
-class MountHandlerLogic(val ops: SessionMountHandlers) extends MountHandlerFunctions {
-  def sessionLogic: SessionData = ops.sessionLogic
+object MountHandlerLogic {
+  def apply(ops: SessionMountHandlers): MountHandlerLogic = {
+    new MountHandlerLogic(ops, ops.context)
+  }
+}
 
-  implicit val context: ActorContext = ops.context
+class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: ActorContext) extends MountHandlerFunctions {
+  def sessionLogic: SessionData = ops.sessionLogic
 
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
 
@@ -442,7 +446,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers) extends MountHandlerFunct
    * @param obj the mountable object
    * @param seatNum the mount into which the player is mounting
    */
-  def MountingAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
+  private def MountingAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
     val playerGuid: PlanetSideGUID = tplayer.GUID
     val objGuid: PlanetSideGUID    = obj.GUID
     sessionLogic.actionsToCancel()
@@ -461,7 +465,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers) extends MountHandlerFunct
    * @param obj the mountable object
    * @param seatNum the mount out of which which the player is disembarking
    */
-  def DismountVehicleAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
+  private def DismountVehicleAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
     DismountAction(tplayer, obj, seatNum)
     //until vehicles maintain synchronized momentum without a driver
     obj match {
@@ -498,7 +502,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers) extends MountHandlerFunct
    * @param obj the mountable object
    * @param seatNum the mount out of which which the player is disembarking
    */
-  def DismountAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
+  private def DismountAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
     val playerGuid: PlanetSideGUID = tplayer.GUID
     tplayer.ContributionFrom(obj)
     sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive

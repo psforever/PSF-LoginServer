@@ -69,7 +69,7 @@ object AvatarConverter {
       obj.avatar.basic,
       CommonFieldData(
         obj.Faction,
-        bops = false,
+        bops = obj.spectator,
         alt_model_flag,
         v1 = false,
         None,

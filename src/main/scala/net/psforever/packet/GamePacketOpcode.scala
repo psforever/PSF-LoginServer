@@ -489,14 +489,14 @@ object GamePacketOpcode extends Enumeration {
       case 0x9b => noDecoder(SyncMessage)
       case 0x9c => game.DebugDrawMessage.decode
       case 0x9d => noDecoder(SoulMarkMessage)
-      case 0x9e => noDecoder(UplinkPositionEvent)
+      case 0x9e => game.UplinkPositionEvent.decode
       case 0x9f => game.HotSpotUpdateMessage.decode
 
       // OPCODES 0xa0-af
       case 0xa0 => game.BuildingInfoUpdateMessage.decode
       case 0xa1 => game.FireHintMessage.decode
-      case 0xa2 => noDecoder(UplinkRequest)
-      case 0xa3 => noDecoder(UplinkResponse)
+      case 0xa2 => game.UplinkRequest.decode
+      case 0xa3 => game.UplinkResponse.decode
       case 0xa4 => game.WarpgateRequest.decode
       case 0xa5 => noDecoder(WarpgateResponse)
       case 0xa6 => game.DamageWithPositionMessage.decode

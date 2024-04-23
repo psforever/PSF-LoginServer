@@ -1,10 +1,19 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.actors.session.normal
+package net.psforever.actors.session.spectator
 
 import akka.actor.Actor.Receive
 import akka.actor.ActorRef
-import net.psforever.actors.session.support.{GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
-import net.psforever.packet.game.UplinkRequest
+import net.psforever.actors.session.support.{AvatarHandlerFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
+import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.avatar.{BattleRank, CommandRank, DeployableToolbox, FirstTimeEvents, Implant, ProgressDecoration, Shortcut => AvatarShortcut}
+import net.psforever.objects.serverobject.ServerObject
+import net.psforever.objects.{GlobalDefinitions, Player, Session, SimpleItem, Vehicle}
+import net.psforever.packet.PlanetSidePacket
+import net.psforever.packet.game.{ObjectCreateDetailedMessage, ObjectDeleteMessage}
+import net.psforever.packet.game.objectcreate.{ObjectClass, ObjectCreateMessageParent, RibbonBars}
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.teamwork.{SquadAction, SquadServiceMessage}
+import net.psforever.types.{CapacitorStateType, ChatMessageType, ExoSuitType, MeritCommendation, SquadRequestType}
 //
 import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.session.support.{ModeLogic, PlayerMode, SessionData, ZoningOperations}
@@ -17,7 +26,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{AIDamage, ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarGrenadeStateMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BeginZoningMessage, BindPlayerMessage, BugReportMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, ChildObjectStateMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DeployRequestMessage, DismountVehicleCargoMsg, DismountVehicleMsg, DisplayedAwardMessage, DropItemMessage, DroppodLaunchRequestMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FavoritesRequest, FrameVehicleStateMessage, FriendsRequest, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, HitMessage, InvalidTerrainMessage, ItemTransactionMessage, KeepAliveMessage, LashMessage, LongRangeProjectileInfoMessage, LootItemMessage, MountVehicleCargoMsg, MountVehicleMsg, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitRequest, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, ProjectileStateMessage, ProximityTerminalUseMessage, ReleaseAvatarRequestMessage, ReloadMessage, RequestDestroyMessage, SetChatFilterMessage, SpawnRequestMessage, SplashHitMessage, SquadDefinitionActionMessage, SquadMembershipRequest, SquadWaypointRequest, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, VehicleStateMessage, VehicleSubStateMessage, VoiceHostInfo, VoiceHostRequest, WarpgateRequest, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage, ZipLineMessage}
+import net.psforever.packet.game.{AIDamage, ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarGrenadeStateMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BeginZoningMessage, BindPlayerMessage, BugReportMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, ChildObjectStateMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DeployRequestMessage, DismountVehicleCargoMsg, DismountVehicleMsg, DisplayedAwardMessage, DropItemMessage, DroppodLaunchRequestMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FavoritesRequest, FrameVehicleStateMessage, FriendsRequest, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, HitMessage, InvalidTerrainMessage, ItemTransactionMessage, KeepAliveMessage, LashMessage, LongRangeProjectileInfoMessage, LootItemMessage, MountVehicleCargoMsg, MountVehicleMsg, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitRequest, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, ProjectileStateMessage, ProximityTerminalUseMessage, ReleaseAvatarRequestMessage, ReloadMessage, RequestDestroyMessage, SetChatFilterMessage, SpawnRequestMessage, SplashHitMessage, SquadDefinitionActionMessage, SquadMembershipRequest, SquadWaypointRequest, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UplinkRequest, UseItemMessage, VehicleStateMessage, VehicleSubStateMessage, VoiceHostInfo, VoiceHostRequest, WarpgateRequest, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage, ZipLineMessage}
 import net.psforever.services.{InterstellarClusterService => ICS}
 import net.psforever.services.CavernRotationService
 import net.psforever.services.CavernRotationService.SendCavernRotationUpdates
@@ -28,11 +37,10 @@ import net.psforever.services.galaxy.GalaxyServiceResponse
 import net.psforever.services.local.LocalServiceResponse
 import net.psforever.services.teamwork.SquadServiceResponse
 import net.psforever.services.vehicle.VehicleServiceResponse
-import net.psforever.util.Config
 
-class NormalModeLogic(data: SessionData) extends ModeLogic {
-  val avatarResponse: AvatarHandlerLogic = AvatarHandlerLogic(data.avatarResponse)
-  val galaxy: GalaxyHandlerLogic = GalaxyHandlerLogic(data.galaxyResponseHandlers)
+class SpectatorModeLogic(data: SessionData) extends ModeLogic {
+  val avatarResponse: AvatarHandlerFunctions = AvatarHandlerLogic(data.avatarResponse)
+  val galaxy: GalaxyHandlerFunctions = GalaxyHandlerLogic(data.galaxyResponseHandlers)
   val general: GeneralFunctions = GeneralLogic(data.general)
   val local: LocalHandlerFunctions = LocalHandlerLogic(data.localResponse)
   val mountResponse: MountHandlerFunctions = MountHandlerLogic(data.mountResponse)
@@ -41,6 +49,106 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
   val terminals: TerminalHandlerFunctions = TerminalHandlerLogic(data.terminals)
   val vehicles: VehicleFunctions = VehicleLogic(data.vehicles)
   val vehicleResponse: VehicleHandlerFunctions = VehicleHandlerLogic(data.vehicleResponseOperations)
+
+  override def switchTo(session: Session): Unit = {
+    val player = session.player
+    val continent = session.zone
+    val pguid = player.GUID
+    val sendResponse: PlanetSidePacket=>Unit = data.sendResponse
+    //
+    sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "on"))
+    sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SpectatorEnabled"))
+    continent.actor ! ZoneActor.RemoveFromBlockMap(player)
+    data.general.avatarActor ! AvatarActor.DeactivateActiveImplants()
+    continent
+      .GUID(data.terminals.usingMedicalTerminal)
+      .foreach { case term: Terminal with ProximityUnit =>
+        data.terminals.StopUsingProximityUnit(term)
+      }
+    data.general.accessedContainer
+      .collect {
+        case veh: Vehicle if player.VehicleSeated.isEmpty || player.VehicleSeated.get != veh.GUID =>
+          sendResponse(UnuseItemMessage(pguid, veh.GUID))
+          sendResponse(UnuseItemMessage(pguid, pguid))
+          data.general.unaccessContainer(veh)
+        case container => //just in case
+          if (player.VehicleSeated.isEmpty || player.VehicleSeated.get != container.GUID) {
+            // Ensure we don't close the container if the player is seated in it
+            // If the container is a corpse and gets removed just as this runs it can cause a client disconnect, so we'll check the container has a GUID first.
+            if (container.HasGUID) {
+              sendResponse(UnuseItemMessage(pguid, container.GUID))
+            }
+            sendResponse(UnuseItemMessage(pguid, pguid))
+            data.general.unaccessContainer(container)
+          }
+      }
+    player.CapacitorState = CapacitorStateType.Idle
+    player.Capacitor = 0f
+    player.Inventory.Items
+      .foreach { entry => sendResponse(ObjectDeleteMessage(entry.GUID, 0)) }
+    sendResponse(ObjectDeleteMessage(player.avatar.locker.GUID, 0))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(pguid, pguid))
+    player.Holsters()
+      .collect { case slot if slot.Equipment.nonEmpty => sendResponse(ObjectDeleteMessage(slot.Equipment.get.GUID, 0)) }
+    val vehicleAndSeat = data.vehicles.GetMountableAndSeat(None, player, continent) match {
+      case (Some(obj: Vehicle), Some(seatNum)) if seatNum == 0 =>
+        data.vehicles.ServerVehicleOverrideStop(obj)
+        obj.Actor ! ServerObject.AttributeMsg(10, 3) //faction-accessible driver seat
+        obj.Actor ! Mountable.TryDismount(player, seatNum)
+        Some(ObjectCreateMessageParent(obj.GUID, seatNum))
+      case (Some(obj), Some(seatNum)) =>
+        obj.Actor ! Mountable.TryDismount(player, seatNum)
+        Some(ObjectCreateMessageParent(obj.GUID, seatNum))
+      case _ =>
+        None
+    }
+    data.general.dropSpecialSlotItem()
+    data.general.toggleMaxSpecialState(enable = false)
+    data.terminals.CancelAllProximityUnits()
+    data.terminals.lastTerminalOrderFulfillment = true
+    data.squadService ! SquadServiceMessage(
+      player,
+      continent,
+      SquadAction.Membership(SquadRequestType.Leave, player.CharId, Some(player.CharId), player.Name, None)
+    )
+    val originalEvent = player.History.headOption
+    player.ClearHistory()
+    player.LogActivity(originalEvent)
+    player.spectator = true
+    //
+    val newPlayer = SpectatorModeLogic.spectatorCharacter(player)
+    val cud = new SimpleItem(GlobalDefinitions.command_detonater)
+    cud.GUID = player.avatar.locker.GUID
+    sendResponse(ObjectCreateDetailedMessage(
+      0L,
+      ObjectClass.avatar,
+      pguid,
+      vehicleAndSeat,
+      newPlayer.Definition.Packet.DetailedConstructorData(newPlayer).get
+    ))
+    sendResponse(ObjectCreateDetailedMessage(
+      0L,
+      ObjectClass.command_detonater,
+      cud.GUID,
+      Some(ObjectCreateMessageParent(pguid, 4)),
+      cud.Definition.Packet.DetailedConstructorData(cud).get
+    ))
+    data.zoning.spawn.HandleSetCurrentAvatar(newPlayer)
+    data.session = session.copy(player = player)
+  }
+
+  override def switchFrom(session: Session): Unit = {
+    import scala.concurrent.duration._
+    val player = data.player
+    val zoning = data.zoning
+    val sendResponse: PlanetSidePacket => Unit = data.sendResponse
+    //
+    player.spectator = false
+    sendResponse(ObjectDeleteMessage(player.avatar.locker.GUID, 0)) //free up the slot (from cud)
+    sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "off"))
+    sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SpectatorDisabled"))
+    zoning.spawn.randomRespawn(0.seconds) //to sanctuary
+  }
 
   def parse(sender: ActorRef): Receive = {
     /* really common messages (very frequently, every life) */
@@ -71,17 +179,9 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
     case SessionActor.SendResponse(packet) =>
       data.sendResponse(packet)
 
-    case SessionActor.CharSaved =>
-      general.ops.renewCharSavedTimer(
-        Config.app.game.savedMsg.interruptedByAction.fixed,
-        Config.app.game.savedMsg.interruptedByAction.variable
-      )
+    case SessionActor.CharSaved => ()
 
-    case SessionActor.CharSavedMsg =>
-      general.ops.displayCharSavedMsgThenRenewTimer(
-        Config.app.game.savedMsg.renewal.fixed,
-        Config.app.game.savedMsg.renewal.variable
-      )
+    case SessionActor.CharSavedMsg => ()
 
     /* common messages (maybe once every respawn) */
     case ICS.SpawnPointResponse(response) =>
@@ -254,8 +354,7 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
     case msg: Containable.CanNotPutItemInSlot =>
       data.log.debug(s"CanNotPutItemInSlot: $msg")
 
-    case default =>
-      data.log.warn(s"Invalid packet class received: $default from $sender")
+    case _ => ()
   }
 
   private def handleGamePkt: PlanetSideGamePacket => Unit = {
@@ -406,7 +505,8 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
     case packet: WeaponLazeTargetPositionMessage =>
       shooting.handleWeaponLazeTargetPosition(packet)
 
-    case _: UplinkRequest => ()
+    case packet: UplinkRequest =>
+      shooting.handleUplinkRequest(packet)
 
     case packet: HitMessage =>
       shooting.handleDirectHit(packet)
@@ -505,8 +605,57 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
   }
 }
 
-case object NormalMode extends PlayerMode {
+object SpectatorModeLogic {
+  final val SpectatorImplants: Seq[Option[Implant]] = Seq(
+    Some(Implant(GlobalDefinitions.targeting, initialized = true)),
+    Some(Implant(GlobalDefinitions.darklight_vision, initialized = true)),
+    Some(Implant(GlobalDefinitions.range_magnifier, initialized = true))
+  )
+
+  private def spectatorCharacter(player: Player): Player = {
+    val avatar = player.avatar
+    val newAvatar = avatar.copy(
+      basic = avatar.basic.copy(name = "spectator"),
+      bep = BattleRank.BR18.experience,
+      cep = CommandRank.CR5.experience,
+      certifications = Set(),
+      decoration = ProgressDecoration(
+        ribbonBars = RibbonBars(
+          MeritCommendation.BendingMovieActor,
+          MeritCommendation.BendingMovieActor,
+          MeritCommendation.BendingMovieActor,
+          MeritCommendation.BendingMovieActor
+        ),
+        firstTimeEvents = FirstTimeEvents.All
+      ),
+      deployables = {
+        val dt = new DeployableToolbox()
+        dt.Initialize(Set())
+        dt
+      },
+      implants = SpectatorImplants,
+      lookingForSquad = false,
+      shortcuts = {
+        val allShortcuts: Array[Option[AvatarShortcut]] = Array.fill[Option[AvatarShortcut]](64)(None)
+        SpectatorImplants.zipWithIndex.collect { case (Some(implant), slot) =>
+          allShortcuts.update(slot + 1, Some(AvatarShortcut(2, implant.definition.Name)))
+        }
+        allShortcuts
+      }
+    )
+    val newPlayer = Player(newAvatar)
+    newPlayer.GUID = player.GUID
+    newPlayer.ExoSuit = ExoSuitType.Infiltration
+    newPlayer.Position = player.Position
+    newPlayer.Orientation = player.Orientation
+    newPlayer.spectator = true
+    newPlayer.Spawn()
+    newPlayer
+  }
+}
+
+case object SpectatorMode extends PlayerMode {
   def setup(data: SessionData): ModeLogic = {
-    new NormalModeLogic(data)
+    new SpectatorModeLogic(data)
   }
 }

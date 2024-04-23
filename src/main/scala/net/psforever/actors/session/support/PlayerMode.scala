@@ -3,6 +3,7 @@ package net.psforever.actors.session.support
 
 import akka.actor.Actor.Receive
 import akka.actor.ActorRef
+import net.psforever.objects.Session
 
 trait ModeLogic {
   def avatarResponse: AvatarHandlerFunctions
@@ -15,6 +16,10 @@ trait ModeLogic {
   def terminals: TerminalHandlerFunctions
   def vehicles: VehicleFunctions
   def vehicleResponse: VehicleHandlerFunctions
+
+  def switchTo(session: Session): Unit = { /* to override */ }
+
+  def switchFrom(session: Session): Unit = { /* to override */ }
 
   def parse(sender: ActorRef): Receive
 }

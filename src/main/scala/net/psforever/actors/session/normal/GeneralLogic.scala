@@ -2,11 +2,11 @@
 package net.psforever.actors.session.normal
 
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{ActorContext, typed}
-import net.psforever.actors.session.{AvatarActor, ChatActor}
+import akka.actor.{ActorContext, Cancellable, typed}
+import net.psforever.actors.session.{AvatarActor, ChatActor, SessionActor}
 import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData}
-import net.psforever.login.WorldSession.{CallBackForTask, ContainableMoveItem, DropEquipmentFromInventory, PickUpEquipmentFromGround, PutLoadoutEquipmentInInventory, RemoveOldEquipmentFromInventory}
-import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, ConstructionItem, Deployables, GlobalDefinitions, Kit, LivePlayerList, PlanetSideGameObject, Player, SensorDeployable, ShieldGeneratorDeployable, SpecialEmp, TelepadDeployable, Tool, TrapDeployable, TurretDeployable, Vehicle}
+import net.psforever.login.WorldSession.{CallBackForTask, ContainableMoveItem, DropEquipmentFromInventory, PickUpEquipmentFromGround, RemoveOldEquipmentFromInventory}
+import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, ConstructionItem, Default, Deployables, GlobalDefinitions, Kit, LivePlayerList, PlanetSideGameObject, Player, SensorDeployable, ShieldGeneratorDeployable, SpecialEmp, TelepadDeployable, Tool, TrapDeployable, TurretDeployable, Vehicle}
 import net.psforever.objects.avatar.{Avatar, PlayerControl, SpecialCarry}
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.{Deployable, DeployedItem, TelepadLike}
@@ -14,7 +14,7 @@ import net.psforever.objects.definition.{BasicDefinition, KitDefinition, Special
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{GUIDTask, TaskBundle, TaskWorkflow}
-import net.psforever.objects.inventory.{Container, InventoryItem}
+import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject, ServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.doors.Door
@@ -51,10 +51,14 @@ import net.psforever.util.Config
 
 import scala.concurrent.duration._
 
-class GeneralLogic(val ops: GeneralOperations) extends GeneralFunctions {
-  def sessionLogic: SessionData = ops.sessionLogic
+object GeneralLogic {
+  def apply(ops: GeneralOperations): GeneralLogic = {
+    new GeneralLogic(ops, ops.context)
+  }
+}
 
-  implicit val context: ActorContext = ops.context
+class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContext) extends GeneralFunctions {
+  def sessionLogic: SessionData = ops.sessionLogic
 
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
 
@@ -66,6 +70,7 @@ class GeneralLogic(val ops: GeneralOperations) extends GeneralFunctions {
       s"ConnectToWorldRequestMessage: client with versioning $majorVersion.$minorVersion.$revision, $buildDate has sent a token to the server"
     )
     sendResponse(ChatMsg(ChatMessageType.CMT_CULLWATERMARK, wideContents=false, "", "", None))
+    context.self ! SessionActor.StartHeartbeat
     sessionLogic.accountIntermediary ! RetrieveAccountData(token)
   }
 
@@ -989,7 +994,7 @@ class GeneralLogic(val ops: GeneralOperations) extends GeneralFunctions {
   }
 
   def handleKick(player: Player, time: Option[Long]): Unit = {
-    administrativeKick(player)
+    ops.administrativeKick(player)
     sessionLogic.accountPersistence ! AccountPersistenceService.Kick(player.Name, time)
   }
 
@@ -998,31 +1003,6 @@ class GeneralLogic(val ops: GeneralOperations) extends GeneralFunctions {
   }
 
   /* supporting functions */
-
-  /**
-   * Enforce constraints on bulk purchases as determined by a given player's previous purchase times and hard acquisition delays.
-   * Intended to assist in sanitizing loadout information from the perspective of the player, or target owner.
-   * The equipment is expected to be unregistered and already fitted to their ultimate slot in the target container.
-   * @param player the player whose purchasing constraints are to be tested
-   * @param target the location in which the equipment will be stowed
-   * @param slots  the equipment, in the standard object-slot format container
-   */
-  def applyPurchaseTimersBeforePackingLoadout(
-                                               player: Player,
-                                               target: PlanetSideServerObject with Container,
-                                               slots: List[InventoryItem]
-                                             ): Unit = {
-    slots.foreach { item =>
-      player.avatar.purchaseCooldown(item.obj.Definition) match {
-        case Some(_) => ()
-        case None if Avatar.purchaseCooldowns.contains(item.obj.Definition) =>
-          avatarActor ! AvatarActor.UpdatePurchaseTime(item.obj.Definition)
-          TaskWorkflow.execute(PutLoadoutEquipmentInInventory(target)(item.obj, item.start))
-        case None =>
-          TaskWorkflow.execute(PutLoadoutEquipmentInInventory(target)(item.obj, item.start))
-      }
-    }
-  }
 
   private def handleUseDoor(door: Door, equipment: Option[Equipment]): Unit = {
     equipment match {
@@ -1490,23 +1470,6 @@ class GeneralLogic(val ops: GeneralOperations) extends GeneralFunctions {
       sendResponse(PlanetsideAttributeMessage(player.GUID, 7, player.Capacitor.toInt))
     } else {
       player.CapacitorState = CapacitorStateType.Idle
-    }
-  }
-
-  def administrativeKick(tplayer: Player): Unit = {
-    log.warn(s"${tplayer.Name} has been kicked by ${player.Name}")
-    tplayer.death_by = -1
-    sessionLogic.accountPersistence ! AccountPersistenceService.Kick(tplayer.Name)
-    //get out of that vehicle
-    sessionLogic.vehicles.GetMountableAndSeat(None, tplayer, continent) match {
-      case (Some(obj), Some(seatNum)) =>
-        tplayer.VehicleSeated = None
-        obj.Seats(seatNum).unmount(tplayer)
-        continent.VehicleEvents ! VehicleServiceMessage(
-          continent.id,
-          VehicleAction.KickPassenger(tplayer.GUID, seatNum, unk2=false, obj.GUID)
-        )
-      case _ => ()
     }
   }
 

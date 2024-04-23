@@ -14,10 +14,14 @@ import net.psforever.objects.vital.TerminalUsedActivity
 import net.psforever.packet.game.{FavoritesAction, FavoritesRequest, ItemTransactionMessage, ItemTransactionResultMessage, ProximityTerminalUseMessage, UnuseItemMessage}
 import net.psforever.types.{TransactionType, Vector3}
 
-class TerminalHandlerLogic(val ops: SessionTerminalHandlers) extends TerminalHandlerFunctions {
-  def sessionLogic: SessionData = ops.sessionLogic
+object TerminalHandlerLogic {
+  def apply(ops: SessionTerminalHandlers): TerminalHandlerLogic = {
+    new TerminalHandlerLogic(ops, ops.context)
+  }
+}
 
-  implicit val context: ActorContext = ops.context
+class TerminalHandlerLogic(val ops: SessionTerminalHandlers, implicit val context: ActorContext) extends TerminalHandlerFunctions {
+  def sessionLogic: SessionData = ops.sessionLogic
 
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
 

@@ -1930,7 +1930,7 @@ class ZoningOperations(
       //find and reload previous player
       (
         inZone.Players.find(p => p.name.equals(name)),
-        inZone.LivePlayers.find(p => p.Name.equals(name))
+        inZone.AllPlayers.find(p => p.Name.equals(name))
       ) match {
         case (_, Some(p)) if p.death_by == -1 =>
           //player is not allowed
@@ -2905,36 +2905,34 @@ class ZoningOperations(
     def HandleSetCurrentAvatar(tplayer: Player): Unit = {
       log.trace(s"HandleSetCurrentAvatar - ${tplayer.Name}")
       session = session.copy(player = tplayer)
+      val tavatar = tplayer.avatar
       val guid = tplayer.GUID
-      sessionLogic.general.updateDeployableUIElements(Deployables.InitializeDeployableUIElements(avatar))
+      sessionLogic.general.updateDeployableUIElements(Deployables.InitializeDeployableUIElements(tavatar))
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 75, 0))
       sendResponse(SetCurrentAvatarMessage(guid, 0, 0))
       sendResponse(ChatMsg(ChatMessageType.CMT_EXPANSIONS, wideContents=true, "", "1 on", None)) //CC on //TODO once per respawn?
-      val pos = player.Position = shiftPosition.getOrElse(tplayer.Position)
-      val orient = player.Orientation = shiftOrientation.getOrElse(tplayer.Orientation)
+      val pos = tplayer.Position = shiftPosition.getOrElse(tplayer.Position)
+      val orient = tplayer.Orientation = shiftOrientation.getOrElse(tplayer.Orientation)
       sendResponse(PlayerStateShiftMessage(ShiftState(1, pos, orient.z)))
       shiftPosition = None
       shiftOrientation = None
-      if (player.spectator) {
-        sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, wideContents=false, "", "on", None))
-      }
-      if (player.Jammed) {
+      if (tplayer.Jammed) {
         //TODO something better than just canceling?
-        player.Actor ! JammableUnit.ClearJammeredStatus()
-        player.Actor ! JammableUnit.ClearJammeredSound()
+        tplayer.Actor ! JammableUnit.ClearJammeredStatus()
+        tplayer.Actor ! JammableUnit.ClearJammeredSound()
       }
       val originalDeadState = deadState
       deadState = DeadState.Alive
       avatarActor ! AvatarActor.ResetImplants()
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
-      initializeShortcutsAndBank(guid)
+      initializeShortcutsAndBank(guid, tavatar.shortcuts)
       //Favorites lists
       avatarActor ! AvatarActor.InitialRefreshLoadouts()
 
       sendResponse(
         SetChatFilterMessage(ChatChannel.Platoon, origin = false, ChatChannel.values.toList)
       ) //TODO will not always be "on" like this
-      sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, player.Faction, unk5 = true))
+      sendResponse(AvatarDeadStateMessage(DeadState.Alive, 0, 0, tplayer.Position, tplayer.Faction, unk5 = true))
       //looking for squad (members)
       if (tplayer.avatar.lookingForSquad) {
         sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
@@ -2979,7 +2977,7 @@ class ZoningOperations(
       drawDeloyableIcon = DontRedrawIcons
 
       //assert or transfer vehicle ownership
-      continent.GUID(player.avatar.vehicle) match {
+      continent.GUID(tplayer.avatar.vehicle) match {
         case Some(vehicle: Vehicle) if vehicle.OwnerName.contains(tplayer.Name) =>
           vehicle.OwnerGuid = guid
           continent.VehicleEvents ! VehicleServiceMessage(
@@ -3033,7 +3031,7 @@ class ZoningOperations(
           )
         case (Some(vehicle), _) =>
           //passenger
-          vehicle.Actor ! Vehicle.UpdateZoneInteractionProgressUI(player)
+          vehicle.Actor ! Vehicle.UpdateZoneInteractionProgressUI(tplayer)
         case _ => ;
       }
       interstellarFerryTopLevelGUID = None
@@ -3042,12 +3040,12 @@ class ZoningOperations(
         loadConfZone = false
       }
       if (noSpawnPointHere) {
-        RequestSanctuaryZoneSpawn(player, continent.Number)
-      } else if (originalDeadState == DeadState.Dead || player.Health == 0) {
+        RequestSanctuaryZoneSpawn(tplayer, continent.Number)
+      } else if (originalDeadState == DeadState.Dead || tplayer.Health == 0) {
         //killed during spawn setup or possibly a relog into a corpse (by accident?)
-        player.Actor ! Player.Die()
+        tplayer.Actor ! Player.Die()
       } else {
-        AvatarActor.savePlayerData(player)
+        AvatarActor.savePlayerData(tplayer)
         sessionLogic.general.displayCharSavedMsgThenRenewTimer(
           Config.app.game.savedMsg.short.fixed,
           Config.app.game.savedMsg.short.variable
@@ -3061,14 +3059,14 @@ class ZoningOperations(
           }
           .collect { case Some(thing: PlanetSideGameObject with FactionAffinity) => Some(SourceEntry(thing)) }
           .flatten
-        val lastEntryOpt = player.History.lastOption
+        val lastEntryOpt = tplayer.History.lastOption
         if (lastEntryOpt.exists { !_.isInstanceOf[IncarnationActivity] }) {
-          player.LogActivity({
+          tplayer.LogActivity({
             lastEntryOpt match {
               case Some(_) =>
-                ReconstructionActivity(PlayerSource(player), continent.Number, effortBy)
+                ReconstructionActivity(PlayerSource(tplayer), continent.Number, effortBy)
               case None =>
-                SpawningActivity(PlayerSource(player), continent.Number, effortBy)
+                SpawningActivity(PlayerSource(tplayer), continent.Number, effortBy)
             }
           })
         }
@@ -3079,9 +3077,9 @@ class ZoningOperations(
         !account.gm && /* gm's are excluded */
           Config.app.game.promotion.active && /* play versus progress system must be active */
           BattleRank.withExperience(tplayer.avatar.bep).value <= Config.app.game.promotion.broadcastBattleRank && /* must be below a certain battle rank */
-          avatar.scorecard.Lives.isEmpty && /* first life after login */
-          avatar.scorecard.CurrentLife.prior.isEmpty && /* no revives */
-          player.History.size == 1 /* did nothing but come into existence */
+          tavatar.scorecard.Lives.isEmpty && /* first life after login */
+          tavatar.scorecard.CurrentLife.prior.isEmpty && /* no revives */
+          tplayer.History.size == 1 /* did nothing but come into existence */
       ) {
         ZoningOperations.reportProgressionSystem(context.self)
       }
@@ -3139,6 +3137,18 @@ class ZoningOperations(
      */
     def initializeShortcutsAndBank(guid: PlanetSideGUID): Unit = {
       avatar.shortcuts
+        .zipWithIndex
+        .collect { case (Some(shortcut), index) =>
+          sendResponse(CreateShortcutMessage(
+            guid,
+            index + 1,
+            Some(AvatarShortcut.convert(shortcut))
+          ))
+        }
+      sendResponse(ChangeShortcutBankMessage(guid, 0))
+    }
+    def initializeShortcutsAndBank(guid: PlanetSideGUID, shortcuts: Array[Option[AvatarShortcut]]): Unit = {
+      shortcuts
         .zipWithIndex
         .collect { case (Some(shortcut), index) =>
           sendResponse(CreateShortcutMessage(

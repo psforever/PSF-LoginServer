@@ -5,6 +5,8 @@ import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.actors.session.normal.NormalMode
+import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.ZoneInfo
@@ -761,19 +763,14 @@ class ChatActor(
               sessionActor ! SessionActor.SendResponse(message.copy(contents = f"$speed%.3f"))
 
             case (CMT_TOGGLESPECTATORMODE, _, contents) if gmCommandAllowed =>
-              val spectator = contents match {
-                case "on"  => true
-                case "off" => false
-                case _     => !session.player.spectator
+              val currentSpectatorActivation = session.player.spectator
+              contents.toLowerCase() match {
+                case "on" | "o" | "" if !currentSpectatorActivation =>
+                  sessionActor ! SessionActor.SetMode(SpectatorMode)
+                case "off" | "of" if currentSpectatorActivation =>
+                  sessionActor ! SessionActor.SetMode(NormalMode)
+                case _ => ()
               }
-              sessionActor ! SessionActor.SetSpectator(spectator)
-              sessionActor ! SessionActor.SendResponse(message.copy(contents = if (spectator) "on" else "off"))
-              sessionActor ! SessionActor.SendResponse(
-                message.copy(
-                  messageType = UNK_227,
-                  contents = if (spectator) "@SpectatorEnabled" else "@SpectatorDisabled"
-                )
-              )
 
             case (CMT_RECALL, _, _) =>
               val errorMessage = session.zoningType match {

@@ -1,5 +1,5 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.actors.session.normal
+package net.psforever.actors.session.spectator
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.support.AvatarHandlerFunctions

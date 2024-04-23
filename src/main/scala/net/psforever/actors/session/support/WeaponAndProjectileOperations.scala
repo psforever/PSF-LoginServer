@@ -33,6 +33,8 @@ trait WeaponAndProjectileFunctions extends CommonSessionInterfacingFunctionality
 
   def handleWeaponLazeTargetPosition(pkt: WeaponLazeTargetPositionMessage): Unit
 
+  def handleUplinkRequest(pkt: UplinkRequest): Unit
+
   def handleAvatarGrenadeState(pkt: AvatarGrenadeStateMessage): Unit
 
   def handleChangeFireStateStart(pkt: ChangeFireStateMessage_Start): Unit

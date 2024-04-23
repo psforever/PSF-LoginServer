@@ -2,7 +2,7 @@
 package net.psforever.actors.session.normal
 
 import akka.actor.{ActorContext, typed}
-import net.psforever.actors.session.{AvatarActor, ChatActor}
+import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, WeaponAndProjectileFunctions, WeaponAndProjectileOperations}
 import net.psforever.login.WorldSession.{CountAmmunition, CountGrenades, FindAmmoBoxThatUses, FindEquipmentStock, FindToolThatUses, PutEquipmentInInventoryOrDrop, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
 import net.psforever.objects.ballistics.{Projectile, ProjectileQuality}
@@ -26,7 +26,7 @@ import net.psforever.objects.vital.etc.OicwLilBuddyReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneProjectile}
-import net.psforever.packet.game.{AIDamage, AvatarGrenadeStateMessage, ChainLashMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, HitMessage, InventoryStateMessage, LashMessage, LongRangeProjectileInfoMessage, ObjectAttachMessage, ObjectDeleteMessage, ObjectDetachMessage, ProjectileStateMessage, QuantityUpdateMessage, ReloadMessage, SplashHitMessage, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage}
+import net.psforever.packet.game.{AIDamage, AvatarGrenadeStateMessage, ChainLashMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, HitMessage, InventoryStateMessage, LashMessage, LongRangeProjectileInfoMessage, ObjectAttachMessage, ObjectDeleteMessage, ObjectDetachMessage, ProjectileStateMessage, QuantityUpdateMessage, ReloadMessage, SplashHitMessage, UplinkRequest, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{PlanetSideGUID, Vector3}
@@ -36,14 +36,108 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations) extends WeaponAndProjectileFunctions {
+object WeaponAndProjectileLogic {
+  def apply(ops: WeaponAndProjectileOperations): WeaponAndProjectileLogic = {
+    new WeaponAndProjectileLogic(ops, ops.context)
+  }
+
+  /**
+   * Does a line segment line intersect with a sphere?<br>
+   * This most likely belongs in `Geometry` or `GeometryForm` or somehow in association with the `\objects\geometry\` package.
+   * @param start first point of the line segment
+   * @param end second point of the line segment
+   * @param center center of the sphere
+   * @param radius radius of the sphere
+   * @return list of all points of intersection, if any
+   * @see `Vector3.DistanceSquared`
+   * @see `Vector3.MagnitudeSquared`
+   */
+  private def quickLineSphereIntersectionPoints(
+                                                 start: Vector3,
+                                                 end: Vector3,
+                                                 center: Vector3,
+                                                 radius: Float
+                                               ): Iterable[Vector3] = {
+    /*
+    Algorithm adapted from code found on https://paulbourke.net/geometry/circlesphere/index.html#linesphere,
+     because I kept messing up proper substitution of the line formula and the circle formula into the quadratic equation.
+     */
+    val Vector3(cx, cy, cz) = center
+    val Vector3(sx, sy, sz) = start
+    val vector = end - start
+    //speed our way through a quadratic equation
+    val (a, b) = {
+      val Vector3(dx, dy, dz) = vector
+      (
+        dx * dx + dy * dy + dz * dz,
+        2f * (dx * (sx - cx) + dy * (sy - cy) + dz * (sz - cz))
+      )
+    }
+    val c = Vector3.MagnitudeSquared(center) + Vector3.MagnitudeSquared(start) - 2f * (cx * sx + cy * sy + cz * sz) - radius * radius
+    val result = b * b - 4 * a * c
+    if (result < 0f) {
+      //negative, no intersection
+      Seq()
+    } else if (result < 0.00001f) {
+      //zero-ish, one intersection point
+      Seq(start - vector * (b / (2f * a)))
+    } else {
+      //positive, two intersection points
+      val sqrt = math.sqrt(result).toFloat
+      val endStart = vector / (2f * a)
+      Seq(start + endStart * (sqrt - b), start + endStart * (b + sqrt) * -1f)
+    }.filter(p => Vector3.DistanceSquared(start, p) <= a)
+  }
+  /**
+   * Preparation for explosion damage that utilizes the Scorpion's little buddy sub-projectiles.
+   * The main difference from "normal" server-side explosion
+   * is that the owner of the projectile must be clarified explicitly.
+   * @see `Zone::serverSideDamage`
+   * @param zone where the explosion is taking place
+   *             (`source` contains the coordinate location)
+   * @param source a game object that represents the source of the explosion
+   * @param owner who or what to accredit damage from the explosion to;
+   *              clarifies a normal `SourceEntry(source)` accreditation
+   */
+  private def detonateLittleBuddy(
+                                   zone: Zone,
+                                   source: PlanetSideGameObject with FactionAffinity with Vitality,
+                                   proxy: Projectile,
+                                   owner: SourceEntry
+                                 )(): Unit = {
+    Zone.serverSideDamage(zone, source, littleBuddyExplosionDamage(owner, proxy.id, source.Position))
+  }
+
+  /**
+   * Preparation for explosion damage that utilizes the Scorpion's little buddy sub-projectiles.
+   * The main difference from "normal" server-side explosion
+   * is that the owner of the projectile must be clarified explicitly.
+   * The sub-projectiles will be the product of a normal projectile rather than a standard game object
+   * so a custom `source` entity must wrap around it and fulfill the requirements of the field.
+   * @see `Zone::explosionDamage`
+   * @param owner who or what to accredit damage from the explosion to
+   * @param explosionPosition where the explosion will be positioned in the game world
+   * @param source a game object that represents the source of the explosion
+   * @param target a game object that is affected by the explosion
+   * @return a `DamageInteraction` object
+   */
+  private def littleBuddyExplosionDamage(
+                                          owner: SourceEntry,
+                                          projectileId: Long,
+                                          explosionPosition: Vector3
+                                        )
+                                        (
+                                          source: PlanetSideGameObject with FactionAffinity with Vitality,
+                                          target: PlanetSideGameObject with FactionAffinity with Vitality
+                                        ): DamageInteraction = {
+    DamageInteraction(SourceEntry(target), OicwLilBuddyReason(owner, projectileId, target.DamageModel), explosionPosition)
+  }
+}
+
+class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit val context: ActorContext) extends WeaponAndProjectileFunctions {
   def sessionLogic: SessionData = ops.sessionLogic
 
-  implicit val context: ActorContext = ops.context
-
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
-
-  private val chatActor: typed.ActorRef[ChatActor.Command] = ops.chatActor
 
   /* packets */
 
@@ -105,6 +199,10 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations) extends W
       " ..."
     }
     log.info(s"${player.Name} is lazing a position$purpose")
+  }
+
+  def handleUplinkRequest(packet: UplinkRequest): Unit = {
+    sessionLogic.administrativeKick(player)
   }
 
   def handleAvatarGrenadeState(pkt: AvatarGrenadeStateMessage): Unit = {
@@ -1240,99 +1338,5 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations) extends W
           strictly
         }
       }
-  }
-}
-
-object WeaponAndProjectileLogic {
-  /**
-   * Does a line segment line intersect with a sphere?<br>
-   * This most likely belongs in `Geometry` or `GeometryForm` or somehow in association with the `\objects\geometry\` package.
-   * @param start first point of the line segment
-   * @param end second point of the line segment
-   * @param center center of the sphere
-   * @param radius radius of the sphere
-   * @return list of all points of intersection, if any
-   * @see `Vector3.DistanceSquared`
-   * @see `Vector3.MagnitudeSquared`
-   */
-  private def quickLineSphereIntersectionPoints(
-                                                 start: Vector3,
-                                                 end: Vector3,
-                                                 center: Vector3,
-                                                 radius: Float
-                                               ): Iterable[Vector3] = {
-    /*
-    Algorithm adapted from code found on https://paulbourke.net/geometry/circlesphere/index.html#linesphere,
-     because I kept messing up proper substitution of the line formula and the circle formula into the quadratic equation.
-     */
-    val Vector3(cx, cy, cz) = center
-    val Vector3(sx, sy, sz) = start
-    val vector = end - start
-    //speed our way through a quadratic equation
-    val (a, b) = {
-      val Vector3(dx, dy, dz) = vector
-      (
-        dx * dx + dy * dy + dz * dz,
-        2f * (dx * (sx - cx) + dy * (sy - cy) + dz * (sz - cz))
-      )
-    }
-    val c = Vector3.MagnitudeSquared(center) + Vector3.MagnitudeSquared(start) - 2f * (cx * sx + cy * sy + cz * sz) - radius * radius
-    val result = b * b - 4 * a * c
-    if (result < 0f) {
-      //negative, no intersection
-      Seq()
-    } else if (result < 0.00001f) {
-      //zero-ish, one intersection point
-      Seq(start - vector * (b / (2f * a)))
-    } else {
-      //positive, two intersection points
-      val sqrt = math.sqrt(result).toFloat
-      val endStart = vector / (2f * a)
-      Seq(start + endStart * (sqrt - b), start + endStart * (b + sqrt) * -1f)
-    }.filter(p => Vector3.DistanceSquared(start, p) <= a)
-  }
-  /**
-   * Preparation for explosion damage that utilizes the Scorpion's little buddy sub-projectiles.
-   * The main difference from "normal" server-side explosion
-   * is that the owner of the projectile must be clarified explicitly.
-   * @see `Zone::serverSideDamage`
-   * @param zone where the explosion is taking place
-   *             (`source` contains the coordinate location)
-   * @param source a game object that represents the source of the explosion
-   * @param owner who or what to accredit damage from the explosion to;
-   *              clarifies a normal `SourceEntry(source)` accreditation
-   */
-  private def detonateLittleBuddy(
-                                   zone: Zone,
-                                   source: PlanetSideGameObject with FactionAffinity with Vitality,
-                                   proxy: Projectile,
-                                   owner: SourceEntry
-                                 )(): Unit = {
-    Zone.serverSideDamage(zone, source, littleBuddyExplosionDamage(owner, proxy.id, source.Position))
-  }
-
-  /**
-   * Preparation for explosion damage that utilizes the Scorpion's little buddy sub-projectiles.
-   * The main difference from "normal" server-side explosion
-   * is that the owner of the projectile must be clarified explicitly.
-   * The sub-projectiles will be the product of a normal projectile rather than a standard game object
-   * so a custom `source` entity must wrap around it and fulfill the requirements of the field.
-   * @see `Zone::explosionDamage`
-   * @param owner who or what to accredit damage from the explosion to
-   * @param explosionPosition where the explosion will be positioned in the game world
-   * @param source a game object that represents the source of the explosion
-   * @param target a game object that is affected by the explosion
-   * @return a `DamageInteraction` object
-   */
-  private def littleBuddyExplosionDamage(
-                                          owner: SourceEntry,
-                                          projectileId: Long,
-                                          explosionPosition: Vector3
-                                        )
-                                        (
-                                          source: PlanetSideGameObject with FactionAffinity with Vitality,
-                                          target: PlanetSideGameObject with FactionAffinity with Vitality
-                                        ): DamageInteraction = {
-    DamageInteraction(SourceEntry(target), OicwLilBuddyReason(owner, projectileId, target.DamageModel), explosionPosition)
   }
 }

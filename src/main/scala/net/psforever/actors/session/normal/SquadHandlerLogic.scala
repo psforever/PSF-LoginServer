@@ -12,10 +12,14 @@ import net.psforever.services.chat.ChatService
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadAction => SquadServiceAction}
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadListDecoration, SquadResponseType, WaypointSubtype}
 
-class SquadHandlerLogic(val ops: SessionSquadHandlers) extends SquadHandlerFunctions {
-  def sessionLogic: SessionData = ops.sessionLogic
+object SquadHandlerLogic {
+  def apply(ops: SessionSquadHandlers): SquadHandlerLogic = {
+    new SquadHandlerLogic(ops, ops.context)
+  }
+}
 
-  implicit val context: ActorContext = ops.context
+class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: ActorContext) extends SquadHandlerFunctions {
+  def sessionLogic: SessionData = ops.sessionLogic
 
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
 

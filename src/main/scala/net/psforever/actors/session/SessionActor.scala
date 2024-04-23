@@ -2,12 +2,13 @@
 package net.psforever.actors.session
 
 import akka.actor.{Actor, Cancellable, MDCContextAware, typed}
+import net.psforever.actors.session.normal.NormalMode
 import org.joda.time.LocalDateTime
 import org.log4s.MDC
+
 import scala.collection.mutable
 //
 import net.psforever.actors.net.MiddlewareActor
-import net.psforever.actors.session.normal.NormalMode
 import net.psforever.actors.session.support.{ModeLogic, PlayerMode, SessionData}
 import net.psforever.objects.{Default, Player}
 import net.psforever.objects.avatar.Avatar
@@ -18,8 +19,6 @@ import net.psforever.types.Vector3
 
 object SessionActor {
   sealed trait Command
-
-  private[session] final case class PokeClient()
 
   private[session] final case class ServerLoaded()
 
@@ -69,6 +68,10 @@ object SessionActor {
 
   private[session] case object CharSavedMsg extends Command
 
+  final case object StartHeartbeat extends Command
+
+  private final case object PokeClient extends Command
+
   final case class SetMode(mode: PlayerMode) extends Command
 }
 
@@ -96,10 +99,27 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case _ if data.whenAllEventBusesLoaded() =>
       context.become(inTheGame)
       logic = mode.setup(data)
-      startHeartbeat()
       buffer.foreach { self.tell(_, self) } //we forget the original sender, shouldn't be doing callbacks at this point
       buffer.clear()
     case _ => ()
+  }
+
+  private def inTheGame: Receive = {
+    /* used for the game's heartbeat */
+    case SessionActor.StartHeartbeat =>
+      startHeartbeat()
+
+    case SessionActor.PokeClient =>
+      middlewareActor ! MiddlewareActor.Send(KeepAliveMessage())
+
+    case SessionActor.SetMode(newMode) =>
+      logic.switchFrom(data.session)
+      mode = newMode
+      logic = mode.setup(data)
+      logic.switchTo(data.session)
+
+    case packet =>
+      logic.parse(sender())(packet)
   }
 
   private def startHeartbeat(): Unit = {
@@ -110,20 +130,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       initialDelay = 0.seconds,
       delay = 500.milliseconds,
       context.self,
-      SessionActor.PokeClient()
+      SessionActor.PokeClient
     )
-  }
-
-  private def inTheGame: Receive = {
-    /* used for the game's heartbeat */
-    case SessionActor.PokeClient() =>
-      middlewareActor ! MiddlewareActor.Send(KeepAliveMessage())
-
-    case SessionActor.SetMode(newMode) =>
-      mode = newMode
-      logic = mode.setup(data)
-
-    case packet =>
-      logic.parse(sender())(packet)
   }
 }
