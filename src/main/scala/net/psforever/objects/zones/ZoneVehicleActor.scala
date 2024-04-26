@@ -66,20 +66,12 @@ class ZoneVehicleActor(
 
     case Zone.Vehicle.TryDeploymentChange(vehicle, toDeployState)
       if toDeployState == DriveState.Deploying &&
-        (ZoneVehicleActor.temporaryInterferenceTest(vehicle,temporaryInterference) || Interference.Test(zone, vehicle).nonEmpty) =>
+        (ZoneVehicleActor.temporaryInterferenceTest(vehicle, temporaryInterference) || Interference.Test(zone, vehicle).nonEmpty) =>
       sender() ! Zone.Vehicle.CanNotDeploy(zone, vehicle, toDeployState, "blocked by a nearby entity")
 
     case Zone.Vehicle.TryDeploymentChange(vehicle, toDeployState)
       if toDeployState == DriveState.Deploying =>
-      import scala.concurrent.duration._
-      import scala.concurrent.ExecutionContext.Implicits.global
-      val position = vehicle.Position
-      temporaryInterference = temporaryInterference :+ (position, vehicle.Faction, vehicle.Definition)
-      context.system.scheduler.scheduleOnce(
-        vehicle.Definition.DeployTime.milliseconds,
-        self,
-        ZoneVehicleActor.ClearInterference(position)
-      )
+      tryAddToInterferenceField(vehicle.Position, vehicle.Faction, vehicle.Definition)
       vehicle.Actor.tell(Deployment.TryDeploymentChange(toDeployState), sender())
 
     case Zone.Vehicle.TryDeploymentChange(vehicle, toDeployState) =>
@@ -97,6 +89,25 @@ class ZoneVehicleActor(
       temporaryInterference = temporaryInterference.filterNot(_._1 == pos)
 
     case _ => ()
+  }
+
+  private def tryAddToInterferenceField(
+                                         position: Vector3,
+                                         faction: PlanetSideEmpire.Value,
+                                         definition: VehicleDefinition
+                                       ): Boolean = {
+    import scala.concurrent.duration._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val causesInterference = definition.interference ne Interference.AllowAll
+    if (causesInterference) {
+      temporaryInterference = temporaryInterference :+ (position, faction, definition)
+      context.system.scheduler.scheduleOnce(
+        definition.DeployTime.milliseconds,
+        self,
+        ZoneVehicleActor.ClearInterference(position)
+      )
+    }
+    causesInterference
   }
 }
 
@@ -122,14 +133,15 @@ object ZoneVehicleActor {
     val vPosition = vehicle.Position
     val vFaction = vehicle.Faction
     val vDefinition = vehicle.Definition
-    existingInterferences
-      .collect { case (p, faction, d) if faction == vFaction => (p, d) }
-      .exists { case (position, definition) =>
-        val interference = definition.interference
-        (interference ne Interference.AllowAll) && {
-          lazy val distanceSq = Vector3.DistanceSquared(position, vPosition)
-          definition == vDefinition && distanceSq < interference.main * interference.main
+    (vDefinition.interference eq Interference.AllowAll) ||
+      existingInterferences
+        .collect { case (p, faction, d) if faction == vFaction => (p, d) }
+        .exists { case (position, definition) =>
+          val interference = definition.interference
+          (interference ne Interference.AllowAll) && {
+            lazy val distanceSq = Vector3.DistanceSquared(position, vPosition)
+            definition == vDefinition && distanceSq < interference.main * interference.main
+          }
         }
-      }
   }
 }

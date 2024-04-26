@@ -2,10 +2,12 @@
 package net.psforever.objects.serverobject.deploy
 
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.objects.definition.ObjectDefinition
+import net.psforever.objects.definition.{DeployableDefinition, ObjectDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{DriveState, Vector3}
+
+import scala.annotation.unused
 
 /**
  * Block the deployment of certain entities within a certain distance.
@@ -65,30 +67,62 @@ object Interference {
                     zone: Zone,
                     obj: PlanetSideGameObject with FactionAffinity
                   ): (List[PlanetSideGameObject with FactionAffinity], PlanetSideGameObject => Boolean) = {
-    val position = obj.Position
-    val faction = obj.Faction
     val objectDefinition = obj.Definition
-    val sharedGroupId = objectDefinition.interference.sharedGroupId
-    val sector = zone.blockMap.sector(position, Interference.MaxRange)
-    (
-      (sector.deployableList ++ sector.vehicleList.filter(_.DeploymentState == DriveState.Deployed)).filter(_.Faction == faction),
-      interferenceTest(position, sharedGroupId != 0, sharedGroupId, objectDefinition)
-    )
+    if (objectDefinition.interference eq Interference.AllowAll) {
+      (List(), interferenceTestNoResults) //no targets can block, and test will never pass
+    } else {
+      val position = obj.Position
+      val faction = obj.Faction
+      val sharedGroupId = objectDefinition.interference.sharedGroupId
+      val sector = zone.blockMap.sector(position, Interference.MaxRange)
+      val targets = (sector.deployableList ++ sector.vehicleList.filter(_.DeploymentState >= DriveState.Deploying))
+        .collect { case target: PlanetSideGameObject with FactionAffinity
+          if target.Faction != faction &&
+            (target.Definition.asInstanceOf[ObjectDefinition].interference ne Interference.AllowAll) =>
+          target
+        }
+      if (sharedGroupId != 0) {
+        (targets, interferenceTestWithSharedGroup(position, objectDefinition, sharedGroupId))
+      } else {
+        (targets, interferenceTestNoSharedGroup(position, objectDefinition))
+      }
+    }
   }
 
-  private def interferenceTest(
-                                position: Vector3,
-                                inAGroup: Boolean,
-                                sharedGroupId: Int,
-                                objectDefinition: ObjectDefinition
-                              ): PlanetSideGameObject => Boolean = { p =>
+  private def interferenceTestNoResults(@unused p: PlanetSideGameObject): Boolean = false
+
+  private def interferenceTestNoSharedGroup(
+                                             position: Vector3,
+                                             objectDefinition: ObjectDefinition
+                                           ): PlanetSideGameObject => Boolean = { p =>
     val pDefinition = p.Definition
-    val otherInterference = pDefinition.interference
-    (otherInterference ne Interference.AllowAll) && {
-      lazy val distanceSq = Vector3.DistanceSquared(position, p.Position)
-      (pDefinition == objectDefinition && distanceSq < otherInterference.main * otherInterference.main) ||
-        (inAGroup && sharedGroupId == otherInterference.sharedGroupId && distanceSq < otherInterference.shared * otherInterference.shared) ||
-        distanceSq < otherInterference.deployables * otherInterference.deployables
+    val objectInterference = objectDefinition.interference
+    lazy val distanceSq = Vector3.DistanceSquared(position, p.Position)
+    if (pDefinition == objectDefinition) {
+      distanceSq < objectInterference.main * objectInterference.main
+    } else if (pDefinition.isInstanceOf[DeployableDefinition]) {
+      distanceSq < objectInterference.deployables * objectInterference.deployables
+    } else {
+      false
+    }
+  }
+
+  private def interferenceTestWithSharedGroup(
+                                               position: Vector3,
+                                               objectDefinition: ObjectDefinition,
+                                               sharedGroupId: Int
+                                             ): PlanetSideGameObject => Boolean = { p =>
+    val pDefinition = p.Definition
+    val objectInterference = objectDefinition.interference
+    lazy val distanceSq = Vector3.DistanceSquared(position, p.Position)
+    if (pDefinition == objectDefinition) {
+      distanceSq < objectInterference.main * objectInterference.main
+    } else if (sharedGroupId == pDefinition.interference.sharedGroupId) {
+      distanceSq < objectInterference.shared * objectInterference.shared
+    } else if (pDefinition.isInstanceOf[DeployableDefinition]) {
+      distanceSq < objectInterference.deployables * objectInterference.deployables
+    } else {
+      false
     }
   }
 }
