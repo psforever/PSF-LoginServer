@@ -3,6 +3,7 @@ package net.psforever.packet.game
 
 import net.psforever.packet.GamePacketOpcode.Type
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
+import net.psforever.types.PlanetSideGUID
 import scodec.{Attempt, Codec, Err}
 import scodec.bits.BitVector
 import scodec.codecs._
@@ -10,7 +11,7 @@ import shapeless.{::, HNil}
 
 final case class OutfitEvent(
     request_type: OutfitEvent.RequestType.Type,
-    unk1: Int,
+    outfit_guid: PlanetSideGUID,
     action: OutfitEventAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitEvent
@@ -24,32 +25,78 @@ abstract class OutfitEventAction(val code: Int)
 
 object OutfitEventAction {
 
-  final case class CreatedOutfit(
+  final case class OutfitRankNames(
+    rank1: String,
+    rank2: String,
+    rank3: String,
+    rank4: String,
+    rank5: String,
+    rank6: String,
+    rank7: String,
+    rank8: String,
+  )
+
+  final case class OutfitInfo(
+    unk1: Int,
     unk2: Int,
-    unk3: Int,
-    unk4: Int,
     outfit_name: String,
     unk6: Long,
     unk7: Long,
-    members: Int,
+    member_count: Int,
     unk9: Int,
-    unk10: String,
-    unk11: String,
-    unk12: String,
-    unk13: String,
-    unk14: String,
-    unk15: String,
-    unk16: String,
-    unk17: String,
-    unk18: String,
-    unk19: Int,
+    outfit_rank_names: OutfitRankNames,
+    motd: String,
+    owner_guid: PlanetSideGUID, // ?
     unk20: Int,
-    unk21: Long,
-    unk22: Long,
+    unk21: Int,
+    unk21_2: Int,
+    created_timestamp: Long,
     unk23: Long,
     unk24: Long,
-    unk25: Int,
+    unk25: Long,
+    u123: Int,
+  )
+
+  final case class Unk0(
+    outfitInfo: OutfitInfo
+  ) extends OutfitEventAction(code = 0)
+
+  final case class Unk1(
+    unk0: Int,
+    unk1: Int,
+    unk2: Int,
+    unk3: Boolean,
+  ) extends OutfitEventAction(code = 1)
+
+  final case class Unk2(
+    outfitInfo: OutfitInfo,
+  ) extends OutfitEventAction(code = 2)
+
+  final case class Unk3(
+    unk0: Int,
+    unk1: Int,
+    unk2: Int,
+    unk3: Boolean,
+    data: BitVector,
+  ) extends OutfitEventAction(code = 3)
+
+  final case class Unk4(
+    unk0: Int,
+    unk1: Int,
+    unk2: Int,
+    unk3: Int,
+    unk4: Boolean,
+    data: BitVector,
   ) extends OutfitEventAction(code = 4)
+
+  final case class Unk5(
+    unk0: Int,
+    unk1: Int,
+    unk2: Int,
+    unk3: Int,
+    unk4: Boolean,
+    data: BitVector,
+  ) extends OutfitEventAction(code = 5)
 
   final case class Unknown(badCode: Int, data: BitVector) extends OutfitEventAction(badCode)
 
@@ -60,41 +107,150 @@ object OutfitEventAction {
   object Codecs {
     private val everFailCondition = conditional(included = false, bool)
 
-    val CreatedOutfitCodec: Codec[CreatedOutfit] =
-      (uint8L ::
-        uint4L ::
-        uintL(3) ::
+    private val OutfitRankNamesCodec: Codec[OutfitRankNames] = (
+      PacketHelpers.encodedWideString ::
+        PacketHelpers.encodedWideString ::
+        PacketHelpers.encodedWideString ::
+        PacketHelpers.encodedWideString ::
+        PacketHelpers.encodedWideString ::
+        PacketHelpers.encodedWideString ::
+        PacketHelpers.encodedWideString ::
+        PacketHelpers.encodedWideString
+    ).xmap[OutfitRankNames](
+      {
+        case u0 :: u1 :: u2 :: u3 :: u4 :: u5 :: u6 :: u7 :: HNil =>
+          OutfitRankNames(u0, u1, u2, u3, u4, u5, u6, u7)
+      },
+      {
+        case OutfitRankNames(u0, u1, u2, u3, u4, u5, u6, u7) =>
+          u0 :: u1 :: u2 :: u3 :: u4 :: u5 :: u6 :: u7 :: HNil
+      }
+    )
+
+    private val InfoCodec: Codec[OutfitInfo] = (
+      uint8L ::
+        uint8L ::
         PacketHelpers.encodedWideStringAligned(5) ::
         uint32L ::
         uint32L ::
         uint16L ::
         uint16L ::
-        PacketHelpers.encodedString ::
-        PacketHelpers.encodedString ::
-        PacketHelpers.encodedString ::
-        PacketHelpers.encodedString ::
-        PacketHelpers.encodedString ::
-        PacketHelpers.encodedString ::
-        PacketHelpers.encodedString ::
-        PacketHelpers.encodedString ::
-        PacketHelpers.encodedString ::
-        uint16L ::
-        uint16L ::
+        OutfitRankNamesCodec ::
+        PacketHelpers.encodedWideString ::
+        PlanetSideGUID.codec ::
+        uint16L ::  //
+        uint8L ::   // bool somewhere here
+        uintL(1) :: //
+        ("created_timestamp" | uint32L) ::
         uint32L ::
         uint32L ::
         uint32L ::
-        uint32L ::
-        uint16L
-        ).xmap[CreatedOutfit](
+        uintL(7)
+      ).xmap[OutfitInfo](
         {
-          case u2 :: u3 :: u4 :: outfit_name :: u6 :: u7 :: members :: u9 :: u10 :: u11 :: u12 :: u13 :: u14 :: u15 :: u16 :: u17 :: u18 :: u19 :: u20 :: u21 :: u22 :: u23 :: u24 :: u25 :: HNil =>
-            CreatedOutfit(u2, u3, u4, outfit_name, u6, u7, members, u9, u10, u11, u12, u13, u14, u15, u16, u17, u18, u19, u20, u21, u22, u23, u24, u25)
+          case u1 :: u2 :: outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u19 :: u20 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil =>
+            OutfitInfo(u1, u2, outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u19, u20, u21, u21_2, created_timestamp, u23, u24, u25, u123)
         },
         {
-          case CreatedOutfit(u2, u3, u4, outfit_name, u6, u7, members, u9, u10, u11, u12, u13, u14, u15, u16, u17, u18, u19, u20, u21, u22, u23, u24, u25) =>
-            u2 :: u3 :: u4 :: outfit_name :: u6 :: u7 :: members :: u9 :: u10 :: u11 :: u12 :: u13 :: u14 :: u15 :: u16 :: u17 :: u18 :: u19 :: u20 :: u21 :: u22 :: u23 :: u24 :: u25 :: HNil
+          case OutfitInfo(u1, u2, outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u19, u20, u21, u21_2, created_timestamp, u23, u24, u25, u123) =>
+            u1 :: u2 :: outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u19 :: u20 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil
         }
       )
+
+    val Unk0Codec: Codec[Unk0] = (
+      InfoCodec
+      ).xmap[Unk0](
+      {
+        case info =>
+          Unk0(info)
+      },
+      {
+        case Unk0(info) =>
+          info
+      }
+    )
+
+    val Unk1Codec: Codec[Unk1] = (
+      uint8L ::
+        uint8L ::
+        uint4L ::
+        bool
+      ).xmap[Unk1](
+      {
+        case u0 :: u1 :: u2 :: u3 :: HNil =>
+          Unk1(u0, u1, u2, u3)
+      },
+      {
+        case Unk1(u0, u1, u2, u3) =>
+          u0 :: u1 :: u2 :: u3 :: HNil
+      }
+    )
+
+    val Unk2Codec: Codec[Unk2] = (
+      InfoCodec
+      ).xmap[Unk2](
+      {
+        case info =>
+          Unk2(info)
+      },
+      {
+        case Unk2(info) =>
+          info
+      }
+    )
+
+    val Unk3Codec: Codec[Unk3] = (
+      uint8L ::
+        uint8L ::
+        uint4L ::
+        bool ::
+        bits
+      ).xmap[Unk3](
+      {
+        case u0 :: u1 :: u2 :: u3 :: data :: HNil =>
+          Unk3(u0, u1, u2, u3, data)
+      },
+      {
+        case Unk3(u0, u1, u2, u3, data) =>
+          u0 :: u1 :: u2 :: u3 :: data :: HNil
+      }
+    )
+
+    val Unk4Codec: Codec[Unk4] = (
+      uint16L ::
+        uint16L ::
+        uint16L ::
+        uint4L ::
+        bool ::
+        bits
+      ).xmap[Unk4](
+      {
+        case u0 :: u1 :: u2 :: u3 :: u4 :: data :: HNil =>
+          Unk4(u0, u1, u2, u3, u4, data)
+      },
+      {
+        case Unk4(u0, u1, u2, u3, u4, data) =>
+          u0 :: u1 :: u2 ::u3 :: u4 :: data :: HNil
+      }
+    )
+
+    val Unk5Codec: Codec[Unk5] = (
+      uint16L ::
+        uint16L ::
+        uint16L ::
+        uint4L ::
+        bool ::
+        bits
+      ).xmap[Unk5](
+      {
+        case u0 :: u1 :: u2 :: u3 :: u4 :: data :: HNil =>
+          Unk5(u0, u1, u2, u3, u4, data)
+      },
+      {
+        case Unk5(u0, u1, u2, u3, u4, data) =>
+          u0 :: u1 :: u2 :: u3 :: u4 :: data :: HNil
+      }
+    )
 
     /**
       * A common form for known action code indexes with an unknown purpose and transformation is an "Unknown" object.
@@ -129,16 +285,36 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
   object RequestType extends Enumeration {
     type Type = Value
 
-    val unk0: RequestType.Value = Value(0)
-    val unk1: RequestType.Value = Value(1)
-    val unk2: RequestType.Value = Value(2)
-    val unk3: RequestType.Value = Value(3)
-    val CreatedOutfit: RequestType.Value = Value(4)
-    val unk5: RequestType.Value = Value(5)
-    val Unk6: RequestType.Value = Value(6)
-    val Unk7: RequestType.Value = Value(7)
+    val Unk0: RequestType.Value = Value(0)
+    val Unk1: RequestType.Value = Value(1) // send in SMP after a f load of OutfitMemberEvent
+    val Unk2: RequestType.Value = Value(2) // send after creating an outfit
+    val Unk3: RequestType.Value = Value(3) // below
+    val Unk4: RequestType.Value = Value(4)
+    val Unk5: RequestType.Value = Value(5)
+    val unk6: RequestType.Value = Value(6)
+    val unk7: RequestType.Value = Value(7)
 
-    implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uint4L)
+    /*
+    unk3 -- #66162 PSCap-2016-02-28_02-58-10-PM.txt
+
+    MP(
+      SMP(
+       MPEx(
+        OutfitMembershipResponse,
+        OutfitEvent,
+        SquadMemberEvent
+       )
+      ),
+      SMP(
+       MPEx(
+        PlanetsideAttributeMessage x 3 + PlanetsideStringAttributeMessage
+       )
+      )
+     )
+    )
+    */
+
+    implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
 
   private def selectFromType(code: Int): Codec[OutfitEventAction] = {
@@ -146,12 +322,12 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
     import scala.annotation.switch
 
     ((code: @switch) match {
-      case 0 => unknownCodec(action = code)
-      case 1 => unknownCodec(action = code)
-      case 2 => unknownCodec(action = code)
-      case 3 => unknownCodec(action = code)
-      case 4 => CreatedOutfitCodec // sent after /outfitcreate
-      case 5 => unknownCodec(action = code)
+      case 0 => Unk0Codec
+      case 1 => Unk1Codec
+      case 2 => Unk2Codec // sent after /outfitcreate ?
+      case 3 => Unk3Codec
+      case 4 => Unk4Codec
+      case 5 => Unk5Codec
       case 6 => unknownCodec(action = code)
       case 7 => unknownCodec(action = code)
 
@@ -161,17 +337,17 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
 
   implicit val codec: Codec[OutfitEvent] = (
     ("request_type" | RequestType.codec) >>:~ { request_type =>
-      ("avatar_guid" | uint16L) ::
+      ("outfit_guid" | PlanetSideGUID.codec) ::
         ("action" | selectFromType(request_type.id))
     }
     ).xmap[OutfitEvent](
     {
-      case request_type :: avatar_guid :: action :: HNil =>
-        OutfitEvent(request_type, avatar_guid, action)
+      case request_type :: outfit_guid :: action :: HNil =>
+        OutfitEvent(request_type, outfit_guid, action)
     },
     {
-      case OutfitEvent(request_type, avatar_guid, action) =>
-        request_type :: avatar_guid :: action :: HNil
+      case OutfitEvent(request_type, outfit_guid, action) =>
+        request_type :: outfit_guid :: action :: HNil
     }
   )
 }
