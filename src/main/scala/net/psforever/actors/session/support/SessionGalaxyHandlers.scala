@@ -2,12 +2,9 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, typed}
-import scala.concurrent.duration._
 //
 import net.psforever.actors.session.AvatarActor
-import net.psforever.objects.Vehicle
-import net.psforever.packet.game.{AvatarDeadStateMessage, BroadcastWarpgateUpdateMessage, DeadState, HotSpotInfo => PacketHotSpotInfo, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage}
-import net.psforever.services.Service
+import net.psforever.packet.game.{BroadcastWarpgateUpdateMessage, HotSpotInfo => PacketHotSpotInfo, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage}
 import net.psforever.services.galaxy.GalaxyResponse
 import net.psforever.types.{MemberAction, PlanetSideEmpire}
 
