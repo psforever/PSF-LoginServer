@@ -11,8 +11,8 @@ import shapeless.{::, HNil}
 
 final case class OutfitMembershipRequest(
     request_type: OutfitMembershipRequest.RequestType.Type,
-    avatar_guid: PlanetSideGUID,
-    unk1: Int,
+    avatar_guid: PlanetSideGUID, // avatar_guid and unk1 are related, might be Long instead
+    unk1: Int, //
     action: OutfitMembershipRequestAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitMembershipRequest

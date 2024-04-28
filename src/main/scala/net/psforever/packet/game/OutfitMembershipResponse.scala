@@ -12,8 +12,8 @@ import shapeless.{::, HNil}
 final case class OutfitMembershipResponse(
     response_type: OutfitMembershipResponse.ResponseType.Type,
     unk0: Int,
-    avatar_guid: PlanetSideGUID,
-    unk1: PlanetSideGUID,
+    avatar_guid: PlanetSideGUID, // avatar_guid and unk1 are related, might be Long instead
+    unk1: PlanetSideGUID, //
     unk2: PlanetSideGUID,
     unk3: Int,
     //unk4: Boolean,
