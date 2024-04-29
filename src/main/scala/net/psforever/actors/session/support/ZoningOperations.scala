@@ -2933,12 +2933,12 @@ class ZoningOperations(
         //killed during spawn setup or possibly a relog into a corpse (by accident?)
         player.Actor ! Player.Die()
       } else {
+        //properly logged in
         AvatarActor.savePlayerData(player)
         sessionData.displayCharSavedMsgThenRenewTimer(
           Config.app.game.savedMsg.short.fixed,
           Config.app.game.savedMsg.short.variable
         )
-        //player
         val effortBy = nextSpawnPoint
           .collect { case sp: SpawnTube => (sp, continent.GUID(sp.Owner.GUID)) }
           .collect {
@@ -2958,18 +2958,19 @@ class ZoningOperations(
             }
           })
         }
-      }
-      upstreamMessageCount = 0
-      setAvatar = true
-      if (
-        !account.gm && /* gm's are excluded */
-          Config.app.game.promotion.active && /* play versus progress system must be active */
-          BattleRank.withExperience(tplayer.avatar.bep).value <= Config.app.game.promotion.broadcastBattleRank && /* must be below a certain battle rank */
-          avatar.scorecard.Lives.isEmpty && /* first life after login */
-          avatar.scorecard.CurrentLife.prior.isEmpty && /* no revives */
-          player.History.size == 1 /* did nothing but come into existence */
-      ) {
-        ZoningOperations.reportProgressionSystem(context.self)
+        setAvatar = true
+        player.allowInteraction = true
+        upstreamMessageCount = 0
+        if (
+          !account.gm && /* gm's are excluded */
+            Config.app.game.promotion.active && /* play versus progress system must be active */
+            BattleRank.withExperience(tplayer.avatar.bep).value <= Config.app.game.promotion.broadcastBattleRank && /* must be below a certain battle rank */
+            avatar.scorecard.Lives.isEmpty && /* first life after login */
+            avatar.scorecard.CurrentLife.prior.isEmpty && /* no revives */
+            player.History.size == 1 /* did nothing but come into existence */
+        ) {
+          ZoningOperations.reportProgressionSystem(context.self)
+        }
       }
     }
 

@@ -3,7 +3,7 @@ package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, ActorRef, Props}
 import net.psforever.objects.ce._
-import net.psforever.objects.definition.{DeployableDefinition, ExoSuitDefinition}
+import net.psforever.objects.definition.DeployableDefinition
 import net.psforever.objects.definition.converter.SmallDeployableConverter
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.geometry.d3.VolumetricGeometry
@@ -11,14 +11,14 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableEntity}
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, SourceEntry, UniquePlayer}
+import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, SourceEntry}
 import net.psforever.objects.vital.etc.TrippedMineReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.vital.{SimpleResolutions, Vitality}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.Zone
-import net.psforever.types.{CharacterSex, ExoSuitType, Vector3}
+import net.psforever.types.Vector3
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -321,40 +321,40 @@ object MineDeployableControl {
   private case class Triggered()
 
   def trippedMineReason(mine: ExplosiveDeployable): TrippedMineReason = {
-    val deployableSource = DeployableSource(mine)
-    val blame = mine.OwnerName match {
-      case Some(name) =>
-        val(charId, exosuit, seatedIn): (Long, ExoSuitType.Value, Option[(SourceEntry, Int)]) = mine.Zone
-          .LivePlayers
-          .find { _.Name.equals(name) } match {
-          case Some(player) =>
-            //if the owner is alive in the same zone as the mine, use data from their body to create the source
-            (player.CharId, player.ExoSuit, PlayerSource.mountableAndSeat(player))
-          case None         =>
-            //if the owner is as dead as a corpse or is not in the same zone as the mine, use defaults
-            (0L, ExoSuitType.Standard, None)
-        }
-        val faction = mine.Faction
-        PlayerSource(
-          GlobalDefinitions.avatar,
-          exosuit,
-          seatedIn,
-          health = 100,
-          armor = 0,
-          mine.Position,
-          Vector3.Zero,
-          None,
-          crouching = false,
-          jumping = false,
-          ExoSuitDefinition.Select(exosuit, faction),
-          bep = 0,
-          progress = PlayerSource.Nobody.progress,
-          UniquePlayer(charId, name, CharacterSex.Male, mine.Faction)
-        )
-      case None =>
-        //credit where credit is due
-        deployableSource
-    }
+    lazy val deployableSource = DeployableSource(mine)
+    val zone = mine.Zone
+    val ownerName = mine.OwnerName
+    val blame = zone
+      .Players
+      .find(a => ownerName.contains(a.name))
+      .collect { a =>
+        val name = a.name
+        assignBlameToFrom(name, zone.LivePlayers)
+          .orElse(assignBlameToFrom(name, zone.Corpses))
+          .getOrElse {
+            val player = PlayerSource(name, mine.Faction, mine.Position) //might report minor inconsistencies, e.g., exo-suit type
+            player.copy(unique = player.unique.copy(charId = a.id), progress = a.scorecard.CurrentLife)
+          }
+      }
+      .getOrElse(deployableSource)
     TrippedMineReason(deployableSource, blame)
+  }
+
+  /**
+   * Find a player with a given name from this list of possible players.
+   * If the player is seated, attach a shallow copy of the mounting information.
+   * @param name player name
+   * @param blameList possible players in which to find the player name
+   * @return discovered player as a reference, or `None` if not found
+   */
+  private def assignBlameToFrom(name: String, blameList: List[Player]): Option[SourceEntry] = {
+    blameList
+      .find(_.Name.equals(name))
+      .map { player =>
+        PlayerSource
+          .mountableAndSeat(player)
+          .map { case (mount, seat) => PlayerSource.inSeat(player, mount, seat) }
+          .getOrElse { PlayerSource(player) }
+      }
   }
 }
