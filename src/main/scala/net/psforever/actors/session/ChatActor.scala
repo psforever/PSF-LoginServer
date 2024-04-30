@@ -5,12 +5,13 @@ import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
 import akka.actor.typed.scaladsl.adapter._
-import net.psforever.actors.session.normal.NormalMode
-import net.psforever.actors.session.spectator.SpectatorMode
+import net.psforever.actors.session.normal.{NormalMode => SessionNormalMode}
+import net.psforever.actors.session.spectator.{SpectatorMode => SessionSpectatorMode}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.ZoneInfo
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.types.ChatMessageType.CMT_QUIT
 import org.log4s.Logger
 
 import scala.annotation.unused
@@ -29,7 +30,7 @@ import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurrets}
 import net.psforever.objects.zones.Zoning
 import net.psforever.packet.game.objectcreate.DrawnSlot
-import net.psforever.packet.game.{ChatMsg, CreateShortcutMessage, DeadState, RequestDestroyMessage, Shortcut, ZonePopulationUpdateMessage}
+import net.psforever.packet.game.{ChatMsg, CreateShortcutMessage, DeadState, RequestDestroyMessage, Shortcut}
 import net.psforever.services.{CavernRotationService, InterstellarClusterService}
 import net.psforever.services.chat.ChatService
 import net.psforever.services.chat.ChatService.ChatChannel
@@ -57,9 +58,23 @@ object ChatActor {
   final case class LeaveChannel(channel: ChatChannel) extends Command
   final case class Message(message: ChatMsg)          extends Command
   final case class SetSession(session: Session)       extends Command
+  final case class SetMode(mode: String)              extends Command
 
   private case class ListingResponse(listing: Receptionist.Listing)                            extends Command
   private case class IncomingMessage(session: Session, message: ChatMsg, channel: ChatChannel) extends Command
+
+  trait ChatFuncs {
+    def chatService: ActorRef[ChatService.Command]
+    def cluster: ActorRef[InterstellarClusterService.Command]
+
+    def message(session: Session, message: ChatMsg): Unit
+
+    def incoming(session: Session, message: ChatMsg, fromSession: Session): Unit
+  }
+
+  trait ChatMode {
+    def init(chatService: ActorRef[ChatService.Command], cluster: ActorRef[InterstellarClusterService.Command]): ChatFuncs
+  }
 
   /**
     * For a provided number of facility nanite transfer unit resource silos,
@@ -643,6 +658,7 @@ class ChatActor(
   val chatServiceAdapter: ActorRef[ChatService.MessageResponse] = context.messageAdapter[ChatService.MessageResponse] {
     case ChatService.MessageResponse(_session, message, channel) => IncomingMessage(_session, message, channel)
   }
+  var logic: ChatFuncs = _
 
   context.system.receptionist ! Receptionist.Find(
     ChatService.ChatServiceKey,
@@ -689,6 +705,7 @@ class ChatActor(
     (session, chatService, cluster) match {
       case (Some(_session), Some(_chatService), Some(_cluster)) if _session.player != null =>
         _chatService ! ChatService.JoinChannel(chatServiceAdapter, _session, ChatChannel.Default())
+        logic = NormalMode.init(_chatService, _cluster)
         buffer.unstashAll(active(_session, _chatService, _cluster))
       case _ =>
         Behaviors.same
@@ -700,8 +717,6 @@ class ChatActor(
               chatService: ActorRef[ChatService.Command],
               cluster: ActorRef[InterstellarClusterService.Command]
             ): Behavior[Command] = {
-    import ChatMessageType._
-
     Behaviors
       .receiveMessagePartial[Command] {
         case SetSession(newSession) =>
@@ -718,761 +733,20 @@ class ChatActor(
           channels = channels.filterNot(_ == channel)
           Behaviors.same
 
-        case Message(message) =>
-          val gmCommandAllowed =
-            session.account.gm || Config.app.development.unprivilegedGmCommands.contains(message.messageType)
-
-          (message.messageType, message.recipient.trim, message.contents.trim) match {
-            /** Messages starting with ! are custom chat commands */
-            case (_, _, contents) if contents.startsWith("!") &&
-              customCommandMessages(message, session, chatService, cluster) => ()
-
-            case (CMT_FLY, recipient, contents) if gmCommandAllowed =>
-              val (token, flying) = contents match {
-                case "on"  => (contents, true)
-                case "off" => (contents, false)
-                case _     => ("off", false)
-              }
-              sessionActor ! SessionActor.SetFlying(flying)
-              sessionActor ! SessionActor.SendResponse(
-                ChatMsg(CMT_FLY, wideContents=false, recipient, token, None)
-              )
-
-            case (CMT_ANONYMOUS, _, _) =>
-            // ?
-
-            case (CMT_TOGGLE_GM, _, _) =>
-            // ?
-
-            case (CMT_CULLWATERMARK, _, contents) =>
-              val connectionState =
-                if (contents.contains("40 80")) 100
-                else if (contents.contains("120 200")) 25
-                else 50
-              sessionActor ! SessionActor.SetConnectionState(connectionState)
-
-            case (CMT_SPEED, _, contents) if gmCommandAllowed =>
-              val speed =
-                try {
-                  contents.toFloat
-                } catch {
-                  case _: Throwable =>
-                    1f
-                }
-              sessionActor ! SessionActor.SetSpeed(speed)
-              sessionActor ! SessionActor.SendResponse(message.copy(contents = f"$speed%.3f"))
-
-            case (CMT_TOGGLESPECTATORMODE, _, contents) if gmCommandAllowed =>
-              val currentSpectatorActivation = session.player.spectator
-              contents.toLowerCase() match {
-                case "on" | "o" | "" if !currentSpectatorActivation =>
-                  sessionActor ! SessionActor.SetMode(SpectatorMode)
-                case "off" | "of" if currentSpectatorActivation =>
-                  sessionActor ! SessionActor.SetMode(NormalMode)
-                case _ => ()
-              }
-
-            case (CMT_RECALL, _, _) =>
-              val errorMessage = session.zoningType match {
-                case Zoning.Method.Quit => Some("You can't recall to your sanctuary continent while quitting")
-                case Zoning.Method.InstantAction =>
-                  Some("You can't recall to your sanctuary continent while instant actioning")
-                case Zoning.Method.Recall => Some("You already requested to recall to your sanctuary continent")
-                case _ if session.zone.id == Zones.sanctuaryZoneId(session.player.Faction) =>
-                  Some("You can't recall to your sanctuary when you are already in your sanctuary")
-                case _ if !session.player.isAlive || session.deadState != DeadState.Alive =>
-                  Some(if (session.player.isAlive) "@norecall_deconstructing" else "@norecall_dead")
-                case _ if session.player.VehicleSeated.nonEmpty => Some("@norecall_invehicle")
-                case _                                          => None
-              }
-              errorMessage match {
-                case Some(errorMessage) =>
-                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, errorMessage))
-                case None =>
-                  sessionActor ! SessionActor.Recall()
-              }
-
-            case (CMT_INSTANTACTION, _, _) =>
-              if (session.zoningType == Zoning.Method.Quit) {
-                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "You can't instant action while quitting."))
-              } else if (session.zoningType == Zoning.Method.InstantAction) {
-                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_instantactionting"))
-              } else if (session.zoningType == Zoning.Method.Recall) {
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(CMT_QUIT, "You won't instant action. You already requested to recall to your sanctuary continent")
-                )
-              } else if (!session.player.isAlive || session.deadState != DeadState.Alive) {
-                if (session.player.isAlive) {
-                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_deconstructing"))
-                } else {
-                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_dead"))
-                }
-              } else if (session.player.VehicleSeated.nonEmpty) {
-                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_invehicle"))
-              } else {
-                sessionActor ! SessionActor.InstantAction()
-              }
-
-            case (CMT_QUIT, _, _) =>
-              if (session.zoningType == Zoning.Method.Quit) {
-                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_quitting"))
-              } else if (!session.player.isAlive || session.deadState != DeadState.Alive) {
-                if (session.player.isAlive) {
-                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_deconstructing"))
-                } else {
-                  sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_dead"))
-                }
-              } else if (session.player.VehicleSeated.nonEmpty) {
-                sessionActor ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_invehicle"))
-              } else {
-                sessionActor ! SessionActor.Quit()
-              }
-
-            case (CMT_SUICIDE, _, _) =>
-              if (session.player.isAlive && session.deadState != DeadState.Release) {
-                sessionActor ! SessionActor.Suicide()
-              }
-
-            case (CMT_DESTROY, _, contents) if contents.matches("\\d+") =>
-              val guid = contents.toInt
-              session.zone.GUID(session.zone.map.terminalToSpawnPad.getOrElse(guid, guid)) match {
-                case Some(pad: VehicleSpawnPad) =>
-                  pad.Actor ! VehicleSpawnControl.ProcessControl.Flush
-                case Some(turret: FacilityTurret) if turret.isUpgrading =>
-                  WeaponTurrets.FinishUpgradingMannedTurret(turret, TurretUpgrade.None)
-                case _ =>
-                  // FIXME we shouldn't do it like that
-                  sessionActor.toClassic ! RequestDestroyMessage(PlanetSideGUID(guid))
-              }
-              sessionActor ! SessionActor.SendResponse(message)
-
-            case (CMT_SETBASERESOURCES, _, contents) if gmCommandAllowed =>
-              val buffer = cliTokenization(contents)
-              val customNtuValue = buffer.lift(1) match {
-                case Some(x) if x.toIntOption.nonEmpty => Some(x.toInt)
-                case _                                 => None
-              }
-              val silos = {
-                val position = session.player.Position
-                session.zone.Buildings.values
-                  .filter { building =>
-                    val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
-                    Vector3.DistanceSquared(building.Position, position) < soi2
-                  }
-              }
-                .flatMap { building => building.Amenities.filter { _.isInstanceOf[ResourceSilo] } }
-              ChatActor.setBaseResources(sessionActor, customNtuValue, silos, debugContent="")
-
-            case (CMT_ZONELOCK, _, contents) if gmCommandAllowed =>
-              val buffer = cliTokenization(contents)
-              val (zoneOpt, lockVal) = (buffer.lift(1), buffer.lift(2)) match {
-                case (Some(x), Some(y)) =>
-                  val zone = if (x.toIntOption.nonEmpty) {
-                    val xInt = x.toInt
-                    Zones.zones.find(_.Number == xInt)
-                  } else {
-                    Zones.zones.find(z => z.id.equals(x))
-                  }
-                  val value = if (y.toIntOption.nonEmpty && y.toInt == 0) {
-                    0
-                  } else {
-                    1
-                  }
-                  (zone, Some(value))
-                case _ =>
-                  (None, None)
-              }
-              (zoneOpt, lockVal) match {
-                case (Some(zone), Some(lock)) if zone.map.cavern =>
-                  //caverns must be rotated in an order
-                  if (lock == 0) {
-                    cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryRotationToZoneUnlock(zone.id))
-                  } else {
-                    cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryRotationToZoneLock(zone.id))
-                  }
-                case (Some(_), Some(_)) =>
-                  //normal zones can lock when all facilities and towers on it belong to the same faction
-                  //normal zones can lock when ???
-                case _ => ;
-              }
-
-            case (U_CMT_ZONEROTATE, _, _) if gmCommandAllowed =>
-              cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryNextRotation)
-
-            case (CMT_CAPTUREBASE, _, contents) if gmCommandAllowed =>
-              val buffer = cliTokenization(contents).take(3)
-              //walk through the param buffer
-              val (foundFacilities, foundFacilitiesTag, factionBuffer) = firstParam(session, buffer, captureBaseParamFacilities)
-              val (foundFaction, foundFactionTag, timerBuffer) = firstParam(session, factionBuffer, captureBaseParamFaction)
-              val (foundTimer, foundTimerTag, _) = firstParam(session, timerBuffer, captureBaseParamTimer)
-              //resolve issues with the initial params
-              var facilityError: Int = 0
-              var factionError: Boolean = false
-              var timerError: Boolean = false
-              var usageMessage: Boolean = false
-              val resolvedFacilities = foundFacilities
-                .orElse {
-                  if (foundFacilitiesTag.nonEmpty) {
-                    if (foundFaction.isEmpty) {
-                      /* /capturebase <bad_facility> OR /capturebase <bad_facility> <no_faction> */
-                      //malformed facility tag error
-                      facilityError = 2
-                      None
-                    } else if (!foundFacilitiesTag.contains("curr")) { //did we do this next check already
-                      /* /capturebase <faction>, potentially */
-                      val buildings = captureBaseCurrSoi(session)
-                      if (buildings.nonEmpty) {
-                        //convert facilities to faction
-                        Some(buildings.toSeq)
-                      } else {
-                        //no facilities error
-                        facilityError = 1
-                        None
-                      }
-                    } else {
-                      //no facilities error
-                      facilityError = 1
-                      None
-                    }
-                  } else {
-                    //no params; post command usage reminder
-                    usageMessage = true
-                    None
-                  }
-                }
-              val resolvedFaction = foundFaction
-                .orElse {
-                  if (resolvedFacilities.nonEmpty) {
-                    /* /capturebase <facility> OR /capturebase <facility> <timer> */
-                    if (foundFactionTag.isEmpty || foundTimer.nonEmpty) {
-                      //convert facilities to OUR PLAYER'S faction
-                      Some(session.player.Faction)
-                    } else {
-                      //malformed faction tag error
-                      factionError = true
-                      None
-                    }
-                  } else {
-                    //incorrect params; already posted an error message
-                    None
-                  }
-                }
-              val resolvedTimer = foundTimer
-                .orElse {
-                  //todo stop command execution? post command usage reminder?
-                  if (resolvedFaction.nonEmpty && foundTimerTag.nonEmpty) {
-                    /* /capturebase <?> <?> <bad_timer> */
-                    //malformed timer tag error
-                    timerError = true
-                    None
-                  } else {
-                    //eh
-                    Some(1)
-                  }
-                }
-              //evaluate results
-              (resolvedFacilities, resolvedFaction, resolvedTimer) match {
-                case (Some(buildings), Some(faction), Some(_)) =>
-                  buildings.foreach { building =>
-                    //TODO implement timer
-                    val terminal = building.CaptureTerminal.get
-                    val zone = building.Zone
-                    val zoneActor = zone.actor
-                    val buildingActor = building.Actor
-                    //clear any previous hack
-                    if (building.CaptureTerminalIsHacked) {
-                      zone.LocalEvents ! LocalServiceMessage(
-                        zone.id,
-                        LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody)
-                      )
-                    }
-                    //push any updates this might cause
-                    zoneActor ! ZoneActor.ZoneMapUpdate()
-                    //convert faction affiliation
-                    buildingActor ! BuildingActor.SetFaction(faction)
-                    buildingActor ! BuildingActor.AmenityStateChange(terminal, Some(false))
-                    //push for map updates again
-                    zoneActor ! ZoneActor.ZoneMapUpdate()
-                  }
-                case _ =>
-                  if (usageMessage) {
-                    sessionActor ! SessionActor.SendResponse(
-                      message.copy(messageType = UNK_229, contents = "@CMT_CAPTUREBASE_usage")
-                    )
-                  } else {
-                    val msg = if (facilityError == 1) { "can not contextually determine building target" }
-                    else if (facilityError == 2) { s"\'${foundFacilitiesTag.get}\' is not a valid building name" }
-                    else if (factionError) { s"\'${foundFactionTag.get}\' is not a valid faction designation" }
-                    else if (timerError) { s"\'${foundTimerTag.get}\' is not a valid timer value" }
-                    else { "malformed params; check usage" }
-                    sessionActor ! SessionActor.SendResponse(ChatMsg(UNK_229, wideContents=true, "", s"\\#FF4040ERROR - $msg", None))
-                  }
-              }
-
-            case (CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_VS | CMT_GMBROADCAST_TR, _, _)
-                if gmCommandAllowed =>
-              chatService ! ChatService.Message(
-                session,
-                message.copy(recipient = session.player.Name),
-                ChatChannel.Default()
-              )
-
-            case (CMT_GMTELL, _, _) if gmCommandAllowed =>
-              chatService ! ChatService.Message(
-                session,
-                message,
-                ChatChannel.Default()
-              )
-
-            case (CMT_GMBROADCASTPOPUP, _, _) if gmCommandAllowed =>
-              chatService ! ChatService.Message(
-                session,
-                message.copy(recipient = session.player.Name),
-                ChatChannel.Default()
-              )
-
-            case (CMT_OPEN, _, _) if !session.player.silenced =>
-              chatService ! ChatService.Message(
-                session,
-                message.copy(recipient = session.player.Name),
-                ChatChannel.Default()
-              )
-
-            case (CMT_VOICE, _, contents) =>
-              // SH prefix are tactical voice macros only sent to squad
-              if (contents.startsWith("SH")) {
-                channels.foreach {
-                  case channel: ChatChannel.Squad =>
-                    chatService ! ChatService.Message(session, message.copy(recipient = session.player.Name), channel)
-                  case _ =>
-                }
-              } else {
-                chatService ! ChatService.Message(
-                  session,
-                  message.copy(recipient = session.player.Name),
-                  ChatChannel.Default()
-                )
-              }
-
-            case (CMT_TELL, _, _) if !session.player.silenced =>
-              if (AvatarActor.onlineIfNotIgnored(message.recipient, session.avatar.name)) {
-                chatService ! ChatService.Message(
-                  session,
-                  message,
-                  ChatChannel.Default()
-                )
-              } else if (AvatarActor.getLiveAvatarForFunc(message.recipient, (_,_,_)=>{}).isEmpty) {
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.UNK_45, wideContents=false, "none", "@notell_target", None)
-                )
-              } else {
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.UNK_45, wideContents=false, "none", "@notell_ignore", None)
-                )
-              }
-
-            case (CMT_BROADCAST, _, _) if !session.player.silenced =>
-              chatService ! ChatService.Message(
-                session,
-                message.copy(recipient = session.player.Name),
-                ChatChannel.Default()
-              )
-
-            case (CMT_PLATOON, _, _) if !session.player.silenced =>
-              chatService ! ChatService.Message(
-                session,
-                message.copy(recipient = session.player.Name),
-                ChatChannel.Default()
-              )
-
-            case (CMT_COMMAND, _, _) if gmCommandAllowed =>
-              chatService ! ChatService.Message(
-                session,
-                message.copy(recipient = session.player.Name),
-                ChatChannel.Default()
-              )
-
-            case (CMT_NOTE, _, _) =>
-              chatService ! ChatService.Message(session, message, ChatChannel.Default())
-
-            case (CMT_SILENCE, _, _) if gmCommandAllowed =>
-              chatService ! ChatService.Message(session, message, ChatChannel.Default())
-
-            case (CMT_SQUAD, _, _) =>
-              channels.foreach {
-                case channel: ChatChannel.Squad =>
-                  chatService ! ChatService.Message(session, message.copy(recipient = session.player.Name), channel)
-                case _ =>
-              }
-
-            case (
-                  CMT_WHO | CMT_WHO_CSR | CMT_WHO_CR | CMT_WHO_PLATOONLEADERS | CMT_WHO_SQUADLEADERS | CMT_WHO_TEAMS,
-                  _,
-                  _
-                ) =>
-              val players  = session.zone.Players
-              val popTR    = players.count(_.faction == PlanetSideEmpire.TR)
-              val popNC    = players.count(_.faction == PlanetSideEmpire.NC)
-              val popVS    = players.count(_.faction == PlanetSideEmpire.VS)
-
-              if (popNC + popTR + popVS == 0) {
-                sessionActor ! SessionActor.SendResponse(ChatMsg(ChatMessageType.CMT_WHO, "@Nomatches"))
-              } else {
-                val contName = session.zone.map.name
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "That command doesn't work for now, but : ", None)
-                )
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "NC online : " + popNC + " on " + contName, None)
-                )
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "TR online : " + popTR + " on " + contName, None)
-                )
-                sessionActor ! SessionActor.SendResponse(
-                  ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "VS online : " + popVS + " on " + contName, None)
-                )
-              }
-
-            case (CMT_ZONE, _, contents) if gmCommandAllowed =>
-              val buffer = cliTokenization(contents)
-              val (zone, gate, list) = (buffer.headOption, buffer.lift(1)) match {
-                case (Some("-list"), None) =>
-                  (None, None, true)
-                case (Some(zoneId), Some("-list")) =>
-                  (PointOfInterest.get(zoneId), None, true)
-                case (Some(zoneId), gateId) =>
-                  val zone = PointOfInterest.get(zoneId)
-                  val gate = (zone, gateId) match {
-                    case (Some(zone), Some(gateId)) => PointOfInterest.getWarpgate(zone, gateId)
-                    case (Some(zone), None)         => Some(PointOfInterest.selectRandom(zone))
-                    case _                          => None
-                  }
-                  (zone, gate, false)
-                case _ =>
-                  (None, None, false)
-              }
-              (zone, gate, list) match {
-                case (None, None, true) =>
-                  sessionActor ! SessionActor.SendResponse(ChatMsg(UNK_229, wideContents=true, "", PointOfInterest.list, None))
-                case (Some(zone), None, true) =>
-                  sessionActor ! SessionActor.SendResponse(
-                    ChatMsg(UNK_229, wideContents=true, "", PointOfInterest.listWarpgates(zone), None)
-                  )
-                case (Some(zone), Some(gate), false) =>
-                  sessionActor ! SessionActor.SetZone(zone.zonename, gate)
-                case (_, None, false) =>
-                  sessionActor ! SessionActor.SendResponse(
-                    ChatMsg(UNK_229, wideContents=true, "", "Gate id not defined (use '/zone <zone> -list')", None)
-                  )
-                case (_, _, _) if buffer.isEmpty || buffer.headOption.contains("-help") =>
-                  sessionActor ! SessionActor.SendResponse(
-                    message.copy(messageType = UNK_229, contents = "@CMT_ZONE_usage")
-                  )
-                case _ => ()
-              }
-
-            case (CMT_WARP, _, contents) if gmCommandAllowed =>
-              val buffer = cliTokenization(contents)
-              val (coordinates, waypoint) = (buffer.headOption, buffer.lift(1), buffer.lift(2)) match {
-                case (Some(x), Some(y), Some(z))                       => (Some(x, y, z), None)
-                case (Some("to"), Some(_/*character*/), None)          => (None, None) // TODO not implemented
-                case (Some("near"), Some(_/*objectName*/), None)       => (None, None) // TODO not implemented
-                case (Some(waypoint), None, None) if waypoint.nonEmpty => (None, Some(waypoint))
-                case _                                                 => (None, None)
-              }
-              (coordinates, waypoint) match {
-                case (Some((x, y, z)), None) if List(x, y, z).forall { str =>
-                      val coordinate = str.toFloatOption
-                      coordinate.isDefined && coordinate.get >= 0 && coordinate.get <= 8191
-                    } =>
-                  sessionActor ! SessionActor.SetPosition(Vector3(x.toFloat, y.toFloat, z.toFloat))
-                case (None, Some(waypoint)) if waypoint == "-list" =>
-                  val zone = PointOfInterest.get(session.player.Zone.id)
-                  zone match {
-                    case Some(zone: PointOfInterest) =>
-                      sessionActor ! SessionActor.SendResponse(
-                        ChatMsg(UNK_229, wideContents=true, "", PointOfInterest.listAll(zone), None)
-                      )
-                    case _ => ChatMsg(UNK_229, wideContents=true, "", s"unknown player zone '${session.player.Zone.id}'", None)
-                  }
-                case (None, Some(waypoint)) if waypoint != "-help" =>
-                  PointOfInterest.getWarpLocation(session.zone.id, waypoint) match {
-                    case Some(location) => sessionActor ! SessionActor.SetPosition(location)
-                    case None =>
-                      sessionActor ! SessionActor.SendResponse(
-                        ChatMsg(UNK_229, wideContents=true, "", s"unknown location '$waypoint'", None)
-                      )
-                  }
-                case _ =>
-                  sessionActor ! SessionActor.SendResponse(
-                    message.copy(messageType = UNK_229, contents = "@CMT_WARP_usage")
-                  )
-              }
-
-            case (CMT_SETBATTLERANK, _, contents) if gmCommandAllowed =>
-              if (!setBattleRank(session, cliTokenization(contents), AvatarActor.SetBep, avatarActor)) {
-                sessionActor ! SessionActor.SendResponse(
-                  message.copy(messageType = UNK_229, contents = "@CMT_SETBATTLERANK_usage")
-                )
-              }
-
-            case (CMT_SETCOMMANDRANK, _, contents) if gmCommandAllowed =>
-              if (!setCommandRank(contents, session, avatarActor)) {
-                sessionActor ! SessionActor.SendResponse(
-                  message.copy(messageType = UNK_229, contents = "@CMT_SETCOMMANDRANK_usage")
-                )
-              }
-
-            case (CMT_ADDBATTLEEXPERIENCE, _, contents) if gmCommandAllowed =>
-              contents.toIntOption match {
-                case Some(bep) => avatarActor ! AvatarActor.AwardBep(bep, ExperienceType.Normal)
-                case None =>
-                  sessionActor ! SessionActor.SendResponse(
-                    message.copy(messageType = UNK_229, contents = "@CMT_ADDBATTLEEXPERIENCE_usage")
-                  )
-              }
-
-            case (CMT_ADDCOMMANDEXPERIENCE, _, contents) if gmCommandAllowed =>
-              contents.toIntOption match {
-                case Some(cep) => avatarActor ! AvatarActor.AwardCep(cep)
-                case None =>
-                  sessionActor ! SessionActor.SendResponse(
-                    message.copy(messageType = UNK_229, contents = "@CMT_ADDCOMMANDEXPERIENCE_usage")
-                  )
-              }
-
-            case (CMT_TOGGLE_HAT, _, contents) =>
-              val cosmetics = session.avatar.decoration.cosmetics.getOrElse(Set())
-              val nextCosmetics = contents match {
-                case "off" =>
-                  cosmetics.diff(Set(Cosmetic.BrimmedCap, Cosmetic.Beret))
-                case _ =>
-                  if (cosmetics.contains(Cosmetic.BrimmedCap)) {
-                    cosmetics.diff(Set(Cosmetic.BrimmedCap)) + Cosmetic.Beret
-                  } else if (cosmetics.contains(Cosmetic.Beret)) {
-                    cosmetics.diff(Set(Cosmetic.BrimmedCap, Cosmetic.Beret))
-                  } else {
-                    cosmetics + Cosmetic.BrimmedCap
-                  }
-              }
-              val on = nextCosmetics.contains(Cosmetic.BrimmedCap) || nextCosmetics.contains(Cosmetic.Beret)
-
-              avatarActor ! AvatarActor.SetCosmetics(nextCosmetics)
-              sessionActor ! SessionActor.SendResponse(
-                message.copy(
-                  messageType = UNK_229,
-                  contents = s"@CMT_TOGGLE_HAT_${if (on) "on" else "off"}"
-                )
-              )
-
-            case (CMT_HIDE_HELMET | CMT_TOGGLE_SHADES | CMT_TOGGLE_EARPIECE, _, contents) =>
-              val cosmetics = session.avatar.decoration.cosmetics.getOrElse(Set())
-
-              val cosmetic = message.messageType match {
-                case CMT_HIDE_HELMET     => Cosmetic.NoHelmet
-                case CMT_TOGGLE_SHADES   => Cosmetic.Sunglasses
-                case CMT_TOGGLE_EARPIECE => Cosmetic.Earpiece
-                case _                   => null
-              }
-
-              val on = contents match {
-                case "on"  => true
-                case "off" => false
-                case _     => !cosmetics.contains(cosmetic)
-              }
-
-              avatarActor ! AvatarActor.SetCosmetics(
-                if (on) cosmetics + cosmetic
-                else cosmetics.diff(Set(cosmetic))
-              )
-
-              sessionActor ! SessionActor.SendResponse(
-                message.copy(
-                  messageType = UNK_229,
-                  contents = s"@${message.messageType.toString}_${if (on) "on" else "off"}"
-                )
-              )
-
-            case (CMT_ADDCERTIFICATION, _, contents) if gmCommandAllowed =>
-              val certs = cliTokenization(contents).map(name => Certification.values.find(_.name == name))
-              val result = if (certs.nonEmpty) {
-                if (certs.contains(None)) {
-                  s"@AckErrorCertifications"
-                } else {
-                  avatarActor ! AvatarActor.SetCertifications(session.avatar.certifications ++ certs.flatten)
-                  s"@AckSuccessCertifications"
-                }
-              } else {
-                if (session.avatar.certifications.size < Certification.values.size) {
-                  avatarActor ! AvatarActor.SetCertifications(Certification.values.toSet)
-                } else {
-                  avatarActor ! AvatarActor.SetCertifications(Certification.values.filter(_.cost == 0).toSet)
-                }
-                s"@AckSuccessCertifications"
-              }
-              sessionActor ! SessionActor.SendResponse(message.copy(messageType = UNK_229, contents = result))
-
-            case (CMT_KICK, _, contents) if gmCommandAllowed =>
-              val inputs = cliTokenization(contents)
-              inputs.headOption match {
-                case Some(input) =>
-                  val determination: Player => Boolean = input.toLongOption match {
-                    case Some(id) => _.CharId == id
-                    case _        => _.Name.equals(input)
-                  }
-                  session.zone.LivePlayers
-                    .find(determination)
-                    .orElse(session.zone.Corpses.find(determination)) match {
-                    case Some(player) =>
-                      inputs.lift(1).map(_.toLongOption) match {
-                        case Some(Some(time)) =>
-                          sessionActor ! SessionActor.Kick(player, Some(time))
-                        case _ =>
-                          sessionActor ! SessionActor.Kick(player)
-                      }
-
-                      sessionActor ! SessionActor.SendResponse(
-                        ChatMsg(
-                          UNK_229,
-                          message.wideContents,
-                          "Server",
-                          "@kick_i",
-                          message.note
-                        )
-                      )
-                    case None =>
-                      sessionActor ! SessionActor.SendResponse(
-                        ChatMsg(
-                          UNK_229,
-                          message.wideContents,
-                          "Server",
-                          "@kick_o",
-                          message.note
-                        )
-                      )
-                  }
-                case None =>
-                  sessionActor ! SessionActor.SendResponse(
-                    ChatMsg(
-                      UNK_229,
-                      message.wideContents,
-                      "Server",
-                      "@kick_o",
-                      message.note
-                    )
-                  )
-              }
-
-            case (_, "tr", contents) =>
-              sessionActor ! SessionActor.SendResponse(
-                ZonePopulationUpdateMessage(4, 414, 138, contents.toInt, 138, contents.toInt / 2, 138, 0, 138, 0)
-              )
-
-            case (_, "nc", contents) =>
-              sessionActor ! SessionActor.SendResponse(
-                ZonePopulationUpdateMessage(4, 414, 138, 0, 138, contents.toInt, 138, contents.toInt / 3, 138, 0)
-              )
-
-            case (_, "vs", contents) =>
-              sessionActor ! SessionActor.SendResponse(
-                ZonePopulationUpdateMessage(4, 414, 138, contents.toInt * 2, 138, 0, 138, contents.toInt, 138, 0)
-              )
-
-            case (_, "bo", contents) =>
-              sessionActor ! SessionActor.SendResponse(
-                ZonePopulationUpdateMessage(4, 414, 138, 0, 138, 0, 138, 0, 138, contents.toInt)
-              )
-
-            case _ =>
-              log.warn(s"Unhandled chat message $message")
-          }
+        case SetMode("normal") =>
+          logic = NormalMode.init(logic.chatService, logic.cluster)
           Behaviors.same
 
-        case IncomingMessage(fromSession, message, _/*channel*/) =>
-          message.messageType match {
-            case CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | CMT_NOTE =>
-              if (AvatarActor.onlineIfNotIgnored(session.avatar, message.recipient)) {
-                sessionActor ! SessionActor.SendResponse(message)
-              }
-            case CMT_OPEN =>
-              if (
-                session.zone == fromSession.zone &&
-                  Vector3.DistanceSquared(session.player.Position, fromSession.player.Position) < 625 &&
-                  session.player.Faction == fromSession.player.Faction &&
-                  AvatarActor.onlineIfNotIgnored(session.avatar, message.recipient)
-              ) {
-                sessionActor ! SessionActor.SendResponse(message)
-              }
-            case CMT_TELL | U_CMT_TELLFROM |
-                 CMT_GMOPEN | CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_TR | CMT_GMBROADCAST_VS |
-                 CMT_GMBROADCASTPOPUP | CMT_GMTELL | U_CMT_GMTELLFROM | UNK_45 | UNK_71 | UNK_227 | UNK_229 =>
-              sessionActor ! SessionActor.SendResponse(message)
-            case CMT_VOICE =>
-              if (
-                (session.zone == fromSession.zone || message.contents.startsWith("SH")) && /*tactical squad voice macro*/
-                  Vector3.DistanceSquared(session.player.Position, fromSession.player.Position) < 1600
-              ) {
-                val name = fromSession.avatar.name
-                if (!session.avatar.people.ignored.exists { f => f.name.equals(name) } ||
-                  {
-                    val id = fromSession.avatar.id.toLong
-                    val curr = System.currentTimeMillis()
-                    ignoredEmoteCooldown.get(id) match {
-                    case None =>
-                      ignoredEmoteCooldown.put(id, curr + 15000L)
-                      true
-                    case Some(time) if time < curr =>
-                      ignoredEmoteCooldown.put(id, curr + 15000L)
-                      true
-                    case _ =>
-                      false
-                  }}
-                ) {
-                  sessionActor ! SessionActor.SendResponse(message)
-                }
-              }
-            case CMT_SILENCE =>
-              val args = cliTokenization(message.contents)
-              val (name, time) = (args.headOption, args.lift(1)) match {
-                case (Some(name), _) if name != session.player.Name =>
-                  log.error("Received silence message for other player")
-                  (None, None)
-                case (Some(name), None)                                     => (Some(name), Some(5))
-                case (Some(name), Some(time)) if time.toIntOption.isDefined => (Some(name), Some(time.toInt))
-                case _                                                      => (None, None)
-              }
-              (name, time) match {
-                case (Some(_), Some(time)) =>
-                  if (session.player.silenced) {
-                    sessionActor ! SessionActor.SetSilenced(false)
-                    sessionActor ! SessionActor.SendResponse(
-                      ChatMsg(ChatMessageType.UNK_229, wideContents=true, "", "@silence_off", None)
-                    )
-                    if (!silenceTimer.isCancelled) silenceTimer.cancel()
-                  } else {
-                    sessionActor ! SessionActor.SetSilenced(true)
-                    sessionActor ! SessionActor.SendResponse(
-                      ChatMsg(ChatMessageType.UNK_229, wideContents=true, "", "@silence_on", None)
-                    )
-                    silenceTimer = context.system.scheduler.scheduleOnce(
-                      time minutes,
-                      () => {
-                        sessionActor ! SessionActor.SetSilenced(false)
-                        sessionActor ! SessionActor.SendResponse(
-                          ChatMsg(ChatMessageType.UNK_229, wideContents=true, "", "@silence_timeout", None)
-                        )
-                      }
-                    )
-                  }
+        case SetMode("spectator") =>
+          logic = SpectatorMode.init(logic.chatService, logic.cluster)
+          Behaviors.same
 
-                case (name, time) =>
-                  log.warn(s"Bad silence args $name $time")
-              }
+        case Message(message) =>
+          logic.message(session, message)
+          Behaviors.same
 
-            case _ =>
-              log.warn(s"Unexpected messageType $message")
-
-          }
+        case IncomingMessage(fromSession, message, _) =>
+          logic.incoming(session, message, fromSession)
           Behaviors.same
       }
       .receiveSignal {
@@ -1485,61 +759,1000 @@ class ChatActor(
       }
   }
 
-  private def customCommandMessages(
-                                     message: ChatMsg,
-                                     session: Session,
-                                     chatService: ActorRef[ChatService.Command],
-                                     cluster: ActorRef[InterstellarClusterService.Command]
-                                   ): Boolean = {
-    val contents = message.contents
-    if (contents.startsWith("!")) {
-      val (command, params) = cliTokenization(contents.drop(1)) match {
-        case a :: b => (a, b)
-        case _ => ("", Seq(""))
+  def commandFly(contents: String, recipient: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val (token, flying) = contents match {
+      case "on"  => (contents, true)
+      case "off" => (contents, false)
+      case _     => ("off", false)
+    }
+    sendTo ! SessionActor.SetFlying(flying)
+    sendTo ! SessionActor.SendResponse(ChatMsg(ChatMessageType.CMT_FLY, wideContents=false, recipient, token, None))
+  }
+
+  def commandWatermark(contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val connectionState =
+      if (contents.contains("40 80")) 100
+      else if (contents.contains("120 200")) 25
+      else 50
+    sendTo ! SessionActor.SetConnectionState(connectionState)
+  }
+
+  def commandSpeed(message: ChatMsg, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val speed =
+      try {
+        contents.toFloat
+      } catch {
+        case _: Throwable =>
+          1f
       }
-      val gmBangCommandAllowed = session.account.gm || Config.app.development.unprivilegedGmBangCommands.contains(command)
-      //try gm commands
-      val tryGmCommandResult = if (gmBangCommandAllowed) {
+    sendTo ! SessionActor.SetSpeed(speed)
+    sendTo ! SessionActor.SendResponse(message.copy(contents = f"$speed%.3f"))
+  }
+
+  def commandToggleSpectatorMode(session: Session, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val currentSpectatorActivation = session.player.spectator
+    contents.toLowerCase() match {
+      case "on" | "o" | "" if !currentSpectatorActivation =>
+        sendTo ! SessionActor.SetMode(SessionSpectatorMode)
+      case "off" | "of" if currentSpectatorActivation =>
+        sendTo ! SessionActor.SetMode(SessionNormalMode)
+      case _ => ()
+    }
+  }
+
+  def commandRecall(session: Session, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val player = session.player
+    val errorMessage = session.zoningType match {
+      case Zoning.Method.Quit =>
+        Some("You can't recall to your sanctuary continent while quitting")
+      case Zoning.Method.InstantAction =>
+        Some("You can't recall to your sanctuary continent while instant actioning")
+      case Zoning.Method.Recall =>
+        Some("You already requested to recall to your sanctuary continent")
+      case _ if session.zone.id == Zones.sanctuaryZoneId(player.Faction) =>
+        Some("You can't recall to your sanctuary when you are already in your sanctuary")
+      case _ if !player.isAlive || session.deadState != DeadState.Alive =>
+        Some(if (player.isAlive) "@norecall_deconstructing" else "@norecall_dead")
+      case _ if player.VehicleSeated.nonEmpty =>
+        Some("@norecall_invehicle")
+      case _ =>
+        None
+    }
+    errorMessage match {
+      case Some(errorMessage) =>
+        sendTo ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, errorMessage))
+      case None =>
+        sendTo ! SessionActor.Recall()
+    }
+  }
+
+  def commandInstantAction(session: Session, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val player = session.player
+    if (session.zoningType == Zoning.Method.Quit) {
+      sendTo ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "You can't instant action while quitting."))
+    } else if (session.zoningType == Zoning.Method.InstantAction) {
+      sendTo ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_instantactionting"))
+    } else if (session.zoningType == Zoning.Method.Recall) {
+      sendTo ! SessionActor.SendResponse(
+        ChatMsg(CMT_QUIT, "You won't instant action. You already requested to recall to your sanctuary continent")
+      )
+    } else if (!player.isAlive || session.deadState != DeadState.Alive) {
+      if (player.isAlive) {
+        sendTo ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_deconstructing"))
+      } else {
+        sendTo ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_dead"))
+      }
+    } else if (player.VehicleSeated.nonEmpty) {
+      sendTo ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noinstantaction_invehicle"))
+    } else {
+      sendTo ! SessionActor.InstantAction()
+    }
+  }
+
+  def commandQuit(session: Session, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val player = session.player
+    if (session.zoningType == Zoning.Method.Quit) {
+      sendTo ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_quitting"))
+    } else if (!player.isAlive || session.deadState != DeadState.Alive) {
+      if (player.isAlive) {
+        sendTo ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_deconstructing"))
+      } else {
+        sendTo ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_dead"))
+      }
+    } else if (player.VehicleSeated.nonEmpty) {
+      sendTo ! SessionActor.SendResponse(ChatMsg(CMT_QUIT, "@noquit_invehicle"))
+    } else {
+      sendTo ! SessionActor.Quit()
+    }
+  }
+
+  def commandSuicide(session: Session, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    if (session.player.isAlive && session.deadState != DeadState.Release) {
+      sendTo ! SessionActor.Suicide()
+    }
+  }
+
+  def commandDestroy(session: Session, message: ChatMsg, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val guid = contents.toInt
+    session.zone.GUID(session.zone.map.terminalToSpawnPad.getOrElse(guid, guid)) match {
+      case Some(pad: VehicleSpawnPad) =>
+        pad.Actor ! VehicleSpawnControl.ProcessControl.Flush
+      case Some(turret: FacilityTurret) if turret.isUpgrading =>
+        WeaponTurrets.FinishUpgradingMannedTurret(turret, TurretUpgrade.None)
+      case _ =>
+        // FIXME we shouldn't do it like that
+        sendTo.toClassic ! RequestDestroyMessage(PlanetSideGUID(guid))
+    }
+    sendTo ! SessionActor.SendResponse(message)
+  }
+
+  def commandSetBaseResources(session: Session, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val buffer = cliTokenization(contents)
+    val customNtuValue = buffer.lift(1) match {
+      case Some(x) if x.toIntOption.nonEmpty => Some(x.toInt)
+      case _                                 => None
+    }
+    val silos = {
+      val position = session.player.Position
+      session.zone.Buildings.values
+        .filter { building =>
+          val soi2 = building.Definition.SOIRadius * building.Definition.SOIRadius
+          Vector3.DistanceSquared(building.Position, position) < soi2
+        }
+    }
+      .flatMap { building => building.Amenities.filter { _.isInstanceOf[ResourceSilo] } }
+    ChatActor.setBaseResources(sendTo, customNtuValue, silos, debugContent="")
+  }
+
+  def commandZoneLock(contents: String, cluster: ActorRef[InterstellarClusterService.Command]): Unit = {
+    val buffer = cliTokenization(contents)
+    val (zoneOpt, lockVal) = (buffer.lift(1), buffer.lift(2)) match {
+      case (Some(x), Some(y)) =>
+        val zone = if (x.toIntOption.nonEmpty) {
+          val xInt = x.toInt
+          Zones.zones.find(_.Number == xInt)
+        } else {
+          Zones.zones.find(z => z.id.equals(x))
+        }
+        val value = if (y.toIntOption.nonEmpty && y.toInt == 0) {
+          0
+        } else {
+          1
+        }
+        (zone, Some(value))
+      case _ =>
+        (None, None)
+    }
+    (zoneOpt, lockVal) match {
+      case (Some(zone), Some(lock)) if zone.map.cavern =>
+        //caverns must be rotated in an order
+        if (lock == 0) {
+          cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryRotationToZoneUnlock(zone.id))
+        } else {
+          cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryRotationToZoneLock(zone.id))
+        }
+      case (Some(_), Some(_)) =>
+      //normal zones can lock when all facilities and towers on it belong to the same faction
+      //normal zones can lock when ???
+      case _ => ()
+    }
+  }
+
+  def commandZoneRotate(cluster: ActorRef[InterstellarClusterService.Command]): Unit = {
+    cluster ! InterstellarClusterService.CavernRotation(CavernRotationService.HurryNextRotation)
+  }
+
+  def commandCaptureBase(session: Session, message: ChatMsg, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val buffer = cliTokenization(contents).take(3)
+    //walk through the param buffer
+    val (foundFacilities, foundFacilitiesTag, factionBuffer) = firstParam(session, buffer, captureBaseParamFacilities)
+    val (foundFaction, foundFactionTag, timerBuffer) = firstParam(session, factionBuffer, captureBaseParamFaction)
+    val (foundTimer, foundTimerTag, _) = firstParam(session, timerBuffer, captureBaseParamTimer)
+    //resolve issues with the initial params
+    var facilityError: Int = 0
+    var factionError: Boolean = false
+    var timerError: Boolean = false
+    var usageMessage: Boolean = false
+    val resolvedFacilities = foundFacilities
+      .orElse {
+        if (foundFacilitiesTag.nonEmpty) {
+          if (foundFaction.isEmpty) {
+            /* /capturebase <bad_facility> OR /capturebase <bad_facility> <no_faction> */
+            //malformed facility tag error
+            facilityError = 2
+            None
+          } else if (!foundFacilitiesTag.contains("curr")) { //did we do this next check already
+            /* /capturebase <faction>, potentially */
+            val buildings = captureBaseCurrSoi(session)
+            if (buildings.nonEmpty) {
+              //convert facilities to faction
+              Some(buildings.toSeq)
+            } else {
+              //no facilities error
+              facilityError = 1
+              None
+            }
+          } else {
+            //no facilities error
+            facilityError = 1
+            None
+          }
+        } else {
+          //no params; post command usage reminder
+          usageMessage = true
+          None
+        }
+      }
+    val resolvedFaction = foundFaction
+      .orElse {
+        if (resolvedFacilities.nonEmpty) {
+          /* /capturebase <facility> OR /capturebase <facility> <timer> */
+          if (foundFactionTag.isEmpty || foundTimer.nonEmpty) {
+            //convert facilities to OUR PLAYER'S faction
+            Some(session.player.Faction)
+          } else {
+            //malformed faction tag error
+            factionError = true
+            None
+          }
+        } else {
+          //incorrect params; already posted an error message
+          None
+        }
+      }
+    val resolvedTimer = foundTimer
+      .orElse {
+        //todo stop command execution? post command usage reminder?
+        if (resolvedFaction.nonEmpty && foundTimerTag.nonEmpty) {
+          /* /capturebase <?> <?> <bad_timer> */
+          //malformed timer tag error
+          timerError = true
+          None
+        } else {
+          //eh
+          Some(1)
+        }
+      }
+    //evaluate results
+    (resolvedFacilities, resolvedFaction, resolvedTimer) match {
+      case (Some(buildings), Some(faction), Some(_)) =>
+        buildings.foreach { building =>
+          //TODO implement timer
+          val terminal = building.CaptureTerminal.get
+          val zone = building.Zone
+          val zoneActor = zone.actor
+          val buildingActor = building.Actor
+          //clear any previous hack
+          if (building.CaptureTerminalIsHacked) {
+            zone.LocalEvents ! LocalServiceMessage(
+              zone.id,
+              LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody)
+            )
+          }
+          //push any updates this might cause
+          zoneActor ! ZoneActor.ZoneMapUpdate()
+          //convert faction affiliation
+          buildingActor ! BuildingActor.SetFaction(faction)
+          buildingActor ! BuildingActor.AmenityStateChange(terminal, Some(false))
+          //push for map updates again
+          zoneActor ! ZoneActor.ZoneMapUpdate()
+        }
+      case _ =>
+        if (usageMessage) {
+          sendTo ! SessionActor.SendResponse(
+            message.copy(messageType = UNK_229, contents = "@CMT_CAPTUREBASE_usage")
+          )
+        } else {
+          val msg = if (facilityError == 1) { "can not contextually determine building target" }
+          else if (facilityError == 2) { s"\'${foundFacilitiesTag.get}\' is not a valid building name" }
+          else if (factionError) { s"\'${foundFactionTag.get}\' is not a valid faction designation" }
+          else if (timerError) { s"\'${foundTimerTag.get}\' is not a valid timer value" }
+          else { "malformed params; check usage" }
+          sendTo ! SessionActor.SendResponse(ChatMsg(UNK_229, wideContents=true, "", s"\\#FF4040ERROR - $msg", None))
+        }
+    }
+  }
+
+  def commandVoice(session: Session, message: ChatMsg, contents: String, chatService: ActorRef[ChatService.Command]): Unit = {
+    // SH prefix are tactical voice macros only sent to squad
+    if (contents.startsWith("SH")) {
+      channels.foreach {
+        case _/*channel*/: ChatChannel.Squad =>
+          commandSendToRecipient(session, message, chatService)
+        case _ => ()
+      }
+    } else {
+      commandSendToRecipient(session, message, chatService)
+    }
+  }
+
+  def commandTellOrIgnore(session: Session, message: ChatMsg, chatService: ActorRef[ChatService.Command], sendTo: ActorRef[SessionActor.Command]): Unit = {
+    if (AvatarActor.onlineIfNotIgnored(message.recipient, session.avatar.name)) {
+      commandSend(session, message, chatService)
+    } else if (AvatarActor.getLiveAvatarForFunc(message.recipient, (_,_,_)=>{}).isEmpty) {
+      sendTo ! SessionActor.SendResponse(
+        ChatMsg(ChatMessageType.UNK_45, wideContents=false, "none", "@notell_target", None)
+      )
+    } else {
+      sendTo ! SessionActor.SendResponse(
+        ChatMsg(ChatMessageType.UNK_45, wideContents=false, "none", "@notell_ignore", None)
+      )
+    }
+  }
+
+  def commandSquad(session: Session, message: ChatMsg, chatService: ActorRef[ChatService.Command]): Unit = {
+    channels.foreach {
+      case _/*channel*/: ChatChannel.Squad =>
+        commandSendToRecipient(session, message, chatService)
+      case _ => ()
+    }
+  }
+
+  def commandWho(session: Session, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val players  = session.zone.Players
+    val popTR    = players.count(_.faction == PlanetSideEmpire.TR)
+    val popNC    = players.count(_.faction == PlanetSideEmpire.NC)
+    val popVS    = players.count(_.faction == PlanetSideEmpire.VS)
+    if (popNC + popTR + popVS == 0) {
+      sendTo ! SessionActor.SendResponse(ChatMsg(ChatMessageType.CMT_WHO, "@Nomatches"))
+    } else {
+      val contName = session.zone.map.name
+      sendTo ! SessionActor.SendResponse(
+        ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "That command doesn't work for now, but : ", None)
+      )
+      sendTo ! SessionActor.SendResponse(
+        ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "NC online : " + popNC + " on " + contName, None)
+      )
+      sendTo ! SessionActor.SendResponse(
+        ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "TR online : " + popTR + " on " + contName, None)
+      )
+      sendTo ! SessionActor.SendResponse(
+        ChatMsg(ChatMessageType.CMT_WHO, wideContents=true, "", "VS online : " + popVS + " on " + contName, None)
+      )
+    }
+  }
+
+  def commandZone(message: ChatMsg, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val buffer = cliTokenization(contents)
+    val (zone, gate, list) = (buffer.headOption, buffer.lift(1)) match {
+      case (Some("-list"), None) =>
+        (None, None, true)
+      case (Some(zoneId), Some("-list")) =>
+        (PointOfInterest.get(zoneId), None, true)
+      case (Some(zoneId), gateId) =>
+        val zone = PointOfInterest.get(zoneId)
+        val gate = (zone, gateId) match {
+          case (Some(zone), Some(gateId)) => PointOfInterest.getWarpgate(zone, gateId)
+          case (Some(zone), None)         => Some(PointOfInterest.selectRandom(zone))
+          case _                          => None
+        }
+        (zone, gate, false)
+      case _ =>
+        (None, None, false)
+    }
+    (zone, gate, list) match {
+      case (None, None, true) =>
+        sendTo ! SessionActor.SendResponse(ChatMsg(UNK_229, wideContents=true, "", PointOfInterest.list, None))
+      case (Some(zone), None, true) =>
+        sendTo ! SessionActor.SendResponse(
+          ChatMsg(UNK_229, wideContents=true, "", PointOfInterest.listWarpgates(zone), None)
+        )
+      case (Some(zone), Some(gate), false) =>
+        sendTo ! SessionActor.SetZone(zone.zonename, gate)
+      case (_, None, false) =>
+        sendTo ! SessionActor.SendResponse(
+          ChatMsg(UNK_229, wideContents=true, "", "Gate id not defined (use '/zone <zone> -list')", None)
+        )
+      case (_, _, _) if buffer.isEmpty || buffer.headOption.contains("-help") =>
+        sendTo ! SessionActor.SendResponse(
+          message.copy(messageType = UNK_229, contents = "@CMT_ZONE_usage")
+        )
+      case _ => ()
+    }
+  }
+
+  def commandWarp(session: Session, message: ChatMsg, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val buffer = cliTokenization(contents)
+    val (coordinates, waypoint) = (buffer.headOption, buffer.lift(1), buffer.lift(2)) match {
+      case (Some(x), Some(y), Some(z))                       => (Some(x, y, z), None)
+      case (Some("to"), Some(_/*character*/), None)          => (None, None) // TODO not implemented
+      case (Some("near"), Some(_/*objectName*/), None)       => (None, None) // TODO not implemented
+      case (Some(waypoint), None, None) if waypoint.nonEmpty => (None, Some(waypoint))
+      case _                                                 => (None, None)
+    }
+    (coordinates, waypoint) match {
+      case (Some((x, y, z)), None) if List(x, y, z).forall { str =>
+        val coordinate = str.toFloatOption
+        coordinate.isDefined && coordinate.get >= 0 && coordinate.get <= 8191
+      } =>
+        sendTo ! SessionActor.SetPosition(Vector3(x.toFloat, y.toFloat, z.toFloat))
+      case (None, Some(waypoint)) if waypoint == "-list" =>
+        val zone = PointOfInterest.get(session.player.Zone.id)
+        zone match {
+          case Some(zone: PointOfInterest) =>
+            sendTo ! SessionActor.SendResponse(
+              ChatMsg(UNK_229, wideContents=true, "", PointOfInterest.listAll(zone), None)
+            )
+          case _ =>
+            sendTo ! SessionActor.SendResponse(
+              ChatMsg(UNK_229, wideContents=true, "", s"unknown player zone '${session.player.Zone.id}'", None)
+            )
+        }
+      case (None, Some(waypoint)) if waypoint != "-help" =>
+        PointOfInterest.getWarpLocation(session.zone.id, waypoint) match {
+          case Some(location) =>
+            sendTo ! SessionActor.SetPosition(location)
+          case None =>
+            sendTo ! SessionActor.SendResponse(
+              ChatMsg(UNK_229, wideContents=true, "", s"unknown location '$waypoint'", None)
+            )
+        }
+      case _ =>
+        sendTo ! SessionActor.SendResponse(
+          message.copy(messageType = UNK_229, contents = "@CMT_WARP_usage")
+        )
+    }
+  }
+
+  def commandSetBattleRank(session: Session, message: ChatMsg, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    if (!setBattleRank(session, cliTokenization(contents), AvatarActor.SetBep, avatarActor)) {
+      sendTo ! SessionActor.SendResponse(
+        message.copy(messageType = UNK_229, contents = "@CMT_SETBATTLERANK_usage")
+      )
+    }
+  }
+
+  def commandSetCommandRank(session: Session, message: ChatMsg, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    if (!setCommandRank(contents, session, avatarActor)) {
+      sendTo ! SessionActor.SendResponse(
+        message.copy(messageType = UNK_229, contents = "@CMT_SETCOMMANDRANK_usage")
+      )
+    }
+  }
+
+  def commandAddBattleExperience(message: ChatMsg, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    contents.toIntOption match {
+      case Some(bep) => avatarActor ! AvatarActor.AwardBep(bep, ExperienceType.Normal)
+      case None =>
+        sendTo ! SessionActor.SendResponse(
+          message.copy(messageType = UNK_229, contents = "@CMT_ADDBATTLEEXPERIENCE_usage")
+        )
+    }
+  }
+
+  def commandAddCommandExperience(message: ChatMsg, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    contents.toIntOption match {
+      case Some(cep) => avatarActor ! AvatarActor.AwardCep(cep)
+      case None =>
+        sendTo ! SessionActor.SendResponse(
+          message.copy(messageType = UNK_229, contents = "@CMT_ADDCOMMANDEXPERIENCE_usage")
+        )
+    }
+  }
+
+  def commandToggleHat(session: Session, message: ChatMsg, contents: String, avatarSendTo: ActorRef[AvatarActor.Command], sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val cosmetics = session.avatar.decoration.cosmetics.getOrElse(Set())
+    val nextCosmetics = contents match {
+      case "off" =>
+        cosmetics.diff(Set(Cosmetic.BrimmedCap, Cosmetic.Beret))
+      case _ =>
+        if (cosmetics.contains(Cosmetic.BrimmedCap)) {
+          cosmetics.diff(Set(Cosmetic.BrimmedCap)) + Cosmetic.Beret
+        } else if (cosmetics.contains(Cosmetic.Beret)) {
+          cosmetics.diff(Set(Cosmetic.BrimmedCap, Cosmetic.Beret))
+        } else {
+          cosmetics + Cosmetic.BrimmedCap
+        }
+    }
+    val on = nextCosmetics.contains(Cosmetic.BrimmedCap) || nextCosmetics.contains(Cosmetic.Beret)
+    avatarSendTo ! AvatarActor.SetCosmetics(nextCosmetics)
+    sendTo ! SessionActor.SendResponse(
+      message.copy(
+        messageType = UNK_229,
+        contents = s"@CMT_TOGGLE_HAT_${if (on) "on" else "off"}"
+      )
+    )
+  }
+
+  def commandToggleCosmetics(session: Session, message: ChatMsg, contents: String, avatarSendTo: ActorRef[AvatarActor.Command], sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val cosmetics = session.avatar.decoration.cosmetics.getOrElse(Set())
+    val cosmetic = message.messageType match {
+      case ChatMessageType.CMT_HIDE_HELMET     => Cosmetic.NoHelmet
+      case ChatMessageType.CMT_TOGGLE_SHADES   => Cosmetic.Sunglasses
+      case ChatMessageType.CMT_TOGGLE_EARPIECE => Cosmetic.Earpiece
+      case _                                   => null
+    }
+    val on = contents match {
+      case "on"  => true
+      case "off" => false
+      case _     => !cosmetics.contains(cosmetic)
+    }
+    avatarSendTo ! AvatarActor.SetCosmetics(
+      if (on) cosmetics + cosmetic
+      else cosmetics.diff(Set(cosmetic))
+    )
+    sendTo ! SessionActor.SendResponse(
+      message.copy(
+        messageType = UNK_229,
+        contents = s"@${message.messageType.toString}_${if (on) "on" else "off"}"
+      )
+    )
+  }
+
+  def commandAddCertification(session: Session, message: ChatMsg, contents: String, avatarSendTo: ActorRef[AvatarActor.Command], sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val certs = cliTokenization(contents).map(name => Certification.values.find(_.name == name))
+    val result = if (certs.nonEmpty) {
+      if (certs.contains(None)) {
+        s"@AckErrorCertifications"
+      } else {
+        avatarSendTo ! AvatarActor.SetCertifications(session.avatar.certifications ++ certs.flatten)
+        s"@AckSuccessCertifications"
+      }
+    } else {
+      if (session.avatar.certifications.size < Certification.values.size) {
+        avatarSendTo ! AvatarActor.SetCertifications(Certification.values.toSet)
+      } else {
+        avatarSendTo ! AvatarActor.SetCertifications(Certification.values.filter(_.cost == 0).toSet)
+      }
+      s"@AckSuccessCertifications"
+    }
+    sendTo ! SessionActor.SendResponse(message.copy(messageType = UNK_229, contents = result))
+  }
+
+  def commandKick(session: Session, message: ChatMsg, contents: String, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val inputs = cliTokenization(contents)
+    inputs.headOption match {
+      case Some(input) =>
+        val determination: Player => Boolean = input.toLongOption match {
+          case Some(id) => _.CharId == id
+          case _ => _.Name.equals(input)
+        }
+        session.zone.LivePlayers
+          .find(determination)
+          .orElse(session.zone.Corpses.find(determination)) match {
+          case Some(player) =>
+            inputs.lift(1).map(_.toLongOption) match {
+              case Some(Some(time)) =>
+                sendTo ! SessionActor.Kick(player, Some(time))
+              case _ =>
+                sendTo ! SessionActor.Kick(player)
+            }
+            sendTo ! SessionActor.SendResponse(message.copy(messageType = UNK_229, recipient = "Server", contents = "@kick_i"))
+          case None =>
+            sendTo ! SessionActor.SendResponse(message.copy(messageType = UNK_229, recipient = "Server", contents = "@kick_o"))
+        }
+      case None =>
+        sendTo ! SessionActor.SendResponse(message.copy(messageType = UNK_229, recipient = "Server", contents = "@kick_o"))
+    }
+  }
+
+  def commandIncomingSendAllIfOnline(session: Session, message: ChatMsg, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    if (AvatarActor.onlineIfNotIgnored(session.avatar, message.recipient)) {
+      sendTo ! SessionActor.SendResponse(message)
+    }
+  }
+
+  def commandIncomingSendToLocalIfOnline(session: Session, fromSession: Session, message: ChatMsg, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    if (
+      session.zone == fromSession.zone &&
+        Vector3.DistanceSquared(session.player.Position, fromSession.player.Position) < 625 &&
+        session.player.Faction == fromSession.player.Faction &&
+        AvatarActor.onlineIfNotIgnored(session.avatar, message.recipient)
+    ) {
+      sendTo ! SessionActor.SendResponse(message)
+    }
+  }
+
+  def commandIncomingVoice(session: Session, fromSession: Session, message: ChatMsg, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    if (
+      (session.zone == fromSession.zone || message.contents.startsWith("SH")) && /*tactical squad voice macro*/
+        Vector3.DistanceSquared(session.player.Position, fromSession.player.Position) < 1600
+    ) {
+      val name = fromSession.avatar.name
+      if (!session.avatar.people.ignored.exists { f => f.name.equals(name) } ||
+        {
+          val id = fromSession.avatar.id.toLong
+          val curr = System.currentTimeMillis()
+          ignoredEmoteCooldown.get(id) match {
+            case None =>
+              ignoredEmoteCooldown.put(id, curr + 15000L)
+              true
+            case Some(time) if time < curr =>
+              ignoredEmoteCooldown.put(id, curr + 15000L)
+              true
+            case _ =>
+              false
+          }}
+      ) {
+        sendTo ! SessionActor.SendResponse(message)
+      }
+    }
+  }
+
+  def commandIncomingSilence(session: Session, message: ChatMsg, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    val args = cliTokenization(message.contents)
+    val (name, time) = (args.headOption, args.lift(1)) match {
+      case (Some(name), _) if name != session.player.Name =>
+        log.error("Received silence message for other player")
+        (None, None)
+      case (Some(name), None)                                     => (Some(name), Some(5))
+      case (Some(name), Some(time)) if time.toIntOption.isDefined => (Some(name), Some(time.toInt))
+      case _                                                      => (None, None)
+    }
+    (name, time) match {
+      case (Some(_), Some(time)) =>
+        if (session.player.silenced) {
+          sendTo ! SessionActor.SetSilenced(false)
+          sendTo ! SessionActor.SendResponse(
+            ChatMsg(ChatMessageType.UNK_229, wideContents=true, "", "@silence_off", None)
+          )
+          if (!silenceTimer.isCancelled) silenceTimer.cancel()
+        } else {
+          sendTo ! SessionActor.SetSilenced(true)
+          sendTo ! SessionActor.SendResponse(
+            ChatMsg(ChatMessageType.UNK_229, wideContents=true, "", "@silence_on", None)
+          )
+          silenceTimer = context.system.scheduler.scheduleOnce(
+            time minutes,
+            () => {
+              sendTo ! SessionActor.SetSilenced(false)
+              sendTo ! SessionActor.SendResponse(
+                ChatMsg(ChatMessageType.UNK_229, wideContents=true, "", "@silence_timeout", None)
+              )
+            }
+          )
+        }
+      case (name, time) =>
+        log.warn(s"Bad silence args $name $time")
+    }
+  }
+
+  def commandIncomingSend(message: ChatMsg, sendTo: ActorRef[SessionActor.Command]): Unit = {
+    sendTo ! SessionActor.SendResponse(message)
+  }
+
+  def commandSend(session: Session, message: ChatMsg, chatService: ActorRef[ChatService.Command]): Unit = {
+    chatService ! ChatService.Message(
+      session,
+      message,
+      ChatChannel.Default()
+    )
+  }
+
+  def commandSendToRecipient(session: Session, message: ChatMsg, chatService: ActorRef[ChatService.Command]): Unit = {
+    chatService ! ChatService.Message(
+      session,
+      message.copy(recipient = session.player.Name),
+      ChatChannel.Default()
+    )
+  }
+
+  final case class NormalFuncs(
+                                chatService: ActorRef[ChatService.Command],
+                                cluster: ActorRef[InterstellarClusterService.Command]
+                              ) extends ChatFuncs {
+    def message(session: Session, message: ChatMsg): Unit = {
+      import ChatMessageType._
+      val gmCommandAllowed =
+        session.account.gm || Config.app.development.unprivilegedGmCommands.contains(message.messageType)
+      (message.messageType, message.recipient.trim, message.contents.trim) match {
+        /** Messages starting with ! are custom chat commands */
+        case (_, _, contents) if contents.startsWith("!") &&
+          customCommandMessages(message, session) => ()
+
+        case (CMT_FLY, recipient, contents) if gmCommandAllowed =>
+          commandFly(contents, recipient, sessionActor)
+
+        case (CMT_ANONYMOUS, _, _) =>
+        // ?
+
+        case (CMT_TOGGLE_GM, _, _) =>
+        // ?
+
+        case (CMT_CULLWATERMARK, _, contents) =>
+          commandWatermark(contents, sessionActor)
+
+        case (CMT_SPEED, _, contents) if gmCommandAllowed =>
+          commandSpeed(message, contents, sessionActor)
+
+        case (CMT_TOGGLESPECTATORMODE, _, contents) if gmCommandAllowed =>
+          commandToggleSpectatorMode(session, contents, sessionActor)
+
+        case (CMT_RECALL, _, _) =>
+          commandRecall(session, sessionActor)
+
+        case (CMT_INSTANTACTION, _, _) =>
+          commandInstantAction(session, sessionActor)
+
+        case (CMT_QUIT, _, _) =>
+          commandQuit(session, sessionActor)
+
+        case (CMT_SUICIDE, _, _) =>
+          commandSuicide(session, sessionActor)
+
+        case (CMT_DESTROY, _, contents) if contents.matches("\\d+") =>
+          commandDestroy(session, message, contents, sessionActor)
+
+        case (CMT_SETBASERESOURCES, _, contents) if gmCommandAllowed =>
+          commandSetBaseResources(session, contents, sessionActor)
+
+        case (CMT_ZONELOCK, _, contents) if gmCommandAllowed =>
+          commandZoneLock(contents, cluster)
+
+        case (U_CMT_ZONEROTATE, _, _) if gmCommandAllowed =>
+          commandZoneRotate(cluster)
+
+        case (CMT_CAPTUREBASE, _, contents) if gmCommandAllowed =>
+          commandCaptureBase(session, message, contents, sessionActor)
+
+        case (CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_VS | CMT_GMBROADCAST_TR, _, _)
+          if gmCommandAllowed =>
+          commandSendToRecipient(session, message, chatService)
+
+        case (CMT_GMTELL, _, _) if gmCommandAllowed =>
+          commandSend(session, message, chatService)
+
+        case (CMT_GMBROADCASTPOPUP, _, _) if gmCommandAllowed =>
+          commandSendToRecipient(session, message, chatService)
+
+        case (CMT_OPEN, _, _) if !session.player.silenced =>
+          commandSendToRecipient(session, message, chatService)
+
+        case (CMT_VOICE, _, contents) =>
+          commandVoice(session, message, contents, chatService)
+
+        case (CMT_TELL, _, _) if !session.player.silenced =>
+          commandTellOrIgnore(session, message, chatService, sessionActor)
+
+        case (CMT_BROADCAST, _, _) if !session.player.silenced =>
+          commandSendToRecipient(session, message, chatService)
+
+        case (CMT_PLATOON, _, _) if !session.player.silenced =>
+          commandSendToRecipient(session, message, chatService)
+
+        case (CMT_COMMAND, _, _) if gmCommandAllowed =>
+          commandSendToRecipient(session, message, chatService)
+
+        case (CMT_NOTE, _, _) =>
+          commandSend(session, message, chatService)
+
+        case (CMT_SILENCE, _, _) if gmCommandAllowed =>
+          commandSend(session, message, chatService)
+
+        case (CMT_SQUAD, _, _) =>
+          commandSquad(session, message, chatService)
+
+        case (CMT_WHO | CMT_WHO_CSR | CMT_WHO_CR | CMT_WHO_PLATOONLEADERS | CMT_WHO_SQUADLEADERS | CMT_WHO_TEAMS, _, _) =>
+          commandWho(session, sessionActor)
+
+        case (CMT_ZONE, _, contents) if gmCommandAllowed =>
+          commandZone(message, contents, sessionActor)
+
+        case (CMT_WARP, _, contents) if gmCommandAllowed =>
+          commandWarp(session, message, contents, sessionActor)
+
+        case (CMT_SETBATTLERANK, _, contents) if gmCommandAllowed =>
+          commandSetBattleRank(session, message, contents, sessionActor)
+
+        case (CMT_SETCOMMANDRANK, _, contents) if gmCommandAllowed =>
+          commandSetCommandRank(session, message, contents, sessionActor)
+
+        case (CMT_ADDBATTLEEXPERIENCE, _, contents) if gmCommandAllowed =>
+          commandAddBattleExperience(message, contents, sessionActor)
+
+        case (CMT_ADDCOMMANDEXPERIENCE, _, contents) if gmCommandAllowed =>
+          commandAddCommandExperience(message, contents, sessionActor)
+
+        case (CMT_TOGGLE_HAT, _, contents) =>
+          commandToggleHat(session, message, contents, avatarActor, sessionActor)
+
+        case (CMT_HIDE_HELMET | CMT_TOGGLE_SHADES | CMT_TOGGLE_EARPIECE, _, contents) =>
+          commandToggleCosmetics(session, message, contents, avatarActor, sessionActor)
+
+        case (CMT_ADDCERTIFICATION, _, contents) if gmCommandAllowed =>
+          commandAddCertification(session, message, contents, avatarActor, sessionActor)
+
+        case (CMT_KICK, _, contents) if gmCommandAllowed =>
+          commandKick(session, message, contents, sessionActor)
+
+        case _ =>
+          log.warn(s"Unhandled chat message $message")
+      }
+    }
+
+    def incoming(session: Session, message: ChatMsg, fromSession: Session): Unit = {
+      import ChatMessageType._
+      message.messageType match {
+        case CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | CMT_NOTE =>
+          commandIncomingSendAllIfOnline(session, message, sessionActor)
+
+        case CMT_OPEN =>
+          commandIncomingSendToLocalIfOnline(session, fromSession, message, sessionActor)
+
+        case CMT_TELL | U_CMT_TELLFROM |
+             CMT_GMOPEN | CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_TR | CMT_GMBROADCAST_VS |
+             CMT_GMBROADCASTPOPUP | CMT_GMTELL | U_CMT_GMTELLFROM | UNK_45 | UNK_71 | UNK_227 | UNK_229 =>
+          commandIncomingSend(message, sessionActor)
+
+        case CMT_VOICE =>
+          commandIncomingVoice(session, fromSession, message, sessionActor)
+
+        case CMT_SILENCE =>
+          commandIncomingSilence(session, message, sessionActor)
+
+        case _ =>
+          log.warn(s"Unexpected messageType $message")
+      }
+    }
+
+    private def customCommandMessages(
+                                       message: ChatMsg,
+                                       session: Session
+                                     ): Boolean = {
+      val contents = message.contents
+      if (contents.startsWith("!")) {
+        val (command, params) = cliTokenization(contents.drop(1)) match {
+          case a :: b => (a, b)
+          case _ => ("", Seq(""))
+        }
+        val gmBangCommandAllowed = session.account.gm || Config.app.development.unprivilegedGmBangCommands.contains(command)
+        //try gm commands
+        val tryGmCommandResult = if (gmBangCommandAllowed) {
+          command match {
+            case "whitetext" => Some(customCommandWhitetext(session, params, chatService))
+            case "list" => Some(customCommandList(session, params, message, sessionActor))
+            case "ntu" => Some(customCommandNtu(session, params, sessionActor))
+            case "zonerotate" => Some(customCommandZonerotate(params, cluster, sessionActor))
+            case "nearby" => Some(customCommandNearby(session, sessionActor))
+            case _ => None
+          }
+        } else {
+          None
+        }
+        //try commands for all players if not caught as a gm command
+        val result = tryGmCommandResult match {
+          case None =>
+            command match {
+              case "loc" => customCommandLoc(session, message, sessionActor)
+              case "suicide" => customCommandSuicide(session)
+              case "grenade" => customCommandGrenade(session, log)
+              case "macro" => customCommandMacro(session, params, sessionActor)
+              case "progress" => customCommandProgress(session, params, avatarActor)
+              case _ => false
+            }
+          case Some(out) =>
+            out
+        }
+        if (!result) {
+          // command was not handled
+          sessionActor ! SessionActor.SendResponse(
+            ChatMsg(
+              CMT_GMOPEN, // CMT_GMTELL
+              message.wideContents,
+              "Server",
+              s"Unknown command !$command",
+              message.note
+            )
+          )
+        }
+        result
+      } else {
+        false // not a handled command
+      }
+    }
+  }
+
+  final case class SpectatorFuncs(
+                                   chatService: ActorRef[ChatService.Command],
+                                   cluster: ActorRef[InterstellarClusterService.Command]
+                                 ) extends ChatFuncs {
+    def message(session: Session, message: ChatMsg): Unit = {
+      import ChatMessageType._
+      (message.messageType, message.recipient.trim, message.contents.trim) match {
+        /** Messages starting with ! are custom chat commands */
+        case (_, _, contents) if contents.startsWith("!") &&
+          customCommandMessages(message, session) => ()
+
+        case (CMT_FLY, recipient, contents) =>
+          commandFly(contents, recipient, sessionActor)
+
+        case (CMT_ANONYMOUS, _, _) =>
+        // ?
+
+        case (CMT_TOGGLE_GM, _, _) =>
+        // ?
+
+        case (CMT_CULLWATERMARK, _, contents) =>
+          commandWatermark(contents, sessionActor)
+
+        case (CMT_SPEED, _, contents) =>
+          commandSpeed(message, contents, sessionActor)
+
+        case (CMT_TOGGLESPECTATORMODE, _, contents) =>
+          commandToggleSpectatorMode(session, contents, sessionActor)
+
+        case (CMT_RECALL, _, _) =>
+          commandRecall(session, sessionActor)
+
+        case (CMT_QUIT, _, _) =>
+          commandQuit(session, sessionActor)
+
+        case (CMT_SUICIDE, _, _) =>
+          commandSuicide(session, sessionActor)
+
+        case (CMT_GMTELL, _, _) =>
+          commandSend(session, message, chatService)
+
+        case (CMT_NOTE, _, _) =>
+          commandSend(session, message, chatService)
+
+        case (CMT_WHO | CMT_WHO_CSR | CMT_WHO_CR | CMT_WHO_PLATOONLEADERS | CMT_WHO_SQUADLEADERS | CMT_WHO_TEAMS, _, _) =>
+          commandWho(session, sessionActor)
+
+        case (CMT_ZONE, _, contents) =>
+          commandZone(message, contents, sessionActor)
+
+        case (CMT_WARP, _, contents) =>
+          commandWarp(session, message, contents, sessionActor)
+
+        case _ => ()
+      }
+    }
+
+    def incoming(session: Session, message: ChatMsg, fromSession: Session): Unit = {
+      import ChatMessageType._
+      message.messageType match {
+        case CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | CMT_NOTE =>
+          commandIncomingSendAllIfOnline(session, message, sessionActor)
+
+        case CMT_OPEN =>
+          commandIncomingSendToLocalIfOnline(session, fromSession, message, sessionActor)
+
+        case CMT_TELL | U_CMT_TELLFROM |
+             CMT_GMOPEN | CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_TR | CMT_GMBROADCAST_VS |
+             CMT_GMBROADCASTPOPUP | CMT_GMTELL | U_CMT_GMTELLFROM | UNK_45 | UNK_71 | UNK_227 | UNK_229 =>
+          commandIncomingSend(message, sessionActor)
+
+        case CMT_SILENCE =>
+          commandIncomingSilence(session, message, sessionActor)
+
+        case _ => ()
+      }
+    }
+
+    private def customCommandMessages(
+                                       message: ChatMsg,
+                                       session: Session
+                                     ): Boolean = {
+      val contents = message.contents
+      if (contents.startsWith("!")) {
+        val (command, params) = cliTokenization(contents.drop(1)) match {
+          case a :: b => (a, b)
+          case _ => ("", Seq(""))
+        }
         command match {
-          case "whitetext" => Some(customCommandWhitetext(session, params, chatService))
-          case "list" => Some(customCommandList(session, params, message, sessionActor))
-          case "ntu" => Some(customCommandNtu(session, params, sessionActor))
-          case "zonerotate" => Some(customCommandZonerotate(params, cluster, sessionActor))
-          case "nearby" => Some(customCommandNearby(session, sessionActor))
-          case _ => None
+          case "list" => customCommandList(session, params, message, sessionActor)
+          case "nearby" => customCommandNearby(session, sessionActor)
+          case "loc" => customCommandLoc(session, message, sessionActor)
+          case "macro" => customCommandMacro(session, params, sessionActor)
+          case _ => false
         }
       } else {
-        None
+        false
       }
-      //try commands for all players if not caught as a gm command
-      val result = tryGmCommandResult match {
-        case None =>
-          command match {
-            case "loc" => customCommandLoc(session, message, sessionActor)
-            case "suicide" => customCommandSuicide(session)
-            case "grenade" => customCommandGrenade(session, log)
-            case "macro" => customCommandMacro(session, params, sessionActor)
-            case "progress" => customCommandProgress(session, params, avatarActor)
-            case _ => false
-          }
-        case Some(out) =>
-          out
-      }
-      if (!result) {
-        // command was not handled
-        sessionActor ! SessionActor.SendResponse(
-          ChatMsg(
-            CMT_GMOPEN, // CMT_GMTELL
-            message.wideContents,
-            "Server",
-            s"Unknown command !$command",
-            message.note
-          )
-        )
-      }
-      result
-    } else {
-      false // not a handled command
+    }
+  }
+
+  case object NormalMode extends ChatMode {
+    def init(chatService: ActorRef[ChatService.Command], cluster: ActorRef[InterstellarClusterService.Command]): ChatFuncs = {
+      NormalFuncs(chatService, cluster)
+    }
+  }
+
+  case object SpectatorMode extends ChatMode {
+    def init(chatService: ActorRef[ChatService.Command], cluster: ActorRef[InterstellarClusterService.Command]): ChatFuncs = {
+      SpectatorFuncs(chatService, cluster)
     }
   }
 }
+

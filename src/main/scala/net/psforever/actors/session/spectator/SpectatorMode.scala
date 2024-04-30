@@ -3,6 +3,7 @@ package net.psforever.actors.session.spectator
 
 import akka.actor.Actor.Receive
 import akka.actor.ActorRef
+import net.psforever.actors.session.ChatActor
 import net.psforever.actors.session.support.{AvatarHandlerFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{BattleRank, CommandRank, DeployableToolbox, FirstTimeEvents, Implant, ProgressDecoration, Shortcut => AvatarShortcut}
@@ -116,6 +117,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     player.LogActivity(originalEvent)
     player.spectator = true
     //
+    data.general.chatActor ! ChatActor.SetMode("spectator")
     val newPlayer = SpectatorModeLogic.spectatorCharacter(player)
     val cud = new SimpleItem(GlobalDefinitions.command_detonater)
     cud.GUID = player.avatar.locker.GUID

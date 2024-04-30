@@ -3,7 +3,9 @@ package net.psforever.actors.session.normal
 
 import akka.actor.Actor.Receive
 import akka.actor.ActorRef
+import net.psforever.actors.session.ChatActor
 import net.psforever.actors.session.support.{GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
+import net.psforever.objects.Session
 import net.psforever.packet.game.UplinkRequest
 //
 import net.psforever.actors.session.{AvatarActor, SessionActor}
@@ -41,6 +43,11 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
   val terminals: TerminalHandlerFunctions = TerminalHandlerLogic(data.terminals)
   val vehicles: VehicleFunctions = VehicleLogic(data.vehicles)
   val vehicleResponse: VehicleHandlerFunctions = VehicleHandlerLogic(data.vehicleResponseOperations)
+
+  override def switchTo(session: Session): Unit = {
+    data.general.chatActor ! ChatActor.SetMode("normal")
+    super.switchTo(session)
+  }
 
   def parse(sender: ActorRef): Receive = {
     /* really common messages (very frequently, every life) */
