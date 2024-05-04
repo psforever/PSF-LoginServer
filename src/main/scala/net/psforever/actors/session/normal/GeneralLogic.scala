@@ -2,11 +2,11 @@
 package net.psforever.actors.session.normal
 
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{ActorContext, Cancellable, typed}
-import net.psforever.actors.session.{AvatarActor, ChatActor, SessionActor}
+import akka.actor.{ActorContext, typed}
+import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData}
 import net.psforever.login.WorldSession.{CallBackForTask, ContainableMoveItem, DropEquipmentFromInventory, PickUpEquipmentFromGround, RemoveOldEquipmentFromInventory}
-import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, ConstructionItem, Default, Deployables, GlobalDefinitions, Kit, LivePlayerList, PlanetSideGameObject, Player, SensorDeployable, ShieldGeneratorDeployable, SpecialEmp, TelepadDeployable, Tool, TrapDeployable, TurretDeployable, Vehicle}
+import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, ConstructionItem, Deployables, GlobalDefinitions, Kit, LivePlayerList, PlanetSideGameObject, Player, SensorDeployable, ShieldGeneratorDeployable, SpecialEmp, TelepadDeployable, Tool, TrapDeployable, TurretDeployable, Vehicle}
 import net.psforever.objects.avatar.{Avatar, PlayerControl, SpecialCarry}
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.{Deployable, DeployedItem, TelepadLike}
@@ -39,13 +39,12 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones.{Zone, ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ObjectClass
-import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BindStatus, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, ItemTransactionMessage, LootItemMessage, MoveItemMessage, ObjectDeleteMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, SetChatFilterMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostKill, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BindStatus, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, ItemTransactionMessage, LootItemMessage, MoveItemMessage, ObjectDeleteMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostKill, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.RemoverActor
 import net.psforever.services.account.{AccountPersistenceService, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.local.support.CaptureFlagManager
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{CapacitorStateType, ChatMessageType, Cosmetic, DriveState, ExoSuitType, ImplantType, PlanetSideEmpire, PlanetSideGUID, SpawnGroup, TransactionType, Vector3}
 import net.psforever.util.Config
 
@@ -61,8 +60,6 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   def sessionLogic: SessionData = ops.sessionLogic
 
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
-
-  private val chatActor: typed.ActorRef[ChatActor.Command] = ops.chatActor
 
   def handleConnectToWorldRequest(pkt: ConnectToWorldRequestMessage): Unit = {
     val ConnectToWorldRequestMessage(_, token, majorVersion, minorVersion, revision, buildDate, _, _) = pkt
@@ -190,14 +187,6 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       sessionLogic.kickedByAdministration()
     }
     player.zoneInteractions()
-  }
-
-  def handleChat(pkt: ChatMsg): Unit = {
-    chatActor ! ChatActor.Message(pkt)
-  }
-
-  def handleChatFilter(pkt: SetChatFilterMessage): Unit = {
-    val SetChatFilterMessage(_, _, _) = pkt
   }
 
   def handleVoiceHostRequest(pkt: VoiceHostRequest): Unit = {

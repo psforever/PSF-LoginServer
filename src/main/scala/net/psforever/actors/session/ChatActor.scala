@@ -10,6 +10,7 @@ import net.psforever.actors.session.spectator.{SpectatorMode => SessionSpectator
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.ZoneInfo
+import net.psforever.services.chat.{DefaultChannel, SquadChannel}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.ChatMessageType.CMT_QUIT
 import org.log4s.Logger
@@ -33,7 +34,7 @@ import net.psforever.packet.game.objectcreate.DrawnSlot
 import net.psforever.packet.game.{ChatMsg, CreateShortcutMessage, DeadState, RequestDestroyMessage, Shortcut}
 import net.psforever.services.{CavernRotationService, InterstellarClusterService}
 import net.psforever.services.chat.ChatService
-import net.psforever.services.chat.ChatService.ChatChannel
+import net.psforever.services.chat.ChatChannel
 import net.psforever.types.ChatMessageType.{CMT_GMOPEN, UNK_227, UNK_229}
 import net.psforever.types.{ChatMessageType, Cosmetic, ExperienceType, ImplantType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.util.{Config, PointOfInterest}
@@ -385,7 +386,7 @@ object ChatActor {
     sendTo ! ChatService.Message(
       session,
       ChatMsg(UNK_227, wideContents=true, "", content.mkString(" "), None),
-      ChatChannel.Default()
+      DefaultChannel
     )
     true
   }
@@ -688,7 +689,7 @@ class ChatActor(
 
       case ListingResponse(ChatService.ChatServiceKey.Listing(listings)) =>
         chatService = Some(listings.head)
-        channels ++= List(ChatChannel.Default())
+        channels ++= List(DefaultChannel)
         postStartBehaviour()
 
       case SetSession(newSession) =>
@@ -704,7 +705,7 @@ class ChatActor(
   def postStartBehaviour(): Behavior[Command] = {
     (session, chatService, cluster) match {
       case (Some(_session), Some(_chatService), Some(_cluster)) if _session.player != null =>
-        _chatService ! ChatService.JoinChannel(chatServiceAdapter, _session, ChatChannel.Default())
+        _chatService ! ChatService.JoinChannel(chatServiceAdapter, null, DefaultChannel)
         logic = NormalMode.init(_chatService, _cluster)
         buffer.unstashAll(active(_session, _chatService, _cluster))
       case _ =>
@@ -724,7 +725,7 @@ class ChatActor(
           active(newSession, chatService, cluster)
 
         case JoinChannel(channel) =>
-          chatService ! ChatService.JoinChannel(chatServiceAdapter, session, channel)
+          chatService ! ChatService.JoinChannel(chatServiceAdapter, null, channel)
           channels ++= List(channel)
           Behaviors.same
 
@@ -1057,7 +1058,7 @@ class ChatActor(
     // SH prefix are tactical voice macros only sent to squad
     if (contents.startsWith("SH")) {
       channels.foreach {
-        case _/*channel*/: ChatChannel.Squad =>
+        case _/*channel*/: SquadChannel =>
           commandSendToRecipient(session, message, chatService)
         case _ => ()
       }
@@ -1082,7 +1083,7 @@ class ChatActor(
 
   def commandSquad(session: Session, message: ChatMsg, chatService: ActorRef[ChatService.Command]): Unit = {
     channels.foreach {
-      case _/*channel*/: ChatChannel.Squad =>
+      case _/*channel*/: SquadChannel =>
         commandSendToRecipient(session, message, chatService)
       case _ => ()
     }
@@ -1415,7 +1416,7 @@ class ChatActor(
     chatService ! ChatService.Message(
       session,
       message,
-      ChatChannel.Default()
+      DefaultChannel
     )
   }
 
@@ -1423,7 +1424,7 @@ class ChatActor(
     chatService ! ChatService.Message(
       session,
       message.copy(recipient = session.player.Name),
-      ChatChannel.Default()
+      DefaultChannel
     )
   }
 

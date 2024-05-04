@@ -3,8 +3,7 @@ package net.psforever.actors.session.spectator
 
 import akka.actor.Actor.Receive
 import akka.actor.ActorRef
-import net.psforever.actors.session.ChatActor
-import net.psforever.actors.session.support.{AvatarHandlerFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
+import net.psforever.actors.session.support.{AvatarHandlerFunctions, ChatFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{BattleRank, CommandRank, DeployableToolbox, FirstTimeEvents, Implant, ProgressDecoration, Shortcut => AvatarShortcut}
 import net.psforever.objects.serverobject.ServerObject
@@ -13,6 +12,7 @@ import net.psforever.packet.PlanetSidePacket
 import net.psforever.packet.game.{ObjectCreateDetailedMessage, ObjectDeleteMessage}
 import net.psforever.packet.game.objectcreate.{ObjectClass, ObjectCreateMessageParent, RibbonBars}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.chat.{ChatService, SpectatorChannel}
 import net.psforever.services.teamwork.{SquadAction, SquadServiceMessage}
 import net.psforever.types.{CapacitorStateType, ChatMessageType, ExoSuitType, MeritCommendation, SquadRequestType}
 //
@@ -41,6 +41,7 @@ import net.psforever.services.vehicle.VehicleServiceResponse
 
 class SpectatorModeLogic(data: SessionData) extends ModeLogic {
   val avatarResponse: AvatarHandlerFunctions = AvatarHandlerLogic(data.avatarResponse)
+  val chat: ChatFunctions = ChatLogic(data.chat)
   val galaxy: GalaxyHandlerFunctions = GalaxyHandlerLogic(data.galaxyResponseHandlers)
   val general: GeneralFunctions = GeneralLogic(data.general)
   val local: LocalHandlerFunctions = LocalHandlerLogic(data.localResponse)
@@ -115,9 +116,12 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     val originalEvent = player.History.headOption
     player.ClearHistory()
     player.LogActivity(originalEvent)
-    player.spectator = true
     //
-    data.general.chatActor ! ChatActor.SetMode("spectator")
+    player.spectator = true
+    if (player.silenced) {
+      data.chat.commandIncomingSilence(session, ChatMsg(ChatMessageType.CMT_SILENCE, "player 0"))
+    }
+    data.chat.JoinChannel(SpectatorChannel)
     val newPlayer = SpectatorModeLogic.spectatorCharacter(player)
     val cud = new SimpleItem(GlobalDefinitions.command_detonater)
     cud.GUID = player.avatar.locker.GUID
@@ -145,6 +149,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     val zoning = data.zoning
     val sendResponse: PlanetSidePacket => Unit = data.sendResponse
     //
+    data.chat.LeaveChannel(SpectatorChannel)
     player.spectator = false
     sendResponse(ObjectDeleteMessage(player.avatar.locker.GUID, 0)) //free up the slot (from cud)
     sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "off"))
@@ -177,6 +182,9 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
 
     case VehicleServiceResponse(toChannel, guid, reply) =>
       vehicleResponse.handle(toChannel, guid, reply)
+
+    case ChatService.MessageResponse(fromSession, message, _) =>
+      chat.handleIncomingMessage(data.session, message, fromSession)
 
     case SessionActor.SendResponse(packet) =>
       data.sendResponse(packet)
@@ -409,10 +417,10 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       data.zoning.spawn.handleSpawnRequest(packet)
 
     case packet: ChatMsg =>
-      general.handleChat(packet)
+      chat.handleChatMsg(data.session, packet)
 
     case packet: SetChatFilterMessage =>
-      general.handleChatFilter(packet)
+      chat.handleChatFilter(packet)
 
     case packet: VoiceHostRequest =>
       general.handleVoiceHostRequest(packet)

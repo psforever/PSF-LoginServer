@@ -6,6 +6,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
+import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.login.WorldSession
 import net.psforever.objects.avatar.BattleRank
 import net.psforever.objects.avatar.scoring.{CampaignStatistics, ScoreCard, SessionStatistics}
@@ -17,6 +18,7 @@ import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
 import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, MailMessage, ObjectDetectedMessage, SessionStatistic}
+import net.psforever.services.chat.DefaultChannel
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -2164,6 +2166,7 @@ class ZoningOperations(
      */
     def avatarLoginResponse(avatar: Avatar): Unit = {
       session = session.copy(avatar = avatar)
+      sessionLogic.chat.JoinChannel(DefaultChannel)
       Deployables.InitializeDeployableQuantities(avatar)
       cluster ! ICS.FilterZones(_ => true, context.self)
     }
@@ -3069,6 +3072,9 @@ class ZoningOperations(
                 SpawningActivity(PlayerSource(tplayer), continent.Number, effortBy)
             }
           })
+        }
+        if (!setAvatar && tplayer.spectator) {
+          context.self ! SessionActor.SetMode(SpectatorMode) //should reload spectator status
         }
       }
       upstreamMessageCount = 0

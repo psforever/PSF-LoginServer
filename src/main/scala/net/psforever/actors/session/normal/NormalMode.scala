@@ -3,10 +3,9 @@ package net.psforever.actors.session.normal
 
 import akka.actor.Actor.Receive
 import akka.actor.ActorRef
-import net.psforever.actors.session.ChatActor
-import net.psforever.actors.session.support.{GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
-import net.psforever.objects.Session
+import net.psforever.actors.session.support.{ChatFunctions, GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
 import net.psforever.packet.game.UplinkRequest
+import net.psforever.services.chat.ChatService
 //
 import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.session.support.{ModeLogic, PlayerMode, SessionData, ZoningOperations}
@@ -34,6 +33,7 @@ import net.psforever.util.Config
 
 class NormalModeLogic(data: SessionData) extends ModeLogic {
   val avatarResponse: AvatarHandlerLogic = AvatarHandlerLogic(data.avatarResponse)
+  val chat: ChatFunctions = ChatLogic(data.chat)
   val galaxy: GalaxyHandlerLogic = GalaxyHandlerLogic(data.galaxyResponseHandlers)
   val general: GeneralFunctions = GeneralLogic(data.general)
   val local: LocalHandlerFunctions = LocalHandlerLogic(data.localResponse)
@@ -43,11 +43,6 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
   val terminals: TerminalHandlerFunctions = TerminalHandlerLogic(data.terminals)
   val vehicles: VehicleFunctions = VehicleLogic(data.vehicles)
   val vehicleResponse: VehicleHandlerFunctions = VehicleHandlerLogic(data.vehicleResponseOperations)
-
-  override def switchTo(session: Session): Unit = {
-    data.general.chatActor ! ChatActor.SetMode("normal")
-    super.switchTo(session)
-  }
 
   def parse(sender: ActorRef): Receive = {
     /* really common messages (very frequently, every life) */
@@ -74,6 +69,9 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
 
     case VehicleServiceResponse(toChannel, guid, reply) =>
       vehicleResponse.handle(toChannel, guid, reply)
+
+    case ChatService.MessageResponse(fromSession, message, _) =>
+      chat.handleIncomingMessage(data.session, message, fromSession)
 
     case SessionActor.SendResponse(packet) =>
       data.sendResponse(packet)
@@ -315,10 +313,10 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
       data.zoning.spawn.handleSpawnRequest(packet)
 
     case packet: ChatMsg =>
-      general.handleChat(packet)
+      chat.handleChatMsg(data.session, packet)
 
     case packet: SetChatFilterMessage =>
-      general.handleChatFilter(packet)
+      chat.handleChatFilter(packet)
 
     case packet: VoiceHostRequest =>
       general.handleVoiceHostRequest(packet)

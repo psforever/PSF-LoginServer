@@ -4,12 +4,14 @@ package net.psforever.actors.session.support
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, typed}
+import net.psforever.services.chat.ChatService
+
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 //
 import net.psforever.actors.net.MiddlewareActor
-import net.psforever.actors.session.{AvatarActor, ChatActor}
+import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
 import net.psforever.objects.avatar._
@@ -60,7 +62,7 @@ object SessionData {
 class SessionData(
                    val middlewareActor: typed.ActorRef[MiddlewareActor.Command],
                    implicit val context: ActorContext
-                 ) {
+                 ) extends SessionSource {
   /**
    * Hardwire an implicit `sender` to be the same as `context.self` of the `SessionActor` actor class
    * for which this support class was initialized.
@@ -74,7 +76,6 @@ class SessionData(
   private[this] implicit val sender: ActorRef = context.self
 
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = context.spawnAnonymous(AvatarActor(context.self))
-  private val chatActor: typed.ActorRef[ChatActor.Command] = context.spawnAnonymous(ChatActor(context.self, avatarActor))
 
   private[session] val log = org.log4s.getLogger
   private[session] var theSession: Session = Session()
@@ -83,6 +84,7 @@ class SessionData(
   private[session] var galaxyService: ActorRef = Default.Actor
   private[session] var squadService: ActorRef = Default.Actor
   private[session] var cluster: typed.ActorRef[ICS.Command] = Default.typed.Actor
+  private[session] var chatService: typed.ActorRef[ChatService.Command] = Default.typed.Actor
   private[session] var connectionState: Int = 25
   private[session] var persistFunc: () => Unit = noPersistence
   private[session] var persist: () => Unit = updatePersistenceOnly
@@ -92,13 +94,13 @@ class SessionData(
   private var contextSafeEntity: PlanetSideGUID = PlanetSideGUID(0)
 
   val general: GeneralOperations =
-    new GeneralOperations(sessionLogic=this, avatarActor, chatActor, context)
+    new GeneralOperations(sessionLogic=this, avatarActor, context)
   val shooting: WeaponAndProjectileOperations =
-    new WeaponAndProjectileOperations(sessionLogic=this, avatarActor, chatActor, context)
+    new WeaponAndProjectileOperations(sessionLogic=this, avatarActor, context)
   val vehicles: VehicleOperations =
     new VehicleOperations(sessionLogic=this, avatarActor, context)
   val avatarResponse: SessionAvatarHandlers =
-    new SessionAvatarHandlers(sessionLogic=this, avatarActor, chatActor, context)
+    new SessionAvatarHandlers(sessionLogic=this, avatarActor, context)
   val localResponse: SessionLocalHandlers =
     new SessionLocalHandlers(sessionLogic=this, context)
   val mountResponse: SessionMountHandlers =
@@ -109,16 +111,19 @@ class SessionData(
   private var galaxyResponseOpt: Option[SessionGalaxyHandlers] = None
   private var squadResponseOpt: Option[SessionSquadHandlers] = None
   private var zoningOpt: Option[ZoningOperations] = None
+  private var chatOpt: Option[ChatOperations] = None
   def vehicleResponseOperations: SessionVehicleHandlers = vehicleResponseOpt.orNull
   def galaxyResponseHandlers: SessionGalaxyHandlers = galaxyResponseOpt.orNull
   def squad: SessionSquadHandlers = squadResponseOpt.orNull
   def zoning: ZoningOperations = zoningOpt.orNull
+  def chat: ChatOperations = chatOpt.orNull
 
   ServiceManager.serviceManager ! Lookup("accountIntermediary")
   ServiceManager.serviceManager ! Lookup("accountPersistence")
   ServiceManager.serviceManager ! Lookup("galaxy")
   ServiceManager.serviceManager ! Lookup("squad")
   ServiceManager.receptionist ! Receptionist.Find(ICS.InterstellarClusterServiceKey, context.self)
+  ServiceManager.receptionist ! Receptionist.Find(ChatService.ChatServiceKey, context.self)
 
   /**
    * updated when an upstream packet arrives;
@@ -129,7 +134,6 @@ class SessionData(
   def session: Session = theSession
 
   def session_=(session: Session): Unit = {
-    chatActor ! ChatActor.SetSession(session)
     avatarActor ! AvatarActor.SetSession(session)
     theSession = session
   }
@@ -164,6 +168,11 @@ class SessionData(
       case ICS.InterstellarClusterServiceKey.Listing(listings) =>
         cluster = listings.head
         buildDependentOperationsForZoning(galaxyService, cluster)
+        buildDependentOperationsForChat(chatService, cluster)
+        true
+      case ChatService.ChatServiceKey.Listing(listings) =>
+        chatService = listings.head
+        buildDependentOperationsForChat(chatService, cluster)
         true
 
       case _ =>
@@ -186,7 +195,13 @@ class SessionData(
 
   def buildDependentOperationsForSquad(squadActor: ActorRef): Unit = {
     if (squadResponseOpt.isEmpty && squadActor != Default.Actor) {
-      squadResponseOpt = Some(new SessionSquadHandlers(sessionLogic=this, avatarActor, chatActor, squadActor, context))
+      squadResponseOpt = Some(new SessionSquadHandlers(sessionLogic=this, avatarActor, squadActor, context))
+    }
+  }
+
+  def buildDependentOperationsForChat(chatService: typed.ActorRef[ChatService.Command], clusterActor: typed.ActorRef[ICS.Command]): Unit = {
+    if (chatOpt.isEmpty && chatService != Default.typed.Actor && clusterActor != Default.typed.Actor) {
+      chatOpt = Some(new ChatOperations(sessionLogic=this, avatarActor, chatService, clusterActor, context))
     }
   }
 
@@ -196,7 +211,8 @@ class SessionData(
       vehicleResponseOpt.nonEmpty &&
       galaxyResponseOpt.nonEmpty &&
       squadResponseOpt.nonEmpty &&
-      zoningOpt.nonEmpty
+      zoningOpt.nonEmpty &&
+      chatOpt.nonEmpty
   }
 
   /* support functions */
@@ -363,11 +379,11 @@ class SessionData(
     terminals.actionsToCancel()
     if (session.flying) {
       session = session.copy(flying = false)
-      chatActor ! ChatActor.Message(ChatMsg(ChatMessageType.CMT_FLY, wideContents=false, "", "off", None))
+      chat.commandFly(contents = "off", recipient = "")
     }
     if (session.speed > 1) {
       session = session.copy(speed = 1)
-      chatActor ! ChatActor.Message(ChatMsg(ChatMessageType.CMT_SPEED, wideContents=false, "", "1.000", None))
+      chat.commandSpeed(ChatMsg(ChatMessageType.CMT_SPEED, "1.000"), contents = "1.000")
     }
   }
 
@@ -542,7 +558,6 @@ class SessionData(
 
   def stop(): Unit = {
     context.stop(avatarActor)
-    context.stop(chatActor)
     general.stop()
     shooting.stop()
     vehicles.stop()
@@ -554,6 +569,7 @@ class SessionData(
     galaxyResponseOpt.foreach(_.stop())
     squadResponseOpt.foreach(_.stop())
     zoningOpt.foreach(_.stop())
+    chatOpt.foreach(_.stop())
     continent.AvatarEvents ! Service.Leave()
     continent.LocalEvents ! Service.Leave()
     continent.VehicleEvents ! Service.Leave()

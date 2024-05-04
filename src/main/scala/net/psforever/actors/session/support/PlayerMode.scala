@@ -7,6 +7,7 @@ import net.psforever.objects.Session
 
 trait ModeLogic {
   def avatarResponse: AvatarHandlerFunctions
+  def chat: ChatFunctions
   def galaxy: GalaxyHandlerFunctions
   def general: GeneralFunctions
   def local: LocalHandlerFunctions

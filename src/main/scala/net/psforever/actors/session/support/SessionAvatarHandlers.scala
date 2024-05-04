@@ -8,7 +8,7 @@ import net.psforever.objects.zones.exp
 
 import scala.collection.mutable
 //
-import net.psforever.actors.session.{AvatarActor, ChatActor}
+import net.psforever.actors.session.AvatarActor
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game._
 import net.psforever.services.avatar.AvatarResponse
@@ -24,7 +24,6 @@ trait AvatarHandlerFunctions extends CommonSessionInterfacingFunctionality {
 class SessionAvatarHandlers(
                              val sessionLogic: SessionData,
                              val avatarActor: typed.ActorRef[AvatarActor.Command],
-                             chatActor: typed.ActorRef[ChatActor.Command],
                              implicit val context: ActorContext
                            ) extends CommonSessionInterfacingFunctionality {
   //TODO player characters only exist within a certain range of GUIDs for a given zone; this is overkill

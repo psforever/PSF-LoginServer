@@ -3,12 +3,12 @@ package net.psforever.actors.session.normal
 
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.support.SessionSquadHandlers.SquadUIElement
-import net.psforever.actors.session.{AvatarActor, ChatActor}
+import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, SessionSquadHandlers, SquadHandlerFunctions}
 import net.psforever.objects.{Default, LivePlayerList}
 import net.psforever.objects.avatar.Avatar
 import net.psforever.packet.game.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, ChatMsg, MemberEvent, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadDetailDefinitionUpdateMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEvent, WaypointEventAction}
-import net.psforever.services.chat.ChatService
+import net.psforever.services.chat.SquadChannel
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadAction => SquadServiceAction}
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadListDecoration, SquadResponseType, WaypointSubtype}
 
@@ -22,8 +22,6 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
   def sessionLogic: SessionData = ops.sessionLogic
 
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
-
-  private val chatActor: typed.ActorRef[ChatActor.Command] = ops.chatActor
 
   private val squadService: ActorRef = ops.squadService
 
@@ -194,8 +192,8 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
               sendResponse(SquadDefinitionActionMessage(squad.GUID, 0, SquadAction.Unknown(18)))
               squadService ! SquadServiceMessage(player, continent, SquadServiceAction.ReloadDecoration())
               ops.updateSquadRef = ref
-              ops. updateSquad = ops.PeriodicUpdatesWhenEnrolledInSquad
-              chatActor ! ChatActor.JoinChannel(ChatService.ChatChannel.Squad(squad.GUID))
+              ops.updateSquad = ops.PeriodicUpdatesWhenEnrolledInSquad
+              sessionLogic.chat.JoinChannel(SquadChannel(squad.GUID))
             case _ =>
               //other player is joining our squad
               //load each member's entry
@@ -245,7 +243,7 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
               ops.squad_supplement_id = 0
               ops.squadUpdateCounter = 0
               ops.updateSquad = ops.NoSquadUpdates
-              chatActor ! ChatActor.LeaveChannel(ChatService.ChatChannel.Squad(squad.GUID))
+              sessionLogic.chat.LeaveChannel(SquadChannel(squad.GUID))
             case _ =>
               //remove each member's entry
               ops.GiveSquadColorsToMembers(

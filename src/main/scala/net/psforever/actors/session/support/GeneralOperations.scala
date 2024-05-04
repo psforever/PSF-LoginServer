@@ -8,7 +8,7 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 //
-import net.psforever.actors.session.{AvatarActor, ChatActor, SessionActor}
+import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.login.WorldSession._
 import net.psforever.objects._
 import net.psforever.objects.avatar._
@@ -25,7 +25,7 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.vital._
 import net.psforever.objects.zones._
 import net.psforever.packet._
-import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, ChangeShortcutBankMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, SetChatFilterMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, ChangeShortcutBankMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, ZipLineMessage}
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game._
@@ -47,10 +47,6 @@ trait GeneralFunctions extends CommonSessionInterfacingFunctionality {
   def handleCharacterRequest(pkt: CharacterRequestMessage): Unit
 
   def handlePlayerStateUpstream(pkt: PlayerStateMessageUpstream): Unit
-
-  def handleChat(pkt: ChatMsg): Unit
-
-  def handleChatFilter(pkt: SetChatFilterMessage): Unit
 
   def handleVoiceHostRequest(pkt: VoiceHostRequest): Unit
 
@@ -148,7 +144,6 @@ trait GeneralFunctions extends CommonSessionInterfacingFunctionality {
 class GeneralOperations(
                          val sessionLogic: SessionData,
                          val avatarActor: typed.ActorRef[AvatarActor.Command],
-                         val chatActor: typed.ActorRef[ChatActor.Command],
                          implicit val context: ActorContext
                        ) extends CommonSessionInterfacingFunctionality {
   private[session] var progressBarValue: Option[Float] = None

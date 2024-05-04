@@ -4,7 +4,7 @@ package net.psforever.actors.session.support
 import akka.actor.{ActorContext, ActorRef, typed}
 import scala.collection.mutable
 //
-import net.psforever.actors.session.{AvatarActor, ChatActor}
+import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.{Default, Player}
 import net.psforever.packet.game._
@@ -39,7 +39,6 @@ object SessionSquadHandlers {
 class SessionSquadHandlers(
                             val sessionLogic: SessionData,
                             val avatarActor: typed.ActorRef[AvatarActor.Command],
-                            val chatActor: typed.ActorRef[ChatActor.Command],
                             val squadService: ActorRef,
                             implicit val context: ActorContext
                           ) extends CommonSessionInterfacingFunctionality {

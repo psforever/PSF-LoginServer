@@ -2,7 +2,7 @@
 package net.psforever.actors.session.spectator
 
 import akka.actor.{ActorContext, typed}
-import net.psforever.actors.session.{AvatarActor, ChatActor}
+import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData}
 import net.psforever.login.WorldSession.RemoveOldEquipmentFromInventory
 import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, GlobalDefinitions, LivePlayerList, PlanetSideGameObject, Player, TelepadDeployable, Tool, Vehicle}
@@ -21,7 +21,7 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital.{VehicleDismountActivity, VehicleMountActivity}
 import net.psforever.objects.zones.{Zone, ZoneProjectile}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDeleteMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, SetChatFilterMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostKill, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDeleteMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostKill, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.RemoverActor
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -39,8 +39,6 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   def sessionLogic: SessionData = ops.sessionLogic
 
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
-
-  private val chatActor: typed.ActorRef[ChatActor.Command] = ops.chatActor
 
   private var customImplants = SpectatorModeLogic.SpectatorImplants.map(_.get)
 
@@ -84,12 +82,6 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       sessionLogic.kickedByAdministration()
     }
   }
-
-  def handleChat(pkt: ChatMsg): Unit = {
-    chatActor ! ChatActor.Message(pkt)
-  }
-
-  def handleChatFilter(pkt: SetChatFilterMessage): Unit = { /* intentionally blank */ }
 
   def handleVoiceHostRequest(pkt: VoiceHostRequest): Unit = {
     log.debug(s"$pkt")

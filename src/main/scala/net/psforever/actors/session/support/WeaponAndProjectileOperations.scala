@@ -9,7 +9,7 @@ import net.psforever.objects.zones.exp.ToDatabase
 import scala.collection.mutable
 import scala.concurrent.duration._
 //
-import net.psforever.actors.session.{AvatarActor, ChatActor}
+import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.avatar.scoring.EquipmentStat
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.equipment.EquipmentSize
@@ -63,7 +63,6 @@ trait WeaponAndProjectileFunctions extends CommonSessionInterfacingFunctionality
 class WeaponAndProjectileOperations(
                                      val sessionLogic: SessionData,
                                      val avatarActor: typed.ActorRef[AvatarActor.Command],
-                                     val chatActor: typed.ActorRef[ChatActor.Command],
                                      implicit val context: ActorContext
                                    ) extends CommonSessionInterfacingFunctionality {
   var shooting: mutable.Set[PlanetSideGUID] = mutable.Set.empty //ChangeFireStateMessage_Start

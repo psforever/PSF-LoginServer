@@ -113,7 +113,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       middlewareActor ! MiddlewareActor.Send(KeepAliveMessage())
 
     case SessionActor.SetMode(newMode) =>
-      logic.switchFrom(data.session)
+      if (mode != newMode) {
+        logic.switchFrom(data.session)
+      }
       mode = newMode
       logic = mode.setup(data)
       logic.switchTo(data.session)
