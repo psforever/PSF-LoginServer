@@ -3,6 +3,10 @@ package net.psforever.actors.session.spectator
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.support.AvatarHandlerFunctions
+import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.Players
+import net.psforever.objects.avatar.scoring.Kill
+import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.packet.game.{AvatarImplantMessage, ImplantAction}
 
 import scala.concurrent.duration._
@@ -387,8 +391,13 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sessionLogic.general.kitToBeUsed = None
         sendResponse(ChatMsg(ChatMessageType.UNK_225, msg))
 
-      case AvatarResponse.UpdateKillsDeathsAssists(_, kda) =>
-        avatarActor ! AvatarActor.UpdateKillsDeathsAssists(kda)
+      case AvatarResponse.UpdateKillsDeathsAssists(_, kda: Kill) if kda.experienceEarned > 0 =>
+        continent.actor ! ZoneActor.RewardOurSupporters(
+          PlayerSource(player),
+          Players.produceContributionTranscriptFromKill(continent, player, kda),
+          kda,
+          kda.experienceEarned
+        )
 
       case AvatarResponse.AwardBep(charId, bep, expType) =>
         //if the target player, always award (some) BEP

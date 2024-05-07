@@ -4,14 +4,18 @@ package net.psforever.objects
 import net.psforever.objects.avatar.Certification
 import net.psforever.login.WorldSession.FindEquipmentStock
 import net.psforever.objects.avatar.PlayerControl
+import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.ExoSuitDefinition
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.InfantryLoadout
+import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.objects.vital.RevivingActivity
+import net.psforever.objects.vehicles.MountedWeapons
+import net.psforever.objects.vital.projectile.ProjectileReason
+import net.psforever.objects.vital.{InGameActivity, InGameHistory, RevivingActivity}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types.{ChatMessageType, ExoSuitType, Vector3}
@@ -256,7 +260,7 @@ object Players {
             PlayerControl.sendResponse(
               zone,
               channel,
-              ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}OldestDestroyed", None)
+              ChatMsg(ChatMessageType.UNK_229, s"@${definition.Descriptor}OldestDestroyed")
             )
           }
           true
@@ -278,7 +282,7 @@ object Players {
         PlayerControl.sendResponse(
           zone,
           channel,
-          ChatMsg(ChatMessageType.UNK_229, false, "", s"@${definition.Descriptor}LimitReached", None)
+          ChatMsg(ChatMessageType.UNK_229, s"@${definition.Descriptor}LimitReached")
         )
       }
       true
@@ -400,7 +404,7 @@ object Players {
       val zone = player.Zone
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.ObjectDelete(Service.defaultPlayerGUID, tool.GUID, 0)
+        AvatarAction.ObjectDelete(Service.defaultPlayerGUID, tool.GUID)
       )
       true
     } else {
@@ -465,5 +469,23 @@ object Players {
         s"FindReplacementConstructionItem: ${player.Name}, your $index hand needs to be empty before a replacement ${definition.Name} can be installed"
       )
     }
+  }
+
+  /**
+   * na
+   * @param zone where the event occurred
+   * @param player person attributed to the event
+   * @param killStat information about the event
+   * @return player-specific historical information and then related information that is inherited from other entities
+   */
+  def produceContributionTranscriptFromKill(zone: Zone, player: Player, killStat: Kill): List[InGameActivity] = {
+    (killStat.info.interaction.cause match {
+      case pr: ProjectileReason => pr.projectile.mounted_in.flatMap { a => zone.GUID(a._1) } //what fired the projectile
+      case _ => None
+    }).collect {
+      case mount: PlanetSideGameObject with FactionAffinity with InGameHistory with MountedWeapons =>
+        player.ContributionFrom(mount)
+    }
+    player.HistoryAndContributions()
   }
 }

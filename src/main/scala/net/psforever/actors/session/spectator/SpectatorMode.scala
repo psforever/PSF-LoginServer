@@ -112,9 +112,6 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       continent,
       SquadAction.Membership(SquadRequestType.Leave, player.CharId, Some(player.CharId), player.Name, None)
     )
-    val originalEvent = player.History.headOption
-    player.ClearHistory()
-    player.LogActivity(originalEvent)
     player.avatar
       .shortcuts
       .zipWithIndex
@@ -132,8 +129,10 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     player.spectator = true
     data.chat.JoinChannel(SpectatorChannel)
     val newPlayer = SpectatorModeLogic.spectatorCharacter(player)
-    val cud = new SimpleItem(GlobalDefinitions.command_detonater)
-    cud.GUID = player.avatar.locker.GUID
+    newPlayer.LogActivity(player.History.headOption)
+    val simpleHandHeldThing = GlobalDefinitions.flail_targeting_laser
+    val handheld = new SimpleItem(simpleHandHeldThing)
+    handheld.GUID = player.avatar.locker.GUID
     sendResponse(ObjectCreateDetailedMessage(
       0L,
       ObjectClass.avatar,
@@ -143,10 +142,10 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     ))
     sendResponse(ObjectCreateDetailedMessage(
       0L,
-      ObjectClass.command_detonater,
-      cud.GUID,
+      simpleHandHeldThing.ObjectId,
+      handheld.GUID,
       Some(ObjectCreateMessageParent(pguid, 4)),
-      cud.Definition.Packet.DetailedConstructorData(cud).get
+      handheld.Definition.Packet.DetailedConstructorData(handheld).get
     ))
     data.zoning.spawn.HandleSetCurrentAvatar(newPlayer)
     data.session = session.copy(player = player)
@@ -167,7 +166,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       .foreach(sendResponse)
     data.chat.LeaveChannel(SpectatorChannel)
     player.spectator = false
-    sendResponse(ObjectDeleteMessage(player.avatar.locker.GUID, 0)) //free up the slot (from cud)
+    sendResponse(ObjectDeleteMessage(player.avatar.locker.GUID, 0)) //free up the slot
     sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "off"))
     sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SpectatorDisabled"))
     zoning.zoneReload = true

@@ -26,6 +26,28 @@ object UplinkRequestType extends IntEnum[UplinkRequestType] {
 
   case object OrbitalStrike extends UplinkRequestType(value = 4)
 
+  case object Unknown5 extends UplinkRequestType(value = 5)
+
+  case object Function6 extends UplinkRequestType(value = 6)
+
+  case object Function7 extends UplinkRequestType(value = 7)
+
+  case object Function8 extends UplinkRequestType(value = 8)
+
+  case object Unknown9 extends UplinkRequestType(value = 9)
+
+  case object UnknownA extends UplinkRequestType(value = 10)
+
+  case object FunctionB extends UplinkRequestType(value = 11)
+
+  case object FunctionC extends UplinkRequestType(value = 12)
+
+  case object UnknownD extends UplinkRequestType(value = 13)
+
+  case object UnknownE extends UplinkRequestType(value = 14)
+
+  case object FunctionF extends UplinkRequestType(value = 15)
+
   implicit val codec: Codec[UplinkRequestType] = PacketHelpers.createIntEnumCodec(this, uint4)
 }
 

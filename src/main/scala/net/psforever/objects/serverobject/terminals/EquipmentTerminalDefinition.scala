@@ -204,7 +204,7 @@ object EquipmentTerminalDefinition {
     "advanced_ace"           -> MakeConstructionItem(advanced_ace),
     "remote_electronics_kit" -> MakeSimpleItem(remote_electronics_kit),
     "trek"                   -> MakeTool(trek),
-    //"command_detonater"      -> MakeSimpleItem(command_detonater),
+    "command_detonater"      -> MakeSimpleItem(command_detonater),
     "flail_targeting_laser"  -> MakeSimpleItem(flail_targeting_laser)
   )
 

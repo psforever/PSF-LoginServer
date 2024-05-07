@@ -10,10 +10,8 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.Session
 import net.psforever.objects.avatar.ModePermissions
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, ScoreCard, SupportActivity}
-import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.sourcing.{TurretSource, VehicleSource}
-import net.psforever.objects.vital.{InGameHistory, ReconstructionActivity}
-import net.psforever.objects.vehicles.MountedWeapons
+import net.psforever.objects.vital.ReconstructionActivity
 import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
 import org.joda.time.{LocalDateTime, Seconds}
 
@@ -44,7 +42,6 @@ import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, VehicleLoadout}
 import net.psforever.objects.locker.LockerContainer
 import net.psforever.objects.sourcing.{PlayerSource,SourceWithHealthEntry}
-import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity}
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
@@ -3205,16 +3202,7 @@ class AvatarActor(
     val zone               = _session.zone
     val player             = _session.player
     val playerSource       = PlayerSource(player)
-    val historyTranscript  = {
-      (killStat.info.interaction.cause match {
-        case pr: ProjectileReason => pr.projectile.mounted_in.flatMap { a => zone.GUID(a._1) } //what fired the projectile
-        case _ => None
-      }).collect {
-        case mount: PlanetSideGameObject with FactionAffinity with InGameHistory with MountedWeapons =>
-          player.ContributionFrom(mount)
-      }
-      player.HistoryAndContributions()
-    }
+    val historyTranscript  = Players.produceContributionTranscriptFromKill(zone, player, killStat)
     val target = killStat.info.targetAfter.asInstanceOf[PlayerSource]
     val targetMounted = target.seatedIn
       .collect {
