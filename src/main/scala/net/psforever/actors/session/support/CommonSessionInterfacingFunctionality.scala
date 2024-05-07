@@ -41,7 +41,7 @@ trait CommonSessionInterfacingFunctionality {
 
   protected def sendResponse(pkt: PlanetSideGamePacket): Unit = sessionLogic.sendResponse(pkt)
 
-  protected[support] def actionsToCancel(): Unit = { /* to override */ }
+  protected[session] def actionsToCancel(): Unit = { /* to override */ }
 
-  protected[support] def stop(): Unit = { /* to override */ }
+  protected[session] def stop(): Unit = { /* to override */ }
 }

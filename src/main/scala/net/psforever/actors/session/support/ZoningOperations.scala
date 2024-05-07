@@ -3142,17 +3142,11 @@ class ZoningOperations(
      * Set up and dispatch a list of `CreateShortcutMessage` packets and a single `ChangeShortcutBankMessage` packet.
      */
     def initializeShortcutsAndBank(guid: PlanetSideGUID): Unit = {
-      avatar.shortcuts
-        .zipWithIndex
-        .collect { case (Some(shortcut), index) =>
-          sendResponse(CreateShortcutMessage(
-            guid,
-            index + 1,
-            Some(AvatarShortcut.convert(shortcut))
-          ))
-        }
-      sendResponse(ChangeShortcutBankMessage(guid, 0))
+      initializeShortcutsAndBank(guid, avatar.shortcuts)
     }
+    /**
+     * Set up and dispatch a list of `CreateShortcutMessage` packets and a single `ChangeShortcutBankMessage` packet.
+     */
     def initializeShortcutsAndBank(guid: PlanetSideGUID, shortcuts: Array[Option[AvatarShortcut]]): Unit = {
       shortcuts
         .zipWithIndex

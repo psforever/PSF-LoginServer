@@ -21,7 +21,7 @@ object ChatLogic {
 class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) extends ChatFunctions {
   def sessionLogic: SessionData = ops.sessionLogic
 
-  def handleChatMsg(session: Session, message: ChatMsg): Unit = {
+  def handleChatMsg(message: ChatMsg): Unit = {
     import ChatMessageType._
     (message.messageType, message.recipient.trim, message.contents.trim) match {
       /** Messages starting with ! are custom chat commands */
@@ -93,7 +93,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     val SetChatFilterMessage(_, _, _) = pkt
   }
 
-  def handleIncomingMessage(session: Session, message: ChatMsg, fromSession: Session): Unit = {
+  def handleIncomingMessage(message: ChatMsg, fromSession: Session): Unit = {
     import ChatMessageType._
     message.messageType match {
       case CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | CMT_NOTE =>
@@ -125,7 +125,6 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case "list" => ops.customCommandList(session, params, message)
         case "nearby" => ops.customCommandNearby(session)
         case "loc" => ops.customCommandLoc(session, message)
-        case "macro" => ops.customCommandMacro(session, params)
         case _ => false
       }
     } else {

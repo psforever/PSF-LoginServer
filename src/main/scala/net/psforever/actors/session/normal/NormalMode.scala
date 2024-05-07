@@ -71,7 +71,7 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
       vehicleResponse.handle(toChannel, guid, reply)
 
     case ChatService.MessageResponse(fromSession, message, _) =>
-      chat.handleIncomingMessage(data.session, message, fromSession)
+      chat.handleIncomingMessage(message, fromSession)
 
     case SessionActor.SendResponse(packet) =>
       data.sendResponse(packet)
@@ -313,7 +313,7 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
       data.zoning.spawn.handleSpawnRequest(packet)
 
     case packet: ChatMsg =>
-      chat.handleChatMsg(data.session, packet)
+      chat.handleChatMsg(packet)
 
     case packet: SetChatFilterMessage =>
       chat.handleChatFilter(packet)

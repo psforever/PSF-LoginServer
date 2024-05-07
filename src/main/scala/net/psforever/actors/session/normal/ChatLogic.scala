@@ -4,6 +4,7 @@ package net.psforever.actors.session.normal
 import akka.actor.ActorContext
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
 import net.psforever.objects.Session
+import net.psforever.objects.avatar.ModePermissions
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.chat.DefaultChannel
 import net.psforever.types.ChatMessageType
@@ -18,10 +19,12 @@ object ChatLogic {
 class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) extends ChatFunctions {
   def sessionLogic: SessionData = ops.sessionLogic
 
-  def handleChatMsg(session: Session, message: ChatMsg): Unit = {
+  def handleChatMsg(message: ChatMsg): Unit = {
     import net.psforever.types.ChatMessageType._
-    val gmCommandAllowed =
-      session.account.gm || Config.app.development.unprivilegedGmCommands.contains(message.messageType)
+    val isAlive = if (player != null) player.isAlive else false
+    val perms = if (avatar != null) avatar.permissions else ModePermissions()
+    val gmCommandAllowed = (session.account.gm && perms.canGM) ||
+      Config.app.development.unprivilegedGmCommands.contains(message.messageType)
     (message.messageType, message.recipient.trim, message.contents.trim) match {
       /** Messages starting with ! are custom chat commands */
       case (_, _, contents) if contents.startsWith("!") &&
@@ -42,7 +45,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_SPEED, _, contents) if gmCommandAllowed =>
         ops.commandSpeed(message, contents)
 
-      case (CMT_TOGGLESPECTATORMODE, _, contents) if gmCommandAllowed =>
+      case (CMT_TOGGLESPECTATORMODE, _, contents) if isAlive && (gmCommandAllowed || perms.canSpectate) =>
         ops.commandToggleSpectatorMode(session, contents)
 
       case (CMT_RECALL, _, _) =>
@@ -82,19 +85,19 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_GMBROADCASTPOPUP, _, _) if gmCommandAllowed =>
         ops.commandSendToRecipient(session, message, DefaultChannel)
 
-      case (CMT_OPEN, _, _) if !session.player.silenced =>
+      case (CMT_OPEN, _, _) if !player.silenced =>
         ops.commandSendToRecipient(session, message, DefaultChannel)
 
       case (CMT_VOICE, _, contents) =>
         ops.commandVoice(session, message, contents, DefaultChannel)
 
-      case (CMT_TELL, _, _) if !session.player.silenced =>
+      case (CMT_TELL, _, _) if !player.silenced =>
         ops.commandTellOrIgnore(session, message, DefaultChannel)
 
-      case (CMT_BROADCAST, _, _) if !session.player.silenced =>
+      case (CMT_BROADCAST, _, _) if !player.silenced =>
         ops.commandSendToRecipient(session, message, DefaultChannel)
 
-      case (CMT_PLATOON, _, _) if !session.player.silenced =>
+      case (CMT_PLATOON, _, _) if !player.silenced =>
         ops.commandSendToRecipient(session, message, DefaultChannel)
 
       case (CMT_COMMAND, _, _) if gmCommandAllowed =>
@@ -151,7 +154,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     val SetChatFilterMessage(_, _, _) = pkt
   }
 
-  def handleIncomingMessage(session: Session, message: ChatMsg, fromSession: Session): Unit = {
+  def handleIncomingMessage(message: ChatMsg, fromSession: Session): Unit = {
     import ChatMessageType._
     message.messageType match {
       case CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | CMT_NOTE =>
@@ -186,7 +189,9 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case a :: b => (a, b)
         case _ => ("", Seq(""))
       }
-      val gmBangCommandAllowed = session.account.gm || Config.app.development.unprivilegedGmBangCommands.contains(command)
+      val perms = if (avatar != null) avatar.permissions else ModePermissions()
+      val gmBangCommandAllowed = (session.account.gm && perms.canGM) ||
+        Config.app.development.unprivilegedGmBangCommands.contains(command)
       //try gm commands
       val tryGmCommandResult = if (gmBangCommandAllowed) {
         command match {

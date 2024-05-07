@@ -741,7 +741,7 @@ class GeneralOperations(
     sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@charsaved", None))
   }
 
-  override protected[support] def actionsToCancel(): Unit = {
+  override protected[session] def actionsToCancel(): Unit = {
     progressBarValue = None
     kitToBeUsed = None
     collisionHistory.clear()

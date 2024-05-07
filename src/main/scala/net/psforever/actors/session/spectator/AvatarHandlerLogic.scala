@@ -3,6 +3,7 @@ package net.psforever.actors.session.spectator
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.support.AvatarHandlerFunctions
+import net.psforever.packet.game.{AvatarImplantMessage, ImplantAction}
 
 import scala.concurrent.duration._
 //
@@ -403,6 +404,11 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
       case AvatarResponse.FacilityCaptureRewards(buildingId, zoneNumber, cep) =>
         ops.facilityCaptureRewards(buildingId, zoneNumber, cep)
+
+      case AvatarResponse.SendResponse(pkt: AvatarImplantMessage)
+        if pkt.player_guid == player.GUID && pkt.action == ImplantAction.Initialization =>
+        //special spectator implants stay initialized and do not deinitialize
+        ()
 
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)

@@ -208,7 +208,7 @@ class SessionTerminalHandlers(
     )
   }
 
-  override protected[support] def actionsToCancel(): Unit = {
+  override protected[session] def actionsToCancel(): Unit = {
     lastTerminalOrderFulfillment = true
     usingMedicalTerminal = None
   }

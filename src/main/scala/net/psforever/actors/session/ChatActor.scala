@@ -162,7 +162,7 @@ object ChatActor {
           sendTo ! SessionActor.SendResponse(CreateShortcutMessage(
             guid,
             index + 1,
-            Some(Shortcut.Medkit())
+            Some(Shortcut.Medkit)
           ))
       }
     }

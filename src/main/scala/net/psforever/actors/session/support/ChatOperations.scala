@@ -43,11 +43,11 @@ import net.psforever.zones.Zones
 trait ChatFunctions extends CommonSessionInterfacingFunctionality {
   def ops: ChatOperations
 
-  def handleChatMsg(session: Session, message: ChatMsg): Unit
+  def handleChatMsg(message: ChatMsg): Unit
 
   def handleChatFilter(pkt: SetChatFilterMessage): Unit
 
-  def handleIncomingMessage(session: Session, message: ChatMsg, fromSession: Session): Unit
+  def handleIncomingMessage(message: ChatMsg, fromSession: Session): Unit
 }
 
 class ChatOperations(
@@ -811,7 +811,7 @@ class ChatOperations(
           sendResponse(CreateShortcutMessage(
             guid,
             index + 1,
-            Some(Shortcut.Medkit())
+            Some(Shortcut.Medkit)
           ))
       }
     }

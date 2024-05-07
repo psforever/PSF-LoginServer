@@ -323,7 +323,7 @@ class WeaponAndProjectileOperations(
     ToDatabase.reportToolDischarge(avatarId, EquipmentStat(weaponId, fired, landed, 0, 0))
   }
 
-  override protected[support] def actionsToCancel(): Unit = {
+  override protected[session] def actionsToCancel(): Unit = {
     shootingStart.clear()
     shootingStop.clear()
     (prefire ++ shooting).foreach { guid =>

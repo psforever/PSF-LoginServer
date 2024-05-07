@@ -61,7 +61,6 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "on"))
     sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SpectatorEnabled"))
     continent.actor ! ZoneActor.RemoveFromBlockMap(player)
-    data.general.avatarActor ! AvatarActor.DeactivateActiveImplants()
     continent
       .GUID(data.terminals.usingMedicalTerminal)
       .foreach { case term: Terminal with ProximityUnit =>
@@ -116,11 +115,21 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     val originalEvent = player.History.headOption
     player.ClearHistory()
     player.LogActivity(originalEvent)
-    //
-    player.spectator = true
+    player.avatar
+      .shortcuts
+      .zipWithIndex
+      .collect { case (Some(_), index) => index + 1 }
+      .map(CreateShortcutMessage(pguid, _, None))
+      .foreach(sendResponse)
+    player.avatar.implants
+      .collect { case Some(implant) if implant.active =>
+        data.general.avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
+      }
     if (player.silenced) {
       data.chat.commandIncomingSilence(session, ChatMsg(ChatMessageType.CMT_SILENCE, "player 0"))
     }
+    //
+    player.spectator = true
     data.chat.JoinChannel(SpectatorChannel)
     val newPlayer = SpectatorModeLogic.spectatorCharacter(player)
     val cud = new SimpleItem(GlobalDefinitions.command_detonater)
@@ -147,13 +156,21 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     import scala.concurrent.duration._
     val player = data.player
     val zoning = data.zoning
+    val pguid = player.GUID
     val sendResponse: PlanetSidePacket => Unit = data.sendResponse
     //
+    data.general.stop()
+    player.avatar.shortcuts.slice(1, 4)
+      .zipWithIndex
+      .collect { case (None, slot) => slot + 1 } //set only actual blank slots blank
+      .map(CreateShortcutMessage(pguid, _, None))
+      .foreach(sendResponse)
     data.chat.LeaveChannel(SpectatorChannel)
     player.spectator = false
     sendResponse(ObjectDeleteMessage(player.avatar.locker.GUID, 0)) //free up the slot (from cud)
     sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "off"))
     sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SpectatorDisabled"))
+    zoning.zoneReload = true
     zoning.spawn.randomRespawn(0.seconds) //to sanctuary
   }
 
@@ -184,7 +201,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       vehicleResponse.handle(toChannel, guid, reply)
 
     case ChatService.MessageResponse(fromSession, message, _) =>
-      chat.handleIncomingMessage(data.session, message, fromSession)
+      chat.handleIncomingMessage(message, fromSession)
 
     case SessionActor.SendResponse(packet) =>
       data.sendResponse(packet)
@@ -417,7 +434,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       data.zoning.spawn.handleSpawnRequest(packet)
 
     case packet: ChatMsg =>
-      chat.handleChatMsg(data.session, packet)
+      chat.handleChatMsg(packet)
 
     case packet: SetChatFilterMessage =>
       chat.handleChatFilter(packet)

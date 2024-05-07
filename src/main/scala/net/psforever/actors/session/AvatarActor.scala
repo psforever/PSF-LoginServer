@@ -7,6 +7,8 @@ import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 
 import java.util.concurrent.atomic.AtomicInteger
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.Session
+import net.psforever.objects.avatar.ModePermissions
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, ScoreCard, SupportActivity}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.sourcing.{TurretSource, VehicleSource}
@@ -954,6 +956,28 @@ object AvatarActor {
         out.completeWith(Future(card))
       case _ =>
         out.completeWith(Future(new ScoreCard()))
+    }
+    out.future
+  }
+
+  def loadSpectatorModePermissions(avatarId: Long): Future[ModePermissions] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val out: Promise[ModePermissions] = Promise()
+    val result = ctx.run(query[persistence.Avatarmodepermission].filter(_.avatarId == lift(avatarId)))
+    result.onComplete {
+      case Success(res) =>
+        res.headOption
+          .collect {
+            case perms: persistence.Avatarmodepermission =>
+              out.completeWith(Future(ModePermissions(perms.canSpectate, perms.canGm)))
+          }
+          .orElse {
+            out.completeWith(Future(ModePermissions()))
+            None
+          }
+      case _ =>
+        out.completeWith(Future(ModePermissions()))
     }
     out.future
   }
@@ -2046,9 +2070,10 @@ class AvatarActor(
       shortcuts <- loadShortcuts(avatarId)
       saved     <- AvatarActor.loadSavedAvatarData(avatarId)
       card      <- AvatarActor.loadCampaignKdaData(avatarId)
-    } yield (loadouts, friends, ignored, shortcuts, saved, card)
+      perms     <- AvatarActor.loadSpectatorModePermissions(avatarId)
+    } yield (loadouts, friends, ignored, shortcuts, saved, card, perms)
     result.onComplete {
-      case Success((loadoutList, friendsList, ignoredList, shortcutList, saved, card)) =>
+      case Success((loadoutList, friendsList, ignoredList, shortcutList, saved, card, perms)) =>
         avatarCopy(
           avatar.copy(
             loadouts = avatar.loadouts.copy(suit = loadoutList),
@@ -2058,7 +2083,8 @@ class AvatarActor(
               purchase = AvatarActor.buildCooldownsFromClob(saved.purchaseCooldowns, Avatar.purchaseCooldowns, log),
               use = AvatarActor.buildCooldownsFromClob(saved.useCooldowns, Avatar.useCooldowns, log)
             ),
-            scorecard = card
+            scorecard = card,
+            permissions = perms
           )
         )
         sessionActor ! SessionActor.AvatarLoadingSync(step = 2)
@@ -2239,13 +2265,15 @@ class AvatarActor(
         if (implant.active) {
           deactivateImplant(implant.definition.implantType)
         }
-        session.get.zone.AvatarEvents ! AvatarServiceMessage(
-          session.get.zone.id,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
+        if (implant.initialized) {
+          session.get.zone.AvatarEvents ! AvatarServiceMessage(
+            session.get.zone.id,
+            AvatarAction.SendResponse(
+              Service.defaultPlayerGUID,
+              AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
+            )
           )
-        )
+        }
         Some(implant.copy(initialized = false, active = false))
       case (None, _) => None
     }))

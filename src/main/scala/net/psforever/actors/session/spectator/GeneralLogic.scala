@@ -6,7 +6,7 @@ import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData}
 import net.psforever.login.WorldSession.RemoveOldEquipmentFromInventory
 import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, GlobalDefinitions, LivePlayerList, PlanetSideGameObject, Player, TelepadDeployable, Tool, Vehicle}
-import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.avatar.{Avatar, Implant}
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.{Deployable, TelepadLike}
 import net.psforever.objects.definition.{BasicDefinition, KitDefinition, SpecialExoSuitDefinition}
@@ -41,6 +41,8 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
 
   private var customImplants = SpectatorModeLogic.SpectatorImplants.map(_.get)
+
+  private var additionalImplants: Seq[CreateShortcutMessage] = Seq()
 
   def handleConnectToWorldRequest(pkt: ConnectToWorldRequestMessage): Unit = { /* intentionally blank */ }
 
@@ -181,9 +183,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     customImplants.lift(slot)
       .collect {
         case implant if implant.active =>
-          customImplants = customImplants.updated(slot, implant.copy(active = false))
-          sendResponse(AvatarImplantMessage(player.GUID, ImplantAction.Activation, slot, 0))
-          sendResponse(PlanetsideAttributeMessage(player.GUID, 28, implant.definition.implantType.value * 2))
+          customImplantOff(slot, implant)
         case implant =>
           customImplants = customImplants.updated(slot, implant.copy(active = true))
           sendResponse(AvatarImplantMessage(player.GUID, ImplantAction.Activation, slot, 1))
@@ -349,7 +349,34 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     val BindPlayerMessage(_, _, _, _, _, _, _, _) = pkt
   }
 
-  def handleCreateShortcut(pkt: CreateShortcutMessage): Unit = { /* intentionally blank */ }
+  def handleCreateShortcut(pkt: CreateShortcutMessage): Unit = {
+    val CreateShortcutMessage(_, slot, wouldBeImplant) = pkt
+    val pguid = player.GUID
+    if (slot > 1 && slot < 5) {
+      //protected
+      customImplants
+        .zipWithIndex
+        .find { case (_, index) => index + 2 == slot}
+        .foreach {
+          case (implant, _) if wouldBeImplant.contains(implant.definition.implantType.shortcut) => ()
+          case (implant, _) if implant.active =>
+            sendResponse(CreateShortcutMessage(pguid, slot, Some(implant.definition.implantType.shortcut)))
+            customImplantOff(slot, implant)
+          case (implant, _) =>
+            sendResponse(CreateShortcutMessage(pguid, slot, Some(implant.definition.implantType.shortcut)))
+        }
+    } else {
+      additionalImplants.indexWhere(_.slot == slot) match {
+        case -1 => ()
+        case index =>
+          additionalImplants = additionalImplants.take(index) ++ additionalImplants.drop(index + 1)
+      }
+      wouldBeImplant.collect {
+        case _ =>
+          additionalImplants = additionalImplants :+ pkt
+      }
+    }
+  }
 
   def handleChangeShortcutBank(pkt: ChangeShortcutBankMessage): Unit = { /* intentionally blank */ }
 
@@ -628,5 +655,24 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     log.warn(s"${tplayer.Name} has been kicked by ${player.Name}")
     tplayer.death_by = -1
     sessionLogic.accountPersistence ! AccountPersistenceService.Kick(tplayer.Name)
+  }
+
+  private def customImplantOff(slot: Int, implant: Implant): Unit = {
+    customImplants = customImplants.updated(slot, implant.copy(active = false))
+    sendResponse(AvatarImplantMessage(player.GUID, ImplantAction.Activation, slot, 0))
+    sendResponse(PlanetsideAttributeMessage(player.GUID, 28, implant.definition.implantType.value * 2))
+  }
+
+  override protected[session] def stop(): Unit = {
+    val pguid = player.GUID
+    //set only originally blank slots blank again; rest will be overwrote later
+    val originalBlankSlots = ((player.avatar.shortcuts.head, 1) +:
+      player.avatar.shortcuts.drop(4).zipWithIndex.map { case (scut, slot) => (scut, slot + 4) })
+        .collect { case (None, slot) => slot }
+    additionalImplants
+      .map(_.slot)
+      .filter(originalBlankSlots.contains)
+      .map(slot => CreateShortcutMessage(pguid, slot, None))
+      .foreach(sendResponse)
   }
 }
