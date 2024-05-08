@@ -1,7 +1,6 @@
-version: "3"
 services:
   loginserver:
-    image: mozilla/sbt
+    image: sbtscala/scala-sbt:eclipse-temurin-jammy-8u352-b08_1.8.3_2.13.10
     volumes:
       - .:/PSF-Loginserver:z
     working_dir: /PSF-Loginserver
@@ -19,7 +18,7 @@ services:
     ports:
       - 51010:8080
   db:
-    image: postgres:12
+    image: postgres:14
     ports:
       - 5432:5432
     environment:

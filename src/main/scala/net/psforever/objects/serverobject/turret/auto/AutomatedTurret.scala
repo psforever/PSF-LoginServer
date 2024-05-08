@@ -3,13 +3,15 @@ package net.psforever.objects.serverobject.turret.auto
 
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.interior.InteriorAware
 import net.psforever.objects.serverobject.turret.{TurretDefinition, WeaponTurret}
 import net.psforever.objects.sourcing.{SourceEntry, SourceUniqueness}
 import net.psforever.objects.vital.Vitality
 
 trait AutomatedTurret
   extends PlanetSideServerObject
-    with WeaponTurret {
+    with WeaponTurret
+    with InteriorAware {
   import AutomatedTurret.Target
   private var currentTarget: Option[Target] = None
 
@@ -66,5 +68,5 @@ trait AutomatedTurret
 }
 
 object AutomatedTurret {
-  type Target = PlanetSideServerObject with Vitality
+  type Target = PlanetSideServerObject with Vitality with InteriorAware
 }
