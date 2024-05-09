@@ -58,8 +58,6 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     val pguid = player.GUID
     val sendResponse: PlanetSidePacket=>Unit = data.sendResponse
     //
-    sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "on"))
-    sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SpectatorEnabled"))
     continent.actor ! ZoneActor.RemoveFromBlockMap(player)
     continent
       .GUID(data.terminals.usingMedicalTerminal)
@@ -95,10 +93,12 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       case (Some(obj: Vehicle), Some(seatNum)) if seatNum == 0 =>
         data.vehicles.ServerVehicleOverrideStop(obj)
         obj.Actor ! ServerObject.AttributeMsg(10, 3) //faction-accessible driver seat
-        obj.Actor ! Mountable.TryDismount(player, seatNum)
+        obj.Seat(seatNum).foreach(_.unmount(player))
+        player.VehicleSeated = None
         Some(ObjectCreateMessageParent(obj.GUID, seatNum))
       case (Some(obj), Some(seatNum)) =>
-        obj.Actor ! Mountable.TryDismount(player, seatNum)
+        obj.Seat(seatNum).foreach(_.unmount(player))
+        player.VehicleSeated = None
         Some(ObjectCreateMessageParent(obj.GUID, seatNum))
       case _ =>
         None
@@ -148,6 +148,8 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       handheld.Definition.Packet.DetailedConstructorData(handheld).get
     ))
     data.zoning.spawn.HandleSetCurrentAvatar(newPlayer)
+    sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "on"))
+    sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SpectatorEnabled"))
     data.session = session.copy(player = player)
   }
 
