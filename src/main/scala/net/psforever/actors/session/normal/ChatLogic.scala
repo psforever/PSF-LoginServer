@@ -45,7 +45,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_SPEED, _, contents) if gmCommandAllowed =>
         ops.commandSpeed(message, contents)
 
-      case (CMT_TOGGLESPECTATORMODE, _, contents) if isAlive && (gmCommandAllowed || perms.canSpectate) =>
+      case (CMT_TOGGLESPECTATORMODE, _, contents) if isAlive /*&& (gmCommandAllowed || perms.canSpectate)*/ =>
         ops.commandToggleSpectatorMode(session, contents)
 
       case (CMT_RECALL, _, _) =>
