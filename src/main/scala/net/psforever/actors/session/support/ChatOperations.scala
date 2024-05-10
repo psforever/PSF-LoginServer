@@ -911,7 +911,7 @@ class ChatOperations(
     }
     (target, rank) match {
       case (_, Some(rank)) if rank.value <= Config.app.game.maxBattleRank =>
-        context.self ! msgFunc(rank.experience)
+        avatarActor ! msgFunc(rank.experience)
         true
       case _ =>
         false
@@ -941,7 +941,7 @@ class ChatOperations(
     }
     (target, rank) match {
       case (_, Some(rank)) =>
-        context.self ! AvatarActor.SetCep(rank.experience)
+        avatarActor ! AvatarActor.SetCep(rank.experience)
         true
       case _ =>
         false

@@ -13,6 +13,8 @@ import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.PlanetSideEmpire
 
+import scala.annotation.unused
+
 class BoomerDeployable(cdef: ExplosiveDeployableDefinition)
   extends ExplosiveDeployable(cdef) {
   private var trigger: Option[BoomerTrigger] = None
@@ -70,8 +72,8 @@ class BoomerDeployableControl(mine: BoomerDeployable)
         case _ => ;
       }
 
-  override def loseOwnership(faction: PlanetSideEmpire.Value): Unit = {
-    super.loseOwnership(PlanetSideEmpire.NEUTRAL)
+  def loseOwnership(@unused faction: PlanetSideEmpire.Value): Unit = {
+    super.loseOwnership(mine, PlanetSideEmpire.NEUTRAL)
     val guid = mine.OwnerGuid
     mine.AssignOwnership(None)
     mine.OwnerGuid = guid

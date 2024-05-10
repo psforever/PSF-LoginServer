@@ -6,11 +6,13 @@ import akka.actor.ActorRef
 import net.psforever.actors.session.support.{AvatarHandlerFunctions, ChatFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{BattleRank, CommandRank, DeployableToolbox, FirstTimeEvents, Implant, ProgressDecoration, Shortcut => AvatarShortcut}
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.ServerObject
 import net.psforever.objects.{GlobalDefinitions, Player, Session, SimpleItem, Vehicle}
 import net.psforever.packet.PlanetSidePacket
-import net.psforever.packet.game.{ObjectCreateDetailedMessage, ObjectDeleteMessage}
+import net.psforever.packet.game.{DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, ObjectCreateDetailedMessage, ObjectDeleteMessage}
 import net.psforever.packet.game.objectcreate.{ObjectClass, ObjectCreateMessageParent, RibbonBars}
+import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.chat.{ChatService, SpectatorChannel}
 import net.psforever.services.teamwork.{SquadAction, SquadServiceMessage}
@@ -121,6 +123,16 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     player.avatar.implants
       .collect { case Some(implant) if implant.active =>
         data.general.avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
+      }
+    val playerFaction = player.Faction
+    continent
+      .DeployableList
+      .filter(_.Faction == playerFaction)
+      .foreach { obj =>
+        sendResponse(DeployableObjectsInfoMessage(
+          DeploymentAction.Dismiss,
+          DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Service.defaultPlayerGUID)
+        ))
       }
     if (player.silenced) {
       data.chat.commandIncomingSilence(session, ChatMsg(ChatMessageType.CMT_SILENCE, "player 0"))

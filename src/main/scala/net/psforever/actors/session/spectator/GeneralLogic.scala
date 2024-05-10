@@ -4,28 +4,21 @@ package net.psforever.actors.session.spectator
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData}
-import net.psforever.login.WorldSession.RemoveOldEquipmentFromInventory
-import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, GlobalDefinitions, LivePlayerList, PlanetSideGameObject, Player, TelepadDeployable, Tool, Vehicle}
+import net.psforever.objects.{Account, GlobalDefinitions, LivePlayerList, PlanetSideGameObject, Player, TelepadDeployable, Tool, Vehicle}
 import net.psforever.objects.avatar.{Avatar, Implant}
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.ce.{Deployable, TelepadLike}
 import net.psforever.objects.definition.{BasicDefinition, KitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
-import net.psforever.objects.inventory.Container
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.doors.Door
-import net.psforever.objects.sourcing.{PlayerSource, VehicleSource}
 import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
-import net.psforever.objects.vital.{VehicleDismountActivity, VehicleMountActivity}
-import net.psforever.objects.zones.{Zone, ZoneProjectile}
+import net.psforever.objects.zones.ZoneProjectile
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDeleteMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostKill, VoiceHostRequest, ZipLineMessage}
-import net.psforever.services.RemoverActor
+import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostKill, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{ChatMessageType, DriveState, ExoSuitType, PlanetSideGUID, Vector3}
 import net.psforever.util.Config
 
@@ -157,18 +150,6 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
           obj.Miss()
         }
         continent.Projectile ! ZoneProjectile.Remove(objectGuid)
-
-      case Some(obj: BoomerTrigger) =>
-        if (findEquipmentToDelete(objectGuid, obj)) {
-          continent.GUID(obj.Companion) match {
-            case Some(boomer: BoomerDeployable) =>
-              boomer.Trigger = None
-              boomer.Actor ! Deployable.Deconstruct()
-            case Some(thing) =>
-              log.warn(s"RequestDestroy: BoomerTrigger object connected to wrong object - $thing")
-            case None => ()
-          }
-        }
 
       case _ => ()
     }
@@ -539,78 +520,6 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   /**
-   * Get the current `Vehicle` object that the player is riding/driving.
-   * The vehicle must be found solely through use of `player.VehicleSeated`.
-   * @return the vehicle
-   */
-  private def findLocalVehicle: Option[Vehicle] = {
-    continent.GUID(player.VehicleSeated) match {
-      case Some(obj: Vehicle) => Some(obj)
-      case _ => None
-    }
-  }
-
-  /**
-   * A simple object searching algorithm that is limited to containers currently known and accessible by the player.
-   * If all relatively local containers are checked and the object is not found,
-   * the player's locker inventory will be checked, and then
-   * the game environment (items on the ground) will be checked too.
-   * If the target object is discovered, it is removed from its current location and is completely destroyed.
-   * @see `RequestDestroyMessage`
-   * @see `Zone.ItemIs.Where`
-   * @param objectGuid the target object's globally unique identifier;
-   *                    it is not expected that the object will be unregistered, but it is also not gauranteed
-   * @param obj the target object
-   * @return `true`, if the target object was discovered and removed;
-   *        `false`, otherwise
-   */
-  private def findEquipmentToDelete(objectGuid: PlanetSideGUID, obj: Equipment): Boolean = {
-    val findFunc
-    : PlanetSideServerObject with Container => Option[(PlanetSideServerObject with Container, Option[Int])] =
-      ops.findInLocalContainer(objectGuid)
-
-    findFunc(player)
-      .orElse(ops.accessedContainer match {
-        case Some(parent: PlanetSideServerObject) =>
-          findFunc(parent)
-        case _ =>
-          None
-      })
-      .orElse(findLocalVehicle match {
-        case Some(parent: PlanetSideServerObject) =>
-          findFunc(parent)
-        case _ =>
-          None
-      }) match {
-      case Some((parent, Some(_))) =>
-        obj.Position = Vector3.Zero
-        RemoveOldEquipmentFromInventory(parent)(obj)
-        true
-      case _ if player.avatar.locker.Inventory.Remove(objectGuid) =>
-        sendResponse(ObjectDeleteMessage(objectGuid, 0))
-        true
-      case _ if continent.EquipmentOnGround.contains(obj) =>
-        obj.Position = Vector3.Zero
-        continent.Ground ! Zone.Ground.RemoveItem(objectGuid)
-        continent.AvatarEvents ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
-        true
-      case _ =>
-        Zone.EquipmentIs.Where(obj, objectGuid, continent) match {
-          case None =>
-            true
-          case Some(Zone.EquipmentIs.Orphaned()) if obj.HasGUID =>
-            TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj))
-            true
-          case Some(Zone.EquipmentIs.Orphaned()) =>
-            true
-          case _ =>
-            log.warn(s"RequestDestroy: equipment $obj exists, but ${player.Name} can not reach it to dispose of it")
-            false
-        }
-    }
-  }
-
-  /**
    * A player uses a fully-linked Router teleportation system.
    * @param router the Router vehicle
    * @param internalTelepad the internal telepad within the Router vehicle
@@ -636,15 +545,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       val dguid = dest.GUID
       sendResponse(PlayerStateShiftMessage(ShiftState(0, dest.Position, player.Orientation.z)))
       ops.useRouterTelepadEffect(pguid, sguid, dguid)
-      continent.LocalEvents ! LocalServiceMessage(
-        continent.id,
-        LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid)
-      )
-      val vSource = VehicleSource(router)
-      val zoneNumber = continent.Number
-      player.LogActivity(VehicleMountActivity(vSource, PlayerSource(player), zoneNumber))
       player.Position = dest.Position
-      player.LogActivity(VehicleDismountActivity(vSource, PlayerSource(player), zoneNumber))
     } else {
       log.warn(s"UseRouterTelepadSystem: ${player.Name} can not teleport")
     }
