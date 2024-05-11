@@ -4,6 +4,7 @@ package net.psforever.actors.session.normal
 import akka.actor.Actor.Receive
 import akka.actor.ActorRef
 import net.psforever.actors.session.support.{ChatFunctions, GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
+import net.psforever.objects.Players
 import net.psforever.packet.game.UplinkRequest
 import net.psforever.services.chat.ChatService
 //
@@ -248,9 +249,11 @@ class NormalModeLogic(data: SessionData) extends ModeLogic {
     case _: Zone.Vehicle.HasDespawned => ;
 
     case Zone.Deployable.IsDismissed(obj: TurretDeployable) => //only if target deployable was never fully introduced
+      Players.buildCooldownReset(data.continent, data.player.Name, obj)
       TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(data.continent.GUID, obj))
 
     case Zone.Deployable.IsDismissed(obj) => //only if target deployable was never fully introduced
+      Players.buildCooldownReset(data.continent, data.player.Name, obj)
       TaskWorkflow.execute(GUIDTask.unregisterObject(data.continent.GUID, obj))
 
     case msg: Containable.ItemPutInSlot =>

@@ -33,7 +33,7 @@ class DeployableToolbox {
     * keys: categories, values: quantity storage object
     */
   private val categoryCounts =
-    DeployableCategory.values.toSeq.map(value => { value -> new DeployableToolbox.Bin }).toMap
+    DeployableCategory.values.map(value => { value -> new DeployableToolbox.Bin }).toMap
 
   /**
     * a map of bins for keeping track of the quantities of individual deployables
@@ -46,7 +46,7 @@ class DeployableToolbox {
     * keys: categories, values: deployable objects
     */
   private val deployableLists =
-    DeployableCategory.values.toSeq
+    DeployableCategory.values
       .map(value => { value -> mutable.ListBuffer[DeployableToolbox.AcceptableDeployable]() })
       .toMap
 
@@ -73,7 +73,7 @@ class DeployableToolbox {
     }
   }
 
-  def UpdateMaxCounts(certifications: Set[Certification]) = {
+  def UpdateMaxCounts(certifications: Set[Certification]): Unit = {
     DeployableToolbox.UpdateMaxCounts(deployableCounts, categoryCounts, certifications)
   }
 
@@ -247,7 +247,7 @@ class DeployableToolbox {
     * @param category the target category
     * @return any deployable that is found
     */
-  def DisplaceFirst(category: DeployableCategory.Value): Option[DeployableToolbox.AcceptableDeployable] = {
+  def DisplaceFirst(category: DeployableCategory): Option[DeployableToolbox.AcceptableDeployable] = {
     val categoryList = deployableLists(category)
     if (categoryList.nonEmpty) {
       val found = categoryList.remove(0)
@@ -294,7 +294,7 @@ class DeployableToolbox {
     * @param filter the type of deployable
     * @return a list of globally unique identifiers that should be valid for the current zone
     */
-  def Category(filter: DeployableCategory.Value): List[PlanetSideGUID] = {
+  def Category(filter: DeployableCategory): List[PlanetSideGUID] = {
     deployableLists(filter).map(_.GUID).toList
   }
 
@@ -478,7 +478,7 @@ object DeployableToolbox {
     */
   private def UpdateMaxCounts(
       counts: Map[DeployedItem.Value, DeployableToolbox.Bin],
-      categories: Map[DeployableCategory.Value, DeployableToolbox.Bin],
+      categories: Map[DeployableCategory, DeployableToolbox.Bin],
       certifications: Set[Certification]
   ): Unit = {
     import Certification._

@@ -272,24 +272,29 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
 
   def handleDeployRequest(pkt: DeployRequestMessage): Unit = {
     val DeployRequestMessage(_, vehicle_guid, deploy_state, _, _, _) = pkt
-    val vehicle = player.avatar.vehicle
-    if (vehicle.contains(vehicle_guid)) {
-      if (vehicle == player.VehicleSeated) {
-        continent.GUID(vehicle_guid) match {
-          case Some(obj: Vehicle) =>
+    continent.GUID(vehicle_guid)
+      .collect {
+        case obj: Vehicle =>
+          val vehicle = player.avatar.vehicle
+          if (!vehicle.contains(vehicle_guid)) {
+            log.warn(s"DeployRequest: ${player.Name} does not own the would-be-deploying ${obj.Definition.Name}")
+          } else if (vehicle != player.VehicleSeated) {
+            log.warn(s"${player.Name} must be mounted as the driver to request a deployment change")
+          } else {
             log.info(s"${player.Name} is requesting a deployment change for ${obj.Definition.Name} - $deploy_state")
             obj.Actor ! Deployment.TryDeploymentChange(deploy_state)
-
-          case _ =>
-            log.error(s"DeployRequest: ${player.Name} can not find vehicle $vehicle_guid")
-            avatarActor ! AvatarActor.SetVehicle(None)
-        }
-      } else {
-        log.warn(s"${player.Name} must be mounted to request a deployment change")
+            continent.Transport ! Zone.Vehicle.TryDeploymentChange(obj, deploy_state)
+          }
+          obj
+        case obj =>
+          log.error(s"DeployRequest: ${player.Name} expected a vehicle, but found a ${obj.Definition.Name} instead")
+          obj
       }
-    } else {
-      log.warn(s"DeployRequest: ${player.Name} does not own the deploying $vehicle_guid object")
-    }
+      .orElse {
+        log.error(s"DeployRequest: ${player.Name} can not find entity $vehicle_guid")
+        avatarActor ! AvatarActor.SetVehicle(None) //todo is this safe
+        None
+      }
   }
 
   /* messages */

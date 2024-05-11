@@ -533,7 +533,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
           case _ =>
             GUIDTask.registerObject(continent.GUID, dObj)
         }
-        TaskWorkflow.execute(CallBackForTask(tasking, continent.Deployables, Zone.Deployable.BuildByOwner(dObj, player, obj)))
+        TaskWorkflow.execute(CallBackForTask(tasking, continent.Deployables, Zone.Deployable.BuildByOwner(dObj, player, obj), context.self))
       case Some(obj) =>
         log.warn(s"DeployObject: what is $obj, ${player.Name}?  It's not a construction tool!")
       case None =>
