@@ -23,23 +23,25 @@ trait CommonSessionInterfacingFunctionality {
 
   protected def context: ActorContext
 
-  protected def sessionData: SessionData
+  protected def sessionLogic: SessionData
 
-  protected def session: Session = sessionData.session
+  protected def session: Session = sessionLogic.session
 
-  protected def session_=(newsession: Session): Unit = sessionData.session_=(newsession)
+  protected def session_=(newsession: Session): Unit = sessionLogic.session_=(newsession)
 
-  protected def account: Account = sessionData.account
+  protected def account: Account = sessionLogic.account
 
-  protected def continent: Zone = sessionData.continent
+  protected def continent: Zone = sessionLogic.continent
 
-  protected def player: Player = sessionData.player
+  protected def player: Player = sessionLogic.player
 
-  protected def avatar: Avatar = sessionData.avatar
+  protected def avatar: Avatar = sessionLogic.avatar
 
-  protected def log: Logger = sessionData.log
+  protected def log: Logger = sessionLogic.log
 
-  protected def sendResponse(pkt: PlanetSideGamePacket): Unit = sessionData.sendResponse(pkt)
+  protected def sendResponse(pkt: PlanetSideGamePacket): Unit = sessionLogic.sendResponse(pkt)
+
+  protected[session] def actionsToCancel(): Unit = { /* to override */ }
 
   protected[session] def stop(): Unit = { /* to override */ }
 }

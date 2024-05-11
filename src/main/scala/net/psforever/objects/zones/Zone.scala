@@ -566,9 +566,13 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
 
   def Vehicles: List[Vehicle] = vehicles.toList
 
-  def Players: List[Avatar] = players.values.flatten.map(_.avatar).toList
+  def AllPlayers: List[Player] =  players.values.flatten.toList
 
-  def LivePlayers: List[Player] = players.values.flatten.toList
+  def Players: List[Avatar] = AllPlayers.map(_.avatar)
+
+  def LivePlayers: List[Player] = AllPlayers.filterNot(_.spectator)
+
+  def Spectator: List[Player] = AllPlayers.filter(_.spectator)
 
   def Corpses: List[Player] = corpses.toList
 

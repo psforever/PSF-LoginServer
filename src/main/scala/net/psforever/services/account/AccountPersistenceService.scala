@@ -363,7 +363,7 @@ class PersistenceMonitor(
     * but should be uncommon.
     */
   def PerformLogout(): Unit = {
-    (inZone.Players.find(p => p.name == name), inZone.LivePlayers.find(p => p.Name == name)) match {
+    (inZone.Players.find(p => p.name == name), inZone.AllPlayers.find(p => p.Name == name)) match {
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
         //in case the player is holding the llu and disconnects
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DropSpecialItem())
