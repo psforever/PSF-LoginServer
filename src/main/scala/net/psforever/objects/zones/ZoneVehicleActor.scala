@@ -20,6 +20,8 @@ class ZoneVehicleActor(
                         vehicleList: mutable.ListBuffer[Vehicle],
                         turretToMount: mutable.HashMap[Int, Int]
                       ) extends Actor {
+  private val log = org.log4s.getLogger(s"${zone.id}-vehicles")
+
   private var temporaryInterference: Seq[(Vector3, PlanetSideEmpire.Value, VehicleDefinition)] = Seq()
 
   def receive: Receive = {
@@ -81,8 +83,10 @@ class ZoneVehicleActor(
 
     case Zone.Vehicle.CanNotDespawn(_, _, _) => ()
 
-    case Zone.Vehicle.CanNotDeploy(_, vehicle, _, _) => ()
+    case Zone.Vehicle.CanNotDeploy(_, vehicle, _, reason) => ()
       val pos = vehicle.Position
+      val driverMoniker = vehicle.Seats.headOption.flatMap(_._2.occupant).map(_.Name).getOrElse("Driver")
+      log.warn(s"$driverMoniker's ${vehicle.Definition.Name} can not deploy in ${zone.id} because $reason")
       temporaryInterference = temporaryInterference.filterNot(_._1 == pos)
 
     case ZoneVehicleActor.ClearInterference(pos) =>
