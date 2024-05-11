@@ -133,7 +133,9 @@ object ZoneVehicleActor {
     val vPosition = vehicle.Position
     val vFaction = vehicle.Faction
     val vDefinition = vehicle.Definition
-    (vDefinition.interference eq Interference.AllowAll) ||
+    if (vDefinition.interference eq Interference.AllowAll) {
+      false
+    } else {
       existingInterferences
         .collect { case (p, faction, d) if faction == vFaction => (p, d) }
         .exists { case (position, definition) =>
@@ -143,5 +145,6 @@ object ZoneVehicleActor {
             definition == vDefinition && distanceSq < interference.main * interference.main
           }
         }
+    }
   }
 }
