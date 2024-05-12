@@ -132,12 +132,12 @@ final case class TowerHackParticipation(building: Building) extends FacilityHack
           overwhelmingOddsBonus = 30L
         )
         //6. calculate overall command experience points
-        val finalCep: Long = math.ceil(
+        val finalCep: Long = 10L /*math.ceil(
           baseExperienceFromFacilityCapture *
             populationModifier *
             competitionMultiplier *
             Config.app.game.experience.cep.rate + competitionBonus
-        ).toLong
+        ).toLong*/
         //7. reward participants
         //Classically, only players in the SOI are rewarded
         //terminal hacker (always cep)
