@@ -77,18 +77,18 @@ object Deployable {
   }
 
   object Category {
-    def Of(item: DeployedItem.Value): DeployableCategory.Value = deployablesToCategories(item)
+    def Of(item: DeployedItem.Value): DeployableCategory = deployablesToCategories(item)
 
-    def Includes(category: DeployableCategory.Value): List[DeployedItem.Value] = {
+    def Includes(category: DeployableCategory): List[DeployedItem.Value] = {
       (for {
-        (ce: DeployedItem.Value, cat: DeployableCategory.Value) <- deployablesToCategories
+        (ce: DeployedItem.Value, cat: DeployableCategory) <- deployablesToCategories
         if cat == category
       } yield ce) toList
     }
 
-    def OfAll(): Map[DeployedItem.Value, DeployableCategory.Value] = deployablesToCategories
+    def OfAll(): Map[DeployedItem.Value, DeployableCategory] = deployablesToCategories
 
-    private val deployablesToCategories: Map[DeployedItem.Value, DeployableCategory.Value] = Map(
+    private val deployablesToCategories: Map[DeployedItem.Value, DeployableCategory] = Map(
       DeployedItem.boomer                      -> DeployableCategory.Boomers,
       DeployedItem.he_mine                     -> DeployableCategory.Mines,
       DeployedItem.jammer_mine                 -> DeployableCategory.Mines,

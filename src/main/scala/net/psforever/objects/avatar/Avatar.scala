@@ -115,6 +115,11 @@ case class MemberLists(
                         ignored: List[Ignored] = List[Ignored]()
                       )
 
+case class ModePermissions(
+                            canSpectate: Boolean = false,
+                            canGM: Boolean = false
+                          )
+
 case class Avatar(
     /** unique identifier corresponding to a database table row index */
     id: Int,
@@ -134,7 +139,8 @@ case class Avatar(
     loadouts: Loadouts = Loadouts(),
     cooldowns: Cooldowns = Cooldowns(),
     people: MemberLists = MemberLists(),
-    scorecard: ScoreCard = new ScoreCard()
+    scorecard: ScoreCard = new ScoreCard(),
+    permissions: ModePermissions = ModePermissions()
 ) {
   assert(bep >= 0)
   assert(cep >= 0)

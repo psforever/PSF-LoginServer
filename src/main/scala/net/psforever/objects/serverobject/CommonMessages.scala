@@ -12,6 +12,23 @@ object CommonMessages {
   final case class ClearHack()
 
   /**
+   * The message that progresses some form of user-driven activity with a certain eventual outcome
+   * and potential feedback per cycle.
+   * @param delta how much the progress value changes each tick, which will be treated as a percentage;
+   *              must be a positive value
+   * @param completionAction a finalizing action performed once the progress reaches 100(%)
+   * @param tickAction an action that is performed for each increase of progress
+   * @param tickTime how long between each `tickAction` (ms);
+   *                 defaults to 250 milliseconds
+   */
+  final case class ProgressEvent(
+                                  delta: Float,
+                                  completionAction: () => Unit,
+                                  tickAction: Float => Boolean,
+                                  tickTime: Long = 250L
+                                )
+
+  /**
     * The message that initializes a process -
     * some form of user-driven activity with a certain eventual outcome and potential feedback per cycle.
     * The feedback is usually only known to the individual attempting the process.

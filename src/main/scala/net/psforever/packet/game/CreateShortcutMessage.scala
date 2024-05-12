@@ -71,7 +71,7 @@ final case class CreateShortcutMessage(
 
 object Shortcut extends Marshallable[Shortcut] {
   /** Preset for the medkit quick-use option. */
-  final case class Medkit() extends Shortcut(code=0) {
+  case object Medkit extends Shortcut(code=0) {
     def tile = "medkit"
   }
 
@@ -98,14 +98,14 @@ object Shortcut extends Marshallable[Shortcut] {
   /**
    * Main transcoder for medkit shortcuts.
    */
-  val medkitCodec: Codec[Medkit] = (
+  val medkitCodec: Codec[Shortcut] = (
     ("tile" | PacketHelpers.encodedStringAligned(adjustment=5)) ::
       ("effect1" | PacketHelpers.encodedWideString) ::
       ("effect2" | PacketHelpers.encodedWideString)
-    ).xmap[Medkit](
-    _ => Medkit(),
+    ).xmap[Shortcut](
+    _ => Medkit,
     {
-      case Medkit() => "medkit" :: "" :: "" :: HNil
+      case Medkit => "medkit" :: "" :: "" :: HNil
     }
   )
 

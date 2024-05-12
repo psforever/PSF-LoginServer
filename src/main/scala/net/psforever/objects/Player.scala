@@ -19,7 +19,7 @@ import net.psforever.objects.vital.{HealFromEquipment, InGameActivity, RepairFro
 import net.psforever.objects.vital.damage.DamageProfile
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resolution.DamageResistanceModel
-import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorPopulation}
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.{InteractsWithZone, ZoneAware, Zoning}
 import net.psforever.types._
 
@@ -47,7 +47,7 @@ class Player(var avatar: Avatar)
     new WithGantry(avatar.name),
     new WithMovementTrigger()
   )))
-  interaction(new InteractWithMinesUnlessSpectating(obj = this, range = 10))
+  interaction(new InteractWithMines(range = 10))
   interaction(new InteractWithTurrets())
   interaction(new InteractWithRadiationClouds(range = 10f, Some(this)))
 
@@ -651,16 +651,5 @@ object Player {
   //noinspection ScalaUnusedSymbol
   def neverRestrict(player: Player, slot: Int): Boolean = {
     false
-  }
-}
-
-private class InteractWithMinesUnlessSpectating(
-                                                 private val obj: Player,
-                                                 override val range: Float
-                                               ) extends InteractWithMines(range) {
-  override def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit = {
-    if (!obj.spectator) {
-      super.interaction(sector, target)
-    }
   }
 }

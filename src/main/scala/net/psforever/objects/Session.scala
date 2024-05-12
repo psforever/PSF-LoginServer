@@ -15,3 +15,7 @@ case class Session(
     speed: Float = 1.0f,
     flying: Boolean = false
 )
+
+trait SessionSource {
+  def session: Session
+}

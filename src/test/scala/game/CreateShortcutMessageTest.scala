@@ -19,7 +19,7 @@ class CreateShortcutMessageTest extends Specification {
         player_guid mustEqual PlanetSideGUID(4210)
         slot mustEqual 1
         shortcut match {
-          case Some(Shortcut.Medkit()) => ok
+          case Some(Shortcut.Medkit) => ok
           case _ => ko
         }
       case _ =>
@@ -53,7 +53,7 @@ class CreateShortcutMessageTest extends Specification {
   }
 
   "encode (medkit)" in {
-    val msg = CreateShortcutMessage(PlanetSideGUID(4210), 1, Some(Shortcut.Medkit()))
+    val msg = CreateShortcutMessage(PlanetSideGUID(4210), 1, Some(Shortcut.Medkit))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual stringMedkit
@@ -90,8 +90,8 @@ class CreateShortcutMessageTest extends Specification {
     ImplantType.DarklightVision.shortcut.tile mustEqual "darklight_vision"
     ImplantType.Targeting.shortcut.code mustEqual 2
     ImplantType.Targeting.shortcut.tile mustEqual "targeting"
-    Shortcut.Medkit().code mustEqual 0
-    Shortcut.Medkit().tile mustEqual "medkit"
+    Shortcut.Medkit.code mustEqual 0
+    Shortcut.Medkit.tile mustEqual "medkit"
     ImplantType.MeleeBooster.shortcut.code mustEqual 2
     ImplantType.MeleeBooster.shortcut.tile mustEqual "melee_booster"
     ImplantType.PersonalShield.shortcut.code mustEqual 2

@@ -3,9 +3,11 @@ package net.psforever.objects.zones
 
 import akka.actor.Actor
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.definition.VehicleDefinition
+import net.psforever.objects.serverobject.deploy.{Deployment, Interference}
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.objects.{Default, Vehicle}
-import net.psforever.types.Vector3
+import net.psforever.types.{DriveState, PlanetSideEmpire, Vector3}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -13,27 +15,14 @@ import scala.collection.mutable
 /**
   * Synchronize management of the list of `Vehicles` maintained by some `Zone`.
   */
-//COMMENTS IMPORTED FROM FORMER VehicleContextActor:
- /*
-  * Provide a context for a `Vehicle` `Actor` - the `VehicleControl`.<br>
-  * <br>
-  * A vehicle can be passed between different zones and, therefore, does not belong to the zone.
-  * A vehicle cna be given to different players and can persist and change though players have gone.
-  * Therefore, also does not belong to `WorldSessionActor`.
-  * A vehicle must anchored to something that exists outside of the `InterstellarCluster` and its agents.<br>
-  * <br>
-  * The only purpose of this `Actor` is to allow vehicles to borrow a context for the purpose of `Actor` creation.
-  * It is also be allowed to be responsible for cleaning up that context.
-  * (In reality, it can be cleaned up anywhere a `PoisonPill` can be sent.)<br>
-  * <br>
-  * This `Actor` is intended to sit on top of the event system that handles broadcast messaging.
-  */
 class ZoneVehicleActor(
                         zone: Zone,
                         vehicleList: mutable.ListBuffer[Vehicle],
                         turretToMount: mutable.HashMap[Int, Int]
                       ) extends Actor {
-  //private[this] val log = org.log4s.getLogger
+  private val log = org.log4s.getLogger(s"${zone.id}-vehicles")
+
+  private var temporaryInterference: Seq[(Vector3, PlanetSideEmpire.Value, VehicleDefinition)] = Seq()
 
   def receive: Receive = {
     case Zone.Vehicle.Spawn(vehicle) =>
@@ -73,19 +62,62 @@ class ZoneVehicleActor(
           vehicle.ClearHistory()
           zone.actor ! ZoneActor.RemoveFromBlockMap(vehicle)
           sender() ! Zone.Vehicle.HasDespawned(zone, vehicle)
-        case None => ;
+        case None =>
           sender() ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")
       }
 
-    case Zone.Vehicle.HasDespawned(_, _) => ;
+    case Zone.Vehicle.TryDeploymentChange(vehicle, toDeployState)
+      if toDeployState == DriveState.Deploying &&
+        (ZoneVehicleActor.temporaryInterferenceTest(vehicle, temporaryInterference) || Interference.Test(zone, vehicle).nonEmpty) =>
+      sender() ! Zone.Vehicle.CanNotDeploy(zone, vehicle, toDeployState, "blocked by a nearby entity")
 
-    case Zone.Vehicle.CanNotDespawn(_, _, _) => ;
+    case Zone.Vehicle.TryDeploymentChange(vehicle, toDeployState)
+      if toDeployState == DriveState.Deploying =>
+      tryAddToInterferenceField(vehicle.Position, vehicle.Faction, vehicle.Definition)
+      vehicle.Actor.tell(Deployment.TryDeploymentChange(toDeployState), sender())
 
-    case _ => ;
+    case Zone.Vehicle.TryDeploymentChange(vehicle, toDeployState) =>
+      vehicle.Actor.tell(Deployment.TryDeploymentChange(toDeployState), sender())
+
+    case Zone.Vehicle.HasDespawned(_, _) => ()
+
+    case Zone.Vehicle.CanNotDespawn(_, _, _) => ()
+
+    case Zone.Vehicle.CanNotDeploy(_, vehicle, _, reason) => ()
+      val pos = vehicle.Position
+      val driverMoniker = vehicle.Seats.headOption.flatMap(_._2.occupant).map(_.Name).getOrElse("Driver")
+      log.warn(s"$driverMoniker's ${vehicle.Definition.Name} can not deploy in ${zone.id} because $reason")
+      temporaryInterference = temporaryInterference.filterNot(_._1 == pos)
+
+    case ZoneVehicleActor.ClearInterference(pos) =>
+      temporaryInterference = temporaryInterference.filterNot(_._1 == pos)
+
+    case _ => ()
+  }
+
+  private def tryAddToInterferenceField(
+                                         position: Vector3,
+                                         faction: PlanetSideEmpire.Value,
+                                         definition: VehicleDefinition
+                                       ): Boolean = {
+    import scala.concurrent.duration._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val causesInterference = definition.interference ne Interference.AllowAll
+    if (causesInterference) {
+      temporaryInterference = temporaryInterference :+ (position, faction, definition)
+      context.system.scheduler.scheduleOnce(
+        definition.DeployTime.milliseconds,
+        self,
+        ZoneVehicleActor.ClearInterference(position)
+      )
+    }
+    causesInterference
   }
 }
 
 object ZoneVehicleActor {
+  private case class ClearInterference(pos: Vector3)
+
   @tailrec final def recursiveFindVehicle(iter: Iterator[Vehicle], target: Vehicle, index: Int = 0): Option[Int] = {
     if (!iter.hasNext) {
       None
@@ -95,6 +127,28 @@ object ZoneVehicleActor {
       } else {
         recursiveFindVehicle(iter, target, index + 1)
       }
+    }
+  }
+
+  private def temporaryInterferenceTest(
+                                         vehicle: Vehicle,
+                                         existingInterferences: Seq[(Vector3, PlanetSideEmpire.Value, VehicleDefinition)]
+                                       ): Boolean = {
+    val vPosition = vehicle.Position
+    val vFaction = vehicle.Faction
+    val vDefinition = vehicle.Definition
+    if (vDefinition.interference eq Interference.AllowAll) {
+      false
+    } else {
+      existingInterferences
+        .collect { case (p, faction, d) if faction == vFaction => (p, d) }
+        .exists { case (position, definition) =>
+          val interference = definition.interference
+          (interference ne Interference.AllowAll) && {
+            lazy val distanceSq = Vector3.DistanceSquared(position, vPosition)
+            definition == vDefinition && distanceSq < interference.main * interference.main
+          }
+        }
     }
   }
 }
