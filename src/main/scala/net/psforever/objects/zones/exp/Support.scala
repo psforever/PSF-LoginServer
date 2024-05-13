@@ -242,7 +242,7 @@ object Support {
           individualThreatEstimates.filter(_._1 < 10)
         } else {
           individualThreatEstimates.filter(_._1 > 10)
-        }).maxBy(_._2)._1,
+        }).maxByOption(_._2).map(_._1).getOrElse(0),
         defaultValue
       )
     }
