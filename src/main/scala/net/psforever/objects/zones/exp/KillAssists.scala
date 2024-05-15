@@ -190,10 +190,12 @@ object KillAssists {
           val victimUnique = victim.unique
           val lastDeath = killer.progress.prior.flatMap(_.death)
           val sameLastKiller = lastDeath.map(_.assailant.map(_.unique)).flatMap(_.headOption).contains(victimUnique)
-          if (revenge.defaultExperience != 0 && sameLastKiller) {
-            revenge.defaultExperience
-          } else if (sameLastKiller) {
-            math.min(revenge.maxExperience, (lastDeath.map(_.experienceEarned.toFloat).getOrElse(0f) * revenge.rate).toLong)
+          if (sameLastKiller) {
+            if (revenge.defaultExperience != 0) {
+              revenge.defaultExperience
+            } else {
+              math.min(revenge.maxExperience, (lastDeath.map(_.experienceEarned.toFloat).getOrElse(0f) * revenge.rate).toLong)
+            }
           } else {
             0L
           }
