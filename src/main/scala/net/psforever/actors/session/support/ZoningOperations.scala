@@ -3048,12 +3048,12 @@ class ZoningOperations(
         //killed during spawn setup or possibly a relog into a corpse (by accident?)
         tplayer.Actor ! Player.Die()
       } else {
+        //properly logged in
         AvatarActor.savePlayerData(tplayer)
         sessionLogic.general.displayCharSavedMsgThenRenewTimer(
           Config.app.game.savedMsg.short.fixed,
           Config.app.game.savedMsg.short.variable
         )
-        //player
         val effortBy = nextSpawnPoint
           .collect { case sp: SpawnTube => (sp, continent.GUID(sp.Owner.GUID)) }
           .collect {
@@ -3078,6 +3078,7 @@ class ZoningOperations(
         }
       }
       upstreamMessageCount = 0
+      player.allowInteraction = true
       setAvatar = true
       if (
         !account.gm && /* gm's are excluded */

@@ -141,7 +141,7 @@ object PlayerSource {
       player.Jumping,
       ExoSuitDefinition.Select(exosuit, player.Faction),
       avatar.bep,
-      progress = tokenLife,
+      progress = avatar.scorecard.CurrentLife,
       UniquePlayer(player)
     )
   }
