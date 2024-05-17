@@ -3073,22 +3073,23 @@ class ZoningOperations(
             }
           })
         }
-        if (!setAvatar && tplayer.spectator) {
-          context.self ! SessionActor.SetMode(SpectatorMode) //should reload spectator status
+        setAvatar = true
+        player.allowInteraction = true
+        upstreamMessageCount = 0
+        if (tplayer.spectator) {
+          if (!setAvatar) {
+            context.self ! SessionActor.SetMode(SpectatorMode) //should reload spectator status
+          }
+        } else if (
+          !account.gm && /* gm's are excluded */
+            Config.app.game.promotion.active && /* play versus progress system must be active */
+            BattleRank.withExperience(tplayer.avatar.bep).value <= Config.app.game.promotion.broadcastBattleRank && /* must be below a certain battle rank */
+            tavatar.scorecard.Lives.isEmpty && /* first life after login */
+            tavatar.scorecard.CurrentLife.prior.isEmpty && /* no revives */
+            tplayer.History.size == 1 /* did nothing but come into existence */
+        ) {
+          ZoningOperations.reportProgressionSystem(context.self)
         }
-      }
-      upstreamMessageCount = 0
-      player.allowInteraction = true
-      setAvatar = true
-      if (
-        !account.gm && /* gm's are excluded */
-          Config.app.game.promotion.active && /* play versus progress system must be active */
-          BattleRank.withExperience(tplayer.avatar.bep).value <= Config.app.game.promotion.broadcastBattleRank && /* must be below a certain battle rank */
-          tavatar.scorecard.Lives.isEmpty && /* first life after login */
-          tavatar.scorecard.CurrentLife.prior.isEmpty && /* no revives */
-          tplayer.History.size == 1 /* did nothing but come into existence */
-      ) {
-        ZoningOperations.reportProgressionSystem(context.self)
       }
     }
 
