@@ -3076,8 +3076,10 @@ class ZoningOperations(
         setAvatar = true
         player.allowInteraction = true
         upstreamMessageCount = 0
-        if (!setAvatar && tplayer.spectator) {
-          context.self ! SessionActor.SetMode(SpectatorMode) //should reload spectator status
+        if (tplayer.spectator) {
+          if (!setAvatar) {
+            context.self ! SessionActor.SetMode(SpectatorMode) //should reload spectator status
+          }
         } else if (
           !account.gm && /* gm's are excluded */
             Config.app.game.promotion.active && /* play versus progress system must be active */
