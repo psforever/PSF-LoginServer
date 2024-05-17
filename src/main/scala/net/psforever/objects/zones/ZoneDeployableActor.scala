@@ -5,6 +5,7 @@ import akka.actor.Actor
 import net.psforever.objects.Player
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.ce.Deployable
+import net.psforever.objects.serverobject.deploy.Interference
 import net.psforever.objects.sourcing.ObjectSource
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.vital.SpawningActivity
@@ -28,7 +29,7 @@ class ZoneDeployableActor(
 
   def receive: Receive = {
     case Zone.Deployable.Build(obj) =>
-      if (DeployableBuild(obj, deployableList)) {
+      if (DeployableBuild(zone, obj, deployableList)) {
         obj.Zone = zone
         obj match {
           case mounting: MountedWeapons =>
@@ -40,11 +41,10 @@ class ZoneDeployableActor(
               .foreach { guid =>
                 turretToMount.put(guid, dguid)
               }
-          case _ => ;
+          case _ => ()
         }
         obj.Definition.Initialize(obj, context)
-        zone.actor ! ZoneActor.AddToBlockMap(obj, obj.Position)
-        //obj.History(EntitySpawn(SourceEntry(obj), obj.Zone))
+        obj.LogActivity(SpawningActivity(ObjectSource(obj), zone.Number, None))
         obj.Actor ! Zone.Deployable.Setup()
       } else {
         log.warn(s"failed to build a ${obj.Definition.Name}")
@@ -52,7 +52,7 @@ class ZoneDeployableActor(
       }
 
     case Zone.Deployable.BuildByOwner(obj, owner, tool) =>
-      if (DeployableBuild(obj, deployableList)) {
+      if (DeployableBuild(zone, obj, deployableList)) {
         obj.Zone = zone
         obj match {
           case mounting: MountedWeapons =>
@@ -64,10 +64,9 @@ class ZoneDeployableActor(
               .foreach { guid =>
                 turretToMount.put(guid, dguid)
               }
-          case _ => ;
+          case _ => ()
         }
         obj.Definition.Initialize(obj, context)
-        zone.actor ! ZoneActor.AddToBlockMap(obj, obj.Position)
         obj.LogActivity(SpawningActivity(ObjectSource(obj), zone.Number, None))
         owner.Actor ! Player.BuildDeployable(obj, tool)
       } else {
@@ -76,50 +75,54 @@ class ZoneDeployableActor(
       }
 
     case Zone.Deployable.Dismiss(obj) =>
-      if (DeployableDismiss(obj, deployableList)) {
+      if (DeployableDismiss(zone, obj, deployableList)) {
         obj match {
           case _: MountedWeapons =>
             val dguid = obj.GUID.guid
             turretToMount.filterInPlace { case (_, guid) => guid != dguid }
-          case _ => ;
+          case _ => ()
         }
         obj.Actor ! Zone.Deployable.IsDismissed(obj)
         obj.Definition.Uninitialize(obj, context)
         obj.ClearHistory()
-        zone.actor ! ZoneActor.RemoveFromBlockMap(obj)
       }
 
-    case Zone.Deployable.IsBuilt(_) => ;
+    case Zone.Deployable.IsBuilt(_) => ()
 
-    case Zone.Deployable.IsDismissed(_) => ;
+    case Zone.Deployable.IsDismissed(_) => ()
 
-    case _ => ;
+    case _ => ()
   }
 }
 
 object ZoneDeployableActor {
   def DeployableBuild(
-      obj: Deployable,
-      deployableList: ListBuffer[Deployable]
-  ): Boolean = {
-    deployableList.find(d => d == obj) match {
-      case Some(_) =>
-        false
-      case None =>
+                       zone: Zone,
+                       obj: Deployable,
+                       deployableList: ListBuffer[Deployable]
+                     ): Boolean = {
+    val position = obj.Position
+    deployableList.find(_ eq obj) match {
+      case None if Interference.Test(zone, obj).isEmpty =>
         deployableList += obj
+        zone.actor ! ZoneActor.AddToBlockMap(obj, position)
         true
+      case _ =>
+        false
     }
   }
 
   def DeployableDismiss(
-      obj: Deployable,
-      deployableList: ListBuffer[Deployable]
-  ): Boolean = {
+                         zone: Zone,
+                         obj: Deployable,
+                         deployableList: ListBuffer[Deployable]
+                       ): Boolean = {
     recursiveFindDeployable(deployableList.iterator, obj) match {
       case None =>
         false
       case Some(index) =>
         deployableList.remove(index)
+        zone.actor ! ZoneActor.RemoveFromBlockMap(obj)
         true
     }
   }

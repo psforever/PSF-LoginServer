@@ -5,6 +5,7 @@ import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.converter.{ObjectCreateConverter, PacketConverter}
 import net.psforever.objects.geometry.GeometryForm
 import net.psforever.objects.geometry.d3.VolumetricGeometry
+import net.psforever.objects.serverobject.deploy.{Interference, InterferenceRange}
 import net.psforever.types.OxygenState
 
 /**
@@ -120,6 +121,11 @@ abstract class ObjectDefinition(private val objectId: Int)
     * and it does not factor in the afterburner.
     */
   var maxForwardSpeed: Float = 0f
+
+  /**
+   * na
+   */
+  var interference: InterferenceRange = Interference.AllowAll
 
   def ObjectId: Int = objectId
 }

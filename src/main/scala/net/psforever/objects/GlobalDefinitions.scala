@@ -27,6 +27,7 @@ import net.psforever.objects.vital._
 import net.psforever.types.{ExoSuitType, ImplantType, PlanetSideEmpire, Vector3}
 import net.psforever.types._
 import net.psforever.objects.serverobject.llu.{CaptureFlagDefinition, CaptureFlagSocketDefinition}
+import net.psforever.objects.serverobject.zipline.GenericTeleportationDefinition
 
 import scala.annotation.switch
 
@@ -1277,6 +1278,10 @@ object GlobalDefinitions {
 
   val targeting_laser_dispenser = new OrderTerminalDefinition(851)
 
+  val stationaryteleportpad = new GenericTeleportationDefinition(836)
+
+  val zipline = new GenericTeleportationDefinition(1047)
+
   /*
   Buildings
    */
@@ -1294,29 +1299,28 @@ object GlobalDefinitions {
 
   val vanu_core =  new BuildingDefinition(932)
 
-  //the following group borrows the object id from entity mainbase1
-  val ground_bldg_a =  new BuildingDefinition(474)
-  val ground_bldg_b =  new BuildingDefinition(474)
-  val ground_bldg_c =  new BuildingDefinition(474)
-  val ground_bldg_d =  new BuildingDefinition(474)
-  val ground_bldg_e =  new BuildingDefinition(474)
-  val ground_bldg_f =  new BuildingDefinition(474)
-  val ground_bldg_g =  new BuildingDefinition(474)
-  val ground_bldg_h =  new BuildingDefinition(474)
-  val ground_bldg_i =  new BuildingDefinition(474)
-  val ground_bldg_j =  new BuildingDefinition(474)
-  val ground_bldg_z =  new BuildingDefinition(474)
-  val ceiling_bldg_a =  new BuildingDefinition(474)
-  val ceiling_bldg_b =  new BuildingDefinition(474)
-  val ceiling_bldg_c =  new BuildingDefinition(474)
-  val ceiling_bldg_d =  new BuildingDefinition(474)
-  val ceiling_bldg_e =  new BuildingDefinition(474)
-  val ceiling_bldg_f =  new BuildingDefinition(474)
-  val ceiling_bldg_g =  new BuildingDefinition(474)
-  val ceiling_bldg_h =  new BuildingDefinition(474)
-  val ceiling_bldg_i =  new BuildingDefinition(474)
-  val ceiling_bldg_j =  new BuildingDefinition(474)
-  val ceiling_bldg_z =  new BuildingDefinition(474)
+  val ground_bldg_a =  new BuildingDefinition(373)
+  val ground_bldg_b =  new BuildingDefinition(374)
+  val ground_bldg_c =  new BuildingDefinition(375)
+  val ground_bldg_d =  new BuildingDefinition(376)
+  val ground_bldg_e =  new BuildingDefinition(377)
+  val ground_bldg_f =  new BuildingDefinition(378)
+  val ground_bldg_g =  new BuildingDefinition(379)
+  val ground_bldg_h =  new BuildingDefinition(380)
+  val ground_bldg_i =  new BuildingDefinition(381)
+  val ground_bldg_j =  new BuildingDefinition(382)
+  val ground_bldg_z =  new BuildingDefinition(383)
+  val ceiling_bldg_a =  new BuildingDefinition(159)
+  val ceiling_bldg_b =  new BuildingDefinition(160)
+  val ceiling_bldg_c =  new BuildingDefinition(161)
+  val ceiling_bldg_d =  new BuildingDefinition(162)
+  val ceiling_bldg_e =  new BuildingDefinition(163)
+  val ceiling_bldg_f =  new BuildingDefinition(164)
+  val ceiling_bldg_g =  new BuildingDefinition(165)
+  val ceiling_bldg_h =  new BuildingDefinition(166)
+  val ceiling_bldg_i =  new BuildingDefinition(167)
+  val ceiling_bldg_j =  new BuildingDefinition(168)
+  val ceiling_bldg_z =  new BuildingDefinition(169)
 
   val mainbase1            =  new BuildingDefinition(474)
 

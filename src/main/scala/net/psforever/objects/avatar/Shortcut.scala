@@ -30,7 +30,7 @@ object Shortcut {
    */
   def convert(shortcut: Shortcut): GameShortcut = {
     shortcut.tile match {
-      case "medkit"         => GameShortcut.Medkit()
+      case "medkit"         => GameShortcut.Medkit
       case "shortcut_macro" => GameShortcut.Macro(shortcut.effect1, shortcut.effect2)
       case _                => GameShortcut.Implant(shortcut.tile)
     }
@@ -67,7 +67,7 @@ object Shortcut {
    */
   private def typeEquals(a: Shortcut, b: GameShortcut): Boolean = {
     b match {
-      case GameShortcut.Medkit()      => true
+      case GameShortcut.Medkit        => true
       case GameShortcut.Macro(x, y)   => x.equals(a.effect1) && y.equals(a.effect2)
       case GameShortcut.Implant(tile) => tile.equals(a.tile)
       case _                          => true

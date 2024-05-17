@@ -6,6 +6,7 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.objects.equipment.EffectTarget
 import net.psforever.objects.geometry.GeometryForm
 import net.psforever.objects.geometry.d3.VolumetricGeometry
+import net.psforever.objects.serverobject.deploy.InterferenceRange
 import net.psforever.objects.serverobject.doors.InteriorDoorField
 import net.psforever.objects.serverobject.mount.{MountInfo, SeatDefinition}
 import net.psforever.objects.serverobject.pad.VehicleSpawnPadDefinition
@@ -934,5 +935,11 @@ object GlobalDefinitionsMiscellaneous {
     obbasemesh.Descriptor = "orbital_shuttle_pad"
     obbasemesh.Damageable = false
     obbasemesh.Repairable = false
+
+    stationaryteleportpad.Name = "stationaryteleportpad"
+    stationaryteleportpad.interference = InterferenceRange(deployables = 5.5f)
+
+    zipline.Name = "zipline"
+    zipline.interference = InterferenceRange(deployables = 5.5f)
   }
 }

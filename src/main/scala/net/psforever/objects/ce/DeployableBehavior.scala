@@ -69,7 +69,7 @@ trait DeployableBehavior {
       if DeployableObject.OwnerGuid.nonEmpty =>
       val obj = DeployableObject
       if (constructed.contains(true)) {
-        loseOwnership(obj.Faction)
+        loseOwnership(obj, obj.Faction)
       } else {
         obj.OwnerGuid = None
       }
@@ -98,35 +98,16 @@ trait DeployableBehavior {
     * Losing ownership involves updating map screen UI, to remove management rights from the now-previous owner,
     * and may involve concealing the deployable from the map screen for the entirety of the previous owner's faction.
     * Displaying the deployable on the map screen of another faction may be required.
+    * @param obj na
     * @param toFaction the faction to which to set the deployable to be visualized on the map and in the game world;
     *                  may also affect deployable operation
     */
-  def loseOwnership(toFaction: PlanetSideEmpire.Value): Unit = {
-    val obj = DeployableObject
-    val guid = obj.GUID
-    val zone = obj.Zone
-    val localEvents = zone.LocalEvents
-    val originalFaction = obj.Faction
-    val changeFaction = originalFaction != toFaction
-    val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, Service.defaultPlayerGUID)
-    if (changeFaction) {
-      obj.Faction = toFaction
-      //visual tells in regards to ownership by faction
-      zone.AvatarEvents ! AvatarServiceMessage(
-        zone.id,
-        AvatarAction.SetEmpire(Service.defaultPlayerGUID, guid, toFaction)
-      )
-      //remove knowledge by the previous owner's faction
-      localEvents ! LocalServiceMessage(
-        originalFaction.toString,
-        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Dismiss, info)
-      )
-      //display to the given faction
-      localEvents ! LocalServiceMessage(
-        toFaction.toString,
-        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
-      )
-    }
+  def loseOwnership(obj: Deployable, toFaction: PlanetSideEmpire.Value): Unit = {
+    DeployableBehavior.changeOwership(
+      obj,
+      obj.Faction,
+      DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Service.defaultPlayerGUID)
+    )
     startOwnerlessDecay()
   }
 
@@ -159,27 +140,11 @@ trait DeployableBehavior {
     val obj = DeployableObject
     obj.AssignOwnership(player)
     decay.cancel()
-
-    val guid = obj.GUID
-    val zone = obj.Zone
-    val originalFaction = obj.Faction
-    val info = DeployableInfo(guid, DeployableIcon.Boomer, obj.Position, obj.OwnerGuid.get)
-    if (originalFaction != toFaction) {
-      obj.Faction = toFaction
-      val localEvents = zone.LocalEvents
-      zone.AvatarEvents ! AvatarServiceMessage(
-        zone.id,
-        AvatarAction.SetEmpire(Service.defaultPlayerGUID, guid, toFaction)
-      )
-      localEvents ! LocalServiceMessage(
-        originalFaction.toString,
-        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Dismiss, info)
-      )
-      localEvents ! LocalServiceMessage(
-        toFaction.toString,
-        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
-      )
-    }
+    DeployableBehavior.changeOwership(
+      obj,
+      toFaction,
+      DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, obj.OwnerGuid.get)
+    )
   }
 
   /**
@@ -318,4 +283,35 @@ object DeployableBehavior {
 
   /** internal message for progresisng the deconstruction process */
   private case class FinalizeElimination()
+
+  /**
+   * na
+   * @param obj na
+   * @param toFaction na
+   * @param info na
+   */
+  def changeOwership(obj: Deployable, toFaction: PlanetSideEmpire.Value, info: DeployableInfo): Unit = {
+    val guid = obj.GUID
+    val zone = obj.Zone
+    val localEvents = zone.LocalEvents
+    val originalFaction = obj.Faction
+    if (originalFaction != toFaction) {
+      obj.Faction = toFaction
+      //visual tells in regards to ownership by faction
+      zone.AvatarEvents ! AvatarServiceMessage(
+        zone.id,
+        AvatarAction.SetEmpire(Service.defaultPlayerGUID, guid, toFaction)
+      )
+      //remove knowledge by the previous owner's faction
+      localEvents ! LocalServiceMessage(
+        originalFaction.toString,
+        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Dismiss, info)
+      )
+      //display to the given faction
+      localEvents ! LocalServiceMessage(
+        toFaction.toString,
+        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
+      )
+    }
+  }
 }

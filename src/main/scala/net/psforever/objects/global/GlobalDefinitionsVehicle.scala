@@ -6,6 +6,7 @@ import net.psforever.objects.definition.converter._
 import net.psforever.objects.geometry.GeometryForm
 import net.psforever.objects.inventory.InventoryTile
 import net.psforever.objects.GlobalDefinitions
+import net.psforever.objects.serverobject.deploy.InterferenceRange
 import net.psforever.objects.serverobject.mount._
 import net.psforever.objects.vehicles.{DestroyedVehicle, UtilityType, VehicleSubsystemEntry}
 import net.psforever.objects.vital.base.DamageType
@@ -969,6 +970,7 @@ object GlobalDefinitionsVehicle {
     ams.Deployment = true
     ams.DeployTime = 2000
     ams.UndeployTime = 2000
+    ams.interference = InterferenceRange(main = 125f, sharedGroupId = 3, shared = 30f)
     ams.DeconstructionTime = Some(20 minutes)
     ams.AutoPilotSpeeds = (18, 6)
     ams.Packet = utilityConverter
