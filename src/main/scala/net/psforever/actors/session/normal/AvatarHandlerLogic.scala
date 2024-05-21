@@ -395,7 +395,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           avatarActor ! AvatarActor.AwardBep(bep, expType)
         }
 
-      case AvatarResponse.AwardCep(charId, cep)  =>
+      case AvatarResponse.AwardCep(charId, cep) =>
         //if the target player, always award (some) CEP
         if (charId == player.CharId) {
           avatarActor ! AvatarActor.AwardCep(cep)
@@ -469,7 +469,8 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarResponse.Release(tplayer) if isNotSameTarget =>
         sessionLogic.zoning.spawn.DepictPlayerAsCorpse(tplayer)
 
-      case AvatarResponse.Revive(revivalTargetGuid) if resolvedPlayerGuid == revivalTargetGuid =>
+      case AvatarResponse.Revive(revivalTargetGuid)
+        if resolvedPlayerGuid == revivalTargetGuid =>
         log.info(s"No time for rest, ${player.Name}.  Back on your feet!")
         sessionLogic.zoning.spawn.reviveTimer.cancel()
         sessionLogic.zoning.spawn.deadState = DeadState.Alive

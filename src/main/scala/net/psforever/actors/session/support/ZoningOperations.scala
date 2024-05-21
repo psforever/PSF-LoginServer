@@ -288,7 +288,7 @@ class ZoningOperations(
         obj.Definition.DeployCategory == DeployableCategory.Sensors &&
           !obj.Destroyed &&
           (obj match {
-            case jObj: JammableUnit => !jObj.Jammed;
+            case jObj: JammableUnit => !jObj.Jammed
             case _                  => true
           })
       )
@@ -449,7 +449,7 @@ class ZoningOperations(
         if (vehicle.Shields > 0) {
           sendResponse(PlanetsideAttributeMessage(vguid, vehicle.Definition.shieldUiAttribute, vehicle.Shields))
         }
-      case _ => ; //no vehicle
+      case _ => () //no vehicle
     }
     //vehicle wreckages
     wreckages.foreach(vehicle => {
@@ -487,7 +487,7 @@ class ZoningOperations(
           sendResponse(PlanetsideAttributeMessage(silo.GUID, 49, 1)) // silo orb particle effect
         case Some(_: WarpGate) =>
           sendResponse(PlanetsideAttributeMessage(obj.GUID, 49, 1)) // ant orb particle effect
-        case _ => ;
+        case _ => ()
       }
     }
     deployedVehicles.filter(_.Definition == GlobalDefinitions.router).foreach { obj =>
@@ -518,7 +518,7 @@ class ZoningOperations(
                 objDef.Packet.ConstructorData(obj).get
               )
             )
-          case _ => ;
+          case _ => ()
         }
         //mount terminal occupants
         continent.GUID(terminal_guid) match {
@@ -534,9 +534,9 @@ class ZoningOperations(
                     targetDefinition.Packet.ConstructorData(targetPlayer).get
                   )
                 )
-              case _ => ;
+              case _ => ()
             }
-          case _ => ;
+          case _ => ()
         }
     })
     //facility turrets
@@ -558,7 +558,7 @@ class ZoningOperations(
                     objDef.Packet.ConstructorData(obj).get
                   )
                 )
-              case _ => ;
+              case _ => ()
             }
           }
           //reserved ammunition?
@@ -575,7 +575,7 @@ class ZoningOperations(
                   targetDefinition.Packet.ConstructorData(targetPlayer).get
                 )
               )
-            case _ => ;
+            case _ => ()
           }
           turret.Target.collect {
             target =>
@@ -1071,7 +1071,7 @@ class ZoningOperations(
             )
           )
         }
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -1092,7 +1092,7 @@ class ZoningOperations(
         case Some(obj) if obj.Condition == PlanetSideGeneratorState.Destroyed || building.NtuLevel == 0 =>
           sendResponse(PlanetsideAttributeMessage(guid, 48, 1)) //amenities disabled; red warning lights
           sendResponse(PlanetsideAttributeMessage(guid, 38, 0)) //disable spawn target on deployment map
-        case _ => ;
+        case _ => ()
       }
       // capitol force dome state
       if (building.IsCapitol && building.ForceDomeActive) {
@@ -1177,7 +1177,7 @@ class ZoningOperations(
             LocalAction.SendPacket(ObjectAttachMessage(llu.Carrier.get.GUID, llu.GUID, 252))
           )
         }
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -1495,7 +1495,7 @@ class ZoningOperations(
           // remove owner
           vehicle.Actor ! Vehicle.Ownership(None)
 
-        case _ => ;
+        case _ => ()
       }
       avatarActor ! AvatarActor.SetVehicle(None)
     }
@@ -1736,7 +1736,7 @@ class ZoningOperations(
       case Success(overrides: List[Any]) =>
         //safe to cast like this
         sendResponse(PropertyOverrideMessage(overrides.map { _.asInstanceOf[PropertyOverrideMessage.GamePropertyScope] }))
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -2119,6 +2119,40 @@ class ZoningOperations(
       }
     }
 
+    def handlePlayerHasLeft(zone: Zone, playerOpt: Option[Player]): Unit = {
+      playerOpt match {
+        case None =>
+          log.debug(s"PlayerHasLeft: ${player.Name} does not have a body on ${zone.id}")
+        case Some(tplayer) if tplayer.isAlive =>
+          log.info(s"${tplayer.Name} has left zone ${zone.id}")
+        case _ => ()
+      }
+    }
+
+    def handlePlayerCanNotSpawn(zone: Zone, tplayer: Player): Unit = {
+      log.warn(s"${tplayer.Name} can not spawn in zone ${zone.id}; why?")
+    }
+
+    def handlePlayerAlreadySpawned(zone: Zone, tplayer: Player): Unit = {
+      log.warn(s"${tplayer.Name} is already spawned on zone ${zone.id}; is this a clerical error?")
+    }
+
+    def handleCanNotSpawn(zone: Zone, vehicle: Vehicle, reason: String): Unit = {
+      log.warn(
+        s"${player.Name}'s ${vehicle.Definition.Name} can not spawn in ${zone.id} because $reason"
+      )
+    }
+
+    def handleCanNotDespawn(zone: Zone, vehicle: Vehicle, reason: String): Unit = {
+      log.warn(
+        s"${player.Name}'s ${vehicle.Definition.Name} can not deconstruct in ${zone.id} because $reason"
+      )
+    }
+
+    def handlePlayerFailedToLoad(tplayer: Player): Unit = {
+      sessionLogic.failWithError(s"${tplayer.Name} failed to load anywhere")
+    }
+
     /* support functions */
 
     private def dropMedicalApplicators(p: Player): Unit = {
@@ -2289,7 +2323,7 @@ class ZoningOperations(
             carrierInfo match {
               case (Some(carrier), Some((index, _))) =>
                 CargoMountBehaviorForUs(carrier, vehicle, index)
-              case _ => ;
+              case _ => ()
             }
             data
           }
@@ -2476,7 +2510,7 @@ class ZoningOperations(
     def FriskDeadBody(obj: Player): Unit = {
       if (!obj.isAlive) {
         obj.Slot(4).Equipment match {
-          case None => ;
+          case None => ()
           case Some(knife) =>
             RemoveOldEquipmentFromInventory(obj)(knife)
         }
@@ -2485,7 +2519,7 @@ class ZoningOperations(
             if (GlobalDefinitions.isMaxArms(arms.Definition)) {
               RemoveOldEquipmentFromInventory(obj)(arms)
             }
-          case _ => ;
+          case _ => ()
         }
         //disown boomers and drop triggers
         val boomers = avatar.deployables.ClearDeployable(DeployedItem.boomer)
@@ -2493,7 +2527,7 @@ class ZoningOperations(
           continent.GUID(boomer) match {
             case Some(obj: BoomerDeployable) =>
               obj.Actor ! Deployable.Ownership(None)
-            case Some(_) | None => ;
+            case Some(_) | None => ()
           }
         })
         removeBoomerTriggersFromInventory().foreach(trigger => { sessionLogic.general.normalItemDrop(obj, continent)(trigger) })
@@ -3035,7 +3069,7 @@ class ZoningOperations(
         case (Some(vehicle), _) =>
           //passenger
           vehicle.Actor ! Vehicle.UpdateZoneInteractionProgressUI(tplayer)
-        case _ => ;
+        case _ => ()
       }
       interstellarFerryTopLevelGUID = None
       if (loadConfZone && sessionLogic.connectionState == 100) {
@@ -3329,7 +3363,7 @@ class ZoningOperations(
             sendResponse(ObjectAttachMessage(vguid, pguid, seat))
             sessionLogic.general.accessContainer(vehicle)
             sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
-          case _ => ;
+          case _ => ()
             //we can't find a vehicle? and we're still here? that's bad
             player.VehicleSeated = None
         }
@@ -3517,7 +3551,7 @@ class ZoningOperations(
                                            delay: Long
                                          ): Unit = {
       messageBundles match {
-        case Nil => ;
+        case Nil => ()
         case x :: Nil =>
           x.foreach {
             sendResponse
@@ -3581,10 +3615,11 @@ class ZoningOperations(
     }
 
     def randomRespawn(time: FiniteDuration = 300.seconds): Unit = {
+      val faction = player.Faction
       reviveTimer = context.system.scheduler.scheduleOnce(time) {
         cluster ! ICS.GetRandomSpawnPoint(
-          Zones.sanctuaryZoneNumber(player.Faction),
-          player.Faction,
+          Zones.sanctuaryZoneNumber(faction),
+          faction,
           Seq(SpawnGroup.Sanctuary),
           context.self
         )

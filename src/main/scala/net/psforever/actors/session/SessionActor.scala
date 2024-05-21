@@ -1,8 +1,29 @@
 // Copyright (c) 2016, 2020, 2024 PSForever
 package net.psforever.actors.session
 
-import akka.actor.{Actor, Cancellable, MDCContextAware, typed}
+import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
 import net.psforever.actors.session.normal.NormalMode
+import net.psforever.actors.session.support.ZoningOperations
+import net.psforever.objects.TurretDeployable
+import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.containable.Containable
+import net.psforever.objects.serverobject.deploy.Deployment
+import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
+import net.psforever.objects.zones.Zone
+import net.psforever.packet.PlanetSideGamePacket
+import net.psforever.packet.game.{AIDamage, ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarGrenadeStateMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BeginZoningMessage, BindPlayerMessage, BugReportMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, ChildObjectStateMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DeployRequestMessage, DismountVehicleCargoMsg, DismountVehicleMsg, DisplayedAwardMessage, DropItemMessage, DroppodLaunchRequestMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FavoritesRequest, FrameVehicleStateMessage, FriendsRequest, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, HitMessage, InvalidTerrainMessage, ItemTransactionMessage, LashMessage, LongRangeProjectileInfoMessage, LootItemMessage, MountVehicleCargoMsg, MountVehicleMsg, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitRequest, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, ProjectileStateMessage, ProximityTerminalUseMessage, ReleaseAvatarRequestMessage, ReloadMessage, RequestDestroyMessage, SetChatFilterMessage, SpawnRequestMessage, SplashHitMessage, SquadDefinitionActionMessage, SquadMembershipRequest, SquadWaypointRequest, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UplinkRequest, UseItemMessage, VehicleStateMessage, VehicleSubStateMessage, VoiceHostInfo, VoiceHostRequest, WarpgateRequest, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage, ZipLineMessage}
+import net.psforever.services.{InterstellarClusterService => ICS}
+import net.psforever.services.CavernRotationService
+import net.psforever.services.CavernRotationService.SendCavernRotationUpdates
+import net.psforever.services.ServiceManager.LookupResult
+import net.psforever.services.account.{PlayerToken, ReceiveAccountData}
+import net.psforever.services.avatar.AvatarServiceResponse
+import net.psforever.services.chat.ChatService
+import net.psforever.services.galaxy.GalaxyServiceResponse
+import net.psforever.services.local.LocalServiceResponse
+import net.psforever.services.teamwork.SquadServiceResponse
+import net.psforever.services.vehicle.VehicleServiceResponse
 import org.joda.time.LocalDateTime
 import org.log4s.MDC
 
@@ -105,8 +126,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   private def inTheGame: Receive = {
-    /* used for the game's heartbeat */
     case SessionActor.StartHeartbeat =>
+      //used for the game's heartbeat
       startHeartbeat()
 
     case SessionActor.PokeClient =>
@@ -115,13 +136,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case SessionActor.SetMode(newMode) =>
       if (mode != newMode) {
         logic.switchFrom(data.session)
+        mode = newMode
+        logic = mode.setup(data)
       }
-      mode = newMode
-      logic = mode.setup(data)
       logic.switchTo(data.session)
 
     case packet =>
-      logic.parse(sender())(packet)
+      parse(sender())(packet)
   }
 
   private def startHeartbeat(): Unit = {
@@ -134,5 +155,455 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       context.self,
       SessionActor.PokeClient
     )
+  }
+
+  private def parse(sender: ActorRef): Receive = {
+    /* really common messages (very frequently, every life) */
+    case packet: PlanetSideGamePacket =>
+      handleGamePkt(packet)
+
+    case AvatarServiceResponse(toChannel, guid, reply) =>
+      logic.avatarResponse.handle(toChannel, guid, reply)
+
+    case GalaxyServiceResponse(_, reply) =>
+      logic.galaxy.handle(reply)
+
+    case LocalServiceResponse(toChannel, guid, reply) =>
+      logic.local.handle(toChannel, guid, reply)
+
+    case Mountable.MountMessages(tplayer, reply) =>
+      logic.mountResponse.handle(tplayer, reply)
+
+    case SquadServiceResponse(_, excluded, response) =>
+      logic.squad.handle(response, excluded)
+
+    case Terminal.TerminalMessage(tplayer, msg, order) =>
+      logic.terminals.handle(tplayer, msg, order)
+
+    case VehicleServiceResponse(toChannel, guid, reply) =>
+      logic.vehicleResponse.handle(toChannel, guid, reply)
+
+    case ChatService.MessageResponse(fromSession, message, _) =>
+      logic.chat.handleIncomingMessage(message, fromSession)
+
+    case SessionActor.SendResponse(packet) =>
+      data.sendResponse(packet)
+
+    case SessionActor.CharSaved =>
+      logic.general.handleRenewCharSavedTimer()
+
+    case SessionActor.CharSavedMsg =>
+      logic.general.handleRenewCharSavedTimerMsg()
+
+    /* common messages (maybe once every respawn) */
+    case ICS.SpawnPointResponse(response) =>
+      data.zoning.handleSpawnPointResponse(response)
+
+    case SessionActor.NewPlayerLoaded(tplayer) =>
+      data.zoning.spawn.handleNewPlayerLoaded(tplayer)
+
+    case SessionActor.PlayerLoaded(tplayer) =>
+      data.zoning.spawn.handlePlayerLoaded(tplayer)
+
+    case Zone.Population.PlayerHasLeft(zone, playerOpt) =>
+      data.zoning.spawn.handlePlayerHasLeft(zone, playerOpt)
+
+    case Zone.Population.PlayerCanNotSpawn(zone, tplayer) =>
+      data.zoning.spawn.handlePlayerCanNotSpawn(zone, tplayer)
+
+    case Zone.Population.PlayerAlreadySpawned(zone, tplayer) =>
+      data.zoning.spawn.handlePlayerAlreadySpawned(zone, tplayer)
+
+    case Zone.Vehicle.CanNotSpawn(zone, vehicle, reason) =>
+      data.zoning.spawn.handleCanNotSpawn(zone, vehicle, reason)
+
+    case Zone.Vehicle.CanNotDespawn(zone, vehicle, reason) =>
+      data.zoning.spawn.handleCanNotDespawn(zone, vehicle, reason)
+
+    case ICS.ZoneResponse(Some(zone)) =>
+      data.zoning.handleZoneResponse(zone)
+
+    /* uncommon messages (once a session) */
+    case ICS.ZonesResponse(zones) =>
+      data.zoning.handleZonesResponse(zones)
+
+    case SessionActor.SetAvatar(avatar) =>
+      logic.general.handleSetAvatar(avatar)
+
+    case PlayerToken.LoginInfo(name, Zone.Nowhere, _) =>
+      data.zoning.spawn.handleLoginInfoNowhere(name, sender)
+
+    case PlayerToken.LoginInfo(name, inZone, optionalSavedData) =>
+      data.zoning.spawn.handleLoginInfoSomewhere(name, inZone, optionalSavedData, sender)
+
+    case PlayerToken.RestoreInfo(playerName, inZone, pos) =>
+      data.zoning.spawn.handleLoginInfoRestore(playerName, inZone, pos, sender)
+
+    case PlayerToken.CanNotLogin(playerName, reason) =>
+      data.zoning.spawn.handleLoginCanNot(playerName, reason)
+
+    case ReceiveAccountData(account) =>
+      logic.general.handleReceiveAccountData(account)
+
+    case AvatarActor.AvatarResponse(avatar) =>
+      logic.general.handleAvatarResponse(avatar)
+
+    case AvatarActor.AvatarLoginResponse(avatar) =>
+      data.zoning.spawn.avatarLoginResponse(avatar)
+
+    case SessionActor.SetCurrentAvatar(tplayer, max_attempts, attempt) =>
+      data.zoning.spawn.ReadyToSetCurrentAvatar(tplayer, max_attempts, attempt)
+
+    case SessionActor.SetConnectionState(state) =>
+      data.connectionState = state
+
+    case SessionActor.AvatarLoadingSync(state) =>
+      data.zoning.spawn.handleAvatarLoadingSync(state)
+
+    /* uncommon messages (utility, or once in a while) */
+    case ZoningOperations.AvatarAwardMessageBundle(pkts, delay) =>
+      data.zoning.spawn.performAvatarAwardMessageDelivery(pkts, delay)
+
+    case CommonMessages.ProgressEvent(delta, finishedAction, stepAction, tick) =>
+      data.general.handleProgressChange(delta, finishedAction, stepAction, tick)
+
+    case CommonMessages.Progress(rate, finishedAction, stepAction) =>
+      data.general.setupProgressChange(rate, finishedAction, stepAction)
+
+    case CavernRotationService.CavernRotationServiceKey.Listing(listings) =>
+      listings.head ! SendCavernRotationUpdates(data.context.self)
+
+    case LookupResult("propertyOverrideManager", endpoint) =>
+      data.zoning.propertyOverrideManagerLoadOverrides(endpoint)
+
+    case SessionActor.UpdateIgnoredPlayers(msg) =>
+      logic.galaxy.handleUpdateIgnoredPlayers(msg)
+
+    case SessionActor.UseCooldownRenewed(definition, _) =>
+      logic.general.handleUseCooldownRenew(definition)
+
+    case Deployment.CanDeploy(obj, state) =>
+      logic.vehicles.handleCanDeploy(obj, state)
+
+    case Deployment.CanUndeploy(obj, state) =>
+      logic.vehicles.handleCanUndeploy(obj, state)
+
+    case Deployment.CanNotChangeDeployment(obj, state, reason) =>
+      logic.vehicles.handleCanNotChangeDeployment(obj, state, reason)
+
+    /* rare messages */
+    case ProximityUnit.StopAction(term, _) =>
+      logic.terminals.ops.LocalStopUsingProximityUnit(term)
+
+    case SessionActor.Suicide() =>
+      data.general.suicide(data.player)
+
+    case SessionActor.Recall() =>
+      data.zoning.handleRecall()
+
+    case SessionActor.InstantAction() =>
+      data.zoning.handleInstantAction()
+
+    case SessionActor.Quit() =>
+      data.zoning.handleQuit()
+
+    case ICS.DroppodLaunchDenial(errorCode, _) =>
+      data.zoning.handleDroppodLaunchDenial(errorCode)
+
+    case ICS.DroppodLaunchConfirmation(zone, position) =>
+      data.zoning.LoadZoneLaunchDroppod(zone, position)
+
+    case SessionActor.PlayerFailedToLoad(tplayer) =>
+      data.zoning.spawn.handlePlayerFailedToLoad(tplayer)
+
+    /* csr only */
+    case SessionActor.SetSpeed(speed) =>
+      logic.general.handleSetSpeed(speed)
+
+    case SessionActor.SetFlying(isFlying) =>
+      logic.general.handleSetFlying(isFlying)
+
+    case SessionActor.SetSpectator(isSpectator) =>
+      logic.general.handleSetSpectator(isSpectator)
+
+    case SessionActor.Kick(player, time) =>
+      logic.general.handleKick(player, time)
+
+    case SessionActor.SetZone(zoneId, position) =>
+      data.zoning.handleSetZone(zoneId, position)
+
+    case SessionActor.SetPosition(position) =>
+      data.zoning.spawn.handleSetPosition(position)
+
+    case SessionActor.SetSilenced(silenced) =>
+      logic.general.handleSilenced(silenced)
+
+    /* catch these messages */
+    case _: ProximityUnit.Action => ()
+
+    case _: Zone.Vehicle.HasSpawned => ()
+
+    case _: Zone.Vehicle.HasDespawned => ()
+
+    case Zone.Deployable.IsDismissed(obj: TurretDeployable) => //only if target deployable was never fully introduced
+      logic.local.handleTurretDeployableIsDismissed(obj)
+
+    case Zone.Deployable.IsDismissed(obj) => //only if target deployable was never fully introduced
+      logic.local.handleDeployableIsDismissed(obj)
+
+    case msg: Containable.ItemPutInSlot =>
+      logic.general.handleItemPutInSlot(msg)
+
+    case msg: Containable.CanNotPutItemInSlot =>
+      logic.general.handleCanNotPutItemInSlot(msg)
+
+    case default =>
+      logic.general.handleReceiveDefaultMessage(default, sender)
+  }
+
+  private def handleGamePkt: PlanetSideGamePacket => Unit = {
+    case packet: ConnectToWorldRequestMessage =>
+      logic.general.handleConnectToWorldRequest(packet)
+
+    case packet: MountVehicleCargoMsg =>
+      logic.mountResponse.handleMountVehicleCargo(packet)
+
+    case packet: DismountVehicleCargoMsg =>
+      logic.mountResponse.handleDismountVehicleCargo(packet)
+
+    case packet: CharacterCreateRequestMessage =>
+      logic.general.handleCharacterCreateRequest(packet)
+
+    case packet: CharacterRequestMessage =>
+      logic.general.handleCharacterRequest(packet)
+
+    case _: KeepAliveMessage =>
+      data.keepAliveFunc()
+
+    case packet: BeginZoningMessage =>
+      data.zoning.handleBeginZoning(packet)
+
+    case packet: PlayerStateMessageUpstream =>
+      logic.general.handlePlayerStateUpstream(packet)
+
+    case packet: ChildObjectStateMessage =>
+      logic.vehicles.handleChildObjectState(packet)
+
+    case packet: VehicleStateMessage =>
+      logic.vehicles.handleVehicleState(packet)
+
+    case packet: VehicleSubStateMessage =>
+      logic.vehicles.handleVehicleSubState(packet)
+
+    case packet: FrameVehicleStateMessage =>
+      logic.vehicles.handleFrameVehicleState(packet)
+
+    case packet: ProjectileStateMessage =>
+      logic.shooting.handleProjectileState(packet)
+
+    case packet: LongRangeProjectileInfoMessage =>
+      logic.shooting.handleLongRangeProjectileState(packet)
+
+    case packet: ReleaseAvatarRequestMessage =>
+      data.zoning.spawn.handleReleaseAvatarRequest(packet)
+
+    case packet: SpawnRequestMessage =>
+      data.zoning.spawn.handleSpawnRequest(packet)
+
+    case packet: ChatMsg =>
+      logic.chat.handleChatMsg(packet)
+
+    case packet: SetChatFilterMessage =>
+      logic.chat.handleChatFilter(packet)
+
+    case packet: VoiceHostRequest =>
+      logic.general.handleVoiceHostRequest(packet)
+
+    case packet: VoiceHostInfo =>
+      logic.general.handleVoiceHostInfo(packet)
+
+    case packet: ChangeAmmoMessage =>
+      logic.shooting.handleChangeAmmo(packet)
+
+    case packet: ChangeFireModeMessage =>
+      logic.shooting.handleChangeFireMode(packet)
+
+    case packet: ChangeFireStateMessage_Start =>
+      logic.shooting.handleChangeFireStateStart(packet)
+
+    case packet: ChangeFireStateMessage_Stop =>
+      logic.shooting.handleChangeFireStateStop(packet)
+
+    case packet: EmoteMsg =>
+      logic.general.handleEmote(packet)
+
+    case packet: DropItemMessage =>
+      logic.general.handleDropItem(packet)
+
+    case packet: PickupItemMessage =>
+      logic.general.handlePickupItem(packet)
+
+    case packet: ReloadMessage =>
+      logic.shooting.handleReload(packet)
+
+    case packet: ObjectHeldMessage =>
+      logic.general.handleObjectHeld(packet)
+
+    case packet: AvatarJumpMessage =>
+      logic.general.handleAvatarJump(packet)
+
+    case packet: ZipLineMessage =>
+      logic.general.handleZipLine(packet)
+
+    case packet: RequestDestroyMessage =>
+      logic.general.handleRequestDestroy(packet)
+
+    case packet: MoveItemMessage =>
+      logic.general.handleMoveItem(packet)
+
+    case packet: LootItemMessage =>
+      logic.general.handleLootItem(packet)
+
+    case packet: AvatarImplantMessage =>
+      logic.general.handleAvatarImplant(packet)
+
+    case packet: UseItemMessage =>
+      logic.general.handleUseItem(packet)
+
+    case packet: UnuseItemMessage =>
+      logic.general.handleUnuseItem(packet)
+
+    case packet: ProximityTerminalUseMessage =>
+      logic.terminals.handleProximityTerminalUse(packet)
+
+    case packet: DeployObjectMessage =>
+      logic.general.handleDeployObject(packet)
+
+    case packet: GenericObjectActionMessage =>
+      logic.general.handleGenericObjectAction(packet)
+
+    case packet: GenericObjectActionAtPositionMessage =>
+      logic.general.handleGenericObjectActionAtPosition(packet)
+
+    case packet: GenericObjectStateMsg =>
+      logic.general.handleGenericObjectState(packet)
+
+    case packet: GenericActionMessage =>
+      logic.general.handleGenericAction(packet)
+
+    case packet: ItemTransactionMessage =>
+      logic.terminals.handleItemTransaction(packet)
+
+    case packet: FavoritesRequest =>
+      logic.terminals.handleFavoritesRequest(packet)
+
+    case packet: WeaponDelayFireMessage =>
+      logic.shooting.handleWeaponDelayFire(packet)
+
+    case packet: WeaponDryFireMessage =>
+      logic.shooting.handleWeaponDryFire(packet)
+
+    case packet: WeaponFireMessage =>
+      logic.shooting.handleWeaponFire(packet)
+
+    case packet: WeaponLazeTargetPositionMessage =>
+      logic.shooting.handleWeaponLazeTargetPosition(packet)
+
+    case _: UplinkRequest => ()
+
+    case packet: HitMessage =>
+      logic.shooting.handleDirectHit(packet)
+
+    case packet: SplashHitMessage =>
+      logic.shooting.handleSplashHit(packet)
+
+    case packet: LashMessage =>
+      logic.shooting.handleLashHit(packet)
+
+    case packet: AIDamage =>
+      logic.shooting.handleAIDamage(packet)
+
+    case packet: AvatarFirstTimeEventMessage =>
+      logic.general.handleAvatarFirstTimeEvent(packet)
+
+    case packet: WarpgateRequest =>
+      data.zoning.handleWarpgateRequest(packet)
+
+    case packet: MountVehicleMsg =>
+      logic.mountResponse.handleMountVehicle(packet)
+
+    case packet: DismountVehicleMsg =>
+      logic.mountResponse.handleDismountVehicle(packet)
+
+    case packet: DeployRequestMessage =>
+      logic.vehicles.handleDeployRequest(packet)
+
+    case packet: AvatarGrenadeStateMessage =>
+      logic.shooting.handleAvatarGrenadeState(packet)
+
+    case packet: SquadDefinitionActionMessage =>
+      logic.squad.handleSquadDefinitionAction(packet)
+
+    case packet: SquadMembershipRequest =>
+      logic.squad.handleSquadMemberRequest(packet)
+
+    case packet: SquadWaypointRequest =>
+      logic.squad.handleSquadWaypointRequest(packet)
+
+    case packet: GenericCollisionMsg =>
+      logic.general.handleGenericCollision(packet)
+
+    case packet: BugReportMessage =>
+      logic.general.handleBugReport(packet)
+
+    case packet: BindPlayerMessage =>
+      logic.general.handleBindPlayer(packet)
+
+    case packet: PlanetsideAttributeMessage =>
+      logic.general.handlePlanetsideAttribute(packet)
+
+    case packet: FacilityBenefitShieldChargeRequestMessage =>
+      logic.general.handleFacilityBenefitShieldChargeRequest(packet)
+
+    case packet: BattleplanMessage =>
+      logic.general.handleBattleplan(packet)
+
+    case packet: CreateShortcutMessage =>
+      logic.general.handleCreateShortcut(packet)
+
+    case packet: ChangeShortcutBankMessage =>
+      logic.general.handleChangeShortcutBank(packet)
+
+    case packet: FriendsRequest =>
+      logic.general.handleFriendRequest(packet)
+
+    case packet: DroppodLaunchRequestMessage =>
+      data.zoning.handleDroppodLaunchRequest(packet)
+
+    case packet: InvalidTerrainMessage =>
+      logic.general.handleInvalidTerrain(packet)
+
+    case packet: ActionCancelMessage =>
+      logic.general.handleActionCancel(packet)
+
+    case packet: TradeMessage =>
+      logic.general.handleTrade(packet)
+
+    case packet: DisplayedAwardMessage =>
+      logic.general.handleDisplayedAward(packet)
+
+    case packet: ObjectDetectedMessage =>
+      logic.general.handleObjectDetected(packet)
+
+    case packet: TargetingImplantRequest =>
+      logic.general.handleTargetingImplantRequest(packet)
+
+    case packet: HitHint =>
+      logic.general.handleHitHint(packet)
+
+    case _: OutfitRequest => ()
+
+    case pkt =>
+      data.log.warn(s"Unhandled GamePacket $pkt")
   }
 }

@@ -2,7 +2,7 @@
 package net.psforever.actors.session.normal
 
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{ActorContext, typed}
+import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData}
 import net.psforever.login.WorldSession.{CallBackForTask, ContainableMoveItem, DropEquipmentFromInventory, PickUpEquipmentFromGround, RemoveOldEquipmentFromInventory}
@@ -17,6 +17,7 @@ import net.psforever.objects.guid.{GUIDTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject, ServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.llu.CaptureFlag
@@ -39,7 +40,7 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones.{Zone, ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ObjectClass
-import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BindStatus, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, ItemTransactionMessage, LootItemMessage, MoveItemMessage, ObjectDeleteMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostKill, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BindStatus, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, ItemTransactionMessage, LootItemMessage, MoveItemMessage, ObjectDeleteMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.RemoverActor
 import net.psforever.services.account.{AccountPersistenceService, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -190,19 +191,11 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleVoiceHostRequest(pkt: VoiceHostRequest): Unit = {
-    log.debug(s"$pkt")
-    sendResponse(VoiceHostKill())
-    sendResponse(
-      ChatMsg(ChatMessageType.CMT_OPEN, wideContents=false, "", "Try our Discord at https://discord.gg/0nRe5TNbTYoUruA4", None)
-    )
+    ops.noVoicedChat(pkt)
   }
 
   def handleVoiceHostInfo(pkt: VoiceHostInfo): Unit = {
-    log.debug(s"$pkt")
-    sendResponse(VoiceHostKill())
-    sendResponse(
-      ChatMsg(ChatMessageType.CMT_OPEN, wideContents=false, "", "Try our Discord at https://discord.gg/0nRe5TNbTYoUruA4", None)
-    )
+    ops.noVoicedChat(pkt)
   }
 
   def handleEmote(pkt: EmoteMsg): Unit = {
@@ -269,7 +262,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
             //travel along the zipline in the direction specified
             sendResponse(ZipLineMessage(playerGuid, forwards, action, pathId, pos))
           case 1 =>
-            //disembark from zipline at destination!
+            //disembark from zipline at destination
             sendResponse(ZipLineMessage(playerGuid, forwards, action, 0, pos))
           case 2 =>
             //get off by force
@@ -572,11 +565,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
           //aphelion_laser discharge (no target)
           sessionLogic.shooting.HandleWeaponFireAccountability(objectGuid, PlanetSideGUID(Projectile.baseUID))
         } else {
-          sessionLogic.validObject(player.VehicleSeated, decorator = "GenericObjectAction/Vehicle") match {
-            case Some(vehicle: Vehicle)
+          sessionLogic.validObject(player.VehicleSeated, decorator = "GenericObjectAction/Vehicle") collect {
+            case vehicle: Vehicle
               if vehicle.OwnerName.contains(player.Name) =>
               vehicle.Actor ! ServerObject.GenericObjectAction(objectGuid, code, Some(tool))
-            case _ =>
           }
         }
       case _ =>
@@ -946,6 +938,20 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
 
   /* messages */
 
+  def handleRenewCharSavedTimer(): Unit = {
+    ops.renewCharSavedTimer(
+      Config.app.game.savedMsg.interruptedByAction.fixed,
+      Config.app.game.savedMsg.interruptedByAction.variable
+    )
+  }
+
+  def handleRenewCharSavedTimerMsg(): Unit = {
+    ops.displayCharSavedMsgThenRenewTimer(
+      Config.app.game.savedMsg.interruptedByAction.fixed,
+      Config.app.game.savedMsg.interruptedByAction.variable
+    )
+  }
+
   def handleSetAvatar(avatar: Avatar): Unit = {
     session = session.copy(avatar = avatar)
     if (session.player != null) {
@@ -989,6 +995,18 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
 
   def handleSilenced(isSilenced: Boolean): Unit = {
     player.silenced = isSilenced
+  }
+
+  def handleItemPutInSlot(msg: Containable.ItemPutInSlot): Unit = {
+    log.debug(s"ItemPutInSlot: $msg")
+  }
+
+  def handleCanNotPutItemInSlot(msg: Containable.CanNotPutItemInSlot): Unit = {
+    log.debug(s"CanNotPutItemInSlot: $msg")
+  }
+
+  def handleReceiveDefaultMessage(default: Any, sender: ActorRef): Unit = {
+    log.warn(s"Invalid packet class received: $default from $sender")
   }
 
   /* supporting functions */

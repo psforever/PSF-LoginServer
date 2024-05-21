@@ -1,7 +1,7 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.spectator
 
-import akka.actor.{ActorContext, typed}
+import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData}
 import net.psforever.objects.{Account, GlobalDefinitions, LivePlayerList, PlanetSideGameObject, Player, TelepadDeployable, Tool, Vehicle}
@@ -11,15 +11,16 @@ import net.psforever.objects.ce.{Deployable, TelepadLike}
 import net.psforever.objects.definition.{BasicDefinition, KitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.ZoneProjectile
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostKill, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.types.{ChatMessageType, DriveState, ExoSuitType, PlanetSideGUID, Vector3}
+import net.psforever.types.{DriveState, ExoSuitType, PlanetSideGUID, Vector3}
 import net.psforever.util.Config
 
 object GeneralLogic {
@@ -79,19 +80,11 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleVoiceHostRequest(pkt: VoiceHostRequest): Unit = {
-    log.debug(s"$pkt")
-    sendResponse(VoiceHostKill())
-    sendResponse(
-      ChatMsg(ChatMessageType.CMT_OPEN, wideContents=false, "", "Try our Discord at https://discord.gg/0nRe5TNbTYoUruA4", None)
-    )
+    ops.noVoicedChat(pkt)
   }
 
   def handleVoiceHostInfo(pkt: VoiceHostInfo): Unit = {
-    log.debug(s"$pkt")
-    sendResponse(VoiceHostKill())
-    sendResponse(
-      ChatMsg(ChatMessageType.CMT_OPEN, wideContents=false, "", "Try our Discord at https://discord.gg/0nRe5TNbTYoUruA4", None)
-    )
+    ops.noVoicedChat(pkt)
   }
 
   def handleEmote(pkt: EmoteMsg): Unit = {
@@ -410,6 +403,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
 
   /* messages */
 
+  def handleRenewCharSavedTimer(): Unit = { /* intentionally blank */ }
+
+  def handleRenewCharSavedTimerMsg(): Unit = { /* intentionally blank */ }
+
   def handleSetAvatar(avatar: Avatar): Unit = {
     session = session.copy(avatar = avatar)
     if (session.player != null) {
@@ -454,6 +451,12 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   def handleSilenced(isSilenced: Boolean): Unit = {
     player.silenced = isSilenced
   }
+
+  def handleItemPutInSlot(msg: Containable.ItemPutInSlot): Unit = { /* intentionally blank */ }
+
+  def handleCanNotPutItemInSlot(msg: Containable.CanNotPutItemInSlot): Unit = { /* intentionally blank */ }
+
+  def handleReceiveDefaultMessage(default: Any, sender: ActorRef): Unit = { /* intentionally blank */ }
 
   /* supporting functions */
 

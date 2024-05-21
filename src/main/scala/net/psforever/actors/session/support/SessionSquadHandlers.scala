@@ -74,7 +74,7 @@ class SessionSquadHandlers(
         sendResponse(
           SquadDefinitionActionMessage(PlanetSideGUID(0), index, SquadAction.ListSquadFavorite(loadout.task))
         )
-      case (None, _) => ;
+      case (None, _) => ()
     }
     //non-squad GUID-0 counts as the settings when not joined with a squad
     sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.IdentifyAsSquadLeader()))

@@ -112,7 +112,7 @@ class TerminalHandlerLogic(val ops: SessionTerminalHandlers, implicit val contex
         ops.lastTerminalOrderFulfillment = true
 
       case Terminal.BuyVehicle(vehicle, _, _)
-        if tplayer.avatar.purchaseCooldown(vehicle.Definition).nonEmpty || tplayer.spectator =>
+        if tplayer.avatar.purchaseCooldown(vehicle.Definition).nonEmpty =>
         sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
         ops.lastTerminalOrderFulfillment = true
 
