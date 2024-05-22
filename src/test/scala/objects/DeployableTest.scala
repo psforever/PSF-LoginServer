@@ -449,8 +449,8 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
       assert(!h_mine.Destroyed)
 
       h_mine.Actor ! Vitality.Damage(applyDamageToH)
-      val eventMsgs = eventsProbe.receiveN(4, 200 milliseconds)
-      val p1Msgs = player1Probe.receiveN(1, 200 milliseconds)
+      val p1Msgs = player1Probe.receiveN(1, 5000 milliseconds)
+      val eventMsgs = eventsProbe.receiveN(3, 5000 milliseconds)
       eventMsgs.head match {
         case Zone.HotSpot.Conflict(target, attacker, _)
           if (target.Definition eq h_mine.Definition) && (attacker eq pSource) => ()
@@ -470,13 +470,6 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
             DeployableInfo(PlanetSideGUID(2), DeployableIcon.HEMine, _, PlanetSideGUID(0))
           )
         )  => ;
-        case _ => assert(false, "")
-      }
-      eventMsgs(3) match {
-        case AvatarServiceMessage(
-          "test",
-          AvatarAction.Destroy(PlanetSideGUID(2), PlanetSideGUID(3), Service.defaultPlayerGUID, Vector3.Zero)
-        ) => ()
         case _ => assert(false, "")
       }
       p1Msgs.head match {

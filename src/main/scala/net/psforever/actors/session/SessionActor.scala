@@ -131,15 +131,10 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       startHeartbeat()
 
     case SessionActor.PokeClient =>
-      middlewareActor ! MiddlewareActor.Send(KeepAliveMessage())
+      pokeClient()
 
     case SessionActor.SetMode(newMode) =>
-      if (mode != newMode) {
-        logic.switchFrom(data.session)
-        mode = newMode
-        logic = mode.setup(data)
-      }
-      logic.switchTo(data.session)
+      changeMode(newMode)
 
     case packet =>
       parse(sender())(packet)
@@ -155,6 +150,19 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       context.self,
       SessionActor.PokeClient
     )
+  }
+
+  private def pokeClient(): Unit = {
+    middlewareActor ! MiddlewareActor.Send(KeepAliveMessage())
+  }
+
+  private def changeMode(newMode: PlayerMode): Unit = {
+    if (mode != newMode) {
+      logic.switchFrom(data.session)
+      mode = newMode
+      logic = mode.setup(data)
+    }
+    logic.switchTo(data.session)
   }
 
   private def parse(sender: ActorRef): Receive = {
