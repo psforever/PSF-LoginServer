@@ -22,6 +22,11 @@ class DeployingVehicleControl(vehicle: Vehicle)
     with DeploymentBehavior {
   def DeploymentObject: Vehicle = vehicle
 
+  override def postStop(): Unit = {
+    super.postStop()
+    deploymentPostStop()
+  }
+
   override def commonEnabledBehavior : Receive = super.commonEnabledBehavior.orElse(deployBehavior)
 
   /**

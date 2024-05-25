@@ -282,7 +282,6 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
             log.warn(s"${player.Name} must be mounted as the driver to request a deployment change")
           } else {
             log.info(s"${player.Name} is requesting a deployment change for ${obj.Definition.Name} - $deploy_state")
-            obj.Actor ! Deployment.TryDeploymentChange(deploy_state)
             continent.Transport ! Zone.Vehicle.TryDeploymentChange(obj, deploy_state)
           }
           obj
