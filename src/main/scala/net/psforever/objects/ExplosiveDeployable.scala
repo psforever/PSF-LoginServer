@@ -90,11 +90,31 @@ abstract class ExplosiveDeployableControl(mine: ExplosiveDeployable)
       val originalHealth = mine.Health
       val cause          = applyDamageTo(mine)
       val damage         = originalHealth - mine.Health
-      if (CanDetonate(mine, damage, cause.interaction)) {
-        ExplosiveDeployableControl.DamageResolution(mine, cause, damage)
+      if (Interaction(mine, damage, cause.interaction)) {
+        HandleDamage(mine, cause, damage)
       } else {
         mine.Health = originalHealth
       }
+    }
+  }
+
+  def Interaction(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
+    !mine.Destroyed && (if (damage == 0 && data.cause.source.SympatheticExplosion) {
+      Damageable.CanDamageOrJammer(obj, damage = 1, data)
+    } else {
+      Damageable.CanDamageOrJammer(obj, damage, data)
+    })
+  }
+
+  final def HandleDamage(target: ExplosiveDeployable, cause: DamageResult, damage: Int): Unit = {
+    target.LogActivity(cause)
+    if (CanDetonate(target, damage, cause.interaction)) {
+      ExplosiveDeployableControl.explodes(target, cause)
+      ExplosiveDeployableControl.DestructionAwareness(target, cause)
+    } else if (target.Health == 0) {
+      ExplosiveDeployableControl.DestructionAwareness(target, cause)
+    } else {
+      ExplosiveDeployableControl.DamageAwareness(target, cause, damage)
     }
   }
 
@@ -117,6 +137,11 @@ abstract class ExplosiveDeployableControl(mine: ExplosiveDeployable)
       Damageable.CanDamageOrJammer(mine, damage, data)
     })
   }
+
+  def explode(target: ExplosiveDeployable, cause: DamageResult): Unit = {
+    ExplosiveDeployableControl.explodes(target, cause)
+    ExplosiveDeployableControl.DestructionAwareness(target, cause)
+  }
 }
 
 object ExplosiveDeployableControl {
@@ -126,14 +151,8 @@ object ExplosiveDeployableControl {
     * @param cause na
     * @param damage na
     */
-  def DamageResolution(target: ExplosiveDeployable, cause: DamageResult, damage: Int): Unit = {
-    target.LogActivity(cause)
-    if (cause.interaction.cause.source.SympatheticExplosion) {
-      explodes(target, cause)
-      DestructionAwareness(target, cause)
-    } else if (target.Health == 0) {
-      DestructionAwareness(target, cause)
-    } else if (!target.Jammed && Damageable.CanJammer(target, cause.interaction)) {
+  def DamageAwareness(target: ExplosiveDeployable, cause: DamageResult, damage: Int): Unit = {
+    if (!target.Jammed && Damageable.CanJammer(target, cause.interaction)) {
       if ( {
         target.Jammed = cause.interaction.cause match {
           case o: ProjectileReason =>
@@ -158,6 +177,7 @@ object ExplosiveDeployableControl {
     * @param cause na
     */
   def explodes(target: Damageable.Target, cause: DamageResult): Unit = {
+    target.Destroyed = true
     target.Health = 1 // short-circuit logic in DestructionAwareness
     val zone = target.Zone
     zone.Activity ! Zone.HotSpot.Activity(cause)
@@ -268,7 +288,7 @@ class MineDeployableControl(mine: ExplosiveDeployable)
             mine.Definition.innateDamage.map { _.DamageRadius }.getOrElse(mine.Definition.triggerRadius)
           ))
 
-        case _ => ;
+        case _ => ()
       }
 
   override def finalizeDeployable(callback: ActorRef): Unit = {
@@ -287,33 +307,36 @@ class MineDeployableControl(mine: ExplosiveDeployable)
   }
 
   def setTriggered(instigator: Option[PlanetSideServerObject], delay: Long): Unit = {
-    instigator match {
-      case Some(_) if isConstructed.contains(true) && setup.isCancelled =>
-        //re-use the setup timer here
-        import scala.concurrent.ExecutionContext.Implicits.global
-        setup = context.system.scheduler.scheduleOnce(delay milliseconds, self, MineDeployableControl.Triggered())
-      case _ => ;
-    }
+    instigator
+      .collect {
+        case _ if isConstructed.contains(true) && setup.isCancelled =>
+          //re-use the setup timer here
+          import scala.concurrent.ExecutionContext.Implicits.global
+          setup = context.system.scheduler.scheduleOnce(delay milliseconds, self, MineDeployableControl.Triggered())
+      }
   }
 
   def explodes(instigator: Option[PlanetSideServerObject]): Unit = {
-    instigator match {
-      case Some(_) =>
-        //explosion
-        mine.Destroyed = true
-        ExplosiveDeployableControl.DamageResolution(
-          mine,
-          DamageInteraction(
-            SourceEntry(mine),
-            MineDeployableControl.trippedMineReason(mine),
-            mine.Position
-          ).calculate()(mine),
-          damage = 0
-        )
-      case None =>
+    instigator
+      .collect {
+        case _ =>
+          //explosion
+          mine.Destroyed = true
+          ExplosiveDeployableControl.DamageAwareness(
+            mine,
+            DamageInteraction(
+              SourceEntry(mine),
+              MineDeployableControl.trippedMineReason(mine),
+              mine.Position
+            ).calculate()(mine),
+            damage = 0
+          )
+      }
+      .orElse {
         //reset
         setup = Default.Cancellable
-    }
+        None
+      }
   }
 }
 

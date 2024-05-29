@@ -162,8 +162,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case None => ()
     }
     val eagleEye: Boolean = ops.canSeeReallyFar
-    val isNotVisible: Boolean = player.spectator ||
-      sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing ||
+    val isNotVisible: Boolean = sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing ||
       (player.isAlive && sessionLogic.zoning.spawn.deadState == DeadState.RespawnTime)
     continent.AvatarEvents ! AvatarServiceMessage(
       continent.id,
@@ -716,7 +715,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     val (target1, target2, bailProtectStatus, velocity) = (ctype, sessionLogic.validObject(p, decorator = "GenericCollision/Primary")) match {
       case (CollisionIs.OfInfantry, out @ Some(user: Player))
         if user == player =>
-        val bailStatus = session.flying || player.spectator || session.speed > 1f || player.BailProtection
+        val bailStatus = session.flying || session.speed > 1f || player.BailProtection
         player.BailProtection = false
         val v = if (player.avatar.implants.exists {
           case Some(implant) => implant.definition.implantType == ImplantType.Surge && implant.active

@@ -34,7 +34,7 @@ object GlobalDefinitionsDeployable {
 
     boomer.Name = "boomer"
     boomer.Descriptor = "Boomers"
-    boomer.MaxHealth = 100
+    boomer.MaxHealth = 50
     boomer.Damageable = true
     boomer.DamageableByFriendlyFire = false
     boomer.Repairable = false
@@ -58,7 +58,7 @@ object GlobalDefinitionsDeployable {
 
     he_mine.Name = "he_mine"
     he_mine.Descriptor = "Mines"
-    he_mine.MaxHealth = 100
+    he_mine.MaxHealth = 50
     he_mine.Damageable = true
     he_mine.DamageableByFriendlyFire = false
     he_mine.Repairable = false
@@ -82,7 +82,7 @@ object GlobalDefinitionsDeployable {
 
     jammer_mine.Name = "jammer_mine"
     jammer_mine.Descriptor = "JammerMines"
-    jammer_mine.MaxHealth = 100
+    jammer_mine.MaxHealth = 50
     jammer_mine.Damageable = true
     jammer_mine.DamageableByFriendlyFire = false
     jammer_mine.Repairable = false
