@@ -5,7 +5,6 @@ import akka.actor.{ActorContext, Props}
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.Vitality
@@ -39,7 +38,8 @@ class BoomerDeployable(cdef: ExplosiveDeployableDefinition)
   }
 }
 
-class BoomerDeployableDefinition(private val objectId: Int) extends ExplosiveDeployableDefinition(objectId) {
+class BoomerDeployableDefinition(private val objectId: Int)
+  extends ExplosiveDeployableDefinition(objectId) {
   override def Initialize(obj: Deployable, context: ActorContext): Unit = {
     obj.Actor =
       context.actorOf(Props(classOf[BoomerDeployableControl], obj), PlanetSideServerObject.UniqueActorName(obj))
@@ -119,6 +119,6 @@ class BoomerDeployableControl(mine: BoomerDeployable)
    *        `false`, otherwise
    */
   override def CanDetonate(obj: Vitality with FactionAffinity, damage: Int, data: DamageInteraction): Boolean = {
-    !mine.Destroyed && (data.cause.isInstanceOf[TriggerUsedReason] || Damageable.CanJammer(obj, data))
+    super.CanDetonate(obj, damage, data) || data.cause.isInstanceOf[TriggerUsedReason]
   }
 }

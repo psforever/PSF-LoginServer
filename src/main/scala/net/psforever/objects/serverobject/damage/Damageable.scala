@@ -94,12 +94,12 @@ object Damageable {
     *        `false`, otherwise
     */
   def CanJammer(obj: Vitality with FactionAffinity, data: DamageInteraction): Boolean = {
-    data.cause.source.HasJammedEffectDuration &&
+    (data.cause.source.HasJammedEffectDuration || data.cause.source.AdditionalEffect) &&
     obj.isInstanceOf[JammableUnit] &&
     adversarialOrHackableChecks(obj, data)
   }
 
-  private def adversarialOrHackableChecks(obj: Vitality with FactionAffinity, data: DamageInteraction): Boolean = {
+  def adversarialOrHackableChecks(obj: Vitality with FactionAffinity, data: DamageInteraction): Boolean = {
     (data.adversarial match {
       case Some(adversarial) => adversarial.attacker.Faction != adversarial.defender.Faction
       case None                                  => true

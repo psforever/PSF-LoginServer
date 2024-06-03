@@ -42,6 +42,7 @@ object GlobalDefinitionsDeployable {
     boomer.DeployTime = Duration.create(1000, "ms")
     boomer.deployAnimation = DeployAnimation.Standard
     boomer.interference = InterferenceRange(main = 0.2f)
+    boomer.Stable = true
     boomer.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
       SympatheticExplosion = true
@@ -58,7 +59,7 @@ object GlobalDefinitionsDeployable {
 
     he_mine.Name = "he_mine"
     he_mine.Descriptor = "Mines"
-    he_mine.MaxHealth = 50
+    he_mine.MaxHealth = 25
     he_mine.Damageable = true
     he_mine.DamageableByFriendlyFire = false
     he_mine.Repairable = false
@@ -91,12 +92,12 @@ object GlobalDefinitionsDeployable {
     jammer_mine.interference = InterferenceRange(main = 7f, sharedGroupId = 1, shared = 7f, deployables = 0.1f)
     jammer_mine.DetonateOnJamming = false
     jammer_mine.triggerRadius = 3f
+    jammer_mine.Stable = true
     jammer_mine.innateDamage = new DamageWithPosition {
       CausesDamageType = DamageType.Splash
       Damage0 = 0
       DamageRadius = 10f
       DamageAtEdge = 1.0f
-      AdditionalEffect = true
       JammedEffectDuration += TargetValidation(
         EffectTarget.Category.Player,
         EffectTarget.Validation.Player
