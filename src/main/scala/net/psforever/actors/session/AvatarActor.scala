@@ -11,7 +11,8 @@ import net.psforever.objects.Session
 import net.psforever.objects.avatar.ModePermissions
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, ScoreCard, SupportActivity}
 import net.psforever.objects.sourcing.{TurretSource, VehicleSource}
-import net.psforever.objects.vital.ReconstructionActivity
+import net.psforever.packet.game.ImplantAction
+import net.psforever.services.avatar.AvatarServiceResponse
 import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
 import org.joda.time.{LocalDateTime, Seconds}
 
@@ -117,9 +118,6 @@ object AvatarActor {
   /** Log in the currently selected avatar. Must have first sent SelectAvatar. */
   final case class LoginAvatar(replyTo: ActorRef[AvatarLoginResponse]) extends Command
 
-  /** Send implants to client */
-  final case class CreateImplants() extends Command
-
   /** Replace avatar instance with the provided one */
   final case class ReplaceAvatar(avatar: Avatar) extends Command
 
@@ -173,23 +171,23 @@ object AvatarActor {
   /** Activate an implant (must already be initialized) */
   final case class ActivateImplant(implantType: ImplantType) extends Command
 
-  /** Deactivate an implant */
+  /** Deactivate an implant (must already be activated) */
   final case class DeactivateImplant(implantType: ImplantType) extends Command
 
-  /** Deactivate all non-passive implants that are in use */
-  final case class DeactivateActiveImplants() extends Command
+  /** Deactivate all non-passive implants that have been activated */
+  final case object DeactivateActiveImplants extends Command
 
-  /** Start implant initialization timers (after zoning or respawn) */
-  final case class InitializeImplants() extends Command
+  /** Start all implant initialization timers (this will also hard restart all active timers) */
+  final case object InitializeImplants extends Command
 
-  /** Deinitialize implants (before zoning or respawning) */
-  final case class DeinitializeImplants() extends Command
+  /** Set all implants to deactivated and deinitialized; do not restart the initialization process */
+  final case object DeinitializeImplants extends Command
 
-  /** Deinitialize a certain implant, then initialize it again */
+  /** Set a certain implant to deactivated and deinitialized; restart the initialization process */
   final case class ResetImplant(implant: ImplantType) extends Command
 
-  /** Shorthand for DeinitializeImplants and InitializeImplants */
-  final case class ResetImplants() extends Command
+  /** Set all active non-passive implants to deactivated and restart the initialization process all un-initialized implants */
+  final case object SoftResetImplants extends Command
 
   /** Set the avatar's lookingForSquad */
   final case class SetLookingForSquad(lfs: Boolean) extends Command
@@ -234,7 +232,7 @@ object AvatarActor {
 
   final case class SetStamina(stamina: Int) extends Command
 
-  final case class SetImplantInitialized(implantType: ImplantType) extends Command
+  private case class SetImplantInitialized(implantType: ImplantType) extends Command
 
   final case class MemberListRequest(action: MemberAction.Value, name: String) extends Command
 
@@ -1015,7 +1013,7 @@ class AvatarActor(
   private[this] val log                            = org.log4s.getLogger
   var account: Option[Account]                     = None
   var session: Option[Session]                     = None
-  val implantTimers: mutable.Map[Int, Cancellable] = mutable.Map()
+  val implantTimers: Array[Cancellable]            = Array.fill(3)(Default.Cancellable)
   var staminaRegenTimer: Cancellable               = Default.Cancellable
   var _avatar: Option[Avatar]                      = None
   var saveLockerFunc: () => Unit                   = storeNewLocker
@@ -1292,22 +1290,6 @@ class AvatarActor(
 
           Behaviors.same
 
-        case CreateImplants() =>
-          avatar.implants.zipWithIndex.foreach {
-            case (Some(implant), index) =>
-              sessionActor ! SessionActor.SendResponse(
-                AvatarImplantMessage(
-                  session.get.player.GUID,
-                  ImplantAction.Add,
-                  index,
-                  implant.definition.implantType.value
-                )
-              )
-            case _ => ()
-          }
-          deinitializeImplants()
-          Behaviors.same
-
         case LearnImplant(terminalGuid, definition) =>
           // TODO there used to be a terminal check here, do we really need it?
           buyImplantAction(terminalGuid, definition)
@@ -1466,113 +1448,36 @@ class AvatarActor(
           avatarCopy(avatar.copy(vehicle = vehicle))
           Behaviors.same
 
-        case ActivateImplant(implantType) =>
-          avatar.implants.zipWithIndex.collectFirst {
-            case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
-          } match {
-            case Some((implant, slot)) =>
-              if (!implant.initialized) {
-                log.warn(s"requested activation of uninitialized implant $implantType")
-              } else if (
-                !consumeThisMuchStamina(implant.definition.ActivationStaminaCost) ||
-                avatar.stamina < implant.definition.StaminaCost
-              ) {
-                // not enough stamina to activate
-              } else if (implant.definition.implantType.disabledFor.contains(session.get.player.ExoSuit)) {
-                // TODO can this really happen? can we prevent it?
-              } else {
-                avatarCopy(
-                  avatar.copy(
-                    implants = avatar.implants.updated(slot, Some(implant.copy(active = true)))
-                  )
-                )
-                sessionActor ! SessionActor.SendResponse(
-                  AvatarImplantMessage(session.get.player.GUID, ImplantAction.Activation, slot, 1)
-                )
-                // Activation sound / effect
-                session.get.zone.AvatarEvents ! AvatarServiceMessage(
-                  session.get.zone.id,
-                  AvatarAction.PlanetsideAttribute(
-                    session.get.player.GUID,
-                    28,
-                    implant.definition.implantType.value * 2 + 1
-                  )
-                )
-                implantTimers.get(slot).foreach(_.cancel())
-                val interval = implant.definition.GetCostIntervalByExoSuit(session.get.player.ExoSuit).milliseconds
-                // TODO costInterval should be an option ^
-                if (interval.toMillis > 0) {
-                  implantTimers(slot) = context.system.scheduler.scheduleWithFixedDelay(interval, interval)(() => {
-                    val player = session.get.player
-                    if (
-                      implantType match {
-                        case ImplantType.AdvancedRegen =>
-                          // for every 1hp: 2sp (running), 1.5sp (standing), 1sp (crouched)
-                          // to simulate '1.5sp (standing)', find if 0.0...1.0 * 100 is an even number
-                          val cost = implant.definition.StaminaCost -
-                            (if (player.Crouching || (!player.isMoving && (math.random() * 100) % 2 == 1)) 1 else 0)
-                          val aliveAndWounded = player.isAlive && player.Health < player.MaxHealth
-                          if (aliveAndWounded && consumeThisMuchStamina(cost)) {
-                            //heal
-                            val originalHealth = player.Health
-                            val zone           = player.Zone
-                            val events         = zone.AvatarEvents
-                            val guid           = player.GUID
-                            val newHealth      = player.Health = originalHealth + 1
-                            player.LogActivity(HealFromImplant(implantType, 1))
-                            events ! AvatarServiceMessage(
-                              zone.id,
-                              AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth)
-                            )
-                            false
-                          } else {
-                            !aliveAndWounded
-                          }
-                        case _ =>
-                          !player.isAlive || !consumeThisMuchStamina(implant.definition.StaminaCost)
-                      }
-                    ) {
-                      context.self ! DeactivateImplant(implantType)
-                    }
-                  })
-                }
-              }
-
-            case None => log.error(s"requested activation of unknown implant $implantType")
-          }
+        case SetImplantInitialized(implantType) =>
+          setImplantInitialized(implantType)
           Behaviors.same
 
-        case SetImplantInitialized(implantType) =>
-          avatar.implants.zipWithIndex.collectFirst {
-            case (Some(implant), index) if implant.definition.implantType == implantType => index
-          } match {
-            case Some(index) =>
-              sessionActor ! SessionActor.SendResponse(
-                AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, index, 1)
-              )
-              avatarCopy(avatar.copy(implants = avatar.implants.map {
-                case Some(implant) if implant.definition.implantType == implantType =>
-                  Some(implant.copy(initialized = true))
-                case other => other
-              }))
-
-            case None => log.error(s"set initialized called for unknown implant $implantType")
-          }
-
+        case ActivateImplant(implantType) =>
+          activateImplant(implantType)
           Behaviors.same
 
         case DeactivateImplant(implantType) =>
           deactivateImplant(implantType)
           Behaviors.same
 
-        case DeactivateActiveImplants() =>
-          avatar.implants.indices.foreach { index =>
-            avatar.implants(index).foreach { implant =>
-              if (implant.active && implant.definition.GetCostIntervalByExoSuit(session.get.player.ExoSuit) > 0) {
-                deactivateImplant(implant.definition.implantType)
-              }
-            }
-          }
+        case DeactivateActiveImplants =>
+          deactivateActiveImplants()
+          Behaviors.same
+
+        case InitializeImplants =>
+          initializeImplants()
+          Behaviors.same
+
+        case DeinitializeImplants =>
+          deinitializeImplants()
+          Behaviors.same
+
+        case ResetImplant(implantType) =>
+          reinitializeImplant(implantType)
+          Behaviors.same
+
+        case SoftResetImplants =>
+          softResetImplants()
           Behaviors.same
 
         case RestoreStamina(stamina) =>
@@ -1594,83 +1499,6 @@ class AvatarActor(
         case SuspendStaminaRegeneration(duration) =>
           // TODO suspensions can overwrite each other with different durations
           defaultStaminaRegen(duration)
-          Behaviors.same
-
-        case InitializeImplants() =>
-          initializeImplants()
-          Behaviors.same
-
-        case DeinitializeImplants() =>
-          deinitializeImplants()
-          Behaviors.same
-
-        case ResetImplant(implantType) =>
-          resetAnImplant(implantType)
-          Behaviors.same
-
-        case ResetImplants() =>
-          val player = session.get.player
-          // Get time of when you spawned after a deconstruction or zoning activity.
-          val lastDecon: Long = player.History.findLast {entry => entry.isInstanceOf[ReconstructionActivity]} match {
-            case Some(entry) => entry.time
-            case _ => 0L
-          }
-          // Get time of when you entered the world or respawned after death.
-          val lastRespawn: Long = player.History.findLast {entry => entry.isInstanceOf[SpawningActivity]} match {
-            case Some(entry) => entry.time
-            case _ => 0L
-          }
-          // You didn't die. You deconstructed or changed zones via warpgate/IA/recall.
-          // When you respawn after death, it does both recon and spawn activities, hence the minus 3000 to make sure
-          // this doesn't happen at respawn after death.
-          if (lastDecon - 3000 > lastRespawn) {
-            deinitializeImplants()
-            val implants = avatar.implants
-            implants.zipWithIndex.foreach {
-            case (Some(implant), slot) =>
-              sessionActor ! SessionActor.SendResponse(
-                CreateShortcutMessage(
-                  session.get.player.GUID,
-                  slot + 2,
-                  Some(implant.definition.implantType.shortcut)
-                )
-              )
-              // If the amount of time that has passed since you entered the world or died is > how long it takes to
-              // initialize this implant, initialize it after 1 second.
-              if ((System.currentTimeMillis() / 1000) - (lastRespawn / 1000) > implant.definition.InitializationDuration) {
-                implantTimers.get(slot).foreach(_.cancel())
-                implantTimers(slot) = context.scheduleOnce(
-                  1.seconds,
-                  context.self,
-                  SetImplantInitialized(implant.definition.implantType)
-                )
-                session.get.zone.AvatarEvents ! AvatarServiceMessage(
-                  avatar.name,
-                  AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
-                )
-              }
-                // If the implant initialization timer hasn't quite finished, calculate a reduced timer based on last spawn activity
-              else {
-                val remainingTime = (lastRespawn / 1000).seconds - (System.currentTimeMillis() / 1000).seconds + implant.definition.InitializationDuration.seconds
-                implantTimers.get(slot).foreach(_.cancel())
-                implantTimers(slot) = context.scheduleOnce(
-                  remainingTime,
-                  context.self,
-                  SetImplantInitialized(implant.definition.implantType)
-                )
-                session.get.zone.AvatarEvents ! AvatarServiceMessage(
-                  avatar.name,
-                  AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
-                )
-              }
-            case (None, _) =>
-            }
-          }
-            // You just entered the world or died. Implants reset and timers start from scratch
-          else {
-            deinitializeImplants()
-            initializeImplants()
-          }
           Behaviors.same
 
         case UpdateToolDischarge(stats) =>
@@ -1898,7 +1726,7 @@ class AvatarActor(
       .receiveSignal {
         case (_, PostStop) =>
           staminaRegenTimer.cancel()
-          implantTimers.values.foreach(_.cancel())
+          implantTimers.foreach(_.cancel())
           supportExperienceTimer.cancel()
           if (supportExperiencePool > 0) {
             AvatarActor.setBepOnly(avatar.id, avatar.bep + supportExperiencePool)
@@ -1940,63 +1768,6 @@ class AvatarActor(
 
   def performAvatarLogin(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
     performAvatarLogin0(avatarId, accountId, replyTo)
-    /*import ctx._
-    val result = for {
-      //log this login
-      _ <- ctx.run(
-        query[persistence.Avatar]
-          .filter(_.id == lift(avatarId))
-          .update(_.lastLogin -> lift(LocalDateTime.now()))
-      )
-      //log this choice of faction (no empire switching)
-      _ <- ctx.run(
-        query[persistence.Account]
-          .filter(_.id == lift(accountId))
-          .update(
-            _.lastFactionId -> lift(avatar.faction.id),
-            _.avatarLoggedIn -> lift(avatarId)
-          )
-      )
-      //retrieve avatar data
-      loadouts  <- initializeAllLoadouts()
-      implants  <- ctx.run(query[persistence.Implant].filter(_.avatarId == lift(avatarId)))
-      certs     <- ctx.run(query[persistence.Certification].filter(_.avatarId == lift(avatarId)))
-      locker    <- loadLocker(avatarId)
-      friends   <- loadFriendList(avatarId)
-      ignored   <- loadIgnoredList(avatarId)
-      shortcuts <- loadShortcuts(avatarId)
-      saved     <- AvatarActor.loadSavedAvatarData(avatarId)
-      debt      <- AvatarActor.loadExperienceDebt(avatarId)
-      card      <- AvatarActor.loadCampaignKdaData(avatarId)
-    } yield (loadouts, implants, certs, locker, friends, ignored, shortcuts, saved, debt, card)
-    result.onComplete {
-      case Success((_loadouts, implants, certs, lockerInv, friendsList, ignoredList, shortcutList, saved, debt, card)) =>
-        avatarCopy(
-          avatar.copy(
-            loadouts = avatar.loadouts.copy(suit = _loadouts),
-            certifications =
-              certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
-            implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
-            shortcuts = shortcutList,
-            locker = lockerInv,
-            people = MemberLists(
-              friend = friendsList,
-              ignored = ignoredList
-            ),
-            cooldowns = Cooldowns(
-              purchase = AvatarActor.buildCooldownsFromClob(saved.purchaseCooldowns, Avatar.purchaseCooldowns, log),
-              use = AvatarActor.buildCooldownsFromClob(saved.useCooldowns, Avatar.useCooldowns, log)
-            ),
-            scorecard = card
-          )
-        )
-        // if we need to start stamina regeneration
-        tryRestoreStaminaForSession(stamina = 1).collect { _ => defaultStaminaRegen(initialDelay = 0.5f seconds) }
-        experienceDebt = debt
-        replyTo ! AvatarLoginResponse(avatar)
-      case Failure(e) =>
-        log.error(e)("db failure")
-    }*/
   }
 
   def performAvatarLogin0(avatarId: Long, accountId: Long, replyTo: ActorRef[AvatarLoginResponse]): Unit = {
@@ -2163,7 +1934,7 @@ class AvatarActor(
         if (originalFatigued && !isFatigued) {
           avatar.implants.zipWithIndex.foreach {
             case (Some(_), slot) =>
-              sessionActor ! SessionActor.SendResponse(AvatarImplantMessage(guid, ImplantAction.OutOfStamina, slot, 0))
+              sendAvatarImplantMessageToSelf(guid, ImplantAction.OutOfStamina, slot, value = 0)
             case _ => ()
           }
         }
@@ -2183,8 +1954,8 @@ class AvatarActor(
     * meaning that he will only be able to walk, all implants will deactivate,
     * and all exertion that require stamina use will become impossible until a threshold of stamina is regained.
     * @param stamina an amount to drain
-    * @return `true`, as long as the requested amount of stamina can be drained in total;
-    *        `false`, otherwise
+    * @return `false`, as long as the requested amount of stamina can be drained in total, or tif stamina equals zero;
+    *        `true`, otherwise
     */
   def consumeThisMuchStamina(stamina: Int): Boolean = {
     if (stamina < 1) {
@@ -2204,9 +1975,7 @@ class AvatarActor(
               if (implant.active) {
                 deactivateImplant(implant.definition.implantType)
               }
-              sessionActor ! SessionActor.SendResponse(
-                AvatarImplantMessage(player.GUID, ImplantAction.OutOfStamina, slot, 1)
-              )
+              sendAvatarImplantMessageToSelf(player.GUID, ImplantAction.OutOfStamina, slot, value = 1)
             case _ => ()
           }
         }
@@ -2214,126 +1983,14 @@ class AvatarActor(
       } else if (becomeFatigued) {
         avatarCopy(avatar.copy(implants = avatar.implants.zipWithIndex.collect {
           case (Some(implant), slot) if implant.active =>
-            implantTimers.get(slot).foreach(_.cancel())
+            implantTimers.lift(slot).foreach(_.cancel())
+            implantTimers.update(slot, Default.Cancellable)
             Some(implant.copy(active = false))
           case (out, _) =>
             out
         }))
       }
       resultingStamina >= 0
-    }
-  }
-
-  def initializeImplants(): Unit = {
-    avatar.implants.zipWithIndex.foreach {
-      case (Some(implant), slot) =>
-        // TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
-        // for now, just write into slots 2, 3 and 4
-        sessionActor ! SessionActor.SendResponse(
-          CreateShortcutMessage(
-            session.get.player.GUID,
-            slot + 2,
-            Some(implant.definition.implantType.shortcut)
-          )
-        )
-
-        implantTimers.get(slot).foreach(_.cancel())
-        implantTimers(slot) = context.scheduleOnce(
-          implant.definition.InitializationDuration.seconds,
-          context.self,
-          SetImplantInitialized(implant.definition.implantType)
-        )
-
-        // Start client side initialization timer, visible on the character screen
-        // Progress accumulates according to the client's knowledge of the implant initialization time
-        // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s\
-        session.get.zone.AvatarEvents ! AvatarServiceMessage(
-          avatar.name,
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
-        )
-
-      case (None, _) => ()
-    }
-  }
-
-  def deinitializeImplants(): Unit = {
-    avatarCopy(avatar.copy(implants = avatar.implants.zipWithIndex.map {
-      case (Some(implant), slot) =>
-        if (implant.active) {
-          deactivateImplant(implant.definition.implantType)
-        }
-        if (implant.initialized) {
-          session.get.zone.AvatarEvents ! AvatarServiceMessage(
-            session.get.zone.id,
-            AvatarAction.SendResponse(
-              Service.defaultPlayerGUID,
-              AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
-            )
-          )
-        }
-        Some(implant.copy(initialized = false, active = false))
-      case (None, _) => None
-    }))
-  }
-
-  def resetAnImplant(implantType: ImplantType): Unit = {
-    avatar.implants.zipWithIndex.find {
-      case (Some(imp), _) => imp.definition.implantType == implantType
-      case (None, _)      => false
-    } match {
-      case Some((Some(imp), index)) =>
-        //deactivate
-        if (imp.active) {
-          deactivateImplant(implantType)
-        }
-        //deinitialize
-        session.get.zone.AvatarEvents ! AvatarServiceMessage(
-          session.get.zone.id,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            AvatarImplantMessage(session.get.player.GUID, ImplantAction.Initialization, index, 0)
-          )
-        )
-        avatarCopy(
-          avatar.copy(
-            implants = avatar.implants.updated(index, Some(imp.copy(initialized = false, active = false)))
-          )
-        )
-        //restart initialization process
-        implantTimers.get(index).foreach(_.cancel())
-        implantTimers(index) = context.scheduleOnce(
-          imp.definition.InitializationDuration.seconds,
-          context.self,
-          SetImplantInitialized(implantType)
-        )
-        session.get.zone.AvatarEvents ! AvatarServiceMessage(
-          avatar.name,
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(index + 6, 0))
-        )
-      case _ => ()
-    }
-  }
-
-  def deactivateImplant(implantType: ImplantType): Unit = {
-    avatar.implants.zipWithIndex.collectFirst {
-      case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
-    } match {
-      case Some((implant, slot)) =>
-        implantTimers.get(slot).foreach(_.cancel())
-        avatarCopy(
-          avatar.copy(
-            implants = avatar.implants.updated(slot, Some(implant.copy(active = false)))
-          )
-        )
-        // Deactivation sound / effect
-        session.get.zone.AvatarEvents ! AvatarServiceMessage(
-          session.get.zone.id,
-          AvatarAction.PlanetsideAttribute(session.get.player.GUID, 28, implant.definition.implantType.value * 2)
-        )
-        sessionActor ! SessionActor.SendResponse(
-          AvatarImplantMessage(session.get.player.GUID, ImplantAction.Activation, slot, 0)
-        )
-      case None => log.error(s"requested deactivation of unknown implant $implantType")
     }
   }
 
@@ -3115,9 +2772,7 @@ class AvatarActor(
                 )
                 .onComplete {
                   case Success(_) =>
-                    sessionActor ! SessionActor.SendResponse(
-                      AvatarImplantMessage(pguid, ImplantAction.Remove, index, 0)
-                    )
+                    sendAvatarImplantMessageToSelf(pguid, ImplantAction.Remove, index, value = 0)
                   case Failure(exception) =>
                     log.error(exception)("db failure")
                 }
@@ -3573,16 +3228,29 @@ class AvatarActor(
     AvatarActor.basicLoginCertifications.diff(certs).foreach { learnCertificationInTheFuture }
   }
 
-  def buyImplantAction(
-                        terminalGuid: PlanetSideGUID,
-                        definition: ImplantDefinition
-                      ): Unit = {
+  private def sendAvatarImplantMessageToSelf(
+                                              guid: PlanetSideGUID,
+                                              action: ImplantAction.Value,
+                                              index: Int,
+                                              value: Int
+                                            ): Unit = {
+    import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
+    import net.psforever.services.avatar.{AvatarResponse => RESP}
+    sessionActor.toClassic ! AvatarServiceResponse("", guid, RESP.AvatarImplant(action, index, value))
+  }
+
+  private def buyImplantAction(
+                                terminalGuid: PlanetSideGUID,
+                                definition: ImplantDefinition
+                              ): Unit = {
     buyImplantInTheFuture(definition).onComplete {
       case Success(true) =>
         sessionActor ! SessionActor.SendResponse(
           ItemTransactionResultMessage(terminalGuid, TransactionType.Buy, success = true)
         )
-        resetAnImplant(definition.implantType)
+        findImplantByType(definition.implantType).foreach {
+          case (implant, slot) => updateAvatarForImplant(implant, slot, initializeImplant(implant.definition.InitializationDuration.seconds))
+        }
         sessionActor ! SessionActor.CharSaved
       case _ =>
         sessionActor ! SessionActor.SendResponse(
@@ -3591,7 +3259,7 @@ class AvatarActor(
     }
   }
 
-  def buyImplantInTheFuture(definition: ImplantDefinition): Future[Boolean] = {
+  private def buyImplantInTheFuture(definition: ImplantDefinition): Future[Boolean] = {
     val out: Promise[Boolean] = Promise()
     avatar.implants.zipWithIndex.collectFirst {
       case (Some(implant), _) if implant.definition.implantType == definition.implantType => None
@@ -3604,14 +3272,7 @@ class AvatarActor(
           .onComplete {
             case Success(_) =>
               replaceAvatar(avatar.copy(implants = avatar.implants.updated(index, Some(Implant(definition)))))
-              sessionActor ! SessionActor.SendResponse(
-                AvatarImplantMessage(
-                  session.get.player.GUID,
-                  ImplantAction.Add,
-                  index,
-                  definition.implantType.value
-                )
-              )
+              sendAvatarImplantMessageToSelf(session.get.player.GUID, ImplantAction.Add, index, definition.implantType.value)
               out.completeWith(Future(true))
             case Failure(exception) =>
               log.error(exception)("db failure")
@@ -3624,10 +3285,10 @@ class AvatarActor(
     out.future
   }
 
-  def sellImplantAction(
-                         terminalGuid: PlanetSideGUID,
-                         definition: ImplantDefinition
-                       ): Unit = {
+  private def sellImplantAction(
+                                 terminalGuid: PlanetSideGUID,
+                                 definition: ImplantDefinition
+                               ): Unit = {
     sellImplantInTheFuture(definition).onComplete {
       case Success(true) =>
         sessionActor ! SessionActor.SendResponse(
@@ -3641,7 +3302,7 @@ class AvatarActor(
     }
   }
 
-  def sellImplantInTheFuture(definition: ImplantDefinition): Future[Boolean] = {
+  private def sellImplantInTheFuture(definition: ImplantDefinition): Future[Boolean] = {
     val out: Promise[Boolean] = Promise()
     avatar.implants.zipWithIndex.collectFirst {
       case (Some(implant), index) if implant.definition.implantType == definition.implantType => index
@@ -3657,10 +3318,8 @@ class AvatarActor(
           )
           .onComplete {
             case Success(_) =>
-              replaceAvatar(avatar.copy(implants = avatar.implants.updated(index, None)))
-              sessionActor ! SessionActor.SendResponse(
-                AvatarImplantMessage(session.get.player.GUID, ImplantAction.Remove, index, 0)
-              )
+              updateAvatarForImplant(index)
+              sendAvatarImplantMessageToSelf(session.get.player.GUID, ImplantAction.Remove, index, value = 0)
               out.completeWith(Future(true))
             case Failure(exception) =>
               log.error(exception)("db failure")
@@ -3673,9 +3332,275 @@ class AvatarActor(
     out.future
   }
 
-  def removeAllImplants(): Unit = {
-    avatar.implants.collect { case Some(imp) => imp.definition }.foreach { sellImplantInTheFuture }
-    context.self ! ResetImplants()
+  private def findImplantByType(implantType: ImplantType): Option[(Implant, Int)] = {
+    avatar
+      .implants
+      .zipWithIndex
+      .collectFirst {
+        case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
+      }
+  }
+
+  private def updateAvatarForImplant(
+                                      implant: Implant,
+                                      slot: Int,
+                                      implantFunc: (Implant, Int) => Implant
+                                    ): Unit = {
+    avatarCopy(avatar.copy(implants = avatar.implants.updated(slot, Some(implantFunc(implant, slot)))))
+  }
+
+  private def updateAvatarForImplant(slot: Int): Unit = {
+    avatarCopy(avatar.copy(implants = avatar.implants.updated(slot, None)))
+  }
+
+  private def initializeImplants(): Unit = {
+    avatar.implants.zipWithIndex.foreach {
+      case (Some(implant), slot) =>
+        // TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
+        // for now, just write into slots 2, 3 and 4
+        sessionActor ! SessionActor.SendResponse(
+          CreateShortcutMessage(
+            session.get.player.GUID,
+            slot + 2,
+            Some(implant.definition.implantType.shortcut)
+          )
+        )
+        initializeImplant(implant.definition.InitializationDuration.seconds)(implant, slot)
+      case (None, _) => ()
+    }
+  }
+
+  private def reinitializeImplant(implantType: ImplantType): Unit = {
+    findImplantByType(implantType).collect {
+      case (implant, slot) if implant.active =>
+        updateAvatarForImplant(deactivateImplant(implant, slot), slot, reinitializeImplant)
+      case (implant, slot) =>
+        updateAvatarForImplant(implant, slot, reinitializeImplant)
+    }
+  }
+
+  private def reinitializeImplant(implant: Implant, slot: Int): Implant = {
+    //deinitialize
+    session.get.zone.AvatarEvents ! AvatarServiceMessage(
+      session.get.zone.id,
+      AvatarAction.AvatarImplant(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
+    )
+    initializeImplant(implant.definition.InitializationDuration.seconds)(implant, slot)
+  }
+
+  private def initializeImplant(delay: FiniteDuration)(implant: Implant, slot: Int): Implant = {
+    //start initialization process
+    setImplantInitializedTimer(implant, slot, delay)
+    // Start client side initialization timer, visible on the character screen
+    // Progress accumulates according to the client's knowledge of the implant initialization time
+    // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s\
+    session.get.zone.AvatarEvents ! AvatarServiceMessage(
+      avatar.name,
+      AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
+    )
+    implant.copy(initialized = false, active = false)
+  }
+
+  private def deinitializeImplants(): Unit = {
+    avatarCopy(avatar.copy(implants = avatar
+      .implants
+      .zipWithIndex
+      .collect {
+        case (Some(implant), slot) if implant.active =>
+          Some(deinitializeImplant(deactivateImplant(implant, slot), slot))
+        case (Some(implant), slot) if implant.initialized =>
+          Some(deinitializeImplant(implant, slot))
+        case (implantOpt, _) =>
+          implantOpt
+      }
+    ))
+  }
+
+  private def deinitializeImplant(implant: Implant, slot: Int): Implant = {
+    session.get.zone.AvatarEvents ! AvatarServiceMessage(
+      session.get.zone.id,
+      AvatarAction.AvatarImplant(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
+    )
+    implant.copy(initialized = false, active = false)
+  }
+
+  private def setImplantInitialized(implantType: ImplantType): Unit = {
+    findImplantByType(implantType)
+      .collect {
+        case (implant, slot) =>
+          sendAvatarImplantMessageToSelf(session.get.player.GUID, ImplantAction.Initialization, slot, value = 1)
+          avatarCopy(avatar.copy(implants = avatar.implants.map {
+            case Some(implant)
+              if implant.definition.implantType == implantType && implant.definition.Passive =>
+              activateImplantPackets(implant, slot)
+              Some(implant.copy(initialized = true, active = true))
+            case Some(implant)
+              if implant.definition.implantType == implantType =>
+              Some(implant.copy(initialized = true))
+            case other => other
+          }))
+          Some(implant)
+      }
+      .orElse {
+        log.error(s"set initialized called for unknown implant $implantType")
+        None
+      }
+  }
+
+  private def setImplantInitializedTimer(implant: Implant, slot: Int, delay: FiniteDuration): Unit = {
+    implantTimers.lift(slot).foreach(_.cancel())
+    implantTimers.update(slot, context.scheduleOnce(
+      delay,
+      context.self,
+      SetImplantInitialized(implant.definition.implantType)
+    ))
+  }
+
+  private def deactivateImplant(implantType: ImplantType): Unit = {
+    avatar.implants.zipWithIndex.collectFirst {
+      case (Some(implant), index) if implant.definition.implantType == implantType => (implant, index)
+    } match {
+      case Some((implant, slot)) =>
+        updateAvatarForImplant(implant, slot, deactivateImplant)
+      case None =>
+        log.error(s"requested deactivation of unknown implant $implantType")
+    }
+  }
+
+  private def deactivateActiveImplants(): Unit = {
+    avatar
+      .implants
+      .zipWithIndex
+      .collect {
+        case (Some(implant), slot) if implant.active && !implant.definition.Passive =>
+          updateAvatarForImplant(implant, slot, deactivateImplant)
+      }
+  }
+
+  private def deactivateImplant(implant: Implant, slot: Int): Implant = {
+    implantTimers.lift(slot).foreach(_.cancel())
+    implantTimers.update(slot, Default.Cancellable)
+    // Deactivation sound / effect
+    session.get.zone.AvatarEvents ! AvatarServiceMessage(
+      session.get.zone.id,
+      AvatarAction.PlanetsideAttribute(session.get.player.GUID, 28, implant.definition.implantType.value * 2)
+    )
+    sendAvatarImplantMessageToSelf(session.get.player.GUID, ImplantAction.Activation, slot, value = 0)
+    implant.copy(active = false)
+  }
+
+  private def activateImplant(implantType: ImplantType): Unit = {
+    findImplantByType(implantType)
+      .collect { case (implant, slot) =>
+        activateImplant(implant, slot)
+        Some(true)
+      }
+      .orElse {
+        log.error(s"requested activation of unknown implant $implantType")
+        None
+      }
+  }
+
+  private def activateImplant(implant: Implant, slot: Int): Unit = {
+    if (!implant.initialized) {
+      log.warn(s"requested activation of uninitialized implant ${implant.definition.implantType}")
+    } else if (
+      !consumeThisMuchStamina(implant.definition.ActivationStaminaCost) ||
+        avatar.stamina < implant.definition.StaminaCost
+    ) {
+      // not enough stamina to activate
+    } else if (implant.definition.implantType.disabledFor.contains(session.get.player.ExoSuit)) {
+      // TODO can this really happen? can we prevent it?
+    } else {
+      avatarCopy(
+        avatar.copy(
+          implants = avatar.implants.updated(slot, Some(implant.copy(active = true)))
+        )
+      )
+      activateImplantPackets(implant, slot)
+      implantTimers.lift(slot).foreach(_.cancel())
+      val interval = implant.definition.GetCostIntervalByExoSuit(session.get.player.ExoSuit).milliseconds
+      if (interval.toMillis > 0) {
+        val stopConditionTest: (Implant, Player) => Boolean = implant.definition.implantType match {
+          case ImplantType.AdvancedRegen => staminaDrainByIntervalAdvancedRegen
+          case _                         => staminaDrainByIntervalSomeImplant
+        }
+        val stopConditionFunc: () => Unit = staminaDrainByIntervalOngoing(implant, slot, session.get.player, stopConditionTest)
+        implantTimers.update(slot, context.system.scheduler.scheduleWithFixedDelay(interval, interval)(() => stopConditionFunc()))
+      }
+    }
+  }
+
+  private def staminaDrainByIntervalOngoing(
+                                             implant: Implant,
+                                             slot: Int,
+                                             player: Player,
+                                             func: (Implant, Player) => Boolean
+                                           )(): Unit = {
+    if (func(implant, player)) {
+      updateAvatarForImplant(implant, slot, deactivateImplant)
+    }
+  }
+
+  private def staminaDrainByIntervalSomeImplant(implant: Implant, player: Player): Boolean = {
+    !player.isAlive || !consumeThisMuchStamina(implant.definition.StaminaCost)
+  }
+
+  private def staminaDrainByIntervalAdvancedRegen(implant: Implant, player: Player): Boolean = {
+    // for every 1hp: 2sp (running), 1.5sp (standing), 1sp (crouched)
+    // to simulate '1.5sp (standing)', find if 0.0...1.0 * 100 is an even number
+    val cost = implant.definition.StaminaCost -
+      (if (player.Crouching || (!player.isMoving && (math.random() * 100) % 2 == 1)) 1 else 0)
+    val aliveAndWounded = player.isAlive && player.Health < player.MaxHealth
+    if (aliveAndWounded && consumeThisMuchStamina(cost)) {
+      //heal
+      val originalHealth = player.Health
+      val zone           = player.Zone
+      val guid           = player.GUID
+      val newHealth      = player.Health = originalHealth + 1
+      val events         = zone.AvatarEvents
+      player.LogActivity(HealFromImplant(implant.definition.implantType, 1))
+      events ! AvatarServiceMessage(
+        zone.id,
+        AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth)
+      )
+      false
+    } else {
+      !aliveAndWounded
+    }
+  }
+
+  private def activateImplantPackets(implant: Implant, slot: Int): Unit = {
+    sendAvatarImplantMessageToSelf(session.get.player.GUID, ImplantAction.Activation, slot, value = 1)
+    // Activation sound / effect
+    session.get.zone.AvatarEvents ! AvatarServiceMessage(
+      session.get.zone.id,
+      AvatarAction.PlanetsideAttribute(
+        session.get.player.GUID,
+        28,
+        implant.definition.implantType.value * 2 + 1
+      )
+    )
+  }
+
+  private def softResetImplants() : Unit = {
+    avatarCopy(
+      avatar.copy(implants = avatar
+        .implants
+        .zipWithIndex
+        .map {
+          case (Some(implant), slot) if implant.active && !implant.definition.Passive =>
+            //deactivate active non-passive implant
+            Some(deactivateImplant(implant, slot))
+          case (Some(implant), slot) if !implant.initialized && implantTimers(slot).isCancelled =>
+            //restart stopped/unstarted initialization process
+            Some(reinitializeImplant(implant, slot))
+          case (implantOpt, _) =>
+            //fine as is
+            implantOpt
+        }
+      )
+    )
   }
 
   def resetSupportExperienceTimer(previousBep: Long, previousDelay: Long): Unit = {

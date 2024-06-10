@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
-import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, MailMessage, ObjectDetectedMessage, SessionStatistic}
+import net.psforever.packet.game.{AvatarImplantMessage, CampaignStatistic, ChangeFireStateMessage_Start, ImplantAction, MailMessage, ObjectDetectedMessage, SessionStatistic}
 import net.psforever.services.chat.DefaultChannel
 
 import scala.collection.mutable
@@ -918,7 +918,7 @@ class ZoningOperations(
   def beginZoningCountdown(runnable: Runnable): Unit = {
     val descriptor = zoningType.toString.toLowerCase
     if (zoningStatus == Zoning.Status.Request) {
-      avatarActor ! AvatarActor.DeactivateActiveImplants()
+      avatarActor ! AvatarActor.DeactivateActiveImplants
       zoningStatus = Zoning.Status.Countdown
       val (time, origin) = ZoningStartInitialMessageAndTimer()
       zoningCounter = time
@@ -2047,8 +2047,6 @@ class ZoningOperations(
       sessionLogic.persist = UpdatePersistenceAndRefs
       tplayer.avatar = avatar
       session = session.copy(player = tplayer)
-      avatarActor ! AvatarActor.CreateImplants()
-      avatarActor ! AvatarActor.InitializeImplants()
       //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
       val weaponsEnabled = !(mapName.equals("map11") || mapName.equals("map12") || mapName.equals("map13"))
       sendResponse(LoadMapMessage(mapName, id, 40100, 25, weaponsEnabled, map.checksum))
@@ -2264,7 +2262,7 @@ class ZoningOperations(
       val armor  = player.Armor
       val events = continent.VehicleEvents
       val zoneid = continent.id
-      avatarActor ! AvatarActor.ResetImplants()
+      avatarActor ! AvatarActor.SoftResetImplants
       player.Spawn()
       if (health != 0) {
         player.Health = health
@@ -2492,7 +2490,7 @@ class ZoningOperations(
       // workaround to make sure player is spawned with full stamina
       player.avatar = player.avatar.copy(stamina = avatar.maxStamina)
       avatarActor ! AvatarActor.RestoreStamina(avatar.maxStamina)
-      avatarActor ! AvatarActor.ResetImplants()
+      avatarActor ! AvatarActor.DeinitializeImplants
       zones.exp.ToDatabase.reportRespawns(tplayer.CharId, ScoreCard.reviveCount(player.avatar.scorecard.CurrentLife))
       val obj = Player.Respawn(tplayer)
       DefinitionUtil.applyDefaultLoadout(obj)
@@ -2794,9 +2792,9 @@ class ZoningOperations(
           // new player is spawning
           val newPlayer = RespawnClone(player)
           newPlayer.LogActivity(SpawningActivity(PlayerSource(newPlayer), toZoneNumber, toSpawnPoint))
-          LoadZoneAsPlayUsing(newPlayer, pos, ori, toSide, zoneId)
+          LoadZoneAsPlayerUsing(newPlayer, pos, ori, toSide, zoneId)
         } else {
-          avatarActor ! AvatarActor.DeactivateActiveImplants()
+          avatarActor ! AvatarActor.DeactivateActiveImplants
           val betterSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity with InGameHistory => o }
           interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
             case Some(vehicle: Vehicle) => // driver or passenger in vehicle using a warp gate, or a droppod
@@ -2813,11 +2811,11 @@ class ZoningOperations(
                 AvatarAction.ObjectDelete(player_guid, player_guid, 4)
               )
               InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
-              LoadZoneAsPlayUsing(player, pos, ori, toSide, zoneId)
+              LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
 
             case _ => //player is logging in
               InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
-              LoadZoneAsPlayUsing(player, pos, ori, toSide, zoneId)
+              LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
           }
         }
       }
@@ -2831,7 +2829,7 @@ class ZoningOperations(
      * @param onThisSide description of the containing environment
      * @param goingToZone common designation for the zone
      */
-    private def LoadZoneAsPlayUsing(
+    private def LoadZoneAsPlayerUsing(
                                      target: Player,
                                      position: Vector3,
                                      orientation: Vector3,
@@ -2958,9 +2956,22 @@ class ZoningOperations(
         tplayer.Actor ! JammableUnit.ClearJammeredStatus()
         tplayer.Actor ! JammableUnit.ClearJammeredSound()
       }
+      avatarActor ! AvatarActor.SoftResetImplants
+      tavatar.implants.zipWithIndex.collect {
+        case (Some(implant), slot) if !implant.initialized =>
+          sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 0))
+      }
+//      tavatar.implants.zipWithIndex.collect {
+//        case (Some(implant), slot) if implant.active && implant.definition.Passive =>
+//          sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1))
+//          sendResponse(AvatarImplantMessage(guid, ImplantAction.Activation, slot, 1))
+//        case (Some(implant), slot) if implant.initialized =>
+//          sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1))
+//        case (Some(implant), _) =>
+//          () //avatarActor ! AvatarActor.ResetImplant(implant.definition.implantType)
+//      }
       val originalDeadState = deadState
       deadState = DeadState.Alive
-      avatarActor ! AvatarActor.ResetImplants()
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))
       initializeShortcutsAndBank(guid, tavatar.shortcuts)
       //Favorites lists
@@ -3588,10 +3599,7 @@ class ZoningOperations(
 
     def startDeconstructing(obj: SpawnTube): Unit = {
       log.info(s"${player.Name} is deconstructing at the ${obj.Owner.Definition.Name}'s spawns")
-      avatar.implants.collect {
-        case Some(implant) if implant.active && !implant.definition.Passive =>
-          avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
-      }
+      avatarActor ! AvatarActor.DeactivateActiveImplants
       if (player.ExoSuit != ExoSuitType.MAX) {
         player.Actor ! PlayerControl.ObjectHeld(Player.HandsDownSlot, updateMyHolsterArm = true)
       }

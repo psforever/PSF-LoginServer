@@ -11,6 +11,7 @@ import net.psforever.objects.serverobject.environment.interaction.common.Watery.
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
+import net.psforever.packet.game.ImplantAction
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
 import net.psforever.types.{ExoSuitType, ExperienceType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
 
@@ -27,6 +28,7 @@ object AvatarAction {
   sealed trait Action
 
   final case class ArmorChanged(player_guid: PlanetSideGUID, suit: ExoSuitType.Value, subtype: Int) extends Action
+  final case class AvatarImplant(player_guid: PlanetSideGUID, action: ImplantAction.Value, implantSlot: Int, status: Int) extends Action
   final case class ChangeAmmo(
       player_guid: PlanetSideGUID,
       weapon_guid: PlanetSideGUID,

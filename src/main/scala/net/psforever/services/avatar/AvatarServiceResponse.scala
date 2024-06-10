@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.environment.interaction.common.Watery.
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.packet.game.ObjectCreateMessage
+import net.psforever.packet.game.{ImplantAction, ObjectCreateMessage}
 import net.psforever.types.{ExoSuitType, ExperienceType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.GenericEventBusMsg
 
@@ -24,6 +24,7 @@ object AvatarResponse {
   sealed trait Response
 
   final case class ArmorChanged(suit: ExoSuitType.Value, subtype: Int) extends Response
+  final case class AvatarImplant(action: ImplantAction.Value, implantSlot: Int, status: Int) extends Response
   final case class ChangeAmmo(
       weapon_guid: PlanetSideGUID,
       weapon_slot: Int,

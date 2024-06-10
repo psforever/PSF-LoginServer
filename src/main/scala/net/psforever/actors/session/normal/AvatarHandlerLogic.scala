@@ -3,6 +3,8 @@ package net.psforever.actors.session.normal
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.support.AvatarHandlerFunctions
+import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
+import net.psforever.types.ImplantType
 
 import scala.concurrent.duration._
 //
@@ -154,6 +156,37 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
             ops.lastSeenStreamMessage.put(guid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, wasShooting, lastTime))
           }
         }
+
+      case AvatarResponse.AvatarImplant(ImplantAction.Add, implant_slot, value)
+        if value == ImplantType.SecondWind.value =>
+        sendResponse(AvatarImplantMessage(resolvedPlayerGuid, ImplantAction.Add, implant_slot, 7))
+        //second wind does not normally load its icon into the shortcut hotbar
+        avatar
+          .shortcuts
+          .zipWithIndex
+          .find { case (s, _) => s.isEmpty}
+          .foreach { case (_, index) =>
+            sendResponse(CreateShortcutMessage(resolvedPlayerGuid, index + 1, Some(ImplantType.SecondWind.shortcut)))
+          }
+
+      case AvatarResponse.AvatarImplant(ImplantAction.Remove, implant_slot, value)
+        if value == ImplantType.SecondWind.value =>
+        sendResponse(AvatarImplantMessage(resolvedPlayerGuid, ImplantAction.Remove, implant_slot, value))
+        //second wind does not normally unload its icon from the shortcut hotbar
+        val shortcut = {
+          val imp = ImplantType.SecondWind.shortcut
+          net.psforever.objects.avatar.Shortcut(imp.code, imp.tile) //case class
+        }
+        avatar
+          .shortcuts
+          .zipWithIndex
+          .find { case (s, _) => s.contains(shortcut) }
+          .foreach { case (_, index) =>
+            sendResponse(CreateShortcutMessage(resolvedPlayerGuid, index + 1, None))
+          }
+
+      case AvatarResponse.AvatarImplant(action, implant_slot, value) =>
+        sendResponse(AvatarImplantMessage(resolvedPlayerGuid, action, implant_slot, value))
 
       case AvatarResponse.ObjectHeld(slot, _)
         if isSameTarget && player.VisibleSlots.contains(slot) =>

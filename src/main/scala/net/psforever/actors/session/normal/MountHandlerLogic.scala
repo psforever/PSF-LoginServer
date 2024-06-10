@@ -450,7 +450,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
     val playerGuid: PlanetSideGUID = tplayer.GUID
     val objGuid: PlanetSideGUID    = obj.GUID
     sessionLogic.actionsToCancel()
-    avatarActor ! AvatarActor.DeactivateActiveImplants()
+    avatarActor ! AvatarActor.DeactivateActiveImplants
     avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)
     sendResponse(ObjectAttachMessage(objGuid, playerGuid, seatNum))
     continent.VehicleEvents ! VehicleServiceMessage(

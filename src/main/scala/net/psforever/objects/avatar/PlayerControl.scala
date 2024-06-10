@@ -476,7 +476,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   Deployables.initializeConstructionItem(player.avatar.certifications, citem)
               }
               //deactivate non-passive implants
-              avatarActor ! AvatarActor.DeactivateActiveImplants()
+              avatarActor ! AvatarActor.DeactivateActiveImplants
               val zone = player.Zone
               zone.AvatarEvents ! AvatarServiceMessage(
                 zone.id,
@@ -659,7 +659,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       afterHolsters.foreach(elem => player.Slot(elem.start).Equipment = elem.obj)
       afterInventory.foreach(elem => player.Inventory.InsertQuickly(elem.start, elem.obj))
       //deactivate non-passive implants
-      avatarActor ! AvatarActor.DeactivateActiveImplants()
+      avatarActor ! AvatarActor.DeactivateActiveImplants
       player.Zone.AvatarEvents ! AvatarServiceMessage(
         player.Zone.id,
         AvatarAction.ChangeExosuit(
@@ -944,7 +944,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     CancelJammeredSound(target)
     super.CancelJammeredStatus(target)
     //uninitialize implants
-    avatarActor ! AvatarActor.DeinitializeImplants()
+    avatarActor ! AvatarActor.DeinitializeImplants
 
     //log historical event
     target.LogActivity(cause)
@@ -1073,13 +1073,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     * @param dur the duration of the timer, in milliseconds
     */
   override def StartJammeredStatus(target: Any, dur: Int): Unit = {
-    avatarActor ! AvatarActor.DeinitializeImplants()
+    avatarActor ! AvatarActor.DeinitializeImplants
     avatarActor ! AvatarActor.SuspendStaminaRegeneration(5 seconds)
     super.StartJammeredStatus(target, dur)
   }
 
   override def CancelJammeredStatus(target: Any): Unit = {
-    avatarActor ! AvatarActor.InitializeImplants()
+    avatarActor ! AvatarActor.SoftResetImplants
     super.CancelJammeredStatus(target)
   }
 

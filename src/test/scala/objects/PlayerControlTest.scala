@@ -544,8 +544,8 @@ class PlayerControlDeathStandingTest extends ActorTest {
       )
       assert(
         msg_stamina match {
-          case AvatarActor.DeinitializeImplants() => true
-          case _                                  => false
+          case AvatarActor.DeinitializeImplants => true
+          case _                                => false
         }
       )
       assert(
@@ -685,8 +685,8 @@ class PlayerControlDeathStandingTest extends ActorTest {
 //      activityProbe.expectNoMessage(200 milliseconds)
 //      assert(
 //        msg_stamina match {
-//          case AvatarActor.DeinitializeImplants() => true
-//          case _                                  => false
+//          case AvatarActor.DeinitializeImplants => true
+//          case _                                => false
 //        }
 //      )
 //      assert(
