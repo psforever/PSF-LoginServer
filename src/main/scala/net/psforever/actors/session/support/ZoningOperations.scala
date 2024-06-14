@@ -2957,19 +2957,6 @@ class ZoningOperations(
         tplayer.Actor ! JammableUnit.ClearJammeredSound()
       }
       avatarActor ! AvatarActor.SoftResetImplants
-      tavatar.implants.zipWithIndex.collect {
-        case (Some(implant), slot) if !implant.initialized =>
-          sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 0))
-      }
-//      tavatar.implants.zipWithIndex.collect {
-//        case (Some(implant), slot) if implant.active && implant.definition.Passive =>
-//          sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1))
-//          sendResponse(AvatarImplantMessage(guid, ImplantAction.Activation, slot, 1))
-//        case (Some(implant), slot) if implant.initialized =>
-//          sendResponse(AvatarImplantMessage(guid, ImplantAction.Initialization, slot, 1))
-//        case (Some(implant), _) =>
-//          () //avatarActor ! AvatarActor.ResetImplant(implant.definition.implantType)
-//      }
       val originalDeadState = deadState
       deadState = DeadState.Alive
       sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 82, 0))

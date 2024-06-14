@@ -837,6 +837,24 @@ object AvatarActor {
               _.useCooldowns      -> lift(buildClobfromCooldowns(avatar.cooldowns.use))
             )
         )
+        lazy val curr = System.currentTimeMillis()
+        avatar
+          .implants
+          .collect {
+            case Some(implant) if implant.timer > 0 =>
+              (implant.definition.Name, math.max(0L, (implant.timer - curr) / 1000L).toInt)
+            case Some(implant) =>
+              (implant.definition.Name, 0)
+          }
+          .foreach {
+            case (name, delay) =>
+              ctx.run(
+                query[persistence.Implant]
+                  .filter { _.avatarId == lift(avatarId) }
+                  .filter { _.name.equals(lift(name)) }
+                  .update { _.timer -> lift(delay) }
+              )
+          }
         out.completeWith(Future(1))
       case _ =>
         out.completeWith(Future(0))
@@ -997,6 +1015,16 @@ object AvatarActor {
       avatar.cep,
       decoration = ProgressDecoration(cosmetics = convertedCosmetics)
     )
+  }
+
+  private def initializationTime(implant: Implant): FiniteDuration = {
+    val timer = implant.timer
+    val normalDuration = implant.definition.InitializationDuration
+    (if (timer == 0) {
+      normalDuration
+    } else {
+      math.max(0L, (timer - System.currentTimeMillis()) / 1000L)
+    }).seconds
   }
 }
 
@@ -1809,11 +1837,21 @@ class AvatarActor(
     } yield (certs, implants, locker, debt)
     result.onComplete {
       case Success((certs, implants, lockerInv, debt)) =>
+        val curr = System.currentTimeMillis()
         avatarCopy(
           avatar.copy(
             certifications =
               certs.map(cert => Certification.withValue(cert.id)).toSet ++ Config.app.game.baseCertifications,
-            implants = implants.map(implant => Some(Implant(implant.toImplantDefinition))).padTo(3, None),
+            implants = implants.map { imp =>
+              val timerEqualsZero = imp.timer == 0
+              val initTimer: Long = if (timerEqualsZero) {
+                0L
+              } else {
+                curr + imp.timer * 1000L //convert from seconds to milliseconds time in future
+              }
+              val definition = imp.toImplantDefinition
+              Some(Implant(definition, initialized = timerEqualsZero, timer = initTimer, active = timerEqualsZero && definition.Passive))
+            }.padTo(3, None),
             locker = lockerInv
           )
         )
@@ -1983,8 +2021,7 @@ class AvatarActor(
       } else if (becomeFatigued) {
         avatarCopy(avatar.copy(implants = avatar.implants.zipWithIndex.collect {
           case (Some(implant), slot) if implant.active =>
-            implantTimers.lift(slot).foreach(_.cancel())
-            implantTimers.update(slot, Default.Cancellable)
+            cancelImplantInitializedTimer(slot)
             Some(implant.copy(active = false))
           case (out, _) =>
             out
@@ -3249,7 +3286,8 @@ class AvatarActor(
           ItemTransactionResultMessage(terminalGuid, TransactionType.Buy, success = true)
         )
         findImplantByType(definition.implantType).foreach {
-          case (implant, slot) => updateAvatarForImplant(implant, slot, initializeImplant(implant.definition.InitializationDuration.seconds))
+          case (implant, slot) =>
+            updateAvatarForImplant(implant, slot, initializeImplant(AvatarActor.initializationTime(implant)))
         }
         sessionActor ! SessionActor.CharSaved
       case _ =>
@@ -3365,7 +3403,7 @@ class AvatarActor(
             Some(implant.definition.implantType.shortcut)
           )
         )
-        initializeImplant(implant.definition.InitializationDuration.seconds)(implant, slot)
+        initializeImplant(AvatarActor.initializationTime(implant))(implant, slot)
       case (None, _) => ()
     }
   }
@@ -3385,20 +3423,37 @@ class AvatarActor(
       session.get.zone.id,
       AvatarAction.AvatarImplant(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
     )
-    initializeImplant(implant.definition.InitializationDuration.seconds)(implant, slot)
+    initializeImplant(AvatarActor.initializationTime(implant))(implant, slot)
   }
 
   private def initializeImplant(delay: FiniteDuration)(implant: Implant, slot: Int): Implant = {
+    val curr = System.currentTimeMillis()
+    val implantTimer = implant.timer
+    val (actualDelay, futureDelay, actionProgress): (FiniteDuration, Long, Long) = if (
+      implantTimer > 0 &&
+        implantTimers.lift(slot).exists(_.isCancelled)
+    ) {
+      val countedDelay = math.max(0L, (implantTimer - curr) / 1000L)
+      val fullNormalDelay = implant.definition.InitializationDuration
+      val progress = if (countedDelay > fullNormalDelay) {
+        0L
+      } else {
+        (100f * ((fullNormalDelay - countedDelay).toFloat / fullNormalDelay.toFloat)).toLong
+      }
+      (countedDelay.seconds, implantTimer, progress)
+    } else {
+      (delay, curr + delay.toMillis, 0L)
+    }
     //start initialization process
-    setImplantInitializedTimer(implant, slot, delay)
-    // Start client side initialization timer, visible on the character screen
+    setImplantInitializedTimer(implant, slot, actualDelay)
+    // Start clien t side initialization timer, visible on the character screen
     // Progress accumulates according to the client's knowledge of the implant initialization time
-    // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s\
+    // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s
     session.get.zone.AvatarEvents ! AvatarServiceMessage(
       avatar.name,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 0))
+      AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, actionProgress))
     )
-    implant.copy(initialized = false, active = false)
+    implant.copy(initialized = false, active = false, timer = futureDelay)
   }
 
   private def deinitializeImplants(): Unit = {
@@ -3421,7 +3476,12 @@ class AvatarActor(
       session.get.zone.id,
       AvatarAction.AvatarImplant(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
     )
-    implant.copy(initialized = false, active = false)
+    //can not formally stop the initialization time on the character information window; set it to 100 to make it look blank
+    session.get.zone.AvatarEvents ! AvatarServiceMessage(
+      avatar.name,
+      AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 100))
+    )
+    implant.copy(initialized = false, active = false, timer = 0L)
   }
 
   private def setImplantInitialized(implantType: ImplantType): Unit = {
@@ -3429,15 +3489,17 @@ class AvatarActor(
       .collect {
         case (implant, slot) =>
           sendAvatarImplantMessageToSelf(session.get.player.GUID, ImplantAction.Initialization, slot, value = 1)
+          cancelImplantInitializedTimer(slot)
           avatarCopy(avatar.copy(implants = avatar.implants.map {
             case Some(implant)
               if implant.definition.implantType == implantType && implant.definition.Passive =>
               activateImplantPackets(implant, slot)
-              Some(implant.copy(initialized = true, active = true))
+              Some(implant.copy(initialized = true, active = true, timer = 0))
             case Some(implant)
               if implant.definition.implantType == implantType =>
-              Some(implant.copy(initialized = true))
-            case other => other
+              Some(implant.copy(initialized = true, timer = 0))
+            case other =>
+              other
           }))
           Some(implant)
       }
@@ -3454,6 +3516,11 @@ class AvatarActor(
       context.self,
       SetImplantInitialized(implant.definition.implantType)
     ))
+  }
+
+  private def cancelImplantInitializedTimer(slot: Int): Unit = {
+    implantTimers.lift(slot).foreach(_.cancel())
+    implantTimers.update(slot, Default.Cancellable)
   }
 
   private def deactivateImplant(implantType: ImplantType): Unit = {
@@ -3478,8 +3545,7 @@ class AvatarActor(
   }
 
   private def deactivateImplant(implant: Implant, slot: Int): Implant = {
-    implantTimers.lift(slot).foreach(_.cancel())
-    implantTimers.update(slot, Default.Cancellable)
+    cancelImplantInitializedTimer(slot)
     // Deactivation sound / effect
     session.get.zone.AvatarEvents ! AvatarServiceMessage(
       session.get.zone.id,

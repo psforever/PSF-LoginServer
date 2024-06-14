@@ -5,7 +5,8 @@ import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalDefin
 
 case class Implant(
     name: String,
-    avatarId: Int
+    avatarId: Int,
+    timer: Int = 0 //seconds to initialize
 ) {
   def toImplantDefinition: ImplantDefinition = {
     ImplantTerminalDefinition.implants(name)
