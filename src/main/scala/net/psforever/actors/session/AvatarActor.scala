@@ -1477,7 +1477,7 @@ class AvatarActor(
           Behaviors.same
 
         case SetImplantInitialized(implantType) =>
-          setImplantInitialized(implantType)
+          actuallyInitializeImplant(implantType)
           Behaviors.same
 
         case ActivateImplant(implantType) =>
@@ -1493,7 +1493,7 @@ class AvatarActor(
           Behaviors.same
 
         case InitializeImplants =>
-          initializeImplants()
+          startInitializeImplants()
           Behaviors.same
 
         case DeinitializeImplants =>
@@ -1501,7 +1501,7 @@ class AvatarActor(
           Behaviors.same
 
         case ResetImplant(implantType) =>
-          reinitializeImplant(implantType)
+          startReinitializeImplant(implantType)
           Behaviors.same
 
         case SoftResetImplants =>
@@ -3287,7 +3287,7 @@ class AvatarActor(
         )
         findImplantByType(definition.implantType).foreach {
           case (implant, slot) =>
-            updateAvatarForImplant(implant, slot, initializeImplant(AvatarActor.initializationTime(implant)))
+            updateAvatarForImplant(implant, slot, startInitializeImplant(AvatarActor.initializationTime(implant)))
         }
         sessionActor ! SessionActor.CharSaved
       case _ =>
@@ -3391,7 +3391,7 @@ class AvatarActor(
     avatarCopy(avatar.copy(implants = avatar.implants.updated(slot, None)))
   }
 
-  private def initializeImplants(): Unit = {
+  private def startInitializeImplants(): Unit = {
     avatar.implants.zipWithIndex.foreach {
       case (Some(implant), slot) =>
         // TODO if this implant is Installed but does not have shortcut, add to a free slot or write over slot 61/62/63
@@ -3403,57 +3403,54 @@ class AvatarActor(
             Some(implant.definition.implantType.shortcut)
           )
         )
-        initializeImplant(AvatarActor.initializationTime(implant))(implant, slot)
+        startInitializeImplant(AvatarActor.initializationTime(implant))(implant, slot)
       case (None, _) => ()
     }
   }
 
-  private def reinitializeImplant(implantType: ImplantType): Unit = {
+  private def startReinitializeImplant(implantType: ImplantType): Unit = {
     findImplantByType(implantType).collect {
       case (implant, slot) if implant.active =>
-        updateAvatarForImplant(deactivateImplant(implant, slot), slot, reinitializeImplant)
+        updateAvatarForImplant(deactivateImplant(implant, slot), slot, startReinitializeImplant)
       case (implant, slot) =>
-        updateAvatarForImplant(implant, slot, reinitializeImplant)
+        updateAvatarForImplant(implant, slot, startReinitializeImplant)
     }
   }
 
-  private def reinitializeImplant(implant: Implant, slot: Int): Implant = {
+  private def startReinitializeImplant(implant: Implant, slot: Int): Implant = {
     //deinitialize
     session.get.zone.AvatarEvents ! AvatarServiceMessage(
       session.get.zone.id,
       AvatarAction.AvatarImplant(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
     )
-    initializeImplant(AvatarActor.initializationTime(implant))(implant, slot)
+    startInitializeImplant(AvatarActor.initializationTime(implant))(implant, slot)
   }
 
-  private def initializeImplant(delay: FiniteDuration)(implant: Implant, slot: Int): Implant = {
-    val curr = System.currentTimeMillis()
-    val implantTimer = implant.timer
-    val (actualDelay, futureDelay, actionProgress): (FiniteDuration, Long, Long) = if (
-      implantTimer > 0 &&
-        implantTimers.lift(slot).exists(_.isCancelled)
-    ) {
-      val countedDelay = math.max(0L, (implantTimer - curr) / 1000L)
-      val fullNormalDelay = implant.definition.InitializationDuration
-      val progress = if (countedDelay > fullNormalDelay) {
-        0L
+  private def startInitializeImplant(delay: FiniteDuration)(implant: Implant, slot: Int): Implant = {
+    if (implantTimers.lift(slot).exists(_.isCancelled)) {
+      val curr = System.currentTimeMillis()
+      val implantTimer = implant.timer
+      val (actualDelay, futureDelay, actionProgress): (FiniteDuration, Long, Long) = if (implantTimer > curr) {
+        val countedDelay = math.max(0L, (implantTimer - curr) / 1000L)
+        val fullNormalDelay = implant.definition.InitializationDuration.toFloat
+        val progress = (100f * ((fullNormalDelay - countedDelay.toFloat) / fullNormalDelay)).toLong
+        (countedDelay.seconds, implantTimer, progress)
       } else {
-        (100f * ((fullNormalDelay - countedDelay).toFloat / fullNormalDelay.toFloat)).toLong
+        (delay, curr + delay.toMillis, 0L)
       }
-      (countedDelay.seconds, implantTimer, progress)
+      //start initialization process
+      setImplantInitializedTimer(implant, slot, actualDelay)
+      // Start client-side initialization timer, visible on the character screen
+      // Progress accumulates according to the client's knowledge of the implant initialization time
+      // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s
+      session.get.zone.AvatarEvents ! AvatarServiceMessage(
+        avatar.name,
+        AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, actionProgress))
+      )
+      implant.copy(initialized = false, active = false, timer = futureDelay)
     } else {
-      (delay, curr + delay.toMillis, 0L)
+      implant
     }
-    //start initialization process
-    setImplantInitializedTimer(implant, slot, actualDelay)
-    // Start clien t side initialization timer, visible on the character screen
-    // Progress accumulates according to the client's knowledge of the implant initialization time
-    // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s
-    session.get.zone.AvatarEvents ! AvatarServiceMessage(
-      avatar.name,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, actionProgress))
-    )
-    implant.copy(initialized = false, active = false, timer = futureDelay)
   }
 
   private def deinitializeImplants(): Unit = {
@@ -3484,7 +3481,7 @@ class AvatarActor(
     implant.copy(initialized = false, active = false, timer = 0L)
   }
 
-  private def setImplantInitialized(implantType: ImplantType): Unit = {
+  private def actuallyInitializeImplant(implantType: ImplantType): Unit = {
     findImplantByType(implantType)
       .collect {
         case (implant, slot) =>
@@ -3660,7 +3657,7 @@ class AvatarActor(
             Some(deactivateImplant(implant, slot))
           case (Some(implant), slot) if !implant.initialized && implantTimers(slot).isCancelled =>
             //restart stopped/unstarted initialization process
-            Some(reinitializeImplant(implant, slot))
+            Some(startReinitializeImplant(implant, slot))
           case (implantOpt, _) =>
             //fine as is
             implantOpt

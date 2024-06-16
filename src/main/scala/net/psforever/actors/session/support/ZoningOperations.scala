@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
-import net.psforever.packet.game.{AvatarImplantMessage, CampaignStatistic, ChangeFireStateMessage_Start, ImplantAction, MailMessage, ObjectDetectedMessage, SessionStatistic}
+import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, MailMessage, ObjectDetectedMessage, SessionStatistic}
 import net.psforever.services.chat.DefaultChannel
 
 import scala.collection.mutable
