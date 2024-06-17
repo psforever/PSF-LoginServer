@@ -14,7 +14,7 @@ import akka.{actor => classic}
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
 import io.sentry.{Sentry, SentryOptions}
-import net.psforever.actors.net.{LoginActor, MiddlewareActor, SocketActor}
+import net.psforever.actors.net.{LoginActor, MiddlewareActor, SocketActor, SocketPane}
 import net.psforever.actors.session.SessionActor
 import net.psforever.login.psadmin.PsAdminActor
 import net.psforever.login._
@@ -99,7 +99,7 @@ object Server {
     Default(system)
 
     // typed to classic wrappers for login and session actors
-    val login = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
+    val loginPlan = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
       import net.psforever.services.account.IPAddress
       Behaviors.setup[PlanetSidePacket](context => {
         val actor = context.actorOf(classic.Props(new LoginActor(ref, connectionId, Login.getNewId())), "login")
@@ -110,7 +110,7 @@ object Server {
         })
       })
     }
-    val session = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
+    val sessionPlan = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
       Behaviors.setup[PlanetSidePacket](context => {
         val uuid = randomUUID().toString
         val actor =
@@ -135,8 +135,8 @@ object Server {
     system.spawn(InterstellarClusterService(zones), InterstellarClusterService.InterstellarClusterServiceKey.id)
     system.spawn(ChatService(), ChatService.ChatServiceKey.id)
 
-    system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.login.port), login), "login-socket")
-    system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.world.port), session), "world-socket")
+    system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.login.port), loginPlan), "login-socket")
+    system.spawn(SocketPane(bindAddress, sessionPlan), "world-socket-pane")
 
     val adminListener = system.actorOf(
       classic.Props(

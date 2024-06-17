@@ -23,14 +23,13 @@ import scala.util.{Failure, Success}
 
 /*
 object LoginActor {
-  def apply(
+  /ef apply(
       middlewareActor: typed.ActorRef[MiddlewareActor.Command],
       uuid: String
   ): Behavior[Command] =
     Behaviors.setup(context => new LoginActor(context, middlewareActor, uuid).start())
 
   sealed trait Command
-
 }
 
 class LoginActor(
@@ -42,7 +41,6 @@ class LoginActor(
     Behaviors.receiveMessagePartial {}
   }
 }
-
  */
 
 class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
@@ -110,7 +108,11 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _, _) =>
         log.info(s"Connect to world request for '$name'")
-        val response = ConnectToWorldMessage(serverName, publicAddress.getAddress.getHostAddress, publicAddress.getPort)
+        val response = ConnectToWorldMessage(
+          serverName,
+          publicAddress.getAddress.getHostAddress,
+          SocketPane.Rotation.NextPort
+        )
         middlewareActor ! MiddlewareActor.Send(response)
         middlewareActor ! MiddlewareActor.Close()
 

@@ -104,6 +104,7 @@ case class LoginConfig(
 
 case class WorldConfig(
     port: Int,
+    ports: Seq[Int],
     serverName: String,
     serverType: ServerType
 )

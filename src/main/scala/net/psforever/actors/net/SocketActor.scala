@@ -4,7 +4,6 @@ import java.net.InetSocketAddress
 import java.security.SecureRandom
 import java.util.UUID.randomUUID
 import java.util.concurrent.ThreadLocalRandom
-
 import akka.actor.Cancellable
 import akka.{actor => classic}
 import akka.actor.typed.{ActorRef, ActorTags, Behavior, PostStop, Terminated}
@@ -25,15 +24,15 @@ import scala.util.Random
   */
 object SocketActor {
   def apply(
-      address: InetSocketAddress,
-      next: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String) => Behavior[PlanetSidePacket]
-  ): Behavior[Command] =
-    Behaviors.setup(context => new SocketActor(context, address, next).start())
+             address: InetSocketAddress,
+             nextPlan: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String) => Behavior[PlanetSidePacket]
+           ): Behavior[Command] =
+    Behaviors.setup(context => new SocketActor(context, address, nextPlan).start())
 
   sealed trait Command
 
-  private final case class UdpCommandMessage(message: Udp.Command)           extends Command
-  private final case class UdpEventMessage(message: Udp.Event)               extends Command
+  private[net] final case class UdpCommandMessage(message: Udp.Command)           extends Command
+  private[net] final case class UdpEventMessage(message: Udp.Event)               extends Command
   private final case class UdpUnboundMessage(message: Udp.Unbound)           extends Command
   private final case class Bound(socket: classic.ActorRef)                   extends Command
   private final case class StopChild(ref: ActorRef[MiddlewareActor.Command]) extends Command
@@ -48,59 +47,59 @@ object SocketActor {
         context.system.terminate()
     }
   }
+}
 
-  // TODO? This doesn't quite support all parameters of the old network simulator
-  // Need to decide wheter they are necessary or not
-  // https://github.com/psforever/PSF-LoginServer/blob/07f447c2344ab55d581317316c41571772ac2242/src/main/scala/net/psforever/login/UdpNetworkSimulator.scala
-  private object NetworkSimulator {
-    def apply(socketActor: ActorRef[SocketActor.Command]): Behavior[Udp.Message] =
-      Behaviors.setup(context => new NetworkSimulator(context, socketActor))
+// TODO? This doesn't quite support all parameters of the old network simulator
+// Need to decide wheter they are necessary or not
+// https://github.com/psforever/PSF-LoginServer/blob/07f447c2344ab55d581317316c41571772ac2242/src/main/scala/net/psforever/login/UdpNetworkSimulator.scala
+private object NetworkSimulator {
+  def apply(socketActor: ActorRef[SocketActor.Command]): Behavior[Udp.Message] =
+    Behaviors.setup(context => new NetworkSimulator(context, socketActor))
+}
+
+private class NetworkSimulator(context: ActorContext[Udp.Message], socketActor: ActorRef[SocketActor.Command])
+  extends AbstractBehavior[Udp.Message](context) {
+
+  private[this] val log = org.log4s.getLogger
+
+  override def onMessage(message: Udp.Message): Behavior[Udp.Message] = {
+    message match {
+      case _: Udp.Received | _: Udp.Send =>
+        simulate(message)
+        Behaviors.same
+      case _ =>
+        socketActor ! toSocket(message)
+        Behaviors.same
+    }
   }
 
-  private class NetworkSimulator(context: ActorContext[Udp.Message], socketActor: ActorRef[SocketActor.Command])
-      extends AbstractBehavior[Udp.Message](context) {
-
-    private[this] val log = org.log4s.getLogger
-
-    override def onMessage(message: Udp.Message): Behavior[Udp.Message] = {
-      message match {
-        case _: Udp.Received | _: Udp.Send =>
-          simulate(message)
-          Behaviors.same
-        case _ =>
-          socketActor ! toSocket(message)
-          Behaviors.same
-      }
-    }
-
-    def simulate(message: Udp.Message): Unit = {
-      if (Random.nextDouble() > Config.app.development.netSim.loss) {
-        if (Random.nextDouble() <= Config.app.development.netSim.reorderChance) {
-          context.scheduleOnce(
-            ThreadLocalRandom.current().nextDouble(0.01, 0.2).seconds,
-            socketActor,
-            toSocket(message)
-          )
-        } else {
-          socketActor ! toSocket(message)
-        }
+  def simulate(message: Udp.Message): Unit = {
+    if (Random.nextDouble() > Config.app.development.netSim.loss) {
+      if (Random.nextDouble() <= Config.app.development.netSim.reorderChance) {
+        context.scheduleOnce(
+          ThreadLocalRandom.current().nextDouble(0.01, 0.2).seconds,
+          socketActor,
+          toSocket(message)
+        )
       } else {
-        log.trace("Network simulator dropped packet")
+        socketActor ! toSocket(message)
       }
+    } else {
+      log.trace("Network simulator dropped packet")
     }
-
-    def toSocket(message: Udp.Message): Command =
-      message match {
-        case message: Udp.Command => UdpCommandMessage(message)
-        case message: Udp.Event   => UdpEventMessage(message)
-      }
   }
+
+  def toSocket(message: Udp.Message): SocketActor.Command =
+    message match {
+      case message: Udp.Command => SocketActor.UdpCommandMessage(message)
+      case message: Udp.Event   => SocketActor.UdpEventMessage(message)
+    }
 }
 
 class SocketActor(
-    context: ActorContext[SocketActor.Command],
-    address: InetSocketAddress,
-    next: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String) => Behavior[PlanetSidePacket]
+                   context: ActorContext[SocketActor.Command],
+                   address: InetSocketAddress,
+                   nextPlan: (ActorRef[MiddlewareActor.Command], InetSocketAddress, String) => Behavior[PlanetSidePacket]
 ) {
   import SocketActor._
   import SocketActor.Command
@@ -183,7 +182,7 @@ class SocketActor(
                 case None =>
                   val connectionId = randomUUID.toString
                   val ref = context.spawn(
-                    MiddlewareActor(udpCommandAdapter, remote, next, connectionId),
+                    MiddlewareActor(udpCommandAdapter, remote, nextPlan, connectionId),
                     s"middleware-$connectionId",
                     ActorTags(s"uuid=$connectionId")
                   )
