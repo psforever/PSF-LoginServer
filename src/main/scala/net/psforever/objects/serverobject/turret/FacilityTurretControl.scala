@@ -67,7 +67,7 @@ class FacilityTurretControl(turret: FacilityTurret)
           sender() ! CommonMessages.Progress(
             1.25f,
             WeaponTurrets.FinishUpgradingMannedTurret(TurretObject, player, item, upgrade),
-            GenericHackables.TurretUpgradingTickAction(progressType = 2, player, TurretObject, item.GUID)
+            WeaponTurrets.TurretUpgradingTickAction(progressType = 2, player, TurretObject, item.GUID)
           )
       }
     case TurretUpgrader.UpgradeCompleted(_) =>

@@ -1,5 +1,7 @@
 package net.psforever.objects.definition
 
+import net.psforever.objects.vital.{DamagingActivity, InGameActivity, ShieldCharge}
+
 trait WithShields {
   /** ... */
   var shieldUiAttribute: Int = 68
@@ -7,6 +9,7 @@ trait WithShields {
   private var defaultShields : Option[Int] = None
   /** maximum vehicle shields (generally: 20% of health)
    * for normal vehicles, offered through amp station facility benefits
+   * for omft, gained in friendly soi (in which the turret may not be constructed)
    * for BFR's, it charges naturally
    **/
   private var maxShields: Int = 0
@@ -77,5 +80,22 @@ trait WithShields {
   def ShieldDrain_=(drain: Option[Int]): Option[Int] = {
     shieldDrain = drain
     ShieldDrain
+  }
+}
+
+object WithShields {
+  /**
+   * Determine if a given activity entry would invalidate the act of charging shields this tick.
+   * @param now the current time (in milliseconds)
+   * @param act a `VitalsActivity` entry to test
+   * @return `true`, if the shield charge would be blocked;
+   *        `false`, otherwise
+   */
+  def LastShieldChargeOrDamage(now: Long, vdef: WithShields)(act: InGameActivity): Boolean = {
+    act match {
+      case dact: DamagingActivity   => now - dact.time < vdef.ShieldDamageDelay //damage delays next charge
+      case vsc: ShieldCharge        => now - vsc.time < vdef.ShieldPeriodicDelay //previous charge delays next
+      case _                        => false
+    }
   }
 }

@@ -36,6 +36,7 @@ import net.psforever.objects.vital.{VehicleDismountActivity, VehicleMountActivit
 import net.psforever.objects.vital.collision.{CollisionReason, CollisionWithReason}
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.vital.interaction.DamageInteraction
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.{Zone, ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ObjectClass
@@ -116,9 +117,9 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       }
     }
     ops.fallHeightTracker(pos.z)
-    //    if (isCrouching && !player.Crouching) {
-    //      //dev stuff goes here
-    //    }
+//    if (isCrouching && !player.Crouching) {
+//      //dev stuff goes here
+//    }
     player.Position = pos
     player.Velocity = vel
     player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -821,19 +822,18 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     continent
       .GUID(vehicleGuid)
       .foreach {
-        case obj: Vehicle if !obj.Destroyed && obj.MountedIn.isEmpty => // vehicle will try to charge even if destroyed & cargo vehicles need to be excluded
-          obj.Actor ! CommonMessages.ChargeShields(
-            15,
-            Some(continent.blockMap.sector(obj).buildingList.maxBy(_.Definition.SOIRadius))
-          )
-        case obj: Vehicle if obj.MountedIn.nonEmpty =>
-          false
+        case obj: Vitality if obj.Destroyed => () //some entities will try to charge even if destroyed
+        case obj: Vehicle if obj.MountedIn.nonEmpty => () //cargo vehicles need to be excluded
+        case obj: Vehicle =>
+          commonFacilityShieldCharging(obj)
+        case obj: TurretDeployable =>
+          commonFacilityShieldCharging(obj)
         case _ if vehicleGuid.nonEmpty =>
           log.warn(
-            s"FacilityBenefitShieldChargeRequest: ${player.Name} can not find vehicle ${vehicleGuid.get.guid} in zone ${continent.id}"
+            s"FacilityBenefitShieldChargeRequest: ${player.Name} can not find chargeable entity ${vehicleGuid.get.guid} in ${continent.id}"
           )
         case _ =>
-          log.warn(s"FacilityBenefitShieldChargeRequest: ${player.Name} is not seated in a vehicle")
+          log.warn(s"FacilityBenefitShieldChargeRequest: ${player.Name} is not seated in anything")
       }
   }
 
@@ -1512,6 +1512,13 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         CollisionWithReason(CollisionReason(velocity, fallHeight, target.DamageModel), victimSource),
         targetPosition
       )
+    )
+  }
+
+  private def commonFacilityShieldCharging(obj: PlanetSideServerObject with BlockMapEntity): Unit = {
+    obj.Actor ! CommonMessages.ChargeShields(
+      15,
+      Some(continent.blockMap.sector(obj).buildingList.maxBy(_.Definition.SOIRadius))
     )
   }
 }

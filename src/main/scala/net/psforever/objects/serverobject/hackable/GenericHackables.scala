@@ -1,7 +1,6 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.hackable
 
-import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.packet.game.{HackMessage, HackState}
@@ -45,18 +44,18 @@ object GenericHackables {
       case hackable: Hackable => hackable.HackDuration(playerHackLevel).toFloat
       case _ =>
         log.warn(
-          s"${player.Name} tried to hack an object that has no hack time defined - ${obj.Definition.Name}#${obj.GUID} on ${obj.Zone.id}"
+          s"${player.Name} tried to hack an object that has no hack time defined - ${obj.Definition.Name}@${obj.GUID.guid} in ${obj.Zone.id}"
         )
         0f
     }
     if (timeToHack == 0) {
       log.warn(
-        s"${player.Name} tried to hack an object that they don't have the correct hacking level for - ${obj.Definition.Name}#${obj.GUID} on ${obj.Zone.id}"
+        s"${player.Name} tried to hack an object that they don't have the correct hacking level for - ${obj.Definition.Name}@${obj.GUID.guid} in ${obj.Zone.id}"
       )
       0f
     } else {
       //timeToHack is in seconds; progress is measured in quarters of a second (250ms)
-      (100f / timeToHack) / 4
+      25f / timeToHack
     }
   }
 
@@ -103,43 +102,6 @@ object GenericHackables {
         } else {
           HackMessage(progressType, target.GUID, tplayer.GUID, progress.toInt, 0L, vis, 8L)
         }
-      )
-    )
-    vis != HackState.Cancelled
-  }
-
-  /**
-    * Evaluate the progress of the user applying a tool to upgrade a facility turret.
-    * This action is using the nano dispenser and requires separate handling from REK hacking.
-    * Largely a copy/paste of the above, but some of it was removed as it doesn't work/apply with upgrading a turret.
-    * @see `HackMessage`
-    * @see `HackState`
-    * @param progressType 1 - remote electronics kit hack (various ...);
-    *                     2 - nano dispenser (upgrade canister) turret upgrade
-    * @param tplayer the player performing the action
-    * @param turret the object being affected
-    * @param tool_guid the tool being used to affest the object
-    * @param progress the current progress value
-    * @return `true`, if the next cycle of progress should occur;
-    *         `false`, otherwise
-    */
-  def TurretUpgradingTickAction(progressType: Int, tplayer: Player, turret: FacilityTurret, tool_guid: PlanetSideGUID)(
-    progress: Float
-  ): Boolean = {
-    //hack state for progress bar visibility
-    val vis = if (progress <= 0L) {
-      HackState.Start
-    } else if (progress >= 100L) {
-      HackState.Finished
-    } else {
-      updateTurretUpgradeTime()
-      HackState.Ongoing
-    }
-    turret.Zone.AvatarEvents ! AvatarServiceMessage(
-      tplayer.Name,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-          HackMessage(progressType, turret.GUID, tplayer.GUID, progress.toInt, 0L, vis, 8L)
       )
     )
     vis != HackState.Cancelled

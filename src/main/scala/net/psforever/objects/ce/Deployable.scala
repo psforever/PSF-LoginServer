@@ -31,9 +31,7 @@ trait BaseDeployable
     Shields
   }
 
-  def MaxShields: Int = {
-    0 //Definition.MaxShields
-  }
+  def MaxShields: Int = 0
 
   def MaxHealth: Int
 

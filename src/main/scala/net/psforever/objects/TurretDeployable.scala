@@ -2,25 +2,26 @@
 package net.psforever.objects
 
 import akka.actor.{Actor, ActorContext, ActorRef, Props}
-import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem, InteractWithTurrets}
-import net.psforever.objects.definition.DeployableDefinition
+import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployableCategory, DeployedItem, InteractWithTurrets}
+import net.psforever.objects.definition.{DeployableDefinition, WithShields}
 import net.psforever.objects.definition.converter.SmallTurretConverter
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
-import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.damage.Damageable
-import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.hackable.{GenericHackables, Hackable}
 import net.psforever.objects.serverobject.mount.{InteractWithRadiationCloudsSeatedInEntity, Mountable}
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
 import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
-import net.psforever.objects.serverobject.turret.{MountableTurretControl, TurretDefinition, WeaponTurret}
+import net.psforever.objects.serverobject.turret.{MountableTurretControl, TurretDefinition, WeaponTurret, WeaponTurrets}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
-import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
+import net.psforever.objects.vital.{InGameActivity, ShieldCharge, SimpleResolutions, StandardVehicleResistance}
 import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.packet.game.TriggeredSound
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
@@ -34,6 +35,9 @@ class TurretDeployable(tdef: TurretDeployableDefinition)
     with InteractsWithZone
     with StandardResistanceProfile
     with Hackable {
+  HackSound = TriggeredSound.HackVehicle
+  HackDuration = Array(0, 20, 10, 5)
+
   if (tdef.Seats.nonEmpty) {
     interaction(new InteractWithTurrets())
     interaction(new InteractWithRadiationCloudsSeatedInEntity(obj = this, range = 100f))
@@ -48,6 +52,10 @@ class TurretDeployable(tdef: TurretDeployableDefinition)
       .map(p => PlayerSource.inSeat(PlayerSource(p), SourceEntry(this), seatNumber=0))
       .orElse(Owners.map(PlayerSource(_, Position)))
       .getOrElse(SourceEntry(this))
+  }
+
+  override def MaxShields: Int = {
+    Definition.MaxShields
   }
 
   override def Definition: TurretDeployableDefinition = tdef
@@ -112,6 +120,20 @@ class TurretControl(turret: TurretDeployable)
       .orElse(automatedTurretBehavior)
       .orElse(takeAutomatedDamage)
       .orElse {
+        case CommonMessages.Use(player, Some(item: SimpleItem))
+          if item.Definition == GlobalDefinitions.remote_electronics_kit &&
+            turret.Definition.DeployCategory == DeployableCategory.FieldTurrets &&
+            turret.Faction != player.Faction =>
+          sender() ! CommonMessages.Progress(
+            GenericHackables.GetHackSpeed(player, turret),
+            WeaponTurrets.FinishHackingTurretDeployable(turret, player),
+            GenericHackables.HackingTickAction(progressType = 1, player, turret, item.GUID)
+          )
+
+        case CommonMessages.ChargeShields(amount, motivator)
+        if turret.Definition.DeployCategory == DeployableCategory.FieldTurrets=>
+          chargeShields(amount, motivator.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) })
+
         case _ => ()
       }
 
@@ -251,5 +273,23 @@ class TurretControl(turret: TurretDeployable)
   override def unregisterDeployable(obj: Deployable): Unit = {
     val zone = obj.Zone
     TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(zone.GUID, turret))
+  }
+
+  //make certain vehicles don't charge shields too quickly
+  def canChargeShields: Boolean = {
+    val func: InGameActivity => Boolean = WithShields.LastShieldChargeOrDamage(System.currentTimeMillis(), turret.Definition)
+    turret.Health > 0 && turret.Shields < turret.MaxShields &&
+      turret.History.findLast(func).isEmpty
+  }
+
+  def chargeShields(amount: Int, motivator: Option[SourceEntry]): Unit = {
+    if (canChargeShields) {
+      turret.LogActivity(ShieldCharge(amount, motivator))
+      turret.Shields = turret.Shields + amount
+      turret.Zone.VehicleEvents ! VehicleServiceMessage(
+        s"${turret.Actor}",
+        VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), turret.GUID, turret.Definition.shieldUiAttribute, turret.Shields)
+      )
+    }
   }
 }
