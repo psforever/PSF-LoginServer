@@ -3430,14 +3430,7 @@ class AvatarActor(
     if (implantTimers.lift(slot).exists(_.isCancelled)) {
       val curr = System.currentTimeMillis()
       val implantTimer = implant.timer
-      val (actualDelay, futureDelay, actionProgress): (FiniteDuration, Long, Long) = if (implantTimer > curr) {
-        val countedDelay = math.max(0L, (implantTimer - curr) / 1000L)
-        val fullNormalDelay = implant.definition.InitializationDuration.toFloat
-        val progress = (100f * ((fullNormalDelay - countedDelay.toFloat) / fullNormalDelay)).toLong
-        (countedDelay.seconds, implantTimer, progress)
-      } else {
-        (delay, curr + delay.toMillis, 0L)
-      }
+      val (actualDelay, futureDelay, actionProgress) = calculateImplantTimerStats(implant, delay)
       //start initialization process
       setImplantInitializedTimer(implant, slot, actualDelay)
       // Start client-side initialization timer, visible on the character screen
@@ -3453,6 +3446,19 @@ class AvatarActor(
     }
   }
 
+  private def calculateImplantTimerStats(implant: Implant, delay: FiniteDuration): (FiniteDuration, Long, Long) = {
+    val curr = System.currentTimeMillis()
+    val implantTimer = implant.timer
+    if (implantTimer > curr) {
+      val countedDelay = math.max(0L, (implantTimer - curr) / 1000L)
+      val fullNormalDelay = implant.definition.InitializationDuration.toFloat
+      val progress = (100f * ((fullNormalDelay - countedDelay.toFloat) / fullNormalDelay)).toLong
+      (countedDelay.seconds, implantTimer, progress)
+    } else {
+      (delay, curr + delay.toMillis, 0L)
+    }
+  }
+
   private def deinitializeImplants(): Unit = {
     avatarCopy(avatar.copy(implants = avatar
       .implants
@@ -3462,6 +3468,8 @@ class AvatarActor(
           Some(deinitializeImplant(deactivateImplant(implant, slot), slot))
         case (Some(implant), slot) if implant.initialized =>
           Some(deinitializeImplant(implant, slot))
+        case (Some(implant), slot) if implantTimers.lift(slot).exists(timer => !timer.isCancelled) =>
+          Some(stopImplantInitializationTimer(implant, slot))
         case (implantOpt, _) =>
           implantOpt
       }
@@ -3469,10 +3477,16 @@ class AvatarActor(
   }
 
   private def deinitializeImplant(implant: Implant, slot: Int): Implant = {
+    val outImplant = stopImplantInitializationTimer(implant, slot)
     session.get.zone.AvatarEvents ! AvatarServiceMessage(
       session.get.zone.id,
       AvatarAction.AvatarImplant(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
     )
+    outImplant
+  }
+
+  def stopImplantInitializationTimer(implant: Implant, slot: Int): Implant = {
+    cancelImplantInitializedTimer(slot)
     //can not formally stop the initialization time on the character information window; set it to 100 to make it look blank
     session.get.zone.AvatarEvents ! AvatarServiceMessage(
       avatar.name,
@@ -3655,12 +3669,19 @@ class AvatarActor(
           case (Some(implant), slot) if implant.active && !implant.definition.Passive =>
             //deactivate active non-passive implant
             Some(deactivateImplant(implant, slot))
-          case (Some(implant), slot) if !implant.initialized && implantTimers(slot).isCancelled =>
+          case (Some(implant), slot) if !implant.initialized && implantTimers.lift(slot).exists(_.isCancelled) =>
             //restart stopped/unstarted initialization process
             Some(startReinitializeImplant(implant, slot))
-          case (implantOpt, _) =>
-            //fine as is
+          case (implantOpt @ Some(implant), slot) =>
+            //update ongoing progress
+            val actionProgress = calculateImplantTimerStats(implant, AvatarActor.initializationTime(implant))._3
+            session.get.zone.AvatarEvents ! AvatarServiceMessage(
+              avatar.name,
+              AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, actionProgress))
+            )
             implantOpt
+          case (None, _) =>
+            None
         }
       )
     )
