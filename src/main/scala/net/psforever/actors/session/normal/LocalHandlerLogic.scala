@@ -20,6 +20,16 @@ object LocalHandlerLogic {
 class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: ActorContext) extends LocalHandlerFunctions {
   def sessionLogic: SessionData = ops.sessionLogic
 
+  /* messages */
+
+  def handleTurretDeployableIsDismissed(obj: TurretDeployable): Unit = {
+    ops.handleTurretDeployableIsDismissed(obj)
+  }
+
+  def handleDeployableIsDismissed(obj: Deployable): Unit = {
+    ops.handleDeployableIsDismissed(obj)
+  }
+
   /* response handlers */
 
   /**

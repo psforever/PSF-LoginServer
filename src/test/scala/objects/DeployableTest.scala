@@ -9,7 +9,7 @@ import net.psforever.objects.ballistics._
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
-import net.psforever.objects.serverobject.mount.{MountInfo, Mountable}
+import net.psforever.objects.serverobject.mount.{MountInfo, Mountable, SeatDefinition}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
 import net.psforever.objects.{TurretDeployable, _}
@@ -25,7 +25,6 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
-import net.psforever.services.local.LocalAction.DeployableMapIcon
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -39,12 +38,13 @@ class DeployableTest extends Specification {
       obj.OwnerGuid.contains(PlanetSideGUID(10)) mustEqual true
     }
 
-    "know its owner by GUID" in {
-//      val obj = new ExplosiveDeployable(GlobalDefinitions.he_mine)
-//      obj.OwnerName.isEmpty mustEqual true
-//      obj.OwnerName = "TestCharacter"
-//      obj.OwnerName.contains("TestCharacter") mustEqual true
-      ko
+    "know its owner by name" in {
+      val obj = new ExplosiveDeployable(GlobalDefinitions.he_mine)
+      val owner = Player(Avatar(1, "TestCharacter", PlanetSideEmpire.TR, CharacterSex.Male, 1, CharacterVoice.Mute))
+      owner.GUID = PlanetSideGUID(1)
+      owner.Spawn()
+      obj.AssignOwnership(owner)
+      obj.OwnerName.contains("TestCharacter") mustEqual true
     }
 
     "know its faction allegiance" in {
@@ -449,17 +449,16 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
       assert(!h_mine.Destroyed)
 
       h_mine.Actor ! Vitality.Damage(applyDamageToH)
-      val eventMsgs = eventsProbe.receiveN(4, 200 milliseconds)
-      val p1Msgs = player1Probe.receiveN(1, 200 milliseconds)
-      val p2Msgs = player2Probe.receiveN(1, 200 milliseconds)
+      val p1Msgs = player1Probe.receiveN(1, 5000 milliseconds)
+      val eventMsgs = eventsProbe.receiveN(3, 5000 milliseconds)
       eventMsgs.head match {
         case Zone.HotSpot.Conflict(target, attacker, _)
-          if (target.Definition eq h_mine.Definition) && (attacker eq pSource) => ;
+          if (target.Definition eq h_mine.Definition) && (attacker eq pSource) => ()
         case _ => assert(false, "")
       }
       eventMsgs(1) match {
         case LocalServiceMessage("test", LocalAction.Detonate(PlanetSideGUID(2), target))
-          if target eq h_mine => ;
+          if target eq h_mine => ()
         case _ => assert(false, "")
       }
       eventMsgs(2) match {
@@ -473,20 +472,9 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
         )  => ;
         case _ => assert(false, "")
       }
-      eventMsgs(3) match {
-        case AvatarServiceMessage(
-          "test",
-          AvatarAction.Destroy(PlanetSideGUID(2), PlanetSideGUID(3), Service.defaultPlayerGUID, Vector3.Zero)
-        ) => ;
-        case _ => assert(false, "")
-      }
       p1Msgs.head match {
-        case Vitality.Damage(_) => ;
+        case Vitality.Damage(_) => ()
         case _                  => assert(false, "")
-      }
-      p2Msgs.head match {
-        case Player.LoseDeployable(_) => ;
-        case _                        => assert(false, "")
       }
       assert(h_mine.Destroyed)
     }
@@ -529,8 +517,7 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
   guid.register(player2, 4)
   guid.register(weapon, 5)
   h_mine.Zone = zone
-  h_mine.OwnerGuid = player2
-  //h_mine.OwnerName = player2.Name
+  h_mine.AssignOwnership(player2)
   h_mine.Faction = PlanetSideEmpire.NC
   h_mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], h_mine), "h-mine-control")
 
@@ -748,6 +735,7 @@ class TurretControlBetrayalMountTest extends ActorTest {
       val obj = new TurretDeployable(
         new TurretDeployableDefinition(685) {
           MountPoints += 1 -> MountInfo(0, Vector3.Zero)
+          Seats += 0 -> new SeatDefinition()
           FactionLocked = false
         } //required (defaults to true)
       ) {

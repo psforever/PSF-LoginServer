@@ -5,7 +5,7 @@ import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, VehicleFunctions, VehicleOperations}
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle, Vehicles}
+import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.control.BfrFlight
@@ -41,7 +41,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
     is_decelerating,
     is_cloaked
     ) = pkt
-    GetVehicleAndSeat() match {
+    ops.GetVehicleAndSeat() match {
       case (Some(obj), Some(0)) =>
         //we're driving the vehicle
         sessionLogic.persist()
@@ -100,7 +100,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         log.error(
           s"VehicleState: ${player.Name} should not be dispatching this kind of packet from vehicle ${vehicle_guid.guid} when not the driver (actually, seat $index)"
         )
-      case _ => ;
+      case _ => ()
     }
     if (player.death_by == -1) {
       sessionLogic.kickedByAdministration()
@@ -124,7 +124,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
     unk9,
     unkA
     ) = pkt
-    GetVehicleAndSeat() match {
+    ops.GetVehicleAndSeat() match {
       case (Some(obj), Some(0)) =>
         //we're driving the vehicle
         sessionLogic.persist()
@@ -198,7 +198,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         log.error(
           s"VehicleState: ${player.Name} should not be dispatching this kind of packet from vehicle ${vehicle_guid.guid} when not the driver (actually, seat $index)"
         )
-      case _ => ;
+      case _ => ()
     }
     if (player.death_by == -1) {
       sessionLogic.kickedByAdministration()
@@ -213,7 +213,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
       case Some(mount: Mountable) => (o, mount.PassengerInSeat(player))
       case _                      => (None, None)
     }) match {
-      case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ;
+      case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ()
       case _ =>
         sessionLogic.persist()
         sessionLogic.turnCounterFunc(player.GUID)
@@ -241,33 +241,33 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
 
   def handleVehicleSubState(pkt: VehicleSubStateMessage): Unit = {
     val VehicleSubStateMessage(vehicle_guid, _, pos, ang, vel, unk1, _) = pkt
-    sessionLogic.validObject(vehicle_guid, decorator = "VehicleSubState") match {
-      case Some(obj: Vehicle) =>
-        import net.psforever.login.WorldSession.boolToInt
-        obj.Position = pos
-        obj.Orientation = ang
-        obj.Velocity = vel
-        sessionLogic.updateBlockMap(obj, pos)
-        obj.zoneInteractions()
-        continent.VehicleEvents ! VehicleServiceMessage(
-          continent.id,
-          VehicleAction.VehicleState(
-            player.GUID,
-            vehicle_guid,
-            unk1,
-            pos,
-            ang,
-            obj.Velocity,
-            obj.Flying,
-            0,
-            0,
-            15,
-            unk5 = false,
-            obj.Cloaked
+    sessionLogic.validObject(vehicle_guid, decorator = "VehicleSubState")
+      .collect {
+        case obj: Vehicle =>
+          import net.psforever.login.WorldSession.boolToInt
+          obj.Position = pos
+          obj.Orientation = ang
+          obj.Velocity = vel
+          sessionLogic.updateBlockMap(obj, pos)
+          obj.zoneInteractions()
+          continent.VehicleEvents ! VehicleServiceMessage(
+            continent.id,
+            VehicleAction.VehicleState(
+              player.GUID,
+              vehicle_guid,
+              unk1,
+              pos,
+              ang,
+              obj.Velocity,
+              obj.Flying,
+              0,
+              0,
+              15,
+              unk5 = false,
+              obj.Cloaked
+            )
           )
-        )
-      case _ => ()
-    }
+      }
   }
 
   def handleDeployRequest(pkt: DeployRequestMessage): Unit = {
@@ -282,7 +282,6 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
             log.warn(s"${player.Name} must be mounted as the driver to request a deployment change")
           } else {
             log.info(s"${player.Name} is requesting a deployment change for ${obj.Definition.Name} - $deploy_state")
-            obj.Actor ! Deployment.TryDeploymentChange(deploy_state)
             continent.Transport ! Zone.Vehicle.TryDeploymentChange(obj, deploy_state)
           }
           obj
@@ -328,46 +327,6 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
   }
 
   /* support functions */
-
-  /**
-   * If the player is mounted in some entity, find that entity and get the mount index number at which the player is sat.
-   * The priority of object confirmation is `direct` then `occupant.VehicleSeated`.
-   * Once an object is found, the remainder are ignored.
-   * @param direct a game object in which the player may be sat
-   * @param occupant the player who is sat and may have specified the game object in which mounted
-   * @return a tuple consisting of a vehicle reference and a mount index
-   *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
-   *         `(None, None)`, otherwise (even if the vehicle can be determined)
-   */
-  private def GetMountableAndSeat(
-                                   direct: Option[PlanetSideGameObject with Mountable],
-                                   occupant: Player,
-                                   zone: Zone
-                                 ): (Option[PlanetSideGameObject with Mountable], Option[Int]) =
-    direct.orElse(zone.GUID(occupant.VehicleSeated)) match {
-      case Some(obj: PlanetSideGameObject with Mountable) =>
-        obj.PassengerInSeat(occupant) match {
-          case index @ Some(_) =>
-            (Some(obj), index)
-          case None =>
-            (None, None)
-        }
-      case _ =>
-        (None, None)
-    }
-
-  /**
-   * If the player is seated in a vehicle, find that vehicle and get the mount index number at which the player is sat.
-   * @see `GetMountableAndSeat`
-   * @return a tuple consisting of a vehicle reference and a mount index
-   *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
-   *         `(None, None)`, otherwise (even if the vehicle can be determined)
-   */
-  private def GetVehicleAndSeat(): (Option[Vehicle], Option[Int]) =
-    GetMountableAndSeat(None, player, continent) match {
-      case (Some(v: Vehicle), Some(seat)) => (Some(v), Some(seat))
-      case _                              => (None, None)
-    }
 
   /**
    * Common reporting behavior when a `Deployment` object fails to properly transition between states.

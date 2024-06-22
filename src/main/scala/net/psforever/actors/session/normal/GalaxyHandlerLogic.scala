@@ -65,12 +65,13 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
       case GalaxyResponse.LockedZoneUpdate(zone, time) =>
         sendResponse(ZoneInfoMessage(zone.Number, empire_status=false, lock_time=time))
 
-      case GalaxyResponse.UnlockedZoneUpdate(zone) => ;
+      case GalaxyResponse.UnlockedZoneUpdate(zone) =>
         sendResponse(ZoneInfoMessage(zone.Number, empire_status=true, lock_time=0L))
         val popBO = 0
-        val popTR = zone.Players.count(_.faction == PlanetSideEmpire.TR)
-        val popNC = zone.Players.count(_.faction == PlanetSideEmpire.NC)
-        val popVS = zone.Players.count(_.faction == PlanetSideEmpire.VS)
+        val pop = zone.LivePlayers.distinctBy(_.CharId)
+        val popTR = pop.count(_.Faction == PlanetSideEmpire.TR)
+        val popNC = pop.count(_.Faction == PlanetSideEmpire.NC)
+        val popVS = pop.count(_.Faction == PlanetSideEmpire.VS)
         sendResponse(ZonePopulationUpdateMessage(zone.Number, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
 
       case GalaxyResponse.LogStatusChange(name) if avatar.people.friend.exists(_.name.equals(name)) =>

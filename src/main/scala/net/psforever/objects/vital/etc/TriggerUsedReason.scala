@@ -50,7 +50,6 @@ final case class TriggerUsedReason(user: PlayerSource, item_guid: PlanetSideGUID
 object TriggerUsedReason {
   private val triggered = new DamageProperties {
     Damage0 = 1 //token damage
-    SympatheticExplosion = true //sets off a boomer
   }
 
   /** basic damage, no resisting, quick and simple */

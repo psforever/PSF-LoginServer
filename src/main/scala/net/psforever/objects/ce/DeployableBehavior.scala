@@ -69,7 +69,7 @@ trait DeployableBehavior {
       if DeployableObject.OwnerGuid.nonEmpty =>
       val obj = DeployableObject
       if (constructed.contains(true)) {
-        loseOwnership(obj, obj.Faction)
+        loseOwnership(obj, PlanetSideEmpire.NEUTRAL)
       } else {
         obj.OwnerGuid = None
       }
@@ -103,9 +103,9 @@ trait DeployableBehavior {
     *                  may also affect deployable operation
     */
   def loseOwnership(obj: Deployable, toFaction: PlanetSideEmpire.Value): Unit = {
-    DeployableBehavior.changeOwership(
+    DeployableBehavior.changeOwnership(
       obj,
-      obj.Faction,
+      toFaction,
       DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Service.defaultPlayerGUID)
     )
     startOwnerlessDecay()
@@ -140,7 +140,7 @@ trait DeployableBehavior {
     val obj = DeployableObject
     obj.AssignOwnership(player)
     decay.cancel()
-    DeployableBehavior.changeOwership(
+    DeployableBehavior.changeOwnership(
       obj,
       toFaction,
       DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, obj.OwnerGuid.get)
@@ -290,12 +290,12 @@ object DeployableBehavior {
    * @param toFaction na
    * @param info na
    */
-  def changeOwership(obj: Deployable, toFaction: PlanetSideEmpire.Value, info: DeployableInfo): Unit = {
-    val guid = obj.GUID
-    val zone = obj.Zone
-    val localEvents = zone.LocalEvents
+  def changeOwnership(obj: Deployable, toFaction: PlanetSideEmpire.Value, info: DeployableInfo): Unit = {
     val originalFaction = obj.Faction
     if (originalFaction != toFaction) {
+      val guid = obj.GUID
+      val zone = obj.Zone
+      val localEvents = zone.LocalEvents
       obj.Faction = toFaction
       //visual tells in regards to ownership by faction
       zone.AvatarEvents ! AvatarServiceMessage(

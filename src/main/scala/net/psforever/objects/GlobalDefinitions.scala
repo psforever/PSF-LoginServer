@@ -1019,9 +1019,9 @@ object GlobalDefinitions {
    */
   val boomer: BoomerDeployableDefinition = BoomerDeployableDefinition(DeployedItem.boomer)
 
-  val he_mine: ExplosiveDeployableDefinition = ExplosiveDeployableDefinition(DeployedItem.he_mine)
+  val he_mine: MineDeployableDefinition = MineDeployableDefinition(DeployedItem.he_mine)
 
-  val jammer_mine: ExplosiveDeployableDefinition = ExplosiveDeployableDefinition(DeployedItem.jammer_mine)
+  val jammer_mine: MineDeployableDefinition = MineDeployableDefinition(DeployedItem.jammer_mine)
 
   val spitfire_turret: TurretDeployableDefinition = TurretDeployableDefinition(DeployedItem.spitfire_turret)
 

@@ -1,0 +1,3 @@
+/* New */
+ALTER TABLE implant
+ADD COLUMN timer SMALLINT NOT NULL DEFAULT 0;

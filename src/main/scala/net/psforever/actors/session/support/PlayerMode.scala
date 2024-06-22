@@ -1,8 +1,6 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.Actor.Receive
-import akka.actor.ActorRef
 import net.psforever.objects.Session
 
 trait ModeLogic {
@@ -21,8 +19,6 @@ trait ModeLogic {
   def switchTo(session: Session): Unit = { /* to override */ }
 
   def switchFrom(session: Session): Unit = { /* to override */ }
-
-  def parse(sender: ActorRef): Receive
 }
 
 trait PlayerMode {

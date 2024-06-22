@@ -275,7 +275,7 @@ class BattleframeRoboticsTest extends Specification {
               CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
               0,
               List(
-                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(340), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
+                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(340), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))
               )
             )
           ),
@@ -284,7 +284,7 @@ class BattleframeRoboticsTest extends Specification {
               CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
               0,
               List(
-                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(342), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
+                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(342), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))
               )
             )
           ),
@@ -293,7 +293,7 @@ class BattleframeRoboticsTest extends Specification {
               CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
               0,
               List(
-                InternalSlot(ObjectClass.aphelion_plasma_rocket_ammo, PlanetSideGUID(359), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
+                InternalSlot(ObjectClass.aphelion_plasma_rocket_ammo, PlanetSideGUID(359), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))
               )
             )
           )
@@ -325,7 +325,7 @@ class BattleframeRoboticsTest extends Specification {
               CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
               0,
               List(
-                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(371), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
+                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(371), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))
               )
             )
           ),
@@ -334,7 +334,7 @@ class BattleframeRoboticsTest extends Specification {
               CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
               0,
               List(
-                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(376), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false))
+                InternalSlot(ObjectClass.aphelion_ppa_ammo, PlanetSideGUID(376), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)))
               )
             )
           )

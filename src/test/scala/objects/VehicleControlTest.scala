@@ -14,12 +14,13 @@ import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.environment._
-import net.psforever.objects.serverobject.environment.interaction.{EscapeFromEnvironment, InteractingWithEnvironment}
+import net.psforever.objects.serverobject.environment.interaction.{EscapeFromEnvironment, InteractingWithEnvironment, RespondsToZoneEnvironment}
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vehicles.VehicleLockState
 import net.psforever.objects.vehicles.control.VehicleControl
-import net.psforever.objects.vital.{ShieldCharge, Vitality}
+import net.psforever.objects.vital.{ShieldCharge, SpawningActivity, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
@@ -634,9 +635,10 @@ class VehicleControlInteractWithWaterTest extends ActorTest {
   val player1 =
     Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val avatarProbe = TestProbe()
+  val playerProbe = TestProbe()
   val vehicleProbe = TestProbe()
   val guid = new NumberPoolHub(new MaxNumberSource(15))
-  val pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
+  val pool = Pool(EnvironmentAttribute.Water, DeepSquare(10, 10, 10, 0, 0))
   val zone = new Zone(
     id = "test-zone",
     new ZoneMap(name = "test-map") {
@@ -649,7 +651,7 @@ class VehicleControlInteractWithWaterTest extends ActorTest {
     override def LivePlayers = List(player1)
     override def Vehicles = List(vehicle)
     override def AvatarEvents = avatarProbe.ref
-    override def VehicleEvents = vehicleProbe.ref
+    override def VehicleEvents = avatarProbe.ref
 
     this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
@@ -666,38 +668,24 @@ class VehicleControlInteractWithWaterTest extends ActorTest {
   vehicle.Seats(0).mount(player1)
   player1.VehicleSeated = vehicle.GUID
   val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
-  player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1, avatarActor), "player1-control")
-  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-control")
+  player1.Actor = playerProbe.ref
+  vehicle.Actor = vehicleProbe.ref
 
   "VehicleControl" should {
     "causes disability when the vehicle drives too deep in water" in {
-      vehicle.Position = Vector3(5,5,-3) //right in the pool
+      vehicle.Position = Vector3(5,5,3) //right in the pool
       vehicle.zoneInteractions() //trigger
 
-      val msg_drown = avatarProbe.receiveOne(250 milliseconds)
-      assert(
-        msg_drown match {
-          case AvatarServiceMessage(
-            "TestCharacter1",
-            AvatarAction.OxygenState(
-              OxygenStateTarget(PlanetSideGUID(1), _, OxygenState.Suffocation, 100f),
-              Some(OxygenStateTarget(PlanetSideGUID(2), _, OxygenState.Suffocation, 100f))
-            )
-          )      => true
-          case _ => false
-        }
-      )
-      //player will die in 60s
-      //vehicle will disable in 5s; driver will be kicked
-      val msg_kick = vehicleProbe.receiveOne(10 seconds)
-      msg_kick match {
-        case VehicleServiceMessage(
-          "test-zone",
-          VehicleAction.KickPassenger(PlanetSideGUID(1), 4, _, PlanetSideGUID(2))
-        )      => assert(true)
-        case _ => assert(false)
-      }
-      //player will die, but detailing players death messages is not necessary for this test
+      val msg_drown = playerProbe.receiveOne(250 milliseconds)
+      assert(msg_drown match {
+        case InteractingWithEnvironment(body, _) => body eq pool
+        case _ => false
+      })
+      val msg_disable = vehicleProbe.receiveOne(10 seconds)
+      assert(msg_disable match {
+        case RespondsToZoneEnvironment.Timer(EnvironmentAttribute.Water, _, _, VehicleControl.Disable(true)) => true
+        case _ => false
+      })
     }
   }
 }
@@ -835,7 +823,7 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
   val player1 =
     Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val guid = new NumberPoolHub(new MaxNumberSource(15))
-  val pool = Pool(EnvironmentAttribute.Death, DeepSquare(-1, 10, 10, 0, 0))
+  val pool = Pool(EnvironmentAttribute.Death, DeepSquare(5, 10, 10, 0, 0))
   val zone = new Zone(
     id = "test-zone",
     new ZoneMap(name = "test-map") {
@@ -866,15 +854,17 @@ class VehicleControlInteractWithDeathTest extends ActorTest {
   val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
   player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1, avatarActor), "player1-control")
   vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-control")
+  vehicle.LogActivity(SpawningActivity(VehicleSource(vehicle), 0, None))
 
   "VehicleControl" should {
     "take continuous damage if vehicle drives into a pool of death" in {
       assert(vehicle.Health > 0) //alive
       assert(player1.Health == 100) //alive
-      vehicle.Position = Vector3(5,5,-3) //right in the pool
+      vehicle.Position = Vector3(5,5,1) //right in the pool
+      probe.expectNoMessage(5 seconds)
       vehicle.zoneInteractions() //trigger
 
-      probe.receiveOne(2 seconds) //wait until player1's implants deinitialize
+      probe.receiveOne(2 seconds)
       assert(vehicle.Health == 0) //ded
       assert(player1.Health == 0) //ded
     }

@@ -65,7 +65,7 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
       case GalaxyResponse.LockedZoneUpdate(zone, time) =>
         sendResponse(ZoneInfoMessage(zone.Number, empire_status=false, lock_time=time))
 
-      case GalaxyResponse.UnlockedZoneUpdate(zone) => ;
+      case GalaxyResponse.UnlockedZoneUpdate(zone) =>
         sendResponse(ZoneInfoMessage(zone.Number, empire_status=true, lock_time=0L))
         val popBO = 0
         val popTR = zone.Players.count(_.faction == PlanetSideEmpire.TR)

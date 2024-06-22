@@ -88,6 +88,7 @@ object WeaponAndProjectileLogic {
       Seq(start + endStart * (sqrt - b), start + endStart * (b + sqrt) * -1f)
     }.filter(p => Vector3.DistanceSquared(start, p) <= a)
   }
+
   /**
    * Preparation for explosion damage that utilizes the Scorpion's little buddy sub-projectiles.
    * The main difference from "normal" server-side explosion
@@ -497,9 +498,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
         }
         if (profile.ExistsOnRemoteClients && projectile.HasGUID) {
           //cleanup
-          if (projectile.HasGUID) {
-            continent.Projectile ! ZoneProjectile.Remove(projectile.GUID)
-          }
+          continent.Projectile ! ZoneProjectile.Remove(projectile.GUID)
         }
       case None => ()
     }

@@ -325,14 +325,14 @@ class NormalVehiclesTest extends Specification {
                 PlanetSideGUID(400),
                 1,
                 WeaponData(
-                  CommonFieldData(PlanetSideEmpire.NEUTRAL, 2),
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
                   0,
                   List(
                     InternalSlot(
                       ObjectClass.hellfire_ammo,
                       PlanetSideGUID(432),
                       0,
-                      CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
                     )
                   )
                 )
@@ -368,11 +368,11 @@ class NormalVehiclesTest extends Specification {
                 PlanetSideGUID(91),
                 1,
                 WeaponData(
-                  CommonFieldData(PlanetSideEmpire.VS, 2),
+                  CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
                   0,
                   List(
-                    InternalSlot(ObjectClass.bullet_75mm, PlanetSideGUID(92), 0, CommonFieldData()(false)),
-                    InternalSlot(ObjectClass.bullet_25mm, PlanetSideGUID(93), 1, CommonFieldData()(false))
+                    InternalSlot(ObjectClass.bullet_75mm, PlanetSideGUID(92), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, Some(false), None, PlanetSideGUID(0))),
+                    InternalSlot(ObjectClass.bullet_25mm, PlanetSideGUID(93), 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)))
                   )
                 )
               )
@@ -407,14 +407,14 @@ class NormalVehiclesTest extends Specification {
                 PlanetSideGUID(383),
                 5,
                 WeaponData(
-                  CommonFieldData(PlanetSideEmpire.NEUTRAL, 2),
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
                   0,
                   List(
                     InternalSlot(
                       ObjectClass.bullet_20mm,
                       PlanetSideGUID(420),
                       0,
-                      CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
                     )
                   )
                 )
@@ -424,14 +424,14 @@ class NormalVehiclesTest extends Specification {
                 PlanetSideGUID(556),
                 6,
                 WeaponData(
-                  CommonFieldData(PlanetSideEmpire.NEUTRAL, 2),
+                  CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
                   0,
                   List(
                     InternalSlot(
                       ObjectClass.bullet_20mm,
                       PlanetSideGUID(575),
                       0,
-                      CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
                     )
                   )
                 )

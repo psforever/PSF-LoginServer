@@ -39,6 +39,10 @@ class AvatarService(zone: Zone) extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.ArmorChanged(suit, subtype))
           )
+        case AvatarAction.AvatarImplant(player_guid, action, implantSlot, status) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.AvatarImplant(action, implantSlot, status))
+          )
         case AvatarAction.ChangeAmmo(
               player_guid,
               weapon_guid,

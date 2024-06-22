@@ -371,7 +371,7 @@ class ConverterTest extends Specification {
                 PlanetSideEmpire.TR,
                 false,
                 false,
-                false,
+                true,
                 None,
                 false,
                 Some(true),
@@ -547,8 +547,17 @@ class ConverterTest extends Specification {
           pkt mustEqual AegisShieldGeneratorData(
             CommonFieldDataWithPlacement(
               PlacementData(Vector3.Zero, Vector3.Zero),
-              PlanetSideEmpire.TR,
-              0
+              CommonFieldData(
+                PlanetSideEmpire.TR,
+                bops = false,
+                alternate = false,
+                v1 = true,
+                v2 = None,
+                jammered = false,
+                v4 = None,
+                v5 = None,
+                PlanetSideGUID(0)
+              )
             ),
             255
           )
@@ -742,7 +751,7 @@ class ConverterTest extends Specification {
       obj.Definition.Packet.DetailedConstructorData(obj) match {
         case Success(pkt) =>
           pkt mustEqual DetailedLockerContainerData(
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, None, None, PlanetSideGUID(0)),
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0)),
             None
           )
         case _ =>
