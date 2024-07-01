@@ -79,8 +79,8 @@ object Server {
   def run(args: CliConfig): Unit = {
     val bindAddress: InetAddress =
       args.bind match {
-        case Some(address) => InetAddress.getByName(address)         // address from first argument
-        case None          => InetAddress.getByName(Config.app.bind) // address from config
+        case Some(address) => InetAddress.getByName(address)           // address from first argument
+        case None          => InetAddress.getByName(Config.app.public) // address from config
       }
 
     if (Config.app.kamon.enable) {
