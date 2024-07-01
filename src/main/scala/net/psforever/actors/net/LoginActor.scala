@@ -90,9 +90,9 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       handleGamePkt(packet)
 
     case SocketPane.NextPort(_, _, portNum) =>
-      val address = gameTestServerAddress.getAddress
-      log.info(s"Connecting to ${address.getHostAddress.toLowerCase}: $portNum ...")
-      val response = ConnectToWorldMessage(serverName, address.getHostAddress, portNum)
+      val address = gameTestServerAddress.getAddress.getHostAddress
+      log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
+      val response = ConnectToWorldMessage(serverName, address, portNum)
       middlewareActor ! MiddlewareActor.Send(response)
       middlewareActor ! MiddlewareActor.Close()
 
