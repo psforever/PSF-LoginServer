@@ -14,7 +14,7 @@ import akka.{actor => classic}
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
 import io.sentry.{Sentry, SentryOptions}
-import net.psforever.actors.net.{LoginActor, MiddlewareActor, SocketActor}
+import net.psforever.actors.net.{LoginActor, MiddlewareActor, SocketSetup, SocketSetupInfo, SocketPane}
 import net.psforever.actors.session.SessionActor
 import net.psforever.login.psadmin.PsAdminActor
 import net.psforever.login._
@@ -98,31 +98,7 @@ object Server {
     implicit val system: ActorSystem = classic.ActorSystem("PsLogin")
     Default(system)
 
-    // typed to classic wrappers for login and session actors
-    val login = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
-      import net.psforever.services.account.IPAddress
-      Behaviors.setup[PlanetSidePacket](context => {
-        val actor = context.actorOf(classic.Props(new LoginActor(ref, connectionId, Login.getNewId())), "login")
-        actor ! ReceiveIPAddress(new IPAddress(info))
-        Behaviors.receiveMessage(message => {
-          actor ! message
-          Behaviors.same
-        })
-      })
-    }
-    val session = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
-      Behaviors.setup[PlanetSidePacket](context => {
-        val uuid = randomUUID().toString
-        val actor =
-          context.actorOf(classic.Props(new SessionActor(ref, connectionId, Session.getNewId())), s"session-$uuid")
-        Behaviors.receiveMessage(message => {
-          actor ! message
-          Behaviors.same
-        })
-      })
-    }
-
-    val zones          = Zones.zones ++ Seq(Zone.Nowhere)
+    val zones = Zones.zones :+ Zone.Nowhere
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(classic.Props[AccountIntermediaryService](), "accountIntermediary")
     serviceManager ! ServiceManager.Register(classic.Props[GalaxyService](), "galaxy")
@@ -135,8 +111,36 @@ object Server {
     system.spawn(InterstellarClusterService(zones), InterstellarClusterService.InterstellarClusterServiceKey.id)
     system.spawn(ChatService(), ChatService.ChatServiceKey.id)
 
-    system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.login.port), login), "login-socket")
-    system.spawn(SocketActor(new InetSocketAddress(bindAddress, Config.app.world.port), session), "world-socket")
+    // typed to classic wrappers for login and session actors
+    val loginPlan = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
+      import net.psforever.services.account.IPAddress
+      Behaviors.setup[PlanetSidePacket](context => {
+        val actor = context.actorOf(classic.Props(new LoginActor(ref, connectionId, Login.getNewId())), "login")
+        actor ! ReceiveIPAddress(new IPAddress(info))
+        Behaviors.receiveMessage(message => {
+          actor ! message
+          Behaviors.same
+        })
+      })
+    }
+    val sessionPlan = (ref: ActorRef[MiddlewareActor.Command], info: InetSocketAddress, connectionId: String) => {
+      Behaviors.setup[PlanetSidePacket](context => {
+        val uuid = randomUUID().toString
+        val actor =
+          context.actorOf(classic.Props(new SessionActor(ref, connectionId, Session.getNewId())), s"session-$uuid")
+        Behaviors.receiveMessage(message => {
+          actor ! message
+          Behaviors.same
+        })
+      })
+    }
+    system.spawn(
+      SocketPane(Seq(
+        SocketSetup("login", SocketSetupInfo(bindAddress, Seq(Config.app.login.port), loginPlan)),
+        SocketSetup("world", SocketSetupInfo(bindAddress, Config.app.world.port +: Config.app.world.ports, sessionPlan))
+      )),
+      name = SocketPane.SocketPaneKey.id
+    )
 
     val adminListener = system.actorOf(
       classic.Props(
