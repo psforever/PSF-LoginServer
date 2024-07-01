@@ -318,6 +318,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret.Damageable = true
     portable_manned_turret.Repairable = true
     portable_manned_turret.RepairIfDestroyed = false
+    portable_manned_turret.MaxShields = 0//200
     portable_manned_turret.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret.WeaponPaths(1) += TurretUpgrade.None -> energy_gun
     portable_manned_turret.Seats += 0 -> new SeatDefinition()
@@ -352,6 +353,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret_nc.Damageable = true
     portable_manned_turret_nc.Repairable = true
     portable_manned_turret_nc.RepairIfDestroyed = false
+    portable_manned_turret_nc.MaxShields = 0//200
     portable_manned_turret_nc.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_nc.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_nc
     portable_manned_turret_nc.Seats += 0 -> new SeatDefinition()
@@ -385,6 +387,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret_tr.Damageable = true
     portable_manned_turret_tr.Repairable = true
     portable_manned_turret_tr.RepairIfDestroyed = false
+    portable_manned_turret_tr.MaxShields = 0//200
     portable_manned_turret_tr.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_tr.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_tr
     portable_manned_turret_tr.Seats += 0 -> new SeatDefinition()
@@ -418,6 +421,7 @@ object GlobalDefinitionsDeployable {
     portable_manned_turret_vs.Damageable = true
     portable_manned_turret_vs.Repairable = true
     portable_manned_turret_vs.RepairIfDestroyed = false
+    portable_manned_turret_vs.MaxShields = 0//200
     portable_manned_turret_vs.WeaponPaths += 1 -> new mutable.HashMap()
     portable_manned_turret_vs.WeaponPaths(1) += TurretUpgrade.None -> energy_gun_vs
     portable_manned_turret_vs.Seats += 0 -> new SeatDefinition()

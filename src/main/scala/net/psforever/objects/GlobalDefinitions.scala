@@ -1023,11 +1023,11 @@ object GlobalDefinitions {
 
   val jammer_mine: MineDeployableDefinition = MineDeployableDefinition(DeployedItem.jammer_mine)
 
-  val spitfire_turret: TurretDeployableDefinition = TurretDeployableDefinition(DeployedItem.spitfire_turret)
+  val spitfire_turret: TurretDeployableDefinition = SmallTurretDeployableDefinition(DeployedItem.spitfire_turret)
 
-  val spitfire_cloaked: TurretDeployableDefinition = TurretDeployableDefinition(DeployedItem.spitfire_cloaked)
+  val spitfire_cloaked: TurretDeployableDefinition = SmallTurretDeployableDefinition(DeployedItem.spitfire_cloaked)
 
-  val spitfire_aa: TurretDeployableDefinition = TurretDeployableDefinition(DeployedItem.spitfire_aa)
+  val spitfire_aa: TurretDeployableDefinition = SmallTurretDeployableDefinition(DeployedItem.spitfire_aa)
 
   val motionalarmsensor: SensorDeployableDefinition = SensorDeployableDefinition(DeployedItem.motionalarmsensor)
 
@@ -1035,13 +1035,13 @@ object GlobalDefinitions {
 
   val tank_traps: TrapDeployableDefinition = TrapDeployableDefinition(DeployedItem.tank_traps)
 
-  val portable_manned_turret: TurretDeployableDefinition = TurretDeployableDefinition(DeployedItem.portable_manned_turret)
+  val portable_manned_turret: TurretDeployableDefinition = FieldTurretDeployableDefinition(DeployedItem.portable_manned_turret)
 
-  val portable_manned_turret_nc: TurretDeployableDefinition = TurretDeployableDefinition(DeployedItem.portable_manned_turret_nc)
+  val portable_manned_turret_nc: TurretDeployableDefinition = FieldTurretDeployableDefinition(DeployedItem.portable_manned_turret_nc)
 
-  val portable_manned_turret_tr: TurretDeployableDefinition = TurretDeployableDefinition(DeployedItem.portable_manned_turret_tr)
+  val portable_manned_turret_tr: TurretDeployableDefinition = FieldTurretDeployableDefinition(DeployedItem.portable_manned_turret_tr)
 
-  val portable_manned_turret_vs: TurretDeployableDefinition = TurretDeployableDefinition(DeployedItem.portable_manned_turret_vs)
+  val portable_manned_turret_vs: TurretDeployableDefinition = FieldTurretDeployableDefinition(DeployedItem.portable_manned_turret_vs)
 
   val deployable_shield_generator = new ShieldGeneratorDefinition
 

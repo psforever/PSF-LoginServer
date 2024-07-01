@@ -4,7 +4,7 @@ package net.psforever.objects.vehicles.control
 import akka.actor.Cancellable
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
-import net.psforever.objects.definition.VehicleDefinition
+import net.psforever.objects.definition.{VehicleDefinition, WithShields}
 import net.psforever.objects.definition.converter.OCM
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.{ArmorSiphonBehavior, Equipment, EquipmentSlot, JammableMountedWeapons}
@@ -27,7 +27,7 @@ import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.interaction.WithWater
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.objects.vital.{DamagingActivity, InGameActivity, ShieldCharge, SpawningActivity, VehicleDismountActivity, VehicleMountActivity}
+import net.psforever.objects.vital.{InGameActivity, ShieldCharge, SpawningActivity, VehicleDismountActivity, VehicleMountActivity}
 import net.psforever.objects.zones._
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
@@ -562,7 +562,7 @@ class VehicleControl(vehicle: Vehicle)
 
   //make certain vehicles don't charge shields too quickly
   def canChargeShields: Boolean = {
-    val func: InGameActivity => Boolean = VehicleControl.LastShieldChargeOrDamage(System.currentTimeMillis(), vehicle.Definition)
+    val func: InGameActivity => Boolean = WithShields.LastShieldChargeOrDamage(System.currentTimeMillis(), vehicle.Definition)
     vehicle.Health > 0 && vehicle.Shields < vehicle.MaxShields &&
     vehicle.History.findLast(func).isEmpty
   }
@@ -705,8 +705,6 @@ class VehicleControl(vehicle: Vehicle)
 }
 
 object VehicleControl {
-  import net.psforever.objects.vital.ShieldCharge
-
   private case class PrepareForDeletion()
 
   final case class Disable(kickPassengers: Boolean = false)
@@ -716,19 +714,4 @@ object VehicleControl {
   private case object RadiationTick
 
   final case class AssignOwnership(player: Option[Player])
-
-  /**
-    * Determine if a given activity entry would invalidate the act of charging vehicle shields this tick.
-    * @param now the current time (in milliseconds)
-    * @param act a `VitalsActivity` entry to test
-    * @return `true`, if the shield charge would be blocked;
-    *        `false`, otherwise
-    */
-  def LastShieldChargeOrDamage(now: Long, vdef: VehicleDefinition)(act: InGameActivity): Boolean = {
-    act match {
-      case dact: DamagingActivity   => now - dact.time < vdef.ShieldDamageDelay //damage delays next charge
-      case vsc: ShieldCharge        => now - vsc.time < vdef.ShieldPeriodicDelay //previous charge delays next
-      case _                        => false
-    }
-  }
 }
