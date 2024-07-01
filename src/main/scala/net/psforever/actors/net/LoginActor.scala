@@ -27,6 +27,8 @@ import scala.concurrent.duration._
 import scala.util.matching.Regex
 import scala.util.{Failure, Success}
 
+
+
 object LoginActor {
   sealed trait Command
 
@@ -56,7 +58,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   var port: Int                 = 0
 
   val serverName: String = Config.app.world.serverName
-  val publicAddress = new InetSocketAddress(InetAddress.getByName(Config.app.public), Config.app.world.port)
+  val gameTestServerAddress = new InetSocketAddress(InetAddress.getByName(Config.app.public), Config.app.world.port)
 
   private val bcryptRounds = 12
 
@@ -87,7 +89,8 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
     case packet: PlanetSideGamePacket =>
       handleGamePkt(packet)
 
-    case SocketPane.NextPort(_, address, portNum) =>
+    case SocketPane.NextPort(_, _, portNum) =>
+      val address = gameTestServerAddress.getAddress
       log.info(s"Connecting to ${address.getHostAddress.toLowerCase}: $portNum ...")
       val response = ConnectToWorldMessage(serverName, address.getHostAddress, portNum)
       middlewareActor ! MiddlewareActor.Send(response)
@@ -441,7 +444,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
             serverName,
             WorldStatus.Up,
             Config.app.world.serverType,
-            Vector(WorldConnectionInfo(publicAddress)), //todo ideally, ask for info from SocketPane
+            Vector(WorldConnectionInfo(gameTestServerAddress)), //todo ideally, ask for info from SocketPane
             PlanetSideEmpire.VS
           )
         )

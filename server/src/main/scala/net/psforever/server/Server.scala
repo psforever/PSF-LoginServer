@@ -82,11 +82,6 @@ object Server {
         case Some(address) => InetAddress.getByName(address)         // address from first argument
         case None          => InetAddress.getByName(Config.app.bind) // address from config
       }
-    val publicAddress: InetAddress =
-      args.bind match {
-        case Some(address) => InetAddress.getByName(address)           // address from first argument
-        case None          => InetAddress.getByName(Config.app.public) // address from config
-      }
 
     if (Config.app.kamon.enable) {
       logger.info("Starting Kamon")
@@ -142,7 +137,7 @@ object Server {
     system.spawn(
       SocketPane(Seq(
         SocketSetup("login", SocketSetupInfo(bindAddress, Seq(Config.app.login.port), loginPlan)),
-        SocketSetup("world", SocketSetupInfo(publicAddress, Config.app.world.port +: Config.app.world.ports, sessionPlan))
+        SocketSetup("world", SocketSetupInfo(bindAddress, Config.app.world.port +: Config.app.world.ports, sessionPlan))
       )),
       name = SocketPane.SocketPaneKey.id
     )
