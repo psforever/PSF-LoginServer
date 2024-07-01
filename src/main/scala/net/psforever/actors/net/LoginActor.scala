@@ -88,6 +88,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       handleGamePkt(packet)
 
     case SocketPane.NextPort(_, address, portNum) =>
+      log.info(s"Connecting to ${address.getHostAddress.toLowerCase}: $portNum ...")
       val response = ConnectToWorldMessage(serverName, address.getHostAddress, portNum)
       middlewareActor ! MiddlewareActor.Send(response)
       middlewareActor ! MiddlewareActor.Close()
@@ -109,7 +110,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
         requestAccountLogin(username, password, token)
 
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _, _) =>
-        log.info(s"Connect to world request for '$name'")
+        log.info(s"Request to connect to world  '$name' ...")
         sockets ! SocketPane.GetNextPort("world", context.self)
 
       case _ =>
