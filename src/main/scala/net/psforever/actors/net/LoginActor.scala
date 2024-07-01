@@ -27,6 +27,8 @@ import scala.concurrent.duration._
 import scala.util.matching.Regex
 import scala.util.{Failure, Success}
 
+
+
 object LoginActor {
   sealed trait Command
 
@@ -56,7 +58,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   var port: Int                 = 0
 
   val serverName: String = Config.app.world.serverName
-  val publicAddress = new InetSocketAddress(InetAddress.getByName(Config.app.public), Config.app.world.port)
+  val gameTestServerAddress = new InetSocketAddress(InetAddress.getByName(Config.app.public), Config.app.world.port)
 
   private val bcryptRounds = 12
 
@@ -87,8 +89,10 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
     case packet: PlanetSideGamePacket =>
       handleGamePkt(packet)
 
-    case SocketPane.NextPort(_, address, portNum) =>
-      val response = ConnectToWorldMessage(serverName, address.getHostAddress, portNum)
+    case SocketPane.NextPort(_, _, portNum) =>
+      val address = gameTestServerAddress.getAddress.getHostAddress
+      log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
+      val response = ConnectToWorldMessage(serverName, address, portNum)
       middlewareActor ! MiddlewareActor.Send(response)
       middlewareActor ! MiddlewareActor.Close()
 
@@ -109,7 +113,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
         requestAccountLogin(username, password, token)
 
       case ConnectToWorldRequestMessage(name, _, _, _, _, _, _, _) =>
-        log.info(s"Connect to world request for '$name'")
+        log.info(s"Request to connect to world  '$name' ...")
         sockets ! SocketPane.GetNextPort("world", context.self)
 
       case _ =>
@@ -440,7 +444,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
             serverName,
             WorldStatus.Up,
             Config.app.world.serverType,
-            Vector(WorldConnectionInfo(publicAddress)), //todo ideally, ask for info from SocketPane
+            Vector(WorldConnectionInfo(gameTestServerAddress)), //todo ideally, ask for info from SocketPane
             PlanetSideEmpire.VS
           )
         )
