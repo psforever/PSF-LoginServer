@@ -69,6 +69,26 @@ class SessionTerminalHandlers(
   }
 
   /**
+   * Construct tasking that adds a completed and registered vehicle into the scene.
+   * Use this function to renew the globally unique identifiers on a vehicle that has already been added to the scene once.
+   * @param vehicle the `Vehicle` object
+   * @see `RegisterVehicleFromSpawnPad`
+   * @return a `TaskBundle` message
+   */
+  def registerVehicle(vehicle: Vehicle): TaskBundle = {
+    TaskBundle(
+      new StraightforwardTask() {
+        private val localVehicle = vehicle
+
+        override def description(): String = s"register a ${localVehicle.Definition.Name}"
+
+        def action(): Future[Any] = Future(true)
+      },
+      List(GUIDTask.registerVehicle(continent.GUID, vehicle))
+    )
+  }
+
+  /**
    * na
    * @param terminal na
    */
@@ -186,26 +206,6 @@ class SessionTerminalHandlers(
     if (usingMedicalTerminal.contains(termGuid)) {
       usingMedicalTerminal = None
     }
-  }
-
-  /**
-   * Construct tasking that adds a completed and registered vehicle into the scene.
-   * Use this function to renew the globally unique identifiers on a vehicle that has already been added to the scene once.
-   * @param vehicle the `Vehicle` object
-   * @see `RegisterVehicleFromSpawnPad`
-   * @return a `TaskBundle` message
-   */
-  def registerVehicle(vehicle: Vehicle): TaskBundle = {
-    TaskBundle(
-      new StraightforwardTask() {
-        private val localVehicle = vehicle
-
-        override def description(): String = s"register a ${localVehicle.Definition.Name}"
-
-        def action(): Future[Any] = Future(true)
-      },
-      List(GUIDTask.registerVehicle(continent.GUID, vehicle))
-    )
   }
 
   override protected[session] def actionsToCancel(): Unit = {

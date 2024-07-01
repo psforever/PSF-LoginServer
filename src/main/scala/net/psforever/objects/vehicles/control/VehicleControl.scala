@@ -75,15 +75,6 @@ class VehicleControl(vehicle: Vehicle)
   def CargoObject: Vehicle = vehicle
   def AffectedObject: Vehicle = vehicle
 
-//  SetInteraction(EnvironmentAttribute.Water, doInteractingWithWater)
-//  SetInteraction(EnvironmentAttribute.Lava, doInteractingWithLava)
-//  SetInteraction(EnvironmentAttribute.Death, doInteractingWithDeath)
-//  SetInteraction(EnvironmentAttribute.MovementFieldTrigger, doInteractingWithMovementTrigger)
-//  if (!GlobalDefinitions.isFlightVehicle(vehicle.Definition)) {
-//    //can recover from sinking disability
-//    SetInteractionStop(EnvironmentAttribute.Water, stopInteractingWithWater)
-//  }
-
   /** cheap flag for whether the vehicle is decaying */
   var decaying : Boolean = false
   /** primary vehicle decay timer */

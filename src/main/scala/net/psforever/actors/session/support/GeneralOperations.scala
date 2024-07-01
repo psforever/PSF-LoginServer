@@ -2,6 +2,7 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
+import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.sourcing.PlayerSource
 
 import scala.collection.mutable
@@ -122,6 +123,10 @@ trait GeneralFunctions extends CommonSessionInterfacingFunctionality {
 
   /* messages */
 
+  def handleRenewCharSavedTimer(): Unit
+
+  def handleRenewCharSavedTimerMsg(): Unit
+
   def handleSetAvatar(avatar: Avatar): Unit
 
   def handleReceiveAccountData(account: Account): Unit
@@ -139,6 +144,12 @@ trait GeneralFunctions extends CommonSessionInterfacingFunctionality {
   def handleKick(player: Player, time: Option[Long]): Unit
 
   def handleSilenced(isSilenced: Boolean): Unit
+
+  def handleItemPutInSlot(msg: Containable.ItemPutInSlot): Unit
+
+  def handleCanNotPutItemInSlot(msg: Containable.CanNotPutItemInSlot): Unit
+
+  def handleReceiveDefaultMessage(default: Any, sender: ActorRef): Unit
 }
 
 class GeneralOperations(
@@ -739,6 +750,14 @@ class GeneralOperations(
 
   def charSaved(): Unit = {
     sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@charsaved", None))
+  }
+
+  def noVoicedChat(pkt: PlanetSideGamePacket): Unit = {
+    log.debug(s"$pkt")
+    sendResponse(VoiceHostKill())
+    sendResponse(
+      ChatMsg(ChatMessageType.CMT_OPEN, wideContents=false, "", "Try our Discord at https://discord.gg/0nRe5TNbTYoUruA4", None)
+    )
   }
 
   override protected[session] def actionsToCancel(): Unit = {

@@ -140,13 +140,13 @@ class VariantVehiclesTest extends Specification {
                       ObjectClass.ancient_ammo_vehicle,
                       PlanetSideGUID(366),
                       0,
-                      CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
                     ),
                     InternalSlot(
                       ObjectClass.ancient_ammo_vehicle,
                       PlanetSideGUID(385),
                       1,
-                      CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
                     )
                   )
                 )

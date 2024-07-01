@@ -66,7 +66,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
                     v.SeatPermissionGroup(seat_num).contains(AccessPermissionGroup.Driver) &&
                     v.isFlying =>
                   v.Actor ! Vehicle.Deconstruct(None) //immediate deconstruction
-                case _ => ;
+                case _ => ()
               }
 
             case None =>

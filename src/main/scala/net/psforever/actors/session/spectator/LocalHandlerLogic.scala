@@ -4,6 +4,7 @@ package net.psforever.actors.session.spectator
 import akka.actor.ActorContext
 import net.psforever.actors.session.support.{LocalHandlerFunctions, SessionData, SessionLocalHandlers}
 import net.psforever.objects.ce.Deployable
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable, TelepadDeployable, Tool, TurretDeployable}
 import net.psforever.packet.game.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, SetEmpireMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
@@ -19,6 +20,16 @@ object LocalHandlerLogic {
 
 class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: ActorContext) extends LocalHandlerFunctions {
   def sessionLogic: SessionData = ops.sessionLogic
+
+  /* messages */
+
+  def handleTurretDeployableIsDismissed(obj: TurretDeployable): Unit = {
+    TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(continent.GUID, obj))
+  }
+
+  def handleDeployableIsDismissed(obj: Deployable): Unit = {
+    TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, obj))
+  }
 
   /* response handlers */
 

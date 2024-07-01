@@ -13,25 +13,14 @@ import shapeless.{::, HNil}
   * The parameters `purpose` and `tile` are closely related.
   * These two fields are consistent for all shortcuts of the same type.
   * `purpose` indicates the purpose of the shortcut.
+  * The medkit icon is 0, chat shortcuts are 1, and implants are 2.
   * `tile` is related to what kind of graphic is displayed in this shortcut's slot on the hotbar based on its purpose.
-  * The parameters `effect1` and `effect2` are exclusive to text macro shortcuts and are defaulted to empty `String`s.<br>
+  * The medkit tile use "medkit", chat shortcuts use "shortcut_macro", and implants are the internal name of the implant.<br>
   * <br>
+  * The parameters `effect1` and `effect2` are exclusive to text macro shortcuts and are defaulted to empty `String`s.
   * The `shortcut_macro` setting displays a word bubble superimposed by the (first three letters of) `effect1` text.<br>
   * Implants and the medkit should have self-explanatory graphics.
-  * <br>
-  * Tile - Code<br>
-  * `advanced_regen` (regeneration) - 2<br>
-  * `audio_amplifier` - 2<br>
-  * `darklight_vision` - 2<br>
-  * `medkit` - 0<br>
-  * `melee_booster` - 2<br>
-  * `personal_shield` - 2<br>
-  * `range_magnifier` - 2<br>
-  * `second_wind` - 2<br>
-  * `shortcut_macro` - 1<br>
-  * `silent_run` (sensor shield) - 2<br>
-  * `surge` - 2<br>
-  * `targeting` (enhanced targeting) - 2
+  * The implant second wind does not have a graphic shortcut icon.
   * @param code the primary use of this shortcut
   */
 abstract class Shortcut(val code: Int) {

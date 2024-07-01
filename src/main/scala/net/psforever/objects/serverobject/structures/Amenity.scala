@@ -65,8 +65,8 @@ abstract class Amenity
   override def Zone: Zone = {
     if (super.Zone != World.Nowhere) {
       super.Zone
-    } else if (Owner.Zone != World.Nowhere) {
-      Owner.Zone
+    } else if (owner.Zone != World.Nowhere) {
+      owner.Zone
     } else {
       log.warn(s"Amenity $GUID tried to access it's Zone, but doesn't have one.")
       World.Nowhere

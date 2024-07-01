@@ -67,6 +67,19 @@ class VehicleOperations(
     }
 
   /**
+   * If the player is seated in a vehicle, find that vehicle and get the mount index number at which the player is sat.
+   * @see `GetMountableAndSeat`
+   * @return a tuple consisting of a vehicle reference and a mount index
+   *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
+   *         `(None, None)`, otherwise (even if the vehicle can be determined)
+   */
+  def GetVehicleAndSeat(): (Option[Vehicle], Option[Int]) =
+    GetMountableAndSeat(None, player, continent) match {
+      case (Some(v: Vehicle), Some(seat)) => (Some(v), Some(seat))
+      case _                              => (None, None)
+    }
+
+  /**
    * If the player is seated in a vehicle, find that vehicle and get the mount index number at which the player is sat.<br>
    * <br>
    * For special purposes involved in zone transfers,
@@ -82,19 +95,6 @@ class VehicleOperations(
    */
   def GetKnownVehicleAndSeat(): (Option[Vehicle], Option[Int]) =
     GetMountableAndSeat(sessionLogic.zoning.interstellarFerry, player, continent) match {
-      case (Some(v: Vehicle), Some(seat)) => (Some(v), Some(seat))
-      case _                              => (None, None)
-    }
-
-  /**
-   * If the player is seated in a vehicle, find that vehicle and get the mount index number at which the player is sat.
-   * @see `GetMountableAndSeat`
-   * @return a tuple consisting of a vehicle reference and a mount index
-   *         if and only if the vehicle is known to this client and the `WorldSessioNActor`-global `player` occupies it;
-   *         `(None, None)`, otherwise (even if the vehicle can be determined)
-   */
-  def GetVehicleAndSeat(): (Option[Vehicle], Option[Int]) =
-    GetMountableAndSeat(None, player, continent) match {
       case (Some(v: Vehicle), Some(seat)) => (Some(v), Some(seat))
       case _                              => (None, None)
     }

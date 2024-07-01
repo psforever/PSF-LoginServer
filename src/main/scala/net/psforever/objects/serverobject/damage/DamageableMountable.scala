@@ -75,10 +75,8 @@ object DamageableMountable {
     */
   def DestructionAwareness(target: Damageable.Target with Mountable, cause: DamageResult): Unit = {
     val interaction = cause.interaction
-    target.Seats
-      .values
-      .flatMap { _.occupant }
-      .collect { case player if player.isAlive =>
+    val targets = target.Seats.values.flatMap(_.occupant).filter(_.isAlive)
+    targets.foreach { player =>
         //make llu visible to others in zone if passenger is carrying one
         player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DropSpecialItem())
         //player.LogActivity(cause)

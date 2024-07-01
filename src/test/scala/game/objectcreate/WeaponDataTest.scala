@@ -287,7 +287,7 @@ class WeaponDataTest extends Specification {
             ObjectClass.energy_cell,
             PlanetSideGUID(3548),
             0,
-            CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+            CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
           )
         )
       )
@@ -311,13 +311,13 @@ class WeaponDataTest extends Specification {
               ObjectClass.bullet_9mm,
               PlanetSideGUID(3918),
               0,
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
             ),
             AmmoBoxData(
               ObjectClass.rocket,
               PlanetSideGUID(3941),
               1,
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, 2)(false)
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
             )
           )
         )
@@ -337,7 +337,7 @@ class WeaponDataTest extends Specification {
         WeaponData(
           CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, None, None, PlanetSideGUID(0)),
           0,
-          List(InternalSlot(ObjectClass.energy_cell, PlanetSideGUID(3268), 0, CommonFieldData()(false)))
+          List(InternalSlot(ObjectClass.energy_cell, PlanetSideGUID(3268), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 0)(false)))
         )
       )
       val msg = ObjectCreateMessage(ObjectClass.lasher, PlanetSideGUID(3074), obj)
@@ -352,8 +352,8 @@ class WeaponDataTest extends Specification {
           CommonFieldData(PlanetSideEmpire.NC, false, false, false, None, false, None, None, PlanetSideGUID(0)),
           0,
           List(
-            AmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(3528), 0, CommonFieldData()(false)),
-            AmmoBoxData(ObjectClass.rocket, PlanetSideGUID(3031), 1, CommonFieldData()(false))
+            AmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(3528), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 0)(false)),
+            AmmoBoxData(ObjectClass.rocket, PlanetSideGUID(3031), 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, 0)(false))
           )
         )
       )

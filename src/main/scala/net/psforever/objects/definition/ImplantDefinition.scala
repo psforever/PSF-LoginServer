@@ -83,5 +83,6 @@ class ImplantDefinition(val implantType: ImplantType) extends BasicDefinition {
 
   def GetCostIntervalByExoSuit(exosuit: ExoSuitType.Value): Int =
     costIntervalByExoSuit.getOrElse(exosuit, CostIntervalDefault)
+
   def CostIntervalByExoSuitHashMap: mutable.Map[ExoSuitType.Value, Int] = costIntervalByExoSuit
 }

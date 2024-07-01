@@ -34,7 +34,8 @@ trait DamageProperties
     * also used to produce staged projectiles */
   private var damageProxy: List[Int]                   = Nil
   /** na;
-    * currently used with jammer properties only */
+    * currently used with jammer properties only;
+    * used sepcifically to indicate jammering effect targets explosive deployables */
   private var additionalEffect: Boolean                  = false
   /** confers aggravated damage burn to its target */
   private var aggravatedDamage: Option[AggravatedDamage] = None
