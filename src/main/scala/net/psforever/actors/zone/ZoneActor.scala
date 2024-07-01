@@ -1,7 +1,7 @@
 package net.psforever.actors.zone
 
-import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
+import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.structures.{StructureType, WarpGate}
@@ -29,7 +29,7 @@ object ZoneActor {
   def apply(zone: Zone): Behavior[Command] =
     Behaviors
       .supervise[Command] {
-        Behaviors.setup(context => new ZoneActor(context, zone))
+        Behaviors.setup(context => new ZoneActor(context, zone).onMessage())
       }
       .onFailure[Exception](SupervisorStrategy.resume)
 
@@ -80,8 +80,10 @@ object ZoneActor {
   final case class RewardOurSupporters(target: SourceEntry, history: Iterable[InGameActivity], kill: Kill, bep: Long) extends Command
 }
 
-class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
-  extends AbstractBehavior[ZoneActor.Command](context) {
+class ZoneActor(
+                 context: ActorContext[ZoneActor.Command],
+                 zone: Zone
+               ) {
 
   import ZoneActor._
   import ctx._
@@ -116,59 +118,78 @@ class ZoneActor(context: ActorContext[ZoneActor.Command], zone: Zone)
     case Failure(e) => log.error(e.getMessage)
   }
 
-  def onMessage(msg: Command): Behavior[Command] = {
-    msg match {
+  def onMessage(): Behavior[Command] = {
+    Behaviors.receiveMessagePartial[Command] {
       case GetZone(replyTo) =>
         replyTo ! ZoneResponse(zone)
+        Behaviors.same
 
       case AddPlayer(player) =>
         players.addOne(player)
+        Behaviors.same
 
       case RemovePlayer(player) =>
         players.filterInPlace(p => p.CharId == player.CharId)
+        Behaviors.same
 
       case DropItem(item, position, orientation) =>
         zone.Ground ! Zone.Ground.DropItem(item, position, orientation)
+        Behaviors.same
 
       case PickupItem(guid) =>
         zone.Ground ! Zone.Ground.PickupItem(guid)
+        Behaviors.same
 
       case BuildDeployable(obj, _) =>
         zone.Deployables ! Zone.Deployable.Build(obj)
+        Behaviors.same
 
       case DismissDeployable(obj) =>
         zone.Deployables ! Zone.Deployable.Dismiss(obj)
+        Behaviors.same
 
       case SpawnVehicle(vehicle) =>
         zone.Transport ! Zone.Vehicle.Spawn(vehicle)
+        Behaviors.same
 
       case DespawnVehicle(vehicle) =>
         zone.Transport ! Zone.Vehicle.Despawn(vehicle)
+        Behaviors.same
 
       case AddToBlockMap(target, toPosition) =>
         zone.blockMap.addTo(target, toPosition)
+        Behaviors.same
 
       case UpdateBlockMap(target, toPosition) =>
         zone.blockMap.move(target, toPosition)
+        Behaviors.same
 
       case RemoveFromBlockMap(target) =>
         zone.blockMap.removeFrom(target)
+        Behaviors.same
 
       case HotSpotActivity(defender, attacker, location) =>
         zone.Activity ! Zone.HotSpot.Activity(defender, attacker, location)
+        Behaviors.same
 
       case RewardThisDeath(entity) =>
         experience ! ExperienceCalculator.RewardThisDeath(entity)
+        Behaviors.same
 
       case RewardOurSupporters(target, history, kill, bep) =>
         supportExperience ! SupportExperienceCalculator.RewardOurSupporters(target, history, kill, bep)
+        Behaviors.same
 
       case ZoneMapUpdate() =>
         zone.Buildings
           .filter(_._2.BuildingType == StructureType.Facility)
           .values
           .foreach(_.Actor ! BuildingActor.MapUpdate())
+        Behaviors.same
     }
-    this
+    .receiveSignal {
+      case (_, PostStop) =>
+        Behaviors.same
+    }
   }
 }

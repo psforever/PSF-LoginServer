@@ -118,7 +118,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
     zoneLoadedList.foreach {
       _.onComplete({
         case Success(true) => continentLinkFunc()
-        case _ => //log.error("")
+        case _ => ()
       })
     }
     //construct the zones, resulting in the callback
