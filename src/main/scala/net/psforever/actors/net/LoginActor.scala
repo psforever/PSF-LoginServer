@@ -27,10 +27,10 @@ import scala.concurrent.duration._
 import scala.util.matching.Regex
 import scala.util.{Failure, Success}
 
-
-
 object LoginActor {
   sealed trait Command
+
+  private case object UpdateServerList extends Command
 
   final case class ReceptionistListing(listing: Receptionist.Listing) extends Command
 }
@@ -40,8 +40,6 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
     with MDCContextAware {
 
   import scala.concurrent.ExecutionContext.Implicits.global
-
-  private case class UpdateServerList()
 
   val usernameRegex: Regex = """[A-Za-z0-9]{3,}""".r
 
@@ -83,7 +81,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       canonicalHostName = address.CanonicalHostName
       port = address.Port
 
-    case UpdateServerList() =>
+    case LoginActor.UpdateServerList =>
       updateServerList()
 
     case packet: PlanetSideGamePacket =>
@@ -213,7 +211,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
               }
               loginSuccessfulResponse(username, newToken)
               updateServerListTask =
-                context.system.scheduler.scheduleWithFixedDelay(0 seconds, 5 seconds, self, UpdateServerList())
+                context.system.scheduler.scheduleWithFixedDelay(0 seconds, 5 seconds, self, LoginActor.UpdateServerList)
               future
 
             case (_, false) =>
@@ -271,7 +269,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
               )
               loginSuccessfulResponseToken(account.username, token, newToken)
               updateServerListTask =
-                context.system.scheduler.scheduleWithFixedDelay(0 seconds, 5 seconds, self, UpdateServerList())
+                context.system.scheduler.scheduleWithFixedDelay(0 seconds, 5 seconds, self, LoginActor.UpdateServerList)
               future
 
             case (_, false) =>
