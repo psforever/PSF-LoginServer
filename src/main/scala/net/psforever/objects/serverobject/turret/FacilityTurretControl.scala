@@ -289,16 +289,15 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
-    val startsUnjammed = !JammableObject.Jammed
     super.TryJammerEffectActivate(target, cause)
-    if (JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDelay > 0)) {
-      if (startsUnjammed) {
-        AutomaticOperation = false
-      }
-      //look in direction of cause of jamming
-      val zone = JammableObject.Zone
-      AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach { attacker =>
-        AutomatedTurretBehavior.startTracking(zone, zone.id, JammableObject.GUID, List(attacker.GUID))
+    if (JammableObject.Jammed) {
+      AutomaticOperation = false
+      if (!MountableObject.Seats.values.exists(_.isOccupied) && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDelay > 0)) {
+        //look in direction of cause of jamming
+        val zone = JammableObject.Zone
+        AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach { attacker =>
+          AutomatedTurretBehavior.startTracking(zone, zone.id, JammableObject.GUID, List(attacker.GUID))
+        }
       }
     }
   }

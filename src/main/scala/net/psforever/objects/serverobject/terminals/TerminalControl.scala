@@ -4,12 +4,12 @@ package net.psforever.objects.serverobject.terminals
 import akka.actor.ActorRef
 import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
+import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableAmenity}
-import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
+import net.psforever.objects.serverobject.hackable.{GenericHackables, Hackable, HackableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
-import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
+import net.psforever.objects.serverobject.structures.{Amenity, Building, PoweredAmenityControl}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -25,11 +25,11 @@ class TerminalControl(term: Terminal)
     with DamageableAmenity
     with RepairableAmenity
     with AmenityAutoRepair {
-  def FactionObject    = term
-  def HackableObject   = term
-  def DamageableObject = term
-  def RepairableObject = term
-  def AutoRepairObject = term
+  def FactionObject: FactionAffinity = term
+  def HackableObject: Hackable       = term
+  def DamageableObject: Amenity      = term
+  def RepairableObject: Amenity      = term
+  def AutoRepairObject: Amenity      = term
 
   val commonBehavior: Receive = checkBehavior
     .orElse(takesDamage)
@@ -53,18 +53,19 @@ class TerminalControl(term: Terminal)
                 GenericHackables.FinishHacking(term, player, 3212836864L),
                 GenericHackables.HackingTickAction(progressType = 1, player, term, item.GUID)
               )
-            case _ => ;
+            case _ => ()
           }
 
-        case _ => ;
+        case _ => ()
       }
 
   def unpoweredStateLogic : Receive = commonBehavior
+    .orElse(clearHackBehavior)
     .orElse {
       case Terminal.Request(player, msg) =>
         sender() ! Terminal.TerminalMessage(player, msg, Terminal.NoDeal())
 
-      case _ => ;
+      case _ => ()
     }
 
   override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any) : Unit = {

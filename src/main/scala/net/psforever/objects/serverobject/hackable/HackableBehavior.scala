@@ -15,15 +15,18 @@ object HackableBehavior {
     this: Actor =>
     def HackableObject: Hackable
 
-    val hackableBehavior: Receive = {
-      case CommonMessages.Hack(player, _, _) =>
-        val obj = HackableObject
-        obj.HackedBy = player
-        sender() ! true
-
+    val clearHackBehavior: Receive = {
       case CommonMessages.ClearHack() =>
         val obj = HackableObject
         obj.HackedBy = None
+    }
+
+    val hackableBehavior: Receive = clearHackBehavior
+      .orElse {
+        case CommonMessages.Hack(player, _, _) =>
+          val obj = HackableObject
+          obj.HackedBy = player
+          sender() ! true
     }
   }
 }
