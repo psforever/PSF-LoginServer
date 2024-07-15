@@ -2227,15 +2227,28 @@ class ZoningOperations(
         sessionLogic.actionsToCancel()
         continent.GUID(player.VehicleSeated) match {
           case Some(vehicle: Vehicle) if vehicle.MountedIn.isEmpty =>
-            vehicle.PassengerInSeat(player) match {
-              case Some(0) =>
-                deadState = DeadState.Release // cancel movement updates
-                vehicle.Position = position
-                LoadZonePhysicalSpawnPoint(continent.id, position, Vector3.z(vehicle.Orientation.z), 0 seconds, None)
-              case _ => // not seated as the driver, in which case we can't move
+            vehicle
+              .PassengerInSeat(player)
+              .collect {
+                case 0 => //driver of the vehicle carries the vehicle and its passengers
+                  deadState = DeadState.Release //cancel movement updates
+                  vehicle.Position = position
+                  doorsThatShouldBeClosedOrBeOpenedByRange(
+                    player.Position,
+                    sessionLogic.localResponse.doorLoadRange(),
+                    position,
+                    openRange = 100f
+                  )
+                  LoadZonePhysicalSpawnPoint(continent.id, position, Vector3.z(vehicle.Orientation.z), 0 seconds, None)
             }
           case None =>
             deadState = DeadState.Release // cancel movement updates
+            doorsThatShouldBeClosedOrBeOpenedByRange(
+              player.Position,
+              sessionLogic.localResponse.doorLoadRange(),
+              position,
+              openRange = 100f
+            )
             player.Position = position
             sendResponse(PlayerStateShiftMessage(ShiftState(0, position, player.Orientation.z, None)))
             deadState = DeadState.Alive // must be set here
@@ -3105,6 +3118,7 @@ class ZoningOperations(
             }
           })
         }
+        doorsThatShouldBeOpenInRange(pos, range = 100f)
         setAvatar = true
         player.allowInteraction = true
         upstreamMessageCount = 0
@@ -3620,6 +3634,32 @@ class ZoningOperations(
         )
       }
     }
+  }
+
+  def doorsThatShouldBeClosedOrBeOpenedByRange(
+                                                closedPosition: Vector3,
+                                                closedRange: Float,
+                                                openPosition: Vector3,
+                                                openRange: Float
+                                              ): Unit = {
+    continent
+      .blockMap
+      .sector(closedPosition, closedRange)
+      .amenityList
+      .collect { case door: Door if door.isOpen =>
+        sendResponse(GenericObjectStateMsg(door.GUID, state=17))
+      }
+    doorsThatShouldBeOpenInRange(openPosition, openRange)
+  }
+
+  def doorsThatShouldBeOpenInRange(position: Vector3, range: Float): Unit = {
+    continent
+      .blockMap
+      .sector(position.xy, range)
+      .amenityList
+      .collect { case door: Door if door.isOpen =>
+        sendResponse(GenericObjectStateMsg(door.GUID, state=16))
+      }
   }
 
   override protected[session] def stop(): Unit = {

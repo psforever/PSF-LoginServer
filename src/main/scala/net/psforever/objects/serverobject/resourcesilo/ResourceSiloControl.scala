@@ -1,7 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.serverobject.resourcesilo
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
@@ -53,37 +53,31 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     checkBehavior
       .orElse(storageBehavior)
       .orElse {
-        case CommonMessages.Use(player, _) =>
+        case CommonMessages.Use(_, Some(vehicle: Vehicle))
+          if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) =>
           val siloFaction = resourceSilo.Faction
-          val playerFaction = player.Faction
-          resourceSilo.Zone.Vehicles.find(v => v.PassengerInSeat(player).contains(0)) match {
-            case Some(vehicle) =>
-              (if (GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
-                //bfr's discharge into friendly silos and charge from enemy and neutral silos
-                if (siloFaction == playerFaction) {
-                  Some(TransferBehavior.Discharging(Ntu.Nanites))
-                } else if (resourceSilo.MaxNtuCapacitor * 0.4f < resourceSilo.NtuCapacitor) {
-                  //the bfr never drains below 40%
-                  Some(TransferBehavior.Charging(Ntu.Nanites))
-                } else {
-                  None
-                }
-              } else if(siloFaction == PlanetSideEmpire.NEUTRAL || siloFaction == playerFaction) {
-                //ants discharge into neutral and friendly silos
-                Some(TransferBehavior.Discharging(Ntu.Nanites))
-              } else {
-                None
-              }) match {
-                case Some(msg) =>
-                  context.system.scheduler.scheduleOnce(
-                    delay = 1000 milliseconds,
-                    vehicle.Actor,
-                    msg
-                  )
-                case None => ;
-              }
-            case _ => ;
+          val vehicleFaction = vehicle.Faction
+          val msgOpt = if (siloFaction == vehicleFaction) {
+            Some(TransferBehavior.Discharging(Ntu.Nanites))
+          } else if (resourceSilo.MaxNtuCapacitor * 0.4f < resourceSilo.NtuCapacitor) {
+            //the bfr never drains below 40%
+            Some(TransferBehavior.Charging(Ntu.Nanites))
+          } else {
+            None
           }
+          msgOpt.collect { SendNtuMessage(vehicle.Actor, _) }
+
+        case CommonMessages.Use(_, Some(vehicle: Vehicle))
+          if vehicle.Definition == GlobalDefinitions.ant =>
+          val siloFaction = resourceSilo.Faction
+          val vehicleFaction = vehicle.Faction
+          val msgOpt = if (siloFaction == PlanetSideEmpire.NEUTRAL || siloFaction == vehicleFaction) {
+            //ants discharge into neutral and friendly silos
+            Some(TransferBehavior.Discharging(Ntu.Nanites))
+          } else {
+            None
+          }
+          msgOpt.collect { SendNtuMessage(vehicle.Actor, _) }
 
         case ResourceSilo.LowNtuWarning(enabled: Boolean) =>
           LowNtuWarning(enabled)
@@ -91,8 +85,12 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
         case ResourceSilo.UpdateChargeLevel(amount: Float) =>
           UpdateChargeLevel(amount)
 
-        case _ => ;
+        case _ => ()
       }
+
+  def SendNtuMessage(replyTo: ActorRef, msg: Any): Cancellable = {
+    context.system.scheduler.scheduleOnce(delay = 1000 milliseconds, replyTo, msg)
+  }
 
   def LowNtuWarning(enabled: Boolean): Unit = {
     resourceSilo.LowNtuWarningOn = enabled
@@ -147,6 +145,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     * The silo will agree to offers until its nanite capacitor is completely full.
     */
   def HandleNtuOffer(sender: ActorRef, src: NtuContainer): Unit = {
+    //todo if I want to test conditions towards continuing ntu transfers, do those here
     sender ! (if (resourceSilo.NtuCapacitor < resourceSilo.MaxNtuCapacitor) {
       Ntu.Request(0, resourceSilo.MaxNtuCapacitor - resourceSilo.NtuCapacitor)
     } else {

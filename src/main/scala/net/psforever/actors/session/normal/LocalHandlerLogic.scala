@@ -5,7 +5,6 @@ import akka.actor.ActorContext
 import net.psforever.actors.session.support.{LocalHandlerFunctions, SessionData, SessionLocalHandlers}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.doors.Door
-import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable, TelepadDeployable, Tool, TurretDeployable}
 import net.psforever.packet.game.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, SetEmpireMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
@@ -69,9 +68,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
 
       case LocalResponse.DoorOpens(doorGuid) if isNotSameTarget =>
         val pos = player.Position.xy
-        val range = if (Sidedness.equals(player.WhichSide, Sidedness.InsideOf)) 100f
-        else if (sessionLogic.general.canSeeReallyFar) 800f
-        else 400f
+        val range = ops.doorLoadRange()
         val foundDoor = continent
           .blockMap
           .sector(pos, range)
@@ -79,13 +76,12 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
           .collect { case door: Door => door }
           .find(_.GUID == doorGuid)
         val doorExistsInRange: Boolean = foundDoor.nonEmpty
-        //lazy val doorReallyClose: Boolean = foundDoor.exists(door => Vector3.DistanceSquared(door.Position.xy, pos) < 10201f)
         if (doorExistsInRange) {
           sendResponse(GenericObjectStateMsg(doorGuid, state=16))
         }
 
       case LocalResponse.DoorCloses(doorGuid) => //door closes for everyone
-        sendResponse(GenericObjectStateMsg(doorGuid, state = 17))
+        sendResponse(GenericObjectStateMsg(doorGuid, state=17))
 
       case LocalResponse.EliminateDeployable(obj: TurretDeployable, dguid, _, _) if obj.Destroyed =>
         sendResponse(ObjectDeleteMessage(dguid, unk1=0))
@@ -111,16 +107,14 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, _, _) if obj.Active && obj.Destroyed =>
         //if active, deactivate
         obj.Active = false
-        sendResponse(GenericObjectActionMessage(dguid, code=29))
-        sendResponse(GenericObjectActionMessage(dguid, code=30))
+        ops.deactivateTelpadDeployableMessages(dguid)
         //standard deployable elimination behavior
         sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
       case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, pos, _) if obj.Active =>
         //if active, deactivate
         obj.Active = false
-        sendResponse(GenericObjectActionMessage(dguid, code=29))
-        sendResponse(GenericObjectActionMessage(dguid, code=30))
+        ops.deactivateTelpadDeployableMessages(dguid)
         //standard deployable elimination behavior
         obj.Destroyed = true
         DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)

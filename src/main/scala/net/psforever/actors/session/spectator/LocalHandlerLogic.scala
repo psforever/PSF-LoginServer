@@ -96,16 +96,14 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, _, _) if obj.Active && obj.Destroyed =>
         //if active, deactivate
         obj.Active = false
-        sendResponse(GenericObjectActionMessage(dguid, code=29))
-        sendResponse(GenericObjectActionMessage(dguid, code=30))
+        ops.deactivateTelpadDeployableMessages(dguid)
         //standard deployable elimination behavior
         sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
       case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, pos, _) if obj.Active =>
         //if active, deactivate
         obj.Active = false
-        sendResponse(GenericObjectActionMessage(dguid, code=29))
-        sendResponse(GenericObjectActionMessage(dguid, code=30))
+        ops.deactivateTelpadDeployableMessages(dguid)
         //standard deployable elimination behavior
         obj.Destroyed = true
         DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)

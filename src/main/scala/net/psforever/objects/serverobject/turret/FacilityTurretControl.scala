@@ -104,9 +104,14 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   override protected def tryMount(obj: PlanetSideServerObject with Mountable, seatNumber: Int, player: Player): Boolean = {
+    val originalAutoState = AutomaticOperation
     AutomaticOperation = false //turn off
+    if (JammableObject.Jammed) {
+      val zone = TurretObject.Zone
+      AutomatedTurretBehavior.stopTracking(zone, zone.id, TurretObject.GUID) //can not recover lost jamming aggro
+    }
     if (!super.tryMount(obj, seatNumber, player)) {
-      AutomaticOperation = true //revert?
+      AutomaticOperation = originalAutoState //revert
       false
     } else {
       true

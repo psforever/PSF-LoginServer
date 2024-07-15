@@ -41,7 +41,7 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.{Zone, ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ObjectClass
-import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BindStatus, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, ItemTransactionMessage, LootItemMessage, MoveItemMessage, ObjectDeleteMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, Shortcut, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BindStatus, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, ItemTransactionMessage, LootItemMessage, MoveItemMessage, ObjectDeleteMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.RemoverActor
 import net.psforever.services.account.{AccountPersistenceService, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -1025,13 +1025,18 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
 
   private def handleUseResourceSilo(resourceSilo: ResourceSilo, equipment: Option[Equipment]): Unit = {
     sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
-    (continent.GUID(player.VehicleSeated), equipment) match {
+    val vehicleOpt = continent.GUID(player.avatar.vehicle)
+    (vehicleOpt, equipment) match {
       case (Some(vehicle: Vehicle), Some(item))
         if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) &&
           GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) =>
-        resourceSilo.Actor ! CommonMessages.Use(player, equipment)
-      case _ =>
-        resourceSilo.Actor ! CommonMessages.Use(player)
+        resourceSilo.Actor ! CommonMessages.Use(player, Some(vehicle))
+      case (Some(vehicle: Vehicle), _)
+        if vehicle.Definition == GlobalDefinitions.ant &&
+          vehicle.DeploymentState == DriveState.Deployed &&
+          Vector3.DistanceSquared(resourceSilo.Position.xy, vehicle.Position.xy) < math.pow(resourceSilo.Definition.UseRadius, 2) =>
+        resourceSilo.Actor ! CommonMessages.Use(player, Some(vehicle))
+      case _ => ()
     }
   }
 
