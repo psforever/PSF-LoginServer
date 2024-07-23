@@ -2131,7 +2131,6 @@ class AvatarActor(
             //setup character
             val avatar                = AvatarActor.toAvatar(a)
             val player                = new Player(avatar)
-            player.Velocity = Some(Vector3(-3,-3,0))
             val zoneNum = saveOpt
               .collect {
                 case persistence.Savedplayer(_, _, _, _, _, zoneNum, _, _, exosuitNum, loadout) =>
