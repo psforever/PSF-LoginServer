@@ -316,13 +316,19 @@ object DefinitionUtil {
     }
   }
 
+  /** Apply default loadout holsters to given player */
+  def applyDefaultHolsters(player: Player): Unit = {
+    val faction = player.Faction
+    player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(faction))
+    player.Slot(2).Equipment = Tool(GlobalDefinitions.suppressor)
+    player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(faction))
+  }
+
   /** Apply default loadout to given player */
   def applyDefaultLoadout(player: Player): Unit = {
     val faction = player.Faction
     player.ExoSuit = ExoSuitType.Standard
-    player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(faction))
-    player.Slot(2).Equipment = Tool(GlobalDefinitions.suppressor)
-    player.Slot(4).Equipment = Tool(GlobalDefinitions.StandardMelee(faction))
+    applyDefaultHolsters(player)
     player.Slot(6).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
     player.Slot(9).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)
     player.Slot(12).Equipment = AmmoBox(GlobalDefinitions.bullet_9mm)

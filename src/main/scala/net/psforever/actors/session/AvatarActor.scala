@@ -13,7 +13,8 @@ import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDASt
 import net.psforever.objects.sourcing.{TurretSource, VehicleSource}
 import net.psforever.packet.game.ImplantAction
 import net.psforever.services.avatar.AvatarServiceResponse
-import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
+import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement, Vector3}
+import net.psforever.zones.Zones
 import org.joda.time.{LocalDateTime, Seconds}
 
 import scala.collection.mutable
@@ -298,56 +299,136 @@ object AvatarActor {
       log: org.log4s.Logger,
       restoreAmmo: Boolean = false
   ): Unit = {
-    clob.split("/").filter(_.trim.nonEmpty).foreach { value =>
-      val (objectType, objectIndex, objectId, ammoData) = value.split(",") match {
-        case Array(a, b: String, c: String)    => (a, b.toInt, c.toInt, None)
-        case Array(a, b: String, c: String, d) => (a, b.toInt, c.toInt, Some(d))
-        case _ =>
-          log.warn(s"ignoring invalid item string: '$value'")
-          return
+    SplitClobFormat(clob, log)
+      .foreach {
+        case (objectType, objectIndex, objectId, ammoData) =>
+          BuildContainedEquipment(container, log, restoreAmmo, objectType, objectIndex, objectId, ammoData)
       }
+  }
 
-      objectType match {
-        case "Tool" =>
-          val tool = Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
-          //previous ammunition loaded into each sub-magazine
-          ammoData foreach { toolAmmo =>
-            toolAmmo.split("_").drop(1).foreach { value =>
-              val (ammoSlots, ammoTypeIndex, ammoBoxDefinition, ammoCount) = value.split("-") match {
-                case Array(a: String, b: String, c: String)            => (a.toInt, b.toInt, c.toInt, None)
-                case Array(a: String, b: String, c: String, d: String) => (a.toInt, b.toInt, c.toInt, Some(d.toInt))
-              }
-              val fireMode = tool.AmmoSlots(ammoSlots)
-              fireMode.AmmoTypeIndex = ammoTypeIndex
-              fireMode.Box = AmmoBox(DefinitionUtil.idToDefinition(ammoBoxDefinition).asInstanceOf[AmmoBoxDefinition])
-              ammoCount.collect {
-                case count if restoreAmmo => fireMode.Magazine = count
-              }
+  /**
+   * Transform from encoded inventory data as a CLOB - character large object - into individual items.
+   * Install those items into positions in a target container
+   * in the same positions in which they were previously recorded
+   * but limit new equipment only to those that are installed in the holster slots 0 through 4.<br>
+   * <br>
+   * There is no guarantee that the structure of the retained container data encoded in the CLOB
+   * will fit the current dimensions of the container.
+   * No tests are performed.
+   * A partial decompression of the CLOB may occur.
+   * @param container the container in which to place the pieces of equipment produced from the CLOB
+   * @param clob the inventory data in string form
+   * @param log a reference to a logging context
+   * @param restoreAmmo by default, when `false`, use the maximum ammunition for all ammunition boixes and for all tools;
+   *                    if `true`, load the last saved ammunition count for all ammunition boxes and for all tools
+   */
+  def buildHolsterEquipmentFromClob(
+                                       container: Container,
+                                       clob: String,
+                                       log: org.log4s.Logger,
+                                       restoreAmmo: Boolean = false
+                                     ): Unit = {
+    SplitClobFormat(clob, log)
+      .filter {
+        case (_, objectIndex, _, _) =>
+          objectIndex > -1 && objectIndex < 5
+      }
+      .foreach {
+        case (objectType, objectIndex, objectId, ammoData) =>
+          BuildContainedEquipment(container, log, restoreAmmo, objectType, objectIndex, objectId, ammoData)
+      }
+  }
+
+  /**
+   * Transform from encoded inventory data as a CLOB - character large object - into data for individual items.
+   * @param clob the inventory data in string form
+   * @param log a reference to a logging context
+   * @return four-tuple of information regarding an entity to be created:
+   *         type of the entity,
+   *         where the entity will be installed,
+   *         specific identity of entity,
+   *         additional data important for creating the entity
+   */
+  private def SplitClobFormat(
+                               clob: String,
+                               log: org.log4s.Logger
+                             ): Array[(String, Int, Int, Option[String])] = {
+    clob
+      .split("/")
+      .filter(_.trim.nonEmpty)
+      .flatMap { value =>
+        value.split(",") match {
+          case Array(a, b: String, c: String) =>
+            Some((a, b.toInt, c.toInt, None))
+          case Array(a, b: String, c: String, d) =>
+            Some((a, b.toInt, c.toInt, Some(d)))
+          case _ =>
+            log.warn(s"ignoring invalid item string: '$value'")
+            None
+        }
+      }
+  }
+
+  /**
+   * Transform from decomposed encoded inventory data into individual items.
+   * Install those items into positions in a target container.
+   * @param container the container in which to place the pieces of equipment produced from the CLOB
+   * @param log a reference to a logging context
+   * @param restoreAmmo use the maximum ammunition for all ammunition boixes and for all tool
+   * @param objectType type of the entity
+   * @param objectIndex where the entity will be installed
+   * @param objectId specific identity of entity
+   * @param ammoData additional data important for creating the entity
+   */
+  private def BuildContainedEquipment(
+                                       container: Container,
+                                       log: org.log4s.Logger,
+                                       restoreAmmo: Boolean,
+                                       objectType: String,
+                                       objectIndex: Int,
+                                       objectId: Int,
+                                       ammoData: Option[String]
+                                     ): Unit = {
+    objectType match {
+      case "Tool" =>
+        val tool = Tool(DefinitionUtil.idToDefinition(objectId).asInstanceOf[ToolDefinition])
+        //previous ammunition loaded into each sub-magazine
+        ammoData foreach { toolAmmo =>
+          toolAmmo.split("_").drop(1).foreach { value =>
+            val (ammoSlots, ammoTypeIndex, ammoBoxDefinition, ammoCount) = value.split("-") match {
+              case Array(a: String, b: String, c: String)            => (a.toInt, b.toInt, c.toInt, None)
+              case Array(a: String, b: String, c: String, d: String) => (a.toInt, b.toInt, c.toInt, Some(d.toInt))
+            }
+            val fireMode = tool.AmmoSlots(ammoSlots)
+            fireMode.AmmoTypeIndex = ammoTypeIndex
+            fireMode.Box = AmmoBox(DefinitionUtil.idToDefinition(ammoBoxDefinition).asInstanceOf[AmmoBoxDefinition])
+            ammoCount.collect {
+              case count if restoreAmmo => fireMode.Magazine = count
             }
           }
-          container.Slot(objectIndex).Equipment = tool
-        case "AmmoBox" =>
-          val box = AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
-          container.Slot(objectIndex).Equipment = box
-          //previous capacity of ammunition box
-          ammoData.collect {
-            case count if restoreAmmo => box.Capacity = count.toInt
-          }
-        case "ConstructionItem" =>
-          container.Slot(objectIndex).Equipment = ConstructionItem(
-            DefinitionUtil.idToDefinition(objectId).asInstanceOf[ConstructionItemDefinition]
-          )
-        case "SimpleItem" =>
-          container.Slot(objectIndex).Equipment =
-            SimpleItem(DefinitionUtil.idToDefinition(objectId).asInstanceOf[SimpleItemDefinition])
-        case "Kit" =>
-          container.Slot(objectIndex).Equipment =
-            Kit(DefinitionUtil.idToDefinition(objectId).asInstanceOf[KitDefinition])
-        case "Telepad" | "BoomerTrigger" => ()
-        //special types of equipment that are not actually loaded
-        case name =>
-          log.error(s"failing to add unknown equipment to a container - $name")
-      }
+        }
+        container.Slot(objectIndex).Equipment = tool
+      case "AmmoBox" =>
+        val box = AmmoBox(DefinitionUtil.idToDefinition(objectId).asInstanceOf[AmmoBoxDefinition])
+        container.Slot(objectIndex).Equipment = box
+        //previous capacity of ammunition box
+        ammoData.collect {
+          case count if restoreAmmo => box.Capacity = count.toInt
+        }
+      case "ConstructionItem" =>
+        container.Slot(objectIndex).Equipment = ConstructionItem(
+          DefinitionUtil.idToDefinition(objectId).asInstanceOf[ConstructionItemDefinition]
+        )
+      case "SimpleItem" =>
+        container.Slot(objectIndex).Equipment =
+          SimpleItem(DefinitionUtil.idToDefinition(objectId).asInstanceOf[SimpleItemDefinition])
+      case "Kit" =>
+        container.Slot(objectIndex).Equipment =
+          Kit(DefinitionUtil.idToDefinition(objectId).asInstanceOf[KitDefinition])
+      case "Telepad" | "BoomerTrigger" =>
+        () //special types of equipment that are valid but are not actually loaded
+      case name =>
+        log.error(s"failing to add unknown equipment to a container - $name")
     }
   }
 
@@ -2034,88 +2115,103 @@ class AvatarActor(
   /** Send list of avatars to client (show character selection screen) */
   def sendAvatars(account: Account): Unit = {
     import ctx._
-    val result = ctx.run(query[persistence.Avatar].filter(_.accountId == lift(account.id)))
-    result.onComplete {
-      case Success(avatars) =>
-        val gen       = new AtomicInteger(1)
-        val converter = new CharacterSelectConverter
-
-        avatars.filter(!_.deleted) foreach { a =>
-          val secondsSinceLastLogin = Seconds.secondsBetween(a.lastLogin, LocalDateTime.now()).getSeconds
-          val avatar                = AvatarActor.toAvatar(a)
-          val player                = new Player(avatar)
-
-          player.ExoSuit = ExoSuitType.Reinforced
-          player.Slot(0).Equipment = Tool(GlobalDefinitions.StandardPistol(player.Faction))
-          player.Slot(1).Equipment = Tool(GlobalDefinitions.MediumPistol(player.Faction))
-          player.Slot(2).Equipment = Tool(GlobalDefinitions.HeavyRifle(player.Faction))
-          player.Slot(3).Equipment = Tool(GlobalDefinitions.AntiVehicularLauncher(player.Faction))
-          player.Slot(4).Equipment = Tool(GlobalDefinitions.katana)
-
-          /** After a client has connected to the server, their account is used to generate a list of characters.
-            * On the character selection screen, each of these characters is made to exist temporarily when one is selected.
-            * This "character select screen" is an isolated portion of the client, so it does not have any external constraints.
-            * Temporary global unique identifiers are assigned to the underlying `Player` objects so that they can be turned into packets.
-            */
-          player
-            .Holsters()
-            .foreach(holster =>
-              holster.Equipment match {
-                case Some(tool: Tool) =>
-                  tool.AmmoSlots.foreach(slot => {
-                    slot.Box.GUID = PlanetSideGUID(gen.getAndIncrement)
-                  })
-                  tool.GUID = PlanetSideGUID(gen.getAndIncrement)
-                case Some(item: Equipment) =>
-                  item.GUID = PlanetSideGUID(gen.getAndIncrement)
-                case _ => ()
+    val queryResult = ctx.run(
+      query[persistence.Avatar]
+        .filter { a => a.accountId == lift(account.id) && !a.deleted }
+        .leftJoin(query[persistence.Savedplayer])
+        .on { case (foundAvatar, saved) => foundAvatar.id == saved.avatarId }
+    )
+    queryResult.onComplete {
+      case Success(pairedResults) =>
+        lazy val now       = LocalDateTime.now()
+        lazy val gen       = new AtomicInteger(1)
+        lazy val converter = new CharacterSelectConverter
+        pairedResults.foreach {
+          case (a, saveOpt) =>
+            //setup character
+            val avatar                = AvatarActor.toAvatar(a)
+            val player                = new Player(avatar)
+            player.Velocity = Some(Vector3(-3,-3,0))
+            val zoneNum = saveOpt
+              .collect {
+                case persistence.Savedplayer(_, _, _, _, _, zoneNum, _, _, exosuitNum, loadout) =>
+                  player.ExoSuit = ExoSuitType(exosuitNum)
+                  AvatarActor.buildHolsterEquipmentFromClob(player, loadout, log)
+                  zoneNum
               }
-            )
-          player.GUID = PlanetSideGUID(gen.getAndIncrement)
-          player.Spawn()
-          sessionActor ! SessionActor.SendResponse(
-            ObjectCreateDetailedMessage(
-              ObjectClass.avatar,
-              player.GUID,
-              converter.DetailedConstructorData(player).get
-            )
-          )
-          sessionActor ! SessionActor.SendResponse(
-            CharacterInfoMessage(
-              15,
-              PlanetSideZoneID(4),
-              avatar.id,
-              player.GUID,
-              finished = false,
-              secondsSinceLastLogin
-            )
-          )
-
-          /** After the user has selected a character to load from the "character select screen,"
-            * the temporary global unique identifiers used for that screen are stripped from the underlying `Player` object that was selected.
-            * Characters that were not selected may  be destroyed along with their temporary GUIDs.
-            */
-          player
-            .Holsters()
-            .foreach(holster =>
-              holster.Equipment match {
-                case Some(item: Tool) =>
-                  item.AmmoSlots.foreach(slot => {
-                    slot.Box.Invalidate()
-                  })
-                  item.Invalidate()
-                case Some(item: Equipment) =>
-                  item.Invalidate()
-                case _ => ()
+              .getOrElse {
+                player.ExoSuit = ExoSuitType.Standard
+                DefinitionUtil.applyDefaultHolsters(player)
+                Zones.sanctuaryZoneNumber(avatar.faction)
               }
+            /*
+            After a client has connected to the server, their account is used to generate a list of characters.
+            On the character selection screen, each of these characters is made to exist temporarily when one is selected.
+            This "character select screen" is an isolated portion of the client, so it does not have any external constraints.
+            Temporary global unique identifiers are assigned to the underlying `Player` objects so that they can be turned into packets.
+            */
+            player
+              .Holsters()
+              .foreach(holster =>
+                holster.Equipment match {
+                  case Some(tool: Tool) =>
+                    tool.AmmoSlots.foreach(slot => {
+                      slot.Box.GUID = PlanetSideGUID(gen.getAndIncrement)
+                    })
+                    tool.GUID = PlanetSideGUID(gen.getAndIncrement)
+                  case Some(item: Equipment) =>
+                    item.GUID = PlanetSideGUID(gen.getAndIncrement)
+                  case _ => ()
+                }
+              )
+            val pguid = player.GUID = PlanetSideGUID(gen.getAndIncrement)
+            player.Spawn()
+            //display character
+            sessionActor ! SessionActor.SendResponse(
+              ObjectCreateDetailedMessage(
+                ObjectClass.avatar,
+                pguid,
+                converter.DetailedConstructorData(player).get
+              )
             )
-          player.Invalidate()
-        }
-        sessionActor ! SessionActor.SendResponse(
-          CharacterInfoMessage(15, PlanetSideZoneID(0), 0, PlanetSideGUID(0), finished = true, 0)
-        )
-
-      case Failure(e) => log.error(e)("db failure")
+            //display zone
+            sessionActor ! SessionActor.SendResponse(
+              CharacterInfoMessage(
+                unk = 15,
+                PlanetSideZoneID(zoneNum),
+                avatar.id,
+                pguid,
+                finished = false,
+                Seconds.secondsBetween(a.lastLogin, now).getSeconds
+              )
+            )
+            /*
+            After the user has selected a character to load from the "character select screen,"
+            the temporary global unique identifiers used for that screen are stripped from the underlying `Player` object that was selected.
+            Characters that were not selected may be destroyed along with their temporary GUIDs.
+            */
+            player
+              .Holsters()
+              .foreach(holster =>
+                holster.Equipment match {
+                  case Some(item: Tool) =>
+                    item.AmmoSlots.foreach(slot => {
+                      slot.Box.Invalidate()
+                    })
+                    item.Invalidate()
+                  case Some(item: Equipment) =>
+                    item.Invalidate()
+                  case _ => ()
+                }
+              )
+            player.Invalidate()
+          }
+          //finalize
+          sessionActor ! SessionActor.SendResponse(
+            CharacterInfoMessage(unk = 15, PlanetSideZoneID(0), 0, PlanetSideGUID(0), finished = true, 0)
+          )
+      case Failure(e) =>
+        log.error(e)("db failure")
     }
   }
 
