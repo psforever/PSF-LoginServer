@@ -545,9 +545,9 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
               turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
               Some(target)
 
-            case turret: AutomatedTurret =>
+            case turret: AutomatedTurret with OwnableByPlayer =>
               turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
-              HandleAIDamage(target, CompileAutomatedTurretDamageData(turret, turret.TurretOwner, projectileTypeId))
+              HandleAIDamage(target, CompileAutomatedTurretDamageData(turret, projectileTypeId))
               Some(target)
           }
     }
@@ -558,9 +558,9 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
             case target: PlanetSideServerObject with FactionAffinity with Vitality =>
               sessionLogic.validObject(attackerGuid, decorator = "AIDamage/Attacker")
                 .collect {
-                  case turret: AutomatedTurret if turret.Target.nonEmpty =>
+                  case turret: AutomatedTurret with OwnableByPlayer if turret.Target.nonEmpty =>
                     //the turret must be shooting at something (else) first
-                    HandleAIDamage(target, CompileAutomatedTurretDamageData(turret, turret.TurretOwner, projectileTypeId))
+                    HandleAIDamage(target, CompileAutomatedTurretDamageData(turret, projectileTypeId))
                 }
               Some(target)
           }
@@ -1268,14 +1268,17 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
   }
 
   private def CompileAutomatedTurretDamageData(
-                                                turret: AutomatedTurret,
-                                                owner: SourceEntry,
+                                                turret: AutomatedTurret with OwnableByPlayer,
                                                 projectileTypeId: Long
                                               ): Option[(AutomatedTurret, Tool, SourceEntry, ProjectileDefinition)] = {
     turret.Weapons
       .values
       .flatMap { _.Equipment }
-      .collect { case weapon: Tool => (turret, weapon, owner, weapon.Projectile) }
+      .collect {
+        case weapon: Tool =>
+          val source = Deployables.AssignBlameTo(continent, turret.OwnerName, SourceEntry(turret))
+          (turret, weapon, source, weapon.Projectile)
+      }
       .find { case (_, _, _, p) => p.ObjectId == projectileTypeId }
   }
 

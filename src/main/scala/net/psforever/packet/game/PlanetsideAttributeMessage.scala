@@ -32,7 +32,7 @@ import scodec.codecs._
   * `86 - max spitfire turrets`<br>
   * `87 - max motion sensors`<br>
   * `88 - max shadow turrets`<br>
-  * `89 - max cerebus turrets`<br>
+  * `89 - max cerberus turrets`<br>
   * `90 - max Aegis shield generators`<br>
   * `91 - max TRAPs`<br>
   * `92 - max OMFTs`<br>
@@ -43,7 +43,7 @@ import scodec.codecs._
   * `97 - spitfire turrets`<br>
   * `98 - motion sensors`<br>
   * `99 - shadow turrets`<br>
-  * `100 - cerebus turrets`<br>
+  * `100 - cerberus turrets`<br>
   * `101 - Aegis shield generators`<br>
   * `102 - TRAPSs`<br>
   * `103 - OMFTs`<br>

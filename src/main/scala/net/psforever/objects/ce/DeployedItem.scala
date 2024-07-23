@@ -10,7 +10,7 @@ object DeployedItem extends Enumeration {
   final val jammer_mine                 = Value(420) //disruptor mine
   final val motionalarmsensor           = Value(575)
   final val sensor_shield               = Value(752) //sensor disruptor
-  final val spitfire_aa                 = Value(819) //cerebus turret
+  final val spitfire_aa                 = Value(819) //cerberus turret
   final val spitfire_cloaked            = Value(825) //shadow turret
   final val spitfire_turret             = Value(826)
   final val tank_traps                  = Value(849) //trap

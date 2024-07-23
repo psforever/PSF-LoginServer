@@ -6,6 +6,7 @@ import net.psforever.objects.avatar.{Avatar, Certification}
 
 import scala.concurrent.duration._
 import net.psforever.objects.ce.{Deployable, DeployedItem}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types.PlanetSideGUID
@@ -260,5 +261,49 @@ object Deployables {
       test intersect engineeringCerts
     }
     (sample intersect testDiff equals testDiff) && (sampleIntersect intersect testIntersect equals testIntersect)
+  }
+
+  /**
+   * Find a player with a given name in this zone.
+   * The assumption is the player is the owner of a given deployable entity.
+   * If the player can not be found, the deployable entity can stand in as it's own owner.
+   * @param zone continent in which the player should be found;
+   *             should be the same zone as the deployable, but not required
+   * @param nameOpt optional player's name
+   * @param deployableSource deployable entity
+   * @return discovered player as a reference
+   */
+  def AssignBlameTo(zone: Zone, nameOpt: Option[String], deployableSource: SourceEntry): SourceEntry = {
+    zone
+      .Players
+      .find(a => nameOpt.contains(a.name))
+      .collect { a =>
+        val name = a.name
+        Deployables.AssignBlameToFrom(name, zone.LivePlayers)
+          .orElse(Deployables.AssignBlameToFrom(name, zone.Corpses))
+          .getOrElse {
+            val player = PlayerSource(name, deployableSource.Faction, deployableSource.Position) //might report minor inconsistencies, e.g., exo-suit type
+            player.copy(unique = player.unique.copy(charId = a.id), progress = a.scorecard.CurrentLife)
+          }
+      }
+      .getOrElse(deployableSource)
+  }
+
+  /**
+   * Find a player with a given name from this list of possible players.
+   * If the player is seated, attach a shallow copy of the mounting information.
+   * @param name player name
+   * @param blameList possible players in which to find the player name
+   * @return discovered player as a reference, or `None` if not found
+   */
+  private def AssignBlameToFrom(name: String, blameList: List[Player]): Option[SourceEntry] = {
+    blameList
+      .find(_.Name.equals(name))
+      .map { player =>
+        PlayerSource
+          .mountableAndSeat(player)
+          .map { case (mount, seat) => PlayerSource.inSeat(player, mount, seat) }
+          .getOrElse { PlayerSource(player) }
+      }
   }
 }

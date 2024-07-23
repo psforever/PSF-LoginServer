@@ -50,7 +50,7 @@ class UniqueNumberOps(
                        private val poolActors: Map[String, ActorRef]
                      ) {
   /** The timeout used by all number pool `ask` messaging */
-  private implicit val timeout = UniqueNumberOps.timeout
+  private implicit val timeout: Timeout = UniqueNumberOps.timeout
 
   /**
     * The entry point for the entity GUID registration process.
@@ -149,25 +149,26 @@ class UniqueNumberOps(
         val localPool = pool
 
         val result = ask(pool, NumberPoolActor.GetAnyNumber())(timeout)
-        result.onComplete {
-          case Success(NumberPoolActor.GiveNumber(number)) =>
-            UniqueNumberOps.processRegisterResult(
-              localPromise,
-              localTarget,
-              localUns,
-              localPoolName,
-              localPool,
-              number
-            )
-          case Success(NumberPoolActor.NoNumber(ex)) =>
-            registrationProcessRetry(localPromise, ex, localTarget, localUns, localPools, localPoolName)
-          case msg =>
-            UniqueNumberOps.log.warn(s"unexpected message during $localTarget's registration process - $msg")
-        }
-        result.recover {
-          case ex: AskTimeoutException =>
-            localPromise.failure(new RegisteringException(msg = s"did not register entity $localTarget in time", ex))
-        }
+        result
+          .recover {
+            case ex: AskTimeoutException =>
+              localPromise.failure(new RegisteringException(msg = s"did not register entity $localTarget in time", ex))
+          }
+          .onComplete {
+            case Success(NumberPoolActor.GiveNumber(number)) =>
+              UniqueNumberOps.processRegisterResult(
+                localPromise,
+                localTarget,
+                localUns,
+                localPoolName,
+                localPool,
+                number
+              )
+            case Success(NumberPoolActor.NoNumber(ex)) =>
+              registrationProcessRetry(localPromise, ex, localTarget, localUns, localPools, localPoolName)
+            case msg =>
+              UniqueNumberOps.log.warn(s"unexpected message during $localTarget's registration process - $msg")
+          }
 
       case None =>
         //do not log
@@ -197,7 +198,7 @@ class UniqueNumberOps(
     if (poolName.equals("generic")) {
       promise.failure(new RegisteringException(msg = s"did not register entity $obj", exception))
     } else {
-      org.log4s.getLogger("UniqueNumberOps").warn(s"${exception.getLocalizedMessage()} - $poolName")
+      UniqueNumberOps.log.warn(s"${exception.getLocalizedMessage()} - $poolName")
       promise.completeWith(registrationProcess(obj, guid, pools, poolName = "generic"))
     }
   }
@@ -302,7 +303,7 @@ class UniqueNumberOps(
 
 object UniqueNumberOps {
   private val log   = org.log4s.getLogger
-  private implicit val timeout = Timeout(2.seconds)
+  private implicit val timeout: Timeout = Timeout(4.seconds)
 
   /**
     * Final step of the object registration process.
@@ -431,7 +432,7 @@ class UniqueNumberSetup(
                        ) extends Actor {
   init()
 
-  final def receive: Receive = { case _ => ; }
+  final def receive: Receive = { case _ => () }
 
   def init(): UniqueNumberOps = {
     new UniqueNumberOps(hub, poolActorConversionFunc(context, hub))

@@ -138,14 +138,14 @@ class TurretDeployableTest extends Specification {
         DeployedItem.portable_manned_turret_nc.id,
         DeployedItem.portable_manned_turret_vs.id
       ).foreach(id => {
-        try { new TurretDeployableDefinition(id) }
+        try { new TurretDeployableDefinition(id) { } }
         catch { case _: Exception => ko }
       })
       ok
     }
 
     "define (invalid object)" in {
-      new TurretDeployableDefinition(5) must throwA[NoSuchElementException] //wrong object id altogether
+      new TurretDeployableDefinition(objectId = 5) { } must throwA[NoSuchElementException] //wrong object id altogether
     }
 
     "construct" in {
@@ -212,7 +212,7 @@ class DeployableMake extends Specification {
       }
     }
 
-    "construct a cerebus turret" in {
+    "construct a cerberus turret" in {
       val func = Deployables.Make(DeployedItem.spitfire_aa)
       func() match {
         case obj: TurretDeployable if obj.Definition == GlobalDefinitions.spitfire_aa => ok

@@ -5,7 +5,7 @@ import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, SourceEntry}
+import net.psforever.objects.sourcing.{DeployableSource, SourceEntry}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.etc.TrippedMineReason
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -98,40 +98,8 @@ object MineDeployableControl {
   private case class Triggered()
 
   def trippedMineReason(mine: ExplosiveDeployable): TrippedMineReason = {
-    lazy val deployableSource = DeployableSource(mine)
-    val zone = mine.Zone
-    val ownerName = mine.OwnerName
-    val blame = zone
-      .Players
-      .find(a => ownerName.contains(a.name))
-      .collect { a =>
-        val name = a.name
-        assignBlameToFrom(name, zone.LivePlayers)
-          .orElse(assignBlameToFrom(name, zone.Corpses))
-          .getOrElse {
-            val player = PlayerSource(name, mine.Faction, mine.Position) //might report minor inconsistencies, e.g., exo-suit type
-            player.copy(unique = player.unique.copy(charId = a.id), progress = a.scorecard.CurrentLife)
-          }
-      }
-      .getOrElse(deployableSource)
+    val deployableSource = DeployableSource(mine)
+    val blame = Deployables.AssignBlameTo(mine.Zone, mine.OwnerName, deployableSource)
     TrippedMineReason(deployableSource, blame)
-  }
-
-  /**
-   * Find a player with a given name from this list of possible players.
-   * If the player is seated, attach a shallow copy of the mounting information.
-   * @param name player name
-   * @param blameList possible players in which to find the player name
-   * @return discovered player as a reference, or `None` if not found
-   */
-  private def assignBlameToFrom(name: String, blameList: List[Player]): Option[SourceEntry] = {
-    blameList
-      .find(_.Name.equals(name))
-      .map { player =>
-        PlayerSource
-          .mountableAndSeat(player)
-          .map { case (mount, seat) => PlayerSource.inSeat(player, mount, seat) }
-          .getOrElse { PlayerSource(player) }
-      }
   }
 }

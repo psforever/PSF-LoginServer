@@ -114,7 +114,7 @@ object Deployable {
       DeployedItem.jammer_mine.id                 -> DeployableIcon.DisruptorMine,
       DeployedItem.spitfire_turret.id             -> DeployableIcon.SpitfireTurret,
       DeployedItem.spitfire_cloaked.id            -> DeployableIcon.ShadowTurret,
-      DeployedItem.spitfire_aa.id                 -> DeployableIcon.CerebusTurret,
+      DeployedItem.spitfire_aa.id                 -> DeployableIcon.cerberusTurret,
       DeployedItem.motionalarmsensor.id           -> DeployableIcon.MotionAlarmSensor,
       DeployedItem.sensor_shield.id               -> DeployableIcon.SensorDisruptor,
       DeployedItem.tank_traps.id                  -> DeployableIcon.TRAP,

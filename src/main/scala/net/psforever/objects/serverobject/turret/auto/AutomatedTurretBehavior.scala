@@ -80,6 +80,8 @@ trait AutomatedTurretBehavior {
     Actor.emptyBehavior
   }
 
+  def AutomaticOperationPossible: Boolean = autoStats.isDefined
+
   def AutomaticOperation: Boolean = automaticOperation
 
   /**
@@ -111,7 +113,7 @@ trait AutomatedTurretBehavior {
    * @return `true`, if it would be possible for automated behavior to become operational;
    *         `false`, otherwise
    */
-  protected def AutomaticOperationFunctionalityChecks: Boolean = { autoStats.isDefined }
+  protected def AutomaticOperationFunctionalityChecks: Boolean = AutomaticOperationPossible
 
   /**
    * The last time weapons fire from the turret was confirmed by this control agency.

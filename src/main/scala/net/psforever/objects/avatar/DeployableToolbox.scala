@@ -22,9 +22,9 @@ import scala.collection.mutable
   * As deployables are added and removed, and tracked certifications are added and removed,
   * these structures are updated to reflect proper count.
   * For example, the greatest number of spitfire turrets that can be placed is 15 (individual count)
-  * and the greatest number of shadow turrets and cerebus turrets that can be placed is 5 each (individual counts)
+  * and the greatest number of shadow turrets and cerberus turrets that can be placed is 5 each (individual counts)
   * but the maximum number of small turrets that can be placed overall is only 15 (categorical count).
-  * Spitfire turrets, shadow turrets, and cerebus turrets are all included in the category of small turrets.
+  * Spitfire turrets, shadow turrets, and cerberus turrets are all included in the category of small turrets.
   */
 class DeployableToolbox {
 
