@@ -4,12 +4,12 @@ package net.psforever.objects.serverobject.terminals
 import akka.actor.ActorRef
 import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
+import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableAmenity}
-import net.psforever.objects.serverobject.hackable.{GenericHackables, Hackable, HackableBehavior}
+import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
-import net.psforever.objects.serverobject.structures.{Amenity, Building, PoweredAmenityControl}
+import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -19,24 +19,24 @@ import net.psforever.services.local.{LocalAction, LocalServiceMessage}
   * @param term the `Terminal` object being governed
   */
 class TerminalControl(term: Terminal)
-    extends PoweredAmenityControl
+  extends PoweredAmenityControl
     with FactionAffinityBehavior.Check
     with HackableBehavior.GenericHackable
     with DamageableAmenity
     with RepairableAmenity
     with AmenityAutoRepair {
-  def FactionObject: FactionAffinity = term
-  def HackableObject: Hackable       = term
-  def DamageableObject: Amenity      = term
-  def RepairableObject: Amenity      = term
-  def AutoRepairObject: Amenity      = term
+  def FactionObject: Terminal    = term
+  def HackableObject: Terminal   = term
+  def DamageableObject: Terminal = term
+  def RepairableObject: Terminal = term
+  def AutoRepairObject: Terminal = term
 
   val commonBehavior: Receive = checkBehavior
     .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse(autoRepairBehavior)
 
-  def poweredStateLogic : Receive =
+  def poweredStateLogic: Receive =
     commonBehavior
       .orElse(hackableBehavior)
       .orElse {
