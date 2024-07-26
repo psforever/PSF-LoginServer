@@ -308,9 +308,9 @@ class MiddlewareActor(
                 send(ServerStart(nonce, serverNonce), None, None)
                 cryptoSetup()
 
-              case (Unknown30(_), _) =>
+              case (ClientHotStart(_, _), _) =>
                 /*
-                Unknown30 is used to reuse an existing crypto session when switching from login to world
+                ClientHotStart is used to reuse an existing crypto session when switching from login to world
                 When not handling it, it appears that the client will fall back to using ClientStart
                 Do we need to implement this?
                 */
@@ -586,9 +586,9 @@ class MiddlewareActor(
           case ClientStart(_) =>
             start()
 
-          case Unknown30(_) =>
+          case ClientHotStart(_, _) =>
             /*
-            Unknown30 is used to reuse an existing crypto session when switching from login to world
+            ClientHotStart is used to reuse an existing crypto session when switching from login to world
             When not handling it, it appears that the client will fall back to using ClientStart
             Do we need to implement this?
             */
