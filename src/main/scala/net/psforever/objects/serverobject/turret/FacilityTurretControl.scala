@@ -330,6 +330,21 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   override protected def captureTerminalIsHacked(terminal: CaptureTerminal): Unit = {
+    super.captureTerminalIsHacked(terminal)
+    // Remove seated occupants
+    val guid = turret.GUID
+    val zone = turret.Zone
+    val zoneId = zone.id
+    val events = zone.VehicleEvents
+    turret.Seats.values.zipWithIndex.foreach {
+      case (seat, seat_num) =>
+        seat.occupant.collect {
+          case player =>
+            seat.unmount(player)
+            player.VehicleSeated = None
+            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, seat_num, unk2=true, guid))
+        }
+    }
     captureTerminalChanges(terminal, super.captureTerminalIsHacked, actionDelays = 3000L)
   }
 

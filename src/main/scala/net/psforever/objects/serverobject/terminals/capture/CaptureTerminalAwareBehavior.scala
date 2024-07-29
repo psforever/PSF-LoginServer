@@ -1,9 +1,7 @@
 package net.psforever.objects.serverobject.terminals.capture
 
 import akka.actor.Actor.Receive
-import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.structures.Amenity
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.annotation.unused
 
@@ -24,28 +22,7 @@ trait CaptureTerminalAwareBehavior {
 
   protected def captureTerminalIsResecured(@unused terminal: CaptureTerminal): Unit = { /* intentionally blank */ }
 
-  protected def captureTerminalIsHacked(@unused terminal: CaptureTerminal): Unit = {
-    // Remove seated occupants for mountables
-    CaptureTerminalAwareObject match {
-      case mountable: Mountable =>
-        val guid = mountable.GUID
-        val zone = mountable.Zone
-        val zoneId = zone.id
-        val events = zone.VehicleEvents
-        mountable.Seats.values.zipWithIndex.foreach {
-          case (seat, seat_num) =>
-            seat.occupant.collect {
-              case player =>
-                seat.unmount(player)
-                player.VehicleSeated = None
-                if (player.HasGUID) {
-                  events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, seat_num, unk2=true, guid))
-                }
-            }
-        }
-      case _ => ()
-    }
-  }
+  protected def captureTerminalIsHacked(@unused terminal: CaptureTerminal): Unit = { /* intentionally blank */ }
 }
 
 object CaptureTerminalAwareBehavior {

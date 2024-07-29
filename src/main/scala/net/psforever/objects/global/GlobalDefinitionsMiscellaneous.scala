@@ -165,7 +165,7 @@ object GlobalDefinitionsMiscellaneous {
     cert_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.66405f, height = 1.09374f)
 
     implant_terminal_mech.Name = "implant_terminal_mech"
-    implant_terminal_mech.MaxHealth = 1500 //TODO 1000; right now, 1000 (mech) + 500 (interface)
+    implant_terminal_mech.MaxHealth = 1000
     implant_terminal_mech.Damageable = true
     implant_terminal_mech.Repairable = true
     implant_terminal_mech.autoRepair = AutoRepairStats(1.6f, 5000, 2400, 0.05f)
@@ -176,7 +176,7 @@ object GlobalDefinitionsMiscellaneous {
     implant_terminal_interface.Name = "implant_terminal_interface"
     implant_terminal_interface.Tab += 0 -> ImplantPage(ImplantTerminalDefinition.implants)
     implant_terminal_interface.MaxHealth = 500
-    implant_terminal_interface.Damageable = false //TODO true
+    implant_terminal_interface.Damageable = false //true
     implant_terminal_interface.Repairable = true
     implant_terminal_interface.autoRepair = AutoRepairStats(1, 5000, 200, 1)
     implant_terminal_interface.RepairIfDestroyed = true
