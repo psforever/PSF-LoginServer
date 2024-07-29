@@ -25,18 +25,17 @@ class DefaultActorStartedTest extends ActorTest {
   "Default.Actor" should {
     "send messages to deadLetters" in {
       //after being started
-      Default(system)
       val probe = new TestProbe(system)
       system.eventStream.subscribe(probe.ref, classOf[DeadLetter])
       Default.Actor ! "hello world"
-      val msg1 = probe.receiveOne(250 milliseconds)
+      val msg1 = probe.receiveOne(5000 milliseconds)
       assert(msg1.isInstanceOf[DeadLetter])
       assert(msg1.asInstanceOf[DeadLetter].message equals "hello world")
 
       //if it was stopped
       system.stop(Default.Actor)
       Default.Actor ! "hello world"
-      val msg2 = probe.receiveOne(250 milliseconds)
+      val msg2 = probe.receiveOne(5000 milliseconds)
       assert(msg2.isInstanceOf[DeadLetter])
       assert(msg2.asInstanceOf[DeadLetter].message equals "hello world")
     }

@@ -161,31 +161,37 @@ object ImplantTerminalMechTest {
     import akka.actor.typed.scaladsl.adapter._
 
     val guid = new NumberPoolHub(new MaxNumberSource(10))
-    val map  = new ZoneMap("test")
-    val zone = new Zone("test", map, 0) {
-      override def SetupNumberPools() = {}
-      GUID(guid)
-      this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
-    }
+    val terminal = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech) //guid=1
+    val interface = Terminal(GlobalDefinitions.implant_terminal_interface) //guid=2
     val building = new Building(
       "Building",
       building_guid = 0,
       map_id = 0,
-      zone,
+      Zone.Nowhere,
       StructureType.Building,
       GlobalDefinitions.building
     ) //guid=3
+    val zone = new Zone(
+      "test",
+      new ZoneMap("test") {
+      },
+      0) {
+      override def SetupNumberPools() = {}
+      GUID(guid)
+      this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
+    }
+    //zone.actor = system.spawn(ZoneActor(zone), ZoneTest.TestName)
+    zone.map.linkTerminalToInterface(1, 2)
+    building.Zone = zone
     building.Faction = faction
-
-    val interface = Terminal(GlobalDefinitions.implant_terminal_interface) //guid=2
-    interface.Owner = building
-    val terminal = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech) //guid=1
-    terminal.Owner = building
+    interface.Zone = zone
+    building.Amenities = interface
+    terminal.Zone = zone
+    building.Amenities = terminal
 
     guid.register(terminal, 1)
     guid.register(interface, 2)
     guid.register(building, 3)
-    map.linkTerminalToInterface(1, 2)
     terminal.Actor = system.actorOf(Props(classOf[ImplantTerminalMechControl], terminal), "terminal-control")
 
     (Player(Avatar(0, "test", faction, CharacterSex.Male, 0, CharacterVoice.Mute)), terminal)

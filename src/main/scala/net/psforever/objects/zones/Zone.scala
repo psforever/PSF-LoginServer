@@ -288,7 +288,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     * @return synchronized reference to the globally unique identifier system
     */
   def GUID(hub: NumberPoolHub): Boolean = {
-    if (actor == null && guid.Pools.values.foldLeft(0)(_ + _.Count) == 0) {
+    if (actor == Default.typed.Actor && guid.Pools.values.foldLeft(0)(_ + _.Count) == 0) {
       import org.fusesource.jansi.Ansi.Color.RED
       import org.fusesource.jansi.Ansi.ansi
       println(

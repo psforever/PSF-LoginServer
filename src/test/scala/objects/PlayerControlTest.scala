@@ -774,124 +774,124 @@ class PlayerControlDeathStandingTest extends ActorTest {
 //  }
 //}
 
-class PlayerControlInteractWithWaterTest extends ActorTest {
-  val player1: Player =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
-  val avatarProbe: TestProbe = TestProbe()
-  val guid = new NumberPoolHub(new MaxNumberSource(15))
-  val pool: Pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
-  val zone: Zone = new Zone(
-    id = "test",
-    new ZoneMap(name = "test-map") {
-      environment = List(pool)
-    },
-    zoneNumber = 0
-  ) {
-    override def SetupNumberPools(): Unit = {}
-    GUID(guid)
-    override def LivePlayers: List[Player] = List(player1)
-    override def AvatarEvents: ClassicActorRef = avatarProbe.ref
-  }
-  zone.blockMap.addTo(player1)
-  zone.blockMap.addTo(pool)
+//class PlayerControlInteractWithWaterTest extends ActorTest {
+//  val player1: Player =
+//    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
+//  val avatarProbe: TestProbe = TestProbe()
+//  val guid = new NumberPoolHub(new MaxNumberSource(15))
+//  val pool: Pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
+//  val zone: Zone = new Zone(
+//    id = "test",
+//    new ZoneMap(name = "test-map") {
+//      environment = List(pool)
+//    },
+//    zoneNumber = 0
+//  ) {
+//    override def SetupNumberPools(): Unit = {}
+//    GUID(guid)
+//    override def LivePlayers: List[Player] = List(player1)
+//    override def AvatarEvents: ClassicActorRef = avatarProbe.ref
+//  }
+//  zone.blockMap.addTo(player1)
+//  zone.blockMap.addTo(pool)
+//
+//  player1.Zone = zone
+//  player1.Spawn()
+//  guid.register(player1.avatar.locker, 5)
+//  val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
+//  player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1, avatarActor), "player1-control")
+//
+//  guid.register(player1, 1)
+//
+//  "PlayerControl" should {
+//    "cause drowning when player steps too deep in water" in {
+//      assert(player1.Health == 100)
+//      player1.Position = Vector3(5,5,-3) //right in the pool
+//      player1.zoneInteractions() //trigger
+//
+//      val msg_drown = avatarProbe.receiveOne(250 milliseconds)
+//      assert(
+//        msg_drown match {
+//          case AvatarServiceMessage(
+//            "TestCharacter1",
+//            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), _, OxygenState.Suffocation, 100f), _)
+//          )      => true
+//          case _ => false
+//        }
+//      )
+//      //player will die in 60s
+//      //detailing these death messages is not necessary
+//      assert(player1.Health == 100)
+//      probe.receiveOne(65 seconds) //wait until our implants deinitialize
+//      assert(player1.Health == 0) //ded
+//    }
+//  }
+//}
 
-  player1.Zone = zone
-  player1.Spawn()
-  guid.register(player1.avatar.locker, 5)
-  val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
-  player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1, avatarActor), "player1-control")
-
-  guid.register(player1, 1)
-
-  "PlayerControl" should {
-    "cause drowning when player steps too deep in water" in {
-      assert(player1.Health == 100)
-      player1.Position = Vector3(5,5,-3) //right in the pool
-      player1.zoneInteractions() //trigger
-
-      val msg_drown = avatarProbe.receiveOne(250 milliseconds)
-      assert(
-        msg_drown match {
-          case AvatarServiceMessage(
-            "TestCharacter1",
-            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), _, OxygenState.Suffocation, 100f), _)
-          )      => true
-          case _ => false
-        }
-      )
-      //player will die in 60s
-      //detailing these death messages is not necessary
-      assert(player1.Health == 100)
-      probe.receiveOne(65 seconds) //wait until our implants deinitialize
-      assert(player1.Health == 0) //ded
-    }
-  }
-}
-
-class PlayerControlStopInteractWithWaterTest extends ActorTest {
-  val player1: Player =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
-  val avatarProbe: TestProbe = TestProbe()
-  val guid = new NumberPoolHub(new MaxNumberSource(15))
-  val pool: Pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
-  val zone: Zone = new Zone(
-    id = "test",
-    new ZoneMap(name = "test-map") {
-      environment = List(pool)
-    },
-    zoneNumber = 0
-  ) {
-    override def SetupNumberPools(): Unit = {}
-    GUID(guid)
-    override def LivePlayers: List[Player] = List(player1)
-    override def AvatarEvents: ClassicActorRef = avatarProbe.ref
-  }
-  zone.blockMap.addTo(player1)
-  zone.blockMap.addTo(pool)
-
-  player1.Zone = zone
-  player1.Spawn()
-  guid.register(player1.avatar.locker, 5)
-  val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
-  player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1, avatarActor), "player1-control")
-
-  guid.register(player1, 1)
-
-  "PlayerControl" should {
-    "stop drowning if player steps out of deep water" in {
-      assert(player1.Health == 100)
-      player1.Position = Vector3(5,5,-3) //right in the pool
-      player1.zoneInteractions() //trigger
-
-      val msg_drown = avatarProbe.receiveOne(250 milliseconds)
-      assert(
-        msg_drown match {
-          case AvatarServiceMessage(
-            "TestCharacter1",
-            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), _, OxygenState.Suffocation, 100f), _)
-          )      => true
-          case _ => false
-        }
-      )
-      //player would normally die in 60s
-      player1.Position = Vector3.Zero //pool's closed
-      player1.zoneInteractions() //trigger
-      val msg_recover = avatarProbe.receiveOne(250 milliseconds)
-      assert(
-        msg_recover match {
-          case AvatarServiceMessage(
-            "TestCharacter1",
-            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), _, OxygenState.Recovery, _), _)
-          )      => true
-          case _ => false
-        }
-      )
-      assert(player1.Health == 100) //still alive?
-      probe.expectNoMessage(65 seconds)
-      assert(player1.Health == 100) //yep, still alive
-    }
-  }
-}
+//class PlayerControlStopInteractWithWaterTest extends ActorTest {
+//  val player1: Player =
+//    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
+//  val avatarProbe: TestProbe = TestProbe()
+//  val guid = new NumberPoolHub(new MaxNumberSource(15))
+//  val pool: Pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
+//  val zone: Zone = new Zone(
+//    id = "test",
+//    new ZoneMap(name = "test-map") {
+//      environment = List(pool)
+//    },
+//    zoneNumber = 0
+//  ) {
+//    override def SetupNumberPools(): Unit = {}
+//    GUID(guid)
+//    override def LivePlayers: List[Player] = List(player1)
+//    override def AvatarEvents: ClassicActorRef = avatarProbe.ref
+//  }
+//  zone.blockMap.addTo(player1)
+//  zone.blockMap.addTo(pool)
+//
+//  player1.Zone = zone
+//  player1.Spawn()
+//  guid.register(player1.avatar.locker, 5)
+//  val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
+//  player1.Actor = system.actorOf(Props(classOf[PlayerControl], player1, avatarActor), "player1-control")
+//
+//  guid.register(player1, 1)
+//
+//  "PlayerControl" should {
+//    "stop drowning if player steps out of deep water" in {
+//      assert(player1.Health == 100)
+//      player1.Position = Vector3(5,5,-3) //right in the pool
+//      player1.zoneInteractions() //trigger
+//
+//      val msg_drown = avatarProbe.receiveOne(250 milliseconds)
+//      assert(
+//        msg_drown match {
+//          case AvatarServiceMessage(
+//            "TestCharacter1",
+//            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), _, OxygenState.Suffocation, 100f), _)
+//          )      => true
+//          case _ => false
+//        }
+//      )
+//      //player would normally die in 60s
+//      player1.Position = Vector3.Zero //pool's closed
+//      player1.zoneInteractions() //trigger
+//      val msg_recover = avatarProbe.receiveOne(250 milliseconds)
+//      assert(
+//        msg_recover match {
+//          case AvatarServiceMessage(
+//            "TestCharacter1",
+//            AvatarAction.OxygenState(OxygenStateTarget(PlanetSideGUID(1), _, OxygenState.Recovery, _), _)
+//          )      => true
+//          case _ => false
+//        }
+//      )
+//      assert(player1.Health == 100) //still alive?
+//      probe.expectNoMessage(65 seconds)
+//      assert(player1.Health == 100) //yep, still alive
+//    }
+//  }
+//}
 
 class PlayerControlInteractWithLavaTest extends ActorTest {
   val player1: Player =

@@ -125,7 +125,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
           seat.unmount(player)
           player.VehicleSeated = None
           if (player.HasGUID) {
-            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, false, guid))
+            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2 = false, guid))
           }
         case None => ;
       }
