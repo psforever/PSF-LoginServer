@@ -2144,10 +2144,11 @@ class AvatarActor(
                 Zones.sanctuaryZoneNumber(avatar.faction)
               }
             /*
-            After a client has connected to the server, their account is used to generate a list of characters.
-            On the character selection screen, each of these characters is made to exist temporarily when one is selected.
-            This "character select screen" is an isolated portion of the client, so it does not have any external constraints.
-            Temporary global unique identifiers are assigned to the underlying `Player` objects so that they can be turned into packets.
+            After a client has connected,
+            their account is used to generate a list of characters on the character selection screen.
+            In terms of globally unique identifiers (GUID's), this is an isolated portion of the client
+            and it does not clash with any other GUID record on the server (zones).
+            Assign incremental temporary GUID's so that the characters from the selection can be turned into packets.
             */
             player
               .Holsters()
@@ -2184,11 +2185,7 @@ class AvatarActor(
                 Seconds.secondsBetween(a.lastLogin, now).getSeconds
               )
             )
-            /*
-            After the user has selected a character to load from the "character select screen,"
-            the temporary global unique identifiers used for that screen are stripped from the underlying `Player` object that was selected.
-            Characters that were not selected may be destroyed along with their temporary GUIDs.
-            */
+            //do not keep track of GUID's beyond the packet
             player
               .Holsters()
               .foreach(holster =>
@@ -2205,9 +2202,9 @@ class AvatarActor(
               )
             player.Invalidate()
           }
-          //finalize
+          //finalize list
           sessionActor ! SessionActor.SendResponse(
-            CharacterInfoMessage(unk = 15, PlanetSideZoneID(0), 0, PlanetSideGUID(0), finished = true, 0)
+            CharacterInfoMessage(unk = 15, PlanetSideZoneID(0), 0, PlanetSideGUID(0), finished = true, secondsSinceLastLogin = 0L)
           )
       case Failure(e) =>
         log.error(e)("db failure")
