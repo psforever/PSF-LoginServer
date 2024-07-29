@@ -45,7 +45,7 @@ object ControlPacketOpcode extends Enumeration {
   Unknown27,       //
   Unknown28,       //
   ConnectionClose, //
-  Unknown30        // Probably a more lightweight variant of ClientStart, containing only the client nonce
+  ClientHotStart        // Probably a more lightweight variant of ClientStart, containing only the client nonce
   = Value
 
   private def noDecoder(opcode: ControlPacketOpcode.Type) =
@@ -90,7 +90,7 @@ object ControlPacketOpcode extends Enumeration {
       case 0x1b => noDecoder(Unknown27)
       case 0x1c => noDecoder(Unknown28)
       case 0x1d => control.ConnectionClose.decode
-      case 0x1e => control.Unknown30.decode
+      case 0x1e => control.ClientHotStart.decode
       case _    => noDecoder(opcode)
     }
 
