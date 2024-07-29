@@ -10,7 +10,8 @@ object CommonMessages {
   final case class Unuse(player: Player, data: Option[Any] = None)
   final case class Hack(player: Player, obj: PlanetSideServerObject with Hackable, data: Option[Any] = None)
   final case class ClearHack()
-
+  final case class EntityHackState(obj: PlanetSideGameObject with Hackable, hackState: Boolean)
+  
   /**
    * The message that progresses some form of user-driven activity with a certain eventual outcome
    * and potential feedback per cycle.

@@ -698,6 +698,7 @@ object GlobalDefinitionsMiscellaneous {
     spawn_tube_door_coffin.Damageable = true
 
     resource_silo.Name = "resource_silo"
+    resource_silo.UseRadius = 22 //20
     resource_silo.Damageable = false
     resource_silo.Repairable = false
     resource_silo.MaxNtuCapacitor = 1000

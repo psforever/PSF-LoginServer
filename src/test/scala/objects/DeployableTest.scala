@@ -138,14 +138,14 @@ class TurretDeployableTest extends Specification {
         DeployedItem.portable_manned_turret_nc.id,
         DeployedItem.portable_manned_turret_vs.id
       ).foreach(id => {
-        try { new TurretDeployableDefinition(id) }
+        try { new TurretDeployableDefinition(id) { } }
         catch { case _: Exception => ko }
       })
       ok
     }
 
     "define (invalid object)" in {
-      new TurretDeployableDefinition(5) must throwA[NoSuchElementException] //wrong object id altogether
+      new TurretDeployableDefinition(objectId = 5) { } must throwA[NoSuchElementException] //wrong object id altogether
     }
 
     "construct" in {
@@ -212,7 +212,7 @@ class DeployableMake extends Specification {
       }
     }
 
-    "construct a cerebus turret" in {
+    "construct a cerberus turret" in {
       val func = Deployables.Make(DeployedItem.spitfire_aa)
       func() match {
         case obj: TurretDeployable if obj.Definition == GlobalDefinitions.spitfire_aa => ok
@@ -584,7 +584,7 @@ class TurretControlConstructTest extends ActorTest {
   "TurretControl" should {
     "construct" in {
       val obj = new TurretDeployable(GlobalDefinitions.spitfire_turret)
-      system.actorOf(Props(classOf[TurretDeployableControl], obj), s"${obj.Definition.Name}_test")
+      system.actorOf(Props(classOf[SmallTurretControl], obj), s"${obj.Definition.Name}_test")
     }
   }
 }
@@ -629,7 +629,7 @@ class TurretControlMountTest extends ActorTest {
         override def SetupNumberPools() = {}
         this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
       }
-      obj.Actor = system.actorOf(Props(classOf[TurretDeployableControl], obj), s"${obj.Definition.Name}_test")
+      obj.Actor = system.actorOf(Props(classOf[FieldTurretControl], obj), s"${obj.Definition.Name}_test")
 
       assert(obj.Seats(0).occupant.isEmpty)
       val player1 = Player(Avatar(0, "test1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
@@ -649,7 +649,7 @@ class TurretControlBlockMountTest extends ActorTest {
     "block mounting by others if already mounted by someone" in {
       val obj = new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr) { GUID = PlanetSideGUID(1) }
       obj.Faction = PlanetSideEmpire.TR
-      obj.Actor = system.actorOf(Props(classOf[TurretDeployableControl], obj), s"${obj.Definition.Name}_test")
+      obj.Actor = system.actorOf(Props(classOf[FieldTurretControl], obj), s"${obj.Definition.Name}_test")
       obj.Zone = new Zone("test", new ZoneMap("test"), 0) {
         override def SetupNumberPools() = {}
         this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
@@ -681,7 +681,7 @@ class TurretControlBlockBetrayalMountTest extends ActorTest {
     "block mounting by players of another faction" in {
       val obj = new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr) { GUID = PlanetSideGUID(1) }
       obj.Faction = PlanetSideEmpire.TR
-      obj.Actor = system.actorOf(Props(classOf[TurretDeployableControl], obj), s"${obj.Definition.Name}_test")
+      obj.Actor = system.actorOf(Props(classOf[FieldTurretControl], obj), s"${obj.Definition.Name}_test")
 
       assert(obj.Seats(0).occupant.isEmpty)
       val player = Player(Avatar(0, "test", PlanetSideEmpire.VS, CharacterSex.Male, 0, CharacterVoice.Mute))
@@ -705,7 +705,7 @@ class TurretControlDismountTest extends ActorTest {
         override def SetupNumberPools() = {}
         this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
       }
-      obj.Actor = system.actorOf(Props(classOf[TurretDeployableControl], obj), s"${obj.Definition.Name}_test")
+      obj.Actor = system.actorOf(Props(classOf[FieldTurretControl], obj), s"${obj.Definition.Name}_test")
 
       assert(obj.Seats(0).occupant.isEmpty)
       val player = Player(Avatar(0, "test", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
@@ -746,7 +746,7 @@ class TurretControlBetrayalMountTest extends ActorTest {
         }
       }
       obj.Faction = PlanetSideEmpire.TR
-      obj.Actor = system.actorOf(Props(classOf[TurretDeployableControl], obj), s"${obj.Definition.Name}_test")
+      obj.Actor = system.actorOf(Props(classOf[FieldTurretControl], obj), s"${obj.Definition.Name}_test")
       val probe = new TestProbe(system)
 
       assert(obj.Seats(0).occupant.isEmpty)

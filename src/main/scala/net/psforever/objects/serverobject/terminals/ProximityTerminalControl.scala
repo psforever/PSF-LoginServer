@@ -5,6 +5,7 @@ import akka.actor.{ActorRef, Cancellable}
 import net.psforever.objects.sourcing.AmenitySource
 import org.log4s.Logger
 
+import scala.annotation.unused
 import scala.collection.mutable
 import scala.concurrent.duration._
 //
@@ -121,6 +122,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
       }
 
   def unpoweredStateLogic : Receive = commonBehavior
+    .orElse(clearHackBehavior)
     .orElse {
       case CommonMessages.Use(_, _) =>
         log.warn(s"unexpected format for CommonMessages.Use in this context")
@@ -145,7 +147,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     isPowered && super.tryAutoRepair()
   }
 
-  def Use(target: PlanetSideGameObject, zone: String, callback: ActorRef): Unit = {
+  def Use(target: PlanetSideGameObject, @unused zone: String, callback: ActorRef): Unit = {
     val hadNoUsers = term.NumberUsers == 0
     if (term.AddUser(target)) {
       log.trace(s"ProximityTerminal.Use: unit ${term.Definition.Name}@${term.GUID.guid} will act on $target")
@@ -169,7 +171,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     }
   }
 
-  def Unuse(target: PlanetSideGameObject, zone: String): Unit = {
+  def Unuse(target: PlanetSideGameObject, @unused zone: String): Unit = {
     val whereTarget   = term.Targets.indexWhere(_ eq target)
     val previousUsers = term.NumberUsers
     val hadUsers      = previousUsers > 0
@@ -223,7 +225,7 @@ object ProximityTerminalControl {
    * @param target the object being affected by the unit
    */
   def selectAndTryProximityUnitBehavior(
-                                         callback: ActorRef,
+                                         @unused callback: ActorRef,
                                          terminal: Terminal with ProximityUnit,
                                          target: PlanetSideGameObject
                                        ): Boolean = {

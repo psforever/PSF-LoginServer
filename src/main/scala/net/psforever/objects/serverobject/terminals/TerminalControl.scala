@@ -19,24 +19,24 @@ import net.psforever.services.local.{LocalAction, LocalServiceMessage}
   * @param term the `Terminal` object being governed
   */
 class TerminalControl(term: Terminal)
-    extends PoweredAmenityControl
+  extends PoweredAmenityControl
     with FactionAffinityBehavior.Check
     with HackableBehavior.GenericHackable
     with DamageableAmenity
     with RepairableAmenity
     with AmenityAutoRepair {
-  def FactionObject    = term
-  def HackableObject   = term
-  def DamageableObject = term
-  def RepairableObject = term
-  def AutoRepairObject = term
+  def FactionObject: Terminal    = term
+  def HackableObject: Terminal   = term
+  def DamageableObject: Terminal = term
+  def RepairableObject: Terminal = term
+  def AutoRepairObject: Terminal = term
 
   val commonBehavior: Receive = checkBehavior
     .orElse(takesDamage)
     .orElse(canBeRepairedByNanoDispenser)
     .orElse(autoRepairBehavior)
 
-  def poweredStateLogic : Receive =
+  def poweredStateLogic: Receive =
     commonBehavior
       .orElse(hackableBehavior)
       .orElse {
@@ -53,18 +53,19 @@ class TerminalControl(term: Terminal)
                 GenericHackables.FinishHacking(term, player, 3212836864L),
                 GenericHackables.HackingTickAction(progressType = 1, player, term, item.GUID)
               )
-            case _ => ;
+            case _ => ()
           }
 
-        case _ => ;
+        case _ => ()
       }
 
   def unpoweredStateLogic : Receive = commonBehavior
+    .orElse(clearHackBehavior)
     .orElse {
       case Terminal.Request(player, msg) =>
         sender() ! Terminal.TerminalMessage(player, msg, Terminal.NoDeal())
 
-      case _ => ;
+      case _ => ()
     }
 
   override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any) : Unit = {

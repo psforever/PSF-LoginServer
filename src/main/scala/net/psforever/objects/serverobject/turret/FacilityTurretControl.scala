@@ -104,9 +104,14 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   override protected def tryMount(obj: PlanetSideServerObject with Mountable, seatNumber: Int, player: Player): Boolean = {
+    val originalAutoState = AutomaticOperation
     AutomaticOperation = false //turn off
+    if (AutomaticOperationPossible && JammableObject.Jammed) {
+      val zone = TurretObject.Zone
+      AutomatedTurretBehavior.stopTracking(zone, zone.id, TurretObject.GUID) //can not recover lost jamming aggro
+    }
     if (!super.tryMount(obj, seatNumber, player)) {
-      AutomaticOperation = true //revert?
+      AutomaticOperation = originalAutoState //revert
       false
     } else {
       true
@@ -215,6 +220,15 @@ class FacilityTurretControl(turret: FacilityTurret)
       !TurretObject.isUpgrading
   }
 
+  override def AutomaticOperationPossible: Boolean = {
+    super.AutomaticOperationPossible &&
+      (turret.Owner match {
+        case b: Building if b.CaptureTerminal.isEmpty => false
+        case b: Building => !b.CaptureTerminal.exists(_.Definition == GlobalDefinitions.secondary_capture)
+        case _ => false
+      })
+  }
+
   private def primaryWeaponFireModeOnly(): Unit = {
     if (testToResetToDefaultFireMode) {
       val zone = TurretObject.Zone
@@ -289,16 +303,15 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   override def TryJammerEffectActivate(target: Any, cause: DamageResult): Unit = {
-    val startsUnjammed = !JammableObject.Jammed
     super.TryJammerEffectActivate(target, cause)
-    if (JammableObject.Jammed && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDelay > 0)) {
-      if (startsUnjammed) {
-        AutomaticOperation = false
-      }
-      //look in direction of cause of jamming
-      val zone = JammableObject.Zone
-      AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach { attacker =>
-        AutomatedTurretBehavior.startTracking(zone, zone.id, JammableObject.GUID, List(attacker.GUID))
+    if (AutomaticOperationPossible && AutomaticOperation && JammableObject.Jammed) {
+      AutomaticOperation = false
+      if (!MountableObject.Seats.values.exists(_.isOccupied) && AutomatedTurretObject.Definition.AutoFire.exists(_.retaliatoryDelay > 0)) {
+        //look in direction of cause of jamming
+        val zone = JammableObject.Zone
+        AutomatedTurretBehavior.getAttackVectorFromCause(zone, cause).foreach { attacker =>
+          AutomatedTurretBehavior.startTracking(zone, zone.id, JammableObject.GUID, List(attacker.GUID))
+        }
       }
     }
   }

@@ -775,7 +775,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
   zone.AvatarEvents = avatarProbe.ref
   zone.VehicleEvents = vehicleProbe.ref
   val turret = new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr) //2
-  turret.Actor = system.actorOf(Props(classOf[TurretDeployableControl], turret), "turret-control")
+  turret.Actor = system.actorOf(Props(classOf[FieldTurretControl], turret), "turret-control")
   turret.Zone = zone
   turret.Position = Vector3(1, 0, 0)
   turret.LogActivity(SpawningActivity(SourceEntry(turret), zone.Number, None)) //seed a spawn event
@@ -873,7 +873,7 @@ class DamageableWeaponTurretJammerTest extends ActorTest {
   zone.VehicleEvents = vehicleProbe.ref
 
   val turret = new TurretDeployable(GlobalDefinitions.portable_manned_turret_tr) //2, 5, 6
-  turret.Actor = system.actorOf(Props(classOf[TurretDeployableControl], turret), "turret-control")
+  turret.Actor = system.actorOf(Props(classOf[FieldTurretControl], turret), "turret-control")
   turret.Zone = zone
   turret.Position = Vector3(1, 0, 0)
   val turretWeapon: Tool = turret.Weapons.values.head.Equipment.get.asInstanceOf[Tool]

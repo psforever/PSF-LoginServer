@@ -819,13 +819,13 @@ class DeployableToolboxTest extends Specification {
       val obj = new DeployableToolbox
       obj.Initialize(Set(CombatEngineering))
 
-      val cerebus = new TurretDeployable(GlobalDefinitions.spitfire_aa) //cerebus turret
-      obj.Valid(cerebus) mustEqual false
+      val cerberus = new TurretDeployable(GlobalDefinitions.spitfire_aa) //cerberus turret
+      obj.Valid(cerberus) mustEqual false
       obj.CountDeployable(DeployedItem.spitfire_aa).productIterator.toList mustEqual List(0, 0)
 
       obj.UpdateMaxCounts(Set(CombatEngineering, AdvancedEngineering))
 
-      obj.Valid(cerebus) mustEqual true
+      obj.Valid(cerberus) mustEqual true
       obj.CountDeployable(DeployedItem.spitfire_aa).productIterator.toList mustEqual List(0, 5)
     }
 

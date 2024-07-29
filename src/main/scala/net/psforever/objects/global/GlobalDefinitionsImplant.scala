@@ -18,6 +18,7 @@ object GlobalDefinitionsImplant {
 
     targeting.Name = "targeting"
     targeting.InitializationDuration = 60
+    targeting.Passive = true
 
     audio_amplifier.Name = "audio_amplifier"
     audio_amplifier.InitializationDuration = 60
@@ -41,9 +42,11 @@ object GlobalDefinitionsImplant {
 
     range_magnifier.Name = "range_magnifier"
     range_magnifier.InitializationDuration = 60
+    range_magnifier.Passive = true
 
     second_wind.Name = "second_wind"
     second_wind.InitializationDuration = 180
+    second_wind.Passive = true
 
     silent_run.Name = "silent_run"
     silent_run.InitializationDuration = 90
