@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, Env
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.vital.interaction.DamageInteraction
-import net.psforever.objects.vital.{IncarnationActivity, ReconstructionActivity, Vitality}
+import net.psforever.objects.vital.{IncarnationActivity, Vitality}
 import net.psforever.objects.zones.InteractsWithZone
 
 import scala.annotation.unused

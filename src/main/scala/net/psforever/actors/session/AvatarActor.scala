@@ -13,7 +13,7 @@ import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDASt
 import net.psforever.objects.sourcing.{TurretSource, VehicleSource}
 import net.psforever.packet.game.ImplantAction
 import net.psforever.services.avatar.AvatarServiceResponse
-import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement, Vector3}
+import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
 import net.psforever.zones.Zones
 import org.joda.time.{LocalDateTime, Seconds}
 

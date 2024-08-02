@@ -2,12 +2,12 @@
 package net.psforever.services.local.support
 
 import java.util.concurrent.TimeUnit
-
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.game.HackState7
 import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.tailrec
@@ -156,7 +156,7 @@ object HackClearActor {
       target: PlanetSideServerObject,
       zone: Zone,
       unk1: Long,
-      unk2: Long,
+      unk2: HackState7,
       duration: Int,
       time: Long = System.currentTimeMillis()
   )
@@ -172,7 +172,7 @@ object HackClearActor {
     * @param obj the server object
     * @param zone_id the zone in which the object resides
     */
-  final case class SendHackMessageHackCleared(obj: PlanetSideGUID, zone_id: String, unk1: Long, unk2: Long)
+  final case class SendHackMessageHackCleared(obj: PlanetSideGUID, zone_id: String, unk1: Long, unk2: HackState7)
 
   /**
     * Internal message used to signal a test of the queued door information.
@@ -192,7 +192,7 @@ object HackClearActor {
       target: PlanetSideServerObject,
       zone: Zone,
       unk1: Long,
-      unk2: Long,
+      unk2: HackState7,
       time: Long,
       duration: Long
   )

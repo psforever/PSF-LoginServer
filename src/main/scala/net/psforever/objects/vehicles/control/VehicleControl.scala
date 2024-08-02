@@ -179,8 +179,8 @@ class VehicleControl(vehicle: Vehicle)
         if (vehicle.Faction != player.Faction) {
           sender() ! CommonMessages.Progress(
             GenericHackables.GetHackSpeed(player, vehicle),
-            Vehicles.FinishHackingVehicle(vehicle, player, 3212836864L),
-            GenericHackables.HackingTickAction(progressType = 1, player, vehicle, item.GUID)
+            Vehicles.FinishHackingVehicle(vehicle, player),
+            GenericHackables.HackingTickAction(HackState1.Unk1, player, vehicle, item.GUID)
           )
         }
 

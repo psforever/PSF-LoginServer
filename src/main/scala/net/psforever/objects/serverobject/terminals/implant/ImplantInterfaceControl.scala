@@ -32,7 +32,7 @@ class ImplantInterfaceControl(private val terminal: Terminal)
         super.performHack(player, data, replyTo)
         ImplantInterfaceControl
           .FindPairedTerminalMech(terminal.Zone, terminal.GUID)
-          .foreach(GenericHackables.FinishHacking(_, player, unk = 3212836864L)())
+          .foreach(GenericHackables.FinishHacking(_, player, hackValue = -1, hackClearValue = -1)())
         None
       }
   }

@@ -34,8 +34,8 @@ object LocalResponse {
                                         pos: Vector3,
                                         deletionEffect: Int
   )                                                                                                extends Response
-  final case class SendHackMessageHackCleared(target_guid: PlanetSideGUID, unk1: Long, unk2: Long) extends Response
-  final case class HackObject(target_guid: PlanetSideGUID, unk1: Long, unk2: Long) extends Response
+  final case class SendHackMessageHackCleared(target_guid: PlanetSideGUID, unk1: Long, unk2: HackState7) extends Response
+  final case class HackObject(target_guid: PlanetSideGUID, unk1: Long, unk2: HackState7) extends Response
 
   final case class SendPacket(packet: PlanetSideGamePacket) extends Response
   final case class PlanetsideAttribute(target_guid: PlanetSideGUID, attribute_number: PlanetsideAttributeEnum, attribute_value: Long)

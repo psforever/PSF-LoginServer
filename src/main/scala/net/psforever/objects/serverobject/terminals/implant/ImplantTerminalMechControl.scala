@@ -15,6 +15,7 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
+import net.psforever.packet.game.HackState1
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
@@ -76,8 +77,8 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
             case b: Building if (b.Faction != player.Faction || b.CaptureTerminalIsHacked) && mech.HackedBy.isEmpty =>
               sender() ! CommonMessages.Progress(
                 GenericHackables.GetHackSpeed(player, mech),
-                GenericHackables.FinishHacking(mech, player, 3212836864L),
-                GenericHackables.HackingTickAction(progressType = 1, player, mech, item.GUID)
+                GenericHackables.FinishHacking(mech, player, hackValue = -1, hackClearValue = -1),
+                GenericHackables.HackingTickAction(HackState1.Unk1, player, mech, item.GUID)
               )
             case _ => ()
           }
@@ -181,7 +182,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     }
     ImplantTerminalMechControl
       .FindPairedTerminalInterface(zone, guid)
-      .foreach(GenericHackables.FinishHacking(_, player, unk = 3212836864L)())
+      .foreach(GenericHackables.FinishHacking(_, player, hackValue = -1, hackClearValue = -1)())
   }
 
   override def performClearHack(data: Option[Any], replyTo: ActorRef): Unit = {
@@ -201,7 +202,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     super.captureTerminalIsHacked(terminal)
     val zone = HackableObject.Zone
     val guid = HackableObject.GUID
-    kickAllOccupantsNotOfFactionWithTest(zone, guid, mech, (a: PlanetSideEmpire.Value) => { true })
+    kickAllOccupantsNotOfFactionWithTest(zone, guid, mech, (_: PlanetSideEmpire.Value) => { true })
   }
 
   override protected def captureTerminalIsResecured(terminal: CaptureTerminal): Unit = {

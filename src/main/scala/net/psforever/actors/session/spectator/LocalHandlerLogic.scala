@@ -7,7 +7,7 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable, TelepadDeployable, Tool, TurretDeployable}
-import net.psforever.packet.game.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, SetEmpireMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
+import net.psforever.packet.game.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, HackState1, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, SetEmpireMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
 import net.psforever.services.Service
 import net.psforever.services.local.LocalResponse
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, Vector3}
@@ -125,7 +125,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
         DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
 
       case LocalResponse.SendHackMessageHackCleared(targetGuid, unk1, unk2) =>
-        sendResponse(HackMessage(unk1=0, targetGuid, guid, progress=0, unk1, HackState.HackCleared, unk2))
+        sendResponse(HackMessage(HackState1.Unk0, targetGuid, guid, progress=0, unk1.toFloat, HackState.HackCleared, unk2))
 
       case LocalResponse.HackObject(targetGuid, unk1, unk2) =>
         sessionLogic.general.hackObject(targetGuid, unk1, unk2)

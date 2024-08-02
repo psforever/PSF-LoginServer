@@ -562,8 +562,8 @@ class GeneralOperations(
    * @param unk1 na
    * @param unk2 na
    */
-  def hackObject(targetGuid: PlanetSideGUID, unk1: Long, unk2: Long): Unit = {
-    sendResponse(HackMessage(unk1=0, targetGuid, player_guid=Service.defaultPlayerGUID, progress=100, unk1, HackState.Hacked, unk2))
+  def hackObject(targetGuid: PlanetSideGUID, unk1: Long, unk2: HackState7): Unit = {
+    sendResponse(HackMessage(HackState1.Unk0, targetGuid, player_guid=Service.defaultPlayerGUID, progress=100, unk1, HackState.Hacked, unk2))
   }
 
   /**

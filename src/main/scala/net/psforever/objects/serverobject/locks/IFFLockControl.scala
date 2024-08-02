@@ -4,9 +4,10 @@ package net.psforever.objects.serverobject.locks
 import akka.actor.Actor
 import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
+import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
 import net.psforever.objects.serverobject.structures.Building
+import net.psforever.packet.game.HackState1
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 /**
@@ -18,8 +19,8 @@ class IFFLockControl(lock: IFFLock)
     extends Actor
     with FactionAffinityBehavior.Check
     with HackableBehavior.GenericHackable {
-  def FactionObject: FactionAffinity = lock
-  def HackableObject                 = lock
+  def FactionObject: IFFLock  = lock
+  def HackableObject: IFFLock = lock
 
   def receive: Receive =
     checkBehavior
@@ -28,16 +29,17 @@ class IFFLockControl(lock: IFFLock)
         case CommonMessages.Use(player, Some(item: SimpleItem))
             if item.Definition == GlobalDefinitions.remote_electronics_kit =>
           if (lock.Faction != player.Faction) {
+            // 300 / 1
             sender() ! CommonMessages.Progress(
               GenericHackables.GetHackSpeed(player, lock),
-              GenericHackables.FinishHacking(lock, player, 1114636288L),
-              GenericHackables.HackingTickAction(progressType = 1, player, lock, item.GUID)
+              GenericHackables.FinishHacking(lock, player, hackValue = 60, hackClearValue = 60),
+              GenericHackables.HackingTickAction(HackState1.Unk1, player, lock, item.GUID)
             )
           } else if (lock.Faction == player.Faction && lock.HackedBy.nonEmpty) {
             sender() ! CommonMessages.Progress(
               GenericHackables.GetHackSpeed(player, lock),
               IFFLocks.FinishResecuringIFFLock(lock),
-              GenericHackables.HackingTickAction(progressType = 1, player, lock, item.GUID)
+              GenericHackables.HackingTickAction(HackState1.Unk1, player, lock, item.GUID)
             )
           } else {
             val log = org.log4s.getLogger

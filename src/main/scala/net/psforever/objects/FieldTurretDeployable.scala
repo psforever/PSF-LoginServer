@@ -11,6 +11,7 @@ import net.psforever.objects.serverobject.turret.{MountableTurret, WeaponTurrets
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.{InGameActivity, ShieldCharge}
+import net.psforever.packet.game.HackState1
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
@@ -54,7 +55,7 @@ class FieldTurretControl(turret: TurretDeployable)
           sender() ! CommonMessages.Progress(
             GenericHackables.GetHackSpeed(player, turret),
             WeaponTurrets.FinishHackingTurretDeployable(turret, player),
-            GenericHackables.HackingTickAction(progressType = 1, player, turret, item.GUID)
+            GenericHackables.HackingTickAction(HackState1.Unk1, player, turret, item.GUID)
           )
 
         case CommonMessages.ChargeShields(amount, motivator) =>

@@ -20,7 +20,7 @@ object CaptureTerminals {import scala.concurrent.duration._
    * @see `HackMessage`
    */
   //TODO add params here depending on which params in HackMessage are important
-  def FinishHackingCaptureConsole(target: CaptureTerminal, hackingPlayer: Player, unk: Long)(): Unit = {
+  def FinishHackingCaptureConsole(target: CaptureTerminal, hackingPlayer: Player, unk: Int)(): Unit = {
     import akka.pattern.ask
 
     // Wait for the target actor to set the HackedBy property

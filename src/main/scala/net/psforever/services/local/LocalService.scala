@@ -96,10 +96,10 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.SendHackMessageHackCleared(target.GUID, unk1, unk2)
             )
           )
-        case LocalAction.HackTemporarily(player_guid, _, target, unk1, duration, unk2) =>
-          hackClearer ! HackClearActor.ObjectIsHacked(target, zone, unk1, unk2, duration)
+        case LocalAction.HackTemporarily(player_guid, _, target, hackValue, hackClear, duration, unk2) =>
+          hackClearer ! HackClearActor.ObjectIsHacked(target, zone, hackClear, unk2, duration)
           LocalEvents.publish(
-            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.HackObject(target.GUID, unk1, unk2))
+            LocalServiceResponse(s"/$forChannel/Local", player_guid, LocalResponse.HackObject(target.GUID, hackValue, unk2))
           )
         case LocalAction.ClearTemporaryHack(_, target) =>
           hackClearer ! HackClearActor.ObjectIsResecured(target)
