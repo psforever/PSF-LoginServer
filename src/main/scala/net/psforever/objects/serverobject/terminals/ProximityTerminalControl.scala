@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.terminals
 
 import akka.actor.{ActorRef, Cancellable}
 import net.psforever.objects.sourcing.AmenitySource
+import net.psforever.packet.game.HackState1
 import org.log4s.Logger
 
 import scala.annotation.unused
@@ -73,8 +74,8 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
             case b: Building if (b.Faction != player.Faction || b.CaptureTerminalIsHacked) && term.HackedBy.isEmpty =>
               sender() ! CommonMessages.Progress(
                 GenericHackables.GetHackSpeed(player, term),
-                GenericHackables.FinishHacking(term, player, 3212836864L),
-                GenericHackables.HackingTickAction(progressType = 1, player, term, item.GUID)
+                GenericHackables.FinishHacking(term, player, hackValue = -1, hackClearValue = -1),
+                GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID)
               )
             case _ => ;
           }

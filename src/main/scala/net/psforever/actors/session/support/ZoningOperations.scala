@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
-import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, MailMessage, ObjectDetectedMessage, SessionStatistic}
+import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic}
 import net.psforever.services.chat.DefaultChannel
 
 import scala.collection.mutable
@@ -1084,26 +1084,30 @@ class ZoningOperations(
    * @param zone the zone being loaded
    */
   def configZone(zone: Zone): Unit = {
-    zone.Buildings.values.foreach(building => {
-      val guid = building.GUID
-      sendResponse(SetEmpireMessage(guid, building.Faction))
-      // power
-      building.Generator match {
-        case Some(obj) if obj.Condition == PlanetSideGeneratorState.Destroyed || building.NtuLevel == 0 =>
-          sendResponse(PlanetsideAttributeMessage(guid, 48, 1)) //amenities disabled; red warning lights
-          sendResponse(PlanetsideAttributeMessage(guid, 38, 0)) //disable spawn target on deployment map
-        case _ => ()
+    zone
+      .Buildings
+      .values
+      .foreach { building =>
+        val guid = building.GUID
+        sendResponse(SetEmpireMessage(guid, building.Faction))
+        // power
+        building.Generator match {
+          case Some(obj) if obj.Condition == PlanetSideGeneratorState.Destroyed || building.NtuLevel == 0 =>
+            sendResponse(PlanetsideAttributeMessage(guid, 48, 1)) //amenities disabled; red warning lights
+            sendResponse(PlanetsideAttributeMessage(guid, 38, 0)) //disable spawn target on deployment map
+          case _ => ()
+        }
+        // capitol force dome state
+        if (building.IsCapitol && building.ForceDomeActive) {
+          sendResponse(GenericObjectActionMessage(guid, 13))
+        }
+        // amenities
+        building.Amenities.collect {
+          case obj if obj.Destroyed => configAmenityAsDestroyed(obj)
+          case obj                  => configAmenityAsWorking(obj)
+        }
+        //sendResponse(HackMessage(HackState1.Unk3, guid, Service.defaultPlayerGUID, progress=0, -1f, HackState.HackCleared, HackState7.Unk8))
       }
-      // capitol force dome state
-      if (building.IsCapitol && building.ForceDomeActive) {
-        sendResponse(GenericObjectActionMessage(guid, 13))
-      }
-      // amenities
-      building.Amenities.collect {
-        case obj if obj.Destroyed => configAmenityAsDestroyed(obj)
-        case obj                  => configAmenityAsWorking(obj)
-      }
-    })
   }
 
   /**
@@ -1156,7 +1160,7 @@ class ZoningOperations(
               HackCaptureActor.GetHackUpdateAttributeValue(amenity.asInstanceOf[CaptureTerminal], isResecured = false)
             )
           case _ =>
-            sessionLogic.general.hackObject(amenity.GUID, 1114636288L, 8L) //generic hackable object
+            sessionLogic.general.hackObject(amenity.GUID, unk1 = 1114636288L, HackState7.Unk8) //generic hackable object
         }
 
       // sync capture flags

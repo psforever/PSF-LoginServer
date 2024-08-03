@@ -4,8 +4,9 @@ package net.psforever.objects.serverobject.mblocker
 import akka.actor.Actor
 import net.psforever.objects.{GlobalDefinitions, SimpleItem}
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
+import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}
+import net.psforever.packet.game.HackState1
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Locker`.
@@ -15,8 +16,8 @@ class LockerControl(locker: Locker)
     extends Actor
     with FactionAffinityBehavior.Check
     with HackableBehavior.GenericHackable {
-  def FactionObject: FactionAffinity = locker
-  def HackableObject                 = locker
+  def FactionObject: Locker  = locker
+  def HackableObject: Locker = locker
 
   def receive: Receive =
     checkBehavior
@@ -28,8 +29,8 @@ class LockerControl(locker: Locker)
           if (locker.Faction != player.Faction && locker.HackedBy.isEmpty) {
             sender() ! CommonMessages.Progress(
               GenericHackables.GetHackSpeed(player, locker),
-              GenericHackables.FinishHacking(locker, player, 3212836864L),
-              GenericHackables.HackingTickAction(progressType = 1, player, locker, item.GUID)
+              GenericHackables.FinishHacking(locker, player, hackValue = -1, hackClearValue = -1),
+              GenericHackables.HackingTickAction(HackState1.Unk1, player, locker, item.GUID)
             )
           }
         case _ => ;

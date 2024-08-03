@@ -13,7 +13,7 @@ import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, Ca
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
 import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.packet.game.ChangeFireModeMessage
+import net.psforever.packet.game.{ChangeFireModeMessage, HackState1}
 import net.psforever.services.Service
 import net.psforever.services.vehicle.support.TurretUpgrader
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -67,7 +67,7 @@ class FacilityTurretControl(turret: FacilityTurret)
           sender() ! CommonMessages.Progress(
             1.25f,
             WeaponTurrets.FinishUpgradingMannedTurret(TurretObject, player, item, upgrade),
-            WeaponTurrets.TurretUpgradingTickAction(progressType = 2, player, TurretObject, item.GUID)
+            WeaponTurrets.TurretUpgradingTickAction(HackState1.Unk2, player, TurretObject, item.GUID)
           )
       }
     case TurretUpgrader.UpgradeCompleted(_) =>
@@ -330,6 +330,21 @@ class FacilityTurretControl(turret: FacilityTurret)
   }
 
   override protected def captureTerminalIsHacked(terminal: CaptureTerminal): Unit = {
+    super.captureTerminalIsHacked(terminal)
+    // Remove seated occupants
+    val guid = turret.GUID
+    val zone = turret.Zone
+    val zoneId = zone.id
+    val events = zone.VehicleEvents
+    turret.Seats.values.zipWithIndex.foreach {
+      case (seat, seat_num) =>
+        seat.occupant.collect {
+          case player =>
+            seat.unmount(player)
+            player.VehicleSeated = None
+            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, seat_num, unk2=true, guid))
+        }
+    }
     captureTerminalChanges(terminal, super.captureTerminalIsHacked, actionDelays = 3000L)
   }
 

@@ -21,7 +21,7 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.serverobject.structures.{Building, BuildingDefinition, FoundationBuilder, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalDefinition}
-import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
+import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalInterface, ImplantTerminalMech}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition, VanuSentry}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
@@ -637,7 +637,7 @@ object Zones {
 
           zoneMap.addLocalObject(
             closestTerminal.guid,
-            Terminal.Constructor(closestTerminal.position, GlobalDefinitions.implant_terminal_interface),
+            ImplantTerminalInterface.Constructor(closestTerminal.position, GlobalDefinitions.implant_terminal_interface),
             owningBuildingGuid = ownerGuid
           )
 

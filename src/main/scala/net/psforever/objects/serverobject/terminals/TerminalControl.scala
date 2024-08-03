@@ -11,6 +11,7 @@ import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBe
 import net.psforever.objects.serverobject.repair.{AmenityAutoRepair, RepairableAmenity}
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.packet.game.HackState1
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
@@ -48,10 +49,11 @@ class TerminalControl(term: Terminal)
           //TODO setup certifications check
           term.Owner match {
             case b: Building if (b.Faction != player.Faction || b.CaptureTerminalIsHacked) && term.HackedBy.isEmpty =>
+              //order terminals are 90 / 1, or 60 / ?
               sender() ! CommonMessages.Progress(
                 GenericHackables.GetHackSpeed(player, term),
-                GenericHackables.FinishHacking(term, player, 3212836864L),
-                GenericHackables.HackingTickAction(progressType = 1, player, term, item.GUID)
+                GenericHackables.FinishHacking(term, player, hackValue = -1, hackClearValue = -1),
+                GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID)
               )
             case _ => ()
           }

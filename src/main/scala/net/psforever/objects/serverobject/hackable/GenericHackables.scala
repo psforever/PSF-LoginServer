@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.hackable
 
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
-import net.psforever.packet.game.{HackMessage, HackState}
+import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7}
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -68,43 +68,34 @@ object GenericHackables {
    * @see `HackState`
    * @param progressType 1 - remote electronics kit hack (various ...);
    *                     2 - nano dispenser (upgrade canister) turret upgrade
-   * @param tplayer the player performing the action
+   * @param hacker the player performing the action
    * @param target the object being affected
    * @param tool_guid the tool being used to affest the object
    * @param progress the current progress value
    * @return `true`, if the next cycle of progress should occur;
    *         `false`, otherwise
    */
-  def HackingTickAction(progressType: Int, tplayer: Player, target: PlanetSideServerObject, tool_guid: PlanetSideGUID)(
+  def HackingTickAction(progressType: HackState1, hacker: Player, target: PlanetSideServerObject, tool_guid: PlanetSideGUID)(
     progress: Float
   ): Boolean = {
     //hack state for progress bar visibility
-    val vis = if (progress <= 0L) {
-      HackState.Start
+    val (progressState, progressGrade) = if (progress <= 0L) {
+      (HackState.Start, 0)
     } else if (progress >= 100L) {
-      HackState.Finished
-    } else if (target.isMoving(test = 1f)) {
-      // If the object is moving (more than slightly to account for things like magriders rotating, or the last velocity reported being the magrider dipping down on dismount) then cancel the hack
-      HackState.Cancelled
+      (HackState.Finished, 100)
+    } else if (target.isMoving(test = 1f) || target.Destroyed || !target.HasGUID) {
+      (HackState.Cancelled, 0)
     } else {
-      HackState.Ongoing
+      (HackState.Ongoing, progress.toInt)
     }
     target.Zone.AvatarEvents ! AvatarServiceMessage(
-      tplayer.Name,
+      hacker.Name,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
-        if (!target.HasGUID) {
-          //cancel the hack (target is gone)
-          HackMessage(progressType, target.GUID, tplayer.GUID, 0, 0L, HackState.Cancelled, 8L)
-        } else if (vis == HackState.Cancelled) {
-          //cancel the hack (e.g. vehicle drove away)
-          HackMessage(progressType, target.GUID, tplayer.GUID, 0, 0L, vis, 8L)
-        } else {
-          HackMessage(progressType, target.GUID, tplayer.GUID, progress.toInt, 0L, vis, 8L)
-        }
+        HackMessage(progressType, target.GUID, hacker.GUID, progressGrade, 0L, progressState, HackState7.Unk8)
       )
     )
-    vis != HackState.Cancelled
+    progressState != HackState.Cancelled
   }
 
   /**
@@ -112,12 +103,12 @@ object GenericHackables {
    * Pass the message onto the hackable object and onto the local events system.
    * @param target the `Hackable` object that has been hacked
    * @param user the player that is performing this hacking task
-   * @param unk na;
-   *            used by `HackMessage` as `unk5`
+   * @param hackValue na;
+   * @param hackClearValue na
    * @see `HackMessage`
    */
   //TODO add params here depending on which params in HackMessage are important
-  def FinishHacking(target: PlanetSideServerObject with Hackable, user: Player, unk: Long)(): Unit = {
+  def FinishHacking(target: PlanetSideServerObject with Hackable, user: Player, hackValue: Int, hackClearValue: Int)(): Unit = {
     import akka.pattern.ask
     import scala.concurrent.duration._
     // Wait for the target actor to set the HackedBy property, otherwise LocalAction.HackTemporarily will not complete properly
@@ -138,7 +129,7 @@ object GenericHackables {
           zone.LocalEvents ! LocalServiceMessage(
             zoneId,
             LocalAction
-              .HackTemporarily(pguid, zone, target, unk, target.HackEffectDuration(user.avatar.hackingSkillLevel()))
+              .HackTemporarily(pguid, zone, target, hackValue, hackClearValue, target.HackEffectDuration(user.avatar.hackingSkillLevel()))
           )
         case Failure(_) =>
           log.warn(s"Hack message failed on target: ${target.Definition.Name}@${target.GUID.guid}")

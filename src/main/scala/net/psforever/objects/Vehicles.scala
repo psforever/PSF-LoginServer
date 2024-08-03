@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.transfer.TransferContainer
 import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.TriggeredSound
+import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, TriggeredSound}
 import net.psforever.types.{DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -73,7 +73,7 @@ object Vehicles {
         }
         vehicle.AssignOwnership(None)
         val empire         = VehicleLockState.Empire.id
-        val factionChannel = s"${vehicle.Faction}"
+        //val factionChannel = s"${vehicle.Faction}"
         (0 to 2).foreach(group => {
           vehicle.PermissionGroup(group, empire)
           /*vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
@@ -131,7 +131,7 @@ object Vehicles {
     if (vehicle.OwnerGuid.contains(pguid)) {
       vehicle.AssignOwnership(None)
       //vehicle.Zone.VehicleEvents ! VehicleServiceMessage(player.Name, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
-      val vguid  = vehicle.GUID
+      //val vguid  = vehicle.GUID
       val empire = VehicleLockState.Empire.id
       (0 to 2).foreach(group => {
         vehicle.PermissionGroup(group, empire)
@@ -230,11 +230,23 @@ object Vehicles {
     * Change the faction of the vehicle to the hacker's faction and remove all occupants.
     * @param target The `Vehicle` object that has been hacked/jacked
     * @param hacker the one whoi performed the hack and will inherit ownership of the target vehicle
-    * @param unk na; used by `HackMessage` as `unk5`
     */
-  def FinishHackingVehicle(target: Vehicle, hacker: Player, unk: Long)(): Unit = {
+  def FinishHackingVehicle(target: Vehicle, hacker: Player)(): Unit = {
     log.info(s"${hacker.Name} has jacked a ${target.Definition.Name}")
+    val tGuid = target.GUID
+    val hGuid = hacker.GUID
+    val hFaction = hacker.Faction
     val zone = target.Zone
+    val zoneid = zone.id
+    val vehicleEvents = zone.VehicleEvents
+    vehicleEvents ! VehicleServiceMessage(
+      zoneid,
+      VehicleAction.SendResponse(
+        Service.defaultPlayerGUID,
+        HackMessage(HackState1.Unk2, tGuid, hGuid, 100, 0f, HackState.Hacked, HackState7.Unk8)
+      )
+    )
+    target.Actor ! CommonMessages.Hack(hacker, target)
     // Forcefully dismount any cargo
     target.CargoHolds.foreach { case (_, cargoHold) =>
       cargoHold.occupant.collect {
@@ -244,18 +256,16 @@ object Vehicles {
     // Forcefully dismount all seated occupants from the vehicle
     target.Seats.values.foreach(seat => {
       seat.occupant.collect {
-        tplayer: Player =>
-          seat.unmount(tplayer)
-          tplayer.VehicleSeated = None
-          if (tplayer.HasGUID) {
-            zone.VehicleEvents ! VehicleServiceMessage(
-              zone.id,
-              VehicleAction.KickPassenger(tplayer.GUID, 4, unk2 = false, target.GUID)
-            )
-          }
+        player: Player =>
+          seat.unmount(player)
+          player.VehicleSeated = None
+          vehicleEvents ! VehicleServiceMessage(
+            zoneid,
+            VehicleAction.KickPassenger(player.GUID, 4, unk2 = false, tGuid)
+          )
       }
     })
-    // If the vehicle can fly and is flying deconstruct it, and well played to whomever managed to hack a plane in mid air. I'm impressed.
+    // If the vehicle can fly and is flying: deconstruct it; and well played to whomever managed to hack a plane in mid air
     if (target.Definition.CanFly && target.isFlying) {
       // todo: Should this force the vehicle to land in the same way as when a pilot bails with passengers on board?
       target.Actor ! Vehicle.Deconstruct()
@@ -273,19 +283,18 @@ object Vehicles {
           Vehicles.Disown(tplayer, target)
         }
       // Now take ownership of the jacked vehicle
-      target.Actor ! CommonMessages.Hack(hacker, target)
-      target.Faction = hacker.Faction
+      target.Faction = hFaction
       Vehicles.Own(target, hacker)
       //todo: Send HackMessage -> HackCleared to vehicle? can be found in packet captures. Not sure if necessary.
       // And broadcast the faction change to other clients
       zone.AvatarEvents ! AvatarServiceMessage(
-        zone.id,
-        AvatarAction.SetEmpire(Service.defaultPlayerGUID, target.GUID, hacker.Faction)
+        zoneid,
+        AvatarAction.SetEmpire(Service.defaultPlayerGUID, tGuid, hFaction)
       )
     }
     zone.LocalEvents ! LocalServiceMessage(
-      zone.id,
-      LocalAction.TriggerSound(hacker.GUID, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f)
+      zoneid,
+      LocalAction.TriggerSound(hGuid, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f)
     )
     // Clean up after specific vehicles, e.g. remove router telepads
     // If AMS is deployed, swap it to the new faction
@@ -298,9 +307,17 @@ object Vehicles {
             util.Actor ! TelepadLike.Activate(util)
         }
       case GlobalDefinitions.ams if target.DeploymentState == DriveState.Deployed =>
-        zone.VehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(zone)
+        vehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(zone)
       case _ => ()
     }
+    vehicleEvents ! VehicleServiceMessage(
+      zoneid,
+      VehicleAction.SendResponse(
+        Service.defaultPlayerGUID,
+        HackMessage(HackState1.Unk2, tGuid, tGuid, 0, 1L, HackState.HackCleared, HackState7.Unk8)
+      )
+    )
+    target.Actor ! CommonMessages.ClearHack()
   }
 
   def FindANTChargingSource(

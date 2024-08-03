@@ -14,7 +14,7 @@ import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.GenericObjectActionEnum.GenericObjectActionEnum
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
-import net.psforever.packet.game.{ChatMsg, DeployableInfo, DeploymentAction, GenericAction, TriggeredSound}
+import net.psforever.packet.game.{ChatMsg, DeployableInfo, DeploymentAction, GenericAction, HackState7, TriggeredSound}
 import net.psforever.services.hart.HartTimer.OrbitalShuttleEvent
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
@@ -43,15 +43,16 @@ object LocalAction {
                                         pos: Vector3,
                                         deletionEffect: Int
                                       )                                                extends Action
-  final case class HackClear(player_guid: PlanetSideGUID, target: PlanetSideServerObject, unk1: Long, unk2: Long = 8L)
+  final case class HackClear(player_guid: PlanetSideGUID, target: PlanetSideServerObject, unk1: Long, unk2: HackState7 = HackState7.Unk8)
       extends Action
   final case class HackTemporarily(
       player_guid: PlanetSideGUID,
       continent: Zone,
       target: PlanetSideServerObject,
-      unk1: Long,
+      hackValue: Long,
+      hackClearValue: Long,
       duration: Int,
-      unk2: Long = 8L
+      unk2: HackState7 = HackState7.Unk8
   ) extends Action
   final case class ClearTemporaryHack(player_guid: PlanetSideGUID, target: PlanetSideServerObject with Hackable)
       extends Action

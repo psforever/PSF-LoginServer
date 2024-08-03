@@ -5,7 +5,7 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.hackable.GenericHackables.updateTurretUpgradeTime
 import net.psforever.objects.{Player, Tool, TurretDeployable}
-import net.psforever.packet.game.{HackMessage, HackState, InventoryStateMessage}
+import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, InventoryStateMessage}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -73,26 +73,27 @@ object WeaponTurrets {
    * @return `true`, if the next cycle of progress should occur;
    *         `false`, otherwise
    */
-  def TurretUpgradingTickAction(progressType: Int, tplayer: Player, turret: FacilityTurret, tool_guid: PlanetSideGUID)(
+  def TurretUpgradingTickAction(progressType: HackState1, tplayer: Player, turret: FacilityTurret, tool_guid: PlanetSideGUID)(
     progress: Float
   ): Boolean = {
-    //hack state for progress bar visibility
-    val vis = if (progress <= 0L) {
-      HackState.Start
+    val (progressState, progressGrade) = if (progress <= 0L) {
+      (HackState.Start, 0)
     } else if (progress >= 100L) {
-      HackState.Finished
+      (HackState.Finished, 100)
+    } else if (turret.Destroyed) {
+      (HackState.Cancelled, 0)
     } else {
       updateTurretUpgradeTime()
-      HackState.Ongoing
+      (HackState.Ongoing, progress.toInt)
     }
     turret.Zone.AvatarEvents ! AvatarServiceMessage(
       tplayer.Name,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
-        HackMessage(progressType, turret.GUID, tplayer.GUID, progress.toInt, 0L, vis, 8L)
+        HackMessage(progressType, turret.GUID, tplayer.GUID, progressGrade, -1f, progressState, HackState7.Unk8)
       )
     )
-    vis != HackState.Cancelled
+    progressState != HackState.Cancelled
   }
 
   def FinishHackingTurretDeployable(target: TurretDeployable, hacker: Player)(): Unit = {

@@ -1,10 +1,52 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.packet.game
 
+import enumeratum.values.{IntEnum, IntEnumEntry}
+import net.psforever.packet.GamePacketOpcode.Type
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import net.psforever.types.PlanetSideGUID
-import scodec.Codec
+import scodec.bits.BitVector
+import scodec.{Attempt, Codec}
 import scodec.codecs._
+import shapeless.{::, HNil}
+
+sealed abstract class HackState1(val value: Int) extends IntEnumEntry
+
+object HackState1 extends IntEnum[HackState1] {
+  val values: IndexedSeq[HackState1] = findValues
+
+  case object Unk0 extends HackState1(value = 0)
+  case object Unk1 extends HackState1(value = 1)
+  case object Unk2 extends HackState1(value = 2)
+  case object Unk3 extends HackState1(value = 3)
+
+  implicit val codec: Codec[HackState1] = PacketHelpers.createIntEnumCodec(this, uint2)
+}
+
+sealed abstract class HackState7(val value: Int) extends IntEnumEntry
+
+object HackState7 extends IntEnum[HackState7] {
+  val values: IndexedSeq[HackState7] = findValues
+
+  case object Unk0 extends HackState7(value = 0)
+  case object Unk1 extends HackState7(value = 1)
+  case object Unk2 extends HackState7(value = 2)
+  case object Unk3 extends HackState7(value = 3)
+  case object Unk4 extends HackState7(value = 4)
+  case object Unk5 extends HackState7(value = 5)
+  case object Unk6 extends HackState7(value = 6)
+  case object Unk7 extends HackState7(value = 7)
+  case object Unk8 extends HackState7(value = 8)
+
+  implicit val codec: Codec[HackState7] = (PacketHelpers.createIntEnumCodec(this, uint8) :: ignore(size = 24)).xmap[HackState7](
+    {
+      case a :: _ :: HNil => a
+    },
+    {
+      a => a :: () :: HNil
+    }
+  )
+}
 
 /**
   * An `Enumeration` of the various states and activities of the hacking process.
@@ -16,12 +58,21 @@ import scodec.codecs._
   * `Hacked` modifies the target of the hack.<br>
   * `HackCleared` modifies the target of the hack, opposite of `Hacked`.
   */
-object HackState extends Enumeration {
-  type Type = Value
+sealed abstract class HackState(val value: Int) extends IntEnumEntry
 
-  val Unknown0, Start, Cancelled, Ongoing, Finished, Unknown5, Hacked, HackCleared = Value
+object HackState extends IntEnum[HackState] {
+  val values: IndexedSeq[HackState] = findValues
 
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint8L)
+  case object Unknown0 extends HackState(value = 0)
+  case object Start extends HackState(value = 1)
+  case object Cancelled extends HackState(value = 2)
+  case object Ongoing extends HackState(value = 3)
+  case object Finished extends HackState(value = 4)
+  case object Unknown5 extends HackState(value = 5)
+  case object Hacked extends HackState(value = 6)
+  case object HackCleared extends HackState(value = 7)
+
+  implicit val codec: Codec[HackState] = PacketHelpers.createIntEnumCodec(this, uint8L)
 }
 
 /**
@@ -44,11 +95,12 @@ object HackState extends Enumeration {
   * As mentioned, one of the unexpected uses of this message
   * will assist the conversion of allied facility turreted weapons to their upgraded armaments.
   * @param unk1 na;
-  *             0 commonly;
-  *             2 when performing (phalanx) upgrades;
-  *             3 for building objects during login phase;
-  *             hack type?
-  *             possibly player hacking level 0-3?
+ *             0 commonly;
+ *             1 unknown;
+ *             2 when performing (phalanx) upgrades;
+ *             3 for building objects during login phase;
+ *             hack type?
+ *             possibly player hacking level 0-3?
   * @param target_guid the target of the hack
   * @param player_guid the player
   * @param progress the amount of progress visible;
@@ -58,31 +110,44 @@ object HackState extends Enumeration {
   *             doesn't seem to be `char_id`?
   * @param hack_state hack state
   * @param unk7 na;
+ *             usually 8;
+ *             values 3-7 noted for the Hacked state;
   *             5 - boost pain field at matrixing terminal?
-  *             usually, 8?
   */
 final case class HackMessage(
-    unk1: Int,
-    target_guid: PlanetSideGUID,
-    player_guid: PlanetSideGUID,
-    progress: Int,
-    unk5: Long,
-    hack_state: HackState.Value,
-    unk7: Long
-) extends PlanetSideGamePacket {
+                              unk1: HackState1,
+                              target_guid: PlanetSideGUID,
+                              player_guid: PlanetSideGUID,
+                              progress: Int,
+                              unk5: Float,
+                              hack_state: HackState,
+                              unk7: HackState7
+                            ) extends PlanetSideGamePacket {
   type Packet = HackMessage
-  def opcode = GamePacketOpcode.HackMessage
-  def encode = HackMessage.encode(this)
+  def opcode: Type = GamePacketOpcode.HackMessage
+  def encode: Attempt[BitVector] = HackMessage.encode(this)
 }
 
 object HackMessage extends Marshallable[HackMessage] {
+  def apply(
+             unk1: HackState1,
+             target_guid: PlanetSideGUID,
+             player_guid: PlanetSideGUID,
+             progress: Int,
+             unk5: Int,
+             hack_state: HackState,
+             unk7: HackState7
+           ): HackMessage = {
+    new HackMessage(unk1, target_guid, player_guid, progress, unk5.toFloat, hack_state, unk7)
+  }
+
   implicit val codec: Codec[HackMessage] = (
-    ("unk1" | uint2L) ::
+    ("unk1" | HackState1.codec) ::
       ("object_guid" | PlanetSideGUID.codec) ::
       ("player_guid" | PlanetSideGUID.codec) ::
       ("progress" | uint8L) ::
-      ("unk5" | uint32L) ::
+      ("unk5" | floatL) ::
       ("hack_state" | HackState.codec) ::
-      ("unk7" | uint32L)
+      ("unk7" | HackState7.codec)
   ).as[HackMessage]
 }
