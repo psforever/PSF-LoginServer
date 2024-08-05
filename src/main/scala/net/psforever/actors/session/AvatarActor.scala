@@ -3510,11 +3510,7 @@ class AvatarActor(
   }
 
   private def startReinitializeImplant(implant: Implant, slot: Int): Implant = {
-    //deinitialize
-    session.get.zone.AvatarEvents ! AvatarServiceMessage(
-      session.get.zone.id,
-      AvatarAction.AvatarImplant(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
-    )
+    sendAvatarImplantMessageToSelf(session.get.player.GUID, ImplantAction.Initialization, slot, value = 0)
     startInitializeImplant(AvatarActor.initializationTime(implant))(implant, slot)
   }
 
@@ -3570,10 +3566,7 @@ class AvatarActor(
 
   private def deinitializeImplant(implant: Implant, slot: Int): Implant = {
     val outImplant = stopImplantInitializationTimer(implant, slot)
-    session.get.zone.AvatarEvents ! AvatarServiceMessage(
-      session.get.zone.id,
-      AvatarAction.AvatarImplant(session.get.player.GUID, ImplantAction.Initialization, slot, 0)
-    )
+    sendAvatarImplantMessageToSelf(session.get.player.GUID, ImplantAction.Initialization, slot, value = 0)
     outImplant
   }
 
@@ -3742,10 +3735,12 @@ class AvatarActor(
   private def activateImplantPackets(implant: Implant, slot: Int): Unit = {
     sendAvatarImplantMessageToSelf(session.get.player.GUID, ImplantAction.Activation, slot, value = 1)
     // Activation sound / effect
-    session.get.zone.AvatarEvents ! AvatarServiceMessage(
-      session.get.zone.id,
+    val sess = session.get
+    val zone = sess.zone
+    zone.AvatarEvents ! AvatarServiceMessage(
+      zone.id,
       AvatarAction.PlanetsideAttribute(
-        session.get.player.GUID,
+        sess.player.GUID,
         28,
         implant.definition.implantType.value * 2 + 1
       )
