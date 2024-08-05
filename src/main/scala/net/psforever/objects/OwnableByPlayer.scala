@@ -18,16 +18,11 @@ trait OwnableByPlayer {
   def OwnerGuid_=(owner: Player): Option[PlanetSideGUID] = OwnerGuid_=(Some(owner.GUID))
 
   def OwnerGuid_=(owner: Option[PlanetSideGUID]): Option[PlanetSideGUID] = {
-    owner match {
-      case Some(_) =>
-        ownerGuid = owner
-      case None =>
-        ownerGuid = None
-    }
+    ownerGuid = owner
     OwnerGuid
   }
 
-  def OwnerName: Option[String] = owner.map { _.name }
+  def OwnerName: Option[String] = owner.map(_.name)
 
   def OriginalOwnerName: Option[String] = originalOwnerName
 
@@ -47,7 +42,7 @@ trait OwnableByPlayer {
     (originalOwnerName, playerOpt) match {
       case (None, Some(player)) =>
         owner = Some(UniquePlayer(player))
-        originalOwnerName = originalOwnerName.orElse { Some(player.Name) }
+        originalOwnerName = originalOwnerName.orElse(Some(player.Name))
         OwnerGuid = player
       case (_, Some(player)) =>
         owner = Some(UniquePlayer(player))

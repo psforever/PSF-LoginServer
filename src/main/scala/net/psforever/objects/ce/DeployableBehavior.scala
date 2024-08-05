@@ -75,7 +75,7 @@ trait DeployableBehavior {
       }
 
     case Deployable.Ownership(Some(player))
-      if !DeployableObject.Destroyed && DeployableObject.OwnerGuid.isEmpty =>
+      if !DeployableObject.Destroyed /*&& DeployableObject.OwnerGuid.isEmpty*/ =>
       if (constructed.contains(true)) {
         gainOwnership(player)
       } else {
@@ -143,7 +143,7 @@ trait DeployableBehavior {
     DeployableBehavior.changeOwnership(
       obj,
       toFaction,
-      DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, obj.OwnerGuid.get)
+      DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, player.GUID)
     )
   }
 
@@ -292,26 +292,25 @@ object DeployableBehavior {
    */
   def changeOwnership(obj: Deployable, toFaction: PlanetSideEmpire.Value, info: DeployableInfo): Unit = {
     val originalFaction = obj.Faction
+    val zone = obj.Zone
+    val localEvents = zone.LocalEvents
     if (originalFaction != toFaction) {
-      val guid = obj.GUID
-      val zone = obj.Zone
-      val localEvents = zone.LocalEvents
       obj.Faction = toFaction
       //visual tells in regards to ownership by faction
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.SetEmpire(Service.defaultPlayerGUID, guid, toFaction)
+        AvatarAction.SetEmpire(Service.defaultPlayerGUID, obj.GUID, toFaction)
       )
       //remove knowledge by the previous owner's faction
       localEvents ! LocalServiceMessage(
         originalFaction.toString,
         LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Dismiss, info)
       )
-      //display to the given faction
-      localEvents ! LocalServiceMessage(
-        toFaction.toString,
-        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
-      )
     }
+    //display to the given faction
+    localEvents ! LocalServiceMessage(
+      toFaction.toString,
+      LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
+    )
   }
 }
