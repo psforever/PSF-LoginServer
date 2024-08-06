@@ -48,7 +48,7 @@ class TelepadDeployableNoRouterTest extends ActorTest {
 
       val eventsMsgs = eventsProbe.receiveN(4, 10.seconds)
       eventsMsgs.head match {
-        case AvatarServiceMessage("test", AvatarAction.DeployItem(PlanetSideGUID(0), obj)) =>
+        case LocalServiceMessage("test", LocalAction.DeployItem(obj)) =>
           assert(obj eq telepad, "no-router telepad deployable testt - not same telepad")
         case _ =>
           assert( false, "no-router telepad deployable test - wrong deploy message")
@@ -117,7 +117,7 @@ class TelepadDeployableNoActivationTest extends ActorTest {
 
       val eventsMsgs = eventsProbe.receiveN(4, 10.seconds)
       eventsMsgs.head match {
-        case AvatarServiceMessage("test", AvatarAction.DeployItem(PlanetSideGUID(0), obj)) =>
+        case LocalServiceMessage("test", LocalAction.DeployItem(obj)) =>
           assert(obj eq telepad, "no-activate telepad deployable testt - not same telepad")
         case _ =>
           assert( false, "no-activate telepad deployable test - wrong deploy message")
@@ -190,7 +190,7 @@ class TelepadDeployableAttemptTest extends ActorTest {
       val eventsMsgs = eventsProbe.receiveN(2, 10.seconds)
       val routerMsgs = routerProbe.receiveN(1, 10.seconds)
       eventsMsgs.head match {
-        case AvatarServiceMessage("test", AvatarAction.DeployItem(PlanetSideGUID(0), obj)) =>
+        case LocalServiceMessage("test", LocalAction.DeployItem(obj)) =>
           assert(obj eq telepad, "link attempt telepad deployable testt - not same telepad")
         case _ =>
           assert( false, "link attempt telepad deployable test - wrong deploy message")
@@ -263,7 +263,7 @@ class TelepadDeployableResponseFromRouterTest extends FreedContextActorTest {
 
       val eventsMsgs = eventsProbe.receiveN(9, 10.seconds)
       eventsMsgs.head match {
-        case AvatarServiceMessage("test", AvatarAction.DeployItem(PlanetSideGUID(0), obj)) =>
+        case LocalServiceMessage("test", LocalAction.DeployItem(obj)) =>
           assert(obj eq telepad, "link to router test - not same telepad")
         case _ =>
           assert( false, "link to router test - wrong deploy message")

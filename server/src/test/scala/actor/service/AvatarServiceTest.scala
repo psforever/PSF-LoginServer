@@ -130,29 +130,6 @@ class EquipmentInHandTest extends ActorTest {
   }
 }
 
-class DeployItemTest extends ActorTest {
-  ServiceManager.boot(system)
-  val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), "deploy-item-test-service")
-  val objDef  = GlobalDefinitions.motionalarmsensor
-  val obj     = new SensorDeployable(objDef)
-  obj.Position = Vector3(1, 2, 3)
-  obj.Orientation = Vector3(4, 5, 6)
-  obj.GUID = PlanetSideGUID(40)
-  val pkt = ObjectCreateMessage(
-    objDef.ObjectId,
-    obj.GUID,
-    objDef.Packet.ConstructorData(obj).get
-  )
-
-  "AvatarService" should {
-    "pass DeployItem" in {
-      service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.DeployItem(PlanetSideGUID(10), obj))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.DropItem(pkt)))
-    }
-  }
-}
-
 class DroptItemTest extends ActorTest {
   ServiceManager.boot(system)
   val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), "release-test-service")

@@ -531,6 +531,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           setupDeployable(obj, tool)
 
         case Zone.Deployable.IsBuilt(obj: BoomerDeployable) =>
+          obj.Actor ! Deployable.Ownership(player)
           deployablePair match {
             case Some((deployable, tool)) if deployable eq obj =>
               val zone = player.Zone
@@ -552,11 +553,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   TaskWorkflow.execute(PutNewEquipmentInInventoryOrDrop(player)(trigger))
               }
               Players.buildCooldownReset(zone, player.Name, obj)
-            case _ => ;
+            case _ => ()
           }
           deployablePair = None
 
         case Zone.Deployable.IsBuilt(obj: TelepadDeployable) =>
+          obj.Actor ! Deployable.Ownership(player)
           deployablePair match {
             case Some((deployable, tool: Telepad)) if deployable eq obj =>
               RemoveOldEquipmentFromInventory(player)(tool)
@@ -569,11 +571,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   TelepadControl.TelepadError(zone, player.Name, msg = "@Telepad_NoDeploy_RouterLost")
               }
               Players.buildCooldownReset(zone, player.Name, obj)
-            case _ => ;
+            case _ => ()
           }
           deployablePair = None
 
         case Zone.Deployable.IsBuilt(obj) =>
+          obj.Actor ! Deployable.Ownership(player)
           deployablePair match {
             case Some((deployable, tool)) if deployable eq obj =>
               Players.buildCooldownReset(player.Zone, player.Name, obj)
@@ -584,7 +587,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 case None =>
                   log.warn(s"${player.Name} should have destroyed a ${tool.Definition.Name} here, but could not find it")
               }
-            case _ => ;
+            case _ => ()
           }
           deployablePair = None
 
@@ -701,16 +704,27 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       if (deployables.Valid(obj) &&
           !deployables.Contains(obj) &&
           Players.deployableWithinBuildLimits(player, obj)) {
+        //deployables, upon construction, may display an animation effect
         tool.Definition match {
-          case GlobalDefinitions.ace | /* animation handled in deployable lifecycle */
-               GlobalDefinitions.router_telepad => ; /* no special animation */
+          case GlobalDefinitions.router_telepad => () /* no special animation */
+          case GlobalDefinitions.ace
+            if obj.Definition.deployAnimation == DeployAnimation.Standard =>
+            zone.LocalEvents ! LocalServiceMessage(
+              zone.id,
+              LocalAction.TriggerEffectLocation(
+                obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID),
+                "spawn_object_effect",
+                obj.Position,
+                obj.Orientation
+              )
+            )
           case GlobalDefinitions.advanced_ace
             if obj.Definition.deployAnimation == DeployAnimation.Fdu =>
             zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PutDownFDU(player.GUID))
           case _ =>
-            org.log4s.getLogger(name = "Deployables").warn(
-              s"not sure what kind of construction item to animate - ${tool.Definition.Name}"
-            )
+            org.log4s
+              .getLogger(name = "Deployables")
+              .warn(s"not sure what kind of construction item to animate - ${tool.Definition.Name}")
         }
         deployablePair = Some((obj, tool))
         obj.Faction = player.Faction

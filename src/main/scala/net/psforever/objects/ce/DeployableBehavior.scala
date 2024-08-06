@@ -4,7 +4,6 @@ package net.psforever.objects.ce
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects._
-import net.psforever.objects.definition.DeployAnimation
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.services.Service
@@ -105,6 +104,7 @@ trait DeployableBehavior {
   def loseOwnership(obj: Deployable, toFaction: PlanetSideEmpire.Value): Unit = {
     DeployableBehavior.changeOwnership(
       obj,
+      toOwner = "",
       toFaction,
       DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Service.defaultPlayerGUID)
     )
@@ -138,18 +138,18 @@ trait DeployableBehavior {
     */
   def gainOwnership(player: Player, toFaction: PlanetSideEmpire.Value): Unit = {
     val obj = DeployableObject
-    obj.AssignOwnership(player)
     decay.cancel()
     DeployableBehavior.changeOwnership(
       obj,
+      player.Name,
       toFaction,
       DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, player.GUID)
     )
+    obj.AssignOwnership(player)
   }
 
   /**
     * The first stage of the deployable build process, to put the formal process in motion.
-    * Deployables, upon construction, may display an animation effect.
     * Parameters are required to be passed onto the next stage of the build process and are not used here.
     * @see `DeployableDefinition.deployAnimation`
     * @see `DeployableDefinition.DeployTime`
@@ -157,21 +157,9 @@ trait DeployableBehavior {
     * @param callback an `ActorRef` used for confirming the deployable's completion of the process
     */
   def setupDeployable(callback: ActorRef): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
     val obj = DeployableObject
     constructed = Some(false)
-    if (obj.Definition.deployAnimation == DeployAnimation.Standard) {
-      val zone = obj.Zone
-      zone.LocalEvents ! LocalServiceMessage(
-        zone.id,
-        LocalAction.TriggerEffectLocation(
-          obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID),
-          "spawn_object_effect",
-          obj.Position,
-          obj.Orientation
-        )
-      )
-    }
-    import scala.concurrent.ExecutionContext.Implicits.global
     setup = context.system.scheduler.scheduleOnce(
       obj.Definition.DeployTime milliseconds,
       self,
@@ -185,7 +173,7 @@ trait DeployableBehavior {
     * Nothing dangerous happens if it does not begin to decay, but, because it is not under a player's management,
     * the deployable will not properly transition to a decay state for another reason
     * and can linger in the zone ownerless for as long as it is not destroyed.
-    * @see `AvatarAction.DeployItem`
+    * @see `LocalAction.DeployItem`
     * @see `DeploymentAction`
     * @see `DeployableInfo`
     * @see `LocalAction.DeployableMapIcon`
@@ -197,27 +185,22 @@ trait DeployableBehavior {
     setup = Default.Cancellable
     constructed = Some(true)
     val obj = DeployableObject
-    val zone       = obj.Zone
+    val zone = obj.Zone
     val localEvents = zone.LocalEvents
-    val owner     = obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID)
-    obj.OwnerName match {
-      case Some(_) =>
-      case None    =>
-        import scala.concurrent.ExecutionContext.Implicits.global
-        decay = context.system.scheduler.scheduleOnce(
-          Deployable.decay,
-          self,
-          Deployable.Deconstruct()
-        )
+    obj.OwnerName.orElse {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      decay = context.system.scheduler.scheduleOnce(Deployable.decay, self, Deployable.Deconstruct())
+      None
     }
     //zone build
-    zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.DeployItem(Service.defaultPlayerGUID, obj))
+    localEvents ! LocalServiceMessage(zone.id, LocalAction.DeployItem(obj))
     //zone map icon
     localEvents ! LocalServiceMessage(
       obj.Faction.toString,
       LocalAction.DeployableMapIcon(
         Service.defaultPlayerGUID,
-        DeploymentAction.Build, DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, owner)
+        DeploymentAction.Build,
+        DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID))
       )
     )
     //local build management
@@ -290,27 +273,44 @@ object DeployableBehavior {
    * @param toFaction na
    * @param info na
    */
-  def changeOwnership(obj: Deployable, toFaction: PlanetSideEmpire.Value, info: DeployableInfo): Unit = {
+  def changeOwnership(obj: Deployable, toOwner: String, toFaction: PlanetSideEmpire.Value, info: DeployableInfo): Unit = {
+    val dGuid = obj.GUID
     val originalFaction = obj.Faction
     val zone = obj.Zone
     val localEvents = zone.LocalEvents
+    val ownershipAction = {
+      val owner = info.player_guid
+      LocalAction.SendPlanetsideAttributeMessage(
+        owner,
+        owner,
+        PlanetsideAttributeEnum.OwnershipAssignment,
+        dGuid.guid.toLong
+      )
+    }
     if (originalFaction != toFaction) {
       obj.Faction = toFaction
       //visual tells in regards to ownership by faction
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.SetEmpire(Service.defaultPlayerGUID, obj.GUID, toFaction)
+        AvatarAction.SetEmpire(Service.defaultPlayerGUID, dGuid, toFaction)
       )
       //remove knowledge by the previous owner's faction
       localEvents ! LocalServiceMessage(
         originalFaction.toString,
         LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Dismiss, info)
       )
+    } else {
+      //old owner no longer owner
+      obj.OwnerName.collect { case fromOwner if !fromOwner.equals(toOwner) =>
+        localEvents ! LocalServiceMessage(fromOwner, ownershipAction)
+      }
     }
     //display to the given faction
     localEvents ! LocalServiceMessage(
       toFaction.toString,
       LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
     )
+    //new owner is owner
+    localEvents ! LocalServiceMessage(toOwner, ownershipAction)
   }
 }
