@@ -39,7 +39,6 @@ final case class OneMannedFieldTurretData(
 }
 
 object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
-
   /**
     * Overloaded constructor that mandates information about the internal weapon of the field turret.
     * @param deploy data common to objects spawned by the (advanced) adaptive construction engine
@@ -55,10 +54,10 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
       PlanetSideGUID.codec :: //hoist/extract with the deploy.owner_guid in field above
       bool ::
       ("health" | uint8L) ::
-      uint(5) ::
+      uint(bits = 5) ::
       uint4 ::
       uint2 ::
-      optional(bool, "internals" | InventoryData.codec)
+      ("internals" | optional(bool, InventoryData.codec))
   ).exmap[OneMannedFieldTurretData](
     {
       case deploy :: player :: false :: health :: 0 :: 0xf :: 0 :: internals :: HNil =>

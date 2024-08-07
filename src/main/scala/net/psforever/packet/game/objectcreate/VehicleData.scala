@@ -106,7 +106,7 @@ object VehicleData extends Marshallable[VehicleData] {
       cloak: Boolean,
       inventory: Option[InventoryData]
   ): VehicleData = {
-    VehicleData(pos, basic, false, health, false, false, driveState, false, false, cloak, None, inventory)(
+    VehicleData(pos, basic, unk3 = false, health, unk4 = false, no_mount_points = false, driveState, unk5 = false, unk6 = false, cloak = cloak, None, inventory)(
       VehicleFormat.Normal
     )
   }
@@ -128,7 +128,7 @@ object VehicleData extends Marshallable[VehicleData] {
       format: UtilityVehicleData,
       inventory: Option[InventoryData]
   ): VehicleData = {
-    VehicleData(pos, basic, false, health, false, false, driveState, false, false, cloak, Some(format), inventory)(
+    VehicleData(pos, basic, unk3 = false, health, unk4 = false, no_mount_points = false, driveState, unk5 = false, unk6 = false, cloak = cloak, Some(format), inventory)(
       VehicleFormat.Utility
     )
   }
@@ -150,7 +150,7 @@ object VehicleData extends Marshallable[VehicleData] {
       format: VariantVehicleData,
       inventory: Option[InventoryData]
   ): VehicleData = {
-    VehicleData(pos, basic, false, health, false, false, driveState, false, false, cloak, Some(format), inventory)(
+    VehicleData(pos, basic, unk3 = false, health, unk4 = false, no_mount_points = false, driveState, unk5 = false, unk6 = false, cloak = cloak, Some(format), inventory)(
       VehicleFormat.Variant
     )
   }
@@ -227,8 +227,8 @@ object VehicleData extends Marshallable[VehicleData] {
         ("unk5" | bool) ::               //unknown but generally false; can cause stream misalignment if set when unexpectedly
         ("unk6" | bool) ::
         ("cloak" | bool) :: //cloak as wraith, phantasm
-        conditional(vehicle_type != VehicleFormat.Normal,"vehicle_format_data" | selectFormatReader(vehicle_type)) ::
-        optional(bool, target = "inventory" | MountableInventory.custom_inventory_codec(pos.vel.isDefined, vehicle_type))
+        ("vehicle_format_data" | conditional(vehicle_type != VehicleFormat.Normal, selectFormatReader(vehicle_type))) ::
+        ("inventory" | optional(bool, MountableInventory.custom_inventory_codec(pos.vel.isDefined, vehicle_type)))
       }
     ).exmap[VehicleData](
       {

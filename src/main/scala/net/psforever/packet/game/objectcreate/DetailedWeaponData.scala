@@ -56,11 +56,11 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
     DetailedWeaponData(
       CommonFieldData(
         PlanetSideEmpire(unk1 & 3),
-        false,
-        false,
-        (unk2 & 8) == 8,
+        bops = false,
+        alternate = false,
+        v1 = (unk2 & 8) == 8,
         None,
-        (unk2 & 4) == 4,
+        jammered = (unk2 & 4) == 4,
         None,
         None,
         PlanetSideGUID(0)
@@ -92,11 +92,11 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
     DetailedWeaponData(
       CommonFieldData(
         PlanetSideEmpire(unk1 & 3),
-        false,
-        false,
-        (unk2 & 8) == 8,
+        bops = false,
+        alternate = false,
+        v1 = (unk2 & 8) == 8,
         None,
-        (unk2 & 4) == 4,
+        jammered = (unk2 & 4) == 4,
         None,
         None,
         PlanetSideGUID(0)
@@ -112,7 +112,7 @@ object DetailedWeaponData extends Marshallable[DetailedWeaponData] {
       uint8 ::
       ("fire_mode" | uint8) ::
       uint2 ::
-      optional(bool, "ammo" | InventoryData.codec_detailed) ::
+      ("ammo" | optional(bool, InventoryData.codec_detailed)) ::
       ("unk" | bool)
   ).exmap[DetailedWeaponData](
     {

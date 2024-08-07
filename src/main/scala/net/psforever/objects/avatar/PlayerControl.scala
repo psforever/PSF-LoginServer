@@ -524,18 +524,16 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           log.warn(s"${player.Name} failed to pick up an item ($item_guid) from the ground because $reason")
 
         case Player.BuildDeployable(obj: TelepadDeployable, tool: Telepad) =>
-          obj.Router = tool.Router //necessary; forwards link to the router that prodcued the telepad
+          obj.Router = tool.Router //necessary; forwards link to the router that produced the telepad
           setupDeployable(obj, tool)
 
         case Player.BuildDeployable(obj, tool) =>
           setupDeployable(obj, tool)
 
         case Zone.Deployable.IsBuilt(obj: BoomerDeployable) =>
-          obj.Actor ! Deployable.Ownership(player)
           deployablePair match {
             case Some((deployable, tool)) if deployable eq obj =>
               val zone = player.Zone
-              //boomers
               val trigger = new BoomerTrigger
               trigger.Companion = obj.GUID
               obj.Trigger = trigger
@@ -558,7 +556,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           deployablePair = None
 
         case Zone.Deployable.IsBuilt(obj: TelepadDeployable) =>
-          obj.Actor ! Deployable.Ownership(player)
           deployablePair match {
             case Some((deployable, tool: Telepad)) if deployable eq obj =>
               RemoveOldEquipmentFromInventory(player)(tool)
@@ -576,7 +573,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           deployablePair = None
 
         case Zone.Deployable.IsBuilt(obj) =>
-          obj.Actor ! Deployable.Ownership(player)
           deployablePair match {
             case Some((deployable, tool)) if deployable eq obj =>
               Players.buildCooldownReset(player.Zone, player.Name, obj)

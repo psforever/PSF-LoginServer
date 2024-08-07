@@ -18,13 +18,13 @@ import shapeless.{::, HNil}
 object ImplantEffects extends Enumeration {
   type Type = Value
 
-  val SurgeEffects          = Value(9)
-  val PersonalShieldEffects = Value(5)
-  val DarklightEffects      = Value(3)
-  val RegenEffects          = Value(0)
-  val NoEffects             = Value(1)
+  val SurgeEffects: ImplantEffects.Value = Value(9)
+  val PersonalShieldEffects: ImplantEffects.Value = Value(5)
+  val DarklightEffects: ImplantEffects.Value = Value(3)
+  val RegenEffects: ImplantEffects.Value = Value(0)
+  val NoEffects: ImplantEffects.Value = Value(1)
 
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
+  implicit val codec: Codec[ImplantEffects.Value] = PacketHelpers.createEnumerationCodec(this, uint4L)
 }
 
 /**
@@ -120,9 +120,9 @@ object CharacterData extends Marshallable[CharacterData] {
         ("armor" | uint8L) ::
         (("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
         uint(bits = 3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
-          ("command_rank" | uintL(3)) ::
-          listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
-          ("cosmetics" | conditional(BattleRank.showCosmetics(style), Cosmetic.codec))
+        ("command_rank" | uint(bits = 3)) ::
+        ("implant_effects" | listOfN(uint2, ImplantEffects.codec)) ::
+        ("cosmetics" | conditional(BattleRank.showCosmetics(style), Cosmetic.codec))
       })
     ).exmap[CharacterData](
       {
@@ -158,24 +158,24 @@ object CharacterData extends Marshallable[CharacterData] {
   def codec_seated(is_backpack: Boolean): Codec[CharacterData] =
     (
       ("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
-        uint(3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
-          ("command_rank" | uintL(3)) ::
-          listOfN(uint2, "implant_effects" | ImplantEffects.codec) ::
-          ("cosmetics" | conditional(BattleRank.showCosmetics(style), Cosmetic.codec))
+        uint(bits = 3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
+        ("command_rank" | uintL(bits = 3)) ::
+        ("implant_effects" | listOfN(uint2, ImplantEffects.codec)) ::
+        ("cosmetics" | conditional(BattleRank.showCosmetics(style), Cosmetic.codec))
       }
     ).exmap[CharacterData](
       {
         case uniform :: unk :: cr :: implant_effects :: cosmetics :: HNil =>
           Attempt.Successful(
             new CharacterData(
-              100,
-              0,
+              health = 100,
+              armor = 0,
               uniform,
               unk,
               cr,
               implant_effects,
               cosmetics
-            )(is_backpack, true)
+            )(is_backpack, is_seated = true)
           )
 
         case _ =>
@@ -195,5 +195,5 @@ object CharacterData extends Marshallable[CharacterData] {
       }
     )
 
-  implicit val codec: Codec[CharacterData] = codec(false)
+  implicit val codec: Codec[CharacterData] = codec(is_backpack = false)
 }

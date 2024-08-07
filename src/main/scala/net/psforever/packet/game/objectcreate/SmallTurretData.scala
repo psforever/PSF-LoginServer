@@ -49,12 +49,12 @@ object SmallTurretData extends Marshallable[SmallTurretData] {
     new SmallTurretData(deploy, health, Some(internals))
 
   implicit val codec: Codec[SmallTurretData] = (
-    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec) ::
       ("health" | uint8L) ::
-      uintL(7) ::
+      uintL(bits = 7) ::
       uint4L ::
       uint2L ::
-      optional(bool, "internals" | InventoryData.codec)
+      ("internals" | optional(bool, InventoryData.codec))
   ).exmap[SmallTurretData](
     {
       case deploy :: health :: 0 :: 0xf :: 0 :: internals :: HNil =>

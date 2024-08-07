@@ -75,19 +75,19 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
     * @return a `CommonFieldData` object
     */
   def apply(): CommonFieldData =
-    CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, None, None, PlanetSideGUID(0))
+    CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(0))
 
   def apply(faction: PlanetSideEmpire.Value): CommonFieldData =
-    CommonFieldData(faction, false, false, false, None, false, None, None, PlanetSideGUID(0))
+    CommonFieldData(faction, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(0))
 
   def apply(faction: PlanetSideEmpire.Value, unk: Int): CommonFieldData =
-    CommonFieldData(faction, false, false, unk > 1, None, unk > 0, None, None, PlanetSideGUID(0))
+    CommonFieldData(faction, bops = false, alternate = false, v1 = unk > 1, None, jammered = unk > 0, None, None, PlanetSideGUID(0))
 
   def apply(faction: PlanetSideEmpire.Value, unk: Int, player_guid: PlanetSideGUID): CommonFieldData =
-    CommonFieldData(faction, false, false, unk > 1, None, unk > 0, None, None, player_guid)
+    CommonFieldData(faction, bops = false, alternate = false, v1 = unk > 1, None, jammered = unk > 0, None, None, player_guid)
 
   def apply(faction: PlanetSideEmpire.Value, destroyed: Boolean, unk: Int): CommonFieldData =
-    CommonFieldData(faction, false, destroyed, unk > 1, None, unk > 0, None, None, PlanetSideGUID(0))
+    CommonFieldData(faction, bops = false, alternate = destroyed, v1 = unk > 1, None, jammered = unk > 0, None, None, PlanetSideGUID(0))
 
   def apply(
       faction: PlanetSideEmpire.Value,
@@ -95,7 +95,7 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
       unk: Int,
       player_guid: PlanetSideGUID
   ): CommonFieldData =
-    CommonFieldData(faction, false, destroyed, unk > 1, None, unk % 1 == 1, None, None, player_guid)
+    CommonFieldData(faction, bops = false, alternate = destroyed, v1 = unk > 1, None, jammered = false/*unk % 1 == 1*/, None, None, player_guid)
 
   def apply(
       faction: PlanetSideEmpire.Value,
@@ -107,7 +107,7 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
   ): CommonFieldData = {
     val jammeredField = if (jammered) { Some(0) }
     else { None }
-    CommonFieldData(faction, bops, destroyed, unk > 1, None, unk % 1 == 1, None, jammeredField, player_guid)
+    CommonFieldData(faction, bops, destroyed, unk > 1, None, jammered = false/*unk % 1 == 1*/, None, jammeredField, player_guid)
   }
 
   def codec(extra: Boolean): Codec[CommonFieldData] =
@@ -116,9 +116,9 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
         ("bops" | bool) ::
         ("alternate" | bool) ::
         ("v1" | bool) :: //the purpose of this bit changes depending on the previous bit
-        conditional(extra, "v2" | CommonFieldDataExtra.codec(unk1 = false)) ::
+        ("v2" | conditional(extra, CommonFieldDataExtra.codec(unk1 = false))) ::
         ("jammered" | bool) ::
-        optional(bool, "v5" | uint16L) ::
+        ("v5" | optional(bool, uint16L)) ::
         ("guid" | PlanetSideGUID.codec)
     ).xmap[CommonFieldData](
       {
@@ -139,9 +139,9 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
         ("bops" | bool) ::
         ("alternate" | bool) ::
         ("v1" | bool) :: //though the code path differs depending on the previous bit, this one gets read one way or another
-        conditional(extra, codec = "v2" | CommonFieldDataExtra.codec(unk1 = false)) ::
+        ("v2" | conditional(extra, CommonFieldDataExtra.codec(unk1 = false))) ::
         ("jammered" | bool) ::
-        optional(bool, "v5" | uint16L) ::
+        ("v5" | optional(bool, uint16L)) ::
         ("v4" | bool) ::
         ("guid" | PlanetSideGUID.codec)
     ).exmap[CommonFieldData](
@@ -158,5 +158,5 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
       }
     )
 
-  val codec2: Codec[CommonFieldData] = codec2(false)
+  val codec2: Codec[CommonFieldData] = codec2(extra = false)
 }

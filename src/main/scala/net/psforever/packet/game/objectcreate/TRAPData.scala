@@ -20,11 +20,11 @@ final case class TRAPData(deploy: CommonFieldDataWithPlacement, health: Int) ext
 
 object TRAPData extends Marshallable[TRAPData] {
   implicit val codec: Codec[TRAPData] = (
-    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec) ::
       ("health" | uint8L) ::
-      uint(7) ::
+      uint(bits = 7) ::
       uint4L ::
-      uint(3)
+      uint(bits = 3)
   ).exmap[TRAPData](
     {
       case deploy :: health :: 0 :: 15 :: 0 :: HNil =>

@@ -31,9 +31,11 @@ object LockerContainerData extends Marshallable[LockerContainerData] {
     new LockerContainerData(Some(InventoryData(inventory)))
 
   implicit val codec: Codec[LockerContainerData] = (
-    uint32 :: uint32 :: uint(17) ::
+    uint32 ::
+      uint32 ::
+      uint(bits = 17) ::
       uint2L ::
-      uint(21) ::
+      uint(bits = 21) ::
       ("inventory" | optional(bool, InventoryData.codec))
   ).exmap[LockerContainerData](
     {

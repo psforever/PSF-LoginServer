@@ -21,7 +21,10 @@ object AegisShieldGeneratorData extends Marshallable[AegisShieldGeneratorData] {
   implicit val codec: Codec[AegisShieldGeneratorData] = (
     ("deploy" | CommonFieldDataWithPlacement.codec) ::
       ("health" | uint8L) ::
-      uint32 :: uint32 :: uint32 :: uint4L //100 bits
+      uint32 ::
+      uint32 ::
+      uint32 ::
+      uint4L
   ).exmap[AegisShieldGeneratorData](
     {
       case deploy :: health :: 0 :: 0 :: 0 :: 0 :: HNil =>

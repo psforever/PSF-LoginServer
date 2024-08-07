@@ -46,9 +46,9 @@ object DroppodData extends Marshallable[DroppodData] {
     ("basic" | CommonFieldDataWithPlacement.codec) ::
       bool ::
       ("health" | uint8L) ::   //health
-      uintL(5) ::              //0x0
+      uintL(bits = 5) ::       //0x0
       uint4L ::                //0xF
-      uintL(6) ::              //0x0
+      uintL(bits = 6) ::       //0x0
       ("boosters" | uint4L) :: //0x9 on standby, 0x0 when burning and occupied (basic.player_guid?)
       ("unk" | bool)
   ).exmap[DroppodData](

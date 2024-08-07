@@ -278,15 +278,6 @@ object DeployableBehavior {
     val originalFaction = obj.Faction
     val zone = obj.Zone
     val localEvents = zone.LocalEvents
-    val ownershipAction = {
-      val owner = info.player_guid
-      LocalAction.SendPlanetsideAttributeMessage(
-        owner,
-        owner,
-        PlanetsideAttributeEnum.OwnershipAssignment,
-        dGuid.guid.toLong
-      )
-    }
     if (originalFaction != toFaction) {
       obj.Faction = toFaction
       //visual tells in regards to ownership by faction
@@ -299,18 +290,11 @@ object DeployableBehavior {
         originalFaction.toString,
         LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Dismiss, info)
       )
-    } else {
-      //old owner no longer owner
-      obj.OwnerName.collect { case fromOwner if !fromOwner.equals(toOwner) =>
-        localEvents ! LocalServiceMessage(fromOwner, ownershipAction)
-      }
     }
     //display to the given faction
     localEvents ! LocalServiceMessage(
       toFaction.toString,
       LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
     )
-    //new owner is owner
-    localEvents ! LocalServiceMessage(toOwner, ownershipAction)
   }
 }

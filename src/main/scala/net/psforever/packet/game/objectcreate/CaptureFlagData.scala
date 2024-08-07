@@ -44,7 +44,7 @@ object CaptureFlagData extends Marshallable[CaptureFlagData] {
       ("targetBaseGuid" | uint8L) ::
       uint8L ::
       ("milliseconds_remaining" | uint32L) ::
-      uint(1)
+      uint(bits = 1)
   ).exmap[CaptureFlagData](
     {
       case pos :: faction :: false :: 4 :: 0 :: owningBaseGuid :: 0 :: targetBaseGuid :: 0 :: milliseconds_remaining :: 0 :: HNil =>
