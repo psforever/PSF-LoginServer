@@ -2134,8 +2134,12 @@ class AvatarActor(
             val zoneNum = saveOpt
               .collect {
                 case persistence.Savedplayer(_, _, _, _, _, zoneNum, _, _, exosuitNum, loadout) =>
-                  player.ExoSuit = ExoSuitType(exosuitNum)
+                  val exo = ExoSuitType(exosuitNum)
+                  player.ExoSuit = exo
                   AvatarActor.buildHolsterEquipmentFromClob(player, loadout, log)
+                  if (exo == ExoSuitType.MAX) {
+                    player.DrawnSlot = 0 //max arm up
+                  }
                   zoneNum
               }
               .getOrElse {
@@ -2154,6 +2158,12 @@ class AvatarActor(
               .Holsters()
               .foreach(holster =>
                 holster.Equipment match {
+                  case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
+                    //todo fix so player may hold medapp when loading the zone (client crash)
+                    val item = SimpleItem(GlobalDefinitions.flail_targeting_laser)
+                    holster.Equipment = None
+                    holster.Equipment = item
+                    item.GUID = PlanetSideGUID(gen.getAndIncrement)
                   case Some(tool: Tool) =>
                     tool.AmmoSlots.foreach(slot => {
                       slot.Box.GUID = PlanetSideGUID(gen.getAndIncrement)
