@@ -1168,10 +1168,14 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         zone.GUID(trigger.Companion) match {
           case Some(obj: BoomerDeployable) =>
             val deployables = player.avatar.deployables
-            if (deployables.Valid(obj)) {
+            if (!deployables.Contains(obj) && deployables.Valid(obj)) {
+              events ! AvatarServiceMessage(toChannel, AvatarAction.SendResponse(
+                Service.defaultPlayerGUID,
+                GenericObjectAction2Message(1, player.GUID, trigger.GUID)
+              ))
               Players.gainDeployableOwnership(player, obj, deployables.AddOverLimit)
             }
-          case _ => ;
+          case _ => ()
         }
 
       case citem: ConstructionItem
@@ -1182,7 +1186,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         }
         Deployables.initializeConstructionItem(player.avatar.certifications, citem)
 
-      case _ => ;
+      case _ => ()
     }
     events ! AvatarServiceMessage(
       toChannel,
