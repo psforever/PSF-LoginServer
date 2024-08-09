@@ -19,10 +19,10 @@ class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
               obj.Faction,
               bops = false,
               alternate = false,
-              true,
+              v1 = true,
               None,
-              false,
-              Some(true),
+              jammered = false,
+              None,
               None,
               obj.OwnerGuid match {
                 case Some(owner) => owner
@@ -42,9 +42,9 @@ class TRAPConverter extends ObjectCreateConverter[TrapDeployable]() {
               obj.Faction,
               bops = false,
               alternate = true,
-              true,
+              v1 = true,
               None,
-              false,
+              jammered = false,
               Some(true),
               None,
               PlanetSideGUID(0)

@@ -24,7 +24,7 @@ class SmallTurretConverter extends ObjectCreateConverter[TurretDeployable]() {
               v1 = true,
               None,
               obj.Jammed,
-              Some(true),
+              None,
               None,
               obj.OwnerGuid match {
                 case Some(owner) => owner
@@ -67,7 +67,7 @@ object SmallTurretConverter {
   private def MakeMountings(obj: WeaponTurret): List[InventoryItemData.InventoryItem] = {
     obj.Weapons
       .map({
-        case ((index, slot)) =>
+        case (index, slot) =>
           val equip: Equipment = slot.Equipment.get
           val equipDef         = equip.Definition
           InventoryItemData(equipDef.ObjectId, equip.GUID, index, equipDef.Packet.ConstructorData(equip).get)
