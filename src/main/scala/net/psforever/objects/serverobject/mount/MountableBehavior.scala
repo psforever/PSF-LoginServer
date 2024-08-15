@@ -94,7 +94,7 @@ trait MountableBehavior {
         )
       }
       else {
-        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(obj, seat_number))
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(obj, seat_number, bail_type))
       }
   }
 

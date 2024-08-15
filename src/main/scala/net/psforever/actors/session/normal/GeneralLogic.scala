@@ -51,6 +51,7 @@ import net.psforever.types.{CapacitorStateType, ChatMessageType, Cosmetic, Drive
 import net.psforever.util.Config
 
 import scala.concurrent.duration._
+import scala.util.Success
 
 object GeneralLogic {
   def apply(ops: GeneralOperations): GeneralLogic = {
@@ -118,9 +119,16 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       }
     }
     ops.fallHeightTracker(pos.z)
-//    if (isCrouching && !player.Crouching) {
-//      //dev stuff goes here
-//    }
+    if (isCrouching && !player.Crouching) {
+      //dev stuff goes here
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "@NoChat_NoSquad"))
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "@InventoryPickupNoRoom"))
+//      zone.LocalEvents ! LocalServiceMessage(
+//        "",
+//        LocalAction.SendResponse(ChatMsg(ChatMessageType.UNK_227, "@InventoryPickupNoRoom"))
+//        LocalAction.SendResponse(ChatMsg(ChatMessageType.UNK_227, "@InventoryPickupNoRoom"))
+//      )
+    }
     player.Position = pos
     player.Velocity = vel
     player.Orientation = Vector3(player.Orientation.x, pitch, yaw)

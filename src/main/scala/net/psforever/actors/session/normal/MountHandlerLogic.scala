@@ -19,7 +19,7 @@ import net.psforever.packet.game.{ChatMsg, DelayedPathMountMsg, DismountVehicleC
 import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.types.{BailType, ChatMessageType, PlanetSideGUID, Vector3}
+import net.psforever.types.{BailType, ChatMessageType, DriveState, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration._
 
@@ -407,7 +407,22 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
       case Mountable.CanNotMount(obj: Mountable, seatNumber) =>
         log.warn(s"MountVehicleMsg: ${tplayer.Name} attempted to mount $obj's seat $seatNumber, but was not allowed")
 
-      case Mountable.CanNotDismount(obj, seatNum) =>
+      case Mountable.CanNotDismount(obj: Vehicle, _, BailType.Normal)
+        if obj.DeploymentState == DriveState.AutoPilot =>
+        sendResponse(ChatMsg(ChatMessageType.UNK_224, "@SA_CannotDismountAtThisTime"))
+        log.warn(s"DismountVehicleMsg: ${tplayer.Name} can not dismount $obj's when in autopilot")
+
+      case Mountable.CanNotDismount(obj: Vehicle, _, BailType.Bailed)
+        if obj.DeploymentState == DriveState.AutoPilot =>
+        sendResponse(ChatMsg(ChatMessageType.UNK_224, "@SA_CannotBailAtThisTime"))
+        log.warn(s"DismountVehicleMsg: ${tplayer.Name} can not bail from $obj's when in autopilot")
+
+      case Mountable.CanNotDismount(obj: Vehicle, seatNum, _)
+        if obj.isMoving(test = 1f) =>
+        sendResponse(ChatMsg(ChatMessageType.UNK_224, "@TooFastToDismount"))
+        log.warn(s"DismountVehicleMsg: ${tplayer.Name} attempted to dismount $obj's mount $seatNum, but was moving too fast")
+
+      case Mountable.CanNotDismount(obj, seatNum, _) =>
         log.warn(s"DismountVehicleMsg: ${tplayer.Name} attempted to dismount $obj's mount $seatNum, but was not allowed")
     }
   }

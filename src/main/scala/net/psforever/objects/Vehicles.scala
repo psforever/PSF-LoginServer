@@ -10,8 +10,8 @@ import net.psforever.objects.serverobject.transfer.TransferContainer
 import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, TriggeredSound}
-import net.psforever.types.{DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
+import net.psforever.packet.game.{ChatMsg, HackMessage, HackState, HackState1, HackState7, TriggeredSound}
+import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -239,6 +239,8 @@ object Vehicles {
     val zone = target.Zone
     val zoneid = zone.id
     val vehicleEvents = zone.VehicleEvents
+    val localEvents = zone.LocalEvents
+    val previousOwnerName = target.OwnerName.getOrElse("")
     vehicleEvents ! VehicleServiceMessage(
       zoneid,
       VehicleAction.SendResponse(
@@ -292,9 +294,19 @@ object Vehicles {
         AvatarAction.SetEmpire(Service.defaultPlayerGUID, tGuid, hFaction)
       )
     }
-    zone.LocalEvents ! LocalServiceMessage(
+    localEvents ! LocalServiceMessage(
       zoneid,
       LocalAction.TriggerSound(hGuid, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f)
+    )
+    if (zone.Players.exists(_.name.equals(previousOwnerName))) {
+      localEvents ! LocalServiceMessage(
+        previousOwnerName,
+        LocalAction.SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackStolen"))
+      )
+    }
+    localEvents ! LocalServiceMessage(
+      hacker.Name,
+      LocalAction.SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackVehicleOwned"))
     )
     // Clean up after specific vehicles, e.g. remove router telepads
     // If AMS is deployed, swap it to the new faction
