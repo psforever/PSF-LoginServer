@@ -70,6 +70,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
           obj.Velocity = None
           obj.Flying = None
         }
+        //
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
           VehicleAction.VehicleState(

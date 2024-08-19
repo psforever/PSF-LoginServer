@@ -2,12 +2,17 @@
 package net.psforever.actors.session.support
 
 import akka.actor.ActorContext
-import net.psforever.objects.{Players, TurretDeployable}
+import net.psforever.objects.{PlanetSideGameObject, Players, TurretDeployable}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
+import net.psforever.objects.serverobject.environment.EnvironmentAttribute
+import net.psforever.objects.serverobject.environment.interaction.InteractWithEnvironment
+import net.psforever.objects.serverobject.environment.interaction.common.Watery
 import net.psforever.objects.serverobject.interior.Sidedness
+import net.psforever.objects.serverobject.llu.CaptureFlag
+import net.psforever.objects.zones.InteractsWithZone
 import net.psforever.packet.game.GenericObjectActionMessage
-import net.psforever.services.local.LocalResponse
+import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
 trait LocalHandlerFunctions extends CommonSessionInterfacingFunctionality {
@@ -46,5 +51,41 @@ class SessionLocalHandlers(
       800f
     else
       400f
+  }
+
+  /**
+   * na
+   * @param target evaluate this to determine if to continue with this loss
+   * @return whether or not we are sufficiently submerged in water
+   */
+  def wadingInWater(target: PlanetSideGameObject with InteractsWithZone): Boolean = {
+    target
+      .interaction()
+      .collectFirst {
+        case env: InteractWithEnvironment =>
+          env
+            .Interactions
+            .get(EnvironmentAttribute.Water)
+            .collectFirst {
+              case water: Watery => water.Depth > 0f
+            }
+      }
+      .flatten
+      .contains(true)
+  }
+
+  /**
+   * na
+   * @param flagGuid flag that may exist
+   * @param target evaluate this to determine if to continue with this loss
+   */
+  def loseFlagViolently(flagGuid: Option[PlanetSideGUID], target: PlanetSideGameObject with InteractsWithZone): Unit = {
+    continent
+      .GUID(flagGuid)
+      .collect {
+        case flag: CaptureFlag if wadingInWater(target) =>
+          flag.Destroyed = true
+          continent.LocalEvents ! LocalServiceMessage("", LocalAction.LluLost(flag))
+      }
   }
 }

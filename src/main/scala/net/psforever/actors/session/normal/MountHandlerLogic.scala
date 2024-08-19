@@ -414,6 +414,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
 
       case Mountable.CanNotDismount(obj: Vehicle, _, BailType.Bailed)
         if obj.DeploymentState == DriveState.AutoPilot =>
+        //todo @Vehicle_CannotBailInWarpgateEnvelope
         sendResponse(ChatMsg(ChatMessageType.UNK_224, "@SA_CannotBailAtThisTime"))
         log.warn(s"DismountVehicleMsg: ${tplayer.Name} can not bail from $obj's when in autopilot")
 

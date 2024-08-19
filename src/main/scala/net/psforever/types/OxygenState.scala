@@ -1,9 +1,6 @@
 package net.psforever.types
 
 import enumeratum.{Enum, EnumEntry}
-import net.psforever.packet.PacketHelpers
-import scodec.Codec
-import scodec.codecs.uint
 
 /**
   * The progress state of being a drowning victim.
@@ -22,6 +19,4 @@ object OxygenState extends Enum[OxygenState] {
 
   case object Recovery    extends OxygenState
   case object Suffocation extends OxygenState
-
-  implicit val codec: Codec[OxygenState] = PacketHelpers.createEnumCodec(e = this, uint(bits = 1))
 }

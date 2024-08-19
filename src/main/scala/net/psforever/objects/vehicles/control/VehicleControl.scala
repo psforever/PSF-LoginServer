@@ -606,9 +606,9 @@ class VehicleControl(vehicle: Vehicle)
               c
             }
           }
-          watery.doInteractingWithTargets(player, percentage, watery.Condition.map(_.body).get, List(player))
+          WithWater.doInteractingWithTargets(player, percentage, watery.Condition.map(_.body).get, List(player))
         case watery: WithWater if watery.Condition.map(_.state).contains(OxygenState.Recovery) =>
-          watery.stopInteractingWithTargets(
+          WithWater.stopInteractingWithTargets(
             player,
             Watery.recoveringFromWater(vehicle, watery)._3,
             watery.Condition.map(_.body).get,

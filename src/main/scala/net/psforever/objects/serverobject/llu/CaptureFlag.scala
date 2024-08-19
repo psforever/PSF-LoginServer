@@ -34,6 +34,7 @@ class CaptureFlag(private val tDef: CaptureFlagDefinition) extends Amenity {
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var carrier: Option[Player] = None
   private var lastTimeCollected: Long = System.currentTimeMillis()
+  private val spawnedTime: Long = lastTimeCollected
 
   def Target: Building = target
   def Target_=(newTarget: Building): Building = {
@@ -56,10 +57,11 @@ class CaptureFlag(private val tDef: CaptureFlagDefinition) extends Amenity {
    * When the flag is carried by a player, the position returned should be that of the carrier not the flag.
    * @return the position of the carrier, if there is a player carrying the flag, or the flag itself
    */
-  override def Position: Vector3 = if (Carrier.nonEmpty) {
-    carrier.get.Position
-  } else {
-    super.Position
+  override def Position: Vector3 = {
+    carrier match {
+      case Some(player) => player.Position
+      case None => super.Position
+    }
   }
 
   def Carrier: Option[Player] = carrier
@@ -70,6 +72,8 @@ class CaptureFlag(private val tDef: CaptureFlagDefinition) extends Amenity {
   }
 
   def LastCollectionTime: Long = carrier.map { _ => lastTimeCollected }.getOrElse { System.currentTimeMillis() }
+
+  def InitialSpawnTime: Long = spawnedTime
 }
 
 object CaptureFlag {

@@ -98,6 +98,12 @@ class CaptureFlagManager(zone: Zone) extends Actor {
             flag.Zone,
             CaptureFlagChatMessageStrings.CTF_Failed_TimedOut(building.Name, flag.Target.Name, flag.Faction)
           )
+        case CaptureFlagLostReasonEnum.FlagLost  =>
+          val building = flag.Owner.asInstanceOf[Building]
+          ChatBroadcast(
+            flag.Zone,
+            CaptureFlagChatMessageStrings.CTF_Failed_FlagLost(building.Name, flag.Faction)
+          )
         case CaptureFlagLostReasonEnum.Ended     =>
           ()
       }
@@ -197,6 +203,7 @@ class CaptureFlagManager(zone: Zone) extends Actor {
   }
 
   private def ChatBroadcast(zone: Zone, message: String, fanfare: Boolean = true): Unit = {
+    //todo use UNK_222 sometimes
     val messageType: ChatMessageType = if (fanfare) {
       ChatMessageType.UNK_223
     } else {
@@ -224,15 +231,6 @@ object CaptureFlagManager {
 }
 
 object CaptureFlagChatMessageStrings {
-  /*
-      @CTF_Failed_TargetLost=%1's LLU target facility %2 was lost!\nHack canceled!
-      @CTF_Failed_FlagLost=The %1 lost %2's LLU!\nHack canceled!
-      @CTF_Warning_Carrier=%1 of the %2 has %3's LLU.\nIt must be taken to %4 within %5 minutes!
-      @CTF_Warning_NoCarrier=%1's LLU is in the field.\nThe %2 must take it to %3 within %4 minutes!
-      @CTF_Warning_Carrier1Min=%1 of the %2 has %3's LLU.\nIt must be taken to %4 within the next minute!
-      @CTF_Warning_NoCarrier1Min=%1's LLU is in the field.\nThe %2 must take it to %3 within the next minute!
-   */
-
   // @CTF_Success=%1 captured %2's LLU for the %3!
   /** {player.Name} captured {ownerName}'s LLU for the {player.Faction}! */
   private[support] def CTF_Success(playerName:String, playerFaction: PlanetSideEmpire.Value, ownerName: String): String =
@@ -243,10 +241,20 @@ object CaptureFlagChatMessageStrings {
   private[support] def CTF_Failed_TimedOut(ownerName: String, name: String, faction: PlanetSideEmpire.Value): String =
     s"@CTF_Failed_TimedOut^@${GetFactionString(faction)}~^@$ownerName~^@$name~"
 
+  // @CTF_Failed_Lost=The %1 lost %2's LLU!\nHack canceled!
+  /** The {faction} lost {ownerName}'s LLU!\nHack canceled! */
+  private[support] def CTF_Failed_FlagLost(ownerName: String, faction: PlanetSideEmpire.Value): String =
+    s"@CTF_Failed_FlagLost^@${GetFactionString(faction)}~^@$ownerName~"
+
+  // @CTF_Failed_TargetLost=%1's LLU target facility %2 was lost!\nHack canceled!
+  /** {hackFacility}'s LLU target facility {targetFacility} was lost!\nHack canceled! */
+  private[support] def CTF_Failed_TargetLost(hackFacility: String, targetFacility: String): String =
+    s"@CTF_Failed_TargetLost^@$hackFacility~^@$targetFacility~"
+
   // @CTF_Failed_SourceResecured=The %1 resecured %2!\nThe LLU was lost!
   /** The {faction} resecured {name}!\nThe LLU was lost! */
   private[support] def CTF_Failed_SourceResecured(name: String, faction: PlanetSideEmpire.Value): String =
-    s"@CTF_Failed_SourceResecured^@${CaptureFlagChatMessageStrings.GetFactionString(faction)}~^@$name~"
+    s"@CTF_Failed_SourceResecured^@${GetFactionString(faction)}~^@$name~"
 
   // @CTF_FlagSpawned=%1 %2 has spawned a LLU.\nIt must be taken to %3 %4's Control Console within %5 minutes or the hack will fail!
   /** {facilityType} {facilityName} has spawned a LLU.\nIt must be taken to {targetFacilityType} {targetFacilityName}'s Control Console within 15 minutes or the hack will fail! */
@@ -256,12 +264,56 @@ object CaptureFlagChatMessageStrings {
   // @CTF_FlagPickedUp=%1 of the %2 picked up %3's LLU
   /** {player.Name} of the {player.Faction} picked up {ownerName}'s LLU */
   def CTF_FlagPickedUp(playerName: String, playerFaction: PlanetSideEmpire.Value, ownerName: String): String =
-    s"@CTF_FlagPickedUp^$playerName~^@${CaptureFlagChatMessageStrings.GetFactionString(playerFaction)}~^@$ownerName~"
+    s"@CTF_FlagPickedUp^$playerName~^@${GetFactionString(playerFaction)}~^@$ownerName~"
 
   // @CTF_FlagDropped=%1 of the %2 dropped %3's LLU
   /** {playerName} of the {faction} dropped {facilityName}'s LLU */
   def CTF_FlagDropped(playerName: String, playerFaction: PlanetSideEmpire.Value, ownerName: String): String =
-    s"@CTF_FlagDropped^$playerName~^@${CaptureFlagChatMessageStrings.GetFactionString(playerFaction)}~^@$ownerName~"
+    s"@CTF_FlagDropped^$playerName~^@${GetFactionString(playerFaction)}~^@$ownerName~"
+
+  // @CTF_Warning_Carrier=%1's LLU is in the field.\nThe %2 must take it to %3 within %4 minutes!
+  /** {facilityName}'s LLU is in the field.\nThe {faction} must take it to {targetFacilityName} within {time} minutes! */
+  def CTF_Warning_Carrier(
+                           playerName:String,
+                           playerFaction: PlanetSideEmpire.Value,
+                           facilityName: String,
+                           targetFacilityName: String,
+                           time: Int
+                         ): String = {
+    s"@CTF_Warning_Carrier^$playerName~^@${GetFactionString(playerFaction)}~^@$facilityName~^@$targetFacilityName~^@$time~"
+  }
+
+  // @CTF_Warning_Carrier1Min=%1 of the %2 has %3's LLU.\nIt must be taken to %4 within the next minute!
+  /** {playerName} of the {faction} has {facilityName}'s LLU.\nIt must be taken to {targetFacilityName} within the next minute! */
+  def CTF_Warning_Carrier1Min(
+                               playerName:String,
+                               playerFaction: PlanetSideEmpire.Value,
+                               facilityName: String,
+                               targetFacilityName: String
+                             ): String = {
+    s"@CTF_Warning_Carrier1Min^$playerName~^@${GetFactionString(playerFaction)}~^@$facilityName~^@$targetFacilityName~"
+  }
+
+  // @CTF_Warning_NoCarrier=%1's LLU is in the field.\nThe %2 must take it to %3 within %4 minutes!
+  /** {facilityName}'s LLU is in the field.\nThe {faction} must take it to {targetFacilityName} within {time} minute! */
+  def CTF_Warning_NoCarrier(
+                             facilityName: String,
+                             playerFaction: PlanetSideEmpire.Value,
+                             targetFacilityName: String,
+                             time: Int
+                           ): String = {
+    s"@CTF_Warning_NoCarrier^@$facilityName~^@${GetFactionString(playerFaction)}~^@$targetFacilityName~^$time~"
+  }
+
+  // @CTF_Warning_NoCarrier1Min=%1's LLU is in the field.\nThe %2 must take it to %3 within the next minute!
+  /** {facilityName}'s LLU is in the field.\nThe {faction} must take it to {targetFacilityName} within the next minute! */
+  def CTF_Warning_NoCarrier1Min(
+                                 facilityName: String,
+                                 playerFaction: PlanetSideEmpire.Value,
+                                 targetFacilityName: String
+                               ): String = {
+    s"@CTF_Warning_NoCarrier1Min^@$facilityName~^@${GetFactionString(playerFaction)}~^@$targetFacilityName~"
+  }
 
   private def GetFactionString: PlanetSideEmpire.Value=>String = {
     case PlanetSideEmpire.TR => "TerranRepublic"
@@ -277,4 +329,5 @@ object CaptureFlagLostReasonEnum {
   final case object Resecured extends CaptureFlagLostReasonEnum
   final case object TimedOut extends CaptureFlagLostReasonEnum
   final case object Ended extends CaptureFlagLostReasonEnum
+  final case object FlagLost extends CaptureFlagLostReasonEnum
 }

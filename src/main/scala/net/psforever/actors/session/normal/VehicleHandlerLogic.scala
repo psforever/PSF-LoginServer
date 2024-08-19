@@ -4,6 +4,7 @@ package net.psforever.actors.session.normal
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, SessionVehicleHandlers, VehicleHandlerFunctions}
+import net.psforever.objects.avatar.SpecialCarry
 import net.psforever.objects.{GlobalDefinitions, Player, Tool, Vehicle, Vehicles}
 import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
@@ -62,6 +63,13 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         player.Orientation = orient
         player.Velocity = vel
         sessionLogic.updateLocalBlockMap(pos)
+        if (player.Carrying.contains(SpecialCarry.CaptureFlag)) {
+          continent
+            .GUID(player.VehicleSeated)
+            .collect { case vehicle: Vehicle =>
+              sessionLogic.localResponse.loseFlagViolently(sessionLogic.general.specialItemSlotGuid, vehicle)
+            }
+        }
 
       case VehicleResponse.VehicleState(
       vehicleGuid,

@@ -10,6 +10,8 @@ import net.psforever.types.Vector3
  */
 abstract class EnvironmentTrait {
   def canInteractWith(obj: PlanetSideGameObject): Boolean
+
+  def testingDepth: Float
 }
 
 object EnvironmentAttribute {
@@ -25,16 +27,22 @@ object EnvironmentAttribute {
           case _          => false
         })
     }
+
+    def testingDepth: Float = 0.2f
   }
 
   case object Lava extends EnvironmentTrait {
     /** lava can only interact with anything capable of registering damage */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithDamagingFields(obj)
+
+    val testingDepth: Float = 0f
   }
 
   case object Death extends EnvironmentTrait {
     /** death can only interact with anything capable of registering damage */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithDamagingFields(obj)
+
+    val testingDepth: Float = 0f
   }
 
   case object GantryDenialField
@@ -46,18 +54,24 @@ object EnvironmentAttribute {
         case _         => false
       }
     }
+
+    val testingDepth: Float = 0f
   }
 
   case object MovementFieldTrigger
     extends EnvironmentTrait {
     /** only interact with living player characters or vehicles */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithPlayersAndVehicles(obj)
+
+    val testingDepth: Float = 0f
   }
 
   case object InteriorField
     extends EnvironmentTrait {
     /** only interact with living player characters or vehicles */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithPlayersAndVehicles(obj)
+
+    val testingDepth: Float = 0f
   }
 
   /**

@@ -62,9 +62,14 @@ class HackCaptureActor extends Actor {
         // If the base has a socket, but no flag spawned it means the hacked base is neutral with no friendly neighbouring bases to deliver to, making it a timed hack.
         val building = terminal.Owner.asInstanceOf[Building]
         building.GetFlag match {
+          case Some(llu) if llu.LastCollectionTime == llu.InitialSpawnTime =>
+            // LLU was never once collected. Send resecured notifications
+            terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.TimedOut)
+            NotifyHackStateChange(terminal, isResecured = true)
+
           case Some(llu) =>
             // LLU was not delivered in time. Send resecured notifications
-            terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.TimedOut)
+            terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.FlagLost)
             NotifyHackStateChange(terminal, isResecured = true)
 
           case _ =>
@@ -137,6 +142,26 @@ class HackCaptureActor extends Actor {
         case _ =>
           log.error(s"Attempted LLU capture for ${flag.Owner.asInstanceOf[Building].Name} but CC GUID ${flag.Owner.asInstanceOf[Building].CaptureTerminal.get.GUID} was not in list of hacked objects")
       }
+
+    case HackCaptureActor.FlagLost(flag) =>
+      val terminalOpt = flag.Owner.asInstanceOf[Building].CaptureTerminal
+      hackedObjects
+        .find(entry => terminalOpt.contains(entry.target))
+        .collect { entry =>
+          val terminal = terminalOpt.get
+          hackedObjects = hackedObjects.filterNot(x => x == entry)
+          log.info(s"FlagLost: ${flag.Carrier.map(_.Name).getOrElse("")} the flag carrier screwed up the capture for ${flag.Target.Name} and the LLU has been lost")
+          terminal.Actor ! CommonMessages.ClearHack()
+          NotifyHackStateChange(terminal, isResecured = true)
+          // If there's hacked objects left in the list restart the timer with the shortest hack time left
+          RestartTimer()
+        }
+        .orElse{
+          log.warn(s"FlagLost: flag data does not match to an entry in the hacked objects list")
+          None
+        }
+      context.parent ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.FlagLost)
+
 
     case _ => ()
   }
@@ -256,6 +281,7 @@ object HackCaptureActor {
 
   final case class ResecureCaptureTerminal(target: CaptureTerminal, zone: Zone, hacker: PlayerSource)
   final case class FlagCaptured(flag: CaptureFlag)
+  final case class FlagLost(flag: CaptureFlag)
 
   private final case class ProcessCompleteHacks()
 

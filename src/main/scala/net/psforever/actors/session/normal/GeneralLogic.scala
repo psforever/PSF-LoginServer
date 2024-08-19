@@ -51,7 +51,6 @@ import net.psforever.types.{CapacitorStateType, ChatMessageType, Cosmetic, Drive
 import net.psforever.util.Config
 
 import scala.concurrent.duration._
-import scala.util.Success
 
 object GeneralLogic {
   def apply(ops: GeneralOperations): GeneralLogic = {
@@ -170,6 +169,9 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         }
       case None => ()
     }
+    //llu destruction check
+    sessionLogic.localResponse.loseFlagViolently(ops.specialItemSlotGuid, player)
+    //
     val eagleEye: Boolean = ops.canSeeReallyFar
     val isNotVisible: Boolean = sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing ||
       (player.isAlive && sessionLogic.zoning.spawn.deadState == DeadState.RespawnTime)

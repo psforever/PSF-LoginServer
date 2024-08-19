@@ -1,7 +1,6 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject.environment.interaction
 
-import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.environment.{EnvironmentTrait, PieceOfEnvironment}
 import net.psforever.objects.zones._
@@ -117,9 +116,8 @@ object InteractWithEnvironment {
                                        obj: PlanetSideServerObject,
                                        sector: SectorPopulation
                                      ): Set[PieceOfEnvironment] = {
-    val depth = GlobalDefinitions.MaxDepth(obj)
     sector.environmentList
-      .filter(body => body.attribute.canInteractWith(obj) && body.testInteraction(obj, depth))
+      .filter(body => body.attribute.canInteractWith(obj) && body.testInteraction(obj, body.attribute.testingDepth))
       .distinctBy(_.attribute)
       .toSet
   }
@@ -136,7 +134,7 @@ object InteractWithEnvironment {
                                            body: PieceOfEnvironment,
                                            obj: PlanetSideServerObject
                                          ): Option[PieceOfEnvironment] = {
-    if ((obj.Zone eq zone) && body.testInteraction(obj, GlobalDefinitions.MaxDepth(obj))) {
+    if ((obj.Zone eq zone) && body.testInteraction(obj, body.attribute.testingDepth)) {
       Some(body)
     } else {
       None

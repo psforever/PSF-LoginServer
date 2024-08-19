@@ -8,13 +8,16 @@ import net.psforever.types.{OxygenState, PlanetSideGUID}
 
 trait Watery {
   val attribute: EnvironmentTrait = EnvironmentAttribute.Water
-
   /** how long the current interaction has been progressing in the current way */
   protected var waterInteractionTime: Long = 0
   /** information regarding the drowning state */
   protected var condition: Option[OxygenStateTarget] = None
   /** information regarding the drowning state */
   def Condition: Option[OxygenStateTarget] = condition
+  /** how far the player's feet are below the surface of the water */
+  protected var depth: Float = 0f
+  /** how far the player's feet are below the surface of the water */
+  def Depth: Float = depth
 }
 
 object Watery {
