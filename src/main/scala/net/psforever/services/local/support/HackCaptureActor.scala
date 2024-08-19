@@ -62,14 +62,14 @@ class HackCaptureActor extends Actor {
         // If the base has a socket, but no flag spawned it means the hacked base is neutral with no friendly neighbouring bases to deliver to, making it a timed hack.
         val building = terminal.Owner.asInstanceOf[Building]
         building.GetFlag match {
-          case Some(llu) if llu.LastCollectionTime == llu.InitialSpawnTime =>
-            // LLU was never once collected. Send resecured notifications
-            terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.TimedOut)
+          case Some(llu) if llu.Destroyed =>
+            // LLU was destroyed while in the field. Send resecured notifications
+            terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.FlagLost)
             NotifyHackStateChange(terminal, isResecured = true)
 
           case Some(llu) =>
             // LLU was not delivered in time. Send resecured notifications
-            terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.FlagLost)
+            terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.TimedOut)
             NotifyHackStateChange(terminal, isResecured = true)
 
           case _ =>
