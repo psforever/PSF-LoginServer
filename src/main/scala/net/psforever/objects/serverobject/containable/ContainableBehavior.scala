@@ -676,6 +676,7 @@ object ContainableBehavior {
     entry => {
       val objDef  = entry.obj.Definition
       val faction = GlobalDefinitions.isFactionEquipment(objDef)
+      GlobalDefinitions.isCavernEquipment(objDef) ||
       objDef == GlobalDefinitions.router_telepad ||
       entry.obj.isInstanceOf[BoomerTrigger] ||
       (faction != tplayer.Faction && faction != PlanetSideEmpire.NEUTRAL)

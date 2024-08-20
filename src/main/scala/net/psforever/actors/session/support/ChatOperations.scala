@@ -649,6 +649,11 @@ class ChatOperations(
     }
   }
 
+  def commandReportUser(@unused session: Session, @unused message: ChatMsg, @unused contents: String): Unit = {
+    //todo get user from contents
+    sendResponse(ChatMsg(ChatMessageType.UNK_227, "@rpt_i"))
+  }
+
   def commandIncomingSendAllIfOnline(session: Session, message: ChatMsg): Unit = {
     if (AvatarActor.onlineIfNotIgnored(session.avatar, message.recipient)) {
       sendResponse(message)

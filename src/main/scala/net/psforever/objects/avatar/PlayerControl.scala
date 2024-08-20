@@ -637,6 +637,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       if (player.DrawnSlot != Player.HandsDownSlot) {
         player.DrawnSlot = Player.HandsDownSlot
       }
+      val dropPred = ContainableBehavior.DropPredicate(player)
       val (toDelete, toDrop, afterHolsters, afterInventory) = if (originalSuit == ExoSuitType.MAX) {
         //was max
         val (delete, insert) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
@@ -647,18 +648,21 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           //changing to a vanilla exo-suit
           val (newHolsters, unplacedHolsters) = Players.fillEmptyHolsters(player.Holsters().iterator, insert ++ beforeInventory)
           val (inventory, unplacedInventory) = GridInventory.recoverInventory(unplacedHolsters, player.Inventory)
-          (delete, unplacedInventory.map(InventoryItem(_, -1)), newHolsters, inventory)
+          val (dropFromUnplaced, deleteFromUnplaced) = unplacedInventory.map(InventoryItem(_, -1)).partition(dropPred)
+          (delete ++ deleteFromUnplaced, dropFromUnplaced, newHolsters, inventory)
         }
       } else if (willBecomeMax) {
         //will be max, drop everything but melee slot
         val (melee, other) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Melee)
         val (inventory, unplacedInventory) = GridInventory.recoverInventory(beforeInventory ++ other, player.Inventory)
-        (Nil, unplacedInventory.map(InventoryItem(_, -1)), melee, inventory)
+        val (dropFromUnplaced, deleteFromUnplaced) = unplacedInventory.map(InventoryItem(_, -1)).partition(dropPred)
+        (deleteFromUnplaced, dropFromUnplaced, melee, inventory)
       } else {
         //was not a max nor will become a max; vanilla exo-suit to a vanilla-exo-suit
         val (insert, unplacedHolsters) = Players.fillEmptyHolsters(player.Holsters().iterator, beforeHolsters ++ beforeInventory)
         val (inventory, unplacedInventory) = GridInventory.recoverInventory(unplacedHolsters, player.Inventory)
-        (Nil, unplacedInventory.map(InventoryItem(_, -1)), insert, inventory)
+        val (dropFromUnplaced, deleteFromUnplaced) = unplacedInventory.map(InventoryItem(_, -1)).partition(dropPred)
+        (deleteFromUnplaced, dropFromUnplaced, insert, inventory)
       }
       //insert
       afterHolsters.foreach(elem => player.Slot(elem.start).Equipment = elem.obj)
