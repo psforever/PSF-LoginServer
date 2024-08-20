@@ -120,13 +120,8 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     ops.fallHeightTracker(pos.z)
     if (isCrouching && !player.Crouching) {
       //dev stuff goes here
-      sendResponse(ChatMsg(ChatMessageType.UNK_227, "@NoChat_NoSquad"))
+      sendResponse(ChatMsg(ChatMessageType.UNK_229, "@PadDeconstruct_secsA^23~"))
       sendResponse(ChatMsg(ChatMessageType.UNK_227, "@InventoryPickupNoRoom"))
-//      zone.LocalEvents ! LocalServiceMessage(
-//        "",
-//        LocalAction.SendResponse(ChatMsg(ChatMessageType.UNK_227, "@InventoryPickupNoRoom"))
-//        LocalAction.SendResponse(ChatMsg(ChatMessageType.UNK_227, "@InventoryPickupNoRoom"))
-//      )
     }
     player.Position = pos
     player.Velocity = vel

@@ -102,7 +102,8 @@ class CaptureFlagManager(zone: Zone) extends Actor {
           val building = flag.Owner.asInstanceOf[Building]
           CaptureFlagManager.ChatBroadcast(
             zone,
-            CaptureFlagChatMessageStrings.CTF_Failed_FlagLost(building.Name, flag.Faction)
+            CaptureFlagChatMessageStrings.CTF_Failed_FlagLost(building.Name, flag.Faction),
+            fanfare = false
           )
         case CaptureFlagLostReasonEnum.Ended     =>
           ()
@@ -175,10 +176,7 @@ class CaptureFlagManager(zone: Zone) extends Actor {
       if (hackTimeRemaining < nextMessageAfterMinutes.minutes.toMillis) {
         entry.currentMessageIndex += 1
         val msg = CaptureFlagManager.ComposeWarningMessage(flag, owner.Name, nextMessageAfterMinutes)
-        //can't use ChatBroadcast(...) because the message contents are wide
-        events ! LocalServiceMessage(zoneId, LocalAction.SendResponse(
-          ChatMsg(ChatMessageType.UNK_229, wideContents = true, "", msg, None)
-        ))
+        CaptureFlagManager.ChatBroadcast(zone, msg, fanfare = false)
       }
       FlagInfo(
         u1 = 0,
@@ -241,6 +239,7 @@ object CaptureFlagManager {
 
   private def ChatBroadcast(zone: Zone, message: String, fanfare: Boolean = true): Unit = {
     //todo use UNK_222 sometimes
+    //todo I think the fanfare was relate to whether the message was celebratory is tone, based on the faction
     val messageType: ChatMessageType = if (fanfare) {
       ChatMessageType.UNK_223
     } else {
@@ -250,7 +249,7 @@ object CaptureFlagManager {
       zone.id,
       LocalAction.SendChatMsg(
         PlanetSideGUID(-1),
-        ChatMsg(messageType, wideContents = false, "", message, None)
+        ChatMsg(messageType, wideContents = true, "", message, None)
       )
     )
   }

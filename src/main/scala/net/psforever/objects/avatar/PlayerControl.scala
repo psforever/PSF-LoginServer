@@ -522,6 +522,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
         case Zone.Ground.CanNotPickupItem(_, item_guid, reason) =>
           log.warn(s"${player.Name} failed to pick up an item ($item_guid) from the ground because $reason")
+          if (reason.startsWith("@")) {
+            player.Zone.AvatarEvents ! AvatarServiceMessage(
+              player.Name,
+              AvatarAction.SendResponse(Service.defaultPlayerGUID, ChatMsg(ChatMessageType.UNK_227, reason))
+            )
+          }
 
         case Player.BuildDeployable(obj: TelepadDeployable, tool: Telepad) =>
           obj.Router = tool.Router //necessary; forwards link to the router that produced the telepad
