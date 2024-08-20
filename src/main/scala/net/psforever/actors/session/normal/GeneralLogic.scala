@@ -118,9 +118,11 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       }
     }
     ops.fallHeightTracker(pos.z)
-//    if (isCrouching && !player.Crouching) {
-//      //dev stuff goes here
-//    }
+    if (isCrouching && !player.Crouching) {
+      //dev stuff goes here
+      sendResponse(ChatMsg(ChatMessageType.UNK_229, "@PadDeconstruct_secsA^23~"))
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "@InventoryPickupNoRoom"))
+    }
     player.Position = pos
     player.Velocity = vel
     player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -1450,10 +1452,6 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       val drainAmount = player.ExoSuitDef.CapacitorDrainPerSecond.toFloat * timeDiff
       player.Capacitor -= drainAmount
       sendResponse(PlanetsideAttributeMessage(player.GUID, 7, player.Capacitor.toInt))
-      if (player.Capacitor <= 0 && player.UsingSpecial == SpecialExoSuitDefinition.Mode.Shielded) {
-        ops.toggleMaxSpecialState(enable = false)
-        sendResponse(ChatMsg(ChatMessageType.UNK_227, "@ArmorShieldOff"))
-      }
     } else if (player.Capacitor < player.ExoSuitDef.MaxCapacitor) {
       if (player.Faction != PlanetSideEmpire.VS) {
         ops.toggleMaxSpecialState(enable = false)
