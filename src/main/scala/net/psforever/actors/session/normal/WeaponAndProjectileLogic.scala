@@ -17,6 +17,7 @@ import net.psforever.objects.serverobject.doors.InteriorDoorPassage
 import net.psforever.objects.{AmmoBox, BoomerDeployable, BoomerTrigger, ConstructionItem, Deployables, DummyExplodingEntity, GlobalDefinitions, OwnableByPlayer, PlanetSideGameObject, Player, SpecialEmp, Tool, Tools, Vehicle}
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.turret.{FacilityTurret, VanuSentry}
 import net.psforever.objects.serverobject.turret.auto.{AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
@@ -545,7 +546,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
               turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
               Some(target)
 
-            case turret: AutomatedTurret with OwnableByPlayer =>
+            case turret: AutomatedTurret =>
               turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
               HandleAIDamage(target, CompileAutomatedTurretDamageData(turret, projectileTypeId))
               Some(target)
@@ -558,7 +559,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
             case target: PlanetSideServerObject with FactionAffinity with Vitality =>
               sessionLogic.validObject(attackerGuid, decorator = "AIDamage/Attacker")
                 .collect {
-                  case turret: AutomatedTurret with OwnableByPlayer if turret.Target.nonEmpty =>
+                  case turret: AutomatedTurret if turret.Target.nonEmpty =>
                     //the turret must be shooting at something (else) first
                     HandleAIDamage(target, CompileAutomatedTurretDamageData(turret, projectileTypeId))
                 }
@@ -1268,16 +1269,50 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
   }
 
   private def CompileAutomatedTurretDamageData(
-                                                turret: AutomatedTurret with OwnableByPlayer,
+                                                turret: AutomatedTurret,
+                                                projectileTypeId: Long
+                                              ): Option[(AutomatedTurret, Tool, SourceEntry, ProjectileDefinition)] = {
+    turret match {
+      case tOwner: OwnableByPlayer =>
+        CompileAutomatedTurretDamageData(
+          turret,
+          CompileAutomatedTurretOwnableBlame(tOwner),
+          projectileTypeId
+        )
+      case tAmenity: Amenity =>
+        CompileAutomatedTurretDamageData(
+          turret,
+          CompileAutomatedTurretAmenityBlame(tAmenity),
+          projectileTypeId
+        )
+      case _ =>
+        None
+    }
+  }
+
+  private def CompileAutomatedTurretOwnableBlame(turret: AutomatedTurret with OwnableByPlayer): SourceEntry = {
+    Deployables.AssignBlameTo(continent, turret.OwnerName, SourceEntry(turret))
+  }
+
+  private def CompileAutomatedTurretAmenityBlame(turret: AutomatedTurret with Amenity): SourceEntry = {
+    turret
+      .Seats
+      .values
+      .flatMap(_.occupant)
+      .collectFirst(SourceEntry(_))
+      .getOrElse(SourceEntry(turret.Owner))
+  }
+
+  private def CompileAutomatedTurretDamageData(
+                                                turret: AutomatedTurret,
+                                                blame: SourceEntry,
                                                 projectileTypeId: Long
                                               ): Option[(AutomatedTurret, Tool, SourceEntry, ProjectileDefinition)] = {
     turret.Weapons
       .values
       .flatMap { _.Equipment }
       .collect {
-        case weapon: Tool =>
-          val source = Deployables.AssignBlameTo(continent, turret.OwnerName, SourceEntry(turret))
-          (turret, weapon, source, weapon.Projectile)
+        case weapon: Tool => (turret, weapon, blame, weapon.Projectile)
       }
       .find { case (_, _, _, p) => p.ObjectId == projectileTypeId }
   }
