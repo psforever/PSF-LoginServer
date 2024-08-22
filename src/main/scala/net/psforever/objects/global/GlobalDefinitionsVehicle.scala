@@ -971,7 +971,7 @@ object GlobalDefinitionsVehicle {
     ams.DeployTime = 2000
     ams.UndeployTime = 2000
     ams.interference = InterferenceRange(main = 125f, sharedGroupId = 3, shared = 30f)
-    ams.DeconstructionTime = Some(20 minutes)
+    ams.DeconstructionTime = Some(15 minutes)
     ams.AutoPilotSpeeds = (18, 6)
     ams.Packet = utilityConverter
     ams.DestroyedModel = Some(DestroyedVehicle.Ams)

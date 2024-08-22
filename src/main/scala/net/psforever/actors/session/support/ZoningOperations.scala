@@ -1792,6 +1792,7 @@ class ZoningOperations(
     private[session] var setupAvatarFunc: () => Unit = AvatarCreate
     private[session] var setCurrentAvatarFunc: Player => Unit = SetCurrentAvatarNormally
     private[session] var nextSpawnPoint: Option[SpawnPoint] = None
+    private[session] var prevSpawnPoint: Option[SpawnPoint] = None
     private[session] var interimUngunnedVehicle: Option[PlanetSideGUID] = None
     private[session] var interimUngunnedVehicleSeat: Option[Int] = None
     /** Upstream message counter<br>
@@ -2811,6 +2812,7 @@ class ZoningOperations(
         )
       )
       nextSpawnPoint = physSpawnPoint
+      prevSpawnPoint = physSpawnPoint
       shiftPosition = Some(pos)
       shiftOrientation = Some(ori)
       val toZoneNumber = if (continent.id.equals(zoneId)) {
@@ -2819,10 +2821,14 @@ class ZoningOperations(
         Zones.zones.find { _.id.equals(zoneId) }.orElse(Some(Zone.Nowhere)).get.Number
       }
       val toSide = physSpawnPoint.map(_.Owner) match {
-        case Some(_: WarpGate) => Sidedness.OutsideOf
-        case Some(_: Building) => Sidedness.InsideOf
-        case Some(v: Vehicle) => v.WhichSide //though usually OutsideOf
-        case _ => Sidedness.StrictlyBetweenSides //todo needs better determination
+        case Some(_: WarpGate) =>
+          Sidedness.OutsideOf
+        case Some(_: Building) =>
+          Sidedness.InsideOf
+        case Some(v: Vehicle) =>
+          v.WhichSide //though usually OutsideOf
+        case _ =>
+          Sidedness.StrictlyBetweenSides //todo needs better determination
       }
       val toSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) }
       respawnTimer = context.system.scheduler.scheduleOnce(respawnTime) {
@@ -3124,11 +3130,17 @@ class ZoningOperations(
           Config.app.game.savedMsg.short.fixed,
           Config.app.game.savedMsg.short.variable
         )
-        val effortBy = nextSpawnPoint
+        val effortBy = prevSpawnPoint
           .collect { case sp: SpawnTube => (sp, continent.GUID(sp.Owner.GUID)) }
           .collect {
-            case (_, Some(v: Vehicle)) => continent.GUID(v.OwnerGuid)
-            case (sp, Some(_: Building)) => Some(sp)
+            case (_, Some(v: Vehicle)) =>
+              sessionLogic.vehicleResponseOperations.announceAmsDecay(
+                v.GUID,
+                msg = "The AMS you were bound to has lost its' owner.  It will auto-deconstruct soon."
+              )
+              continent.GUID(v.OwnerGuid)
+            case (sp, Some(_: Building)) =>
+              Some(sp)
           }
           .collect { case Some(thing: PlanetSideGameObject with FactionAffinity) => Some(SourceEntry(thing)) }
           .flatten

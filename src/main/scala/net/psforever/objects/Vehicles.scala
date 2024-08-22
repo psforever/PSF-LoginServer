@@ -46,7 +46,7 @@ object Vehicles {
           vehicle.Zone.id,
           VehicleAction.Ownership(tplayer.GUID, vehicle.GUID)
         )
-        Vehicles.ReloadAccessPermissions(vehicle, tplayer.Name)
+        Vehicles.ReloadAccessPermissions(vehicle, tplayer.Faction.toString)
         Some(vehicle)
       case None =>
         None
@@ -61,31 +61,37 @@ object Vehicles {
     * @return the vehicle, if it had a previous owner;
     *         `None`, otherwise
     */
-  def Disown(guid: PlanetSideGUID, vehicle: Vehicle): Option[Vehicle] =
-    vehicle.Zone.GUID(vehicle.OwnerGuid) match {
-      case Some(player: Player) =>
-        if (player.avatar.vehicle.contains(guid)) {
-          player.avatar.vehicle = None
-//          vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
-//            player.Name,
-//            VehicleAction.Ownership(player.GUID, PlanetSideGUID(0))
-//          )
-        }
-        vehicle.AssignOwnership(None)
-        val empire         = VehicleLockState.Empire.id
-        //val factionChannel = s"${vehicle.Faction}"
-        (0 to 2).foreach(group => {
-          vehicle.PermissionGroup(group, empire)
-          /*vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
-            factionChannel,
-            VehicleAction.SeatPermissions(Service.defaultPlayerGUID, guid, group, empire)
-          )*/
-        })
-        ReloadAccessPermissions(vehicle, player.Name)
-        Some(vehicle)
-      case _ =>
-        None
-    }
+  def Disown(guid: PlanetSideGUID, vehicle: Vehicle): Option[Vehicle] = {
+    val zone = vehicle.Zone
+    val ownerGuid = vehicle.OwnerGuid
+    val ownerName = vehicle.OwnerName
+    vehicle.AssignOwnership(None)
+    val result = zone
+      .GUID(ownerGuid)
+      .collect {
+        case player: Player => player.avatar
+      }
+      .orElse {
+        zone
+          .Players
+          .collectFirst {
+            case avatar if ownerName.contains(avatar.name) => avatar
+          }
+      }
+      .collect {
+        case avatar if avatar.vehicle.contains(guid) =>
+          avatar.vehicle = None
+          vehicle
+      }
+    val empire = VehicleLockState.Empire.id
+    (0 to 2).foreach(group => vehicle.PermissionGroup(group, empire))
+    ReloadAccessPermissions(vehicle, vehicle.Faction.toString)
+    zone.VehicleEvents ! VehicleServiceMessage(
+      zone.id,
+      VehicleAction.LoseOwnership(ownerGuid.getOrElse(Service.defaultPlayerGUID), guid)
+    )
+    result
+  }
 
   /**
     * Disassociate a player from a vehicle that he owns.
@@ -140,7 +146,7 @@ object Vehicles {
           VehicleAction.SeatPermissions(pguid, vguid, group, empire)
         )*/
       })
-      ReloadAccessPermissions(vehicle, player.Name)
+      ReloadAccessPermissions(vehicle, vehicle.Faction.toString)
       Some(vehicle)
     } else {
       None

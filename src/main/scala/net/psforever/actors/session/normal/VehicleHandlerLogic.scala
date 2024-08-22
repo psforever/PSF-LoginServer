@@ -14,7 +14,7 @@ import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ChangeAmmoMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, HitHint, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ReloadMessage, ServerVehicleOverrideMsg, VehicleStateMessage, WeaponDryFireMessage}
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleResponse, VehicleServiceResponse}
-import net.psforever.types.{BailType, ChatMessageType, PlanetSideGUID, Vector3}
+import net.psforever.types.{BailType, ChatMessageType, DriveState, PlanetSideGUID, Vector3}
 
 object VehicleHandlerLogic {
   def apply(ops: SessionVehicleHandlers): VehicleHandlerLogic = {
@@ -207,6 +207,9 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         avatarActor ! AvatarActor.SetVehicle(Some(vehicleGuid))
         sendResponse(PlanetsideAttributeMessage(resolvedPlayerGuid, attribute_type=21, vehicleGuid))
 
+      case VehicleResponse.LoseOwnership(_, vehicleGuid) =>
+        ops.announceAmsDecay(vehicleGuid,msg = "@ams_decaystarted")
+
       case VehicleResponse.PlanetsideAttribute(vehicleGuid, attributeType, attributeValue) if isNotSameTarget =>
         sendResponse(PlanetsideAttributeMessage(vehicleGuid, attributeType, attributeValue))
 
@@ -225,6 +228,16 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
 
       case VehicleResponse.UnloadVehicle(_, vehicleGuid) =>
         sendResponse(ObjectDeleteMessage(vehicleGuid, unk1=0))
+        if (sessionLogic.zoning.spawn.prevSpawnPoint.map(_.Owner).exists {
+          case ams: Vehicle =>
+            ams.GUID == vehicleGuid &&
+              ams.OwnerGuid.isEmpty
+          case _ =>
+            false
+        }) {
+          sessionLogic.zoning.spawn.prevSpawnPoint = None
+          sendResponse(ChatMsg(ChatMessageType.UNK_229, "@ams_decayed"))
+        }
 
       case VehicleResponse.UnstowEquipment(itemGuid) if isNotSameTarget =>
         //TODO prefer ObjectDetachMessage, but how to force ammo pools to update properly?
