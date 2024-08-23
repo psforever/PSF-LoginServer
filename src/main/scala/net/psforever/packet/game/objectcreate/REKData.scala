@@ -23,7 +23,7 @@ object REKData extends Marshallable[REKData] {
   implicit val codec: Codec[REKData] = (
     ("data" | CommonFieldData.codec2) ::
       ("unk1" | uint16) ::
-      ("unk2" | uint(10))
+      ("unk2" | uint(bits = 10))
   ).exmap[REKData](
     {
       case data :: u1 :: u2 :: HNil =>

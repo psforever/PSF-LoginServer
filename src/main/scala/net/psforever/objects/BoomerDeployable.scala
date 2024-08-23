@@ -13,6 +13,7 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones.Zone
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideEmpire
 
 import scala.annotation.unused
@@ -81,8 +82,14 @@ class BoomerDeployableControl(mine: BoomerDeployable)
   }
 
   override def gainOwnership(player: Player): Unit = {
-    mine.Faction = PlanetSideEmpire.NEUTRAL //force map icon redraw
+    val originalOwner = mine.OwnerName
     super.gainOwnership(player, player.Faction)
+    val events = mine.Zone.LocalEvents
+    val msg = LocalAction.DeployItem(mine)
+    originalOwner.collect { name =>
+      events ! LocalServiceMessage(name, msg)
+    }
+    events ! LocalServiceMessage(player.Name, msg)
   }
 
   override def dismissDeployable() : Unit = {

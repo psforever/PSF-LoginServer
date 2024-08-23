@@ -26,19 +26,19 @@ object FlightPhysics extends Enumeration {
   type Type = Value
 
   //valid (extremely small distance) (requires non-zero unk4, unk5)
-  val State3 = Value(3)
+  val State3: FlightPhysics.Value = Value(3)
   //valid (infinite) (if unk4 == 0 unk5 == 0, minimum distance + time)
-  val State4 = Value(4)
+  val State4: FlightPhysics.Value = Value(4)
   //valid(infinite)
-  val State5 = Value(5)
+  val State5: FlightPhysics.Value = Value(5)
   //valid (uses velocity) (infinite)
-  val State6 = Value(6)
+  val State6: FlightPhysics.Value = Value(6)
   //valid (uses velocity) (infinite)
-  val State7 = Value(7)
+  val State7: FlightPhysics.Value = Value(7)
   //valid (uses velocity) (time > 0 is infinite) (unk5 == 2)
-  val State15 = Value(15)
+  val State15: FlightPhysics.Value = Value(15)
 
-  implicit val codec = PacketHelpers.createEnumerationCodec(this, uint4L)
+  implicit val codec: Codec[FlightPhysics.Value] = PacketHelpers.createEnumerationCodec(this, uint4L)
 }
 
 /**

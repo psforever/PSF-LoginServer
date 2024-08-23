@@ -87,17 +87,6 @@ class AvatarService(zone: Zone) extends Actor {
               AvatarResponse.EnvironmentalDamage(player_guid, source_guid, amount)
             )
           )
-
-        case AvatarAction.DeployItem(player_guid, item) =>
-          val definition = item.Definition
-          val objectData = definition.Packet.ConstructorData(item).get
-          AvatarEvents.publish(
-            AvatarServiceResponse(
-              s"/$forChannel/Avatar",
-              player_guid,
-              AvatarResponse.DropItem(ObjectCreateMessage(definition.ObjectId, item.GUID, objectData))
-            )
-          )
         case AvatarAction.Destroy(victim, killer, weapon, pos) =>
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", victim, AvatarResponse.Destroy(victim, killer, weapon, pos))

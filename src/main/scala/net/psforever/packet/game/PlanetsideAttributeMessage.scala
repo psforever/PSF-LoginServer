@@ -1,10 +1,12 @@
 // Copyright (c) 2016 PSForever.net to present
 package net.psforever.packet.game
 
+import net.psforever.packet.GamePacketOpcode.Type
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PlanetSideGamePacket}
 import net.psforever.types.PlanetSideGUID
-import scodec.Codec
+import scodec.bits.BitVector
+import scodec.{Attempt, Codec}
 import scodec.codecs._
 
 /**
@@ -68,8 +70,8 @@ import scodec.codecs._
   * `17 - BEP. Value seems to be the same as BattleExperienceMessage`<br>
   * `18 - CEP.`<br>
   * `19 - Anchors. Value is 0 to disengage, 1 to engage.`<br>
-  * `20 - Control console hacking, affects CC timer, yellow base warning lights and message "The FactionName has hacked into BaseName".
-  * Format is: Time left - 2 bytes, faction - 1 byte (1-4), isResecured - 1 byte (0-1)`<br>
+  * `20 - Control console hacking, affects CC timer, yellow base warning lights and message "The FactionName has hacked into BaseName".`
+  * Format is: Time left - 2 bytes, faction - 1 byte (1-4), isResecured - 1 byte (0-1)<br>
   *   <ul>
   *     <li>65535 segments per faction in deciseconds (seconds * 10)</li>
   *     <li>0-65535 = Neutral 0 seconds to 1h 49m 14s - 0x0000 to 0xFFFF</li>
@@ -134,8 +136,8 @@ import scodec.codecs._
   * `31 - Looking for Squad info (marquee and ui):`<br>
   *  <ul>
   *    <li>0 - LFS</li>
-  *    <li>1 is LFSM (Looking for Squad Members)`</li>
-  *    <li>`n` is the supplemental squad identifier number; same as "LFS;" for the leader, sets "LFSM" after the first manual flagging`</li>
+  *    <li>1 is LFSM (Looking for Squad Members)</li>
+  *    <li>`n` is the supplemental squad identifier number; same as "LFS;" for the leader, sets "LFSM" after the first manual flagging</li>
   *  </ul>
   * `32 - Maintain the squad role index, when a member of a squad`<br>
   * `35 - Battle Rank`<br>
@@ -204,8 +206,8 @@ import scodec.codecs._
 final case class PlanetsideAttributeMessage(guid: PlanetSideGUID, attribute_type: Int, attribute_value: Long)
     extends PlanetSideGamePacket {
   type Packet = PlanetsideAttributeMessage
-  def opcode = GamePacketOpcode.PlanetsideAttributeMessage
-  def encode = PlanetsideAttributeMessage.encode(this)
+  def opcode: Type = GamePacketOpcode.PlanetsideAttributeMessage
+  def encode: Attempt[BitVector] = PlanetsideAttributeMessage.encode(this)
 }
 
 object PlanetsideAttributeMessage extends Marshallable[PlanetsideAttributeMessage] {
@@ -235,5 +237,6 @@ object PlanetsideAttributeMessage extends Marshallable[PlanetsideAttributeMessag
 object PlanetsideAttributeEnum extends Enumeration {
   type PlanetsideAttributeEnum = Value
 
-  val ControlConsoleHackUpdate = Value(20)
+  val ControlConsoleHackUpdate: PlanetsideAttributeEnum.Value = Value(20)
+  val OwnershipAssignment: PlanetsideAttributeEnum.Value = Value(21)
 }

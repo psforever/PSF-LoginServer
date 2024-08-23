@@ -4,7 +4,7 @@ package net.psforever.services.local
 import akka.actor.{Actor, Props}
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{TriggeredEffect, TriggeredEffectLocation}
+import net.psforever.packet.game.{ObjectCreateMessage, TriggeredEffect, TriggeredEffectLocation}
 import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.local.support._
@@ -45,6 +45,16 @@ class LocalService(zone: Zone) extends Actor {
 
     case LocalServiceMessage(forChannel, action) =>
       action match {
+        case LocalAction.DeployItem(item) =>
+          val definition = item.Definition
+          val objectData = definition.Packet.ConstructorData(item).get
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.SendResponse(ObjectCreateMessage(definition.ObjectId, item.GUID, objectData))
+            )
+          )
         case LocalAction.DeployableMapIcon(player_guid, behavior, deployInfo) =>
           LocalEvents.publish(
             LocalServiceResponse(

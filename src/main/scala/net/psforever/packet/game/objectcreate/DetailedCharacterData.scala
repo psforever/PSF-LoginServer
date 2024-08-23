@@ -23,7 +23,7 @@ final case class ImplantEntry(implant: ImplantType, initialization: Option[Int],
     extends StreamBitSize {
   override def bitsize: Long = {
     val timerSize = initialization match {
-      case Some(_) => 8L;
+      case Some(_) => 8L
       case None    => 1L
     }
     9L + timerSize
@@ -271,7 +271,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
   private val implant_entry_codec: Codec[ImplantEntry] = (
     ("implant" | uint8L) ::
       (bool >>:~ { guard =>
-      newcodecs.binary_choice(guard, uint(1), uint8L).hlist
+      newcodecs.binary_choice(guard, uint(bits = 1), uint8L).hlist
     })
   ).xmap[ImplantEntry](
     {
@@ -305,7 +305,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     (
       uint8 >>:~ { size =>
         conditional(size > 0, dcd_extra1_codec(padFunc(size))) ::
-          PacketHelpers.listOfNSized(size - 1, dcd_extra1_codec(0))
+          PacketHelpers.listOfNSized(size - 1, dcd_extra1_codec(pad = 0))
       }
     ).xmap[List[DCDExtra1]](
       {
@@ -376,7 +376,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
     * `Codec` for a `ImprintingProgress` object.
     */
   private val imprint_progress_codec: Codec[ImprintingProgress] = (
-    uint(5) ::
+    uint(bits = 5) ::
       uint8L
   ).as[ImprintingProgress]
 
@@ -464,7 +464,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
   def paddingCalculations(contextOffset: Option[Int], implants: List[ImplantEntry], prevLists: List[List[Any]])(
       currListLen: Long
   ): Int = {
-    paddingCalculations(3, contextOffset, implants, prevLists)(currListLen)
+    paddingCalculations(base = 3, contextOffset, implants, prevLists)(currListLen)
   }
 
   /**
@@ -532,9 +532,9 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
         ("stamina" | uint16L) ::
         conditional(suit == ExoSuitType.MAX, uint32L) ::
         ("unk6" | uint16L) ::
-        ("unk7" | uint(3)) ::
+        ("unk7" | uint(bits = 3)) ::
         ("unk8" | uint32L) ::
-        ("unk9" | PacketHelpers.listOfNSized(6, uint16L)) :: //always length of 6
+        ("unk9" | PacketHelpers.listOfNSized(size = 6, uint16L)) :: //always length of 6
         ("certs" | listOfN(uint8L, Certification.codec))
     ).exmap[DetailedCharacterA](
       {
@@ -591,7 +591,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
 
   def b_codec(bep: Long, pad_length: Option[Int]): Codec[DetailedCharacterB] =
     (
-      optional(bool, "unk1" | uint32L) ::
+      ("unk1" | optional(bool, uint32L)) ::
         (("implants" | PacketHelpers.listOfNSized(
           BattleRank.withExperience(bep).implantSlots,
           implant_entry_codec
@@ -607,17 +607,17 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
                       ("unk6" | uint32L) ::
                       ("unk7" | uint32L) ::
                       ("unk8" | uint32L) ::
-                      (optional(isFalse, "imprinting" | imprint_progress_codec) >>:~ { imprinting =>
+                      (("imprinting" | optional(isFalse, imprint_progress_codec)) >>:~ { imprinting =>
                       ("unkA" | listOfN(uint16L, uint32L)) ::
                         ("unkB" | unkBCodec(
                           paddingCalculations(
-                            displaceByOptionTest(pad_length, imprinting, 5),
+                            displaceByOptionTest(pad_length, imprinting, value = 5),
                             implants,
                             List(imprinting.toList, tut, fte, unk3, unk2)
                           )
                         )) ::
                         ("unkC" | bool) ::
-                        conditional(bep >= BattleRank.BR24.experience, "cosmetics" | Cosmetic.codec)
+                        ("cosmetics" | conditional(bep >= BattleRank.BR24.experience, Cosmetic.codec))
                     })
                 }
             }

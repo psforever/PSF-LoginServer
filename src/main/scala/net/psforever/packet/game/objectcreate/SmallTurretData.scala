@@ -32,7 +32,7 @@ final case class SmallTurretData(
       case None =>
         0
     }
-    22L + deploySize + internalSize //8u + 7u + 4u + 2u + 1u
+    23L + deploySize + internalSize //1u + 8u + 7u + 4u + 2u + 1u
   }
 }
 
@@ -49,15 +49,16 @@ object SmallTurretData extends Marshallable[SmallTurretData] {
     new SmallTurretData(deploy, health, Some(internals))
 
   implicit val codec: Codec[SmallTurretData] = (
-    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec) ::
+      ignore(size = 1) ::
       ("health" | uint8L) ::
-      uintL(7) ::
+      uintL(bits = 7) ::
       uint4L ::
       uint2L ::
-      optional(bool, "internals" | InventoryData.codec)
+      ("internals" | optional(bool, InventoryData.codec))
   ).exmap[SmallTurretData](
     {
-      case deploy :: health :: 0 :: 0xf :: 0 :: internals :: HNil =>
+      case deploy :: _ :: health :: 0 :: 0xf :: 0 :: internals :: HNil =>
         val (newHealth, newInternals) = if (health == 0 || internals.isEmpty || internals.get.contents.isEmpty) {
           (0, None)
         } else {
@@ -75,7 +76,7 @@ object SmallTurretData extends Marshallable[SmallTurretData] {
         } else {
           (health, internals)
         }
-        Attempt.successful(deploy :: newHealth :: 0 :: 0xf :: 0 :: newInternals :: HNil)
+        Attempt.successful(deploy :: () :: newHealth :: 0 :: 0xf :: 0 :: newInternals :: HNil)
     }
   )
 }

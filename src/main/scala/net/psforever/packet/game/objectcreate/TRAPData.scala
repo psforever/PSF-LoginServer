@@ -14,20 +14,21 @@ import shapeless.{::, HNil}
   */
 final case class TRAPData(deploy: CommonFieldDataWithPlacement, health: Int) extends ConstructorData {
   override def bitsize: Long = {
-    22L + deploy.bitsize //8u + 7u + 4u + 3u
+    23L + deploy.bitsize //1u + 8u + 7u + 4u + 3u
   }
 }
 
 object TRAPData extends Marshallable[TRAPData] {
   implicit val codec: Codec[TRAPData] = (
-    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec) ::
+      ignore(size = 1) ::
       ("health" | uint8L) ::
-      uint(7) ::
+      uint(bits = 7) ::
       uint4L ::
-      uint(3)
+      uint(bits = 3)
   ).exmap[TRAPData](
     {
-      case deploy :: health :: 0 :: 15 :: 0 :: HNil =>
+      case deploy :: _:: health :: 0 :: 15 :: 0 :: HNil =>
         Attempt.successful(TRAPData(deploy, health))
 
       case data =>
@@ -35,7 +36,7 @@ object TRAPData extends Marshallable[TRAPData] {
     },
     {
       case TRAPData(deploy, health) =>
-        Attempt.successful(deploy :: health :: 0 :: 15 :: 0 :: HNil)
+        Attempt.successful(deploy :: () :: health :: 0 :: 15 :: 0 :: HNil)
     }
   )
 }

@@ -455,7 +455,7 @@ object GamePacketOpcode extends Enumeration {
       case 0x7f => game.AvatarStatisticsMessage.decode
 
       // OPCODES 0x80-8f
-      case 0x80 => noDecoder(GenericObjectAction2Message)
+      case 0x80 => game.GenericObjectAction2Message.decode
       case 0x81 => game.DestroyDisplayMessage.decode
       case 0x82 => noDecoder(TriggerBotAction)
       case 0x83 => game.SquadWaypointRequest.decode

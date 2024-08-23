@@ -524,7 +524,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           log.warn(s"${player.Name} failed to pick up an item ($item_guid) from the ground because $reason")
 
         case Player.BuildDeployable(obj: TelepadDeployable, tool: Telepad) =>
-          obj.Router = tool.Router //necessary; forwards link to the router that prodcued the telepad
+          obj.Router = tool.Router //necessary; forwards link to the router that produced the telepad
           setupDeployable(obj, tool)
 
         case Player.BuildDeployable(obj, tool) =>
@@ -534,7 +534,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           deployablePair match {
             case Some((deployable, tool)) if deployable eq obj =>
               val zone = player.Zone
-              //boomers
               val trigger = new BoomerTrigger
               trigger.Companion = obj.GUID
               obj.Trigger = trigger
@@ -552,7 +551,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   TaskWorkflow.execute(PutNewEquipmentInInventoryOrDrop(player)(trigger))
               }
               Players.buildCooldownReset(zone, player.Name, obj)
-            case _ => ;
+            case _ => ()
           }
           deployablePair = None
 
@@ -569,7 +568,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   TelepadControl.TelepadError(zone, player.Name, msg = "@Telepad_NoDeploy_RouterLost")
               }
               Players.buildCooldownReset(zone, player.Name, obj)
-            case _ => ;
+            case _ => ()
           }
           deployablePair = None
 
@@ -584,7 +583,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 case None =>
                   log.warn(s"${player.Name} should have destroyed a ${tool.Definition.Name} here, but could not find it")
               }
-            case _ => ;
+            case _ => ()
           }
           deployablePair = None
 
@@ -701,16 +700,27 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       if (deployables.Valid(obj) &&
           !deployables.Contains(obj) &&
           Players.deployableWithinBuildLimits(player, obj)) {
+        //deployables, upon construction, may display an animation effect
         tool.Definition match {
-          case GlobalDefinitions.ace | /* animation handled in deployable lifecycle */
-               GlobalDefinitions.router_telepad => ; /* no special animation */
+          case GlobalDefinitions.router_telepad => () /* no special animation */
+          case GlobalDefinitions.ace
+            if obj.Definition.deployAnimation == DeployAnimation.Standard =>
+            zone.LocalEvents ! LocalServiceMessage(
+              zone.id,
+              LocalAction.TriggerEffectLocation(
+                obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID),
+                "spawn_object_effect",
+                obj.Position,
+                obj.Orientation
+              )
+            )
           case GlobalDefinitions.advanced_ace
             if obj.Definition.deployAnimation == DeployAnimation.Fdu =>
             zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PutDownFDU(player.GUID))
           case _ =>
-            org.log4s.getLogger(name = "Deployables").warn(
-              s"not sure what kind of construction item to animate - ${tool.Definition.Name}"
-            )
+            org.log4s
+              .getLogger(name = "Deployables")
+              .warn(s"not sure what kind of construction item to animate - ${tool.Definition.Name}")
         }
         deployablePair = Some((obj, tool))
         obj.Faction = player.Faction
@@ -1158,10 +1168,14 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         zone.GUID(trigger.Companion) match {
           case Some(obj: BoomerDeployable) =>
             val deployables = player.avatar.deployables
-            if (deployables.Valid(obj)) {
+            if (!deployables.Contains(obj) && deployables.Valid(obj)) {
+              events ! AvatarServiceMessage(toChannel, AvatarAction.SendResponse(
+                Service.defaultPlayerGUID,
+                GenericObjectAction2Message(1, player.GUID, trigger.GUID)
+              ))
               Players.gainDeployableOwnership(player, obj, deployables.AddOverLimit)
             }
-          case _ => ;
+          case _ => ()
         }
 
       case citem: ConstructionItem
@@ -1172,7 +1186,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         }
         Deployables.initializeConstructionItem(player.avatar.certifications, citem)
 
-      case _ => ;
+      case _ => ()
     }
     events ! AvatarServiceMessage(
       toChannel,

@@ -57,7 +57,7 @@ class DeployableBehaviorSetupTest extends ActorTest {
         case _ => assert(false, "self-setup test - no spawn fx")
       }
       eventsMsgs(1) match {
-        case AvatarServiceMessage("test", AvatarAction.DeployItem(PlanetSideGUID(0), obj)) =>
+        case LocalServiceMessage("test", LocalAction.DeployItem(obj)) =>
           assert(obj eq jmine, "self-setup test - not same mine")
         case _ =>
           assert( false, "self-setup test - wrong deploy message")
@@ -189,7 +189,7 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
         case _ => assert(false, "owned setup test, 2 - no spawn fx")
       }
       eventsMsgs(3) match {
-        case AvatarServiceMessage("test", AvatarAction.DeployItem(PlanetSideGUID(0), obj)) =>
+        case LocalServiceMessage("test", LocalAction.DeployItem(obj)) =>
           assert(obj eq jmine, "owned setup test, 2 - not same mine")
         case _ =>
           assert( false, "owned setup test, 2 - wrong deploy message")

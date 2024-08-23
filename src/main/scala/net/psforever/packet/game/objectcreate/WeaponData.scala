@@ -54,8 +54,8 @@ object WeaponData extends Marshallable[WeaponData] {
     WeaponData(
       CommonFieldData(
         PlanetSideEmpire(unk1 & 3),
-        false,
-        false,
+        bops = false,
+        alternate = false,
         (unk2 & 8) == 8,
         None,
         (unk2 & 4) == 4,
@@ -91,8 +91,8 @@ object WeaponData extends Marshallable[WeaponData] {
     WeaponData(
       CommonFieldData(
         PlanetSideEmpire(unk1 & 3),
-        false,
-        false,
+        bops = false,
+        alternate = false,
         (unk2 & 8) == 8,
         None,
         (unk2 & 4) == 4,
@@ -137,8 +137,8 @@ object WeaponData extends Marshallable[WeaponData] {
     WeaponData(
       CommonFieldData(
         PlanetSideEmpire(unk1 & 3),
-        false,
-        false,
+        bops = false,
+        alternate = false,
         (unk2 & 8) == 8,
         None,
         (unk2 & 4) == 4,

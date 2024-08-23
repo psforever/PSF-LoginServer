@@ -58,9 +58,9 @@ object OrbitalShuttleData extends Marshallable[OrbitalShuttleData] {
 
   implicit val codec: Codec[OrbitalShuttleData] = (
     ("faction" | PlanetSideEmpire.codec) ::
-      uintL(25) ::
+      uintL(bits = 25) ::
       uint8L :: //255
-      uintL(5) ::
+      uintL(bits = 5) ::
       uint4L :: //7
       uint2L
   ).exmap[OrbitalShuttleData](

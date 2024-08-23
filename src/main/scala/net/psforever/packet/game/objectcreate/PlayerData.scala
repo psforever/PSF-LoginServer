@@ -76,7 +76,7 @@ object PlayerData extends Marshallable[PlayerData] {
   ): PlayerData = {
     val appearance = basic_appearance(5)
     PlayerData(None, appearance, character_data(appearance.altModelBit.isDefined, true), Some(inventory), drawn_slot)(
-      false
+      position_defined = false
     )
   }
 
@@ -96,7 +96,7 @@ object PlayerData extends Marshallable[PlayerData] {
       drawn_slot: DrawnSlot.Type
   ): PlayerData = {
     val appearance = basic_appearance(5)
-    PlayerData(None, appearance, character_data(appearance.altModelBit.isDefined, true), None, drawn_slot)(false)
+    PlayerData(None, appearance, character_data(appearance.altModelBit.isDefined, true), None, drawn_slot)(position_defined = false)
   }
 
   /**
@@ -124,7 +124,7 @@ object PlayerData extends Marshallable[PlayerData] {
       character_data(appearance.altModelBit.isDefined, false),
       Some(inventory),
       drawn_slot
-    )(true)
+    )(position_defined = true)
   }
 
   /**
@@ -144,7 +144,7 @@ object PlayerData extends Marshallable[PlayerData] {
       drawn_slot: DrawnSlot.Type
   ): PlayerData = {
     val appearance = basic_appearance(PaddingOffset(Some(pos)))
-    PlayerData(Some(pos), appearance, character_data(appearance.altModelBit.isDefined, false), None, drawn_slot)(true)
+    PlayerData(Some(pos), appearance, character_data(appearance.altModelBit.isDefined, false), None, drawn_slot)(position_defined = true)
   }
 
   /**
@@ -205,7 +205,7 @@ object PlayerData extends Marshallable[PlayerData] {
           CharacterData.codec(app.b.backpack),
           CharacterData.codec_seated(app.b.backpack)
         )) ::
-          optional(bool, "inventory" | InventoryData.codec) ::
+          ("inventory" | optional(bool, InventoryData.codec)) ::
           ("drawn_slot" | DrawnSlot.codec) ::
           bool //usually false
       }
@@ -232,14 +232,14 @@ object PlayerData extends Marshallable[PlayerData] {
     (
       ("basic_appearance" | CharacterAppearanceData.codec(offset)) >>:~ { app =>
         ("character_data" | CharacterData.codec_seated(app.b.backpack)) ::
-          optional(bool, "inventory" | InventoryData.codec) ::
+          ("inventory" | optional(bool, InventoryData.codec)) ::
           ("drawn_slot" | DrawnSlot.codec) ::
           bool //usually false
       }
     ).xmap[PlayerData](
       {
         case app :: data :: inv :: hand :: _ :: HNil =>
-          PlayerData(None, app, data, inv, hand)(false)
+          PlayerData(None, app, data, inv, hand)(position_defined = false)
       },
       {
         case PlayerData(_, app, data, inv, hand) =>
@@ -247,5 +247,5 @@ object PlayerData extends Marshallable[PlayerData] {
       }
     )
 
-  implicit val codec: Codec[PlayerData] = codec(false)
+  implicit val codec: Codec[PlayerData] = codec(position_defined = false)
 }

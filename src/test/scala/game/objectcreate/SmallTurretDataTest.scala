@@ -32,9 +32,9 @@ class SmallTurretDataTest extends Specification {
               deploy.v1 mustEqual true
               deploy.v2.isEmpty mustEqual true
               deploy.jammered mustEqual false
-              deploy.v4.contains(false) mustEqual true
+              deploy.v4.isEmpty mustEqual true
               deploy.v5.isEmpty mustEqual true
-              deploy.guid mustEqual PlanetSideGUID(7742)
+              deploy.guid mustEqual PlanetSideGUID(3871)
 
               health mustEqual 0
             case _ =>
@@ -63,9 +63,9 @@ class SmallTurretDataTest extends Specification {
               deploy.v1 mustEqual true
               deploy.v2.isEmpty mustEqual true
               deploy.jammered mustEqual false
-              deploy.v4.contains(true) mustEqual true
+              deploy.v4.isEmpty mustEqual true
               deploy.v5.isEmpty mustEqual true
-              deploy.guid mustEqual PlanetSideGUID(8208)
+              deploy.guid mustEqual PlanetSideGUID(4232)
 
               health mustEqual 255
 
@@ -124,7 +124,7 @@ class SmallTurretDataTest extends Specification {
       val obj = SmallTurretData(
         CommonFieldDataWithPlacement(
           PlacementData(Vector3(4577.7812f, 5624.828f, 72.046875f), Vector3(0, 2.8125f, 264.375f)),
-          CommonFieldData(PlanetSideEmpire.NC, false, true, true, None, false, Some(false), None, PlanetSideGUID(7742))
+          CommonFieldData(PlanetSideEmpire.NC, bops = false, alternate = true, v1 = true, None, jammered = false, None, None, PlanetSideGUID(3871))
         ),
         0
       )
@@ -137,7 +137,7 @@ class SmallTurretDataTest extends Specification {
       val obj = SmallTurretData(
         CommonFieldDataWithPlacement(
           PlacementData(Vector3(4527.633f, 6271.3594f, 70.265625f), Vector3(0, 0, 154.6875f)),
-          CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(true), None, PlanetSideGUID(8208))
+          CommonFieldData(PlanetSideEmpire.VS, bops = false, alternate = false, v1 = true, None, jammered = false, None, None, PlanetSideGUID(4232))
         ),
         255,
         InventoryData(
@@ -149,11 +149,11 @@ class SmallTurretDataTest extends Specification {
               WeaponData(
                 CommonFieldData(
                   PlanetSideEmpire.NEUTRAL,
-                  false,
-                  false,
-                  true,
+                  bops = false,
+                  alternate = false,
+                  v1 = true,
                   None,
-                  false,
+                  jammered = false,
                   None,
                   None,
                   PlanetSideGUID(0)
@@ -166,11 +166,11 @@ class SmallTurretDataTest extends Specification {
                     0,
                     CommonFieldData(
                       PlanetSideEmpire.NEUTRAL,
-                      false,
-                      false,
-                      true,
+                      bops = false,
+                      alternate = false,
+                      v1 = true,
                       None,
-                      false,
+                      jammered = false,
                       Some(false),
                       None,
                       PlanetSideGUID(0)

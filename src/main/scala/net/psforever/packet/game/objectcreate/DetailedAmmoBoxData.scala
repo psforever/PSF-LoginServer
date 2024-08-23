@@ -41,7 +41,7 @@ object DetailedAmmoBoxData extends Marshallable[DetailedAmmoBoxData] {
 
   def apply(unk: Int, mag: Int): DetailedAmmoBoxData = {
     DetailedAmmoBoxData(
-      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, unk > 0, None, false, None, None, PlanetSideGUID(0)),
+      CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = unk > 0, None, jammered = false, None, None, PlanetSideGUID(0)),
       mag
     )
   }

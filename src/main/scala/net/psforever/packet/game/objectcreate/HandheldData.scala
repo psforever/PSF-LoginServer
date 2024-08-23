@@ -32,7 +32,7 @@ object HandheldData extends Marshallable[HandheldData] {
   implicit val codec: Codec[HandheldData] = (
     ("data" | CommonFieldData.codec) ::
       ("mode" | uint8) ::
-      ("unk" | uint(3))
+      ("unk" | uint(bits = 3))
   ).exmap[HandheldData](
     {
       case data :: mode :: unk :: HNil =>

@@ -78,6 +78,31 @@ class LocalService5Test extends ActorTest {
   }
 }
 
+
+
+class DeployItemTest extends ActorTest {
+  ServiceManager.boot(system)
+  val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "deploy-item-test-service")
+  val objDef  = GlobalDefinitions.motionalarmsensor
+  val obj     = new SensorDeployable(objDef)
+  obj.Position = Vector3(1, 2, 3)
+  obj.Orientation = Vector3(4, 5, 6)
+  obj.GUID = PlanetSideGUID(40)
+  val pkt = ObjectCreateMessage(
+    objDef.ObjectId,
+    obj.GUID,
+    objDef.Packet.ConstructorData(obj).get
+  )
+
+  "AvatarService" should {
+    "pass DeployItem" in {
+      service ! Service.Join("test")
+      service ! LocalServiceMessage("test", LocalAction.DeployItem(obj))
+      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(0), LocalResponse.SendResponse(pkt)))
+    }
+  }
+}
+
 class DeployableMapIconTest extends ActorTest {
   ServiceManager.boot(system)
 

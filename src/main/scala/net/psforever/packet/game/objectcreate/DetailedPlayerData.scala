@@ -72,7 +72,7 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
       drawn_slot: DrawnSlot.Value
   ): DetailedPlayerData = {
     val appearance = basic_appearance(5)
-    DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(false)
+    DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(position_defined = false)
   }
 
   /**
@@ -91,7 +91,7 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
       drawn_slot: DrawnSlot.Value
   ): DetailedPlayerData = {
     val appearance = basic_appearance(5)
-    DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), None, drawn_slot)(false)
+    DetailedPlayerData(None, appearance, character_data(appearance.altModelBit), None, drawn_slot)(position_defined = false)
   }
 
   /**
@@ -113,7 +113,7 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
       drawn_slot: DrawnSlot.Value
   ): DetailedPlayerData = {
     val appearance = basic_appearance(PlayerData.PaddingOffset(Some(pos)))
-    DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(true)
+    DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), Some(inventory), drawn_slot)(position_defined = true)
   }
 
   /**
@@ -133,14 +133,14 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
       drawn_slot: DrawnSlot.Value
   ): DetailedPlayerData = {
     val appearance = basic_appearance(PlayerData.PaddingOffset(Some(pos)))
-    DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), None, drawn_slot)(true)
+    DetailedPlayerData(Some(pos), appearance, character_data(appearance.altModelBit), None, drawn_slot)(position_defined = true)
   }
 
   def codec(position_defined: Boolean): Codec[DetailedPlayerData] =
     (conditional(position_defined, "pos" | PlacementData.codec) >>:~ { pos =>
       ("basic_appearance" | CharacterAppearanceData.codec(PlayerData.PaddingOffset(pos))) >>:~ { app =>
         ("character_data" | DetailedCharacterData.codec(app.a.exosuit, app.altModelBit)) ::
-          optional(bool, "inventory" | InventoryData.codec_detailed) ::
+          ("inventory" | optional(bool, InventoryData.codec_detailed)) ::
           ("drawn_slot" | DrawnSlot.codec) ::
           bool //usually false
       }
@@ -155,5 +155,5 @@ object DetailedPlayerData extends Marshallable[DetailedPlayerData] {
       }
     )
 
-  implicit val codec: Codec[DetailedPlayerData] = codec(false)
+  implicit val codec: Codec[DetailedPlayerData] = codec(position_defined = false)
 }

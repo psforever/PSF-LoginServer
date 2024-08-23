@@ -406,7 +406,7 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
         ("unk6" | bool) :: //stream misalignment when set
         ("charging_pose" | bool) ::
         ("unk7" | bool) :: //alternate charging pose?
-        optional(bool, "on_zipline" | zipline_codec)
+        ("on_zipline" | optional(bool, zipline_codec))
     ).exmap[CharacterAppearanceB](
       {
         case outfit_id :: outfit :: logo :: u1 :: bpack :: u2 :: u3 :: u4 :: facingPitch :: facingYawUpper :: lfs :: gstate :: cloaking :: u5 :: u6 :: charging :: u7 :: zipline :: HNil =>
@@ -493,5 +493,5 @@ object CharacterAppearanceData extends Marshallable[CharacterAppearanceData] {
       }
     )
 
-  implicit val codec: Codec[CharacterAppearanceData] = codec(0)
+  implicit val codec: Codec[CharacterAppearanceData] = codec(name_padding = 0)
 }

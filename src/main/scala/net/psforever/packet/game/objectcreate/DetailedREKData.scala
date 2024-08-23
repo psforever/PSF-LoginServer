@@ -28,7 +28,7 @@ object DetailedREKData extends Marshallable[DetailedREKData] {
       uint16L ::
       uint4L ::
       ("unk" | uint8) ::
-      uint(7)
+      uint(bits = 7)
   ).exmap[DetailedREKData](
     {
       case data :: 2 :: 0 :: 8 :: unk :: 0 :: HNil =>

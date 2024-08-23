@@ -4,7 +4,6 @@ package net.psforever.services.avatar
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.scoring.KDAStat
 import net.psforever.objects.ballistics.Projectile
-import net.psforever.objects.ce.Deployable
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
@@ -44,7 +43,6 @@ object AvatarAction {
   final case class ConcealPlayer(player_guid: PlanetSideGUID)                                        extends Action
   final case class EnvironmentalDamage(player_guid: PlanetSideGUID, source_guid: PlanetSideGUID, amount: Int)
       extends Action
-  final case class DeployItem(player_guid: PlanetSideGUID, item: Deployable) extends Action
   final case class DeactivateImplantSlot(player_guid: PlanetSideGUID, slot: Int)                       extends Action
   final case class ActivateImplantSlot(player_guid: PlanetSideGUID, slot: Int)                         extends Action
   final case class Destroy(victim: PlanetSideGUID, killer: PlanetSideGUID, weapon: PlanetSideGUID, pos: Vector3)
