@@ -18,6 +18,7 @@ import shapeless.{::, HNil}
 object ImplantEffects extends Enumeration {
   type Type = Value
 
+
   val SurgeEffects: ImplantEffects.Value          = Value(9)
   val PersonalShieldEffects: ImplantEffects.Value = Value(5)
   val DarklightEffects: ImplantEffects.Value      = Value(3)
