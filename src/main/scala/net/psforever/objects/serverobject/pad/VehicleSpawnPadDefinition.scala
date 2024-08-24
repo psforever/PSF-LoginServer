@@ -12,7 +12,6 @@ class VehicleSpawnPadDefinition(objectId: Int) extends AmenityDefinition(objectI
 
   // Different pads require a Z offset to stop vehicles falling through the world after the pad rises from the floor, these values are found in game_objects.adb.lst
   private var vehicle_creation_z_offset = 0f
-
   // Different pads also require an orientation offset when detaching vehicles from the rails associated with the spawn pad, again in game_objects.adb.lst
   // For example: 9754:add_property dropship_pad_doors vehiclecreationzorientoffset 90
   // However, it seems these values need to be reversed to turn CCW to CW rotation (e.g. +90 to -90)
@@ -35,6 +34,12 @@ class VehicleSpawnPadDefinition(objectId: Int) extends AmenityDefinition(objectI
     * @see `net.psforever.objects.serverobject.pad.process.VehicleSpawnControlRailJack` */
   var killBox: (VehicleSpawnPad, Boolean)=>(PlanetSideGameObject, PlanetSideGameObject, Float)=> Boolean =
     VehicleSpawnPadDefinition.prepareKillBox(forwardLimit = 0, backLimit = 0, sideLimit = 0, aboveLimit = 0)
+
+  private val blockedReminderMessageDelays: Seq[Int] = Seq(30, 23, 15, 8, 0)
+
+  def VehicleCreationDeconstructTime: Int = blockedReminderMessageDelays.head
+
+  def BlockedReminderMessageDelays: Seq[Int] = blockedReminderMessageDelays
 }
 
 object VehicleSpawnPadDefinition {
