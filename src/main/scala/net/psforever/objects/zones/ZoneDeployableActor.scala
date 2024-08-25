@@ -9,6 +9,9 @@ import net.psforever.objects.serverobject.deploy.Interference
 import net.psforever.objects.sourcing.ObjectSource
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.vital.SpawningActivity
+import net.psforever.packet.game.ChatMsg
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.types.ChatMessageType
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -103,7 +106,13 @@ object ZoneDeployableActor {
                      ): Boolean = {
     val position = obj.Position
     deployableList.find(_ eq obj) match {
-      case None if Interference.Test(zone, obj).isEmpty =>
+      case _ if Interference.Test(zone, obj).nonEmpty =>
+        zone.LocalEvents ! LocalServiceMessage(
+          obj.OwnerName.getOrElse(""),
+          LocalAction.SendResponse(ChatMsg(ChatMessageType.UNK_227, "@nomove_intersecting"))
+        ) //may not be the correct message but is sufficient at explaining why the deployable can not be built
+        false
+      case None =>
         deployableList += obj
         zone.actor ! ZoneActor.AddToBlockMap(obj, position)
         true

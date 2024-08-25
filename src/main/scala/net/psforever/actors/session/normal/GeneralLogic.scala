@@ -118,11 +118,9 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       }
     }
     ops.fallHeightTracker(pos.z)
-    if (isCrouching && !player.Crouching) {
-      //dev stuff goes here
-      //sendResponse(ChatMsg(ChatMessageType.UNK_227, "@fav_light_infantry")) //Light Infantry / Vehicle Driver
-      //sendResponse(ChatMsg(ChatMessageType.UNK_227, "@fav_heavy_infantry")) //Heavy Infantry
-    }
+//    if (isCrouching && !player.Crouching) {
+//      //dev stuff goes here
+//    }
     player.Position = pos
     player.Velocity = vel
     player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
