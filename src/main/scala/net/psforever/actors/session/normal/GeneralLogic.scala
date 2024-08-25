@@ -120,7 +120,9 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     ops.fallHeightTracker(pos.z)
     if (isCrouching && !player.Crouching) {
       //dev stuff goes here
-      sendResponse(ChatMsg(ChatMessageType.UNK_227, "@NoMount_Permission"))
+      sendResponse(ChatMsg(ChatMessageType.UNK_228, "@login_reposition_to_sanctuary"))
+      sendResponse(ChatMsg(ChatMessageType.UNK_229, "@PadDeconstruct_Done"))
+      //sendResponse(ChatMsg(ChatMessageType.UNK_227, "@NoMount_Permission"))
       //sendResponse(ChatMsg(ChatMessageType.UNK_227, "@ArmorShieldOff"))
       //sendResponse(ChatMsg(ChatMessageType.UNK_227, "@ArmorShieldOverride"))
     }

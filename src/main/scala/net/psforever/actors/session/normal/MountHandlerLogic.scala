@@ -11,6 +11,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.environment.interaction.ResetAllEnvironmentInteractions
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.vehicles.{AccessPermissionGroup, CargoBehavior}
@@ -71,18 +72,6 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
               obj.Actor ! Mountable.TryDismount(player, seat_num, bailType)
               //short-circuit the temporary channel for transferring between zones, the player is no longer doing that
               sessionLogic.zoning.interstellarFerry = None
-              // Deconstruct the vehicle if the driver has bailed out and the vehicle is capable of flight
-              //todo: implement auto landing procedure if the pilot bails but passengers are still present instead of deconstructing the vehicle
-              //todo: continue flight path until aircraft crashes if no passengers present (or no passenger seats), then deconstruct.
-              //todo: kick cargo passengers out. To be added after PR #216 is merged
-              obj match {
-                case v: Vehicle
-                  if bailType == BailType.Bailed &&
-                    v.SeatPermissionGroup(seat_num).contains(AccessPermissionGroup.Driver) &&
-                    v.isFlying =>
-                  v.Actor ! Vehicle.Deconstruct(None) //immediate deconstruction
-                case _ => ()
-              }
 
             case None =>
               dError(s"DismountVehicleMsg: can not find where player ${player.Name}_guid is seated in mountable ${player.VehicleSeated}", player)
@@ -369,17 +358,18 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         obj.Actor ! Vehicle.Deconstruct()
 
       case Mountable.CanDismount(obj: Vehicle, seatNum, _)
+        if tplayer.GUID == player.GUID &&
+          obj.isFlying &&
+          obj.SeatPermissionGroup(seatNum).contains(AccessPermissionGroup.Driver) =>
+        // Deconstruct the vehicle if the driver has bailed out and the vehicle is capable of flight
+        //todo: implement auto landing procedure if the pilot bails but passengers are still present instead of deconstructing the vehicle
+        //todo: continue flight path until aircraft crashes if no passengers present (or no passenger seats), then deconstruct.
+        //todo: kick cargo passengers out. To be added after PR #216 is merged
+        DismountVehicleAction(tplayer, obj, seatNum)
+        obj.Actor ! Vehicle.Deconstruct(None) //immediate deconstruction
+
+      case Mountable.CanDismount(obj: Vehicle, seatNum, _)
         if tplayer.GUID == player.GUID =>
-        //disembarking self
-        log.info(s"${player.Name} dismounts the ${obj.Definition.Name}'s ${
-          obj.SeatPermissionGroup(seatNum) match {
-            case Some(AccessPermissionGroup.Driver) => "driver seat"
-            case Some(seatType) => s"$seatType seat (#$seatNum)"
-            case None => "seat"
-          }
-        }")
-        sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
-        sessionLogic.general.unaccessContainer(obj)
         DismountVehicleAction(tplayer, obj, seatNum)
 
       case Mountable.CanDismount(obj: Vehicle, seat_num, _) =>
@@ -388,7 +378,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
           VehicleAction.KickPassenger(tplayer.GUID, seat_num, unk2=true, obj.GUID)
         )
 
-      case Mountable.CanDismount(obj: PlanetSideGameObject with PlanetSideGameObject with Mountable with FactionAffinity with InGameHistory, seatNum, _) =>
+      case Mountable.CanDismount(obj: PlanetSideGameObject with Mountable with FactionAffinity with InGameHistory, seatNum, _) =>
         log.info(s"${tplayer.Name} dismounts a ${obj.Definition.asInstanceOf[ObjectDefinition].Name}")
         DismountAction(tplayer, obj, seatNum)
 
@@ -410,18 +400,33 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
       case Mountable.CanNotDismount(obj: Vehicle, _, BailType.Normal)
         if obj.DeploymentState == DriveState.AutoPilot =>
         sendResponse(ChatMsg(ChatMessageType.UNK_224, "@SA_CannotDismountAtThisTime"))
-        log.warn(s"DismountVehicleMsg: ${tplayer.Name} can not dismount $obj's when in autopilot")
+
+      case Mountable.CanNotDismount(obj: Vehicle, _, BailType.Bailed)
+        if obj.Definition == GlobalDefinitions.droppod =>
+        sendResponse(ChatMsg(ChatMessageType.UNK_224, "@CannotBailFromDroppod"))
 
       case Mountable.CanNotDismount(obj: Vehicle, _, BailType.Bailed)
         if obj.DeploymentState == DriveState.AutoPilot =>
-        //todo @Vehicle_CannotBailInWarpgateEnvelope
         sendResponse(ChatMsg(ChatMessageType.UNK_224, "@SA_CannotBailAtThisTime"))
-        log.warn(s"DismountVehicleMsg: ${tplayer.Name} can not bail from $obj's when in autopilot")
 
-      case Mountable.CanNotDismount(obj: Vehicle, seatNum, _)
+      case Mountable.CanNotDismount(obj: Vehicle, _, BailType.Bailed)
+        if {
+          continent
+            .blockMap
+            .sector(obj)
+            .buildingList
+            .exists {
+              case wg: WarpGate =>
+                Vector3.DistanceSquared(obj.Position, wg.Position) < math.pow(wg.Definition.SOIRadius, 2)
+              case _ =>
+                false
+            }
+        } =>
+        sendResponse(ChatMsg(ChatMessageType.UNK_227, "@Vehicle_CannotBailInWarpgateEnvelope"))
+
+      case Mountable.CanNotDismount(obj: Vehicle, _, _)
         if obj.isMoving(test = 1f) =>
         sendResponse(ChatMsg(ChatMessageType.UNK_224, "@TooFastToDismount"))
-        log.warn(s"DismountVehicleMsg: ${tplayer.Name} attempted to dismount $obj's mount $seatNum, but was moving too fast")
 
       case Mountable.CanNotDismount(obj, seatNum, _) =>
         log.warn(s"DismountVehicleMsg: ${tplayer.Name} attempted to dismount $obj's mount $seatNum, but was not allowed")
@@ -481,7 +486,17 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
    * @param obj the mountable object
    * @param seatNum the mount out of which which the player is disembarking
    */
-  private def DismountVehicleAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
+  private def DismountVehicleAction(tplayer: Player, obj: Vehicle, seatNum: Int): Unit = {
+    //disembarking self
+    log.info(s"${player.Name} dismounts the ${obj.Definition.Name}'s ${
+      obj.SeatPermissionGroup(seatNum) match {
+        case Some(AccessPermissionGroup.Driver) => "driver seat"
+        case Some(seatType) => s"$seatType seat (#$seatNum)"
+        case None => "seat"
+      }
+    }")
+    sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
+    sessionLogic.general.unaccessContainer(obj)
     DismountAction(tplayer, obj, seatNum)
     //until vehicles maintain synchronized momentum without a driver
     obj match {
