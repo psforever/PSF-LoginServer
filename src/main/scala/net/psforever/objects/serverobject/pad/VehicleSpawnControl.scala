@@ -349,6 +349,10 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
             )
           } else if (reminderSeq.size == 1) {
             //end reminder
+            standaloneBlockedReminder(
+              VehicleSpawnPad.VehicleOrder(entry.driver, entry.vehicle, null),
+              Some("@PadDeconstruct_Done")
+            )
             periodicReminder.cancel()
             periodicReminder = Default.Cancellable
             reminderSeq = List()
@@ -374,7 +378,10 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
    * @param blockedOrder the previous order whose vehicle is blocking the spawn pad from operating
    * @param recipients all of the other customers who will be receiving the message
    */
-  private def BlockedReminder(blockedOrder: VehicleSpawnControl.Order, recipients: Seq[VehicleSpawnPad.VehicleOrder]): Unit = {
+  private def BlockedReminder(
+                               blockedOrder: VehicleSpawnControl.Order,
+                               recipients: Seq[VehicleSpawnPad.VehicleOrder]
+                             ): Unit = {
     //everyone else
     recursiveBlockedReminder(
       recipients.iterator,
@@ -389,12 +396,8 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
       .orElse(pad.Zone.GUID(blockedOrder.vehicle.OwnerGuid))
       .orElse(pad.Zone.GUID(blockedOrder.DriverGUID)) collect {
       case p: Player if p.isAlive =>
-        recursiveBlockedReminder(
-          Seq(VehicleSpawnPad.VehicleOrder(
-            blockedOrder.driver,
-            blockedOrder.vehicle,
-            null //permissible
-          )).iterator,
+        standaloneBlockedReminder(
+          VehicleSpawnPad.VehicleOrder(blockedOrder.driver, blockedOrder.vehicle, null),
           Some(s"@PadDeconstruct_secsA^${reminderSeq.head}~")
         )
     }
@@ -432,14 +435,20 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
       cause: Option[Any]
   ): Unit = {
     if (iter.hasNext) {
-      val recipient = iter.next()
-      pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
-        recipient.player.Name,
-        VehicleSpawnPad.Reminders.Blocked,
-        cause
-      )
+      standaloneBlockedReminder(iter.next(), cause)
       recursiveBlockedReminder(iter, cause)
     }
+  }
+
+  private def standaloneBlockedReminder(
+                                         entry: VehicleSpawnPad.VehicleOrder,
+                                         cause: Option[Any]
+                                       ): Unit = {
+    pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
+      entry.player.Name,
+      VehicleSpawnPad.Reminders.Blocked,
+      cause
+    )
   }
 
   @tailrec private final def recursiveOrderReminder(

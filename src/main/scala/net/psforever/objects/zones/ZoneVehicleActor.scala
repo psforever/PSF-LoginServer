@@ -6,8 +6,11 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.serverobject.deploy.{Deployment, Interference}
 import net.psforever.objects.vital.InGameHistory
-import net.psforever.objects.{Default, Vehicle}
-import net.psforever.types.{DriveState, PlanetSideEmpire, Vector3}
+import net.psforever.objects.{Default, GlobalDefinitions, Vehicle}
+import net.psforever.packet.game.ChatMsg
+import net.psforever.services.Service
+import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, Vector3}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -83,7 +86,17 @@ class ZoneVehicleActor(
 
     case Zone.Vehicle.CanNotDespawn(_, _, _) => ()
 
-    case Zone.Vehicle.CanNotDeploy(_, vehicle, _, reason) => ()
+    case Zone.Vehicle.CanNotDeploy(_, vehicle, toState, _)
+      if vehicle.Definition == GlobalDefinitions.ams &&
+        toState == DriveState.Deployed =>
+      val pos = vehicle.Position
+      zone.VehicleEvents ! VehicleServiceMessage(
+        vehicle.Seats.headOption.flatMap(_._2.occupant).map(_.Name).getOrElse("Driver"),
+        VehicleAction.SendResponse(Service.defaultPlayerGUID, ChatMsg(ChatMessageType.UNK_227, "@nodeploy_ams"))
+      )
+      temporaryInterference = temporaryInterference.filterNot(_._1 == pos)
+
+    case Zone.Vehicle.CanNotDeploy(_, vehicle, _, reason) =>
       val pos = vehicle.Position
       val driverMoniker = vehicle.Seats.headOption.flatMap(_._2.occupant).map(_.Name).getOrElse("Driver")
       log.warn(s"$driverMoniker's ${vehicle.Definition.Name} can not deploy in ${zone.id} because $reason")

@@ -120,11 +120,8 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     ops.fallHeightTracker(pos.z)
     if (isCrouching && !player.Crouching) {
       //dev stuff goes here
-      sendResponse(ChatMsg(ChatMessageType.UNK_228, "@login_reposition_to_sanctuary"))
-      sendResponse(ChatMsg(ChatMessageType.UNK_229, "@PadDeconstruct_Done"))
-      //sendResponse(ChatMsg(ChatMessageType.UNK_227, "@NoMount_Permission"))
-      //sendResponse(ChatMsg(ChatMessageType.UNK_227, "@ArmorShieldOff"))
-      //sendResponse(ChatMsg(ChatMessageType.UNK_227, "@ArmorShieldOverride"))
+      //sendResponse(ChatMsg(ChatMessageType.UNK_227, "@fav_light_infantry")) //Light Infantry / Vehicle Driver
+      //sendResponse(ChatMsg(ChatMessageType.UNK_227, "@fav_heavy_infantry")) //Heavy Infantry
     }
     player.Position = pos
     player.Velocity = vel
@@ -1455,6 +1452,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       val drainAmount = player.ExoSuitDef.CapacitorDrainPerSecond.toFloat * timeDiff
       player.Capacitor -= drainAmount
       sendResponse(PlanetsideAttributeMessage(player.GUID, 7, player.Capacitor.toInt))
+      if (player.Capacitor <= 0 && player.UsingSpecial == SpecialExoSuitDefinition.Mode.Shielded) {
+        ops.toggleMaxSpecialState(enable = false)
+        sendResponse(ChatMsg(ChatMessageType.UNK_227, "@ArmorShieldOff"))
+      }
     } else if (player.Capacitor < player.ExoSuitDef.MaxCapacitor) {
       if (player.Faction != PlanetSideEmpire.VS) {
         ops.toggleMaxSpecialState(enable = false)

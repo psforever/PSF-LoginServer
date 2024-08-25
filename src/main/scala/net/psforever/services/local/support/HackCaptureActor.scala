@@ -6,16 +6,17 @@ import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.llu.CaptureFlag
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.Default
-import net.psforever.packet.game.{GenericAction, HackState7, PlanetsideAttributeEnum}
+import net.psforever.objects.serverobject.structures.participation.MajorFacilityHackParticipation
+import net.psforever.packet.game.{ChatMsg, GenericAction, HackState7, PlanetsideAttributeEnum}
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.services.Service
 import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
 
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.Random
@@ -234,6 +235,18 @@ class HackCaptureActor extends Actor {
     val owner = terminal.Owner.asInstanceOf[Building]
     // Notify parent building that state has changed
     owner.Actor ! BuildingActor.AmenityStateChange(terminal, Some(isResecured))
+    // If major facility, check NTU
+    owner.CaptureTerminal
+      .map(_.HackedBy)
+      .collect {
+        case Some(info: Hackable.HackInfo)
+          if owner.BuildingType == StructureType.Facility && owner.NtuLevel == 0 =>
+          MajorFacilityHackParticipation.warningMessageForHackOccupiers(
+            owner,
+            info,
+            ChatMsg(ChatMessageType.UNK_227, "@FacilityRequiresResourcesForHackWarning")
+          )
+      }
     // Push map update to clients
     owner.Zone.actor ! ZoneActor.ZoneMapUpdate()
   }
