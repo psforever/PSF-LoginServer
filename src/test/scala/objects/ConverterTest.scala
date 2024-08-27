@@ -374,7 +374,7 @@ class ConverterTest extends Specification {
                 true,
                 None,
                 false,
-                Some(true),
+                None,
                 None,
                 PlanetSideGUID(0)
               )
@@ -522,7 +522,7 @@ class ConverterTest extends Specification {
                 true,
                 None,
                 false,
-                Some(true),
+                None,
                 None,
                 PlanetSideGUID(0)
               )

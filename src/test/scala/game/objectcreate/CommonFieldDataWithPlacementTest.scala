@@ -31,9 +31,9 @@ class CommonFieldDataWithPlacementTest extends Specification {
                   v1 mustEqual false
                   v2.isEmpty mustEqual true
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
+                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
-                  fguid mustEqual PlanetSideGUID(8290)
+                  fguid mustEqual PlanetSideGUID(4145)
                 case _ =>
                   ko
               }
@@ -48,7 +48,7 @@ class CommonFieldDataWithPlacementTest extends Specification {
     "encode" in {
       val obj = CommonFieldDataWithPlacement(
         PlacementData(Vector3(4704.172f, 5546.4375f, 82.234375f), Vector3.z(272.8125f)),
-        CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, Some(false), None, PlanetSideGUID(8290))
+        CommonFieldData(PlanetSideEmpire.TR, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(4145))
       )
       val msg = ObjectCreateMessage(ObjectClass.boomer, PlanetSideGUID(3840), obj)
       val pkt = PacketCoding.encodePacket(msg).require.toByteVector

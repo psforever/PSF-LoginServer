@@ -125,10 +125,10 @@ object Watery {
         //switching from suffocation to recovery
         val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
         val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
-        val oldTimeRemaining: Long = completionTime - System.currentTimeMillis()
+        val oldTimeRemaining: Long = math.max(0, completionTime - System.currentTimeMillis())
         val oldTimeRatio: Float = oldTimeRemaining / oldDuration.toFloat
         val percentage: Float = oldTimeRatio * 100
-        val recoveryTime: Long = newDuration - (newDuration * oldTimeRatio).toLong
+        val recoveryTime: Long = newDuration * (1f - oldTimeRatio).toLong
         (true, recoveryTime, percentage)
       case Some(OxygenState.Recovery) =>
         //interrupted while recovering, calculate the progress and keep recovering

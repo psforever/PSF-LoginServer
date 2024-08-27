@@ -314,7 +314,7 @@ class ExplosiveDeployableJammerTest extends ActorTest {
   val guid = new NumberPoolHub(new MaxNumberSource(10))
   val eventsProbe = new TestProbe(system)
 
-  val j_mine = Deployables.Make(DeployedItem.jammer_mine)().asInstanceOf[ExplosiveDeployable] //guid=1
+  val mine = Deployables.Make(DeployedItem.he_mine)().asInstanceOf[ExplosiveDeployable] //guid=1
   val avatar1 = Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)
   val player1 = Player(avatar1) //guid=3
   val avatar2 = Avatar(0, "TestCharacter2", PlanetSideEmpire.NC, CharacterSex.Male, 0, CharacterVoice.Mute)
@@ -335,17 +335,17 @@ class ExplosiveDeployableJammerTest extends ActorTest {
   }
   player1.Spawn()
   player2.Spawn()
-  guid.register(j_mine, 1)
+  guid.register(mine, 1)
   guid.register(player1, 3)
   guid.register(player2, 4)
   guid.register(weapon, 5)
-  j_mine.Zone = zone
-  j_mine.OwnerGuid = player2
+  mine.Zone = zone
+  mine.OwnerGuid = player2
   //j_mine.OwnerName = player2.Name
-  j_mine.Faction = PlanetSideEmpire.NC
-  j_mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], j_mine), "j-mine-control")
+  mine.Faction = PlanetSideEmpire.NC
+  mine.Actor = system.actorOf(Props(classOf[MineDeployableControl], mine), "j-mine-control")
 
-  val jMineSource = SourceEntry(j_mine)
+  val jMineSource = SourceEntry(mine)
   val pSource     = PlayerSource(player1)
   val projectile  = weapon.Projectile
   val resolved = DamageInteraction(
@@ -353,7 +353,7 @@ class ExplosiveDeployableJammerTest extends ActorTest {
     ProjectileReason(
       DamageResolution.Hit,
       Projectile(projectile, weapon.Definition, weapon.FireMode, pSource, 0, Vector3.Zero, Vector3.Zero),
-      j_mine.DamageModel
+      mine.DamageModel
     ),
     Vector3(1, 0, 0)
   )
@@ -361,26 +361,53 @@ class ExplosiveDeployableJammerTest extends ActorTest {
 
   "ExplosiveDeployable" should {
     "handle being jammered appropriately (no detonation)" in {
-      assert(!j_mine.Destroyed)
+      assert(!mine.Destroyed)
 
-      j_mine.Actor ! Vitality.Damage(applyDamageToJ)
-      val eventMsgs  = eventsProbe.receiveN(2, 200 milliseconds)
+      mine.Actor ! Vitality.Damage(applyDamageToJ)
+      val eventMsgs  = eventsProbe.receiveN(4, 200 milliseconds)
       eventMsgs.head match {
+        case Zone.HotSpot.Conflict(mineSrc, playerSrc, Vector3(1.0,0.0,0.0)) => ;
+        case _ => assert(false, "")
+      }
+//      eventMsgs.head match {
+//        case LocalServiceMessage(
+//          "NC",
+//          LocalAction.DeployableMapIcon(
+//            ValidPlanetSideGUID(0),
+//            DeploymentAction.Dismiss,
+//            DeployableInfo(ValidPlanetSideGUID(1), DeployableIcon.HEMine, Vector3.Zero, ValidPlanetSideGUID(0))
+//          )
+//        ) => ;
+//        case _ => assert(false, "")
+//      }
+      eventMsgs(1) match {
+        case LocalServiceMessage("test", LocalAction.Detonate(PlanetSideGUID(1), _)) => ;
+        case _ => assert(false, "")
+      }
+      eventMsgs(2) match {
         case LocalServiceMessage(
           "NC",
           LocalAction.DeployableMapIcon(
             ValidPlanetSideGUID(0),
             DeploymentAction.Dismiss,
-            DeployableInfo(ValidPlanetSideGUID(1), DeployableIcon.DisruptorMine, Vector3.Zero, ValidPlanetSideGUID(0))
+            DeployableInfo(ValidPlanetSideGUID(1), DeployableIcon.HEMine, Vector3.Zero, ValidPlanetSideGUID(0))
           )
         ) => ;
         case _ => assert(false, "")
       }
-      eventMsgs(1) match {
-        case AvatarServiceMessage("test", AvatarAction.Destroy(PlanetSideGUID(1), _, Service.defaultPlayerGUID, _)) => ;
+      eventMsgs(3) match {
+        case AvatarServiceMessage(
+          "test",
+          AvatarAction.Destroy(
+            ValidPlanetSideGUID(1),
+            ValidPlanetSideGUID(3),
+            ValidPlanetSideGUID(0),
+            Vector3.Zero
+          )
+        ) => ;
         case _ => assert(false, "")
       }
-      assert(j_mine.Destroyed)
+      assert(mine.Destroyed)
     }
   }
 }

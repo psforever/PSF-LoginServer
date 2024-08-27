@@ -10,9 +10,9 @@ import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
+import net.psforever.packet.game.{ChatMsg, ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.types.{DriveState, Vector3}
+import net.psforever.types.{ChatMessageType, DriveState, Vector3}
 
 object VehicleLogic {
   def apply(ops: VehicleOperations): VehicleLogic = {
@@ -304,6 +304,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
       log.trace(s"DeployRequest: $obj transitioning to deploy state")
     } else if (state == DriveState.Deployed) {
       log.trace(s"DeployRequest: $obj has been Deployed")
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "@DeployingMessage"))
     } else {
       CanNotChangeDeployment(obj, state, "incorrect deploy state")
     }
@@ -314,6 +315,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
       log.trace(s"DeployRequest: $obj transitioning to undeploy state")
     } else if (state == DriveState.Mobile) {
       log.trace(s"DeployRequest: $obj is Mobile")
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "@UndeployingMessage"))
     } else {
       CanNotChangeDeployment(obj, state, "incorrect undeploy state")
     }

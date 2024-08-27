@@ -279,11 +279,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
 
   def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = { /* intentionally blank */ }
 
-  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
-    if (state != DriveState.Undeploying && state != DriveState.Mobile) {
-      CanNotChangeDeployment(obj, state, "incorrect undeploy state")
-    }
-  }
+  def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = { /* intentionally blank */ }
 
   def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState.Value, reason: String): Unit = {
     if (Deployment.CheckForDeployState(state) && !Deployment.AngleCheck(obj)) {

@@ -201,13 +201,12 @@ class ResourceSiloControlUseTest extends FreedContextActorTest {
   "Resource silo" should {
     "respond when being used" in {
       expectNoMessage(1 seconds)
-      silo.Actor ! CommonMessages.Use(ResourceSiloTest.player)
-
-      val reply = probe.receiveOne(2000 milliseconds)
-      assert(reply match {
-        case TransferBehavior.Discharging(Ntu.Nanites) => true
-        case _                                         => false
-      })
+      silo.Actor ! CommonMessages.Use(ResourceSiloTest.player, Some(ant))
+      val reply = probe.receiveOne(3000 milliseconds)
+      reply match {
+        case TransferBehavior.Discharging(Ntu.Nanites) => ()
+        case _                                         => assert(false, "")
+      }
     }
   }
 }

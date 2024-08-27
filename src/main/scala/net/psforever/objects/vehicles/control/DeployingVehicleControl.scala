@@ -1,6 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.vehicles.control
 
+import akka.actor.ActorRef
 import net.psforever.objects._
 import net.psforever.objects.serverobject.deploy.Deployment.DeploymentObject
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
@@ -58,7 +59,7 @@ class DeployingVehicleControl(vehicle: Vehicle)
     * Even when disabled, the vehicle can be made to undeploy.
     */
   override def PrepareForDisabled(kickPassengers: Boolean) : Unit = {
-    TryUndeployStateChange(DriveState.Undeploying)
+    TryUndeployStateChange(DriveState.Undeploying, self)
     super.PrepareForDisabled(kickPassengers)
   }
 
@@ -77,9 +78,10 @@ class DeployingVehicleControl(vehicle: Vehicle)
   override def DeploymentAction(
                                  obj: DeploymentObject,
                                  state: DriveState.Value,
-                                 prevState: DriveState.Value
+                                 prevState: DriveState.Value,
+                                 replyTo: ActorRef
                                ): DriveState.Value = {
-    val out = super.DeploymentAction(obj, state, prevState)
+    val out = super.DeploymentAction(obj, state, prevState, replyTo)
     Vehicles.ReloadAccessPermissions(vehicle, vehicle.Faction.toString)
     specificResponseToDeployment(state)
     out
@@ -90,9 +92,10 @@ class DeployingVehicleControl(vehicle: Vehicle)
   override def UndeploymentAction(
                                    obj: DeploymentObject,
                                    state: DriveState.Value,
-                                   prevState: DriveState.Value
+                                   prevState: DriveState.Value,
+                                   replyTo: ActorRef
                                  ): DriveState.Value = {
-    val out = if (decaying) state else super.UndeploymentAction(obj, state, prevState)
+    val out = if (decaying) state else super.UndeploymentAction(obj, state, prevState, replyTo)
     Vehicles.ReloadAccessPermissions(vehicle, vehicle.Faction.toString)
     specificResponseToUndeployment(state)
     out

@@ -225,8 +225,15 @@ final case class AwaitOngoingInteraction(zone: Zone) extends InteractionBehavior
     if (allow) {
       val env = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
       val (in, out) = existing.partition(body => InteractWithEnvironment.checkSpecificEnvironmentInteraction(zone, body, obj).nonEmpty)
-      env.diff(in).foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
-      out.foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.stopInteractingWith(obj, body, None)))
+      val existAttrs = existing.map(_.attribute)
+      val inAttrs = env.map(_.attribute)
+      env
+        .diff(in)
+        .filterNot(e => existAttrs.contains(e.attribute))
+        .foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
+      out
+        .filterNot(e => inAttrs.contains(e.attribute))
+        .foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.stopInteractingWith(obj, body, None)))
       if (env.isEmpty) {
         val n = OnStableEnvironment()
         val out = n.perform(obj, sector, Set(), allow)
