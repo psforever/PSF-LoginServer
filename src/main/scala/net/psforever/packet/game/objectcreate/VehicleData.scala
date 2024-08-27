@@ -157,7 +157,10 @@ object VehicleData extends Marshallable[VehicleData] {
 
   private val driveState8u = uint8.xmap[DriveState.Value](
     n => DriveState(n),
-    n => n.id
+    {
+      case n if n.id < 0 => DriveState.Mobile.id
+      case n => n.id
+    }
   )
 
   /**

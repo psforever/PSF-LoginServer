@@ -95,7 +95,7 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
       unk: Int,
       player_guid: PlanetSideGUID
   ): CommonFieldData =
-    CommonFieldData(faction, bops = false, alternate = destroyed, v1 = unk > 1, None, jammered = false/*unk % 1 == 1*/, None, None, player_guid)
+    CommonFieldData(faction, bops = false, alternate = destroyed, v1 = unk > 1, None, jammered = unk > 0, None, None, player_guid)
 
   def apply(
       faction: PlanetSideEmpire.Value,
@@ -107,7 +107,7 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
   ): CommonFieldData = {
     val jammeredField = if (jammered) { Some(0) }
     else { None }
-    CommonFieldData(faction, bops, destroyed, unk > 1, None, jammered = false/*unk % 1 == 1*/, None, jammeredField, player_guid)
+    CommonFieldData(faction, bops, destroyed, unk > 1, None, jammered = unk > 0, None, jammeredField, player_guid)
   }
 
   def codec(extra: Boolean): Codec[CommonFieldData] =
