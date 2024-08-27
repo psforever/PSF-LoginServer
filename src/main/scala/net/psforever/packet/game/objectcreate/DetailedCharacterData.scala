@@ -608,7 +608,7 @@ object DetailedCharacterData extends Marshallable[DetailedCharacterData] {
                       ("unk7" | uint32L) ::
                       ("unk8" | uint32L) ::
                       (("imprinting" | optional(isFalse, imprint_progress_codec)) >>:~ { imprinting =>
-                      ("unkA" | listOfN(uint16L, uint32L)) ::
+                        ("unkA" | listOfN(uint16L, uint32L)) ::
                         ("unkB" | unkBCodec(
                           paddingCalculations(
                             displaceByOptionTest(pad_length, imprinting, value = 5),

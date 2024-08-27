@@ -18,13 +18,13 @@ import shapeless.{::, HNil}
 object ImplantEffects extends Enumeration {
   type Type = Value
 
-  val SurgeEffects: ImplantEffects.Value = Value(9)
+  val SurgeEffects: ImplantEffects.Value          = Value(9)
   val PersonalShieldEffects: ImplantEffects.Value = Value(5)
-  val DarklightEffects: ImplantEffects.Value = Value(3)
-  val RegenEffects: ImplantEffects.Value = Value(0)
-  val NoEffects: ImplantEffects.Value = Value(1)
+  val DarklightEffects: ImplantEffects.Value      = Value(3)
+  val RegenEffects: ImplantEffects.Value          = Value(0)
+  val NoEffects: ImplantEffects.Value             = Value(1)
 
-  implicit val codec: Codec[ImplantEffects.Value] = PacketHelpers.createEnumerationCodec(this, uint4L)
+  implicit val codec: Codec[ImplantEffects.Value] = PacketHelpers.createEnumerationCodec(this, uint4)
 }
 
 /**
@@ -159,7 +159,7 @@ object CharacterData extends Marshallable[CharacterData] {
     (
       ("uniform_upgrade" | UniformStyle.codec) >>:~ { style =>
         uint(bits = 3) :: //uniform_upgrade is actually interpreted as a 6u field, but the lower 3u seems to be discarded
-        ("command_rank" | uintL(bits = 3)) ::
+        ("command_rank" | uint(bits = 3)) ::
         ("implant_effects" | listOfN(uint2, ImplantEffects.codec)) ::
         ("cosmetics" | conditional(BattleRank.showCosmetics(style), Cosmetic.codec))
       }

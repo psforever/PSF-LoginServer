@@ -2425,13 +2425,13 @@ class ZoningOperations(
      * @param seat the mount index
      */
     def AvatarCreateInVehicle(tplayer: Player, vehicle: Vehicle, seat: Int): Unit = {
+      log.debug(s"AvatarCreateInVehicle: ${tplayer.Name}")
       val pdef  = tplayer.avatar.definition
       val pguid = tplayer.GUID
       val vguid = vehicle.GUID
       tplayer.VehicleSeated = None
-      tplayer.VehicleSeated = vguid
-      log.debug(s"AvatarCreateInVehicle: ${player.Name}")
       sendResponse(OCM.detailed(tplayer))
+      tplayer.VehicleSeated = vguid
       if (seat == 0 || vehicle.WeaponControlledFromSeat(seat).nonEmpty) {
         sendResponse(ObjectAttachMessage(vguid, pguid, seat))
         sessionLogic.general.accessContainer(vehicle)
