@@ -3,12 +3,13 @@ package net.psforever.services.local.support
 
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.login.WorldSession
-import net.psforever.objects.{Default, Player}
+import net.psforever.objects.{Default, PlanetSideGameObject, Player}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
+import net.psforever.objects.serverobject.environment.interaction.common.Watery
 import net.psforever.objects.serverobject.llu.CaptureFlag
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
-import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.{InteractsWithZone, Zone}
 import net.psforever.packet.game._
 import net.psforever.services.{Service, ServiceManager}
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
@@ -166,8 +167,6 @@ class CaptureFlagManager(zone: Zone) extends Actor {
   }
 
   private def DoMapUpdate(): Unit = {
-    val events = zone.LocalEvents
-    val zoneId = zone.id
     val flagInfo = flags.map { case entry @ CaptureFlagManager.CaptureFlagEntry(flag) =>
       val owner = flag.Owner.asInstanceOf[Building]
       val pos = flag.Position
@@ -268,6 +267,38 @@ object CaptureFlagManager {
       case time =>
         CTF_Warning_NoCarrier(buildingName, flag.Faction, flag.Target.Name, time)
     }
+  }
+
+  /**
+   * na
+   * @param flagGuid flag that may exist
+   * @param target evaluate this to determine if to continue with this loss
+   */
+  def reasonToLoseFlagViolently(
+                                 zone: Zone,
+                                 flagGuid: Option[PlanetSideGUID],
+                                 target: PlanetSideGameObject with InteractsWithZone
+                               ): Boolean = {
+    zone
+      .GUID(flagGuid)
+      .collect {
+        case flag: CaptureFlag
+          if Watery.wading(target) || {
+            val position = target.Position
+            zone
+              .blockMap
+              .sector(position, range = 10f)
+              .buildingList
+              .collectFirst {
+                case gate: WarpGate if Vector3.DistanceSquared(position, gate.Position) < math.pow(gate.Definition.SOIRadius, 2f) => gate
+              }
+              .nonEmpty
+          } =>
+          flag.Destroyed = true
+          zone.LocalEvents ! LocalServiceMessage("", LocalAction.LluLost(flag))
+          true
+      }
+      .getOrElse(false)
   }
 }
 

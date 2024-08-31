@@ -88,7 +88,7 @@ class ZoneVehicleActor(
 
     case Zone.Vehicle.CanNotDeploy(_, vehicle, toState, _)
       if vehicle.Definition == GlobalDefinitions.ams &&
-        toState == DriveState.Deployed =>
+        (toState == DriveState.Deploying || toState == DriveState.Deployed) =>
       val pos = vehicle.Position
       zone.VehicleEvents ! VehicleServiceMessage(
         vehicle.Seats.headOption.flatMap(_._2.occupant).map(_.Name).getOrElse("Driver"),

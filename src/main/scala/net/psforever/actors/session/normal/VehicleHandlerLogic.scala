@@ -13,6 +13,7 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ChangeAmmoMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, HitHint, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ReloadMessage, ServerVehicleOverrideMsg, VehicleStateMessage, WeaponDryFireMessage}
 import net.psforever.services.Service
+import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.services.vehicle.{VehicleResponse, VehicleServiceResponse}
 import net.psforever.types.{BailType, ChatMessageType, PlanetSideGUID, Vector3}
 
@@ -63,11 +64,12 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         player.Orientation = orient
         player.Velocity = vel
         sessionLogic.updateLocalBlockMap(pos)
+        //llu destruction check
         if (player.Carrying.contains(SpecialCarry.CaptureFlag)) {
           continent
             .GUID(player.VehicleSeated)
             .collect { case vehicle: Vehicle =>
-              sessionLogic.localResponse.loseFlagViolently(sessionLogic.general.specialItemSlotGuid, vehicle)
+              CaptureFlagManager.reasonToLoseFlagViolently(continent, sessionLogic.general.specialItemSlotGuid, vehicle)
             }
         }
 

@@ -52,40 +52,4 @@ class SessionLocalHandlers(
     else
       400f
   }
-
-  /**
-   * na
-   * @param target evaluate this to determine if to continue with this loss
-   * @return whether or not we are sufficiently submerged in water
-   */
-  def wadingInWater(target: PlanetSideGameObject with InteractsWithZone): Boolean = {
-    target
-      .interaction()
-      .collectFirst {
-        case env: InteractWithEnvironment =>
-          env
-            .Interactions
-            .get(EnvironmentAttribute.Water)
-            .collectFirst {
-              case water: Watery => water.Depth > 0f
-            }
-      }
-      .flatten
-      .contains(true)
-  }
-
-  /**
-   * na
-   * @param flagGuid flag that may exist
-   * @param target evaluate this to determine if to continue with this loss
-   */
-  def loseFlagViolently(flagGuid: Option[PlanetSideGUID], target: PlanetSideGameObject with InteractsWithZone): Unit = {
-    continent
-      .GUID(flagGuid)
-      .collect {
-        case flag: CaptureFlag if wadingInWater(target) =>
-          flag.Destroyed = true
-          continent.LocalEvents ! LocalServiceMessage("", LocalAction.LluLost(flag))
-      }
-  }
 }

@@ -118,11 +118,9 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       }
     }
     ops.fallHeightTracker(pos.z)
-    if (isCrouching && !player.Crouching) {
-      //dev stuff goes here
-      sendResponse(ChatMsg(ChatMessageType.UNK_229, "@PadDeconstruct_secsA^23~"))
-      sendResponse(ChatMsg(ChatMessageType.UNK_227, "@InventoryPickupNoRoom"))
-    }
+//    if (isCrouching && !player.Crouching) {
+//      //dev stuff goes here
+//    }
     player.Position = pos
     player.Velocity = vel
     player.Orientation = Vector3(player.Orientation.x, pitch, yaw)
@@ -165,7 +163,9 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case None => ()
     }
     //llu destruction check
-    sessionLogic.localResponse.loseFlagViolently(ops.specialItemSlotGuid, player)
+    if (player.Carrying.contains(SpecialCarry.CaptureFlag)) {
+      CaptureFlagManager.reasonToLoseFlagViolently(continent, sessionLogic.general.specialItemSlotGuid, player)
+    }
     //
     val eagleEye: Boolean = ops.canSeeReallyFar
     val isNotVisible: Boolean = sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing ||

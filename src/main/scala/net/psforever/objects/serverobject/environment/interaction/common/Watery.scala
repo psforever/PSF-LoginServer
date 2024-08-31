@@ -1,9 +1,12 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.objects.serverobject.environment.interaction.common
 
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.environment.interaction.InteractWithEnvironment
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, EnvironmentTrait, PieceOfEnvironment}
+import net.psforever.objects.zones.InteractsWithZone
 import net.psforever.types.{OxygenState, PlanetSideGUID}
 
 trait Watery {
@@ -35,6 +38,27 @@ object Watery {
                                       state: OxygenState,
                                       progress: Float
                                     )
+
+  /**
+   * na
+   * @param target evaluate this to determine if to continue with this loss
+   * @return whether or not we are sufficiently submerged in water
+   */
+  def wading(target: PlanetSideGameObject with InteractsWithZone): Boolean = {
+    target
+      .interaction()
+      .collectFirst {
+        case env: InteractWithEnvironment =>
+          env
+            .Interactions
+            .get(EnvironmentAttribute.Water)
+            .collectFirst {
+              case water: Watery => water.Depth > 0f
+            }
+      }
+      .flatten
+      .contains(true)
+  }
 
   /**
    * Calculate the effect of being exposed to a watery environment beyond an entity's critical region.
