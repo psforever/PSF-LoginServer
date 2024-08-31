@@ -14,7 +14,7 @@ import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.environment._
-import net.psforever.objects.serverobject.environment.interaction.{EscapeFromEnvironment, InteractingWithEnvironment, RespondsToZoneEnvironment}
+import net.psforever.objects.serverobject.environment.interaction.{InteractingWithEnvironment, RespondsToZoneEnvironment}
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.sourcing.VehicleSource

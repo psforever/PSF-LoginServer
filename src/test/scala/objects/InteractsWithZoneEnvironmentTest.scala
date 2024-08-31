@@ -104,11 +104,11 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
 
       obj.Position = Vector3(1, 3, 2.7f)
       obj.zoneInteractions()
-//      val msg2 = testProbe.receiveOne(4.seconds)
-//      msg2 match {
-//        case RespondsToZoneEnvironment.Timer(EnvironmentAttribute.Water, _, _, _) => ()
-//        case _ => assert(false, "")
-//      }
+      val msg2 = testProbe.receiveOne(4.seconds)
+      msg2 match {
+        case RespondsToZoneEnvironment.Timer(EnvironmentAttribute.Water, _, _, _) => ()
+        case _ => assert(false, "")
+      }
       testProbe.expectNoMessage()
     }
 
@@ -130,19 +130,19 @@ class InteractsWithZoneEnvironmentTest extends ActorTest {
       obj.zoneInteractions()
       val msgs = testProbe.receiveN(4, 4.seconds)
       msgs.head match {
-        case Vitality.Damage(_) => ()
+        case RespondsToZoneEnvironment.StopTimer(EnvironmentAttribute.Water) => ()
         case _ => assert(InteractsWithZoneEnvironmentTest.fail, "")
       }
       msgs(1) match {
-        case AuraEffectBehavior.StartEffect(Aura.Fire, _) => ()
+        case Vitality.Damage(_) => ()
         case _ => assert(InteractsWithZoneEnvironmentTest.fail, "")
       }
       msgs(2) match {
-        case RespondsToZoneEnvironment.Timer(EnvironmentAttribute.Lava, _, _, _) => ()
+        case AuraEffectBehavior.StartEffect(Aura.Fire, _) => ()
         case _ => assert(InteractsWithZoneEnvironmentTest.fail, "")
       }
       msgs(3) match {
-        case RespondsToZoneEnvironment.StopTimer(EnvironmentAttribute.Water) => ()
+        case RespondsToZoneEnvironment.Timer(EnvironmentAttribute.Lava, _, _, _) => ()
         case _ => assert(InteractsWithZoneEnvironmentTest.fail, "")
       }
     }
