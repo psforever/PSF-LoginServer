@@ -554,7 +554,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
     }
       .orElse {
         //occasionally, something that is not technically a turret's natural target may be attacked
-        sessionLogic.validObject(targetGuid, decorator = "AIDamage/Target")
+        continent.GUID(targetGuid) //AIDamage/Attacker
           .collect {
             case target: PlanetSideServerObject with FactionAffinity with Vitality =>
               sessionLogic.validObject(attackerGuid, decorator = "AIDamage/Attacker")

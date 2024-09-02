@@ -238,8 +238,9 @@ class SessionData(
 
           case Some(_: LocalLockerItem) =>
             player.avatar.locker.Inventory.hasItem(guid) match {
-              case out @ Some(_) =>
+              case out @ Some(thing) =>
                 contextSafeEntity = guid
+                oldRefsMap.put(guid, thing.Definition.Name)
                 out
               case None if contextSafeEntity == guid =>
                 //safeguard
@@ -263,9 +264,10 @@ class SessionData(
             None
 
           case out @ Some(obj) if obj.HasGUID =>
+            oldRefsMap.put(guid, obj.Definition.Name)
             out
 
-          case None if !id.contains(PlanetSideGUID(0)) =>
+          case None if guid != PlanetSideGUID(0) && guid != player.GUID && !player.VehicleSeated.contains(guid) =>
             //delete stale entity reference from client
             //deleting guid=0 will cause BAD things to happen
             log.error(s"$elevatedDecorator: ${player.Name} has an invalid reference to $hint with GUID $guid in zone ${continent.id}")
