@@ -69,7 +69,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
           continent
             .GUID(player.VehicleSeated)
             .collect { case vehicle: Vehicle =>
-              CaptureFlagManager.reasonToLoseFlagViolently(continent, sessionLogic.general.specialItemSlotGuid, vehicle)
+              CaptureFlagManager.ReasonToLoseFlagViolently(continent, sessionLogic.general.specialItemSlotGuid, vehicle)
             }
         }
 

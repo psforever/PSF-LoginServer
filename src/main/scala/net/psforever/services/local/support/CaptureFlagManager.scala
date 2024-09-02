@@ -5,7 +5,8 @@ import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.login.WorldSession
 import net.psforever.objects.{Default, PlanetSideGameObject, Player}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
-import net.psforever.objects.serverobject.environment.interaction.common.Watery
+import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, EnvironmentTrait}
+import net.psforever.objects.serverobject.environment.interaction.InteractWithEnvironment
 import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
@@ -274,7 +275,7 @@ object CaptureFlagManager {
    * @param flagGuid flag that may exist
    * @param target evaluate this to determine if to continue with this loss
    */
-  def reasonToLoseFlagViolently(
+  def ReasonToLoseFlagViolently(
                                  zone: Zone,
                                  flagGuid: Option[PlanetSideGUID],
                                  target: PlanetSideGameObject with InteractsWithZone
@@ -283,22 +284,40 @@ object CaptureFlagManager {
       .GUID(flagGuid)
       .collect {
         case flag: CaptureFlag
-          if Watery.wading(target) || {
-            val position = target.Position
-            zone
-              .blockMap
-              .sector(position, range = 10f)
-              .buildingList
-              .collectFirst {
-                case gate: WarpGate if Vector3.DistanceSquared(position, gate.Position) < math.pow(gate.Definition.SOIRadius, 2f) => gate
-              }
-              .nonEmpty
-          } =>
+          if LoseFlagViolentlyToEnvironment(target, Set(EnvironmentAttribute.Water, EnvironmentAttribute.Lava, EnvironmentAttribute.Death)) ||
+            LoseFlagViolentlyToWarpGateEnvelope(zone, target) =>
           flag.Destroyed = true
           zone.LocalEvents ! LocalServiceMessage("", LocalAction.LluLost(flag))
           true
       }
       .getOrElse(false)
+  }
+
+  def LoseFlagViolentlyToEnvironment(
+                                      target: PlanetSideGameObject with InteractsWithZone,
+                                      deniedEnvironments: Set[EnvironmentTrait]
+                                    ): Boolean = {
+      target
+        .interaction()
+        .collectFirst { case env: InteractWithEnvironment => env.OngoingInteractions }
+        .map(_.intersect(deniedEnvironments))
+        .getOrElse(Set())
+        .nonEmpty
+  }
+
+  def LoseFlagViolentlyToWarpGateEnvelope(
+                                           zone: Zone,
+                                           target: PlanetSideGameObject with InteractsWithZone
+                                         ): Boolean = {
+    val position = target.Position
+    zone
+      .blockMap
+      .sector(position, range = 10f)
+      .buildingList
+      .collectFirst {
+        case gate: WarpGate if Vector3.DistanceSquared(position, gate.Position) < math.pow(gate.Definition.SOIRadius, 2f) => gate
+      }
+      .nonEmpty
   }
 }
 

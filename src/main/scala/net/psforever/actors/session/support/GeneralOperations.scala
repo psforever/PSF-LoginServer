@@ -220,12 +220,12 @@ class GeneralOperations(
                   )
               }
           }
-          if (!CaptureFlagManager.reasonToLoseFlagViolently(continent, Some(guid), player)) {
+          if (!CaptureFlagManager.ReasonToLoseFlagViolently(continent, Some(guid), player)) {
             continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
           }
         case Some((llu, Some(carrier: Player)))
           if carrier.GUID == player.GUID &&
-            !CaptureFlagManager.reasonToLoseFlagViolently(continent, Some(guid), player) =>
+            !CaptureFlagManager.ReasonToLoseFlagViolently(continent, Some(guid), player) =>
           continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
         case Some((_, Some(carrier: Player))) =>
           log.warn(s"${player.toString} tried to drop LLU, but it is currently held by ${carrier.toString}")

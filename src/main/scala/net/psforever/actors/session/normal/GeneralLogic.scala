@@ -164,7 +164,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     }
     //llu destruction check
     if (player.Carrying.contains(SpecialCarry.CaptureFlag)) {
-      CaptureFlagManager.reasonToLoseFlagViolently(continent, sessionLogic.general.specialItemSlotGuid, player)
+      CaptureFlagManager.ReasonToLoseFlagViolently(continent, sessionLogic.general.specialItemSlotGuid, player)
     }
     //
     val eagleEye: Boolean = ops.canSeeReallyFar

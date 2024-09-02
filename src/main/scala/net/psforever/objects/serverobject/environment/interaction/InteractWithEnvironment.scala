@@ -97,6 +97,8 @@ class InteractWithEnvironment()
         .foreach(_.stopInteractingWith(obj, body, None))
     }
   }
+
+  def OngoingInteractions: Set[EnvironmentTrait] = interactWith.map(_.attribute)
 }
 
 object InteractWithEnvironment {
@@ -183,12 +185,12 @@ case class OnStableEnvironment() extends InteractionBehavior {
              ): Set[PieceOfEnvironment] = {
     if (allow) {
       val interactions = obj.interaction().collectFirst { case inter: InteractWithEnvironment => inter.Interactions }
-      val env = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
-      env.foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
-      if (env.nonEmpty) {
+      val bodies = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
+      bodies.foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
+      if (bodies.nonEmpty) {
         nextstep = AwaitOngoingInteraction(obj.Zone)
       }
-      env
+      bodies
     } else {
       nextstep = BlockedFromInteracting()
       Set()
@@ -223,22 +225,22 @@ final case class AwaitOngoingInteraction(zone: Zone) extends InteractionBehavior
              ): Set[PieceOfEnvironment] = {
     val interactions = obj.interaction().collectFirst { case inter: InteractWithEnvironment => inter.Interactions }
     if (allow) {
-      val env = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
+      val bodies = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
       val (in, out) = existing.partition(body => InteractWithEnvironment.checkSpecificEnvironmentInteraction(zone, body, obj).nonEmpty)
-      val inAttrs = env.map(_.attribute)
+      val inAttrs = bodies.map(_.attribute)
       out
         .filterNot(e => inAttrs.contains(e.attribute))
         .foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.stopInteractingWith(obj, body, None)))
-      env
+      bodies
         .diff(in)
         .foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
-      if (env.isEmpty) {
+      if (bodies.isEmpty) {
         val n = OnStableEnvironment()
         val out = n.perform(obj, sector, Set(), allow)
         nextstep = n.next
         out
       } else {
-        env
+        bodies
       }
     } else {
       existing.foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.stopInteractingWith(obj, body, None)))

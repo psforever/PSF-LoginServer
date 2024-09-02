@@ -145,24 +145,26 @@ class HackCaptureActor extends Actor {
       }
 
     case HackCaptureActor.FlagLost(flag) =>
-      val terminalOpt = flag.Owner.asInstanceOf[Building].CaptureTerminal
+      val owner = flag.Owner.asInstanceOf[Building]
+      val guid = owner.GUID
+      val terminalOpt = owner.CaptureTerminal
       hackedObjects
-        .find(entry => terminalOpt.contains(entry.target))
+        .find(entry => guid == entry.target.Owner.GUID)
         .collect { entry =>
           val terminal = terminalOpt.get
-          hackedObjects = hackedObjects.filterNot(x => x == entry)
+          hackedObjects = hackedObjects.filterNot(x => x eq entry)
           log.info(s"FlagLost: ${flag.Carrier.map(_.Name).getOrElse("")} the flag carrier screwed up the capture for ${flag.Target.Name} and the LLU has been lost")
           terminal.Actor ! CommonMessages.ClearHack()
           NotifyHackStateChange(terminal, isResecured = true)
           // If there's hacked objects left in the list restart the timer with the shortest hack time left
           RestartTimer()
+          entry
         }
         .orElse{
           log.warn(s"FlagLost: flag data does not match to an entry in the hacked objects list")
           None
         }
       context.parent ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.FlagLost)
-
 
     case _ => ()
   }
