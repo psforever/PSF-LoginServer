@@ -2,7 +2,9 @@
 package net.psforever.services.teamwork
 
 import akka.actor.{Actor, ActorRef, Terminated}
+
 import java.io.{PrintWriter, StringWriter}
+import scala.annotation.unused
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
 //
@@ -294,7 +296,7 @@ class SquadService extends Actor {
     subs.UserEvents find { case (_, subscription) => subscription.path.equals(sender.path) } match {
       case Some((to, _)) =>
         LeaveService(to, sender)
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -303,7 +305,7 @@ class SquadService extends Actor {
     subs.UserEvents find { case (_, subscription) => subscription eq requestee } match {
       case Some((to, _)) =>
         LeaveService(to, requestee)
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -343,7 +345,7 @@ class SquadService extends Actor {
   def SquadActionInitCharId(tplayer: Player): Unit = {
     val charId = tplayer.CharId
     GetParticipatingSquad(charId) match {
-      case None => ;
+      case None => ()
       case Some(features) =>
         features.Switchboard ! SquadSwitchboard.Join(tplayer, 0, sender())
     }
@@ -376,13 +378,15 @@ class SquadService extends Actor {
       case SquadAction.Membership(SquadRequestType.Cancel, cancellingPlayer, _, _, _) =>
         SquadActionMembershipCancel(cancellingPlayer)
 
-      case SquadAction.Membership(SquadRequestType.Promote, promotingPlayer, Some(_promotedPlayer), promotedName, _) =>
-        //SquadActionMembershipPromote(promotingPlayer, _promotedPlayer, promotedName, SquadServiceMessage(tplayer, zone, action), sender())
+      case SquadAction.Membership(SquadRequestType.Promote, _, _, _, _) =>
+        ()
+//      case SquadAction.Membership(SquadRequestType.Promote, promotingPlayer, Some(_promotedPlayer), promotedName, _) =>
+//        SquadActionMembershipPromote(promotingPlayer, _promotedPlayer, promotedName, SquadServiceMessage(tplayer, zone, action), sender())
 
       case SquadAction.Membership(event, _, _, _, _) =>
         debug(s"SquadAction.Membership: $event is not yet supported")
 
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -397,19 +401,16 @@ class SquadService extends Actor {
       //validate player with name exists
       LivePlayerList
         .WorldPopulation({ case (_, a: Avatar) => a.name.equalsIgnoreCase(invitedName) && a.faction == tplayer.Faction })
-        .headOption match {
-        case Some(a) => subs.UserEvents.keys.find(_ == a.id)
-        case None    => None
-      }
     } else {
       //validate player with id exists
       LivePlayerList
         .WorldPopulation({ case (_, a: Avatar) => a.id == _invitedPlayer && a.faction == tplayer.Faction })
-        .headOption match {
-        case Some(_) => Some(_invitedPlayer)
-        case None         => None
-      }
-    }) match {
+    })
+      .headOption
+      .collectFirst {
+            //important: squads must know about the person too
+        a => subs.UserEvents.keys.find(_ == a.id)
+      }.flatten match {
       case Some(invitedPlayer) if invitingPlayer != invitedPlayer =>
         (GetParticipatingSquad(invitingPlayer), GetParticipatingSquad(invitedPlayer)) match {
           case (Some(features1), Some(features2))
@@ -448,9 +449,9 @@ class SquadService extends Actor {
             //neither the invited player nor the inviting player belong to any squad
             invitations.createSpontaneousInvite(tplayer, invitedPlayer)
 
-          case _ => ;
+          case _ => ()
         }
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -458,7 +459,7 @@ class SquadService extends Actor {
     GetLeadingSquad(invitingPlayer, None) match {
       case Some(features) =>
         invitations.handleProximityInvite(zone, invitingPlayer, features)
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -533,9 +534,9 @@ class SquadService extends Actor {
               }
             }
 
-          case _ => ;
+          case _ => ()
         }
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -551,7 +552,7 @@ class SquadService extends Actor {
     GetLeadingSquad(charId, None) match {
       case Some(features) =>
         DisbandSquad(features)
-      case None => ;
+      case None => ()
     }
   }
 
@@ -582,7 +583,7 @@ class SquadService extends Actor {
     (GetLeadingSquad(sponsoringPlayer, None), GetParticipatingSquad(promotedPlayer)) match {
       case (Some(features), Some(features2)) if features.Squad.GUID == features2.Squad.GUID =>
         SquadActionMembershipPromote(sponsoringPlayer, promotedPlayer, features, msg, ref)
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -649,14 +650,14 @@ class SquadService extends Actor {
         GetLeadingSquad(tplayer, None) match {
           case Some(features) =>
             invitations.handleDefinitionAction(tplayer, action, features)
-          case _ => ;
+          case _ => ()
         }
         None
       case CancelFind() =>
         GetLeadingSquad(tplayer, None) match {
           case Some(features) =>
             invitations.handleDefinitionAction(tplayer, action, features)
-          case _ => ;
+          case _ => ()
         }
         None
       case SelectRoleForYourself(_) =>
@@ -674,7 +675,7 @@ class SquadService extends Actor {
             GetSquad(guid) match {
               case Some(features) =>
                 invitations.handleDefinitionAction(tplayer, action, features)
-              case _ => ;
+              case _ => ()
             }
             None
         }
@@ -682,10 +683,10 @@ class SquadService extends Actor {
         GetSquad(guid) match {
           case Some(features) =>
             invitations.handleDefinitionAction(tplayer, action, features)
-          case _ => ;
+          case _ => ()
         }
         None
-      case search: SearchForSquadsWithParticularRole =>
+      case _/*search*/: SearchForSquadsWithParticularRole =>
 //        SquadActionDefinitionSearchForSquadsWithParticularRole(tplayer, search)
         None
       case _: CancelSquadSearch =>
@@ -706,7 +707,7 @@ class SquadService extends Actor {
         GetSquad(guid)
     }) match {
       case Some(features) => features.Switchboard.tell(message, sender())
-      case None => ;
+      case None => ()
     }
   }
 
@@ -717,7 +718,7 @@ class SquadService extends Actor {
                        ): Unit = {
     GetParticipatingSquad(char_id) match {
       case Some(features) => features.Switchboard.tell(message, replyTo)
-      case None => ;
+      case None => ()
     }
   }
 
@@ -739,7 +740,7 @@ class SquadService extends Actor {
                                                             ): Unit = {
     val charId = tplayer.CharId
     searchData.get(charId) match {
-      case Some(_) => ;
+      case Some(_) => ()
       //already searching, so do nothing(?)
       case None =>
         val data = SquadService.SearchCriteria(tplayer.Faction, criteria)
@@ -769,7 +770,7 @@ class SquadService extends Actor {
 
   def SquadActionDefinitionCancelSquadSearch(charId: Long): Unit = {
     searchData.remove(charId) match {
-      case None => ;
+      case None => ()
       case Some(data) =>
         SearchForSquadsResults(data).foreach { guid =>
           subs.Publish(charId, SquadResponse.SquadDecoration(guid, squadFeatures(guid).Squad))
@@ -781,30 +782,32 @@ class SquadService extends Actor {
                                       criteria: SearchCriteria,
                                       guid: PlanetSideGUID
                                     ): Option[PlanetSideGUID] = {
-    val squad = squadFeatures(guid).Squad
-    val positions = if (criteria.mode == SquadRequestAction.SearchMode.AnyPositions) {
-      //includes occupied positions and closed positions that retain assignment information
-      squad.Membership
-    } else {
-      squad.Membership.zipWithIndex.filter { case (_, b) => squad.Availability(b) }.map { _._1 }
-    }
-    if (
-      positions.nonEmpty &&
-        (criteria.zoneId == 0 || criteria.zoneId == squad.ZoneId) &&
-        (criteria.role.isEmpty || positions.exists(_.Role.equalsIgnoreCase(criteria.role))) &&
-        (criteria.requirements.isEmpty || positions.exists { p =>
-          val results = p.Requirements.intersect(criteria.requirements)
-          if (criteria.mode == SquadRequestAction.SearchMode.SomeCertifications) {
-            results.size > 1
-          } else {
-            results == criteria.requirements
-          }
-        })
-    ) {
-      Some(guid)
-    } else {
-      None
-    }
+    squadFeatures
+      .get(guid)
+      .map { features =>
+        val squad = features.Squad
+        val positions = if (criteria.mode == SquadRequestAction.SearchMode.AnyPositions) {
+          //includes occupied positions and closed positions that retain assignment information
+          squad.Membership
+        } else {
+          squad.Membership.zipWithIndex.filter { case (_, b) => squad.Availability(b) }.map { _._1 }
+        }
+        (squad, positions)
+      }
+      .collect {
+        case (squad, positions) if positions.nonEmpty &&
+          (criteria.zoneId == 0 || criteria.zoneId == squad.ZoneId) &&
+          (criteria.role.isEmpty || positions.exists(_.Role.equalsIgnoreCase(criteria.role))) &&
+          (criteria.requirements.isEmpty || positions.exists { p =>
+            val results = p.Requirements.intersect(criteria.requirements)
+            if (criteria.mode == SquadRequestAction.SearchMode.SomeCertifications) {
+              results.size > 1
+            } else {
+              results == criteria.requirements
+            }
+          }) =>
+          guid
+      }
   }
 
   /** the following action can be performed by anyone */
@@ -831,14 +834,14 @@ class SquadService extends Actor {
     log.warn(s"${tplayer.Name} has a potential squad issue; might be exchanging information $reason")
   }
 
-  def CleanUpSquadFeatures(removed: List[Long], guid: PlanetSideGUID, position: Int): Unit = {
+  def CleanUpSquadFeatures(removed: List[Long], guid: PlanetSideGUID, @unused position: Int): Unit = {
     GetSquad(guid) match {
       case Some(features) =>
         features.ProxyInvites = features.ProxyInvites.filterNot(removed.contains)
         if (features.ProxyInvites.isEmpty) {
           features.SearchForRole = None
         }
-      case None => ;
+      case None => ()
     }
   }
 
@@ -1098,7 +1101,7 @@ class SquadService extends Actor {
         subs.UserEvents.remove(charId) match {
           case Some(events) =>
             subs.SquadEvents.unsubscribe(events, s"/${features.ToChannel}/Squad")
-          case _ => ;
+          case _ => ()
         }
         if (size > 2) {
           GetLeadingSquad(charId, pSquadOpt) match {
