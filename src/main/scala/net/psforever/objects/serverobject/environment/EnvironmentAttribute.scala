@@ -11,7 +11,7 @@ import net.psforever.types.Vector3
 abstract class EnvironmentTrait {
   def canInteractWith(obj: PlanetSideGameObject): Boolean
 
-  def testingDepth: Float
+  def testingDepth(obj: PlanetSideGameObject): Float
 }
 
 object EnvironmentAttribute {
@@ -28,21 +28,32 @@ object EnvironmentAttribute {
         })
     }
 
-    def testingDepth: Float = 0.2f
+    def testingDepth(obj: PlanetSideGameObject): Float = {
+      obj match {
+        case v: Vehicle if v.Flying.nonEmpty =>
+          0f
+        case _: Vehicle if !obj.Definition.DrownAtMaxDepth =>
+          obj.Definition.MaxDepth * 0.9f
+        case _: Vehicle =>
+          obj.Definition.MaxDepth * 0.6f
+        case _ =>
+          0.2f
+      }
+    }
   }
 
   case object Lava extends EnvironmentTrait {
     /** lava can only interact with anything capable of registering damage */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithDamagingFields(obj)
 
-    val testingDepth: Float = 0f
+    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 0f
   }
 
   case object Death extends EnvironmentTrait {
     /** death can only interact with anything capable of registering damage */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithDamagingFields(obj)
 
-    val testingDepth: Float = 0f
+    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 0f
   }
 
   case object GantryDenialField
@@ -55,7 +66,7 @@ object EnvironmentAttribute {
       }
     }
 
-    val testingDepth: Float = 0f
+    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 0f
   }
 
   case object MovementFieldTrigger
@@ -63,7 +74,7 @@ object EnvironmentAttribute {
     /** only interact with living player characters or vehicles */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithPlayersAndVehicles(obj)
 
-    val testingDepth: Float = 0f
+    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 0f
   }
 
   case object InteriorField
@@ -71,7 +82,7 @@ object EnvironmentAttribute {
     /** only interact with living player characters or vehicles */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithPlayersAndVehicles(obj)
 
-    val testingDepth: Float = 0f
+    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 0f
   }
 
   /**

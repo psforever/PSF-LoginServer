@@ -119,7 +119,7 @@ object InteractWithEnvironment {
                                        sector: SectorPopulation
                                      ): Set[PieceOfEnvironment] = {
     sector.environmentList
-      .filter(body => body.attribute.canInteractWith(obj) && body.testInteraction(obj, body.attribute.testingDepth))
+      .filter(body => body.attribute.canInteractWith(obj) && body.testInteraction(obj, body.attribute.testingDepth(obj)))
       .distinctBy(_.attribute)
       .toSet
   }
@@ -136,7 +136,7 @@ object InteractWithEnvironment {
                                            body: PieceOfEnvironment,
                                            obj: PlanetSideServerObject
                                          ): Option[PieceOfEnvironment] = {
-    if ((obj.Zone eq zone) && body.testInteraction(obj, body.attribute.testingDepth)) {
+    if ((obj.Zone eq zone) && body.testInteraction(obj, body.attribute.testingDepth(obj))) {
       Some(body)
     } else {
       None

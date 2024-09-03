@@ -307,6 +307,6 @@ object WithWater {
   /** special environmental trait to queue actions independent from the primary wading test */
   case object WaterAction extends EnvironmentTrait {
     override def canInteractWith(obj: PlanetSideGameObject): Boolean = false
-    override def testingDepth: Float = Float.PositiveInfinity
+    override def testingDepth(obj: PlanetSideGameObject): Float = Float.PositiveInfinity
   }
 }
