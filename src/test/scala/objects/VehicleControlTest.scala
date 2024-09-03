@@ -625,7 +625,7 @@ class VehicleControlInteractWithWaterWadingTest extends ActorTest {
       vehicleProbe.expectNoMessage(2.seconds)
       playerProbe.expectNoMessage()
 
-      vehicle.Position = Vector3(1, 1, 4.7f)
+      vehicle.Position = Vector3(1, 1, 4f)
       vehicle.zoneInteractions()
       val vehicleMsgs = vehicleProbe.receiveN(1, 5.seconds)
       vehicleMsgs.head match {
@@ -838,7 +838,7 @@ class VehicleControlInteractWithWaterStopWadingTest extends ActorTest {
       vehicleProbe.expectNoMessage(2.seconds)
       playerProbe.expectNoMessage()
 
-      vehicle.Position = Vector3(1, 1, 4.7f)
+      vehicle.Position = Vector3(1, 1, 4f)
       vehicle.zoneInteractions()
       val vehicleMsgs = vehicleProbe.receiveN(1, 5.seconds)
       playerProbe.expectNoMessage()
