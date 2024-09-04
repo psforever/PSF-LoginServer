@@ -80,7 +80,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
   }
 
   override def postStop() : Unit = {
-    periodicReminder.cancel()
+    discontinueCurrentReminder()
     queueManagement.cancel()
   }
 
@@ -120,7 +120,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
         evaluateBlockedReminder()
 
       case VehicleSpawnControl.ProcessControl.Flush =>
-        periodicReminder.cancel()
+        discontinueCurrentReminder()
         orders.foreach { CancelOrder(_, Some("@SVCP_RemovedFromVehicleQueue_Generic")) }
         orders = Nil
         trackedOrder.foreach {
@@ -237,7 +237,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
     *              `None`, if no order found or submitted
     */
   private def ProcessOrder(order: Option[VehicleSpawnPad.VehicleOrder]): Unit = {
-    periodicReminder.cancel()
+    discontinueCurrentReminder()
     order.collect {
       case VehicleSpawnPad.VehicleOrder(driver, vehicle, terminal) =>
         val size = orders.size + 1
@@ -347,30 +347,37 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
             retimePeriodicReminder(
               shaveOffFirstElementAndDiffSecondElement(pad.Definition.BlockedReminderMessageDelays)
             )
+            trackedOrder
           } else if (reminderSeq.size == 1) {
             //end reminder
             standaloneBlockedReminder(
               VehicleSpawnPad.VehicleOrder(entry.driver, entry.vehicle, null),
               Some("@PadDeconstruct_Done")
             )
-            periodicReminder.cancel()
-            periodicReminder = Default.Cancellable
-            reminderSeq = List()
+            None
           } else {
             //continue reminder
             BlockedReminder(entry, orders)
             retimePeriodicReminder(
               shaveOffFirstElementAndDiffSecondElement(reminderSeq)
             )
+            trackedOrder
           }
-          trackedOrder
       }
       .orElse {
-        periodicReminder.cancel()
-        periodicReminder = Default.Cancellable
-        reminderSeq = List()
+        discontinueCurrentReminder()
         None
       }
+  }
+
+  /**
+   * The periodic reminder will no longer be repeated.
+   * Sequences tied to the periodic reminder should be reset.
+   */
+  private def discontinueCurrentReminder(): Unit = {
+    periodicReminder.cancel()
+    periodicReminder = Default.Cancellable
+    reminderSeq = List()
   }
 
   /**

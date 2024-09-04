@@ -801,7 +801,7 @@ object GlobalDefinitionsMiscellaneous {
       AutoRanges(
         detection = 125f,
         trigger = 100f,
-        escape = 200f
+        escape = 150f
       ),
       AutoChecks(
         validation = List(
@@ -813,7 +813,7 @@ object GlobalDefinitionsMiscellaneous {
       ),
       retaliatoryDelay = 4000L, //8000L
       cylindrical = true,
-      cylindricalExtraHeight = 50f,
+      cylindricalExtraHeight = 25f,
       detectionSweepTime = 2.seconds,
       refireTime = 362.milliseconds //312.milliseconds
     )

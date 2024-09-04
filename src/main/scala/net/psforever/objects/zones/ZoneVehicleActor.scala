@@ -3,10 +3,10 @@ package net.psforever.objects.zones
 
 import akka.actor.Actor
 import net.psforever.actors.zone.ZoneActor
-import net.psforever.objects.definition.VehicleDefinition
+import net.psforever.objects.definition.{ObjectDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.deploy.{Deployment, Interference}
 import net.psforever.objects.vital.InGameHistory
-import net.psforever.objects.{Default, GlobalDefinitions, Vehicle}
+import net.psforever.objects.{Default, Vehicle}
 import net.psforever.packet.game.ChatMsg
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -69,15 +69,18 @@ class ZoneVehicleActor(
           sender() ! Zone.Vehicle.CanNotDespawn(zone, vehicle, "can not find")
       }
 
-    case Zone.Vehicle.TryDeploymentChange(vehicle, toDeployState)
-      if toDeployState == DriveState.Deploying &&
-        (ZoneVehicleActor.temporaryInterferenceTest(vehicle, temporaryInterference) || Interference.Test(zone, vehicle).nonEmpty) =>
-      sender() ! Zone.Vehicle.CanNotDeploy(zone, vehicle, toDeployState, "blocked by a nearby entity")
-
-    case Zone.Vehicle.TryDeploymentChange(vehicle, toDeployState)
-      if toDeployState == DriveState.Deploying =>
-      tryAddToInterferenceField(vehicle.Position, vehicle.Faction, vehicle.Definition)
-      vehicle.Actor.tell(Deployment.TryDeploymentChange(toDeployState), sender())
+    case Zone.Vehicle.TryDeploymentChange(vehicle, DriveState.Deploying) =>
+      if (ZoneVehicleActor.ReportOnInterferenceResults(
+        zone,
+        vehicle,
+        ZoneVehicleActor.temporaryInterferenceTest(vehicle, temporaryInterference) ++
+          Interference.Test(zone, vehicle).map(_.Definition)
+      )) {
+        sender() ! Zone.Vehicle.CanNotDeploy(zone, vehicle, DriveState.Deploying, "blocked by a nearby entity")
+      } else {
+        tryAddToInterferenceField(vehicle.Position, vehicle.Faction, vehicle.Definition)
+        vehicle.Actor.tell(Deployment.TryDeploymentChange(DriveState.Deploying), sender())
+      }
 
     case Zone.Vehicle.TryDeploymentChange(vehicle, toDeployState) =>
       vehicle.Actor.tell(Deployment.TryDeploymentChange(toDeployState), sender())
@@ -86,14 +89,16 @@ class ZoneVehicleActor(
 
     case Zone.Vehicle.CanNotDespawn(_, _, _) => ()
 
-    case Zone.Vehicle.CanNotDeploy(_, vehicle, toState, _)
-      if vehicle.Definition == GlobalDefinitions.ams &&
-        (toState == DriveState.Deploying || toState == DriveState.Deployed) =>
-      val pos = vehicle.Position
-      zone.VehicleEvents ! VehicleServiceMessage(
-        vehicle.Seats.headOption.flatMap(_._2.occupant).map(_.Name).getOrElse("Driver"),
-        VehicleAction.SendResponse(Service.defaultPlayerGUID, ChatMsg(ChatMessageType.UNK_227, "@nodeploy_ams"))
+    case Zone.Vehicle.CanNotDeploy(_, vehicle, DriveState.Deploying, reason) =>
+      ZoneVehicleActor.ReportOnInterferenceResults(
+        zone,
+        vehicle,
+        ZoneVehicleActor.temporaryInterferenceTest(vehicle, temporaryInterference) ++
+          Interference.Test(zone, vehicle).map(_.Definition)
       )
+      val pos = vehicle.Position
+      val driverMoniker = vehicle.Seats.headOption.flatMap(_._2.occupant).map(_.Name).getOrElse("Driver")
+      log.warn(s"$driverMoniker's ${vehicle.Definition.Name} can not deploy in ${zone.id} because $reason")
       temporaryInterference = temporaryInterference.filterNot(_._1 == pos)
 
     case Zone.Vehicle.CanNotDeploy(_, vehicle, _, reason) =>
@@ -146,22 +151,54 @@ object ZoneVehicleActor {
   private def temporaryInterferenceTest(
                                          vehicle: Vehicle,
                                          existingInterferences: Seq[(Vector3, PlanetSideEmpire.Value, VehicleDefinition)]
-                                       ): Boolean = {
+                                       ): Seq[VehicleDefinition] = {
     val vPosition = vehicle.Position
     val vFaction = vehicle.Faction
     val vDefinition = vehicle.Definition
     if (vDefinition.interference eq Interference.AllowAll) {
-      false
+      Nil
     } else {
       existingInterferences
         .collect { case (p, faction, d) if faction == vFaction => (p, d) }
-        .exists { case (position, definition) =>
+        .filter { case (position, definition) =>
           val interference = definition.interference
           (interference ne Interference.AllowAll) && {
             lazy val distanceSq = Vector3.DistanceSquared(position, vPosition)
             definition == vDefinition && distanceSq < interference.main * interference.main
           }
         }
+        .map(_._2)
+    }
+  }
+
+  private def ReportOnInterferenceResults(
+                                           zone: Zone,
+                                           vehicle: Vehicle,
+                                           reportedInterferenceList: Seq[ObjectDefinition]
+                                         ): Boolean = {
+    if (reportedInterferenceList.nonEmpty) {
+      reportedInterferenceList
+        .find(_.isInstanceOf[VehicleDefinition])
+        .map { definition => s"@nodeploy_${definition.Name}" }
+        .orElse {
+          val sharedGroupId = vehicle.Definition.interference.sharedGroupId
+          if (sharedGroupId > 0) {
+            reportedInterferenceList
+              .find(_.interference.sharedGroupId == sharedGroupId)
+              .map(_ => "@nodeploy_sharedinterference")
+          } else {
+            None
+          }
+        }
+        .foreach { msg =>
+          zone.VehicleEvents ! VehicleServiceMessage(
+            vehicle.Seats.headOption.flatMap(_._2.occupant).map(_.Name).getOrElse(""),
+            VehicleAction.SendResponse(Service.defaultPlayerGUID, ChatMsg(ChatMessageType.UNK_227, msg))
+          )
+        }
+      true
+    } else {
+      false
     }
   }
 }

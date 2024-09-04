@@ -673,6 +673,9 @@ class GeneralOperations(
           case _ => ()
         }
       } else {
+        if (player.Capacitor < 1f && player.UsingSpecial == SpecialExoSuitDefinition.Mode.Shielded) {
+          sendResponse(ChatMsg(ChatMessageType.UNK_227, "@ArmorShieldOff"))
+        }
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
         continent.AvatarEvents ! AvatarServiceMessage(
           continent.id,
