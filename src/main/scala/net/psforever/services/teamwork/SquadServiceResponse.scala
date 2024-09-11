@@ -73,4 +73,6 @@ object SquadResponse {
                                        unk2: Int,
                                        zoneNumber: Int
                                      ) extends Response
+
+  final case class SquadRelatedComment(str: String) extends Response
 }

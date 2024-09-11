@@ -133,7 +133,7 @@ class SquadSubscriptionEntity {
       case str if str.matches("\\d+") =>
         Publish(to.toLong, msg, excluded)
       case _ =>
-        log.warn(s"Publish(String): subscriber information is an unhandled format - $to")
+        log.warn(s"Publish(String): subscriber information is an unhandled format - $to; message $msg dropped")
     }
   }
 
@@ -148,7 +148,7 @@ class SquadSubscriptionEntity {
       case Some(user) =>
         user ! SquadServiceResponse("", msg)
       case None =>
-        log.warn(s"Publish(Long): subscriber information can not be found - $to")
+        log.warn(s"Publish(Long): subscriber information can not be found - $to; message $msg dropped")
     }
   }
 
@@ -174,7 +174,7 @@ class SquadSubscriptionEntity {
     * @param msg a message that can be stored in a `SquadServiceResponse` object
     */
   def Publish[ANY >: Any](to: ANY, msg: SquadResponse.Response): Unit = {
-    log.warn(s"Publish(Any): subscriber information is an unhandled format - $to")
+    log.warn(s"Publish(Any): subscriber information is an unhandled format - $to; message $msg dropped")
   }
 
   /**
@@ -187,7 +187,7 @@ class SquadSubscriptionEntity {
     * @param excluded a group of character identifier numbers who should not receive the message
     */
   def Publish[ANY >: Any](to: ANY, msg: SquadResponse.Response, excluded: Iterable[Long]): Unit = {
-    log.warn(s"Publish(Any): subscriber information is an unhandled format - $to")
+    log.warn(s"Publish(Any): subscriber information is an unhandled format - $to; message $msg dropped")
   }
 
   /* The following functions are related to common communications of squad information, mainly detail. */
@@ -211,7 +211,7 @@ class SquadSubscriptionEntity {
   }
 
   /**
-    * Dispatch an intial message entailing the strategic information and the composition of this squad.
+    * Dispatch an initial message entailing the strategic information and the composition of this squad.
     * The details of the squad will be updated in full and be sent to all indicated observers.
     * @see `SquadService.PublishFullDetails`
     * @param guid the unique squad identifier to be used when composing the details for this message

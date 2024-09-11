@@ -2,6 +2,8 @@
 package net.psforever.actors.session.support
 
 import akka.actor.Cancellable
+import net.psforever.objects.LivePlayerList
+import akka.actor.{ActorRef => ClassicActorRef}
 import akka.actor.typed.ActorRef
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.{AvatarActor, SessionActor}
@@ -13,6 +15,7 @@ import net.psforever.objects.zones.ZoneInfo
 import net.psforever.packet.game.SetChatFilterMessage
 import net.psforever.services.chat.{DefaultChannel, SquadChannel}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.teamwork.SquadService
 import net.psforever.types.ChatMessageType.CMT_QUIT
 import org.log4s.Logger
 
@@ -54,6 +57,7 @@ class ChatOperations(
                       val sessionLogic: SessionData,
                       val avatarActor: typed.ActorRef[AvatarActor.Command],
                       val chatService: typed.ActorRef[ChatService.Command],
+                      val squadService: ClassicActorRef,
                       val cluster: typed.ActorRef[InterstellarClusterService.Command],
                       implicit val context: ActorContext
                     ) extends CommonSessionInterfacingFunctionality {
@@ -1250,6 +1254,32 @@ class ChatOperations(
     sendResponse(
       ChatMsg(CMT_GMOPEN, wideContents = false, "Server", s"closest facility: $closest", None)
     )
+    true
+  }
+
+  def customCommandSquad(params: Seq[String]): Boolean = {
+    params match {
+      case "invites" :: _ =>
+        squadService ! SquadService.ListAllCurrentInvites
+
+      case "accept" :: names if names.contains("all") =>
+        squadService ! SquadService.ChainAcceptance(player, player.CharId, Nil)
+      case "accept" :: names if names.nonEmpty =>
+        val results = names.flatMap { name =>
+          LivePlayerList.WorldPopulation { case (_, p) => p.name.equals(name) }.map(_.id.toLong)
+        }
+        squadService ! SquadService.ChainAcceptance(player, player.CharId, results)
+
+      case "reject" :: names if names.contains("all") =>
+        squadService ! SquadService.ChainRejection(player, player.CharId, Nil)
+      case "reject" :: names if names.nonEmpty =>
+        val results = names.flatMap { name =>
+          LivePlayerList.WorldPopulation { case (_, p) => p.name.equals(name) }.map(_.id.toLong)
+        }
+        squadService ! SquadService.ChainRejection(player, player.CharId, results)
+
+      case _ => ()
+    }
     true
   }
 

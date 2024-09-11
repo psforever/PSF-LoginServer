@@ -164,15 +164,15 @@ class SessionData(
       case LookupResult("squad", endpoint) =>
         squadService = endpoint
         buildDependentOperationsForSquad(endpoint)
+        buildDependentOperationsForChat(chatService, endpoint, cluster)
         true
       case ICS.InterstellarClusterServiceKey.Listing(listings) =>
         cluster = listings.head
         buildDependentOperationsForZoning(galaxyService, cluster)
-        buildDependentOperationsForChat(chatService, cluster)
         true
       case ChatService.ChatServiceKey.Listing(listings) =>
         chatService = listings.head
-        buildDependentOperationsForChat(chatService, cluster)
+        buildDependentOperationsForChat(chatService, squadService, cluster)
         true
 
       case _ =>
@@ -199,9 +199,16 @@ class SessionData(
     }
   }
 
-  def buildDependentOperationsForChat(chatService: typed.ActorRef[ChatService.Command], clusterActor: typed.ActorRef[ICS.Command]): Unit = {
-    if (chatOpt.isEmpty && chatService != Default.typed.Actor && clusterActor != Default.typed.Actor) {
-      chatOpt = Some(new ChatOperations(sessionLogic=this, avatarActor, chatService, clusterActor, context))
+  def buildDependentOperationsForChat(
+                                       chatService: typed.ActorRef[ChatService.Command],
+                                       squadService: ActorRef,
+                                       clusterActor: typed.ActorRef[ICS.Command]
+                                     ): Unit = {
+    if (chatOpt.isEmpty &&
+      chatService != Default.typed.Actor &&
+      squadService !=Default.Actor &&
+      clusterActor != Default.typed.Actor) {
+      chatOpt = Some(new ChatOperations(sessionLogic=this, avatarActor, chatService, squadService, clusterActor, context))
     }
   }
 
