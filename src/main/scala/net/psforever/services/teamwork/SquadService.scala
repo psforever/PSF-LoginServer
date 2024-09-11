@@ -2,6 +2,9 @@
 package net.psforever.services.teamwork
 
 import akka.actor.{Actor, ActorRef, Terminated}
+import net.psforever.actors.session.SessionActor
+import net.psforever.packet.game.ChatMsg
+import net.psforever.types.ChatMessageType
 
 import java.io.{PrintWriter, StringWriter}
 import scala.annotation.unused
@@ -111,7 +114,7 @@ class SquadService extends Actor {
     * @return `true`, if the identifier is reset; `false`, otherwise
     */
   def TryResetSquadId(): Boolean = {
-    if (squadFeatures.isEmpty) {
+    if (squadFeatures.isEmpty && LivePlayerList.WorldPopulation(_ => true).isEmpty) {
       sid = 1
       true
     } else {
@@ -199,7 +202,7 @@ class SquadService extends Actor {
       LeaveInGeneral(sender())
 
     case Terminated(actorRef) =>
-      TerminatedBy(actorRef)
+      LeaveInGeneral(actorRef)
 
     case message @ SquadServiceMessage(tplayer, zone, squad_action) =>
       squad_action match {
@@ -243,16 +246,39 @@ class SquadService extends Actor {
     case SquadService.ResendActiveInvite(charId) =>
       invitations.resendActiveInvite(charId)
 
+    case SquadService.ListAllCurrentInvites(charId) =>
+      ListCurrentInvitations(charId)
+
+    case SquadService.ChainAcceptance(player, charId, list) =>
+      ChainAcceptanceIntoSquad(player, charId, list)
+
+    case SquadService.ChainRejection(player, charId, list) =>
+      ChainRejectionFromSquad(player, charId, list)
+
     case msg =>
       log.warn(s"Unhandled message $msg from ${sender()}")
   }
 
+  /**
+   * Subscribe to a faction-wide channel.
+   * @param faction sub-channel name
+   * @param sender subscriber
+   */
   def JoinByFaction(faction: String, sender: ActorRef): Unit = {
     val path = s"/$faction/Squad"
     log.trace(s"$sender has joined $path")
     subs.SquadEvents.subscribe(sender, path)
   }
 
+  /**
+   * Subscribe to a client-specific channel.
+   * The channel name is expected to be a `Long` number but is passed as a `String`.
+   * As is the case, the actual channel name may not parse into a proper long integer after being passed and
+   * there are failure cases.
+   * @param charId sub-channel name
+   * @param sender subscriber
+   * @see `SquadInvitationManager.handleJoin`
+   */
   def JoinByCharacterId(charId: String, sender: ActorRef): Unit = {
     try {
       val longCharId = charId.toLong
@@ -272,12 +298,23 @@ class SquadService extends Actor {
     }
   }
 
+  /**
+   * Unsubscribe from a faction-wide channel.
+   * @param faction sub-channel name
+   * @param sender subscriber
+   */
   def LeaveByFaction(faction: String, sender: ActorRef): Unit = {
     val path = s"/$faction/Squad"
     log.trace(s"$sender has left $path")
     subs.SquadEvents.unsubscribe(sender, path)
   }
 
+  /**
+   * Unsubscribe from a client-specific channel.
+   * @param charId sub-channel name
+   * @param sender subscriber
+   * @see `LeaveService`
+   */
   def LeaveByCharacterId(charId: String, sender: ActorRef): Unit = {
     try {
       LeaveService(charId.toLong, sender)
@@ -292,19 +329,19 @@ class SquadService extends Actor {
     }
   }
 
+  /**
+   * Assuming a subscriber that matches previously subscribed data,
+   * completely unsubscribe and forget this entry.
+   * @param sender subscriber
+   * @see `LeaveService`
+   */
   def LeaveInGeneral(sender: ActorRef): Unit = {
-    subs.UserEvents find { case (_, subscription) => subscription.path.equals(sender.path) } match {
+    context.unwatch(sender)
+    subs.UserEvents.find {
+      case (_, subscription) => (subscription eq sender) || subscription.path.equals(sender.path)
+    } match {
       case Some((to, _)) =>
         LeaveService(to, sender)
-      case _ => ()
-    }
-  }
-
-  def TerminatedBy(requestee: ActorRef): Unit = {
-    context.unwatch(requestee)
-    subs.UserEvents find { case (_, subscription) => subscription eq requestee } match {
-      case Some((to, _)) =>
-        LeaveService(to, requestee)
       case _ => ()
     }
   }
@@ -544,7 +581,7 @@ class SquadService extends Actor {
     invitations.handleRejection(
       tplayer,
       rejectingPlayer,
-      squadFeatures.map { case (guid, features) => (guid, features.Squad.Leader.CharId) }.toList
+      squadFeatures.map { case (guid, features) => (guid, features) }.toList
     )
   }
 
@@ -1084,9 +1121,14 @@ class SquadService extends Actor {
   }
 
   /**
-    * na
+    * Completely remove information about a former subscriber from the squad management service.
     * @param charId the player's unique character identifier number
     * @param sender the `ActorRef` associated with this character
+    * @see `DisbandSquad`
+    * @see `LeaveSquad`
+    * @see `SquadInvitationManager.handleLeave`
+    * @see `SquadSwitchboard.PanicLeaveSquad`
+    * @see `TryResetSquadId`
     */
   def LeaveService(charId: Long, sender: ActorRef): Unit = {
     subs.MonitorSquadDetails.subtractOne(charId)
@@ -1129,8 +1171,7 @@ class SquadService extends Actor {
     }
     subs.SquadEvents.unsubscribe(sender) //just to make certain
     searchData.remove(charId)
-    //todo turn this back on. See PR 1157 for why it was commented out.
-    //TryResetSquadId()
+    TryResetSquadId()
   }
 
   /**
@@ -1285,6 +1326,50 @@ class SquadService extends Actor {
         }
       }
   }
+
+  def ListCurrentInvitations(charId: Long) : Unit = {
+    GetLeadingSquad(charId, None)
+      .map { _ =>
+        invitations.listCurrentInvitations(charId)
+      }
+      .collect {
+        case listOfInvites if listOfInvites.nonEmpty =>
+          listOfInvites match {
+            case active :: queued if queued.nonEmpty =>
+              subs.Publish(charId, SquadResponse.WantsSquadPosition(charId, s"$active, ${queued.mkString(", ")}"))
+              listOfInvites
+            case active :: _ =>
+              subs.Publish(charId, SquadResponse.WantsSquadPosition(charId, active))
+              listOfInvites
+          }
+      }
+      .orElse {
+        context.self ! SessionActor.SendResponse(ChatMsg(ChatMessageType.UNK_227, "You do not have any current invites to manage."))
+        None
+      }
+  }
+
+  def ChainAcceptanceIntoSquad(player: Player, charId: Long, listOfCharIds: List[Long]): Unit = {
+    GetLeadingSquad(charId, None)
+      .foreach { features =>
+        if (listOfCharIds.nonEmpty) {
+          invitations.tryChainAcceptance(player, charId, listOfCharIds, features)
+        } else {
+          invitations.SquadActionDefinitionAutoApproveInvitationRequests(charId, features)
+        }
+      }
+  }
+
+  def ChainRejectionFromSquad(player: Player, charId: Long, listOfCharIds: List[Long]): Unit = {
+    GetLeadingSquad(charId, None)
+      .foreach { features =>
+        if (listOfCharIds.nonEmpty) {
+          invitations.tryChainRejection(player, charId, listOfCharIds, features)
+        } else {
+          invitations.tryChainRejectionAll(charId, features)
+        }
+      }
+  }
 }
 
 object SquadService {
@@ -1293,6 +1378,12 @@ object SquadService {
   final case class PerformJoinSquad(player: Player, features: SquadFeatures, position: Int)
 
   final case class ResendActiveInvite(charId: Long)
+
+  final case class ListAllCurrentInvites(charId: Long)
+
+  final case class ChainAcceptance(player: Player, charId: Long, listOfCharIds: List[Long])
+
+  final case class ChainRejection(player: Player, charId: Long, listOfCharIds: List[Long])
 
   /**
     * A message to indicate that the squad list needs to update for the clients.

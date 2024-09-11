@@ -4,6 +4,8 @@ package net.psforever.services.teamwork
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
+
+import scala.annotation.unused
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -119,14 +121,15 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
     val leader = squad2.Leader.CharId
     Allowed(invitedPlayer, invitingPlayer)
     Allowed(leader, invitingPlayer)
+    lazy val preface = s"$invitingPlayer's invitation got reversed to $invitedPlayer's squad, but"
     if (squad2.Size == squad2.Capacity) {
-      log.debug(s"$invitingPlayer's invitation got reversed to $invitedPlayer's squad, but the squad has no available positions")
+      log.debug(s"$preface the squad has no available positions")
     } else if (Refused(invitingPlayer).contains(invitedPlayer)) {
-      log.debug(s"$invitingPlayer's invitation got reversed to $invitedPlayer's squad, but $invitedPlayer repeated a previous refusal to $invitingPlayer's invitation offer")
+      log.debug(s"$preface $invitedPlayer repeated a previous refusal to $invitingPlayer's invitation offer")
     } else if (Refused(invitingPlayer).contains(leader)) {
-      log.debug(s"$invitingPlayer's invitation got reversed to $invitedPlayer's squad, but $leader repeated a previous refusal to $invitingPlayer's invitation offer")
+      log.debug(s"$preface $leader repeated a previous refusal to $invitingPlayer's invitation offer")
     } else if (features.DeniedPlayers().contains(invitingPlayer)) {
-      log.debug(s"$invitingPlayer's invitation got reversed to $invitedPlayer's squad, but $invitingPlayer is denied the invitation")
+      log.debug(s"$preface $invitingPlayer is denied the invitation")
     } else {
       features.AllowedPlayers(invitedPlayer)
       AddInviteAndRespond(
@@ -165,7 +168,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
     val availableForJoiningSquad = notLimitedByEnrollmentInSquad(invitedPlayerSquadOpt, invitedPlayer)
     acceptedInvite match {
       case Some(RequestRole(petitioner, features, position))
-        if canEnrollInSquad(features, petitioner.CharId) =>
+        if SquadInvitationManager.canEnrollInSquad(features, petitioner.CharId) =>
         //player requested to join a squad's specific position
         //invitedPlayer is actually the squad leader; petitioner is the actual "invitedPlayer"
         if (JoinSquad(petitioner, features, position)) {
@@ -174,7 +177,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
         }
 
       case Some(IndirectInvite(recruit, features))
-        if canEnrollInSquad(features, recruit.CharId) =>
+        if SquadInvitationManager.canEnrollInSquad(features, recruit.CharId) =>
         //tplayer / invitedPlayer is actually the squad leader
         val recruitCharId = recruit.CharId
         HandleVacancyInvite(features, recruitCharId, invitedPlayer, recruit) match {
@@ -188,7 +191,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
         }
 
       case Some(VacancyInvite(invitingPlayer, _, features))
-        if availableForJoiningSquad && canEnrollInSquad(features, invitedPlayer) =>
+        if availableForJoiningSquad && SquadInvitationManager.canEnrollInSquad(features, invitedPlayer) =>
         //accepted an invitation to join an existing squad
         HandleVacancyInvite(features, invitedPlayer, invitingPlayer, tplayer) match {
           case Some((_, line)) =>
@@ -204,7 +207,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
         SquadMembershipAcceptInviteAction(invitingPlayer, tplayer, invitedPlayer)
 
       case Some(LookingForSquadRoleInvite(member, features, position))
-        if availableForJoiningSquad && canEnrollInSquad(features, invitedPlayer) =>
+        if availableForJoiningSquad && SquadInvitationManager.canEnrollInSquad(features, invitedPlayer) =>
         val invitingPlayer = member.CharId
         features.ProxyInvites = features.ProxyInvites.filterNot { _ == invitedPlayer }
         if (JoinSquad(tplayer, features, position)) {
@@ -215,7 +218,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
         }
 
       case Some(ProximityInvite(member, features, position))
-        if availableForJoiningSquad && canEnrollInSquad(features, invitedPlayer) =>
+        if availableForJoiningSquad && SquadInvitationManager.canEnrollInSquad(features, invitedPlayer) =>
         val invitingPlayer = member.CharId
         features.ProxyInvites = features.ProxyInvites.filterNot { _ == invitedPlayer }
         if (JoinSquad(tplayer, features, position)) {
@@ -278,10 +281,6 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
       case None =>
         true
     }
-  }
-
-  def canEnrollInSquad(features: SquadFeatures, charId: Long): Boolean = {
-    !features.Squad.Membership.exists { _.CharId == charId }
   }
 
   def SquadMembershipAcceptInviteAction(invitingPlayer: Player, player: Player, invitedPlayer: Long): Unit = {
@@ -416,24 +415,75 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
   def handleRejection(
                        tplayer: Player,
                        rejectingPlayer: Long,
-                       squadsToLeaders: List[(PlanetSideGUID, Long)]
+                       squadsToLeaders: List[(PlanetSideGUID, SquadFeatures)]
                      ): Unit = {
     val rejectedBid = RemoveInvite(rejectingPlayer)
-    (rejectedBid match {
+    FormatRejection(
+      DoRejection(rejectedBid, tplayer, rejectingPlayer, squadsToLeaders),
+      tplayer
+    )
+    NextInviteAndRespond(rejectingPlayer)
+  }
+
+  def ParseRejection(
+                      rejectedBid: Option[Invitation],
+                      @unused tplayer: Player,
+                      rejectingPlayer: Long,
+                      squadsToLeaders: List[(PlanetSideGUID, SquadFeatures)]
+                    ): (Option[Long], Option[Long]) = {
+    rejectedBid match {
+      case Some(SpontaneousInvite(leader)) =>
+        //rejectingPlayer is the would-be squad member; the would-be squad leader sent the request and was rejected
+        val invitingPlayerCharId = leader.CharId
+        (Some(rejectingPlayer), Some(invitingPlayerCharId))
+
+      case Some(VacancyInvite(leader, _, _))
+        /*if SquadInvitationManager.notLeaderOfThisSquad(squadsToLeaders, features.Squad.GUID, rejectingPlayer)*/ =>
+        //rejectingPlayer is the would-be squad member; the squad leader sent the request and was rejected
+        (Some(rejectingPlayer), Some(leader))
+
+      case Some(ProximityInvite(_, _, _))
+        /*if SquadInvitationManager.notLeaderOfThisSquad(squadsToLeaders, features.Squad.GUID, rejectingPlayer)*/ =>
+        //rejectingPlayer is the would-be squad member; the squad leader sent the request and was rejected
+        (Some(rejectingPlayer), None)
+
+      case Some(LookingForSquadRoleInvite(member, _, _))
+        if member.CharId != rejectingPlayer =>
+        val leaderCharId = member.CharId
+        //rejectingPlayer is the would-be squad member; the squad leader sent the request and was rejected
+        (Some(rejectingPlayer), Some(leaderCharId))
+
+      case Some(RequestRole(rejected, features, _))
+        if SquadInvitationManager.notLeaderOfThisSquad(squadsToLeaders, features.Squad.GUID, rejected.CharId) =>
+        //rejected is the would-be squad member; rejectingPlayer is the squad leader who rejected the request
+        (Some(rejectingPlayer), None)
+
+      case _ => //TODO IndirectInvite, etc., but how to handle them?
+        (None, None)
+    }
+  }
+
+  def DoRejection(
+                   rejectedBid: Option[Invitation],
+                   tplayer: Player,
+                   rejectingPlayer: Long,
+                   squadsToLeaders: List[(PlanetSideGUID, SquadFeatures)]
+                 ): (Option[Long], Option[Long], String) = {
+    rejectedBid match {
       case Some(SpontaneousInvite(leader)) =>
         //rejectingPlayer is the would-be squad member; the would-be squad leader sent the request and was rejected
         val invitingPlayerCharId = leader.CharId
         Refused(rejectingPlayer, invitingPlayerCharId)
-        (Some(rejectingPlayer), Some(invitingPlayerCharId))
+        (Some(rejectingPlayer), Some(invitingPlayerCharId), "anonymous")
 
-      case Some(VacancyInvite(leader, _, _))
-        /*if notLeaderOfThisSquad(squadsToLeaders, features.Squad.GUID, rejectingPlayer)*/ =>
+      case Some(VacancyInvite(leader, _, features))
+        /*if SquadInvitationManager.notLeaderOfThisSquad(squadsToLeaders, features.Squad.GUID, rejectingPlayer)*/ =>
         //rejectingPlayer is the would-be squad member; the squad leader sent the request and was rejected
         Refused(rejectingPlayer, leader)
-        (Some(rejectingPlayer), Some(leader))
+        (Some(rejectingPlayer), Some(leader), features.Squad.Task)
 
       case Some(ProximityInvite(_, features, position))
-        /*if notLeaderOfThisSquad(squadsToLeaders, features.Squad.GUID, rejectingPlayer)*/ =>
+        /*if SquadInvitationManager.notLeaderOfThisSquad(squadsToLeaders, features.Squad.GUID, rejectingPlayer)*/ =>
         //rejectingPlayer is the would-be squad member; the squad leader sent the request and was rejected
         ReloadProximityInvite(
           tplayer.Zone.Players,
@@ -441,52 +491,53 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
           features,
           position
         )
-        (Some(rejectingPlayer), None)
+        (Some(rejectingPlayer), None, features.Squad.Task)
 
-      case Some(LookingForSquadRoleInvite(member, guid, position))
+      case Some(LookingForSquadRoleInvite(member, features, position))
         if member.CharId != rejectingPlayer =>
         val leaderCharId = member.CharId
         //rejectingPlayer is the would-be squad member; the squad leader sent the request and was rejected
         ReloadSearchForRoleInvite(
           LivePlayerList.WorldPopulation { _ => true },
           rejectingPlayer,
-          guid,
+          features,
           position
         )
-        (Some(rejectingPlayer), Some(leaderCharId))
+        (Some(rejectingPlayer), Some(leaderCharId), features.Squad.Task)
 
       case Some(RequestRole(rejected, features, _))
-        if notLeaderOfThisSquad(squadsToLeaders, features.Squad.GUID, rejected.CharId) =>
+        if SquadInvitationManager.notLeaderOfThisSquad(squadsToLeaders, features.Squad.GUID, rejected.CharId) =>
         //rejected is the would-be squad member; rejectingPlayer is the squad leader who rejected the request
         features.DeniedPlayers(rejected.CharId)
-        (Some(rejectingPlayer), None)
+        (Some(rejectingPlayer), None, features.Squad.Task)
 
-      case _ => ; //TODO IndirectInvite, etc., but how to handle them?
-        (None, None)
-    }) match {
-      case (Some(rejected), Some(invited)) =>
+      case _ => //TODO IndirectInvite, etc., but how to handle them?
+        (None, None, "n|a")
+    }
+  }
+
+  def FormatRejection(
+                       rejectedPair: (Option[Long], Option[Long], String),
+                       tplayer: Player
+                     ): Unit = {
+    rejectedPair match {
+      case (Some(rejected), Some(inviter), squadName) =>
         subs.Publish(
           rejected,
-          SquadResponse.Membership(SquadResponseType.Reject, 0, 0, rejected, Some(invited), "", unk5=true, Some(None))
+          SquadResponse.Membership(SquadResponseType.Reject, 0, 0, rejected, Some(inviter), "", unk5=true, Some(None))
         )
         subs.Publish(
-          invited,
-          SquadResponse.Membership(SquadResponseType.Reject, 0, 0, invited, Some(rejected), tplayer.Name, unk5=false, Some(None))
+          inviter,
+          SquadResponse.Membership(SquadResponseType.Reject, 0, 0, inviter, Some(rejected), tplayer.Name, unk5=false, Some(None))
         )
-      case (Some(rejected), None) =>
+        subs.Publish(rejected, SquadResponse.SquadRelatedComment(s"Your request to join squad '$squadName' has been refused."))
+      case (Some(rejected), None, squadName) =>
         subs.Publish(
           rejected,
           SquadResponse.Membership(SquadResponseType.Reject, 0, 0, rejected, Some(rejected), "", unk5=true, Some(None))
         )
-      case _ => ;
-    }
-    NextInviteAndRespond(rejectingPlayer)
-  }
-
-  def notLeaderOfThisSquad(squadsToLeaders: List[(PlanetSideGUID, Long)], guid: PlanetSideGUID, charId: Long): Boolean = {
-    squadsToLeaders.find { case (squadGuid, _) => squadGuid == guid } match {
-      case Some((_, leaderId)) => leaderId != charId
-      case None                => false
+        subs.Publish(rejected, SquadResponse.SquadRelatedComment(s"Your request to join squad '$squadName' has been refused."))
+      case _ => ()
     }
   }
 
@@ -611,8 +662,14 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
                                                           tplayer: Player,
                                                           features: SquadFeatures
                                                         ): Unit = {
+    SquadActionDefinitionAutoApproveInvitationRequests(tplayer.CharId, features)
+  }
+
+  def SquadActionDefinitionAutoApproveInvitationRequests(
+                                                          charId: Long,
+                                                          features: SquadFeatures
+                                                        ): Unit = {
     //allowed auto-approval - resolve the requests (only)
-    val charId = tplayer.CharId
     val (requests, others) =
       (invites.get(charId) match {
         case Some(invite) => invite +: queuedInvites.getOrElse(charId, Nil)
@@ -909,6 +966,155 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
         RespondToInvite(charId, invite)
       case None => ;
     }
+  }
+
+  def listCurrentInvitations(charId: Long): List[String] = {
+    ((invites.get(charId), queuedInvites.get(charId)) match {
+      case (Some(invite), Some(invites)) =>
+        invite +: invites
+      case (Some(invite), None) =>
+        List(invite)
+      case (None, Some(invites)) =>
+        invites
+      case _ =>
+        List()
+    }).collect {
+      case RequestRole(player, _, _) => player.Name
+      case IndirectInvite(player, features) if !features.Squad.Leader.Name.equals(player.Name) => player.Name
+    }
+  }
+
+  def tryChainAcceptance(
+                          inviter: Player,
+                          charId: Long,
+                          list: List[Long],
+                          features: SquadFeatures
+                        ): Unit = {
+    //filter queued invites
+    lazy val squadToLeader = List((features.Squad.GUID, features))
+    lazy val squadName = features.Squad.Task
+    var foundPairs: List[(Player, Invitation)] = List()
+    val unmatchedInvites = queuedInvites
+      .getOrElse(charId, Nil)
+      .filter {
+        case invite @ RequestRole(invitee, _, _)
+          if list.contains(invitee.CharId) && !features.Squad.Leader.Name.equals(invitee.Name) =>
+          foundPairs = foundPairs :+ (invitee, invite)
+          false
+        case invite @ IndirectInvite(invitee, _)
+          if list.contains(invitee.CharId) && !features.Squad.Leader.Name.equals(invitee.Name) =>
+          foundPairs = foundPairs :+ (invitee, invite)
+          false
+        case _ =>
+          true
+      }
+    //handle active invite
+    val clearedActiveInvite = invites
+      .get(charId)
+      .collect {
+        case invite @ RequestRole(invitee, _, _)
+          if list.contains(invitee.CharId) && !features.Squad.Leader.Name.equals(invitee.Name) =>
+          SquadActionMembershipAcceptInvite(inviter, invitee.CharId, Some(invite), Some(features))
+          invites.remove(charId)
+          true
+        case invite @ IndirectInvite(invitee, _)
+          if list.contains(invitee.CharId) && !features.Squad.Leader.Name.equals(invitee.Name) =>
+          SquadActionMembershipAcceptInvite(inviter, invitee.CharId, Some(invite), Some(features))
+          invites.remove(charId)
+          true
+        case _ =>
+          false
+      }
+    //handle selected queued invites
+    val pairIterator = foundPairs.iterator
+    while (pairIterator.hasNext && features.Squad.Capacity < features.Squad.Size) {
+      val (player, invite) = pairIterator.next()
+      SquadActionMembershipAcceptInvite(inviter, player.CharId, Some(invite), Some(features))
+    }
+    //evaluate final squad composition
+    if (features.Squad.Capacity < features.Squad.Size) {
+      //replace unfiltered invites
+      if (unmatchedInvites.isEmpty) {
+        queuedInvites.remove(charId)
+      } else {
+        queuedInvites.put(charId, unmatchedInvites)
+      }
+      //manage next invitation
+      clearedActiveInvite.collect {
+        case true => NextInviteAndRespond(charId)
+      }
+    } else {
+      //squad is full
+      previousInvites.remove(charId)
+      queuedInvites.remove(charId)
+      clearedActiveInvite.collect {
+        case true => invites.remove(charId)
+      }
+      unmatchedInvites.foreach { invite =>
+        val (refusedId, _) = ParseRejection(Some(invite), inviter, inviter.CharId, squadToLeader)
+        subs.Publish(refusedId, SquadResponse.SquadRelatedComment(s"Your request to join squad '$squadName' has been refused."))
+      }
+      NextInviteAndRespond(charId)
+    }
+    //clean up any incomplete selected invites
+    pairIterator.foreach { case (_, invite) =>
+      val (refusedId, _) = ParseRejection(Some(invite), inviter, inviter.CharId, squadToLeader)
+      subs.Publish(refusedId, SquadResponse.SquadRelatedComment(s"Your request to join squad '$squadName' has been refused."))
+    }
+  }
+
+  def tryChainRejection(
+                         inviter: Player,
+                         charId: Long,
+                         list: List[Long],
+                         features: SquadFeatures): Unit = {
+    //handle queued invites
+    lazy val squadToLeader = List((features.Squad.GUID, features))
+    lazy val squadName = features.Squad.Task
+    val unmatchedInvites = queuedInvites
+      .getOrElse(charId, Nil)
+      .filter {
+        case invite @ RequestRole(invitee, _, _)
+          if list.contains(invitee.CharId) && !features.Squad.Leader.Name.equals(invitee.Name) =>
+          val (refusedId, _, _) = DoRejection(Some(invite), inviter, charId, squadToLeader)
+          subs.Publish(refusedId, SquadResponse.SquadRelatedComment(s"Your request to join squad '$squadName' has been refused."))
+          false
+        case invite @ IndirectInvite(invitee, _)
+          if list.contains(invitee.CharId) && !features.Squad.Leader.Name.equals(invitee.Name) =>
+          val (refusedId, _, _) = DoRejection(Some(invite), inviter, charId, squadToLeader)
+          subs.Publish(refusedId, SquadResponse.SquadRelatedComment(s"Your request to join squad '$squadName' has been refused."))
+          false
+        case _ =>
+          true
+      }
+    queuedInvites.put(charId, unmatchedInvites)
+    //handle active invite
+    invites
+      .get(charId)
+      .collect {
+        case invite @ RequestRole(player, features, _)
+          if list.contains(player.CharId) && !features.Squad.Leader.Name.equals(player.Name) =>
+          val (refusedId, _, _) = DoRejection(Some(invite), inviter, charId, squadToLeader)
+          subs.Publish(refusedId, SquadResponse.SquadRelatedComment(s"Your request to join squad '$squadName' has been refused."))
+          invites.remove(charId)
+          NextInviteAndRespond(charId)
+        case invite @ IndirectInvite(player, features)
+          if list.contains(player.CharId) && !features.Squad.Leader.Name.equals(player.Name) =>
+          val (refusedId, _, _) = DoRejection(Some(invite), inviter, charId, squadToLeader)
+          subs.Publish(refusedId, SquadResponse.SquadRelatedComment(s"Your request to join squad '$squadName' has been refused."))
+          invites.remove(charId)
+          NextInviteAndRespond(charId)
+        case _ => ()
+      }
+  }
+
+  def tryChainRejectionAll(charId: Long, features: SquadFeatures): Unit = {
+    val squadName = features.Squad.Task
+    CleanUpAllInvitesToSquad(features)
+      .filterNot(_ == charId)
+      .foreach { refusedId =>
+        subs.Publish(refusedId, SquadResponse.SquadRelatedComment(s"Your request to join squad '$squadName' has been refused."))
+      }
   }
 
   def ShiftInvitesToPromotedSquadLeader(
@@ -1695,18 +1901,18 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
     * @see `VacancyInvite`
     * @param features the squad identifier
     */
-  def CleanUpAllInvitesToSquad(features: SquadFeatures): Unit = {
+  def CleanUpAllInvitesToSquad(features: SquadFeatures): List[Long] = {
     val guid = features.Squad.GUID
     //clean up invites
     val activeInviteIds = {
       val keys = invites.keys.toSeq
       invites.values.zipWithIndex
         .collect {
-          case (VacancyInvite(_, _, _squad), index) if _squad.Squad.GUID == guid             => index
-          case (IndirectInvite(_, _squad), index) if _squad.Squad.GUID == guid               => index
-          case (LookingForSquadRoleInvite(_, _squad, _), index) if _squad.Squad.GUID == guid => index
-          case (ProximityInvite(_, _squad, _), index) if _squad.Squad.GUID == guid           => index
-          case (RequestRole(_, _squad, _), index) if _squad.Squad.GUID == guid               => index
+          case (VacancyInvite(_, _, f), index) if f.Squad.GUID == guid             => index
+          case (IndirectInvite(_, f), index) if f.Squad.GUID == guid               => index
+          case (LookingForSquadRoleInvite(_, f, _), index) if f.Squad.GUID == guid => index
+          case (ProximityInvite(_, f, _), index) if f.Squad.GUID == guid           => index
+          case (RequestRole(_, f, _), index) if f.Squad.GUID == guid               => index
         }
         .map { index =>
           val key = keys(index)
@@ -1723,12 +1929,12 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
           case (queue, index) =>
             val key = keys(index)
             val (targets, retained) = queue.partition {
-              case VacancyInvite(_, _, _squad)             => _squad.Squad.GUID == guid
-              case IndirectInvite(_, _squad)               => _squad.Squad.GUID == guid
-              case LookingForSquadRoleInvite(_, _squad, _) => _squad.Squad.GUID == guid
-              case ProximityInvite(_, _squad, _)           => _squad.Squad.GUID == guid
-              case RequestRole(_, _squad, _)               => _squad.Squad.GUID == guid
-              case _                                       => false
+              case VacancyInvite(_, _, f)             => f.Squad.GUID == guid
+              case IndirectInvite(_, f)               => f.Squad.GUID == guid
+              case LookingForSquadRoleInvite(_, f, _) => f.Squad.GUID == guid
+              case ProximityInvite(_, f, _)           => f.Squad.GUID == guid
+              case RequestRole(_, f, _)               => f.Squad.GUID == guid
+              case _                                  => false
             }
             if (retained.isEmpty) {
               queuedInvites.remove(key)
@@ -1744,7 +1950,9 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
         .flatten
         .toList
     }
-    CleanUpSquadFeatures(activeInviteIds ++ queuedInviteIds, features, position = -1)
+    val allInviteIds = (activeInviteIds ++ queuedInviteIds).distinct
+    CleanUpSquadFeatures(allInviteIds, features, position = -1)
+    allInviteIds
   }
 
   /**
@@ -2151,4 +2359,15 @@ object SquadInvitationManager {
   }
 
   final case class FinishStartSquad(features: SquadFeatures)
+
+  def canEnrollInSquad(features: SquadFeatures, charId: Long): Boolean = {
+    !features.Squad.Membership.exists { _.CharId == charId }
+  }
+
+  def notLeaderOfThisSquad(squadsToLeaders: List[(PlanetSideGUID, SquadFeatures)], guid: PlanetSideGUID, charId: Long): Boolean = {
+    squadsToLeaders.find { case (squadGuid, _) => squadGuid == guid } match {
+      case Some((_, features)) => features.Squad.Leader.CharId != charId
+      case None                => false
+    }
+  }
 }
