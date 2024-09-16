@@ -41,6 +41,16 @@ object SquadResponse {
       unk5: Boolean,
       unk6: Option[Option[String]]
   )                                                                                           extends Response //see SquadMembershipResponse
+  object Membership {
+    def apply(
+               requestType: SquadResponseType.Value,
+               unk3: Long,
+               unk4: Option[Long],
+               playerName: String,
+               unk5: Boolean
+             ): Membership = new Membership(requestType, unk1 = 0, unk2 = 0, unk3, unk4, playerName, unk5, Some(None))
+  }
+
   final case class WantsSquadPosition(leader_char_id: Long, bid_name: String)                 extends Response
   final case class Join(squad: Squad, positionsToUpdate: List[Int], channel: String, ref: ActorRef) extends Response
   final case class Leave(squad: Squad, positionsToUpdate: List[(Long, Int)])                  extends Response
