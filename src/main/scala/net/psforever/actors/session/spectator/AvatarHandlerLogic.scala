@@ -450,6 +450,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sessionLogic.zoning.CancelZoningProcess()
 
         //player state changes
+        sessionLogic.zoning.spawn.avatarActive = false
         AvatarActor.updateToolDischargeFor(avatar)
         player.FreeHand.Equipment.foreach { item =>
           DropEquipmentFromInventory(player)(item)

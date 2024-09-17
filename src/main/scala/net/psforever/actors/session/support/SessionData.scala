@@ -554,6 +554,7 @@ class SessionData(
     if (avatar != null) {
       accountPersistence ! AccountPersistenceService.Logout(avatar.name)
     }
+    squad.cleanUpSquadCards()
     middlewareActor ! MiddlewareActor.Teardown()
   }
 

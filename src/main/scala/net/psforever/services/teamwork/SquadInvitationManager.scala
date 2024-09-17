@@ -6,7 +6,6 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scala.collection.mutable
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 //
 import net.psforever.objects.{LivePlayerList, Player}
