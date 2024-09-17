@@ -61,6 +61,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     _,
     _
     )= pkt
+    sessionLogic.zoning.spawn.tryQueuedActivity(vel)
     sessionLogic.persist()
     sessionLogic.turnCounterFunc(avatarGuid)
     ops.fallHeightTracker(pos.z)

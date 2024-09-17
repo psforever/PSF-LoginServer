@@ -43,6 +43,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
     ops.GetVehicleAndSeat() match {
       case (Some(obj), Some(0)) =>
         //we're driving the vehicle
+        sessionLogic.zoning.spawn.tryQueuedActivity(vel)
         sessionLogic.persist()
         sessionLogic.turnCounterFunc(player.GUID)
         sessionLogic.general.fallHeightTracker(pos.z)
@@ -126,6 +127,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
     ops.GetVehicleAndSeat() match {
       case (Some(obj), Some(0)) =>
         //we're driving the vehicle
+        sessionLogic.zoning.spawn.tryQueuedActivity(vel)
         sessionLogic.persist()
         sessionLogic.turnCounterFunc(player.GUID)
         val (position, angle, velocity, notMountedState) = continent.GUID(obj.MountedIn) match {
@@ -214,6 +216,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
     }) match {
       case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ()
       case _ =>
+        sessionLogic.zoning.spawn.tryQueuedActivity() //todo conditionals?
         sessionLogic.persist()
         sessionLogic.turnCounterFunc(player.GUID)
     }

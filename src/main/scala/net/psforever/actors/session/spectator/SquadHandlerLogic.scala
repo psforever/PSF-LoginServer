@@ -2,15 +2,15 @@
 package net.psforever.actors.session.spectator
 
 import akka.actor.{ActorContext, typed}
-import net.psforever.actors.session.support.SessionSquadHandlers.SquadUIElement
 import net.psforever.actors.session.AvatarActor
-import net.psforever.actors.session.support.{SessionData, SessionSquadHandlers, SquadHandlerFunctions}
+import net.psforever.actors.session.support.SessionSquadHandlers.{rethrowSquadServiceResponse, SquadUIElement}
+import net.psforever.actors.session.support.{SessionData, SessionSquadHandlers, SpawnOperations, SquadHandlerFunctions}
 import net.psforever.objects.{Default, LivePlayerList}
 import net.psforever.objects.avatar.Avatar
-import net.psforever.packet.game.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadDetailDefinitionUpdateMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEventAction}
+import net.psforever.packet.game.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, ChatMsg, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadDetailDefinitionUpdateMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEventAction}
 import net.psforever.services.chat.SquadChannel
 import net.psforever.services.teamwork.SquadResponse
-import net.psforever.types.{PlanetSideGUID, SquadListDecoration, SquadResponseType}
+import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadListDecoration, SquadResponseType}
 
 object SquadHandlerLogic {
   def apply(ops: SessionSquadHandlers): SquadHandlerLogic = {
@@ -77,6 +77,62 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
           }
           sendResponse(SquadDefinitionActionMessage(guid, 0, SquadAction.SquadListDecorator(decoration)))
 
+        case SquadResponse.SquadSearchResults(results) =>
+          //TODO positive squad search results message?
+          if(results.nonEmpty) {
+            results.foreach { guid =>
+              sendResponse(SquadDefinitionActionMessage(
+                guid,
+                0,
+                SquadAction.SquadListDecorator(SquadListDecoration.SearchResult))
+              )
+            }
+          } else {
+            sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.NoSquadSearchResults()))
+          }
+          sendResponse(SquadDefinitionActionMessage(player.GUID, 0, SquadAction.CancelSquadSearch()))
+
+        case SquadResponse.UpdateMembers(_, positions) =>
+          val pairedEntries = positions.collect {
+            case entry if ops.squadUI.contains(entry.char_id) =>
+              (entry, ops.squadUI(entry.char_id))
+          }
+          //prune entries
+          val updatedEntries = pairedEntries
+            .collect({
+              case (entry, element) if entry.zone_number != element.zone =>
+                //zone gets updated for these entries
+                sendResponse(
+                  SquadMemberEvent.UpdateZone(ops.squad_supplement_id, entry.char_id, element.index, entry.zone_number)
+                )
+                ops.squadUI(entry.char_id) =
+                  SquadUIElement(element.name, element.outfit, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
+                entry
+              case (entry, element)
+                if entry.health != element.health || entry.armor != element.armor || entry.pos != element.position =>
+                //other elements that need to be updated
+                ops.squadUI(entry.char_id) =
+                  SquadUIElement(element.name, element.outfit, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
+                entry
+            })
+            .filterNot(_.char_id == avatar.id) //we want to update our backend, but not our frontend
+          if (updatedEntries.nonEmpty) {
+            sendResponse(
+              SquadState(
+                PlanetSideGUID(ops.squad_supplement_id),
+                updatedEntries.map { entry =>
+                  SquadStateInfo(entry.char_id, entry.health, entry.armor, entry.pos)
+                }
+              )
+            )
+          }
+
+        /* queue below messages for later if the initial conditions are inappropriate */
+        case msg if !sessionLogic.zoning.spawn.startEnqueueSquadMessages =>
+          sessionLogic.zoning.spawn.enqueueNewActivity(
+            SpawnOperations.ActivityQueuedTask(rethrowSquadServiceResponse(msg), 1)
+          )
+
         case SquadResponse.Detail(guid, detail) =>
           sendResponse(SquadDetailDefinitionUpdateMessage(guid, detail))
 
@@ -132,46 +188,14 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
               )
           }
 
-        case SquadResponse.UpdateMembers(_, positions) =>
-          val pairedEntries = positions.collect {
-            case entry if ops.squadUI.contains(entry.char_id) =>
-              (entry, ops.squadUI(entry.char_id))
-          }
-          //prune entries
-          val updatedEntries = pairedEntries
-            .collect({
-              case (entry, element) if entry.zone_number != element.zone =>
-                //zone gets updated for these entries
-                sendResponse(
-                  SquadMemberEvent.UpdateZone(ops.squad_supplement_id, entry.char_id, element.index, entry.zone_number)
-                )
-                ops.squadUI(entry.char_id) =
-                  SquadUIElement(element.name, element.outfit, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
-                entry
-              case (entry, element)
-                if entry.health != element.health || entry.armor != element.armor || entry.pos != element.position =>
-                //other elements that need to be updated
-                ops.squadUI(entry.char_id) =
-                  SquadUIElement(element.name, element.outfit, element.index, entry.zone_number, entry.health, entry.armor, entry.pos)
-                entry
-            })
-            .filterNot(_.char_id == avatar.id) //we want to update our backend, but not our frontend
-          if (updatedEntries.nonEmpty) {
-            sendResponse(
-              SquadState(
-                PlanetSideGUID(ops.squad_supplement_id),
-                updatedEntries.map { entry =>
-                  SquadStateInfo(entry.char_id, entry.health, entry.armor, entry.pos)
-                }
-              )
-            )
-          }
-
         case SquadResponse.CharacterKnowledge(charId, name, certs, u1, u2, zone) =>
           sendResponse(CharacterKnowledgeMessage(charId, Some(CharacterKnowledgeInfo(name, certs, u1, u2, zone))))
 
         case SquadResponse.WaypointEvent(WaypointEventAction.Remove, char_id, waypoint_type, _, _, _) =>
           sendResponse(SquadWaypointEvent.Remove(ops.squad_supplement_id, char_id, waypoint_type))
+
+        case SquadResponse.SquadRelatedComment(comment) =>
+          sendResponse(ChatMsg(ChatMessageType.UNK_227, comment))
 
         case _ => ()
       }

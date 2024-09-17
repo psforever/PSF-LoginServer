@@ -2,26 +2,30 @@
 package net.psforever.actors.session.support
 
 import akka.actor.Cancellable
-import net.psforever.objects.LivePlayerList
 import akka.actor.{ActorRef => ClassicActorRef}
 import akka.actor.typed.ActorRef
 import akka.actor.{ActorContext, typed}
+import akka.pattern.ask
+import akka.util.Timeout
 import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.session.normal.{NormalMode => SessionNormalMode}
 import net.psforever.actors.session.spectator.{SpectatorMode => SessionSpectatorMode}
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.LivePlayerList
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.ZoneInfo
 import net.psforever.packet.game.SetChatFilterMessage
 import net.psforever.services.chat.{DefaultChannel, SquadChannel}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.teamwork.SquadService
+import net.psforever.services.teamwork.{SquadResponse, SquadService, SquadServiceResponse}
 import net.psforever.types.ChatMessageType.CMT_QUIT
 import org.log4s.Logger
 
 import scala.annotation.unused
 import scala.collection.{Seq, mutable}
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.util.Success
 //
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.login.WorldSession
@@ -73,6 +77,10 @@ class ChatOperations(
 
   import akka.actor.typed.scaladsl.adapter._
   private val chatServiceAdapter: ActorRef[ChatService.MessageResponse] = context.self.toTyped[ChatService.MessageResponse]
+
+  private implicit lazy val timeout: Timeout = Timeout(2.seconds)
+
+  private var invitationList: Array[String] = Array()
 
   def JoinChannel(channel: ChatChannel): Unit = {
     chatService ! ChatService.JoinChannel(chatServiceAdapter, sessionLogic, channel)
@@ -1260,22 +1268,37 @@ class ChatOperations(
   def customCommandSquad(params: Seq[String]): Boolean = {
     params match {
       case "invites" :: _ =>
-        squadService ! SquadService.ListAllCurrentInvites
+        invitationList = Array()
+        ask(squadService, SquadService.ListAllCurrentInvites)
+          .onComplete {
+            case Success(msg @ SquadServiceResponse(_, _, SquadResponse.WantsSquadPosition(_, str))) =>
+              invitationList = str.replaceAll("/s","").split(",")
+              context.self.forward(msg)
+            case _ => ()
+          }
 
       case "accept" :: names if names.contains("all") =>
         squadService ! SquadService.ChainAcceptance(player, player.CharId, Nil)
       case "accept" :: names if names.nonEmpty =>
-        val results = names.flatMap { name =>
-          LivePlayerList.WorldPopulation { case (_, p) => p.name.equals(name) }.map(_.id.toLong)
+        //when passing indices to existing invite list, the indices are 1-based
+        val results = (names.flatMap(_.toIntOption.flatMap(i => invitationList.lift(i-1))) ++ names)
+          .distinct
+          .flatMap { name =>
+            LivePlayerList.WorldPopulation { case (_, p) => p.name.equalsIgnoreCase(name) }
+              .map(_.id.toLong)
         }
         squadService ! SquadService.ChainAcceptance(player, player.CharId, results)
 
       case "reject" :: names if names.contains("all") =>
         squadService ! SquadService.ChainRejection(player, player.CharId, Nil)
       case "reject" :: names if names.nonEmpty =>
-        val results = names.flatMap { name =>
-          LivePlayerList.WorldPopulation { case (_, p) => p.name.equals(name) }.map(_.id.toLong)
-        }
+        //when passing indices to existing invite list, the indices are 1-based
+        val results = (names.flatMap(_.toIntOption.flatMap(i => invitationList.lift(i-1))) ++ names)
+          .distinct
+          .flatMap { name =>
+            LivePlayerList.WorldPopulation { case (_, p) => p.name.equalsIgnoreCase(name) }
+              .map(_.id.toLong)
+          }
         squadService ! SquadService.ChainRejection(player, player.CharId, results)
 
       case _ => ()
