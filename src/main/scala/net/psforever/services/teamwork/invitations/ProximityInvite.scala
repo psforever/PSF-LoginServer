@@ -44,26 +44,46 @@ final case class ProximityInvite(squadLeader: Member, features: SquadFeatures, p
                         invitedPlayer: Long,
                         invitedPlayerSquadOpt: Option[SquadFeatures]
                       ): Unit = {
+    val leaderCharId = squadLeader.CharId
+    //this cleanup activity always happens
+    features.ProxyInvites = features.ProxyInvites.filterNot { _ == invitedPlayer }
     if (
       manager.notLimitedByEnrollmentInSquad(invitedPlayerSquadOpt, invitedPlayer) &&
-      SquadInvitationManager.canEnrollInSquad(features, invitedPlayer)
+        SquadInvitationManager.canEnrollInSquad(features, invitedPlayer) &&
+        manager.joinSquad(player, features, position)
     ) {
-      val invitingPlayer = squadLeader.CharId
-      features.ProxyInvites = features.ProxyInvites.filterNot { _ == invitedPlayer }
-      if (manager.joinSquad(player, features, position)) {
-        //join this squad
-        manager.acceptanceMessages(invitingPlayer, invitedPlayer, player.Name)
-        manager.cleanUpAllInvitesWithPlayer(invitedPlayer)
-        val squad = features.Squad
-        if (squad.Size == squad.Capacity) {
-          //all available squad positions filled; terminate all remaining invitations
-          manager.cleanUpAllInvitesToSquad(features)
+      //join this squad
+      //manager.acceptanceMessages(invitingPlayer, invitedPlayer, player.Name)
+      val msg = SquadResponse.Membership(SquadResponseType.Accept, invitedPlayer, Some(leaderCharId), player.Name, unk5 = false)
+      manager.publish(leaderCharId, msg)
+      manager.publish(invitedPlayer, msg.copy(unk5 = true))
+      //clean up invitations specifically for this squad and this position
+      val cleanedUpQueuedInvites = manager.cleanUpQueuedInvitesForSquadAndPosition(features.Squad.GUID, position)
+      if (features.Squad.Capacity == features.Squad.Size) {
+        val cleanedUpActiveInvites = manager.cleanUpActiveInvitesForSquad(features.Squad.GUID)
+        cleanedUpActiveInvites.collect { case (id, invites) =>
+          invites.foreach(_.handleCancel(manager, player, id))
+          manager.publish(
+            id,
+            SquadResponse.SquadRelatedComment(s"An invitation to join a squad has ended.")
+          )
         }
-      } else {
-        manager.reloadProximityInvite(player.Zone.Players, invitedPlayer, features, position) //TODO ?
+        (manager.cleanUpQueuedInvitesForSquad(features.Squad.GUID) ++ cleanedUpActiveInvites ++ cleanedUpQueuedInvites).collectFirst { case _ =>
+          manager.publish(
+            leaderCharId,
+            SquadResponse.SquadRelatedComment(s"You had invitations that were cancelled due to this action.")
+          )
+        }
+      } else if (cleanedUpQueuedInvites.nonEmpty) {
+        manager.publish(
+          leaderCharId,
+          SquadResponse.SquadRelatedComment(s"You had invitations that were cancelled due to this action.")
+        )
       }
+    } else {
+      //if able to attempt to accept this proximity invite, recruitment is still ongoing
+      manager.reloadProximityInvite(player.Zone.Players, invitedPlayer, features, position)
     }
-
   }
 
   def handleRejection(
@@ -88,6 +108,31 @@ final case class ProximityInvite(squadLeader: Member, features: SquadFeatures, p
                    rejectingPlayer: Long
                  ): Unit = {
     manager.reloadProximityInvite(player.Zone.Players, rejectingPlayer, features, position)
+  }
+
+  def handleCancel(
+                    manager: SquadInvitationManager,
+                    player: Player,
+                    handlingPlayer: Long
+                  ): Unit = {
+    val actingPlayer = player.CharId
+    val leaderCharId = squadLeader.CharId
+    if (actingPlayer == handlingPlayer) {
+      manager.publish(
+        handlingPlayer,
+        SquadResponse.SquadRelatedComment(s"You have declined an offer to join a squad.")
+      )
+    } else if (actingPlayer == leaderCharId) {
+      manager.publish(
+        handlingPlayer,
+        SquadResponse.SquadRelatedComment(s"The offer to join a squad has been cancelled.")
+      )
+    } else {
+      manager.publish(
+        handlingPlayer,
+        SquadResponse.SquadRelatedComment(s"The offer to join into a squad is no longer valid.")
+      )
+    }
   }
 
   def canBeAutoApproved: Boolean = false

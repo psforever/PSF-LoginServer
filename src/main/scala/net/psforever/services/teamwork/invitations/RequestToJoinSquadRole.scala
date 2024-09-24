@@ -36,12 +36,60 @@ final case class RequestToJoinSquadRole(requestee: Player, features: SquadFeatur
                       ): Unit = {
     //player requested to join a squad's specific position
     //invitedPlayer is actually the squad leader; petitioner is the actual "invitedPlayer"
+    val leaderCharId = player.CharId
+    val requestingPlayer = requestee.CharId
     if (
       SquadInvitationManager.canEnrollInSquad(features, requestee.CharId) &&
       manager.joinSquad(requestee, features, position)
     ) {
-      manager.acceptanceMessages(invitedPlayer, requestee.CharId, requestee.Name)
-      manager.cleanUpInvitesForSquadAndPosition(features, position)
+      //manager.acceptanceMessages(invitedPlayer, requestee.CharId, requestee.Name)
+      manager.publish(
+        leaderCharId,
+        SquadResponse.SquadRelatedComment(s"You have accepted ${requestee.Name}'s request to join your squad.")
+      )
+      manager.publish(
+        requestingPlayer,
+        SquadResponse.SquadRelatedComment(s"You have joined the squad '${features.Squad.Task}'.")
+      )
+      //clean up invitations specifically for this squad and this position
+      val cleanedUpActiveInvitesForSquadAndPosition = manager.cleanUpActiveInvitesForSquadAndPosition(features.Squad.GUID, position)
+      cleanedUpActiveInvitesForSquadAndPosition.collect { case (id, invites) =>
+        invites.foreach(_.handleCancel(manager, player, id))
+        manager.publish(
+          id,
+          SquadResponse.SquadRelatedComment(s"An invitation to join a squad has ended.")
+        )
+      }
+      val cleanedUpQueuedInvites = manager.cleanUpQueuedInvitesForSquadAndPosition(features.Squad.GUID, position)
+      if (features.Squad.Capacity == features.Squad.Size) {
+        val cleanedUpActiveInvites = manager.cleanUpActiveInvitesForSquad(features.Squad.GUID)
+        cleanedUpActiveInvites.collect { case (id, _) =>
+          manager.publish(
+            id,
+            SquadResponse.SquadRelatedComment(s"An invitation to join a squad has ended.")
+          )
+        }
+        (manager.cleanUpQueuedInvitesForSquad(features.Squad.GUID) ++ cleanedUpActiveInvites ++ cleanedUpQueuedInvites).collectFirst { case _ =>
+          manager.publish(
+            leaderCharId,
+            SquadResponse.SquadRelatedComment(s"You had invitations that were cancelled due to this action.")
+          )
+        }
+      } else if (cleanedUpQueuedInvites.nonEmpty) {
+        manager.publish(
+          leaderCharId,
+          SquadResponse.SquadRelatedComment(s"You had invitations that were cancelled due to this action.")
+        )
+      }
+    } else {
+      manager.publish(
+        requestingPlayer,
+        SquadResponse.SquadRelatedComment(s"Your invitation to squad '${features.Squad.Task}' was accepted, but failed.")
+      )
+      manager.publish(
+        leaderCharId,
+        SquadResponse.SquadRelatedComment(s"An accepted request to join your squad has failed.")
+      )
     }
   }
 
@@ -68,6 +116,38 @@ final case class RequestToJoinSquadRole(requestee: Player, features: SquadFeatur
                    rejectingPlayer: Long
                  ): Unit = {
     features.DeniedPlayers(requestee.CharId)
+  }
+
+  def handleCancel(
+                    manager: SquadInvitationManager,
+                    player: Player,
+                    handlingPlayer: Long
+                  ): Unit = {
+    val invitingPlayer = requestee.CharId
+    val invitingPlayerName = requestee.Name
+    val actingPlayer = player.CharId
+    val leaderCharId = features.Squad.Leader.CharId
+    val leaderName = features.Squad.Leader.Name
+    if (actingPlayer == handlingPlayer) {
+      manager.publish(
+        invitingPlayer,
+        SquadResponse.SquadRelatedComment(s"You were declined admission to a squad.")
+      )
+    } else if (actingPlayer == invitingPlayer) {
+      manager.publish(
+        leaderCharId,
+        SquadResponse.SquadRelatedComment(s"$invitingPlayerName has rescinded the offer to join the squad.")
+      )
+    } else {
+      manager.publish(
+        leaderCharId,
+        SquadResponse.SquadRelatedComment(s"The request from $invitingPlayerName to join the squad is no longer valid.")
+      )
+      manager.publish(
+        invitingPlayer,
+        SquadResponse.SquadRelatedComment(s"The offer to $leaderName to join the squad is no longer valid.")
+      )
+    }
   }
 
   def canBeAutoApproved: Boolean = true

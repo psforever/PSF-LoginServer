@@ -4,11 +4,12 @@ package net.psforever.services.teamwork
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
+
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.Future
 //
-import net.psforever.objects.{LivePlayerList, Player}
+import net.psforever.objects.Player
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.teamwork.{Member, SquadFeatures}
 import net.psforever.objects.zones.Zone
@@ -119,14 +120,24 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
     }
   }
 
+  def createPermissionToRedirectInvite(player: Player, invitingPlayer: Long, features: SquadFeatures): Unit = {
+    val leader = features.Squad.Leader.CharId
+    addInviteAndRespond(
+      leader,
+      IndirectInvite(player, features),
+      invitingPlayer,
+      player.Name
+    )
+  }
+
   def createIndirectInvite(player: Player, invitingPlayer: Long, features: SquadFeatures): Unit = {
     val invitedPlayer = player.CharId
-    val squad2 = features.Squad
-    val leader = squad2.Leader.CharId
+    val squad = features.Squad
+    val leader = squad.Leader.CharId
     allowed(invitedPlayer, invitingPlayer)
     allowed(leader, invitingPlayer)
     lazy val preface = s"$invitingPlayer's invitation got reversed to $invitedPlayer's squad, but"
-    if (squad2.Size == squad2.Capacity) {
+    if (squad.Size == squad.Capacity) {
       log.debug(s"$preface the squad has no available positions")
     } else if (refused(invitingPlayer).contains(invitedPlayer)) {
       log.debug(s"$preface $invitedPlayer repeated a previous refusal to $invitingPlayer's invitation offer")
@@ -186,7 +197,9 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
             newRecruitment = newRecruitment :+ key
             squad.Membership.zipWithIndex.filterNot { case (_, index) => index == position }
           case None =>
-            cleanUpQueuedInvitesForSquadAndPosition(features, position)
+            val comment = s"An invitation to squad '${features.Squad.Task}' was filled by a different player."
+            cleanUpQueuedInvitesForSquadAndPosition(features.Squad.GUID, position)
+              .foreach { id => subs.Publish(id, SquadResponse.SquadRelatedComment(comment)) }
             squad.Membership.zipWithIndex
         }
       case _ =>
@@ -196,7 +209,8 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
       .collect { case (member, index) if member.CharId == 0 && squad.Availability(index) => (member, index) }
       .sortBy({ _._1.Requirements.foldLeft(0)(_ + _.value) })(Ordering.Int.reverse)
     //find recruits
-    val players = zone.LivePlayers.map { _.avatar }
+    val faction = squad.Faction
+    val players = zone.Players.filter(_.faction == faction)
     if (positionsToRecruitFor.nonEmpty && players.nonEmpty) {
       //does this do anything?
       subs.Publish(
@@ -212,19 +226,19 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
           Some(None)
         )
       )
-      positionsToRecruitFor.foreach { case (_, position) =>
-        findSoldiersWithinScopeAndInvite(
-          squad.Leader,
-          features,
-          position,
-          players,
-          features.ProxyInvites ++ newRecruitment,
-          proximityEnvelope
-        ) match {
-          case None => ()
-          case Some(id) =>
+      positionsToRecruitFor
+        .foreach { case (_, position) =>
+          findSoldiersWithinScopeAndInvite(
+            squad.Leader,
+            features,
+            position,
+            players,
+            features.ProxyInvites ++ newRecruitment,
+            proximityEnvelope
+          )
+          .collect { id =>
             newRecruitment = newRecruitment :+ id
-        }
+          }
       }
     }
     if (newRecruitment.isEmpty) {
@@ -236,7 +250,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
       (origSearchForRole, invites.get(key)) match {
         case (Some(-1), _) => ()
         case (Some(position), Some(LookingForSquadRoleInvite(member, _, _))) =>
-          invites(key) = ProximityInvite(member, features, position)
+          invites.put(key, ProximityInvite(member, features, position))
         case _ => ()
       }
     }
@@ -287,7 +301,10 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
       case None =>
         if (features.SearchForRole.contains(position) && features.ProxyInvites.isEmpty) {
           features.SearchForRole = None
-          //TODO message the squadLeader.CharId to indicate that there are no more candidates for this position
+          subs.Publish(
+            squadLeader.CharId,
+            SquadResponse.SquadRelatedComment("Exhausted all possible candidates to fill the open squad position.")
+          )
         }
       case Some(id) =>
         features.ProxyInvites = features.ProxyInvites :+ id
@@ -314,15 +331,21 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
       scope,
       features.ProxyInvites,
       proximityEnvelope
-    ) match {
-      case None =>
+    )
+      .collect { id =>
+        features.ProxyInvites = features.ProxyInvites :+ id
+        id
+      }
+      .orElse {
         if (features.SearchForRole.contains(-1) && features.ProxyInvites.isEmpty) {
           features.SearchForRole = None
-          //TODO message the squadLeader.CharId to indicate that there are no more candidates for this position
+          subs.Publish(
+            squadLeader.CharId,
+            SquadResponse.SquadRelatedComment("Exhausted all possible local candidates to fill the open squad positions.")
+          )
         }
-      case Some(id) =>
-        features.ProxyInvites = features.ProxyInvites :+ id
-    }
+        None
+      }
   }
 
   /* acceptance */
@@ -497,11 +520,12 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
   }
 
   def tryChainRejectionAll(charId: Long, features: SquadFeatures): Unit = {
-    val squadName = features.Squad.Task
-    cleanUpAllInvitesToSquad(features)
+    val comment = s"Your request to join squad '${features.Squad.Task}' has been refused."
+    cleanUpAllInvitesForSquad(features.Squad.GUID)
+      .map(_._1)
       .filterNot(_ == charId)
       .foreach { refusedId =>
-        subs.Publish(refusedId, SquadResponse.SquadRelatedComment(s"Your request to join squad '$squadName' has been refused."))
+        subs.Publish(refusedId, SquadResponse.SquadRelatedComment(comment))
       }
   }
 
@@ -530,35 +554,73 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
   /* other special actions */
 
   def handleDisbanding(features: SquadFeatures): Unit = {
-    cleanUpAllInvitesToSquad(features)
+    cleanUpAllInvitesForSquad(features.Squad.GUID)
   }
 
-  def handleCancelling(cancellingPlayer: Long): Unit = {
-    invites.collect { case (id, invite) if invite.appliesToPlayer(cancellingPlayer) => removeInvite(id) }
-    queuedInvites.foreach {
-      case (id: Long, inviteList) =>
-        val inList = inviteList.filterNot(_.appliesToPlayer(cancellingPlayer))
-        if (inList.isEmpty) {
-          queuedInvites.remove(id)
-        } else {
-          queuedInvites(id) = inList
+  def handleCancelling(
+                        cancellingPlayer: Long,
+                        player: Player,
+                        featureOpt: Option[SquadFeatures]
+                      ): Unit = {
+    featureOpt
+      .collect {
+        case features if features.SearchForRole.contains(-1L) =>
+          //cancel proximity invites
+          features.SearchForRole = None
+          features.ProxyInvites = Nil
+          val queuedButCancelled = cleanUpQueuedProximityInvitesForPlayer(cancellingPlayer)
+          val activeButCancelled = cleanUpActiveProximityInvitesForPlayer(cancellingPlayer)
+          activeButCancelled.collect { case (id, invites) =>
+            invites.foreach(_.handleCancel(manager = this, player, id))
+          }
+          if (queuedButCancelled.nonEmpty || activeButCancelled.nonEmpty) {
+            subs.Publish(
+              cancellingPlayer,
+              SquadResponse.SquadRelatedComment("You have cancelled proximity invitations for your squad recruitment.")
+            )
+          }
+          true
+        case features if features.SearchForRole.nonEmpty =>
+          //cancel search for role
+          cancelSelectRoleForYourself(player, features)
+          subs.Publish(
+            cancellingPlayer,
+            SquadResponse.SquadRelatedComment("You have cancelled search for role invitations for your squad recruitment.")
+          )
+          true
+      }
+      .orElse {
+        //todo cancel any request to join squad role or invitation to create a squad
+        None
+      }
+      .orElse {
+        //we have nothing special to cancel; search everything and see what we have dipped our feet in
+        val queuedButCancelled = cleanUpQueuedInvitesForPlayer(cancellingPlayer)
+        val activeButCancelled = cleanUpActiveInvitesForPlayer(cancellingPlayer)
+        activeButCancelled.collect { case (id, invites) =>
+          invites.foreach(_.handleCancel(manager = this, player, id))
         }
-    }
-    //get rid of ProximityInvite objects
-    cleanUpAllProximityInvites(cancellingPlayer)
+        if (queuedButCancelled.nonEmpty || activeButCancelled.nonEmpty) {
+          subs.Publish(
+            cancellingPlayer,
+            SquadResponse.SquadRelatedComment("You have cancelled some invitations and/or squad requests.")
+          )
+        }
+        None
+      }
   }
 
   def handleClosingSquad(features: SquadFeatures): Unit = {
-    cleanUpAllInvitesToSquad(features)
+    cleanUpAllInvitesForSquad(features.Squad.GUID)
   }
 
   def handleCleanup(charId: Long): Unit = {
-    cleanUpAllInvitesWithPlayer(charId)
+    cleanUpAllInvitesForPlayer(charId)
   }
 
   def handleLeave(charId: Long): Unit = {
     refusedPlayers.remove(charId)
-    cleanUpAllInvitesWithPlayer(charId)
+    cleanUpAllInvitesForPlayer(charId)
   }
 
   /* other special actions, promotion */
@@ -606,7 +668,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
         addInviteAndRespond(promotedPlayer, x, x.inviterCharId, x.inviterName)
       case x :: xs =>
         addInviteAndRespond(promotedPlayer, x, x.inviterCharId, x.inviterName)
-        queuedInvites += promotedPlayer -> xs
+        queuedInvites.put(promotedPlayer, xs)
     }
   }
 
@@ -652,7 +714,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
     var otherInvites = unfulfilled ++
       others.collect {
         case invite: InvitationToCreateASquad => invite.futureSquadLeader
-        case invite: IndirectInvite    => invite.recruitOrOwner
+        case invite: IndirectInvite    => invite.originalRequester
       }
         .distinctBy { _.CharId }
     (1 to 9).foreach { position =>
@@ -668,7 +730,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
     }
     //cleanup searches by squad leader
     features.SearchForRole match {
-      case Some(-1) => cleanUpAllProximityInvites(charId)
+      case Some(-1) => cleanUpAllProximityInvitesForPlayer(charId)
       case Some(_)  => cancelFind(Some(features))
       case None => ()
     }
@@ -678,59 +740,62 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
                               tplayer: Player,
                               features: SquadFeatures,
                               position: Int
-                            ): Unit = {
+                            ): List[(Long, List[Invitation])] = {
     val squad = features.Squad
     val sguid = squad.GUID
-    (features.SearchForRole match {
-      case None =>
-        Some(Nil)
-      case Some(-1) =>
+    val list = features
+      .SearchForRole
+      .collect {
+      case -1 =>
         //a proximity invitation has not yet cleared; nothing will be gained by trying to invite for a specific role
         log.debug("FindLfsSoldiersForRole: waiting for proximity invitations to clear")
         None
-      case Some(pos) if pos == position =>
+      case pos if pos == position =>
         //already recruiting for this specific position in the squad? do nothing
         log.debug("FindLfsSoldiersForRole: already recruiting for this position; client-server mismatch?")
         None
-      case Some(pos) =>
+      case pos =>
         //some other role is undergoing recruitment; cancel and redirect efforts for new position
+        val comment = s"An invitation to join squad '${features.Squad.Task}' has been rescinded."
         features.SearchForRole = None
-        cleanUpQueuedInvitesForSquadAndPosition(features, pos)
-        Some(
-          invites.filter {
-            case (_, LookingForSquadRoleInvite(_, _features, role)) => _features.Squad.GUID == sguid && role == pos
-            case _                                                  => false
-          }.keys.toList
-        )
-    }) match {
-      case None =>
-        features.SearchForRole = None
-      case Some(list) =>
-        //this will update the role entry in the GUI to visually indicate being searched for; only one will be displayed at a time
-        subs.Publish(
-          tplayer.CharId,
-          SquadResponse.Detail(
-            sguid,
-            SquadDetail().Members(
-              List(SquadPositionEntry(position, SquadPositionDetail().CharId(char_id = 0L).Name(name = "")))
-            )
-          )
-        )
-        //search!
-        findSoldiersWithinScopeAndInvite(
-          squad.Leader,
-          features,
-          position,
-          LivePlayerList.WorldPopulation { _ => true },
-          list,
-          lookingForSquadRoleEnvelope
-        ) match {
-          case None => ()
-          case Some(id) =>
-            features.ProxyInvites = List(id)
-            features.SearchForRole = position
+        val retiredQueuedInvitations = cleanUpQueuedInvitesForSquadAndPosition(features.Squad.GUID, pos)
+        val retiredInvites = invites.collect { case (id, invite) if invite.appliesToSquadAndPosition(sguid, pos) => (id, List(invite)) }
+        retiredInvites.foreach { case (id, _) =>
+          invites.remove(id)
+          nextInviteAndRespond(id)
         }
+        SquadInvitationManager.moveListElementsToMap(retiredQueuedInvitations, retiredInvites)
+        retiredInvites.foreach { case (id, _) =>
+          subs.Publish(id, SquadResponse.SquadRelatedComment(comment))
+        }
+        Some(retiredInvites.toList)
+      }
+      .flatten
+      .getOrElse(Nil)
+    //this will update the role entry in the GUI to visually indicate being searched for; only one will be displayed at a time
+    subs.Publish(
+      tplayer.CharId,
+      SquadResponse.Detail(
+        sguid,
+        SquadDetail().Members(
+          List(SquadPositionEntry(position, SquadPositionDetail().CharId(char_id = 0L).Name(name = "")))
+        )
+      )
+    )
+    //search!
+    val faction = squad.Faction
+    findSoldiersWithinScopeAndInvite(
+      squad.Leader,
+      features,
+      position,
+      tplayer.Zone.Players.filter(_.faction == faction),
+      Nil,
+      lookingForSquadRoleEnvelope
+    ).collect { id =>
+      features.ProxyInvites = List(id)
+      features.SearchForRole = position
     }
+    list
   }
 
   def cancelFind(lSquadOpt: Option[SquadFeatures]): Unit = {
@@ -857,7 +922,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
             leaderCharId,
             SquadResponse.Membership(SquadResponseType.Cancel, cancellingPlayer, None, entry.requestee.Name, unk5 = false)
           )
-          queuedInvites(leaderCharId) = list.take(index) ++ list.drop(index + 1)
+          queuedInvites.put(leaderCharId, list.take(index) ++ list.drop(index + 1))
           Some(true)
       }
     )
@@ -908,7 +973,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
   def ensureEmptySquad(features: SquadFeatures): Boolean = {
     val ensuredEmpty = features.Squad.Size <= 1
     if (ensuredEmpty) {
-      cleanUpAllInvitesToSquad(features)
+      cleanUpAllInvitesForSquad(features.Squad.GUID)
     }
     ensuredEmpty
   }
@@ -919,7 +984,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
     * This operation is fairly safe to call whenever a player is to be inducted into a squad.
     * The aforementioned player must have a callback retained in `subs.UserEvents`
     * and conditions imposed by both the role and the player must be satisfied.
-    * @see `CleanUpAllInvitesWithPlayer`
+    * @see `CleanUpAllInvitesForPlayer`
     * @see `Squad.isAvailable`
     * @see `Squad.Switchboard`
     * @see `SquadSubscriptionEntity.MonitorSquadDetails`
@@ -934,7 +999,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
     *         `false`, if the player did not join the squad or is already a squad member
     */
   def joinSquad(player: Player, features: SquadFeatures, position: Int): Boolean = {
-    cleanUpAllInvitesWithPlayer(player.CharId)
+    cleanUpAllInvitesForPlayer(player.CharId)
     parent ! SquadService.PerformJoinSquad(player, features, position)
     true
   }
@@ -971,7 +1036,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
   def refused(charId: Long, list: List[Long]): List[Long] = {
     refusedPlayers.get(charId) match {
       case Some(refusedList) =>
-        refusedPlayers(charId) = list ++ refusedList
+        refusedPlayers.put(charId, list ++ refusedList)
         refused(charId)
       case None =>
         Nil
@@ -1003,7 +1068,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
   def allowed(charId: Long, list: List[Long]): List[Long] = {
     refusedPlayers.get(charId) match {
       case Some(refusedList) =>
-        refusedPlayers(charId) = refusedList.filterNot(list.contains)
+        refusedPlayers.put(charId, refusedList.filterNot(list.contains))
         refused(charId)
       case None =>
         Nil
@@ -1157,7 +1222,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
                 eachBid.inviterCharId == inviteInviterCharId
               }
             ) {
-              queuedInvites(invitedPlayer) = invite match {
+              val restoredInvites = invite match {
                 case _: RequestToJoinSquadRole =>
                   //RequestToJoinSquadRole is to be expedited
                   val (normals, others) = bidList.partition(_.isInstanceOf[RequestToJoinSquadRole])
@@ -1165,13 +1230,14 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
                 case _ =>
                   bidList :+ invite
               }
+              queuedInvites.put(invitedPlayer, restoredInvites)
               Some(_bid)
             } else {
               None
             }
           case None =>
             if (_bid.inviterCharId != invite.inviterCharId) {
-              queuedInvites(invitedPlayer) = List(invite)
+              queuedInvites.put(invitedPlayer, List(invite))
               Some(_bid)
             } else {
               None
@@ -1179,7 +1245,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
         }
 
       case None =>
-        invites(invitedPlayer) = invite
+        invites.put(invitedPlayer, invite)
         Some(invite)
     }
   }
@@ -1265,11 +1331,11 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
               case Nil =>
                 None
               case x :: Nil =>
-                invites(invitedPlayer) = x
+                invites.put(invitedPlayer, x)
                 queuedInvites.remove(invitedPlayer)
                 Some(x)
               case x :: xs =>
-                invites(invitedPlayer) = x
+                invites.put(invitedPlayer, x)
                 queuedInvites(invitedPlayer) = xs
                 Some(x)
             }
@@ -1332,7 +1398,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
   def removeInvite(invitedPlayer: Long): Option[Invitation] = {
     invites.remove(invitedPlayer) match {
       case out @ Some(invite) =>
-        previousInvites += invitedPlayer -> invite
+        previousInvites.put(invitedPlayer, invite)
         out
       case None =>
         None
@@ -1354,210 +1420,231 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
     val squad = features.Squad
     val faction = squad.Faction
     val squadLeader = squad.Leader.CharId
-    val deniedAndExcluded = features.DeniedPlayers() ++ excluded
+    val deniedAndExcluded = (features.DeniedPlayers() ++ excluded) :+ squadLeader
     val requirementsToMeet = squad.Membership(position).Requirements
     //find a player who is of the same faction as the squad, is LFS, and is eligible for the squad position
     scope
       .find { avatar =>
         val charId = avatar.id
-        faction == avatar.faction &&
-          avatar.lookingForSquad &&
+        avatar.lookingForSquad &&
+          avatar.faction == faction &&
+          charId != squadLeader &&
+          charId != invitingPlayerCharId &&
           !deniedAndExcluded.contains(charId) &&
           !refusedPlayers(charId).contains(squadLeader) &&
-          requirementsToMeet.intersect(avatar.certifications) == requirementsToMeet &&
-          charId != invitingPlayerCharId //don't send invite to yourself. can cause issues if rejected
-      } match {
-      case None =>
-        None
-      case Some(invitedPlayer) =>
+          requirementsToMeet.intersect(avatar.certifications) == requirementsToMeet
+      }
+      .collect { invitedPlayer =>
         //add invitation for position in squad
-        val invite = invitationEnvelopFunc(invitingPlayer, features, position)
         val id = invitedPlayer.id
-        addInviteAndRespond(id, invite, invitingPlayerCharId, invitingPlayerName)
-        Some(id)
+        addInviteAndRespond(
+          id,
+          invitationEnvelopFunc(invitingPlayer, features, position),
+          invitingPlayerCharId,
+          invitingPlayerName
+        )
+        id
     }
   }
 
   /* invite clean-up */
 
-  /**
-    * Remove all inactive invites associated with this player.
-    * @param charId the unique character identifier for the player being invited;
-    *               in actuality, represents the player who will address the invitation object
-    * @return a list of the removed inactive invitation objects
-    */
-  def cleanUpQueuedInvites(charId: Long): Unit = {
-    val list = List(charId)
-    queuedInvites
-      .remove(charId)
-      .map(_.flatMap(_.getOptionalSquad))
-      .getOrElse(Nil)
-      .foreach(cleanUpSquadFeatures(list, _, position = -1))
-  }
-
-  def cleanUpSquadFeatures(removed: List[Long], features: SquadFeatures, position: Int): Unit = {
-    features.ProxyInvites = features.ProxyInvites.filterNot(removed.contains)
-    if (features.ProxyInvites.isEmpty) {
-      features.SearchForRole = None
-    }
+  private def removeActiveInvites(invitationFilteringRule: (Long, Invitation) => Boolean): List[(Long, List[Invitation])] = {
+    invites
+      .collect {
+        case out @ (id, invite) if invitationFilteringRule(id, invite) => out
+      }
+      .map { case (id, invite) =>
+        removeInvite(id)
+        nextInviteAndRespond(id)
+        (id, List(invite))
+      }
+      .toList
   }
 
   /**
-    * Remove all invitation objects
-    * that are related to the particular squad and the particular role in the squad.
-    * Specifically used to safely disarm obsolete invitation objects related to the specific criteria.
-    * Affects only certain invitation object types
-    * including "player requesting role" and "leader requesting recruiting role".
-    * @see `RemoveActiveInvitesForSquadAndPosition`
-    * @see `RemoveQueuedInvitesForSquadAndPosition`
-    * @param features the squad
-    * @param position the role position index
-    */
-  def cleanUpInvitesForSquadAndPosition(features: SquadFeatures, position: Int): Unit = {
-    val guid = features.Squad.GUID
-    cleanUpSquadFeatures(
-      removeActiveInvitesForSquadAndPosition(guid, position) ++ removeQueuedInvitesForSquadAndPosition(guid, position),
-      features,
-      position
+   * Remove all active invitation objects that are related to the particular player.
+   * Specifically used to safely disarm obsolete invitation objects by specific criteria.
+   * Affects the active invitation list and any squads related to that player.
+   * @param charId the player's unique identifier number
+   * @return a list of the removed inactive invitation objects
+   */
+  def cleanUpActiveInvitesForPlayer(charId: Long): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpInvites(removeActiveInvitesForPlayer(charId), List(charId))
+  }
+
+  /**
+   * Remove all active invitation objects that are related to the particular player.
+   * Specifically used to safely disarm obsolete invitation objects by specific criteria.
+   * Affects the active invitation list.
+   * @param charId the player's unique identifier number
+   * @return a list of the removed inactive invitation objects
+   */
+  private def removeActiveInvitesForPlayer(charId: Long): List[(Long, List[Invitation])] = {
+    removeActiveInvites({ (id: Long, invite: Invitation) => id == charId || invite.appliesToPlayer(charId) })
+  }
+
+  /**
+   * Remove all inactive invitation objects that are related to the particular player.
+   * Specifically used to safely disarm obsolete invitation objects by specific criteria.
+   * Affects the queued invitation list and any squads related to that player.
+   * @param charId the player's unique identifier number
+   * @return a list of the removed inactive invitation objects
+   */
+  def cleanUpQueuedInvitesForPlayer(charId: Long): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpInvites(removeQueuedInvitesForPlayer(charId), List(charId))
+  }
+
+  /**
+   * Remove all inactive invitation objects that are related to the particular player.
+   * Specifically used to safely disarm obsolete invitation objects by specific criteria.
+   * Affects the inactive invitation list.
+   * @param charId the player's unique identifier number
+   * @return a list of the removed inactive invitation objects
+   */
+  private def removeQueuedInvitesForPlayer(charId: Long): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.removeQueuedInvites(
+      queuedInvites,
+      { invite: Invitation => invite.appliesToPlayer(charId) }
     )
   }
 
   /**
-    * Remove all inactive invitation objects that are related to the particular squad and the particular role in the squad.
-    * Specifically used to safely disarm obsolete invitation objects by specific criteria.
-    * Affects only certain invitation object types.
-    * @see `RequestToJoinSquadRole`
-    * @see `LookingForSquadRoleInvite`
-    * @see `CleanUpInvitesForSquadAndPosition`
-    * @param features the squa
-    * @param position the role position index
-    */
-  def cleanUpQueuedInvitesForSquadAndPosition(features: SquadFeatures, position: Int): Unit = {
-    cleanUpSquadFeatures(
-      removeQueuedInvitesForSquadAndPosition(features.Squad.GUID, position),
-      features,
-      position
+   * Remove all invitation objects that are related to the particular player.
+   * Specifically used to safely disarm obsolete invitation objects by specific criteria.
+   * Affects the active invitation list and the inactive invitation list and any squads related to that player.
+   * @param charId the player's unique identifier number
+   * @return a list of the removed inactive invitation objects
+   */
+  def cleanUpAllInvitesForPlayer(charId: Long): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpAllInvites(
+      removeQueuedInvitesForPlayer(charId),
+      removeActiveInvitesForPlayer(charId)
     )
   }
 
   /**
-    * Remove all invitation objects that are related to the particular squad.
-    * Specifically used to safely disarm obsolete invitation objects by specific criteria.
-    * Affects all invitation object types and all data structures that deal with the squad.
-    * @see `RequestToJoinSquadRole`
-    * @see `IndirectInvite`
-    * @see `LookingForSquadRoleInvite`
-    * @see `ProximityInvite`
-    * @see `RemoveInvite`
-    * @see `InvitationToJoinSquad`
-    * @param features the squad identifier
-    */
-  def cleanUpAllInvitesToSquad(features: SquadFeatures): List[Long] = {
-    val guid = features.Squad.GUID
-    //clean up invites
-    val activeInviteIds = {
-      val keys = invites.keys.toSeq
-      invites
-        .values
-        .zipWithIndex
-        .collect {
-          case (invite, index) if invite.appliesToSquad(guid) => index
-        }
-        .map { index =>
-          val key = keys(index)
-          removeInvite(key)
-          key
-        }
-        .toList
-    }
-    //tidy the queued invitations
-    val queuedInviteIds = {
-      val keys = queuedInvites.keys.toSeq
-      queuedInvites.values.zipWithIndex
-        .collect {
-          case (queue, index) =>
-            val key = keys(index)
-            val (targets, retained) = queue.partition(_.appliesToSquad(guid))
-            if (retained.isEmpty) {
-              queuedInvites.remove(key)
-            } else {
-              queuedInvites += key -> retained
-            }
-            if (targets.nonEmpty) {
-              Some(key)
-            } else {
-              None
-            }
-        }
-        .flatten
-        .toList
-    }
-    val allInviteIds = (activeInviteIds ++ queuedInviteIds).distinct
-    cleanUpSquadFeatures(allInviteIds, features, position = -1)
-    allInviteIds
+   * Remove all active invitation objects that are related to the particular squad.
+   * Specifically used to safely disarm obsolete invitation objects by specific criteria.
+   * @param guid squad identifier
+   */
+  def cleanUpActiveInvitesForSquad(guid: PlanetSideGUID): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpInvites(removeActiveInvitesForSquad(guid), Nil)
+  }
+
+  private def removeActiveInvitesForSquad(guid: PlanetSideGUID): List[(Long, List[Invitation])] = {
+    removeActiveInvites({ (_: Long, invite: Invitation) => invite.appliesToSquad(guid) })
   }
 
   /**
-    * Remove all active and inactive invitation objects that are related to the particular player.
-    * Specifically used to safely disarm obsolete invitation objects by specific criteria.
-    * Affects all invitation object types and all data structures that deal with the player.
-    * @see `RequestToJoinSquadRole`
-    * @see `IndirectInvite`
-    * @see `LookingForSquadRoleInvite`
-    * @see `RemoveInvite`
-    * @see `CleanUpAllProximityInvites`
-    * @see `InvitationToJoinSquad`
-    * @param charId the player's unique identifier number
-    */
-  def cleanUpAllInvitesWithPlayer(charId: Long): Unit = {
-    //clean up our active invitation
-    val charIdInviteSquadGuid = removeInvite(charId).flatMap(_.getOptionalSquad)
-    //clean up invites
-    val (activeInviteIds, activeSquadGuids) = {
-      val keys = invites.keys.toSeq
-      invites
-        .values
-        .zipWithIndex
-        .map {
-          case (invite, index) =>
-            val key = keys(index)
-            removeInvite(key)
-            (key, invite.getOptionalSquad)
-        }
-        .unzip
-    }
-    //tidy the queued invitations
-    val (queuedInviteIds, queuedSquadGuids) = {
-      val keys = queuedInvites.keys.toSeq
-      queuedInvites.values.zipWithIndex
-        .collect {
-          case (queue, index) =>
-            val key = keys(index)
-            val (targets, retained) = if (key != charId) {
-              queue.partition(_.appliesToPlayer(charId))
-            } else {
-              (queue, Nil)
-            }
-            if (retained.isEmpty) {
-              queuedInvites.remove(key)
-            } else {
-              queuedInvites += key -> retained
-            }
-            if (targets.nonEmpty) {
-              Some((key, targets.flatMap(_.getOptionalSquad)))
-            } else {
-              None
-            }
-        }
-        .flatten
-        .toList
-        .unzip
-    }
-    val allInvites = (activeInviteIds ++ queuedInviteIds).toList.distinct
-    ((activeSquadGuids.toSeq :+ charIdInviteSquadGuid) ++ queuedSquadGuids)
-      .flatten
-      .distinct
-      .foreach { guid => cleanUpSquadFeatures(allInvites, guid, position = -1) }
+   * Remove all queued invitation objects that are related to the particular squad.
+   * Specifically used to safely disarm obsolete invitation objects by specific criteria.
+   * @param guid squad identifier
+   */
+  def cleanUpQueuedInvitesForSquad(guid: PlanetSideGUID): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpInvites(removeQueuedInvitesForSquad(guid), Nil)
+  }
+
+  private def removeQueuedInvitesForSquad(guid: PlanetSideGUID): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.removeQueuedInvites(
+      queuedInvites,
+      { invite: Invitation => invite.appliesToSquad(guid) }
+    )
+  }
+
+  /**
+   * Remove all invitation objects that are related to the particular squad.
+   * Specifically used to safely disarm obsolete invitation objects by specific criteria.
+   * Affects all invitation object types and all data structures that deal with the squad.
+   * @param guid squad identifier
+   */
+  def cleanUpAllInvitesForSquad(guid: PlanetSideGUID): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpAllInvites(
+      removeQueuedInvitesForSquad(guid),
+      removeActiveInvitesForSquad(guid)
+    )
+  }
+
+  /**
+   * Remove all active invitation objects
+   * that are related to the particular squad and the particular role in the squad.
+   * Specifically used to safely disarm obsolete invitation objects related to the specific criteria.
+   * Affects only certain invitation object types
+   * including "player requesting role" and "leader requesting recruiting role".
+   * @param guid the squad identifier
+   * @param position the role position index
+   * @return the character ids of all players whose invites were removed
+   */
+  def cleanUpActiveInvitesForSquadAndPosition(guid: PlanetSideGUID, position: Int): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpInvites(removeActiveInvitesForSquadAndPosition(guid, position), Nil)
+  }
+
+  private def removeActiveInvitesForSquadAndPosition(guid: PlanetSideGUID, position: Int): List[(Long, List[Invitation])] = {
+    removeActiveInvites({ (_: Long, invite: Invitation) => invite.appliesToSquadAndPosition(guid, position) })
+  }
+
+  /**
+   * Remove all inactive invitation objects that are related to the particular squad and the particular role in the squad.
+   * Specifically used to safely disarm obsolete invitation objects by specific criteria.
+   * Affects only certain invitation object types.
+   * @param guid the squad identifier
+   * @param position the role position index
+   * @return the character ids of all players whose invites were removed
+   */
+  def cleanUpQueuedInvitesForSquadAndPosition(guid: PlanetSideGUID, position: Int): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpInvites(removeQueuedInvitesForSquadAndPosition(guid, position), Nil)
+  }
+
+  private def removeQueuedInvitesForSquadAndPosition(guid: PlanetSideGUID, position: Int): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.removeQueuedInvites(
+      queuedInvites,
+      { invite: Invitation => invite.appliesToSquadAndPosition(guid, position) }
+    )
+  }
+
+  /**
+   * Remove all invitation objects
+   * that are related to the particular squad and the particular role in the squad.
+   * Specifically used to safely disarm obsolete invitation objects related to the specific criteria.
+   * Affects only certain invitation object types
+   * including "player requesting role" and "leader requesting recruiting role".
+   * @see `RemoveActiveInvitesForSquadAndPosition`
+   * @see `RemoveQueuedInvitesForSquadAndPosition`
+   * @param guid squad identifier
+   * @param position the role position index
+   */
+  def cleanUpAllInvitesForSquadAndPosition(guid: PlanetSideGUID, position: Int): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpAllInvites(
+      removeQueuedInvitesForSquadAndPosition(guid, position),
+      removeActiveInvitesForSquadAndPosition(guid, position)
+    )
+  }
+
+  def cleanUpActiveProximityInvitesForPlayer(charId: Long): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpInvites(removeActiveProximityInvitesForPlayer(charId), List(charId))
+  }
+
+  private def removeActiveProximityInvitesForPlayer(charId: Long): List[(Long, List[Invitation])] = {
+    removeActiveInvites({
+      (_: Long, invite: Invitation) => invite match {
+        case invite: ProximityInvite => invite.appliesToPlayer(charId)
+        case _ => false
+      }
+    })
+  }
+
+  def cleanUpQueuedProximityInvitesForPlayer(charId: Long): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpInvites(removeQueuedProximityInvitesForPlayer(charId), Nil)
+  }
+
+  private def removeQueuedProximityInvitesForPlayer(charId: Long): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.removeQueuedInvites(
+      queuedInvites,
+      {
+        case invite: ProximityInvite => invite.appliesToPlayer(charId)
+        case _ => false
+      }
+    )
   }
 
   /**
@@ -1565,162 +1652,41 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
     * This is related to recruitment from the perspective of the recruiter.
     * @param charId the player
     */
-  def cleanUpAllProximityInvites(charId: Long): Unit = {
-    //clean up invites
-    val (activeInviteIds, activeSquadGuids) = {
-      val keys = invites.keys.toSeq
-      invites.values.zipWithIndex
-        .collect { case (ProximityInvite(member, guid, _), index) if member.CharId == charId => (index, Some(guid)) }
-        .map { case (index, guid) =>
-          val key = keys(index)
-          removeInvite(key)
-          (key, guid)
-        }
-        .unzip
-    }
-    //tidy the queued invitations
-    val (queuedInviteIds, queuedSquadGuids) = {
-      val keys = queuedInvites.keys.toSeq
-      queuedInvites
-        .values
-        .zipWithIndex
-        .collect {
-          case (queue, index) =>
-            val key = keys(index)
-            val (targets, retained) = queue.partition {
-              case ProximityInvite(member, _, _) => member.CharId == charId
-              case _                             => false
-            }
-            if (retained.isEmpty) {
-              queuedInvites.remove(key)
-            } else {
-              queuedInvites += key -> retained
-            }
-            if (targets.nonEmpty) {
-              Some((key, targets.collect { case ProximityInvite(_, guid, _) => guid } ))
-            } else {
-              None
-            }
-        }
-        .flatten
-        .toList
-        .unzip
-    }
-    val allInvites = (activeInviteIds ++ queuedInviteIds).toList.distinct
-    (activeSquadGuids.toSeq ++ queuedSquadGuids)
-      .flatten
-      .distinct
-      .foreach { guid => cleanUpSquadFeatures(allInvites, guid, position = -1) }
+  def cleanUpAllProximityInvitesForPlayer(charId: Long): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpAllInvites(
+      removeQueuedProximityInvitesForPlayer(charId),
+      removeActiveProximityInvitesForPlayer(charId)
+    )
+  }
+
+  private def removeActiveProximityInvitesForSquad(guid: PlanetSideGUID): List[(Long, List[Invitation])] = {
+    removeActiveInvites({
+      (_: Long, invite: Invitation) => invite match {
+        case invite: ProximityInvite => invite.appliesToSquad(guid)
+        case _ => false
+      }
+    })
+  }
+
+  private def removeQueuedProximityInvitesForSquad(guid: PlanetSideGUID): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.removeQueuedInvites(
+      queuedInvites,
+      {
+        case invite: ProximityInvite => invite.appliesToSquad(guid)
+        case _ => false
+      }
+    )
   }
 
   /**
     * Remove all active and inactive proximity squad invites for a specific squad.
-    * @param features the squad
+    * @param guid squad identifier
     */
-  def cleanUpProximityInvites(features: SquadFeatures): Unit = {
-    val squadGuid = features.Squad.GUID
-    //clean up invites
-    val activeInviteIds = {
-      val keys = invites.keys.toSeq
-      invites.values.zipWithIndex
-        .collect {
-          case (ProximityInvite(_, _squad, _), index) if _squad.Squad.GUID == squadGuid => index
-        }
-        .map { index =>
-          val key = keys(index)
-          removeInvite(key)
-          key
-        }
-    }
-    //tidy the queued invitations
-    val queuedInviteIds = {
-      val keys = queuedInvites.keys.toSeq
-      queuedInvites.values.zipWithIndex
-        .collect {
-          case (queue, index) =>
-            val key = keys(index)
-            val (targets, retained) = queue.partition {
-              case ProximityInvite(_, _squad, _) => _squad.Squad.GUID == squadGuid
-              case _                             => false
-            }
-            if (retained.isEmpty) {
-              queuedInvites.remove(key)
-            } else {
-              queuedInvites += key -> retained
-            }
-            if (targets.nonEmpty) {
-              keys.lift(index)
-            } else {
-              None
-            }
-        }
-        .flatten
-        .toList
-    }
-    cleanUpSquadFeatures((activeInviteIds ++ queuedInviteIds).toList.distinct, features, position = -1)
-  }
-
-  /**
-    * Remove all active invitation objects
-    * that are related to the particular squad and the particular role in the squad.
-    * Specifically used to safely disarm obsolete invitation objects related to the specific criteria.
-    * Affects only certain invitation object types
-    * including "player requesting role" and "leader requesting recruiting role".
-    * @see `RequestToJoinSquadRole`
-    * @see `LookingForSquadRoleInvite`
-    * @see `ProximityInvite`
-    * @see `RemoveInvite`
-    * @param guid the squad identifier
-    * @param position the role position index
-    * @return the character ids of all players whose invites were removed
-    */
-  def removeActiveInvitesForSquadAndPosition(guid: PlanetSideGUID, position: Int): List[Long] = {
-    val keys = invites.keys.toSeq
-    invites
-      .values
-      .zipWithIndex
-      .collect {
-        case (invite, index) if invite.appliesToSquadAndPosition(guid, position) => index
-      }
-      .map { index =>
-        val key = keys(index)
-        removeInvite(key)
-        key
-      }
-      .toList
-  }
-
-  /**
-    * Remove all inactive invitation objects that are related to the particular squad and the particular role in the squad.
-    * Specifically used to safely disarm obsolete invitation objects by specific criteria.
-    * Affects only certain invitation object types.
-    * @see `RequestToJoinSquadRole`
-    * @see `LookingForSquadRoleInvite`
-    * @see `CleanUpInvitesForSquadAndPosition`
-    * @param guid the squad identifier
-    * @param position the role position index
-    * @return the character ids of all players whose invites were removed
-    */
-  def removeQueuedInvitesForSquadAndPosition(guid: PlanetSideGUID, position: Int): List[Long] = {
-    val keys = queuedInvites.keys.toSeq
-    queuedInvites.values.zipWithIndex
-      .collect {
-        case (queue, index) =>
-          val key = keys(index)
-          val (targets, retained) = queue.partition(_.appliesToSquadAndPosition(guid, position))
-          if (retained.isEmpty) {
-            queuedInvites.remove(key)
-          } else {
-            queuedInvites += key -> retained
-          }
-          if (targets.nonEmpty) {
-            Some(key)
-          } else {
-            None
-          }
-      }
-      .flatten
-      .toList
+  def cleanUpAllProximityInvitesForSquad(guid: PlanetSideGUID): List[(Long, List[Invitation])] = {
+    SquadInvitationManager.cleanUpAllInvites(
+      removeQueuedProximityInvitesForSquad(guid),
+      removeActiveProximityInvitesForSquad(guid)
+    )
   }
 
   def publish(to: Long, msg: SquadResponse.Response): Unit = {
@@ -1810,5 +1776,95 @@ object SquadInvitationManager {
       case Some((_, features)) => features.Squad.Leader.CharId != charId
       case None                => false
     }
+  }
+
+  private def moveListElementsToMap[T](fromList: List[(Long, List[T])], toMap: mutable.LongMap[List[T]]): Unit = {
+    fromList.foreach { case (id, listElements) =>
+      toMap.get(id) match {
+        case None =>
+          toMap.put(id, listElements)
+        case Some(mapElements) =>
+          toMap.put(id, listElements ++ mapElements)
+      }
+    }
+  }
+
+  private def cleanUpSquadFeatures(removed: List[Long], features: SquadFeatures, position: Int): Unit = {
+    features.ProxyInvites = features.ProxyInvites.filterNot(removed.contains)
+    if (features.ProxyInvites.isEmpty) {
+      features.SearchForRole = None
+    }
+  }
+
+  /**
+   * Remove all active invitation objects that are related to the particular player.
+   * Specifically used to safely disarm obsolete invitation objects by specific criteria.
+   * Affects the active invitation list and any squads related to that player.
+   * @param proposedRemovalIds list of unique character identifiers to be eliminated from squad information;
+   *                           if empty, the unique character identifiers from the other parameter will be used instead
+   * @return a list of the removed inactive invitation objects
+   */
+  private def cleanUpInvites(
+                              list: List[(Long, List[Invitation])],
+                              proposedRemovalIds: List[Long]
+                            ): List[(Long, List[Invitation])] = {
+    val (idList, invites) = list.unzip
+    val removalList = proposedRemovalIds
+      .collectFirst(_ => proposedRemovalIds)
+      .getOrElse(idList)
+    invites
+      .flatten
+      .flatMap(_.getOptionalSquad)
+      .distinctBy(_.Squad.GUID)
+      .foreach(cleanUpSquadFeatures(removalList, _, position = -1))
+    list
+  }
+
+  /**
+   * Remove all invitation objects that are related to the particular squad.
+   * Specifically used to safely disarm obsolete invitation objects by specific criteria.
+   * Affects all invitation object types and all data structures that deal with the squad.
+   */
+  private def cleanUpAllInvites(
+                                 queuedList: List[(Long, List[Invitation])],
+                                 activeList: List[(Long, List[Invitation])]
+                               ): List[(Long, List[Invitation])] = {
+    val activeInvitesMap = mutable.LongMap.from(activeList)
+    val (removalList, featureList) = {
+      val (ids, inviteLists) = (activeInvitesMap ++ queuedList).unzip
+      (
+        ids.toList,
+        inviteLists
+          .flatMap { invites =>
+            invites.flatMap(_.getOptionalSquad)
+          }
+      )
+    }
+    moveListElementsToMap(queuedList, activeInvitesMap)
+    featureList
+      .toSeq
+      .distinctBy(_.Squad.GUID)
+      .foreach { features =>
+        cleanUpSquadFeatures(removalList, features, position = -1)
+      }
+    activeInvitesMap.toList
+  }
+
+  private def removeQueuedInvites(
+                                   inviteMap: mutable.LongMap[List[Invitation]],
+                                   partitionRule: Invitation => Boolean
+                                 ): List[(Long, List[Invitation])] = {
+    inviteMap
+      .toList
+      .flatMap {
+        case (id, invites) =>
+          val (found, retained) = invites.partition(partitionRule)
+          if (retained.nonEmpty) {
+            inviteMap.put(id, retained)
+          } else {
+            inviteMap.remove(id)
+          }
+          found.collectFirst { _ => (id, found) }
+      }
   }
 }

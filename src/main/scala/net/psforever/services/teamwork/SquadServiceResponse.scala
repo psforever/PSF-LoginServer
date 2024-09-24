@@ -5,7 +5,7 @@ import akka.actor.ActorRef
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
-import net.psforever.types.{PlanetSideGUID, SquadResponseType, SquadWaypoint}
+import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadResponseType, SquadWaypoint}
 import net.psforever.services.GenericEventBusMsg
 
 final case class SquadServiceResponse(channel: String, exclude: Iterable[Long], response: SquadResponse.Response)
@@ -84,5 +84,5 @@ object SquadResponse {
                                        zoneNumber: Int
                                      ) extends Response
 
-  final case class SquadRelatedComment(str: String) extends Response
+  final case class SquadRelatedComment(str: String, messageType: ChatMessageType = ChatMessageType.UNK_227) extends Response
 }
