@@ -48,21 +48,50 @@ final case class InvitationToCreateASquad(futureSquadLeader: Player)
         .askToCreateANewSquad(futureSquadLeader)
         .onComplete {
           case Success(FinishStartSquad(features)) =>
-            manager.handleVacancyInvite(features, invitedPlayer, leaderCharId, player) match {
-              case Some((_, line)) =>
-                manager.publish(
-                  invitedPlayer,
-                  SquadResponse.Membership(SquadResponseType.Accept, invitedPlayer, Some(leaderCharId), "", unk5 = true)
-                )
+            manager
+              .handleVacancyInvite(features, invitedPlayer, leaderCharId, player)
+              .collect {
+                case (_, line) if manager.joinSquad(player, features, line) =>
+                  manager.publish(
+                    leaderCharId,
+                    SquadResponse.Membership(SquadResponseType.Accept, invitedPlayer, Some(leaderCharId), "", unk5 = false)
+                  )
+                  manager.publish(
+                    invitedPlayer,
+                    SquadResponse.Membership(SquadResponseType.Accept, leaderCharId, Some(invitedPlayer), player.Name, unk5 = true)
+                  )
+                  //all invitations involving the invited person must be cancelled due to the nature of this acceptance
+                  manager.cleanUpQueuedInvitesForPlayer(invitedPlayer)
+                  val cleanedUpActiveInvites = manager.cleanUpAllInvitesForPlayer(invitedPlayer)
+                  cleanedUpActiveInvites.collect { case (id, invites) =>
+                    invites.foreach(_.handleCancel(manager, player, id))
+                    manager.publish(
+                      id,
+                      SquadResponse.SquadRelatedComment(s"An invitation involving ${futureSquadLeader.Name} has ended.")
+                    )
+                  }
+                  features
+              }
+              .orElse {
                 manager.publish(
                   leaderCharId,
-                  SquadResponse.Membership(SquadResponseType.Accept, leaderCharId, Some(invitedPlayer), player.Name, unk5 = false)
+                  SquadResponse.SquadRelatedComment(s"Though a squad has been created, a member could not join it.")
                 )
-                manager.joinSquad(player, features, line)
-                manager.cleanUpQueuedInvites(invitedPlayer)
-              case _ => ()
+                manager.publish(
+                  invitedPlayer,
+                  SquadResponse.SquadRelatedComment(s"You could not join ${futureSquadLeader.Name} squad.")
+                )
+                None
+              }
+            //since a squad was created, currently operated by the leader, all invitations related to the leader have changed
+            manager.cleanUpAllInvitesForPlayer(leaderCharId).collectFirst { _ =>
+              manager.publish(
+                leaderCharId,
+                SquadResponse.SquadRelatedComment(s"You had invitations that were cancelled due to this action.")
+              )
             }
-          case _ => ()
+          case _ =>
+            org.log4s.getLogger("InvitationToCreateASquad").error("could not create a squad when requested")
         }
     }
   }
@@ -96,6 +125,35 @@ final case class InvitationToCreateASquad(futureSquadLeader: Player)
                    rejectingPlayer: Long
                  ): Unit = {
     manager.refused(rejectingPlayer, futureSquadLeader.CharId)
+  }
+
+  def handleCancel(
+                    manager: SquadInvitationManager,
+                    player: Player,
+                    handlingPlayer: Long
+                  ): Unit = {
+    val actingPlayer = player.CharId
+    val leaderCharId = futureSquadLeader.CharId
+    if (actingPlayer == handlingPlayer) {
+      manager.publish(
+        leaderCharId,
+        SquadResponse.SquadRelatedComment(s"${player.Name} has declined joining into a squad with you, or the offer is no longer valid.")
+      )
+    } else if (actingPlayer == leaderCharId) {
+      manager.publish(
+        handlingPlayer,
+        SquadResponse.SquadRelatedComment(s"${futureSquadLeader.Name} has decided not to join into a squad with you, or the offer is no longer valid.")
+      )
+    } else {
+      manager.publish(
+        leaderCharId,
+        SquadResponse.SquadRelatedComment(s"The offer to ${player.Name} to join into a squad with you is no longer valid.")
+      )
+      manager.publish(
+        handlingPlayer,
+        SquadResponse.SquadRelatedComment(s"The offer from ${futureSquadLeader.Name} join into a squad with you is no longer valid.")
+      )
+    }
   }
 
   def canBeAutoApproved: Boolean = false

@@ -2,7 +2,7 @@
 package net.psforever.services.teamwork.invitations
 
 import net.psforever.objects.teamwork.{Member, SquadFeatures}
-import net.psforever.objects.{LivePlayerList, Player}
+import net.psforever.objects.Player
 import net.psforever.services.teamwork.{SquadInvitationManager, SquadResponse}
 import net.psforever.types.{PlanetSideGUID, SquadResponseType}
 
@@ -38,18 +38,64 @@ final case class LookingForSquadRoleInvite(squadLeader: Member, features: SquadF
                         invitedPlayer: Long,
                         @unused invitedPlayerSquadOpt: Option[SquadFeatures]
                       ): Unit = {
+    val leaderCharId = squadLeader.CharId
     if (
       manager.notLimitedByEnrollmentInSquad(invitedPlayerSquadOpt, invitedPlayer) &&
-      SquadInvitationManager.canEnrollInSquad(features, invitedPlayer)
+        SquadInvitationManager.canEnrollInSquad(features, invitedPlayer) &&
+        manager.joinSquad(player, features, position)
     ) {
-      val invitingPlayer = squadLeader.CharId
-      features.ProxyInvites = features.ProxyInvites.filterNot { _ == invitedPlayer }
-      if (manager.joinSquad(player, features, position)) {
-        //join this squad
-        manager.acceptanceMessages(invitingPlayer, invitedPlayer, player.Name)
-        manager.cleanUpQueuedInvites(player.CharId)
-        manager.cleanUpInvitesForSquadAndPosition(features, position)
+      //join this squad
+      //manager.acceptanceMessages(invitedPlayer, requestee.CharId, requestee.Name)
+      val msg = SquadResponse.Membership(SquadResponseType.Accept, invitedPlayer, Some(leaderCharId), player.Name, unk5 = false)
+      manager.publish(leaderCharId, msg)
+      manager.publish(invitedPlayer, msg.copy(unk5 = true))
+//      manager.publish(
+//        invitedPlayer,
+//        SquadResponse.SquadRelatedComment(s"You have accepted ${squadLeader.Name}'s request to join a squad.")
+//      )
+//      manager.publish(
+//        leaderCharId,
+//        SquadResponse.SquadRelatedComment(s"${player.Name} has agreed to joined your squad.")
+//      )
+      //clean up invitations specifically for this squad and this position
+      val cleanedUpActiveInvitesForSquadAndPosition = manager.cleanUpActiveInvitesForSquadAndPosition(features.Squad.GUID, position)
+      cleanedUpActiveInvitesForSquadAndPosition.collect { case (id, _) =>
+        manager.publish(
+          id,
+          SquadResponse.SquadRelatedComment(s"An invitation to join a squad has ended.")
+        )
       }
+      val cleanedUpQueuedInvites = manager.cleanUpQueuedInvitesForSquadAndPosition(features.Squad.GUID, position)
+      if (features.Squad.Capacity == features.Squad.Size) {
+        val cleanedUpActiveInvites = manager.cleanUpActiveInvitesForSquad(features.Squad.GUID)
+        cleanedUpActiveInvites.collect { case (id, invites) =>
+          invites.foreach(_.handleCancel(manager, player, id))
+          manager.publish(
+            id,
+            SquadResponse.SquadRelatedComment(s"An invitation to join a squad has ended.")
+          )
+        }
+        (manager.cleanUpQueuedInvitesForSquad(features.Squad.GUID) ++ cleanedUpActiveInvites ++ cleanedUpQueuedInvites).collectFirst { case _ =>
+          manager.publish(
+            leaderCharId,
+            SquadResponse.SquadRelatedComment(s"You had invitations that were cancelled due to this action.")
+          )
+        }
+      } else if (cleanedUpQueuedInvites.nonEmpty) {
+        manager.publish(
+          leaderCharId,
+          SquadResponse.SquadRelatedComment(s"You had invitations that were cancelled due to this action.")
+        )
+      }
+    } else {
+      manager.publish(
+        invitedPlayer,
+        SquadResponse.SquadRelatedComment(s"Your accepted an invitation to squad '${features.Squad.Task}', but it failed.")
+      )
+      manager.publish(
+        leaderCharId,
+        SquadResponse.SquadRelatedComment(s"An accepted request to join your squad has failed.")
+      )
     }
   }
 
@@ -74,12 +120,43 @@ final case class LookingForSquadRoleInvite(squadLeader: Member, features: SquadF
                    player: Player,
                    rejectingPlayer: Long
                  ): Unit = {
+   val faction = player.Faction
     manager.reloadSearchForRoleInvite(
-      LivePlayerList.WorldPopulation { _ => true },
+      player.Zone.Players.filter(_.faction == faction),
       rejectingPlayer,
       features,
       position
     )
+  }
+
+  def handleCancel(
+                    manager: SquadInvitationManager,
+                    player: Player,
+                    handlingPlayer: Long
+                  ): Unit = {
+    val actingPlayer = player.CharId
+    val leaderCharId = features.Squad.Leader.CharId
+    val leaderName = features.Squad.Leader.Name
+    if (actingPlayer == handlingPlayer) {
+      manager.publish(
+        leaderCharId,
+        SquadResponse.SquadRelatedComment(s"${player.Name} has declined to join the squad.")
+      )
+    } else if (actingPlayer == leaderCharId) {
+      manager.publish(
+        handlingPlayer,
+        SquadResponse.SquadRelatedComment(s"$leaderName has rescinded the offer to join the squad.")
+      )
+    } else {
+      manager.publish(
+        leaderCharId,
+        SquadResponse.SquadRelatedComment(s"The offer to ${player.Name} to join the squad is no longer valid.")
+      )
+      manager.publish(
+        handlingPlayer,
+        SquadResponse.SquadRelatedComment(s"The offer from $leaderName to join the squad is no longer valid.")
+      )
+    }
   }
 
   def canBeAutoApproved: Boolean = false

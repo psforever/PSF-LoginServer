@@ -271,7 +271,7 @@ class SquadService extends Actor {
         SquadActionMembershipDisband(char_id)
 
       case SquadAction.Membership(SquadRequestType.Cancel, cancellingPlayer, _, _, _) =>
-        SquadActionMembershipCancel(cancellingPlayer)
+        SquadActionMembershipCancel(cancellingPlayer, tplayer)
 
       case SquadAction.Membership(SquadRequestType.Promote, _, _, _, _) => ()
       //      case SquadAction.Membership(SquadRequestType.Promote, promotingPlayer, Some(_promotedPlayer), promotedName, _) =>
@@ -329,8 +329,10 @@ class SquadService extends Actor {
               out
             } else {
               //this isn't the squad we're looking for by GUID; as a precaution, reload all of the published squad list
+              val charId = tplayer.CharId
               val faction = tplayer.Faction
-              subs.Publish(faction, SquadResponse.InitList(PublishedLists(tplayer.Faction)))
+              searchData.remove(charId)
+              subs.Publish(charId, SquadResponse.InitList(PublishedLists(faction)))
               None
             }
           case _ =>
@@ -538,7 +540,7 @@ class SquadService extends Actor {
               if invitersFeatures.Squad.Size == 1 =>
               //both players belong to squads, but the invitingPlayer's squad is underutilized by comparison
               //treat the same as "indirection ..." using squad2
-              invitations.createIndirectInvite(tplayer, invitedPlayer, invitedFeatures)
+              invitations.createPermissionToRedirectInvite(tplayer, invitedPlayer, invitedFeatures)
 
             case (Some(features), None) =>
               //the classic situation
@@ -546,7 +548,7 @@ class SquadService extends Actor {
 
             case (None, Some(features)) =>
               //indirection;  we're trying to invite ourselves to someone else's squad
-              invitations.createIndirectInvite(tplayer, invitedPlayer, features)
+              invitations.createPermissionToRedirectInvite(tplayer, invitedPlayer, features)
 
             case (None, None) =>
               //neither the invited player nor the inviting player belong to any squad
@@ -631,9 +633,13 @@ class SquadService extends Actor {
       .foreach(features => DisbandSquad(features))
   }
 
-  def SquadActionMembershipCancel(cancellingPlayer: Long): Unit = {
+  def SquadActionMembershipCancel(cancellingPlayer: Long, player: Player): Unit = {
     //get rid of SpontaneousInvite objects and VacancyInvite objects
-    invitations.handleCancelling(cancellingPlayer)
+    invitations.handleCancelling(
+      cancellingPlayer,
+      player,
+      GetLeadingSquad(cancellingPlayer, None)
+    )
   }
 
   def SquadActionMembershipPromote(
@@ -729,10 +735,8 @@ class SquadService extends Actor {
                                                                  charId: Long,
                                                                  criteria: SquadService.SearchCriteria
                                                                ): Unit = {
-    subs.Publish(
-      charId,
-      SquadResponse.SquadSearchResults(SearchForSquadsResults(criteria))
-    )
+    subs.Publish(charId, SquadResponse.InitList(PublishedLists(criteria.faction)))
+    subs.Publish(charId, SquadResponse.SquadSearchResults(SearchForSquadsResults(criteria)))
   }
 
   private def SearchForSquadsResults(criteria: SquadService.SearchCriteria): List[PlanetSideGUID] = {
@@ -950,7 +954,7 @@ class SquadService extends Actor {
     * will still leave the squad, but will not attempt to send feedback to the said unreachable client.
     * If the player is in the process of unsubscribing from the service,
     * the no-messaging pathway is useful to avoid accumulating dead letters.
-    * @see `CleanUpAllInvitesToSquad`
+    * @see `CleanUpAllInvitesForSquad`
     * @see `SquadDetail`
     * @see `SquadSubscriptionEntity.Publish`
     * @see `TryResetSquadId`

@@ -1879,7 +1879,7 @@ class ZoningOperations(
     private[session] var respawnTimer: Cancellable = Default.Cancellable
 
     private var queuedActivities: Seq[SpawnOperations.ActivityQueuedTask] = Seq()
-    private var initialActivityDelay: Int = 4
+    private val initialActivityDelay: Int = 4
     private var nextActivityDelay: Int = 0
 
     private var statisticsPacketFunc: () => Unit = loginAvatarStatisticsFields
@@ -1890,6 +1890,7 @@ class ZoningOperations(
       val ReleaseAvatarRequestMessage() = pkt
       log.info(s"${player.Name} on ${continent.id} has released")
       reviveTimer.cancel()
+      avatarActive = false
       GoToDeploymentMap()
       HandleReleaseAvatar(player, continent)
     }
@@ -3733,6 +3734,7 @@ class ZoningOperations(
       zoningStatus = Zoning.Status.None
       player.death_by = math.min(player.death_by, 0)
       player.allowInteraction = true
+      avatarActive = true
       nextSpawnPoint.foreach { tube =>
         sendResponse(PlayerStateShiftMessage(ShiftState(0, tube.Position, tube.Orientation.z)))
         nextSpawnPoint = None

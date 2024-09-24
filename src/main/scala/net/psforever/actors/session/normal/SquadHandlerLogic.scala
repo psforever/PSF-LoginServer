@@ -363,8 +363,8 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
         case SquadResponse.WaypointEvent(WaypointEventAction.Remove, char_id, waypoint_type, _, _, _) =>
           sendResponse(SquadWaypointEvent.Remove(ops.squad_supplement_id, char_id, waypoint_type))
 
-        case SquadResponse.SquadRelatedComment(comment) =>
-          sendResponse(ChatMsg(ChatMessageType.UNK_227, comment))
+        case SquadResponse.SquadRelatedComment(comment, messageType) =>
+          sendResponse(ChatMsg(messageType, comment))
 
         case _ => ()
       }

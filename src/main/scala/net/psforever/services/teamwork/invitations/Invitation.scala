@@ -56,6 +56,19 @@ abstract class Invitation(charId: Long, name: String) {
                    rejectingPlayer: Long
                  ): Unit
 
+  /**
+   * na
+ *
+   * @param manager subscription package
+   * @param handlingPlayer player who was intended to handle this invitation
+   * @param player player who caused cleanup action
+   */
+  def handleCancel(
+                    manager: SquadInvitationManager,
+                    player: Player,
+                    handlingPlayer: Long
+                  ): Unit
+
   def canBeAutoApproved: Boolean
 
   def getOptionalSquad: Option[SquadFeatures]
