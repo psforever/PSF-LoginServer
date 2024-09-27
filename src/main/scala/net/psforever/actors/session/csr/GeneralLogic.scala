@@ -1,5 +1,5 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.actors.session.normal
+package net.psforever.actors.session.csr
 
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, typed}
@@ -104,10 +104,18 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     isCloaking,
     _,
     _
-    )= pkt
+    ) = pkt
     sessionLogic.persist()
     sessionLogic.turnCounterFunc(avatarGuid)
     sessionLogic.updateBlockMap(player, pos)
+    //below half health, fully heal
+    val maxHealth = player.MaxHealth.toLong
+    if (player.Health < maxHealth * 0.5) {
+      player.Health = maxHealth.toInt
+      sendResponse(PlanetsideAttributeMessage(avatarGuid, 0, maxHealth))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(avatarGuid, 0, maxHealth))
+    }
+    //expected
     val isMoving     = WorldEntity.isMoving(vel)
     val isMovingPlus = isMoving || isJumping || jumpThrust
     if (isMovingPlus) {
@@ -162,11 +170,6 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         }
       case None => ()
     }
-    //llu destruction check
-    if (player.Carrying.contains(SpecialCarry.CaptureFlag)) {
-      CaptureFlagManager.ReasonToLoseFlagViolently(continent, sessionLogic.general.specialItemSlotGuid, player)
-    }
-    //
     val eagleEye: Boolean = ops.canSeeReallyFar
     val isNotVisible: Boolean = sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing ||
       (player.isAlive && sessionLogic.zoning.spawn.deadState == DeadState.RespawnTime)
@@ -287,17 +290,8 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     //make sure this is the correct response for all cases
     sessionLogic.validObject(objectGuid, decorator = "RequestDestroy") match {
       case Some(vehicle: Vehicle) =>
-        /* line 1a: player is admin (and overrules other access requirements) */
-        /* line 1b: vehicle and player (as the owner) acknowledge each other */
-        /* line 1c: vehicle is the same faction as player, is ownable, and either the owner is absent or the vehicle is destroyed */
-        /* line 2: vehicle is not mounted in anything or, if it is, its seats are empty */
-        if (
-          ((avatar.vehicle.contains(objectGuid) && vehicle.OwnerGuid.contains(player.GUID)) ||
-            (player.Faction == vehicle.Faction &&
-              (vehicle.Definition.CanBeOwned.nonEmpty &&
-                (vehicle.OwnerGuid.isEmpty || continent.GUID(vehicle.OwnerGuid.get).isEmpty) || vehicle.Destroyed))) &&
-            (vehicle.MountedIn.isEmpty || !vehicle.Seats.values.exists(_.isOccupied))
-        ) {
+        /* vehicle is not mounted in anything or, if it is, its seats are empty */
+        if (vehicle.MountedIn.isEmpty || !vehicle.Seats.values.exists(_.isOccupied)) { //todo kick out to delete?
           vehicle.Actor ! Vehicle.Deconstruct()
           //log.info(s"RequestDestroy: vehicle $vehicle")
         } else {
@@ -323,11 +317,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         }
 
       case Some(obj: Deployable) =>
-        if (obj.OwnerGuid.isEmpty || obj.OwnerGuid.contains(player.GUID) || obj.Destroyed) {
-          obj.Actor ! Deployable.Deconstruct()
-        } else {
-          log.warn(s"RequestDestroy: ${player.Name} must own the deployable in order to deconstruct it")
-        }
+        obj.Actor ! Deployable.Deconstruct()
 
       case Some(obj: Equipment) =>
         findEquipmentToDelete(objectGuid, obj)

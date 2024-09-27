@@ -3214,10 +3214,10 @@ class ZoningOperations(
         upstreamMessageCount = 0
         if (tplayer.spectator) {
           if (!setAvatar) {
-            context.self ! SessionActor.SetMode(SpectatorMode) //should reload spectator status
+            context.self ! SessionActor.SetMode(sessionLogic.chat.SpectatorMode) //should reload spectator status
           }
         } else if (
-          !account.gm && /* gm's are excluded */
+          !avatar.permissions.canGM && /* gm's are excluded */
             Config.app.game.promotion.active && /* play versus progress system must be active */
             BattleRank.withExperience(tplayer.avatar.bep).value <= Config.app.game.promotion.broadcastBattleRank && /* must be below a certain battle rank */
             tavatar.scorecard.Lives.isEmpty && /* first life after login */

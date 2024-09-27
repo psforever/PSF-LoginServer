@@ -7,7 +7,9 @@ import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.session.normal.{NormalMode => SessionNormalMode}
 import net.psforever.actors.session.spectator.{SpectatorMode => SessionSpectatorMode}
+import net.psforever.actors.session.csr.{CustomerServiceRepresentativeMode => SessionCustomerServiceRepresentativeMode}
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.avatar.ModePermissions
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.ZoneInfo
 import net.psforever.packet.game.SetChatFilterMessage
@@ -67,6 +69,8 @@ class ChatOperations(
    */
   private val ignoredEmoteCooldown: mutable.LongMap[Long] = mutable.LongMap[Long]()
 
+  private[session] var SpectatorMode: PlayerMode = SessionSpectatorMode
+
   import akka.actor.typed.scaladsl.adapter._
   private val chatServiceAdapter: ActorRef[ChatService.MessageResponse] = context.self.toTyped[ChatService.MessageResponse]
 
@@ -112,8 +116,8 @@ class ChatOperations(
     sendResponse(message.copy(contents = f"$speed%.3f"))
   }
 
-  def commandToggleSpectatorMode(session: Session, contents: String): Unit = {
-    val currentSpectatorActivation = session.player.spectator
+  def commandToggleSpectatorMode(contents: String): Unit = {
+    val currentSpectatorActivation = (if (avatar != null) avatar.permissions else ModePermissions()).canSpectate
     contents.toLowerCase() match {
       case "on" | "o" | "" if !currentSpectatorActivation =>
         context.self ! SessionActor.SetMode(SessionSpectatorMode)
@@ -1226,7 +1230,7 @@ class ChatOperations(
                                      params: Seq[String]
                                    ): Boolean = {
     val ourRank = BattleRank.withExperience(session.avatar.bep).value
-    if (!session.account.gm &&
+    if (!avatar.permissions.canGM &&
       (ourRank <= Config.app.game.promotion.broadcastBattleRank ||
         ourRank > Config.app.game.promotion.resetBattleRank && ourRank < Config.app.game.promotion.maxBattleRank + 1)) {
       setBattleRank(session, params, AvatarActor.Progress)
@@ -1250,6 +1254,18 @@ class ChatOperations(
     sendResponse(
       ChatMsg(CMT_GMOPEN, wideContents = false, "Server", s"closest facility: $closest", None)
     )
+    true
+  }
+
+  def customCommandModerator(contents: String): Boolean = {
+    val currentCsrActivation = (if (avatar != null) avatar.permissions else ModePermissions()).canGM
+    contents.toLowerCase() match {
+      case "on" | "o" | "" if currentCsrActivation =>
+        context.self ! SessionActor.SetMode(SessionCustomerServiceRepresentativeMode)
+      case "off" | "of" if currentCsrActivation =>
+        context.self ! SessionActor.SetMode(SessionNormalMode)
+      case _ => ()
+    }
     true
   }
 

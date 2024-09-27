@@ -1061,17 +1061,19 @@ object AvatarActor {
     val result = ctx.run(query[persistence.Avatarmodepermission].filter(_.avatarId == lift(avatarId)))
     result.onComplete {
       case Success(res) =>
+        val isDevServer = Config.app.world.serverType == ServerType.Development
         res.headOption
           .collect {
             case perms: persistence.Avatarmodepermission =>
-              out.completeWith(Future(ModePermissions(perms.canSpectate, perms.canGm)))
+              out.completeWith(Future(ModePermissions(perms.canSpectate || isDevServer, perms.canGm || isDevServer)))
           }
           .orElse {
-            out.completeWith(Future(ModePermissions()))
+            out.completeWith(Future(ModePermissions(isDevServer, isDevServer)))
             None
           }
       case _ =>
-        out.completeWith(Future(ModePermissions()))
+        val isDevServer = Config.app.world.serverType == ServerType.Development
+        out.completeWith(Future(ModePermissions(isDevServer, isDevServer)))
     }
     out.future
   }
