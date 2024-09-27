@@ -6,6 +6,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.environment.{EnvironmentTrait, PieceOfEnvironment}
 import net.psforever.objects.zones._
 import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorGroup, SectorPopulation}
+import net.psforever.types.Vector3
 
 import scala.collection.mutable
 
@@ -183,7 +184,7 @@ case class OnStableEnvironment() extends InteractionBehavior {
                existing: Set[PieceOfEnvironment],
                allow: Boolean
              ): Set[PieceOfEnvironment] = {
-    if (allow) {
+    if (obj.Position != Vector3.Zero && allow) {
       val interactions = obj.interaction().collectFirst { case inter: InteractWithEnvironment => inter.Interactions }
       val env = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
       env.foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
@@ -224,7 +225,7 @@ final case class AwaitOngoingInteraction(zone: Zone) extends InteractionBehavior
                allow: Boolean
              ): Set[PieceOfEnvironment] = {
     val interactions = obj.interaction().collectFirst { case inter: InteractWithEnvironment => inter.Interactions }
-    if (allow) {
+    if (obj.Position != Vector3.Zero && allow) {
       val env = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
       val (in, out) = existing.partition(body => InteractWithEnvironment.checkSpecificEnvironmentInteraction(zone, body, obj).nonEmpty)
       env.diff(in).foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
@@ -263,7 +264,7 @@ case class BlockedFromInteracting() extends InteractionBehavior {
                existing: Set[PieceOfEnvironment],
                allow: Boolean
              ): Set[PieceOfEnvironment] = {
-    if (allow) {
+    if (obj.Position != Vector3.Zero && allow) {
       nextstep = OnStableEnvironment()
     }
     Set()
