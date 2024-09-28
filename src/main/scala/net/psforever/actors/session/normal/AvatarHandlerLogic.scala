@@ -298,6 +298,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         delete.foreach { case (obj, _) => TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj)) }
         //redraw
         if (maxhand) {
+          sendResponse(PlanetsideAttributeMessage(target, attribute_type=7, player.Capacitor.toLong))
           TaskWorkflow.execute(HoldNewEquipmentUp(player)(
             Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)),
             0
@@ -365,7 +366,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       drops
       ) if resolvedPlayerGuid == target =>
         sendResponse(ArmorChangedMessage(target, exosuit, subtype))
-        sendResponse(PlanetsideAttributeMessage(target, attribute_type = 4, armor))
+        sendResponse(PlanetsideAttributeMessage(target, attribute_type=4, armor))
         //happening to this player
         sendResponse(ObjectHeldMessage(target, Player.HandsDownSlot, unk1=true))
         //cleanup
@@ -377,6 +378,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         drops.foreach(item => sendResponse(ObjectDeleteMessage(item.obj.GUID, unk1=0)))
         //redraw
         if (maxhand) {
+          sendResponse(PlanetsideAttributeMessage(target, attribute_type=7, player.Capacitor.toLong))
           TaskWorkflow.execute(HoldNewEquipmentUp(player)(
             Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)),
             slot = 0

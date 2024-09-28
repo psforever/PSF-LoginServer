@@ -635,7 +635,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         //was max
         val (delete, insert) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Max)
         if (willBecomeMax) {
-          //changing to a different kind(?) of max
+          if (originalSubtype != subtype) {
+            //changing to a different kind of max
+            player.Capacitor = 0
+          }
           (delete, Nil, insert, beforeInventory)
         } else {
           //changing to a vanilla exo-suit
@@ -645,6 +648,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         }
       } else if (willBecomeMax) {
         //will be max, drop everything but melee slot
+        player.Capacitor = 0
         val (melee, other) = beforeHolsters.partition(elem => elem.obj.Size == EquipmentSize.Melee)
         val (inventory, unplacedInventory) = GridInventory.recoverInventory(beforeInventory ++ other, player.Inventory)
         (Nil, unplacedInventory.map(InventoryItem(_, -1)), melee, inventory)
