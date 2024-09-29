@@ -1783,7 +1783,7 @@ object GlobalDefinitionsProjectile {
     spitfire_aa_ammo_projectile.Lifespan = 5f
     ProjectileDefinition.CalculateDerivedFields(spitfire_aa_ammo_projectile)
     spitfire_aa_ammo_projectile.Modifiers = List(
-      //FlakHit,
+      CerberusTurretWrongTarget,
       FlakBurst,
       MaxDistanceCutoff
     )

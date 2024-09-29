@@ -1,9 +1,10 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.projectile
 
+import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.ballistics._
 import net.psforever.objects.equipment.ChargeFireModeDefinition
-import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.objects.sourcing.{PlayerSource, VehicleSource}
 import net.psforever.objects.vital.base._
 import net.psforever.objects.vital.damage.DamageModifierFunctions
 import net.psforever.objects.vital.interaction.DamageInteraction
@@ -350,6 +351,19 @@ case object ShieldAgainstRadiation extends ProjectileDamageModifiers.Mod {
       }
     } else {
       damage
+    }
+  }
+}
+
+/** The Cerberus turret can not target any entities besides flying vehicles.
+  * An exception to this rule, however, happens when retaliating against something that damaged it first. */
+case object CerberusTurretWrongTarget extends ProjectileDamageModifiers.Mod {
+  def calculate(damage: Int, data: DamageInteraction, cause: ProjectileReason): Int = {
+    data.target match {
+      case v: VehicleSource if GlobalDefinitions.isFlightVehicle(v.Definition) =>
+        damage
+      case _ =>
+        damage - (math.random() * 3d).toInt - 1
     }
   }
 }
