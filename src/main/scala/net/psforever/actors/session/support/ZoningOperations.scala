@@ -18,7 +18,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
-import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic}
+import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, TriggeredSound}
 import net.psforever.services.chat.DefaultChannel
 
 import scala.collection.mutable
@@ -105,6 +105,59 @@ object ZoningOperations {
           "Your normal sense of progress will be restored."
       )
     )
+  }
+
+  private def usingVehicleSpawnTubeAnimation(
+                                              zone: Zone,
+                                              side: Sidedness,
+                                              faction: PlanetSideEmpire.Value,
+                                              position: Vector3,
+                                              orientation: Vector3,
+                                              additionalChannels: List[String]
+                                            ): Unit = {
+    val events = zone.LocalEvents
+    val effectMessage = LocalAction.TriggerEffectLocation(Service.defaultPlayerGUID, s"respawn_$faction", position, orientation)
+    (zone
+      .blockMap
+      .sector(position, range = 100f)
+      .livePlayerList
+      .filter(p => Sidedness.equals(side, p.WhichSide))
+      .map(_.Name) ++ additionalChannels)
+      .foreach { target =>
+        events ! LocalServiceMessage(target, effectMessage)
+      }
+  }
+
+  private def usingFacilitySpawnTubeAnimation(
+                                               zone: Zone,
+                                               side: Sidedness,
+                                               faction: PlanetSideEmpire.Value,
+                                               position: Vector3,
+                                               orientation: Vector3,
+                                               additionalChannels: List[String]
+                                             ): Unit = {
+    val posxy = position.xy
+    val posz = position.z
+    val events = zone.LocalEvents
+    val soundTargets = zone
+      .blockMap
+      .sector(position, range = 50f)
+      .livePlayerList
+    val effectTargets = soundTargets
+      .filter { t =>
+        val heightDiff = t.Position.z - posz
+        Sidedness.equals(t.WhichSide, side) &&
+          Vector3.DistanceSquared(t.Position.xy, posxy) < 2500f && /* literal 50m */
+          heightDiff < 5f && heightDiff > -1f
+      }
+    val effectMessage = LocalAction.TriggerEffectLocation(Service.defaultPlayerGUID, s"respawn_$faction", position, orientation)
+    (effectTargets.map(_.Name) ++ additionalChannels).foreach { target =>
+      events ! LocalServiceMessage(target, effectMessage)
+    }
+    val soundMessage = LocalAction.TriggerSound(Service.defaultPlayerGUID, TriggeredSound.SpawnInTube, position, 50, 0.69803923f)
+    (soundTargets.map(_.Name) ++ additionalChannels).foreach { target =>
+      events ! LocalServiceMessage(target, soundMessage)
+    }
   }
 }
 
@@ -2390,6 +2443,7 @@ class ZoningOperations(
           player.VehicleSeated = None
           val definition = player.avatar.definition
           val guid = player.GUID
+          usingSpawnTubeAnimation()
           sendResponse(OCM.detailed(player))
           continent.AvatarEvents ! AvatarServiceMessage(
             zoneid,
@@ -3130,13 +3184,12 @@ class ZoningOperations(
           Config.app.game.savedMsg.short.fixed,
           Config.app.game.savedMsg.short.variable
         )
-        val effortBy = prevSpawnPoint
-          .collect { case sp: SpawnTube => (sp, continent.GUID(sp.Owner.GUID)) }
+        val effortBy = getSpawnTubeOwner
           .collect {
             case (_, Some(v: Vehicle)) =>
               sessionLogic.vehicleResponseOperations.announceAmsDecay(
                 v.GUID,
-                msg = "The AMS you were bound to has lost its' owner.  It will auto-deconstruct soon."
+                msg = "The AMS you were bound to has lost its owner.  It will auto-deconstruct soon."
               )
               continent.GUID(v.OwnerGuid)
             case (sp, Some(_: Building)) =>
@@ -3670,6 +3723,21 @@ class ZoningOperations(
           context.self
         )
       }
+    }
+
+    private def getSpawnTubeOwner: Option[(SpawnTube, Option[PlanetSideGameObject])] = {
+      prevSpawnPoint.orElse(nextSpawnPoint).collect { case sp: SpawnTube => (sp, continent.GUID(sp.Owner.GUID)) }
+    }
+
+    private def usingSpawnTubeAnimation(): Unit = {
+      getSpawnTubeOwner
+        .collect { case (sp, owner @ Some(_)) => (sp, owner) }
+        .collect {
+          case (sp, Some(_: Vehicle)) =>
+            ZoningOperations.usingVehicleSpawnTubeAnimation(sp.Zone, sp.WhichSide, sp.Faction, player.Position, sp.Orientation, List(player.Name))
+          case (sp, Some(_: Building)) =>
+            ZoningOperations.usingFacilitySpawnTubeAnimation(sp.Zone, sp.WhichSide, sp.Faction, player.Position, sp.Orientation, List(player.Name))
+        }
     }
   }
 
