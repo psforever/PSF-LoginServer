@@ -1014,7 +1014,7 @@ object GlobalDefinitionsVehicle {
     router.Deployment = true
     router.DeployTime = 2000
     router.UndeployTime = 2000
-    router.interference = InterferenceRange(main = 20f, sharedGroupId = 3, shared = 20f)
+    router.interference = InterferenceRange(main = 20f)
     router.DeconstructionTime = Duration(20, "minutes")
     router.AutoPilotSpeeds = (16, 6)
     router.Packet = variantConverter
