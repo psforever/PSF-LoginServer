@@ -203,9 +203,9 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
       case Mountable.CanDismount(obj: PlanetSideGameObject with PlanetSideGameObject with Mountable with FactionAffinity with InGameHistory, seatNum, _) =>
         DismountAction(tplayer, obj, seatNum)
 
-      case Mountable.CanDismount(obj: Mountable, _, _) => ()
+      case Mountable.CanDismount(_: Mountable, _, _) => ()
 
-      case Mountable.CanNotDismount(obj: Vehicle, seatNum) =>
+      case Mountable.CanNotDismount(obj: Vehicle, _, _) =>
         obj.Actor ! Vehicle.Deconstruct()
 
       case _ => ()

@@ -56,6 +56,9 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
   /** how to process either the first order or every subsequent order */
   private var handleOrderFunc: VehicleSpawnPad.VehicleOrder => Unit = NewTasking
 
+  /** ... */
+  private var reminderSeq: Seq[Int] = Seq()
+
   def LogId = ""
 
   /**
@@ -77,7 +80,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
   }
 
   override def postStop() : Unit = {
-    periodicReminder.cancel()
+    discontinueCurrentReminder()
     queueManagement.cancel()
   }
 
@@ -113,36 +116,11 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
       case VehicleSpawnControl.ProcessControl.QueueManagement =>
         queueManagementTask()
 
-      /*
-      When the vehicle is spawned and added to the pad, it will "occupy" the pad and block it from further action.
-      Normally, the player who wanted to spawn the vehicle will be automatically put into the driver mount.
-      If this is blocked, the vehicle will idle on the pad and must be moved far enough away from the point of origin.
-      During this time, a periodic message about the spawn pad being blocked will be broadcast to the order queue.
-      */
       case VehicleSpawnControl.ProcessControl.Reminder =>
-        trackedOrder
-          .collect {
-            case entry =>
-              if (periodicReminder.isCancelled) {
-                trace(s"the pad has become blocked by a ${entry.vehicle.Definition.Name} in its current order")
-                periodicReminder = context.system.scheduler.scheduleWithFixedDelay(
-                  VehicleSpawnControl.periodicReminderTestDelay,
-                  VehicleSpawnControl.periodicReminderTestDelay,
-                  self,
-                  VehicleSpawnControl.ProcessControl.Reminder
-                )
-              } else {
-                BlockedReminder(entry, orders)
-              }
-              trackedOrder
-          }
-          .orElse {
-            periodicReminder.cancel()
-            None
-          }
+        evaluateBlockedReminder()
 
       case VehicleSpawnControl.ProcessControl.Flush =>
-        periodicReminder.cancel()
+        discontinueCurrentReminder()
         orders.foreach { CancelOrder(_, Some("@SVCP_RemovedFromVehicleQueue_Generic")) }
         orders = Nil
         trackedOrder.foreach {
@@ -259,7 +237,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
     *              `None`, if no order found or submitted
     */
   private def ProcessOrder(order: Option[VehicleSpawnPad.VehicleOrder]): Unit = {
-    periodicReminder.cancel()
+    discontinueCurrentReminder()
     order.collect {
       case VehicleSpawnPad.VehicleOrder(driver, vehicle, terminal) =>
         val size = orders.size + 1
@@ -325,37 +303,6 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
   }
 
   /**
-    * na
-    * @param blockedOrder the previous order whose vehicle is blocking the spawn pad from operating
-    * @param recipients all of the other customers who will be receiving the message
-    */
-  private def BlockedReminder(blockedOrder: VehicleSpawnControl.Order, recipients: Seq[VehicleSpawnPad.VehicleOrder]): Unit = {
-    val user = blockedOrder.vehicle
-      .Seats(0).occupant
-      .orElse(pad.Zone.GUID(blockedOrder.vehicle.OwnerGuid))
-      .orElse(pad.Zone.GUID(blockedOrder.DriverGUID))
-    val relevantRecipients: Iterator[VehicleSpawnPad.VehicleOrder] = user match {
-      case Some(p: Player) if !p.HasGUID =>
-        recipients.iterator
-      case Some(_: Player) =>
-        (VehicleSpawnPad.VehicleOrder(
-          blockedOrder.driver,
-          blockedOrder.vehicle,
-          null //permissible
-        ) +: recipients).iterator //one who took possession of the vehicle
-      case _ =>
-        recipients.iterator
-    }
-    recursiveBlockedReminder(
-      relevantRecipients,
-      if (blockedOrder.vehicle.Health == 0)
-        Option("Clear the wreckage.")
-      else
-        None
-    )
-  }
-
-  /**
     * Cancel this vehicle order and inform the person who made it, if possible.
     * @param entry the order being cancelled
     */
@@ -381,19 +328,134 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
     }
   }
 
+  /**
+   * When the vehicle is spawned and added to the pad, it will "occupy" the pad and block it from further action.
+   * During this time, a periodic message about the spawn pad being blocked will be broadcast to the order queue.<br>
+   * The vehicle is also queued to deconstruct in 30s if no one assumes the driver seat.
+   */
+  private def evaluateBlockedReminder(): Unit = {
+    /*
+    Normally, the player who wanted to spawn the vehicle will be automatically put into the driver mount.
+    If this is blocked or aborted, the vehicle will idle on the pad and must be moved far enough away from the point of origin.
+    */
+    trackedOrder
+      .collect {
+        case entry =>
+          if (reminderSeq.isEmpty) {
+            //begin reminder
+            trace(s"the pad has become blocked by a ${entry.vehicle.Definition.Name} in its current order")
+            retimePeriodicReminder(
+              shaveOffFirstElementAndDiffSecondElement(pad.Definition.BlockedReminderMessageDelays)
+            )
+            trackedOrder
+          } else if (reminderSeq.size == 1) {
+            //end reminder
+            standaloneBlockedReminder(
+              VehicleSpawnPad.VehicleOrder(entry.driver, entry.vehicle, null),
+              Some("@PadDeconstruct_Done")
+            )
+            None
+          } else {
+            //continue reminder
+            BlockedReminder(entry, orders)
+            retimePeriodicReminder(
+              shaveOffFirstElementAndDiffSecondElement(reminderSeq)
+            )
+            trackedOrder
+          }
+      }
+      .orElse {
+        discontinueCurrentReminder()
+        None
+      }
+  }
+
+  /**
+   * The periodic reminder will no longer be repeated.
+   * Sequences tied to the periodic reminder should be reset.
+   */
+  private def discontinueCurrentReminder(): Unit = {
+    periodicReminder.cancel()
+    periodicReminder = Default.Cancellable
+    reminderSeq = List()
+  }
+
+  /**
+   * na
+   * @param blockedOrder the previous order whose vehicle is blocking the spawn pad from operating
+   * @param recipients all of the other customers who will be receiving the message
+   */
+  private def BlockedReminder(
+                               blockedOrder: VehicleSpawnControl.Order,
+                               recipients: Seq[VehicleSpawnPad.VehicleOrder]
+                             ): Unit = {
+    //everyone else
+    recursiveBlockedReminder(
+      recipients.iterator,
+      if (blockedOrder.vehicle.Health == 0)
+        Option("The vehicle spawn pad where you placed your order is blocked.  Clearing the wreckage ...")
+      else
+        Option("The vehicle spawn pad where you placed your order is blocked.")
+    )
+    //would-be driver
+    blockedOrder.vehicle
+      .Seats(0).occupant
+      .orElse(pad.Zone.GUID(blockedOrder.vehicle.OwnerGuid))
+      .orElse(pad.Zone.GUID(blockedOrder.DriverGUID)) collect {
+      case p: Player if p.isAlive =>
+        standaloneBlockedReminder(
+          VehicleSpawnPad.VehicleOrder(blockedOrder.driver, blockedOrder.vehicle, null),
+          Some(s"@PadDeconstruct_secsA^${reminderSeq.head}~")
+        )
+    }
+  }
+
+  /**
+   * Clip the first entry in a list of numbers and
+   * get the difference between the clipped entry and the next entry.
+   * The clipped-off list will be made to be the new sequence of reminder delays.
+   * @param sequence reminder delay test values
+   * @return difference between first delay and second delay
+   */
+  private def shaveOffFirstElementAndDiffSecondElement(sequence: Seq[Int]): Int = {
+    val startTime = sequence.take(1).headOption.getOrElse(0)
+    val restTimes = sequence.drop(1)
+    val headOfRestTimes = restTimes.headOption.getOrElse(startTime)
+    reminderSeq = restTimes
+    startTime - headOfRestTimes
+  }
+
+  /**
+   * Set a single instance of the "periodic reminder" to this kind of delay.
+   * @param delay how long until the next reminder
+   */
+  private def retimePeriodicReminder(delay: Int): Unit = {
+    periodicReminder = context.system.scheduler.scheduleOnce(
+      delay.seconds,
+      self,
+      VehicleSpawnControl.ProcessControl.Reminder
+    )
+  }
+
   @tailrec private final def recursiveBlockedReminder(
       iter: Iterator[VehicleSpawnPad.VehicleOrder],
       cause: Option[Any]
   ): Unit = {
     if (iter.hasNext) {
-      val recipient = iter.next()
-      pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
-        recipient.player.Name,
-        VehicleSpawnPad.Reminders.Blocked,
-        cause
-      )
+      standaloneBlockedReminder(iter.next(), cause)
       recursiveBlockedReminder(iter, cause)
     }
+  }
+
+  private def standaloneBlockedReminder(
+                                         entry: VehicleSpawnPad.VehicleOrder,
+                                         cause: Option[Any]
+                                       ): Unit = {
+    pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
+      entry.player.Name,
+      VehicleSpawnPad.Reminders.Blocked,
+      cause
+    )
   }
 
   @tailrec private final def recursiveOrderReminder(
@@ -414,19 +476,16 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
 }
 
 object VehicleSpawnControl {
-  private final val periodicReminderTestDelay: FiniteDuration = 10 seconds
-
   /**
     * Control messages for the vehicle spawn process.
     */
+  sealed trait ProcessControlOperation
   object ProcessControl {
-    sealed trait ProcessControl
-
-    case object Flush extends ProcessControl
-    case object OrderCancelled extends ProcessControl
-    case object GetNewOrder extends ProcessControl
-    case object Reminder extends ProcessControl
-    case object QueueManagement extends ProcessControl
+    case object Flush extends ProcessControlOperation
+    case object OrderCancelled extends ProcessControlOperation
+    case object GetNewOrder extends ProcessControlOperation
+    case object Reminder extends ProcessControlOperation
+    case object QueueManagement extends ProcessControlOperation
   }
 
   /**

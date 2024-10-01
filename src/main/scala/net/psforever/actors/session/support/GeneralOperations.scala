@@ -220,8 +220,12 @@ class GeneralOperations(
                   )
               }
           }
-          continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
-        case Some((llu, Some(carrier: Player))) if carrier.GUID == player.GUID =>
+          if (!CaptureFlagManager.ReasonToLoseFlagViolently(continent, Some(guid), player)) {
+            continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
+          }
+        case Some((llu, Some(carrier: Player)))
+          if carrier.GUID == player.GUID &&
+            !CaptureFlagManager.ReasonToLoseFlagViolently(continent, Some(guid), player) =>
           continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
         case Some((_, Some(carrier: Player))) =>
           log.warn(s"${player.toString} tried to drop LLU, but it is currently held by ${carrier.toString}")
@@ -669,6 +673,9 @@ class GeneralOperations(
           case _ => ()
         }
       } else {
+        if (player.Capacitor < 1f && player.UsingSpecial == SpecialExoSuitDefinition.Mode.Shielded) {
+          sendResponse(ChatMsg(ChatMessageType.UNK_227, "@ArmorShieldOff"))
+        }
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
         continent.AvatarEvents ! AvatarServiceMessage(
           continent.id,

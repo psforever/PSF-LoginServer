@@ -46,11 +46,11 @@ object Interference {
    * @param zone game world in which this test will be conducted;
    *             entity should be `ZoneAware`, but it may not be set correctly during this part of its internal process
    * @param obj entity that may be interfered with
-   * @return a different entity that causes the test entity to suffer interference
+   * @return other entities that causes the test entity to suffer interference
    */
-  def Test(zone: Zone, obj: PlanetSideGameObject with FactionAffinity): Option[PlanetSideGameObject with FactionAffinity] = {
+  def Test(zone: Zone, obj: PlanetSideGameObject with FactionAffinity): Seq[PlanetSideGameObject with FactionAffinity] = {
     val (data, filterFunc) = SetupForTest(zone, obj)
-    data.find(filterFunc)
+    data.filter(filterFunc)
   }
 
   /**

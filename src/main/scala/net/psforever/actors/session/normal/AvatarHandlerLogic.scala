@@ -3,6 +3,7 @@ package net.psforever.actors.session.normal
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.support.AvatarHandlerFunctions
+import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
 import net.psforever.types.ImplantType
 
@@ -295,6 +296,17 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           case (_, dguid) => sendResponse(ObjectDeleteMessage(dguid, unk1=0))
         }
         //functionally delete
+        if (delete.size > 1 || delete.nonEmpty && !delete.exists {
+          case (e: Tool, _) => GlobalDefinitions.isMaxArms(e.Definition)
+          case _ => false
+        }) {
+          /*
+          if going x -> max, you will have enough space in max inventory for any displaced holster equipment
+          for max -> max, don't care about the max weapon arm being deleted (allow for 1)
+          for any other x -> x, any deleted equipment will raise this comment
+           */
+          sendResponse(ChatMsg(ChatMessageType.UNK_227, "@ItemsDeconstructed"))
+        }
         delete.foreach { case (obj, _) => TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj)) }
         //redraw
         if (maxhand) {
@@ -330,13 +342,17 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         }
         DropLeftovers(player)(drop)
 
-      case AvatarResponse.ChangeExosuit(target, armor, exosuit, subtype, slot, _, oldHolsters, holsters, _, _, _, delete) =>
+      case AvatarResponse.ChangeExosuit(target, armor, exosuit, subtype, slot, _, oldHolsters, holsters, _, _, drop, delete) =>
         sendResponse(ArmorChangedMessage(target, exosuit, subtype))
         sendResponse(PlanetsideAttributeMessage(target, attribute_type=4, armor))
         //happening to some other player
         sendResponse(ObjectHeldMessage(target, slot, unk1 = false))
         //cleanup
-        (oldHolsters ++ delete).foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, unk1=0)) }
+        val dropPred = ContainableBehavior.DropPredicate(player)
+        val deleteFromDrop = drop.filterNot(dropPred)
+        (oldHolsters ++ delete ++ deleteFromDrop.map(f =>(f.obj, f.GUID)))
+          .distinctBy(_._2)
+          .foreach { case (_, guid) => sendResponse(ObjectDeleteMessage(guid, unk1=0)) }
         //draw holsters
         holsters.foreach {
           case InventoryItem(obj, index) =>

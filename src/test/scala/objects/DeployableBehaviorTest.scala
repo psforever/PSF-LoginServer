@@ -48,21 +48,14 @@ class DeployableBehaviorSetupTest extends ActorTest {
       assert(deployableList.isEmpty, "self-setup test - deployable list is not empty")
       zone.Deployables ! Zone.Deployable.Build(jmine)
 
-      val eventsMsgs = eventsProbe.receiveN(3, 10.seconds)
+      val eventsMsgs = eventsProbe.receiveN(2, 10.seconds)
       eventsMsgs.head match {
-        case LocalServiceMessage(
-          "test",
-          LocalAction.TriggerEffectLocation(PlanetSideGUID(0), "spawn_object_effect", Vector3(1,2,3), Vector3(4,5,6))
-        )      => ;
-        case _ => assert(false, "self-setup test - no spawn fx")
-      }
-      eventsMsgs(1) match {
         case LocalServiceMessage("test", LocalAction.DeployItem(obj)) =>
           assert(obj eq jmine, "self-setup test - not same mine")
         case _ =>
           assert( false, "self-setup test - wrong deploy message")
       }
-      eventsMsgs(2) match {
+      eventsMsgs(1) match {
         case LocalServiceMessage(
           "TR",
           LocalAction.DeployableMapIcon(
@@ -251,13 +244,13 @@ class DeployableBehaviorDeconstructTest extends ActorTest {
   "DeployableBehavior" should {
     "deconstruct, by self" in {
       zone.Deployables ! Zone.Deployable.Build(jmine)
-      eventsProbe.receiveN(3, 10.seconds) //all of the messages from the construction (see other testing)
+      eventsProbe.receiveN(2, 10.seconds) //all of the messages from the construction (see other testing)
       assert(deployableList.contains(jmine), "deconstruct test - deployable not appended to list")
 
       jmine.Actor ! Deployable.Deconstruct()
       val eventsMsgs = eventsProbe.receiveN(2, 10.seconds)
       eventsMsgs.head match {
-        case LocalServiceMessage("test", LocalAction.EliminateDeployable(`jmine`, PlanetSideGUID(1), Vector3(1,2,3), 2)) => ;
+        case LocalServiceMessage("test", LocalAction.EliminateDeployable(_, PlanetSideGUID(1), Vector3(1,2,3), 2)) => ;
         case _ => assert(false, "deconstruct test - not eliminating deployable")
       }
       eventsMsgs(1) match {

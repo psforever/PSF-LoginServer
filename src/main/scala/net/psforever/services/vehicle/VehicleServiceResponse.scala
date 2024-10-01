@@ -74,6 +74,8 @@ object VehicleResponse {
   final case class MountVehicle(object_guid: PlanetSideGUID, seat: Int) extends Response
   final case class ObjectDelete(guid: PlanetSideGUID)                   extends Response
   final case class Ownership(vehicle_guid: PlanetSideGUID)              extends Response
+  final case class LoseOwnership(owner_guid: PlanetSideGUID, vehicle_guid: PlanetSideGUID)
+      extends Response
   final case class PlanetsideAttribute(vehicle_guid: PlanetSideGUID, attribute_type: Int, attribute_value: Long)
       extends Response
   final case class Reload(weapon_guid: PlanetSideGUID)                                              extends Response

@@ -65,7 +65,7 @@ object WorldSession {
           Zone.Ground.DropItem(localItem, localContainer.Position, Vector3.z(localContainer.Orientation.z)),
           localContainer.Actor
         )
-      case _ => ;
+      case _ => ()
     }
     result
   }
@@ -163,7 +163,7 @@ object WorldSession {
     result.onComplete {
       case Failure(_) | Success(_: Containable.CanNotPutItemInSlot) =>
         TaskWorkflow.execute(GUIDTask.unregisterEquipment(localContainer.Zone.GUID, localItem))
-      case _ => ;
+      case _ => ()
     }
     result
   }
@@ -361,17 +361,21 @@ object WorldSession {
     val future         = ask(localZone.Ground, Zone.Ground.PickupItem(item.GUID))
     future.onComplete {
       case Success(Zone.Ground.ItemInHand(_)) =>
-        PutEquipmentInInventoryOrDrop(localContainer)(localItem)
+        PutEquipmentInInventoryOrDrop(localContainer)(localItem).onComplete {
+          case Success(Containable.ItemPutInSlot(_, _, Player.FreeHandSlot, _)) =>
+            localContainer.Actor ! Zone.Ground.CanNotPickupItem(localZone, localItem.GUID, "@InventoryPickupNoRoom")
+          case _ => ()
+        }
       case Success(Zone.Ground.CanNotPickupItem(_, item_guid, _)) =>
         localZone.GUID(item_guid) match {
-          case Some(_) => ;
+          case Some(_) => ()
           case None => //acting on old data?
             localZone.AvatarEvents ! AvatarServiceMessage(
               localZone.id,
               AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item_guid)
             )
         }
-      case _ => ;
+      case _ => ()
     }
     future
   }
@@ -407,7 +411,7 @@ object WorldSession {
             .DropItem(localItem, localPos.getOrElse(localContainer.Position), Vector3.z(localContainer.Orientation.z)),
           localContainer.Actor
         )
-      case _ => ;
+      case _ => ()
     }
     result
   }
@@ -584,7 +588,7 @@ object WorldSession {
           case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) =>
             //swapItem is not registered right now, we can not drop the item without re-registering it
             TaskWorkflow.execute(PutNewEquipmentInInventorySlot(localSource)(swapItem, localSrcSlot))
-          case _ => ;
+          case _ => ()
         }
 
         override def description(): String = s"unregistering $localItem before stowing in $localDestination"
@@ -597,7 +601,7 @@ object WorldSession {
                 localChannel,
                 AvatarAction.ObjectDelete(Service.defaultPlayerGUID, guid)
               )
-            case None => ;
+            case None => ()
           }
           val moveResult = ask(localDestination.Actor, Containable.PutItemInSlotOrAway(localItem, Some(localDestSlot)))
           moveResult.onComplete(localMoveOnComplete)
@@ -610,7 +614,7 @@ object WorldSession {
             moveItemTaskFunc(fromSlot),
             GUIDTask.unregisterEquipment(fromSource.Zone.GUID, itemToMove)
           ))
-        case _ => ;
+        case _ => ()
       }
       val result = ask(source.Actor, Containable.RemoveItemFromSlot(item))
       result.onComplete(resultOnComplete)
@@ -689,7 +693,7 @@ object WorldSession {
           case Success(Containable.ItemPutInSlot(_, _, _, Some(swapItem))) =>
             //swapItem is not registered right now, we can not drop the item without re-registering it
             TaskWorkflow.execute(PutNewEquipmentInInventorySlot(localSource)(swapItem, localSrcSlot))
-          case _ => ;
+          case _ => ()
         }
 
         override def description(): String = s"registering $localItem in ${localDestination.Zone.id} before removing from $localSource"
@@ -702,7 +706,7 @@ object WorldSession {
                 localChannel,
                 AvatarAction.ObjectDelete(Service.defaultPlayerGUID, guid)
               )
-            case None => ;
+            case None => ()
           }
           val moveResult = ask(localDestination.Actor, Containable.PutItemInSlotOrAway(localItem, Some(localDestSlot)))
           moveResult.onComplete(localMoveOnComplete)
@@ -715,7 +719,7 @@ object WorldSession {
             moveItemTaskFunc(fromSlot),
             GUIDTask.registerEquipment(fromSource.Zone.GUID, itemToMove)
           ))
-        case _ => ;
+        case _ => ()
       }
       val result = ask(source.Actor, Containable.RemoveItemFromSlot(item))
       result.onComplete(resultOnComplete)
@@ -847,17 +851,17 @@ object WorldSession {
                 case Some(e) =>
                   log.info(s"${tplayer.Name} has dropped ${tplayer.Sex.possessive} ${e.Definition.Name}")
                   PutEquipmentInInventoryOrDrop(tplayer)(e)
-                case _ => ;
+                case _ => ()
               }
               //restore previously-held-up equipment
               itemInPreviouslyDrawnSlotToDrop match {
                 case Some(e) => PutEquipmentInInventorySlot(tplayer)(e, previouslyDrawnSlot)
-                case _ => ;
+                case _ => ()
               }
               log.info(s"${tplayer.Name} has quickly drawn a ${grenade.Definition.Name}")
-            case _ => ;
+            case _ => ()
           }
-        case None => ;
+        case None => ()
       }
       optGrenadeInSlot.nonEmpty
     } else {

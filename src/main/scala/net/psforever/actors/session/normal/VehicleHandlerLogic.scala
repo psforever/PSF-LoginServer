@@ -4,6 +4,7 @@ package net.psforever.actors.session.normal
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, SessionVehicleHandlers, VehicleHandlerFunctions}
+import net.psforever.objects.avatar.SpecialCarry
 import net.psforever.objects.{GlobalDefinitions, Player, Tool, Vehicle, Vehicles}
 import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
@@ -12,6 +13,7 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ChangeAmmoMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, HitHint, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ReloadMessage, ServerVehicleOverrideMsg, VehicleStateMessage, WeaponDryFireMessage}
 import net.psforever.services.Service
+import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.services.vehicle.{VehicleResponse, VehicleServiceResponse}
 import net.psforever.types.{BailType, ChatMessageType, PlanetSideGUID, Vector3}
 
@@ -62,6 +64,14 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         player.Orientation = orient
         player.Velocity = vel
         sessionLogic.updateLocalBlockMap(pos)
+        //llu destruction check
+        if (player.Carrying.contains(SpecialCarry.CaptureFlag)) {
+          continent
+            .GUID(player.VehicleSeated)
+            .collect { case vehicle: Vehicle =>
+              CaptureFlagManager.ReasonToLoseFlagViolently(continent, sessionLogic.general.specialItemSlotGuid, vehicle)
+            }
+        }
 
       case VehicleResponse.VehicleState(
       vehicleGuid,
@@ -199,6 +209,9 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         avatarActor ! AvatarActor.SetVehicle(Some(vehicleGuid))
         sendResponse(PlanetsideAttributeMessage(resolvedPlayerGuid, attribute_type=21, vehicleGuid))
 
+      case VehicleResponse.LoseOwnership(_, vehicleGuid) =>
+        ops.announceAmsDecay(vehicleGuid,msg = "@ams_decaystarted")
+
       case VehicleResponse.PlanetsideAttribute(vehicleGuid, attributeType, attributeValue) if isNotSameTarget =>
         sendResponse(PlanetsideAttributeMessage(vehicleGuid, attributeType, attributeValue))
 
@@ -217,6 +230,16 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
 
       case VehicleResponse.UnloadVehicle(_, vehicleGuid) =>
         sendResponse(ObjectDeleteMessage(vehicleGuid, unk1=0))
+        if (sessionLogic.zoning.spawn.prevSpawnPoint.map(_.Owner).exists {
+          case ams: Vehicle =>
+            ams.GUID == vehicleGuid &&
+              ams.OwnerGuid.isEmpty
+          case _ =>
+            false
+        }) {
+          sessionLogic.zoning.spawn.prevSpawnPoint = None
+          sendResponse(ChatMsg(ChatMessageType.UNK_229, "@ams_decayed"))
+        }
 
       case VehicleResponse.UnstowEquipment(itemGuid) if isNotSameTarget =>
         //TODO prefer ObjectDetachMessage, but how to force ammo pools to update properly?
@@ -308,13 +331,13 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         sessionLogic.vehicles.ServerVehicleOverrideStop(vehicle)
 
       case VehicleResponse.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, data) =>
-        sendResponse(ChatMsg(
-          ChatMessageType.CMT_OPEN,
-          wideContents=true,
-          recipient="",
-          s"The vehicle spawn where you placed your order is blocked. ${data.getOrElse("")}",
-          note=None
-        ))
+        val str = s"${data.getOrElse("The vehicle spawn pad where you placed your order is blocked.")}"
+        val msg = if (str.contains("@")) {
+          ChatMsg(ChatMessageType.UNK_229, str)
+        } else {
+          ChatMsg(ChatMessageType.CMT_OPEN, wideContents = true, recipient = "", str, note = None)
+        }
+        sendResponse(msg)
 
       case VehicleResponse.PeriodicReminder(_, data) =>
         val (isType, flag, msg): (ChatMessageType, Boolean, String) = data match {

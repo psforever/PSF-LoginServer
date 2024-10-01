@@ -117,7 +117,8 @@ class VehicleControl(vehicle: Vehicle)
       case Vehicle.Ownership(Some(player)) =>
         GainOwnership(player)
 
-      case Mountable.TryMount(user, mountPoint) if vehicle.DeploymentState == DriveState.AutoPilot =>
+      case Mountable.TryMount(user, mountPoint)
+        if vehicle.DeploymentState == DriveState.AutoPilot =>
         sender() ! Mountable.MountMessages(user, Mountable.CanNotMount(vehicle, mountPoint))
 
       case msg @ Mountable.TryMount(player, mount_point) =>
@@ -125,19 +126,23 @@ class VehicleControl(vehicle: Vehicle)
         mountCleanup(mount_point, player)
 
         // Issue 1133. Todo: There may be a better way to address the issue?
-      case Mountable.TryDismount(user, seat_num, _) if GlobalDefinitions.isFlightVehicle(vehicle.Definition) &&
+      case Mountable.TryDismount(user, seat_num, bailType) if GlobalDefinitions.isFlightVehicle(vehicle.Definition) &&
            (vehicle.History.find { entry => entry.isInstanceOf[SpawningActivity] } match {
         case Some(entry) if System.currentTimeMillis() - entry.time < 3000L => true
         case _ => false
         }) =>
-        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num))
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
 
-      case Mountable.TryDismount(user, seat_num, _) if !GlobalDefinitions.isFlightVehicle(vehicle.Definition) &&
+      case Mountable.TryDismount(user, seat_num, bailType) if !GlobalDefinitions.isFlightVehicle(vehicle.Definition) &&
            (vehicle.History.find { entry => entry.isInstanceOf[SpawningActivity] } match {
           case Some(entry) if System.currentTimeMillis() - entry.time < 8500L => true
           case _ => false
         }) =>
-        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num))
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
+
+      case Mountable.TryDismount(user, seat_num, bailType)
+        if vehicle.DeploymentState == DriveState.AutoPilot =>
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
 
       case msg @ Mountable.TryDismount(player, seat_num, _) =>
         dismountBehavior.apply(msg)
@@ -601,9 +606,9 @@ class VehicleControl(vehicle: Vehicle)
               c
             }
           }
-          watery.doInteractingWithTargets(player, percentage, watery.Condition.map(_.body).get, List(player))
+          WithWater.doInteractingWithTargets(player, percentage, watery.Condition.map(_.body).get, List(player))
         case watery: WithWater if watery.Condition.map(_.state).contains(OxygenState.Recovery) =>
-          watery.stopInteractingWithTargets(
+          WithWater.stopInteractingWithTargets(
             player,
             Watery.recoveringFromWater(vehicle, watery)._3,
             watery.Condition.map(_.body).get,

@@ -85,7 +85,11 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_WARP, _, contents) =>
         ops.commandWarp(session, message, contents)
 
-      case _ => ()
+      case (CMT_REPORTUSER, _, contents) =>
+        ops.commandReportUser(session, message, contents)
+
+      case _ =>
+        sendResponse(ChatMsg(ChatMessageType.UNK_227, "@no_permission"))
     }
   }
 

@@ -5,12 +5,16 @@ import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.sourcing.{PlayerSource, UniquePlayer}
 import net.psforever.objects.zones.{HotSpotInfo, ZoneHotSpotProjector}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
 import akka.pattern.ask
 import akka.util.Timeout
+import net.psforever.objects.Player
 import net.psforever.objects.avatar.scoring.Kill
+import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.zones.exp.ToDatabase
+import net.psforever.packet.game.ChatMsg
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -31,6 +35,20 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
       updateHotSpotInfoOverTime()
       updateTime(now)
     }
+    building.CaptureTerminal
+      .map(_.HackedBy)
+      .collect {
+        case Some(info@Hackable.HackInfo(_, _, start, length, _))
+          if building.NtuLevel == 0 && {
+            val approximateHackTimeRemaining = math.max(0, start + length - System.currentTimeMillis())
+            approximateHackTimeRemaining <= 300.seconds.toMillis && approximateHackTimeRemaining > 295.seconds.toMillis
+          } =>
+          MajorFacilityHackParticipation.warningMessageForHackOccupiers(
+            building,
+            info,
+            ChatMsg(ChatMessageType.UNK_227, "@FacilityRequiresResourcesForHackCriticalWarning")
+          )
+      }
     lastInfoRequest = now
   }
 
@@ -287,8 +305,8 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
             if (isResecured) {
               hackerScore
             } else {
-              val flagCarrierScore = flagCarrier.map (p => List((p.CharId, 0L, "llu"))).getOrElse(Nil)
-              if (playersInSoi.exists(_.CharId == hackerId) && !flagCarrierScore.exists { case (charId, _,_) => charId == hackerId }) {
+              val flagCarrierScore = flagCarrier.map(p => List((p.CharId, 0L, "llu"))).getOrElse(Nil)
+              if (playersInSoi.exists(_.CharId == hackerId) && !flagCarrierScore.exists { case (charId, _, _) => charId == hackerId }) {
                 hackerScore ++ flagCarrierScore
               } else {
                 flagCarrierScore
@@ -324,5 +342,63 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
           .filter { case (_, _, kills) => kills.nonEmpty }
       }
       .getOrElse(list)
+  }
+}
+
+object MajorFacilityHackParticipation {
+  /**
+   * Dispatch a message to clients affected by some change.
+   * Establish the hack information by referencing the capture terminal.
+   * @param building building entity
+   * @param msg message to send to affected clients
+   */
+  def warningMessageForHackOccupiers(
+                                      building: Building,
+                                      msg: ChatMsg
+                                    ): Unit = {
+    building
+      .CaptureTerminal
+      .flatMap(_.HackedBy)
+      .foreach { hackedInfo =>
+        warningMessageForHackOccupiers(building, hackedInfo, msg)
+      }
+  }
+
+  /**
+   * Dispatch a message to clients affected by some change.
+   * Select individuals belonging to the hacking faction to be targets for the message.
+   * @param building building entity
+   * @param hackedInfo confirmed information about the hack state
+   * @param msg message to send to affected clients
+   */
+  def warningMessageForHackOccupiers(
+                                      building: Building,
+                                      hackedInfo: Hackable.HackInfo,
+                                      msg: ChatMsg
+                                    ): Unit = {
+    val hackerFaction = hackedInfo.hackerFaction
+    warningMessageForHackOccupiers(
+      building,
+      building.PlayersInSOI.filter(_.Faction == hackerFaction),
+      msg
+    )
+  }
+
+  /**
+   * Dispatch a message to clients affected by some change.
+   * @param building building entity
+   * @param targets affected clients by player
+   * @param msg message to send to affected clients
+   */
+  private def warningMessageForHackOccupiers(
+                                              building: Building,
+                                              targets: Iterable[Player],
+                                              msg: ChatMsg
+                                            ): Unit = {
+    val events = building.Zone.LocalEvents
+    val message = LocalAction.SendResponse(msg)
+    targets.foreach { player =>
+      events ! LocalServiceMessage(player.Name, message)
+    }
   }
 }

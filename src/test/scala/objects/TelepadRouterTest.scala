@@ -15,7 +15,6 @@ import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game._
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
 
@@ -253,7 +252,7 @@ class TelepadDeployableResponseFromRouterTest extends FreedContextActorTest {
       val deploymentProbe = new TestProbe(system)
       router.Actor.tell(Deployment.TryDeploy(DriveState.Deploying), deploymentProbe.ref)
       eventsProbe.receiveN(10, 10.seconds) //flush all messages related to deployment
-      deploymentProbe.receiveOne(2.seconds) //CanDeploy
+      deploymentProbe.receiveN(2, 10.seconds) //CanDeploy
       deploymentProbe.expectNoMessage(2.seconds) //intentional delay
       assert(internal.Active, "link to router test - router internals not active when expected")
       assert(!telepad.Active, "link to router test - telepad active earlier than intended (2)")

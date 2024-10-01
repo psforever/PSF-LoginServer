@@ -2,9 +2,11 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.definition.SpecialExoSuitDefinition
 import net.psforever.objects.zones.Zoning
 import net.psforever.objects.serverobject.turret.VanuSentry
 import net.psforever.objects.zones.exp.ToDatabase
+import net.psforever.types.ChatMessageType
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -83,9 +85,10 @@ class WeaponAndProjectileOperations(
     if (player.ZoningRequest != Zoning.Method.None) {
       sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_fire")
     }
-    if (player.isShielded) {
+    if (player.UsingSpecial == SpecialExoSuitDefinition.Mode.Shielded) {
       // Cancel NC MAX shield if it's active
       sessionLogic.general.toggleMaxSpecialState(enable = false)
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "@ArmorShieldOverride"))
     }
     val (o, tools) = FindContainedWeapon
     val (_, enabledTools) = FindEnabledWeaponsToHandleWeaponFireAccountability(o, tools)
