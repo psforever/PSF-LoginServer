@@ -1,7 +1,6 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject.environment.interaction
 
-import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.environment.{EnvironmentTrait, PieceOfEnvironment}
 import net.psforever.objects.zones._
@@ -99,6 +98,8 @@ class InteractWithEnvironment()
         .foreach(_.stopInteractingWith(obj, body, None))
     }
   }
+
+  def OngoingInteractions: Set[EnvironmentTrait] = interactWith.map(_.attribute)
 }
 
 object InteractWithEnvironment {
@@ -118,9 +119,8 @@ object InteractWithEnvironment {
                                        obj: PlanetSideServerObject,
                                        sector: SectorPopulation
                                      ): Set[PieceOfEnvironment] = {
-    val depth = GlobalDefinitions.MaxDepth(obj)
     sector.environmentList
-      .filter(body => body.attribute.canInteractWith(obj) && body.testInteraction(obj, depth))
+      .filter(body => body.attribute.canInteractWith(obj) && body.testInteraction(obj, body.attribute.testingDepth(obj)))
       .distinctBy(_.attribute)
       .toSet
   }
@@ -137,7 +137,7 @@ object InteractWithEnvironment {
                                            body: PieceOfEnvironment,
                                            obj: PlanetSideServerObject
                                          ): Option[PieceOfEnvironment] = {
-    if ((obj.Zone eq zone) && body.testInteraction(obj, GlobalDefinitions.MaxDepth(obj))) {
+    if ((obj.Zone eq zone) && body.testInteraction(obj, body.attribute.testingDepth(obj))) {
       Some(body)
     } else {
       None
@@ -186,12 +186,12 @@ case class OnStableEnvironment() extends InteractionBehavior {
              ): Set[PieceOfEnvironment] = {
     if (obj.Position != Vector3.Zero && allow) {
       val interactions = obj.interaction().collectFirst { case inter: InteractWithEnvironment => inter.Interactions }
-      val env = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
-      env.foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
-      if (env.nonEmpty) {
+      val bodies = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
+      bodies.foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
+      if (bodies.nonEmpty) {
         nextstep = AwaitOngoingInteraction(obj.Zone)
       }
-      env
+      bodies
     } else {
       nextstep = BlockedFromInteracting()
       Set()
@@ -226,17 +226,22 @@ final case class AwaitOngoingInteraction(zone: Zone) extends InteractionBehavior
              ): Set[PieceOfEnvironment] = {
     val interactions = obj.interaction().collectFirst { case inter: InteractWithEnvironment => inter.Interactions }
     if (obj.Position != Vector3.Zero && allow) {
-      val env = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
+      val bodies = InteractWithEnvironment.checkAllEnvironmentInteractions(obj, sector)
       val (in, out) = existing.partition(body => InteractWithEnvironment.checkSpecificEnvironmentInteraction(zone, body, obj).nonEmpty)
-      env.diff(in).foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
-      out.foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.stopInteractingWith(obj, body, None)))
-      if (env.isEmpty) {
+      val inAttrs = bodies.map(_.attribute)
+      out
+        .filterNot(e => inAttrs.contains(e.attribute))
+        .foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.stopInteractingWith(obj, body, None)))
+      bodies
+        .diff(in)
+        .foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.doInteractingWith(obj, body, None)))
+      if (bodies.isEmpty) {
         val n = OnStableEnvironment()
         val out = n.perform(obj, sector, Set(), allow)
         nextstep = n.next
         out
       } else {
-        env
+        bodies
       }
     } else {
       existing.foreach(body => interactions.flatMap(_.get(body.attribute)).foreach(_.stopInteractingWith(obj, body, None)))

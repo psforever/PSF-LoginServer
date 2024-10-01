@@ -9,15 +9,15 @@ import net.psforever.types.PlanetSideGUID
 import scala.util.{Failure, Success, Try}
 
 class SmallDeployableConverter extends ObjectCreateConverter[Deployable]() {
-  override def ConstructorData(obj: Deployable): Try[CommonFieldDataWithPlacement] = {
+  override def ConstructorData(obj: Deployable): Try[SmallDeployableData] = {
     Success(
-      CommonFieldDataWithPlacement(
+      SmallDeployableData(CommonFieldDataWithPlacement(
         PlacementData(obj.Position, obj.Orientation),
         CommonFieldData(
           obj.Faction,
           bops = false,
           alternate = obj.Destroyed,
-          false,
+          v1 = false,
           None,
           jammered = obj match {
             case o: JammableUnit => o.Jammed
@@ -30,10 +30,10 @@ class SmallDeployableConverter extends ObjectCreateConverter[Deployable]() {
             case None        => PlanetSideGUID(0)
           }
         )
-      )
+      ))
     )
   }
 
-  override def DetailedConstructorData(obj: Deployable): Try[CommonFieldDataWithPlacement] =
+  override def DetailedConstructorData(obj: Deployable): Try[SmallDeployableData] =
     Failure(new Exception("converter should not be used to generate detailed small deployable data"))
 }

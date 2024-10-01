@@ -6,16 +6,17 @@ import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.llu.CaptureFlag
-import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.Default
-import net.psforever.packet.game.{GenericAction, HackState7, PlanetsideAttributeEnum}
+import net.psforever.objects.serverobject.structures.participation.MajorFacilityHackParticipation
+import net.psforever.packet.game.{ChatMsg, GenericAction, HackState7, PlanetsideAttributeEnum}
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.services.Service
 import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
 
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.Random
@@ -62,6 +63,11 @@ class HackCaptureActor extends Actor {
         // If the base has a socket, but no flag spawned it means the hacked base is neutral with no friendly neighbouring bases to deliver to, making it a timed hack.
         val building = terminal.Owner.asInstanceOf[Building]
         building.GetFlag match {
+          case Some(llu) if llu.Destroyed =>
+            // LLU was destroyed while in the field. Send resecured notifications
+            terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.FlagLost)
+            NotifyHackStateChange(terminal, isResecured = true)
+
           case Some(llu) =>
             // LLU was not delivered in time. Send resecured notifications
             terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.TimedOut)
@@ -138,6 +144,28 @@ class HackCaptureActor extends Actor {
           log.error(s"Attempted LLU capture for ${flag.Owner.asInstanceOf[Building].Name} but CC GUID ${flag.Owner.asInstanceOf[Building].CaptureTerminal.get.GUID} was not in list of hacked objects")
       }
 
+    case HackCaptureActor.FlagLost(flag) =>
+      val owner = flag.Owner.asInstanceOf[Building]
+      val guid = owner.GUID
+      val terminalOpt = owner.CaptureTerminal
+      hackedObjects
+        .find(entry => guid == entry.target.Owner.GUID)
+        .collect { entry =>
+          val terminal = terminalOpt.get
+          hackedObjects = hackedObjects.filterNot(x => x eq entry)
+          log.info(s"FlagLost: ${flag.Carrier.map(_.Name).getOrElse("")} the flag carrier screwed up the capture for ${flag.Target.Name} and the LLU has been lost")
+          terminal.Actor ! CommonMessages.ClearHack()
+          NotifyHackStateChange(terminal, isResecured = true)
+          // If there's hacked objects left in the list restart the timer with the shortest hack time left
+          RestartTimer()
+          entry
+        }
+        .orElse{
+          log.warn(s"FlagLost: flag data does not match to an entry in the hacked objects list")
+          None
+        }
+      context.parent ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.FlagLost)
+
     case _ => ()
   }
 
@@ -209,6 +237,18 @@ class HackCaptureActor extends Actor {
     val owner = terminal.Owner.asInstanceOf[Building]
     // Notify parent building that state has changed
     owner.Actor ! BuildingActor.AmenityStateChange(terminal, Some(isResecured))
+    // If major facility, check NTU
+    owner.CaptureTerminal
+      .map(_.HackedBy)
+      .collect {
+        case Some(info: Hackable.HackInfo)
+          if owner.BuildingType == StructureType.Facility && owner.NtuLevel == 0 =>
+          MajorFacilityHackParticipation.warningMessageForHackOccupiers(
+            owner,
+            info,
+            ChatMsg(ChatMessageType.UNK_227, "@FacilityRequiresResourcesForHackWarning")
+          )
+      }
     // Push map update to clients
     owner.Zone.actor ! ZoneActor.ZoneMapUpdate()
   }
@@ -256,6 +296,7 @@ object HackCaptureActor {
 
   final case class ResecureCaptureTerminal(target: CaptureTerminal, zone: Zone, hacker: PlayerSource)
   final case class FlagCaptured(flag: CaptureFlag)
+  final case class FlagLost(flag: CaptureFlag)
 
   private final case class ProcessCompleteHacks()
 

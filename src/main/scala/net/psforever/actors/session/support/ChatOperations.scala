@@ -91,11 +91,13 @@ class ChatOperations(
   }
 
   def commandWatermark(contents: String): Unit = {
-    val connectionState =
+    val connectionState = {
       if (contents.contains("40 80")) 100
       else if (contents.contains("120 200")) 25
       else 50
+    }
     context.self ! SessionActor.SetConnectionState(connectionState)
+    context.self ! SessionActor.SendResponse(ChatMsg(ChatMessageType.UNK_227, "@CMT_CULLWATERMARK_success"))
   }
 
   def commandSpeed(message: ChatMsg, contents: String): Unit = {
@@ -645,6 +647,11 @@ class ChatOperations(
       case None =>
         sendResponse(message.copy(messageType = UNK_229, recipient = "Server", contents = "@kick_o"))
     }
+  }
+
+  def commandReportUser(@unused session: Session, @unused message: ChatMsg, @unused contents: String): Unit = {
+    //todo get user from contents
+    sendResponse(ChatMsg(ChatMessageType.UNK_227, "@rpt_i"))
   }
 
   def commandIncomingSendAllIfOnline(session: Session, message: ChatMsg): Unit = {

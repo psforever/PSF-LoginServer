@@ -120,6 +120,8 @@ class LocalService(zone: Zone) extends Actor {
           hackCapturer ! HackCaptureActor.StartCaptureTerminalHack(target, zone, 0, 8L)
         case LocalAction.LluCaptured(llu) =>
           hackCapturer ! HackCaptureActor.FlagCaptured(llu)
+        case LocalAction.LluLost(llu) =>
+          hackCapturer ! HackCaptureActor.FlagLost(llu)
 
         case LocalAction.LluSpawned(player_guid, llu) =>
           // Forward to all clients to create object locally

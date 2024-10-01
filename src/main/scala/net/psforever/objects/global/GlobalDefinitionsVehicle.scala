@@ -606,7 +606,7 @@ object GlobalDefinitionsVehicle {
     apc_tr.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_tr.Geometry = apcForm
     apc_tr.MaxCapacitor = 300
-    apc_tr.CapacitorRecharge = 1
+    apc_tr.CapacitorRecharge = 10
     apc_tr.collision.avatarCollisionDamageMax = 300
     apc_tr.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
     apc_tr.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
@@ -676,7 +676,7 @@ object GlobalDefinitionsVehicle {
     apc_nc.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_nc.Geometry = apcForm
     apc_nc.MaxCapacitor = 300
-    apc_nc.CapacitorRecharge = 1
+    apc_nc.CapacitorRecharge = 10
     apc_nc.collision.avatarCollisionDamageMax = 300
     apc_nc.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
     apc_nc.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
@@ -746,7 +746,7 @@ object GlobalDefinitionsVehicle {
     apc_vs.UnderwaterLifespan(suffocation = 15000L, recovery = 7500L)
     apc_vs.Geometry = apcForm
     apc_vs.MaxCapacitor = 300
-    apc_vs.CapacitorRecharge = 1
+    apc_vs.CapacitorRecharge = 10
     apc_vs.collision.avatarCollisionDamageMax = 300
     apc_vs.collision.xy = CollisionXYData(Array((0.1f, 1), (0.25f, 10), (0.5f, 40), (0.75f, 70), (1f, 110)))
     apc_vs.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
@@ -971,7 +971,7 @@ object GlobalDefinitionsVehicle {
     ams.DeployTime = 2000
     ams.UndeployTime = 2000
     ams.interference = InterferenceRange(main = 125f, sharedGroupId = 3, shared = 30f)
-    ams.DeconstructionTime = Some(20 minutes)
+    ams.DeconstructionTime = Some(15 minutes)
     ams.AutoPilotSpeeds = (18, 6)
     ams.Packet = utilityConverter
     ams.DestroyedModel = Some(DestroyedVehicle.Ams)
@@ -1014,6 +1014,7 @@ object GlobalDefinitionsVehicle {
     router.Deployment = true
     router.DeployTime = 2000
     router.UndeployTime = 2000
+    router.interference = InterferenceRange(main = 20f)
     router.DeconstructionTime = Duration(20, "minutes")
     router.AutoPilotSpeeds = (16, 6)
     router.Packet = variantConverter

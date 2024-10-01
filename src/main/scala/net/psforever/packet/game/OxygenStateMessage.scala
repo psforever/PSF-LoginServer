@@ -134,7 +134,17 @@ object OxygenStateMessage extends Marshallable[OxygenStateMessage] {
         204.8f,
         11
       ) :: //hackish: 2^11 == 2047, so it should be 204.7; but, 204.8 allows decode == encode
-    OxygenState.codec
+    bool.xmap[OxygenState](
+      {
+        case false => OxygenState.Recovery
+        case true => OxygenState.Suffocation
+      },
+      {
+        case OxygenState.Recovery => false
+        case OxygenState.Suffocation => true
+        case _ => false
+      }
+    )
     ).as[DrowningTarget]
 
   implicit val codec: Codec[OxygenStateMessage] = (

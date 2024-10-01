@@ -145,8 +145,11 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_KICK, _, contents) if gmCommandAllowed =>
         ops.commandKick(session, message, contents)
 
+      case (CMT_REPORTUSER, _, contents) =>
+        ops.commandReportUser(session, message, contents)
+
       case _ =>
-        log.warn(s"Unhandled chat message $message")
+        sendResponse(ChatMsg(ChatMessageType.UNK_227, "@no_permission"))
     }
   }
 

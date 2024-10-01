@@ -162,6 +162,11 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         }
       case None => ()
     }
+    //llu destruction check
+    if (player.Carrying.contains(SpecialCarry.CaptureFlag)) {
+      CaptureFlagManager.ReasonToLoseFlagViolently(continent, sessionLogic.general.specialItemSlotGuid, player)
+    }
+    //
     val eagleEye: Boolean = ops.canSeeReallyFar
     val isNotVisible: Boolean = sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing ||
       (player.isAlive && sessionLogic.zoning.spawn.deadState == DeadState.RespawnTime)

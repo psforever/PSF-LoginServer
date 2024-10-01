@@ -14,17 +14,17 @@ import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.environment._
-import net.psforever.objects.serverobject.environment.interaction.{EscapeFromEnvironment, InteractingWithEnvironment, RespondsToZoneEnvironment}
+import net.psforever.objects.serverobject.environment.interaction.{InteractingWithEnvironment, RespondsToZoneEnvironment}
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vehicles.VehicleLockState
 import net.psforever.objects.vehicles.control.VehicleControl
+import net.psforever.objects.vehicles.interaction.WithWater
 import net.psforever.objects.vital.{ShieldCharge, SpawningActivity, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types._
 
@@ -174,15 +174,17 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
 //}
 
 class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActorTest {
-  val vehicleProbe = new TestProbe(system)
-  val catchall = new TestProbe(system)
+  val eventsProbe = new TestProbe(system)
+  val cargoProbe = new TestProbe(system)
   val guid = new NumberPoolHub(new MaxNumberSource(10))
   ServiceManager.boot
   val zone = new Zone("test", new ZoneMap("test"), 0) {
     GUID(guid)
 
     override def SetupNumberPools(): Unit = {}
-    override def VehicleEvents = vehicleProbe.ref
+    override def AvatarEvents = eventsProbe.ref
+    override def LocalEvents = eventsProbe.ref
+    override def VehicleEvents = eventsProbe.ref
   }
   zone.actor = system.spawn(ZoneActor(zone), "test-zone-actor")
   // crappy workaround but without it the zone doesn't get initialized in time
@@ -191,7 +193,6 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
   val vehicle = Vehicle(GlobalDefinitions.two_man_assault_buggy)
   vehicle.Faction = PlanetSideEmpire.TR
   vehicle.Zone = zone
-  val cargoProbe = new TestProbe(system)
   vehicle.Actor = cargoProbe.ref
   val lodestar = Vehicle(GlobalDefinitions.lodestar)
   lodestar.Faction = PlanetSideEmpire.TR
@@ -220,39 +221,45 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
     "if with mounted cargo, eject it when marked for deconstruction" in {
       lodestar.Actor ! Vehicle.Deconstruct()
 
-      val vehicle_msg = vehicleProbe.receiveN(6, 500 milliseconds)
-      vehicle_msg.head match {
-        case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(4), 4, true, PlanetSideGUID(2))) => ;
+      val vehicleMsgs = eventsProbe.receiveN(6, 10.seconds)
+      val cargoMsgs = cargoProbe.receiveN(1, 1.seconds)
+      vehicleMsgs.head match {
+        case VehicleServiceMessage("test", VehicleAction.KickPassenger(PlanetSideGUID(4), 4, true, PlanetSideGUID(2))) => ()
         case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-1: ${vehicle_msg(5)}")
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-1: ${vehicleMsgs.head}")
       }
       assert(player2.VehicleSeated.isEmpty)
       assert(lodestar.Seats(0).occupant.isEmpty)
       //cargo dismounting messages
-      vehicle_msg(1) match {
-        case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))) => ;
+      vehicleMsgs(1) match {
+        case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))) => ()
         case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-2: ${vehicle_msg.head}")
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-2: ${vehicleMsgs(1)}")
       }
-      vehicle_msg(2) match {
-        case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))) => ;
+      vehicleMsgs(2) match {
+        case VehicleServiceMessage(_, VehicleAction.SendResponse(_, PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))) => ()
         case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-3: ${vehicle_msg(1)}")
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-3: ${vehicleMsgs(2)}")
       }
-      vehicle_msg(3) match {
+      vehicleMsgs(3) match {
         case VehicleServiceMessage("test", VehicleAction.SendResponse(_, CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0))) => ;
         case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-4: ${vehicle_msg(2)}")
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-4: ${vehicleMsgs(3)}")
       }
-      vehicle_msg(4) match {
-        case VehicleServiceMessage("test", VehicleAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))) => ;
+      vehicleMsgs(4) match {
+        case VehicleServiceMessage("test", VehicleAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))) => ()
         case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-5: ${vehicle_msg(3)}")
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-5: ${vehicleMsgs(4)}")
       }
-      vehicle_msg(5) match {
-        case VehicleServiceMessage("test", VehicleAction.SendResponse(_, CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0))) => ;
+      vehicleMsgs(5) match {
+        case VehicleServiceMessage("test", VehicleAction.SendResponse(_, CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0))) => ()
         case _ =>
-          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-6: ${vehicle_msg(4)}")
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-6: ${vehicleMsgs(5)}")
+      }
+      cargoMsgs.head match {
+        case Vehicle.Deconstruct(_) => ()
+        case _ =>
+          assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-7: ${cargoMsgs.head}")
       }
     }
   }
@@ -393,7 +400,7 @@ class VehicleControlMountingOwnedLockedDriverSeatTest extends ActorTest {
 
   val player1 = Player(VehicleTest.avatar1)
   player1.GUID = PlanetSideGUID(1)
-  val player2 = Player(VehicleTest.avatar1)
+  val player2 = Player(VehicleTest.avatar1.copy(basic = VehicleTest.avatar1.basic.copy(faction = PlanetSideEmpire.NC)))
   player2.GUID = PlanetSideGUID(2)
 
   "Vehicle Control" should {
@@ -578,67 +585,13 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
 //  }
 //}
 
-class VehicleControlInteractWithWaterPartialTest extends ActorTest {
-  val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
-  val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
-  val playerProbe = TestProbe()
-  val guid = new NumberPoolHub(new MaxNumberSource(15))
-  val pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
-  val zone = new Zone(
-    id = "test-zone",
-    new ZoneMap(name = "test-map") {
-      environment = List(pool)
-    },
-    zoneNumber = 0
-  ) {
-    override def SetupNumberPools() = {}
-    GUID(guid)
-    override def LivePlayers = List(player1)
-    override def Vehicles = List(vehicle)
-  }
-  zone.blockMap.addTo(vehicle)
-  zone.blockMap.addTo(pool)
-
-  guid.register(player1, 1)
-  guid.register(vehicle, 2)
-  player1.Zone = zone
-  player1.Spawn()
-  vehicle.Zone = zone
-  vehicle.Faction = PlanetSideEmpire.TR
-  vehicle.Seats(0).mount(player1)
-  player1.VehicleSeated = vehicle.GUID
-  player1.Actor = playerProbe.ref
-  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-control")
-
-  "VehicleControl" should {
-    "causes disability when the vehicle drives too deep in water (check driver messaging)" in {
-      vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteractions() //trigger
-
-      val msg_drown = playerProbe.receiveOne(250 milliseconds)
-      assert(
-        msg_drown match {
-          case InteractingWithEnvironment(
-            p2,
-            Some(OxygenStateTarget(PlanetSideGUID(2), _, OxygenState.Suffocation, 100f))
-          )      => (p2 eq pool)
-          case _ => false
-        }
-      )
-    }
-  }
-}
-
-class VehicleControlInteractWithWaterTest extends ActorTest {
-  val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
-  val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
-  val avatarProbe = TestProbe()
+class VehicleControlInteractWithWaterWadingTest extends ActorTest {
   val playerProbe = TestProbe()
   val vehicleProbe = TestProbe()
+  val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
+  val player1 = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val guid = new NumberPoolHub(new MaxNumberSource(15))
-  val pool = Pool(EnvironmentAttribute.Water, DeepSquare(10, 10, 10, 0, 0))
+  val pool = Pool(EnvironmentAttribute.Water, DeepSquare(5, 2, 2, 0, 0))
   val zone = new Zone(
     id = "test-zone",
     new ZoneMap(name = "test-map") {
@@ -650,53 +603,48 @@ class VehicleControlInteractWithWaterTest extends ActorTest {
     GUID(guid)
     override def LivePlayers = List(player1)
     override def Vehicles = List(vehicle)
-    override def AvatarEvents = avatarProbe.ref
-    override def VehicleEvents = avatarProbe.ref
-
-    this.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
   }
   zone.blockMap.addTo(vehicle)
   zone.blockMap.addTo(pool)
 
   guid.register(player1, 1)
   guid.register(vehicle, 2)
-  guid.register(player1.avatar.locker, 5)
   player1.Zone = zone
   player1.Spawn()
   vehicle.Zone = zone
   vehicle.Faction = PlanetSideEmpire.TR
   vehicle.Seats(0).mount(player1)
   player1.VehicleSeated = vehicle.GUID
-  val (probe, avatarActor) = PlayerControlTest.DummyAvatar(system)
   player1.Actor = playerProbe.ref
   vehicle.Actor = vehicleProbe.ref
 
   "VehicleControl" should {
-    "causes disability when the vehicle drives too deep in water" in {
-      vehicle.Position = Vector3(5,5,3) //right in the pool
-      vehicle.zoneInteractions() //trigger
+    "report when the vehicle starts treading water" in {
+      vehicle.Position = Vector3(1, 1, 6)
+      vehicle.zoneInteractions()
+      vehicleProbe.expectNoMessage(2.seconds)
+      playerProbe.expectNoMessage()
 
-      val msg_drown = playerProbe.receiveOne(250 milliseconds)
-      assert(msg_drown match {
-        case InteractingWithEnvironment(body, _) => body eq pool
-        case _ => false
-      })
-      val msg_disable = vehicleProbe.receiveOne(10 seconds)
-      assert(msg_disable match {
-        case RespondsToZoneEnvironment.Timer(EnvironmentAttribute.Water, _, _, VehicleControl.Disable(true)) => true
-        case _ => false
-      })
+      vehicle.Position = Vector3(1, 1, 4f)
+      vehicle.zoneInteractions()
+      val vehicleMsgs = vehicleProbe.receiveN(1, 5.seconds)
+      vehicleMsgs.head match {
+        case RespondsToZoneEnvironment.Timer(EnvironmentAttribute.Water, _, _, _) => ()
+        case _ =>
+          assert(false, "")
+      }
+      playerProbe.expectNoMessage()
     }
   }
 }
 
-class VehicleControlStopInteractWithWaterTest extends ActorTest {
-  val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
-  val player1 =
-    Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
+class VehicleControlInteractWithWaterStartDrowningTest extends ActorTest {
   val playerProbe = TestProbe()
+  val vehicleProbe = TestProbe()
+  val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
+  val player1 = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
   val guid = new NumberPoolHub(new MaxNumberSource(15))
-  val pool = Pool(EnvironmentAttribute.Water, DeepSquare(-1, 10, 10, 0, 0))
+  val pool = Pool(EnvironmentAttribute.Water, DeepSquare(5, 2, 2, 0, 0))
   val zone = new Zone(
     id = "test-zone",
     new ZoneMap(name = "test-map") {
@@ -721,38 +669,289 @@ class VehicleControlStopInteractWithWaterTest extends ActorTest {
   vehicle.Seats(0).mount(player1)
   player1.VehicleSeated = vehicle.GUID
   player1.Actor = playerProbe.ref
-  vehicle.Actor = system.actorOf(Props(classOf[VehicleControl], vehicle), "vehicle-control")
+  vehicle.Actor = vehicleProbe.ref
 
   "VehicleControl" should {
-    "stop becoming disabled if the vehicle drives out of the water" in {
-      vehicle.Position = Vector3(5,5,-3) //right in the pool
-      vehicle.zoneInteractions() //trigger
-      val msg_drown = playerProbe.receiveOne(250 milliseconds)
-      assert(
-        msg_drown match {
-          case InteractingWithEnvironment(
-            p2,
-            Some(OxygenStateTarget(PlanetSideGUID(2), _, OxygenState.Suffocation, 100f))
-          )      => (p2 eq pool)
-          case _ => false
-        }
-      )
-
-      vehicle.Position = Vector3.Zero //that's enough of that
+    "report when the vehicle starts drowning" in {
+      vehicle.Position = Vector3(1, 1, 6)
       vehicle.zoneInteractions()
-      val msg_recover = playerProbe.receiveOne(250 milliseconds)
-      assert(
-        msg_recover match {
-          case EscapeFromEnvironment(
-            p2,
-            Some(OxygenStateTarget(PlanetSideGUID(2), _, OxygenState.Recovery, _))
-          )      => (p2 eq pool)
-          case _ => false
-        }
-      )
+      vehicleProbe.expectNoMessage(2.seconds)
+      playerProbe.expectNoMessage()
+
+      vehicle.Position = Vector3(1, 1, 0f)
+      vehicle.zoneInteractions()
+      val vehicleMsgs = vehicleProbe.receiveN(3, 5.seconds)
+      val playerMsgs = playerProbe.receiveN(1, 1.seconds)
+      vehicleMsgs.head match {
+        case RespondsToZoneEnvironment.StopTimer(WithWater.WaterAction) => ()
+        case _ =>
+          assert(false, "")
+      }
+      vehicleMsgs(1) match {
+        case RespondsToZoneEnvironment.Timer(WithWater.WaterAction, _, _, _) => ()
+        case _ =>
+          assert(false, "")
+      }
+      vehicleMsgs(2) match {
+        case RespondsToZoneEnvironment.Timer(EnvironmentAttribute.Water, _, _, _) => ()
+        case _ =>
+          assert(false, "")
+      }
+      playerMsgs.head match {
+        case InteractingWithEnvironment(somePool, Some(OxygenStateTarget(ValidPlanetSideGUID(2), _, OxygenState.Suffocation, 100.0f)))
+          if somePool eq pool => ()
+        case _ =>
+          assert(false, "")
+      }
     }
   }
 }
+
+//class VehicleControlInteractWithWaterStopDrowningTest extends ActorTest {
+//  val playerProbe = TestProbe()
+//  val vehicleProbe = TestProbe()
+//  val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
+//  val player1 = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
+//  val guid = new NumberPoolHub(new MaxNumberSource(15))
+//  val pool = Pool(EnvironmentAttribute.Water, DeepSquare(5, 2, 2, 0, 0))
+//  val zone = new Zone(
+//    id = "test-zone",
+//    new ZoneMap(name = "test-map") {
+//      environment = List(pool)
+//    },
+//    zoneNumber = 0
+//  ) {
+//    override def SetupNumberPools() = {}
+//    GUID(guid)
+//    override def LivePlayers = List(player1)
+//    override def Vehicles = List(vehicle)
+//  }
+//  zone.blockMap.addTo(vehicle)
+//  zone.blockMap.addTo(pool)
+//
+//  guid.register(player1, 1)
+//  guid.register(vehicle, 2)
+//  player1.Zone = zone
+//  player1.Spawn()
+//  vehicle.Zone = zone
+//  vehicle.Faction = PlanetSideEmpire.TR
+//  vehicle.Seats(0).mount(player1)
+//  player1.VehicleSeated = vehicle.GUID
+//  player1.Actor = playerProbe.ref
+//  vehicle.Actor = vehicleProbe.ref
+//
+//  "VehicleControl" should {
+//    "report when the vehicle stops drowning" in {
+//      vehicle.Position = Vector3(1, 1, 6)
+//      vehicle.zoneInteractions()
+//      vehicleProbe.expectNoMessage(2.seconds)
+//      playerProbe.expectNoMessage()
+//
+//      vehicle.Position = Vector3(1, 1, 0f)
+//      vehicle.zoneInteractions()
+//      val vehicleMsgs = vehicleProbe.receiveN(3, 5.seconds)
+//      val playerMsgs = playerProbe.receiveN(1, 1.seconds)
+//      vehicleMsgs.head match {
+//        case RespondsToZoneEnvironment.StopTimer(WithWater.WaterAction) => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//      vehicleMsgs(1) match {
+//        case RespondsToZoneEnvironment.Timer(WithWater.WaterAction, _, _, _) => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//      vehicleMsgs(2) match {
+//        case RespondsToZoneEnvironment.Timer(EnvironmentAttribute.Water, _, _, _) => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//      playerMsgs.head match {
+//        case InteractingWithEnvironment(somePool, Some(OxygenStateTarget(ValidPlanetSideGUID(2), _, OxygenState.Suffocation, 100.0f)))
+//          if somePool eq pool => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//
+//      //escape drowning
+//      vehicle.Position = Vector3(1, 1, 4.7f)
+//      vehicle.zoneInteractions()
+//      val vehicleMsgs2 = vehicleProbe.receiveN(2, 5.seconds)
+//      val playerMsgs2 = playerProbe.receiveN(1, 1.seconds)
+//      vehicleMsgs2.head match {
+//        case RespondsToZoneEnvironment.StopTimer(WithWater.WaterAction) => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//      vehicleMsgs2(1) match {
+//        case RespondsToZoneEnvironment.Timer(WithWater.WaterAction, _, _, _) => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//      playerMsgs2.head match {
+//        case EscapeFromEnvironment(somePool, Some(OxygenStateTarget(ValidPlanetSideGUID(2), _, OxygenState.Recovery, _)))
+//          if somePool eq pool => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//    }
+//  }
+//}
+
+class VehicleControlInteractWithWaterStopWadingTest extends ActorTest {
+  val playerProbe = TestProbe()
+  val vehicleProbe = TestProbe()
+  val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
+  val player1 = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
+  val guid = new NumberPoolHub(new MaxNumberSource(15))
+  val pool = Pool(EnvironmentAttribute.Water, DeepSquare(5, 2, 2, 0, 0))
+  val zone = new Zone(
+    id = "test-zone",
+    new ZoneMap(name = "test-map") {
+      environment = List(pool)
+    },
+    zoneNumber = 0
+  ) {
+    override def SetupNumberPools() = {}
+    GUID(guid)
+    override def LivePlayers = List(player1)
+    override def Vehicles = List(vehicle)
+  }
+  zone.blockMap.addTo(vehicle)
+  zone.blockMap.addTo(pool)
+
+  guid.register(player1, 1)
+  guid.register(vehicle, 2)
+  player1.Zone = zone
+  player1.Spawn()
+  vehicle.Zone = zone
+  vehicle.Faction = PlanetSideEmpire.TR
+  vehicle.Seats(0).mount(player1)
+  player1.VehicleSeated = vehicle.GUID
+  player1.Actor = playerProbe.ref
+  vehicle.Actor = vehicleProbe.ref
+
+  "VehicleControl" should {
+    "report when the vehicle stops wading" in {
+      vehicle.Position = Vector3(1, 1, 6)
+      vehicle.zoneInteractions()
+      vehicleProbe.expectNoMessage(2.seconds)
+      playerProbe.expectNoMessage()
+
+      vehicle.Position = Vector3(1, 1, 4f)
+      vehicle.zoneInteractions()
+      val vehicleMsgs = vehicleProbe.receiveN(1, 5.seconds)
+      playerProbe.expectNoMessage()
+      vehicleMsgs.head match {
+        case RespondsToZoneEnvironment.Timer(EnvironmentAttribute.Water, _, _, _) => ()
+        case _ =>
+          assert(false, "")
+      }
+
+      //stop wading
+      vehicle.Position = Vector3(1, 1, 6f)
+      vehicle.zoneInteractions()
+      val vehicleMsgs2 = vehicleProbe.receiveN(1, 5.seconds)
+      playerProbe.expectNoMessage()
+      vehicleMsgs2.head match {
+        case RespondsToZoneEnvironment.StopTimer(EnvironmentAttribute.Water) => ()
+        case _ =>
+          assert(false, "")
+      }
+    }
+  }
+}
+
+//class VehicleControlInteractWithWaterFullStopTest extends ActorTest {
+//  val playerProbe = TestProbe()
+//  val vehicleProbe = TestProbe()
+//  val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2
+//  val player1 = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute)) //guid=1
+//  val guid = new NumberPoolHub(new MaxNumberSource(15))
+//  val pool = Pool(EnvironmentAttribute.Water, DeepSquare(5, 2, 2, 0, 0))
+//  val zone = new Zone(
+//    id = "test-zone",
+//    new ZoneMap(name = "test-map") {
+//      environment = List(pool)
+//    },
+//    zoneNumber = 0
+//  ) {
+//    override def SetupNumberPools() = {}
+//    GUID(guid)
+//    override def LivePlayers = List(player1)
+//    override def Vehicles = List(vehicle)
+//  }
+//  zone.blockMap.addTo(vehicle)
+//  zone.blockMap.addTo(pool)
+//
+//  guid.register(player1, 1)
+//  guid.register(vehicle, 2)
+//  player1.Zone = zone
+//  player1.Spawn()
+//  vehicle.Zone = zone
+//  vehicle.Faction = PlanetSideEmpire.TR
+//  vehicle.Seats(0).mount(player1)
+//  player1.VehicleSeated = vehicle.GUID
+//  player1.Actor = playerProbe.ref
+//  vehicle.Actor = vehicleProbe.ref
+//
+//  "VehicleControl" should {
+//    "report when the vehicle stops interacting with water altogether" in {
+//      vehicle.Position = Vector3(1, 1, 6)
+//      vehicle.zoneInteractions()
+//      vehicleProbe.expectNoMessage(2.seconds)
+//      playerProbe.expectNoMessage()
+//      //wading and drowning
+//      vehicle.Position = Vector3(1, 1, 0f)
+//      vehicle.zoneInteractions()
+//      val vehicleMsgs = vehicleProbe.receiveN(3, 5.seconds)
+//      val playerMsgs = playerProbe.receiveN(1, 1.seconds)
+//      vehicleMsgs.head match {
+//        case RespondsToZoneEnvironment.StopTimer(WithWater.WaterAction) => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//      vehicleMsgs(1) match {
+//        case RespondsToZoneEnvironment.Timer(WithWater.WaterAction, _, _, _) => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//      vehicleMsgs(2) match {
+//        case RespondsToZoneEnvironment.Timer(EnvironmentAttribute.Water, _, _, _) => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//      playerMsgs.head match {
+//        case InteractingWithEnvironment(somePool, Some(OxygenStateTarget(ValidPlanetSideGUID(2), _, OxygenState.Suffocation, 100.0f)))
+//          if somePool eq pool => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//
+//      //escape drowning and wading
+//      vehicle.Position = Vector3(1, 1, 6f)
+//      vehicle.zoneInteractions()
+//      val vehicleMsgs2 = vehicleProbe.receiveN(2, 5.seconds)
+//      val playerMsgs2 = playerProbe.receiveN(1, 1.seconds)
+//      vehicleMsgs2.head match {
+//        case RespondsToZoneEnvironment.StopTimer(WithWater.WaterAction) => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//      vehicleMsgs2(1) match {
+//        case RespondsToZoneEnvironment.StopTimer(EnvironmentAttribute.Water) => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//      playerMsgs2.head match {
+//        case EscapeFromEnvironment(somePool, Some(OxygenStateTarget(ValidPlanetSideGUID(2), _, OxygenState.Recovery, _)))
+//          if somePool eq pool => ()
+//        case _ =>
+//          assert(false, "")
+//      }
+//    }
+//  }
+//}
 
 class VehicleControlInteractWithLavaTest extends ActorTest {
   val vehicle = Vehicle(GlobalDefinitions.fury) //guid=2

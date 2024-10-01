@@ -184,6 +184,10 @@ class VehicleService(zone: Zone) extends Actor {
               VehicleResponse.MountVehicle(vehicle_guid, seat)
             )
           )
+        case VehicleAction.LoseOwnership(owner_guid, vehicle_guid) =>
+          VehicleEvents.publish(
+            VehicleServiceResponse(s"/$forChannel/Vehicle", Service.defaultPlayerGUID, VehicleResponse.LoseOwnership(owner_guid, vehicle_guid))
+          )
         case VehicleAction.Ownership(player_guid, vehicle_guid) =>
           VehicleEvents.publish(
             VehicleServiceResponse(s"/$forChannel/Vehicle", player_guid, VehicleResponse.Ownership(vehicle_guid))

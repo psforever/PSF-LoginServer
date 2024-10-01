@@ -1,20 +1,26 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.objects.serverobject.environment.interaction.common
 
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.serverobject.PlanetSideServerObject
+import net.psforever.objects.serverobject.environment.interaction.InteractWithEnvironment
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, EnvironmentTrait, PieceOfEnvironment}
+import net.psforever.objects.zones.InteractsWithZone
 import net.psforever.types.{OxygenState, PlanetSideGUID}
 
 trait Watery {
   val attribute: EnvironmentTrait = EnvironmentAttribute.Water
-
   /** how long the current interaction has been progressing in the current way */
   protected var waterInteractionTime: Long = 0
   /** information regarding the drowning state */
   protected var condition: Option[OxygenStateTarget] = None
   /** information regarding the drowning state */
   def Condition: Option[OxygenStateTarget] = condition
+  /** how far the player's feet are below the surface of the water */
+  protected var depth: Float = 0f
+  /** how far the player's feet are below the surface of the water */
+  def Depth: Float = depth
 }
 
 object Watery {
@@ -32,6 +38,27 @@ object Watery {
                                       state: OxygenState,
                                       progress: Float
                                     )
+
+  /**
+   * na
+   * @param target evaluate this to determine if to continue with this loss
+   * @return whether or not we are sufficiently submerged in water
+   */
+  def wading(target: PlanetSideGameObject with InteractsWithZone): Boolean = {
+    target
+      .interaction()
+      .collectFirst {
+        case env: InteractWithEnvironment =>
+          env
+            .Interactions
+            .get(EnvironmentAttribute.Water)
+            .collectFirst {
+              case water: Watery => water.Depth > 0f
+            }
+      }
+      .flatten
+      .contains(true)
+  }
 
   /**
    * Calculate the effect of being exposed to a watery environment beyond an entity's critical region.
@@ -122,10 +149,10 @@ object Watery {
         //switching from suffocation to recovery
         val oldDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Suffocation)
         val newDuration: Long = obj.Definition.UnderwaterLifespan(OxygenState.Recovery)
-        val oldTimeRemaining: Long = completionTime - System.currentTimeMillis()
+        val oldTimeRemaining: Long = math.max(0, completionTime - System.currentTimeMillis())
         val oldTimeRatio: Float = oldTimeRemaining / oldDuration.toFloat
         val percentage: Float = oldTimeRatio * 100
-        val recoveryTime: Long = newDuration - (newDuration * oldTimeRatio).toLong
+        val recoveryTime: Long = newDuration * (1f - oldTimeRatio).toLong
         (true, recoveryTime, percentage)
       case Some(OxygenState.Recovery) =>
         //interrupted while recovering, calculate the progress and keep recovering

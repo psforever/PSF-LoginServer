@@ -10,6 +10,8 @@ import net.psforever.types.Vector3
  */
 abstract class EnvironmentTrait {
   def canInteractWith(obj: PlanetSideGameObject): Boolean
+
+  def testingDepth(obj: PlanetSideGameObject): Float
 }
 
 object EnvironmentAttribute {
@@ -25,16 +27,33 @@ object EnvironmentAttribute {
           case _          => false
         })
     }
+
+    def testingDepth(obj: PlanetSideGameObject): Float = {
+      obj match {
+        case v: Vehicle if v.Flying.nonEmpty =>
+          0f
+        case _: Vehicle if !obj.Definition.DrownAtMaxDepth =>
+          obj.Definition.MaxDepth * 0.9f
+        case _: Vehicle =>
+          obj.Definition.MaxDepth * 0.6f
+        case _ =>
+          0.2f
+      }
+    }
   }
 
   case object Lava extends EnvironmentTrait {
     /** lava can only interact with anything capable of registering damage */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithDamagingFields(obj)
+
+    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 0f
   }
 
   case object Death extends EnvironmentTrait {
     /** death can only interact with anything capable of registering damage */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithDamagingFields(obj)
+
+    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 0f
   }
 
   case object GantryDenialField
@@ -46,18 +65,24 @@ object EnvironmentAttribute {
         case _         => false
       }
     }
+
+    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 0f
   }
 
   case object MovementFieldTrigger
     extends EnvironmentTrait {
     /** only interact with living player characters or vehicles */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithPlayersAndVehicles(obj)
+
+    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 0f
   }
 
   case object InteriorField
     extends EnvironmentTrait {
     /** only interact with living player characters or vehicles */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithPlayersAndVehicles(obj)
+
+    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 0f
   }
 
   /**

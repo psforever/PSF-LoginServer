@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.pad.process
 
-import akka.actor.Props
+import akka.actor.{ActorRef, Props}
 import net.psforever.objects.{Default, Vehicle}
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 
@@ -25,7 +25,7 @@ import scala.concurrent.duration._
 class VehicleSpawnControlSeatDriver(pad: VehicleSpawnPad) extends VehicleSpawnControlBase(pad) {
   def LogId = "-usher"
 
-  val vehicleOverride = context.actorOf(
+  val vehicleOverride: ActorRef = context.actorOf(
     Props(classOf[VehicleSpawnControlServerVehicleOverride], pad),
     s"${context.parent.path.name}-override"
   )
@@ -43,7 +43,7 @@ class VehicleSpawnControlSeatDriver(pad: VehicleSpawnPad) extends VehicleSpawnCo
       val driver  = entry.driver
       val vehicle = entry.vehicle
       //avoid unattended vehicle blocking the pad; user should mount (and does so normally) to reset decon timer
-      vehicle.Actor ! Vehicle.Deconstruct(Some(30 seconds))
+      vehicle.Actor ! Vehicle.Deconstruct(Some(pad.Definition.VehicleCreationDeconstructTime.seconds))
       if (VehicleSpawnControl.validateOrderCredentials(pad, driver, vehicle).isEmpty) {
         trace("driver to be made seated in vehicle")
         pad.Zone.VehicleEvents ! VehicleSpawnPad.StartPlayerSeatedInVehicle(driver.Name, vehicle, pad)
@@ -67,7 +67,7 @@ class VehicleSpawnControlSeatDriver(pad: VehicleSpawnPad) extends VehicleSpawnCo
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>
       context.parent ! msg
 
-    case _ => ;
+    case _ => ()
   }
 }
 

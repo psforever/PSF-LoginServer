@@ -146,5 +146,5 @@ object Mountable {
     * @param obj the `Mountable` object
     * @param seat_num the seat index
     */
-  final case class CanNotDismount(obj: Mountable, seat_num: Int) extends Exchange
+  final case class CanNotDismount(obj: Mountable, seat_num: Int, bailType: BailType.Value) extends Exchange
 }
