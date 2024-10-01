@@ -84,7 +84,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
 
       case (CMT_HIDE_HELMET | CMT_TOGGLE_SHADES | CMT_TOGGLE_EARPIECE, _, contents) =>
         ops.commandToggleCosmetics(session, message, contents)
-        
+
       case _ =>
         sendResponse(ChatMsg(ChatMessageType.UNK_227, "@no_permission"))
     }
