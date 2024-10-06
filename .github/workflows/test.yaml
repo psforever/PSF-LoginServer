@@ -1,9 +1,11 @@
 name: Test
 on:
   push:
+    paths-ignore: .github\workflows 
     branches:
       - master
   pull_request:
+    paths-ignore: .github\workflows 
     types: [ opened, reopened, synchronize ]
 jobs:
   test:
