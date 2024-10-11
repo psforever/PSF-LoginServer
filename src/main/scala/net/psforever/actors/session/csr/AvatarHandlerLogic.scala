@@ -261,10 +261,6 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sendResponse(ItemTransactionResultMessage(terminalGuid, action, result))
         sessionLogic.terminals.lastTerminalOrderFulfillment = true
         AvatarActor.savePlayerData(player)
-        sessionLogic.general.renewCharSavedTimer(
-          Config.app.game.savedMsg.interruptedByAction.fixed,
-          Config.app.game.savedMsg.interruptedByAction.variable
-        )
 
       case AvatarResponse.TerminalOrderResult(terminalGuid, action, result) =>
         sendResponse(ItemTransactionResultMessage(terminalGuid, action, result))

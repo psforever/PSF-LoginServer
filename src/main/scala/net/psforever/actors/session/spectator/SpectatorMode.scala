@@ -24,9 +24,9 @@ import net.psforever.packet.game.{ChatMsg, CreateShortcutMessage, UnuseItemMessa
 class SpectatorModeLogic(data: SessionData) extends ModeLogic {
   val avatarResponse: AvatarHandlerFunctions = AvatarHandlerLogic(data.avatarResponse)
   val chat: ChatFunctions = ChatLogic(data.chat)
-  val galaxy: GalaxyHandlerFunctions = GalaxyHandlerLogic(data.galaxyResponseHandlers)
+  val galaxy: GalaxyHandlerFunctions = net.psforever.actors.session.normal.GalaxyHandlerLogic(data.galaxyResponseHandlers)
   val general: GeneralFunctions = GeneralLogic(data.general)
-  val local: LocalHandlerFunctions = LocalHandlerLogic(data.localResponse)
+  val local: LocalHandlerFunctions = net.psforever.actors.session.normal.LocalHandlerLogic(data.localResponse)
   val mountResponse: MountHandlerFunctions = MountHandlerLogic(data.mountResponse)
   val shooting: WeaponAndProjectileFunctions = WeaponAndProjectileLogic(data.shooting)
   val squad: SquadHandlerFunctions = SquadHandlerLogic(data.squad)
@@ -118,7 +118,6 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       data.chat.commandIncomingSilence(session, ChatMsg(ChatMessageType.CMT_SILENCE, "player 0"))
     }
     //
-    player.spectator = true
     data.chat.JoinChannel(SpectatorChannel)
     val newPlayer = SpectatorModeLogic.spectatorCharacter(player)
     newPlayer.LogActivity(player.History.headOption)
@@ -159,7 +158,6 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       .map(CreateShortcutMessage(pguid, _, None))
       .foreach(sendResponse)
     data.chat.LeaveChannel(SpectatorChannel)
-    player.spectator = false
     sendResponse(ObjectDeleteMessage(player.avatar.locker.GUID, 0)) //free up the slot
     sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "off"))
     sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SpectatorDisabled"))
@@ -212,6 +210,7 @@ object SpectatorModeLogic {
     newPlayer.Position = player.Position
     newPlayer.Orientation = player.Orientation
     newPlayer.spectator = true
+    newPlayer.bops = true
     newPlayer.Spawn()
     newPlayer
   }

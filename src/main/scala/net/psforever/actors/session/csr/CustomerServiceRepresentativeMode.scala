@@ -1,7 +1,7 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.csr
 
-import net.psforever.actors.session.support.{ChatFunctions, GeneralFunctions, LocalHandlerFunctions, ModeLogic, MountHandlerFunctions, PlayerMode, SessionData, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
+import net.psforever.actors.session.support.{ChatFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, ModeLogic, MountHandlerFunctions, PlayerMode, SessionData, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.Session
 import net.psforever.packet.PlanetSidePacket
@@ -11,15 +11,15 @@ import net.psforever.types.ChatMessageType
 class CustomerServiceRepresentativeMode(data: SessionData) extends ModeLogic {
   val avatarResponse: AvatarHandlerLogic = AvatarHandlerLogic(data.avatarResponse)
   val chat: ChatFunctions = ChatLogic(data.chat)
-  val galaxy: GalaxyHandlerLogic = GalaxyHandlerLogic(data.galaxyResponseHandlers)
+  val galaxy: GalaxyHandlerFunctions = net.psforever.actors.session.normal.GalaxyHandlerLogic(data.galaxyResponseHandlers)
   val general: GeneralFunctions = GeneralLogic(data.general)
-  val local: LocalHandlerFunctions = LocalHandlerLogic(data.localResponse)
+  val local: LocalHandlerFunctions = net.psforever.actors.session.normal.LocalHandlerLogic(data.localResponse)
   val mountResponse: MountHandlerFunctions = MountHandlerLogic(data.mountResponse)
   val shooting: WeaponAndProjectileFunctions = WeaponAndProjectileLogic(data.shooting)
   val squad: SquadHandlerFunctions = SquadHandlerLogic(data.squad)
   val terminals: TerminalHandlerFunctions = TerminalHandlerLogic(data.terminals)
   val vehicles: VehicleFunctions = VehicleLogic(data.vehicles)
-  val vehicleResponse: VehicleHandlerFunctions = VehicleHandlerLogic(data.vehicleResponseOperations)
+  val vehicleResponse: VehicleHandlerFunctions = net.psforever.actors.session.normal.VehicleHandlerLogic(data.vehicleResponseOperations)
 
   override def switchTo(session: Session): Unit = {
     val player = session.player

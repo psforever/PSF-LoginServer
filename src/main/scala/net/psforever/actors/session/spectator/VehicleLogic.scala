@@ -1,14 +1,11 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.spectator
 
-import akka.actor.{ActorContext, typed}
-import net.psforever.actors.session.AvatarActor
+import akka.actor.ActorContext
 import net.psforever.actors.session.support.{SessionData, VehicleFunctions, VehicleOperations}
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.{Vehicle, Vehicles}
+import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.deploy.Deployment
-import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{DriveState, Vector3}
@@ -22,210 +19,15 @@ object VehicleLogic {
 class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContext) extends VehicleFunctions {
   def sessionLogic: SessionData = ops.sessionLogic
 
-  private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
+  //private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
 
   /* packets */
 
-  def handleVehicleState(pkt: VehicleStateMessage): Unit = {
-    val VehicleStateMessage(
-    vehicle_guid,
-    unk1,
-    pos,
-    ang,
-    vel,
-    is_flying,
-    unk6,
-    unk7,
-    wheels,
-    is_decelerating,
-    is_cloaked
-    ) = pkt
-    ops.GetVehicleAndSeat() match {
-      case (Some(obj), Some(0)) =>
-        //we're driving the vehicle
-        sessionLogic.persist()
-        sessionLogic.turnCounterFunc(player.GUID)
-        sessionLogic.general.fallHeightTracker(pos.z)
-        if (obj.MountedIn.isEmpty) {
-          sessionLogic.updateBlockMap(obj, pos)
-        }
-        player.Position = pos //convenient
-        if (obj.WeaponControlledFromSeat(0).isEmpty) {
-          player.Orientation = Vector3.z(ang.z) //convenient
-        }
-        obj.Position = pos
-        obj.Orientation = ang
-        if (obj.MountedIn.isEmpty) {
-          if (obj.DeploymentState != DriveState.Deployed) {
-            obj.Velocity = vel
-          } else {
-            obj.Velocity = Some(Vector3.Zero)
-          }
-          if (obj.Definition.CanFly) {
-            obj.Flying = is_flying //usually Some(7)
-          }
-          obj.Cloaked = obj.Definition.CanCloak && is_cloaked
-        } else {
-          obj.Velocity = None
-          obj.Flying = None
-        }
-        continent.VehicleEvents ! VehicleServiceMessage(
-          continent.id,
-          VehicleAction.VehicleState(
-            player.GUID,
-            vehicle_guid,
-            unk1,
-            obj.Position,
-            ang,
-            obj.Velocity,
-            if (obj.isFlying) {
-              is_flying
-            } else {
-              None
-            },
-            unk6,
-            unk7,
-            wheels,
-            is_decelerating,
-            obj.Cloaked
-          )
-        )
-        sessionLogic.squad.updateSquad()
-        obj.zoneInteractions()
-      case (None, _) =>
-      //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
-      //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
-      case (_, Some(index)) =>
-        log.error(
-          s"VehicleState: ${player.Name} should not be dispatching this kind of packet from vehicle ${vehicle_guid.guid} when not the driver (actually, seat $index)"
-        )
-      case _ => ()
-    }
-    if (player.death_by == -1) {
-      sessionLogic.kickedByAdministration()
-    }
-  }
+  def handleVehicleState(pkt: VehicleStateMessage): Unit = { /* can not drive vehicle as spectator */ }
 
-  def handleFrameVehicleState(pkt: FrameVehicleStateMessage): Unit = {
-    val FrameVehicleStateMessage(
-    vehicle_guid,
-    unk1,
-    pos,
-    ang,
-    vel,
-    unk2,
-    unk3,
-    unk4,
-    is_crouched,
-    is_airborne,
-    ascending_flight,
-    flight_time,
-    unk9,
-    unkA
-    ) = pkt
-    ops.GetVehicleAndSeat() match {
-      case (Some(obj), Some(0)) =>
-        //we're driving the vehicle
-        sessionLogic.persist()
-        sessionLogic.turnCounterFunc(player.GUID)
-        val (position, angle, velocity, notMountedState) = continent.GUID(obj.MountedIn) match {
-          case Some(v: Vehicle) =>
-            sessionLogic.updateBlockMap(obj, pos)
-            (pos, v.Orientation - Vector3.z(value = 90f) * Vehicles.CargoOrientation(obj).toFloat, v.Velocity, false)
-          case _ =>
-            (pos, ang, vel, true)
-        }
-        player.Position = position //convenient
-        if (obj.WeaponControlledFromSeat(seatNumber = 0).isEmpty) {
-          player.Orientation = Vector3.z(ang.z) //convenient
-        }
-        obj.Position = position
-        obj.Orientation = angle
-        obj.Velocity = velocity
-        //            if (is_crouched && obj.DeploymentState != DriveState.Kneeling) {
-        //              //dev stuff goes here
-        //            }
-        //            else
-        //            if (!is_crouched && obj.DeploymentState == DriveState.Kneeling) {
-        //              //dev stuff goes here
-        //            }
-        obj.DeploymentState = if (is_crouched || !notMountedState) DriveState.Kneeling else DriveState.Mobile
-        if (notMountedState) {
-          if (obj.DeploymentState != DriveState.Kneeling) {
-            if (is_airborne) {
-              val flight = if (ascending_flight) flight_time else -flight_time
-              obj.Flying = Some(flight)
-              obj.Actor ! BfrFlight.Soaring(flight)
-            } else if (obj.Flying.nonEmpty) {
-              obj.Flying = None
-              obj.Actor ! BfrFlight.Landed
-            }
-          } else {
-            obj.Velocity = None
-            obj.Flying = None
-          }
-          obj.zoneInteractions()
-        } else {
-          obj.Velocity = None
-          obj.Flying = None
-        }
-        continent.VehicleEvents ! VehicleServiceMessage(
-          continent.id,
-          VehicleAction.FrameVehicleState(
-            player.GUID,
-            vehicle_guid,
-            unk1,
-            position,
-            angle,
-            velocity,
-            unk2,
-            unk3,
-            unk4,
-            is_crouched,
-            is_airborne,
-            ascending_flight,
-            flight_time,
-            unk9,
-            unkA
-          )
-        )
-        sessionLogic.squad.updateSquad()
-      case (None, _) =>
-      //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
-      //TODO placing a "not driving" warning here may trigger as we are disembarking the vehicle
-      case (_, Some(index)) =>
-        log.error(
-          s"VehicleState: ${player.Name} should not be dispatching this kind of packet from vehicle ${vehicle_guid.guid} when not the driver (actually, seat $index)"
-        )
-      case _ => ()
-    }
-    if (player.death_by == -1) {
-      sessionLogic.kickedByAdministration()
-    }
-  }
+  def handleFrameVehicleState(pkt: FrameVehicleStateMessage): Unit = { /* can not drive vehicle as spectator */ }
 
-  def handleChildObjectState(pkt: ChildObjectStateMessage): Unit = {
-    val ChildObjectStateMessage(object_guid, pitch, yaw) = pkt
-    val (o, tools) = sessionLogic.shooting.FindContainedWeapon
-    //is COSM our primary upstream packet?
-    (o match {
-      case Some(mount: Mountable) => (o, mount.PassengerInSeat(player))
-      case _                      => (None, None)
-    }) match {
-      case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ()
-      case _ =>
-        sessionLogic.persist()
-        sessionLogic.turnCounterFunc(player.GUID)
-    }
-    //the majority of the following check retrieves information to determine if we are in control of the child
-    tools.find { _.GUID == object_guid } match {
-      case None => ()
-      case Some(_) => player.Orientation = Vector3(0f, pitch, yaw)
-    }
-    if (player.death_by == -1) {
-      sessionLogic.kickedByAdministration()
-    }
-  }
+  def handleChildObjectState(pkt: ChildObjectStateMessage): Unit = { /* can not drive vehicle as spectator */ }
 
   def handleVehicleSubState(pkt: VehicleSubStateMessage): Unit = {
     val VehicleSubStateMessage(vehicle_guid, _, pos, ang, vel, unk1, _) = pkt
@@ -258,22 +60,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
     }
   }
 
-  def handleDeployRequest(pkt: DeployRequestMessage): Unit = {
-    val DeployRequestMessage(_, vehicle_guid, deploy_state, _, _, _) = pkt
-    val vehicle = player.avatar.vehicle
-    if (vehicle.contains(vehicle_guid)) {
-      if (vehicle == player.VehicleSeated) {
-        continent.GUID(vehicle_guid) match {
-          case Some(obj: Vehicle) =>
-            if (obj.DeploymentState == DriveState.Deployed) {
-              obj.Actor ! Deployment.TryDeploymentChange(deploy_state)
-            }
-          case _ => ()
-            avatarActor ! AvatarActor.SetVehicle(None)
-        }
-      }
-    }
-  }
+  def handleDeployRequest(pkt: DeployRequestMessage): Unit = { /* can not drive vehicle as spectator */ }
 
   /* messages */
 

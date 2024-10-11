@@ -25,8 +25,6 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
 
   private val squadService: ActorRef = ops.squadService
 
-  private var waypointCooldown: Long = 0L
-
   /* packet */
 
   def handleSquadDefinitionAction(pkt: SquadDefinitionActionMessage): Unit = {

@@ -25,34 +25,38 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
 
   private val squadService: ActorRef = ops.squadService
 
-  private var waypointCooldown: Long = 0L
-
   /* packet */
 
   def handleSquadDefinitionAction(pkt: SquadDefinitionActionMessage): Unit = {
-    val SquadDefinitionActionMessage(u1, u2, action) = pkt
-    squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Definition(u1, u2, action))
+    if (!player.spectator) {
+      val SquadDefinitionActionMessage(u1, u2, action) = pkt
+      squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Definition(u1, u2, action))
+    }
   }
 
   def handleSquadMemberRequest(pkt: SquadMembershipRequest): Unit = {
-    val SquadMembershipRequest(request_type, char_id, unk3, player_name, unk5) = pkt
-    squadService ! SquadServiceMessage(
-      player,
-      continent,
-      SquadServiceAction.Membership(request_type, char_id, unk3, player_name, unk5)
-    )
+    if (!player.spectator) {
+      val SquadMembershipRequest(request_type, char_id, unk3, player_name, unk5) = pkt
+      squadService ! SquadServiceMessage(
+        player,
+        continent,
+        SquadServiceAction.Membership(request_type, char_id, unk3, player_name, unk5)
+      )
+    }
   }
 
   def handleSquadWaypointRequest(pkt: SquadWaypointRequest): Unit = {
-    val SquadWaypointRequest(request, _, wtype, unk, info) = pkt
-    val time = System.currentTimeMillis()
-    val subtype = wtype.subtype
-    if(subtype == WaypointSubtype.Squad) {
-      squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
-    } else if (subtype == WaypointSubtype.Laze && time - waypointCooldown > 1000) {
-      //guarding against duplicating laze waypoints
-      waypointCooldown = time
-      squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+    if (!player.spectator) {
+      val SquadWaypointRequest(request, _, wtype, unk, info) = pkt
+      val time = System.currentTimeMillis()
+      val subtype = wtype.subtype
+      if (subtype == WaypointSubtype.Squad) {
+        squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+      } else if (subtype == WaypointSubtype.Laze && time - waypointCooldown > 1000) {
+        //guarding against duplicating laze waypoints
+        waypointCooldown = time
+        squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Waypoint(request, wtype, unk, info))
+      }
     }
   }
 

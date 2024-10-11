@@ -5,11 +5,7 @@ import akka.actor.Cancellable
 import akka.actor.typed.ActorRef
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.{AvatarActor, SessionActor}
-import net.psforever.actors.session.normal.{NormalMode => SessionNormalMode}
-import net.psforever.actors.session.spectator.{SpectatorMode => SessionSpectatorMode}
-import net.psforever.actors.session.csr.{CustomerServiceRepresentativeMode => SessionCustomerServiceRepresentativeMode}
 import net.psforever.actors.zone.ZoneActor
-import net.psforever.objects.avatar.ModePermissions
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.ZoneInfo
 import net.psforever.packet.game.SetChatFilterMessage
@@ -69,7 +65,7 @@ class ChatOperations(
    */
   private val ignoredEmoteCooldown: mutable.LongMap[Long] = mutable.LongMap[Long]()
 
-  private[session] var SpectatorMode: PlayerMode = SessionSpectatorMode
+  private[session] var SpectatorMode: PlayerMode = SpectatorMode
 
   import akka.actor.typed.scaladsl.adapter._
   private val chatServiceAdapter: ActorRef[ChatService.MessageResponse] = context.self.toTyped[ChatService.MessageResponse]
@@ -114,17 +110,6 @@ class ChatOperations(
       }
     context.self ! SessionActor.SetSpeed(speed)
     sendResponse(message.copy(contents = f"$speed%.3f"))
-  }
-
-  def commandToggleSpectatorMode(contents: String): Unit = {
-    val currentSpectatorActivation = (if (avatar != null) avatar.permissions else ModePermissions()).canSpectate
-    contents.toLowerCase() match {
-      case "on" | "o" | "" if !currentSpectatorActivation =>
-        context.self ! SessionActor.SetMode(SessionSpectatorMode)
-      case "off" | "of" if currentSpectatorActivation =>
-        context.self ! SessionActor.SetMode(SessionNormalMode)
-      case _ => ()
-    }
   }
 
   def commandRecall(session: Session): Unit = {
@@ -1254,18 +1239,6 @@ class ChatOperations(
     sendResponse(
       ChatMsg(CMT_GMOPEN, wideContents = false, "Server", s"closest facility: $closest", None)
     )
-    true
-  }
-
-  def customCommandModerator(contents: String): Boolean = {
-    val currentCsrActivation = (if (avatar != null) avatar.permissions else ModePermissions()).canGM
-    contents.toLowerCase() match {
-      case "on" | "o" | "" if currentCsrActivation =>
-        context.self ! SessionActor.SetMode(SessionCustomerServiceRepresentativeMode)
-      case "off" | "of" if currentCsrActivation =>
-        context.self ! SessionActor.SetMode(SessionNormalMode)
-      case _ => ()
-    }
     true
   }
 

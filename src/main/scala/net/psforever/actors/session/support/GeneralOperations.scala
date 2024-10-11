@@ -3,7 +3,20 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import net.psforever.objects.serverobject.containable.Containable
-import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.objects.serverobject.doors.Door
+import net.psforever.objects.serverobject.interior.Sidedness
+import net.psforever.objects.serverobject.mblocker.Locker
+import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
+import net.psforever.objects.serverobject.structures.Building
+import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
+import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
+import net.psforever.objects.serverobject.tube.SpawnTube
+import net.psforever.objects.serverobject.turret.FacilityTurret
+import net.psforever.objects.sourcing.{PlayerSource, VehicleSource}
+import net.psforever.objects.vehicles.Utility.InternalTelepad
+import net.psforever.objects.zones.blockmap.BlockMapEntity
+import net.psforever.services.RemoverActor
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -561,6 +574,66 @@ class GeneralOperations(
   }
 
   /**
+   * A simple object searching algorithm that is limited to containers currently known and accessible by the player.
+   * If all relatively local containers are checked and the object is not found,
+   * the player's locker inventory will be checked, and then
+   * the game environment (items on the ground) will be checked too.
+   * If the target object is discovered, it is removed from its current location and is completely destroyed.
+   * @see `RequestDestroyMessage`
+   * @see `Zone.ItemIs.Where`
+   * @param objectGuid the target object's globally unique identifier;
+   *                    it is not expected that the object will be unregistered, but it is also not gauranteed
+   * @param obj the target object
+   * @return `true`, if the target object was discovered and removed;
+   *        `false`, otherwise
+   */
+  def findEquipmentToDelete(objectGuid: PlanetSideGUID, obj: Equipment): Boolean = {
+    val findFunc
+    : PlanetSideServerObject with Container => Option[(PlanetSideServerObject with Container, Option[Int])] =
+      findInLocalContainer(objectGuid)
+
+    findFunc(player)
+      .orElse(accessedContainer match {
+        case Some(parent: PlanetSideServerObject) =>
+          findFunc(parent)
+        case _ =>
+          None
+      })
+      .orElse(sessionLogic.vehicles.findLocalVehicle match {
+        case Some(parent: PlanetSideServerObject) =>
+          findFunc(parent)
+        case _ =>
+          None
+      }) match {
+      case Some((parent, Some(_))) =>
+        obj.Position = Vector3.Zero
+        RemoveOldEquipmentFromInventory(parent)(obj)
+        true
+      case _ if player.avatar.locker.Inventory.Remove(objectGuid) =>
+        sendResponse(ObjectDeleteMessage(objectGuid, 0))
+        true
+      case _ if continent.EquipmentOnGround.contains(obj) =>
+        obj.Position = Vector3.Zero
+        continent.Ground ! Zone.Ground.RemoveItem(objectGuid)
+        continent.AvatarEvents ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
+        true
+      case _ =>
+        Zone.EquipmentIs.Where(obj, objectGuid, continent) match {
+          case None =>
+            true
+          case Some(Zone.EquipmentIs.Orphaned()) if obj.HasGUID =>
+            TaskWorkflow.execute(GUIDTask.unregisterEquipment(continent.GUID, obj))
+            true
+          case Some(Zone.EquipmentIs.Orphaned()) =>
+            true
+          case _ =>
+            log.warn(s"RequestDestroy: equipment $obj exists, but ${player.Name} can not reach it to dispose of it")
+            false
+        }
+    }
+  }
+
+  /**
    * na
    * @param targetGuid na
    * @param unk1 na
@@ -764,6 +837,407 @@ class GeneralOperations(
     sendResponse(VoiceHostKill())
     sendResponse(
       ChatMsg(ChatMessageType.CMT_OPEN, wideContents=false, "", "Try our Discord at https://discord.gg/0nRe5TNbTYoUruA4", None)
+    )
+  }
+
+  def handleDeployObject(
+                          zone: Zone,
+                          deployableType: DeployedItem.Value,
+                          position: Vector3,
+                          orientation: Vector3,
+                          side: Sidedness,
+                          faction: PlanetSideEmpire.Value,
+                          optionalOwnerBuiltWith: Option[(Player, ConstructionItem)]
+                        ): Unit = {
+    val deployableEntity: Deployable = Deployables.Make(deployableType)()
+    deployableEntity.Position = position
+    deployableEntity.Orientation = orientation
+    deployableEntity.WhichSide = side
+    deployableEntity.Faction = faction
+    val tasking: TaskBundle = deployableEntity match {
+      case turret: TurretDeployable =>
+        GUIDTask.registerDeployableTurret(zone.GUID, turret)
+      case _ =>
+        GUIDTask.registerObject(zone.GUID, deployableEntity)
+    }
+    val zoneBuildCommand = optionalOwnerBuiltWith
+      .collect { case (owner, tool) =>
+        deployableEntity.AssignOwnership(owner)
+        Zone.Deployable.BuildByOwner(deployableEntity, owner, tool)
+      }
+      .getOrElse(Zone.Deployable.Build(deployableEntity))
+    //execute
+    TaskWorkflow.execute(CallBackForTask(tasking, zone.Deployables, zoneBuildCommand, context.self))
+  }
+
+  def handleUseDoor(door: Door, equipment: Option[Equipment]): Unit = {
+    equipment match {
+      case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
+        val distance: Float = math.max(
+          Config.app.game.doorsCanBeOpenedByMedAppFromThisDistance,
+          door.Definition.initialOpeningDistance
+        )
+        door.Actor ! CommonMessages.Use(player, Some(distance))
+      case _ =>
+        door.Actor ! CommonMessages.Use(player)
+    }
+  }
+
+  def handleUseResourceSilo(resourceSilo: ResourceSilo, equipment: Option[Equipment]): Unit = {
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    val vehicleOpt = continent.GUID(player.avatar.vehicle)
+    (vehicleOpt, equipment) match {
+      case (Some(vehicle: Vehicle), Some(item))
+        if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) &&
+          GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) =>
+        resourceSilo.Actor ! CommonMessages.Use(player, Some(vehicle))
+      case (Some(vehicle: Vehicle), _)
+        if vehicle.Definition == GlobalDefinitions.ant &&
+          vehicle.DeploymentState == DriveState.Deployed &&
+          Vector3.DistanceSquared(resourceSilo.Position.xy, vehicle.Position.xy) < math.pow(resourceSilo.Definition.UseRadius, 2) =>
+        resourceSilo.Actor ! CommonMessages.Use(player, Some(vehicle))
+      case _ => ()
+    }
+  }
+
+  def handleUsePlayer(obj: Player, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    if (obj.isBackpack) {
+      if (equipment.isEmpty) {
+        log.info(s"${player.Name} is looting the corpse of ${obj.Name}")
+        sendResponse(msg)
+        accessContainer(obj)
+      }
+    } else if (!msg.unk3 && player.isAlive) { //potential kit use
+      (continent.GUID(msg.item_used_guid), kitToBeUsed) match {
+        case (Some(kit: Kit), None) =>
+          kitToBeUsed = Some(msg.item_used_guid)
+          player.Actor ! CommonMessages.Use(player, Some(kit))
+        case (Some(_: Kit), Some(_)) | (None, Some(_)) =>
+          //a kit is already queued to be used; ignore this request
+          sendResponse(ChatMsg(ChatMessageType.UNK_225, wideContents=false, "", "Please wait ...", None))
+        case (Some(item), _) =>
+          log.error(s"UseItem: ${player.Name} looking for Kit to use, but found $item instead")
+        case (None, None) =>
+          log.warn(s"UseItem: anticipated a Kit ${msg.item_used_guid} for ${player.Name}, but can't find it")              }
+    } else if (msg.object_id == ObjectClass.avatar && msg.unk3) {
+      equipment match {
+        case Some(tool: Tool) if tool.Definition == GlobalDefinitions.bank =>
+          obj.Actor ! CommonMessages.Use(player, equipment)
+
+        case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
+          obj.Actor ! CommonMessages.Use(player, equipment)
+        case _ => ()
+      }
+    }
+  }
+
+  def handleUseLocker(locker: Locker, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
+    equipment match {
+      case Some(item) =>
+        sendUseGeneralEntityMessage(locker, item)
+      case None if locker.Faction == player.Faction || locker.HackedBy.nonEmpty =>
+        log.info(s"${player.Name} is accessing a locker")
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+        val playerLocker = player.avatar.locker
+        sendResponse(msg.copy(object_guid = playerLocker.GUID, object_id = 456))
+        accessContainer(playerLocker)
+      case _ => ()
+    }
+  }
+
+  def handleUseCaptureTerminal(captureTerminal: CaptureTerminal, equipment: Option[Equipment]): Unit = {
+    equipment match {
+      case Some(item) =>
+        sendUseGeneralEntityMessage(captureTerminal, item)
+      case _ if specialItemSlotGuid.nonEmpty =>
+        continent.GUID(specialItemSlotGuid) match {
+          case Some(llu: CaptureFlag) =>
+            if (llu.Target.GUID == captureTerminal.Owner.GUID) {
+              continent.LocalEvents ! LocalServiceMessage(continent.id, LocalAction.LluCaptured(llu))
+            } else {
+              log.info(
+                s"LLU target is not this base. Target GUID: ${llu.Target.GUID} This base: ${captureTerminal.Owner.GUID}"
+              )
+            }
+          case _ => log.warn("Item in specialItemSlotGuid is not registered with continent or is not a LLU")
+        }
+      case _ => ()
+    }
+  }
+
+  def handleUseFacilityTurret(obj: FacilityTurret, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
+    equipment.foreach { item =>
+      sendUseGeneralEntityMessage(obj, item)
+      obj.Actor ! CommonMessages.Use(player, Some((item, msg.unk2.toInt))) //try upgrade path
+    }
+  }
+
+  def handleUseVehicle(obj: Vehicle, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
+    equipment match {
+      case Some(item) =>
+        sendUseGeneralEntityMessage(obj, item)
+      case None if player.Faction == obj.Faction =>
+        //access to trunk
+        if (
+          obj.AccessingTrunk.isEmpty &&
+            (!obj.PermissionGroup(AccessPermissionGroup.Trunk.id).contains(VehicleLockState.Locked) || obj.OwnerGuid
+              .contains(player.GUID))
+        ) {
+          log.info(s"${player.Name} is looking in the ${obj.Definition.Name}'s trunk")
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+          obj.AccessingTrunk = player.GUID
+          accessContainer(obj)
+          sendResponse(msg)
+        }
+      case _ => ()
+    }
+  }
+
+  def handleUseTerminal(terminal: Terminal, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
+    equipment match {
+      case Some(item) =>
+        sendUseGeneralEntityMessage(terminal, item)
+      case None
+        if terminal.Owner == Building.NoBuilding || terminal.Faction == player.Faction ||
+          terminal.HackedBy.nonEmpty || terminal.Faction == PlanetSideEmpire.NEUTRAL =>
+        val tdef = terminal.Definition
+        if (tdef.isInstanceOf[MatrixTerminalDefinition]) {
+          //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+          sendResponse(
+            BindPlayerMessage(BindStatus.Bind, "", display_icon=true, logging=true, SpawnGroup.Sanctuary, 0, 0, terminal.Position)
+          )
+        } else if (
+          tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
+            tdef == GlobalDefinitions.air_rearm_terminal || tdef == GlobalDefinitions.ground_rearm_terminal
+        ) {
+          sessionLogic.vehicles.findLocalVehicle match {
+            case Some(vehicle) =>
+              log.info(
+                s"${player.Name} is accessing a ${terminal.Definition.Name} for ${player.Sex.possessive} ${vehicle.Definition.Name}"
+              )
+              sendResponse(msg)
+              sendResponse(msg.copy(object_guid = vehicle.GUID, object_id = vehicle.Definition.ObjectId))
+            case None =>
+              log.error(s"UseItem: Expecting a seated vehicle, ${player.Name} found none")
+          }
+        } else if (tdef == GlobalDefinitions.teleportpad_terminal) {
+          //explicit request
+          log.info(s"${player.Name} is purchasing a router telepad")
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+          terminal.Actor ! Terminal.Request(
+            player,
+            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
+          )
+        } else if (tdef == GlobalDefinitions.targeting_laser_dispenser) {
+          //explicit request
+          log.info(s"${player.Name} is purchasing a targeting laser")
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+          terminal.Actor ! Terminal.Request(
+            player,
+            ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "flail_targeting_laser", 0, PlanetSideGUID(0))
+          )
+        } else {
+          log.info(s"${player.Name} is accessing a ${terminal.Definition.Name}")
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+          sendResponse(msg)
+        }
+      case _ => ()
+    }
+  }
+
+  def handleUseSpawnTube(obj: SpawnTube, equipment: Option[Equipment]): Unit = {
+    equipment match {
+      case Some(item) =>
+        sendUseGeneralEntityMessage(obj, item)
+      case None if player.Faction == obj.Faction =>
+        //deconstruction
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+        sessionLogic.actionsToCancel()
+        sessionLogic.terminals.CancelAllProximityUnits()
+        sessionLogic.zoning.spawn.startDeconstructing(obj)
+      case _ => ()
+    }
+  }
+
+  def handleUseTelepadDeployable(
+                                  obj: TelepadDeployable,
+                                  equipment: Option[Equipment],
+                                  msg: UseItemMessage,
+                                  useTelepadFunc: (Vehicle, InternalTelepad, TelepadDeployable, PlanetSideGameObject with TelepadLike, PlanetSideGameObject with TelepadLike) => Unit
+                                ): Unit = {
+    if (equipment.isEmpty) {
+      (continent.GUID(obj.Router) match {
+        case Some(vehicle: Vehicle) => Some((vehicle, vehicle.Utility(UtilityType.internal_router_telepad_deployable)))
+        case Some(vehicle) => Some(vehicle, None)
+        case None => None
+      }) match {
+        case Some((vehicle: Vehicle, Some(util: Utility.InternalTelepad))) =>
+          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel")
+          player.WhichSide = vehicle.WhichSide
+          useTelepadFunc(vehicle, util, obj, obj, util)
+        case Some((vehicle: Vehicle, None)) =>
+          log.error(
+            s"telepad@${msg.object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}"
+          )
+        case Some((o, _)) =>
+          log.error(
+            s"telepad@${msg.object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}, ${obj.Router}"
+          )
+          obj.Actor ! Deployable.Deconstruct()
+        case _ => ()
+      }
+    }
+  }
+
+  def handleUseInternalTelepad(
+                                obj: InternalTelepad,
+                                msg: UseItemMessage,
+                                useTelepadFunc: (Vehicle, InternalTelepad, TelepadDeployable, PlanetSideGameObject with TelepadLike, PlanetSideGameObject with TelepadLike) => Unit
+                              ): Unit = {
+    continent.GUID(obj.Telepad) match {
+      case Some(pad: TelepadDeployable) =>
+        player.WhichSide = pad.WhichSide
+        useTelepadFunc(obj.Owner.asInstanceOf[Vehicle], obj, pad, obj, pad)
+      case Some(o) =>
+        log.error(
+          s"internal telepad@${msg.object_guid.guid} is not linked to a remote telepad - ${o.Definition.Name}@${o.GUID.guid}"
+        )
+      case None => ()
+    }
+  }
+
+  /**
+   * A player uses a fully-linked Router teleportation system.
+   * @param router the Router vehicle
+   * @param internalTelepad the internal telepad within the Router vehicle
+   * @param remoteTelepad the remote telepad that is currently associated with this Router
+   * @param src the origin of the teleportation (where the player starts)
+   * @param dest the destination of the teleportation (where the player is going)
+   */
+  def useRouterTelepadSystem(
+                              router: Vehicle,
+                              internalTelepad: InternalTelepad,
+                              remoteTelepad: TelepadDeployable,
+                              src: PlanetSideGameObject with TelepadLike,
+                              dest: PlanetSideGameObject with TelepadLike
+                            ): Unit = {
+    val time = System.currentTimeMillis()
+    if (
+      time - recentTeleportAttempt > 2000L && router.DeploymentState == DriveState.Deployed &&
+        internalTelepad.Active &&
+        remoteTelepad.Active
+    ) {
+      val pguid = player.GUID
+      val sguid = src.GUID
+      val dguid = dest.GUID
+      sendResponse(PlayerStateShiftMessage(ShiftState(0, dest.Position, player.Orientation.z)))
+      useRouterTelepadEffect(pguid, sguid, dguid)
+      continent.LocalEvents ! LocalServiceMessage(
+        continent.id,
+        LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid)
+      )
+      val vSource = VehicleSource(router)
+      val zoneNumber = continent.Number
+      player.LogActivity(VehicleMountActivity(vSource, PlayerSource(player), zoneNumber))
+      player.Position = dest.Position
+      player.LogActivity(VehicleDismountActivity(vSource, PlayerSource(player), zoneNumber))
+    } else {
+      log.warn(s"UseRouterTelepadSystem: ${player.Name} can not teleport")
+    }
+    recentTeleportAttempt = time
+  }
+
+  /**
+   * A player uses a fully-linked Router teleportation system.
+   * @param router the Router vehicle
+   * @param internalTelepad the internal telepad within the Router vehicle
+   * @param remoteTelepad the remote telepad that is currently associated with this Router
+   * @param src the origin of the teleportation (where the player starts)
+   * @param dest the destination of the teleportation (where the player is going)
+   */
+  def useRouterTelepadSystemSecretly(
+                                      router: Vehicle,
+                                      internalTelepad: InternalTelepad,
+                                      remoteTelepad: TelepadDeployable,
+                                      src: PlanetSideGameObject with TelepadLike,
+                                      dest: PlanetSideGameObject with TelepadLike
+                                    ): Unit = {
+    val time = System.currentTimeMillis()
+    if (
+      time - recentTeleportAttempt > 2000L && router.DeploymentState == DriveState.Deployed &&
+        internalTelepad.Active &&
+        remoteTelepad.Active
+    ) {
+      val pguid = player.GUID
+      val sguid = src.GUID
+      val dguid = dest.GUID
+      sendResponse(PlayerStateShiftMessage(ShiftState(0, dest.Position, player.Orientation.z)))
+      useRouterTelepadEffect(pguid, sguid, dguid)
+      player.Position = dest.Position
+    } else {
+      log.warn(s"UseRouterTelepadSystem: ${player.Name} can not teleport")
+    }
+    recentTeleportAttempt = time
+  }
+
+  def handleUseCaptureFlag(obj: CaptureFlag): Unit = {
+    // LLU can normally only be picked up the faction that owns it
+    specialItemSlotGuid match {
+      case None if obj.Faction == player.Faction =>
+        specialItemSlotGuid = Some(obj.GUID)
+        player.Carrying = SpecialCarry.CaptureFlag
+        continent.LocalEvents ! CaptureFlagManager.PickupFlag(obj, player)
+      case None =>
+        log.warn(s"${player.Faction} player ${player.toString} tried to pick up a ${obj.Faction} LLU -  ${obj.GUID}")
+      case Some(guid) if guid != obj.GUID =>
+        // Ignore duplicate pickup requests
+        log.warn(
+          s"${player.Faction} player ${player.toString} tried to pick up a ${obj.Faction} LLU, but their special slot already contains $guid"
+        )
+      case _ => ()
+    }
+  }
+
+  def handleUseWarpGate(equipment: Option[Equipment]): Unit = {
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    (continent.GUID(player.VehicleSeated), equipment) match {
+      case (Some(vehicle: Vehicle), Some(item))
+        if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) &&
+          GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) =>
+        vehicle.Actor ! CommonMessages.Use(player, equipment)
+      case _ => ()
+    }
+  }
+
+  def handleUseGeneralEntity(obj: PlanetSideServerObject, equipment: Option[Equipment]): Unit = {
+    equipment.foreach { item =>
+      sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+      obj.Actor ! CommonMessages.Use(player, Some(item))
+    }
+  }
+
+  def sendUseGeneralEntityMessage(obj: PlanetSideServerObject, equipment: Equipment): Unit = {
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    obj.Actor ! CommonMessages.Use(player, Some(equipment))
+  }
+
+  def handleUseDefaultEntity(obj: PlanetSideGameObject, equipment: Option[Equipment]): Unit = {
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    equipment match {
+      case Some(item)
+        if GlobalDefinitions.isBattleFrameArmorSiphon(item.Definition) ||
+          GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) => ()
+      case _ =>
+        log.warn(s"UseItem: ${player.Name} does not know how to handle $obj")
+    }
+  }
+
+  def commonFacilityShieldCharging(obj: PlanetSideServerObject with BlockMapEntity): Unit = {
+    obj.Actor ! CommonMessages.ChargeShields(
+      15,
+      Some(continent.blockMap.sector(obj).buildingList.maxBy(_.Definition.SOIRadius))
     )
   }
 

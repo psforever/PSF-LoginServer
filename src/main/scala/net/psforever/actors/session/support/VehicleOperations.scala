@@ -40,6 +40,18 @@ class VehicleOperations(
   private[session] var serverVehicleControlVelocity: Option[Int] = None
 
   /**
+   * Get the current `Vehicle` object that the player is riding/driving.
+   * The vehicle must be found solely through use of `player.VehicleSeated`.
+   * @return the vehicle
+   */
+  def findLocalVehicle: Option[Vehicle] = {
+    continent.GUID(player.VehicleSeated) match {
+      case Some(obj: Vehicle) => Some(obj)
+      case _ => None
+    }
+  }
+
+  /**
    * If the player is mounted in some entity, find that entity and get the mount index number at which the player is sat.
    * The priority of object confirmation is `direct` then `occupant.VehicleSeated`.
    * Once an object is found, the remainder are ignored.

@@ -235,10 +235,6 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sendResponse(ItemTransactionResultMessage(terminalGuid, action, result))
         sessionLogic.terminals.lastTerminalOrderFulfillment = true
         AvatarActor.savePlayerData(player)
-        sessionLogic.general.renewCharSavedTimer(
-          Config.app.game.savedMsg.interruptedByAction.fixed,
-          Config.app.game.savedMsg.interruptedByAction.variable
-        )
 
       case AvatarResponse.TerminalOrderResult(terminalGuid, action, result) =>
         sendResponse(ItemTransactionResultMessage(terminalGuid, action, result))
@@ -452,7 +448,6 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           sessionLogic.shooting.shotsWhileDead = 0
         }
         sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason(msg = "cancel")
-        sessionLogic.general.renewCharSavedTimer(fixedLen = 1800L, varLen = 0L)
 
         //player state changes
         AvatarActor.updateToolDischargeFor(avatar)

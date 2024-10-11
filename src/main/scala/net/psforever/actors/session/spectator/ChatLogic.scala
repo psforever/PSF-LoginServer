@@ -31,11 +31,9 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_FLY, recipient, contents) =>
         ops.commandFly(contents, recipient)
 
-      case (CMT_ANONYMOUS, _, _) =>
-      // ?
+      case (CMT_ANONYMOUS, _, _) => ()
 
-      case (CMT_TOGGLE_GM, _, _) =>
-      // ?
+      case (CMT_TOGGLE_GM, _, _) => ()
 
       case (CMT_CULLWATERMARK, _, contents) =>
         ops.commandWatermark(contents)

@@ -4,12 +4,10 @@ package net.psforever.actors.session.spectator
 import akka.actor.ActorContext
 import net.psforever.actors.session.support.{SessionData, WeaponAndProjectileFunctions, WeaponAndProjectileOperations}
 import net.psforever.login.WorldSession.{CountGrenades, FindEquipmentStock, FindToolThatUses, RemoveOldEquipmentFromInventory}
-import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.equipment.ChargeFireModeDefinition
-import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.{AmmoBox, BoomerDeployable, BoomerTrigger, GlobalDefinitions, PlanetSideGameObject, Tool}
-import net.psforever.packet.game.{AIDamage, AvatarGrenadeStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, HitMessage, InventoryStateMessage, LashMessage, LongRangeProjectileInfoMessage, ProjectileStateMessage, QuantityUpdateMessage, ReloadMessage, SplashHitMessage, UplinkRequest, UplinkRequestType, UplinkResponse, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage}
+import net.psforever.objects.{BoomerDeployable, BoomerTrigger, GlobalDefinitions, Tool}
+import net.psforever.packet.game.{AIDamage, AvatarGrenadeStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, HitMessage, LashMessage, LongRangeProjectileInfoMessage, ProjectileStateMessage, QuantityUpdateMessage, ReloadMessage, SplashHitMessage, UplinkRequest, UplinkRequestType, UplinkResponse, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
@@ -85,32 +83,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
   def handleChangeFireMode(pkt: ChangeFireModeMessage): Unit = { /* intentionally blank */ }
 
   def handleProjectileState(pkt: ProjectileStateMessage): Unit = {
-    val ProjectileStateMessage(projectile_guid, shot_pos, shot_vel, shot_orient, seq, end, target_guid) = pkt
-    val index = projectile_guid.guid - Projectile.baseUID
-    ops.projectiles(index) match {
-      case Some(projectile) if projectile.HasGUID =>
-        val projectileGlobalUID = projectile.GUID
-        projectile.Position = shot_pos
-        projectile.Orientation = shot_orient
-        projectile.Velocity = shot_vel
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.ProjectileState(
-            player.GUID,
-            projectileGlobalUID,
-            shot_pos,
-            shot_vel,
-            shot_orient,
-            seq,
-            end,
-            target_guid
-          )
-        )
-      case _ if seq == 0 =>
-      /* missing the first packet in the sequence is permissible */
-      case _ =>
-        log.warn(s"ProjectileState: constructed projectile ${projectile_guid.guid} can not be found")
-    }
+    ops.handleProjectileState(pkt)
   }
 
   def handleLongRangeProjectileState(pkt: LongRangeProjectileInfoMessage): Unit = { /* intentionally blank */ }
@@ -148,11 +121,11 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
             RemoveOldEquipmentFromInventory(player)(x.obj)
             sumReloadValue
           } else {
-            ModifyAmmunition(player)(box.AmmoSlot.Box, 3 - tailReloadValue)
+            ops.modifyAmmunition(player)(box.AmmoSlot.Box, 3 - tailReloadValue)
             3
           }
           log.info(s"${player.Name} found $actualReloadValue more $ammoType grenades to throw")
-          ModifyAmmunition(player)(
+          ops.modifyAmmunition(player)(
             tool.AmmoSlot.Box,
             -actualReloadValue
           ) //grenade item already in holster (negative because empty)
@@ -161,20 +134,6 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
     } else if (tdef == GlobalDefinitions.phoenix) {
       RemoveOldEquipmentFromInventory(player)(tool)
     }
-  }
-
-  /**
-   * Given an object that contains a box of amunition in its `Inventory` at a certain location,
-   * change the amount of ammunition within that box.
-   * @param obj the `Container`
-   * @param box an `AmmoBox` to modify
-   * @param reloadValue the value to modify the `AmmoBox`;
-   *                    subtracted from the current `Capacity` of `Box`
-   */
-  private def ModifyAmmunition(obj: PlanetSideGameObject with Container)(box: AmmoBox, reloadValue: Int): Unit = {
-    val capacity = box.Capacity - reloadValue
-    box.Capacity = capacity
-    sendResponse(InventoryStateMessage(box.GUID, obj.GUID, capacity))
   }
 
   private def fireStateStartPlayerMessages(itemGuid: PlanetSideGUID): Unit = {

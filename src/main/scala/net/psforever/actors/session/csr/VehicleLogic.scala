@@ -10,7 +10,8 @@ import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
+import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, PlanetsideAttributeMessage, VehicleStateMessage, VehicleSubStateMessage}
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{DriveState, Vector3}
 
@@ -46,6 +47,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         //we're driving the vehicle
         sessionLogic.persist()
         sessionLogic.turnCounterFunc(player.GUID)
+        topOffHealth(obj)
         sessionLogic.general.fallHeightTracker(pos.z)
         if (obj.MountedIn.isEmpty) {
           sessionLogic.updateBlockMap(obj, pos)
@@ -129,6 +131,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         //we're driving the vehicle
         sessionLogic.persist()
         sessionLogic.turnCounterFunc(player.GUID)
+        topOffHealth(obj)
         val (position, angle, velocity, notMountedState) = continent.GUID(obj.MountedIn) match {
           case Some(v: Vehicle) =>
             sessionLogic.updateBlockMap(obj, pos)
@@ -217,6 +220,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
       case _ =>
         sessionLogic.persist()
         sessionLogic.turnCounterFunc(player.GUID)
+        topOffHealthOfPlayer()
     }
     //the majority of the following check retrieves information to determine if we are in control of the child
     tools.find { _.GUID == object_guid } match {
@@ -275,15 +279,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
     continent.GUID(vehicle_guid)
       .collect {
         case obj: Vehicle =>
-          val vehicle = player.avatar.vehicle
-          if (!vehicle.contains(vehicle_guid)) {
-            log.warn(s"DeployRequest: ${player.Name} does not own the would-be-deploying ${obj.Definition.Name}")
-          } else if (vehicle != player.VehicleSeated) {
-            log.warn(s"${player.Name} must be mounted as the driver to request a deployment change")
-          } else {
-            log.info(s"${player.Name} is requesting a deployment change for ${obj.Definition.Name} - $deploy_state")
-            continent.Transport ! Zone.Vehicle.TryDeploymentChange(obj, deploy_state)
-          }
+          continent.Transport ! Zone.Vehicle.TryDeploymentChange(obj, deploy_state)
           obj
         case obj =>
           log.error(s"DeployRequest: ${player.Name} expected a vehicle, but found a ${obj.Definition.Name} instead")
@@ -299,31 +295,19 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
   /* messages */
 
   def handleCanDeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
-    if (state == DriveState.Deploying) {
-      log.trace(s"DeployRequest: $obj transitioning to deploy state")
-    } else if (state == DriveState.Deployed) {
-      log.trace(s"DeployRequest: $obj has been Deployed")
-    } else {
+    if (!Deployment.CheckForDeployState(state)) {
       CanNotChangeDeployment(obj, state, "incorrect deploy state")
     }
   }
 
   def handleCanUndeploy(obj: Deployment.DeploymentObject, state: DriveState.Value): Unit = {
-    if (state == DriveState.Undeploying) {
-      log.trace(s"DeployRequest: $obj transitioning to undeploy state")
-    } else if (state == DriveState.Mobile) {
-      log.trace(s"DeployRequest: $obj is Mobile")
-    } else {
+    if (!Deployment.CheckForUndeployState(state)) {
       CanNotChangeDeployment(obj, state, "incorrect undeploy state")
     }
   }
 
   def handleCanNotChangeDeployment(obj: Deployment.DeploymentObject, state: DriveState.Value, reason: String): Unit = {
-    if (Deployment.CheckForDeployState(state) && !Deployment.AngleCheck(obj)) {
-      CanNotChangeDeployment(obj, state, reason = "ground too steep")
-    } else {
-      CanNotChangeDeployment(obj, state, reason)
-    }
+    CanNotChangeDeployment(obj, state, reason)
   }
 
   /* support functions */
@@ -339,17 +323,35 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
                                       state: DriveState.Value,
                                       reason: String
                                     ): Unit = {
-    val mobileShift: String = if (obj.DeploymentState != DriveState.Mobile) {
+    if (obj.DeploymentState != DriveState.Mobile) {
       obj.DeploymentState = DriveState.Mobile
       sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Mobile, 0, unk3=false, Vector3.Zero))
       continent.VehicleEvents ! VehicleServiceMessage(
         continent.id,
         VehicleAction.DeployRequest(player.GUID, obj.GUID, DriveState.Mobile, 0, unk2=false, Vector3.Zero)
       )
-      "; enforcing Mobile deployment state"
-    } else {
-      ""
     }
-    log.error(s"DeployRequest: ${player.Name} can not transition $obj to $state - $reason$mobileShift")
+  }
+
+  private def topOffHealthOfPlayer(): Unit = {
+    //driver below half health, full heal
+    val maxHealthOfPlayer = player.MaxHealth.toLong
+    if (player.Health < maxHealthOfPlayer * 0.5f) {
+      player.Health = maxHealthOfPlayer.toInt
+      player.LogActivity(player.ClearHistory().head)
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 0, maxHealthOfPlayer))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(player.GUID, 0, maxHealthOfPlayer))
+    }
+  }
+
+  private def topOffHealth(vehicle: Vehicle): Unit = {
+    topOffHealthOfPlayer()
+    //vehicle below half health, full heal
+    val maxHealthOfVehicle = vehicle.MaxHealth.toLong
+    if (vehicle.Health < maxHealthOfVehicle * 0.5f) {
+      vehicle.Health = maxHealthOfVehicle.toInt
+      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 0, maxHealthOfVehicle))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 0, maxHealthOfVehicle))
+    }
   }
 }

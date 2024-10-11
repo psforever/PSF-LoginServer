@@ -10,7 +10,7 @@ import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable, TelepadDepl
 import net.psforever.packet.game.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, HackState1, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, SetEmpireMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
 import net.psforever.services.Service
 import net.psforever.services.local.LocalResponse
-import net.psforever.types.{ChatMessageType, PlanetSideGUID, Vector3}
+import net.psforever.types.{ChatMessageType, PlanetSideGUID}
 
 object LocalHandlerLogic {
   def apply(ops: SessionLocalHandlers): LocalHandlerLogic = {
@@ -88,7 +88,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
 
       case LocalResponse.EliminateDeployable(obj: TurretDeployable, dguid, pos, _) =>
         obj.Destroyed = true
-        DeconstructDeployable(
+        ops.DeconstructDeployable(
           obj,
           dguid,
           pos,
@@ -102,7 +102,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
 
       case LocalResponse.EliminateDeployable(obj: ExplosiveDeployable, dguid, pos, effect) =>
         obj.Destroyed = true
-        DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
+        ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
 
       case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, _, _) if obj.Active && obj.Destroyed =>
         //if active, deactivate
@@ -117,7 +117,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
         ops.deactivateTelpadDeployableMessages(dguid)
         //standard deployable elimination behavior
         obj.Destroyed = true
-        DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)
+        ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)
 
       case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, _, _) if obj.Destroyed =>
         //standard deployable elimination behavior
@@ -126,14 +126,14 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       case LocalResponse.EliminateDeployable(obj: TelepadDeployable, dguid, pos, _) =>
         //standard deployable elimination behavior
         obj.Destroyed = true
-        DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)
+        ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)
 
       case LocalResponse.EliminateDeployable(obj, dguid, _, _) if obj.Destroyed =>
         sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
       case LocalResponse.EliminateDeployable(obj, dguid, pos, effect) =>
         obj.Destroyed = true
-        DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
+        ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
 
       case LocalResponse.SendHackMessageHackCleared(targetGuid, unk1, unk2) =>
         sendResponse(HackMessage(HackState1.Unk0, targetGuid, guid, progress=0, unk1.toFloat, HackState.HackCleared, unk2))
@@ -245,24 +245,4 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
   }
 
   /* support functions */
-
-  /**
-   * Common behavior for deconstructing deployables in the game environment.
-   * @param obj the deployable
-   * @param guid the globally unique identifier for the deployable
-   * @param pos the previous position of the deployable
-   * @param orient the previous orientation of the deployable
-   * @param deletionType the value passed to `ObjectDeleteMessage` concerning the deconstruction animation
-   */
-  def DeconstructDeployable(
-                             obj: Deployable,
-                             guid: PlanetSideGUID,
-                             pos: Vector3,
-                             orient: Vector3,
-                             deletionType: Int
-                           ): Unit = {
-    sendResponse(TriggerEffectMessage("spawn_object_failed_effect", pos, orient))
-    sendResponse(PlanetsideAttributeMessage(guid, 29, 1)) //make deployable vanish
-    sendResponse(ObjectDeleteMessage(guid, deletionType))
-  }
 }

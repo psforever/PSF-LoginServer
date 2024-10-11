@@ -2,9 +2,11 @@
 package net.psforever.actors.session.normal
 
 import akka.actor.ActorContext
+import net.psforever.actors.session.SessionActor
 import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
 import net.psforever.objects.Session
+import net.psforever.objects.avatar.ModePermissions
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.chat.DefaultChannel
 import net.psforever.types.ChatMessageType
@@ -28,17 +30,16 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (_, _, contents) if contents.startsWith("!") &&
         customCommandMessages(message, session) => ()
 
-      case (CMT_ANONYMOUS, _, _) =>
-      // ?
+      case (CMT_ANONYMOUS, _, _) => ()
 
       case (CMT_TOGGLE_GM, _, contents) =>
-        ops.customCommandModerator(contents)
+        customCommandModerator(contents)
 
       case (CMT_CULLWATERMARK, _, contents) =>
         ops.commandWatermark(contents)
 
       case (CMT_TOGGLESPECTATORMODE, _, contents) if isAlive =>
-        ops.commandToggleSpectatorMode(contents)
+        commandToggleSpectatorMode(contents)
 
       case (CMT_RECALL, _, _) =>
         ops.commandRecall(session)
@@ -135,7 +136,6 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case "grenade" => ops.customCommandGrenade(session, log)
         case "macro" => ops.customCommandMacro(session, params)
         case "progress" => ops.customCommandProgress(session, params)
-        case "csr" | "gm" | "op" => ops.customCommandModerator(params.headOption.getOrElse(""))
         case _ =>
           // command was not handled
           sendResponse(
@@ -147,10 +147,30 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
               message.note
             )
           )
-          false
+          true
       }
     } else {
       false
     }
+  }
+
+  def commandToggleSpectatorMode(contents: String): Unit = {
+    val currentSpectatorActivation = (if (avatar != null) avatar.permissions else ModePermissions()).canSpectate
+    contents.toLowerCase() match {
+      case "on" | "o" | "" if currentSpectatorActivation && !player.spectator =>
+        context.self ! SessionActor.SetMode(ops.SpectatorMode)
+      case _ => ()
+    }
+  }
+
+  def customCommandModerator(contents: String): Boolean = {
+    val currentCsrActivation = (if (avatar != null) avatar.permissions else ModePermissions()).canGM
+    contents.toLowerCase() match {
+      case "on" | "o" | "" if currentCsrActivation =>
+        import net.psforever.actors.session.csr.CustomerServiceRepresentativeMode
+        context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
+      case _ => ()
+    }
+    true
   }
 }

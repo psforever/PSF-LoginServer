@@ -204,6 +204,7 @@ final case class DetailedCharacterB(
   */
 final case class DetailedCharacterData(a: DetailedCharacterA, b: DetailedCharacterB)(pad_length: Option[Int])
     extends ConstructorData {
+  val padLength: Option[Int] = pad_length
 
   override def bitsize: Long = a.bitsize + b.bitsize
 }

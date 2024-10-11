@@ -6,7 +6,6 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
-import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.login.WorldSession
 import net.psforever.objects.avatar.{BattleRank, DeployableToolbox}
 import net.psforever.objects.avatar.scoring.{CampaignStatistics, ScoreCard, SessionStatistics}
@@ -193,6 +192,7 @@ class ZoningOperations(
   /** a flag that forces the current zone to reload itself during a zoning operation */
   private[session] var zoneReload: Boolean = false
   private[session] val spawn: SpawnOperations = new SpawnOperations()
+  private[session] var maintainInitialGmState: Boolean = false
 
   private var loadConfZone: Boolean = false
   private var instantActionFallbackDestination: Option[Zoning.InstantAction.Located] = None
@@ -609,6 +609,7 @@ class ZoningOperations(
   def handleZoneResponse(foundZone: Zone): Unit = {
     log.trace(s"ZoneResponse: zone ${foundZone.id} will now load for ${player.Name}")
     loadConfZone = true
+    maintainInitialGmState = true
     val oldZone = session.zone
     session = session.copy(zone = foundZone)
     sessionLogic.persist()

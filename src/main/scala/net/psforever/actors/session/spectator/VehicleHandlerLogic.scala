@@ -308,13 +308,13 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         sessionLogic.vehicles.ServerVehicleOverrideStop(vehicle)
 
       case VehicleResponse.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, data) =>
-        sendResponse(ChatMsg(
-          ChatMessageType.CMT_OPEN,
-          wideContents=true,
-          recipient="",
-          s"The vehicle spawn where you placed your order is blocked. ${data.getOrElse("")}",
-          note=None
-        ))
+        val str = s"${data.getOrElse("The vehicle spawn pad where you placed your order is blocked.")}"
+        val msg = if (str.contains("@")) {
+          ChatMsg(ChatMessageType.UNK_229, str)
+        } else {
+          ChatMsg(ChatMessageType.CMT_OPEN, wideContents = true, recipient = "", str, note = None)
+        }
+        sendResponse(msg)
 
       case VehicleResponse.PeriodicReminder(_, data) =>
         val (isType, flag, msg): (ChatMessageType, Boolean, String) = data match {

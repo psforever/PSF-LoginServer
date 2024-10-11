@@ -81,6 +81,7 @@ class Player(var avatar: Avatar)
   Continent = "home2" //the zone id
 
   var spectator: Boolean                 = false
+  var bops: Boolean                      = false
   var silenced: Boolean                  = false
   var death_by: Int                      = 0
   var lastShotSeq_time: Int              = -1

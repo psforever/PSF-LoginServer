@@ -2,8 +2,11 @@
 package net.psforever.actors.session.csr
 
 import akka.actor.ActorContext
+import net.psforever.actors.session.SessionActor
+import net.psforever.actors.session.normal.NormalMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
 import net.psforever.objects.Session
+import net.psforever.objects.avatar.ModePermissions
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.chat.DefaultChannel
 import net.psforever.types.ChatMessageType
@@ -30,10 +33,9 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_FLY, recipient, contents) =>
         ops.commandFly(contents, recipient)
 
-      case (CMT_ANONYMOUS, _, _) =>
-      // ?
+      case (CMT_ANONYMOUS, _, _) => ()
 
-      case (CMT_TOGGLE_GM, _, contents)=>
+      case (CMT_TOGGLE_GM, _, contents) =>
         customCommandModerator(contents)
 
       case (CMT_CULLWATERMARK, _, contents) =>
@@ -196,7 +198,6 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case "ntu" => ops.customCommandNtu(session, params)
         case "zonerotate" => ops.customCommandZonerotate(params)
         case "nearby" => ops.customCommandNearby(session)
-        case "csr" | "gm" | "op" => customCommandModerator(params.headOption.getOrElse(""))
         case _ =>
           // command was not handled
           sendResponse(
@@ -216,22 +217,28 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
   }
 
   def commandToggleSpectatorMode(contents: String): Unit = {
-//    val currentSpectatorActivation = (if (avatar != null) avatar.permissions else ModePermissions()).canSpectate
-//    contents.toLowerCase() match {
-//      case "on" | "o" | "" if !currentSpectatorActivation =>
-//        context.self ! SessionActor.SetMode(SessionSpectatorMode)
-//      case "off" | "of" if currentSpectatorActivation =>
-//        context.self ! SessionActor.SetMode(SessionCustomerServiceRepresentativeMode)
-//      case _ => ()
-//    }
+    val currentSpectatorActivation = (if (avatar != null) avatar.permissions else ModePermissions()).canSpectate
+    contents.toLowerCase() match {
+      case "on" | "o" | "" if currentSpectatorActivation && player.spectator =>
+        context.self ! SessionActor.SetMode(SpectateAsCustomerServiceRepresentativeMode)
+      case "off" | "of" if currentSpectatorActivation && !player.spectator =>
+        context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
+      case _ => ()
+    }
   }
 
   def customCommandModerator(contents : String): Boolean = {
-    if (player.spectator) {
-      sendResponse(ChatMsg(ChatMessageType.UNK_225, "CSR SPECTATOR MODE"))
-      sendResponse(ChatMsg(ChatMessageType.UNK_227, "Disable spectator mode first."))
+    if (sessionLogic.zoning.maintainInitialGmState) {
+      sessionLogic.zoning.maintainInitialGmState = false
     } else {
-      ops.customCommandModerator(contents)
+      contents.toLowerCase() match {
+        case "off" | "of" if player.spectator =>
+          context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
+          context.self ! SessionActor.SetMode(NormalMode)
+        case "off" | "of" =>
+          context.self ! SessionActor.SetMode(NormalMode)
+        case _ => ()
+      }
     }
     true
   }
