@@ -234,7 +234,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
           )
         )
       }
-      result
+      true // do not accidentally send mistyped commands to chat
     } else {
       false // not a handled command
     }
