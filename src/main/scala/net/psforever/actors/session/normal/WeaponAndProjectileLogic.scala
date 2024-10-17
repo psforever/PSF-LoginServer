@@ -145,7 +145,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
     val LongRangeProjectileInfoMessage(guid, _, _) = pkt
     ops.FindContainedWeapon match {
       case (Some(_: Vehicle), weapons)
-        if weapons.exists { _.GUID == guid } => () //now what?
+        if weapons.exists(_.GUID == guid) => () //now what?
       case _ => ()
     }
   }
@@ -160,16 +160,8 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
       }
     //...
     if (list.isEmpty) {
-      val proxyList = ops
-        .FindProjectileEntry(pkt.projectile_guid)
-        .map(projectile => ops.resolveDamageProxy(projectile, projectile.GUID, pkt.hit_info.map(_.hit_pos).getOrElse(Vector3.Zero)))
-        .getOrElse(Nil)
-      proxyList.collectFirst {
-        case (_, proxy, _, _) if proxy.tool_def == GlobalDefinitions.oicw =>
-          ops.performLittleBuddyExplosion(proxyList.map(_._2))
-      }
-      proxyList.foreach {
-        case (target, proxy, hitPos, _) if proxy.tool_def == GlobalDefinitions.oicw =>
+      ops.handleProxyDamage(pkt.projectile_guid, pkt.hit_info.map(_.hit_pos).getOrElse(Vector3.Zero)).foreach {
+        case (target, proxy, hitPos, _) =>
           ops.checkForHitPositionDiscrepancy(proxy.GUID, hitPos, target)
       }
     }
@@ -192,23 +184,13 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
       val (direct, others) = list.partition { case (_, _, hitPos, targetPos) => hitPos == targetPos }
       direct.foreach {
         case (target, _, hitPos, _) =>
-          ops.checkForHitPositionDiscrepancy(projectile.GUID, hitPos, target)
+          ops.checkForHitPositionDiscrepancy(projectileGuid, hitPos, target)
           ops.resolveProjectileInteraction(target, projectile, resolution1, hitPos)
       }
       others.foreach {
         case (target, _, hitPos, _) =>
-          ops.checkForHitPositionDiscrepancy(projectile.GUID, hitPos, target)
+          ops.checkForHitPositionDiscrepancy(projectileGuid, hitPos, target)
           ops.resolveProjectileInteraction(target, projectile, resolution2, hitPos)
-      }
-      //...
-      val proxyList = ops.resolveDamageProxy(projectile, projectileGuid, explosionPosition)
-      if (proxyList.nonEmpty) {
-        proxyList.foreach {
-          case (target, _, hitPos, _) => ops.checkForHitPositionDiscrepancy(projectileGuid, hitPos, target)
-        }
-        if (profile == GlobalDefinitions.oicw_projectile) {
-          ops.performLittleBuddyExplosion(proxyList.map(_._2))
-        }
       }
       //...
       if (
@@ -230,6 +212,11 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
         //cleanup
         continent.Projectile ! ZoneProjectile.Remove(projectile.GUID)
       }
+    }
+    //...
+    ops.handleProxyDamage(pkt.projectile_uid, pkt.projectile_pos).foreach {
+      case (target, proxy, hitPos, _) =>
+        ops.checkForHitPositionDiscrepancy(proxy.GUID, hitPos, target)
     }
   }
 

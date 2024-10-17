@@ -2,9 +2,11 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.Default
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.collection.mutable
 //
@@ -152,6 +154,22 @@ class SessionAvatarHandlers(
       victim.CharId,
       victim.Faction,
       victimSeated
+    )
+  }
+
+  def revive(revivalTargetGuid: PlanetSideGUID): Unit = {
+    val spawn = sessionLogic.zoning.spawn
+    spawn.reviveTimer.cancel()
+    spawn.reviveTimer = Default.Cancellable
+    spawn.respawnTimer.cancel()
+    spawn.respawnTimer = Default.Cancellable
+    player.Revive
+    val health = player.Health
+    sendResponse(PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
+    sendResponse(AvatarDeadStateMessage(DeadState.Alive, timer_max=0, timer=0, player.Position, player.Faction, unk5=true))
+    continent.AvatarEvents ! AvatarServiceMessage(
+      continent.id,
+      AvatarAction.PlanetsideAttributeToAll(revivalTargetGuid, attribute_type=0, health)
     )
   }
 }

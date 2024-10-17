@@ -175,6 +175,7 @@ class WeaponAndProjectileOperations(
             angle,
             shotVelocity
           )
+          projectile.GUID = projectileGUID
           val initialQuality = tool.FireMode match {
             case mode: ChargeFireModeDefinition =>
               ProjectileQuality.Modified(
@@ -193,6 +194,7 @@ class WeaponAndProjectileOperations(
             log.trace(
               s"WeaponFireMessage: ${player.Name}'s ${projectile_info.Name} is a remote projectile"
             )
+            qualityprojectile.Invalidate()
             continent.Projectile ! ZoneProjectile.Add(player.GUID, qualityprojectile)
           }
         } else {
@@ -550,6 +552,20 @@ class WeaponAndProjectileOperations(
       .getOrElse(false)
   }
 
+  def handleProxyDamage(
+                         projectileGuid: PlanetSideGUID,
+                         explosionPosition: Vector3
+                       ):  List[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile, Vector3, Vector3)] = {
+    val proxyList = FindProjectileEntry(projectileGuid)
+      .map(projectile => resolveDamageProxy(projectile, projectile.GUID, explosionPosition))
+      .getOrElse(Nil)
+    proxyList.collectFirst {
+      case (_, proxy, _, _) if proxy.profile == GlobalDefinitions.oicw_little_buddy =>
+        performLittleBuddyExplosion(proxyList.map(_._2))
+    }
+    proxyList
+  }
+
   /**
    * Take a projectile that was introduced into the game world and
    * determine if it generates a secondary damage projectile or
@@ -560,11 +576,11 @@ class WeaponAndProjectileOperations(
    * @return a for all affected targets, a combination of projectiles, projectile location, and the target's location;
    *         nothing if no targets were affected
    */
-  def resolveDamageProxy(
-                          projectile: Projectile,
-                          pguid: PlanetSideGUID,
-                          hitPos: Vector3
-                        ): List[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile, Vector3, Vector3)] = {
+  private def resolveDamageProxy(
+                                  projectile: Projectile,
+                                  pguid: PlanetSideGUID,
+                                  hitPos: Vector3
+                                ): List[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile, Vector3, Vector3)] = {
     GlobalDefinitions.getDamageProxy(projectile, hitPos) match {
       case Nil =>
         Nil
@@ -662,7 +678,7 @@ class WeaponAndProjectileOperations(
     }
   }
 
-  def performLittleBuddyExplosion(listOfProjectiles: List[Projectile]): Boolean = {
+  private def performLittleBuddyExplosion(listOfProjectiles: List[Projectile]): Boolean = {
     val listOfLittleBuddies: List[Projectile] = listOfProjectiles.filter { _.tool_def == GlobalDefinitions.oicw }
     val size: Int = listOfLittleBuddies.size
     if (size > 0) {

@@ -954,7 +954,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   def DestructionAwareness(target: Player, cause: DamageResult): Unit = {
     val player_guid  = target.GUID
     val pos          = target.Position
-    val respawnTimer = 300000 //milliseconds
     val zone         = target.Zone
     val events       = zone.AvatarEvents
     val nameChannel  = target.Name
@@ -1022,13 +1021,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         Service.defaultPlayerGUID,
         DestroyMessage(player_guid, attribute, Service.defaultPlayerGUID, pos)
       ) //how many players get this message?
-    )
-    events ! AvatarServiceMessage(
-      nameChannel,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-        AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, target.Faction, unk5=true)
-      )
     )
     //TODO other methods of death?
     val pentry = PlayerSource(target)

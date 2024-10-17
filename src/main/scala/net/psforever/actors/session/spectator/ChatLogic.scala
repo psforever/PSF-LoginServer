@@ -34,6 +34,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_ANONYMOUS, _, _) => ()
 
       case (CMT_TOGGLE_GM, _, _) => ()
+      sessionLogic.zoning.maintainInitialGmState = false
 
       case (CMT_CULLWATERMARK, _, contents) =>
         ops.commandWatermark(contents)

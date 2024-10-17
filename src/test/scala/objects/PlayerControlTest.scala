@@ -533,7 +533,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
       assert(player2.isAlive)
 
       player2.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar = avatarProbe.receiveN(8, 500 milliseconds)
+      val msg_avatar = avatarProbe.receiveN(7, 500 milliseconds)
       val msg_stamina = probe.receiveOne(500 milliseconds)
       activityProbe.expectNoMessage(200 milliseconds)
       assert(
@@ -585,19 +585,6 @@ class PlayerControlDeathStandingTest extends ActorTest {
       )
       assert(
         msg_avatar(6) match {
-          case AvatarServiceMessage(
-                "TestCharacter2",
-                AvatarAction.SendResponse(
-                  _,
-                  AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3.Zero, PlanetSideEmpire.NC, true)
-                )
-              ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        msg_avatar(7) match {
           case AvatarServiceMessage("test", AvatarAction.DestroyDisplay(killer, victim, _, _))
               if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) =>
             true
@@ -680,7 +667,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
 //      assert(player2.isAlive)
 //
 //      player2.Actor ! Vitality.Damage(applyDamageTo)
-//      val msg_avatar = avatarProbe.receiveN(9, 1500 milliseconds)
+//      val msg_avatar = avatarProbe.receiveN(8, 1500 milliseconds)
 //      val msg_stamina = probe.receiveOne(500 milliseconds)
 //      activityProbe.expectNoMessage(200 milliseconds)
 //      assert(
@@ -749,19 +736,6 @@ class PlayerControlDeathStandingTest extends ActorTest {
 //      )
 //      assert(
 //        msg_avatar(7) match {
-//          case AvatarServiceMessage(
-//                "TestCharacter2",
-//                AvatarAction.SendResponse(
-//                  _,
-//                  AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3.Zero, PlanetSideEmpire.NC, true)
-//                )
-//              ) =>
-//            true
-//          case _ => false
-//        }
-//      )
-//      assert(
-//        msg_avatar(8) match {
 //          case AvatarServiceMessage("test", AvatarAction.DestroyDisplay(killer, victim, _, _))
 //              if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) =>
 //            true

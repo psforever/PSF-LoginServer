@@ -7,7 +7,6 @@ import net.psforever.objects.serverobject.ServerObject
 import net.psforever.objects.{Session, Vehicle}
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.chat.SpectatorChannel
 import net.psforever.services.teamwork.{SquadAction, SquadServiceMessage}
 import net.psforever.types.{ChatMessageType, SquadRequestType}
 //
@@ -33,7 +32,6 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
     val pguid = player.GUID
     val sendResponse: PlanetSidePacket=>Unit = data.sendResponse
     //
-    continent.actor ! ZoneActor.RemoveFromBlockMap(player)
     data.vehicles.GetMountableAndSeat(None, player, continent) match {
       case (Some(obj: Vehicle), Some(seatNum)) if seatNum == 0 =>
         data.vehicles.ServerVehicleOverrideStop(obj)
@@ -50,15 +48,12 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
       continent,
       SquadAction.Membership(SquadRequestType.Leave, player.CharId, Some(player.CharId), player.Name, None)
     )
-    if (player.silenced) {
-      data.chat.commandIncomingSilence(session, ChatMsg(ChatMessageType.CMT_SILENCE, "player 0"))
-    }
     //
     player.spectator = true
-    player.bops = true
+    //player.bops = true
+    player.allowInteraction = false
+    continent.actor ! ZoneActor.RemoveFromBlockMap(player)
     continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(pguid, pguid))
-    data.chat.JoinChannel(SpectatorChannel)
-    sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "on"))
     sendResponse(ChatMsg(ChatMessageType.UNK_225, "CSR SPECTATOR MODE ON"))
   }
 
@@ -67,18 +62,16 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
     val pguid = player.GUID
     val continent = data.continent
     val avatarId = player.Definition.ObjectId
-    val sendResponse: PlanetSidePacket => Unit = data.sendResponse
+    //val sendResponse: PlanetSidePacket => Unit = data.sendResponse
     //
-    data.chat.LeaveChannel(SpectatorChannel)
     player.spectator = false
     player.bops = false
+    player.allowInteraction = true
+    data.continent.actor ! ZoneActor.AddToBlockMap(player, player.Position)
     continent.AvatarEvents ! AvatarServiceMessage(
       continent.id,
       AvatarAction.LoadPlayer(pguid, avatarId, pguid, player.Definition.Packet.ConstructorData(player).get, None)
     )
-    data.continent.actor ! ZoneActor.AddToBlockMap(player, player.Position)
-    sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "off"))
-    sendResponse(ChatMsg(ChatMessageType.UNK_225, "CSR SPECTATOR MODE OFF"))
   }
 }
 

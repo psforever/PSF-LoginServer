@@ -183,6 +183,217 @@ class GeneralOperations(
   private[session] var progressBarUpdate: Cancellable = Default.Cancellable
   private var charSavedTimer: Cancellable = Default.Cancellable
 
+  def handleDropItem(pkt: DropItemMessage): GeneralOperations.ItemDropState.Behavior = {
+    val DropItemMessage(itemGuid) = pkt
+    (sessionLogic.validObject(itemGuid, decorator = "DropItem"), player.FreeHand.Equipment) match {
+      case (Some(anItem: Equipment), Some(heldItem))
+        if (anItem eq heldItem) && continent.GUID(player.VehicleSeated).nonEmpty =>
+        RemoveOldEquipmentFromInventory(player)(heldItem)
+        GeneralOperations.ItemDropState.Dropped
+      case (Some(anItem: Equipment), Some(heldItem))
+        if anItem eq heldItem =>
+        DropEquipmentFromInventory(player)(heldItem)
+        GeneralOperations.ItemDropState.Dropped
+      case (Some(_), _) =>
+        GeneralOperations.ItemDropState.NotDropped
+      case _ =>
+        GeneralOperations.ItemDropState.NotFound
+    }
+  }
+
+  def handlePickupItem(pkt: PickupItemMessage): GeneralOperations.ItemPickupState.Behavior = {
+    val PickupItemMessage(itemGuid, _, _, _) = pkt
+    sessionLogic.validObject(itemGuid, decorator = "PickupItem") match {
+      case Some(item: Equipment)
+        if player.Fit(item).nonEmpty =>
+        PickUpEquipmentFromGround(player)(item)
+        GeneralOperations.ItemPickupState.PickedUp
+      case Some(_: Equipment) =>
+        GeneralOperations.ItemPickupState.Dropped
+      case _ =>
+        GeneralOperations.ItemPickupState.NotFound
+    }
+  }
+
+  def handleZipLine(pkt: ZipLineMessage): GeneralOperations.ZiplineBehavior.Behavior = {
+    val ZipLineMessage(playerGuid, forwards, action, pathId, pos) = pkt
+    continent.zipLinePaths.find(x => x.PathId == pathId) match {
+      case Some(path) if path.IsTeleporter =>
+        val endPoint = path.ZipLinePoints.last
+        sendResponse(ZipLineMessage(PlanetSideGUID(0), forwards, 0, pathId, pos))
+        //todo: send to zone to show teleport animation to all clients
+        sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, (player.Orientation.z + player.FacingYawUpper) % 360f, None)))
+        GeneralOperations.ZiplineBehavior.Teleporter
+      case Some(_) =>
+        //todo: send to zone to show zipline animation to all clients
+        action match {
+          case 0 =>
+            //travel along the zipline in the direction specified
+            sendResponse(ZipLineMessage(playerGuid, forwards, action, pathId, pos))
+            GeneralOperations.ZiplineBehavior.Zipline
+          case 1 =>
+            //disembark from zipline at destination
+            sendResponse(ZipLineMessage(playerGuid, forwards, action, 0, pos))
+            GeneralOperations.ZiplineBehavior.Zipline
+          case 2 =>
+            //get off by force
+            sendResponse(ZipLineMessage(playerGuid, forwards, action, 0, pos))
+            GeneralOperations.ZiplineBehavior.Zipline
+          case _ =>
+            GeneralOperations.ZiplineBehavior.Unsupported
+        }
+      case _ =>
+        GeneralOperations.ZiplineBehavior.NotFound
+    }
+  }
+
+  def handleMoveItem(pkt: MoveItemMessage): Unit = {
+    val MoveItemMessage(itemGuid, sourceGuid, destinationGuid, dest, _) = pkt
+    (
+      continent.GUID(sourceGuid),
+      continent.GUID(destinationGuid),
+      sessionLogic.validObject(itemGuid, decorator = "MoveItem")
+    ) match {
+      case (
+        Some(source: PlanetSideServerObject with Container),
+        Some(destination: PlanetSideServerObject with Container),
+        Some(item: Equipment)
+        ) =>
+        ContainableMoveItem(player.Name, source, destination, item, destination.SlotMapResolution(dest))
+      case (None, _, _) =>
+        log.error(
+          s"MoveItem: ${player.Name} wanted to move $itemGuid from $sourceGuid, but could not find source object"
+        )
+      case (_, None, _) =>
+        log.error(
+          s"MoveItem: ${player.Name} wanted to move $itemGuid to $destinationGuid, but could not find destination object"
+        )
+      case (_, _, None) => ()
+      case _ =>
+        log.error(
+          s"MoveItem: ${player.Name} wanted to move $itemGuid from $sourceGuid to $destinationGuid, but multiple problems were encountered"
+        )
+    }
+  }
+
+  def handleLootItem(pkt: LootItemMessage): Unit = {
+    val LootItemMessage(itemGuid, targetGuid) = pkt
+    (sessionLogic.validObject(itemGuid, decorator = "LootItem"), continent.GUID(targetGuid)) match {
+      case (Some(item: Equipment), Some(destination: PlanetSideServerObject with Container)) =>
+        //figure out the source
+        (
+          {
+            val findFunc: PlanetSideServerObject with Container => Option[
+              (PlanetSideServerObject with Container, Option[Int])
+            ] = findInLocalContainer(itemGuid)
+            findFunc(player.avatar.locker)
+              .orElse(findFunc(player))
+              .orElse(accessedContainer match {
+                case Some(parent: PlanetSideServerObject) =>
+                  findFunc(parent)
+                case _ =>
+                  None
+              })
+          },
+          destination.Fit(item)
+        ) match {
+          case (Some((source, Some(_))), Some(dest)) =>
+            ContainableMoveItem(player.Name, source, destination, item, dest)
+          case (None, _) =>
+            log.error(s"LootItem: ${player.Name} can not find where $item is put currently")
+          case (_, None) =>
+            log.error(s"LootItem: ${player.Name} can not find anywhere to put $item in $destination")
+          case _ =>
+            log.error(
+              s"LootItem: ${player.Name}wanted to move $itemGuid to $targetGuid, but multiple problems were encountered"
+            )
+        }
+      case (Some(obj), _) =>
+        log.error(s"LootItem: item $obj is (probably) not lootable to ${player.Name}")
+      case (None, _) => ()
+      case (_, None) =>
+        log.error(s"LootItem: ${player.Name} can not find where to put $itemGuid")
+    }
+  }
+
+  def handleAvatarImplant(pkt: AvatarImplantMessage): GeneralOperations.ImplantActivationBehavior.Behavior = {
+    val AvatarImplantMessage(_, action, slot, status) = pkt
+    if (action == ImplantAction.Activation) {
+      if (sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing) {
+        //do not activate; play deactivation sound instead
+        sessionLogic.zoning.spawn.stopDeconstructing()
+        avatar.implants(slot).collect {
+          case implant if implant.active =>
+            avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
+          case implant =>
+            sendResponse(PlanetsideAttributeMessage(player.GUID, 28, implant.definition.implantType.value * 2))
+        }
+        GeneralOperations.ImplantActivationBehavior.Failed
+      } else {
+        avatar.implants(slot) match {
+          case Some(implant) =>
+            if (status == 1) {
+              avatarActor ! AvatarActor.ActivateImplant(implant.definition.implantType)
+              GeneralOperations.ImplantActivationBehavior.Activate
+            } else {
+              avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
+              GeneralOperations.ImplantActivationBehavior.Deactivate
+            }
+          case _ =>
+            GeneralOperations.ImplantActivationBehavior.NotFound
+        }
+      }
+    } else {
+      GeneralOperations.ImplantActivationBehavior.Failed
+    }
+  }
+
+  def handleCreateShortcut(pkt: CreateShortcutMessage): Unit = {
+    val CreateShortcutMessage(_, slot, shortcutOpt) = pkt
+    shortcutOpt match {
+      case Some(shortcut) =>
+        avatarActor ! AvatarActor.AddShortcut(slot - 1, shortcut)
+      case None =>
+        avatarActor ! AvatarActor.RemoveShortcut(slot - 1)
+    }
+  }
+
+  def handleObjectDetected(pkt: ObjectDetectedMessage): Unit = {
+    val ObjectDetectedMessage(_, _, _, targets) = pkt
+    sessionLogic.shooting.FindWeapon.foreach {
+      case weapon if weapon.Projectile.AutoLock =>
+        //projectile with auto-lock instigates a warning on the target
+        val detectedTargets = sessionLogic.shooting.FindDetectedProjectileTargets(targets)
+        val mode = 7 + (if (weapon.Projectile == GlobalDefinitions.wasp_rocket_projectile) 1 else 0)
+        detectedTargets.foreach { target =>
+          continent.AvatarEvents ! AvatarServiceMessage(target, AvatarAction.ProjectileAutoLockAwareness(mode))
+        }
+      case _ => ()
+    }
+  }
+
+  def handleTargetingImplantRequest(pkt: TargetingImplantRequest): Unit = {
+    val TargetingImplantRequest(list) = pkt
+    val targetInfo: List[TargetInfo] = list.flatMap { x =>
+      continent.GUID(x.target_guid) match {
+        case Some(player: Player) =>
+          val health = player.Health.toFloat / player.MaxHealth
+          val armor = if (player.MaxArmor > 0) {
+            player.Armor.toFloat / player.MaxArmor
+          } else {
+            0
+          }
+          Some(TargetInfo(player.GUID, health, armor))
+        case _ =>
+          log.warn(
+            s"TargetingImplantRequest: the info that ${player.Name} requested for target ${x.target_guid} is not for a player"
+          )
+          None
+      }
+    }
+    sendResponse(TargetingInfoMessage(targetInfo))
+  }
+
   /**
    * Enforce constraints on bulk purchases as determined by a given player's previous purchase times and hard acquisition delays.
    * Intended to assist in sanitizing loadout information from the perspective of the player, or target owner.
@@ -765,10 +976,10 @@ class GeneralOperations(
     )
   }
 
-  def administrativeKick(tplayer: Player): Unit = {
+  def administrativeKick(tplayer: Player, time: Option[Long]): Unit = {
     log.warn(s"${tplayer.Name} has been kicked by ${player.Name}")
     tplayer.death_by = -1
-    sessionLogic.accountPersistence ! AccountPersistenceService.Kick(tplayer.Name)
+    sessionLogic.accountPersistence ! AccountPersistenceService.Kick(tplayer.Name, time)
     //get out of that vehicle
     sessionLogic.vehicles.GetMountableAndSeat(None, tplayer, continent) match {
       case (Some(obj), Some(seatNum)) =>
@@ -1273,5 +1484,37 @@ class GeneralOperations(
   override protected[session] def stop(): Unit = {
     progressBarUpdate.cancel()
     charSavedTimer.cancel()
+  }
+}
+
+object GeneralOperations {
+  object ItemDropState {
+    sealed trait Behavior
+    case object Dropped extends Behavior
+    case object NotDropped extends Behavior
+    case object NotFound extends Behavior
+  }
+
+  object ItemPickupState {
+    sealed trait Behavior
+    case object PickedUp extends Behavior
+    case object Dropped extends Behavior
+    case object NotFound extends Behavior
+  }
+
+  object ZiplineBehavior {
+    sealed trait Behavior
+    case object Teleporter extends Behavior
+    case object Zipline extends Behavior
+    case object Unsupported extends Behavior
+    case object NotFound extends Behavior
+  }
+
+  object ImplantActivationBehavior {
+    sealed trait Behavior
+    case object Activate extends Behavior
+    case object Deactivate extends Behavior
+    case object Failed extends Behavior
+    case object NotFound extends Behavior
   }
 }

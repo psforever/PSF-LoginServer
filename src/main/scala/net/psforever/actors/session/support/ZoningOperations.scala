@@ -2440,6 +2440,10 @@ class ZoningOperations(
           log.debug(s"AvatarCreate (vehicle): ${player.Name}'s ${vdef.Name}")
           AvatarCreateInVehicle(player, vehicle, seat)
 
+        case _ if player.spectator =>
+          player.VehicleSeated = None
+          sendResponse(OCM.detailed(player))
+
         case _ =>
           player.VehicleSeated = None
           val definition = player.avatar.definition
@@ -2588,8 +2592,6 @@ class ZoningOperations(
       zones.exp.ToDatabase.reportRespawns(tplayer.CharId, ScoreCard.reviveCount(player.avatar.scorecard.CurrentLife))
       val obj = Player.Respawn(tplayer)
       DefinitionUtil.applyDefaultLoadout(obj)
-      obj.death_by = tplayer.death_by
-      obj.silenced = tplayer.silenced
       obj
     }
 

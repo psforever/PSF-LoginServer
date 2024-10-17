@@ -13,10 +13,10 @@ import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.ZoneProjectile
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.types.{ExoSuitType, PlanetSideGUID, Vector3}
+import net.psforever.types.{ExoSuitType, Vector3}
 
 object GeneralLogic {
   def apply(ops: GeneralOperations): GeneralLogic = {
@@ -101,31 +101,15 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   def handleAvatarJump(pkt: AvatarJumpMessage): Unit = { /* intentionally blank */ }
 
   def handleZipLine(pkt: ZipLineMessage): Unit = {
-    val ZipLineMessage(playerGuid, forwards, action, pathId, pos) = pkt
-    continent.zipLinePaths.find(x => x.PathId == pathId) match {
-      case Some(path) if path.IsTeleporter =>
-        val endPoint = path.ZipLinePoints.last
-        sendResponse(ZipLineMessage(PlanetSideGUID(0), forwards, 0, pathId, pos))
-        //todo: send to zone to show teleport animation to all clients
-        sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, (player.Orientation.z + player.FacingYawUpper) % 360f, None)))
-      case Some(_) =>
-        action match {
-          case 0 =>
-            //travel along the zipline in the direction specified
-            sendResponse(ZipLineMessage(playerGuid, forwards, action, pathId, pos))
-          case 1 =>
-            //disembark from zipline at destination!
-            sendResponse(ZipLineMessage(playerGuid, forwards, action, 0, pos))
-          case 2 =>
-            //get off by force
-            sendResponse(ZipLineMessage(playerGuid, forwards, action, 0, pos))
-          case _ =>
-            log.warn(
-              s"${player.Name} tried to do something with a zipline but can't handle it. forwards: $forwards action: $action pathId: $pathId zone: ${continent.Number} / ${continent.id}"
-            )
-        }
-      case _ =>
-        log.warn(s"${player.Name} couldn't find a zipline path $pathId in zone ${continent.id}")
+    ops.handleZipLine(pkt) match {
+      case GeneralOperations.ZiplineBehavior.Teleporter | GeneralOperations.ZiplineBehavior.Zipline =>
+        sessionLogic.zoning.CancelZoningProcess()
+      case GeneralOperations.ZiplineBehavior.Unsupported =>
+        log.warn(
+          s"${player.Name} tried to do something with a zipline but can't handle it. action: ${pkt.action}, pathId: ${pkt.path_id}, zone: ${continent.id}"
+        )
+      case GeneralOperations.ZiplineBehavior.NotFound =>
+        log.warn(s"${player.Name} couldn't find a zipline path ${pkt.path_id} in zone ${continent.id}")
     }
   }
 
@@ -359,34 +343,14 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
 
   def handleTrade(pkt: TradeMessage): Unit = { /* intentionally blank */ }
 
-  def handleDisplayedAward(pkt: DisplayedAwardMessage): Unit = {
-    val DisplayedAwardMessage(_, ribbon, bar) = pkt
-    log.trace(s"${player.Name} changed the $bar displayed award ribbon to $ribbon")
-    avatarActor ! AvatarActor.SetRibbon(ribbon, bar)
+  def handleDisplayedAward(pkt: DisplayedAwardMessage): Unit = { /* intentionally blank */ }
+
+  def handleObjectDetected(pkt: ObjectDetectedMessage): Unit = {
+    ops.handleObjectDetected(pkt)
   }
 
-  def handleObjectDetected(pkt: ObjectDetectedMessage): Unit = { /* intentionally blank */ }
-
   def handleTargetingImplantRequest(pkt: TargetingImplantRequest): Unit = {
-    val TargetingImplantRequest(list) = pkt
-    val targetInfo: List[TargetInfo] = list.flatMap { x =>
-      continent.GUID(x.target_guid) match {
-        case Some(player: Player) =>
-          val health = player.Health.toFloat / player.MaxHealth
-          val armor = if (player.MaxArmor > 0) {
-            player.Armor.toFloat / player.MaxArmor
-          } else {
-            0
-          }
-          Some(TargetInfo(player.GUID, health, armor))
-        case _ =>
-          log.warn(
-            s"TargetingImplantRequest: the info that ${player.Name} requested for target ${x.target_guid} is not for a player"
-          )
-          None
-      }
-    }
-    sendResponse(TargetingInfoMessage(targetInfo))
+    ops.handleTargetingImplantRequest(pkt)
   }
 
   def handleHitHint(pkt: HitHint): Unit = { /* intentionally blank */ }
@@ -434,8 +398,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleKick(player: Player, time: Option[Long]): Unit = {
-    administrativeKick(player)
-    sessionLogic.accountPersistence ! AccountPersistenceService.Kick(player.Name, time)
+    ops.administrativeKick(player, None)
   }
 
   def handleSilenced(isSilenced: Boolean): Unit = {
@@ -449,12 +412,6 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   def handleReceiveDefaultMessage(default: Any, sender: ActorRef): Unit = { /* intentionally blank */ }
 
   /* supporting functions */
-
-  private def administrativeKick(tplayer: Player): Unit = {
-    log.warn(s"${tplayer.Name} has been kicked by ${player.Name}")
-    tplayer.death_by = -1
-    sessionLogic.accountPersistence ! AccountPersistenceService.Kick(tplayer.Name)
-  }
 
   private def customImplantOff(slot: Int, implant: Implant): Unit = {
     customImplants = customImplants.updated(slot, implant.copy(active = false))

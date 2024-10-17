@@ -4,7 +4,6 @@ package net.psforever.actors.session.csr
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData}
-import net.psforever.login.WorldSession.{ContainableMoveItem, DropEquipmentFromInventory, PickUpEquipmentFromGround, RemoveOldEquipmentFromInventory}
 import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, ConstructionItem, GlobalDefinitions, LivePlayerList, Player, SensorDeployable, ShieldGeneratorDeployable, SpecialEmp, TelepadDeployable, Tool, TrapDeployable, TurretDeployable, Vehicle}
 import net.psforever.objects.avatar.{Avatar, PlayerControl}
 import net.psforever.objects.ballistics.Projectile
@@ -13,7 +12,7 @@ import net.psforever.objects.definition.{BasicDefinition, KitDefinition, Special
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.Container
-import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject, ServerObject}
+import net.psforever.objects.serverobject.{CommonMessages, ServerObject}
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
@@ -31,9 +30,8 @@ import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.RemoverActor
-import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.{CapacitorStateType, Cosmetic, ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
@@ -44,6 +42,8 @@ object GeneralLogic {
 }
 
 class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContext) extends GeneralFunctions {
+  private var openDoor: Option[Door] = None
+
   def sessionLogic: SessionData = ops.sessionLogic
 
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
@@ -75,7 +75,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     sessionLogic.turnCounterFunc(avatarGuid)
     //below half health, full heal
     val maxHealth = player.MaxHealth.toLong
-    if (player.Health < maxHealth * 0.5f) {
+    if (player.Health < maxHealth) {
       player.Health = maxHealth.toInt
       player.LogActivity(player.ClearHistory().head)
       sendResponse(PlanetsideAttributeMessage(avatarGuid, 0, maxHealth))
@@ -84,10 +84,29 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     //below half stamina, full stamina
     val avatar = player.avatar
     val maxStamina = avatar.maxStamina
-    if (avatar.stamina < maxStamina * 0.5f) {
-      session = session.copy(avatar = avatar.copy(stamina = maxStamina))
+    if (avatar.stamina < maxStamina) {
+      avatarActor ! AvatarActor.RestoreStamina(maxStamina)
       sendResponse(PlanetsideAttributeMessage(player.GUID, 2, maxStamina.toLong))
     }
+    //below half armor, full armor
+    val maxArmor = player.MaxArmor.toLong
+    if (player.Armor < maxArmor) {
+      player.Armor = maxArmor.toInt
+      sendResponse(PlanetsideAttributeMessage(avatarGuid, 4, maxArmor))
+      continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(avatarGuid, 4, maxArmor))
+    }
+    //doors
+    openDoor
+      .collect {
+        case door
+          if Vector3.DistanceSquared(door.Position.xy, player.Position.xy) > math.pow(door.Definition.continuousOpenDistance, 2).toFloat =>
+          if (!door.isOpen) {
+            sendResponse(GenericObjectStateMsg(door.GUID, state = 17))
+          }
+          openDoor = None
+        case door if !door.isOpen =>
+          sendResponse(GenericObjectStateMsg(door.GUID, state = 16))
+      }
     //expected
     val isMoving     = WorldEntity.isMoving(vel)
     val isMovingPlus = isMoving || isJumping || jumpThrust
@@ -130,7 +149,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
           // If the container is a corpse and gets removed just as this runs it can cause a client disconnect, so we'll check the container has a GUID first.
           sendResponse(UnuseItemMessage(guid, guid))
           ops.unaccessContainer(container)
-      case None => ()
+      case _ => ()
     }
     if (!player.spectator) {
       sessionLogic.updateBlockMap(player, pos)
@@ -173,34 +192,18 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleDropItem(pkt: DropItemMessage): Unit = {
-    val DropItemMessage(itemGuid) = pkt
-    (sessionLogic.validObject(itemGuid, decorator = "DropItem"), player.FreeHand.Equipment) match {
-      case (Some(anItem: Equipment), Some(heldItem))
-        if (anItem eq heldItem) && continent.GUID(player.VehicleSeated).nonEmpty =>
+    ops.handleDropItem(pkt) match {
+      case GeneralOperations.ItemDropState.Dropped =>
         sessionLogic.zoning.CancelZoningProcess()
-        RemoveOldEquipmentFromInventory(player)(heldItem)
-      case (Some(anItem: Equipment), Some(heldItem))
-        if anItem eq heldItem =>
-        sessionLogic.zoning.CancelZoningProcess()
-        DropEquipmentFromInventory(player)(heldItem)
-      case (Some(anItem: Equipment), _)
-        if continent.GUID(player.VehicleSeated).isEmpty =>
-        //suppress the warning message if in a vehicle
-        log.warn(s"DropItem: ${player.Name} wanted to drop a ${anItem.Definition.Name}, but it wasn't at hand")
-      case (Some(obj), _) =>
-        log.warn(s"DropItem: ${player.Name} wanted to drop a ${obj.Definition.Name}, but it was not equipment")
       case _ => ()
     }
   }
 
   def handlePickupItem(pkt: PickupItemMessage): Unit = {
-    val PickupItemMessage(itemGuid, _, _, _) = pkt
-    sessionLogic.validObject(itemGuid, decorator = "PickupItem").collect {
-      case item: Equipment if player.Fit(item).nonEmpty =>
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
-        PickUpEquipmentFromGround(player)(item)
-      case _: Equipment =>
-        sendResponse(ActionResultMessage.Fail(16)) //error code?
+    ops.handlePickupItem(pkt) match {
+      case GeneralOperations.ItemPickupState.PickedUp =>
+        sessionLogic.zoning.CancelZoningProcess()
+      case _ => ()
     }
   }
 
@@ -212,33 +215,11 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   def handleAvatarJump(pkt: AvatarJumpMessage): Unit = { /* no stamina loss */ }
 
   def handleZipLine(pkt: ZipLineMessage): Unit = {
-    val ZipLineMessage(playerGuid, forwards, action, pathId, pos) = pkt
-    continent.zipLinePaths.find(x => x.PathId == pathId) match {
-      case Some(path) if path.IsTeleporter =>
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel")
-        val endPoint = path.ZipLinePoints.last
-        sendResponse(ZipLineMessage(PlanetSideGUID(0), forwards, 0, pathId, pos))
-        //todo: send to zone to show teleport animation to all clients
-        sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, (player.Orientation.z + player.FacingYawUpper) % 360f, None)))
-      case Some(_) =>
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_motion")
-        action match {
-          case 0 =>
-            //travel along the zipline in the direction specified
-            sendResponse(ZipLineMessage(playerGuid, forwards, action, pathId, pos))
-          case 1 =>
-            //disembark from zipline at destination
-            sendResponse(ZipLineMessage(playerGuid, forwards, action, 0, pos))
-          case 2 =>
-            //get off by force
-            sendResponse(ZipLineMessage(playerGuid, forwards, action, 0, pos))
-          case _ =>
-            log.warn(
-              s"${player.Name} tried to do something with a zipline but can't handle it. forwards: $forwards action: $action pathId: $pathId zone: ${continent.Number} / ${continent.id}"
-            )
-        }
+    ops.handleZipLine(pkt) match {
+      case GeneralOperations.ZiplineBehavior.Teleporter | GeneralOperations.ZiplineBehavior.Zipline =>
+        sessionLogic.zoning.CancelZoningProcess()
       case _ =>
-        log.warn(s"${player.Name} couldn't find a zipline path $pathId in zone ${continent.id}")
+        ()
     }
   }
 
@@ -287,99 +268,20 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleMoveItem(pkt: MoveItemMessage): Unit = {
-    val MoveItemMessage(itemGuid, sourceGuid, destinationGuid, dest, _) = pkt
-    (
-      continent.GUID(sourceGuid),
-      continent.GUID(destinationGuid),
-      sessionLogic.validObject(itemGuid, decorator = "MoveItem")
-    ) match {
-      case (
-        Some(source: PlanetSideServerObject with Container),
-        Some(destination: PlanetSideServerObject with Container),
-        Some(item: Equipment)
-        ) =>
-        ContainableMoveItem(player.Name, source, destination, item, destination.SlotMapResolution(dest))
-      case (None, _, _) =>
-        log.error(
-          s"MoveItem: ${player.Name} wanted to move $itemGuid from $sourceGuid, but could not find source object"
-        )
-      case (_, None, _) =>
-        log.error(
-          s"MoveItem: ${player.Name} wanted to move $itemGuid to $destinationGuid, but could not find destination object"
-        )
-      case (_, _, None) => ()
-      case _ =>
-        log.error(
-          s"MoveItem: ${player.Name} wanted to move $itemGuid from $sourceGuid to $destinationGuid, but multiple problems were encountered"
-        )
-    }
+    ops.handleMoveItem(pkt)
   }
 
   def handleLootItem(pkt: LootItemMessage): Unit = {
-    val LootItemMessage(itemGuid, targetGuid) = pkt
-    (sessionLogic.validObject(itemGuid, decorator = "LootItem"), continent.GUID(targetGuid)) match {
-      case (Some(item: Equipment), Some(destination: PlanetSideServerObject with Container)) =>
-        //figure out the source
-        (
-          {
-            val findFunc: PlanetSideServerObject with Container => Option[
-              (PlanetSideServerObject with Container, Option[Int])
-            ] = ops.findInLocalContainer(itemGuid)
-            findFunc(player.avatar.locker)
-              .orElse(findFunc(player))
-              .orElse(ops.accessedContainer match {
-                case Some(parent: PlanetSideServerObject) =>
-                  findFunc(parent)
-                case _ =>
-                  None
-              })
-          },
-          destination.Fit(item)
-        ) match {
-          case (Some((source, Some(_))), Some(dest)) =>
-            ContainableMoveItem(player.Name, source, destination, item, dest)
-          case (None, _) =>
-            log.error(s"LootItem: ${player.Name} can not find where $item is put currently")
-          case (_, None) =>
-            log.error(s"LootItem: ${player.Name} can not find anywhere to put $item in $destination")
-          case _ =>
-            log.error(
-              s"LootItem: ${player.Name}wanted to move $itemGuid to $targetGuid, but multiple problems were encountered"
-            )
-        }
-      case (Some(obj), _) =>
-        log.error(s"LootItem: item $obj is (probably) not lootable to ${player.Name}")
-      case (None, _) => ()
-      case (_, None) =>
-        log.error(s"LootItem: ${player.Name} can not find where to put $itemGuid")
-    }
+    ops.handleLootItem(pkt)
   }
 
   def handleAvatarImplant(pkt: AvatarImplantMessage): Unit = {
-    val AvatarImplantMessage(_, action, slot, status) = pkt
-    if (action == ImplantAction.Activation) {
-      if (sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing) {
-        //do not activate; play deactivation sound instead
-        sessionLogic.zoning.spawn.stopDeconstructing()
-        avatar.implants(slot).collect {
-          case implant if implant.active =>
-            avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
-          case implant =>
-            sendResponse(PlanetsideAttributeMessage(player.GUID, 28, implant.definition.implantType.value * 2))
-        }
-      } else {
+    ops.handleAvatarImplant(pkt) match {
+      case GeneralOperations.ImplantActivationBehavior.Activate | GeneralOperations.ImplantActivationBehavior.Deactivate =>
         sessionLogic.zoning.CancelZoningProcess()
-        avatar.implants(slot) match {
-          case Some(implant) =>
-            if (status == 1) {
-              avatarActor ! AvatarActor.ActivateImplant(implant.definition.implantType)
-            } else {
-              avatarActor ! AvatarActor.DeactivateImplant(implant.definition.implantType)
-            }
-          case _ =>
-            log.error(s"AvatarImplantMessage: ${player.Name} has an unknown implant in $slot")
-        }
-      }
+      case GeneralOperations.ImplantActivationBehavior.NotFound =>
+        log.error(s"AvatarImplantMessage: ${player.Name} has an unknown implant in ${pkt.implantSlot}")
+      case _ => ()
     }
   }
 
@@ -460,19 +362,21 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleDeployObject(pkt: DeployObjectMessage): Unit = {
-    val DeployObjectMessage(guid, _, pos, orient, _) = pkt
-    player.Holsters().find(slot => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid).flatMap { slot => slot.Equipment } match {
-      case Some(obj: ConstructionItem) =>
-        val ammoType = obj.AmmoType match {
-          case DeployedItem.portable_manned_turret => GlobalDefinitions.PortableMannedTurret(player.Faction).Item
-          case dtype                               => dtype
-        }
-        sessionLogic.zoning.CancelZoningProcess()
-        ops.handleDeployObject(continent, ammoType, pos, orient, player.WhichSide, PlanetSideEmpire.NEUTRAL, None)
-      case Some(obj) =>
-        log.warn(s"DeployObject: what is $obj, ${player.Name}?  It's not a construction tool!")
-      case None =>
-        log.error(s"DeployObject: nothing, ${player.Name}?  It's not a construction tool!")
+    if (!player.spectator) {
+      val DeployObjectMessage(guid, _, pos, orient, _) = pkt
+      player.Holsters().find(slot => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid).flatMap { slot => slot.Equipment } match {
+        case Some(obj: ConstructionItem) =>
+          val ammoType = obj.AmmoType match {
+            case DeployedItem.portable_manned_turret => GlobalDefinitions.PortableMannedTurret(player.Faction).Item
+            case dtype                               => dtype
+          }
+          sessionLogic.zoning.CancelZoningProcess()
+          ops.handleDeployObject(continent, ammoType, pos, orient, player.WhichSide, PlanetSideEmpire.NEUTRAL, None)
+        case Some(obj) =>
+          log.warn(s"DeployObject: what is $obj, ${player.Name}?  It's not a construction tool!")
+        case None =>
+          log.error(s"DeployObject: nothing, ${player.Name}?  It's not a construction tool!")
+      }
     }
   }
 
@@ -622,7 +526,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     }
   }
 
+
+
   def handleGenericCollision(pkt: GenericCollisionMsg): Unit = {
+    player.BailProtection = false
     val GenericCollisionMsg(ctype, p, _, _, pv, _, _, _, _, _, _, _) = pkt
     if (pv.z * pv.z >= (pv.x * pv.x + pv.y * pv.y) * 0.5f) {
       if (ops.heightTrend) {
@@ -634,8 +541,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     }
     (ctype, sessionLogic.validObject(p, decorator = "GenericCollision/Primary")) match {
       case (CollisionIs.OfInfantry, Some(user: Player))
-        if user == player =>
-        player.BailProtection = false
+        if user == player => ()
       case (CollisionIs.OfGroundVehicle, Some(v: Vehicle))
         if v.Seats(0).occupant.contains(player) =>
         v.BailProtection = false
@@ -647,7 +553,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     }
   }
 
-  def handleAvatarFirstTimeEvent(pkt: AvatarFirstTimeEventMessage): Unit = { /* no speedrunning fte's */ }
+  def handleAvatarFirstTimeEvent(pkt: AvatarFirstTimeEventMessage): Unit = {
+    val AvatarFirstTimeEventMessage(_, _, _, eventName) = pkt
+    avatarActor ! AvatarActor.AddFirstTimeEvent(eventName)
+  }
 
   def handleBugReport(pkt: PlanetSideGamePacket): Unit = {
     val BugReportMessage(
@@ -709,7 +618,25 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     avatarActor ! AvatarActor.MemberListRequest(action, name)
   }
 
-  def handleInvalidTerrain(pkt: InvalidTerrainMessage): Unit = { /* csr does not have to worry about invalid terrain */ }
+  def handleInvalidTerrain(pkt: InvalidTerrainMessage): Unit = {
+    val InvalidTerrainMessage(_, vehicleGuid, alert, _) = pkt
+    (continent.GUID(vehicleGuid), continent.GUID(player.VehicleSeated)) match {
+      case (Some(packetVehicle: Vehicle), Some(playerVehicle: Vehicle)) if packetVehicle eq playerVehicle =>
+        if (alert == TerrainCondition.Unsafe) {
+          log.info(s"${player.Name}'s ${packetVehicle.Definition.Name} is approaching terrain unsuitable for idling")
+        }
+      case (Some(packetVehicle: Vehicle), Some(_: Vehicle)) =>
+        if (alert == TerrainCondition.Unsafe) {
+          log.info(s"${packetVehicle.Definition.Name}@${packetVehicle.GUID} is approaching terrain unsuitable for idling, but is not ${player.Name}'s vehicle")
+        }
+      case (Some(_: Vehicle), _) =>
+        log.warn(s"InvalidTerrain: ${player.Name} is not seated in a(ny) vehicle near unsuitable terrain")
+      case (Some(packetThing), _) =>
+        log.warn(s"InvalidTerrain: ${player.Name} thinks that ${packetThing.Definition.Name}@${packetThing.GUID} is near unsuitable terrain")
+      case _ =>
+        log.error(s"InvalidTerrain: ${player.Name} is complaining about a thing@$vehicleGuid that can not be found")
+    }
+  }
 
   def handleActionCancel(pkt: ActionCancelMessage): Unit = {
     val ActionCancelMessage(_, _, _) = pkt
@@ -722,46 +649,14 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     log.trace(s"${player.Name} wants to trade for some reason - $trade")
   }
 
-  def handleDisplayedAward(pkt: DisplayedAwardMessage): Unit = {
-    val DisplayedAwardMessage(_, ribbon, bar) = pkt
-    log.trace(s"${player.Name} changed the $bar displayed award ribbon to $ribbon")
-    avatarActor ! AvatarActor.SetRibbon(ribbon, bar)
-  }
+  def handleDisplayedAward(pkt: DisplayedAwardMessage): Unit = { /* intentionally blank */ }
 
   def handleObjectDetected(pkt: ObjectDetectedMessage): Unit = {
-    val ObjectDetectedMessage(_, _, _, targets) = pkt
-    sessionLogic.shooting.FindWeapon.foreach {
-      case weapon if weapon.Projectile.AutoLock =>
-        //projectile with auto-lock instigates a warning on the target
-        val detectedTargets = sessionLogic.shooting.FindDetectedProjectileTargets(targets)
-        val mode = 7 + (if (weapon.Projectile == GlobalDefinitions.wasp_rocket_projectile) 1 else 0)
-        detectedTargets.foreach { target =>
-          continent.AvatarEvents ! AvatarServiceMessage(target, AvatarAction.ProjectileAutoLockAwareness(mode))
-        }
-      case _ => ()
-    }
+    ops.handleObjectDetected(pkt)
   }
 
   def handleTargetingImplantRequest(pkt: TargetingImplantRequest): Unit = {
-    val TargetingImplantRequest(list) = pkt
-    val targetInfo: List[TargetInfo] = list.flatMap { x =>
-      continent.GUID(x.target_guid) match {
-        case Some(player: Player) =>
-          val health = player.Health.toFloat / player.MaxHealth
-          val armor = if (player.MaxArmor > 0) {
-            player.Armor.toFloat / player.MaxArmor
-          } else {
-            0
-          }
-          Some(TargetInfo(player.GUID, health, armor))
-        case _ =>
-          log.warn(
-            s"TargetingImplantRequest: the info that ${player.Name} requested for target ${x.target_guid} is not for a player"
-          )
-          None
-      }
-    }
-    sendResponse(TargetingInfoMessage(targetInfo))
+    ops.handleTargetingImplantRequest(pkt)
   }
 
   def handleHitHint(pkt: HitHint): Unit = {
@@ -804,8 +699,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleKick(player: Player, time: Option[Long]): Unit = {
-    ops.administrativeKick(player)
-    sessionLogic.accountPersistence ! AccountPersistenceService.Kick(player.Name, time)
+    ops.administrativeKick(player, time)
   }
 
   def handleSilenced(isSilenced: Boolean): Unit = { /* can not be silenced */ }
@@ -825,20 +719,31 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   /* supporting functions */
 
   def handleUseDoor(door: Door, equipment: Option[Equipment]): Unit = {
-    equipment match {
-      case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
-        door.Actor ! CommonMessages.Use(player, Some(Float.MaxValue))
-      case _ =>
-        door.Actor ! CommonMessages.Use(player)
+    if (player.spectator) {
+      //opens just for us
+      val guid = door.GUID
+      openDoor.collect {
+        case oldDoor if guid != oldDoor.GUID =>
+          sendResponse(GenericObjectStateMsg(oldDoor.GUID, state=17))
+      }
+      sendResponse(GenericObjectStateMsg(guid, state=16))
+      openDoor = Some(door)
+    } else {
+      //opens for everyone
+      equipment match {
+        case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
+          door.Actor ! CommonMessages.Use(player, Some(Float.MaxValue))
+        case _ =>
+          door.Actor ! CommonMessages.Use(player)
+      }
     }
   }
 
   private def maxCapacitorTick(): Unit = {
     if (player.ExoSuit == ExoSuitType.MAX) {
       player.CapacitorState match {
-        case CapacitorStateType.ChargeDelay => maxCapacitorTickChargeDelay()
-        case CapacitorStateType.Charging    => maxCapacitorTickCharging()
-        case _                              => maxCapacitorTickIdle()
+        case CapacitorStateType.Idle => maxCapacitorTickIdle()
+        case _                       => maxCapacitorTickCharging()
       }
     } else if (player.CapacitorState != CapacitorStateType.Idle) {
       player.CapacitorState = CapacitorStateType.Idle
@@ -847,16 +752,8 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
 
   private def maxCapacitorTickIdle(): Unit = {
     if (player.Capacitor < player.ExoSuitDef.MaxCapacitor) {
-      player.CapacitorState = CapacitorStateType.ChargeDelay
-      maxCapacitorTickChargeDelay()
-    }
-  }
-
-  private def maxCapacitorTickChargeDelay(): Unit = {
-    if (player.Capacitor == player.ExoSuitDef.MaxCapacitor) {
-      player.CapacitorState = CapacitorStateType.Idle
-    } else if (System.currentTimeMillis() - player.CapacitorLastUsedMillis > player.ExoSuitDef.CapacitorRechargeDelayMillis) {
       player.CapacitorState = CapacitorStateType.Charging
+      maxCapacitorTickCharging()
     }
   }
 

@@ -6,7 +6,6 @@ import net.psforever.actors.session.SessionActor
 import net.psforever.actors.session.normal.NormalMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
 import net.psforever.objects.Session
-import net.psforever.objects.avatar.ModePermissions
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.chat.DefaultChannel
 import net.psforever.types.ChatMessageType
@@ -216,18 +215,17 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     }
   }
 
-  def commandToggleSpectatorMode(contents: String): Unit = {
-    val currentSpectatorActivation = (if (avatar != null) avatar.permissions else ModePermissions()).canSpectate
+  private def commandToggleSpectatorMode(contents: String): Unit = {
     contents.toLowerCase() match {
-      case "on" | "o" | "" if currentSpectatorActivation && player.spectator =>
+      case "on" | "o" | "" if !player.spectator =>
         context.self ! SessionActor.SetMode(SpectateAsCustomerServiceRepresentativeMode)
-      case "off" | "of" if currentSpectatorActivation && !player.spectator =>
+      case "off" | "of" if player.spectator =>
         context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
       case _ => ()
     }
   }
 
-  def customCommandModerator(contents : String): Boolean = {
+  private def customCommandModerator(contents: String): Boolean = {
     if (sessionLogic.zoning.maintainInitialGmState) {
       sessionLogic.zoning.maintainInitialGmState = false
     } else {

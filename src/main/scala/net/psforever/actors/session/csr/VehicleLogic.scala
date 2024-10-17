@@ -13,7 +13,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, PlanetsideAttributeMessage, VehicleStateMessage, VehicleSubStateMessage}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.types.{DriveState, Vector3}
+import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
 
 object VehicleLogic {
   def apply(ops: VehicleOperations): VehicleLogic = {
@@ -347,11 +347,26 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
   private def topOffHealth(vehicle: Vehicle): Unit = {
     topOffHealthOfPlayer()
     //vehicle below half health, full heal
+    val guid = vehicle.GUID
     val maxHealthOfVehicle = vehicle.MaxHealth.toLong
-    if (vehicle.Health < maxHealthOfVehicle * 0.5f) {
+    if (vehicle.Health < maxHealthOfVehicle) {
       vehicle.Health = maxHealthOfVehicle.toInt
-      sendResponse(PlanetsideAttributeMessage(vehicle.GUID, 0, maxHealthOfVehicle))
-      continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(vehicle.GUID, 0, maxHealthOfVehicle))
+      sendResponse(PlanetsideAttributeMessage(guid, 0, maxHealthOfVehicle))
+      continent.VehicleEvents ! VehicleServiceMessage(
+        continent.id,
+        VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), guid, 0, maxHealthOfVehicle)
+      )
+    }
+    //vehicle shields below half, full shields
+    val maxShieldsOfVehicle = vehicle.MaxShields.toLong
+    val shieldsUi = vehicle.Definition.shieldUiAttribute
+    if (vehicle.Shields < maxShieldsOfVehicle) {
+      vehicle.Shields = maxShieldsOfVehicle.toInt
+      sendResponse(PlanetsideAttributeMessage(guid, shieldsUi, maxShieldsOfVehicle))
+      continent.VehicleEvents ! VehicleServiceMessage(
+        continent.id,
+        VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), guid, shieldsUi, maxHealthOfVehicle)
+      )
     }
   }
 }

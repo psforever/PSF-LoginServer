@@ -6,10 +6,10 @@ import net.psforever.actors.session.SessionActor
 import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
 import net.psforever.objects.Session
-import net.psforever.objects.avatar.ModePermissions
-import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
+import net.psforever.packet.game.{ChatMsg, ServerType, SetChatFilterMessage}
 import net.psforever.services.chat.DefaultChannel
 import net.psforever.types.ChatMessageType
+import net.psforever.util.Config
 
 object ChatLogic {
   def apply(ops: ChatOperations): ChatLogic = {
@@ -155,7 +155,13 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
   }
 
   def commandToggleSpectatorMode(contents: String): Unit = {
-    val currentSpectatorActivation = (if (avatar != null) avatar.permissions else ModePermissions()).canSpectate
+    val currentSpectatorActivation = {
+      if (avatar != null) {
+        avatar.permissions.canSpectate || avatar.permissions.canGM
+      } else {
+        false
+      }
+    } || Config.app.world.serverType == ServerType.Development
     contents.toLowerCase() match {
       case "on" | "o" | "" if currentSpectatorActivation && !player.spectator =>
         context.self ! SessionActor.SetMode(ops.SpectatorMode)
@@ -164,12 +170,20 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
   }
 
   def customCommandModerator(contents: String): Boolean = {
-    val currentCsrActivation = (if (avatar != null) avatar.permissions else ModePermissions()).canGM
-    contents.toLowerCase() match {
-      case "on" | "o" | "" if currentCsrActivation =>
-        import net.psforever.actors.session.csr.CustomerServiceRepresentativeMode
-        context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
-      case _ => ()
+    if (sessionLogic.zoning.maintainInitialGmState) {
+      sessionLogic.zoning.maintainInitialGmState = false
+    } else {
+      val currentCsrActivation = (if (avatar != null) {
+        avatar.permissions.canGM
+      } else {
+        false
+      }) || Config.app.world.serverType == ServerType.Development
+      contents.toLowerCase() match {
+        case "on" | "o" | "" if currentCsrActivation =>
+          import net.psforever.actors.session.csr.CustomerServiceRepresentativeMode
+          context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
+        case _ => ()
+      }
     }
     true
   }

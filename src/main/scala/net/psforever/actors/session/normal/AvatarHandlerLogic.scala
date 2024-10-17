@@ -3,6 +3,7 @@ package net.psforever.actors.session.normal
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.support.AvatarHandlerFunctions
+import net.psforever.objects.Default
 import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
 import net.psforever.types.ImplantType
@@ -21,7 +22,7 @@ import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.zones.Zoning
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ArmorChangedMessage, AvatarDeadStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, DeadState, DestroyMessage, DrowningTarget, GenericActionMessage, GenericObjectActionMessage, HitHint, ItemTransactionResultMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectHeldMessage, OxygenStateMessage, PlanetsideAttributeMessage, PlayerStateMessage, ProjectileStateMessage, ReloadMessage, SetEmpireMessage, UseItemMessage, WeaponDryFireMessage}
-import net.psforever.services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarResponse
 import net.psforever.services.Service
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.util.Config
@@ -510,7 +511,10 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sessionLogic.zoning.spawn.shiftPosition = Some(player.Position)
 
         //respawn
+        val respawnTimer = 300000 //milliseconds
+        sendResponse(AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, player.Position, player.Faction, unk5=true))
         sessionLogic.zoning.spawn.reviveTimer.cancel()
+        sessionLogic.zoning.spawn.reviveTimer = Default.Cancellable
         if (player.death_by == 0) {
           sessionLogic.zoning.spawn.randomRespawn(300.seconds)
         } else {
@@ -523,16 +527,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarResponse.Revive(revivalTargetGuid)
         if resolvedPlayerGuid == revivalTargetGuid =>
         log.info(s"No time for rest, ${player.Name}.  Back on your feet!")
-        sessionLogic.zoning.spawn.reviveTimer.cancel()
-        sessionLogic.zoning.spawn.deadState = DeadState.Alive
-        player.Revive
-        val health = player.Health
-        sendResponse(PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
-        sendResponse(AvatarDeadStateMessage(DeadState.Alive, timer_max=0, timer=0, player.Position, player.Faction, unk5=true))
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.PlanetsideAttributeToAll(revivalTargetGuid, attribute_type=0, health)
-        )
+        ops.revive(revivalTargetGuid)
 
       /* uncommon messages (utility, or once in a while) */
       case AvatarResponse.ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data)

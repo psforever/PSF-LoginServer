@@ -126,7 +126,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
     val LongRangeProjectileInfoMessage(guid, _, _) = pkt
     ops.FindContainedWeapon match {
       case (Some(_: Vehicle), weapons)
-        if weapons.exists { _.GUID == guid } => () //now what?
+        if weapons.exists(_.GUID == guid) => () //now what?
       case _ => ()
     }
   }
@@ -140,26 +140,19 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
       }
       //...
       if (list.isEmpty) {
-        val proxyList = ops
-          .FindProjectileEntry(pkt.projectile_guid)
-          .map(projectile => ops.resolveDamageProxy(projectile, projectile.GUID, pkt.hit_info.map(_.hit_pos).getOrElse(Vector3.Zero)))
-          .getOrElse(Nil)
-        proxyList.collectFirst {
-          case (_, proxy, _, _) if proxy.tool_def == GlobalDefinitions.oicw =>
-            ops.performLittleBuddyExplosion(proxyList.map(_._2))
-        }
+        ops.handleProxyDamage(pkt.projectile_guid, pkt.hit_info.map(_.hit_pos).getOrElse(Vector3.Zero))
       }
     }
   }
 
   def handleSplashHit(pkt: SplashHitMessage): Unit = {
     val list = ops.composeSplashDamageInformation(pkt)
-    if (list.nonEmpty) {
-      val projectile = list.head._2
-      val explosionPosition = projectile.Position
-      val projectileGuid = projectile.GUID
-      val profile = projectile.profile
-      if (!player.spectator) {
+    if (!player.spectator) {
+      if (list.nonEmpty) {
+        val projectile = list.head._2
+        val explosionPosition = projectile.Position
+        val projectileGuid = projectile.GUID
+        val profile = projectile.profile
         val (resolution1, resolution2) = profile.Aggravated match {
           case Some(_) if profile.ProjectileDamageTypes.contains(DamageType.Aggravated) =>
             (DamageResolution.AggravatedDirect, DamageResolution.AggravatedSplash)
@@ -177,11 +170,6 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
             ops.resolveProjectileInteraction(target, projectile, resolution2, target.Position)
         }
         //...
-        val proxyList = ops.resolveDamageProxy(projectile, projectileGuid, explosionPosition).map(_._2)
-        if (profile == GlobalDefinitions.oicw_projectile) {
-          ops.performLittleBuddyExplosion(proxyList) //normal damage radius
-        }
-        //...
         if (
           profile.HasJammedEffectDuration ||
             profile.JammerProjectile ||
@@ -197,10 +185,12 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
             SpecialEmp.findAllBoomers(profile.DamageRadius)
           )
         }
+        if (profile.ExistsOnRemoteClients && projectile.HasGUID) {
+          continent.Projectile ! ZoneProjectile.Remove(projectileGuid)
+        }
       }
-      if (profile.ExistsOnRemoteClients && projectile.HasGUID) {
-        continent.Projectile ! ZoneProjectile.Remove(projectileGuid)
-      }
+      //...
+      ops.handleProxyDamage(pkt.projectile_uid, pkt.projectile_pos)
     }
   }
 

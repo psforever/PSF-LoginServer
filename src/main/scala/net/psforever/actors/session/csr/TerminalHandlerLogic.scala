@@ -9,7 +9,7 @@ import net.psforever.objects.definition.VehicleDefinition
 import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.guid.TaskWorkflow
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
-import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal}
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.TerminalUsedActivity
 import net.psforever.packet.game.{FavoritesRequest, ItemTransactionMessage, ItemTransactionResultMessage, ProximityTerminalUseMessage, UnuseItemMessage}
@@ -28,13 +28,25 @@ class TerminalHandlerLogic(val ops: SessionTerminalHandlers, implicit val contex
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
 
   def handleItemTransaction(pkt: ItemTransactionMessage): Unit = {
-    val ItemTransactionMessage(_, transactionType, _, itemName, _, _) = pkt
-    DefinitionUtil.fromString(itemName) match {
-      case _: VehicleDefinition if transactionType == TransactionType.Buy && player.spectator =>
-        () //can not buy vehicle as csr spectator
-      case _ =>
-        sessionLogic.zoning.CancelZoningProcess()
-        ops.handleItemTransaction(pkt)
+    if ( player.spectator) {
+      val ItemTransactionMessage(terminal_guid, _, _, _, _, _) = pkt
+      sessionLogic.zoning.CancelZoningProcess()
+      continent
+        .GUID(terminal_guid)
+        .collect { case t: Terminal => t.Definition }
+        .collect { case t: OrderTerminalDefinition => t }
+        .map(t => t.Request(player, pkt))
+        .collect {
+          case order: Terminal.BuyVehicle =>
+            //do not handle transaction
+            order
+        }
+        .orElse {
+          ops.handleItemTransaction(pkt)
+          None
+        }
+    } else {
+      ops.handleItemTransaction(pkt)
     }
   }
 

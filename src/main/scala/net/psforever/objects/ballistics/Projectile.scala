@@ -81,24 +81,7 @@ final case class Projectile(
    * @return a new `Projectile` entity
    */
   def quality(value: ProjectileQuality): Projectile = {
-    val projectile = new Projectile(
-      profile,
-      tool_def,
-      fire_mode,
-      mounted_in,
-      owner,
-      attribute_to,
-      shot_origin,
-      shot_angle,
-      shot_velocity,
-      value,
-      id,
-      fire_time
-    )
-    if(isMiss) projectile.Miss()
-    else if(isResolved) projectile.Resolve()
-    projectile.WhichSide = this.WhichSide
-    projectile
+    Projectile.copy(original=this, copy(quality = value))
   }
 
   /**
@@ -185,5 +168,16 @@ object Projectile {
              shot_angle: Vector3
            ): Projectile = {
     Projectile(profile, tool_def, fire_mode, None, owner, attribute_to, shot_origin, shot_angle, None)
+  }
+
+  def copy(original: Projectile, dirtyCopy: Projectile): Projectile = {
+    val properCopy = dirtyCopy.copy(fire_time = original.fire_time, id = original.id)
+    properCopy.GUID = original.GUID
+    properCopy.WhichSide = original.WhichSide
+    if (original.isMiss)
+      properCopy.Miss()
+    else if (original.isResolved)
+      properCopy.Resolve()
+    properCopy
   }
 }
