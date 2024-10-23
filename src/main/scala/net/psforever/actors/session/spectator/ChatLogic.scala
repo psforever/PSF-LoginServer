@@ -55,19 +55,19 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         commandToggleSpectatorMode(contents = "off")
 
       case (CMT_OPEN, _, _) =>
-        ops.commandSendToRecipient(session, message, SpectatorChannel)
+        ops.commandSendToRecipient(session, spectatorColoredMessage(message), SpectatorChannel)
 
       case (CMT_VOICE, _, contents) =>
         ops.commandVoice(session, message, contents, SpectatorChannel)
 
       case (CMT_TELL, _, _) =>
-        ops.commandTellOrIgnore(session, message, SpectatorChannel)
+        ops.commandTellOrIgnore(session, spectatorColoredMessage(message), SpectatorChannel)
 
       case (CMT_BROADCAST, _, _) =>
-        ops.commandSendToRecipient(session, message, SpectatorChannel)
+        ops.commandSendToRecipient(session, spectatorColoredMessage(message), SpectatorChannel)
 
       case (CMT_PLATOON, _, _) =>
-        ops.commandSendToRecipient(session, message, SpectatorChannel)
+        ops.commandSendToRecipient(session, spectatorColoredMessage(message), SpectatorChannel)
 
       case (CMT_GMTELL, _, _) =>
         ops.commandSend(session, message, SpectatorChannel)
@@ -111,6 +111,16 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         ops.commandIncomingSend(message)
 
       case _ => ()
+    }
+  }
+
+  private def spectatorColoredMessage(message: ChatMsg): ChatMsg = {
+    if (message.contents.nonEmpty) {
+      val colorlessText = message.contents.replaceAll("//#\\d", "").trim
+      val colorCodedText = s"/#5$colorlessText/#0"
+      message.copy(recipient = s"<spectator:${message.recipient}>", contents = colorCodedText)
+    } else {
+      message
     }
   }
 

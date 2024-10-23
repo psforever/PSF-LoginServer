@@ -221,7 +221,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
       case AvatarResponse.HitHint(sourceGuid) if player.isAlive =>
         sendResponse(HitHint(sourceGuid, guid))
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_dmg")
+        sessionLogic.zoning.CancelZoningProcess()
 
       case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
         // guid = victim // killer = killer
@@ -447,7 +447,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           )
           sessionLogic.shooting.shotsWhileDead = 0
         }
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason(msg = "cancel")
+        sessionLogic.zoning.CancelZoningProcess()
 
         //player state changes
         AvatarActor.updateToolDischargeFor(avatar)
@@ -510,7 +510,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
       case AvatarResponse.EnvironmentalDamage(_, _, _) =>
         //TODO damage marker?
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_dmg")
+        sessionLogic.zoning.CancelZoningProcess()
 
       case AvatarResponse.DropItem(pkt) if isNotSameTarget =>
         sendResponse(pkt)

@@ -320,7 +320,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           } else if ((!resistance && before != slot && (player.DrawnSlot = slot) != before) && ItemSwapSlot != before) {
             val mySlot = if (updateMyHolsterArm) slot else -1 //use as a short-circuit
             events ! AvatarServiceMessage(
-              player.Continent,
+              Players.ZoneChannelIfSpectating(player),
               AvatarAction.ObjectHeld(player.GUID, mySlot, player.LastDrawnSlot)
             )
             val isHolsters = player.VisibleSlots.contains(slot)
@@ -332,11 +332,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   if (unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
                     //rek beam/icon colour must match the player's correct hack level
                     events ! AvatarServiceMessage(
-                      player.Continent,
+                      Players.ZoneChannelIfSpectating(player),
                       AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, player.avatar.hackingSkillLevel())
                     )
                   }
-                case None => ;
+                case None => ()
               }
             } else {
               equipment match {
@@ -479,7 +479,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               avatarActor ! AvatarActor.DeactivateActiveImplants
               val zone = player.Zone
               zone.AvatarEvents ! AvatarServiceMessage(
-                zone.id,
+                Players.ZoneChannelIfSpectating(player),
                 AvatarAction.ChangeLoadout(
                   player.GUID,
                   toArmor,
@@ -674,7 +674,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       //deactivate non-passive implants
       avatarActor ! AvatarActor.DeactivateActiveImplants
       player.Zone.AvatarEvents ! AvatarServiceMessage(
-        player.Zone.id,
+        Players.ZoneChannelIfSpectating(player),
         AvatarAction.ChangeExosuit(
           player.GUID,
           toArmor,

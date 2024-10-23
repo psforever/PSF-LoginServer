@@ -333,51 +333,56 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case _ =>
         None
     }
-    sessionLogic.validObject(pkt.object_guid, decorator = "UseItem") match {
-      case Some(door: Door) =>
-        ops.handleUseDoor(door, equipment)
-      case Some(resourceSilo: ResourceSilo) =>
-        ops.handleUseResourceSilo(resourceSilo, equipment)
-      case Some(panel: IFFLock) =>
-        ops.handleUseGeneralEntity(panel, equipment)
-      case Some(obj: Player) =>
-        ops.handleUsePlayer(obj, equipment, pkt)
-      case Some(locker: Locker) =>
-        ops.handleUseLocker(locker, equipment, pkt)
-      case Some(gen: Generator) =>
-        ops.handleUseGeneralEntity(gen, equipment)
-      case Some(mech: ImplantTerminalMech) =>
-        ops.handleUseGeneralEntity(mech, equipment)
-      case Some(captureTerminal: CaptureTerminal) =>
-        ops.handleUseCaptureTerminal(captureTerminal, equipment)
-      case Some(obj: FacilityTurret) =>
-        ops.handleUseFacilityTurret(obj, equipment, pkt)
-      case Some(obj: Vehicle) =>
-        ops.handleUseVehicle(obj, equipment, pkt)
-      case Some(terminal: Terminal) =>
-        ops.handleUseTerminal(terminal, equipment, pkt)
-      case Some(obj: SpawnTube) =>
-        ops.handleUseSpawnTube(obj, equipment)
-      case Some(obj: SensorDeployable) =>
-        ops.handleUseGeneralEntity(obj, equipment)
-      case Some(obj: TurretDeployable) =>
-        ops.handleUseGeneralEntity(obj, equipment)
-      case Some(obj: TrapDeployable) =>
-        ops.handleUseGeneralEntity(obj, equipment)
-      case Some(obj: ShieldGeneratorDeployable) =>
-        ops.handleUseGeneralEntity(obj, equipment)
-      case Some(obj: TelepadDeployable) =>
-       ops.handleUseTelepadDeployable(obj, equipment, pkt, ops.useRouterTelepadSystem)
-      case Some(obj: Utility.InternalTelepad) =>
-        ops.handleUseInternalTelepad(obj, pkt, ops.useRouterTelepadSystem)
-      case Some(obj: CaptureFlag) =>
-        ops.handleUseCaptureFlag(obj)
-      case Some(_: WarpGate) =>
-        ops.handleUseWarpGate(equipment)
-      case Some(obj) =>
-        ops.handleUseDefaultEntity(obj, equipment)
-      case None => ()
-    }
+    cancelZoningWhenGeneralHandled(
+      sessionLogic.validObject(pkt.object_guid, decorator = "UseItem") match {
+        case Some(door: Door) =>
+          ops.handleUseDoor(door, equipment)
+          GeneralOperations.UseItem.Unhandled
+        case Some(resourceSilo: ResourceSilo) =>
+          ops.handleUseResourceSilo(resourceSilo, equipment)
+        case Some(panel: IFFLock) =>
+          ops.handleUseGeneralEntity(panel, equipment)
+        case Some(obj: Player) =>
+          ops.handleUsePlayer(obj, equipment, pkt)
+          GeneralOperations.UseItem.Unhandled
+        case Some(locker: Locker) =>
+          ops.handleUseLocker(locker, equipment, pkt)
+        case Some(gen: Generator) =>
+          ops.handleUseGeneralEntity(gen, equipment)
+        case Some(mech: ImplantTerminalMech) =>
+          ops.handleUseGeneralEntity(mech, equipment)
+        case Some(captureTerminal: CaptureTerminal) =>
+          ops.handleUseCaptureTerminal(captureTerminal, equipment)
+        case Some(obj: FacilityTurret) =>
+          ops.handleUseFacilityTurret(obj, equipment, pkt)
+        case Some(obj: Vehicle) =>
+          ops.handleUseVehicle(obj, equipment, pkt)
+        case Some(terminal: Terminal) =>
+          ops.handleUseTerminal(terminal, equipment, pkt)
+        case Some(obj: SpawnTube) =>
+          ops.handleUseSpawnTube(obj, equipment)
+        case Some(obj: SensorDeployable) =>
+          ops.handleUseGeneralEntity(obj, equipment)
+        case Some(obj: TurretDeployable) =>
+          ops.handleUseGeneralEntity(obj, equipment)
+        case Some(obj: TrapDeployable) =>
+          ops.handleUseGeneralEntity(obj, equipment)
+        case Some(obj: ShieldGeneratorDeployable) =>
+          ops.handleUseGeneralEntity(obj, equipment)
+        case Some(obj: TelepadDeployable) =>
+          ops.handleUseTelepadDeployable(obj, equipment, pkt, ops.useRouterTelepadSystem)
+        case Some(obj: Utility.InternalTelepad) =>
+          ops.handleUseInternalTelepad(obj, pkt, ops.useRouterTelepadSystem)
+        case Some(obj: CaptureFlag) =>
+          ops.handleUseCaptureFlag(obj)
+        case Some(_: WarpGate) =>
+          ops.handleUseWarpGate(equipment)
+        case Some(obj) =>
+          ops.handleUseDefaultEntity(obj, equipment)
+        case None =>
+          GeneralOperations.UseItem.Unhandled
+      }
+    )
   }
 
   def handleUnuseItem(pkt: UnuseItemMessage): Unit = {
@@ -970,5 +975,15 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         targetPosition
       )
     )
+  }
+
+  private def cancelZoningWhenGeneralHandled(results: GeneralOperations.UseItem.Behavior): Unit = {
+    results match {
+      case GeneralOperations.UseItem.Handled =>
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+      case GeneralOperations.UseItem.HandledPassive =>
+        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel")
+      case _ => ()
+    }
   }
 }

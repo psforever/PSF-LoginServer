@@ -194,6 +194,8 @@ class ZoningOperations(
   private[session] val spawn: SpawnOperations = new SpawnOperations()
   private[session] var maintainInitialGmState: Boolean = false
 
+  private[session] var zoneChannel: String = Zone.Nowhere.id
+
   private var loadConfZone: Boolean = false
   private var instantActionFallbackDestination: Option[Zoning.InstantAction.Located] = None
   private var zoningType: Zoning.Method = Zoning.Method.None
@@ -2129,6 +2131,7 @@ class ZoningOperations(
       val map = zone.map
       val mapName = map.name
       log.info(s"${tplayer.Name} has spawned into $id")
+      sessionLogic.zoning.zoneChannel = Players.ZoneChannelIfSpectating(tplayer, zone.id)
       sessionLogic.oldRefsMap.clear()
       sessionLogic.persist = UpdatePersistenceAndRefs
       tplayer.avatar = avatar
@@ -2442,7 +2445,13 @@ class ZoningOperations(
 
         case _ if player.spectator =>
           player.VehicleSeated = None
+          val definition = player.avatar.definition
+          val guid = player.GUID
           sendResponse(OCM.detailed(player))
+          continent.AvatarEvents ! AvatarServiceMessage(
+            s"spectator",
+            AvatarAction.LoadPlayer(guid, definition.ObjectId, guid, definition.Packet.ConstructorData(player).get, None)
+          )
 
         case _ =>
           player.VehicleSeated = None
@@ -2869,7 +2878,6 @@ class ZoningOperations(
         )
       )
       nextSpawnPoint = physSpawnPoint
-      prevSpawnPoint = physSpawnPoint
       shiftPosition = Some(pos)
       shiftOrientation = Some(ori)
       val toZoneNumber = if (continent.id.equals(zoneId)) {
@@ -3019,6 +3027,7 @@ class ZoningOperations(
               case _ =>
                 NormalKeepAlive
             }
+            prevSpawnPoint = nextSpawnPoint
             nextSpawnPoint = None
           }
           //if not the condition above, player has started playing normally

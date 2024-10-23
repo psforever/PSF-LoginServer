@@ -488,4 +488,35 @@ object Players {
     }
     player.HistoryAndContributions()
   }
+
+  /**
+   * Select the player's zone channel.
+   * If the player is spectating, then that is their channel instead.
+   * The resulting channel name should never be used for subscribing - only for publishing.
+   * @param player player in a zone
+   * @return channel name
+   */
+  def ZoneChannelIfSpectating(player: Player): String = {
+    if (player.spectator) {
+      "spectator"
+    } else {
+      player.Zone.id
+    }
+  }
+
+  /**
+   * Select the player's zone channel.
+   * If the player is spectating, then that is their channel instead.
+   * The resulting channel name should never be used for subscribing - only for publishing.
+   * @param player player in a zone
+   * @param zoneid custom zone name to be used as the channel name
+   * @return channel name
+   */
+  def ZoneChannelIfSpectating(player: Player, zoneid: String): String = {
+    if (player.spectator) {
+      "spectator"
+    } else {
+      zoneid
+    }
+  }
 }

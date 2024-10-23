@@ -47,7 +47,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     yaw,
     pitch,
     yawUpper,
-    _/*seqTime*/,
+    seqTime,
     _,
     isCrouching,
     isJumping,
@@ -69,6 +69,24 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     player.Crouching = isCrouching
     player.Jumping = isJumping
     player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && isCloaking
+    continent.AvatarEvents ! AvatarServiceMessage(
+      "spectator",
+      AvatarAction.PlayerState(
+        avatarGuid,
+        player.Position,
+        player.Velocity,
+        yaw,
+        pitch,
+        yawUpper,
+        seqTime,
+        isCrouching,
+        isJumping,
+        jump_thrust = false,
+        is_cloaked = isCloaking,
+        spectator = false,
+        weaponInHand = false
+      )
+    )
     if (player.death_by == -1) {
       sessionLogic.kickedByAdministration()
     }

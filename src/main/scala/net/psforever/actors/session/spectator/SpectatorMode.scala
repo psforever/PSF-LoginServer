@@ -118,6 +118,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       data.chat.commandIncomingSilence(session, ChatMsg(ChatMessageType.CMT_SILENCE, "player 0"))
     }
     //
+    player.spectator = true
     data.chat.JoinChannel(SpectatorChannel)
     val newPlayer = SpectatorModeLogic.spectatorCharacter(player)
     newPlayer.LogActivity(player.History.headOption)
@@ -151,6 +152,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     val pguid = player.GUID
     val sendResponse: PlanetSidePacket => Unit = data.sendResponse
     //
+    player.spectator = false
     data.general.stop()
     player.avatar.shortcuts.slice(1, 4)
       .zipWithIndex
@@ -176,7 +178,7 @@ object SpectatorModeLogic {
   private def spectatorCharacter(player: Player): Player = {
     val avatar = player.avatar
     val newAvatar = avatar.copy(
-      basic = avatar.basic.copy(name = "spectator"),
+      basic = avatar.basic,
       bep = BattleRank.BR18.experience,
       cep = CommandRank.CR5.experience,
       certifications = Set(),

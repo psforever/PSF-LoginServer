@@ -1081,7 +1081,7 @@ class GeneralOperations(
     TaskWorkflow.execute(CallBackForTask(tasking, zone.Deployables, zoneBuildCommand, context.self))
   }
 
-  def handleUseDoor(door: Door, equipment: Option[Equipment]): Unit = {
+  def handleUseDoor(door: Door, equipment: Option[Equipment]): GeneralOperations.UseItem.Behavior = {
     equipment match {
       case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
         val distance: Float = math.max(
@@ -1092,72 +1092,88 @@ class GeneralOperations(
       case _ =>
         door.Actor ! CommonMessages.Use(player)
     }
+    GeneralOperations.UseItem.Handled
   }
 
-  def handleUseResourceSilo(resourceSilo: ResourceSilo, equipment: Option[Equipment]): Unit = {
-    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+  def handleUseResourceSilo(resourceSilo: ResourceSilo, equipment: Option[Equipment]): GeneralOperations.UseItem.Behavior = {
     val vehicleOpt = continent.GUID(player.avatar.vehicle)
     (vehicleOpt, equipment) match {
       case (Some(vehicle: Vehicle), Some(item))
         if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) &&
           GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) =>
         resourceSilo.Actor ! CommonMessages.Use(player, Some(vehicle))
+        GeneralOperations.UseItem.Handled
       case (Some(vehicle: Vehicle), _)
         if vehicle.Definition == GlobalDefinitions.ant &&
           vehicle.DeploymentState == DriveState.Deployed &&
           Vector3.DistanceSquared(resourceSilo.Position.xy, vehicle.Position.xy) < math.pow(resourceSilo.Definition.UseRadius, 2) =>
         resourceSilo.Actor ! CommonMessages.Use(player, Some(vehicle))
-      case _ => ()
+        GeneralOperations.UseItem.Handled
+      case _ =>
+        GeneralOperations.UseItem.Unhandled
     }
   }
 
-  def handleUsePlayer(obj: Player, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
-    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+  def handleUsePlayer(obj: Player, equipment: Option[Equipment], msg: UseItemMessage): GeneralOperations.UseItem.Behavior = {
     if (obj.isBackpack) {
       if (equipment.isEmpty) {
         log.info(s"${player.Name} is looting the corpse of ${obj.Name}")
         sendResponse(msg)
         accessContainer(obj)
+        GeneralOperations.UseItem.Handled
+      } else {
+        GeneralOperations.UseItem.Unhandled
       }
     } else if (!msg.unk3 && player.isAlive) { //potential kit use
       (continent.GUID(msg.item_used_guid), kitToBeUsed) match {
         case (Some(kit: Kit), None) =>
           kitToBeUsed = Some(msg.item_used_guid)
           player.Actor ! CommonMessages.Use(player, Some(kit))
+          GeneralOperations.UseItem.Handled
         case (Some(_: Kit), Some(_)) | (None, Some(_)) =>
           //a kit is already queued to be used; ignore this request
           sendResponse(ChatMsg(ChatMessageType.UNK_225, wideContents=false, "", "Please wait ...", None))
+          GeneralOperations.UseItem.Unhandled
         case (Some(item), _) =>
           log.error(s"UseItem: ${player.Name} looking for Kit to use, but found $item instead")
+          GeneralOperations.UseItem.Unhandled
         case (None, None) =>
-          log.warn(s"UseItem: anticipated a Kit ${msg.item_used_guid} for ${player.Name}, but can't find it")              }
+          log.warn(s"UseItem: anticipated a Kit ${msg.item_used_guid} for ${player.Name}, but can't find it")
+          GeneralOperations.UseItem.Unhandled
+      }
     } else if (msg.object_id == ObjectClass.avatar && msg.unk3) {
       equipment match {
         case Some(tool: Tool) if tool.Definition == GlobalDefinitions.bank =>
           obj.Actor ! CommonMessages.Use(player, equipment)
-
+          GeneralOperations.UseItem.Handled
         case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
           obj.Actor ! CommonMessages.Use(player, equipment)
-        case _ => ()
+          GeneralOperations.UseItem.Handled
+        case _ =>
+          GeneralOperations.UseItem.Unhandled
       }
+    } else {
+      GeneralOperations.UseItem.Unhandled
     }
   }
 
-  def handleUseLocker(locker: Locker, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
+  def handleUseLocker(locker: Locker, equipment: Option[Equipment], msg: UseItemMessage): GeneralOperations.UseItem.Behavior = {
     equipment match {
       case Some(item) =>
         sendUseGeneralEntityMessage(locker, item)
+        GeneralOperations.UseItem.Unhandled
       case None if locker.Faction == player.Faction || locker.HackedBy.nonEmpty =>
         log.info(s"${player.Name} is accessing a locker")
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         val playerLocker = player.avatar.locker
         sendResponse(msg.copy(object_guid = playerLocker.GUID, object_id = 456))
         accessContainer(playerLocker)
-      case _ => ()
+        GeneralOperations.UseItem.Handled
+      case _ =>
+        GeneralOperations.UseItem.Unhandled
     }
   }
 
-  def handleUseCaptureTerminal(captureTerminal: CaptureTerminal, equipment: Option[Equipment]): Unit = {
+  def handleUseCaptureTerminal(captureTerminal: CaptureTerminal, equipment: Option[Equipment]): GeneralOperations.UseItem.Behavior = {
     equipment match {
       case Some(item) =>
         sendUseGeneralEntityMessage(captureTerminal, item)
@@ -1166,25 +1182,33 @@ class GeneralOperations(
           case Some(llu: CaptureFlag) =>
             if (llu.Target.GUID == captureTerminal.Owner.GUID) {
               continent.LocalEvents ! LocalServiceMessage(continent.id, LocalAction.LluCaptured(llu))
+              GeneralOperations.UseItem.Handled
             } else {
               log.info(
                 s"LLU target is not this base. Target GUID: ${llu.Target.GUID} This base: ${captureTerminal.Owner.GUID}"
               )
             }
-          case _ => log.warn("Item in specialItemSlotGuid is not registered with continent or is not a LLU")
+            GeneralOperations.UseItem.Unhandled
+          case _ =>
+            log.warn("Item in specialItemSlotGuid is not registered with continent or is not a LLU")
+            GeneralOperations.UseItem.Unhandled
         }
-      case _ => ()
+      case _ =>
+        GeneralOperations.UseItem.Unhandled
     }
   }
 
-  def handleUseFacilityTurret(obj: FacilityTurret, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
-    equipment.foreach { item =>
-      sendUseGeneralEntityMessage(obj, item)
-      obj.Actor ! CommonMessages.Use(player, Some((item, msg.unk2.toInt))) //try upgrade path
-    }
+  def handleUseFacilityTurret(obj: FacilityTurret, equipment: Option[Equipment], msg: UseItemMessage): GeneralOperations.UseItem.Behavior = {
+    equipment
+      .collect { item =>
+        sendUseGeneralEntityMessage(obj, item)
+        obj.Actor ! CommonMessages.Use(player, Some((item, msg.unk2.toInt))) //try upgrade path
+        GeneralOperations.UseItem.Handled
+      }
+      .getOrElse(GeneralOperations.UseItem.Unhandled)
   }
 
-  def handleUseVehicle(obj: Vehicle, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
+  def handleUseVehicle(obj: Vehicle, equipment: Option[Equipment], msg: UseItemMessage): GeneralOperations.UseItem.Behavior = {
     equipment match {
       case Some(item) =>
         sendUseGeneralEntityMessage(obj, item)
@@ -1196,29 +1220,33 @@ class GeneralOperations(
               .contains(player.GUID))
         ) {
           log.info(s"${player.Name} is looking in the ${obj.Definition.Name}'s trunk")
-          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           obj.AccessingTrunk = player.GUID
           accessContainer(obj)
           sendResponse(msg)
+          GeneralOperations.UseItem.Handled
+        } else {
+          GeneralOperations.UseItem.Unhandled
         }
-      case _ => ()
+      case _ =>
+        GeneralOperations.UseItem.Unhandled
     }
   }
 
-  def handleUseTerminal(terminal: Terminal, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
+  def handleUseTerminal(terminal: Terminal, equipment: Option[Equipment], msg: UseItemMessage): GeneralOperations.UseItem.Behavior = {
     equipment match {
       case Some(item) =>
         sendUseGeneralEntityMessage(terminal, item)
+        GeneralOperations.UseItem.Handled
       case None
         if terminal.Owner == Building.NoBuilding || terminal.Faction == player.Faction ||
           terminal.HackedBy.nonEmpty || terminal.Faction == PlanetSideEmpire.NEUTRAL =>
         val tdef = terminal.Definition
         if (tdef.isInstanceOf[MatrixTerminalDefinition]) {
           //TODO matrix spawn point; for now, just blindly bind to show work (and hope nothing breaks)
-          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           sendResponse(
             BindPlayerMessage(BindStatus.Bind, "", display_icon=true, logging=true, SpawnGroup.Sanctuary, 0, 0, terminal.Position)
           )
+          GeneralOperations.UseItem.Handled
         } else if (
           tdef == GlobalDefinitions.multivehicle_rearm_terminal || tdef == GlobalDefinitions.bfr_rearm_terminal ||
             tdef == GlobalDefinitions.air_rearm_terminal || tdef == GlobalDefinitions.ground_rearm_terminal
@@ -1230,45 +1258,49 @@ class GeneralOperations(
               )
               sendResponse(msg)
               sendResponse(msg.copy(object_guid = vehicle.GUID, object_id = vehicle.Definition.ObjectId))
+              GeneralOperations.UseItem.Handled
             case None =>
               log.error(s"UseItem: Expecting a seated vehicle, ${player.Name} found none")
+              GeneralOperations.UseItem.Unhandled
           }
         } else if (tdef == GlobalDefinitions.teleportpad_terminal) {
           //explicit request
           log.info(s"${player.Name} is purchasing a router telepad")
-          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           terminal.Actor ! Terminal.Request(
             player,
             ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "router_telepad", 0, PlanetSideGUID(0))
           )
+          GeneralOperations.UseItem.Handled
         } else if (tdef == GlobalDefinitions.targeting_laser_dispenser) {
           //explicit request
           log.info(s"${player.Name} is purchasing a targeting laser")
-          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           terminal.Actor ! Terminal.Request(
             player,
             ItemTransactionMessage(msg.object_guid, TransactionType.Buy, 0, "flail_targeting_laser", 0, PlanetSideGUID(0))
           )
+          GeneralOperations.UseItem.Handled
         } else {
           log.info(s"${player.Name} is accessing a ${terminal.Definition.Name}")
-          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
           sendResponse(msg)
+          GeneralOperations.UseItem.Handled
         }
-      case _ => ()
+      case _ =>
+        GeneralOperations.UseItem.Unhandled
     }
   }
 
-  def handleUseSpawnTube(obj: SpawnTube, equipment: Option[Equipment]): Unit = {
+  def handleUseSpawnTube(obj: SpawnTube, equipment: Option[Equipment]): GeneralOperations.UseItem.Behavior = {
     equipment match {
       case Some(item) =>
         sendUseGeneralEntityMessage(obj, item)
       case None if player.Faction == obj.Faction =>
         //deconstruction
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         sessionLogic.actionsToCancel()
         sessionLogic.terminals.CancelAllProximityUnits()
         sessionLogic.zoning.spawn.startDeconstructing(obj)
-      case _ => ()
+        GeneralOperations.UseItem.Handled
+      case _ =>
+        GeneralOperations.UseItem.Unhandled
     }
   }
 
@@ -1277,7 +1309,7 @@ class GeneralOperations(
                                   equipment: Option[Equipment],
                                   msg: UseItemMessage,
                                   useTelepadFunc: (Vehicle, InternalTelepad, TelepadDeployable, PlanetSideGameObject with TelepadLike, PlanetSideGameObject with TelepadLike) => Unit
-                                ): Unit = {
+                                ): GeneralOperations.UseItem.Behavior = {
     if (equipment.isEmpty) {
       (continent.GUID(obj.Router) match {
         case Some(vehicle: Vehicle) => Some((vehicle, vehicle.Utility(UtilityType.internal_router_telepad_deployable)))
@@ -1285,20 +1317,25 @@ class GeneralOperations(
         case None => None
       }) match {
         case Some((vehicle: Vehicle, Some(util: Utility.InternalTelepad))) =>
-          sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel")
           player.WhichSide = vehicle.WhichSide
           useTelepadFunc(vehicle, util, obj, obj, util)
+          GeneralOperations.UseItem.HandledPassive
         case Some((vehicle: Vehicle, None)) =>
           log.error(
             s"telepad@${msg.object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}"
           )
+          GeneralOperations.UseItem.Unhandled
         case Some((o, _)) =>
           log.error(
             s"telepad@${msg.object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}, ${obj.Router}"
           )
           obj.Actor ! Deployable.Deconstruct()
-        case _ => ()
+          GeneralOperations.UseItem.Unhandled
+        case _ =>
+          GeneralOperations.UseItem.Unhandled
       }
+    } else {
+      GeneralOperations.UseItem.Unhandled
     }
   }
 
@@ -1306,16 +1343,19 @@ class GeneralOperations(
                                 obj: InternalTelepad,
                                 msg: UseItemMessage,
                                 useTelepadFunc: (Vehicle, InternalTelepad, TelepadDeployable, PlanetSideGameObject with TelepadLike, PlanetSideGameObject with TelepadLike) => Unit
-                              ): Unit = {
+                              ): GeneralOperations.UseItem.Behavior = {
     continent.GUID(obj.Telepad) match {
       case Some(pad: TelepadDeployable) =>
         player.WhichSide = pad.WhichSide
         useTelepadFunc(obj.Owner.asInstanceOf[Vehicle], obj, pad, obj, pad)
+        GeneralOperations.UseItem.HandledPassive
       case Some(o) =>
         log.error(
           s"internal telepad@${msg.object_guid.guid} is not linked to a remote telepad - ${o.Definition.Name}@${o.GUID.guid}"
         )
-      case None => ()
+        GeneralOperations.UseItem.Unhandled
+      case None =>
+        GeneralOperations.UseItem.Unhandled
     }
   }
 
@@ -1393,55 +1433,63 @@ class GeneralOperations(
     recentTeleportAttempt = time
   }
 
-  def handleUseCaptureFlag(obj: CaptureFlag): Unit = {
+  def handleUseCaptureFlag(obj: CaptureFlag): GeneralOperations.UseItem.Behavior = {
     // LLU can normally only be picked up the faction that owns it
     specialItemSlotGuid match {
       case None if obj.Faction == player.Faction =>
         specialItemSlotGuid = Some(obj.GUID)
         player.Carrying = SpecialCarry.CaptureFlag
         continent.LocalEvents ! CaptureFlagManager.PickupFlag(obj, player)
+        GeneralOperations.UseItem.Handled
       case None =>
         log.warn(s"${player.Faction} player ${player.toString} tried to pick up a ${obj.Faction} LLU -  ${obj.GUID}")
+        GeneralOperations.UseItem.Unhandled
       case Some(guid) if guid != obj.GUID =>
         // Ignore duplicate pickup requests
         log.warn(
           s"${player.Faction} player ${player.toString} tried to pick up a ${obj.Faction} LLU, but their special slot already contains $guid"
         )
-      case _ => ()
+        GeneralOperations.UseItem.Unhandled
+      case _ =>
+        GeneralOperations.UseItem.Unhandled
     }
   }
 
-  def handleUseWarpGate(equipment: Option[Equipment]): Unit = {
-    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+  def handleUseWarpGate(equipment: Option[Equipment]): GeneralOperations.UseItem.Behavior = {
     (continent.GUID(player.VehicleSeated), equipment) match {
       case (Some(vehicle: Vehicle), Some(item))
         if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) &&
           GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) =>
         vehicle.Actor ! CommonMessages.Use(player, equipment)
-      case _ => ()
+        GeneralOperations.UseItem.Handled
+      case _ =>
+        GeneralOperations.UseItem.Unhandled
     }
   }
 
-  def handleUseGeneralEntity(obj: PlanetSideServerObject, equipment: Option[Equipment]): Unit = {
-    equipment.foreach { item =>
-      sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
-      obj.Actor ! CommonMessages.Use(player, Some(item))
-    }
+  def handleUseGeneralEntity(obj: PlanetSideServerObject, equipment: Option[Equipment]): GeneralOperations.UseItem.Behavior = {
+    equipment
+      .collect { item =>
+        obj.Actor ! CommonMessages.Use(player, Some(item))
+        GeneralOperations.UseItem.Handled
+      }
+      .getOrElse(GeneralOperations.UseItem.Unhandled)
   }
 
-  def sendUseGeneralEntityMessage(obj: PlanetSideServerObject, equipment: Equipment): Unit = {
-    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+  def sendUseGeneralEntityMessage(obj: PlanetSideServerObject, equipment: Equipment): GeneralOperations.UseItem.Behavior = {
     obj.Actor ! CommonMessages.Use(player, Some(equipment))
+    GeneralOperations.UseItem.Handled
   }
 
-  def handleUseDefaultEntity(obj: PlanetSideGameObject, equipment: Option[Equipment]): Unit = {
-    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+  def handleUseDefaultEntity(obj: PlanetSideGameObject, equipment: Option[Equipment]): GeneralOperations.UseItem.Behavior = {
     equipment match {
       case Some(item)
         if GlobalDefinitions.isBattleFrameArmorSiphon(item.Definition) ||
           GlobalDefinitions.isBattleFrameNTUSiphon(item.Definition) => ()
+        GeneralOperations.UseItem.Handled
       case _ =>
         log.warn(s"UseItem: ${player.Name} does not know how to handle $obj")
+        GeneralOperations.UseItem.Unhandled
     }
   }
 
@@ -1488,6 +1536,13 @@ class GeneralOperations(
 }
 
 object GeneralOperations {
+  object UseItem {
+    sealed trait Behavior
+    case object Handled extends Behavior
+    case object HandledPassive extends Behavior
+    case object Unhandled extends Behavior
+  }
+
   object ItemDropState {
     sealed trait Behavior
     case object Dropped extends Behavior

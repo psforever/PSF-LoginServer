@@ -5,16 +5,11 @@ import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, SessionTerminalHandlers, TerminalHandlerFunctions}
 import net.psforever.login.WorldSession.{BuyNewEquipmentPutInInventory, SellEquipmentFromInventory}
-import net.psforever.objects.definition.VehicleDefinition
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.guid.TaskWorkflow
-import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal}
-import net.psforever.objects.sourcing.AmenitySource
-import net.psforever.objects.vital.TerminalUsedActivity
-import net.psforever.packet.game.{FavoritesRequest, ItemTransactionMessage, ItemTransactionResultMessage, ProximityTerminalUseMessage, UnuseItemMessage}
-import net.psforever.types.{TransactionType, Vector3}
-import net.psforever.util.DefinitionUtil
+import net.psforever.packet.game.{FavoritesRequest, ItemTransactionMessage, ItemTransactionResultMessage, ProximityTerminalUseMessage}
+import net.psforever.types.TransactionType
 
 object TerminalHandlerLogic {
   def apply(ops: SessionTerminalHandlers): TerminalHandlerLogic = {
@@ -28,7 +23,7 @@ class TerminalHandlerLogic(val ops: SessionTerminalHandlers, implicit val contex
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
 
   def handleItemTransaction(pkt: ItemTransactionMessage): Unit = {
-    if ( player.spectator) {
+    if (player.spectator) {
       val ItemTransactionMessage(terminal_guid, _, _, _, _, _) = pkt
       sessionLogic.zoning.CancelZoningProcess()
       continent

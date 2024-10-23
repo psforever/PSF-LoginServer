@@ -6,8 +6,11 @@ import net.psforever.actors.session.SessionActor
 import net.psforever.actors.session.normal.NormalMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
 import net.psforever.objects.Session
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
-import net.psforever.services.chat.DefaultChannel
+import net.psforever.services.Service
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.chat.{ChatChannel, DefaultChannel, SpectatorChannel}
 import net.psforever.types.ChatMessageType
 
 object ChatLogic {
@@ -20,6 +23,9 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
   def sessionLogic: SessionData = ops.sessionLogic
 
   ops.SpectatorMode = SpectateAsCustomerServiceRepresentativeMode
+
+  private var comms: ChatChannel = DefaultChannel
+  private var seeSpectatorsIn: Option[Zone] = None
 
   def handleChatMsg(message: ChatMsg): Unit = {
     import net.psforever.types.ChatMessageType._
@@ -74,40 +80,40 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         ops.commandCaptureBase(session, message, contents)
 
       case (CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_VS | CMT_GMBROADCAST_TR, _, _) =>
-        ops.commandSendToRecipient(session, message, DefaultChannel)
+        ops.commandSendToRecipient(session, message, comms)
 
       case (CMT_GMTELL, _, _) =>
-        ops.commandSend(session, message, DefaultChannel)
+        ops.commandSend(session, message, comms)
 
       case (CMT_GMBROADCASTPOPUP, _, _) =>
-        ops.commandSendToRecipient(session, message, DefaultChannel)
+        ops.commandSendToRecipient(session, message, comms)
 
       case (CMT_OPEN, _, _) if !player.silenced =>
-        ops.commandSendToRecipient(session, message, DefaultChannel)
+        ops.commandSendToRecipient(session, message, comms)
 
       case (CMT_VOICE, _, contents) =>
-        ops.commandVoice(session, message, contents, DefaultChannel)
+        ops.commandVoice(session, message, contents, comms)
 
       case (CMT_TELL, _, _) if !player.silenced =>
-        ops.commandTellOrIgnore(session, message, DefaultChannel)
+        ops.commandTellOrIgnore(session, message, comms)
 
       case (CMT_BROADCAST, _, _) if !player.silenced =>
-        ops.commandSendToRecipient(session, message, DefaultChannel)
+        ops.commandSendToRecipient(session, message, comms)
 
       case (CMT_PLATOON, _, _) if !player.silenced =>
-        ops.commandSendToRecipient(session, message, DefaultChannel)
+        ops.commandSendToRecipient(session, message, comms)
 
       case (CMT_COMMAND, _, _) =>
-        ops.commandSendToRecipient(session, message, DefaultChannel)
+        ops.commandSendToRecipient(session, message, comms)
 
       case (CMT_NOTE, _, _) =>
-        ops.commandSend(session, message, DefaultChannel)
+        ops.commandSend(session, message, comms)
 
       case (CMT_SILENCE, _, _) =>
-        ops.commandSend(session, message, DefaultChannel)
+        ops.commandSend(session, message, comms)
 
       case (CMT_SQUAD, _, _) =>
-        ops.commandSquad(session, message, DefaultChannel) //todo SquadChannel, but what is the guid
+        ops.commandSquad(session, message, comms) //todo SquadChannel, but what is the guid
 
       case (CMT_WHO | CMT_WHO_CSR | CMT_WHO_CR | CMT_WHO_PLATOONLEADERS | CMT_WHO_SQUADLEADERS | CMT_WHO_TEAMS, _, _) =>
         ops.commandWho(session)
@@ -197,6 +203,10 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case "ntu" => ops.customCommandNtu(session, params)
         case "zonerotate" => ops.customCommandZonerotate(params)
         case "nearby" => ops.customCommandNearby(session)
+        case "togglespectators" => customCommandToggleSpectators(params)
+        case "showspectators" => customCommandShowSpectators()
+        case "hidespectators" => customCommandHideSpectators()
+        case "sayspectator" => customCommandSpeakAsSpectator(params, message)
         case _ =>
           // command was not handled
           sendResponse(
@@ -239,5 +249,69 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       }
     }
     true
+  }
+
+  private def customCommandToggleSpectators(contents: Seq[String]): Boolean = {
+    contents
+      .headOption
+      .map(_.toLowerCase())
+      .collect {
+        case "on" | "o" | "" if !seeSpectatorsIn.contains(continent) =>
+          customCommandShowSpectators()
+        case "off" | "of" if seeSpectatorsIn.contains(continent) =>
+          customCommandHideSpectators()
+        case _ => ()
+      }
+    true
+  }
+
+  private def customCommandShowSpectators(): Boolean = {
+    val channel = player.Name
+    val events = continent.AvatarEvents
+    seeSpectatorsIn = Some(continent)
+    events ! Service.Join(s"spectator")
+    continent
+      .AllPlayers
+      .filter(_.spectator)
+      .foreach { spectator =>
+        val guid = spectator.GUID
+        val definition = spectator.Definition
+        events ! AvatarServiceMessage(
+          channel,
+          AvatarAction.LoadPlayer(guid, definition.ObjectId, guid, definition.Packet.ConstructorData(spectator).get, None)
+        )
+      }
+    true
+  }
+
+  private def customCommandHideSpectators(): Boolean = {
+    val channel = player.Name
+    val events = continent.AvatarEvents
+    seeSpectatorsIn = None
+    events ! Service.Leave(Some("spectator"))
+    continent
+      .AllPlayers
+      .filter(_.spectator)
+      .foreach { spectator =>
+        val guid = spectator.GUID
+        events ! AvatarServiceMessage(
+          channel,
+          AvatarAction.ObjectDelete(guid, guid)
+        )
+      }
+    true
+  }
+
+  private def customCommandSpeakAsSpectator(params: Seq[String], message: ChatMsg): Boolean = {
+    comms = SpectatorChannel
+    handleChatMsg(message.copy(contents = params.mkString(" ")))
+    comms = DefaultChannel
+    true
+  }
+
+  override def stop(): Unit = {
+    super.stop()
+    seeSpectatorsIn.foreach(_ => customCommandHideSpectators())
+    seeSpectatorsIn = None
   }
 }
