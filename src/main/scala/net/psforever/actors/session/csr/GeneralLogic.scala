@@ -42,8 +42,6 @@ object GeneralLogic {
 }
 
 class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContext) extends GeneralFunctions {
-  private var openDoor: Option[Door] = None
-
   def sessionLogic: SessionData = ops.sessionLogic
 
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
@@ -95,18 +93,6 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       sendResponse(PlanetsideAttributeMessage(avatarGuid, 4, maxArmor))
       continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(avatarGuid, 4, maxArmor))
     }
-    //doors
-    openDoor
-      .collect {
-        case door
-          if Vector3.DistanceSquared(door.Position.xy, player.Position.xy) > math.pow(door.Definition.continuousOpenDistance, 2).toFloat =>
-          if (!door.isOpen) {
-            sendResponse(GenericObjectStateMsg(door.GUID, state = 17))
-          }
-          openDoor = None
-        case door if !door.isOpen =>
-          sendResponse(GenericObjectStateMsg(door.GUID, state = 16))
-      }
     //expected
     val isMoving     = WorldEntity.isMoving(vel)
     val isMovingPlus = isMoving || isJumping || jumpThrust

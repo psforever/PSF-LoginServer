@@ -5,12 +5,10 @@ import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.support.AvatarHandlerFunctions
 import net.psforever.login.WorldSession.PutLoadoutEquipmentInInventory
 import net.psforever.objects.PlanetSideGameObject
-import net.psforever.objects.definition.converter.OCM
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.ImplantType
 
 //
@@ -438,28 +436,11 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sendResponse(ReloadMessage(itemGuid, ammo_clip=1, unk1=0))
 
       case AvatarResponse.Killed(mount) =>
-        val pguid = player.GUID
-        val avatarId = player.Definition.ObjectId
         //pure logic
         sessionLogic.shooting.shotsWhileDead = 0
         sessionLogic.zoning.CancelZoningProcess()
-
-        //player state changes
-        AvatarActor.updateToolDischargeFor(avatar)
-        player.FreeHand.Equipment.foreach { item =>
-          DropEquipmentFromInventory(player)(item)
-        }
-        sessionLogic.general.dropSpecialSlotItem()
-        sessionLogic.general.toggleMaxSpecialState(enable = false)
         sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
         sessionLogic.zoning.zoningStatus = Zoning.Status.None
-        ops.revive(player.GUID)
-        AvatarActor.savePlayerLocation(player)
-        avatarActor ! AvatarActor.InitializeImplants
-        AvatarActor.updateToolDischargeFor(avatar)
-        player.FreeHand.Equipment.foreach { item =>
-          DropEquipmentFromInventory(player)(item)
-        }
         continent.GUID(mount)
           .collect {
             case obj: Vehicle if obj.Destroyed =>
@@ -469,13 +450,17 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
               sessionLogic.general.unaccessContainer(obj)
             case _ => ()
           }
+        //player state changes
+        sessionLogic.general.dropSpecialSlotItem()
+        sessionLogic.general.toggleMaxSpecialState(enable = false)
+        player.FreeHand.Equipment.foreach(DropEquipmentFromInventory(player)(_))
+        AvatarActor.updateToolDischargeFor(avatar)
+        AvatarActor.savePlayerLocation(player)
         player.VehicleSeated = None
-        sendResponse(OCM.detailed(player))
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.LoadPlayer(pguid, avatarId, pguid, player.Definition.Packet.ConstructorData(player).get, None)
-        )
-        sendResponse(ChatMsg(ChatMessageType.UNK_225, "CSR MODE"))
+        ops.revive(player.GUID)
+        avatarActor ! AvatarActor.InitializeImplants
+        //render
+        CustomerServiceRepresentativeMode.renderPlayer(sessionLogic, continent, player)
 
       case AvatarResponse.Release(tplayer) if isNotSameTarget =>
         sessionLogic.zoning.spawn.DepictPlayerAsCorpse(tplayer)
