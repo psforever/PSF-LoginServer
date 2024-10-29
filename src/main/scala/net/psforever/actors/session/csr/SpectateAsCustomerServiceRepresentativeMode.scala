@@ -4,7 +4,9 @@ package net.psforever.actors.session.csr
 import net.psforever.actors.session.support.{AvatarHandlerFunctions, ChatFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.serverobject.ServerObject
-import net.psforever.objects.{Session, Vehicle}
+import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.{Player, Session, Vehicle}
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.chat.SpectatorChannel
@@ -31,24 +33,16 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
     val player = session.player
     val continent = session.zone
     val pguid = player.GUID
-    val sendResponse: PlanetSidePacket=>Unit = data.sendResponse
+    val sendResponse: PlanetSidePacket => Unit = data.sendResponse
     //
-    data.vehicles.GetMountableAndSeat(None, player, continent) match {
-      case (Some(obj: Vehicle), Some(seatNum)) if seatNum == 0 =>
-        data.vehicles.ServerVehicleOverrideStop(obj)
-        obj.Actor ! ServerObject.AttributeMsg(10, 3) //faction-accessible driver seat
-        obj.Seat(seatNum).foreach(_.unmount(player))
-        player.VehicleSeated = None
-      case (Some(obj), Some(seatNum)) =>
-        obj.Seat(seatNum).foreach(_.unmount(player))
-        player.VehicleSeated = None
-      case _ => ()
-    }
     data.squadService ! SquadServiceMessage(
       player,
       continent,
       SquadAction.Membership(SquadRequestType.Leave, player.CharId, Some(player.CharId), player.Name, None)
     )
+    if (requireDismount(data, continent, player)) {
+      CustomerServiceRepresentativeMode.renderPlayer(data, continent, player)
+    }
     //
     player.spectator = true
     //player.bops = true
@@ -56,6 +50,7 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
     data.chat.JoinChannel(SpectatorChannel)
     continent.actor ! ZoneActor.RemoveFromBlockMap(player)
     continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(pguid, pguid))
+    sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "on"))
     sendResponse(ChatMsg(ChatMessageType.UNK_225, "CSR SPECTATOR MODE ON"))
   }
 
@@ -64,7 +59,7 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
     val pguid = player.GUID
     val continent = data.continent
     val avatarId = player.Definition.ObjectId
-    //val sendResponse: PlanetSidePacket => Unit = data.sendResponse
+    val sendResponse: PlanetSidePacket => Unit = data.sendResponse
     //
     player.spectator = false
     player.bops = false
@@ -75,6 +70,25 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
       continent.id,
       AvatarAction.LoadPlayer(pguid, avatarId, pguid, player.Definition.Packet.ConstructorData(player).get, None)
     )
+    sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "off"))
+  }
+
+  private def requireDismount(data: SessionData, zone: Zone, player: Player): Boolean = {
+    data.vehicles.GetMountableAndSeat(None, player, zone) match {
+      case (Some(obj: Vehicle), Some(seatNum)) if seatNum == 0 =>
+        data.vehicles.ServerVehicleOverrideStop(obj)
+        obj.Actor ! ServerObject.AttributeMsg(10, 3) //faction-accessible driver seat
+        obj.Actor ! Mountable.TryDismount(player, seatNum)
+        player.VehicleSeated = None
+        true
+      case (Some(obj), Some(seatNum)) =>
+        obj.Actor ! Mountable.TryDismount(player, seatNum)
+        player.VehicleSeated = None
+        true
+      case _ =>
+        player.VehicleSeated = None
+        false
+    }
   }
 }
 

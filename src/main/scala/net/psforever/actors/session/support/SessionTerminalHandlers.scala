@@ -90,12 +90,11 @@ class SessionTerminalHandlers(
                    vehicle: Vehicle,
                    weapons: List[InventoryItem],
                    trunk: List[InventoryItem]
-                 ): Unit = {
+                 ): Option[Vehicle]  = {
      continent.map.terminalToSpawnPad
        .find { case (termid, _) => termid == terminalGuid.guid }
        .map { case (a: Int, b: Int) => (continent.GUID(a), continent.GUID(b)) }
        .collect { case (Some(term: Terminal), Some(pad: VehicleSpawnPad)) =>
-         avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
          vehicle.Faction = player.Faction
          vehicle.Position = pad.Position
          vehicle.Orientation = pad.Orientation + Vector3.z(pad.Definition.VehicleCreationZOrientOffset)
@@ -126,6 +125,7 @@ class SessionTerminalHandlers(
            sendResponse(UnuseItemMessage(player.GUID, terminalGuid))
          }
          player.LogActivity(TerminalUsedActivity(AmenitySource(term), transactionType))
+         vehicle
        }
        .orElse {
          log.error(

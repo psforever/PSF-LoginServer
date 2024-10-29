@@ -30,12 +30,12 @@ class SessionLocalHandlers(
   }
 
   def handleTurretDeployableIsDismissed(obj: TurretDeployable): Unit = {
-    Players.buildCooldownReset(continent, player.Name, obj)
+    Players.buildCooldownReset(continent, player.Name, obj.GUID)
     TaskWorkflow.execute(GUIDTask.unregisterDeployableTurret(continent.GUID, obj))
   }
 
   def handleDeployableIsDismissed(obj: Deployable): Unit = {
-    Players.buildCooldownReset(continent, player.Name, obj)
+    Players.buildCooldownReset(continent, player.Name, obj.GUID)
     TaskWorkflow.execute(GUIDTask.unregisterObject(continent.GUID, obj))
   }
 

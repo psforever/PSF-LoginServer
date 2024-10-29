@@ -3,9 +3,14 @@ package net.psforever.actors.session.csr
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.support.AvatarHandlerFunctions
+import net.psforever.login.WorldSession.PutLoadoutEquipmentInInventory
+import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.converter.OCM
+import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.containable.ContainableBehavior
+import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.ImplantType
 
 //
@@ -382,7 +387,9 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
             slot = 0
           ))
         }
-        sessionLogic.general.applyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
+        (holsters ++ inventory).foreach { case InventoryItem(item, slot) =>
+          TaskWorkflow.execute(PutLoadoutEquipmentInInventory(player)(item, slot))
+        }
         DropLeftovers(player)(drops)
 
       case AvatarResponse.ChangeLoadout(target, armor, exosuit, subtype, slot, _, oldHolsters, _, _, _, _) =>
@@ -431,6 +438,8 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sendResponse(ReloadMessage(itemGuid, ammo_clip=1, unk1=0))
 
       case AvatarResponse.Killed(mount) =>
+        val pguid = player.GUID
+        val avatarId = player.Definition.ObjectId
         //pure logic
         sessionLogic.shooting.shotsWhileDead = 0
         sessionLogic.zoning.CancelZoningProcess()
@@ -456,12 +465,16 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
             case obj: Vehicle if obj.Destroyed =>
               sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
               sessionLogic.general.unaccessContainer(obj)
-              player.VehicleSeated = None
-              sendResponse(OCM.detailed(player))
-            case _: Vehicle =>
-              player.VehicleSeated = None
-              sendResponse(OCM.detailed(player))
+            case obj: PlanetSideGameObject with Mountable with Container if obj.Destroyed =>
+              sessionLogic.general.unaccessContainer(obj)
+            case _ => ()
           }
+        player.VehicleSeated = None
+        sendResponse(OCM.detailed(player))
+        continent.AvatarEvents ! AvatarServiceMessage(
+          continent.id,
+          AvatarAction.LoadPlayer(pguid, avatarId, pguid, player.Definition.Packet.ConstructorData(player).get, None)
+        )
         sendResponse(ChatMsg(ChatMessageType.UNK_225, "CSR MODE"))
 
       case AvatarResponse.Release(tplayer) if isNotSameTarget =>

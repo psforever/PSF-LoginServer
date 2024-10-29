@@ -312,10 +312,14 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         //redraw
         if (maxhand) {
           sendResponse(PlanetsideAttributeMessage(target, attribute_type=7, player.Capacitor.toLong))
-          TaskWorkflow.execute(HoldNewEquipmentUp(player)(
-            Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)),
-            0
-          ))
+          val maxArmDefinition = GlobalDefinitions.MAXArms(subtype, player.Faction)
+          TaskWorkflow.execute(HoldNewEquipmentUp(player)(Tool(maxArmDefinition), slot = 0))
+          player.avatar.purchaseCooldown(maxArmDefinition)
+            .collect(a => a)
+            .getOrElse {
+              avatarActor ! AvatarActor.UpdatePurchaseTime(maxArmDefinition)
+              None
+            }
         }
         //draw free hand
         player.FreeHand.Equipment.foreach { obj =>
@@ -343,6 +347,8 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
             )
         }
         DropLeftovers(player)(drop)
+        //deactivate non-passive implants
+        avatarActor ! AvatarActor.DeactivateActiveImplants
 
       case AvatarResponse.ChangeExosuit(target, armor, exosuit, subtype, slot, _, oldHolsters, holsters, _, _, drop, delete) =>
         sendResponse(ArmorChangedMessage(target, exosuit, subtype))
@@ -395,14 +401,19 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         drops.foreach(item => sendResponse(ObjectDeleteMessage(item.obj.GUID, unk1=0)))
         //redraw
         if (maxhand) {
+          val maxArmWeapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
           sendResponse(PlanetsideAttributeMessage(target, attribute_type=7, player.Capacitor.toLong))
-          TaskWorkflow.execute(HoldNewEquipmentUp(player)(
-            Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)),
-            slot = 0
-          ))
+          TaskWorkflow.execute(HoldNewEquipmentUp(player)(Tool(maxArmWeapon), slot = 0))
+          val cooldown = player.avatar.purchaseCooldown(maxArmWeapon)
+          if (!oldHolsters.exists { case (e, _) => e.Definition == maxArmWeapon } &&
+            player.avatar.purchaseCooldown(maxArmWeapon).isEmpty) {
+            avatarActor ! AvatarActor.UpdatePurchaseTime(maxArmWeapon) //switching for first time causes cooldown
+          }
         }
         sessionLogic.general.applyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
         DropLeftovers(player)(drops)
+        //deactivate non-passive implants
+        avatarActor ! AvatarActor.DeactivateActiveImplants
 
       case AvatarResponse.ChangeLoadout(target, armor, exosuit, subtype, slot, _, oldHolsters, _, _, _, _) =>
         //redraw handled by callbacks

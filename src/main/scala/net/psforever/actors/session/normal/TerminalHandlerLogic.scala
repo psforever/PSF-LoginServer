@@ -5,14 +5,11 @@ import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, SessionTerminalHandlers, TerminalHandlerFunctions}
 import net.psforever.login.WorldSession.{BuyNewEquipmentPutInInventory, SellEquipmentFromInventory}
-import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
+import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.guid.TaskWorkflow
-import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.objects.sourcing.AmenitySource
-import net.psforever.objects.vital.TerminalUsedActivity
-import net.psforever.packet.game.{FavoritesRequest, ItemTransactionMessage, ItemTransactionResultMessage, ProximityTerminalUseMessage, UnuseItemMessage}
-import net.psforever.types.{TransactionType, Vector3}
+import net.psforever.packet.game.{FavoritesRequest, ItemTransactionMessage, ItemTransactionResultMessage, ProximityTerminalUseMessage}
+import net.psforever.types.TransactionType
 
 object TerminalHandlerLogic {
   def apply(ops: SessionTerminalHandlers): TerminalHandlerLogic = {
@@ -89,6 +86,10 @@ class TerminalHandlerLogic(val ops: SessionTerminalHandlers, implicit val contex
 
       case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
         ops.buyVehicle(msg.terminal_guid, msg.transaction_type, vehicle, weapons, trunk)
+          .collect {
+            case _: Vehicle =>
+              avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
+          }
         ops.lastTerminalOrderFulfillment = true
 
       case Terminal.NoDeal() if msg != null =>

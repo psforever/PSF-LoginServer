@@ -202,6 +202,7 @@ class ZoningOperations(
   private var zoningChatMessageType: ChatMessageType = ChatMessageType.CMT_QUIT
   private var zoningCounter: Int = 0
   private var zoningTimer: Cancellable = Default.Cancellable
+  var displayZoningMessageWhenCancelled: Boolean = true
 
   /* packets */
 
@@ -906,7 +907,7 @@ class ZoningOperations(
    *                defaults to `None`
    */
   def CancelZoningProcessWithReason(msg: String, msgType: Option[ChatMessageType] = None): Unit = {
-    if (zoningStatus != Zoning.Status.None) {
+    if (displayZoningMessageWhenCancelled && zoningStatus != Zoning.Status.None) {
       sendResponse(ChatMsg(msgType.getOrElse(zoningChatMessageType), wideContents=false, "", msg, None))
     }
     CancelZoningProcess()
@@ -2298,7 +2299,7 @@ class ZoningOperations(
      * @param zone na
      */
     def HandleReleaseAvatar(tplayer: Player, zone: Zone): Unit = {
-      sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
+      sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistenceFunc
       tplayer.Release
       tplayer.VehicleSeated match {
         case None =>
@@ -3023,7 +3024,7 @@ class ZoningOperations(
             sessionLogic.keepAliveFunc = sessionLogic.vehicles.GetMountableAndSeat(None, player, continent) match {
               case (Some(v: Vehicle), Some(seatNumber))
                 if seatNumber > 0 && v.WeaponControlledFromSeat(seatNumber).isEmpty =>
-                sessionLogic.keepAlivePersistence
+                sessionLogic.keepAlivePersistenceFunc
               case _ =>
                 NormalKeepAlive
             }
@@ -3476,7 +3477,7 @@ class ZoningOperations(
             //sit down
             sendResponse(ObjectAttachMessage(vguid, pguid, seat))
             sessionLogic.general.accessContainer(vehicle)
-            sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
+            sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistenceFunc
           case _ => ()
             //we can't find a vehicle? and we're still here? that's bad
             player.VehicleSeated = None

@@ -131,7 +131,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       sessionLogic.zoning.CancelZoningProcess()
     }
     player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && isCloaking
-    maxCapacitorTick()
+    maxCapacitorTick(jumpThrust)
     if (isMovingPlus && sessionLogic.terminals.usingMedicalTerminal.isDefined) {
       continent.GUID(sessionLogic.terminals.usingMedicalTerminal) match {
         case Some(term: Terminal with ProximityUnit) =>
@@ -297,60 +297,55 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case _ =>
         None
     }
-    cancelZoningWhenGeneralHandled(
-      sessionLogic.validObject(pkt.object_guid, decorator = "UseItem") match {
-        case Some(door: Door) =>
-          handleUseDoor(door, equipment)
-          GeneralOperations.UseItem.Unhandled
-        case Some(resourceSilo: ResourceSilo) =>
-          ops.handleUseResourceSilo(resourceSilo, equipment)
-        case Some(panel: IFFLock) =>
-          ops.handleUseGeneralEntity(panel, equipment)
-        case Some(obj: Player) =>
-          ops.handleUsePlayer(obj, equipment, pkt)
-          GeneralOperations.UseItem.Unhandled
-        case Some(locker: Locker) =>
-          ops.handleUseLocker(locker, equipment, pkt)
-        case Some(gen: Generator) =>
-          ops.handleUseGeneralEntity(gen, equipment)
-        case Some(mech: ImplantTerminalMech) =>
-          ops.handleUseGeneralEntity(mech, equipment)
-        case Some(captureTerminal: CaptureTerminal) =>
-          ops.handleUseCaptureTerminal(captureTerminal, equipment)
-        case Some(obj: FacilityTurret) =>
-          ops.handleUseFacilityTurret(obj, equipment, pkt)
-        case Some(obj: Vehicle) =>
-          ops.handleUseVehicle(obj, equipment, pkt)
-        case Some(terminal: Terminal) =>
-          ops.handleUseTerminal(terminal, equipment, pkt)
-        case Some(obj: SpawnTube) =>
-          ops.handleUseSpawnTube(obj, equipment)
-        case Some(obj: SensorDeployable) =>
-          ops.handleUseGeneralEntity(obj, equipment)
-        case Some(obj: TurretDeployable) =>
-          ops.handleUseGeneralEntity(obj, equipment)
-        case Some(obj: TrapDeployable) =>
-          ops.handleUseGeneralEntity(obj, equipment)
-        case Some(obj: ShieldGeneratorDeployable) =>
-          ops.handleUseGeneralEntity(obj, equipment)
-        case Some(obj: TelepadDeployable) if player.spectator =>
-          ops.handleUseTelepadDeployable(obj, equipment, pkt, ops.useRouterTelepadSystemSecretly)
-        case Some(obj: Utility.InternalTelepad) if player.spectator =>
-          ops.handleUseInternalTelepad(obj, pkt, ops.useRouterTelepadSystemSecretly)
-        case Some(obj: TelepadDeployable) =>
-          ops.handleUseTelepadDeployable(obj, equipment, pkt, ops.useRouterTelepadSystem)
-        case Some(obj: Utility.InternalTelepad) =>
-          ops.handleUseInternalTelepad(obj, pkt, ops.useRouterTelepadSystem)
-        case Some(obj: CaptureFlag) =>
-          ops.handleUseCaptureFlag(obj)
-        case Some(_: WarpGate) =>
-         ops.handleUseWarpGate(equipment)
-        case Some(obj) =>
-          ops.handleUseDefaultEntity(obj, equipment)
-        case None =>
-          GeneralOperations.UseItem.Unhandled
-      }
-    )
+    sessionLogic.validObject(pkt.object_guid, decorator = "UseItem") match {
+      case Some(door: Door) =>
+        handleUseDoor(door, equipment)
+      case Some(resourceSilo: ResourceSilo) =>
+        ops.handleUseResourceSilo(resourceSilo, equipment)
+      case Some(panel: IFFLock) =>
+        ops.handleUseGeneralEntity(panel, equipment)
+      case Some(obj: Player) =>
+        ops.handleUsePlayer(obj, equipment, pkt)
+      case Some(locker: Locker) =>
+        ops.handleUseLocker(locker, equipment, pkt)
+      case Some(gen: Generator) =>
+        ops.handleUseGeneralEntity(gen, equipment)
+      case Some(mech: ImplantTerminalMech) =>
+        ops.handleUseGeneralEntity(mech, equipment)
+      case Some(captureTerminal: CaptureTerminal) =>
+        ops.handleUseCaptureTerminal(captureTerminal, equipment)
+      case Some(obj: FacilityTurret) =>
+        ops.handleUseFacilityTurret(obj, equipment, pkt)
+      case Some(obj: Vehicle) =>
+        ops.handleUseVehicle(obj, equipment, pkt)
+      case Some(terminal: Terminal) =>
+        ops.handleUseTerminal(terminal, equipment, pkt)
+      case Some(obj: SpawnTube) =>
+        ops.handleUseSpawnTube(obj, equipment)
+      case Some(obj: SensorDeployable) =>
+        ops.handleUseGeneralEntity(obj, equipment)
+      case Some(obj: TurretDeployable) =>
+        ops.handleUseGeneralEntity(obj, equipment)
+      case Some(obj: TrapDeployable) =>
+        ops.handleUseGeneralEntity(obj, equipment)
+      case Some(obj: ShieldGeneratorDeployable) =>
+        ops.handleUseGeneralEntity(obj, equipment)
+      case Some(obj: TelepadDeployable) if player.spectator =>
+        ops.handleUseTelepadDeployable(obj, equipment, pkt, ops.useRouterTelepadSystemSecretly)
+      case Some(obj: Utility.InternalTelepad) if player.spectator =>
+        ops.handleUseInternalTelepad(obj, pkt, ops.useRouterTelepadSystemSecretly)
+      case Some(obj: TelepadDeployable) =>
+        ops.handleUseTelepadDeployable(obj, equipment, pkt, ops.useRouterTelepadSystem)
+      case Some(obj: Utility.InternalTelepad) =>
+        ops.handleUseInternalTelepad(obj, pkt, ops.useRouterTelepadSystem)
+      case Some(obj: CaptureFlag) =>
+        ops.handleUseCaptureFlag(obj)
+      case Some(_: WarpGate) =>
+        ops.handleUseWarpGate(equipment)
+      case Some(obj) =>
+        ops.handleUseDefaultEntity(obj, equipment)
+      case None => ()
+    }
   }
 
   def handleUnuseItem(pkt: UnuseItemMessage): Unit = {
@@ -379,7 +374,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
             case dtype                               => dtype
           }
           sessionLogic.zoning.CancelZoningProcess()
-          ops.handleDeployObject(continent, ammoType, pos, orient, player.WhichSide, PlanetSideEmpire.NEUTRAL, None)
+          ops.handleDeployObject(continent, ammoType, pos, orient, player.WhichSide, PlanetSideEmpire.NEUTRAL)
         case Some(obj) =>
           log.warn(s"DeployObject: what is $obj, ${player.Name}?  It's not a construction tool!")
         case None =>
@@ -727,16 +722,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   /* supporting functions */
 
   def handleUseDoor(door: Door, equipment: Option[Equipment]): Unit = {
-    if (player.spectator) {
-      //opens just for us
-      val guid = door.GUID
-      openDoor.collect {
-        case oldDoor if guid != oldDoor.GUID =>
-          sendResponse(GenericObjectStateMsg(oldDoor.GUID, state=17))
-      }
-      sendResponse(GenericObjectStateMsg(guid, state=16))
-      openDoor = Some(door)
-    } else {
+    if (!player.spectator) {
       //opens for everyone
       equipment match {
         case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
@@ -747,39 +733,58 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     }
   }
 
-  private def maxCapacitorTick(): Unit = {
+  private def maxCapacitorTick(jumpThrust: Boolean): Unit = {
     if (player.ExoSuit == ExoSuitType.MAX) {
+      val activate = (jumpThrust || player.isOverdrived || player.isShielded) && player.Capacitor > 0
       player.CapacitorState match {
-        case CapacitorStateType.Idle => maxCapacitorTickIdle()
-        case _                       => maxCapacitorTickCharging()
+        case CapacitorStateType.Discharging => maxCapacitorTickDischarging(activate)
+        case CapacitorStateType.Charging    => maxCapacitorTickCharging(activate)
+        case _                              => maxCapacitorTickIdle(activate)
       }
     } else if (player.CapacitorState != CapacitorStateType.Idle) {
       player.CapacitorState = CapacitorStateType.Idle
     }
   }
 
-  private def maxCapacitorTickIdle(): Unit = {
-    if (player.Capacitor < player.ExoSuitDef.MaxCapacitor) {
+  private def maxCapacitorTickIdle(activate: Boolean): Unit = {
+    if (activate) {
+      player.CapacitorState = CapacitorStateType.Discharging
+      //maxCapacitorTickDischarging(activate)
+    } else if (player.Capacitor < player.ExoSuitDef.MaxCapacitor) {
       player.CapacitorState = CapacitorStateType.Charging
-      maxCapacitorTickCharging()
     }
   }
 
-  private def maxCapacitorTickCharging(): Unit = {
-    if (player.Capacitor < player.ExoSuitDef.MaxCapacitor) {
-      val timeDiff = (System.currentTimeMillis() - player.CapacitorLastChargedMillis).toFloat / 1000
-      val chargeAmount = player.ExoSuitDef.CapacitorRechargePerSecond * timeDiff
-      player.Capacitor += chargeAmount
+  private def maxCapacitorTickDischarging(activate: Boolean): Unit = {
+    if (activate) {
+      val timeDiff    = (System.currentTimeMillis() - player.CapacitorLastUsedMillis).toFloat / 1000
+      val drainAmount = player.ExoSuitDef.CapacitorDrainPerSecond.toFloat * timeDiff
+      player.Capacitor -= drainAmount
       sendResponse(PlanetsideAttributeMessage(player.GUID, 7, player.Capacitor.toInt))
+    } else if (player.Capacitor == 0) {
+      if (player.Faction == PlanetSideEmpire.TR) {
+        ops.toggleMaxSpecialState(enable = false)
+      }
+      player.Capacitor = player.ExoSuitDef.MaxCapacitor.toFloat
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 7, player.Capacitor.toInt))
+      player.CapacitorState = CapacitorStateType.Idle
+    } else if (player.Capacitor < player.ExoSuitDef.MaxCapacitor) {
+      player.CapacitorState = CapacitorStateType.Charging
     } else {
       player.CapacitorState = CapacitorStateType.Idle
     }
   }
 
-  private def cancelZoningWhenGeneralHandled(results: GeneralOperations.UseItem.Behavior): Unit = {
-    results match {
-      case GeneralOperations.UseItem.Unhandled => ()
-      case _ => sessionLogic.zoning.CancelZoningProcess()
+  private def maxCapacitorTickCharging(activate: Boolean): Unit = {
+    val maxCapacitor = player.ExoSuitDef.MaxCapacitor
+    if (activate) {
+      player.CapacitorState = CapacitorStateType.Discharging
+      //maxCapacitorTickDischarging(activate)
+    } else if (player.Capacitor < player.ExoSuitDef.MaxCapacitor) {
+      player.Capacitor = maxCapacitor.toFloat
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 7, maxCapacitor))
+    } else {
+      player.CapacitorState = CapacitorStateType.Idle
     }
   }
 }

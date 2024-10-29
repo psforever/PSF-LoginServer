@@ -63,7 +63,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
         sessionLogic.terminals.CancelAllProximityUnits()
         ops.MountingAction(tplayer, obj, seatNumber)
-        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
+        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistenceFunc
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
         if obj.Definition == GlobalDefinitions.orbital_shuttle =>
@@ -71,7 +71,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
         sessionLogic.terminals.CancelAllProximityUnits()
         ops.MountingAction(tplayer, obj, seatNumber)
-        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
+        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistenceFunc
 
       case Mountable.CanMount(obj: Vehicle, seatNumber, _)
         if obj.Definition == GlobalDefinitions.ant =>
@@ -148,7 +148,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         sendResponse(PlanetsideAttributeMessage(obj_guid, attribute_type=113, obj.Capacitor))
         sessionLogic.general.accessContainer(obj)
         ops.updateWeaponAtSeatPosition(obj, seatNumber)
-        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
+        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistenceFunc
         tplayer.Actor ! ResetAllEnvironmentInteractions
         ops.MountingAction(tplayer, obj, seatNumber)
 
@@ -166,7 +166,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         sendResponse(PlanetsideAttributeMessage(obj_guid, obj.Definition.shieldUiAttribute, obj.Shields))
         sessionLogic.general.accessContainer(obj)
         ops.updateWeaponAtSeatPosition(obj, seatNumber)
-        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
+        sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistenceFunc
         tplayer.Actor ! ResetAllEnvironmentInteractions
         ops.MountingAction(tplayer, obj, seatNumber)
 

@@ -5,10 +5,11 @@ import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, VehicleFunctions, VehicleOperations}
 import net.psforever.objects.serverobject.PlanetSideServerObject
-import net.psforever.objects.{Vehicle, Vehicles}
+import net.psforever.objects.{PlanetSideGameObject, Vehicle, Vehicles}
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.control.BfrFlight
+import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -214,7 +215,8 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
       case Some(mount: Mountable) => (o, mount.PassengerInSeat(player))
       case _                      => (None, None)
     }) match {
-      case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ()
+      case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) =>
+        ()
       case _ =>
         sessionLogic.persist()
         sessionLogic.turnCounterFunc(player.GUID)

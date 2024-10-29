@@ -1131,6 +1131,11 @@ class AvatarActor(
   var supportExperienceTimer: Cancellable          = Default.Cancellable
   var experienceDebt: Long = 0L
 
+  private def setSession(newSession: Session): Unit = {
+    session = Some(newSession)
+    _avatar = Option(newSession.avatar)
+  }
+
   def avatar: Avatar = _avatar.get
 
   def avatar_=(avatar: Avatar): Unit = {
@@ -1156,8 +1161,7 @@ class AvatarActor(
           postLoginBehaviour()
 
         case SetSession(newSession) =>
-          session = Some(newSession)
-          _avatar = Option(newSession.avatar)
+          setSession(newSession)
           postLoginBehaviour()
 
         case other =>
@@ -1177,7 +1181,7 @@ class AvatarActor(
     Behaviors
       .receiveMessage[Command] {
         case SetSession(newSession) =>
-          session = Some(newSession)
+          setSession(newSession)
           Behaviors.same
 
         case SetLookingForSquad(lfs) =>
@@ -1330,7 +1334,7 @@ class AvatarActor(
     Behaviors
       .receiveMessagePartial[Command] {
         case SetSession(newSession) =>
-          session = Some(newSession)
+          setSession(newSession)
           Behaviors.same
 
         case ReplaceAvatar(newAvatar) =>

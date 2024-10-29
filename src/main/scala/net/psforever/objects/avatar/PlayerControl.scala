@@ -385,15 +385,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 }
                 if (Players.CertificationToUseExoSuit(player, exosuit, subtype)) {
                   if (exosuit == ExoSuitType.MAX) {
-                    val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
-                    val cooldown = player.avatar.purchaseCooldown(weapon)
+                    val cooldown = player.avatar.purchaseCooldown(GlobalDefinitions.MAXArms(subtype, player.Faction))
                     if (originalSubtype == subtype) {
-                      (exosuit, subtype) //same MAX subtype is free
+                      (exosuit, subtype) //same MAX subtype
                     } else if (cooldown.nonEmpty) {
-                      fallbackSuit //different MAX subtype can not have cooldown
+                      fallbackSuit //different MAX subtype
                     } else {
-                      avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
-                      (exosuit, subtype) //switching for first time causes cooldown
+                      (exosuit, subtype) //switching
                     }
                   } else {
                     (exosuit, subtype)
@@ -475,8 +473,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 case InventoryItem(citem: ConstructionItem, _) =>
                   Deployables.initializeConstructionItem(player.avatar.certifications, citem)
               }
-              //deactivate non-passive implants
-              avatarActor ! AvatarActor.DeactivateActiveImplants
               val zone = player.Zone
               zone.AvatarEvents ! AvatarServiceMessage(
                 Players.ZoneChannelIfSpectating(player),
@@ -556,7 +552,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   //don't know where boomer trigger "should" go
                   TaskWorkflow.execute(PutNewEquipmentInInventoryOrDrop(player)(trigger))
               }
-              Players.buildCooldownReset(zone, player.Name, obj)
+              Players.buildCooldownReset(zone, player.Name, obj.GUID)
             case _ => ()
           }
           deployablePair = None
@@ -573,7 +569,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   player.Actor ! Player.LoseDeployable(obj)
                   TelepadControl.TelepadError(zone, player.Name, msg = "@Telepad_NoDeploy_RouterLost")
               }
-              Players.buildCooldownReset(zone, player.Name, obj)
+              Players.buildCooldownReset(zone, player.Name, obj.GUID)
             case _ => ()
           }
           deployablePair = None
@@ -581,7 +577,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case Zone.Deployable.IsBuilt(obj) =>
           deployablePair match {
             case Some((deployable, tool)) if deployable eq obj =>
-              Players.buildCooldownReset(player.Zone, player.Name, obj)
+              Players.buildCooldownReset(player.Zone, player.Name, obj.GUID)
               player.Find(tool) match {
                 case Some(index) =>
                   Players.commonDestroyConstructionItem(player, tool, index)
@@ -613,10 +609,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
         player.avatar.purchaseCooldown(weapon)
           .collect(_ => false)
-          .getOrElse {
-            avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
-            true
-          }
+          .getOrElse(true)
       } else {
         true
       })
@@ -671,8 +664,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       //insert
       afterHolsters.foreach(elem => player.Slot(elem.start).Equipment = elem.obj)
       afterInventory.foreach(elem => player.Inventory.InsertQuickly(elem.start, elem.obj))
-      //deactivate non-passive implants
-      avatarActor ! AvatarActor.DeactivateActiveImplants
       player.Zone.AvatarEvents ! AvatarServiceMessage(
         Players.ZoneChannelIfSpectating(player),
         AvatarAction.ChangeExosuit(
@@ -744,7 +735,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       else {
         log.warn(s"cannot build a ${obj.Definition.Name}")
         DropEquipmentFromInventory(player)(tool, Some(obj.Position))
-        Players.buildCooldownReset(zone, player.Name, obj)
+        Players.buildCooldownReset(zone, player.Name, obj.GUID)
         obj.Position = Vector3.Zero
         obj.AssignOwnership(None)
         zone.Deployables ! Zone.Deployable.Dismiss(obj)
@@ -755,7 +746,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       obj.AssignOwnership(None)
       val zone = player.Zone
       zone.Deployables ! Zone.Deployable.Dismiss(obj)
-      Players.buildCooldownReset(zone, player.Name, obj)
+      Players.buildCooldownReset(zone, player.Name, obj.GUID)
     }
   }
 
