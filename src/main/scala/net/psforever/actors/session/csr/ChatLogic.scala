@@ -22,7 +22,7 @@ object ChatLogic {
 class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) extends ChatFunctions {
   def sessionLogic: SessionData = ops.sessionLogic
 
-  ops.SpectatorMode = SpectateAsCustomerServiceRepresentativeMode
+  ops.CurrentSpectatorMode = SpectateAsCustomerServiceRepresentativeMode
 
   private var comms: ChatChannel = DefaultChannel
   private var seeSpectatorsIn: Option[Zone] = None

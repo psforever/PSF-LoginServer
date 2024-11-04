@@ -4,6 +4,7 @@ package net.psforever.actors.session.support
 import akka.actor.Cancellable
 import akka.actor.typed.ActorRef
 import akka.actor.{ActorContext, typed}
+import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.sourcing.PlayerSource
@@ -65,7 +66,7 @@ class ChatOperations(
    */
   private val ignoredEmoteCooldown: mutable.LongMap[Long] = mutable.LongMap[Long]()
 
-  private[session] var SpectatorMode: PlayerMode = SpectatorMode
+  private[session] var CurrentSpectatorMode: PlayerMode = SpectatorMode
 
   import akka.actor.typed.scaladsl.adapter._
   private val chatServiceAdapter: ActorRef[ChatService.MessageResponse] = context.self.toTyped[ChatService.MessageResponse]

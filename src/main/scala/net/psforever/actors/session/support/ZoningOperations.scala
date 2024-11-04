@@ -3229,7 +3229,7 @@ class ZoningOperations(
         upstreamMessageCount = 0
         if (tplayer.spectator) {
           if (!setAvatar) {
-            context.self ! SessionActor.SetMode(sessionLogic.chat.SpectatorMode) //should reload spectator status
+            context.self ! SessionActor.SetMode(sessionLogic.chat.CurrentSpectatorMode) //should reload spectator status
           }
         } else if (
           !avatar.permissions.canGM && /* gm's are excluded */

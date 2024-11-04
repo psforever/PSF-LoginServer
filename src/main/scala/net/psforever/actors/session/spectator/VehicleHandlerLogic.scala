@@ -1,18 +1,15 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.spectator
 
-import akka.actor.{ActorContext, ActorRef, typed}
-import net.psforever.actors.session.AvatarActor
+import akka.actor.ActorContext
 import net.psforever.actors.session.support.{SessionData, SessionVehicleHandlers, VehicleHandlerFunctions}
-import net.psforever.objects.{GlobalDefinitions, Tool, Vehicle, Vehicles}
-import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons, JammableUnit}
-import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
+import net.psforever.objects.{Tool, Vehicle, Vehicles}
+import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.packet.game.{ChangeAmmoMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, HitHint, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ReloadMessage, ServerVehicleOverrideMsg, VehicleStateMessage, WeaponDryFireMessage}
-import net.psforever.services.Service
+import net.psforever.packet.game.{ChangeAmmoMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, HitHint, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ReloadMessage, ServerVehicleOverrideMsg, VehicleStateMessage, WeaponDryFireMessage}
 import net.psforever.services.vehicle.{VehicleResponse, VehicleServiceResponse}
-import net.psforever.types.{BailType, ChatMessageType, PlanetSideGUID, Vector3}
+import net.psforever.types.{BailType, PlanetSideGUID, Vector3}
 
 object VehicleHandlerLogic {
   def apply(ops: SessionVehicleHandlers): VehicleHandlerLogic = {
@@ -23,9 +20,9 @@ object VehicleHandlerLogic {
 class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context: ActorContext) extends VehicleHandlerFunctions {
   def sessionLogic: SessionData = ops.sessionLogic
 
-  private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
+  //private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
 
-  private val galaxyService: ActorRef = ops.galaxyService
+  //private val galaxyService: ActorRef = ops.galaxyService
 
   /**
    * na

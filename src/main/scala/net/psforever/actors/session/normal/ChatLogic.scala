@@ -20,7 +20,7 @@ object ChatLogic {
 class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) extends ChatFunctions {
   def sessionLogic: SessionData = ops.sessionLogic
 
-  ops.SpectatorMode = SpectatorMode
+  ops.CurrentSpectatorMode = SpectatorMode
 
   def handleChatMsg(message: ChatMsg): Unit = {
     import net.psforever.types.ChatMessageType._
@@ -167,7 +167,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     } || Config.app.world.serverType == ServerType.Development
     contents.toLowerCase() match {
       case "on" | "o" | "" if currentSpectatorActivation && !player.spectator =>
-        context.self ! SessionActor.SetMode(ops.SpectatorMode)
+        context.self ! SessionActor.SetMode(ops.CurrentSpectatorMode)
       case _ => ()
     }
   }
