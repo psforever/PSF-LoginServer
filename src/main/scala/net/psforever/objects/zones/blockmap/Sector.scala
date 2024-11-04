@@ -185,10 +185,6 @@ class Sector(val longitude: Int, val latitude: Int, val span: Int)
     */
   def addTo(o: BlockMapEntity): Boolean = {
     o match {
-      case p: Player if p.spectator =>
-        livePlayers.removeFrom(p)
-        corpses.removeFrom(p)
-        false
       case p: Player if p.isBackpack =>
         //when adding to the "corpse" list, first attempt to remove from the "player" list
         livePlayers.removeFrom(p)
@@ -317,7 +313,7 @@ object SectorGroup {
     new SectorGroup(
       rangeX,
       rangeY,
-      sector.livePlayerList,
+      sector.livePlayerList.filterNot(p => p.spectator || !p.allowInteraction),
       sector.corpseList,
       sector.vehicleList,
       sector.equipmentOnGroundList,
@@ -372,7 +368,7 @@ object SectorGroup {
       new SectorGroup(
         rangeX,
         rangeY,
-        sector.livePlayerList,
+        sector.livePlayerList.filterNot(p => p.spectator || !p.allowInteraction),
         sector.corpseList,
         sector.vehicleList,
         sector.equipmentOnGroundList,
@@ -386,7 +382,7 @@ object SectorGroup {
       new SectorGroup(
         rangeX,
         rangeY,
-        sectors.flatMap { _.livePlayerList }.toList.distinct,
+        sectors.flatMap { _.livePlayerList }.toList.distinct.filterNot(p => p.spectator || !p.allowInteraction),
         sectors.flatMap { _.corpseList }.toList.distinct,
         sectors.flatMap { _.vehicleList }.toList.distinct,
         sectors.flatMap { _.equipmentOnGroundList }.toList.distinct,

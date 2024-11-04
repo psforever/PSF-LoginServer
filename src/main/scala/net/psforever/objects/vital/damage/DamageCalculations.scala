@@ -3,6 +3,8 @@ package net.psforever.objects.vital.damage
 
 import net.psforever.objects.vital.interaction.DamageInteraction
 
+import scala.annotation.unused
+
 /**
   * A series of methods for extraction of the base damage against a given target type
   * as well as incorporating damage modifiers from the other aspects of the interaction.
@@ -11,7 +13,7 @@ object DamageCalculations {
   type Selector = DamageProfile => Int
 
   //raw damage selectors
-  def AgainstNothing(profile : DamageProfile) : Int = 0
+  def AgainstNothing(@unused profile : DamageProfile) : Int = 0
 
   def AgainstExoSuit(profile : DamageProfile) : Int = profile.Damage0
 

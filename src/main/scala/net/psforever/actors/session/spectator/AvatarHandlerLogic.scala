@@ -426,7 +426,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         if isNotSameTarget && ops.lastSeenStreamMessage.get(guid.guid).exists { _.visible } =>
         sendResponse(ReloadMessage(itemGuid, ammo_clip=1, unk1=0))
 
-      case AvatarResponse.Killed(mount) =>
+      case AvatarResponse.Killed(_, mount) =>
         //log and chat messages
         val cause = player.LastDamage.flatMap { damage =>
           val interaction = damage.interaction

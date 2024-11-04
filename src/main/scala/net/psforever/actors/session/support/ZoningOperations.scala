@@ -2142,6 +2142,7 @@ class ZoningOperations(
       sendResponse(LoadMapMessage(mapName, id, 40100, 25, weaponsEnabled, map.checksum))
       if (isAcceptableNextSpawnPoint) {
         //important! the LoadMapMessage must be processed by the client before the avatar is created
+        player.allowInteraction = true
         setupAvatarFunc()
         //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
         sessionLogic.turnCounterFunc = interimUngunnedVehicle match {
@@ -2179,6 +2180,7 @@ class ZoningOperations(
       session = session.copy(player = tplayer)
       if (isAcceptableNextSpawnPoint) {
         //try this spawn point
+        player.allowInteraction = true
         setupAvatarFunc()
         //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
         sessionLogic.turnCounterFunc = interimUngunnedVehicle match {

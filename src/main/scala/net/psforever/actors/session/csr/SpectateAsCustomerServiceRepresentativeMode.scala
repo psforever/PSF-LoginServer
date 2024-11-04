@@ -2,7 +2,6 @@
 package net.psforever.actors.session.csr
 
 import net.psforever.actors.session.support.{AvatarHandlerFunctions, ChatFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
-import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.serverobject.ServerObject
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.{Player, Session, Vehicle}
@@ -45,10 +44,7 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
     }
     //
     player.spectator = true
-    //player.bops = true
-    player.allowInteraction = false
     data.chat.JoinChannel(SpectatorChannel)
-    continent.actor ! ZoneActor.RemoveFromBlockMap(player)
     continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(pguid, pguid))
     sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "on"))
     sendResponse(ChatMsg(ChatMessageType.UNK_225, "CSR SPECTATOR MODE ON"))
@@ -62,10 +58,7 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
     val sendResponse: PlanetSidePacket => Unit = data.sendResponse
     //
     player.spectator = false
-    player.bops = false
-    player.allowInteraction = true
     data.chat.LeaveChannel(SpectatorChannel)
-    data.continent.actor ! ZoneActor.AddToBlockMap(player, player.Position)
     continent.AvatarEvents ! AvatarServiceMessage(
       continent.id,
       AvatarAction.LoadPlayer(pguid, avatarId, pguid, player.Definition.Packet.ConstructorData(player).get, None)

@@ -3,9 +3,15 @@ package net.psforever.actors.session.normal
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.support.AvatarHandlerFunctions
-import net.psforever.objects.Default
+import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.inventory.Container
+import net.psforever.objects.{Default, PlanetSideGameObject}
 import net.psforever.objects.serverobject.containable.ContainableBehavior
+import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.objects.vital.interaction.Adversarial
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.ImplantType
 
 import scala.concurrent.duration._
@@ -404,7 +410,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           val maxArmWeapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
           sendResponse(PlanetsideAttributeMessage(target, attribute_type=7, player.Capacitor.toLong))
           TaskWorkflow.execute(HoldNewEquipmentUp(player)(Tool(maxArmWeapon), slot = 0))
-          val cooldown = player.avatar.purchaseCooldown(maxArmWeapon)
+          player.avatar.purchaseCooldown(maxArmWeapon)
           if (!oldHolsters.exists { case (e, _) => e.Definition == maxArmWeapon } &&
             player.avatar.purchaseCooldown(maxArmWeapon).isEmpty) {
             avatarActor ! AvatarActor.UpdatePurchaseTime(maxArmWeapon) //switching for first time causes cooldown
@@ -478,9 +484,33 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         if isNotSameTarget && ops.lastSeenStreamMessage.get(guid.guid).exists { _.visible } =>
         sendResponse(ReloadMessage(itemGuid, ammo_clip=1, unk1=0))
 
-      case AvatarResponse.Killed(mount) =>
+      case AvatarResponse.Killed(cause, mount) =>
         //log and chat messages
-        val cause = player.LastDamage.flatMap { damage =>
+        //destroy display
+        val zoneChannel = continent.id
+        val events = continent.AvatarEvents
+        val pentry = PlayerSource(player)
+        cause
+          .adversarial
+          .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
+          .orElse {
+            player.LastDamage.collect {
+              case attack if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
+                attack
+                  .adversarial
+                  .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
+            }.flatten
+          } match {
+          case Some(adversarial) =>
+            events ! AvatarServiceMessage(
+              zoneChannel,
+              AvatarAction.DestroyDisplay(adversarial.attacker, pentry, adversarial.implement)
+            )
+          case _ =>
+            events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
+        }
+        //events chat and log
+        val excuse = player.LastDamage.flatMap { damage =>
           val interaction = damage.interaction
           val reason = interaction.cause
           val adversarial = interaction.adversarial.map { _.attacker }
@@ -492,15 +522,17 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           }
           adversarial.map {_.Name }.orElse { Some(s"a ${reason.getClass.getSimpleName}") }
         }.getOrElse { s"an unfortunate circumstance (probably ${player.Sex.pronounObject} own fault)" }
-        log.info(s"${player.Name} has died, killed by $cause")
+        log.info(s"${player.Name} has died, killed by $excuse")
         if (sessionLogic.shooting.shotsWhileDead > 0) {
           log.warn(
             s"SHOTS_WHILE_DEAD: client of ${avatar.name} fired ${sessionLogic.shooting.shotsWhileDead} rounds while character was dead on server"
           )
           sessionLogic.shooting.shotsWhileDead = 0
         }
+        //TODO other methods of death?
         sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason(msg = "cancel")
         sessionLogic.general.renewCharSavedTimer(fixedLen = 1800L, varLen = 0L)
+        continent.actor ! ZoneActor.RewardThisDeath(player)
 
         //player state changes
         AvatarActor.updateToolDischargeFor(avatar)
@@ -512,9 +544,18 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
         sessionLogic.zoning.zoningStatus = Zoning.Status.None
         sessionLogic.zoning.spawn.deadState = DeadState.Dead
-        continent.GUID(mount).collect { case obj: Vehicle =>
-          sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
-          sessionLogic.general.unaccessContainer(obj)
+        continent.GUID(mount).collect {
+          case obj: Vehicle =>
+            killedWhileMounted(obj, resolvedPlayerGuid)
+            sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
+            sessionLogic.general.unaccessContainer(obj)
+
+          case obj: PlanetSideGameObject with Mountable with Container =>
+            killedWhileMounted(obj, resolvedPlayerGuid)
+            sessionLogic.general.unaccessContainer(obj)
+
+          case obj: PlanetSideGameObject with Mountable =>
+            killedWhileMounted(obj, resolvedPlayerGuid)
         }
         sessionLogic.actionsToCancel()
         sessionLogic.terminals.CancelAllProximityUnits()
@@ -627,5 +668,14 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
       case _ => ()
     }
+  }
+
+  def killedWhileMounted(obj: PlanetSideGameObject with Mountable, playerGuid: PlanetSideGUID): Unit = {
+    val events = continent.AvatarEvents
+    ops.killedWhileMounted(obj, playerGuid)
+    //make player invisible on client
+    events ! AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(playerGuid, 29, 1))
+    //only the dead player should "see" their own body, so that the death camera has something to focus on
+    events ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(playerGuid, playerGuid))
   }
 }

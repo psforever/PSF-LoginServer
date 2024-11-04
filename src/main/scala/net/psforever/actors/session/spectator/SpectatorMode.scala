@@ -119,6 +119,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     }
     //
     player.spectator = true
+    player.allowInteraction = false
     data.chat.JoinChannel(SpectatorChannel)
     val newPlayer = SpectatorModeLogic.spectatorCharacter(player)
     newPlayer.LogActivity(player.History.headOption)
@@ -153,6 +154,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     val sendResponse: PlanetSidePacket => Unit = data.sendResponse
     //
     player.spectator = false
+    player.allowInteraction = true
     data.general.stop()
     player.avatar.shortcuts.slice(1, 4)
       .zipWithIndex

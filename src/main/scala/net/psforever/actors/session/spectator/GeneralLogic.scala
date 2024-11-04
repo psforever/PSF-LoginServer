@@ -58,6 +58,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     )= pkt
     sessionLogic.persist()
     sessionLogic.turnCounterFunc(avatarGuid)
+    sessionLogic.updateBlockMap(player, pos)
     ops.fallHeightTracker(pos.z)
     //    if (isCrouching && !player.Crouching) {
     //      //dev stuff goes here

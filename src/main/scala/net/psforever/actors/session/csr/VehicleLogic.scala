@@ -48,12 +48,12 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         //we're driving the vehicle
         sessionLogic.persist()
         sessionLogic.turnCounterFunc(player.GUID)
-        topOffHealthOfPlayer()
-        topOffHealth(obj)
         sessionLogic.general.fallHeightTracker(pos.z)
         if (obj.MountedIn.isEmpty) {
           sessionLogic.updateBlockMap(obj, pos)
         }
+        topOffHealthOfPlayer()
+        topOffHealth(obj)
         player.Position = pos //convenient
         if (obj.WeaponControlledFromSeat(0).isEmpty) {
           player.Orientation = Vector3.z(ang.z) //convenient
@@ -96,6 +96,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
           )
         )
         sessionLogic.squad.updateSquad()
+        player.allowInteraction = false
         obj.zoneInteractions()
       case (None, _) =>
       //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
@@ -171,6 +172,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
             obj.Velocity = None
             obj.Flying = None
           }
+          player.allowInteraction = false
           obj.zoneInteractions()
         } else {
           obj.Velocity = None

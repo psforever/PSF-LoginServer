@@ -8,6 +8,7 @@ import net.psforever.objects.serverobject.ServerObject
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.{ChatMsg, ObjectCreateDetailedMessage, PlanetsideAttributeMessage}
 import net.psforever.packet.game.objectcreate.RibbonBars
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -57,6 +58,7 @@ class CustomerServiceRepresentativeMode(data: SessionData) extends ModeLogic {
     data.keepAlivePersistenceFunc = keepAlivePersistanceCSR
     //
     CustomerServiceRepresentativeMode.renderPlayer(data, continent, player)
+    player.allowInteraction = false
     if (player.silenced) {
       data.chat.commandIncomingSilence(session, ChatMsg(ChatMessageType.CMT_SILENCE, "player 0"))
     }
@@ -85,6 +87,7 @@ class CustomerServiceRepresentativeMode(data: SessionData) extends ModeLogic {
     data.keepAlivePersistenceFunc = data.keepAlivePersistence
     //
     CustomerServiceRepresentativeMode.renderPlayer(data, continent, player)
+    player.allowInteraction = true
     data.chat.LeaveChannel(SpectatorChannel)
     data.chat.LeaveChannel(CustomerServiceChannel)
     data.sendResponse(ChatMsg(ChatMessageType.UNK_225, "CSR MODE OFF"))
@@ -106,11 +109,20 @@ class CustomerServiceRepresentativeMode(data: SessionData) extends ModeLogic {
   }
 
   private def keepAlivePersistanceCSR(): Unit = {
+    val player = data.player
     data.keepAlivePersistence()
-    topOffHealthOfPlayer(data.player)
+    topOffHealthOfPlayer(player)
+    player.allowInteraction = false
+    topOffHealthOfPlayer(player)
     data.continent.GUID(data.player.VehicleSeated)
       .collect {
-        case obj: PlanetSideGameObject with Vitality => topOffHealth(obj)
+        case obj: PlanetSideGameObject with Vitality with BlockMapEntity =>
+          topOffHealth(obj)
+          data.updateBlockMap(obj, obj.Position)
+          obj
+      }
+      .getOrElse {
+        data.updateBlockMap(player, player.Position)
       }
   }
 

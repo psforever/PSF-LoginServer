@@ -224,7 +224,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
     if (ops.confirmAIDamageTarget(pkt, list.map(_._1))) {
       list.foreach {
         case (target, projectile, hitPos, _) =>
-          ops.checkForHitPositionDiscrepancy(projectile.GUID, hitPos, target)
+          ops.checkForHitPositionDiscrepancy(pkt.attacker_guid, hitPos, target)
           ops.resolveProjectileInteraction(target, projectile, DamageResolution.Hit, hitPos)
       }
     }

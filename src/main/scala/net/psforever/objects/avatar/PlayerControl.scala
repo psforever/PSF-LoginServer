@@ -3,7 +3,6 @@ package net.psforever.objects.avatar
 
 import akka.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
-import net.psforever.actors.zone.ZoneActor
 import net.psforever.login.WorldSession.{DropEquipmentFromInventory, HoldNewEquipmentUp, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
 import net.psforever.objects._
 import net.psforever.objects.ce.Deployable
@@ -18,7 +17,6 @@ import net.psforever.objects.serverobject.containable.{Containable, ContainableB
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.{AggravatedBehavior, Damageable, DamageableEntity}
-import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
@@ -35,7 +33,7 @@ import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.sourcing.{AmenitySource, PlayerSource}
 import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
-import net.psforever.objects.vital.interaction.{Adversarial, DamageInteraction, DamageResult}
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.PlanetSideGamePacket
 
 import scala.concurrent.duration._
@@ -970,36 +968,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         damageLog.info(s"${player.Name} killed ${player.Sex.pronounObject}self")
     }
 
-    // This would normally happen async as part of AvatarAction.Killed, but if it doesn't happen before deleting calling AvatarAction.ObjectDelete on the player the LLU will end up invisible to others if carried
-    // Therefore, queue it up to happen first.
-    events ! AvatarServiceMessage(nameChannel, AvatarAction.DropSpecialItem())
-
-    events ! AvatarServiceMessage(
-      nameChannel,
-      AvatarAction.Killed(player_guid, target.VehicleSeated)
-    ) //align client interface fields with state
-    zone.GUID(target.VehicleSeated) match {
-      case Some(obj: Mountable) =>
-        //boot cadaver from mount internally (vehicle perspective)
-        obj.PassengerInSeat(target) match {
-          case Some(index) =>
-            obj.Seats(index).unmount(target)
-          case _ => ;
-        }
-        //boot cadaver from mount on client
-        events ! AvatarServiceMessage(
-          nameChannel,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            ObjectDetachMessage(obj.GUID, player_guid, target.Position, Vector3.Zero)
-          )
-        )
-        //make player invisible on client
-        events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 29, 1))
-        //only the dead player should "see" their own body, so that the death camera has something to focus on
-        events ! AvatarServiceMessage(zoneChannel, AvatarAction.ObjectDelete(player_guid, player_guid))
-      case _ => ;
-    }
+    events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid, cause, target.VehicleSeated)) //align client interface fields with state
     events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 0, 0)) //health
     if (target.Capacitor > 0) {
       target.Capacitor = 0
@@ -1013,28 +982,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         DestroyMessage(player_guid, attribute, Service.defaultPlayerGUID, pos)
       ) //how many players get this message?
     )
-    //TODO other methods of death?
-    val pentry = PlayerSource(target)
-    cause
-      .adversarial
-      .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
-      .orElse {
-        target.LastDamage.collect {
-          case attack if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
-            attack
-              .adversarial
-              .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
-        }.flatten
-      } match {
-      case Some(adversarial) =>
-        events ! AvatarServiceMessage(
-          zoneChannel,
-          AvatarAction.DestroyDisplay(adversarial.attacker, pentry, adversarial.implement)
-        )
-      case _ =>
-        events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
-    }
-    zone.actor ! ZoneActor.RewardThisDeath(player)
   }
 
   def suicide() : Unit = {

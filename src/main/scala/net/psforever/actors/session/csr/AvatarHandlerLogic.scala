@@ -2,6 +2,8 @@
 package net.psforever.actors.session.csr
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.actors.session.SessionActor
+import net.psforever.actors.session.normal.NormalMode
 import net.psforever.actors.session.support.AvatarHandlerFunctions
 import net.psforever.login.WorldSession.PutLoadoutEquipmentInInventory
 import net.psforever.objects.PlanetSideGameObject
@@ -9,6 +11,7 @@ import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
+import net.psforever.services.avatar.AvatarServiceResponse
 import net.psforever.types.ImplantType
 
 //
@@ -54,9 +57,13 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
     val isSameTarget = !isNotSameTarget
     reply match {
       /* special messages */
+      case AvatarResponse.TeardownConnection() if player.spectator =>
+        context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
+        context.self.forward(AvatarServiceResponse(toChannel, guid, reply))
+
       case AvatarResponse.TeardownConnection() =>
-        log.trace(s"ending ${player.Name}'s old session by event system request (relog)")
-        context.stop(context.self)
+        context.self ! SessionActor.SetMode(NormalMode)
+        context.self.forward(AvatarServiceResponse(toChannel, guid, reply))
 
       /* really common messages (very frequently, every life) */
       case pstate @ AvatarResponse.PlayerState(
@@ -435,28 +442,38 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         if isNotSameTarget && ops.lastSeenStreamMessage.get(guid.guid).exists { _.visible } =>
         sendResponse(ReloadMessage(itemGuid, ammo_clip=1, unk1=0))
 
-      case AvatarResponse.Killed(mount) =>
+      case AvatarResponse.Killed(_, mount) =>
         //pure logic
         sessionLogic.shooting.shotsWhileDead = 0
         sessionLogic.zoning.CancelZoningProcess()
         sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
         sessionLogic.zoning.zoningStatus = Zoning.Status.None
-        continent.GUID(mount)
-          .collect {
-            case obj: Vehicle if obj.Destroyed =>
-              sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
-              sessionLogic.general.unaccessContainer(obj)
-            case obj: PlanetSideGameObject with Mountable with Container if obj.Destroyed =>
-              sessionLogic.general.unaccessContainer(obj)
-            case _ => ()
-          }
+        continent.GUID(mount).collect {
+          case obj: Vehicle if obj.Destroyed =>
+            ops.killedWhileMounted(obj, resolvedPlayerGuid)
+            sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
+            sessionLogic.general.unaccessContainer(obj)
+
+          case obj: Vehicle =>
+            ops.killedWhileMounted(obj, resolvedPlayerGuid)
+            sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
+
+          case obj: PlanetSideGameObject with Mountable with Container if obj.Destroyed =>
+            ops.killedWhileMounted(obj, resolvedPlayerGuid)
+            sessionLogic.general.unaccessContainer(obj)
+
+          case obj: PlanetSideGameObject with Mountable with Container =>
+            ops.killedWhileMounted(obj, resolvedPlayerGuid)
+
+          case obj: PlanetSideGameObject with Mountable =>
+            ops.killedWhileMounted(obj, resolvedPlayerGuid)
+        }
         //player state changes
         sessionLogic.general.dropSpecialSlotItem()
         sessionLogic.general.toggleMaxSpecialState(enable = false)
         player.FreeHand.Equipment.foreach(DropEquipmentFromInventory(player)(_))
         AvatarActor.updateToolDischargeFor(avatar)
         AvatarActor.savePlayerLocation(player)
-        player.VehicleSeated = None
         ops.revive(player.GUID)
         avatarActor ! AvatarActor.InitializeImplants
         //render

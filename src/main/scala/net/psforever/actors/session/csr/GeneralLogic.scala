@@ -71,6 +71,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     ) = pkt
     sessionLogic.persist()
     sessionLogic.turnCounterFunc(avatarGuid)
+    sessionLogic.updateBlockMap(player, pos)
     //below half health, full heal
     val maxHealth = player.MaxHealth.toLong
     if (player.Health < maxHealth) {
@@ -165,6 +166,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       )
     )
     sessionLogic.squad.updateSquad()
+    player.allowInteraction = false
   }
 
   def handleVoiceHostRequest(pkt: VoiceHostRequest): Unit = {

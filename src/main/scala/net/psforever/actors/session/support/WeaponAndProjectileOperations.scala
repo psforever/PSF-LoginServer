@@ -510,8 +510,6 @@ class WeaponAndProjectileOperations(
       case target: AutomatedTurret.Target =>
         sessionLogic.validObject(attackerGuid, decorator = "AIDamage/AutomatedTurret")
           .collect {
-            case turret: AutomatedTurret if turret.Target.isEmpty =>
-              Nil
             case turret: AutomatedTurret =>
               prepareAIProjectile(target, CompileAutomatedTurretDamageData(turret, projectileTypeId))
           }
@@ -547,7 +545,7 @@ class WeaponAndProjectileOperations(
             case target: AutomatedTurret.Target =>
               turret.Actor ! AutomatedTurretBehavior.ConfirmShot(target)
           }
-          turret.Target.isEmpty
+          turret.Target.nonEmpty
       }
       .getOrElse(false)
   }

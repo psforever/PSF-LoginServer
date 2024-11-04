@@ -156,7 +156,10 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
 
   def commandToggleSpectatorMode(contents: String): Unit = {
     val currentSpectatorActivation = {
-      if (avatar != null) {
+      if (player != null) {
+        val avtr = player.avatar
+        player.isAlive && (avtr.permissions.canSpectate || avtr.permissions.canGM)
+      } else if (avatar != null) {
         avatar.permissions.canSpectate || avatar.permissions.canGM
       } else {
         false
@@ -173,7 +176,9 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     if (sessionLogic.zoning.maintainInitialGmState) {
       sessionLogic.zoning.maintainInitialGmState = false
     } else {
-      val currentCsrActivation = (if (avatar != null) {
+      val currentCsrActivation = (if (player != null) {
+        player.isAlive && player.avatar.permissions.canGM
+      } else if (avatar != null) {
         avatar.permissions.canGM
       } else {
         false
