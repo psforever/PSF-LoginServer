@@ -4,7 +4,7 @@ package net.psforever.objects.vital
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ToolDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.sourcing.{AmenitySource, PlayerSource, SourceEntry, SourceUniqueness, SourceWithHealthEntry, VehicleSource}
+import net.psforever.objects.sourcing.{AmenitySource, DeployableSource, PlayerSource, SourceEntry, SourceUniqueness, SourceWithHealthEntry, VehicleSource}
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
@@ -80,6 +80,9 @@ final case class ShieldCharge(amount: Int, cause: Option[SourceEntry])
   extends GeneralActivity
 
 final case class TerminalUsedActivity(terminal: AmenitySource, transaction: TransactionType.Value)
+  extends GeneralActivity
+
+final case class TelepadUseActivity(router: VehicleSource, telepad: DeployableSource, player: PlayerSource)
   extends GeneralActivity
 
 sealed trait VehicleMountChange extends GeneralActivity {
@@ -248,7 +251,7 @@ trait InGameHistory {
    */
   def LogActivity(action: Option[InGameActivity]): List[InGameActivity] = {
     action match {
-      case Some(act: VehicleDismountActivity) =>
+      case Some(act: VehicleDismountActivity) if act.pairedEvent.isEmpty =>
         history
           .findLast(_.isInstanceOf[VehicleMountActivity])
           .collect {
@@ -259,6 +262,8 @@ trait InGameHistory {
             history = history :+ act
             None
           }
+      case Some(act: VehicleDismountActivity) =>
+        history = history :+ act
       case Some(act: VehicleCargoDismountActivity) =>
         history
           .findLast(_.isInstanceOf[VehicleCargoMountActivity])

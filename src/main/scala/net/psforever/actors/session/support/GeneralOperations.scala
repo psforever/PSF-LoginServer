@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.serverobject.terminals.{MatrixTerminalDefinition, Terminal}
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.FacilityTurret
-import net.psforever.objects.sourcing.{PlayerSource, VehicleSource}
+import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, VehicleSource}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.services.RemoverActor
@@ -1372,11 +1372,8 @@ class GeneralOperations(
         continent.id,
         LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid)
       )
-      val vSource = VehicleSource(router)
-      val zoneNumber = continent.Number
-      player.LogActivity(VehicleMountActivity(vSource, PlayerSource(player), zoneNumber))
       player.Position = dest.Position
-      player.LogActivity(VehicleDismountActivity(vSource, PlayerSource(player), zoneNumber))
+      player.LogActivity(TelepadUseActivity(VehicleSource(router), DeployableSource(remoteTelepad), PlayerSource(player)))
     } else {
       log.warn(s"UseRouterTelepadSystem: ${player.Name} can not teleport")
     }
