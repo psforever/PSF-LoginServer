@@ -24,7 +24,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
 
   def handleChatMsg(message: ChatMsg): Unit = {
     import net.psforever.types.ChatMessageType._
-    val isAlive = if (player != null) player.isAlive else false
+    lazy val isAlive = avatar != null && player != null && player.isAlive
     (message.messageType, message.recipient.trim, message.contents.trim) match {
       /** Messages starting with ! are custom chat commands */
       case (_, _, contents) if contents.startsWith("!") &&
@@ -32,7 +32,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
 
       case (CMT_ANONYMOUS, _, _) => ()
 
-      case (CMT_TOGGLE_GM, _, contents) =>
+      case (CMT_TOGGLE_GM, _, contents) if isAlive =>
         customCommandModerator(contents)
 
       case (CMT_CULLWATERMARK, _, contents) =>
@@ -155,16 +155,10 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
   }
 
   def commandToggleSpectatorMode(contents: String): Unit = {
-    val currentSpectatorActivation = {
-      if (player != null) {
-        val avtr = player.avatar
-        player.isAlive && (avtr.permissions.canSpectate || avtr.permissions.canGM)
-      } else if (avatar != null) {
-        avatar.permissions.canSpectate || avatar.permissions.canGM
-      } else {
-        false
-      }
-    } || Config.app.world.serverType == ServerType.Development
+    val currentSpectatorActivation =
+      avatar.permissions.canSpectate ||
+        avatar.permissions.canGM ||
+        Config.app.world.serverType == ServerType.Development
     contents.toLowerCase() match {
       case "on" | "o" | "" if currentSpectatorActivation && !player.spectator =>
         context.self ! SessionActor.SetMode(ops.CurrentSpectatorMode)
@@ -175,21 +169,19 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
   def customCommandModerator(contents: String): Boolean = {
     if (sessionLogic.zoning.maintainInitialGmState) {
       sessionLogic.zoning.maintainInitialGmState = false
+      true
     } else {
-      val currentCsrActivation = (if (player != null) {
-        player.isAlive && player.avatar.permissions.canGM
-      } else if (avatar != null) {
-        avatar.permissions.canGM
-      } else {
-        false
-      }) || Config.app.world.serverType == ServerType.Development
+      val currentCsrActivation =
+        avatar.permissions.canGM ||
+          Config.app.world.serverType == ServerType.Development
       contents.toLowerCase() match {
         case "on" | "o" | "" if currentCsrActivation =>
           import net.psforever.actors.session.csr.CustomerServiceRepresentativeMode
           context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
-        case _ => ()
+          true
+        case _ =>
+          false
       }
     }
-    true
   }
 }

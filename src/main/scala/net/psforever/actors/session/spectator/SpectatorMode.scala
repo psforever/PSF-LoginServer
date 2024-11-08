@@ -166,7 +166,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "off"))
     sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SpectatorDisabled"))
     zoning.zoneReload = true
-    zoning.spawn.randomRespawn(0.seconds) //to sanctuary
+    zoning.spawn.randomRespawn(10.milliseconds) //to sanctuary
   }
 }
 

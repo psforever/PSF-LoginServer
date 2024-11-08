@@ -9,6 +9,7 @@ import net.psforever.objects.Session
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.chat.SpectatorChannel
 import net.psforever.types.ChatMessageType
+import net.psforever.zones.Zones
 
 import scala.collection.Seq
 
@@ -78,8 +79,9 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_WHO | CMT_WHO_CSR | CMT_WHO_CR | CMT_WHO_PLATOONLEADERS | CMT_WHO_SQUADLEADERS | CMT_WHO_TEAMS, _, _) =>
         ops.commandWho(session)
 
-      case (CMT_ZONE, _, contents) =>
-        ops.commandZone(message, contents)
+      case (CMT_ZONE, _, _) =>
+        commandToggleSpectatorMode(contents = "off")
+        ops.commandZone(message, Zones.sanctuaryZoneId(player.Faction))
 
       case (CMT_WARP, _, contents) =>
         ops.commandWarp(session, message, contents)
