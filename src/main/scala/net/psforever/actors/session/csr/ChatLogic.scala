@@ -5,13 +5,20 @@ import akka.actor.ActorContext
 import net.psforever.actors.session.SessionActor
 import net.psforever.actors.session.normal.NormalMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
-import net.psforever.objects.Session
+import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Session, TurretDeployable}
+import net.psforever.objects.ce.{Deployable, DeployableCategory}
+import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
+import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.chat.{ChatChannel, DefaultChannel, SpectatorChannel}
-import net.psforever.types.ChatMessageType
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire}
+
+import scala.util.Success
 
 object ChatLogic {
   def apply(ops: ChatOperations): ChatLogic = {
@@ -207,6 +214,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case "showspectators" => customCommandShowSpectators()
         case "hidespectators" => customCommandHideSpectators()
         case "sayspectator" => customCommandSpeakAsSpectator(params, message)
+        case "setempire" => customCommandSetEmpire(params)
         case _ =>
           // command was not handled
           sendResponse(
@@ -307,6 +315,78 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     handleChatMsg(message.copy(contents = params.mkString(" ")))
     comms = DefaultChannel
     true
+  }
+
+  private def customCommandSetEmpire(params: Seq[String]): Boolean = {
+    var postUsage: Boolean = false
+    val (entityOpt, foundFaction) = (params.headOption, params.lift(1)) match {
+      case (Some(guid), Some(faction)) if guid.toIntOption.nonEmpty =>
+        try {
+          (continent.GUID(guid.toInt), PlanetSideEmpire.apply(faction))
+        } catch {
+          case _: Exception =>
+            (None, PlanetSideEmpire.NEUTRAL)
+        }
+      case (Some(guid), None) if guid.toIntOption.nonEmpty =>
+        (continent.GUID(guid.toInt), player.Faction)
+      case _ =>
+        postUsage = true
+        (None, PlanetSideEmpire.NEUTRAL)
+    }
+    entityOpt
+      .collect {
+        case f: FactionAffinity if f.Faction != foundFaction && foundFaction != PlanetSideEmpire.NEUTRAL => f
+      }
+      .collect {
+        case o: TurretDeployable
+          if o.Definition.DeployCategory == DeployableCategory.FieldTurrets =>
+          //remove prior turret and construct new one
+          import scala.concurrent.ExecutionContext.Implicits.global
+          import scala.concurrent.duration._
+          o.Actor ! Deployable.Deconstruct(Some(2.seconds))
+          sessionLogic.general.handleDeployObject(
+            continent,
+            GlobalDefinitions.PortableMannedTurret(foundFaction).Item,
+            o.Position,
+            o.Orientation,
+            o.WhichSide,
+            foundFaction
+          ).onComplete {
+            case Success(obj2) => sendResponse(ChatMsg(ChatMessageType.UNK_227, s"${obj2.GUID.guid}"))
+            case _ => ()
+          }
+          true
+        case o: Deployable =>
+          o.Faction = foundFaction
+          continent.AvatarEvents ! AvatarServiceMessage(
+            continent.id,
+            AvatarAction.SetEmpire(Service.defaultPlayerGUID, o.GUID, foundFaction)
+          )
+          true
+        case o: Building =>
+          ops.commandCaptureBaseProcessResults(Some(Seq(o)), Some(foundFaction), Some(1))
+          true
+        case o: PlanetSideServerObject with Hackable =>
+          o.Actor ! CommonMessages.Hack(player, o)
+          true
+        case o: PlanetSideGameObject with FactionAffinity =>
+          o.Faction = foundFaction
+          continent.AvatarEvents ! AvatarServiceMessage(
+            continent.id,
+            AvatarAction.SetEmpire(Service.defaultPlayerGUID, o.GUID, foundFaction)
+          )
+          true
+      }
+      .getOrElse {
+        if (postUsage) {
+          sendResponse(ChatMsg(ChatMessageType.UNK_227, "!setempire guid [faction]"))
+        } else if (entityOpt.nonEmpty) {
+          sendResponse(ChatMsg(ChatMessageType.UNK_227, "set empire entity not supported"))
+        } else {
+          sendResponse(ChatMsg(ChatMessageType.UNK_227, "set empire entity not found"))
+        }
+        true
+      }
   }
 
   override def stop(): Unit = {

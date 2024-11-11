@@ -20,7 +20,9 @@ import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
+import scala.util.Success
 //
 import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.login.WorldSession._
@@ -1060,16 +1062,22 @@ class GeneralOperations(
                           faction: PlanetSideEmpire.Value,
                           owner: Player,
                           builtWith: ConstructionItem
-                        ): Unit = {
+                        ): Future[Deployable] = {
     val (deployableEntity, tasking) = commonHandleDeployObjectSetup(zone, deployableType, position, orientation, side, faction)
     deployableEntity.AssignOwnership(owner)
+    val promisedDeployable: Promise[Deployable] = Promise()
     //execute
-    TaskWorkflow.execute(CallBackForTask(
+    val result = TaskWorkflow.execute(CallBackForTask(
       tasking,
       zone.Deployables,
       Zone.Deployable.BuildByOwner(deployableEntity, owner, builtWith),
       context.self
     ))
+    result.onComplete {
+      case Success(_) => promisedDeployable.success(deployableEntity)
+      case _ => ()
+    }
+    promisedDeployable.future
   }
 
   def handleDeployObject(
@@ -1079,16 +1087,18 @@ class GeneralOperations(
                           orientation: Vector3,
                           side: Sidedness,
                           faction: PlanetSideEmpire.Value
-                        ): Unit = {
+                        ): Future[Deployable] = {
     val (deployableEntity, tasking) = commonHandleDeployObjectSetup(zone, deployableType, position, orientation, side, faction)
+    val promisedDeployable: Promise[Deployable] = Promise()
     //execute
-    TaskWorkflow.execute(CallBackForTask(
+    val result = TaskWorkflow.execute(CallBackForTask(
       tasking,
       zone.Deployables,
       Zone.Deployable.Build(deployableEntity),
       context.self
-    )).onComplete {
-      _ =>
+    ))
+    result.onComplete {
+      case Success(_) =>
         Players.buildCooldownReset(zone, player.Name, deployableEntity.GUID)
         deployableEntity.Actor ! Deployable.Deconstruct(Some(20.minutes))
         if (deployableType == DeployedItem.boomer) {
@@ -1101,7 +1111,10 @@ class GeneralOperations(
             Zone.Ground.DropItem(trigger, position + Vector3.z(value = 0.5f), Vector3.z(orientation.z))
           ))
         }
+        promisedDeployable.success(deployableEntity)
+      case _ => ()
     }
+    promisedDeployable.future
   }
 
   def handleUseDoor(door: Door, equipment: Option[Equipment]): Unit = {

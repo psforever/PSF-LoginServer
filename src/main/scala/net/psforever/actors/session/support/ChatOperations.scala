@@ -327,6 +327,28 @@ class ChatOperations(
         }
       }
     //evaluate results
+    if (!commandCaptureBaseProcessResults(resolvedFacilities, resolvedFaction, resolvedTimer)) {
+      if (usageMessage) {
+        sendResponse(
+          message.copy(messageType = UNK_229, contents = "@CMT_CAPTUREBASE_usage")
+        )
+      } else {
+        val msg = if (facilityError == 1) { "can not contextually determine building target" }
+        else if (facilityError == 2) { s"\'${foundFacilitiesTag.get}\' is not a valid building name" }
+        else if (factionError) { s"\'${foundFactionTag.get}\' is not a valid faction designation" }
+        else if (timerError) { s"\'${foundTimerTag.get}\' is not a valid timer value" }
+        else { "malformed params; check usage" }
+        sendResponse(ChatMsg(UNK_229, wideContents=true, "", s"\\#FF4040ERROR - $msg", None))
+      }
+    }
+  }
+
+  def commandCaptureBaseProcessResults(
+                                        resolvedFacilities: Option[Seq[Building]],
+                                        resolvedFaction: Option[PlanetSideEmpire.Value],
+                                        resolvedTimer: Option[Int]
+                                      ): Boolean = {
+    //evaluate results
     (resolvedFacilities, resolvedFaction, resolvedTimer) match {
       case (Some(buildings), Some(faction), Some(_)) =>
         buildings.foreach { building =>
@@ -350,19 +372,9 @@ class ChatOperations(
           //push for map updates again
           zoneActor ! ZoneActor.ZoneMapUpdate()
         }
+        true
       case _ =>
-        if (usageMessage) {
-          sendResponse(
-            message.copy(messageType = UNK_229, contents = "@CMT_CAPTUREBASE_usage")
-          )
-        } else {
-          val msg = if (facilityError == 1) { "can not contextually determine building target" }
-          else if (facilityError == 2) { s"\'${foundFacilitiesTag.get}\' is not a valid building name" }
-          else if (factionError) { s"\'${foundFactionTag.get}\' is not a valid faction designation" }
-          else if (timerError) { s"\'${foundTimerTag.get}\' is not a valid timer value" }
-          else { "malformed params; check usage" }
-          sendResponse(ChatMsg(UNK_229, wideContents=true, "", s"\\#FF4040ERROR - $msg", None))
-        }
+        false
     }
   }
 

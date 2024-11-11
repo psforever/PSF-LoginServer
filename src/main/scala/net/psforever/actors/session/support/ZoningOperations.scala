@@ -158,6 +158,18 @@ object ZoningOperations {
       events ! LocalServiceMessage(target, soundMessage)
     }
   }
+
+  def findBuildingsBySoiOccupancy(zone: Zone, position: Vector3): List[Building] = {
+    val positionxy = position.xy
+    zone
+      .blockMap
+      .sector(positionxy, range=5)
+      .buildingList
+      .filter { building =>
+        val radius = building.Definition.SOIRadius
+        Vector3.DistanceSquared(building.Position.xy, positionxy) < radius * radius
+      }
+  }
 }
 
 class ZoningOperations(
@@ -868,12 +880,7 @@ class ZoningOperations(
     val location = if (Zones.sanctuaryZoneNumber(player.Faction) == continent.Number) {
       Zoning.Time.Sanctuary
     } else {
-      val playerPosition = player.Position.xy
-      continent.Buildings.values
-        .filter { building =>
-          val radius = building.Definition.SOIRadius
-          Vector3.DistanceSquared(building.Position.xy, playerPosition) < radius * radius
-        } match {
+      ZoningOperations.findBuildingsBySoiOccupancy(continent, player.Position) match {
         case Nil =>
           Zoning.Time.None
         case List(building: FactionAffinity) =>

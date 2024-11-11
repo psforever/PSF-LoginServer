@@ -7,7 +7,7 @@ import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations
 import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, ConstructionItem, GlobalDefinitions, LivePlayerList, Player, SensorDeployable, ShieldGeneratorDeployable, SpecialEmp, TelepadDeployable, Tool, TrapDeployable, TurretDeployable, Vehicle}
 import net.psforever.objects.avatar.{Avatar, PlayerControl}
 import net.psforever.objects.ballistics.Projectile
-import net.psforever.objects.ce.{Deployable, DeployedItem}
+import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.{BasicDefinition, KitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.equipment.Equipment
@@ -30,10 +30,12 @@ import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.RemoverActor
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.types.{CapacitorStateType, Cosmetic, ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
+import net.psforever.types.{CapacitorStateType, ChatMessageType, Cosmetic, ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
+
+import scala.util.Success
 
 object GeneralLogic {
   def apply(ops: GeneralOperations): GeneralLogic = {
@@ -354,15 +356,16 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
 
   def handleDeployObject(pkt: DeployObjectMessage): Unit = {
     if (!player.spectator) {
+      import scala.concurrent.ExecutionContext.Implicits.global
       val DeployObjectMessage(guid, _, pos, orient, _) = pkt
       player.Holsters().find(slot => slot.Equipment.nonEmpty && slot.Equipment.get.GUID == guid).flatMap { slot => slot.Equipment } match {
         case Some(obj: ConstructionItem) =>
-          val ammoType = obj.AmmoType match {
-            case DeployedItem.portable_manned_turret => GlobalDefinitions.PortableMannedTurret(player.Faction).Item
-            case dtype                               => dtype
-          }
           sessionLogic.zoning.CancelZoningProcess()
-          ops.handleDeployObject(continent, ammoType, pos, orient, player.WhichSide, PlanetSideEmpire.NEUTRAL)
+          val result = ops.handleDeployObject(continent, obj.AmmoType, pos, orient, player.WhichSide, PlanetSideEmpire.NEUTRAL)
+          result.onComplete {
+            case Success(obj) => sendResponse(ChatMsg(ChatMessageType.UNK_227, s"${obj.GUID.guid}"))
+            case _ => ()
+          }
         case Some(obj) =>
           log.warn(s"DeployObject: what is $obj, ${player.Name}?  It's not a construction tool!")
         case None =>
