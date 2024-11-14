@@ -999,10 +999,17 @@ class ChatOperations(
   private def captureBaseCurrSoi(
                                   session: Session
                                 ): Iterable[Building] = {
-    val charId = session.player.CharId
-    session.zone.Buildings.values.filter { building =>
-      building.PlayersInSOI.exists(_.CharId == charId)
-    }
+    val player = session.player
+    val positionxy = player.Position.xy
+    session
+      .zone
+      .blockMap
+      .sector(player)
+      .buildingList
+      .filter { building =>
+        val radius = building.Definition.SOIRadius
+        Vector3.DistanceSquared(building.Position.xy, positionxy) < radius * radius
+      }
   }
 
   private def captureBaseParamFaction(

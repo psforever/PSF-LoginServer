@@ -17,6 +17,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, TriggeredSound}
 import net.psforever.services.chat.DefaultChannel
 
@@ -157,6 +158,18 @@ object ZoningOperations {
     (soundTargets.map(_.Name) ++ additionalChannels).foreach { target =>
       events ! LocalServiceMessage(target, soundMessage)
     }
+  }
+
+  def findBuildingsBySoiOccupancy(zone: Zone, obj: PlanetSideGameObject with BlockMapEntity): List[Building] = {
+    val positionxy = obj.Position.xy
+    zone
+      .blockMap
+      .sector(obj)
+      .buildingList
+      .filter { building =>
+        val radius = building.Definition.SOIRadius
+        Vector3.DistanceSquared(building.Position.xy, positionxy) < radius * radius
+      }
   }
 
   def findBuildingsBySoiOccupancy(zone: Zone, position: Vector3): List[Building] = {
