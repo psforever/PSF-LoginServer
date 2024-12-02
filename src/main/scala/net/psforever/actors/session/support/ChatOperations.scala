@@ -58,6 +58,7 @@ class ChatOperations(
                     ) extends CommonSessionInterfacingFunctionality {
   private var channels: List[ChatChannel] = List()
   private var silenceTimer: Cancellable = Default.Cancellable
+  private[session] var transitoryCommandEntered: Option[ChatMessageType] = None
   /**
    * when another player is listed as one of our ignored players,
    * and that other player sends an emote,

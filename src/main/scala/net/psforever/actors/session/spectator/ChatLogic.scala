@@ -9,6 +9,7 @@ import net.psforever.objects.Session
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.chat.SpectatorChannel
 import net.psforever.types.ChatMessageType
+import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}
 import net.psforever.zones.Zones
 
 import scala.collection.Seq
@@ -20,6 +21,8 @@ object ChatLogic {
 }
 
 class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) extends ChatFunctions {
+  ops.transitoryCommandEntered = None
+
   def sessionLogic: SessionData = ops.sessionLogic
 
   def handleChatMsg(message: ChatMsg): Unit = {
@@ -147,11 +150,21 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     }
   }
 
-  private def commandToggleSpectatorMode(contents: String): Unit = {
-    contents.toLowerCase() match {
-      case "off" | "of" =>
-        context.self ! SessionActor.SetMode(NormalMode)
-      case _ => ()
-    }
+  private def commandToggleSpectatorMode(contents: String): Boolean = {
+    ops.transitoryCommandEntered
+      .collect {
+        case CMT_TOGGLESPECTATORMODE => true
+        case CMT_TOGGLE_GM => false
+      }
+      .getOrElse {
+        contents.toLowerCase() match {
+          case "off" | "of" =>
+            ops.transitoryCommandEntered = Some(CMT_TOGGLESPECTATORMODE)
+            context.self ! SessionActor.SetMode(NormalMode)
+            true
+          case _ =>
+            false
+        }
+      }
   }
 }

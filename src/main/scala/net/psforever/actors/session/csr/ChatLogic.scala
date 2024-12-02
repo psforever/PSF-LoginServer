@@ -16,6 +16,7 @@ import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.chat.{ChatChannel, DefaultChannel, SpectatorChannel}
+import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire}
 
 import scala.util.Success
@@ -27,6 +28,15 @@ object ChatLogic {
 }
 
 class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) extends ChatFunctions {
+  ops.transitoryCommandEntered match {
+    case Some(CMT_TOGGLESPECTATORMODE) =>
+      //we are transitioning down from csr spectator mode to normal mode, continue to block transitory messages
+      ()
+    case _ =>
+      //correct player mode
+      ops.transitoryCommandEntered = None
+  }
+
   def sessionLogic: SessionData = ops.sessionLogic
 
   ops.CurrentSpectatorMode = SpectateAsCustomerServiceRepresentativeMode
@@ -246,17 +256,29 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
   private def customCommandModerator(contents: String): Boolean = {
     if (sessionLogic.zoning.maintainInitialGmState) {
       sessionLogic.zoning.maintainInitialGmState = false
+      true
     } else {
-      contents.toLowerCase() match {
-        case "off" | "of" if player.spectator =>
-          context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
-          context.self ! SessionActor.SetMode(NormalMode)
-        case "off" | "of" =>
-          context.self ! SessionActor.SetMode(NormalMode)
-        case _ => ()
-      }
+      ops.transitoryCommandEntered
+        .collect {
+          case CMT_TOGGLE_GM => true
+          case CMT_TOGGLESPECTATORMODE => false
+        }
+        .getOrElse {
+          contents.toLowerCase() match {
+            case "off" | "of" if player.spectator =>
+              ops.transitoryCommandEntered = Some(CMT_TOGGLESPECTATORMODE)
+              context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
+              context.self ! SessionActor.SetMode(NormalMode)
+              true
+            case "off" | "of" =>
+              ops.transitoryCommandEntered = Some(CMT_TOGGLE_GM)
+              context.self ! SessionActor.SetMode(NormalMode)
+              true
+            case _ =>
+              false
+          }
+        }
     }
-    true
   }
 
   private def customCommandToggleSpectators(contents: Seq[String]): Boolean = {

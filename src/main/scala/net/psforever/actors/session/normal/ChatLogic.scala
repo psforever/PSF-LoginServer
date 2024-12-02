@@ -9,6 +9,7 @@ import net.psforever.objects.Session
 import net.psforever.packet.game.{ChatMsg, ServerType, SetChatFilterMessage}
 import net.psforever.services.chat.DefaultChannel
 import net.psforever.types.ChatMessageType
+import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}
 import net.psforever.util.Config
 
 object ChatLogic {
@@ -21,6 +22,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
   def sessionLogic: SessionData = ops.sessionLogic
 
   ops.CurrentSpectatorMode = SpectatorMode
+  ops.transitoryCommandEntered = None
 
   def handleChatMsg(message: ChatMsg): Unit = {
     import net.psforever.types.ChatMessageType._
@@ -154,16 +156,26 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     }
   }
 
-  def commandToggleSpectatorMode(contents: String): Unit = {
-    val currentSpectatorActivation =
-      avatar.permissions.canSpectate ||
-        avatar.permissions.canGM ||
-        Config.app.world.serverType == ServerType.Development
-    contents.toLowerCase() match {
-      case "on" | "o" | "" if currentSpectatorActivation && !player.spectator =>
-        context.self ! SessionActor.SetMode(ops.CurrentSpectatorMode)
-      case _ => ()
-    }
+  def commandToggleSpectatorMode(contents: String): Boolean = {
+    ops.transitoryCommandEntered
+      .collect {
+        case CMT_TOGGLESPECTATORMODE => true
+        case CMT_TOGGLE_GM => false
+      }
+      .getOrElse {
+        val currentSpectatorActivation =
+          avatar.permissions.canSpectate ||
+            avatar.permissions.canGM ||
+            Config.app.world.serverType == ServerType.Development
+        contents.toLowerCase() match {
+          case "on" | "o" | "" if currentSpectatorActivation && !player.spectator =>
+            ops.transitoryCommandEntered = Some(CMT_TOGGLESPECTATORMODE)
+            context.self ! SessionActor.SetMode(ops.CurrentSpectatorMode)
+            true
+          case _ =>
+            false
+        }
+      }
   }
 
   def customCommandModerator(contents: String): Boolean = {
@@ -171,17 +183,25 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       sessionLogic.zoning.maintainInitialGmState = false
       true
     } else {
-      val currentCsrActivation =
-        avatar.permissions.canGM ||
-          Config.app.world.serverType == ServerType.Development
-      contents.toLowerCase() match {
-        case "on" | "o" | "" if currentCsrActivation =>
-          import net.psforever.actors.session.csr.CustomerServiceRepresentativeMode
-          context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
-          true
-        case _ =>
-          false
-      }
+      ops.transitoryCommandEntered
+        .collect {
+          case CMT_TOGGLE_GM => true
+          case CMT_TOGGLESPECTATORMODE => false
+        }
+        .getOrElse {
+          val currentCsrActivation =
+            avatar.permissions.canGM ||
+              Config.app.world.serverType == ServerType.Development
+          contents.toLowerCase() match {
+            case "on" | "o" | "" if currentCsrActivation =>
+              import net.psforever.actors.session.csr.CustomerServiceRepresentativeMode
+              ops.transitoryCommandEntered = Some(CMT_TOGGLE_GM)
+              context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
+              true
+            case _ =>
+              false
+          }
+        }
     }
   }
 }
