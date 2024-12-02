@@ -160,7 +160,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (mode != newMode) {
       logic.switchFrom(data.session)
       mode = newMode
-      logic = mode.setup(data)
+      logic = newMode.setup(data)
     }
     logic.switchTo(data.session)
   }

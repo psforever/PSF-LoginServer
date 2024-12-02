@@ -16,7 +16,6 @@ import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects._
 import net.psforever.objects.definition.ProjectileDefinition
 import net.psforever.objects.serverobject.CommonMessages
-import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.environment.{DeepSquare, EnvironmentAttribute, Pool}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.base.DamageResolution
@@ -533,7 +532,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
       assert(player2.isAlive)
 
       player2.Actor ! Vitality.Damage(applyDamageTo)
-      val msg_avatar = avatarProbe.receiveN(8, 500 milliseconds)
+      val msg_avatar = avatarProbe.receiveN(5, 500 milliseconds)
       val msg_stamina = probe.receiveOne(500 milliseconds)
       activityProbe.expectNoMessage(200 milliseconds)
       assert(
@@ -550,56 +549,29 @@ class PlayerControlDeathStandingTest extends ActorTest {
       )
       assert(
         msg_avatar(1) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.DropSpecialItem()) => true
-          case _                                                                      => false
-        }
-      )
-      assert(
-        msg_avatar(2) match {
-          case AvatarServiceMessage("TestCharacter2", AvatarAction.Killed(PlanetSideGUID(2), None)) => true
+          case AvatarServiceMessage("TestCharacter2", AvatarAction.Killed(PlanetSideGUID(2), _, None)) => true
           case _                                                                                    => false
         }
       )
       assert(
-        msg_avatar(3) match {
+        msg_avatar(2) match {
           case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
           case _                                                                                            => false
         }
       )
       assert(
-        msg_avatar(4) match {
+        msg_avatar(3) match {
           case AvatarServiceMessage("TestCharacter2", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 7, _)) =>
             true
           case _ => false
         }
       )
       assert(
-        msg_avatar(5) match {
+        msg_avatar(4) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
                 AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _))
               ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        msg_avatar(6) match {
-          case AvatarServiceMessage(
-                "TestCharacter2",
-                AvatarAction.SendResponse(
-                  _,
-                  AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3.Zero, PlanetSideEmpire.NC, true)
-                )
-              ) =>
-            true
-          case _ => false
-        }
-      )
-      assert(
-        msg_avatar(7) match {
-          case AvatarServiceMessage("test", AvatarAction.DestroyDisplay(killer, victim, _, _))
-              if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) =>
             true
           case _ => false
         }
@@ -680,7 +652,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
 //      assert(player2.isAlive)
 //
 //      player2.Actor ! Vitality.Damage(applyDamageTo)
-//      val msg_avatar = avatarProbe.receiveN(9, 1500 milliseconds)
+//      val msg_avatar = avatarProbe.receiveN(3, 1500 milliseconds)
 //      val msg_stamina = probe.receiveOne(500 milliseconds)
 //      activityProbe.expectNoMessage(200 milliseconds)
 //      assert(
@@ -691,79 +663,26 @@ class PlayerControlDeathStandingTest extends ActorTest {
 //      )
 //      assert(
 //        msg_avatar.head match {
-//          case AvatarServiceMessage("TestCharacter2", AvatarAction.DropSpecialItem()) => true
-//          case _                                                                      => false
+//          case AvatarServiceMessage(
+//                "TestCharacter2",
+//                AvatarAction.Killed(PlanetSideGUID(2), _, Some(PlanetSideGUID(7)))
+//              ) =>
+//            true
+//          case _ => false
 //        }
 //      )
 //      assert(
 //        msg_avatar(1) match {
-//          case AvatarServiceMessage(
-//                "TestCharacter2",
-//                AvatarAction.Killed(PlanetSideGUID(2), Some(PlanetSideGUID(7)))
-//              ) =>
-//            true
-//          case _ => false
+//          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
+//          case _                                                                                            => false
 //        }
 //      )
 //      assert(
 //        msg_avatar(2) match {
 //          case AvatarServiceMessage(
 //                "TestCharacter2",
-//                AvatarAction.SendResponse(_, ObjectDetachMessage(PlanetSideGUID(7), PlanetSideGUID(2), _, _, _, _))
-//              ) =>
-//            true
-//          case _ => false
-//        }
-//      )
-//      assert(
-//        msg_avatar(3) match {
-//          case AvatarServiceMessage(
-//                "TestCharacter2",
-//                AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 29, 1)
-//              ) =>
-//            true
-//          case _ => false
-//        }
-//      )
-//      assert(
-//        msg_avatar(4) match {
-//          case AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(2), PlanetSideGUID(2), _)) => true
-//          case _                                                                                                => false
-//        }
-//      )
-//      assert(
-//        msg_avatar(5) match {
-//          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
-//          case _                                                                                            => false
-//        }
-//      )
-//      assert(
-//        msg_avatar(6) match {
-//          case AvatarServiceMessage(
-//                "TestCharacter2",
 //                AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _))
 //              ) =>
-//            true
-//          case _ => false
-//        }
-//      )
-//      assert(
-//        msg_avatar(7) match {
-//          case AvatarServiceMessage(
-//                "TestCharacter2",
-//                AvatarAction.SendResponse(
-//                  _,
-//                  AvatarDeadStateMessage(DeadState.Dead, 300000, 300000, Vector3.Zero, PlanetSideEmpire.NC, true)
-//                )
-//              ) =>
-//            true
-//          case _ => false
-//        }
-//      )
-//      assert(
-//        msg_avatar(8) match {
-//          case AvatarServiceMessage("test", AvatarAction.DestroyDisplay(killer, victim, _, _))
-//              if killer.Name.equals(player1.Name) && victim.Name.equals(player2.Name) =>
 //            true
 //          case _ => false
 //        }

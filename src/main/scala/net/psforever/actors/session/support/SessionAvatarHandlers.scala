@@ -2,9 +2,13 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.{Default, PlanetSideGameObject}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
+import net.psforever.services.Service
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage, AvatarServiceResponse}
 
 import scala.collection.mutable
 //
@@ -153,6 +157,45 @@ class SessionAvatarHandlers(
       victim.Faction,
       victimSeated
     )
+  }
+
+  def revive(revivalTargetGuid: PlanetSideGUID): Unit = {
+    val spawn = sessionLogic.zoning.spawn
+    spawn.reviveTimer.cancel()
+    spawn.reviveTimer = Default.Cancellable
+    spawn.respawnTimer.cancel()
+    spawn.respawnTimer = Default.Cancellable
+    player.Revive
+    val health = player.Health
+    sendResponse(PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
+    sendResponse(AvatarDeadStateMessage(DeadState.Alive, timer_max=0, timer=0, player.Position, player.Faction, unk5=true))
+    continent.AvatarEvents ! AvatarServiceMessage(
+      continent.id,
+      AvatarAction.PlanetsideAttributeToAll(revivalTargetGuid, attribute_type=0, health)
+    )
+  }
+
+  def killedWhileMounted(obj: PlanetSideGameObject with Mountable, playerGuid: PlanetSideGUID): Unit = {
+    val playerName = player.Name
+    //boot cadaver from mount on client
+    context.self ! AvatarServiceResponse(
+      playerName,
+      Service.defaultPlayerGUID,
+      AvatarResponse.SendResponse(
+        ObjectDetachMessage(obj.GUID, playerGuid, player.Position, Vector3.Zero)
+      )
+    )
+    //player no longer seated
+    obj.PassengerInSeat(player).foreach { seatNumber =>
+      //boot cadaver from mount internally (vehicle perspective)
+      obj.Seats(seatNumber).unmount(player)
+      //inform client-specific logic
+      context.self ! Mountable.MountMessages(
+        player,
+        Mountable.CanDismount(obj, seatNumber, 0)
+      )
+    }
+    player.VehicleSeated = None
   }
 }
 

@@ -221,7 +221,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
       case AvatarResponse.HitHint(sourceGuid) if player.isAlive =>
         sendResponse(HitHint(sourceGuid, guid))
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_dmg")
+        sessionLogic.zoning.CancelZoningProcess()
 
       case AvatarResponse.Destroy(victim, killer, weapon, pos) =>
         // guid = victim // killer = killer
@@ -235,10 +235,6 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sendResponse(ItemTransactionResultMessage(terminalGuid, action, result))
         sessionLogic.terminals.lastTerminalOrderFulfillment = true
         AvatarActor.savePlayerData(player)
-        sessionLogic.general.renewCharSavedTimer(
-          Config.app.game.savedMsg.interruptedByAction.fixed,
-          Config.app.game.savedMsg.interruptedByAction.variable
-        )
 
       case AvatarResponse.TerminalOrderResult(terminalGuid, action, result) =>
         sendResponse(ItemTransactionResultMessage(terminalGuid, action, result))
@@ -430,7 +426,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         if isNotSameTarget && ops.lastSeenStreamMessage.get(guid.guid).exists { _.visible } =>
         sendResponse(ReloadMessage(itemGuid, ammo_clip=1, unk1=0))
 
-      case AvatarResponse.Killed(mount) =>
+      case AvatarResponse.Killed(_, mount) =>
         //log and chat messages
         val cause = player.LastDamage.flatMap { damage =>
           val interaction = damage.interaction
@@ -451,8 +447,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           )
           sessionLogic.shooting.shotsWhileDead = 0
         }
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason(msg = "cancel")
-        sessionLogic.general.renewCharSavedTimer(fixedLen = 1800L, varLen = 0L)
+        sessionLogic.zoning.CancelZoningProcess()
 
         //player state changes
         AvatarActor.updateToolDischargeFor(avatar)
@@ -515,7 +510,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
       case AvatarResponse.EnvironmentalDamage(_, _, _) =>
         //TODO damage marker?
-        sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_dmg")
+        sessionLogic.zoning.CancelZoningProcess()
 
       case AvatarResponse.DropItem(pkt) if isNotSameTarget =>
         sendResponse(pkt)

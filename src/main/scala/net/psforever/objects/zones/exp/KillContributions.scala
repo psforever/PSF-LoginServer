@@ -5,7 +5,7 @@ import akka.actor.ActorRef
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.avatar.scoring.{Kill, SupportActivity}
 import net.psforever.objects.sourcing.{BuildingSource, PlayerSource, SourceEntry, SourceUniqueness, TurretSource, VehicleSource}
-import net.psforever.objects.vital.{Contribution, HealFromTerminal, InGameActivity, RepairFromTerminal, RevivingActivity, TerminalUsedActivity, VehicleCargoDismountActivity, VehicleCargoMountActivity, VehicleDismountActivity, VehicleMountActivity}
+import net.psforever.objects.vital.{Contribution, HealFromTerminal, InGameActivity, RepairFromTerminal, RevivingActivity, TelepadUseActivity, TerminalUsedActivity, VehicleCargoDismountActivity, VehicleCargoMountActivity, VehicleDismountActivity, VehicleMountActivity}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.exp.rec.{CombinedHealthAndArmorContributionProcess, MachineRecoveryExperienceContributionProcess}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -54,6 +54,11 @@ object KillContributions {
 
   /** cached for empty collection returns; please do not add anything to it */
   private val emptyMap: mutable.LongMap[ContributionStats] = mutable.LongMap.empty[ContributionStats]
+
+  /** cached for use with telepad deployable activities, from the perspective of the router */
+  private val routerKillAssist = RouterKillAssist(GlobalDefinitions.router.ObjectId)
+  /** cached for use with telepad deployable activities */
+  private val routerTelepadKillAssist = RouterKillAssist(GlobalDefinitions.router_telepad_deployable.ObjectId)
 
   /**
    * Primary landing point for calculating the rewards given for helping one player kill another player.
@@ -263,6 +268,7 @@ object KillContributions {
                                            ): mutable.LongMap[ContributionStats] = {
     contributeWithRevivalActivity(history, existingParticipants)
     contributeWithTerminalActivity(history, faction, contributions, excludedTargets, existingParticipants)
+    contributeWithRouterTelepadActivity(kill, history, faction, contributions, excludedTargets, existingParticipants)
     contributeWithVehicleTransportActivity(kill, history, faction, contributions, excludedTargets, existingParticipants)
     contributeWithVehicleCargoTransportActivity(kill, history, faction, contributions, excludedTargets, existingParticipants)
     contributeWithKillWhileMountedActivity(kill, faction, contributions, excludedTargets, existingParticipants)
@@ -371,10 +377,17 @@ object KillContributions {
     /*
     collect the dismount activity of all vehicles from which this player is not the owner
     make certain all dismount activity can be paired with a mounting activity
-    certain other qualifications of the prior mounting must be met before the support bonus applies
+    other qualifications of the prior mounting must be met before the support bonus applies
     */
+    val killerOpt = kill.info.adversarial
+      .map(_.attacker)
+      .collect { case p: PlayerSource => p }
     val dismountActivity = history
       .collect {
+        /*
+          the player should not get credit from being the vehicle owner in matters of transportation
+          there are considerations of time and distance traveled before the kill as well
+           */
         case out: VehicleDismountActivity
           if !out.vehicle.owner.contains(out.player.unique) && out.pairedEvent.nonEmpty => (out.pairedEvent.get, out)
       }
@@ -382,29 +395,30 @@ object KillContributions {
         case (in: VehicleMountActivity, out: VehicleDismountActivity)
           if in.vehicle.unique == out.vehicle.unique &&
             out.vehicle.Faction == out.player.Faction &&
-            (in.vehicle.Definition == GlobalDefinitions.router || {
-              val inTime = in.time
-              val outTime = out.time
-              out.player.progress.kills.exists { death =>
-                val deathTime = death.info.interaction.hitTime
-                inTime < deathTime && deathTime <= outTime
-              }
-            } || {
-              val sameZone = in.zoneNumber == out.zoneNumber
-              val distanceTransported = Vector3.DistanceSquared(in.vehicle.Position.xy, out.vehicle.Position.xy)
-              val distanceMoved = {
-                val killLocation = kill.info.adversarial
-                  .collect { adversarial => adversarial.attacker.Position.xy }
-                  .getOrElse(Vector3.Zero)
-                Vector3.DistanceSquared(killLocation, out.player.Position.xy)
-              }
-              val timeSpent = out.time - in.time
-              distanceMoved < 5625f /* 75m */ &&
-                (timeSpent >= 210000L /* 3:30 */ ||
-                  (sameZone && (distanceTransported > 160000f /* 400m */ ||
-                    distanceTransported > 10000f /* 100m */ && timeSpent >= 60000L /* 1:00m */)) ||
-                  (!sameZone && (distanceTransported > 10000f /* 100m */ || timeSpent >= 120000L /* 2:00 */ )))
-            }) =>
+              /*
+              considerations of time and distance transported before the kill
+               */
+              ({
+                val inTime = in.time
+                val outTime = out.time
+                out.player.progress.kills.exists { death =>
+                  val deathTime = death.info.interaction.hitTime
+                  inTime < deathTime && deathTime <= outTime
+                }
+              } || {
+                val sameZone = in.zoneNumber == out.zoneNumber
+                val distanceTransported = Vector3.DistanceSquared(in.vehicle.Position.xy, out.vehicle.Position.xy)
+                val distanceMoved = {
+                  val killLocation = killerOpt.map(_.Position.xy).getOrElse(Vector3.Zero)
+                  Vector3.DistanceSquared(killLocation, out.player.Position.xy)
+                }
+                val timeSpent = out.time - in.time
+                distanceMoved < 5625f /* 75m */ &&
+                  (timeSpent >= 210000L /* 3:30 */ ||
+                    (sameZone && (distanceTransported > 160000f /* 400m */ ||
+                      distanceTransported > 10000f /* 100m */ && timeSpent >= 60000L /* 1:00m */)) ||
+                    (!sameZone && (distanceTransported > 10000f /* 100m */ || timeSpent >= 120000L /* 2:00 */ )))
+              }) =>
           out
       }
     //apply
@@ -412,25 +426,20 @@ object KillContributions {
       .groupBy { _.vehicle }
       .collect { case (mount, dismountsFromVehicle) if mount.owner.nonEmpty =>
         val promotedOwner = PlayerSource(mount.owner.get, mount.Position)
-        val (equipmentUseContext, equipmentUseEvent) = mount.Definition match {
-          case v @ GlobalDefinitions.router =>
-            (RouterKillAssist(v.ObjectId), "router")
-          case v =>
-            (HotDropKillAssist(v.ObjectId, 0), "hotdrop")
-        }
         val size = dismountsFromVehicle.size
         val time = dismountsFromVehicle.maxBy(_.time).time
-        val weaponStat = Support.calculateSupportExperience(
-          equipmentUseEvent,
-          WeaponStats(equipmentUseContext, size, size, time, 1f)
-        )
-        combineStatsInto(
-          out,
-          (
-            promotedOwner.CharId,
-            ContributionStats(promotedOwner, Seq(weaponStat), size, size, size, time)
-          )
-        )
+        List((HotDropKillAssist(mount.Definition.ObjectId, 0), "hotdrop", promotedOwner))
+          .foreach {
+            case (equipmentUseContext, equipmentUseEvent, eventOwner) =>
+              val weaponStat = Support.calculateSupportExperience(
+                equipmentUseEvent,
+                WeaponStats(equipmentUseContext, size, size, time, 1f)
+              )
+              combineStatsInto(
+                out,
+                (eventOwner.CharId, ContributionStats(eventOwner, Seq(weaponStat), size, size, size, time))
+              )
+          }
         contributions.get(mount.unique).collect {
           case list =>
             val mountHistory = dismountsFromVehicle
@@ -551,6 +560,86 @@ object KillContributions {
                 )
             }
           }
+      }
+  }
+
+  /**
+   * Gather and reward use of a telepad deployable in performing a kill.
+   * There are two ways to account for telepad deployable use,
+   * i.e., traveling through s telepad deployable or using the internal telepad system of a Router:
+   * the user that places the telepad deployable unit,
+   * and the user that owns the Router.<br>
+   * na
+   * @param kill the in-game event that maintains information about the other player's death
+   * @param faction empire to target
+   * @param contributions mapping between external entities
+   *                      the target has interacted with in the form of in-game activity
+   *                      and history related to the time period in which the interaction ocurred
+   * @param excludedTargets if a potential target is listed here already, skip processing it
+   * @param out quantitative record of activity in relation to the other players and their equipment
+   * @see `combineStatsInto`
+   * @see `extractContributionsForMachineByTarget`
+   */
+  private def contributeWithRouterTelepadActivity(
+                                                   kill: Kill,
+                                                   history: List[InGameActivity],
+                                                   faction: PlanetSideEmpire.Value,
+                                                   contributions: Map[SourceUniqueness, List[InGameActivity]],
+                                                   excludedTargets: mutable.ListBuffer[SourceUniqueness],
+                                                   out: mutable.LongMap[ContributionStats]
+                                                 ): Unit = {
+    /*
+    collect the use of all router telepads from which this player is not the owner (deployer) of the telepad
+    */
+    val killer = kill.info.adversarial
+      .map(_.attacker)
+      .collect { case p: PlayerSource => p }
+      .getOrElse(PlayerSource.Nobody)
+    history
+      .collect {
+        case event: TelepadUseActivity if !event.player.Name.equals(event.telepad.OwnerName) =>
+          event
+      }
+      .groupBy(_.telepad.unique)
+      .flatMap {
+        case (_, telepadEvents) =>
+          val size = telepadEvents.size
+          val time = telepadEvents.maxBy(_.time).time
+          val firstEvent = telepadEvents.head
+          val telepadOwner = firstEvent.telepad.owner.asInstanceOf[PlayerSource]
+          val mount = firstEvent.router
+          contributions.get(mount.unique).collect {
+            case list =>
+              val mountHistory = telepadEvents
+                .flatMap { event =>
+                  val eventTime = event.time
+                  val startTime = eventTime - Config.app.game.experience.longContributionTime
+                  limitHistoryToThisLife(list, eventTime, startTime)
+                }
+                .distinctBy(_.time)
+              combineStatsInto(
+                out,
+                extractContributionsForMachineByTarget(mount, faction, mountHistory, contributions, excludedTargets, eventOutputType="support-repair")
+              )
+          }
+          telepadEvents
+            .flatMap(_.router.owner)
+            .distinct
+            .filterNot(owner => owner == killer.unique || owner == telepadOwner.unique)
+            .map(p => (WeaponStats(routerKillAssist, size, size, time, 1f), "router-driver", PlayerSource(p, Vector3.Zero))) :+
+              (WeaponStats(routerTelepadKillAssist, size, size, time, 1f), "telepad-use", telepadOwner)
+      }
+      .foreach {
+        case (equipmentUseContext, equipmentUseEventId, eventOwner) =>
+          val size = equipmentUseContext.amount
+          val weaponStat = Support.calculateSupportExperience(equipmentUseEventId, equipmentUseContext)
+          combineStatsInto(
+            out,
+            (
+              eventOwner.CharId,
+              ContributionStats(eventOwner, Seq(weaponStat), size, size, size, equipmentUseContext.time)
+            )
+          )
       }
   }
 

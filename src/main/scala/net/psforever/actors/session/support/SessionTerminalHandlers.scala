@@ -2,8 +2,12 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
-import net.psforever.objects.guid.GUIDTask
-import net.psforever.packet.game.FavoritesRequest
+import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
+import net.psforever.objects.inventory.InventoryItem
+import net.psforever.objects.sourcing.AmenitySource
+import net.psforever.objects.vital.TerminalUsedActivity
+import net.psforever.packet.game.{FavoritesAction, FavoritesRequest, ItemTransactionResultMessage, UnuseItemMessage}
+import net.psforever.types.{TransactionType, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -38,6 +42,99 @@ class SessionTerminalHandlers(
                              ) extends CommonSessionInterfacingFunctionality {
   private[session] var lastTerminalOrderFulfillment: Boolean = true
   private[session] var usingMedicalTerminal: Option[PlanetSideGUID] = None
+
+  def handleItemTransaction(pkt: ItemTransactionMessage): Unit = {
+    val ItemTransactionMessage(terminalGuid, transactionType, _, itemName, _, _) = pkt
+    continent.GUID(terminalGuid) match {
+      case Some(term: Terminal) if lastTerminalOrderFulfillment =>
+        val msg: String = if (itemName.nonEmpty) s" of $itemName" else ""
+        log.info(s"${player.Name} is submitting an order - a $transactionType from a ${term.Definition.Name}$msg")
+        lastTerminalOrderFulfillment = false
+        term.Actor ! Terminal.Request(player, pkt)
+      case Some(_: Terminal) =>
+        log.warn(s"Please Wait until your previous order has been fulfilled, ${player.Name}")
+      case Some(obj) =>
+        log.error(s"ItemTransaction: ${obj.Definition.Name} is not a terminal, ${player.Name}")
+      case _ =>
+        log.error(s"ItemTransaction: entity with guid=${terminalGuid.guid} does not exist, ${player.Name}")
+    }
+  }
+
+  def handleProximityTerminalUse(pkt: ProximityTerminalUseMessage): Unit = {
+    val ProximityTerminalUseMessage(_, objectGuid, _) = pkt
+    continent.GUID(objectGuid) match {
+      case Some(obj: Terminal with ProximityUnit) =>
+        performProximityTerminalUse(obj)
+      case Some(obj) =>
+        log.warn(s"ProximityTerminalUse: ${obj.Definition.Name} guid=${objectGuid.guid} is not ready to implement proximity effects")
+      case None =>
+        log.error(s"ProximityTerminalUse: ${player.Name} can not find an object with guid ${objectGuid.guid}")
+    }
+  }
+
+  def handleFavoritesRequest(pkt: FavoritesRequest): Unit = {
+    val FavoritesRequest(_, loadoutType, action, line, label) = pkt
+    action match {
+      case FavoritesAction.Save   =>
+        avatarActor ! AvatarActor.SaveLoadout(player, loadoutType, label, line)
+      case FavoritesAction.Delete =>
+        avatarActor ! AvatarActor.DeleteLoadout(player, loadoutType, line)
+      case FavoritesAction.Unknown =>
+        log.warn(s"FavoritesRequest: ${player.Name} requested an unknown favorites action")
+    }
+  }
+
+   def buyVehicle(
+                   terminalGuid: PlanetSideGUID,
+                   transactionType: TransactionType.Value,
+                   vehicle: Vehicle,
+                   weapons: List[InventoryItem],
+                   trunk: List[InventoryItem]
+                 ): Option[Vehicle]  = {
+     continent.map.terminalToSpawnPad
+       .find { case (termid, _) => termid == terminalGuid.guid }
+       .map { case (a: Int, b: Int) => (continent.GUID(a), continent.GUID(b)) }
+       .collect { case (Some(term: Terminal), Some(pad: VehicleSpawnPad)) =>
+         vehicle.Faction = player.Faction
+         vehicle.Position = pad.Position
+         vehicle.Orientation = pad.Orientation + Vector3.z(pad.Definition.VehicleCreationZOrientOffset)
+         //default loadout, weapons
+         val vWeapons = vehicle.Weapons
+         weapons.foreach { entry =>
+           vWeapons.get(entry.start) match {
+             case Some(slot) =>
+               entry.obj.Faction = player.Faction
+               slot.Equipment = None
+               slot.Equipment = entry.obj
+             case None =>
+               log.warn(
+                 s"BuyVehicle: ${player.Name} tries to apply default loadout to $vehicle on spawn, but can not find a mounted weapon for ${entry.start}"
+               )
+           }
+         }
+         //default loadout, trunk
+         val vTrunk = vehicle.Trunk
+         vTrunk.Clear()
+         trunk.foreach { entry =>
+           entry.obj.Faction = player.Faction
+           vTrunk.InsertQuickly(entry.start, entry.obj)
+         }
+         TaskWorkflow.execute(registerVehicleFromSpawnPad(vehicle, pad, term))
+         sendResponse(ItemTransactionResultMessage(terminalGuid, TransactionType.Buy, success = true))
+         if (GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition)) {
+           sendResponse(UnuseItemMessage(player.GUID, terminalGuid))
+         }
+         player.LogActivity(TerminalUsedActivity(AmenitySource(term), transactionType))
+         vehicle
+       }
+       .orElse {
+         log.error(
+           s"${player.Name} wanted to spawn a vehicle, but there was no spawn pad associated with terminal ${terminalGuid.guid} to accept it"
+         )
+         sendResponse(ItemTransactionResultMessage(terminalGuid, TransactionType.Buy, success = false))
+         None
+       }
+   }
 
   /**
    * Construct tasking that adds a completed and registered vehicle into the scene.
@@ -92,7 +189,7 @@ class SessionTerminalHandlers(
    * na
    * @param terminal na
    */
-  def HandleProximityTerminalUse(terminal: Terminal with ProximityUnit): Unit = {
+  def performProximityTerminalUse(terminal: Terminal with ProximityUnit): Unit = {
     val term_guid      = terminal.GUID
     val targets        = FindProximityUnitTargetsInScope(terminal)
     val currentTargets = terminal.Targets

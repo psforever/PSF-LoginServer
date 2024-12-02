@@ -2,10 +2,33 @@
 package net.psforever.packet.game
 
 import net.psforever.newcodecs._
+import net.psforever.packet.GamePacketOpcode.Type
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
 import net.psforever.types.ChatMessageType
-import scodec.Codec
+import scodec.bits.BitVector
+import scodec.{Attempt, Codec}
 import scodec.codecs._
+
+/*
+For colors, type '/#n' before text, where `n` is one of the following hexadecimal numbers:
+  0 white
+  1 black
+  2 cyan
+  3 yellow
+  4 green
+  5 light blue
+  6 brown
+  7 violet
+  8 magneta
+  9 purple
+  a purple
+  b yellow green
+  c blue
+  d light pink
+  e light green
+  f beige
+All other options result in white text.
+*/
 
 /**
   * Instructs client to display and/or process a chat message/command when sent server to client.
@@ -35,8 +58,8 @@ final case class ChatMsg(
     assert(note.isEmpty, "Note contents found, but message type isnt Note")
 
   type Packet = ChatMsg
-  def opcode = GamePacketOpcode.ChatMsg
-  def encode = ChatMsg.encode(this)
+  def opcode: Type = GamePacketOpcode.ChatMsg
+  def encode: Attempt[BitVector] = ChatMsg.encode(this)
 }
 
 object ChatMsg extends Marshallable[ChatMsg] {

@@ -4,24 +4,19 @@ package net.psforever.actors.session.spectator
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData}
-import net.psforever.objects.{Account, GlobalDefinitions, LivePlayerList, PlanetSideGameObject, Player, TelepadDeployable, Tool, Vehicle}
+import net.psforever.objects.{Account, GlobalDefinitions, LivePlayerList, Player, TelepadDeployable, Tool, Vehicle}
 import net.psforever.objects.avatar.{Avatar, Implant}
 import net.psforever.objects.ballistics.Projectile
-import net.psforever.objects.ce.{Deployable, TelepadLike}
 import net.psforever.objects.definition.{BasicDefinition, KitDefinition, SpecialExoSuitDefinition}
-import net.psforever.objects.equipment.Equipment
-import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.doors.Door
-import net.psforever.objects.vehicles.{Utility, UtilityType}
-import net.psforever.objects.vehicles.Utility.InternalTelepad
+import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.ZoneProjectile
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, PlayerStateShiftMessage, RequestDestroyMessage, ShiftState, TargetInfo, TargetingImplantRequest, TargetingInfoMessage, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.types.{DriveState, ExoSuitType, PlanetSideGUID, Vector3}
-import net.psforever.util.Config
+import net.psforever.types.{ExoSuitType, Vector3}
 
 object GeneralLogic {
   def apply(ops: GeneralOperations): GeneralLogic = {
@@ -52,7 +47,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     yaw,
     pitch,
     yawUpper,
-    _/*seqTime*/,
+    seqTime,
     _,
     isCrouching,
     isJumping,
@@ -63,6 +58,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     )= pkt
     sessionLogic.persist()
     sessionLogic.turnCounterFunc(avatarGuid)
+    sessionLogic.updateBlockMap(player, pos)
     ops.fallHeightTracker(pos.z)
     //    if (isCrouching && !player.Crouching) {
     //      //dev stuff goes here
@@ -74,6 +70,24 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     player.Crouching = isCrouching
     player.Jumping = isJumping
     player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && isCloaking
+    continent.AvatarEvents ! AvatarServiceMessage(
+      "spectator",
+      AvatarAction.PlayerState(
+        avatarGuid,
+        player.Position,
+        player.Velocity,
+        yaw,
+        pitch,
+        yawUpper,
+        seqTime,
+        isCrouching,
+        isJumping,
+        jump_thrust = false,
+        is_cloaked = isCloaking,
+        spectator = false,
+        weaponInHand = false
+      )
+    )
     if (player.death_by == -1) {
       sessionLogic.kickedByAdministration()
     }
@@ -106,31 +120,15 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   def handleAvatarJump(pkt: AvatarJumpMessage): Unit = { /* intentionally blank */ }
 
   def handleZipLine(pkt: ZipLineMessage): Unit = {
-    val ZipLineMessage(playerGuid, forwards, action, pathId, pos) = pkt
-    continent.zipLinePaths.find(x => x.PathId == pathId) match {
-      case Some(path) if path.IsTeleporter =>
-        val endPoint = path.ZipLinePoints.last
-        sendResponse(ZipLineMessage(PlanetSideGUID(0), forwards, 0, pathId, pos))
-        //todo: send to zone to show teleport animation to all clients
-        sendResponse(PlayerStateShiftMessage(ShiftState(0, endPoint, (player.Orientation.z + player.FacingYawUpper) % 360f, None)))
-      case Some(_) =>
-        action match {
-          case 0 =>
-            //travel along the zipline in the direction specified
-            sendResponse(ZipLineMessage(playerGuid, forwards, action, pathId, pos))
-          case 1 =>
-            //disembark from zipline at destination!
-            sendResponse(ZipLineMessage(playerGuid, forwards, action, 0, pos))
-          case 2 =>
-            //get off by force
-            sendResponse(ZipLineMessage(playerGuid, forwards, action, 0, pos))
-          case _ =>
-            log.warn(
-              s"${player.Name} tried to do something with a zipline but can't handle it. forwards: $forwards action: $action pathId: $pathId zone: ${continent.Number} / ${continent.id}"
-            )
-        }
-      case _ =>
-        log.warn(s"${player.Name} couldn't find a zipline path $pathId in zone ${continent.id}")
+    ops.handleZipLine(pkt) match {
+      case GeneralOperations.ZiplineBehavior.Teleporter | GeneralOperations.ZiplineBehavior.Zipline =>
+        sessionLogic.zoning.CancelZoningProcess()
+      case GeneralOperations.ZiplineBehavior.Unsupported =>
+        log.warn(
+          s"${player.Name} tried to do something with a zipline but can't handle it. action: ${pkt.action}, pathId: ${pkt.path_id}, zone: ${continent.id}"
+        )
+      case GeneralOperations.ZiplineBehavior.NotFound =>
+        log.warn(s"${player.Name} couldn't find a zipline path ${pkt.path_id} in zone ${continent.id}")
     }
   }
 
@@ -168,11 +166,11 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   def handleUseItem(pkt: UseItemMessage): Unit = {
     sessionLogic.validObject(pkt.object_guid, decorator = "UseItem") match {
       case Some(door: Door) =>
-        handleUseDoor(door, None)
+        ops.handleUseDoor(door, None)
       case Some(obj: TelepadDeployable) =>
-        handleUseTelepadDeployable(obj, None, pkt)
+        ops.handleUseTelepadDeployable(obj, None, pkt, ops.useRouterTelepadSystemSecretly)
       case Some(obj: Utility.InternalTelepad) =>
-        handleUseInternalTelepad(obj, pkt)
+        ops.handleUseInternalTelepad(obj, pkt, ops.useRouterTelepadSystemSecretly)
       case _ => ()
     }
   }
@@ -267,15 +265,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case GenericAction.AwayFromKeyboard_RCV =>
         log.info(s"${player.Name} is AFK")
         AvatarActor.savePlayerLocation(player)
-        ops.displayCharSavedMsgThenRenewTimer(fixedLen=1800L, varLen=0L) //~30min
         player.AwayFromKeyboard = true
       case GenericAction.BackInGame_RCV =>
         log.info(s"${player.Name} is back")
         player.AwayFromKeyboard = false
-        ops.renewCharSavedTimer(
-          Config.app.game.savedMsg.renewal.fixed,
-          Config.app.game.savedMsg.renewal.variable
-        )
       case GenericAction.LookingForSquad_RCV => //Looking For Squad ON
         if (!avatar.lookingForSquad && (sessionLogic.squad.squadUI.isEmpty || sessionLogic.squad.squadUI(player.CharId).index == 0)) {
           avatarActor ! AvatarActor.SetLookingForSquad(true)
@@ -369,34 +362,14 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
 
   def handleTrade(pkt: TradeMessage): Unit = { /* intentionally blank */ }
 
-  def handleDisplayedAward(pkt: DisplayedAwardMessage): Unit = {
-    val DisplayedAwardMessage(_, ribbon, bar) = pkt
-    log.trace(s"${player.Name} changed the $bar displayed award ribbon to $ribbon")
-    avatarActor ! AvatarActor.SetRibbon(ribbon, bar)
+  def handleDisplayedAward(pkt: DisplayedAwardMessage): Unit = { /* intentionally blank */ }
+
+  def handleObjectDetected(pkt: ObjectDetectedMessage): Unit = {
+    ops.handleObjectDetected(pkt)
   }
 
-  def handleObjectDetected(pkt: ObjectDetectedMessage): Unit = { /* intentionally blank */ }
-
   def handleTargetingImplantRequest(pkt: TargetingImplantRequest): Unit = {
-    val TargetingImplantRequest(list) = pkt
-    val targetInfo: List[TargetInfo] = list.flatMap { x =>
-      continent.GUID(x.target_guid) match {
-        case Some(player: Player) =>
-          val health = player.Health.toFloat / player.MaxHealth
-          val armor = if (player.MaxArmor > 0) {
-            player.Armor.toFloat / player.MaxArmor
-          } else {
-            0
-          }
-          Some(TargetInfo(player.GUID, health, armor))
-        case _ =>
-          log.warn(
-            s"TargetingImplantRequest: the info that ${player.Name} requested for target ${x.target_guid} is not for a player"
-          )
-          None
-      }
-    }
-    sendResponse(TargetingInfoMessage(targetInfo))
+    ops.handleTargetingImplantRequest(pkt)
   }
 
   def handleHitHint(pkt: HitHint): Unit = { /* intentionally blank */ }
@@ -444,8 +417,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleKick(player: Player, time: Option[Long]): Unit = {
-    administrativeKick(player)
-    sessionLogic.accountPersistence ! AccountPersistenceService.Kick(player.Name, time)
+    ops.administrativeKick(player, None)
   }
 
   def handleSilenced(isSilenced: Boolean): Unit = {
@@ -459,107 +431,6 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   def handleReceiveDefaultMessage(default: Any, sender: ActorRef): Unit = { /* intentionally blank */ }
 
   /* supporting functions */
-
-  private def handleUseDoor(door: Door, equipment: Option[Equipment]): Unit = {
-    equipment match {
-      case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
-        val distance: Float = math.max(
-          Config.app.game.doorsCanBeOpenedByMedAppFromThisDistance,
-          door.Definition.initialOpeningDistance
-        )
-        door.Actor ! CommonMessages.Use(player, Some(distance))
-      case _ =>
-        door.Actor ! CommonMessages.Use(player)
-    }
-  }
-
-  private def handleUseTelepadDeployable(obj: TelepadDeployable, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
-    if (equipment.isEmpty) {
-      (continent.GUID(obj.Router) match {
-        case Some(vehicle: Vehicle) => Some((vehicle, vehicle.Utility(UtilityType.internal_router_telepad_deployable)))
-        case Some(vehicle) => Some(vehicle, None)
-        case None => None
-      }) match {
-        case Some((vehicle: Vehicle, Some(util: Utility.InternalTelepad))) =>
-          player.WhichSide = vehicle.WhichSide
-          useRouterTelepadSystem(
-            router = vehicle,
-            internalTelepad = util,
-            remoteTelepad = obj,
-            src = obj,
-            dest = util
-          )
-        case Some((vehicle: Vehicle, None)) =>
-          log.error(
-            s"telepad@${msg.object_guid.guid} is not linked to a router - ${vehicle.Definition.Name}"
-          )
-        case Some((o, _)) =>
-          log.error(
-            s"telepad@${msg.object_guid.guid} is linked to wrong kind of object - ${o.Definition.Name}, ${obj.Router}"
-          )
-          obj.Actor ! Deployable.Deconstruct()
-        case _ => ()
-      }
-    }
-  }
-
-  private def handleUseInternalTelepad(obj: InternalTelepad, msg: UseItemMessage): Unit = {
-    continent.GUID(obj.Telepad) match {
-      case Some(pad: TelepadDeployable) =>
-        player.WhichSide = pad.WhichSide
-        useRouterTelepadSystem(
-          router = obj.Owner.asInstanceOf[Vehicle],
-          internalTelepad = obj,
-          remoteTelepad = pad,
-          src = obj,
-          dest = pad
-        )
-      case Some(o) =>
-        log.error(
-          s"internal telepad@${msg.object_guid.guid} is not linked to a remote telepad - ${o.Definition.Name}@${o.GUID.guid}"
-        )
-      case None => ()
-    }
-  }
-
-  /**
-   * A player uses a fully-linked Router teleportation system.
-   * @param router the Router vehicle
-   * @param internalTelepad the internal telepad within the Router vehicle
-   * @param remoteTelepad the remote telepad that is currently associated with this Router
-   * @param src the origin of the teleportation (where the player starts)
-   * @param dest the destination of the teleportation (where the player is going)
-   */
-  private def useRouterTelepadSystem(
-                                      router: Vehicle,
-                                      internalTelepad: InternalTelepad,
-                                      remoteTelepad: TelepadDeployable,
-                                      src: PlanetSideGameObject with TelepadLike,
-                                      dest: PlanetSideGameObject with TelepadLike
-                                    ): Unit = {
-    val time = System.currentTimeMillis()
-    if (
-      time - ops.recentTeleportAttempt > 2000L && router.DeploymentState == DriveState.Deployed &&
-        internalTelepad.Active &&
-        remoteTelepad.Active
-    ) {
-      val pguid = player.GUID
-      val sguid = src.GUID
-      val dguid = dest.GUID
-      sendResponse(PlayerStateShiftMessage(ShiftState(0, dest.Position, player.Orientation.z)))
-      ops.useRouterTelepadEffect(pguid, sguid, dguid)
-      player.Position = dest.Position
-    } else {
-      log.warn(s"UseRouterTelepadSystem: ${player.Name} can not teleport")
-    }
-    ops.recentTeleportAttempt = time
-  }
-
-  private def administrativeKick(tplayer: Player): Unit = {
-    log.warn(s"${tplayer.Name} has been kicked by ${player.Name}")
-    tplayer.death_by = -1
-    sessionLogic.accountPersistence ! AccountPersistenceService.Kick(tplayer.Name)
-  }
 
   private def customImplantOff(slot: Int, implant: Implant): Unit = {
     customImplants = customImplants.updated(slot, implant.copy(active = false))

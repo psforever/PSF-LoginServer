@@ -1,5 +1,5 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.actors.session.normal
+package net.psforever.actors.session.csr
 
 import akka.actor.ActorContext
 import net.psforever.actors.session.support.{SessionData, WeaponAndProjectileFunctions, WeaponAndProjectileOperations}
@@ -30,34 +30,17 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
 
   def handleWeaponDelayFire(pkt: WeaponDelayFireMessage): Unit = {
     val WeaponDelayFireMessage(_, _) = pkt
-    log.info(s"${player.Name} - $pkt")
   }
 
   def handleWeaponDryFire(pkt: WeaponDryFireMessage): Unit = {
     ops.handleWeaponDryFire(pkt)
   }
 
-  def handleWeaponLazeTargetPosition(pkt: WeaponLazeTargetPositionMessage): Unit = {
-    val WeaponLazeTargetPositionMessage(_, _, _) = pkt
-    //do not need to handle the progress bar animation/state on the server
-    //laze waypoint is requested by client upon completion (see SquadWaypointRequest)
-    val purpose = if (sessionLogic.squad.squad_supplement_id > 0) {
-      s" for ${player.Sex.possessive} squad (#${sessionLogic.squad.squad_supplement_id -1})"
-    } else {
-      " ..."
-    }
-    log.info(s"${player.Name} is lazing a position$purpose")
-  }
+  def handleWeaponLazeTargetPosition(pkt: WeaponLazeTargetPositionMessage): Unit = { /* laze is handled elsewhere */ }
 
-  def handleUplinkRequest(packet: UplinkRequest): Unit = {
-    sessionLogic.administrativeKick(player)
-  }
+  def handleUplinkRequest(packet: UplinkRequest): Unit = { /* CUD not implemented yet */ }
 
-  def handleAvatarGrenadeState(pkt: AvatarGrenadeStateMessage): Unit = {
-    //grenades are handled elsewhere
-    val AvatarGrenadeStateMessage(_, state) = pkt
-    log.info(s"${player.Name} has $state ${player.Sex.possessive} grenade")
-  }
+  def handleAvatarGrenadeState(pkt: AvatarGrenadeStateMessage): Unit = { /* grenades are handled elsewhere */ }
 
   def handleChangeFireStateStart(pkt: ChangeFireStateMessage_Start): Unit = {
     val ChangeFireStateMessage_Start(item_guid) = pkt
@@ -142,90 +125,83 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
 
   def handleDirectHit(pkt: HitMessage): Unit = {
     val list = ops.composeDirectDamageInformation(pkt)
-      .collect {
-        case (target, projectile, hitPos, _) =>
-          ops.checkForHitPositionDiscrepancy(projectile.GUID, hitPos, target)
-          ops.resolveProjectileInteraction(target, projectile, DamageResolution.Hit, hitPos)
-          projectile
+    if (!player.spectator) {
+      list.foreach {
+        case (target, projectile, _, _) =>
+          ops.resolveProjectileInteraction(target, projectile, DamageResolution.Hit, target.Position)
       }
-    //...
-    if (list.isEmpty) {
-      ops.handleProxyDamage(pkt.projectile_guid, pkt.hit_info.map(_.hit_pos).getOrElse(Vector3.Zero)).foreach {
-        case (target, proxy, hitPos, _) =>
-          ops.checkForHitPositionDiscrepancy(proxy.GUID, hitPos, target)
+      //...
+      if (list.isEmpty) {
+        ops.handleProxyDamage(pkt.projectile_guid, pkt.hit_info.map(_.hit_pos).getOrElse(Vector3.Zero))
       }
     }
   }
 
   def handleSplashHit(pkt: SplashHitMessage): Unit = {
     val list = ops.composeSplashDamageInformation(pkt)
-    if (list.nonEmpty) {
-      val projectile = list.head._2
-      val explosionPosition = projectile.Position
-      val projectileGuid = projectile.GUID
-      val profile = projectile.profile
-      val (resolution1, resolution2) = profile.Aggravated match {
-        case Some(_) if profile.ProjectileDamageTypes.contains(DamageType.Aggravated) =>
-          (DamageResolution.AggravatedDirect, DamageResolution.AggravatedSplash)
-        case _ =>
-          (DamageResolution.Splash, DamageResolution.Splash)
+    if (!player.spectator) {
+      if (list.nonEmpty) {
+        val projectile = list.head._2
+        val explosionPosition = projectile.Position
+        val projectileGuid = projectile.GUID
+        val profile = projectile.profile
+        val (resolution1, resolution2) = profile.Aggravated match {
+          case Some(_) if profile.ProjectileDamageTypes.contains(DamageType.Aggravated) =>
+            (DamageResolution.AggravatedDirect, DamageResolution.AggravatedSplash)
+          case _ =>
+            (DamageResolution.Splash, DamageResolution.Splash)
+        }
+        //...
+        val (direct, others) = list.partition { case (_, _, hitPos, targetPos) => hitPos == targetPos }
+        direct.foreach {
+          case (target, _, _, _) =>
+            ops.resolveProjectileInteraction(target, projectile, resolution1, target.Position)
+        }
+        others.foreach {
+          case (target, _, _, _) =>
+            ops.resolveProjectileInteraction(target, projectile, resolution2, target.Position)
+        }
+        //...
+        if (
+          profile.HasJammedEffectDuration ||
+            profile.JammerProjectile ||
+            profile.SympatheticExplosion
+        ) {
+          //can also substitute 'profile' for 'SpecialEmp.emp'
+          Zone.serverSideDamage(
+            continent,
+            player,
+            SpecialEmp.emp,
+            SpecialEmp.createEmpInteraction(SpecialEmp.emp, explosionPosition),
+            SpecialEmp.prepareDistanceCheck(player, explosionPosition, player.Faction),
+            SpecialEmp.findAllBoomers(profile.DamageRadius)
+          )
+        }
+        if (profile.ExistsOnRemoteClients && projectile.HasGUID) {
+          continent.Projectile ! ZoneProjectile.Remove(projectileGuid)
+        }
       }
       //...
-      val (direct, others) = list.partition { case (_, _, hitPos, targetPos) => hitPos == targetPos }
-      direct.foreach {
-        case (target, _, hitPos, _) =>
-          ops.checkForHitPositionDiscrepancy(projectileGuid, hitPos, target)
-          ops.resolveProjectileInteraction(target, projectile, resolution1, hitPos)
-      }
-      others.foreach {
-        case (target, _, hitPos, _) =>
-          ops.checkForHitPositionDiscrepancy(projectileGuid, hitPos, target)
-          ops.resolveProjectileInteraction(target, projectile, resolution2, hitPos)
-      }
-      //...
-      if (
-        profile.HasJammedEffectDuration ||
-          profile.JammerProjectile ||
-          profile.SympatheticExplosion
-      ) {
-        //can also substitute 'profile' for 'SpecialEmp.emp'
-        Zone.serverSideDamage(
-          continent,
-          player,
-          SpecialEmp.emp,
-          SpecialEmp.createEmpInteraction(SpecialEmp.emp, explosionPosition),
-          SpecialEmp.prepareDistanceCheck(player, explosionPosition, player.Faction),
-          SpecialEmp.findAllBoomers(profile.DamageRadius)
-        )
-      }
-      if (profile.ExistsOnRemoteClients && projectile.HasGUID) {
-        //cleanup
-        continent.Projectile ! ZoneProjectile.Remove(projectile.GUID)
-      }
-    }
-    //...
-    ops.handleProxyDamage(pkt.projectile_uid, pkt.projectile_pos).foreach {
-      case (target, proxy, hitPos, _) =>
-        ops.checkForHitPositionDiscrepancy(proxy.GUID, hitPos, target)
+      ops.handleProxyDamage(pkt.projectile_uid, pkt.projectile_pos)
     }
   }
 
   def handleLashHit(pkt: LashMessage): Unit = {
     val list = ops.composeLashDamageInformation(pkt)
-    list.foreach {
-      case (target, projectile, hitPos, _) =>
-        ops.checkForHitPositionDiscrepancy(projectile.GUID, hitPos, target)
-        ops.resolveProjectileInteraction(target, projectile, DamageResolution.Lash, hitPos)
+    if (!player.spectator) {
+      list.foreach {
+        case (target, projectile, _, targetPosition) =>
+          ops.resolveProjectileInteraction(target, projectile, DamageResolution.Lash, targetPosition)
+      }
     }
   }
 
   def handleAIDamage(pkt: AIDamage): Unit = {
     val list = ops.composeAIDamageInformation(pkt)
-    if (ops.confirmAIDamageTarget(pkt, list.map(_._1))) {
+    if (!player.spectator && ops.confirmAIDamageTarget(pkt, list.map(_._1))) {
       list.foreach {
-        case (target, projectile, hitPos, _) =>
-          ops.checkForHitPositionDiscrepancy(pkt.attacker_guid, hitPos, target)
-          ops.resolveProjectileInteraction(target, projectile, DamageResolution.Hit, hitPos)
+        case (target, projectile, _, targetPosition) =>
+          ops.resolveProjectileInteraction(target, projectile, DamageResolution.Hit, targetPosition)
       }
     }
   }

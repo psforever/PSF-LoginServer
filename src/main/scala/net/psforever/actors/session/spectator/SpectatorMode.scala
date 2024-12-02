@@ -24,9 +24,9 @@ import net.psforever.packet.game.{ChatMsg, CreateShortcutMessage, UnuseItemMessa
 class SpectatorModeLogic(data: SessionData) extends ModeLogic {
   val avatarResponse: AvatarHandlerFunctions = AvatarHandlerLogic(data.avatarResponse)
   val chat: ChatFunctions = ChatLogic(data.chat)
-  val galaxy: GalaxyHandlerFunctions = GalaxyHandlerLogic(data.galaxyResponseHandlers)
+  val galaxy: GalaxyHandlerFunctions = net.psforever.actors.session.normal.GalaxyHandlerLogic(data.galaxyResponseHandlers)
   val general: GeneralFunctions = GeneralLogic(data.general)
-  val local: LocalHandlerFunctions = LocalHandlerLogic(data.localResponse)
+  val local: LocalHandlerFunctions = net.psforever.actors.session.normal.LocalHandlerLogic(data.localResponse)
   val mountResponse: MountHandlerFunctions = MountHandlerLogic(data.mountResponse)
   val shooting: WeaponAndProjectileFunctions = WeaponAndProjectileLogic(data.shooting)
   val squad: SquadHandlerFunctions = SquadHandlerLogic(data.squad)
@@ -119,6 +119,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     }
     //
     player.spectator = true
+    player.allowInteraction = false
     data.chat.JoinChannel(SpectatorChannel)
     val newPlayer = SpectatorModeLogic.spectatorCharacter(player)
     newPlayer.LogActivity(player.History.headOption)
@@ -152,6 +153,8 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     val pguid = player.GUID
     val sendResponse: PlanetSidePacket => Unit = data.sendResponse
     //
+    player.spectator = false
+    player.allowInteraction = true
     data.general.stop()
     player.avatar.shortcuts.slice(1, 4)
       .zipWithIndex
@@ -159,12 +162,11 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       .map(CreateShortcutMessage(pguid, _, None))
       .foreach(sendResponse)
     data.chat.LeaveChannel(SpectatorChannel)
-    player.spectator = false
     sendResponse(ObjectDeleteMessage(player.avatar.locker.GUID, 0)) //free up the slot
     sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "off"))
     sendResponse(ChatMsg(ChatMessageType.UNK_227, "@SpectatorDisabled"))
     zoning.zoneReload = true
-    zoning.spawn.randomRespawn(0.seconds) //to sanctuary
+    zoning.spawn.randomRespawn(10.milliseconds) //to sanctuary
   }
 }
 
@@ -178,7 +180,7 @@ object SpectatorModeLogic {
   private def spectatorCharacter(player: Player): Player = {
     val avatar = player.avatar
     val newAvatar = avatar.copy(
-      basic = avatar.basic.copy(name = "spectator"),
+      basic = avatar.basic,
       bep = BattleRank.BR18.experience,
       cep = CommandRank.CR5.experience,
       certifications = Set(),
@@ -212,6 +214,7 @@ object SpectatorModeLogic {
     newPlayer.Position = player.Position
     newPlayer.Orientation = player.Orientation
     newPlayer.spectator = true
+    newPlayer.bops = true
     newPlayer.Spawn()
     newPlayer
   }
