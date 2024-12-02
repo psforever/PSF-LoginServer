@@ -6,7 +6,6 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
-import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.login.WorldSession
 import net.psforever.objects.avatar.{BattleRank, DeployableToolbox}
 import net.psforever.objects.avatar.scoring.{CampaignStatistics, ScoreCard, SessionStatistics}
@@ -18,6 +17,7 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
+import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, TriggeredSound}
 import net.psforever.services.chat.DefaultChannel
 
@@ -159,6 +159,30 @@ object ZoningOperations {
       events ! LocalServiceMessage(target, soundMessage)
     }
   }
+
+  def findBuildingsBySoiOccupancy(zone: Zone, obj: PlanetSideGameObject with BlockMapEntity): List[Building] = {
+    val positionxy = obj.Position.xy
+    zone
+      .blockMap
+      .sector(obj)
+      .buildingList
+      .filter { building =>
+        val radius = building.Definition.SOIRadius
+        Vector3.DistanceSquared(building.Position.xy, positionxy) < radius * radius
+      }
+  }
+
+  def findBuildingsBySoiOccupancy(zone: Zone, position: Vector3): List[Building] = {
+    val positionxy = position.xy
+    zone
+      .blockMap
+      .sector(positionxy, range=5)
+      .buildingList
+      .filter { building =>
+        val radius = building.Definition.SOIRadius
+        Vector3.DistanceSquared(building.Position.xy, positionxy) < radius * radius
+      }
+  }
 }
 
 class ZoningOperations(
@@ -193,6 +217,9 @@ class ZoningOperations(
   /** a flag that forces the current zone to reload itself during a zoning operation */
   private[session] var zoneReload: Boolean = false
   private[session] val spawn: SpawnOperations = new SpawnOperations()
+  private[session] var maintainInitialGmState: Boolean = false
+
+  private[session] var zoneChannel: String = Zone.Nowhere.id
 
   private var loadConfZone: Boolean = false
   private var instantActionFallbackDestination: Option[Zoning.InstantAction.Located] = None
@@ -200,6 +227,7 @@ class ZoningOperations(
   private var zoningChatMessageType: ChatMessageType = ChatMessageType.CMT_QUIT
   private var zoningCounter: Int = 0
   private var zoningTimer: Cancellable = Default.Cancellable
+  var displayZoningMessageWhenCancelled: Boolean = true
 
   /* packets */
 
@@ -609,6 +637,7 @@ class ZoningOperations(
   def handleZoneResponse(foundZone: Zone): Unit = {
     log.trace(s"ZoneResponse: zone ${foundZone.id} will now load for ${player.Name}")
     loadConfZone = true
+    maintainInitialGmState = true
     val oldZone = session.zone
     session = session.copy(zone = foundZone)
     sessionLogic.persist()
@@ -864,12 +893,7 @@ class ZoningOperations(
     val location = if (Zones.sanctuaryZoneNumber(player.Faction) == continent.Number) {
       Zoning.Time.Sanctuary
     } else {
-      val playerPosition = player.Position.xy
-      continent.Buildings.values
-        .filter { building =>
-          val radius = building.Definition.SOIRadius
-          Vector3.DistanceSquared(building.Position.xy, playerPosition) < radius * radius
-        } match {
+      ZoningOperations.findBuildingsBySoiOccupancy(continent, player.Position) match {
         case Nil =>
           Zoning.Time.None
         case List(building: FactionAffinity) =>
@@ -903,7 +927,7 @@ class ZoningOperations(
    *                defaults to `None`
    */
   def CancelZoningProcessWithReason(msg: String, msgType: Option[ChatMessageType] = None): Unit = {
-    if (zoningStatus != Zoning.Status.None) {
+    if (displayZoningMessageWhenCancelled && zoningStatus != Zoning.Status.None) {
       sendResponse(ChatMsg(msgType.getOrElse(zoningChatMessageType), wideContents=false, "", msg, None))
     }
     CancelZoningProcess()
@@ -2128,6 +2152,7 @@ class ZoningOperations(
       val map = zone.map
       val mapName = map.name
       log.info(s"${tplayer.Name} has spawned into $id")
+      sessionLogic.zoning.zoneChannel = Players.ZoneChannelIfSpectating(tplayer, zone.id)
       sessionLogic.oldRefsMap.clear()
       sessionLogic.persist = UpdatePersistenceAndRefs
       tplayer.avatar = avatar
@@ -2137,6 +2162,7 @@ class ZoningOperations(
       sendResponse(LoadMapMessage(mapName, id, 40100, 25, weaponsEnabled, map.checksum))
       if (isAcceptableNextSpawnPoint) {
         //important! the LoadMapMessage must be processed by the client before the avatar is created
+        player.allowInteraction = true
         setupAvatarFunc()
         //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
         sessionLogic.turnCounterFunc = interimUngunnedVehicle match {
@@ -2174,6 +2200,7 @@ class ZoningOperations(
       session = session.copy(player = tplayer)
       if (isAcceptableNextSpawnPoint) {
         //try this spawn point
+        player.allowInteraction = true
         setupAvatarFunc()
         //interimUngunnedVehicle should have been setup by setupAvatarFunc, if it is applicable
         sessionLogic.turnCounterFunc = interimUngunnedVehicle match {
@@ -2294,7 +2321,7 @@ class ZoningOperations(
      * @param zone na
      */
     def HandleReleaseAvatar(tplayer: Player, zone: Zone): Unit = {
-      sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
+      sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistenceFunc
       tplayer.Release
       tplayer.VehicleSeated match {
         case None =>
@@ -2438,6 +2465,16 @@ class ZoningOperations(
           Vehicles.ReloadAccessPermissions(vehicle, player.Name)
           log.debug(s"AvatarCreate (vehicle): ${player.Name}'s ${vdef.Name}")
           AvatarCreateInVehicle(player, vehicle, seat)
+
+        case _ if player.spectator =>
+          player.VehicleSeated = None
+          val definition = player.avatar.definition
+          val guid = player.GUID
+          sendResponse(OCM.detailed(player))
+          continent.AvatarEvents ! AvatarServiceMessage(
+            s"spectator",
+            AvatarAction.LoadPlayer(guid, definition.ObjectId, guid, definition.Packet.ConstructorData(player).get, None)
+          )
 
         case _ =>
           player.VehicleSeated = None
@@ -2587,8 +2624,6 @@ class ZoningOperations(
       zones.exp.ToDatabase.reportRespawns(tplayer.CharId, ScoreCard.reviveCount(player.avatar.scorecard.CurrentLife))
       val obj = Player.Respawn(tplayer)
       DefinitionUtil.applyDefaultLoadout(obj)
-      obj.death_by = tplayer.death_by
-      obj.silenced = tplayer.silenced
       obj
     }
 
@@ -2866,7 +2901,6 @@ class ZoningOperations(
         )
       )
       nextSpawnPoint = physSpawnPoint
-      prevSpawnPoint = physSpawnPoint
       shiftPosition = Some(pos)
       shiftOrientation = Some(ori)
       val toZoneNumber = if (continent.id.equals(zoneId)) {
@@ -3012,10 +3046,11 @@ class ZoningOperations(
             sessionLogic.keepAliveFunc = sessionLogic.vehicles.GetMountableAndSeat(None, player, continent) match {
               case (Some(v: Vehicle), Some(seatNumber))
                 if seatNumber > 0 && v.WeaponControlledFromSeat(seatNumber).isEmpty =>
-                sessionLogic.keepAlivePersistence
+                sessionLogic.keepAlivePersistenceFunc
               case _ =>
                 NormalKeepAlive
             }
+            prevSpawnPoint = nextSpawnPoint
             nextSpawnPoint = None
           }
           //if not the condition above, player has started playing normally
@@ -3214,10 +3249,10 @@ class ZoningOperations(
         upstreamMessageCount = 0
         if (tplayer.spectator) {
           if (!setAvatar) {
-            context.self ! SessionActor.SetMode(SpectatorMode) //should reload spectator status
+            context.self ! SessionActor.SetMode(sessionLogic.chat.CurrentSpectatorMode) //should reload spectator status
           }
         } else if (
-          !account.gm && /* gm's are excluded */
+          !avatar.permissions.canGM && /* gm's are excluded */
             Config.app.game.promotion.active && /* play versus progress system must be active */
             BattleRank.withExperience(tplayer.avatar.bep).value <= Config.app.game.promotion.broadcastBattleRank && /* must be below a certain battle rank */
             tavatar.scorecard.Lives.isEmpty && /* first life after login */
@@ -3464,7 +3499,7 @@ class ZoningOperations(
             //sit down
             sendResponse(ObjectAttachMessage(vguid, pguid, seat))
             sessionLogic.general.accessContainer(vehicle)
-            sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistence
+            sessionLogic.keepAliveFunc = sessionLogic.keepAlivePersistenceFunc
           case _ => ()
             //we can't find a vehicle? and we're still here? that's bad
             player.VehicleSeated = None

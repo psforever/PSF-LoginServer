@@ -4,9 +4,8 @@ package net.psforever.actors.session.support
 import akka.actor.Cancellable
 import akka.actor.typed.ActorRef
 import akka.actor.{ActorContext, typed}
+import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.{AvatarActor, SessionActor}
-import net.psforever.actors.session.normal.{NormalMode => SessionNormalMode}
-import net.psforever.actors.session.spectator.{SpectatorMode => SessionSpectatorMode}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.ZoneInfo
@@ -59,6 +58,7 @@ class ChatOperations(
                     ) extends CommonSessionInterfacingFunctionality {
   private var channels: List[ChatChannel] = List()
   private var silenceTimer: Cancellable = Default.Cancellable
+  private[session] var transitoryCommandEntered: Option[ChatMessageType] = None
   /**
    * when another player is listed as one of our ignored players,
    * and that other player sends an emote,
@@ -66,6 +66,8 @@ class ChatOperations(
    * key - character unique avatar identifier, value - when the current cooldown period will end
    */
   private val ignoredEmoteCooldown: mutable.LongMap[Long] = mutable.LongMap[Long]()
+
+  private[session] var CurrentSpectatorMode: PlayerMode = SpectatorMode
 
   import akka.actor.typed.scaladsl.adapter._
   private val chatServiceAdapter: ActorRef[ChatService.MessageResponse] = context.self.toTyped[ChatService.MessageResponse]
@@ -110,17 +112,6 @@ class ChatOperations(
       }
     context.self ! SessionActor.SetSpeed(speed)
     sendResponse(message.copy(contents = f"$speed%.3f"))
-  }
-
-  def commandToggleSpectatorMode(session: Session, contents: String): Unit = {
-    val currentSpectatorActivation = session.player.spectator
-    contents.toLowerCase() match {
-      case "on" | "o" | "" if !currentSpectatorActivation =>
-        context.self ! SessionActor.SetMode(SessionSpectatorMode)
-      case "off" | "of" if currentSpectatorActivation =>
-        context.self ! SessionActor.SetMode(SessionNormalMode)
-      case _ => ()
-    }
   }
 
   def commandRecall(session: Session): Unit = {
@@ -337,6 +328,28 @@ class ChatOperations(
         }
       }
     //evaluate results
+    if (!commandCaptureBaseProcessResults(resolvedFacilities, resolvedFaction, resolvedTimer)) {
+      if (usageMessage) {
+        sendResponse(
+          message.copy(messageType = UNK_229, contents = "@CMT_CAPTUREBASE_usage")
+        )
+      } else {
+        val msg = if (facilityError == 1) { "can not contextually determine building target" }
+        else if (facilityError == 2) { s"\'${foundFacilitiesTag.get}\' is not a valid building name" }
+        else if (factionError) { s"\'${foundFactionTag.get}\' is not a valid faction designation" }
+        else if (timerError) { s"\'${foundTimerTag.get}\' is not a valid timer value" }
+        else { "malformed params; check usage" }
+        sendResponse(ChatMsg(UNK_229, wideContents=true, "", s"\\#FF4040ERROR - $msg", None))
+      }
+    }
+  }
+
+  def commandCaptureBaseProcessResults(
+                                        resolvedFacilities: Option[Seq[Building]],
+                                        resolvedFaction: Option[PlanetSideEmpire.Value],
+                                        resolvedTimer: Option[Int]
+                                      ): Boolean = {
+    //evaluate results
     (resolvedFacilities, resolvedFaction, resolvedTimer) match {
       case (Some(buildings), Some(faction), Some(_)) =>
         buildings.foreach { building =>
@@ -360,19 +373,9 @@ class ChatOperations(
           //push for map updates again
           zoneActor ! ZoneActor.ZoneMapUpdate()
         }
+        true
       case _ =>
-        if (usageMessage) {
-          sendResponse(
-            message.copy(messageType = UNK_229, contents = "@CMT_CAPTUREBASE_usage")
-          )
-        } else {
-          val msg = if (facilityError == 1) { "can not contextually determine building target" }
-          else if (facilityError == 2) { s"\'${foundFacilitiesTag.get}\' is not a valid building name" }
-          else if (factionError) { s"\'${foundFactionTag.get}\' is not a valid faction designation" }
-          else if (timerError) { s"\'${foundTimerTag.get}\' is not a valid timer value" }
-          else { "malformed params; check usage" }
-          sendResponse(ChatMsg(UNK_229, wideContents=true, "", s"\\#FF4040ERROR - $msg", None))
-        }
+        false
     }
   }
 
@@ -997,10 +1000,17 @@ class ChatOperations(
   private def captureBaseCurrSoi(
                                   session: Session
                                 ): Iterable[Building] = {
-    val charId = session.player.CharId
-    session.zone.Buildings.values.filter { building =>
-      building.PlayersInSOI.exists(_.CharId == charId)
-    }
+    val player = session.player
+    val positionxy = player.Position.xy
+    session
+      .zone
+      .blockMap
+      .sector(player)
+      .buildingList
+      .filter { building =>
+        val radius = building.Definition.SOIRadius
+        Vector3.DistanceSquared(building.Position.xy, positionxy) < radius * radius
+      }
   }
 
   private def captureBaseParamFaction(
@@ -1226,7 +1236,7 @@ class ChatOperations(
                                      params: Seq[String]
                                    ): Boolean = {
     val ourRank = BattleRank.withExperience(session.avatar.bep).value
-    if (!session.account.gm &&
+    if (!avatar.permissions.canGM &&
       (ourRank <= Config.app.game.promotion.broadcastBattleRank ||
         ourRank > Config.app.game.promotion.resetBattleRank && ourRank < Config.app.game.promotion.maxBattleRank + 1)) {
       setBattleRank(session, params, AvatarActor.Progress)

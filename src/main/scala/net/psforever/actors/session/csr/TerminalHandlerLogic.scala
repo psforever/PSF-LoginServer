@@ -1,5 +1,5 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.actors.session.normal
+package net.psforever.actors.session.csr
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.AvatarActor
@@ -7,9 +7,8 @@ import net.psforever.actors.session.support.{SessionData, SessionTerminalHandler
 import net.psforever.login.WorldSession.{BuyNewEquipmentPutInInventory, SellEquipmentFromInventory}
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.guid.TaskWorkflow
-import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.objects.serverobject.terminals.{OrderTerminalDefinition, Terminal}
 import net.psforever.packet.game.{FavoritesRequest, ItemTransactionMessage, ItemTransactionResultMessage, ProximityTerminalUseMessage}
-import net.psforever.types.TransactionType
 
 object TerminalHandlerLogic {
   def apply(ops: SessionTerminalHandlers): TerminalHandlerLogic = {
@@ -23,8 +22,26 @@ class TerminalHandlerLogic(val ops: SessionTerminalHandlers, implicit val contex
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
 
   def handleItemTransaction(pkt: ItemTransactionMessage): Unit = {
-    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
-    ops.handleItemTransaction(pkt)
+    if (player.spectator) {
+      val ItemTransactionMessage(terminal_guid, _, _, _, _, _) = pkt
+      sessionLogic.zoning.CancelZoningProcess()
+      continent
+        .GUID(terminal_guid)
+        .collect { case t: Terminal => t.Definition }
+        .collect { case t: OrderTerminalDefinition => t }
+        .map(t => t.Request(player, pkt))
+        .collect {
+          case order: Terminal.BuyVehicle =>
+            //do not handle transaction
+            order
+        }
+        .orElse {
+          ops.handleItemTransaction(pkt)
+          None
+        }
+    } else {
+      ops.handleItemTransaction(pkt)
+    }
   }
 
   def handleProximityTerminalUse(pkt: ProximityTerminalUseMessage): Unit = {
@@ -32,7 +49,7 @@ class TerminalHandlerLogic(val ops: SessionTerminalHandlers, implicit val contex
   }
 
   def handleFavoritesRequest(pkt: FavoritesRequest): Unit = {
-    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    sessionLogic.zoning.CancelZoningProcess()
     ops.handleFavoritesRequest(pkt)
   }
 
@@ -44,13 +61,7 @@ class TerminalHandlerLogic(val ops: SessionTerminalHandlers, implicit val contex
    */
   def handle(tplayer: Player, msg: ItemTransactionMessage, order: Terminal.Exchange): Unit = {
     order match {
-      case Terminal.BuyEquipment(item)
-        if tplayer.avatar.purchaseCooldown(item.Definition).nonEmpty =>
-        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
-        ops.lastTerminalOrderFulfillment = true
-
       case Terminal.BuyEquipment(item) =>
-        avatarActor ! AvatarActor.UpdatePurchaseTime(item.Definition)
         TaskWorkflow.execute(BuyNewEquipmentPutInInventory(
           continent.GUID(tplayer.VehicleSeated) match {
             case Some(v: Vehicle) => v
@@ -79,17 +90,8 @@ class TerminalHandlerLogic(val ops: SessionTerminalHandlers, implicit val contex
         avatarActor ! AvatarActor.SellImplant(msg.terminal_guid, implant)
         ops.lastTerminalOrderFulfillment = true
 
-      case Terminal.BuyVehicle(vehicle, _, _)
-        if tplayer.avatar.purchaseCooldown(vehicle.Definition).nonEmpty =>
-        sendResponse(ItemTransactionResultMessage(msg.terminal_guid, TransactionType.Buy, success = false))
-        ops.lastTerminalOrderFulfillment = true
-
       case Terminal.BuyVehicle(vehicle, weapons, trunk) =>
         ops.buyVehicle(msg.terminal_guid, msg.transaction_type, vehicle, weapons, trunk)
-          .collect {
-            case _: Vehicle =>
-              avatarActor ! AvatarActor.UpdatePurchaseTime(vehicle.Definition)
-          }
         ops.lastTerminalOrderFulfillment = true
 
       case Terminal.NoDeal() if msg != null =>

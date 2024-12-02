@@ -89,6 +89,7 @@ class SessionData(
   private[session] var persistFunc: () => Unit = noPersistence
   private[session] var persist: () => Unit = updatePersistenceOnly
   private[session] var keepAliveFunc: () => Unit = keepAlivePersistenceInitial
+  private[session] var keepAlivePersistenceFunc: () => Unit = keepAlivePersistence
   private[session] var turnCounterFunc: PlanetSideGUID => Unit = SessionData.NoTurnCounterYet
   private[session] val oldRefsMap: mutable.HashMap[PlanetSideGUID, String] = new mutable.HashMap[PlanetSideGUID, String]()
   private var contextSafeEntity: PlanetSideGUID = PlanetSideGUID(0)
@@ -471,7 +472,7 @@ class SessionData(
   def keepAlivePersistenceInitial(): Unit = {
     persist()
     if (player != null && player.HasGUID) {
-      keepAliveFunc = keepAlivePersistence
+      keepAliveFunc = keepAlivePersistenceFunc
     }
   }
 

@@ -313,7 +313,7 @@ object SectorGroup {
     new SectorGroup(
       rangeX,
       rangeY,
-      sector.livePlayerList,
+      sector.livePlayerList.filterNot(p => p.spectator || !p.allowInteraction),
       sector.corpseList,
       sector.vehicleList,
       sector.equipmentOnGroundList,
@@ -368,7 +368,7 @@ object SectorGroup {
       new SectorGroup(
         rangeX,
         rangeY,
-        sector.livePlayerList,
+        sector.livePlayerList.filterNot(p => p.spectator || !p.allowInteraction),
         sector.corpseList,
         sector.vehicleList,
         sector.equipmentOnGroundList,
@@ -382,7 +382,7 @@ object SectorGroup {
       new SectorGroup(
         rangeX,
         rangeY,
-        sectors.flatMap { _.livePlayerList }.toList.distinct,
+        sectors.flatMap { _.livePlayerList }.toList.distinct.filterNot(p => p.spectator || !p.allowInteraction),
         sectors.flatMap { _.corpseList }.toList.distinct,
         sectors.flatMap { _.vehicleList }.toList.distinct,
         sectors.flatMap { _.equipmentOnGroundList }.toList.distinct,

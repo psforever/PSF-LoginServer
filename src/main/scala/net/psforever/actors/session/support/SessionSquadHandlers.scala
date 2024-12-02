@@ -15,6 +15,8 @@ import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 trait SquadHandlerFunctions extends CommonSessionInterfacingFunctionality {
   val ops: SessionSquadHandlers
 
+  protected var waypointCooldown: Long = 0L
+
   def handleSquadDefinitionAction(pkt: SquadDefinitionActionMessage): Unit
 
   def handleSquadMemberRequest(pkt: SquadMembershipRequest): Unit

@@ -9,6 +9,8 @@ import net.psforever.objects.Session
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.chat.SpectatorChannel
 import net.psforever.types.ChatMessageType
+import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}
+import net.psforever.zones.Zones
 
 import scala.collection.Seq
 
@@ -19,6 +21,8 @@ object ChatLogic {
 }
 
 class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) extends ChatFunctions {
+  ops.transitoryCommandEntered = None
+
   def sessionLogic: SessionData = ops.sessionLogic
 
   def handleChatMsg(message: ChatMsg): Unit = {
@@ -31,11 +35,10 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_FLY, recipient, contents) =>
         ops.commandFly(contents, recipient)
 
-      case (CMT_ANONYMOUS, _, _) =>
-      // ?
+      case (CMT_ANONYMOUS, _, _) => ()
 
-      case (CMT_TOGGLE_GM, _, _) =>
-      // ?
+      case (CMT_TOGGLE_GM, _, _) => ()
+      sessionLogic.zoning.maintainInitialGmState = false
 
       case (CMT_CULLWATERMARK, _, contents) =>
         ops.commandWatermark(contents)
@@ -56,19 +59,19 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         commandToggleSpectatorMode(contents = "off")
 
       case (CMT_OPEN, _, _) =>
-        ops.commandSendToRecipient(session, message, SpectatorChannel)
+        ops.commandSendToRecipient(session, spectatorColoredMessage(message), SpectatorChannel)
 
       case (CMT_VOICE, _, contents) =>
         ops.commandVoice(session, message, contents, SpectatorChannel)
 
       case (CMT_TELL, _, _) =>
-        ops.commandTellOrIgnore(session, message, SpectatorChannel)
+        ops.commandTellOrIgnore(session, spectatorColoredMessage(message), SpectatorChannel)
 
       case (CMT_BROADCAST, _, _) =>
-        ops.commandSendToRecipient(session, message, SpectatorChannel)
+        ops.commandSendToRecipient(session, spectatorColoredMessage(message), SpectatorChannel)
 
       case (CMT_PLATOON, _, _) =>
-        ops.commandSendToRecipient(session, message, SpectatorChannel)
+        ops.commandSendToRecipient(session, spectatorColoredMessage(message), SpectatorChannel)
 
       case (CMT_GMTELL, _, _) =>
         ops.commandSend(session, message, SpectatorChannel)
@@ -79,8 +82,9 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_WHO | CMT_WHO_CSR | CMT_WHO_CR | CMT_WHO_PLATOONLEADERS | CMT_WHO_SQUADLEADERS | CMT_WHO_TEAMS, _, _) =>
         ops.commandWho(session)
 
-      case (CMT_ZONE, _, contents) =>
-        ops.commandZone(message, contents)
+      case (CMT_ZONE, _, _) =>
+        commandToggleSpectatorMode(contents = "off")
+        ops.commandZone(message, Zones.sanctuaryZoneId(player.Faction))
 
       case (CMT_WARP, _, contents) =>
         ops.commandWarp(session, message, contents)
@@ -115,6 +119,16 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     }
   }
 
+  private def spectatorColoredMessage(message: ChatMsg): ChatMsg = {
+    if (message.contents.nonEmpty) {
+      val colorlessText = message.contents.replaceAll("//#\\d", "").trim
+      val colorCodedText = s"/#5$colorlessText/#0"
+      message.copy(recipient = s"<spectator:${message.recipient}>", contents = colorCodedText)
+    } else {
+      message
+    }
+  }
+
   private def customCommandMessages(
                                      message: ChatMsg,
                                      session: Session
@@ -136,11 +150,21 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     }
   }
 
-  private def commandToggleSpectatorMode(contents: String): Unit = {
-    contents.toLowerCase() match {
-      case "off" | "of" =>
-        context.self ! SessionActor.SetMode(NormalMode)
-      case _ => ()
-    }
+  private def commandToggleSpectatorMode(contents: String): Boolean = {
+    ops.transitoryCommandEntered
+      .collect {
+        case CMT_TOGGLESPECTATORMODE => true
+        case CMT_TOGGLE_GM => false
+      }
+      .getOrElse {
+        contents.toLowerCase() match {
+          case "off" | "of" =>
+            ops.transitoryCommandEntered = Some(CMT_TOGGLESPECTATORMODE)
+            context.self ! SessionActor.SetMode(NormalMode)
+            true
+          case _ =>
+            false
+        }
+      }
   }
 }
