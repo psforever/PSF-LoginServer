@@ -19,6 +19,7 @@ import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.etc.ExplodingRadialDegrade
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.types.{ExoSuitType, Vector3}
+import net.psforever.util.Config
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -485,7 +486,7 @@ object GlobalDefinitionsMiscellaneous {
     repair_silo.TargetValidation += EffectTarget.Category.Vehicle -> EffectTarget.Validation.RepairSilo
     repair_silo.Damageable = false
     repair_silo.Repairable = false
-    
+
     recharge_terminal.Name = "recharge_terminal"
     recharge_terminal.Interval = 1000
     recharge_terminal.UseRadius = 20
@@ -707,7 +708,7 @@ object GlobalDefinitionsMiscellaneous {
     capture_terminal.Name = "capture_terminal"
     capture_terminal.Damageable = false
     capture_terminal.Repairable = false
-    capture_terminal.FacilityHackTime = 15.minutes
+    capture_terminal.FacilityHackTime = Config.app.game.facilityHackTime
 
     secondary_capture.Name = "secondary_capture"
     secondary_capture.Damageable = false

@@ -163,7 +163,8 @@ case class GameConfig(
     doorsCanBeOpenedByMedAppFromThisDistance: Float,
     experience: Experience,
     maxBattleRank: Int,
-    promotion: PromotionSystem
+    promotion: PromotionSystem,
+    facilityHackTime: FiniteDuration
 )
 
 case class InstantActionConfig(
