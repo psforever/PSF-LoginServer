@@ -11,11 +11,14 @@ import net.psforever.util.Config
 final case class TowerHackParticipation(building: Building) extends FacilityHackParticipation {
   def TryUpdate(): Unit = {
     val list = building.PlayersInSOI
-    updatePlayers(building.PlayersInSOI)
+    if (list.nonEmpty) {
+      updatePlayers(list)
+    }
     val now = System.currentTimeMillis()
     if (now - lastInfoRequest > 60000L) {
       updatePopulationOverTime(list, now, before = 300000L)
     }
+    lastInfoRequest = now
   }
 
   def RewardFacilityCapture(

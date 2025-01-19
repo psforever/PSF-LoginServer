@@ -28,7 +28,9 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
 
   def TryUpdate(): Unit = {
     val list = building.PlayersInSOI
-    updatePlayers(list)
+    if (list.nonEmpty) {
+      updatePlayers(list)
+    }
     val now = System.currentTimeMillis()
     if (now - lastInfoRequest > 60000L) {
       updatePopulationOverTime(list, now, before = 900000L)
@@ -123,7 +125,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
             hackStart,
             completionTime,
             opposingFaction,
-            contributionOpposing
+            contributionVictor
           )
         )
         //1) experience from killing opposingFaction across duration of hack
@@ -336,7 +338,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
         val towerRadius = math.pow(tower.Definition.SOIRadius.toDouble * 0.7d, 2d).toFloat
         list
           .map { case (p, f, kills) =>
-            val filteredKills = kills.filter { kill => Vector3.DistanceSquared(kill.victim.Position.xy, towerPosition) <= towerRadius }
+            val filteredKills = kills.filter { kill => Vector3.DistanceSquared(kill.victim.Position.xy, towerPosition) >= towerRadius }
             (p, f, filteredKills)
           }
           .filter { case (_, _, kills) => kills.nonEmpty }

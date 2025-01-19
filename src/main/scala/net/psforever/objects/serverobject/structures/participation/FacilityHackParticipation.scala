@@ -41,13 +41,13 @@ trait FacilityHackParticipation extends ParticipationLogic {
           .filterNot { case (_, (_, _, t)) => curr - t > hackTime }
           .partition { case (p, _) => uniqueList2.contains(p) }
       }
-      val newParticipaants = list
+      val newParticipants = list
         .filterNot { p =>
           playerContribution.exists { case (u, _) => p.CharId == u }
         }
       playerContribution =
         vanguardParticipants.map { case (u, (p, d, _)) => (u, (p, d + 1, curr)) } ++
-          newParticipaants.map { p => (p.CharId, (p, 1, curr)) } ++
+          newParticipants.map { p => (p.CharId, (p, 1, curr)) } ++
           missingParticipants
     }
   }
