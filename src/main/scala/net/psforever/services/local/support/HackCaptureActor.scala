@@ -106,7 +106,7 @@ class HackCaptureActor extends Actor {
       NotifyHackStateChange(target, isResecured = true)
       building.Participation.RewardFacilityCapture(
         target.Faction,
-        faction,
+        HackCaptureActor.GetAttackingFaction(building, faction),
         hacker,
         facilityHackTime,
         hackTime,
@@ -345,6 +345,30 @@ object HackCaptureActor {
           faction
       }
       .get
+  }
+
+  def GetAttackingFaction(
+                           building: Building,
+                           excludeThisFaction: PlanetSideEmpire.Value
+                         ): PlanetSideEmpire.Value = {
+    // Use PlayerContributionRaw to calculate attacking faction
+    val factionEfforts = building.Participation
+      .PlayerContributionRaw
+      .values
+      .foldLeft(Array.fill(4)(0L)) { case (efforts, (player, duration, _)) =>
+        val factionId = player.Faction.id
+        efforts.update(factionId, efforts(factionId) + duration)
+        efforts
+      }
+
+    // Exclude the specified faction
+    factionEfforts.update(excludeThisFaction.id, Long.MinValue)
+
+    // Find the faction with the highest contribution
+    factionEfforts.indices
+      .maxByOption(factionEfforts)
+      .map(PlanetSideEmpire.apply)
+      .getOrElse(PlanetSideEmpire.NEUTRAL)
   }
 
   def GetHackingFaction(terminal: CaptureTerminal): Option[PlanetSideEmpire.Value] = {
