@@ -119,7 +119,7 @@ class SessionAvatarHandlers(
           Some(modifiedExp)
       }*/
     //if not in squad (temporary)
-    exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, cep, expType="bep")
+    exp.ToDatabase.reportFacilityCapture(charId, zoneNumber, buildingId, cep, expType="bep")
     avatarActor ! AvatarActor.AwardFacilityCaptureBep(cep)
   }
 
