@@ -28,7 +28,9 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
 
   def TryUpdate(): Unit = {
     val list = building.PlayersInSOI
-    updatePlayers(list)
+    if (list.nonEmpty) {
+      updatePlayers(list)
+    }
     val now = System.currentTimeMillis()
     if (now - lastInfoRequest > 60000L) {
       updatePopulationOverTime(list, now, before = 900000L)
@@ -123,7 +125,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
             hackStart,
             completionTime,
             opposingFaction,
-            contributionOpposing
+            contributionVictor
           )
         )
         //1) experience from killing opposingFaction across duration of hack
@@ -249,11 +251,14 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
               overallTimeMultiplier *
               Config.app.game.experience.cep.rate + competitionBonus
           ).toLong
-          //8. reward participants
-          //Classically, only players in the SOI are rewarded, and the llu runner too
+          //8. reward participants that are still in the zone
           val hackerId = hacker.CharId
+          val contributingPlayers = contributionVictor
+            .filter { case (player, _, _) => player.Zone.id == building.Zone.id }
+            .map { case (player, _, _) => player }
+            .toList
           //terminal hacker (always cep)
-          if (playersInSoi.exists(_.CharId == hackerId) && flagCarrier.map(_.CharId).getOrElse(0L) != hackerId) {
+          if (contributingPlayers.exists(_.CharId == hackerId) && flagCarrier.map(_.CharId).getOrElse(0L) != hackerId) {
             ToDatabase.reportFacilityCapture(
               hackerId,
               zoneNumber,
@@ -264,7 +269,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
             events ! AvatarServiceMessage(hacker.Name, AvatarAction.AwardCep(hackerId, finalCep))
           }
           //bystanders (cep if squad leader, bep otherwise)
-          playersInSoi
+          contributingPlayers
             .filterNot { _.CharId == hackerId }
             .foreach { player =>
               val charId = player.CharId
@@ -336,7 +341,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
         val towerRadius = math.pow(tower.Definition.SOIRadius.toDouble * 0.7d, 2d).toFloat
         list
           .map { case (p, f, kills) =>
-            val filteredKills = kills.filter { kill => Vector3.DistanceSquared(kill.victim.Position.xy, towerPosition) <= towerRadius }
+            val filteredKills = kills.filter { kill => Vector3.DistanceSquared(kill.victim.Position.xy, towerPosition) >= towerRadius }
             (p, f, filteredKills)
           }
           .filter { case (_, _, kills) => kills.nonEmpty }

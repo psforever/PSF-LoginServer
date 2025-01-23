@@ -59,7 +59,7 @@ class SessionAvatarHandlers(
     //TODO squad services deactivated, participation trophy rewards for now - 11-20-2023
     //must be in a squad to earn experience
     val charId = player.CharId
-    val squadUI = sessionLogic.squad.squadUI
+    /*val squadUI = sessionLogic.squad.squadUI
     val participation = continent
       .Building(buildingId)
       .map { building =>
@@ -117,7 +117,10 @@ class SessionAvatarHandlers(
           exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, modifiedExp, expType="bep")
           avatarActor ! AvatarActor.AwardFacilityCaptureBep(modifiedExp)
           Some(modifiedExp)
-      }
+      }*/
+    //if not in squad (temporary)
+    exp.ToDatabase.reportFacilityCapture(charId, zoneNumber, buildingId, cep, expType="bep")
+    avatarActor ! AvatarActor.AwardFacilityCaptureBep(cep)
   }
 
   /**
