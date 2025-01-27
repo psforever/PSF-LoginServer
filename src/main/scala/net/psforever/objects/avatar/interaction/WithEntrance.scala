@@ -65,7 +65,7 @@ class WithEntrance()
                              obj: InteractsWithZone,
                              door: Door
                            ): Sidedness = {
-    debugInteriorCheck(obj, door)
+    //debugInteriorCheck(obj, door)
     strictInteriorCheck(obj, door)
   }
 
