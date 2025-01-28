@@ -473,6 +473,9 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarResponse.FacilityCaptureRewards(buildingId, zoneNumber, cep) =>
         ops.facilityCaptureRewards(buildingId, zoneNumber, cep)
 
+      case AvatarResponse.ShareKillExperienceWithSquad(killer, exp) =>
+        ops.shareKillExperienceWithSquad(killer, exp)
+
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
 

@@ -458,6 +458,15 @@ class AvatarService(zone: Zone) extends Actor {
             )
           )
 
+        case AvatarAction.ShareKillExperienceWithSquad(killer, exp) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.ShareKillExperienceWithSquad(killer, exp)
+            )
+          )
+
         case _ => ()
       }
 
