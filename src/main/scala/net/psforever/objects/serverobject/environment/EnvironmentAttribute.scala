@@ -82,7 +82,7 @@ object EnvironmentAttribute {
     /** only interact with living player characters or vehicles */
     def canInteractWith(obj: PlanetSideGameObject): Boolean = canInteractWithPlayersAndVehicles(obj)
 
-    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 0f
+    def testingDepth(obj: _root_.net.psforever.objects.PlanetSideGameObject): Float = 4f
   }
 
   /**
