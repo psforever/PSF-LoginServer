@@ -132,4 +132,5 @@ object AvatarResponse {
   final case class AwardBep(charId: Long, bep: Long, expType: ExperienceType) extends Response
   final case class AwardCep(charId: Long, bep: Long) extends Response
   final case class FacilityCaptureRewards(building_id: Int, zone_number: Int, exp: Long) extends Response
+  final case class ShareKillExperienceWithSquad(killer: Player, exp: Long) extends Response
 }
