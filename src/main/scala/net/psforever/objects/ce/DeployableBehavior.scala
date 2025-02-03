@@ -68,7 +68,12 @@ trait DeployableBehavior {
       if DeployableObject.OwnerGuid.nonEmpty =>
       val obj = DeployableObject
       if (constructed.contains(true)) {
-        loseOwnership(obj, obj.Faction)
+        if (obj.Definition.DeployCategory == DeployableCategory.Boomers) {
+          loseOwnership(obj, PlanetSideEmpire.NEUTRAL)
+        }
+        else {
+          loseOwnership(obj, obj.Faction)
+        }
       } else {
         obj.OwnerGuid = None
       }
