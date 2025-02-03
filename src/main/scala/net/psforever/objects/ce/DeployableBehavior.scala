@@ -68,7 +68,7 @@ trait DeployableBehavior {
       if DeployableObject.OwnerGuid.nonEmpty =>
       val obj = DeployableObject
       if (constructed.contains(true)) {
-        loseOwnership(obj, PlanetSideEmpire.NEUTRAL)
+        loseOwnership(obj, obj.Faction)
       } else {
         obj.OwnerGuid = None
       }
@@ -290,11 +290,17 @@ object DeployableBehavior {
         originalFaction.toString,
         LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Dismiss, info)
       )
+      //remove deployable from original owner's toolbox and UI counter
+      zone.AllPlayers.filter(p => obj.OriginalOwnerName.contains(p.Name))
+        .foreach { originalOwner =>
+          originalOwner.avatar.deployables.Remove(obj)
+          originalOwner.Zone.LocalEvents ! LocalServiceMessage(originalOwner.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
+      }
+      //display to the given faction
+      localEvents ! LocalServiceMessage(
+        toFaction.toString,
+        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
+      )
     }
-    //display to the given faction
-    localEvents ! LocalServiceMessage(
-      toFaction.toString,
-      LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
-    )
   }
 }
