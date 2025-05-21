@@ -15,6 +15,7 @@ import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.ChatMessageType.CMT_QUIT
 import org.log4s.Logger
 
+import java.util.concurrent.{Executors, TimeUnit}
 import scala.annotation.unused
 import scala.collection.{Seq, mutable}
 import scala.concurrent.duration._
@@ -59,6 +60,7 @@ class ChatOperations(
   private var channels: List[ChatChannel] = List()
   private var silenceTimer: Cancellable = Default.Cancellable
   private[session] var transitoryCommandEntered: Option[ChatMessageType] = None
+  private val scheduler = Executors.newScheduledThreadPool(2)
   /**
    * when another player is listed as one of our ignored players,
    * and that other player sends an emote,
@@ -352,8 +354,25 @@ class ChatOperations(
     //evaluate results
     (resolvedFacilities, resolvedFaction, resolvedTimer) match {
       case (Some(buildings), Some(faction), Some(_)) =>
-        buildings.foreach { building =>
           //TODO implement timer
+        //schedule processing of buildings with a delay
+        processBuildingsWithDelay(buildings, faction, 1000) //delay of 1000ms between each building operation
+        true
+      case _ =>
+        false
+    }
+  }
+
+  def processBuildingsWithDelay(
+                                 buildings: Seq[Building],
+                                 faction: PlanetSideEmpire.Value,
+                                 delayMillis: Long
+                               ): Unit = {
+    val buildingIterator = buildings.iterator
+    scheduler.scheduleAtFixedRate(
+      () => {
+        if (buildingIterator.hasNext) {
+          val building = buildingIterator.next()
           val terminal = building.CaptureTerminal.get
           val zone = building.Zone
           val zoneActor = zone.actor
@@ -373,10 +392,11 @@ class ChatOperations(
           //push for map updates again
           zoneActor ! ZoneActor.ZoneMapUpdate()
         }
-        true
-      case _ =>
-        false
-    }
+      },
+      0,
+      delayMillis,
+      TimeUnit.MILLISECONDS
+    )
   }
 
   def commandVoice(session: Session, message: ChatMsg, contents: String, toChannel: ChatChannel): Unit = {
