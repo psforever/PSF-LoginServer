@@ -448,11 +448,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   //loadout for a MAX
                   player.ResistArmMotion(PlayerControl.maxRestriction)
                   player.DrawnSlot = Player.HandsDownSlot
-                  (newHolsters.filter(_.start == 4), newInventory)
+                  (newHolsters.filter(_.start == 4), newInventory.filterNot(dropPred))
                 } else {
                   //loadout for a vanilla exo-suit
                   player.ResistArmMotion(Player.neverRestrict)
-                  (newHolsters, newInventory)
+                  (newHolsters.filterNot(dropPred), newInventory.filterNot(dropPred))
                 }
               } else {
                 //proposed loadout conforms to a different inventory layout than the projected exo-suit
@@ -460,7 +460,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 //holsters (matching holsters will be inserted, the rest will deposited into the inventory)
                 val (finalHolsters, leftoversForInventory) = Players.fillEmptyHolsters(
                   player.Holsters().iterator,
-                  (newHolsters.filterNot(_.obj.Size == EquipmentSize.Max) ++ newInventory)
+                  (newHolsters.filterNot(_.obj.Size == EquipmentSize.Max) ++ newInventory).filterNot(dropPred)
                 )
                 //inventory (items will be placed to accommodate the change, or dropped)
                 val (finalInventory, _) = GridInventory.recoverInventory(leftoversForInventory, player.Inventory)
