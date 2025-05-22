@@ -343,7 +343,7 @@ class WeaponAndProjectileOperations(
             case citem: ConstructionItem =>
               log.info(s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${citem.AmmoType} (mode #$modeIndex)")
             case _ =>
-              log.info(s"${player.Name} changed ${player.Sex.possessive} her ${obj.Definition.Name}'s fire mode to #$modeIndex")
+              log.info(s"${player.Name} changed ${player.Sex.possessive} ${obj.Definition.Name}'s fire mode to #$modeIndex")
           }
           sendResponse(ChangeFireModeMessage(item_guid, modeIndex))
           continent.AvatarEvents ! AvatarServiceMessage(

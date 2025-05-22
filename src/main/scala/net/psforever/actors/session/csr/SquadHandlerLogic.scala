@@ -28,21 +28,21 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
   /* packet */
 
   def handleSquadDefinitionAction(pkt: SquadDefinitionActionMessage): Unit = {
-    if (!player.spectator) {
-      val SquadDefinitionActionMessage(u1, u2, action) = pkt
-      squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Definition(u1, u2, action))
-    }
+    /*if (!player.spectator) {
+     val SquadDefinitionActionMessage(u1, u2, action) = pkt
+     squadService ! SquadServiceMessage(player, continent, SquadServiceAction.Definition(u1, u2, action))
+    }*/
   }
 
   def handleSquadMemberRequest(pkt: SquadMembershipRequest): Unit = {
-    if (!player.spectator) {
+  /*  if (!player.spectator) {
       val SquadMembershipRequest(request_type, char_id, unk3, player_name, unk5) = pkt
       squadService ! SquadServiceMessage(
         player,
         continent,
         SquadServiceAction.Membership(request_type, char_id, unk3, player_name, unk5)
       )
-    }
+    }*/
   }
 
   def handleSquadWaypointRequest(pkt: SquadWaypointRequest): Unit = {
