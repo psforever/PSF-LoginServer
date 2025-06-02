@@ -407,7 +407,8 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         }
         log.info(s"${player.Name} is constructing a $ammoType deployable")
         sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
-        if (obj.AmmoType == DeployedItem.spitfire_turret || obj.AmmoType == DeployedItem.spitfire_cloaked) {
+        if (ammoType == DeployedItem.spitfire_turret || ammoType == DeployedItem.spitfire_cloaked ||
+          ammoType == DeployedItem.spitfire_aa || ammoType == DeployedItem.he_mine || ammoType == DeployedItem.jammer_mine) {
           ops.handleDeployObject(continent, ammoType, pos, orient, OutsideOf, player.Faction, player, obj)
         }
         else {
