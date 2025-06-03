@@ -324,7 +324,7 @@ object EffectTarget {
     def FacilityTurretValidateAircraftTarget(target: PlanetSideGameObject): Boolean =
       target match {
         case v: Vehicle
-          if GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) =>
+          if GlobalDefinitions.isFlightVehicle(v.Definition) && v.Seats.values.exists(_.isOccupied) && v.Definition != GlobalDefinitions.mosquito =>
           val now = System.currentTimeMillis()
           val pos = v.Position
           lazy val sector = v.Zone.blockMap.sector(pos, range = 51f)
@@ -332,10 +332,10 @@ object EffectTarget {
             .collect { case t: Tool => now - t.LastDischarge }
             .exists(_ < 2000L)
           // from the perspective of a mosquito, at 5th gauge, forward velocity is 59~60
-          lazy val movingFast = Vector3.MagnitudeSquared(v.Velocity.getOrElse(Vector3.Zero).xy) > 3721f //61
+          //lazy val movingFast = Vector3.MagnitudeSquared(v.Velocity.getOrElse(Vector3.Zero).xy) > 3721f //61
           lazy val isMoving = v.isMoving(test = 1d)
           if (v.Cloaked || radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
-          else if (v.Definition == GlobalDefinitions.mosquito) movingFast
+          //else if (v.Definition == GlobalDefinitions.mosquito) movingFast
           else v.isFlying && (isMoving || entityTookDamage(v, now) || usedEquipment)
         case _ =>
           false
