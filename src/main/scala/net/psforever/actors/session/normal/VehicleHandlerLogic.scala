@@ -8,6 +8,7 @@ import net.psforever.objects.avatar.SpecialCarry
 import net.psforever.objects.{GlobalDefinitions, Player, Tool, Vehicle, Vehicles}
 import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
+import net.psforever.objects.serverobject.interior.Sidedness.OutsideOf
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
@@ -187,6 +188,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
             s"${player.Sex.possessive} ride"
         }
         log.info(s"${player.Name} has been kicked from $typeOfRide!")
+        player.WhichSide = OutsideOf
 
       case VehicleResponse.KickPassenger(_, wasKickedByDriver, _) =>
         //seat number (first field) seems to be correct if passenger is kicked manually by driver
