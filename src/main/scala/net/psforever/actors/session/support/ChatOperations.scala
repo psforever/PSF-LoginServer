@@ -626,8 +626,9 @@ class ChatOperations(
   }
 
   def commandAddCertification(session: Session, message: ChatMsg, contents: String): Unit = {
-    val certs = cliTokenization(contents).map(name => Certification.values.find(_.name == name))
-    val result = if (certs.nonEmpty) {
+    val tokens = cliTokenization(contents)
+    val certs = tokens.map(name => Certification.values.find(_.name == name))
+    val result = if (tokens.nonEmpty) {
       if (certs.contains(None)) {
         s"@AckErrorCertifications"
       } else {
@@ -646,7 +647,7 @@ class ChatOperations(
   }
 
   def commandKick(session: Session, message: ChatMsg, contents: String): Unit = {
-    val inputs = cliTokenization(contents)
+    val inputs = cliTokenizationCaseSensitive(contents)
     inputs.headOption match {
       case Some(input) =>
         val determination: Player => Boolean = input.toLongOption match {
@@ -1299,7 +1300,11 @@ class ChatOperations(
   }
 
   def cliTokenization(str: String): List[String] = {
-    str.replaceAll("\\s+", " ").toLowerCase.trim.split("\\s").toList
+    str.replaceAll("\\s+", " ").toLowerCase.trim.split("\\s").toList.filter(!_.equals(""))
+  }
+
+  def cliTokenizationCaseSensitive(str: String): List[String] = {
+    str.replaceAll("\\s+", " ").trim.split("\\s").toList.filter(!_.equals(""))
   }
 
   def commandIncomingSend(message: ChatMsg): Unit = {
