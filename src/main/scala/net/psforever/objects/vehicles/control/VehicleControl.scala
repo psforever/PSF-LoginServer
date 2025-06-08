@@ -27,7 +27,7 @@ import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vehicles._
 import net.psforever.objects.vehicles.interaction.WithWater
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.objects.vital.{InGameActivity, ShieldCharge, SpawningActivity, VehicleDismountActivity, VehicleMountActivity}
+import net.psforever.objects.vital.{DamagingActivity, InGameActivity, ShieldCharge, SpawningActivity, VehicleDismountActivity, VehicleMountActivity}
 import net.psforever.objects.zones._
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
@@ -39,6 +39,7 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.util.Random
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Vehicle`.<br>
@@ -138,6 +139,36 @@ class VehicleControl(vehicle: Vehicle)
           case Some(entry) if System.currentTimeMillis() - entry.time < 8500L => true
           case _ => false
         }) =>
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
+
+      case Mountable.TryDismount(user, seat_num, bailType)
+        if vehicle.Health <= (vehicle.Definition.MaxHealth * .1).round && bailType == BailType.Bailed
+          && GlobalDefinitions.isFlightVehicle(vehicle.Definition)
+          && (seat_num == 0 || vehicle.SeatPermissionGroup(seat_num).getOrElse(0) == AccessPermissionGroup.Gunner)
+          && (vehicle.History.findLast { entry => entry.isInstanceOf[DamagingActivity] } match {
+          case Some(entry) if System.currentTimeMillis() - entry.time < 4000L => true
+          case _ if Random.nextInt(10) == 1 => false
+          case _ => true }) =>
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
+
+      case Mountable.TryDismount(user, seat_num, bailType)
+        if vehicle.Health <= (vehicle.Definition.MaxHealth * .2).round && bailType == BailType.Bailed
+          && GlobalDefinitions.isFlightVehicle(vehicle.Definition)
+          && (seat_num == 0 || vehicle.SeatPermissionGroup(seat_num).getOrElse(0) == AccessPermissionGroup.Gunner)
+          && (vehicle.History.findLast { entry => entry.isInstanceOf[DamagingActivity] } match {
+          case Some(entry) if System.currentTimeMillis() - entry.time < 3500L => true
+          case _ if Random.nextInt(5) == 1 => false
+          case _ => true }) =>
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
+
+      case Mountable.TryDismount(user, seat_num, bailType)
+        if vehicle.Health <= (vehicle.Definition.MaxHealth * .35).round && bailType == BailType.Bailed
+          && GlobalDefinitions.isFlightVehicle(vehicle.Definition)
+          && (seat_num == 0 || vehicle.SeatPermissionGroup(seat_num).getOrElse(0) == AccessPermissionGroup.Gunner)
+          && (vehicle.History.findLast { entry => entry.isInstanceOf[DamagingActivity] } match {
+          case Some(entry) if System.currentTimeMillis() - entry.time < 3000L => true
+          case _ if Random.nextInt(4) == 1 => false
+          case _ => true }) =>
         sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
 
       case Mountable.TryDismount(user, seat_num, bailType)
