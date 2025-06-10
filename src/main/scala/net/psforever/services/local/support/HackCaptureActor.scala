@@ -278,7 +278,6 @@ class HackCaptureActor extends Actor {
         tower._2.BuildingType == StructureType.Tower && tower._2.Faction != hackedByFaction)
       // All major facilities in zone are now owned by the hacking faction. Capture all towers in the zone
       // Base that was just hacked is not counted (hence the size - 1) because it wasn't always in ownedBases (async?)
-      println(s"bases: ${zoneBases.size} owned: ${ownedBases.size} towers: ${zoneTowers.size}")
       if (zoneBases.size - 1 == ownedBases.size && zoneTowers.nonEmpty)
         {
           processBuildingsWithDelay(zoneTowers.values.toSeq, hackedByFaction, 1000)
