@@ -202,10 +202,10 @@ class SessionMountHandlers(
     //until vehicles maintain synchronized momentum without a driver
     obj match {
       case v: Vehicle
-        if seatNum == 0 && Vector3.MagnitudeSquared(v.Velocity.getOrElse(Vector3.Zero)) > 0f =>
-        sessionLogic.vehicles.serverVehicleControlVelocity.collect { _ =>
+        if seatNum == 0 =>
+        /*sessionLogic.vehicles.serverVehicleControlVelocity.collect { _ =>
           sessionLogic.vehicles.ServerVehicleOverrideStop(v)
-        }
+        }*/
         v.Velocity = Vector3.Zero
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
@@ -213,9 +213,9 @@ class SessionMountHandlers(
             tplayer.GUID,
             v.GUID,
             unk1 = 0,
-            v.Position,
+            tplayer.Position,
             v.Orientation,
-            vel = None,
+            v.Velocity,
             v.Flying,
             unk3 = 0,
             unk4 = 0,

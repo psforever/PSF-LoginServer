@@ -298,6 +298,10 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         }
 
       case Mountable.CanNotDismount(obj: Vehicle, _, BailType.Bailed)
+        if obj.Health <= (obj.MaxHealth * .35).round && GlobalDefinitions.isFlightVehicle(obj.Definition) =>
+        sendResponse(ChatMsg(ChatMessageType.UNK_224, "@BailingMechanismFailure_Pilot"))
+
+      case Mountable.CanNotDismount(obj: Vehicle, _, BailType.Bailed)
         if {
           continent
             .blockMap

@@ -192,6 +192,10 @@ class GeneratorControl(gen: Generator)
     if(newHealth == target.Definition.MaxHealth) {
       stopAutoRepair()
     }
+    if(gen.Condition == PlanetSideGeneratorState.Critical && newHealth > (target.MaxHealth / 2)) {
+      gen.Condition = PlanetSideGeneratorState.Normal
+      GeneratorControl.UpdateOwner(gen, Some(GeneratorControl.Event.Normal))
+    }
     newHealth
   }
 
