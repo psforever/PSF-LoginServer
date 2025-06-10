@@ -3,6 +3,7 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.interior.Sidedness.OutsideOf
 import net.psforever.objects.{PlanetSideGameObject, Tool, Vehicle}
 import net.psforever.objects.vehicles.{CargoBehavior, MountableWeapons}
 import net.psforever.objects.vital.InGameHistory
@@ -197,6 +198,7 @@ class SessionMountHandlers(
    */
   def DismountVehicleAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
     DismountAction(tplayer, obj, seatNum)
+    tplayer.WhichSide = OutsideOf
     //until vehicles maintain synchronized momentum without a driver
     obj match {
       case v: Vehicle

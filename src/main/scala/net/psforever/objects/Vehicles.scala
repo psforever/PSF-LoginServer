@@ -42,11 +42,13 @@ object Vehicles {
       case Some(tplayer) =>
         tplayer.avatar.vehicle = Some(vehicle.GUID)
         vehicle.AssignOwnership(playerOpt)
+        val locked = VehicleLockState.Locked.id
+        Array(0, 3).foreach(group => vehicle.PermissionGroup(group, locked))
+        Vehicles.ReloadAccessPermissions(vehicle, tplayer.Faction.toString)
         vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
           vehicle.Zone.id,
           VehicleAction.Ownership(tplayer.GUID, vehicle.GUID)
         )
-        Vehicles.ReloadAccessPermissions(vehicle, tplayer.Faction.toString)
         Some(vehicle)
       case None =>
         None

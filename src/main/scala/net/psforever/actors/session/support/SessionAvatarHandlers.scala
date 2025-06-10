@@ -3,7 +3,7 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.{Default, PlanetSideGameObject}
+import net.psforever.objects.{Default, PlanetSideGameObject, Player}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
@@ -59,7 +59,7 @@ class SessionAvatarHandlers(
     //TODO squad services deactivated, participation trophy rewards for now - 11-20-2023
     //must be in a squad to earn experience
     val charId = player.CharId
-    val squadUI = sessionLogic.squad.squadUI
+    /*val squadUI = sessionLogic.squad.squadUI
     val participation = continent
       .Building(buildingId)
       .map { building =>
@@ -117,7 +117,35 @@ class SessionAvatarHandlers(
           exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, modifiedExp, expType="bep")
           avatarActor ! AvatarActor.AwardFacilityCaptureBep(modifiedExp)
           Some(modifiedExp)
+      }*/
+    //if not in squad (temporary)
+    exp.ToDatabase.reportFacilityCapture(charId, zoneNumber, buildingId, cep, expType="bep")
+    avatarActor ! AvatarActor.AwardFacilityCaptureBep(cep)
+  }
+
+  /**
+    *
+    * @param killer the player who got the kill
+    * @param exp the amount of bep they received for the kill
+    * Squad members of a "killer" will receive a split of the experience if they are both alive
+    * and in the same zone as the killer. The amount received is
+    * based on the size of the squad. Each squad member that meets the criteria will receive a fractional split.
+    */
+  def shareKillExperienceWithSquad(killer: Player, exp: Long): Unit = {
+    //TODO consider squad experience waypoint in exp calculation
+    val squadUI = sessionLogic.squad.squadUI
+    val squadSize = squadUI.size
+    if (squadSize > 1) {
+      val expSplit = exp / squadSize
+      val squadMembers = squadUI.filterNot(_._1 == killer.CharId).map { case (_, member) => member }.toList.map(_.name)
+      val playersInZone = killer.Zone.Players.map { avatar => (avatar.id, avatar.basic.name) }
+      val squadMembersHere = playersInZone.filter(member => squadMembers.contains(member._2))
+      squadMembersHere.foreach { member =>
+        killer.Zone.AvatarEvents ! AvatarServiceMessage(
+          member._2,
+          AvatarAction.AwardBep(member._1, expSplit, ExperienceType.Normal))
       }
+    }
   }
 
   /**

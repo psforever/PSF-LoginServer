@@ -182,7 +182,8 @@ class ZoneActor(
 
       case ZoneMapUpdate() =>
         zone.Buildings
-          .filter(_._2.BuildingType == StructureType.Facility)
+          .filter(building =>
+            building._2.BuildingType == StructureType.Facility || building._2.BuildingType == StructureType.Tower)
           .values
           .foreach(_.Actor ! BuildingActor.MapUpdate())
         Behaviors.same

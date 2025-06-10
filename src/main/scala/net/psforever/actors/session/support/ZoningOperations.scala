@@ -2494,6 +2494,15 @@ class ZoningOperations(
           reclaimOurDeployables(continent.DeployableList, player.Name, reassignDeployablesTo(player.GUID))
         )
       )
+      //do this to make my deployed telepad appear that way
+      if (continent.DeployableList.exists(telepad => telepad.Definition == GlobalDefinitions.router_telepad_deployable
+        && telepad.OwnerName.contains(player.Name)))
+      {
+        continent.Vehicles.filter(router => router.Definition == GlobalDefinitions.router && router.Faction == player.Faction)
+          .foreach { obj =>
+            sessionLogic.general.toggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
+          }
+      }
       //begin looking for conditions to set the avatar
       context.system.scheduler.scheduleOnce(delay = 250 millisecond, context.self, SessionActor.SetCurrentAvatar(player, 200))
     }

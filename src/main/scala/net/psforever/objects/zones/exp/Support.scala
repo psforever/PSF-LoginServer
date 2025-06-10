@@ -29,8 +29,13 @@ object Support {
     //setup
     val historyList = history.toList
     val withKills = victim.progress.kills.nonEmpty
+    //TODO Issue #1259 - Use another method to capture time of death than current time ("kill shots" aren't working)
+    /*
     val fullLifespan = (historyList.headOption, historyList.lastOption) match {
       case (Some(spawn), Some(death)) => death.time - spawn.time
+     */
+    val fullLifespan = historyList.headOption match {
+      case Some(spawn) => System.currentTimeMillis() - spawn.time
       case _                          => 0L
     }
     val recordOfWornTimes = countTimeWhileExoSuitOrMounted(historyList)

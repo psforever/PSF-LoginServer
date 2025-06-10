@@ -3039,6 +3039,8 @@ class AvatarActor(
     if (exp > 0L) {
       setBep(avatar.bep + exp, msg)
       zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, killStat, exp)
+      zone.AvatarEvents ! AvatarServiceMessage(
+        player.Name, AvatarAction.ShareKillExperienceWithSquad(player, exp))
     }
   }
 

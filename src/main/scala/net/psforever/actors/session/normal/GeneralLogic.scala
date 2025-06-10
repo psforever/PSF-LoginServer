@@ -18,6 +18,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.containable.Containable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.generator.Generator
+import net.psforever.objects.serverobject.interior.Sidedness.OutsideOf
 import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.mblocker.Locker
@@ -406,7 +407,13 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         }
         log.info(s"${player.Name} is constructing a $ammoType deployable")
         sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
-        ops.handleDeployObject(continent, ammoType, pos, orient, player.WhichSide, player.Faction, player, obj)
+        if (ammoType == DeployedItem.spitfire_turret || ammoType == DeployedItem.spitfire_cloaked ||
+          ammoType == DeployedItem.spitfire_aa) {
+          ops.handleDeployObject(continent, ammoType, pos, orient, OutsideOf, player.Faction, player, obj)
+        }
+        else {
+          ops.handleDeployObject(continent, ammoType, pos, orient, player.WhichSide, player.Faction, player, obj)
+        }
       case Some(obj) =>
         log.warn(s"DeployObject: what is $obj, ${player.Name}?  It's not a construction tool!")
       case None =>
