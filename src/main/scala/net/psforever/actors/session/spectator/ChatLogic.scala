@@ -143,7 +143,18 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case "list" => ops.customCommandList(session, params, message)
         case "nearby" => ops.customCommandNearby(session)
         case "loc" => ops.customCommandLoc(session, message)
-        case _ => false
+        case _ =>
+          // command was not handled
+          sendResponse(
+            ChatMsg(
+              ChatMessageType.CMT_GMOPEN, // CMT_GMTELL
+              message.wideContents,
+              "Server",
+              s"Unknown command !$command",
+              message.note
+            )
+          )
+          true
       }
     } else {
       false

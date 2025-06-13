@@ -236,7 +236,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
               message.note
             )
           )
-          false
+          true
       }
     } else {
       false
