@@ -80,6 +80,8 @@ object Players {
       )
     )
     target.Zone.AvatarEvents ! AvatarServiceMessage(name, AvatarAction.Revive(target.GUID))
+    val reviveMessage = s"@YouHaveBeenMessage^revived~^$medicName~"
+    PlayerControl.sendResponse(target.Zone, name, ChatMsg(ChatMessageType.UNK_227, reviveMessage))
   }
 
   /**

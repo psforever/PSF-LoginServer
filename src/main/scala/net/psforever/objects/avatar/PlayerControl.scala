@@ -5,6 +5,7 @@ import akka.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.login.WorldSession.{DropEquipmentFromInventory, HoldNewEquipmentUp, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
 import net.psforever.objects._
+import net.psforever.objects.avatar.PlayerControl.sendResponse
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.DeployAnimation
 import net.psforever.objects.definition.converter.OCM
@@ -147,6 +148,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   newHealth - originalHealth
                 )
               )
+              val amount = newHealth - originalHealth
+              val healMessageSelf = s"@SelfHitHealedMessage^healed~^$amount~^health~"
+              val healMessageOther = s"@WereHitByHealedMessage^healed~^$amount~^health~^$uname~"
+              if (player == user) {
+                sendResponse(user.Zone, user.Name, ChatMsg(ChatMessageType.UNK_227, healMessageSelf))
+              }
+              else {
+                sendResponse(player.Zone, player.Name, ChatMsg(ChatMessageType.UNK_227, healMessageOther))
+              }
             }
             if (player != user) {
               //"Someone is trying to heal you"
@@ -210,6 +220,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   newArmor - originalArmor
                 )
               )
+              val amount = newArmor - originalArmor
+              val repairMessageSelf = s"@SelfHitHealedMessage^repaired~^$amount~^armor~"
+              val repairMessageOther = s"@WereHitByHealedMessage^repaired~^$amount~^armor~^$uname~"
+              if (player == user) {
+                sendResponse(user.Zone, user.Name, ChatMsg(ChatMessageType.UNK_227, repairMessageSelf))
+              }
+              else {
+                sendResponse(player.Zone, player.Name, ChatMsg(ChatMessageType.UNK_227, repairMessageOther))
+              }
             }
             if (player != user) {
               if (player.isAlive) {
