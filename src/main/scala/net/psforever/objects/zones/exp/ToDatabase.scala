@@ -1,6 +1,7 @@
 // Copyright (c) 2022 PSForever
 package net.psforever.objects.zones.exp
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import net.psforever.objects.avatar.scoring.EquipmentStat
 import net.psforever.objects.serverobject.hackable.Hackable.HackInfo
 import net.psforever.objects.sourcing.VehicleSource
@@ -8,7 +9,6 @@ import net.psforever.persistence
 import net.psforever.types.Vector3
 import net.psforever.util.Database.ctx
 import net.psforever.util.Database.ctx._
-
 
 object ToDatabase {
   /**
