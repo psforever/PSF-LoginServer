@@ -92,7 +92,7 @@ class CaptureFlagManager(zone: Zone) extends Actor {
         case CaptureFlagLostReasonEnum.Resecured =>
           CaptureFlagManager.ChatBroadcast(
             zone,
-            CaptureFlagChatMessageStrings.CTF_Failed_SourceResecured(flag.Owner.asInstanceOf[Building].Name, flag.Faction)
+            CaptureFlagChatMessageStrings.CTF_Failed_SourceResecured(flag.Owner.asInstanceOf[Building].Name, flag.Owner.asInstanceOf[Building].Faction)
           )
         case CaptureFlagLostReasonEnum.TimedOut  =>
           val building = flag.Owner.asInstanceOf[Building]
