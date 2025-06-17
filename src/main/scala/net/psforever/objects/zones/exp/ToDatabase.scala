@@ -1,7 +1,6 @@
 // Copyright (c) 2022 PSForever
 package net.psforever.objects.zones.exp
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import net.psforever.objects.avatar.scoring.EquipmentStat
 import net.psforever.objects.serverobject.hackable.Hackable.HackInfo
 import net.psforever.objects.sourcing.VehicleSource
@@ -10,7 +9,6 @@ import net.psforever.types.Vector3
 import net.psforever.util.Database.ctx
 import net.psforever.util.Database.ctx._
 
-import scala.concurrent.Future
 
 object ToDatabase {
   /**
@@ -103,27 +101,22 @@ object ToDatabase {
    * insert a new entry into the table.
    * Shots fired.
    */
-  def reportToolDischarge(avatarId: Long, stats: EquipmentStat): Future[Unit] = {
-    import ctx._
-    import scala.concurrent.ExecutionContext.Implicits.global
-    ctx.transaction { implicit ec =>
-      ctx.run(
-        query[persistence.Weaponstatsession]
-          .insert(
-            _.avatarId -> lift(avatarId),
-            _.weaponId -> lift(stats.objectId),
-            _.shotsFired -> lift(stats.shotsFired),
-            _.shotsLanded -> lift(stats.shotsLanded),
-            _.kills -> lift(0),
-            _.assists -> lift(0),
-            _.sessionId -> lift(-1L)
-          )
-          .onConflictUpdate(_.avatarId, _.weaponId, _.sessionId)(
-            (t, e) => t.shotsFired -> (t.shotsFired + e.shotsFired),
-            (t, e) => t.shotsLanded -> (t.shotsLanded + e.shotsLanded)
-          )
-      ).map(_ => ())
-    }
+  def reportToolDischarge(avatarId: Long, stats: EquipmentStat): Unit = {
+    ctx.run(query[persistence.Weaponstatsession]
+      .insert(
+        _.avatarId -> lift(avatarId),
+        _.weaponId -> lift(stats.objectId),
+        _.shotsFired -> lift(stats.shotsFired),
+        _.shotsLanded -> lift(stats.shotsLanded),
+        _.kills -> lift(0),
+        _.assists -> lift(0),
+        _.sessionId -> lift(-1L)
+      )
+      .onConflictUpdate(_.avatarId, _.weaponId, _.sessionId)(
+        (t, e) => t.shotsFired -> (t.shotsFired + e.shotsFired),
+        (t, e) => t.shotsLanded -> (t.shotsLanded + e.shotsLanded)
+      )
+    )
   }
 
   /**
