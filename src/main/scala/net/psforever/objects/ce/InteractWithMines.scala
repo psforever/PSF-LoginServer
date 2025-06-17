@@ -23,7 +23,7 @@ class InteractWithMines(val range: Float)
     */
   private var skipTargets: List[PlanetSideGUID] = List()
 
-  def Type = MineInteraction
+  def Type: MineInteraction.type = MineInteraction
 
   /**
     * Trample upon active mines in our current detection sector and alert those mines.
@@ -32,12 +32,13 @@ class InteractWithMines(val range: Float)
     */
   def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit = {
     val faction = target.Faction
+    lazy val targetGeometry = target.Definition.Geometry(target)
     val targets = sector
       .deployableList
       .filter {
-        case _: BoomerDeployable     => false //boomers are specific types of ExplosiveDeployable but do not count here
+        case _: BoomerDeployable     => false //boomers are a specific type of ExplosiveDeployable that do not count here
         case ex: ExplosiveDeployable => ex.Faction != faction &&
-                                        Zone.distanceCheck(target, ex, ex.Definition.triggerRadius)
+                                        Zone.distanceCheck(targetGeometry, ex, ex.Definition.triggerRadius * ex.Definition.triggerRadius)
         case _                       => false
       }
     val notSkipped = targets.filterNot { t => skipTargets.contains(t.GUID) }
