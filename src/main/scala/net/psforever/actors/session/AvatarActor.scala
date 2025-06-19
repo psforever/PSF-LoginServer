@@ -946,12 +946,16 @@ object AvatarActor {
   def setBepOnly(avatarId: Long, bep: Long): Future[Long] = {
     import ctx._
     import scala.concurrent.ExecutionContext.Implicits.global
-    val out: Promise[Long] = Promise()
-    val result = ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId)).update(_.bep -> lift(bep)))
-    result.onComplete { _ =>
-      out.completeWith(Future(bep))
+    ctx.transaction { implicit ec =>
+      for {
+        currBep <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId)).map(_.bep))
+          .map(_.headOption.getOrElse(0L))
+
+        newBep = currBep + bep
+
+        _ <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId)).update(_.bep -> lift(newBep)))
+      } yield newBep
     }
-    out.future
   }
 
   def loadExperienceDebt(avatarId: Long): Future[Long] = {
@@ -1843,7 +1847,7 @@ class AvatarActor(
           implantTimers.foreach(_.cancel())
           supportExperienceTimer.cancel()
           if (supportExperiencePool > 0) {
-            AvatarActor.setBepOnly(avatar.id, avatar.bep + supportExperiencePool)
+            AvatarActor.setBepOnly(avatar.id, supportExperiencePool)
           }
           AvatarActor.saveAvatarData(avatar)
           saveLockerFunc()
@@ -2882,7 +2886,7 @@ class AvatarActor(
   def setBep(bep: Long, modifier: ExperienceType): Unit = {
     import ctx._
     AvatarActor.setBepOnly(avatar.id, bep).onComplete {
-      case Success(_) =>
+      case Success(newBep) =>
         val sess          = session.get
         val zone          = sess.zone
         val zoneId        = zone.id
@@ -2891,10 +2895,10 @@ class AvatarActor(
         val pguid         = player.GUID
         val localModifier = modifier
         val current   = BattleRank.withExperience(avatar.bep).value
-        val next      = BattleRank.withExperience(bep).value
+        val next      = BattleRank.withExperience(newBep).value
         val br24 = BattleRank.BR24.value
-        sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(pguid, bep, localModifier))
-        events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(pguid, 17, bep))
+        sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(pguid, newBep, localModifier))
+        events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(pguid, 17, newBep))
         if (current < br24 && next >= br24 || current >= br24 && next < br24) {
           setCosmetics(Set()).onComplete { _ =>
             val evts = events
@@ -2906,7 +2910,7 @@ class AvatarActor(
         // when the level is reduced, take away any implants over the implant slot limit
         val implants = avatar.implants.zipWithIndex.map {
           case (implant, index) =>
-            if (index >= BattleRank.withExperience(bep).implantSlots && implant.isDefined) {
+            if (index >= BattleRank.withExperience(newBep).implantSlots && implant.isDefined) {
               ctx
                 .run(
                   query[persistence.Implant]
@@ -2925,7 +2929,7 @@ class AvatarActor(
               implant
             }
         }
-        avatar = avatar.copy(bep = bep, implants = implants)
+        avatar = avatar.copy(bep = newBep, implants = implants)
       case Failure(exception) =>
         log.error(exception)("db failure")
     }
@@ -2948,11 +2952,11 @@ class AvatarActor(
   }
 
   def awardSupportExperience(bep: Long, previousDelay: Long): Unit = {
-    setBep(avatar.bep + bep, ExperienceType.Support)
+    setBep(bep, ExperienceType.Support)
   }
 
   def actuallyAwardSupportExperience(bep: Long, delayBy: Long): Unit = {
-    setBep(avatar.bep + bep, ExperienceType.Support)
+    setBep(bep, ExperienceType.Support)
     supportExperiencePool = supportExperiencePool - bep
     if (supportExperiencePool > 0) {
       resetSupportExperienceTimer(bep, delayBy)
@@ -2986,7 +2990,7 @@ class AvatarActor(
   }
 
   private def setBepAction(modifier: ExperienceType)(value: Long): Unit = {
-    setBep(avatar.bep + value, modifier)
+    setBep(value, modifier)
   }
 
   private def setSupportAction(value: Long): Unit = {
@@ -3037,7 +3041,7 @@ class AvatarActor(
       )
     }
     if (exp > 0L) {
-      setBep(avatar.bep + exp, msg)
+      setBep(exp, msg)
       zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, killStat, exp)
       zone.AvatarEvents ! AvatarServiceMessage(
         player.Name, AvatarAction.ShareKillExperienceWithSquad(player, exp))
