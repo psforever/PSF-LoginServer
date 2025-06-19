@@ -1,8 +1,9 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.ce
 
+import net.psforever.objects.geometry.d3.VolumetricGeometry
 import net.psforever.objects.zones.blockmap.SectorPopulation
-import net.psforever.objects.zones.{InteractsWithZone, Zone, ZoneInteraction, ZoneInteractionType}
+import net.psforever.objects.zones.{InteractsWithZone, ZoneInteraction, ZoneInteractionType}
 import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable}
 import net.psforever.types.PlanetSideGUID
 
@@ -13,7 +14,7 @@ case object MineInteraction extends ZoneInteractionType
   * "Interact", here, is a graceful word for "trample upon" and the consequence should be an explosion
   * and maybe death.
   */
-class InteractWithMines(val range: Float)
+class InteractWithMines(val range: Float, rule: TriggerTest)
   extends ZoneInteraction {
   /**
     * mines that, though detected, are skipped from being alerted;
@@ -37,8 +38,7 @@ class InteractWithMines(val range: Float)
       .deployableList
       .filter {
         case _: BoomerDeployable     => false //boomers are a specific type of ExplosiveDeployable that do not count here
-        case ex: ExplosiveDeployable => ex.Faction != faction &&
-                                        Zone.distanceCheck(targetGeometry, ex, ex.Definition.triggerRadius * ex.Definition.triggerRadius)
+        case ex: ExplosiveDeployable => ex.Faction != faction && rule.test(targetGeometry, ex, ex.Definition.triggerRadius)
         case _                       => false
       }
     val notSkipped = targets.filterNot { t => skipTargets.contains(t.GUID) }
@@ -56,4 +56,20 @@ class InteractWithMines(val range: Float)
   def resetInteraction(target: InteractsWithZone): Unit = {
     skipTargets = List()
   }
+}
+
+/**
+ * The testing rule used to determine if a target is within range
+ * to agitate the game world deployable extra-territorial munitions.
+ */
+trait TriggerTest {
+  /**
+   * Perform the test
+   * @param g the geometric representation of a game entity
+   * @param obj a game entity
+   * @param distance the maximum distance permissible between game entities
+   * @return `true`, if the two entities are near enough to each other;
+   *        `false`, otherwise
+   */
+  def test(g: VolumetricGeometry, obj: ExplosiveDeployable, distance: Float): Boolean
 }
