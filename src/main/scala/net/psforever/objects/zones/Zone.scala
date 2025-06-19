@@ -1902,6 +1902,24 @@ object Zone {
   }
 
   /**
+   * Two game entities are considered "near" each other if they are within a certain distance of one another.
+   * A default function literal mainly used for `serverSideDamage`.
+   * Best used when one entity - `obj1` - is to be reused in tests against multiple other entities
+   * as it skips repeatedly calculating the volumetric geometry of the repeating entity.
+   * @see `ObjectDefinition.Geometry`
+   * @see `serverSideDamage`
+   * @param obj1 the geometric representation of a game entity
+   * @param obj2 a game entity
+   * @param maxDistance the square of the maximum distance permissible between game entities
+   *                    before they are no longer considered "near"
+   * @return `true`, if the two entities are near enough to each other;
+   *        `false`, otherwise
+   */
+  def distanceCheck(obj1: VolumetricGeometry, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
+    distanceCheck(obj1, obj2.Definition.Geometry(obj2), maxDistance)
+  }
+
+  /**
     * Two game entities are considered "near" each other if they are within a certain distance of one another.
     * @param g1 the geometric representation of a game entity
     * @param g2 the geometric representation of a game entity

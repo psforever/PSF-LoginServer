@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.avatar.interaction.{WithEntrance, WithGantry, WithLava, WithWater}
+import net.psforever.objects.avatar.interaction.{TriggerOnPlayerRule, WithEntrance, WithGantry, WithLava, WithWater}
 import net.psforever.objects.avatar.{Avatar, LoadoutManager, SpecialCarry}
 import net.psforever.objects.ballistics.InteractWithRadiationClouds
 import net.psforever.objects.ce.{Deployable, InteractWithMines, InteractWithTurrets}
@@ -47,7 +47,7 @@ class Player(var avatar: Avatar)
     new WithGantry(avatar.name),
     new WithMovementTrigger()
   )))
-  interaction(new InteractWithMines(range = 10))
+  interaction(new InteractWithMines(range = 10, TriggerOnPlayerRule))
   interaction(new InteractWithTurrets())
   interaction(new InteractWithRadiationClouds(range = 10f, Some(this)))
 
