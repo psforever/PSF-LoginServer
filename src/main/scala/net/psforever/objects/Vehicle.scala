@@ -16,7 +16,7 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.interior.{InteriorAwareFromInteraction, Sidedness}
 import net.psforever.objects.serverobject.structures.AmenityOwner
 import net.psforever.objects.vehicles._
-import net.psforever.objects.vehicles.interaction.{WithLava, WithWater}
+import net.psforever.objects.vehicles.interaction.{TriggerOnVehicleRule, WithLava, WithWater}
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
@@ -101,7 +101,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
     new WithDeath(),
     new WithMovementTrigger()
   )))
-  interaction(new InteractWithMines(range = 20))
+  interaction(new InteractWithMines(range = 20, TriggerOnVehicleRule))
   interaction(new InteractWithTurrets())
   interaction(new InteractWithRadiationCloudsSeatedInVehicle(obj = this, range = 20))
 
