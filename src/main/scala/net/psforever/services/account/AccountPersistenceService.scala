@@ -318,6 +318,7 @@ class PersistenceMonitor(
       }
       kicked = true
       kickTime = time.orElse(Some(300L))
+      PerformLogout()
 
     case Logout(_) =>
       kickTime match {
