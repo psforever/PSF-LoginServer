@@ -3137,6 +3137,8 @@ class ZoningOperations(
         sendResponse(PlanetsideAttributeMessage(guid, 4, tplayer.Armor))
         continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttributeToAll(guid, 4, tplayer.Armor))
       }
+      // for issue #1269
+      continent.AllPlayers.filter(_.ExoSuit == ExoSuitType.MAX).foreach(max => sendResponse(PlanetsideAttributeMessage(max.GUID, 4, max.Armor)))
       // AvatarAwardMessage
       //populateAvatarAwardRibbonsFunc(1, 20L)
 
