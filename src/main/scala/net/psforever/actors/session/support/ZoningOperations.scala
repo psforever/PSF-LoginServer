@@ -1269,6 +1269,7 @@ class ZoningOperations(
         ICS.FindZone(_.id == zoneId, context.self)
       ))
     } else {
+      vehicle.Velocity = None
       sessionLogic.general.unaccessContainer(vehicle)
       LoadZoneCommonTransferActivity()
       player.VehicleSeated = vehicle.GUID
@@ -2965,7 +2966,7 @@ class ZoningOperations(
     /**
      * na
      * @param target player being spawned
-     * @param position where player is being placed in the game wqrld
+     * @param position where player is being placed in the game world
      * @param orientation in what direction the player is facing in the game world
      * @param onThisSide description of the containing environment
      * @param goingToZone common designation for the zone

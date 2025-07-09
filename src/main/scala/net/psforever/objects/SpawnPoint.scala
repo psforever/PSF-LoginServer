@@ -140,8 +140,6 @@ object SpawnPoint {
   def CavernGate(innerRadius: Float)(obj: SpawnPoint, target: PlanetSideGameObject): (Vector3, Vector3) = {
     val (a, b) = metaGate(obj, target, innerRadius)
     target match {
-      case v: Vehicle if GlobalDefinitions.isFlightVehicle(v.Definition) =>
-        (a.xy + Vector3.z((target.Position.z + a.z) * 0.5f), b)
       case m: MountableEntity =>
         m.BailProtection = true
         (a + Vector3.z(obj.Definition.UseRadius * 0.5f), b)
@@ -154,7 +152,7 @@ object SpawnPoint {
     val (a, b) = metaGate(obj, target, innerRadius)
     target match {
       case v: Vehicle if GlobalDefinitions.isFlightVehicle(v.Definition) =>
-        (a.xy + Vector3.z((target.Position.z + a.z) * 0.5f), b)
+        (a, b)
       case _ =>
         (a + Vector3.z(flightlessZOffset), b)
     }
