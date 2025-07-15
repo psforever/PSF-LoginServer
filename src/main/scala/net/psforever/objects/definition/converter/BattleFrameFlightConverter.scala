@@ -110,6 +110,6 @@ class BattleFrameFlightConverter extends ObjectCreateConverter[Vehicle]() {
   }
 
   def showBfrShield(obj: Vehicle): Boolean = {
-    obj.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.Enabled && obj.Shields > 0
+    obj.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).exists(_.Enabled) && obj.Shields > 0
   }
 }

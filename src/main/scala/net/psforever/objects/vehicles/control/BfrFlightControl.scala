@@ -58,20 +58,20 @@ class BfrFlightControl(vehicle: Vehicle)
             case Some(drain) if localFlyingValue.isEmpty =>
               //shields off
               disableShield()
-              vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.Enabled = false
+              vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).map(s => s.Enabled = false)
               vehicle.Shields -= drain
               showShieldCharge()
             case None if localFlyingValue.isEmpty =>
               //shields off
               disableShield()
-              vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.Enabled = false
+              vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).map(s => s.Enabled = false)
             case Some(drain) =>
               vehicle.Shields -= drain
               showShieldCharge()
             case _ => ;
           }
         }
-        if (vehicle.Subsystems(VehicleSubsystemEntry.BattleframeFlightPod).get.Jammed) {
+        if (vehicle.Subsystems(VehicleSubsystemEntry.BattleframeFlightPod).exists(_.Jammed)) {
 
         }
 
@@ -79,7 +79,7 @@ class BfrFlightControl(vehicle: Vehicle)
         if (flying.nonEmpty) {
           flying = None
           vehicle.Flying = None
-          vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).get.Enabled = true
+          vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator).map(s => s.Enabled = true)
           if (vehicle.Shields > 0) {
             enableShield()
           }
