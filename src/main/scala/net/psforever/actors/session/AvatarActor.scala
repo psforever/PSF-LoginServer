@@ -154,6 +154,10 @@ object AvatarActor {
   final case class UpdatePurchaseTime(definition: BasicDefinition, time: LocalDateTime = LocalDateTime.now())
       extends Command
 
+  /**  rchase time for the use of calculating cooldowns */
+  final case class UpdateCUDTime(action: String, time: LocalDateTime = LocalDateTime.now())
+    extends Command
+
   /** Set use time for the use of calculating cooldowns */
   final case class UpdateUseTime(definition: BasicDefinition, time: LocalDateTime = LocalDateTime.now()) extends Command
 
@@ -459,7 +463,15 @@ object AvatarActor {
               case _ => ()
             }
           } catch {
-            case _: Exception => ()
+            case _: Exception =>
+              val cooldown = LocalDateTime.parse(b)
+              name match {
+                case "orbital_strike" if now.compareTo(cooldown.plusMillis(3.hours.toMillis.toInt)) == -1 =>
+                  cooldowns.put(name, cooldown)
+                case "emp_blast" | "reveal_friendlies" | "reveal_enemies" if now.compareTo(cooldown.plusMillis(20.minutes.toMillis.toInt)) == -1 =>
+                  cooldowns.put(name, cooldown)
+                case _ => ()
+              }
           }
         case _ =>
           log.warn(s"ignoring invalid cooldown string: '$value'")
@@ -1544,6 +1556,21 @@ class AvatarActor(
                   case _ => ()
                 }
             }
+          if (updateTheTimes) {
+            avatarCopy(avatar.copy(cooldowns = avatar.cooldowns.copy(purchase = theTimes)))
+          }
+          Behaviors.same
+
+        case UpdateCUDTime(action, time) =>
+          var theTimes = avatar.cooldowns.purchase
+          var updateTheTimes: Boolean = false
+                Avatar.cudCooldowns.get(action) match {
+                  case Some(_) =>
+                    //only send for items with cooldowns
+                    updateTheTimes = true
+                    theTimes = theTimes.updated(action, time)
+                  case _ => ()
+                }
           if (updateTheTimes) {
             avatarCopy(avatar.copy(cooldowns = avatar.cooldowns.copy(purchase = theTimes)))
           }
@@ -2655,6 +2682,43 @@ class AvatarActor(
     }
     if (keysToDrop.nonEmpty) {
       val cdown = avatar.cooldowns
+      val cud = Array("orbital_strike", "emp_blast", "reveal_friendlies", "reveal_enemies")
+      keysToDrop.foreach { key =>
+        if (cud.contains(key)) {
+          avatar
+            .cooldowns
+            .purchase
+            .find { case (name, _) => name.equals(key) }
+            .flatMap { case (name, purchaseTime) =>
+              val secondsSincePurchase = Seconds.secondsBetween(purchaseTime, LocalDateTime.now()).getSeconds
+              Avatar
+                .cudCooldowns
+                .find(_._1.equals(name))
+                .collect {
+                  case (action, cooldown) =>
+                    (action, cooldown.toSeconds - secondsSincePurchase)
+                }
+                .orElse {
+                  None
+                }
+                .collect {
+                  case (action, remainingTime) if remainingTime > 0 =>
+                    val convertTime = remainingTime * 1000
+                    keysToDrop = keysToDrop.filterNot(_ == action)
+                    action match {
+                      case "orbital_strike" =>
+                        sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.get.player.GUID, 60, convertTime))
+                      case "emp_blast" =>
+                        sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.get.player.GUID, 59, convertTime))
+                      case "reveal_enemies" =>
+                        sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.get.player.GUID, 58, convertTime))
+                      case "reveal_friendlies" =>
+                        sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.get.player.GUID, 57, convertTime))
+                    }
+                }
+            }
+        }
+      }
       avatarCopy(avatar.copy(cooldowns = cdown.copy(purchase = cdown.purchase.removedAll(keysToDrop))))
     }
   }
