@@ -1847,6 +1847,53 @@ object Zone {
 
   /**
     * na
+    * @see `DamageWithPosition`
+    * @see `Zone.blockMap.sector`
+    * @param zone   the zone in which the explosion should occur
+    * @param sourcePosition a position that is used as the origin of the explosion
+    * @param radius idistance
+    * @param getTargetsFromSector get this list of entities from a sector
+    * @return a list of affected entities
+    */
+  def findOrbitalStrikeTargets(
+                      zone: Zone,
+                      sourcePosition: Vector3,
+                      radius: Float,
+                      getTargetsFromSector: SectorPopulation => List[PlanetSideServerObject with Vitality]
+                    ): List[PlanetSideServerObject with Vitality] = {
+    getTargetsFromSector(zone.blockMap.sector(sourcePosition.xy, radius))
+  }
+
+  def getOrbitbalStrikeTargets(sector: SectorPopulation): List[PlanetSideServerObject with Vitality] = {
+    //collect all targets that can be damaged
+    //players
+    val playerTargets = sector.livePlayerList.filter { player => player.VehicleSeated.isEmpty && player.WhichSide == Sidedness.OutsideOf }
+    //vehicles
+    val vehicleTargets = sector.vehicleList.filterNot { _.Destroyed }
+    //deployables
+    val deployableTargets = sector.deployableList.filter { obj => !obj.Destroyed && obj.WhichSide == Sidedness.OutsideOf }
+    //amenities
+    val soiTargets = sector.amenityList.collect {
+      case amenity: Vitality if !amenity.Destroyed && amenity.WhichSide == Sidedness.OutsideOf && amenity.CanDamage => amenity }
+    //altogether ...
+    playerTargets ++ vehicleTargets ++ deployableTargets ++ soiTargets
+  }
+
+  /**
+    * Check if targets returned from sector are within range of the imminent Orbital Strike
+    * @param p1 OS position
+    * @param p2 target position
+    * @param maxDistance radius of the Orbital Strike
+    * @return `true`, if the two entities are near enough to each other;
+    *        `false`, otherwise
+    */
+  def orbitalStrikeDistanceCheck(p1: Vector3, p2: Vector3, maxDistance: Float): Boolean = {
+    val radius = maxDistance * maxDistance
+    Vector3.DistanceSquared(p1.xy, p2.xy) <= radius
+  }
+
+  /**
+    * na
     * @param instigation what previous event happened, if any, that caused this explosion
     * @param source a game object that represents the source of the explosion
     * @param target a game object that is affected by the explosion

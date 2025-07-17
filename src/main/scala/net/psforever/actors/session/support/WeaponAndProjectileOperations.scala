@@ -3,6 +3,8 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.login.WorldSession.{CountAmmunition, CountGrenades, FindAmmoBoxThatUses, FindEquipmentStock, FindToolThatUses, PutEquipmentInInventoryOrDrop, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
+import net.psforever.objects.OrbitalStrike.{cr4_os, cr5_os}
+import net.psforever.objects.SpecialEmp.{cr3_emp, cr4_emp, cr5_emp}
 import net.psforever.objects.ballistics.ProjectileQuality
 import net.psforever.objects.definition.{ProjectileDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.entity.SimpleWorldEntity
@@ -23,7 +25,9 @@ import net.psforever.objects.vital.etc.OicwLilBuddyReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.exp.ToDatabase
-import net.psforever.types.{ChatMessageType, Vector3}
+import net.psforever.packet.game.UplinkRequest
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, ValidPlanetSideGUID, Vector3}
 import net.psforever.util.Config
 
 import scala.collection.mutable
@@ -89,6 +93,7 @@ class WeaponAndProjectileOperations(
                                    ) extends CommonSessionInterfacingFunctionality {
   var shooting: mutable.Set[PlanetSideGUID] = mutable.Set.empty //ChangeFireStateMessage_Start
   var prefire: mutable.Set[PlanetSideGUID] = mutable.Set.empty //if WeaponFireMessage precedes ChangeFireStateMessage_Start
+  private[session] var orbitalStrikePos: Option[Vector3] = None
   private[session] var shootingStart: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
   private[session] var shootingStop: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
   private[session] val shotsFired: mutable.HashMap[Int,Int] = mutable.HashMap[Int,Int]()
@@ -290,6 +295,79 @@ class WeaponAndProjectileOperations(
         )
         None
       }
+  }
+
+  def handleUplinkRequest(pkt: UplinkRequest): Unit = {
+    val UplinkRequest(code, pos, _) = pkt
+    val playerFaction = player.Faction
+    code match {
+    case UplinkRequestType.RevealFriendlies => ()
+    /*sendResponse(UplinkResponse(code.value, 0))
+    sendResponse(PlanetsideAttributeMessage(player.GUID, 57, 10000)) //1200000
+    avatarActor ! AvatarActor.UpdateCUDTime("reveal_friendlies")*/
+    case UplinkRequestType.RevealEnemies => ()
+    /*sendResponse(UplinkResponse(code.value, 0))
+    sendResponse(PlanetsideAttributeMessage(player.GUID, 58, 10000)) //1200000
+    avatarActor ! AvatarActor.UpdateCUDTime("reveal_enemies")
+    These are seen in a few logs, but didn't work. Unclear what these do or what  '10' in Event1 represents
+    sendResponse(UplinkPositionEvent(5, Event0(5)))
+    sendResponse(UplinkPositionEvent(4, Event1(4, 10)))
+    sendResponse(UplinkPositionEvent(6, Event0(6)))*/
+    case UplinkRequestType.ElectroMagneticPulse =>
+      val cr = player.avatar.cr.value
+      val empSize = cr match {
+        case 3 => cr3_emp
+        case 4 => cr4_emp
+        case 5 => cr5_emp
+        }
+      val empColor = if (playerFaction != PlanetSideEmpire.NEUTRAL) { s"explosion_emp_${playerFaction.toString.toLowerCase}" } else { "explosion_emp_bo" }
+      sendResponse(UplinkResponse(code.value, 0))
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 59, 10000)) //1200000
+      avatarActor ! AvatarActor.UpdateCUDTime("emp_blast")
+      player.Zone.LocalEvents ! LocalServiceMessage(s"${player.Zone.id}",
+        LocalAction.SendPacket(TriggerEffectMessage(ValidPlanetSideGUID(0), empColor, None, Some(TriggeredEffectLocation(player.Position, Vector3(0, 0, 90))))))
+      context.system.scheduler.scheduleOnce(delay = 1 seconds) {
+        Zone.serverSideDamage(player.Zone, player, empSize, SpecialEmp.createEmpInteraction(empSize, player.Position),
+          ExplosiveDeployableControl.detectionForExplosiveSource(player), Zone.findAllTargets)
+        }
+    case UplinkRequestType.OrbitalStrike =>
+      player.Zone.LocalEvents ! LocalServiceMessage(s"$playerFaction", LocalAction.SendPacket(OrbitalStrikeWaypointMessage(player.GUID, pos.get.x, pos.get.y)))
+      sendResponse(UplinkResponse(code.value, 0))
+      orbitalStrikePos = pos
+    case UplinkRequestType.Unknown5 =>
+      val cr = player.avatar.cr.value
+      val strikeType = playerFaction match {
+        case PlanetSideEmpire.NC =>
+          if (cr == 4) {"explosion_bluedeath_nc"} else {"explosion_bluedeath_nc_lrg"}
+        case PlanetSideEmpire.TR =>
+          if (cr == 4) {"explosion_bluedeath_tr"} else {"explosion_bluedeath_tr_lrg"}
+        case PlanetSideEmpire.VS =>
+          if (cr == 4) {"explosion_bluedeath_vs"} else {"explosion_bluedeath_vs_lrg"}
+        case PlanetSideEmpire.NEUTRAL =>
+          if (cr == 4) {"explosion_bluedeath_bo"} else {"explosion_bluedeath_bo_lrg"}
+        }
+     val osSize = cr match {
+      case 4 => cr4_os
+      case 5 => cr5_os
+      }
+      sendResponse(UplinkResponse(code.value, 0))
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 60, 10000)) //10800000
+      avatarActor ! AvatarActor.UpdateCUDTime("orbital_strike")
+      context.system.scheduler.scheduleOnce(delay = 5 seconds) {
+        player.Zone.LocalEvents ! LocalServiceMessage(s"${player.Zone.id}",
+          LocalAction.SendPacket(TriggerEffectMessage(ValidPlanetSideGUID(0), strikeType, None, Some(TriggeredEffectLocation(orbitalStrikePos.get, Vector3(0, 0, 90))))))
+        player.Zone.LocalEvents ! LocalServiceMessage(s"$playerFaction", LocalAction.SendPacket(OrbitalStrikeWaypointMessage(player.GUID, None)))
+        context.system.scheduler.scheduleOnce(delay = 5 seconds) {
+        val sectorTargets = Zone.findOrbitalStrikeTargets(player.Zone, orbitalStrikePos.get, osSize.DamageRadius, Zone.getOrbitbalStrikeTargets)
+        val withinRange = sectorTargets.filter {target => Zone.orbitalStrikeDistanceCheck(orbitalStrikePos.get, target.Position, osSize.DamageRadius)}
+        withinRange.foreach { target =>
+          target.Actor ! Vitality.Damage(DamageInteraction(SourceEntry(target), OrbitalStrike(PlayerSource(player)), target.Position).calculate())
+          }
+        orbitalStrikePos = None
+        }
+      }
+    case _ => ()
+    }
   }
 
   def handleChangeAmmo(pkt: ChangeAmmoMessage): Unit = {
