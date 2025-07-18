@@ -94,6 +94,7 @@ class WeaponAndProjectileOperations(
   var shooting: mutable.Set[PlanetSideGUID] = mutable.Set.empty //ChangeFireStateMessage_Start
   var prefire: mutable.Set[PlanetSideGUID] = mutable.Set.empty //if WeaponFireMessage precedes ChangeFireStateMessage_Start
   private[session] var orbitalStrikePos: Option[Vector3] = None
+  private[session] var orbitalStrikeInProgress: Boolean = false
   private[session] var shootingStart: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
   private[session] var shootingStop: mutable.HashMap[PlanetSideGUID, Long] = mutable.HashMap[PlanetSideGUID, Long]()
   private[session] val shotsFired: mutable.HashMap[Int,Int] = mutable.HashMap[Int,Int]()
@@ -335,6 +336,8 @@ class WeaponAndProjectileOperations(
       sendResponse(UplinkResponse(code.value, 0))
       orbitalStrikePos = pos
     case UplinkRequestType.Unknown5 =>
+      if (!orbitalStrikeInProgress) {
+        orbitalStrikeInProgress = true
       val cr = player.avatar.cr.value
       val strikeType = playerFaction match {
         case PlanetSideEmpire.NC =>
@@ -359,12 +362,17 @@ class WeaponAndProjectileOperations(
         player.Zone.LocalEvents ! LocalServiceMessage(s"$playerFaction", LocalAction.SendPacket(OrbitalStrikeWaypointMessage(player.GUID, None)))
         context.system.scheduler.scheduleOnce(delay = 5 seconds) {
         val sectorTargets = Zone.findOrbitalStrikeTargets(player.Zone, orbitalStrikePos.get, osSize.DamageRadius, Zone.getOrbitbalStrikeTargets)
-        val withinRange = sectorTargets.filter {target => Zone.orbitalStrikeDistanceCheck(orbitalStrikePos.get, target.Position, osSize.DamageRadius)}
+        val withinRange = sectorTargets.filter { target => Zone.orbitalStrikeDistanceCheck(orbitalStrikePos.get, target.Position, osSize.DamageRadius) }
         withinRange.foreach { target =>
           target.Actor ! Vitality.Damage(DamageInteraction(SourceEntry(target), OrbitalStrike(PlayerSource(player)), target.Position).calculate())
           }
         orbitalStrikePos = None
+        orbitalStrikeInProgress = false
+          }
         }
+      }
+      else {
+        sendResponse(UplinkResponse(code.value, 0))
       }
     case _ => ()
     }
