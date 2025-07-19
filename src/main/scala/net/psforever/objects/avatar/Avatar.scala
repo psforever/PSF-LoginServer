@@ -69,10 +69,10 @@ object Avatar {
   )
 
   val cudCooldowns: Map[String, FiniteDuration] = Map(
-  "orbital_strike"                        -> 1.minutes, // 3.hours
-  "emp_blast"                             -> 1.minutes, // 20.minutes
-  "reveal_friendlies"                     -> 1.minutes, // 20.minutes
-  "reveal_enemies"                        -> 1.minutes // 20.minutes
+  "orbital_strike"                        -> 3.hours,
+  "emp_blast"                             -> 20.minutes,
+  "reveal_friendlies"                     -> 20.minutes,
+  "reveal_enemies"                        -> 20.minutes
   )
 
   val useCooldowns: Map[BasicDefinition, FiniteDuration] = Map(

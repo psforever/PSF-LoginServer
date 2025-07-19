@@ -302,18 +302,40 @@ class WeaponAndProjectileOperations(
     val UplinkRequest(code, pos, _) = pkt
     val playerFaction = player.Faction
     code match {
-    case UplinkRequestType.RevealFriendlies => ()
-    /*sendResponse(UplinkResponse(code.value, 0))
-    sendResponse(PlanetsideAttributeMessage(player.GUID, 57, 10000)) //1200000
-    avatarActor ! AvatarActor.UpdateCUDTime("reveal_friendlies")*/
-    case UplinkRequestType.RevealEnemies => ()
-    /*sendResponse(UplinkResponse(code.value, 0))
-    sendResponse(PlanetsideAttributeMessage(player.GUID, 58, 10000)) //1200000
-    avatarActor ! AvatarActor.UpdateCUDTime("reveal_enemies")
-    These are seen in a few logs, but didn't work. Unclear what these do or what  '10' in Event1 represents
-    sendResponse(UplinkPositionEvent(5, Event0(5)))
-    sendResponse(UplinkPositionEvent(4, Event1(4, 10)))
-    sendResponse(UplinkPositionEvent(6, Event0(6)))*/
+    case UplinkRequestType.RevealFriendlies =>
+      val revealZone = player.Zone.Number
+      sendResponse(UplinkResponse(code.value, 0))
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 57, 1200000))
+      avatarActor ! AvatarActor.UpdateCUDTime("reveal_friendlies")
+      sendResponse(UplinkPositionEvent(5, Event0(5)))
+      sendResponse(UplinkPositionEvent(4, Event1(4, revealZone)))
+      sendResponse(UplinkPositionEvent(6, Event0(6)))
+      val friendlies = player.Zone.LivePlayers.filter { friend => friend.Faction == player.Faction }
+      val friendlyVehicles = player.Zone.Vehicles.filter { vehicle => vehicle.Faction == player.Faction && !vehicle.Destroyed }
+      friendlies.foreach { f =>
+        sendResponse(UplinkPositionEvent(0, Event2(0, Vector3(f.Position.x, f.Position.y, 0.0f), 255, revealZone, 0, 1118938442, 300000, 299080, Some(true))))
+      }
+      friendlyVehicles.foreach { v =>
+        sendResponse(UplinkPositionEvent(0, Event2(0, Vector3(v.Position.x, v.Position.y, 0.0f), v.Definition.MapRevealId, revealZone, 0, 1118938442, 300000, 299080, Some(true))))
+      }
+    case UplinkRequestType.RevealEnemies =>
+      val revealZone = player.Zone.Number
+      sendResponse(UplinkResponse(code.value, 0))
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 58, 1200000))
+      avatarActor ! AvatarActor.UpdateCUDTime("reveal_enemies")
+      sendResponse(UplinkPositionEvent(5, Event0(5)))
+      sendResponse(UplinkPositionEvent(4, Event1(4, revealZone)))
+      sendResponse(UplinkPositionEvent(6, Event0(6)))
+      val enemies = player.Zone.LivePlayers.filter { enemy => enemy.Faction != player.Faction &&
+        Zone.orbitalStrikeDistanceCheck(player.Position, enemy.Position, 200f)} //reusing distance check
+      val enemyVehicles = player.Zone.Vehicles.filter { vehicle => vehicle.Faction != player.Faction && !vehicle.Destroyed &&
+        Zone.orbitalStrikeDistanceCheck(player.Position, vehicle.Position, 200f)} //reusing distance check
+      enemies.foreach { e =>
+        sendResponse(UplinkPositionEvent(1, Event2(1, Vector3(e.Position.x, e.Position.y, 0.0f), 255, revealZone, 0, 1118938442, 300000, 299080, Some(false))))
+      }
+      enemyVehicles.foreach { v =>
+        sendResponse(UplinkPositionEvent(1, Event2(1, Vector3(v.Position.x, v.Position.y, 0.0f), v.Definition.MapRevealId, revealZone, 0, 1118938442, 300000, 299080, Some(false))))
+      }
     case UplinkRequestType.ElectroMagneticPulse =>
       val cr = player.avatar.cr.value
       val empSize = cr match {
@@ -323,7 +345,7 @@ class WeaponAndProjectileOperations(
         }
       val empColor = if (playerFaction != PlanetSideEmpire.NEUTRAL) { s"explosion_emp_${playerFaction.toString.toLowerCase}" } else { "explosion_emp_bo" }
       sendResponse(UplinkResponse(code.value, 0))
-      sendResponse(PlanetsideAttributeMessage(player.GUID, 59, 10000)) //1200000
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 59, 1200000))
       avatarActor ! AvatarActor.UpdateCUDTime("emp_blast")
       player.Zone.LocalEvents ! LocalServiceMessage(s"${player.Zone.id}",
         LocalAction.SendPacket(TriggerEffectMessage(ValidPlanetSideGUID(0), empColor, None, Some(TriggeredEffectLocation(player.Position, Vector3(0, 0, 90))))))
@@ -354,7 +376,7 @@ class WeaponAndProjectileOperations(
       case 5 => cr5_os
       }
       sendResponse(UplinkResponse(code.value, 0))
-      sendResponse(PlanetsideAttributeMessage(player.GUID, 60, 10000)) //10800000
+      sendResponse(PlanetsideAttributeMessage(player.GUID, 60, 10800000))
       avatarActor ! AvatarActor.UpdateCUDTime("orbital_strike")
       context.system.scheduler.scheduleOnce(delay = 5 seconds) {
         player.Zone.LocalEvents ! LocalServiceMessage(s"${player.Zone.id}",
