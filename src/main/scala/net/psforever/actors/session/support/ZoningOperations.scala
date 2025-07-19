@@ -2158,8 +2158,8 @@ class ZoningOperations(
       tplayer.avatar = avatar
       session = session.copy(player = tplayer)
       //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
-      val weaponsEnabled = !(mapName.equals("map11") || mapName.equals("map12") || mapName.equals("map13"))
-      sendResponse(LoadMapMessage(mapName, id, 40100, 25, weaponsEnabled, map.checksum))
+      //val weaponsEnabled = !(mapName.equals("map11") || mapName.equals("map12") || mapName.equals("map13"))
+      sendResponse(LoadMapMessage(mapName, id, 40100, 25, zone.LiveFireAllowed(tplayer.Faction), map.checksum))
       if (isAcceptableNextSpawnPoint) {
         //important! the LoadMapMessage must be processed by the client before the avatar is created
         player.allowInteraction = true

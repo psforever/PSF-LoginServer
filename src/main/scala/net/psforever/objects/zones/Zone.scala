@@ -183,6 +183,12 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   private var vehicleEvents: ActorRef = Default.Actor
 
   /**
+   * Is any player permitted to engage in weapons discharge in this zone?
+   */
+  private var liveFireAllowed: mutable.HashMap[PlanetSideEmpire.Value, Boolean] =
+    mutable.HashMap.from(PlanetSideEmpire.values.map { f => (f, true) })
+
+  /**
     * When the zone has completed initializing, fulfill this promise.
     * @see `init(ActorContext)`
     */
@@ -592,6 +598,32 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   def VehicleEvents_=(bus: ActorRef): ActorRef = {
     vehicleEvents = bus
     VehicleEvents
+  }
+
+  def LiveFireAllowed(): Boolean = liveFireAllowed.exists { case (_, v) => v }
+
+  def LiveFireAllowed(faction: PlanetSideEmpire.Value): Boolean = liveFireAllowed.getOrElse(faction, false)
+
+  def UpdateLiveFireAllowed(state: Boolean): List[(PlanetSideEmpire.Value, Boolean, Boolean)] = {
+    val output = liveFireAllowed.map { case (f, v) =>
+      (f, v == state, state)
+    }
+    output.foreach { case (f, _, v) =>
+      liveFireAllowed.update(f, v)
+    }
+    output.toList
+  }
+
+  def UpdateLiveFireAllowed(state: Boolean, faction: PlanetSideEmpire.Value): List[(PlanetSideEmpire.Value, Boolean, Boolean)] = {
+    val output = liveFireAllowed.map { case (f, v) =>
+      if (f == faction) {
+        (f, v == state, state)
+      } else {
+        (f, false, v)
+      }
+    }
+    liveFireAllowed.update(faction, state)
+    output.toList
   }
 }
 
