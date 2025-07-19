@@ -83,6 +83,7 @@ object GlobalDefinitionsVehicle {
     fury.collision.z = CollisionZData(Array((8f, 1), (24f, 35), (40f, 100), (48f, 175), (52f, 350)))
     fury.maxForwardSpeed = 90f
     fury.mass = 32.1f
+    fury.MapRevealId = 14
 
     quadassault.Name = "quadassault" // Basilisk
     quadassault.MaxHealth = 650
@@ -119,6 +120,7 @@ object GlobalDefinitionsVehicle {
     quadassault.collision.z = CollisionZData(Array((8f, 1), (24f, 35), (40f, 100), (48f, 175), (52f, 350)))
     quadassault.maxForwardSpeed = 90f
     quadassault.mass = 32.1f
+    quadassault.MapRevealId = 30
 
     quadstealth.Name = "quadstealth" // Wraith
     quadstealth.MaxHealth = 650
@@ -155,6 +157,7 @@ object GlobalDefinitionsVehicle {
     quadstealth.collision.z = CollisionZData(Array((8f, 1), (24f, 35), (40f, 100), (48f, 175), (52f, 350)))
     quadstealth.maxForwardSpeed = 90f
     quadstealth.mass = 32.1f
+    quadstealth.MapRevealId = 15
 
     two_man_assault_buggy.Name = "two_man_assault_buggy" // Harasser
     two_man_assault_buggy.MaxHealth = 1250
@@ -193,6 +196,7 @@ object GlobalDefinitionsVehicle {
     two_man_assault_buggy.collision.z = CollisionZData(Array((7f, 1), (21f, 50), (35f, 150), (42f, 300), (45.5f, 600)))
     two_man_assault_buggy.maxForwardSpeed = 85f
     two_man_assault_buggy.mass = 52.4f
+    two_man_assault_buggy.MapRevealId = 1
 
     skyguard.Name = "skyguard"
     skyguard.MaxHealth = 1000
@@ -232,6 +236,7 @@ object GlobalDefinitionsVehicle {
     skyguard.collision.z = CollisionZData(Array((7f, 1), (21f, 50), (35f, 150), (42f, 300), (45.4f, 600)))
     skyguard.maxForwardSpeed = 90f
     skyguard.mass = 78.9f
+    skyguard.MapRevealId = 16
 
     threemanheavybuggy.Name = "threemanheavybuggy" // Marauder
     threemanheavybuggy.MaxHealth = 1700
@@ -274,6 +279,7 @@ object GlobalDefinitionsVehicle {
     threemanheavybuggy.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 900)))
     threemanheavybuggy.maxForwardSpeed = 80f
     threemanheavybuggy.mass = 96.3f
+    threemanheavybuggy.MapRevealId = 18
 
     twomanheavybuggy.Name = "twomanheavybuggy" // Enforcer
     twomanheavybuggy.MaxHealth = 1800
@@ -313,6 +319,7 @@ object GlobalDefinitionsVehicle {
     twomanheavybuggy.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 900)))
     twomanheavybuggy.maxForwardSpeed = 80f
     twomanheavybuggy.mass = 83.2f
+    twomanhoverbuggy.MapRevealId = 20
 
     twomanhoverbuggy.Name = "twomanhoverbuggy" // Thresher
     twomanhoverbuggy.MaxHealth = 1600
@@ -355,6 +362,7 @@ object GlobalDefinitionsVehicle {
     twomanhoverbuggy.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 900)))
     twomanhoverbuggy.maxForwardSpeed = 85f
     twomanhoverbuggy.mass = 55.5f
+    twomanhoverbuggy.MapRevealId = 21
 
     mediumtransport.Name = "mediumtransport" // Deliverer
     mediumtransport.MaxHealth = 2500
@@ -401,6 +409,7 @@ object GlobalDefinitionsVehicle {
     mediumtransport.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000)))
     mediumtransport.maxForwardSpeed = 70f
     mediumtransport.mass = 108.5f
+    mediumtransport.MapRevealId = 10
 
     battlewagon.Name = "battlewagon" // Raider
     battlewagon.MaxHealth = 2500
@@ -450,6 +459,7 @@ object GlobalDefinitionsVehicle {
     battlewagon.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000))) //inherited from mediumtransport
     battlewagon.maxForwardSpeed = 65f
     battlewagon.mass = 108.5f
+    battlewagon.MapRevealId = 10
 
     thunderer.Name = "thunderer"
     thunderer.MaxHealth = 2500
@@ -496,6 +506,7 @@ object GlobalDefinitionsVehicle {
     thunderer.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000)))
     thunderer.maxForwardSpeed = 65f
     thunderer.mass = 108.5f
+    thunderer.MapRevealId = 29
 
     aurora.Name = "aurora"
     aurora.MaxHealth = 2500
@@ -542,6 +553,7 @@ object GlobalDefinitionsVehicle {
     aurora.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 200), (30f, 750), (32.5f, 2000)))
     aurora.maxForwardSpeed = 65f
     aurora.mass = 108.5f
+    aurora.MapRevealId = 28
 
     apc_tr.Name = "apc_tr" // Juggernaut
     apc_tr.MaxHealth = 6000
@@ -612,6 +624,7 @@ object GlobalDefinitionsVehicle {
     apc_tr.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
     apc_tr.maxForwardSpeed = 60f
     apc_tr.mass = 128.4f
+    apc_tr.MapRevealId = 32
 
     apc_nc.Name = "apc_nc" // Vindicator
     apc_nc.MaxHealth = 6000
@@ -682,6 +695,7 @@ object GlobalDefinitionsVehicle {
     apc_nc.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
     apc_nc.maxForwardSpeed = 60f
     apc_nc.mass = 128.4f
+    apc_nc.MapRevealId = 33
 
     apc_vs.Name = "apc_vs" // Leviathan
     apc_vs.MaxHealth = 6000
@@ -752,6 +766,7 @@ object GlobalDefinitionsVehicle {
     apc_vs.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 300), (12f, 1000), (13f, 3000)))
     apc_vs.maxForwardSpeed = 60f
     apc_vs.mass = 128.4f
+    apc_vs.MapRevealId = 41
 
     lightning.Name = "lightning"
     lightning.MaxHealth = 2000
@@ -790,6 +805,7 @@ object GlobalDefinitionsVehicle {
     lightning.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 300), (39f, 750)))
     lightning.maxForwardSpeed = 74f
     lightning.mass = 100.2f
+    lightning.MapRevealId = 7
 
     prowler.Name = "prowler"
     prowler.MaxHealth = 4800
@@ -833,6 +849,7 @@ object GlobalDefinitionsVehicle {
     prowler.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 250), (30f, 600), (32.5f, 1500)))
     prowler.maxForwardSpeed = 57f
     prowler.mass = 510.5f
+    prowler.MapRevealId = 13
 
     vanguard.Name = "vanguard"
     vanguard.MaxHealth = 5400
@@ -872,6 +889,7 @@ object GlobalDefinitionsVehicle {
     vanguard.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 100), (30f, 250), (32.5f, 600)))
     vanguard.maxForwardSpeed = 60f
     vanguard.mass = 460.4f
+    vanguard.MapRevealId = 22
 
     magrider.Name = "magrider"
     magrider.MaxHealth = 4200
@@ -913,6 +931,7 @@ object GlobalDefinitionsVehicle {
     magrider.collision.z = CollisionZData(Array((5f, 1), (15f, 50), (25f, 250), (30f, 600), (32.5f, 1500)))
     magrider.maxForwardSpeed = 65f
     magrider.mass = 75.3f
+    magrider.MapRevealId = 8
 
     val utilityConverter = new UtilityVehicleConverter
     ant.Name = "ant"
@@ -952,6 +971,7 @@ object GlobalDefinitionsVehicle {
     ant.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 250), (12f, 500), (13f, 750)))
     ant.maxForwardSpeed = 65f
     ant.mass = 80.5f
+    ant.MapRevealId = 1
 
     ams.Name = "ams"
     ams.MaxHealth = 3000
@@ -995,6 +1015,7 @@ object GlobalDefinitionsVehicle {
     ams.collision.z = CollisionZData(Array((2f, 1), (6f, 50), (10f, 250), (12f, 805), (13f, 3000)))
     ams.maxForwardSpeed = 70f
     ams.mass = 136.8f
+    ams.MapRevealId = 2
 
     val variantConverter = new VariantVehicleConverter
     router.Name = "router"
@@ -1039,6 +1060,7 @@ object GlobalDefinitionsVehicle {
     router.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 350), (39f, 900)))
     router.maxForwardSpeed = 60f
     router.mass = 60f
+    router.MapRevealId = 25
 
     switchblade.Name = "switchblade"
     switchblade.MaxHealth = 1750
@@ -1085,6 +1107,7 @@ object GlobalDefinitionsVehicle {
     switchblade.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 350), (39f, 800)))
     switchblade.maxForwardSpeed = 80f
     switchblade.mass = 63.9f
+    switchblade.MapRevealId = 26
 
     flail.Name = "flail"
     flail.MaxHealth = 2400
@@ -1127,6 +1150,7 @@ object GlobalDefinitionsVehicle {
     flail.collision.z = CollisionZData(Array((6f, 1), (18f, 50), (30f, 150), (36f, 350), (39f, 900)))
     flail.maxForwardSpeed = 55f
     flail.mass = 73.5f
+    flail.MapRevealId = 24
   }
 
   /**
@@ -1179,6 +1203,7 @@ object GlobalDefinitionsVehicle {
     mosquito.collision.z = CollisionZData(Array((3f, 1), (9f, 25), (15f, 50), (18f, 75), (19.5f, 100)))
     mosquito.maxForwardSpeed = 120f
     mosquito.mass = 53.6f
+    mosquito.MapRevealId = 11
 
     lightgunship.Name = "lightgunship" // Reaver
     lightgunship.MaxHealth = 855 // Temporary - Correct Reaver Health from pre-"Coder Madness 2" Event
@@ -1219,6 +1244,7 @@ object GlobalDefinitionsVehicle {
     lightgunship.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
     lightgunship.maxForwardSpeed = 104f
     lightgunship.mass = 51.1f
+    lightgunship.MapRevealId = 6
 
     wasp.Name = "wasp"
     wasp.MaxHealth = 515
@@ -1257,6 +1283,7 @@ object GlobalDefinitionsVehicle {
     wasp.collision.z = CollisionZData(Array((3f, 1), (9f, 25), (15f, 50), (18f, 75), (19.5f, 100))) //mosquito numbers
     wasp.maxForwardSpeed = 120f
     wasp.mass = 53.6f
+    wasp.MapRevealId = 11
 
     liberator.Name = "liberator"
     liberator.MaxHealth = 2500
@@ -1305,6 +1332,7 @@ object GlobalDefinitionsVehicle {
     liberator.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
     liberator.maxForwardSpeed = 90f
     liberator.mass = 82f
+    liberator.MapRevealId = 5
 
     vulture.Name = "vulture"
     vulture.MaxHealth = 2500
@@ -1354,6 +1382,7 @@ object GlobalDefinitionsVehicle {
     vulture.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
     vulture.maxForwardSpeed = 97f
     vulture.mass = 82f
+    vulture.MapRevealId = 5
 
     dropship.Name = "dropship" // Galaxy
     dropship.MaxHealth = 5000
@@ -1430,6 +1459,7 @@ object GlobalDefinitionsVehicle {
     dropship.collision.z = CollisionZData(Array((3f, 5), (9f, 125), (15f, 250), (18f, 500), (19.5f, 1000)))
     dropship.maxForwardSpeed = 80f
     dropship.mass = 133f
+    dropship.MapRevealId = 4
 
     galaxy_gunship.Name = "galaxy_gunship"
     galaxy_gunship.MaxHealth = 6000
@@ -1490,6 +1520,7 @@ object GlobalDefinitionsVehicle {
     galaxy_gunship.collision.z = CollisionZData(Array((3f, 5), (9f, 125), (15f, 250), (18f, 500), (19.5f, 1000)))
     galaxy_gunship.maxForwardSpeed = 85f
     galaxy_gunship.mass = 133f
+    galaxy_gunship.MapRevealId = 31
 
     lodestar.Name = "lodestar"
     lodestar.MaxHealth = 5000
@@ -1542,6 +1573,7 @@ object GlobalDefinitionsVehicle {
     lodestar.collision.z = CollisionZData(Array((3f, 5), (9f, 125), (15f, 250), (18f, 500), (19.5f, 1000)))
     lodestar.maxForwardSpeed = 80f
     lodestar.mass = 128.2f
+    lodestar.MapRevealId = 34
 
     phantasm.Name = "phantasm"
     phantasm.MaxHealth = 2500
@@ -1587,6 +1619,7 @@ object GlobalDefinitionsVehicle {
     phantasm.collision.z = CollisionZData(Array((3f, 1), (9f, 30), (15f, 60), (18f, 90), (19.5f, 125)))
     phantasm.maxForwardSpeed = 140f
     phantasm.mass = 100f
+    phantasm.MapRevealId = 35
 
     droppod.Name = "droppod"
     droppod.MaxHealth = 20000
@@ -1724,6 +1757,7 @@ object GlobalDefinitionsVehicle {
     aphelion_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
     aphelion_gunner.maxForwardSpeed = 17
     aphelion_gunner.mass = 615.1f
+    aphelion_gunner.MapRevealId = 44
 
     colossus_gunner.Name = "colossus_gunner"
     colossus_gunner.MaxHealth = 4500
@@ -1775,6 +1809,7 @@ object GlobalDefinitionsVehicle {
     colossus_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
     colossus_gunner.maxForwardSpeed = 17
     colossus_gunner.mass = 709.7f
+    colossus_gunner.MapRevealId = 48
 
     peregrine_gunner.Name = "peregrine_gunner"
     peregrine_gunner.MaxHealth = 4500
@@ -1826,6 +1861,7 @@ object GlobalDefinitionsVehicle {
     peregrine_gunner.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
     peregrine_gunner.maxForwardSpeed = 17
     peregrine_gunner.mass = 713f
+    peregrine_gunner.MapRevealId = 52
 
     val battleFrameFlightConverter = new BattleFrameFlightConverter
     aphelion_flight.Name = "aphelion_flight"
@@ -1881,6 +1917,7 @@ object GlobalDefinitionsVehicle {
     aphelion_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
     aphelion_flight.maxForwardSpeed = 35
     aphelion_flight.mass = 615.1f
+    aphelion_flight.MapRevealId = 45
 
     colossus_flight.Name = "colossus_flight"
     colossus_flight.MaxHealth = 3500
@@ -1935,6 +1972,7 @@ object GlobalDefinitionsVehicle {
     colossus_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
     colossus_flight.maxForwardSpeed = 34
     colossus_flight.mass = 709.7f
+    colossus_flight.MapRevealId = 49
 
     peregrine_flight.Name = "peregrine_flight"
     peregrine_flight.MaxHealth = 3500
@@ -1989,5 +2027,6 @@ object GlobalDefinitionsVehicle {
     peregrine_flight.collision.z = CollisionZData(Array((25f, 2), (40f, 4), (60f, 8), (85f, 16), (115f, 32)))
     peregrine_flight.maxForwardSpeed = 35
     peregrine_flight.mass = 713f
+    peregrine_flight.MapRevealId = 51
   }
 }
