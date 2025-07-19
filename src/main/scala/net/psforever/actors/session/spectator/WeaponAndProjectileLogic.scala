@@ -28,18 +28,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
 
   def handleWeaponLazeTargetPosition(pkt: WeaponLazeTargetPositionMessage): Unit = { /* intentionally blank */ }
 
-  def handleUplinkRequest(packet: UplinkRequest): Unit = {
-    val UplinkRequest(code, _, _) = packet
-    val playerFaction = player.Faction
-    //todo this is not correct
-    code match {
-      case UplinkRequestType.RevealFriendlies =>
-        sendResponse(UplinkResponse(code.value, continent.LivePlayers.count(_.Faction == playerFaction)))
-      case UplinkRequestType.RevealEnemies =>
-        sendResponse(UplinkResponse(code.value, continent.LivePlayers.count(_.Faction != playerFaction)))
-      case _ => ()
-    }
-  }
+  def handleUplinkRequest(packet: UplinkRequest): Unit = { /* intentionally blank */ }
 
   def handleAvatarGrenadeState(pkt: AvatarGrenadeStateMessage): Unit = { /* intentionally blank */ }
 

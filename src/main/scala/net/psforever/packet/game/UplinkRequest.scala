@@ -26,15 +26,15 @@ object UplinkRequestType extends IntEnum[UplinkRequestType] {
 
   case object OrbitalStrike extends UplinkRequestType(value = 4)
 
-  case object Unknown5 extends UplinkRequestType(value = 5)
+  case object Unknown5 extends UplinkRequestType(value = 5) // pull trigger to start orbital strike countdown
 
   case object Function6 extends UplinkRequestType(value = 6)
 
-  case object Function7 extends UplinkRequestType(value = 7)
+  case object Function7 extends UplinkRequestType(value = 7) // sent back by client after reveal enemies response
 
   case object Function8 extends UplinkRequestType(value = 8)
 
-  case object Unknown9 extends UplinkRequestType(value = 9)
+  case object Unknown9 extends UplinkRequestType(value = 9) // recall squad to sanc
 
   case object UnknownA extends UplinkRequestType(value = 10)
 

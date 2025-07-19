@@ -8,8 +8,8 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.{BoomerDeployable, BoomerTrigger, Player, SpecialEmp, Tool, Vehicle}
 import net.psforever.objects.vital.base.{DamageResolution, DamageType}
 import net.psforever.objects.zones.{Zone, ZoneProjectile}
-import net.psforever.packet.game.{AIDamage, AvatarGrenadeStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, HitMessage, LashMessage, LongRangeProjectileInfoMessage, ProjectileStateMessage, ReloadMessage, SplashHitMessage, UplinkRequest, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage}
-import net.psforever.types.Vector3
+import net.psforever.packet.game.{AIDamage, AvatarGrenadeStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, HitMessage, LashMessage, LongRangeProjectileInfoMessage, OrbitalStrikeWaypointMessage, ProjectileStateMessage, ReloadMessage, SplashHitMessage, TriggerEffectMessage, TriggeredEffectLocation, UplinkRequest, UplinkRequestType, UplinkResponse, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage}
+import net.psforever.types.{ValidPlanetSideGUID, Vector3}
 
 object WeaponAndProjectileLogic {
   def apply(ops: WeaponAndProjectileOperations): WeaponAndProjectileLogic = {
@@ -50,7 +50,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
   }
 
   def handleUplinkRequest(packet: UplinkRequest): Unit = {
-    sessionLogic.administrativeKick(player)
+    ops.handleUplinkRequest(packet)
   }
 
   def handleAvatarGrenadeState(pkt: AvatarGrenadeStateMessage): Unit = {

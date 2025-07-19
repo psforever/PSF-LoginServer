@@ -65,6 +65,108 @@ object SpecialEmp {
     innateDamage = emp
   }
 
+  final val cr3_emp = new DamageWithPosition {
+    CausesDamageType = DamageType.Splash
+    SympatheticExplosion = true
+    Damage0 = 0
+    DamageAtEdge = 1.0f
+    DamageRadius = 10f
+    AdditionalEffect = true
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Player,
+      EffectTarget.Validation.Player
+    ) -> 1000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.AMS
+    ) -> 5000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.MotionSensor
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.Spitfire
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Turret,
+      EffectTarget.Validation.Turret
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.VehicleNotAMS
+    ) -> 10000
+    Modifiers = MaxDistanceCutoff
+  }
+
+  final val cr4_emp = new DamageWithPosition {
+    CausesDamageType = DamageType.Splash
+    SympatheticExplosion = true
+    Damage0 = 0
+    DamageAtEdge = 1.0f
+    DamageRadius = 15f
+    AdditionalEffect = true
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Player,
+      EffectTarget.Validation.Player
+    ) -> 1000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.AMS
+    ) -> 5000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.MotionSensor
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.Spitfire
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Turret,
+      EffectTarget.Validation.Turret
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.VehicleNotAMS
+    ) -> 10000
+    Modifiers = MaxDistanceCutoff
+  }
+
+  final val cr5_emp = new DamageWithPosition {
+    CausesDamageType = DamageType.Splash
+    SympatheticExplosion = true
+    Damage0 = 0
+    DamageAtEdge = 1.0f
+    DamageRadius = 20f
+    AdditionalEffect = true
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Player,
+      EffectTarget.Validation.Player
+    ) -> 1000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.AMS
+    ) -> 5000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.MotionSensor
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Deployable,
+      EffectTarget.Validation.Spitfire
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Turret,
+      EffectTarget.Validation.Turret
+    ) -> 30000
+    JammedEffectDuration += TargetValidation(
+      EffectTarget.Category.Vehicle,
+      EffectTarget.Validation.VehicleNotAMS
+    ) -> 10000
+    Modifiers = MaxDistanceCutoff
+  }
+
   /**
     * Trigger an electromagnetic pulse.
     */

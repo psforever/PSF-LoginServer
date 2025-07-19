@@ -162,6 +162,10 @@ import scodec.codecs._
   * </ul>
   * `55 - "Someone is attempting to Heal you". Value is 1`<br>
   * `56 - "Someone is attempting to Repair you". Value is 1`<br>
+  * `57 - CUD Reveal Friendlies cooldown timer`<br>
+  * `58 - CUD Reveal Enemies cooldown timer`<br>
+  * `59 - CUD EMP Blast cooldown timer`<br>
+  * `60 - CUD Orbital Strike cooldown timer`<br>
   * `64 - ????? related to using router telepads`
   * `67 - Enables base shields (from cavern module/lock)`<br>
   * `73 - "You are locked into the Core Beam. Charging your Module now.". Value is 1 to active`<br>

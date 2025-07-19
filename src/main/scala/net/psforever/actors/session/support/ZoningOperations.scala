@@ -2613,7 +2613,6 @@ class ZoningOperations(
           sendResponse(ObjectCreateDetailedMessage(ObjectClass.avatar, guid, data))
           log.debug(s"AvatarRejoin: ${player.Name} - $guid -> $data")
       }
-      avatarActor ! AvatarActor.RefreshPurchaseTimes()
       setupAvatarFunc = AvatarCreate
       //begin looking for conditions to set the avatar
       context.system.scheduler.scheduleOnce(delay = 750 millisecond, context.self, SessionActor.SetCurrentAvatar(player, 200))
@@ -3276,6 +3275,7 @@ class ZoningOperations(
           ZoningOperations.reportProgressionSystem(context.self)
         }
       }
+      avatarActor ! AvatarActor.RefreshPurchaseTimes()
     }
 
     /**

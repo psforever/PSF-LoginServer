@@ -23,7 +23,7 @@ add_property boomer_trigger equiptime 500
 add_property chainblade equiptime 250
 add_property chainblade holstertime 250
 add_property colossus_flight requirement_award0 false
-add_property command_detonater allowed false
+add_property command_detonater allowed true
 add_property command_detonater equiptime 500
 add_property command_detonater holstertime 500
 add_property cycler equiptime 600
