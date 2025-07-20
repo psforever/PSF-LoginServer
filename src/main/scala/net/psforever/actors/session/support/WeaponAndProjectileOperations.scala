@@ -309,15 +309,15 @@ class WeaponAndProjectileOperations(
       avatarActor ! AvatarActor.UpdateCUDTime("reveal_friendlies")
       sendResponse(UplinkPositionEvent(5, Event0(5)))
       sendResponse(UplinkPositionEvent(4, Event1(4, revealZone)))
-      sendResponse(UplinkPositionEvent(6, Event0(6)))
       val friendlies = player.Zone.LivePlayers.filter { friend => friend.Faction == player.Faction }
       val friendlyVehicles = player.Zone.Vehicles.filter { vehicle => vehicle.Faction == player.Faction && !vehicle.Destroyed }
       friendlies.foreach { f =>
-        sendResponse(UplinkPositionEvent(0, Event2(0, Vector3(f.Position.x, f.Position.y, 0.0f), 255, revealZone, 0, 1118938442, 300000, 299080, Some(true))))
+        sendResponse(UplinkPositionEvent(0, Event2(0, Vector3(f.Position.x, f.Position.y, 0.0f), 255, revealZone, 0, 1127348721, 300000, 298858, Some(true))))
       }
       friendlyVehicles.foreach { v =>
-        sendResponse(UplinkPositionEvent(0, Event2(0, Vector3(v.Position.x, v.Position.y, 0.0f), v.Definition.MapRevealId, revealZone, 0, 1118938442, 300000, 299080, Some(true))))
+        sendResponse(UplinkPositionEvent(0, Event2(0, Vector3(v.Position.x, v.Position.y, 0.0f), v.Definition.MapRevealId, revealZone, 0, 1127348721, 300000, 298858, Some(true))))
       }
+      sendResponse(UplinkPositionEvent(6, Event0(6)))
     case UplinkRequestType.RevealEnemies =>
       val revealZone = player.Zone.Number
       sendResponse(UplinkResponse(code.value, 0))
@@ -325,7 +325,6 @@ class WeaponAndProjectileOperations(
       avatarActor ! AvatarActor.UpdateCUDTime("reveal_enemies")
       sendResponse(UplinkPositionEvent(5, Event0(5)))
       sendResponse(UplinkPositionEvent(4, Event1(4, revealZone)))
-      sendResponse(UplinkPositionEvent(6, Event0(6)))
       val enemies = player.Zone.LivePlayers.filter { enemy => enemy.Faction != player.Faction &&
         Zone.orbitalStrikeDistanceCheck(player.Position, enemy.Position, 200f)} //reusing distance check
       val enemyVehicles = player.Zone.Vehicles.filter { vehicle => vehicle.Faction != player.Faction && !vehicle.Destroyed &&
@@ -336,6 +335,7 @@ class WeaponAndProjectileOperations(
       enemyVehicles.foreach { v =>
         sendResponse(UplinkPositionEvent(1, Event2(1, Vector3(v.Position.x, v.Position.y, 0.0f), v.Definition.MapRevealId, revealZone, 0, 1118938442, 300000, 299080, Some(false))))
       }
+      sendResponse(UplinkPositionEvent(6, Event0(6)))
     case UplinkRequestType.ElectroMagneticPulse =>
       val cr = player.avatar.cr.value
       val empSize = cr match {
