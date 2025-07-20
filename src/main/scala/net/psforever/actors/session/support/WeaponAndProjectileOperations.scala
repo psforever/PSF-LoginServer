@@ -363,7 +363,7 @@ class WeaponAndProjectileOperations(
       val cr = player.avatar.cr.value
       val strikeType = playerFaction match {
         case PlanetSideEmpire.NC =>
-          if (cr == 4) {"explosion_bluedeath_nc"} else {"explosion_bluedeath_nc_lrg"}
+          if (cr == 4) {"explosion_bluedeath"} else {"explosion_bluedeath_lrg"}
         case PlanetSideEmpire.TR =>
           if (cr == 4) {"explosion_bluedeath_tr"} else {"explosion_bluedeath_tr_lrg"}
         case PlanetSideEmpire.VS =>
