@@ -36,6 +36,7 @@ import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.PlanetSideGamePacket
+import org.joda.time.{LocalDateTime, Seconds}
 
 import scala.concurrent.duration._
 
@@ -359,6 +360,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               equipment match {
                 case Some(holsteredEquipment) =>
                   log.info(s"${player.Name} has put ${player.Sex.possessive} ${holsteredEquipment.Definition.Name} down")
+                  //make sure the player didn't just initialte an orbital strike. If not (the if below is true), make sure waypoint is removed
+                  if (holsteredEquipment.Definition == GlobalDefinitions.command_detonater && player.avatar.cr.value > 3 &&
+                    !player.avatar.cooldowns.purchase.exists(os => os._1 == "orbital_strike" && Seconds.secondsBetween(os._2, LocalDateTime.now()).getSeconds < 12)) {
+                    player.Zone.LocalEvents ! LocalServiceMessage(s"${player.Faction}", LocalAction.SendPacket(OrbitalStrikeWaypointMessage(player.GUID, None)))
+                  }
                 case None =>
                   log.info(s"${player.Name} lowers ${player.Sex.possessive} hand")
               }

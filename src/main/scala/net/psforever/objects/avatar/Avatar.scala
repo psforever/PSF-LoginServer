@@ -68,6 +68,13 @@ object Avatar {
     GlobalDefinitions.trhev_pounder         -> 5.minutes
   )
 
+  val cudCooldowns: Map[String, FiniteDuration] = Map(
+  "orbital_strike"                        -> 3.hours,
+  "emp_blast"                             -> 20.minutes,
+  "reveal_friendlies"                     -> 20.minutes,
+  "reveal_enemies"                        -> 20.minutes
+  )
+
   val useCooldowns: Map[BasicDefinition, FiniteDuration] = Map(
     GlobalDefinitions.medkit           -> 5.seconds,
     GlobalDefinitions.super_armorkit   -> 20.minutes,
