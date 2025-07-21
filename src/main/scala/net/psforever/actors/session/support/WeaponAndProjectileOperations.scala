@@ -308,14 +308,14 @@ class WeaponAndProjectileOperations(
       sendResponse(PlanetsideAttributeMessage(player.GUID, 57, 1200000))
       avatarActor ! AvatarActor.UpdateCUDTime("reveal_friendlies")
       sendResponse(UplinkPositionEvent(5, Event0(5)))
-      sendResponse(UplinkPositionEvent(4, Event1(4, revealZone)))
+      sendResponse(UplinkPositionEvent(3, Event1(3, revealZone)))
       val friendlies = player.Zone.LivePlayers.filter { friend => friend.Faction == player.Faction }
       val friendlyVehicles = player.Zone.Vehicles.filter { vehicle => vehicle.Faction == player.Faction && !vehicle.Destroyed }
       friendlies.foreach { f =>
-        sendResponse(UplinkPositionEvent(0, Event2(0, Vector3(f.Position.x, f.Position.y, 0.0f), 255, revealZone, 0, 1127348721, 300000, 298858, Some(true))))
+        sendResponse(UplinkPositionEvent(0, Event2(0, Vector3(f.Position.x, f.Position.y, 0.0f), 255, revealZone, 0, 1117348721, 300000, 299497, Some(true))))
       }
       friendlyVehicles.foreach { v =>
-        sendResponse(UplinkPositionEvent(0, Event2(0, Vector3(v.Position.x, v.Position.y, 0.0f), v.Definition.MapRevealId, revealZone, 0, 1127348721, 300000, 298858, Some(true))))
+        sendResponse(UplinkPositionEvent(0, Event2(0, Vector3(v.Position.x, v.Position.y, 0.0f), v.Definition.MapRevealId, revealZone, 0, 1127348721, 300000, 299497, Some(true))))
       }
       sendResponse(UplinkPositionEvent(6, Event0(6)))
     case UplinkRequestType.RevealEnemies =>
@@ -330,10 +330,10 @@ class WeaponAndProjectileOperations(
       val enemyVehicles = player.Zone.Vehicles.filter { vehicle => vehicle.Faction != player.Faction && !vehicle.Destroyed &&
         Zone.orbitalStrikeDistanceCheck(player.Position, vehicle.Position, 200f)} //reusing distance check
       enemies.foreach { e =>
-        sendResponse(UplinkPositionEvent(1, Event2(1, Vector3(e.Position.x, e.Position.y, 0.0f), 255, revealZone, 0, 1118938442, 300000, 299080, Some(false))))
+        sendResponse(UplinkPositionEvent(1, Event2(1, Vector3(e.Position.x, e.Position.y, 0.0f), 255, revealZone, 0, 1138938442, 300000, 299080, Some(false))))
       }
       enemyVehicles.foreach { v =>
-        sendResponse(UplinkPositionEvent(1, Event2(1, Vector3(v.Position.x, v.Position.y, 0.0f), v.Definition.MapRevealId, revealZone, 0, 1118938442, 300000, 299080, Some(false))))
+        sendResponse(UplinkPositionEvent(1, Event2(1, Vector3(v.Position.x, v.Position.y, 0.0f), v.Definition.MapRevealId, revealZone, 0, 1148938442, 300000, 299080, Some(false))))
       }
       sendResponse(UplinkPositionEvent(6, Event0(6)))
     case UplinkRequestType.ElectroMagneticPulse =>
