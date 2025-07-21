@@ -164,7 +164,8 @@ case class GameConfig(
     experience: Experience,
     maxBattleRank: Int,
     promotion: PromotionSystem,
-    facilityHackTime: FiniteDuration
+    facilityHackTime: FiniteDuration,
+    alert: DensityAlert
 )
 
 case class InstantActionConfig(
@@ -325,4 +326,10 @@ case class PromotionSystem(
     battleExperiencePointsModifier: Float,
     supportExperiencePointsModifier: Float,
     captureExperiencePointsModifier: Float
+)
+
+case class DensityAlert(
+    yellow: Int,
+    orange: Int,
+    red: Int
 )

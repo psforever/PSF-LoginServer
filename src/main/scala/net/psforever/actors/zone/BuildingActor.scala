@@ -74,6 +74,8 @@ object BuildingActor {
 
   final case class PowerOff() extends Command
 
+  final case class DensityLevelUpdate(building: Building) extends Command
+
   /**
     * Set a facility affiliated to one faction to be affiliated to a different faction.
     * @param details building and event system references
@@ -226,6 +228,7 @@ class BuildingActor(
 
       case MapUpdate() =>
         details.galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(details.building.infoUpdateMessage()))
+        details.galaxyService ! GalaxyServiceMessage(GalaxyAction.SendResponse(details.building.densityLevelUpdateMessage(building)))
         Behaviors.same
 
       case AmenityStateChange(amenity, data) =>
@@ -245,6 +248,10 @@ class BuildingActor(
 
       case Ntu(msg) =>
         logic.ntu(details, msg)
+
+      case DensityLevelUpdate(building) =>
+        details.galaxyService ! GalaxyServiceMessage(GalaxyAction.SendResponse(details.building.densityLevelUpdateMessage(building)))
+        Behaviors.same
     }
   }
 }

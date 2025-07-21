@@ -972,7 +972,7 @@ class ZoningOperations(
    */
   def initFacility(continentNumber: Int, buildingNumber: Int, building: Building): Unit = {
     sendResponse(building.infoUpdateMessage())
-    sendResponse(DensityLevelUpdateMessage(continentNumber, buildingNumber, List(0, 0, 0, 0, 0, 0, 0, 0)))
+    sendResponse(building.densityLevelUpdateMessage(building))
   }
 
   /**

@@ -55,9 +55,16 @@ class SphereOfInfluenceActor(zone: Zone) extends Actor {
     sois.foreach {
       case (facility, radius) =>
         val facilityXY = facility.Position.xy
-        facility.PlayersInSOI = zone.blockMap.sector(facility)
+        val playersOnFoot = zone.blockMap.sector(facility)
           .livePlayerList
           .filter(p => Vector3.DistanceSquared(facilityXY, p.Position.xy) < radius)
+
+        val vehicleOccupants = zone.blockMap.sector(facility)
+          .vehicleList
+          .filter(v => Vector3.DistanceSquared(facilityXY, v.Position.xy) < radius)
+          .flatMap(_.Seats.values.flatMap(_.occupants))
+
+        facility.PlayersInSOI = playersOnFoot ++ vehicleOccupants
     }
     populateTick.cancel()
     populateTick = context.system.scheduler.scheduleOnce(5 seconds, self, SOI.Populate())
