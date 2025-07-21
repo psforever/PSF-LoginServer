@@ -11,13 +11,14 @@ import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.blockmap.BlockMapEntity
-import net.psforever.packet.game.BuildingInfoUpdateMessage
+import net.psforever.packet.game.{BuildingInfoUpdateMessage, DensityLevelUpdateMessage}
 import net.psforever.types._
 import scalax.collection.{Graph, GraphEdge}
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.serverobject.llu.{CaptureFlag, CaptureFlagSocket}
 import net.psforever.objects.serverobject.structures.participation.{MajorFacilityHackParticipation, NoParticipation, ParticipationLogic, TowerHackParticipation}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
+import net.psforever.util.Config
 
 class Building(
                 private val name: String,
@@ -234,6 +235,46 @@ class Building(
       boostSpawnPain,
       boostGeneratorPain
     )
+  }
+
+  def densityLevelUpdateMessage(building: Building): DensityLevelUpdateMessage = {
+    if (building.PlayersInSOI.nonEmpty) {
+      val factionCounts: Map[PlanetSideEmpire.Value, Int] =
+        building.PlayersInSOI.groupBy(_.Faction).view.mapValues(_.size).toMap
+      val otherEmpireCounts: Map[PlanetSideEmpire.Value, Int] = PlanetSideEmpire.values.map {
+        faction =>
+          val otherCount = factionCounts.filterNot(_._1 == faction).values.sum
+          faction -> otherCount
+        }.toMap
+      val trAlert = otherEmpireCounts.getOrElse(PlanetSideEmpire.TR, 0) match {
+        case count if count >= Config.app.game.alert.red => 3
+        case count if count >= Config.app.game.alert.orange => 2
+        case count if count >= Config.app.game.alert.yellow => 1
+        case _ => 0
+      }
+      val ncAlert = otherEmpireCounts.getOrElse(PlanetSideEmpire.NC, 0) match {
+        case count if count >= Config.app.game.alert.red => 3
+        case count if count >= Config.app.game.alert.orange => 2
+        case count if count >= Config.app.game.alert.yellow => 1
+        case _ => 0
+      }
+      val vsAlert = otherEmpireCounts.getOrElse(PlanetSideEmpire.VS, 0) match {
+        case count if count >= Config.app.game.alert.red => 3
+        case count if count >= Config.app.game.alert.orange => 2
+        case count if count >= Config.app.game.alert.yellow => 1
+        case _ => 0
+      }
+      val boAlert = otherEmpireCounts.getOrElse(PlanetSideEmpire.NEUTRAL, 0) match {
+        case count if count >= Config.app.game.alert.red => 3
+        case count if count >= Config.app.game.alert.orange => 2
+        case count if count >= Config.app.game.alert.yellow => 1
+        case _ => 0
+      }
+      DensityLevelUpdateMessage(Zone.Number, MapId, List(0, trAlert, 0, ncAlert, 0, vsAlert, 0, boAlert))
+    }
+    else { //nobody is in this SOI
+      DensityLevelUpdateMessage(Zone.Number, MapId, List(0, 0, 0, 0, 0, 0, 0, 0))
+    }
   }
 
   def hasLatticeBenefit(wantedBenefit: LatticeBenefit): Boolean = {

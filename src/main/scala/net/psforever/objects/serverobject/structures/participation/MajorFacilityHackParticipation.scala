@@ -9,6 +9,7 @@ import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
 import akka.pattern.ask
 import akka.util.Timeout
+import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -26,6 +27,8 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
 
   private var hotSpotLayersOverTime: Seq[List[HotSpotInfo]] = Seq[List[HotSpotInfo]]()
 
+  var lastEnemyCount: List[Player] = List.empty
+
   def TryUpdate(): Unit = {
     val list = building.PlayersInSOI
     if (list.nonEmpty) {
@@ -37,6 +40,14 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
       updateHotSpotInfoOverTime()
       updateTime(now)
     }
+    val enemies = list.filter(p => p.Faction != building.Faction) ++
+      building.Zone.blockMap.sector(building).corpseList
+      .filter(p => Vector3.DistanceSquared(building.Position.xy, p.Position.xy) < building.Definition.SOIRadius * building.Definition.SOIRadius)
+    //alert defenders (actually goes to all clients) of population change for base alerts
+    if (Math.abs(enemies.length - lastEnemyCount.length) >= 1) {
+      building.Actor ! BuildingActor.DensityLevelUpdate(building)
+    }
+    lastEnemyCount = enemies
     building.CaptureTerminal
       .map(_.HackedBy)
       .collect {
