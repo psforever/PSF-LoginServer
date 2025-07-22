@@ -28,6 +28,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
   private var hotSpotLayersOverTime: Seq[List[HotSpotInfo]] = Seq[List[HotSpotInfo]]()
 
   var lastEnemyCount: List[Player] = List.empty
+  var alertTimeMillis: Long = 0L
 
   def TryUpdate(): Unit = {
     val list = building.PlayersInSOI
@@ -44,10 +45,21 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
       building.Zone.blockMap.sector(building).corpseList
       .filter(p => Vector3.DistanceSquared(building.Position.xy, p.Position.xy) < building.Definition.SOIRadius * building.Definition.SOIRadius)
     //alert defenders (actually goes to all clients) of population change for base alerts
-    if (Math.abs(enemies.length - lastEnemyCount.length) >= 1) {
+    //straight away if higher alert, delay if pop decreases enough to lower alert
+    if ((enemies.length >= Config.app.game.alert.yellow && lastEnemyCount.length < Config.app.game.alert.yellow) ||
+       (enemies.length >= Config.app.game.alert.orange && lastEnemyCount.length < Config.app.game.alert.orange) ||
+       (enemies.length >= Config.app.game.alert.red && lastEnemyCount.length < Config.app.game.alert.red) ||
+       (enemies.length < Config.app.game.alert.yellow && lastEnemyCount.length >= Config.app.game.alert.yellow &&
+         now - alertTimeMillis > 30000L && Math.abs(enemies.length - lastEnemyCount.length) >= 3) ||
+       (enemies.length < Config.app.game.alert.orange && lastEnemyCount.length >= Config.app.game.alert.orange &&
+         now - alertTimeMillis > 30000L && Math.abs(enemies.length - lastEnemyCount.length) >= 3) ||
+       (enemies.length < Config.app.game.alert.red && lastEnemyCount.length >= Config.app.game.alert.red &&
+         now - alertTimeMillis > 30000L && Math.abs(enemies.length - lastEnemyCount.length) >= 3))
+    {
       building.Actor ! BuildingActor.DensityLevelUpdate(building)
+      alertTimeMillis = now
+      lastEnemyCount = enemies
     }
-    lastEnemyCount = enemies
     building.CaptureTerminal
       .map(_.HackedBy)
       .collect {
