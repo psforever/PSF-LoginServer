@@ -8,9 +8,9 @@ import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable, TelepadDeployable, Tool, TurretDeployable}
 import net.psforever.packet.game.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, HackState1, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, SetEmpireMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
-import net.psforever.services.Service
+import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.local.LocalResponse
-import net.psforever.types.{ChatMessageType, PlanetSideGUID}
+import net.psforever.types.{ChatMessageType, PlanetSideGUID, SpawnGroup}
 
 object LocalHandlerLogic {
   def apply(ops: SessionLocalHandlers): LocalHandlerLogic = {
@@ -239,6 +239,25 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
           .collect { case weapon: Tool if weapon.GUID == weaponGuid =>
             sendResponse(InventoryStateMessage(weapon.AmmoSlot.Box.GUID, weapon.GUID, weapon.Magazine))
           }
+
+      case LocalResponse.ForceZoneChange(zone) =>
+        //todo we might be able to piggyback this for squad recalls later
+        if(session.zone eq zone) {
+          sessionLogic.zoning.zoneReload = true
+          zone.AvatarEvents ! Service.Leave()
+          zone.LocalEvents ! Service.Leave()
+          zone.VehicleEvents ! Service.Leave()
+          zone.AvatarEvents ! Service.Join(player.Name) //must manually restore this subscriptions
+          sessionLogic.zoning.spawn.handleNewPlayerLoaded(player) //will restart subscriptions and dispatch a LoadMapMessage
+        } else {
+          import akka.actor.typed.scaladsl.adapter._
+          sessionLogic.cluster ! InterstellarClusterService.GetRandomSpawnPoint(
+            zone.Number,
+            player.Faction,
+            Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
+            context.self
+          )
+        }
 
       case _ => ()
     }

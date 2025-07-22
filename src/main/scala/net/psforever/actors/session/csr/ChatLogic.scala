@@ -18,6 +18,7 @@ import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.chat.{ChatChannel, DefaultChannel, SpectatorChannel}
 import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire}
+import net.psforever.zones.Zones
 
 import scala.util.Success
 
@@ -225,6 +226,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case "hidespectators" => customCommandHideSpectators()
         case "sayspectator" => customCommandSpeakAsSpectator(params, message)
         case "setempire" => customCommandSetEmpire(params)
+        case "weaponlock" => customCommandZoneWeaponUnlock(session, params)
         case _ =>
           // command was not handled
           sendResponse(
@@ -410,6 +412,134 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         true
       }
   }
+
+  def customCommandZoneWeaponUnlock(session: Session, params: Seq[String]): Boolean = {
+    val usageMessage: Boolean = params.exists(_.matches("--help")) || params.exists(_.matches("-h"))
+    val formattedParams = ops.cliCommaSeparatedParams(params)
+    //handle params
+    val (zoneList, verifiedZones, factionList, verifiedFactions, stateOpt) = (formattedParams.headOption, formattedParams.lift(1), formattedParams.lift(2)) match {
+      case _ if usageMessage =>
+        (Nil, Nil, Nil, Nil, None)
+
+      case (None, None, None) =>
+        (
+          Seq(session.zone.id),
+          Seq(session.zone),
+          PlanetSideEmpire.values.map(_.toString()).toSeq,
+          PlanetSideEmpire.values.toSeq,
+          Some(true)
+        )
+
+      case (Some(zoneOrFaction), Some(factionOrZone), stateOpt) =>
+        val factionOrZoneSplit = factionOrZone.split(",").toSeq
+        val zoneOrFactionSplit = zoneOrFaction.split(",").toSeq
+        val tryToFactions = factionOrZoneSplit.flatten(s => ops.captureBaseParamFaction(session, Some(s)))
+        if (tryToFactions.isEmpty) {
+          (
+            factionOrZoneSplit,
+            customCommandZoneParse(factionOrZoneSplit),
+            zoneOrFactionSplit,
+            zoneOrFactionSplit.flatten(s => ops.captureBaseParamFaction(session, Some(s))),
+            customCommandOnOffStateOrNone(stateOpt)
+          )
+        } else {
+          (
+            zoneOrFactionSplit,
+            customCommandZoneParse(zoneOrFactionSplit),
+            factionOrZoneSplit,
+            tryToFactions,
+            customCommandOnOffStateOrNone(stateOpt)
+          )
+        }
+
+      case (Some(zoneOrFaction), stateOpt, None) =>
+        val zoneOrFactionSplit = zoneOrFaction.split(",").toSeq
+        val tryToFactions = zoneOrFactionSplit.flatten(s => ops.captureBaseParamFaction(session, Some(s)))
+        if (tryToFactions.isEmpty) {
+          (
+            zoneOrFactionSplit,
+            customCommandZoneParse(zoneOrFactionSplit),
+            PlanetSideEmpire.values.map(_.toString()).toSeq,
+            PlanetSideEmpire.values.toSeq,
+            customCommandOnOffStateOrNone(stateOpt)
+          )
+        } else {
+          (
+            Seq(session.zone.id),
+            Seq(session.zone),
+            zoneOrFactionSplit,
+            tryToFactions,
+            customCommandOnOffStateOrNone(stateOpt)
+          )
+        }
+
+      case (stateOpt, None, None) =>
+        (
+          Seq(session.zone.id),
+          Seq(session.zone),
+          PlanetSideEmpire.values.map(_.toString()).toSeq,
+          PlanetSideEmpire.values.toSeq,
+          customCommandOnOffState(stateOpt)
+        )
+    }
+    //resolve
+    if (usageMessage) {
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "!weaponlock [zone[,...]] [faction[,...]] [o[n]|of[f]]"))
+    } else if (zoneList.isEmpty || verifiedZones.isEmpty || zoneList.size != verifiedZones.size) {
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "some zones can not be verified"))
+    } else if (factionList.isEmpty || verifiedFactions.isEmpty || factionList.size != verifiedFactions.size) {
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "some factions can not be verified"))
+    } else if (stateOpt.isEmpty) {
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "state must be on or off"))
+    } else {
+      val state = !stateOpt.get
+      verifiedZones.foreach { zone =>
+        val events = zone.AvatarEvents
+        val zoneId = zone.id
+        //val reloadZoneMsg = AvatarAction.ReloadZone(zone)
+        zone
+          .UpdateLiveFireAllowed(state, verifiedFactions)
+          .foreach {
+            case (_, false, _) => ()
+            case (faction, true, _) =>
+              //events ! AvatarServiceMessage(s"$faction", reloadZoneMsg)
+          }
+      }
+    }
+    true
+  }
+
+  private def customCommandOnOffStateOrNone(stateOpt: Option[String]): Option[Boolean] = {
+    stateOpt match {
+      case None =>
+        Some(true)
+      case _ =>
+        customCommandOnOffState(stateOpt)
+    }
+  }
+
+  private def customCommandOnOffState(stateOpt: Option[String]): Option[Boolean] = {
+    stateOpt match {
+      case Some("o") | Some("on") =>
+        Some(false)
+      case Some("of") | Some("off") =>
+        Some(true)
+      case _ =>
+        None
+    }
+  }
+
+  def customCommandZoneParse(potentialZones: Seq[String]): Seq[Zone] = {
+    potentialZones.flatten { potentialZone =>
+      if (potentialZone.toIntOption.nonEmpty) {
+        val xInt = potentialZone.toInt
+        Zones.zones.find(_.Number == xInt)
+      } else {
+        Zones.zones.find(z => z.id.equals(potentialZone))
+      }
+    }
+  }
+
 
   override def stop(): Unit = {
     super.stop()

@@ -138,4 +138,5 @@ object LocalAction {
       mountable_guid: PlanetSideGUID,
       weapon_guid: PlanetSideGUID
   ) extends Action
+  final case class ForceZoneChange(zone: Zone) extends Action
 }

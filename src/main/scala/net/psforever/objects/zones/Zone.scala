@@ -625,6 +625,20 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     liveFireAllowed.update(faction, state)
     output.toList
   }
+
+  def UpdateLiveFireAllowed(state: Boolean, factions: Seq[PlanetSideEmpire.Value]): List[(PlanetSideEmpire.Value, Boolean, Boolean)] = {
+    val output = liveFireAllowed.map { case (f, v) =>
+      if (factions.contains(f)) {
+        (f, v == state, state)
+      } else {
+        (f, false, v)
+      }
+    }
+    factions.foreach { f =>
+      liveFireAllowed.update(f, state)
+    }
+    output.toList
+  }
 }
 
 /**

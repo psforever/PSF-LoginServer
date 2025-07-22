@@ -17,7 +17,7 @@ import org.log4s.Logger
 
 import java.util.concurrent.{Executors, TimeUnit}
 import scala.annotation.unused
-import scala.collection.{Seq, mutable}
+import scala.collection.mutable
 import scala.concurrent.duration._
 //
 import net.psforever.actors.zone.BuildingActor
@@ -1034,7 +1034,7 @@ class ChatOperations(
       }
   }
 
-  private def captureBaseParamFaction(
+  def captureBaseParamFaction(
                                        @unused session: Session,
                                        token: Option[String]
                                      ): Option[PlanetSideEmpire.Value] = {
@@ -1305,6 +1305,28 @@ class ChatOperations(
 
   def cliTokenizationCaseSensitive(str: String): List[String] = {
     str.replaceAll("\\s+", " ").trim.split("\\s").toList.filter(!_.equals(""))
+  }
+
+  def cliCommaSeparatedParams(params: Seq[String]): Seq[String] = {
+    var len = 0
+    var appendNext = false
+    var formattedParams: Seq[String] = Seq()
+    params.foreach {
+      case "," =>
+        appendNext = true
+      case param if appendNext || param.startsWith(",") =>
+        formattedParams = formattedParams.slice(0, len - 1) :+ formattedParams(len - 1) + "," + param.replaceAll(",", "")
+        appendNext = param.endsWith(",")
+      case param if param.endsWith(",") =>
+        formattedParams = formattedParams :+ param.take(param.length-1)
+        len += 1
+        appendNext = true
+      case param =>
+        formattedParams = formattedParams :+ param
+        len += 1
+        appendNext = false
+    }
+    formattedParams
   }
 
   def commandIncomingSend(message: ChatMsg): Unit = {
