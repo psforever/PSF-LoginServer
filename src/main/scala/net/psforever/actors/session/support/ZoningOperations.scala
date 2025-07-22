@@ -18,7 +18,7 @@ import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
 import net.psforever.objects.zones.blockmap.BlockMapEntity
-import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, TriggeredSound}
+import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, TriggeredSound, WeatherMessage, CloudInfo, StormInfo}
 import net.psforever.services.chat.DefaultChannel
 
 import scala.collection.mutable
@@ -2504,6 +2504,19 @@ class ZoningOperations(
             sessionLogic.general.toggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
           }
       }
+      //make weather happen
+      sendResponse(WeatherMessage(List(),List(
+        StormInfo(Vector3(0.1f, 0.15f, 0.0f), 240, 217),
+        StormInfo(Vector3(0.5f, 0.11f, 0.0f), 240, 215),
+        StormInfo(Vector3(0.15f, 0.4f, 0.0f), 249, 215),
+        StormInfo(Vector3(0.15f, 0.87f, 0.0f), 240, 215),
+        StormInfo(Vector3(0.3f, 0.65f, 0.0f), 240, 215),
+        StormInfo(Vector3(0.5f, 0.475f, 0.0f), 245, 215),
+        StormInfo(Vector3(0.725f, 0.38f, 0.0f), 243, 215),
+        StormInfo(Vector3(0.9f, 0.57f, 0.0f), 244, 215),
+        StormInfo(Vector3(0.9f, 0.9f, 0.0f), 243, 215),
+        StormInfo(Vector3(0.1f, 0.2f, 0.0f), 241, 215),
+        StormInfo(Vector3(0.95f, 0.2f, 0.0f), 241, 215))))
       //begin looking for conditions to set the avatar
       context.system.scheduler.scheduleOnce(delay = 250 millisecond, context.self, SessionActor.SetCurrentAvatar(player, 200))
     }
@@ -2615,6 +2628,19 @@ class ZoningOperations(
       }
       avatarActor ! AvatarActor.RefreshPurchaseTimes()
       setupAvatarFunc = AvatarCreate
+      //make weather happen
+        sendResponse(WeatherMessage(List(),List(
+          StormInfo(Vector3(0.1f, 0.15f, 0.0f), 240, 217),
+          StormInfo(Vector3(0.5f, 0.11f, 0.0f), 240, 215),
+          StormInfo(Vector3(0.15f, 0.4f, 0.0f), 249, 215),
+          StormInfo(Vector3(0.15f, 0.87f, 0.0f), 240, 215),
+          StormInfo(Vector3(0.3f, 0.65f, 0.0f), 240, 215),
+          StormInfo(Vector3(0.5f, 0.475f, 0.0f), 245, 215),
+          StormInfo(Vector3(0.725f, 0.38f, 0.0f), 243, 215),
+          StormInfo(Vector3(0.9f, 0.57f, 0.0f), 244, 215),
+          StormInfo(Vector3(0.9f, 0.9f, 0.0f), 243, 215),
+          StormInfo(Vector3(0.1f, 0.2f, 0.0f), 241, 215),
+          StormInfo(Vector3(0.95f, 0.2f, 0.0f), 241, 215))))
       //begin looking for conditions to set the avatar
       context.system.scheduler.scheduleOnce(delay = 750 millisecond, context.self, SessionActor.SetCurrentAvatar(player, 200))
     }
