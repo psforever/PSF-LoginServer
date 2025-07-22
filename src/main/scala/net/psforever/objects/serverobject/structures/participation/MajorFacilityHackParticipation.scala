@@ -9,6 +9,7 @@ import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
 import akka.pattern.ask
 import akka.util.Timeout
+import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -26,6 +27,9 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
 
   private var hotSpotLayersOverTime: Seq[List[HotSpotInfo]] = Seq[List[HotSpotInfo]]()
 
+  var lastEnemyCount: List[Player] = List.empty
+  var alertTimeMillis: Long = 0L
+
   def TryUpdate(): Unit = {
     val list = building.PlayersInSOI
     if (list.nonEmpty) {
@@ -36,6 +40,25 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
       updatePopulationOverTime(list, now, before = 900000L)
       updateHotSpotInfoOverTime()
       updateTime(now)
+    }
+    val enemies = list.filter(p => p.Faction != building.Faction) ++
+      building.Zone.blockMap.sector(building).corpseList
+      .filter(p => Vector3.DistanceSquared(building.Position.xy, p.Position.xy) < building.Definition.SOIRadius * building.Definition.SOIRadius)
+    //alert defenders (actually goes to all clients) of population change for base alerts
+    //straight away if higher alert, delay if pop decreases enough to lower alert
+    if ((enemies.length >= Config.app.game.alert.yellow && lastEnemyCount.length < Config.app.game.alert.yellow) ||
+       (enemies.length >= Config.app.game.alert.orange && lastEnemyCount.length < Config.app.game.alert.orange) ||
+       (enemies.length >= Config.app.game.alert.red && lastEnemyCount.length < Config.app.game.alert.red) ||
+       (enemies.length < Config.app.game.alert.yellow && lastEnemyCount.length >= Config.app.game.alert.yellow &&
+         now - alertTimeMillis > 30000L && Math.abs(enemies.length - lastEnemyCount.length) >= 3) ||
+       (enemies.length < Config.app.game.alert.orange && lastEnemyCount.length >= Config.app.game.alert.orange &&
+         now - alertTimeMillis > 30000L && Math.abs(enemies.length - lastEnemyCount.length) >= 3) ||
+       (enemies.length < Config.app.game.alert.red && lastEnemyCount.length >= Config.app.game.alert.red &&
+         now - alertTimeMillis > 30000L && Math.abs(enemies.length - lastEnemyCount.length) >= 3))
+    {
+      building.Actor ! BuildingActor.DensityLevelUpdate(building)
+      alertTimeMillis = now
+      lastEnemyCount = enemies
     }
     building.CaptureTerminal
       .map(_.HackedBy)
