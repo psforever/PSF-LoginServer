@@ -450,7 +450,7 @@ class GeneralOperations(
                     continent.Number,
                     llu.Owner.GUID.guid,
                     Config.app.game.experience.cep.lluSlayerCredit,
-                    expType = "llu-slayer"
+                    expType = "lsc" //three characters - "llu slayer credit"
                   )
               }
           }
