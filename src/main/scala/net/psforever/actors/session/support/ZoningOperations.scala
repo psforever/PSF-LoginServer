@@ -301,7 +301,7 @@ class ZoningOperations(
     continent.VehicleEvents ! Service.Join(continentId)
     continent.VehicleEvents ! Service.Join(factionChannel)
     if (sessionLogic.connectionState != 100) configZone(continent)
-    sendResponse(TimeOfDayMessage(1191182336))
+    sendResponse(TimeOfDayMessage(1135214592))
     //custom
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty))    //clear squad list
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
