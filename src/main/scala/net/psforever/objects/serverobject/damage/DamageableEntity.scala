@@ -2,6 +2,7 @@
 package net.psforever.objects.serverobject.damage
 
 import net.psforever.objects.equipment.JammableUnit
+import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
@@ -199,9 +200,12 @@ object DamageableEntity {
     val tguid  = target.GUID
     val attribution = attributionTo(cause, target.Zone)
     zone.AvatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health))
-    zone.AvatarEvents ! AvatarServiceMessage(
-      zoneId,
-      AvatarAction.Destroy(tguid, attribution, Service.defaultPlayerGUID, target.Position)
-    )
+    if (target.isInstanceOf[SpawnTube]) {}//do nothing to prevent issue #1057
+    else {
+      zone.AvatarEvents ! AvatarServiceMessage(
+        zoneId,
+        AvatarAction.Destroy(tguid, attribution, Service.defaultPlayerGUID, target.Position)
+      )
+    }
   }
 }

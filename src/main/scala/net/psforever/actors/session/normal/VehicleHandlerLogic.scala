@@ -231,7 +231,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         sendResponse(ObjectCreateDetailedMessage(itemType, itemGuid, ObjectCreateMessageParent(vehicleGuid, slot), itemData))
 
       case VehicleResponse.UnloadVehicle(_, vehicleGuid) =>
-        sendResponse(ObjectDeleteMessage(vehicleGuid, unk1=0))
+        sendResponse(ObjectDeleteMessage(vehicleGuid, unk1=1))
         if (sessionLogic.zoning.spawn.prevSpawnPoint.map(_.Owner).exists {
           case ams: Vehicle =>
             ams.GUID == vehicleGuid &&
