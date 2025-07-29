@@ -205,7 +205,8 @@ trait AutomatedTurretBehavior {
     val now = System.currentTimeMillis()
     if (
       currentTargetToken.isEmpty &&
-        target.Faction != AutomatedTurretObject.Faction
+        target.Faction != AutomatedTurretObject.Faction &&
+        now >= currentTargetLastShotTime
     ) {
       currentTargetLastShotTime = now
       currentTargetLocation = Some(target.Position)
@@ -215,11 +216,19 @@ trait AutomatedTurretBehavior {
       true
     } else if (
       currentTargetToken.contains(SourceUniqueness(target)) &&
-        now - currentTargetLastShotTime < autoStats.map(_.cooldowns.missedShot).getOrElse(0L)) {
-      currentTargetLastShotTime = now
-      currentTargetLocation = Some(target.Position)
-      cancelSelfReportedAutoFire()
-      true
+        now - currentTargetLastShotTime < autoStats.map(_.cooldowns.missedShot).getOrElse(0L)
+    ) {
+      val escapeRange = autoStats.map(_.ranges.escape).getOrElse(400f)
+      val distSq = Vector3.DistanceSquared(target.Position, AutomatedTurretObject.Position)
+      val escapeSq = escapeRange * escapeRange
+      if (distSq <= escapeSq) {
+        currentTargetLastShotTime = now
+        currentTargetLocation = Some(target.Position)
+        cancelSelfReportedAutoFire()
+        true
+      } else {
+        false
+      }
     } else {
       false
     }
