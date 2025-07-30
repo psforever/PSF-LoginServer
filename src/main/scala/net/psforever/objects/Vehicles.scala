@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.transfer.TransferContainer
 import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ChatMsg, HackMessage, HackState, HackState1, HackState7, TriggeredSound}
+import net.psforever.packet.game.{ChatMsg, FrameVehicleStateMessage, GenericObjectActionEnum, GenericObjectActionMessage, HackMessage, HackState, HackState1, HackState7, TriggeredSound, VehicleStateMessage}
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -273,6 +273,20 @@ object Vehicles {
             zoneid,
             VehicleAction.KickPassenger(player.GUID, 4, unk2 = false, tGuid)
           )
+      }
+      // In case BFR is occupied and may or may not be crouched
+      if (GlobalDefinitions.isBattleFrameVehicle(target.Definition) && target.Seat(0).isDefined) {
+        zone.LocalEvents ! LocalServiceMessage(
+          zoneid,
+          LocalAction.SendGenericObjectActionMessage(PlanetSideGUID(-1), target.GUID, GenericObjectActionEnum.BFRShieldsDown))
+        zone.LocalEvents ! LocalServiceMessage(
+          zoneid,
+          LocalAction.SendResponse(
+            FrameVehicleStateMessage(target.GUID, 0, target.Position, target.Orientation, Some(Vector3(0f, 0f, 0f)), unk2=false, 0, 0, is_crouched=true, is_airborne=false, ascending_flight=false, 10, 0, 0)))
+        zone.LocalEvents ! LocalServiceMessage(
+          zoneid,
+          LocalAction.SendResponse(
+            VehicleStateMessage(target.GUID, 0, target.Position, target.Orientation, Some(Vector3(0f, 0f, 0f)), None, 0, 0, 15, is_decelerating=false, is_cloaked=false)))
       }
     })
     // If the vehicle can fly and is flying: deconstruct it; and well played to whomever managed to hack a plane in mid air

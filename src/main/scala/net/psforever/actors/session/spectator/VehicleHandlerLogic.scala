@@ -197,7 +197,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         sendResponse(PlanetsideAttributeMessage(vehicleGuid, seatGroup, permission))
 
       case VehicleResponse.UnloadVehicle(_, vehicleGuid) =>
-        sendResponse(ObjectDeleteMessage(vehicleGuid, unk1=0))
+        sendResponse(ObjectDeleteMessage(vehicleGuid, unk1=1))
 
       case VehicleResponse.UnstowEquipment(itemGuid) if isNotSameTarget =>
         //TODO prefer ObjectDetachMessage, but how to force ammo pools to update properly?

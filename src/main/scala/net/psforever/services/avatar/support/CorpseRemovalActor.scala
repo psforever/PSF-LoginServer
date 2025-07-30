@@ -25,7 +25,7 @@ class CorpseRemovalActor extends RemoverActor() {
     entry.zone.Population ! Zone.Corpse.Remove(entry.obj.asInstanceOf[Player])
     context.parent ! AvatarServiceMessage(
       entry.zone.id,
-      AvatarAction.ObjectDelete(Service.defaultPlayerGUID, entry.obj.GUID)
+      AvatarAction.ObjectDelete(Service.defaultPlayerGUID, entry.obj.GUID, unk=1)
     )
   }
 

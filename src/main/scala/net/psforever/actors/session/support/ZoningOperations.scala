@@ -18,7 +18,8 @@ import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
 import net.psforever.objects.zones.blockmap.BlockMapEntity
-import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, TriggeredSound, WeatherMessage, CloudInfo, StormInfo}
+import net.psforever.packet.game.GenericAction.FirstPersonViewWithEffect
+import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TriggeredSound, WeatherMessage}
 import net.psforever.services.chat.DefaultChannel
 
 import scala.collection.mutable
@@ -2972,10 +2973,10 @@ class ZoningOperations(
 
             case _ if player.HasGUID => // player is deconstructing self or instant action
               val player_guid = player.GUID
-              sendResponse(ObjectDeleteMessage(player_guid, 4))
+              sendResponse(ObjectDeleteMessage(player_guid, unk1=1))
               continent.AvatarEvents ! AvatarServiceMessage(
                 continent.id,
-                AvatarAction.ObjectDelete(player_guid, player_guid, 4)
+                AvatarAction.ObjectDelete(player_guid, player_guid, unk=1)
               )
               InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
               LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
@@ -3776,6 +3777,14 @@ class ZoningOperations(
         player.death_by = 1
       }
       GoToDeploymentMap()
+      val pZone = player.Zone
+      sendResponse(GenericActionMessage(FirstPersonViewWithEffect))
+      pZone.blockMap.sector(player).livePlayerList.collect { case t if t.GUID != player.GUID =>
+        pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendGenericObjectActionMessage(t.GUID, player.GUID, GenericObjectActionEnum.PlayerDeconstructs))
+      }
+      pZone.AllPlayers.collect { case t if t.GUID != player.GUID && !t.allowInteraction =>
+        pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendGenericObjectActionMessage(t.GUID, player.GUID, GenericObjectActionEnum.PlayerDeconstructs))
+      }
     }
 
     def stopDeconstructing(): Unit = {
