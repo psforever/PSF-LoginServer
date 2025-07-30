@@ -3809,6 +3809,9 @@ class ZoningOperations(
       pZone.blockMap.sector(player).livePlayerList.collect { case t if t.GUID != player.GUID =>
         pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendGenericObjectActionMessage(t.GUID, player.GUID, GenericObjectActionEnum.PlayerDeconstructs))
       }
+      pZone.AllPlayers.collect { case t if t.GUID != player.GUID && !t.allowInteraction =>
+        pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendGenericObjectActionMessage(t.GUID, player.GUID, GenericObjectActionEnum.PlayerDeconstructs))
+      }
     }
 
     def stopDeconstructing(): Unit = {
