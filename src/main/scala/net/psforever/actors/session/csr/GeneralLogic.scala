@@ -187,6 +187,9 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     pZone.blockMap.sector(player).livePlayerList.collect { case t if t.GUID != player.GUID =>
       pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendResponse(EmoteMsg(avatarGuid, emote)))
     }
+    pZone.AllPlayers.collect { case t if t.GUID != player.GUID && !t.allowInteraction =>
+      pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendResponse(EmoteMsg(avatarGuid, emote)))
+    }
   }
 
   def handleDropItem(pkt: DropItemMessage): Unit = {

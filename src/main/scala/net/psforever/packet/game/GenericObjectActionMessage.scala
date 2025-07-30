@@ -92,4 +92,5 @@ object GenericObjectActionEnum extends Enumeration {
     */
   val FlagSpawned = Value(14)
   val PlayerDeconstructs = Value(6)
+  val BFRShieldsDown = Value(45)
 }
