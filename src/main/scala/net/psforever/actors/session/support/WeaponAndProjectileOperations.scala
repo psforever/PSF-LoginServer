@@ -870,7 +870,7 @@ class WeaponAndProjectileOperations(
                 "BattleframeLeftArm"
               } else {
                 "BattleframeRightArm"
-              }).get.Enabled
+              }).exists(_.Enabled)
               if (!mountIsEnabled) {
                 //can't stop the local discharge, but it will not actually shoot anything; assert the magazine
                 sendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, tool.Magazine))
