@@ -15,6 +15,7 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, VehicleSource}
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.blockmap.BlockMapEntity
+import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.services.RemoverActor
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
@@ -443,6 +444,13 @@ class GeneralOperations(
                   continent.AvatarEvents ! AvatarServiceMessage(
                     attacker.Name,
                     AvatarAction.AwardCep(attacker.CharId, Config.app.game.experience.cep.lluSlayerCredit)
+                  )
+                  ToDatabase.reportFacilityCapture(
+                    attacker.CharId,
+                    continent.Number,
+                    llu.Owner.GUID.guid,
+                    Config.app.game.experience.cep.lluSlayerCredit,
+                    expType = "lsc" //three characters - "llu slayer credit"
                   )
               }
           }
