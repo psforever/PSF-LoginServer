@@ -6,6 +6,7 @@ import net.psforever.objects.{PlanetSideGameObject, TelepadDeployable, Vehicle}
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
+import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.GenericObjectActionEnum.GenericObjectActionEnum
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.PlanetSideGamePacket
@@ -86,4 +87,5 @@ object LocalResponse {
   final case class TriggerSound(sound: TriggeredSound.Value, pos: Vector3, unk: Int, volume: Float)   extends Response
   final case class UpdateForceDomeStatus(building_guid: PlanetSideGUID, activated: Boolean)           extends Response
   final case class RechargeVehicleWeapon(mountable_guid: PlanetSideGUID, weapon_guid: PlanetSideGUID) extends Response
+  final case class ForceZoneChange(zone: Zone) extends Response
 }

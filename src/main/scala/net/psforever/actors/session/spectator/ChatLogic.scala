@@ -140,7 +140,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case _ => ("", Seq(""))
       }
       command match {
-        case "list" => ops.customCommandList(session, params, message)
+        case "list" => ops.customCommandList(session, params.toSeq, message)
         case "nearby" => ops.customCommandNearby(session)
         case "loc" => ops.customCommandLoc(session, message)
         case _ =>
