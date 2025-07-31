@@ -7,9 +7,8 @@ import akka.actor.typed.ActorRef
 import akka.actor.{ActorContext, typed}
 import akka.pattern.ask
 import akka.util.Timeout
+import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.{AvatarActor, SessionActor}
-import net.psforever.actors.session.normal.{NormalMode => SessionNormalMode}
-import net.psforever.actors.session.spectator.{SpectatorMode => SessionSpectatorMode}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.LivePlayerList
 import net.psforever.objects.sourcing.PlayerSource
@@ -21,6 +20,7 @@ import net.psforever.services.teamwork.{SquadResponse, SquadService, SquadServic
 import net.psforever.types.ChatMessageType.CMT_QUIT
 import org.log4s.Logger
 
+import java.util.concurrent.{Executors, TimeUnit}
 import scala.annotation.unused
 import scala.collection.{Seq, mutable}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -67,6 +67,8 @@ class ChatOperations(
                     ) extends CommonSessionInterfacingFunctionality {
   private var channels: List[ChatChannel] = List()
   private var silenceTimer: Cancellable = Default.Cancellable
+  private[session] var transitoryCommandEntered: Option[ChatMessageType] = None
+  private val scheduler = Executors.newScheduledThreadPool(2)
   /**
    * when another player is listed as one of our ignored players,
    * and that other player sends an emote,
@@ -74,6 +76,8 @@ class ChatOperations(
    * key - character unique avatar identifier, value - when the current cooldown period will end
    */
   private val ignoredEmoteCooldown: mutable.LongMap[Long] = mutable.LongMap[Long]()
+
+  private[session] var CurrentSpectatorMode: PlayerMode = SpectatorMode
 
   import akka.actor.typed.scaladsl.adapter._
   private val chatServiceAdapter: ActorRef[ChatService.MessageResponse] = context.self.toTyped[ChatService.MessageResponse]
@@ -122,17 +126,6 @@ class ChatOperations(
       }
     context.self ! SessionActor.SetSpeed(speed)
     sendResponse(message.copy(contents = f"$speed%.3f"))
-  }
-
-  def commandToggleSpectatorMode(session: Session, contents: String): Unit = {
-    val currentSpectatorActivation = session.player.spectator
-    contents.toLowerCase() match {
-      case "on" | "o" | "" if !currentSpectatorActivation =>
-        context.self ! SessionActor.SetMode(SessionSpectatorMode)
-      case "off" | "of" if currentSpectatorActivation =>
-        context.self ! SessionActor.SetMode(SessionNormalMode)
-      case _ => ()
-    }
   }
 
   def commandRecall(session: Session): Unit = {
@@ -349,10 +342,49 @@ class ChatOperations(
         }
       }
     //evaluate results
+    if (!commandCaptureBaseProcessResults(resolvedFacilities, resolvedFaction, resolvedTimer)) {
+      if (usageMessage) {
+        sendResponse(
+          message.copy(messageType = UNK_229, contents = "@CMT_CAPTUREBASE_usage")
+        )
+      } else {
+        val msg = if (facilityError == 1) { "can not contextually determine building target" }
+        else if (facilityError == 2) { s"\'${foundFacilitiesTag.get}\' is not a valid building name" }
+        else if (factionError) { s"\'${foundFactionTag.get}\' is not a valid faction designation" }
+        else if (timerError) { s"\'${foundTimerTag.get}\' is not a valid timer value" }
+        else { "malformed params; check usage" }
+        sendResponse(ChatMsg(UNK_229, wideContents=true, "", s"\\#FF4040ERROR - $msg", None))
+      }
+    }
+  }
+
+  def commandCaptureBaseProcessResults(
+                                        resolvedFacilities: Option[Seq[Building]],
+                                        resolvedFaction: Option[PlanetSideEmpire.Value],
+                                        resolvedTimer: Option[Int]
+                                      ): Boolean = {
+    //evaluate results
     (resolvedFacilities, resolvedFaction, resolvedTimer) match {
       case (Some(buildings), Some(faction), Some(_)) =>
-        buildings.foreach { building =>
           //TODO implement timer
+        //schedule processing of buildings with a delay
+        processBuildingsWithDelay(buildings, faction, 1000) //delay of 1000ms between each building operation
+        true
+      case _ =>
+        false
+    }
+  }
+
+  def processBuildingsWithDelay(
+                                 buildings: Seq[Building],
+                                 faction: PlanetSideEmpire.Value,
+                                 delayMillis: Long
+                               ): Unit = {
+    val buildingIterator = buildings.iterator
+    scheduler.scheduleAtFixedRate(
+      () => {
+        if (buildingIterator.hasNext) {
+          val building = buildingIterator.next()
           val terminal = building.CaptureTerminal.get
           val zone = building.Zone
           val zoneActor = zone.actor
@@ -372,20 +404,11 @@ class ChatOperations(
           //push for map updates again
           zoneActor ! ZoneActor.ZoneMapUpdate()
         }
-      case _ =>
-        if (usageMessage) {
-          sendResponse(
-            message.copy(messageType = UNK_229, contents = "@CMT_CAPTUREBASE_usage")
-          )
-        } else {
-          val msg = if (facilityError == 1) { "can not contextually determine building target" }
-          else if (facilityError == 2) { s"\'${foundFacilitiesTag.get}\' is not a valid building name" }
-          else if (factionError) { s"\'${foundFactionTag.get}\' is not a valid faction designation" }
-          else if (timerError) { s"\'${foundTimerTag.get}\' is not a valid timer value" }
-          else { "malformed params; check usage" }
-          sendResponse(ChatMsg(UNK_229, wideContents=true, "", s"\\#FF4040ERROR - $msg", None))
-        }
-    }
+      },
+      0,
+      delayMillis,
+      TimeUnit.MILLISECONDS
+    )
   }
 
   def commandVoice(session: Session, message: ChatMsg, contents: String, toChannel: ChatChannel): Unit = {
@@ -615,8 +638,9 @@ class ChatOperations(
   }
 
   def commandAddCertification(session: Session, message: ChatMsg, contents: String): Unit = {
-    val certs = cliTokenization(contents).map(name => Certification.values.find(_.name == name))
-    val result = if (certs.nonEmpty) {
+    val tokens = cliTokenization(contents)
+    val certs = tokens.map(name => Certification.values.find(_.name == name))
+    val result = if (tokens.nonEmpty) {
       if (certs.contains(None)) {
         s"@AckErrorCertifications"
       } else {
@@ -635,7 +659,7 @@ class ChatOperations(
   }
 
   def commandKick(session: Session, message: ChatMsg, contents: String): Unit = {
-    val inputs = cliTokenization(contents)
+    val inputs = cliTokenizationCaseSensitive(contents)
     inputs.headOption match {
       case Some(input) =>
         val determination: Player => Boolean = input.toLongOption match {
@@ -1009,13 +1033,20 @@ class ChatOperations(
   private def captureBaseCurrSoi(
                                   session: Session
                                 ): Iterable[Building] = {
-    val charId = session.player.CharId
-    session.zone.Buildings.values.filter { building =>
-      building.PlayersInSOI.exists(_.CharId == charId)
-    }
+    val player = session.player
+    val positionxy = player.Position.xy
+    session
+      .zone
+      .blockMap
+      .sector(player)
+      .buildingList
+      .filter { building =>
+        val radius = building.Definition.SOIRadius
+        Vector3.DistanceSquared(building.Position.xy, positionxy) < radius * radius
+      }
   }
 
-  private def captureBaseParamFaction(
+  def captureBaseParamFaction(
                                        @unused session: Session,
                                        token: Option[String]
                                      ): Option[PlanetSideEmpire.Value] = {
@@ -1238,7 +1269,7 @@ class ChatOperations(
                                      params: Seq[String]
                                    ): Boolean = {
     val ourRank = BattleRank.withExperience(session.avatar.bep).value
-    if (!session.account.gm &&
+    if (!avatar.permissions.canGM &&
       (ourRank <= Config.app.game.promotion.broadcastBattleRank ||
         ourRank > Config.app.game.promotion.resetBattleRank && ourRank < Config.app.game.promotion.maxBattleRank + 1)) {
       setBattleRank(session, params, AvatarActor.Progress)
@@ -1322,7 +1353,33 @@ class ChatOperations(
   }
 
   def cliTokenization(str: String): List[String] = {
-    str.replaceAll("\\s+", " ").toLowerCase.trim.split("\\s").toList
+    str.replaceAll("\\s+", " ").toLowerCase.trim.split("\\s").toList.filter(!_.equals(""))
+  }
+
+  def cliTokenizationCaseSensitive(str: String): List[String] = {
+    str.replaceAll("\\s+", " ").trim.split("\\s").toList.filter(!_.equals(""))
+  }
+
+  def cliCommaSeparatedParams(params: Seq[String]): Seq[String] = {
+    var len = 0
+    var appendNext = false
+    var formattedParams: Seq[String] = Seq()
+    params.foreach {
+      case "," =>
+        appendNext = true
+      case param if appendNext || param.startsWith(",") =>
+        formattedParams = formattedParams.slice(0, len - 1) :+ formattedParams(len - 1) + "," + param.replaceAll(",", "")
+        appendNext = param.endsWith(",")
+      case param if param.endsWith(",") =>
+        formattedParams = formattedParams :+ param.take(param.length-1)
+        len += 1
+        appendNext = true
+      case param =>
+        formattedParams = formattedParams :+ param
+        len += 1
+        appendNext = false
+    }
+    formattedParams
   }
 
   def commandIncomingSend(message: ChatMsg): Unit = {

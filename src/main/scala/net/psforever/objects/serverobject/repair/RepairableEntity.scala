@@ -1,11 +1,13 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.repair
 
+import net.psforever.objects.avatar.PlayerControl.sendResponse
+import net.psforever.objects.ce.DeployableCategory
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.RepairFromEquipment
 import net.psforever.objects.{Player, Tool}
-import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
-import net.psforever.types.{PlanetSideEmpire, Vector3}
+import net.psforever.packet.game.{ChatMsg, InventoryStateMessage, RepairMessage}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
@@ -113,6 +115,27 @@ trait RepairableEntity extends Repairable {
         RepairMessage(target.GUID, updatedHealth * 100 / definition.MaxHealth)
       )
     )
+    //if vehicle and vehicle is owned by another player, send repair chat message to the vehicle's owner
+    if (target.Zone.Vehicles.exists(_.GUID == target.GUID)) {
+      val vehicle = target.Zone.Vehicles.filter(_.GUID == target.GUID).head
+      val vehicleOwner = vehicle.OwnerName.getOrElse("someone")
+      val amount = updatedHealth - originalHealth
+      if (vehicleOwner != "someone" && vehicle.OwnerGuid.get != player.GUID && amount > 0) {
+        val repairMessageOther = s"@YourWasHealedMessage^@${vehicle.Definition.Name}~^repaired~^$amount~^armor~^${player.Name}~"
+          sendResponse(vehicle.Zone, vehicleOwner, ChatMsg(ChatMessageType.UNK_227, repairMessageOther))
+      }
+    }
+    //same check for field turret
+    if (target.Zone.DeployableList.exists(_.GUID == target.GUID)) {
+      val turret = target.Zone.DeployableList.filter(_.GUID == target.GUID).head
+      val turretOwner = turret.OwnerName.getOrElse("someone")
+      val amount = updatedHealth - originalHealth
+      if (turret.Definition.DeployCategory == DeployableCategory.FieldTurrets && turretOwner != "someone"
+      && turret.OwnerGuid.get != player.GUID && amount > 0) {
+        val repairMessageOther = s"@YourWasHealedMessage^@${turret.Definition.Name}~^repaired~^$amount~^armor~^${player.Name}~"
+        sendResponse(turret.Zone, turretOwner, ChatMsg(ChatMessageType.UNK_227, repairMessageOther))
+      }
+    }
   }
 
   protected def PerformRepairs(target: Repairable.Target, amount: Int): Int = {

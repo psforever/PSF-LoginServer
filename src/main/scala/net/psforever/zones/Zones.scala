@@ -295,7 +295,25 @@ object Zones {
                     WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ), GlobalDefinitions.hst)
                   )
                 )
-              case objectType if warpGateTypes.contains(objectType) =>
+              case objectType @ "warpgate_cavern" if warpGateTypes.contains(objectType) =>
+                zoneMap.addLocalBuilding(
+                  structure.objectName,
+                  structure.guid,
+                  structure.mapId.get,
+                  FoundationBuilder(
+                    WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ), GlobalDefinitions.warpgate_cavern)
+                  )
+                )
+              case objectType @ "warpgate_small" if warpGateTypes.contains(objectType) =>
+                zoneMap.addLocalBuilding(
+                  structure.objectName,
+                  structure.guid,
+                  structure.mapId.get,
+                  FoundationBuilder(
+                    WarpGate.Structure(Vector3(structure.absX, structure.absY, structure.absZ), GlobalDefinitions.warpgate_small)
+                  )
+                )
+              case objectType @ "warpgate" if warpGateTypes.contains(objectType) =>
                 zoneMap.addLocalBuilding(
                   structure.objectName,
                   structure.guid,

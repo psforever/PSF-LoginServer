@@ -18,7 +18,7 @@ import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.{InGameActivity, InGameHistory, RevivingActivity}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.types.{ChatMessageType, ExoSuitType, Vector3}
+import net.psforever.types.{ChatMessageType, ExoSuitType, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -80,6 +80,8 @@ object Players {
       )
     )
     target.Zone.AvatarEvents ! AvatarServiceMessage(name, AvatarAction.Revive(target.GUID))
+    val reviveMessage = s"@YouHaveBeenMessage^revived~^$medicName~"
+    PlayerControl.sendResponse(target.Zone, name, ChatMsg(ChatMessageType.UNK_227, reviveMessage))
   }
 
   /**
@@ -327,7 +329,7 @@ object Players {
     */
   def successfulBuildActivity(zone: Zone, channel: String, obj: Deployable): Unit = {
     //sent to avatar event bus to preempt additional tool management
-    buildCooldownReset(zone, channel, obj)
+    buildCooldownReset(zone, channel, obj.GUID)
     //sent to local event bus to cooperate with deployable management
     zone.LocalEvents ! LocalServiceMessage(
       channel,
@@ -339,13 +341,13 @@ object Players {
     * Common actions related to constructing a new `Deployable` object in the game environment.
     * @param zone in which zone these messages apply
     * @param channel to whom to send the messages
-    * @param obj the `Deployable` object
+    * @param guid `Deployable` object
     */
-  def buildCooldownReset(zone: Zone, channel: String, obj: Deployable): Unit = {
+  def buildCooldownReset(zone: Zone, channel: String, guid: PlanetSideGUID): Unit = {
     //sent to avatar event bus to preempt additional tool management
     zone.AvatarEvents ! AvatarServiceMessage(
       channel,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, GenericObjectActionMessage(obj.GUID, 21))
+      AvatarAction.SendResponse(Service.defaultPlayerGUID, GenericObjectActionMessage(guid, 21))
     )
   }
 
@@ -487,5 +489,36 @@ object Players {
         player.ContributionFrom(mount)
     }
     player.HistoryAndContributions()
+  }
+
+  /**
+   * Select the player's zone channel.
+   * If the player is spectating, then that is their channel instead.
+   * The resulting channel name should never be used for subscribing - only for publishing.
+   * @param player player in a zone
+   * @return channel name
+   */
+  def ZoneChannelIfSpectating(player: Player): String = {
+    if (player.spectator) {
+      "spectator"
+    } else {
+      player.Zone.id
+    }
+  }
+
+  /**
+   * Select the player's zone channel.
+   * If the player is spectating, then that is their channel instead.
+   * The resulting channel name should never be used for subscribing - only for publishing.
+   * @param player player in a zone
+   * @param zoneid custom zone name to be used as the channel name
+   * @return channel name
+   */
+  def ZoneChannelIfSpectating(player: Player, zoneid: String): String = {
+    if (player.spectator) {
+      "spectator"
+    } else {
+      zoneid
+    }
   }
 }

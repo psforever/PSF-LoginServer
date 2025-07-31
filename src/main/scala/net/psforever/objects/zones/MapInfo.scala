@@ -375,7 +375,8 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Water, 192.32812f, 1966.1562f, 1252.7344f, 1889.8047f, 1148.5312f), //top, northern pool
           Pool(EnvironmentAttribute.Water, 191.65625f, 1869.1484f, 1195.6406f, 1743.8125f, 1050.7344f), //middle, northern pool
           Pool(EnvironmentAttribute.Water, 183.98438f, 914.33594f, 1369.5f, 626.03906f, 666.3047f), //upper southern pools
-          Pool(EnvironmentAttribute.Water, 182.96875f, 580.7578f, 913.52344f, 520.4531f, 843.97656f) //lowest southern pool
+          Pool(EnvironmentAttribute.Water, 182.96875f, 580.7578f, 913.52344f, 520.4531f, 843.97656f), //lowest southern pool
+          SeaLevel(EnvironmentAttribute.Death, 10)
         )
       )
 
@@ -394,7 +395,10 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 3797992164L,
         scale = MapScale.Dim2048,
         hotSpotSpan = 80,
-        environment = List(Pool(EnvironmentAttribute.Death, DeepSurface(51.414f, 2048, 2048, 0, 0)))
+        environment = List(
+          Pool(EnvironmentAttribute.Death, DeepSurface(51.414f, 2048, 2048, 0, 0)),
+          SeaLevel(EnvironmentAttribute.Death, 10)
+        )
       )
 
   case object Ugd05
@@ -451,7 +455,7 @@ case object MapInfo extends StringEnum[MapInfo] {
           Pool(EnvironmentAttribute.Water, 3.5f, 2867f, 4096f, 1227f, 2900f), //east
           Pool(EnvironmentAttribute.Water, 3.5f, 1227f, 4096f, 0f, 2000f), //southeast
           Pool(EnvironmentAttribute.Water, 3.5f, 1128f, 2000f, 0f, 0f), //southwest
-          Pool(EnvironmentAttribute.Death, 0.5f, 2867f, 2900f, 1128f, 1228f) //central, kill
+          Pool(EnvironmentAttribute.Death, 0.5f, 2867f, 2900f, 1128f, 1228f), //central, kill
         ) ++ MapEnvironment.dim4096MapEdgeKillPlanes
       )
 
@@ -708,7 +712,7 @@ object MapEnvironment {
             p.Name,
             AvatarAction.SendResponseTargeted(
               Service.defaultPlayerGUID,
-              ChatMsg(ChatMessageType.CMT_QUIT, false, "", warning, None)
+              ChatMsg(ChatMessageType.CMT_QUIT, warning)
             )
           )
         case _ => ;

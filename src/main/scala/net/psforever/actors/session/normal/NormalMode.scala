@@ -1,13 +1,12 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.normal
 
-import net.psforever.actors.session.support.{ChatFunctions, GeneralFunctions, LocalHandlerFunctions, MountHandlerFunctions, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
-import net.psforever.actors.session.support.{ModeLogic, PlayerMode, SessionData}
+import net.psforever.actors.session.support.{ChatFunctions, GalaxyHandlerFunctions, GeneralFunctions, LocalHandlerFunctions, ModeLogic, MountHandlerFunctions, PlayerMode, SessionData, SquadHandlerFunctions, TerminalHandlerFunctions, VehicleFunctions, VehicleHandlerFunctions, WeaponAndProjectileFunctions}
 
 class NormalModeLogic(data: SessionData) extends ModeLogic {
   val avatarResponse: AvatarHandlerLogic = AvatarHandlerLogic(data.avatarResponse)
   val chat: ChatFunctions = ChatLogic(data.chat)
-  val galaxy: GalaxyHandlerLogic = GalaxyHandlerLogic(data.galaxyResponseHandlers)
+  val galaxy: GalaxyHandlerFunctions = GalaxyHandlerLogic(data.galaxyResponseHandlers)
   val general: GeneralFunctions = GeneralLogic(data.general)
   val local: LocalHandlerFunctions = LocalHandlerLogic(data.localResponse)
   val mountResponse: MountHandlerFunctions = MountHandlerLogic(data.mountResponse)

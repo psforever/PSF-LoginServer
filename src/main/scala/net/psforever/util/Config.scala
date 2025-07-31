@@ -163,7 +163,9 @@ case class GameConfig(
     doorsCanBeOpenedByMedAppFromThisDistance: Float,
     experience: Experience,
     maxBattleRank: Int,
-    promotion: PromotionSystem
+    promotion: PromotionSystem,
+    facilityHackTime: FiniteDuration,
+    alert: DensityAlert
 )
 
 case class InstantActionConfig(
@@ -324,4 +326,10 @@ case class PromotionSystem(
     battleExperiencePointsModifier: Float,
     supportExperiencePointsModifier: Float,
     captureExperiencePointsModifier: Float
+)
+
+case class DensityAlert(
+    yellow: Int,
+    orange: Int,
+    red: Int
 )

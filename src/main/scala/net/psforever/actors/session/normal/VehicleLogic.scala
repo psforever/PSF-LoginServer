@@ -216,7 +216,8 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
       case Some(mount: Mountable) => (o, mount.PassengerInSeat(player))
       case _                      => (None, None)
     }) match {
-      case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) => ()
+      case (None, None) | (_, None) | (Some(_: Vehicle), Some(0)) =>
+        ()
       case _ =>
         sessionLogic.zoning.spawn.tryQueuedActivity() //todo conditionals?
         sessionLogic.persist()

@@ -3,9 +3,9 @@ package net.psforever.objects.avatar
 
 import akka.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
-import net.psforever.actors.zone.ZoneActor
 import net.psforever.login.WorldSession.{DropEquipmentFromInventory, HoldNewEquipmentUp, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
 import net.psforever.objects._
+import net.psforever.objects.avatar.PlayerControl.sendResponse
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.definition.DeployAnimation
 import net.psforever.objects.definition.converter.OCM
@@ -18,7 +18,6 @@ import net.psforever.objects.serverobject.containable.{Containable, ContainableB
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.{AggravatedBehavior, Damageable, DamageableEntity}
-import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.vital._
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
@@ -35,8 +34,9 @@ import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.sourcing.{AmenitySource, PlayerSource}
 import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
-import net.psforever.objects.vital.interaction.{Adversarial, DamageInteraction, DamageResult}
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.PlanetSideGamePacket
+import org.joda.time.{LocalDateTime, Seconds}
 
 import scala.concurrent.duration._
 
@@ -149,6 +149,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   newHealth - originalHealth
                 )
               )
+              val amount = newHealth - originalHealth
+              val healMessageSelf = s"@SelfHitHealedMessage^healed~^$amount~^health~"
+              val healMessageOther = s"@WereHitByHealedMessage^healed~^$amount~^health~^$uname~"
+              if (player == user) {
+                sendResponse(user.Zone, user.Name, ChatMsg(ChatMessageType.UNK_227, healMessageSelf))
+              }
+              else {
+                sendResponse(player.Zone, player.Name, ChatMsg(ChatMessageType.UNK_227, healMessageOther))
+              }
             }
             if (player != user) {
               //"Someone is trying to heal you"
@@ -212,6 +221,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   newArmor - originalArmor
                 )
               )
+              val amount = newArmor - originalArmor
+              val repairMessageSelf = s"@SelfHitHealedMessage^repaired~^$amount~^armor~"
+              val repairMessageOther = s"@WereHitByHealedMessage^repaired~^$amount~^armor~^$uname~"
+              if (player == user) {
+                sendResponse(user.Zone, user.Name, ChatMsg(ChatMessageType.UNK_227, repairMessageSelf))
+              }
+              else {
+                sendResponse(player.Zone, player.Name, ChatMsg(ChatMessageType.UNK_227, repairMessageOther))
+              }
             }
             if (player != user) {
               if (player.isAlive) {
@@ -320,7 +338,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           } else if ((!resistance && before != slot && (player.DrawnSlot = slot) != before) && ItemSwapSlot != before) {
             val mySlot = if (updateMyHolsterArm) slot else -1 //use as a short-circuit
             events ! AvatarServiceMessage(
-              player.Continent,
+              Players.ZoneChannelIfSpectating(player),
               AvatarAction.ObjectHeld(player.GUID, mySlot, player.LastDrawnSlot)
             )
             val isHolsters = player.VisibleSlots.contains(slot)
@@ -332,16 +350,21 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   if (unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
                     //rek beam/icon colour must match the player's correct hack level
                     events ! AvatarServiceMessage(
-                      player.Continent,
+                      Players.ZoneChannelIfSpectating(player),
                       AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, player.avatar.hackingSkillLevel())
                     )
                   }
-                case None => ;
+                case None => ()
               }
             } else {
               equipment match {
                 case Some(holsteredEquipment) =>
                   log.info(s"${player.Name} has put ${player.Sex.possessive} ${holsteredEquipment.Definition.Name} down")
+                  //make sure the player didn't just initialte an orbital strike. If not (the if below is true), make sure waypoint is removed
+                  if (holsteredEquipment.Definition == GlobalDefinitions.command_detonater && player.avatar.cr.value > 3 &&
+                    !player.avatar.cooldowns.purchase.exists(os => os._1 == "orbital_strike" && Seconds.secondsBetween(os._2, LocalDateTime.now()).getSeconds < 12)) {
+                    player.Zone.LocalEvents ! LocalServiceMessage(s"${player.Faction}", LocalAction.SendPacket(OrbitalStrikeWaypointMessage(player.GUID, None)))
+                  }
                 case None =>
                   log.info(s"${player.Name} lowers ${player.Sex.possessive} hand")
               }
@@ -385,15 +408,13 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 }
                 if (Players.CertificationToUseExoSuit(player, exosuit, subtype)) {
                   if (exosuit == ExoSuitType.MAX) {
-                    val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
-                    val cooldown = player.avatar.purchaseCooldown(weapon)
+                    val cooldown = player.avatar.purchaseCooldown(GlobalDefinitions.MAXArms(subtype, player.Faction))
                     if (originalSubtype == subtype) {
-                      (exosuit, subtype) //same MAX subtype is free
+                      (exosuit, subtype) //same MAX subtype
                     } else if (cooldown.nonEmpty) {
-                      fallbackSuit //different MAX subtype can not have cooldown
+                      fallbackSuit //different MAX subtype
                     } else {
-                      avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
-                      (exosuit, subtype) //switching for first time causes cooldown
+                      (exosuit, subtype) //switching
                     }
                   } else {
                     (exosuit, subtype)
@@ -475,11 +496,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 case InventoryItem(citem: ConstructionItem, _) =>
                   Deployables.initializeConstructionItem(player.avatar.certifications, citem)
               }
-              //deactivate non-passive implants
-              avatarActor ! AvatarActor.DeactivateActiveImplants
               val zone = player.Zone
               zone.AvatarEvents ! AvatarServiceMessage(
-                zone.id,
+                Players.ZoneChannelIfSpectating(player),
                 AvatarAction.ChangeLoadout(
                   player.GUID,
                   toArmor,
@@ -556,7 +575,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   //don't know where boomer trigger "should" go
                   TaskWorkflow.execute(PutNewEquipmentInInventoryOrDrop(player)(trigger))
               }
-              Players.buildCooldownReset(zone, player.Name, obj)
+              Players.buildCooldownReset(zone, player.Name, obj.GUID)
             case _ => ()
           }
           deployablePair = None
@@ -573,7 +592,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   player.Actor ! Player.LoseDeployable(obj)
                   TelepadControl.TelepadError(zone, player.Name, msg = "@Telepad_NoDeploy_RouterLost")
               }
-              Players.buildCooldownReset(zone, player.Name, obj)
+              Players.buildCooldownReset(zone, player.Name, obj.GUID)
             case _ => ()
           }
           deployablePair = None
@@ -581,7 +600,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case Zone.Deployable.IsBuilt(obj) =>
           deployablePair match {
             case Some((deployable, tool)) if deployable eq obj =>
-              Players.buildCooldownReset(player.Zone, player.Name, obj)
+              Players.buildCooldownReset(player.Zone, player.Name, obj.GUID)
               player.Find(tool) match {
                 case Some(index) =>
                   Players.commonDestroyConstructionItem(player, tool, index)
@@ -613,10 +632,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         val weapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
         player.avatar.purchaseCooldown(weapon)
           .collect(_ => false)
-          .getOrElse {
-            avatarActor ! AvatarActor.UpdatePurchaseTime(weapon)
-            true
-          }
+          .getOrElse(true)
       } else {
         true
       })
@@ -671,10 +687,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       //insert
       afterHolsters.foreach(elem => player.Slot(elem.start).Equipment = elem.obj)
       afterInventory.foreach(elem => player.Inventory.InsertQuickly(elem.start, elem.obj))
-      //deactivate non-passive implants
-      avatarActor ! AvatarActor.DeactivateActiveImplants
       player.Zone.AvatarEvents ! AvatarServiceMessage(
-        player.Zone.id,
+        Players.ZoneChannelIfSpectating(player),
         AvatarAction.ChangeExosuit(
           player.GUID,
           toArmor,
@@ -744,7 +758,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       else {
         log.warn(s"cannot build a ${obj.Definition.Name}")
         DropEquipmentFromInventory(player)(tool, Some(obj.Position))
-        Players.buildCooldownReset(zone, player.Name, obj)
+        Players.buildCooldownReset(zone, player.Name, obj.GUID)
         obj.Position = Vector3.Zero
         obj.AssignOwnership(None)
         zone.Deployables ! Zone.Deployable.Dismiss(obj)
@@ -755,7 +769,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       obj.AssignOwnership(None)
       val zone = player.Zone
       zone.Deployables ! Zone.Deployable.Dismiss(obj)
-      Players.buildCooldownReset(zone, player.Name, obj)
+      Players.buildCooldownReset(zone, player.Name, obj.GUID)
     }
   }
 
@@ -954,7 +968,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   def DestructionAwareness(target: Player, cause: DamageResult): Unit = {
     val player_guid  = target.GUID
     val pos          = target.Position
-    val respawnTimer = 300000 //milliseconds
     val zone         = target.Zone
     val events       = zone.AvatarEvents
     val nameChannel  = target.Name
@@ -980,36 +993,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         damageLog.info(s"${player.Name} killed ${player.Sex.pronounObject}self")
     }
 
-    // This would normally happen async as part of AvatarAction.Killed, but if it doesn't happen before deleting calling AvatarAction.ObjectDelete on the player the LLU will end up invisible to others if carried
-    // Therefore, queue it up to happen first.
-    events ! AvatarServiceMessage(nameChannel, AvatarAction.DropSpecialItem())
-
-    events ! AvatarServiceMessage(
-      nameChannel,
-      AvatarAction.Killed(player_guid, target.VehicleSeated)
-    ) //align client interface fields with state
-    zone.GUID(target.VehicleSeated) match {
-      case Some(obj: Mountable) =>
-        //boot cadaver from mount internally (vehicle perspective)
-        obj.PassengerInSeat(target) match {
-          case Some(index) =>
-            obj.Seats(index).unmount(target)
-          case _ => ;
-        }
-        //boot cadaver from mount on client
-        events ! AvatarServiceMessage(
-          nameChannel,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            ObjectDetachMessage(obj.GUID, player_guid, target.Position, Vector3.Zero)
-          )
-        )
-        //make player invisible on client
-        events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 29, 1))
-        //only the dead player should "see" their own body, so that the death camera has something to focus on
-        events ! AvatarServiceMessage(zoneChannel, AvatarAction.ObjectDelete(player_guid, player_guid))
-      case _ => ;
-    }
+    events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid, cause, target.VehicleSeated)) //align client interface fields with state
     events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 0, 0)) //health
     if (target.Capacitor > 0) {
       target.Capacitor = 0
@@ -1023,35 +1007,6 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         DestroyMessage(player_guid, attribute, Service.defaultPlayerGUID, pos)
       ) //how many players get this message?
     )
-    events ! AvatarServiceMessage(
-      nameChannel,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-        AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, pos, target.Faction, unk5=true)
-      )
-    )
-    //TODO other methods of death?
-    val pentry = PlayerSource(target)
-    cause
-      .adversarial
-      .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
-      .orElse {
-        target.LastDamage.collect {
-          case attack if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
-            attack
-              .adversarial
-              .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
-        }.flatten
-      } match {
-      case Some(adversarial) =>
-        events ! AvatarServiceMessage(
-          zoneChannel,
-          AvatarAction.DestroyDisplay(adversarial.attacker, pentry, adversarial.implement)
-        )
-      case _ =>
-        events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
-    }
-    zone.actor ! ZoneActor.RewardThisDeath(player)
   }
 
   def suicide() : Unit = {

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.avatar.interaction.{WithEntrance, WithGantry, WithLava, WithWater}
+import net.psforever.objects.avatar.interaction.{TriggerOnPlayerRule, WithEntrance, WithGantry, WithLava, WithWater}
 import net.psforever.objects.avatar.{Avatar, LoadoutManager, SpecialCarry}
 import net.psforever.objects.ballistics.InteractWithRadiationClouds
 import net.psforever.objects.ce.{Deployable, InteractWithMines, InteractWithTurrets}
@@ -47,7 +47,7 @@ class Player(var avatar: Avatar)
     new WithGantry(avatar.name),
     new WithMovementTrigger()
   )))
-  interaction(new InteractWithMines(range = 10))
+  interaction(new InteractWithMines(range = 10, TriggerOnPlayerRule))
   interaction(new InteractWithTurrets())
   interaction(new InteractWithRadiationClouds(range = 10f, Some(this)))
 
@@ -81,6 +81,7 @@ class Player(var avatar: Avatar)
   Continent = "home2" //the zone id
 
   var spectator: Boolean                 = false
+  var bops: Boolean                      = false
   var silenced: Boolean                  = false
   var death_by: Int                      = 0
   var lastShotSeq_time: Int              = -1
@@ -634,13 +635,16 @@ object Player {
     player.Inventory.Resize(eSuit.InventoryScale.Width, eSuit.InventoryScale.Height)
     player.Inventory.Offset = eSuit.InventoryOffset
     //holsters
-    (0 until 5).foreach(index => { player.Slot(index).Size = eSuit.Holster(index) })
+    (0 until 5).foreach { index => player.Slot(index).Size = eSuit.Holster(index) }
   }
 
   def Respawn(player: Player): Player = {
     if (player.Release) {
       val obj = new Player(player.avatar)
       obj.Continent = player.Continent
+      obj.death_by = player.death_by
+      obj.silenced = player.silenced
+      obj.allowInteraction = player.allowInteraction
       obj.avatar.scorecard.respawn()
       obj
     } else {

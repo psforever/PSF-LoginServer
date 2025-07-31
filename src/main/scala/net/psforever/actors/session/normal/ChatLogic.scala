@@ -2,12 +2,14 @@
 package net.psforever.actors.session.normal
 
 import akka.actor.ActorContext
+import net.psforever.actors.session.SessionActor
+import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
 import net.psforever.objects.Session
-import net.psforever.objects.avatar.ModePermissions
-import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
+import net.psforever.packet.game.{ChatMsg, ServerType, SetChatFilterMessage}
 import net.psforever.services.chat.DefaultChannel
 import net.psforever.types.ChatMessageType
+import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}
 import net.psforever.util.Config
 
 object ChatLogic {
@@ -19,34 +21,27 @@ object ChatLogic {
 class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) extends ChatFunctions {
   def sessionLogic: SessionData = ops.sessionLogic
 
+  ops.CurrentSpectatorMode = SpectatorMode
+  ops.transitoryCommandEntered = None
+
   def handleChatMsg(message: ChatMsg): Unit = {
     import net.psforever.types.ChatMessageType._
-    val isAlive = if (player != null) player.isAlive else false
-    val perms = if (avatar != null) avatar.permissions else ModePermissions()
-    val gmCommandAllowed = (session.account.gm && perms.canGM) ||
-      Config.app.development.unprivilegedGmCommands.contains(message.messageType)
+    lazy val isAlive = avatar != null && player != null && player.isAlive
     (message.messageType, message.recipient.trim, message.contents.trim) match {
       /** Messages starting with ! are custom chat commands */
       case (_, _, contents) if contents.startsWith("!") &&
         customCommandMessages(message, session) => ()
 
-      case (CMT_FLY, recipient, contents) if gmCommandAllowed =>
-        ops.commandFly(contents, recipient)
+      case (CMT_ANONYMOUS, _, _) => ()
 
-      case (CMT_ANONYMOUS, _, _) =>
-      // ?
-
-      case (CMT_TOGGLE_GM, _, _) =>
-      // ?
+      case (CMT_TOGGLE_GM, _, contents) if isAlive =>
+        customCommandModerator(contents)
 
       case (CMT_CULLWATERMARK, _, contents) =>
         ops.commandWatermark(contents)
 
-      case (CMT_SPEED, _, contents) if gmCommandAllowed =>
-        ops.commandSpeed(message, contents)
-
-      case (CMT_TOGGLESPECTATORMODE, _, contents) if isAlive && (gmCommandAllowed || perms.canSpectate) =>
-        ops.commandToggleSpectatorMode(session, contents)
+      case (CMT_TOGGLESPECTATORMODE, _, contents) if isAlive =>
+        commandToggleSpectatorMode(contents)
 
       case (CMT_RECALL, _, _) =>
         ops.commandRecall(session)
@@ -63,28 +58,6 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_DESTROY, _, contents) if contents.matches("\\d+") =>
         ops.commandDestroy(session, message, contents)
 
-      case (CMT_SETBASERESOURCES, _, contents) if gmCommandAllowed =>
-        ops.commandSetBaseResources(session, contents)
-
-      case (CMT_ZONELOCK, _, contents) if gmCommandAllowed =>
-        ops.commandZoneLock(contents)
-
-      case (U_CMT_ZONEROTATE, _, _) if gmCommandAllowed =>
-        ops.commandZoneRotate()
-
-      case (CMT_CAPTUREBASE, _, contents) if gmCommandAllowed =>
-        ops.commandCaptureBase(session, message, contents)
-
-      case (CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_VS | CMT_GMBROADCAST_TR, _, _)
-        if gmCommandAllowed =>
-        ops.commandSendToRecipient(session, message, DefaultChannel)
-
-      case (CMT_GMTELL, _, _) if gmCommandAllowed =>
-        ops.commandSend(session, message, DefaultChannel)
-
-      case (CMT_GMBROADCASTPOPUP, _, _) if gmCommandAllowed =>
-        ops.commandSendToRecipient(session, message, DefaultChannel)
-
       case (CMT_OPEN, _, _) if !player.silenced =>
         ops.commandSendToRecipient(session, message, DefaultChannel)
 
@@ -100,13 +73,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_PLATOON, _, _) if !player.silenced =>
         ops.commandSendToRecipient(session, message, DefaultChannel)
 
-      case (CMT_COMMAND, _, _) if gmCommandAllowed =>
-        ops.commandSendToRecipient(session, message, DefaultChannel)
-
       case (CMT_NOTE, _, _) =>
-        ops.commandSend(session, message, DefaultChannel)
-
-      case (CMT_SILENCE, _, _) if gmCommandAllowed =>
         ops.commandSend(session, message, DefaultChannel)
 
       case (CMT_SQUAD, _, _) =>
@@ -115,38 +82,11 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_WHO | CMT_WHO_CSR | CMT_WHO_CR | CMT_WHO_PLATOONLEADERS | CMT_WHO_SQUADLEADERS | CMT_WHO_TEAMS, _, _) =>
         ops.commandWho(session)
 
-      case (CMT_ZONE, _, contents) if gmCommandAllowed =>
-        ops.commandZone(message, contents)
-
-      case (CMT_WARP, _, contents) if gmCommandAllowed =>
-        ops.commandWarp(session, message, contents)
-
-      case (CMT_SETBATTLERANK, _, contents) if gmCommandAllowed =>
-        ops.commandSetBattleRank(session, message, contents)
-
-      case (CMT_SETCOMMANDRANK, _, contents) if gmCommandAllowed =>
-        ops.commandSetCommandRank(session, message, contents)
-
-      case (CMT_ADDBATTLEEXPERIENCE, _, contents) if gmCommandAllowed =>
-        ops.commandAddBattleExperience(message, contents)
-
-      case (CMT_ADDCOMMANDEXPERIENCE, _, contents) if gmCommandAllowed =>
-        ops.commandAddCommandExperience(message, contents)
-
       case (CMT_TOGGLE_HAT, _, contents) =>
         ops.commandToggleHat(session, message, contents)
 
       case (CMT_HIDE_HELMET | CMT_TOGGLE_SHADES | CMT_TOGGLE_EARPIECE, _, contents) =>
         ops.commandToggleCosmetics(session, message, contents)
-
-      case (CMT_ADDCERTIFICATION, _, contents) if gmCommandAllowed =>
-        ops.commandAddCertification(session, message, contents)
-
-      case (CMT_KICK, _, contents) if gmCommandAllowed =>
-        ops.commandKick(session, message, contents)
-
-      case (CMT_REPORTUSER, _, contents) =>
-        ops.commandReportUser(session, message, contents)
 
       case _ =>
         sendResponse(ChatMsg(ChatMessageType.UNK_227, "@no_permission"))
@@ -192,21 +132,24 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case a :: b => (a, b)
         case _ => ("", Seq(""))
       }
-      val perms = if (avatar != null) avatar.permissions else ModePermissions()
-      val gmBangCommandAllowed = (session.account.gm && perms.canGM) ||
-        Config.app.development.unprivilegedGmBangCommands.contains(command)
-      //try gm commands
-      val tryGmCommandResult = if (gmBangCommandAllowed) {
-        command match {
-          case "whitetext" => Some(ops.customCommandWhitetext(session, params))
-          case "list" => Some(ops.customCommandList(session, params, message))
-          case "ntu" => Some(ops.customCommandNtu(session, params))
-          case "zonerotate" => Some(ops.customCommandZonerotate(params))
-          case "nearby" => Some(ops.customCommandNearby(session))
-          case _ => None
-        }
-      } else {
-        None
+      command match {
+        case "loc" => ops.customCommandLoc(session, message)
+        case "suicide" => ops.customCommandSuicide(session)
+        case "grenade" => ops.customCommandGrenade(session, log)
+        case "macro" => ops.customCommandMacro(session, params)
+        case "progress" => ops.customCommandProgress(session, params)
+        case _ =>
+          // command was not handled
+          sendResponse(
+            ChatMsg(
+              ChatMessageType.CMT_GMOPEN, // CMT_GMTELL
+              message.wideContents,
+              "Server",
+              s"Unknown command !$command",
+              message.note
+            )
+          )
+          true
       }
       //try commands for all players if not caught as a gm command
       val result = tryGmCommandResult match {
@@ -223,21 +166,57 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case Some(out) =>
           out
       }
-      if (!result) {
-        // command was not handled
-        sendResponse(
-          ChatMsg(
-            ChatMessageType.CMT_GMOPEN, // CMT_GMTELL
-            message.wideContents,
-            "Server",
-            s"Unknown command !$command",
-            message.note
-          )
-        )
-      }
-      result
     } else {
-      false // not a handled command
+      false
+    }
+  }
+
+  def commandToggleSpectatorMode(contents: String): Boolean = {
+    ops.transitoryCommandEntered
+      .collect {
+        case CMT_TOGGLESPECTATORMODE => true
+        case CMT_TOGGLE_GM => false
+      }
+      .getOrElse {
+        val currentSpectatorActivation =
+          avatar.permissions.canSpectate ||
+            avatar.permissions.canGM ||
+            Config.app.world.serverType == ServerType.Development
+        contents.toLowerCase() match {
+          case "on" | "o" | "" if currentSpectatorActivation && !player.spectator =>
+            ops.transitoryCommandEntered = Some(CMT_TOGGLESPECTATORMODE)
+            context.self ! SessionActor.SetMode(ops.CurrentSpectatorMode)
+            true
+          case _ =>
+            false
+        }
+      }
+  }
+
+  def customCommandModerator(contents: String): Boolean = {
+    if (sessionLogic.zoning.maintainInitialGmState) {
+      sessionLogic.zoning.maintainInitialGmState = false
+      true
+    } else {
+      ops.transitoryCommandEntered
+        .collect {
+          case CMT_TOGGLE_GM => true
+          case CMT_TOGGLESPECTATORMODE => false
+        }
+        .getOrElse {
+          val currentCsrActivation =
+            avatar.permissions.canGM ||
+              Config.app.world.serverType == ServerType.Development
+          contents.toLowerCase() match {
+            case "on" | "o" | "" if currentCsrActivation =>
+              import net.psforever.actors.session.csr.CustomerServiceRepresentativeMode
+              ops.transitoryCommandEntered = Some(CMT_TOGGLE_GM)
+              context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
+              true
+            case _ =>
+              false
+          }
+        }
     }
   }
 }

@@ -1067,6 +1067,13 @@ object WorldSession {
     }
   }
 
+  /**
+   * Perform a task and, upon completion, dispatch a message.
+   * @param task task to be completed first
+   * @param sendTo where to send the message
+   * @param pass message
+   * @return a `TaskBundle` object
+   */
   def CallBackForTask(task: TaskBundle, sendTo: ActorRef, pass: Any): TaskBundle = {
     TaskBundle(
       new StraightforwardTask() {
@@ -1085,6 +1092,14 @@ object WorldSession {
     )
   }
 
+  /**
+   * Perform a task and, upon completion, dispatch a message whose origin is specific and different from normal.
+   * @param task task to be completed first
+   * @param sendTo where to send the message
+   * @param pass message
+   * @param replyTo whom to attribute the message being passed (e.g., `tell`)
+   * @return a `TaskBundle` object
+   */
   def CallBackForTask(task: TaskBundle, sendTo: ActorRef, pass: Any, replyTo: ActorRef): TaskBundle = {
     TaskBundle(
       new StraightforwardTask() {

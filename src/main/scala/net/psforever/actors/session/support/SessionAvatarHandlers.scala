@@ -2,9 +2,13 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
+import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.{Default, PlanetSideGameObject, Player}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
+import net.psforever.services.Service
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage, AvatarServiceResponse}
 
 import scala.collection.mutable
 //
@@ -55,7 +59,7 @@ class SessionAvatarHandlers(
     //TODO squad services deactivated, participation trophy rewards for now - 11-20-2023
     //must be in a squad to earn experience
     val charId = player.CharId
-    val squadUI = sessionLogic.squad.squadUI
+    /*val squadUI = sessionLogic.squad.squadUI
     val participation = continent
       .Building(buildingId)
       .map { building =>
@@ -113,7 +117,35 @@ class SessionAvatarHandlers(
           exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, modifiedExp, expType="bep")
           avatarActor ! AvatarActor.AwardFacilityCaptureBep(modifiedExp)
           Some(modifiedExp)
+      }*/
+    //if not in squad (temporary)
+    exp.ToDatabase.reportFacilityCapture(charId, zoneNumber, buildingId, cep, expType="bep")
+    avatarActor ! AvatarActor.AwardFacilityCaptureBep(cep)
+  }
+
+  /**
+    *
+    * @param killer the player who got the kill
+    * @param exp the amount of bep they received for the kill
+    * Squad members of a "killer" will receive a split of the experience if they are both alive
+    * and in the same zone as the killer. The amount received is
+    * based on the size of the squad. Each squad member that meets the criteria will receive a fractional split.
+    */
+  def shareKillExperienceWithSquad(killer: Player, exp: Long): Unit = {
+    //TODO consider squad experience waypoint in exp calculation
+    val squadUI = sessionLogic.squad.squadUI
+    val squadSize = squadUI.size
+    if (squadSize > 1) {
+      val expSplit = exp / squadSize
+      val squadMembers = squadUI.filterNot(_._1 == killer.CharId).map { case (_, member) => member }.toList.map(_.name)
+      val playersInZone = killer.Zone.Players.map { avatar => (avatar.id, avatar.basic.name) }
+      val squadMembersHere = playersInZone.filter(member => squadMembers.contains(member._2))
+      squadMembersHere.foreach { member =>
+        killer.Zone.AvatarEvents ! AvatarServiceMessage(
+          member._2,
+          AvatarAction.AwardBep(member._1, expSplit, ExperienceType.Normal))
       }
+    }
   }
 
   /**
@@ -153,6 +185,45 @@ class SessionAvatarHandlers(
       victim.Faction,
       victimSeated
     )
+  }
+
+  def revive(revivalTargetGuid: PlanetSideGUID): Unit = {
+    val spawn = sessionLogic.zoning.spawn
+    spawn.reviveTimer.cancel()
+    spawn.reviveTimer = Default.Cancellable
+    spawn.respawnTimer.cancel()
+    spawn.respawnTimer = Default.Cancellable
+    player.Revive
+    val health = player.Health
+    sendResponse(PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
+    sendResponse(AvatarDeadStateMessage(DeadState.Alive, timer_max=0, timer=0, player.Position, player.Faction, unk5=true))
+    continent.AvatarEvents ! AvatarServiceMessage(
+      continent.id,
+      AvatarAction.PlanetsideAttributeToAll(revivalTargetGuid, attribute_type=0, health)
+    )
+  }
+
+  def killedWhileMounted(obj: PlanetSideGameObject with Mountable, playerGuid: PlanetSideGUID): Unit = {
+    val playerName = player.Name
+    //boot cadaver from mount on client
+    context.self ! AvatarServiceResponse(
+      playerName,
+      Service.defaultPlayerGUID,
+      AvatarResponse.SendResponse(
+        ObjectDetachMessage(obj.GUID, playerGuid, player.Position, Vector3.Zero)
+      )
+    )
+    //player no longer seated
+    obj.PassengerInSeat(player).foreach { seatNumber =>
+      //boot cadaver from mount internally (vehicle perspective)
+      obj.Seats(seatNumber).unmount(player)
+      //inform client-specific logic
+      context.self ! Mountable.MountMessages(
+        player,
+        Mountable.CanDismount(obj, seatNumber, 0)
+      )
+    }
+    player.VehicleSeated = None
   }
 }
 

@@ -3,8 +3,15 @@ package net.psforever.actors.session.normal
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.actors.session.support.AvatarHandlerFunctions
+import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.inventory.Container
+import net.psforever.objects.{Default, PlanetSideGameObject}
 import net.psforever.objects.serverobject.containable.ContainableBehavior
+import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.objects.vital.interaction.Adversarial
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.ImplantType
 
 import scala.concurrent.duration._
@@ -21,7 +28,7 @@ import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.zones.Zoning
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ArmorChangedMessage, AvatarDeadStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, DeadState, DestroyMessage, DrowningTarget, GenericActionMessage, GenericObjectActionMessage, HitHint, ItemTransactionResultMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectHeldMessage, OxygenStateMessage, PlanetsideAttributeMessage, PlayerStateMessage, ProjectileStateMessage, ReloadMessage, SetEmpireMessage, UseItemMessage, WeaponDryFireMessage}
-import net.psforever.services.avatar.{AvatarAction, AvatarResponse, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarResponse
 import net.psforever.services.Service
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.util.Config
@@ -311,10 +318,14 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         //redraw
         if (maxhand) {
           sendResponse(PlanetsideAttributeMessage(target, attribute_type=7, player.Capacitor.toLong))
-          TaskWorkflow.execute(HoldNewEquipmentUp(player)(
-            Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)),
-            0
-          ))
+          val maxArmDefinition = GlobalDefinitions.MAXArms(subtype, player.Faction)
+          TaskWorkflow.execute(HoldNewEquipmentUp(player)(Tool(maxArmDefinition), slot = 0))
+          player.avatar.purchaseCooldown(maxArmDefinition)
+            .collect(a => a)
+            .getOrElse {
+              avatarActor ! AvatarActor.UpdatePurchaseTime(maxArmDefinition)
+              None
+            }
         }
         //draw free hand
         player.FreeHand.Equipment.foreach { obj =>
@@ -342,6 +353,8 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
             )
         }
         DropLeftovers(player)(drop)
+        //deactivate non-passive implants
+        avatarActor ! AvatarActor.DeactivateActiveImplants
 
       case AvatarResponse.ChangeExosuit(target, armor, exosuit, subtype, slot, _, oldHolsters, holsters, _, _, drop, delete) =>
         sendResponse(ArmorChangedMessage(target, exosuit, subtype))
@@ -394,14 +407,19 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         drops.foreach(item => sendResponse(ObjectDeleteMessage(item.obj.GUID, unk1=0)))
         //redraw
         if (maxhand) {
+          val maxArmWeapon = GlobalDefinitions.MAXArms(subtype, player.Faction)
           sendResponse(PlanetsideAttributeMessage(target, attribute_type=7, player.Capacitor.toLong))
-          TaskWorkflow.execute(HoldNewEquipmentUp(player)(
-            Tool(GlobalDefinitions.MAXArms(subtype, player.Faction)),
-            slot = 0
-          ))
+          TaskWorkflow.execute(HoldNewEquipmentUp(player)(Tool(maxArmWeapon), slot = 0))
+          player.avatar.purchaseCooldown(maxArmWeapon)
+          if (!oldHolsters.exists { case (e, _) => e.Definition == maxArmWeapon } &&
+            player.avatar.purchaseCooldown(maxArmWeapon).isEmpty) {
+            avatarActor ! AvatarActor.UpdatePurchaseTime(maxArmWeapon) //switching for first time causes cooldown
+          }
         }
         sessionLogic.general.applyPurchaseTimersBeforePackingLoadout(player, player, holsters ++ inventory)
         DropLeftovers(player)(drops)
+        //deactivate non-passive implants
+        avatarActor ! AvatarActor.DeactivateActiveImplants
 
       case AvatarResponse.ChangeLoadout(target, armor, exosuit, subtype, slot, _, oldHolsters, _, _, _, _) =>
         //redraw handled by callbacks
@@ -455,6 +473,9 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarResponse.FacilityCaptureRewards(buildingId, zoneNumber, cep) =>
         ops.facilityCaptureRewards(buildingId, zoneNumber, cep)
 
+      case AvatarResponse.ShareKillExperienceWithSquad(killer, exp) =>
+        ops.shareKillExperienceWithSquad(killer, exp)
+
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
 
@@ -466,9 +487,33 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         if isNotSameTarget && ops.lastSeenStreamMessage.get(guid.guid).exists { _.visible } =>
         sendResponse(ReloadMessage(itemGuid, ammo_clip=1, unk1=0))
 
-      case AvatarResponse.Killed(mount) =>
+      case AvatarResponse.Killed(cause, mount) =>
         //log and chat messages
-        val cause = player.LastDamage.flatMap { damage =>
+        //destroy display
+        val zoneChannel = continent.id
+        val events = continent.AvatarEvents
+        val pentry = PlayerSource(player)
+        cause
+          .adversarial
+          .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
+          .orElse {
+            player.LastDamage.collect {
+              case attack if System.currentTimeMillis() - attack.interaction.hitTime < (10 seconds).toMillis =>
+                attack
+                  .adversarial
+                  .collect { case out @ Adversarial(attacker, _, _) if attacker != PlayerSource.Nobody => out }
+            }.flatten
+          } match {
+          case Some(adversarial) =>
+            events ! AvatarServiceMessage(
+              zoneChannel,
+              AvatarAction.DestroyDisplay(adversarial.attacker, pentry, adversarial.implement)
+            )
+          case _ =>
+            events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
+        }
+        //events chat and log
+        val excuse = player.LastDamage.flatMap { damage =>
           val interaction = damage.interaction
           val reason = interaction.cause
           val adversarial = interaction.adversarial.map { _.attacker }
@@ -480,15 +525,17 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           }
           adversarial.map {_.Name }.orElse { Some(s"a ${reason.getClass.getSimpleName}") }
         }.getOrElse { s"an unfortunate circumstance (probably ${player.Sex.pronounObject} own fault)" }
-        log.info(s"${player.Name} has died, killed by $cause")
+        log.info(s"${player.Name} has died, killed by $excuse")
         if (sessionLogic.shooting.shotsWhileDead > 0) {
           log.warn(
             s"SHOTS_WHILE_DEAD: client of ${avatar.name} fired ${sessionLogic.shooting.shotsWhileDead} rounds while character was dead on server"
           )
           sessionLogic.shooting.shotsWhileDead = 0
         }
+        //TODO other methods of death?
         sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason(msg = "cancel")
         sessionLogic.general.renewCharSavedTimer(fixedLen = 1800L, varLen = 0L)
+        continent.actor ! ZoneActor.RewardThisDeath(player)
 
         //player state changes
         sessionLogic.zoning.spawn.avatarActive = false
@@ -501,9 +548,18 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
         sessionLogic.zoning.zoningStatus = Zoning.Status.None
         sessionLogic.zoning.spawn.deadState = DeadState.Dead
-        continent.GUID(mount).collect { case obj: Vehicle =>
-          sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
-          sessionLogic.general.unaccessContainer(obj)
+        continent.GUID(mount).collect {
+          case obj: Vehicle =>
+            killedWhileMounted(obj, resolvedPlayerGuid)
+            sessionLogic.vehicles.ConditionalDriverVehicleControl(obj)
+            sessionLogic.general.unaccessContainer(obj)
+
+          case obj: PlanetSideGameObject with Mountable with Container =>
+            killedWhileMounted(obj, resolvedPlayerGuid)
+            sessionLogic.general.unaccessContainer(obj)
+
+          case obj: PlanetSideGameObject with Mountable =>
+            killedWhileMounted(obj, resolvedPlayerGuid)
         }
         sessionLogic.actionsToCancel()
         sessionLogic.terminals.CancelAllProximityUnits()
@@ -511,7 +567,10 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sessionLogic.zoning.spawn.shiftPosition = Some(player.Position)
 
         //respawn
+        val respawnTimer = 300000 //milliseconds
+        sendResponse(AvatarDeadStateMessage(DeadState.Dead, respawnTimer, respawnTimer, player.Position, player.Faction, unk5=true))
         sessionLogic.zoning.spawn.reviveTimer.cancel()
+        sessionLogic.zoning.spawn.reviveTimer = Default.Cancellable
         if (player.death_by == 0) {
           sessionLogic.zoning.spawn.randomRespawn(300.seconds)
         } else {
@@ -524,16 +583,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarResponse.Revive(revivalTargetGuid)
         if resolvedPlayerGuid == revivalTargetGuid =>
         log.info(s"No time for rest, ${player.Name}.  Back on your feet!")
-        sessionLogic.zoning.spawn.reviveTimer.cancel()
-        sessionLogic.zoning.spawn.deadState = DeadState.Alive
-        player.Revive
-        val health = player.Health
-        sendResponse(PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
-        sendResponse(AvatarDeadStateMessage(DeadState.Alive, timer_max=0, timer=0, player.Position, player.Faction, unk5=true))
-        continent.AvatarEvents ! AvatarServiceMessage(
-          continent.id,
-          AvatarAction.PlanetsideAttributeToAll(revivalTargetGuid, attribute_type=0, health)
-        )
+        ops.revive(revivalTargetGuid)
 
       /* uncommon messages (utility, or once in a while) */
       case AvatarResponse.ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data)
@@ -622,5 +672,14 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
       case _ => ()
     }
+  }
+
+  def killedWhileMounted(obj: PlanetSideGameObject with Mountable, playerGuid: PlanetSideGUID): Unit = {
+    val events = continent.AvatarEvents
+    ops.killedWhileMounted(obj, playerGuid)
+    //make player invisible on client
+    events ! AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(playerGuid, 29, 1))
+    //only the dead player should "see" their own body, so that the death camera has something to focus on
+    events ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(playerGuid, playerGuid))
   }
 }

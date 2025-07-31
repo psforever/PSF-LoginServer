@@ -160,7 +160,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (mode != newMode) {
       logic.switchFrom(data.session)
       mode = newMode
-      logic = mode.setup(data)
+      logic = newMode.setup(data)
     }
     logic.switchTo(data.session)
   }
@@ -517,7 +517,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case packet: WeaponLazeTargetPositionMessage =>
       logic.shooting.handleWeaponLazeTargetPosition(packet)
 
-    case _: UplinkRequest => ()
+    case packet: UplinkRequest =>
+      logic.shooting.handleUplinkRequest(packet)
 
     case packet: HitMessage =>
       logic.shooting.handleDirectHit(packet)

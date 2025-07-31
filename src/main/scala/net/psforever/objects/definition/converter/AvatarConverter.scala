@@ -65,11 +65,17 @@ object AvatarConverter {
     */
   def MakeAppearanceData(obj: Player): Int => CharacterAppearanceData = {
     val alt_model_flag: Boolean = obj.isBackpack
+    val avatar = obj.avatar
+    val tempAvatarInfo = if (obj.spectator) {
+      avatar.basic.copy(name = s"<spectator:${avatar.basic.name}>")
+    } else {
+      avatar.basic
+    }
     val aa: Int => CharacterAppearanceA = CharacterAppearanceA(
-      obj.avatar.basic,
+      tempAvatarInfo,
       CommonFieldData(
         obj.Faction,
-        bops = obj.spectator,
+        bops = obj.bops,
         alt_model_flag,
         v1 = false,
         None,
@@ -106,7 +112,7 @@ object AvatarConverter {
       unk7 = false,
       on_zipline = None
     )
-    CharacterAppearanceData(aa, ab, obj.avatar.decoration.ribbonBars)
+    CharacterAppearanceData(aa, ab, avatar.decoration.ribbonBars)
   }
 
   def MakeCharacterData(obj: Player): (Boolean, Boolean) => CharacterData = {

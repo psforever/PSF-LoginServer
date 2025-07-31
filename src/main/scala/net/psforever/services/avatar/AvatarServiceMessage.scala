@@ -8,6 +8,7 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.sourcing.SourceEntry
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.ImplantAction
@@ -54,7 +55,7 @@ object AvatarAction {
   final case class GenericObjectAction(player_guid: PlanetSideGUID, object_guid: PlanetSideGUID, action_code: Int)
       extends Action
   final case class HitHint(source_guid: PlanetSideGUID, player_guid: PlanetSideGUID)       extends Action
-  final case class Killed(player_guid: PlanetSideGUID, mount_guid: Option[PlanetSideGUID]) extends Action
+  final case class Killed(player_guid: PlanetSideGUID, cause: DamageResult, mount_guid: Option[PlanetSideGUID]) extends Action
   final case class LoadPlayer(
       player_guid: PlanetSideGUID,
       object_id: Int,
@@ -159,6 +160,7 @@ object AvatarAction {
   final case class AwardBep(charId: Long, bep: Long, expType: ExperienceType) extends Action
   final case class AwardCep(charId: Long, bep: Long) extends Action
   final case class FacilityCaptureRewards(building_id: Int, zone_number: Int, exp: Long) extends Action
+  final case class ShareKillExperienceWithSquad(killer: Player, exp: Long) extends Action
 
   final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action

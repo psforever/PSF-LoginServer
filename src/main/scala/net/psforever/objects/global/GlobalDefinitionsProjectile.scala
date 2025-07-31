@@ -289,7 +289,7 @@ object GlobalDefinitionsProjectile {
     chainblade_projectile.Damage1 = 0
     chainblade_projectile.ProjectileDamageType = DamageType.Direct
     chainblade_projectile.InitialVelocity = 100
-    chainblade_projectile.Lifespan = .02f
+    chainblade_projectile.Lifespan = .03f //.02f
     ProjectileDefinition.CalculateDerivedFields(chainblade_projectile)
     chainblade_projectile.Modifiers = List(MeleeBoosted, MaxDistanceCutoff)
 
@@ -601,7 +601,7 @@ object GlobalDefinitionsProjectile {
     forceblade_projectile.Damage1 = 0
     forceblade_projectile.ProjectileDamageType = DamageType.Direct
     forceblade_projectile.InitialVelocity = 100
-    forceblade_projectile.Lifespan = .02f
+    forceblade_projectile.Lifespan = .03f //.02f
     ProjectileDefinition.CalculateDerivedFields(forceblade_projectile)
     forceblade_projectile.Modifiers = List(MeleeBoosted, MaxDistanceCutoff)
 
@@ -942,7 +942,7 @@ object GlobalDefinitionsProjectile {
     katana_projectile.Damage1 = 0
     katana_projectile.ProjectileDamageType = DamageType.Direct
     katana_projectile.InitialVelocity = 100
-    katana_projectile.Lifespan = .03f
+    katana_projectile.Lifespan = .04f //.03f
     ProjectileDefinition.CalculateDerivedFields(katana_projectile)
 
     katana_projectileb.Name = "katana_projectileb"
@@ -1088,7 +1088,7 @@ object GlobalDefinitionsProjectile {
     magcutter_projectile.Damage1 = 0
     magcutter_projectile.ProjectileDamageType = DamageType.Direct
     magcutter_projectile.InitialVelocity = 100
-    magcutter_projectile.Lifespan = .02f
+    magcutter_projectile.Lifespan = .03f //.02f
     ProjectileDefinition.CalculateDerivedFields(magcutter_projectile)
     magcutter_projectile.Modifiers = List(MeleeBoosted, MaxDistanceCutoff)
 
@@ -2056,7 +2056,7 @@ object GlobalDefinitionsProjectile {
     aphelion_plasma_rocket_projectile.DamageAtEdge = .1f
     aphelion_plasma_rocket_projectile.DamageRadius = 3f
     aphelion_plasma_rocket_projectile.ProjectileDamageType = DamageType.Splash
-    aphelion_plasma_rocket_projectile.DamageProxy = 96 //aphelion_plama_cloud
+    //aphelion_plasma_rocket_projectile.DamageProxy = 96 //aphelion_plama_cloud
     aphelion_plasma_rocket_projectile.InitialVelocity = 75
     aphelion_plasma_rocket_projectile.Lifespan = 5f
     ProjectileDefinition.CalculateDerivedFields(aphelion_plasma_rocket_projectile)
@@ -2221,7 +2221,7 @@ object GlobalDefinitionsProjectile {
     peregrine_particle_cannon_projectile.DamageAtEdge = 0.1f
     peregrine_particle_cannon_projectile.DamageRadius = 3f
     peregrine_particle_cannon_projectile.ProjectileDamageType = DamageType.Splash
-    peregrine_particle_cannon_projectile.DamageProxy = 655 //peregrine_particle_cannon_radiation_cloud
+    //peregrine_particle_cannon_projectile.DamageProxy = 655 //peregrine_particle_cannon_radiation_cloud
     peregrine_particle_cannon_projectile.InitialVelocity = 500
     peregrine_particle_cannon_projectile.Lifespan = .6f
     ProjectileDefinition.CalculateDerivedFields(peregrine_particle_cannon_projectile)

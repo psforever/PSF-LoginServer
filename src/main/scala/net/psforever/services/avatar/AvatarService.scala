@@ -138,9 +138,9 @@ class AvatarService(zone: Zone) extends Actor {
           AvatarEvents.publish(
             AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.HitHint(source_guid))
           )
-        case AvatarAction.Killed(player_guid, mount_guid) =>
+        case AvatarAction.Killed(player_guid, cause, mount_guid) =>
           AvatarEvents.publish(
-            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Killed(mount_guid))
+            AvatarServiceResponse(s"/$forChannel/Avatar", player_guid, AvatarResponse.Killed(cause, mount_guid))
           )
         case AvatarAction.LoadPlayer(player_guid, object_id, target_guid, cdata, pdata) =>
           val pkt = pdata match {
@@ -455,6 +455,15 @@ class AvatarService(zone: Zone) extends Actor {
               s"/$forChannel/Avatar",
               Service.defaultPlayerGUID,
               AvatarResponse.FacilityCaptureRewards(building_id, zone_number, exp)
+            )
+          )
+
+        case AvatarAction.ShareKillExperienceWithSquad(killer, exp) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.ShareKillExperienceWithSquad(killer, exp)
             )
           )
 

@@ -306,6 +306,14 @@ class LocalService(zone: Zone) extends Actor {
               LocalResponse.RechargeVehicleWeapon(vehicle_guid, weapon_guid)
             )
           )
+        case LocalAction.ForceZoneChange(zone) =>
+          LocalEvents.publish(
+            LocalServiceResponse(
+              s"/$forChannel/Local",
+              Service.defaultPlayerGUID,
+              LocalResponse.ForceZoneChange(zone)
+            )
+          )
         case _ => ;
       }
 

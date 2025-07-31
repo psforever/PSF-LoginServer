@@ -129,8 +129,8 @@ object GlobalDefinitionsBuilding {
     hst.NoWarp += colossus_flight
     hst.NoWarp += peregrine_gunner
     hst.NoWarp += peregrine_flight
-    hst.SpecificPointFunc = SpawnPoint.CavernGate(innerRadius = 6f)
-    
+    hst.SpecificPointFunc = SpawnPoint.CavernGate(innerRadius = 12f)
+
     warpgate.Name = "warpgate"
     warpgate.UseRadius = 67.81070029f
     warpgate.SOIRadius = 302 //301.8713f
@@ -141,8 +141,8 @@ object GlobalDefinitionsBuilding {
     warpgate_cavern.UseRadius = 19.72639434f
     warpgate_cavern.SOIRadius = 41
     warpgate_cavern.VehicleAllowance = true
-    warpgate_cavern.SpecificPointFunc = SpawnPoint.CavernGate(innerRadius = 4.5f)
-    
+    warpgate_cavern.SpecificPointFunc = SpawnPoint.CavernGate(innerRadius = 12f)
+
     warpgate_small.Name = "warpgate_small"
     warpgate_small.UseRadius = 69.03687655f
     warpgate_small.SOIRadius = 103

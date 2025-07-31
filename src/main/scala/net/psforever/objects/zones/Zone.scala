@@ -183,6 +183,12 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   private var vehicleEvents: ActorRef = Default.Actor
 
   /**
+   * Is any player permitted to engage in weapons discharge in this zone?
+   */
+  private var liveFireAllowed: mutable.HashMap[PlanetSideEmpire.Value, Boolean] =
+    mutable.HashMap.from(PlanetSideEmpire.values.map { f => (f, true) })
+
+  /**
     * When the zone has completed initializing, fulfill this promise.
     * @see `init(ActorContext)`
     */
@@ -592,6 +598,46 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   def VehicleEvents_=(bus: ActorRef): ActorRef = {
     vehicleEvents = bus
     VehicleEvents
+  }
+
+  def LiveFireAllowed(): Boolean = liveFireAllowed.exists { case (_, v) => v }
+
+  def LiveFireAllowed(faction: PlanetSideEmpire.Value): Boolean = liveFireAllowed.getOrElse(faction, false)
+
+  def UpdateLiveFireAllowed(state: Boolean): List[(PlanetSideEmpire.Value, Boolean, Boolean)] = {
+    val output = liveFireAllowed.map { case (f, v) =>
+      (f, v == state, state)
+    }
+    output.foreach { case (f, _, v) =>
+      liveFireAllowed.update(f, v)
+    }
+    output.toList
+  }
+
+  def UpdateLiveFireAllowed(state: Boolean, faction: PlanetSideEmpire.Value): List[(PlanetSideEmpire.Value, Boolean, Boolean)] = {
+    val output = liveFireAllowed.map { case (f, v) =>
+      if (f == faction) {
+        (f, v == state, state)
+      } else {
+        (f, false, v)
+      }
+    }
+    liveFireAllowed.update(faction, state)
+    output.toList
+  }
+
+  def UpdateLiveFireAllowed(state: Boolean, factions: Seq[PlanetSideEmpire.Value]): List[(PlanetSideEmpire.Value, Boolean, Boolean)] = {
+    val output = liveFireAllowed.map { case (f, v) =>
+      if (factions.contains(f)) {
+        (f, v == state, state)
+      } else {
+        (f, false, v)
+      }
+    }
+    factions.foreach { f =>
+      liveFireAllowed.update(f, state)
+    }
+    output.toList
   }
 }
 
@@ -1847,6 +1893,53 @@ object Zone {
 
   /**
     * na
+    * @see `DamageWithPosition`
+    * @see `Zone.blockMap.sector`
+    * @param zone   the zone in which the explosion should occur
+    * @param sourcePosition a position that is used as the origin of the explosion
+    * @param radius idistance
+    * @param getTargetsFromSector get this list of entities from a sector
+    * @return a list of affected entities
+    */
+  def findOrbitalStrikeTargets(
+                      zone: Zone,
+                      sourcePosition: Vector3,
+                      radius: Float,
+                      getTargetsFromSector: SectorPopulation => List[PlanetSideServerObject with Vitality]
+                    ): List[PlanetSideServerObject with Vitality] = {
+    getTargetsFromSector(zone.blockMap.sector(sourcePosition.xy, radius))
+  }
+
+  def getOrbitbalStrikeTargets(sector: SectorPopulation): List[PlanetSideServerObject with Vitality] = {
+    //collect all targets that can be damaged
+    //players
+    val playerTargets = sector.livePlayerList.filter { player => player.VehicleSeated.isEmpty && player.WhichSide == Sidedness.OutsideOf }
+    //vehicles
+    val vehicleTargets = sector.vehicleList.filterNot { _.Destroyed }
+    //deployables
+    val deployableTargets = sector.deployableList.filter { obj => !obj.Destroyed && obj.WhichSide == Sidedness.OutsideOf }
+    //amenities
+    val soiTargets = sector.amenityList.collect {
+      case amenity: Vitality if !amenity.Destroyed && amenity.WhichSide == Sidedness.OutsideOf && amenity.CanDamage => amenity }
+    //altogether ...
+    playerTargets ++ vehicleTargets ++ deployableTargets ++ soiTargets
+  }
+
+  /**
+    * Check if targets returned from sector are within range of the imminent Orbital Strike
+    * @param p1 OS position
+    * @param p2 target position
+    * @param maxDistance radius of the Orbital Strike
+    * @return `true`, if the two entities are near enough to each other;
+    *        `false`, otherwise
+    */
+  def orbitalStrikeDistanceCheck(p1: Vector3, p2: Vector3, maxDistance: Float): Boolean = {
+    val radius = maxDistance * maxDistance
+    Vector3.DistanceSquared(p1.xy, p2.xy) <= radius
+  }
+
+  /**
+    * na
     * @param instigation what previous event happened, if any, that caused this explosion
     * @param source a game object that represents the source of the explosion
     * @param target a game object that is affected by the explosion
@@ -1899,6 +1992,24 @@ object Zone {
     */
   def distanceCheck(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
     distanceCheck(obj1.Definition.Geometry(obj1), obj2.Definition.Geometry(obj2), maxDistance)
+  }
+
+  /**
+   * Two game entities are considered "near" each other if they are within a certain distance of one another.
+   * A default function literal mainly used for `serverSideDamage`.
+   * Best used when one entity - `obj1` - is to be reused in tests against multiple other entities
+   * as it skips repeatedly calculating the volumetric geometry of the repeating entity.
+   * @see `ObjectDefinition.Geometry`
+   * @see `serverSideDamage`
+   * @param obj1 the geometric representation of a game entity
+   * @param obj2 a game entity
+   * @param maxDistance the square of the maximum distance permissible between game entities
+   *                    before they are no longer considered "near"
+   * @return `true`, if the two entities are near enough to each other;
+   *        `false`, otherwise
+   */
+  def distanceCheck(obj1: VolumetricGeometry, obj2: PlanetSideGameObject, maxDistance: Float): Boolean = {
+    distanceCheck(obj1, obj2.Definition.Geometry(obj2), maxDistance)
   }
 
   /**

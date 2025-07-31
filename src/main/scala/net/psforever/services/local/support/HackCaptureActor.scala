@@ -18,6 +18,8 @@ import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
 
+import java.util.concurrent.{Executors, TimeUnit}
+import scala.collection.Seq
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.Random
 
@@ -30,6 +32,7 @@ class HackCaptureActor extends Actor {
   private var clearTrigger: Cancellable = Default.Cancellable
   /** list of currently hacked server objects */
   private var hackedObjects: List[HackCaptureActor.HackEntry] = Nil
+  private val scheduler = Executors.newScheduledThreadPool(2)
 
   def receive: Receive = {
     case HackCaptureActor.StartCaptureTerminalHack(target, _, _, _, _)
@@ -106,7 +109,7 @@ class HackCaptureActor extends Actor {
       NotifyHackStateChange(target, isResecured = true)
       building.Participation.RewardFacilityCapture(
         target.Faction,
-        faction,
+        HackCaptureActor.GetAttackingFaction(building, faction),
         hacker,
         facilityHackTime,
         hackTime,
@@ -266,6 +269,19 @@ class HackCaptureActor extends Actor {
         .collect { case p if p.Faction == hackedByFaction =>
           events ! LocalServiceMessage(p.Name, msg)
         }
+      val zoneBases = building.Zone.Buildings.filter(base =>
+        base._2.BuildingType == StructureType.Facility)
+      val ownedBases = building.Zone.Buildings.filter(base =>
+        base._2.BuildingType == StructureType.Facility && base._2.Faction == hackedByFaction
+        && base._2.GUID != building.GUID)
+      val zoneTowers = building.Zone.Buildings.filter(tower =>
+        tower._2.BuildingType == StructureType.Tower && tower._2.Faction != hackedByFaction)
+      // All major facilities in zone are now owned by the hacking faction. Capture all towers in the zone
+      // Base that was just hacked is not counted (hence the size - 1) because it wasn't always in ownedBases (async?)
+      if (zoneBases.size - 1 == ownedBases.size && zoneTowers.nonEmpty)
+        {
+          processBuildingsWithDelay(zoneTowers.values.toSeq, hackedByFaction, 1000)
+        }
     } else {
       log.info("Base hack completed, but base was out of NTU.")
     }
@@ -283,6 +299,43 @@ class HackCaptureActor extends Actor {
       clearTrigger = context.system.scheduler.scheduleOnce(short_timeout, self, HackCaptureActor.ProcessCompleteHacks())
     }
   }
+
+  def processBuildingsWithDelay(
+                                 buildings: Seq[Building],
+                                 faction: PlanetSideEmpire.Value,
+                                 delayMillis: Long
+                               ): Unit = {
+    val buildingIterator = buildings.iterator
+    scheduler.scheduleAtFixedRate(
+      () => {
+        if (buildingIterator.hasNext) {
+          val building = buildingIterator.next()
+          val terminal = building.CaptureTerminal.get
+          val zone = building.Zone
+          val zoneActor = zone.actor
+          val buildingActor = building.Actor
+          //clear any previous hack
+          if (building.CaptureTerminalIsHacked) {
+            zone.LocalEvents ! LocalServiceMessage(
+              zone.id,
+              LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody)
+            )
+          }
+          //push any updates this might cause
+          zoneActor ! ZoneActor.ZoneMapUpdate()
+          //convert faction affiliation
+          buildingActor ! BuildingActor.SetFaction(faction)
+          buildingActor ! BuildingActor.AmenityStateChange(terminal, Some(false))
+          //push for map updates again
+          zoneActor ! ZoneActor.ZoneMapUpdate()
+        }
+      },
+      0,
+      delayMillis,
+      TimeUnit.MILLISECONDS
+    )
+  }
+
 }
 
 object HackCaptureActor {
@@ -345,6 +398,30 @@ object HackCaptureActor {
           faction
       }
       .get
+  }
+
+  def GetAttackingFaction(
+                           building: Building,
+                           excludeThisFaction: PlanetSideEmpire.Value
+                         ): PlanetSideEmpire.Value = {
+    // Use PlayerContributionRaw to calculate attacking faction
+    val factionEfforts = building.Participation
+      .PlayerContributionRaw
+      .values
+      .foldLeft(Array.fill(4)(0L)) { case (efforts, (player, duration, _)) =>
+        val factionId = player.Faction.id
+        efforts.update(factionId, efforts(factionId) + duration)
+        efforts
+      }
+
+    // Exclude the specified faction
+    factionEfforts.update(excludeThisFaction.id, Long.MinValue)
+
+    // Find the faction with the highest contribution
+    factionEfforts.indices
+      .maxByOption(factionEfforts)
+      .map(PlanetSideEmpire.apply)
+      .getOrElse(PlanetSideEmpire.NEUTRAL)
   }
 
   def GetHackingFaction(terminal: CaptureTerminal): Option[PlanetSideEmpire.Value] = {
