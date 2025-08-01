@@ -6,10 +6,12 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
 import akka.pattern.ask
 import akka.util.Timeout
+import net.psforever.actors.session.support.SpawnOperations.ActivityQueuedTask
 import net.psforever.login.WorldSession
 import net.psforever.objects.avatar.{BattleRank, DeployableToolbox}
 import net.psforever.objects.avatar.scoring.{CampaignStatistics, ScoreCard, SessionStatistics}
 import net.psforever.objects.definition.converter.OCM
+import net.psforever.objects.entity.WorldEntity
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.mount.Seat
@@ -22,7 +24,6 @@ import net.psforever.packet.game.GenericAction.FirstPersonViewWithEffect
 import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TriggeredSound, WeatherMessage}
 import net.psforever.services.chat.DefaultChannel
 
-import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -84,8 +85,8 @@ object ZoningOperations {
 
   private final val zoningCountdownMessages: Seq[Int] = Seq(5, 10, 20)
 
-  def reportProgressionSystem(sessionActor: ActorRef): Unit = {
-    sessionActor ! SessionActor.SendResponse(
+  def reportProgressionSystem(logic: SessionData): Unit = {
+    logic.context.self ! SessionActor.SendResponse(
       MailMessage(
         "High Command",
         "Progress versus Promotion",
@@ -183,6 +184,14 @@ object ZoningOperations {
         val radius = building.Definition.SOIRadius
         Vector3.DistanceSquared(building.Position.xy, positionxy) < radius * radius
       }
+  }
+}
+
+object SpawnOperations {
+  final case class ActivityQueuedTask(task: SessionData => Unit, delayBeforeNext: Int, repeat: Int = 0)
+
+  def sendEventMessage(msg: ChatMsg)(sessionLogic: SessionData): Unit = {
+    sessionLogic.sendResponse(msg)
   }
 }
 
@@ -672,11 +681,15 @@ class ZoningOperations(
         zoningType = Zoning.Method.Login
         response match {
           case Some((zone, spawnPoint)) =>
-            spawn.loginChatMessage.addOne("@login_reposition_to_friendly_facility") //Your previous location was held by the enemy. You have been moved to the nearest friendly facility.
+            spawn.enqueueNewActivity(ActivityQueuedTask(
+              SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@login_reposition_to_friendly_facility")), 20)
+            )
             val (pos, ori) = spawnPoint.SpecificPoint(player)
             spawn.LoadZonePhysicalSpawnPoint(zone.id, pos, ori, respawnTime = 0 seconds, Some(spawnPoint))
           case _ =>
-            spawn.loginChatMessage.addOne("@login_reposition_to_sanctuary") //Your previous location was held by the enemy.  As there were no operational friendly facilities on that continent, you have been brought back to your Sanctuary.
+            spawn.enqueueNewActivity(ActivityQueuedTask(
+              SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@login_reposition_to_sanctuary")), 20)
+            )
             RequestSanctuaryZoneSpawn(player, player.Zone.Number)
         }
 
@@ -1865,7 +1878,6 @@ class ZoningOperations(
 
   class SpawnOperations() {
     private[session] var deadState: DeadState.Value = DeadState.Dead
-    private[session] var loginChatMessage: mutable.ListBuffer[String] = new mutable.ListBuffer[String]()
     private[session] var amsSpawnPoints: List[SpawnPoint] = Nil
     private[session] var noSpawnPointHere: Boolean = false
     private[session] var setupAvatarFunc: () => Unit = AvatarCreate
@@ -1888,8 +1900,13 @@ class ZoningOperations(
     private[session] var drawDeloyableIcon: PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
     private[session] var populateAvatarAwardRibbonsFunc: (Int, Long) => Unit = setupAvatarAwardMessageDelivery
     private[session] var setAvatar: Boolean = false
+    private[session] var avatarActive: Boolean = false
     private[session] var reviveTimer: Cancellable = Default.Cancellable
     private[session] var respawnTimer: Cancellable = Default.Cancellable
+
+    private var queuedActivities: Seq[SpawnOperations.ActivityQueuedTask] = Seq()
+    private val initialActivityDelay: Int = 4
+    private var nextActivityDelay: Int = 0
 
     private var statisticsPacketFunc: () => Unit = loginAvatarStatisticsFields
 
@@ -1899,6 +1916,7 @@ class ZoningOperations(
       val ReleaseAvatarRequestMessage() = pkt
       log.info(s"${player.Name} on ${continent.id} has released")
       reviveTimer.cancel()
+      avatarActive = false
       GoToDeploymentMap()
       HandleReleaseAvatar(player, continent)
     }
@@ -1986,16 +2004,19 @@ class ZoningOperations(
               }
               val noFriendlyPlayersInZone = friendlyPlayersInZone == 0
               if (inZone.map.cavern) {
-                loginChatMessage.addOne("@reset_sanctuary_locked")
-                //You have been returned to the sanctuary because the location you logged out is not available.
+                enqueueNewActivity(ActivityQueuedTask(
+                  SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@reset_sanctuary_locked")), 20)
+                ) //You have been returned to the sanctuary because the location you logged out is not available.
                 player.Zone = Zone.Nowhere
               } else if (ourBuildings.isEmpty && (amsSpawnPoints.isEmpty || noFriendlyPlayersInZone)) {
-                loginChatMessage.addOne("@reset_sanctuary_locked")
-                //You have been returned to the sanctuary because the location you logged out is not available.
+                enqueueNewActivity(ActivityQueuedTask(
+                  SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@reset_sanctuary_locked")), 20)
+                ) //You have been returned to the sanctuary because the location you logged out is not available.
                 player.Zone = Zone.Nowhere
               } else if (friendlyPlayersInZone > 137 || playersInZone.size > 413) {
-                loginChatMessage.addOne("@reset_sanctuary_full")
-                //You have been returned to the sanctuary because the zone you logged out on is full.
+                enqueueNewActivity(ActivityQueuedTask(
+                  SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@reset_sanctuary_full")), 20)
+                ) //You have been returned to the sanctuary because the zone you logged out on is full.
                 player.Zone = Zone.Nowhere
               } else {
                 val inBuildingSOI = buildings.filter { b =>
@@ -2012,8 +2033,9 @@ class ZoningOperations(
                   }
                 } else {
                   if (noFriendlyPlayersInZone) {
-                    loginChatMessage.addOne("@reset_sanctuary_inactive")
-                    //You have been returned to the sanctuary because the location you logged out is not available.
+                    enqueueNewActivity(ActivityQueuedTask(
+                      SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@reset_sanctuary_inactive")), 20)
+                    ) //You have been returned to the sanctuary because the location you logged out is not available.
                     player.Zone = Zone.Nowhere
                   }
                 }
@@ -2021,8 +2043,9 @@ class ZoningOperations(
             }
           } else {
             //player is dead; go back to sanctuary
-            loginChatMessage.addOne("@reset_sanctuary_inactive")
-            //You have been returned to the sanctuary because the location you logged out is not available.
+            enqueueNewActivity(ActivityQueuedTask(
+              SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@reset_sanctuary_inactive")), 20)
+            ) //You have been returned to the sanctuary because the location you logged out is not available.
             player.Zone = Zone.Nowhere
           }
 
@@ -2120,11 +2143,15 @@ class ZoningOperations(
           zoningType = Zoning.Method.Login
           response match {
             case Some((zone, spawnPoint)) =>
-              loginChatMessage.addOne("@login_reposition_to_friendly_facility") //Your previous location was held by the enemy. You have been moved to the nearest friendly facility.
+              enqueueNewActivity(ActivityQueuedTask(
+                SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@login_reposition_to_friendly_facility")), 20)
+              ) //Your previous location was held by the enemy. You have been moved to the nearest friendly facility.
               val (pos, ori) = spawnPoint.SpecificPoint(player)
               LoadZonePhysicalSpawnPoint(zone.id, pos, ori, respawnTime = 0 seconds, Some(spawnPoint))
             case _ =>
-              loginChatMessage.addOne("@login_reposition_to_sanctuary") //Your previous location was held by the enemy.  As there were no operational friendly facilities on that continent, you have been brought back to your Sanctuary.
+              enqueueNewActivity(ActivityQueuedTask(
+                SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@login_reposition_to_sanctuary")), 20)
+              ) //Your previous location was held by the enemy.  As there were no operational friendly facilities on that continent, you have been brought back to your Sanctuary.
               RequestSanctuaryZoneSpawn(player, player.Zone.Number)
           }
 
@@ -2926,6 +2953,7 @@ class ZoningOperations(
       respawnTimer.cancel()
       reviveTimer.cancel()
       deadState = DeadState.RespawnTime
+      avatarActive = false
       sendResponse(
         AvatarDeadStateMessage(
           DeadState.RespawnTime,
@@ -3299,7 +3327,7 @@ class ZoningOperations(
             tavatar.scorecard.CurrentLife.prior.isEmpty && /* no revives */
             tplayer.History.size == 1 /* did nothing but come into existence */
         ) {
-          ZoningOperations.reportProgressionSystem(context.self)
+          enqueueNewActivity(ActivityQueuedTask(ZoningOperations.reportProgressionSystem, 2))
         }
       }
       avatarActor ! AvatarActor.RefreshPurchaseTimes()
@@ -3561,8 +3589,6 @@ class ZoningOperations(
      */
     def TurnCounterLogin(guid: PlanetSideGUID): Unit = {
       NormalTurnCounter(guid)
-      loginChatMessage.foreach { msg => sendResponse(ChatMsg(zoningChatMessageType, wideContents=false, "", msg, None)) }
-      loginChatMessage.clear()
       CancelZoningProcess()
       sessionLogic.turnCounterFunc = NormalTurnCounter
     }
@@ -3773,6 +3799,7 @@ class ZoningOperations(
       nextSpawnPoint = Some(obj) //set fallback
       zoningStatus = Zoning.Status.Deconstructing
       player.allowInteraction = false
+      avatarActive = false
       if (player.death_by == 0) {
         player.death_by = 1
       }
@@ -3791,6 +3818,7 @@ class ZoningOperations(
       zoningStatus = Zoning.Status.None
       player.death_by = math.min(player.death_by, 0)
       player.allowInteraction = true
+      avatarActive = true
       nextSpawnPoint.foreach { tube =>
         sendResponse(PlayerStateShiftMessage(ShiftState(0, tube.Position, tube.Orientation.z)))
         nextSpawnPoint = None
@@ -3815,13 +3843,91 @@ class ZoningOperations(
 
     private def usingSpawnTubeAnimation(): Unit = {
       getSpawnTubeOwner
-        .collect { case (sp, owner @ Some(_)) => (sp, owner) }
+        .collect { case (sp, owner@Some(_)) => (sp, owner) }
         .collect {
           case (sp, Some(_: Vehicle)) =>
             ZoningOperations.usingVehicleSpawnTubeAnimation(sp.Zone, sp.WhichSide, sp.Faction, player.Position, sp.Orientation, List(player.Name))
           case (sp, Some(_: Building)) =>
             ZoningOperations.usingFacilitySpawnTubeAnimation(sp.Zone, sp.WhichSide, sp.Faction, player.Position, sp.Orientation, List(player.Name))
         }
+    }
+
+    def startEnqueueSquadMessages: Boolean = {
+      sessionLogic.zoning.zoneReload && sessionLogic.zoning.spawn.setAvatar && player.isAlive
+    }
+
+    def enqueueNewActivity(newTasking: SpawnOperations.ActivityQueuedTask): Unit = {
+      if (avatarActive && queuedActivities.isEmpty) {
+        nextActivityDelay = initialActivityDelay
+      }
+      queuedActivities = queuedActivities :+ newTasking
+    }
+
+    def tryQueuedActivity(pos1: Vector3, pos2: Vector3, distanceSquared: Float = 1f) : Unit = {
+      if (!avatarActive) {
+        if (Vector3.DistanceSquared(pos1, pos2) > distanceSquared) {
+          startExecutingQueuedActivity()
+        }
+      } else {
+        countDownUntilQueuedActivity()
+      }
+    }
+
+    def tryQueuedActivity(vel: Option[Vector3]) : Unit = {
+      if (!avatarActive) {
+        if (WorldEntity.isMoving(vel)) {
+          startExecutingQueuedActivity()
+        }
+      } else {
+        countDownUntilQueuedActivity()
+      }
+    }
+
+    def tryQueuedActivity() : Unit = {
+      if (!avatarActive) {
+        startExecutingQueuedActivity()
+      } else {
+        countDownUntilQueuedActivity()
+      }
+    }
+
+    def addDelayBeforeNextQueuedActivity(delay: Int): Unit = {
+      if (nextActivityDelay == 0) {
+        nextActivityDelay = initialActivityDelay
+      } else if (queuedActivities.nonEmpty) {
+        val lastActivity = queuedActivities.last
+        if (lastActivity.delayBeforeNext < delay) {
+          queuedActivities = queuedActivities.dropRight(1) :+ lastActivity.copy(delayBeforeNext = delay)
+        }
+      }
+    }
+
+    private def startExecutingQueuedActivity(): Unit = {
+      avatarActive = startEnqueueSquadMessages
+      if (nextActivityDelay == 0) {
+        nextActivityDelay = initialActivityDelay
+      }
+    }
+
+    private def countDownUntilQueuedActivity(): Unit = {
+      if (nextActivityDelay > 0) {
+        nextActivityDelay -= 1
+      } else if (queuedActivities.nonEmpty) {
+        val task :: rest = queuedActivities
+        queuedActivities = if (task.repeat > 0) {
+          task.copy(repeat = task.repeat - 1) +: rest //positive: repeat immediately
+        } else if (task.repeat < 0) {
+          rest :+ task.copy(repeat = task.repeat + 1) //negative: repeat after all other tasks have been completed
+        } else {
+          rest
+        }
+        nextActivityDelay = task.delayBeforeNext
+        task.task(sessionLogic)
+      }
+    }
+
+    def clearAllQueuedActivity(): Unit = {
+      queuedActivities = Seq()
     }
   }
 

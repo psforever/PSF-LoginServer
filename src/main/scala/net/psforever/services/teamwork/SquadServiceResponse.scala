@@ -5,7 +5,7 @@ import akka.actor.ActorRef
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
-import net.psforever.types.{PlanetSideGUID, SquadResponseType, SquadWaypoint}
+import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadResponseType, SquadWaypoint}
 import net.psforever.services.GenericEventBusMsg
 
 final case class SquadServiceResponse(channel: String, exclude: Iterable[Long], response: SquadResponse.Response)
@@ -41,6 +41,16 @@ object SquadResponse {
       unk5: Boolean,
       unk6: Option[Option[String]]
   )                                                                                           extends Response //see SquadMembershipResponse
+  object Membership {
+    def apply(
+               requestType: SquadResponseType.Value,
+               unk3: Long,
+               unk4: Option[Long],
+               playerName: String,
+               unk5: Boolean
+             ): Membership = new Membership(requestType, unk1 = 0, unk2 = 0, unk3, unk4, playerName, unk5, Some(None))
+  }
+
   final case class WantsSquadPosition(leader_char_id: Long, bid_name: String)                 extends Response
   final case class Join(squad: Squad, positionsToUpdate: List[Int], channel: String, ref: ActorRef) extends Response
   final case class Leave(squad: Squad, positionsToUpdate: List[(Long, Int)])                  extends Response
@@ -73,4 +83,6 @@ object SquadResponse {
                                        unk2: Int,
                                        zoneNumber: Int
                                      ) extends Response
+
+  final case class SquadRelatedComment(str: String, messageType: ChatMessageType = ChatMessageType.UNK_227) extends Response
 }

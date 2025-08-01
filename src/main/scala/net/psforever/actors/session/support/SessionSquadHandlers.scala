@@ -2,6 +2,8 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, typed}
+import net.psforever.services.teamwork.SquadServiceResponse
+
 import scala.collection.mutable
 //
 import net.psforever.actors.session.AvatarActor
@@ -36,6 +38,9 @@ object SessionSquadHandlers {
                                    armor: Int,
                                    position: Vector3
                                  )
+  def rethrowSquadServiceResponse(response: SquadResponse.Response)(sessionLogic: SessionData): Unit = {
+    sessionLogic.context.self ! SquadServiceResponse("", response)
+  }
 }
 
 class SessionSquadHandlers(
@@ -84,6 +89,7 @@ class SessionSquadHandlers(
     sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
     squadService ! SquadServiceMessage(player, continent, SquadServiceAction.InitSquadList())
     squadService ! SquadServiceMessage(player, continent, SquadServiceAction.InitCharId())
+    cleanUpSquadCards()
     squadSetup = RespawnSquadSetup
   }
 
@@ -344,5 +350,13 @@ class SessionSquadHandlers(
         ))
       )
     }
+  }
+
+  def cleanUpSquadCards(): Unit = {
+    squadUI.foreach { case (id, card) =>
+      sendResponse(SquadMemberEvent.Remove(squad_supplement_id, id, card.index))
+    }
+    squadUI.clear()
+    squad_supplement_id = 0
   }
 }
