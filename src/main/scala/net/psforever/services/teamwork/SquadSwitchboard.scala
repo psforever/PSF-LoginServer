@@ -653,7 +653,7 @@ class SquadSwitchboard(
     if (squad.Leader.CharId == char_id) {
       membership.lift(position) match {
         case Some(toMember) =>
-          //SquadActionMembershipPromote(char_id, toMember.CharId)
+          SquadActionMembershipPromote(char_id, toMember.CharId)
         case _ => ;
       }
     } else {
@@ -684,7 +684,7 @@ class SquadSwitchboard(
   def SquadActionMembership(action: Any): Unit = {
     action match {
       case SquadAction.Membership(SquadRequestType.Promote, promotingPlayer, Some(promotedPlayer), _, _) =>
-        //SquadActionMembershipPromote(promotingPlayer, promotedPlayer)
+        SquadActionMembershipPromote(promotingPlayer, promotedPlayer)
 
       case SquadAction.Membership(event, _, _, _, _) =>
         log.debug(s"SquadAction.Membership: $event is not supported here")

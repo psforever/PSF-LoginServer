@@ -3853,7 +3853,8 @@ class ZoningOperations(
     }
 
     def startEnqueueSquadMessages: Boolean = {
-      sessionLogic.zoning.zoneReload && sessionLogic.zoning.spawn.setAvatar && player.isAlive
+      println(s"${sessionLogic.zoning.zoneReload} ${sessionLogic.zoning.spawn.setAvatar} ${player.isAlive}")
+      !sessionLogic.zoning.zoneReload && sessionLogic.zoning.spawn.setAvatar && player.isAlive
     }
 
     def enqueueNewActivity(newTasking: SpawnOperations.ActivityQueuedTask): Unit = {

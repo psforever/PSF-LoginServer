@@ -368,6 +368,7 @@ class SquadInvitationManager(subs: SquadSubscriptionEntity, parent: ActorRef) {
               charId,
               SquadResponse.Membership(SquadResponseType.Cancel, charId, Some(0L), name, unk5 = false)
             )
+          case None => ()
         }
         None
       }

@@ -274,8 +274,8 @@ class SquadService extends Actor {
         SquadActionMembershipCancel(cancellingPlayer, tplayer)
 
       case SquadAction.Membership(SquadRequestType.Promote, _, _, _, _) => ()
-      //      case SquadAction.Membership(SquadRequestType.Promote, promotingPlayer, Some(_promotedPlayer), promotedName, _) =>
-      //        SquadActionMembershipPromote(promotingPlayer, _promotedPlayer, promotedName, SquadServiceMessage(tplayer, zone, action), sender())
+      case SquadAction.Membership(SquadRequestType.Promote, promotingPlayer, Some(_promotedPlayer), promotedName, _) =>
+        SquadActionMembershipPromote(promotingPlayer, _promotedPlayer, promotedName, SquadServiceMessage(tplayer, zone, action), sender())
 
       case SquadAction.Membership(event, _, _, _, _) =>
         info(s"SquadAction.Membership: $event is not yet supported")
