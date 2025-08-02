@@ -114,7 +114,7 @@ final case class InvitationToCreateASquad(futureSquadLeader: Player)
       SquadResponse.Membership(SquadResponseType.Reject, invitingPlayerCharId, Some(rejectingPlayer), player.Name, unk5 = false)
     )
     manager.publish(
-      rejectingPlayer,
+      invitingPlayerCharId,
       SquadResponse.SquadRelatedComment(s"Your request to form a squad has been refused.")
     )
   }

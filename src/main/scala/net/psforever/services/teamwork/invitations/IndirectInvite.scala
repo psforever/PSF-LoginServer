@@ -40,10 +40,10 @@ final case class IndirectInvite(originalRequester: Player, features: SquadFeatur
       val leaderCharId = player.CharId
       val invitedPlayer = originalRequester.CharId
       manager
-        .handleVacancyInvite(features, invitedPlayer, invitedPlayer, originalRequester)
+        .handleVacancyInvite(features, invitedPlayer, leaderCharId, originalRequester)
         .collect {
           case (_, position) if manager.joinSquad(originalRequester, features, position) =>
-            manager.acceptanceMessages(invitedPlayer, invitedPlayer, originalRequester.Name)
+            manager.acceptanceMessages(leaderCharId, invitedPlayer, originalRequester.Name)
             //clean up invitations specifically for this squad and this position
             val cleanedUpActiveInvitesForSquadAndPosition = manager.cleanUpActiveInvitesForSquadAndPosition(features.Squad.GUID, position)
             cleanedUpActiveInvitesForSquadAndPosition.collect { case (id, _) =>
@@ -79,7 +79,7 @@ final case class IndirectInvite(originalRequester: Player, features: SquadFeatur
         .orElse {
           manager.publish(
             leaderCharId,
-            SquadResponse.SquadRelatedComment(s"Your invitation to ${player.Name} was accepted, but failed.")
+            SquadResponse.SquadRelatedComment(s"Your invitation to ${originalRequester.Name} was accepted, but failed.")
           )
           manager.publish(
             invitedPlayer,
