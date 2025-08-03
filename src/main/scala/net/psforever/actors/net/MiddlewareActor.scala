@@ -139,6 +139,12 @@ object MiddlewareActor {
     packet.isInstanceOf[KeepAliveMessage]
   }
 
+  /** `SquadDetailDefinitionUpdateMessage` [sometimes] doesn't make for a good travel partner
+    * as seen in issue #1176 and PR #1290 so deliver it alone */
+  private def squadDetailDefinitionMessageGuard(packet: PlanetSidePacket): Boolean = {
+    packet.isInstanceOf[SquadDetailDefinitionUpdateMessage]
+  }
+
   /**
     * A function for blanking tasks related to inbound packet resolution.
     * Do nothing.
@@ -246,7 +252,8 @@ class MiddlewareActor(
     */
   private val packetsBundledByThemselves: List[PlanetSidePacket => Boolean] = List(
     MiddlewareActor.keepAliveMessageGuard,
-    MiddlewareActor.characterInfoMessageGuard
+    MiddlewareActor.characterInfoMessageGuard,
+    MiddlewareActor.squadDetailDefinitionMessageGuard
   )
 
   private val smpHistoryLength: Int = 100

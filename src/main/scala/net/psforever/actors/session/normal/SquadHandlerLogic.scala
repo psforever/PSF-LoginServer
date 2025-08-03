@@ -210,6 +210,7 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
             case Some((ourMember, ourIndex)) =>
               //we are joining the squad
               //load each member's entry (our own too)
+              ops.squad_guid = squad.GUID
               ops.squad_supplement_id = squad.GUID.guid + 1
               membershipPositions.foreach {
                 case (member, index) =>
@@ -300,6 +301,7 @@ class SquadHandlerLogic(val ops: SessionSquadHandlers, implicit val context: Act
               avatarActor ! AvatarActor.SetLookingForSquad(false)
               //a finalization? what does this do?
               sendResponse(SquadDefinitionActionMessage(PlanetSideGUID(0), 0, SquadAction.Unknown(18)))
+              ops.squad_guid = PlanetSideGUID(0)
               ops.squad_supplement_id = 0
               ops.squadUpdateCounter = 0
               ops.updateSquad = ops.NoSquadUpdates

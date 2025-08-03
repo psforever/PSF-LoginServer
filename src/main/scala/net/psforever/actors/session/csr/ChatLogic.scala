@@ -15,7 +15,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.chat.{ChatChannel, DefaultChannel, SpectatorChannel}
+import net.psforever.services.chat.{ChatChannel, DefaultChannel, SpectatorChannel, SquadChannel}
 import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire}
 import net.psforever.zones.Zones
@@ -131,7 +131,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         ops.commandSend(session, message, comms)
 
       case (CMT_SQUAD, _, _) =>
-        ops.commandSquad(session, message, comms) //todo SquadChannel, but what is the guid
+        ops.commandSquad(session, message, SquadChannel(sessionLogic.squad.squad_guid))
 
       case (CMT_WHO | CMT_WHO_CSR | CMT_WHO_CR | CMT_WHO_PLATOONLEADERS | CMT_WHO_SQUADLEADERS | CMT_WHO_TEAMS, _, _) =>
         ops.commandWho(session)
