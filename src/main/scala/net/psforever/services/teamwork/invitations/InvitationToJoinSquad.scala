@@ -109,10 +109,10 @@ final case class InvitationToJoinSquad(charId: Long, name: String, features: Squ
     //rejectingPlayer is the would-be squad member; the squad leader sent the request and was rejected
     doRejection(manager, player, rejectingPlayer)
     manager.rejectionMessages(rejectingPlayer, charId, player.Name)
-    manager.publish(
+    /*manager.publish(
       rejectingPlayer,
       SquadResponse.SquadRelatedComment(s"Your request to join squad '${features.Squad.Task}' has been refused.")
-    )
+    )*/
   }
 
   def doRejection(

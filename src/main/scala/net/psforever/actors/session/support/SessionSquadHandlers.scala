@@ -53,6 +53,7 @@ class SessionSquadHandlers(
 
   private[session] val squadUI: mutable.LongMap[SquadUIElement] = new mutable.LongMap[SquadUIElement]()
   private[session] var squad_supplement_id: Int = 0
+  private[session] var squad_guid: PlanetSideGUID = PlanetSideGUID(0)
   /**
    * When joining or creating a squad, the original state of the avatar's internal LFS variable is blanked.
    * This `WorldSessionActor`-local variable is then used to indicate the ongoing state of the LFS UI component,
