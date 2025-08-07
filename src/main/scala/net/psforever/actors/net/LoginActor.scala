@@ -101,6 +101,8 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
   private val bcryptRounds = 12
 
+  private var buffer: Seq[Any] = Seq() //for typed actors, this becomes an akka.actor.typed.scaladsl.StashBuffer (size 10?)
+
   override def preStart(): Unit = {
     super.preStart()
     ServiceManager.serviceManager ! Lookup("accountIntermediary")
@@ -122,7 +124,12 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       sockets = listings.head
   }
 
-  private def idlingBehavior: Receive = persistentSetupMixinBehavior.orElse {
+  private def idlingBufferBehavior: Receive = persistentSetupMixinBehavior.orElse {
+    case packet =>
+      buffer = buffer :+ packet
+  }
+
+  private def idlingIgnoreBehavior: Receive = persistentSetupMixinBehavior.orElse {
     case _ => ()
   }
 
@@ -132,7 +139,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
      hostName = address.HostName
      canonicalHostName = address.CanonicalHostName
      port = address.Port
-     context.become(idlingBehavior)
+     context.become(idlingBufferBehavior)
      runLoginTest()
 
     case _ => ()
@@ -157,7 +164,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       val address = gameTestServerAddress.getAddress.getHostAddress
       log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
       val response = ConnectToWorldMessage(serverName, address, portNum)
-      context.become(idlingBehavior)
+      context.become(idlingIgnoreBehavior)
       middlewareActor ! MiddlewareActor.Send(response)
       middlewareActor ! MiddlewareActor.Close()
 
@@ -170,7 +177,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       val address = gameTestServerAddress.getAddress.getHostAddress
       log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
       val response = ConnectToWorldMessage(serverName, address, portNum)
-      context.become(idlingBehavior)
+      context.become(idlingIgnoreBehavior)
       middlewareActor ! MiddlewareActor.Send(response)
       middlewareActor ! MiddlewareActor.Close()
 
@@ -182,17 +189,17 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       case LoginMessage(majorVersion, minorVersion, buildDate, username, _, Some(token), revision) =>
         val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
         log.debug(s"New login UN:$username Token:$token. $clientVersion")
-        context.become(idlingBehavior)
+        context.become(idlingIgnoreBehavior)
         accountLoginWithToken(token)
 
       case LoginMessage(majorVersion, minorVersion, buildDate, username, password, None, revision) =>
         val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
         log.debug(s"New login UN:$username. $clientVersion")
-        context.become(idlingBehavior)
+        context.become(idlingIgnoreBehavior)
         accountLogin(username, password.getOrElse(""))
 
       case _ =>
-        log.warning(s"Unhandled GamePacket $pkt")
+        log.warning(s"Unhandled GamePacket during login $pkt")
     }
   }
 
@@ -205,7 +212,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
         sockets ! SocketPane.GetNextPort("world", context.self)
 
       case _ =>
-        log.warning(s"Unhandled GamePacket $pkt")
+        log.warning(s"Unhandled GamePacket during world select $pkt")
     }
   }
 
@@ -224,8 +231,11 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
     result.onComplete {
       case Success(Some(_)) =>
         context.become(accountLoginBehavior) // account found
+        buffer.foreach { self ! _ }
+        buffer = Seq()
       case Success(None) =>
-        middlewareActor ! MiddlewareActor.Send(DisconnectMessage("Character database not found; stopping ..."))
+        log.error("account database not found")
+        middlewareActor ! MiddlewareActor.Send(DisconnectMessage("Account database not found; stopping ..."))
         middlewareActor ! MiddlewareActor.Close()
       case Failure(e) =>
         log.error(e.getMessage)
