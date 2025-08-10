@@ -1,4 +1,4 @@
-// Copyright (c) 2023 PSForever
+// Copyright (c) 2023-2025 PSForever
 package net.psforever.packet.game
 
 import net.psforever.packet.GamePacketOpcode.Type
@@ -11,9 +11,9 @@ import shapeless.{::, HNil}
 
 final case class OutfitMembershipRequest(
     request_type: OutfitMembershipRequest.RequestType.Type,
-    avatar_guid: PlanetSideGUID,
-    unk1: Int,
-    action: OutfitAction
+    avatar_guid: PlanetSideGUID, // avatar_guid and unk1 are related, might be Long instead
+    unk1: Int, //
+    action: OutfitMembershipRequestAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitMembershipRequest
 
@@ -22,20 +22,21 @@ final case class OutfitMembershipRequest(
   def encode: Attempt[BitVector] = OutfitMembershipRequest.encode(this)
 }
 
-abstract class OutfitAction(val code: Int)
-object OutfitAction {
+abstract class OutfitMembershipRequestAction(val code: Int)
 
-  final case class CreateOutfit(unk2: String, unk3: Int, unk4: Boolean, outfit_name: String) extends OutfitAction(code = 0)
+object OutfitMembershipRequestAction {
 
-  final case class FormOutfit(unk2: String, unk3: Int, unk4: Boolean, outfit_name: String) extends OutfitAction(code = 1)
+  final case class CreateOutfit(unk2: String, unk3: Int, unk4: Boolean, outfit_name: String) extends OutfitMembershipRequestAction(code = 0)
 
-  final case class AcceptOutfitInvite(unk2: String) extends OutfitAction(code = 3)
+  final case class FormOutfit(unk2: String, unk3: Int, unk4: Boolean, outfit_name: String) extends OutfitMembershipRequestAction(code = 1)
 
-  final case class RejectOutfitInvite(unk2: String) extends OutfitAction(code = 4)
+  final case class AcceptOutfitInvite(unk2: String) extends OutfitMembershipRequestAction(code = 3)
 
-  final case class CancelOutfitInvite(unk5: Int, unk6: Int, outfit_name: String) extends OutfitAction(code = 5)
+  final case class RejectOutfitInvite(unk2: String) extends OutfitMembershipRequestAction(code = 4)
 
-  final case class Unknown(badCode: Int, data: BitVector) extends OutfitAction(badCode)
+  final case class CancelOutfitInvite(unk5: Int, unk6: Int, outfit_name: String) extends OutfitMembershipRequestAction(code = 5)
+
+  final case class Unknown(badCode: Int, data: BitVector) extends OutfitMembershipRequestAction(badCode)
 
   /**
     * The `Codec`s used to transform the input stream into the context of a specific action
@@ -106,6 +107,7 @@ object OutfitAction {
 
     /**
       * A common form for known action code indexes with an unknown purpose and transformation is an "Unknown" object.
+      *
       * @param action the action behavior code
       * @return a transformation between the action code and the unknown bit data
       */
@@ -119,11 +121,12 @@ object OutfitAction {
 
     /**
       * The action code was completely unanticipated!
+      *
       * @param action the action behavior code
       * @return nothing; always fail
       */
-    def failureCodec(action: Int): Codec[OutfitAction] =
-      everFailCondition.exmap[OutfitAction](
+    def failureCodec(action: Int): Codec[OutfitMembershipRequestAction] =
+      everFailCondition.exmap[OutfitMembershipRequestAction](
         _ => Attempt.failure(Err(s"can not match a codec pattern for decoding $action")),
         _ => Attempt.failure(Err(s"can not match a codec pattern for encoding $action"))
       )
@@ -147,8 +150,8 @@ object OutfitMembershipRequest extends Marshallable[OutfitMembershipRequest] {
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
 
-  private def selectFromType(code: Int): Codec[OutfitAction] = {
-    import OutfitAction.Codecs._
+  private def selectFromType(code: Int): Codec[OutfitMembershipRequestAction] = {
+    import OutfitMembershipRequestAction.Codecs._
     import scala.annotation.switch
 
     ((code: @switch) match {
@@ -162,7 +165,7 @@ object OutfitMembershipRequest extends Marshallable[OutfitMembershipRequest] {
       case 7 => unknownCodec(action = code)
       // 3 bit limit
       case _ => failureCodec(code)
-    }).asInstanceOf[Codec[OutfitAction]]
+    }).asInstanceOf[Codec[OutfitMembershipRequestAction]]
   }
 
   implicit val codec: Codec[OutfitMembershipRequest] = (

@@ -1,10 +1,10 @@
-// Copyright (c) 2023 PSForever
+// Copyright (c) 2023-2025 PSForever
 package game
 
 import net.psforever.packet._
 import net.psforever.packet.game._
-import net.psforever.packet.game.OutfitAction.{AcceptOutfitInvite, CancelOutfitInvite, CreateOutfit, FormOutfit, RejectOutfitInvite}
 import net.psforever.packet.game.OutfitMembershipRequest.RequestType
+import net.psforever.packet.game.OutfitMembershipRequestAction._
 import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable._
 import scodec.bits._
