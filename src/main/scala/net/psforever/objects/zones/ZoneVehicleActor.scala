@@ -5,8 +5,9 @@ import akka.actor.Actor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.definition.{ObjectDefinition, VehicleDefinition}
 import net.psforever.objects.serverobject.deploy.{Deployment, Interference}
+import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.vital.InGameHistory
-import net.psforever.objects.{Default, Vehicle}
+import net.psforever.objects.{Default, GlobalDefinitions, Vehicle}
 import net.psforever.packet.game.ChatMsg
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -176,8 +177,17 @@ object ZoneVehicleActor {
                                            vehicle: Vehicle,
                                            reportedInterferenceList: Seq[ObjectDefinition]
                                          ): Boolean = {
-    if (reportedInterferenceList.nonEmpty) {
-      reportedInterferenceList
+    val msgOpt: Option[String] = {
+      val insideWarpGate = zone.blockMap.sector(vehicle).buildingList.exists {
+          case wg: WarpGate =>
+            Vector3.DistanceSquared(vehicle.Position, wg.Position) < math.pow(wg.Definition.SOIRadius, 2)
+          case _ => false
+        }
+      if (insideWarpGate && vehicle.Definition == GlobalDefinitions.ams) {
+        Some("@nodeploy_warpgate")
+      }
+      else if (reportedInterferenceList.nonEmpty) {
+        reportedInterferenceList
         .find(_.isInstanceOf[VehicleDefinition])
         .map { definition => s"@nodeploy_${definition.Name}" }
         .orElse {
@@ -190,15 +200,15 @@ object ZoneVehicleActor {
             None
           }
         }
-        .foreach { msg =>
-          zone.VehicleEvents ! VehicleServiceMessage(
-            vehicle.Seats.headOption.flatMap(_._2.occupant).map(_.Name).getOrElse(""),
-            VehicleAction.SendResponse(Service.defaultPlayerGUID, ChatMsg(ChatMessageType.UNK_227, msg))
-          )
-        }
-      true
-    } else {
-      false
+      }
+      else None
     }
+    msgOpt.foreach { msg =>
+      zone.VehicleEvents ! VehicleServiceMessage(
+        vehicle.Seats.headOption.flatMap(_._2.occupant).map(_.Name).getOrElse(""),
+        VehicleAction.SendResponse(Service.defaultPlayerGUID, ChatMsg(ChatMessageType.UNK_227, msg))
+      )
+    }
+    msgOpt.isDefined
   }
 }
