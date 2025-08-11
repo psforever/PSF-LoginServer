@@ -302,7 +302,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         sendResponse(ChatMsg(ChatMessageType.UNK_224, "@BailingMechanismFailure_Pilot"))
 
       case Mountable.CanNotDismount(obj: Vehicle, _, BailType.Bailed)
-        if {
+        if GlobalDefinitions.isFlightVehicle(obj.Definition) && {
           continent
             .blockMap
             .sector(obj)

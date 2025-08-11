@@ -416,7 +416,7 @@ class ChatOperations(
     if (contents.startsWith("SH")) {
       channels.foreach {
         case _/*channel*/: SquadChannel =>
-          commandSendToRecipient(session, message, toChannel)
+          commandSendToRecipient(session, message, SquadChannel(sessionLogic.squad.squad_guid))
         case _ => ()
       }
     } else {
