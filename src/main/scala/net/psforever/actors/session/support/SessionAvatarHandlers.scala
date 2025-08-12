@@ -56,14 +56,14 @@ class SessionAvatarHandlers(
   }
 
   def facilityCaptureRewards(buildingId: Int, zoneNumber: Int, cep: Long): Unit = {
-    //TODO squad services deactivated, participation trophy rewards for now - 11-20-2023
     //must be in a squad to earn experience
+    val delay = continent.Building(buildingId).map(building => building.CaptureTerminal.get.Definition.FacilityHackTime.toSeconds / 6)
     val charId = player.CharId
-    /*val squadUI = sessionLogic.squad.squadUI
+    val squadUI = sessionLogic.squad.squadUI
     val participation = continent
       .Building(buildingId)
       .map { building =>
-        building.Participation.PlayerContribution()
+        building.Participation.PlayerContribution(delay.getOrElse(100))
       }
     squadUI
       .find { _._1 == charId }
@@ -117,10 +117,7 @@ class SessionAvatarHandlers(
           exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, modifiedExp, expType="bep")
           avatarActor ! AvatarActor.AwardFacilityCaptureBep(modifiedExp)
           Some(modifiedExp)
-      }*/
-    //if not in squad (temporary)
-    exp.ToDatabase.reportFacilityCapture(charId, zoneNumber, buildingId, cep, expType="bep")
-    avatarActor ! AvatarActor.AwardFacilityCaptureBep(cep)
+      }
   }
 
   /**
