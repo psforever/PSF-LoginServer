@@ -175,6 +175,10 @@ class VehicleControl(vehicle: Vehicle)
         if vehicle.DeploymentState == DriveState.AutoPilot =>
         sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
 
+      case Mountable.TryDismount(user, seat_num, bailType)
+        if vehicle.isMoving(test = 1f) && bailType == BailType.Normal =>
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
+
       case msg @ Mountable.TryDismount(player, seat_num, _) =>
         dismountBehavior.apply(msg)
         dismountCleanup(seat_num, player)
