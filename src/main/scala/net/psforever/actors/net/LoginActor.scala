@@ -153,13 +153,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       failWithError(s"Invalid packet class received: $default")
   }
 
-  private def displayingServerListBehavior: Receive = persistentSetupMixinBehavior.orElse {
-    case packet: PlanetSideGamePacket =>
-      handleGamePktDuringWorldSelect(packet)
-
-    case LoginActor.UpdateServerList =>
-      updateServerList()
-
+  private def nextPortTransferBehavior: Receive = {
     case SocketPane.NextPort(_, _, portNum) =>
       val address = gameTestServerAddress.getAddress.getHostAddress
       log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
@@ -167,21 +161,25 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       context.become(idlingIgnoreBehavior)
       middlewareActor ! MiddlewareActor.Send(response)
       middlewareActor ! MiddlewareActor.Close()
-
-    case default =>
-      failWithError(s"Invalid packet class received: $default")
   }
 
-  private def waitingForServerTransferBehavior: Receive = persistentSetupMixinBehavior.orElse {
-    case SocketPane.NextPort(_, _, portNum) =>
-      val address = gameTestServerAddress.getAddress.getHostAddress
-      log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
-      val response = ConnectToWorldMessage(serverName, address, portNum)
-      context.become(idlingIgnoreBehavior)
-      middlewareActor ! MiddlewareActor.Send(response)
-      middlewareActor ! MiddlewareActor.Close()
+  private def displayingServerListBehavior: Receive = persistentSetupMixinBehavior
+    .orElse(nextPortTransferBehavior)
+    .orElse {
+      case packet: PlanetSideGamePacket =>
+        handleGamePktDuringWorldSelect(packet)
 
-    case _ => ()
+      case LoginActor.UpdateServerList =>
+        updateServerList()
+
+      case default =>
+        failWithError(s"Invalid packet class received: $default")
+  }
+
+  private def waitingForServerTransferBehavior: Receive = persistentSetupMixinBehavior
+    .orElse(nextPortTransferBehavior)
+    .orElse {
+      case _ => ()
   }
 
   private def handleGamePktDuringLogin(pkt: PlanetSideGamePacket): Unit = {
