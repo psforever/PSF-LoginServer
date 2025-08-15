@@ -11,7 +11,7 @@ import shapeless.{::, HNil}
 
 final case class OutfitEvent(
     request_type: OutfitEvent.RequestType.Type,
-    outfit_guid: PlanetSideGUID,
+    outfit_guid: Long,
     action: OutfitEventAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitEvent
@@ -37,8 +37,6 @@ object OutfitEventAction {
   )
 
   final case class OutfitInfo(
-    unk1: Int,
-    unk2: Int,
     outfit_name: String,
     unk6: Long,
     unk7: Long,
@@ -62,8 +60,6 @@ object OutfitEventAction {
   ) extends OutfitEventAction(code = 0)
 
   final case class Unk1(
-    unk0: Int,
-    unk1: Int,
     unk2: Int,
     unk3: Boolean,
   ) extends OutfitEventAction(code = 1)
@@ -73,24 +69,19 @@ object OutfitEventAction {
   ) extends OutfitEventAction(code = 2)
 
   final case class Unk3(
-    unk0: Int,
-    unk1: Int,
     unk2: Int,
     unk3: Boolean,
     data: BitVector,
   ) extends OutfitEventAction(code = 3)
 
   final case class Unk4(
-    unk0: Int,
-    unk1: Int,
-    unk2: Int,
+    new_outfit_id: Long,
     unk3: Int,
     unk4: Boolean,
     data: BitVector,
   ) extends OutfitEventAction(code = 4)
 
   final case class Unk5(
-    unk0: Int,
     unk1: Int,
     unk2: Int,
     unk3: Int,
@@ -128,8 +119,6 @@ object OutfitEventAction {
     )
 
     private val InfoCodec: Codec[OutfitInfo] = (
-      uint8L ::
-        uint8L ::
         PacketHelpers.encodedWideStringAligned(5) ::
         uint32L ::
         uint32L ::
@@ -148,12 +137,12 @@ object OutfitEventAction {
         uintL(7)
       ).xmap[OutfitInfo](
         {
-          case u1 :: u2 :: outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u19 :: u20 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil =>
-            OutfitInfo(u1, u2, outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u19, u20, u21, u21_2, created_timestamp, u23, u24, u25, u123)
+          case outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u19 :: u20 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil =>
+            OutfitInfo(outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u19, u20, u21, u21_2, created_timestamp, u23, u24, u25, u123)
         },
         {
-          case OutfitInfo(u1, u2, outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u19, u20, u21, u21_2, created_timestamp, u23, u24, u25, u123) =>
-            u1 :: u2 :: outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u19 :: u20 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil
+          case OutfitInfo(outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u19, u20, u21, u21_2, created_timestamp, u23, u24, u25, u123) =>
+            outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u19 :: u20 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil
         }
       )
 
@@ -171,18 +160,16 @@ object OutfitEventAction {
     )
 
     val Unk1Codec: Codec[Unk1] = (
-      uint8L ::
-        uint8L ::
         uint4L ::
         bool
       ).xmap[Unk1](
       {
-        case u0 :: u1 :: u2 :: u3 :: HNil =>
-          Unk1(u0, u1, u2, u3)
+        case u2 :: u3 :: HNil =>
+          Unk1(u2, u3)
       },
       {
-        case Unk1(u0, u1, u2, u3) =>
-          u0 :: u1 :: u2 :: u3 :: HNil
+        case Unk1(u2, u3) =>
+          u2 :: u3 :: HNil
       }
     )
 
@@ -200,42 +187,37 @@ object OutfitEventAction {
     )
 
     val Unk3Codec: Codec[Unk3] = (
-      uint8L ::
-        uint8L ::
         uint4L ::
         bool ::
         bits
       ).xmap[Unk3](
       {
-        case u0 :: u1 :: u2 :: u3 :: data :: HNil =>
-          Unk3(u0, u1, u2, u3, data)
+        case u2 :: u3 :: data :: HNil =>
+          Unk3(u2, u3, data)
       },
       {
-        case Unk3(u0, u1, u2, u3, data) =>
-          u0 :: u1 :: u2 :: u3 :: data :: HNil
+        case Unk3(u2, u3, data) =>
+          u2 :: u3 :: data :: HNil
       }
     )
 
-    val Unk4Codec: Codec[Unk4] = (
-      uint16L ::
-        uint16L ::
-        uint16L ::
+    val Unk4Codec: Codec[Unk4] = ( // update outfit_id? // 2016.03.18 #10640 // after this packet the referenced id changes to the new one, old is not used again
+        uint32L :: // real / other outfit_id
         uint4L ::
         bool ::
         bits
       ).xmap[Unk4](
       {
-        case u0 :: u1 :: u2 :: u3 :: u4 :: data :: HNil =>
-          Unk4(u0, u1, u2, u3, u4, data)
+        case new_outfit_id :: u3 :: u4 :: data :: HNil =>
+          Unk4(new_outfit_id, u3, u4, data)
       },
       {
-        case Unk4(u0, u1, u2, u3, u4, data) =>
-          u0 :: u1 :: u2 ::u3 :: u4 :: data :: HNil
+        case Unk4(new_outfit_id, u3, u4, data) =>
+          new_outfit_id ::u3 :: u4 :: data :: HNil
       }
     )
 
     val Unk5Codec: Codec[Unk5] = (
-      uint16L ::
         uint16L ::
         uint16L ::
         uint4L ::
@@ -243,12 +225,12 @@ object OutfitEventAction {
         bits
       ).xmap[Unk5](
       {
-        case u0 :: u1 :: u2 :: u3 :: u4 :: data :: HNil =>
-          Unk5(u0, u1, u2, u3, u4, data)
+        case u1 :: u2 :: u3 :: u4 :: data :: HNil =>
+          Unk5(u1, u2, u3, u4, data)
       },
       {
-        case Unk5(u0, u1, u2, u3, u4, data) =>
-          u0 :: u1 :: u2 :: u3 :: u4 :: data :: HNil
+        case Unk5(u1, u2, u3, u4, data) =>
+          u1 :: u2 :: u3 :: u4 :: data :: HNil
       }
     )
 
@@ -342,7 +324,7 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
 
   implicit val codec: Codec[OutfitEvent] = (
     ("request_type" | RequestType.codec) >>:~ { request_type =>
-      ("outfit_guid" | PlanetSideGUID.codec) ::
+      ("outfit_guid" | uint32L) ::
         ("action" | selectFromType(request_type.id))
     }
     ).xmap[OutfitEvent](

@@ -12,8 +12,7 @@ import shapeless.{::, HNil}
 final case class OutfitMembershipResponse(
     response_type: OutfitMembershipResponse.ResponseType.Type,
     unk0: Int,
-    avatar_guid: PlanetSideGUID, // avatar_guid and unk1 are related, might be Long instead
-    unk1: PlanetSideGUID, //
+    outfit_id: Long,
     unk2: PlanetSideGUID,
     unk3: Int,
     //unk4: Boolean,
@@ -223,8 +222,7 @@ object OutfitMembershipResponse extends Marshallable[OutfitMembershipResponse] {
   implicit val codec: Codec[OutfitMembershipResponse] = (
     ("response_type" | ResponseType.codec) >>:~ { response_type =>
       ("unk0" | uint8L) ::
-      ("avatar_guid" | PlanetSideGUID.codec) ::
-        ("outfit_guid-1" | PlanetSideGUID.codec) ::
+      ("outfit_id" | uint32L) ::
         ("target_guid" | PlanetSideGUID.codec) ::
         ("unk3" | uint16L) ::
         //("unk4" | bool) ::
@@ -232,12 +230,12 @@ object OutfitMembershipResponse extends Marshallable[OutfitMembershipResponse] {
     }
     ).xmap[OutfitMembershipResponse](
     {
-      case response_type :: u0 :: avatar_guid :: outfit_guid_1 :: target_guid :: u3 :: action :: HNil =>
-        OutfitMembershipResponse(response_type, u0, avatar_guid, outfit_guid_1, target_guid, u3, action)
+      case response_type :: u0 :: outfit_id :: target_guid :: u3 :: action :: HNil =>
+        OutfitMembershipResponse(response_type, u0, outfit_id, target_guid, u3, action)
     },
     {
-      case OutfitMembershipResponse(response_type, u0, avatar_guid, u1, u2, u3, action) =>
-        response_type :: u0 :: avatar_guid :: u1 :: u2 :: u3 :: action :: HNil
+      case OutfitMembershipResponse(response_type, u0, outfit_id, u2, u3, action) =>
+        response_type :: u0 :: outfit_id :: u2 :: u3 :: action :: HNil
     }
   )
 }

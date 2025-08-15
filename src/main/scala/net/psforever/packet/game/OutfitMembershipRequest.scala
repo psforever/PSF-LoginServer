@@ -3,7 +3,6 @@ package net.psforever.packet.game
 
 import net.psforever.packet.GamePacketOpcode.Type
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.PlanetSideGUID
 import scodec.{Attempt, Codec, Err}
 import scodec.bits.BitVector
 import scodec.codecs._
@@ -11,8 +10,7 @@ import shapeless.{::, HNil}
 
 final case class OutfitMembershipRequest(
     request_type: OutfitMembershipRequest.RequestType.Type,
-    avatar_guid: PlanetSideGUID, // avatar_guid and unk1 are related, might be Long instead
-    unk1: Int, //
+    outfit_id: Long,
     action: OutfitMembershipRequestAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitMembershipRequest
@@ -170,18 +168,17 @@ object OutfitMembershipRequest extends Marshallable[OutfitMembershipRequest] {
 
   implicit val codec: Codec[OutfitMembershipRequest] = (
     ("request_type" | RequestType.codec) >>:~ { request_type =>
-      ("avatar_guid" | PlanetSideGUID.codec) ::
-        ("unk1" | uint16L) ::
+      ("outfit_id" | uint32L) ::
         ("action" | selectFromType(request_type.id))
     }
   ).xmap[OutfitMembershipRequest](
     {
-      case request_type :: avatar_guid :: u1 :: action :: HNil =>
-        OutfitMembershipRequest(request_type, avatar_guid, u1, action)
+      case request_type :: outfit_id :: action :: HNil =>
+        OutfitMembershipRequest(request_type, outfit_id, action)
     },
     {
-      case OutfitMembershipRequest(request_type, avatar_guid, u1, action) =>
-        request_type :: avatar_guid :: u1 :: action :: HNil
+      case OutfitMembershipRequest(request_type, outfit_id, action) =>
+        request_type :: outfit_id :: action :: HNil
     }
   )
 }

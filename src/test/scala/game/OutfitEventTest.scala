@@ -54,11 +54,9 @@ class OutfitEventTest extends Specification {
     PacketCoding.decodePacket(unk0_ABC).require match {
       case OutfitEvent(request_type, outfit_guid, action) =>
         request_type mustEqual RequestType.Unk0
-        outfit_guid mustEqual PlanetSideGUID(25044)
+        outfit_guid mustEqual 25044
         action mustEqual Unk0(
           OutfitInfo(
-            unk1 = 0,
-            unk2 = 0,
             outfit_name = "Black Armored Reapers",
             unk6 = 223190045,
             unk7 = 223190045,
@@ -85,11 +83,9 @@ class OutfitEventTest extends Specification {
   "encode Unk0 ABC" in {
     val msg = OutfitEvent(
       RequestType.Unk0,
-      PlanetSideGUID(25044),
+      25044,
       Unk0(
         OutfitInfo(
-          unk1 = 0,
-          unk2 = 0,
           outfit_name = "Black Armored Reapers",
           unk6 = 223190045,
           unk7 = 223190045,
@@ -118,8 +114,11 @@ class OutfitEventTest extends Specification {
     PacketCoding.decodePacket(unk1_ABC).require match {
       case OutfitEvent(request_type, outfit_guid, action) =>
         request_type mustEqual RequestType.Unk1
-        outfit_guid mustEqual PlanetSideGUID(5400)
-        action mustEqual Unk1(unk0 = 8, unk1 = 0, unk2 = 0, unk3 = false)
+        outfit_guid mustEqual 529688L
+        action mustEqual Unk1(
+          unk2 = 0,
+          unk3 = false
+        )
       case _ =>
         ko
     }
@@ -128,10 +127,8 @@ class OutfitEventTest extends Specification {
   "encode Unk1 ABC" in {
     val msg = OutfitEvent(
       RequestType.Unk1,
-      PlanetSideGUID(5400),
+      529688L,
       Unk1(
-        unk0 = 8,
-        unk1 = 0,
         unk2 = 0,
         unk3 = false,
       )
@@ -145,10 +142,25 @@ class OutfitEventTest extends Specification {
     PacketCoding.decodePacket(unk2_ABC).require match {
       case OutfitEvent(request_type, outfit_guid, action) =>
         request_type mustEqual RequestType.Unk2
-        outfit_guid mustEqual PlanetSideGUID(1)
-        action mustEqual Unk2(OutfitInfo(unk1 = 255, unk2 = 127, outfit_name = "PlanetSide_Forever_Vanu",
-          unk6 = 0, unk7 = 0, member_count = 1, unk9 = 0, OutfitRankNames("","","","","","","",""),
-          "", PlanetSideGUID(28672), 33353, 0, 0, 0, 0, 0, 0, 0))
+        outfit_guid mustEqual 2147418113L
+        action mustEqual Unk2(OutfitInfo(
+          outfit_name = "PlanetSide_Forever_Vanu",
+          unk6 = 0,
+          unk7 = 0,
+          member_count = 1,
+          unk9 = 0,
+          OutfitRankNames("","","","","","","",""),
+          "",
+          PlanetSideGUID(28672),
+          33353,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ))
       case _ =>
         ko
     }
@@ -157,11 +169,9 @@ class OutfitEventTest extends Specification {
   "encode Unk2 ABC" in {
     val msg = OutfitEvent(
       RequestType.Unk2,
-      PlanetSideGUID(1),
+      2147418113L,
       Unk2(
         OutfitInfo(
-          unk1 = 255,
-          unk2 = 127,
           outfit_name = "PlanetSide_Forever_Vanu",
           unk6 = 0,
           unk7 = 0,
@@ -190,10 +200,8 @@ class OutfitEventTest extends Specification {
     PacketCoding.decodePacket(unk3_ABC).require match {
       case OutfitEvent(request_type, outfit_guid, action) =>
         request_type mustEqual RequestType.Unk3
-        outfit_guid mustEqual PlanetSideGUID(1)
+        outfit_guid mustEqual 2147418113L
         action mustEqual Unk3(
-          unk0 = 255,
-          unk1 = 127,
           unk2 = 0,
           unk3 = false,
           BitVector.fromValidHex("")
@@ -206,10 +214,8 @@ class OutfitEventTest extends Specification {
   "encode Unk3 ABC" in {
     val msg = OutfitEvent(
       RequestType.Unk3,
-      PlanetSideGUID(1),
+      2147418113L,
       Unk3(
-        unk0 = 255,
-        unk1 = 127,
         unk2 = 0,
         unk3 = false,
         BitVector.fromValidHex("")
@@ -224,11 +230,9 @@ class OutfitEventTest extends Specification {
     PacketCoding.decodePacket(unk4_ABC).require match {
       case OutfitEvent(request_type, outfit_guid, action) =>
         request_type mustEqual RequestType.Unk4
-        outfit_guid mustEqual PlanetSideGUID(1)
+        outfit_guid mustEqual 2147418113L
         action mustEqual Unk4(
-          unk0 = 32767,
-          unk1 = 5456,
-          unk2 = 8,
+          new_outfit_id = 529744L,
           0,
           unk4 = false,
           BitVector.fromValidHex("")
@@ -241,11 +245,9 @@ class OutfitEventTest extends Specification {
   "encode Unk4 ABC" in {
     val msg = OutfitEvent(
       RequestType.Unk4,
-      PlanetSideGUID(1),
+      2147418113L,
       Unk4(
-        unk0 = 32767,
-        unk1 = 5456,
-        unk2 = 8,
+        new_outfit_id = 529744L,
         unk3 = 0,
         unk4 = false,
         BitVector.fromValidHex("")
@@ -260,9 +262,8 @@ class OutfitEventTest extends Specification {
     PacketCoding.decodePacket(unk5_ABC).require match {
       case OutfitEvent(request_type, outfit_guid, action) =>
         request_type mustEqual RequestType.Unk5
-        outfit_guid mustEqual PlanetSideGUID(1)
+        outfit_guid mustEqual 2147418113L
         action mustEqual Unk5(
-          unk0 = 32767,
           unk1 = 2,
           unk2 = 0,
           unk3 = 0,
@@ -277,9 +278,8 @@ class OutfitEventTest extends Specification {
   "encode Unk5 ABC" in {
     val msg = OutfitEvent(
       RequestType.Unk5,
-      PlanetSideGUID(1),
+      2147418113L,
       Unk5(
-        unk0 = 32767,
         unk1 = 2,
         unk2 = 0,
         unk3 = 0,
