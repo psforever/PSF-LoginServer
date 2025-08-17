@@ -24,15 +24,38 @@ abstract class OutfitMembershipRequestAction(val code: Int)
 
 object OutfitMembershipRequestAction {
 
-  final case class CreateOutfit(unk2: String, unk3: Int, unk4: Boolean, outfit_name: String) extends OutfitMembershipRequestAction(code = 0)
+  final case class CreateOutfit(
+    unk2: String,
+    unk3: Int,
+    unk4: Boolean,
+    outfit_name: String
+  ) extends OutfitMembershipRequestAction(code = 0)
 
-  final case class FormOutfit(unk2: String, unk3: Int, unk4: Boolean, outfit_name: String) extends OutfitMembershipRequestAction(code = 1)
+  final case class FormOutfit(
+    unk2: String,
+    unk3: Int,
+    unk4: Boolean,
+    outfit_name: String
+  ) extends OutfitMembershipRequestAction(code = 1)
 
-  final case class AcceptOutfitInvite(unk2: String) extends OutfitMembershipRequestAction(code = 3)
+  final case class Unk2(
+    unk2: Int,
+    unk3: Int,
+    member_name: String,
+  ) extends OutfitMembershipRequestAction(code = 2)
+  final case class AcceptOutfitInvite(
+    unk2: String
+  ) extends OutfitMembershipRequestAction(code = 3)
 
-  final case class RejectOutfitInvite(unk2: String) extends OutfitMembershipRequestAction(code = 4)
+  final case class RejectOutfitInvite(
+    unk2: String
+  ) extends OutfitMembershipRequestAction(code = 4)
 
-  final case class CancelOutfitInvite(unk5: Int, unk6: Int, outfit_name: String) extends OutfitMembershipRequestAction(code = 5)
+  final case class CancelOutfitInvite(
+    unk5: Int,
+    unk6: Int,
+    outfit_name: String
+  ) extends OutfitMembershipRequestAction(code = 5)
 
   final case class Unknown(badCode: Int, data: BitVector) extends OutfitMembershipRequestAction(badCode)
 
@@ -44,7 +67,12 @@ object OutfitMembershipRequestAction {
     private val everFailCondition = conditional(included = false, bool)
 
     val CreateOutfitCodec: Codec[CreateOutfit] =
-      (PacketHelpers.encodedWideString :: uint4L :: bool :: PacketHelpers.encodedWideString).xmap[CreateOutfit](
+      (
+        PacketHelpers.encodedWideString ::
+          uint4L ::
+          bool ::
+          PacketHelpers.encodedWideString
+        ).xmap[CreateOutfit](
         {
           case unk2 :: unk3 :: unk4 :: outfit_name :: HNil =>
             CreateOutfit(unk2, unk3, unk4, outfit_name)
@@ -56,7 +84,12 @@ object OutfitMembershipRequestAction {
       )
 
     val FormOutfitCodec: Codec[FormOutfit] =
-      (PacketHelpers.encodedWideString :: uint4L :: bool :: PacketHelpers.encodedWideString).xmap[FormOutfit](
+      (
+        PacketHelpers.encodedWideString ::
+          uint4L ::
+          bool ::
+          PacketHelpers.encodedWideString
+        ).xmap[FormOutfit](
         {
           case unk2 :: unk3 :: unk4 :: outfit_name :: HNil =>
             FormOutfit(unk2, unk3, unk4, outfit_name)
@@ -64,6 +97,22 @@ object OutfitMembershipRequestAction {
         {
           case FormOutfit(unk2, unk3, unk4, outfit_name) =>
             unk2 :: unk3 :: unk4 :: outfit_name :: HNil
+        }
+      )
+
+    val Unk2Codec: Codec[Unk2] =
+      (
+        uint16L ::
+          uint16L ::
+          PacketHelpers.encodedWideStringAligned(5)
+        ).xmap[Unk2](
+        {
+          case unk2 :: unk3 :: member_name :: HNil =>
+            Unk2(unk2, unk3, member_name)
+        },
+        {
+          case Unk2(unk2, unk3, member_name) =>
+            unk2 :: unk3 :: member_name :: HNil
         }
       )
 
@@ -92,7 +141,11 @@ object OutfitMembershipRequestAction {
       )
 
     val CancelOutfitCodec: Codec[CancelOutfitInvite] =
-      (uint16L :: uint16L :: PacketHelpers.encodedWideStringAligned(5)).xmap[CancelOutfitInvite](
+      (
+        uint16L ::
+          uint16L ::
+          PacketHelpers.encodedWideStringAligned(5)
+        ).xmap[CancelOutfitInvite](
         {
           case unk5 :: unk6 :: outfit_name :: HNil =>
             CancelOutfitInvite(unk5, unk6, outfit_name)
@@ -155,7 +208,7 @@ object OutfitMembershipRequest extends Marshallable[OutfitMembershipRequest] {
     ((code: @switch) match {
       case 0 => CreateOutfitCodec
       case 1 => FormOutfitCodec // so far same as Create
-      case 2 => unknownCodec(action = code)
+      case 2 => Unk2Codec
       case 3 => AcceptOutfitCodec
       case 4 => RejectOutfitCodec // so far same as Accept
       case 5 => CancelOutfitCodec

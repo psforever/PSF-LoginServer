@@ -13,7 +13,8 @@ class OutfitMembershipRequestTest extends Specification {
   val create_2222  = hex"8c 0 1000 000 1000 84 3200320032003200"
   val form_abc     = hex"8c 2 0200 000 1000 83 610062006300"
   val form_1       = hex"8c 2 1000 000 1000 81 3100"
-  val unk3         = hex"8c 5 bb39 9e0 2000 0000 1080 750072006f006200" // -- "urob" -- could be false positive -- seems to gets an OMSResp -> 0x8d271bb399e025af8f405080550072006f0062008080
+  val unk2         = hex"8c 5 bb399e0 2000 0000 1140 7600690072007500730067006900760065007200" // -- virusgiver
+  val unk3         = hex"8c 5 bb399e0 2000 0000 1080 750072006f006200" // -- "urob" -- could be false positive -- seems to gets an OMSResp -> 0x8d271bb399e025af8f405080550072006f0062008080
   val accept_1     = hex"8c 6 0200 000 1000"
   val accept_2     = hex"8c 6 0400 000 1000"
   val reject_1     = hex"8c 8 0200 000 1000"
@@ -92,6 +93,24 @@ class OutfitMembershipRequestTest extends Specification {
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual form_1
+  }
+
+  "decode Unk2" in {
+    PacketCoding.decodePacket(unk2).require match {
+      case OutfitMembershipRequest(request_type, outfit_id, action) =>
+        request_type mustEqual RequestType.Unk2
+        outfit_id mustEqual 30383325L
+        action mustEqual Unk2(0, 0, "virusgiver")
+      case _ =>
+        ko
+    }
+  }
+
+  "encode Unk2" in {
+    val msg = OutfitMembershipRequest(RequestType.Unk2, 30383325L, Unk2(0, 0, "virusgiver"))
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
+
+    pkt mustEqual unk2
   }
 
   "decode AcceptOutfitInvite 1" in {
