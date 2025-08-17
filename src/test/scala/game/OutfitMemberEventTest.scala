@@ -31,13 +31,11 @@ val unk0_ABC_Lazer: ByteVector =      hex"90 048640001030c28022404c0061007a00650
 
   "decode Unk0 ABC" in {
     PacketCoding.decodePacket(unk0_ABC_Lazer).require match {
-      case OutfitMemberEvent(unk00, outfit_guid, unk3, unk4, unk5, unk6, member_name, unk8, unk9, unk10, unk11, unk12, unk13,unk14,unk15,unk16) =>
+      case OutfitMemberEvent(unk00, outfit_guid, unk3, unk5, member_name, unk8, unk9, unk10, unk11, unk12, unk13,unk14,unk15,unk16) =>
         unk00 mustEqual 0
         outfit_guid mustEqual 6418L
-        unk3 mustEqual 64
-        unk4 mustEqual 195
+        unk3 mustEqual 49984
         unk5 mustEqual 10
-        unk6 mustEqual 0
         member_name mustEqual "Lazer1982"
         unk8 mustEqual 244
         unk9 mustEqual 58
@@ -57,10 +55,8 @@ val unk0_ABC_Lazer: ByteVector =      hex"90 048640001030c28022404c0061007a00650
     val msg = OutfitMemberEvent(
       unk00 = 0,
       outfit_id = 6418L,
-      unk3 = 64,
-      unk4 = 195,
+      unk3 = 49984,
       unk5 = 10,
-      unk6 = 0,
       member_name = "Lazer1982",
       unk8 = 244,
       unk9 = 58,

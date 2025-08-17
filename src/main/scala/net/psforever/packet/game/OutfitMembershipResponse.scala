@@ -13,7 +13,7 @@ final case class OutfitMembershipResponse(
     response_type: OutfitMembershipResponse.ResponseType.Type,
     unk0: Int,
     outfit_id: Long,
-    unk2: PlanetSideGUID,
+    target_guid: PlanetSideGUID,
     unk3: Int,
     //unk4: Boolean,
     action: OutfitMembershipResponseAction
@@ -190,7 +190,7 @@ object OutfitMembershipResponse extends Marshallable[OutfitMembershipResponse] {
     type Type = Value
 
     val CreateResponse: ResponseType.Value = Value(0)
-    val Unk1: ResponseType.Value = Value(1)
+    val Unk1: ResponseType.Value = Value(1) // Info: Player has been invited / response to OutfitMembershipRequest Unk2 for that player
     val Unk2: ResponseType.Value = Value(2) // Invited / Accepted / Added
     val Unk3: ResponseType.Value = Value(3)
     val Unk4: ResponseType.Value = Value(4)

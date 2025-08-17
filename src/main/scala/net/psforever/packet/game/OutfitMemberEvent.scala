@@ -9,10 +9,8 @@ import shapeless.{::, HNil}
 final case class OutfitMemberEvent(
   unk00: Int,
   outfit_id: Long,
-  unk3: Int,
-  unk4: Int,
-  unk5: Int,
-  unk6: Int,
+  unk3: Int, // OMR(Unk1) target_guid
+  unk5: Int, // OMR(Unk1) unk3
   member_name: String,
   unk8: Int,
   unk9: Int,
@@ -33,10 +31,8 @@ object OutfitMemberEvent extends Marshallable[OutfitMemberEvent] {
   implicit val codec: Codec[OutfitMemberEvent] = (
     ("unk00" | uintL(2)) ::
     ("outfit_id" | uint32L) ::
-      ("unk3" | uint8L) ::
-      ("unk4" | uint8L) ::
-      ("unk5" | uint8L) ::
-      ("unk6" | uint8L) ::
+      ("unk3" | uint16L) :: // OMR(Unk1) unk2
+      ("unk5" | uint16L) ::
       ("member_name" | PacketHelpers.encodedWideStringAligned(6)) ::
       ("unk8" | uint8L) ::
       ("unk9" | uint8L) ::
@@ -49,12 +45,12 @@ object OutfitMemberEvent extends Marshallable[OutfitMemberEvent] {
       ("unk16" | uint8L)
     ).xmap[OutfitMemberEvent](
     {
-      case unk00 :: outfit_id :: u3 :: u4 :: u5 :: u6 :: member_name :: u8 :: u9 :: u10 :: u11 :: u12 :: u13 :: u14 :: u15 :: u16 :: HNil =>
-        OutfitMemberEvent(unk00, outfit_id, u3, u4, u5, u6, member_name, u8, u9, u10, u11, u12, u13, u14, u15, u16)
+      case unk00 :: outfit_id :: u3 :: u5 :: member_name :: u8 :: u9 :: u10 :: u11 :: u12 :: u13 :: u14 :: u15 :: u16 :: HNil =>
+        OutfitMemberEvent(unk00, outfit_id, u3, u5, member_name, u8, u9, u10, u11, u12, u13, u14, u15, u16)
     },
     {
-      case OutfitMemberEvent(unk00, outfit_id, u3, u4, u5, u6, member_name, u8, u9, u10, u11, u12, u13, u14, u15, u16) =>
-        unk00 :: outfit_id :: u3 :: u4 :: u5 :: u6 :: member_name :: u8 :: u9 :: u10 :: u11 :: u12 :: u13 :: u14 :: u15 :: u16 :: HNil
+      case OutfitMemberEvent(unk00, outfit_id, u3, u5, member_name, u8, u9, u10, u11, u12, u13, u14, u15, u16) =>
+        unk00 :: outfit_id :: u3 :: u5 :: member_name :: u8 :: u9 :: u10 :: u11 :: u12 :: u13 :: u14 :: u15 :: u16 :: HNil
     }
   )
 }
