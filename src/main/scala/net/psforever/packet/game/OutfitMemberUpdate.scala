@@ -8,8 +8,7 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 final case class OutfitMemberUpdate(
-  outfit_guid: PlanetSideGUID,
-  unk1: Int,
+  outfit_guid: Long,
   avatar_guid: PlanetSideGUID,
   unk3: Int,
 ) extends PlanetSideGamePacket {
@@ -20,18 +19,17 @@ final case class OutfitMemberUpdate(
 
 object OutfitMemberUpdate extends Marshallable[OutfitMemberUpdate] {
   implicit val codec: Codec[OutfitMemberUpdate] = (
-    ("outfit_guid" | PlanetSideGUID.codec) ::
-      ("unk1" | uint16L) ::
+    ("outfit_guid" | uint32L) ::
       ("avatar_guid" | PlanetSideGUID.codec) ::
       ("unk3" | uint8L)
     ).xmap[OutfitMemberUpdate](
     {
-      case outfit_guid :: u1 :: u2 :: u3 :: HNil =>
-        OutfitMemberUpdate(outfit_guid, u1, u2, u3)
+      case outfit_guid :: u2 :: u3 :: HNil =>
+        OutfitMemberUpdate(outfit_guid, u2, u3)
     },
     {
-      case OutfitMemberUpdate(outfit_guid, u1, u2, u3) =>
-        outfit_guid :: u1 :: u2 :: u3 :: HNil
+      case OutfitMemberUpdate(outfit_guid, u2, u3) =>
+        outfit_guid :: u2 :: u3 :: HNil
     }
   )
 }
