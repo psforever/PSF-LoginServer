@@ -3,19 +3,14 @@ package net.psforever.packet.game
 
 import net.psforever.packet.GamePacketOpcode.Type
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import scodec.bits.BitVector
+import scodec.{Attempt, Codec, Err}
+import scodec.bits.{BitVector, ByteVector}
 import scodec.codecs._
-import scodec.{Attempt, Codec}
-
-// 98 5ec300000d01a020004000001 12056002e0053002e0053002e0055002e004400 845400680069006f009 85ee300001e2b 858000800000110041002e0027002e0041002e0027002e00 8448006900720075009 84003200005a540000060000011a0530065006300720065007400200043006800690065006600730085530069006c00610073009840a32000001953476fe0c00011c041007a0075007200650020005400770069006c006900670068007400874600720061006e0063006b006f009840c3200000d3a4c000c00000106030002e006f0085410074006c0061007300984183200011d9296000c0000011e0570061007200720069006f007200270073002000430072006500650064008653006500760061006b00690098442320001bf40e000080000013203100330033003700740068002000410072006d006f0072006500640020004400690076006900730069006f006e002d004b008548006f0073002d004b009844c320001b3d2c200060000012a03300330031007300740020004d0069006e006e00650073006f0074006100200054007200690062006500864d006100670069002d0045009846c3200009e206c00040000010c04100720065006100350031008942006c00610063
+import shapeless.{::, HNil}
 
 final case class OutfitListEvent(
-    outfit_score: Long,
-    unk1: Long,
-    unk2: Long,
-    unk3: Int,
-    outfit_name: String,
-    outfit_leader: String,
+    request_type: OutfitListEvent.RequestType.Type,
+    action: OutfitListEventAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitListEvent
 
@@ -23,13 +18,144 @@ final case class OutfitListEvent(
 
   def encode: Attempt[BitVector] = OutfitListEvent.encode(this)
 }
-object OutfitListEvent extends Marshallable[OutfitListEvent] {
-  implicit val codec: Codec[OutfitListEvent] = (
-    ("outfit_score" | uint32) ::
+
+abstract class OutfitListEventAction(val code: Int)
+
+object OutfitListEventAction {
+
+  final case class ListElementOutfit(
+    outfit_id: Long,
+    points: Long,
+    members: Long,
+    outfit_name: String,
+    outfit_leader: String,
+  ) extends OutfitListEventAction(code = 2)
+
+  /*
+    TODO: Check packet when bundle packet has been implemented (packet containing OutfitListEvent packets back to back)
+    For now it seems like there is no valid packet captured
+   */
+  final case class Unk3(
+    unk1: Long,
+    data: ByteVector
+  ) extends OutfitListEventAction(code = 3)
+
+  final case class Unknown(badCode: Int, data: BitVector) extends OutfitListEventAction(badCode)
+
+  /**
+    * The `Codec`s used to transform the input stream into the context of a specific action
+    * and extract the field data from that stream.
+    */
+  object Codecs {
+    private val everFailCondition = conditional(included = false, bool)
+
+    val ListElementOutfitCodec: Codec[ListElementOutfit] = (
       ("unk1" | uint32L) ::
-      ("unk2" | uint32L) ::
-      ("unk3" | uint(3)) ::
-      ("outfit_name" | PacketHelpers.encodedWideStringAligned(5)) ::
-      ("outfit_leader" | PacketHelpers.encodedWideString)
-    ).as[OutfitListEvent]
+        ("points" | uint32L) ::
+        ("members" | uint32L) ::
+        ("outfit_name" | PacketHelpers.encodedWideStringAligned(5)) ::
+        ("outfit_leader" | PacketHelpers.encodedWideString)
+      ).xmap[ListElementOutfit](
+      {
+        case u1 :: points :: members :: outfit_name :: outfit_leader :: HNil =>
+          ListElementOutfit(u1, points, members, outfit_name, outfit_leader)
+      },
+      {
+        case ListElementOutfit(u1, points, members, outfit_name, outfit_leader) =>
+          u1 :: points :: members :: outfit_name :: outfit_leader :: HNil
+      }
+    )
+
+    val Unk3Codec: Codec[Unk3] = (
+      ("unk1" | uint32L) ::
+        ("data" | bytes)
+      ).xmap[Unk3](
+      {
+        case u1 :: data :: HNil =>
+          Unk3(u1, data)
+      },
+      {
+        case Unk3(u1, data) =>
+          u1 :: data :: HNil
+      }
+    )
+
+    /**
+      * A common form for known action code indexes with an unknown purpose and transformation is an "Unknown" object.
+      *
+      * @param action the action behavior code
+      * @return a transformation between the action code and the unknown bit data
+      */
+    def unknownCodec(action: Int): Codec[Unknown] =
+      bits.xmap[Unknown](
+        data => Unknown(action, data),
+        {
+          case Unknown(_, data) => data
+        }
+      )
+
+    /**
+      * The action code was completely unanticipated!
+      *
+      * @param action the action behavior code
+      * @return nothing; always fail
+      */
+    def failureCodec(action: Int): Codec[OutfitListEventAction] =
+      everFailCondition.exmap[OutfitListEventAction](
+        _ => Attempt.failure(Err(s"can not match a codec pattern for decoding $action")),
+        _ => Attempt.failure(Err(s"can not match a codec pattern for encoding $action"))
+      )
+  }
+}
+
+object OutfitListEvent extends Marshallable[OutfitListEvent] {
+  import shapeless.{::, HNil}
+
+  object RequestType extends Enumeration {
+    type Type = Value
+
+    val Unk0: RequestType.Value = Value(0)
+    val Unk1: RequestType.Value = Value(1)
+    val ListElementOutfit: RequestType.Value = Value(2)
+    val Unk3: RequestType.Value = Value(3)
+    val Unk4: RequestType.Value = Value(4)
+    val Unk5: RequestType.Value = Value(5)
+    val unk6: RequestType.Value = Value(6)
+    val unk7: RequestType.Value = Value(7)
+
+    implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
+  }
+
+  private def selectFromType(code: Int): Codec[OutfitListEventAction] = {
+    import OutfitListEventAction.Codecs._
+    import scala.annotation.switch
+
+    ((code: @switch) match {
+      case 0 => unknownCodec(action = code)
+      case 1 => unknownCodec(action = code)
+      case 2 => ListElementOutfitCodec
+      case 3 => Unk3Codec // indicated in code
+      case 4 => unknownCodec(action = code)
+      case 5 => unknownCodec(action = code)
+      case 6 => unknownCodec(action = code)
+      case 7 => unknownCodec(action = code)
+
+      case _ => failureCodec(code)
+    }).asInstanceOf[Codec[OutfitListEventAction]]
+  }
+
+  implicit val codec: Codec[OutfitListEvent] = (
+    ("request_type" | RequestType.codec) >>:~ { request_type =>
+      ("action" | selectFromType(request_type.id)).hlist
+    }
+    ).xmap[OutfitListEvent](
+    {
+      case request_type :: action :: HNil =>
+        OutfitListEvent(request_type, action)
+    },
+    {
+      case OutfitListEvent(request_type, action) =>
+        request_type :: action :: HNil
+    }
+  )
 }

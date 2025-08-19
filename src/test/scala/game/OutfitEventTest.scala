@@ -58,8 +58,8 @@ class OutfitEventTest extends Specification {
         action mustEqual Unk0(
           OutfitInfo(
             outfit_name = "Black Armored Reapers",
-            unk6 = 223190045,
-            unk7 = 223190045,
+            outfit_points1 = 223190045,
+            outfit_points2 = 223190045,
             member_count = 171,
             unk9 = 0,
             OutfitRankNames("Dog Meat","Russian","","","Squad Leaders","Acting Commanders","Reapers",""),
@@ -87,8 +87,8 @@ class OutfitEventTest extends Specification {
       Unk0(
         OutfitInfo(
           outfit_name = "Black Armored Reapers",
-          unk6 = 223190045,
-          unk7 = 223190045,
+          outfit_points1 = 223190045,
+          outfit_points2 = 223190045,
           member_count = 171,
           unk9 = 0,
           OutfitRankNames("Dog Meat","Russian","","","Squad Leaders","Acting Commanders","Reapers",""),
@@ -145,8 +145,8 @@ class OutfitEventTest extends Specification {
         outfit_guid mustEqual 2147418113L
         action mustEqual Unk2(OutfitInfo(
           outfit_name = "PlanetSide_Forever_Vanu",
-          unk6 = 0,
-          unk7 = 0,
+          outfit_points1 = 0,
+          outfit_points2 = 0,
           member_count = 1,
           unk9 = 0,
           OutfitRankNames("","","","","","","",""),
@@ -173,8 +173,8 @@ class OutfitEventTest extends Specification {
       Unk2(
         OutfitInfo(
           outfit_name = "PlanetSide_Forever_Vanu",
-          unk6 = 0,
-          unk7 = 0,
+          outfit_points1 = 0,
+          outfit_points2 = 0,
           member_count = 1,
           unk9 = 0,
           OutfitRankNames("","","","","","","",""),

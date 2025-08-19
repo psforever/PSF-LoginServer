@@ -38,8 +38,8 @@ object OutfitEventAction {
 
   final case class OutfitInfo(
     outfit_name: String,
-    unk6: Long,
-    unk7: Long,
+    outfit_points1: Long,
+    outfit_points2: Long, // same as outfit_points1
     member_count: Int,
     unk9: Int,
     outfit_rank_names: OutfitRankNames,
@@ -275,31 +275,6 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
     val Unk5: RequestType.Value = Value(5)
     val unk6: RequestType.Value = Value(6)
     val unk7: RequestType.Value = Value(7)
-
-    /*
-
-    OutfitEvent(Unk0, ValidPlanetSideGUID(18361), Unk0(OutfitInfo(0, 0, The Black Ravens, 338420223, 338420223, 433, 0, OutfitRankNames(Corporal (No Ventrilo), Sergeant - SGT, Advance Medical, , Master Sgt - MSG, Captain, Trusted Officer, OutFit Leader), TBR website..... http://trravens.darkbb.com     ventrilo info:  evolve.typefrag.com  port: 45694 (vent pw dotaftw)  Channel PW:    zeroenigma : if you guys wants to contact me,  my email is zero_overkill99@yahoo.com, ValidPlanetSideGUID(32787), 0, 0, 0, 1133571390, 0, 0, 0, 0)))
-    OutfitEvent(Unk2, ValidPlanetSideGUID(18361), Unk2(OutfitInfo(0, 0, The Black Ravens, 338420486, 338420486, 433, 0, OutfitRankNames(Corporal (No Ventrilo), Sergeant - SGT, Advance Medical, , Master Sgt - MSG, Captain, Trusted Officer, OutFit Leader), TBR website..... http://trravens.darkbb.com     ventrilo info:  evolve.typefrag.com  port: 45694 (vent pw dotaftw)  Channel PW:    zeroenigma : if you guys wants to contact me,  my email is zero_overkill99@yahoo.com, ValidPlanetSideGUID(32787), 0, 0, 0, 1133571390, 0, 0, 0, 0)))
-
-
-    unk3 -- #66162 PSCap-2016-02-28_02-58-10-PM.txt
-
-    MP(
-      SMP(
-       MPEx(
-        OutfitMembershipResponse,
-        OutfitEvent,
-        SquadMemberEvent
-       )
-      ),
-      SMP(
-       MPEx(
-        PlanetsideAttributeMessage x 3 + PlanetsideStringAttributeMessage
-       )
-      )
-     )
-    )
-    */
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }

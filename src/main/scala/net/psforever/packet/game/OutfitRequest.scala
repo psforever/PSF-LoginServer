@@ -149,7 +149,7 @@ object OutfitRequest extends Marshallable[OutfitRequest] {
     val Rank:   RequestType.Value = Value(1)
     val Unk2:   RequestType.Value = Value(2)
     val Detail: RequestType.Value = Value(3)
-    val List: RequestType.Value = Value(4)
+    val List: RequestType.Value = Value(4) // sent by client if menu is either open (true) or closed (false)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
@@ -175,7 +175,7 @@ object OutfitRequest extends Marshallable[OutfitRequest] {
     }
     ).xmap[OutfitRequest](
     {
-      case _:: id:: action :: HNil =>
+      case _ :: id:: action :: HNil =>
         OutfitRequest(id, action)
     },
     {
