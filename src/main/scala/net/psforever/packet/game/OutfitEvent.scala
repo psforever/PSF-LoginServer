@@ -44,8 +44,10 @@ object OutfitEventAction {
     unk9: Int,
     outfit_rank_names: OutfitRankNames,
     motd: String,
-    owner_guid: PlanetSideGUID, // ?
-    unk20: Int,
+    unk10: Int,
+    unk11: Int,
+    unk12: Int,
+    unk13: Int,// ?
     unk21: Int,
     unk21_2: Int,
     created_timestamp: Long,
@@ -126,8 +128,10 @@ object OutfitEventAction {
         uint16L ::
         OutfitRankNamesCodec ::
         PacketHelpers.encodedWideString ::
-        PlanetSideGUID.codec ::
-        uint16L ::  //
+        uint8L ::
+        uint8L ::
+        uint8L ::
+        uint8L ::
         uint8L ::   // bool somewhere here
         uintL(1) :: //
         ("created_timestamp" | uint32L) ::
@@ -137,12 +141,12 @@ object OutfitEventAction {
         uintL(7)
       ).xmap[OutfitInfo](
         {
-          case outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u19 :: u20 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil =>
-            OutfitInfo(outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u19, u20, u21, u21_2, created_timestamp, u23, u24, u25, u123)
+          case outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u10 :: u11 :: u12 :: u13 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil =>
+            OutfitInfo(outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u10, u11, u12, u13, u21, u21_2, created_timestamp, u23, u24, u25, u123)
         },
         {
-          case OutfitInfo(outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u19, u20, u21, u21_2, created_timestamp, u23, u24, u25, u123) =>
-            outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u19 :: u20 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil
+          case OutfitInfo(outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u10, u11, u12, u13, u21, u21_2, created_timestamp, u23, u24, u25, u123) =>
+            outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u10 :: u11 :: u12 :: u13 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil
         }
       )
 
@@ -284,9 +288,9 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
     import scala.annotation.switch
 
     ((code: @switch) match {
-      case 0 => Unk0Codec
+      case 0 => Unk0Codec // view outfit window and members
       case 1 => Unk1Codec
-      case 2 => Unk2Codec // sent after /outfitcreate ?
+      case 2 => Unk2Codec // sent after /outfitcreate and on login if in an outfit
       case 3 => Unk3Codec
       case 4 => Unk4Codec
       case 5 => Unk5Codec

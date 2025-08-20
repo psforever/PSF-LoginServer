@@ -9,11 +9,9 @@ import shapeless.{::, HNil}
 
 final case class OutfitMemberUpdate(
   outfit_guid: Long,
+  char_id: Long,
+  rank: Int, // 0-7
   unk1: Int,
-  unk2: Int,
-  unk3: Int,
-  unk4: Int,
-  unk5: Int,
 ) extends PlanetSideGamePacket {
   type Packet = OutfitMemberUpdate
   def opcode = GamePacketOpcode.OutfitMemberUpdate
@@ -23,19 +21,17 @@ final case class OutfitMemberUpdate(
 object OutfitMemberUpdate extends Marshallable[OutfitMemberUpdate] {
   implicit val codec: Codec[OutfitMemberUpdate] = (
     ("outfit_guid" | uint32L) ::
-      ("unk1" | uint8L) ::
-      ("unk2" | uint8L) ::
-      ("unk3" | uint8L) ::
-      ("unk4" | uint8L) ::
-      ("unk5" | uint8L)
+      ("char_id" | uint32L) ::
+      ("rank" | uint(3)) ::
+      ("unk1" | uint(5))
     ).xmap[OutfitMemberUpdate](
     {
-      case outfit_guid :: u1 :: u2 :: u3 :: u4 :: u5 :: HNil =>
-        OutfitMemberUpdate(outfit_guid, u1, u2, u3, u4, u5)
+      case outfit_guid :: char_id :: rank :: u1 :: HNil =>
+        OutfitMemberUpdate(outfit_guid, char_id, rank, u1)
     },
     {
-      case OutfitMemberUpdate(outfit_guid, u1, u2, u3, u4, u5) =>
-        outfit_guid :: u1 :: u2 :: u3 :: u4 :: u5 :: HNil
+      case OutfitMemberUpdate(outfit_guid, char_id, rank, u1) =>
+        outfit_guid :: char_id :: rank :: u1 :: HNil
     }
   )
 }
