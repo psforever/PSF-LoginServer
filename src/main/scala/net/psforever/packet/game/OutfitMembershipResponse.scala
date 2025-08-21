@@ -3,7 +3,6 @@ package net.psforever.packet.game
 
 import net.psforever.packet.GamePacketOpcode.Type
 import net.psforever.packet.{GamePacketOpcode, Marshallable, PacketHelpers, PlanetSideGamePacket}
-import net.psforever.types.PlanetSideGUID
 import scodec.{Attempt, Codec, Err}
 import scodec.bits.BitVector
 import scodec.codecs._
@@ -12,10 +11,9 @@ import shapeless.{::, HNil}
 final case class OutfitMembershipResponse(
     response_type: OutfitMembershipResponse.ResponseType.Type,
     unk0: Int,
+    unk1: Int,
     outfit_id: Long,
-    target_guid: PlanetSideGUID,
-    unk3: Int,
-    //unk4: Boolean,
+    target_id: Long,
     action: OutfitMembershipResponseAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitMembershipResponse
@@ -28,21 +26,39 @@ final case class OutfitMembershipResponse(
 abstract class OutfitMembershipResponseAction(val code: Int)
 object OutfitMembershipResponseAction {
 
-  final case class CreateOutfitResponse(str1: String, str2: String, str3: String) extends OutfitMembershipResponseAction(code = 0)
+  final case class Universal(
+   str1: String,
+   str2: String,
+   flag: Boolean
+ ) extends OutfitMembershipResponseAction(-1)
 
-  final case class Unk1OutfitResponse(player_name: String, outfit_name: String, unk7: Int) extends OutfitMembershipResponseAction(code = 1)
+  final case class CreateResponse(
+    str1: String,
+    str2: String,
+    str3: String
+  ) extends OutfitMembershipResponseAction(code = 0)
 
-  final case class Unk2OutfitResponse(player_name: String, outfit_name: String, unk7: Int) extends OutfitMembershipResponseAction(code = 2) // unk7 = rank?
+  final case class Unk1OutfitResponse(
+    player_name: String,
+    outfit_name: String,
+    unk7: Int
+  ) extends OutfitMembershipResponseAction(code = 1)
 
-  final case class Unk3OutfitResponse(unk2: String) extends OutfitMembershipResponseAction(code = 3)
+  final case class Unk2OutfitResponse(
+    player_name: String,
+    outfit_name: String,
+    unk7: Int
+  ) extends OutfitMembershipResponseAction(code = 2) // unk7 = rank?
 
-  final case class Unk4OutfitResponse(unk5: Int, unk6: Int, outfit_name: String) extends OutfitMembershipResponseAction(code = 4)
+  final case class Unk3OutfitResponse(
+    unk2: String
+  ) extends OutfitMembershipResponseAction(code = 3)
 
-  final case class Unk5OutfitResponse() extends OutfitMembershipResponseAction(code = 5)
-
-  final case class Unk6OutfitResponse() extends OutfitMembershipResponseAction(code = 6)
-
-  final case class Unk7OutfitResponse() extends OutfitMembershipResponseAction(code = 7)
+  final case class Unk4OutfitResponse(
+    unk5: Int,
+    unk6: Int,
+    outfit_name: String
+  ) extends OutfitMembershipResponseAction(code = 4)
 
   final case class Unknown(badCode: Int, data: BitVector) extends OutfitMembershipResponseAction(badCode)
 
@@ -53,17 +69,32 @@ object OutfitMembershipResponseAction {
   object Codecs {
     private val everFailCondition = conditional(included = false, bool)
 
-    val Unk0OutfitCodec: Codec[CreateOutfitResponse] = (
+    val UniversalResponseCodec: Codec[OutfitMembershipResponseAction] = (
+      PacketHelpers.encodedWideStringAligned(5) ::
+        PacketHelpers.encodedWideString ::
+        ("flag" | bool)
+      ).xmap[OutfitMembershipResponseAction](
+      {
+        case str1 :: str2 :: flag :: HNil =>
+          Universal(str1, str2, flag)
+      },
+      {
+        case Universal(str1, str2, flag) =>
+          str1 :: str2 :: flag :: HNil
+      }
+    )
+
+    val CreateOutfitCodec: Codec[CreateResponse] = (
       PacketHelpers.encodedWideStringAligned(5) ::
         PacketHelpers.encodedWideString ::
         PacketHelpers.encodedWideString
-      ).xmap[CreateOutfitResponse](
+      ).xmap[CreateResponse](
       {
         case str1 :: str2 :: str3 :: HNil =>
-          CreateOutfitResponse(str1, str2, str3)
+          CreateResponse(str1, str2, str3)
       },
       {
-        case CreateOutfitResponse(str1, str2, str3) =>
+        case CreateResponse(str1, str2, str3) =>
           str1 :: str2 :: str3 :: HNil
       }
     )
@@ -99,7 +130,7 @@ object OutfitMembershipResponseAction {
     )
 
     val Unk3OutfitCodec: Codec[Unk3OutfitResponse] =
-      PacketHelpers.encodedWideString.xmap[Unk3OutfitResponse](
+      PacketHelpers.encodedWideStringAligned(5).xmap[Unk3OutfitResponse](
         {
           case unk2 =>
             Unk3OutfitResponse(unk2)
@@ -110,8 +141,11 @@ object OutfitMembershipResponseAction {
         }
       )
 
-    val Unk4OutfitCodec: Codec[Unk4OutfitResponse] =
-      (uint16L :: uint16L :: PacketHelpers.encodedWideStringAligned(5)).xmap[Unk4OutfitResponse](
+    val Unk4OutfitCodec: Codec[Unk4OutfitResponse] = (
+      uint16L ::
+        uint16L ::
+        PacketHelpers.encodedWideStringAligned(5)
+      ).xmap[Unk4OutfitResponse](
         {
           case unk5 :: unk6 :: outfit_name :: HNil =>
             Unk4OutfitResponse(unk5, unk6, outfit_name)
@@ -121,42 +155,6 @@ object OutfitMembershipResponseAction {
             unk5 :: unk6 :: outfit_name :: HNil
         }
       )
-
-//    val Unk5OutfitCodec: Codec[Unk5OutfitResponse] =
-//      (uint16L :: uint16L :: PacketHelpers.encodedWideStringAligned(5)).xmap[Unk5OutfitResponse](
-//        {
-//          case unk5 :: unk6 :: outfit_name :: HNil =>
-//            Unk5OutfitResponse(unk5, unk6, outfit_name)
-//        },
-//        {
-//          case Unk5OutfitResponse(unk5, unk6, outfit_name) =>
-//            unk5 :: unk6 :: outfit_name :: HNil
-//        }
-//      )
-//
-//    val Unk6OutfitCodec: Codec[Unk6OutfitResponse] =
-//      (uint16L :: uint16L :: PacketHelpers.encodedWideStringAligned(5)).xmap[Unk6OutfitResponse](
-//        {
-//          case _ =>
-//            Unk6OutfitResponse()
-//        },
-//        {
-//          case Unk6OutfitResponse() =>
-//            _
-//        }
-//      )
-//
-//    val Unk7OutfitCodec: Codec[Unk7OutfitResponse] =
-//      (uint16L :: uint16L :: PacketHelpers.encodedWideStringAligned(5)).xmap[Unk7OutfitResponse](
-//        {
-//          case _ =>
-//            Unk7OutfitResponse()
-//        },
-//        {
-//          case Unk7OutfitResponse() =>
-//            _
-//        }
-//      )
 
     /**
       * A common form for known action code indexes with an unknown purpose and transformation is an "Unknown" object.
@@ -206,14 +204,24 @@ object OutfitMembershipResponse extends Marshallable[OutfitMembershipResponse] {
     import scala.annotation.switch
 
     ((code: @switch) match {
-      case 0 => Unk0OutfitCodec // seem as OMReq Create response
-      case 1 => Unk1OutfitCodec
-      case 2 => Unk2OutfitCodec
-      case 3 => Unk3OutfitCodec
-      case 4 => Unk4OutfitCodec
-      case 5 => unknownCodec(action = code)
-      case 6 => unknownCodec(action = code)
-      case 7 => unknownCodec(action = code)
+      case 0 => UniversalResponseCodec
+      case 1 => UniversalResponseCodec
+      case 2 => UniversalResponseCodec
+      case 3 => UniversalResponseCodec
+      case 4 => UniversalResponseCodec
+      case 5 => UniversalResponseCodec
+      case 6 => UniversalResponseCodec
+      case 7 => UniversalResponseCodec
+
+//      case 0 => CreateOutfitCodec // seem as OMReq Create response
+//      case 1 => Unk1OutfitCodec
+//      case 2 => Unk2OutfitCodec
+//      case 3 => Unk3OutfitCodec
+//      case 4 => Unk4OutfitCodec
+//      case 5 => unknownCodec(action = code)
+//      case 6 => unknownCodec(action = code)
+//      case 7 => unknownCodec(action = code)
+
       // 3 bit limit
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[OutfitMembershipResponseAction]]
@@ -221,21 +229,20 @@ object OutfitMembershipResponse extends Marshallable[OutfitMembershipResponse] {
 
   implicit val codec: Codec[OutfitMembershipResponse] = (
     ("response_type" | ResponseType.codec) >>:~ { response_type =>
-      ("unk0" | uint8L) ::
+      ("unk0" | uintL(5)) ::
+      ("unk1" | uintL(3)) ::
       ("outfit_id" | uint32L) ::
-        ("target_guid" | PlanetSideGUID.codec) ::
-        ("unk3" | uint16L) ::
-        //("unk4" | bool) ::
-        ("action" | selectFromType(response_type.id))
+      ("target_id" | uint32L) ::
+      ("action" | selectFromType(response_type.id))
     }
     ).xmap[OutfitMembershipResponse](
     {
-      case response_type :: u0 :: outfit_id :: target_guid :: u3 :: action :: HNil =>
-        OutfitMembershipResponse(response_type, u0, outfit_id, target_guid, u3, action)
+      case response_type :: u0 :: u1 :: outfit_id :: target_id :: action :: HNil =>
+        OutfitMembershipResponse(response_type, u0, u1, outfit_id, target_id, action)
     },
     {
-      case OutfitMembershipResponse(response_type, u0, outfit_id, u2, u3, action) =>
-        response_type :: u0 :: outfit_id :: u2 :: u3 :: action :: HNil
+      case OutfitMembershipResponse(response_type, u0, u1, outfit_id, target_id, action) =>
+        response_type :: u0 :: u1 :: outfit_id :: target_id :: action :: HNil
     }
   )
 }

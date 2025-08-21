@@ -5,7 +5,6 @@ import net.psforever.packet._
 import net.psforever.packet.game.OutfitEvent.RequestType
 import net.psforever.packet.game.OutfitEventAction._
 import net.psforever.packet.game._
-import net.psforever.types.PlanetSideGUID
 import org.specs2.mutable._
 import scodec.bits._
 
@@ -64,7 +63,9 @@ class OutfitEventTest extends Specification {
             unk9 = 0,
             OutfitRankNames("Dog Meat","Russian","","","Squad Leaders","Acting Commanders","Reapers",""),
             "\\#0000ffMumble \\#0033ffInfo \\#0066ffis \\#0099ffthemoose.typefrag.com \\#00ccffport \\#00ffff9350 \\#00ccffjoin \\#0099ffit \\#0066ffor \\#0033ffbe \\#0000ffkicked.",
-            PlanetSideGUID(32783),
+            15,
+            128,
+            0,
             0,
             0,
             0,
@@ -93,7 +94,9 @@ class OutfitEventTest extends Specification {
           unk9 = 0,
           OutfitRankNames("Dog Meat","Russian","","","Squad Leaders","Acting Commanders","Reapers",""),
           "\\#0000ffMumble \\#0033ffInfo \\#0066ffis \\#0099ffthemoose.typefrag.com \\#00ccffport \\#00ffff9350 \\#00ccffjoin \\#0099ffit \\#0066ffor \\#0033ffbe \\#0000ffkicked.",
-          PlanetSideGUID(32783),
+          15,
+          128,
+          0,
           0,
           0,
           0,
@@ -151,8 +154,10 @@ class OutfitEventTest extends Specification {
           unk9 = 0,
           OutfitRankNames("","","","","","","",""),
           "",
-          PlanetSideGUID(28672),
-          33353,
+          0,
+          112,
+          73,
+          130,
           0,
           0,
           0,
@@ -179,15 +184,17 @@ class OutfitEventTest extends Specification {
           unk9 = 0,
           OutfitRankNames("","","","","","","",""),
           "",
-          PlanetSideGUID(28672),
-          33353,
+          0,
+          112,
+          73,
+          130,
           0,
           0,
           0,
           0,
           0,
           0,
-          0,
+          0
         )
       )
     )

@@ -22,40 +22,49 @@ final case class OutfitMembershipRequest(
 
 abstract class OutfitMembershipRequestAction(val code: Int)
 
+/*
+  Codecs 2,5,6,7 can either work off of the avatar_id (if GUI was used) or member_name (if chat command was used)
+ */
 object OutfitMembershipRequestAction {
 
-  final case class CreateOutfit(
-    unk2: String,
-    unk3: Int,
-    unk4: Boolean,
+  final case class Create(
+    unk1: String,
     outfit_name: String
   ) extends OutfitMembershipRequestAction(code = 0)
 
-  final case class FormOutfit(
-    unk2: String,
-    unk3: Int,
-    unk4: Boolean,
+  final case class Form(
+    unk1: String,
     outfit_name: String
   ) extends OutfitMembershipRequestAction(code = 1)
 
-  final case class Unk2(
-    unk2: Int,
-    unk3: Int,
+  final case class Invite(
+    avatar_id: Long,
     member_name: String,
   ) extends OutfitMembershipRequestAction(code = 2)
-  final case class AcceptOutfitInvite(
-    unk2: String
+
+  final case class AcceptInvite(
+    member_name: String
   ) extends OutfitMembershipRequestAction(code = 3)
 
-  final case class RejectOutfitInvite(
-    unk2: String
+  final case class RejectInvite(
+    member_name: String
   ) extends OutfitMembershipRequestAction(code = 4)
 
-  final case class CancelOutfitInvite(
-    unk5: Int,
-    unk6: Int,
-    outfit_name: String
+  final case class CancelInvite(
+    avatar_id: Long,
+    member_name: String,
   ) extends OutfitMembershipRequestAction(code = 5)
+
+  final case class Kick(
+    avatar_id: Long,
+    member_name: String,
+  ) extends OutfitMembershipRequestAction(code = 6)
+
+  final case class SetRank(
+    avatar_id: Long, // 32
+    rank: Int, // 3
+    member_name: String,
+  ) extends OutfitMembershipRequestAction(code = 7)
 
   final case class Unknown(badCode: Int, data: BitVector) extends OutfitMembershipRequestAction(badCode)
 
@@ -66,95 +75,121 @@ object OutfitMembershipRequestAction {
   object Codecs {
     private val everFailCondition = conditional(included = false, bool)
 
-    val CreateOutfitCodec: Codec[CreateOutfit] =
+    val CreateCodec: Codec[Create] =
       (
-        PacketHelpers.encodedWideString ::
-          uint4L ::
-          bool ::
+        PacketHelpers.encodedWideStringAligned(5) ::
           PacketHelpers.encodedWideString
-        ).xmap[CreateOutfit](
+        ).xmap[Create](
         {
-          case unk2 :: unk3 :: unk4 :: outfit_name :: HNil =>
-            CreateOutfit(unk2, unk3, unk4, outfit_name)
+          case u1 :: outfit_name :: HNil =>
+            Create(u1, outfit_name)
         },
         {
-          case CreateOutfit(unk2, unk3, unk4, outfit_name) =>
-            unk2 :: unk3 :: unk4 :: outfit_name :: HNil
+          case Create(u1, outfit_name) =>
+            u1 :: outfit_name :: HNil
         }
       )
 
-    val FormOutfitCodec: Codec[FormOutfit] =
+    val FormCodec: Codec[Form] =
       (
-        PacketHelpers.encodedWideString ::
-          uint4L ::
-          bool ::
+        PacketHelpers.encodedWideStringAligned(5) ::
           PacketHelpers.encodedWideString
-        ).xmap[FormOutfit](
+        ).xmap[Form](
         {
-          case unk2 :: unk3 :: unk4 :: outfit_name :: HNil =>
-            FormOutfit(unk2, unk3, unk4, outfit_name)
+          case u1 :: outfit_name :: HNil =>
+            Form(u1, outfit_name)
         },
         {
-          case FormOutfit(unk2, unk3, unk4, outfit_name) =>
-            unk2 :: unk3 :: unk4 :: outfit_name :: HNil
+          case Form(u1, outfit_name) =>
+            u1 :: outfit_name :: HNil
         }
       )
 
-    val Unk2Codec: Codec[Unk2] =
+    val InviteCodec: Codec[Invite] =
       (
-        uint16L ::
-          uint16L ::
+        uint32L ::
           PacketHelpers.encodedWideStringAligned(5)
-        ).xmap[Unk2](
+        ).xmap[Invite](
         {
-          case unk2 :: unk3 :: member_name :: HNil =>
-            Unk2(unk2, unk3, member_name)
+          case u1 :: member_name :: HNil =>
+            Invite(u1, member_name)
         },
         {
-          case Unk2(unk2, unk3, member_name) =>
-            unk2 :: unk3 :: member_name :: HNil
+          case Invite(u1, member_name) =>
+            u1 :: member_name :: HNil
         }
       )
 
-    val AcceptOutfitCodec: Codec[AcceptOutfitInvite] =
-      PacketHelpers.encodedWideString.xmap[AcceptOutfitInvite](
+    val AcceptInviteCodec: Codec[AcceptInvite] =
+      PacketHelpers.encodedWideString.xmap[AcceptInvite](
         {
-          case unk2 =>
-            AcceptOutfitInvite(unk2)
+          case u1 =>
+            AcceptInvite(u1)
         },
         {
-          case AcceptOutfitInvite(unk2) =>
-            unk2
+          case AcceptInvite(u1) =>
+            u1
         }
       )
 
-    val RejectOutfitCodec: Codec[RejectOutfitInvite] =
-      PacketHelpers.encodedWideString.xmap[RejectOutfitInvite](
+    val RejectInviteCodec: Codec[RejectInvite] =
+      PacketHelpers.encodedWideString.xmap[RejectInvite](
         {
-          case unk2 =>
-            RejectOutfitInvite(unk2)
+          case u1 =>
+            RejectInvite(u1)
         },
         {
-          case RejectOutfitInvite(unk2) =>
-            unk2
+          case RejectInvite(u1) =>
+            u1
         }
       )
 
-    val CancelOutfitCodec: Codec[CancelOutfitInvite] =
+    val CancelInviteCodec: Codec[CancelInvite] =
       (
-        uint16L ::
-          uint16L ::
+        uint32L ::
           PacketHelpers.encodedWideStringAligned(5)
-        ).xmap[CancelOutfitInvite](
+        ).xmap[CancelInvite](
         {
-          case unk5 :: unk6 :: outfit_name :: HNil =>
-            CancelOutfitInvite(unk5, unk6, outfit_name)
+          case u1 :: outfit_name :: HNil =>
+            CancelInvite(u1, outfit_name)
         },
         {
-          case CancelOutfitInvite(unk5, unk6, outfit_name) =>
-            unk5 :: unk6 :: outfit_name :: HNil
+          case CancelInvite(u1, outfit_name) =>
+            u1 :: outfit_name :: HNil
         }
       )
+
+    val KickCodec: Codec[Kick] =
+      (
+        uint32L ::
+          PacketHelpers.encodedWideStringAligned(5)
+        ).xmap[Kick](
+        {
+          case u1 :: member_name :: HNil =>
+            Kick(u1, member_name)
+        },
+        {
+          case Kick(u1, member_name) =>
+            u1 :: member_name :: HNil
+        }
+      )
+
+    val SetRankCodec: Codec[SetRank] =
+      (
+        uint32L ::
+          uintL(3) ::
+          PacketHelpers.encodedWideStringAligned(2)
+        ).xmap[SetRank](
+        {
+          case u1 :: rank :: member_name :: HNil =>
+            SetRank(u1, rank, member_name)
+        },
+        {
+          case SetRank(u1, rank, member_name) =>
+            u1 :: rank :: member_name :: HNil
+        }
+      )
+
 
     /**
       * A common form for known action code indexes with an unknown purpose and transformation is an "Unknown" object.
@@ -191,12 +226,12 @@ object OutfitMembershipRequest extends Marshallable[OutfitMembershipRequest] {
 
     val Create: RequestType.Value = Value(0)
     val Form:   RequestType.Value = Value(1)
-    val Unk2:   RequestType.Value = Value(2)
+    val Invite:   RequestType.Value = Value(2)
     val Accept: RequestType.Value = Value(3)
     val Reject: RequestType.Value = Value(4)
     val Cancel: RequestType.Value = Value(5)
-    val Unk6:   RequestType.Value = Value(6) // 6 and 7 seen as failed decodes, validity unknown
-    val Unk7:   RequestType.Value = Value(7)
+    val Kick:   RequestType.Value = Value(6)
+    val SetRank:   RequestType.Value = Value(7)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
@@ -206,15 +241,15 @@ object OutfitMembershipRequest extends Marshallable[OutfitMembershipRequest] {
     import scala.annotation.switch
 
     ((code: @switch) match {
-      case 0 => CreateOutfitCodec
-      case 1 => FormOutfitCodec // so far same as Create
-      case 2 => Unk2Codec
-      case 3 => AcceptOutfitCodec
-      case 4 => RejectOutfitCodec // so far same as Accept
-      case 5 => CancelOutfitCodec
-      case 6 => unknownCodec(action = code)
-      case 7 => unknownCodec(action = code)
-      // 3 bit limit
+      case 0 => CreateCodec
+      case 1 => FormCodec // so far same as Create
+      case 2 => InviteCodec
+      case 3 => AcceptInviteCodec
+      case 4 => RejectInviteCodec
+      case 5 => CancelInviteCodec
+      case 6 => KickCodec
+      case 7 => SetRankCodec
+
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[OutfitMembershipRequestAction]]
   }
