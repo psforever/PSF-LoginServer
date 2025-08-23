@@ -39,55 +39,38 @@ object OutfitEventAction {
     outfit_name: String,
     outfit_points1: Long,
     outfit_points2: Long, // same as outfit_points1
-    member_count: Int,
-    unk9: Int,
+    member_count: Long,
     outfit_rank_names: OutfitRankNames,
     motd: String,
     unk10: Int,
-    unk11: Int,
-    unk12: Int,
-    unk13: Int,// ?
-    unk21: Int,
-    unk21_2: Int,
+    unk11: Boolean,
+    unk12: Long, // only set if unk11 is false
     created_timestamp: Long,
     unk23: Long,
     unk24: Long,
     unk25: Long,
-    u123: Int,
   )
 
   final case class Unk0(
-    outfitInfo: OutfitInfo
+    outfit_info: OutfitInfo
   ) extends OutfitEventAction(code = 0)
 
   final case class Unk1(
-    unk2: Int,
-    unk3: Boolean,
   ) extends OutfitEventAction(code = 1)
 
   final case class Unk2(
-    outfitInfo: OutfitInfo,
+    outfit_info: OutfitInfo,
   ) extends OutfitEventAction(code = 2)
 
   final case class Unk3(
-    unk2: Int,
-    unk3: Boolean,
-    data: BitVector,
   ) extends OutfitEventAction(code = 3)
 
-  final case class Unk4(
+  final case class UpdateOutfitId(
     new_outfit_id: Long,
-    unk3: Int,
-    unk4: Boolean,
-    data: BitVector,
   ) extends OutfitEventAction(code = 4)
 
   final case class Unk5(
-    unk1: Int,
-    unk2: Int,
-    unk3: Int,
-    unk4: Boolean,
-    data: BitVector,
+    unk1: Long,
   ) extends OutfitEventAction(code = 5)
 
   final case class Unknown(badCode: Int, data: BitVector) extends OutfitEventAction(badCode)
@@ -120,38 +103,33 @@ object OutfitEventAction {
     )
 
     private val InfoCodec: Codec[OutfitInfo] = (
-        PacketHelpers.encodedWideStringAligned(5) ::
-        uint32L ::
-        uint32L ::
-        uint16L ::
-        uint16L ::
-        OutfitRankNamesCodec ::
-        PacketHelpers.encodedWideString ::
-        uint8L ::
-        uint8L ::
-        uint8L ::
-        uint8L ::
-        uint8L ::   // bool somewhere here
-        uintL(1) :: //
+        ("outfit_name" | PacketHelpers.encodedWideStringAligned(5)) ::
+        ("outfit_points1" | uint32L) ::
+        ("outfit_points2" | uint32L) ::
+        ("member_count" | uint32L) ::
+        ("outfit_rank_names" | OutfitRankNamesCodec) ::
+        ("motd" | PacketHelpers.encodedWideString) ::
+        ("" | uint8L) ::
+        ("" | bool) ::
+        ("" | uint32L) ::
         ("created_timestamp" | uint32L) ::
-        uint32L ::
-        uint32L ::
-        uint32L ::
-        uintL(7)
+        ("" | uint32L) ::
+        ("" | uint32L) ::
+        ("" | uint32L)
       ).xmap[OutfitInfo](
         {
-          case outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u10 :: u11 :: u12 :: u13 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil =>
-            OutfitInfo(outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u10, u11, u12, u13, u21, u21_2, created_timestamp, u23, u24, u25, u123)
+          case outfit_name :: outfit_points1 :: outfit_points2 :: member_count :: outfit_rank_names :: motd :: u10 :: u11 :: u12 :: created_timestamp :: u23 :: u24 :: u25 :: HNil =>
+            OutfitInfo(outfit_name, outfit_points1, outfit_points2, member_count, outfit_rank_names, motd, u10, u11, u12, created_timestamp, u23, u24, u25)
         },
         {
-          case OutfitInfo(outfit_name, u6, u7, member_count, u9, outfit_rank_names, motd, u10, u11, u12, u13, u21, u21_2, created_timestamp, u23, u24, u25, u123) =>
-            outfit_name :: u6 :: u7 :: member_count :: u9 :: outfit_rank_names :: motd :: u10 :: u11 :: u12 :: u13 :: u21 :: u21_2 :: created_timestamp :: u23 :: u24 :: u25 :: u123 :: HNil
+          case OutfitInfo(outfit_name, outfit_points1, outfit_points2, member_count, outfit_rank_names, motd, u10, u11, u12, created_timestamp, u23, u24, u25) =>
+            outfit_name :: outfit_points1 :: outfit_points2 :: member_count :: outfit_rank_names :: motd :: u10 :: u11 :: u12 :: created_timestamp :: u23 :: u24 :: u25 :: HNil
         }
       )
 
     val Unk0Codec: Codec[Unk0] = (
-      InfoCodec
-      ).xmap[Unk0](
+      ("outfit_info" | InfoCodec)
+    ).xmap[Unk0](
       {
         case info =>
           Unk0(info)
@@ -162,23 +140,11 @@ object OutfitEventAction {
       }
     )
 
-    val Unk1Codec: Codec[Unk1] = (
-        uint4L ::
-        bool
-      ).xmap[Unk1](
-      {
-        case u2 :: u3 :: HNil =>
-          Unk1(u2, u3)
-      },
-      {
-        case Unk1(u2, u3) =>
-          u2 :: u3 :: HNil
-      }
-    )
+    val Unk1Codec: Codec[Unk1] = PacketHelpers.emptyCodec(Unk1())
 
     val Unk2Codec: Codec[Unk2] = (
-      InfoCodec
-      ).xmap[Unk2](
+      ("outfit_info" | InfoCodec)
+    ).xmap[Unk2](
       {
         case info =>
           Unk2(info)
@@ -189,51 +155,31 @@ object OutfitEventAction {
       }
     )
 
-    val Unk3Codec: Codec[Unk3] = (
-        uint4L ::
-        bool ::
-        bits
-      ).xmap[Unk3](
-      {
-        case u2 :: u3 :: data :: HNil =>
-          Unk3(u2, u3, data)
-      },
-      {
-        case Unk3(u2, u3, data) =>
-          u2 :: u3 :: data :: HNil
-      }
-    )
+    val Unk3Codec: Codec[Unk3] = PacketHelpers.emptyCodec(Unk3())
 
-    val Unk4Codec: Codec[Unk4] = ( // update outfit_id? // 2016.03.18 #10640 // after this packet the referenced id changes to the new one, old is not used again
-        uint32L :: // real / other outfit_id
-        uint4L ::
-        bool ::
-        bits
-      ).xmap[Unk4](
+    val UpdateOutfitIdCodec: Codec[UpdateOutfitId] = ( // update outfit_id? // 2016.03.18 #10640 // after this packet the referenced id changes to the new one, old is not used again
+      ("new_outfit_id" | uint32L)
+    ).xmap[UpdateOutfitId](
       {
-        case new_outfit_id :: u3 :: u4 :: data :: HNil =>
-          Unk4(new_outfit_id, u3, u4, data)
+        case new_outfit_id =>
+          UpdateOutfitId(new_outfit_id)
       },
       {
-        case Unk4(new_outfit_id, u3, u4, data) =>
-          new_outfit_id ::u3 :: u4 :: data :: HNil
+        case UpdateOutfitId(new_outfit_id) =>
+          new_outfit_id
       }
     )
 
     val Unk5Codec: Codec[Unk5] = (
-        uint16L ::
-        uint16L ::
-        uint4L ::
-        bool ::
-        bits
-      ).xmap[Unk5](
+      ("" | uint32L)
+    ).xmap[Unk5](
       {
-        case u1 :: u2 :: u3 :: u4 :: data :: HNil =>
-          Unk5(u1, u2, u3, u4, data)
+        case u1 =>
+          Unk5(u1)
       },
       {
-        case Unk5(u1, u2, u3, u4, data) =>
-          u1 :: u2 :: u3 :: u4 :: data :: HNil
+        case Unk5(u1) =>
+          u1
       }
     )
 
@@ -274,10 +220,10 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
     val Unk1: RequestType.Value = Value(1) // end listing of members
     val Unk2: RequestType.Value = Value(2) // send after creating an outfit // normal info, same as Unk0
     val Unk3: RequestType.Value = Value(3) // below
-    val Unk4: RequestType.Value = Value(4)
+    val UpdateOutfitId: RequestType.Value = Value(4)
     val Unk5: RequestType.Value = Value(5)
-    val unk6: RequestType.Value = Value(6)
-    val unk7: RequestType.Value = Value(7)
+    val Unk6: RequestType.Value = Value(6)
+    val Unk7: RequestType.Value = Value(7)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
@@ -291,7 +237,7 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
       case 1 => Unk1Codec
       case 2 => Unk2Codec // sent after /outfitcreate and on login if in an outfit
       case 3 => Unk3Codec
-      case 4 => Unk4Codec
+      case 4 => UpdateOutfitIdCodec
       case 5 => Unk5Codec
       case 6 => unknownCodec(action = code)
       case 7 => unknownCodec(action = code)

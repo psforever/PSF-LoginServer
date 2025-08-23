@@ -29,7 +29,7 @@ class OutfitEventTest extends Specification {
     "0000 00737296 24000000 00000000 00000000 0000")
   val unk1_ABC: ByteVector = hex"8f 2 302a 10 00 0"
   val unk2_ABC: ByteVector = ByteVector.fromValidHex(
-    "8f 4 0201 feff" +
+    "8f 4 0201feff" +
       "2e 0 50006c0061006e006500740053006900640065005f0046006f00720065007600650072005f00560061006e007500" + // PlanetSide_Forever_Vanu
       "00000000" +
       "00000000" +
@@ -60,17 +60,12 @@ class OutfitEventTest extends Specification {
             outfit_points1 = 223190045,
             outfit_points2 = 223190045,
             member_count = 171,
-            unk9 = 0,
             OutfitRankNames("Dog Meat","Russian","","","Squad Leaders","Acting Commanders","Reapers",""),
             "\\#0000ffMumble \\#0033ffInfo \\#0066ffis \\#0099ffthemoose.typefrag.com \\#00ccffport \\#00ffff9350 \\#00ccffjoin \\#0099ffit \\#0066ffor \\#0033ffbe \\#0000ffkicked.",
             15,
-            128,
-            0,
-            0,
-            0,
-            0,
-            1210901990,
-            0,
+            unk11 = true,
+            unk12 = 0,
+            created_timestamp = 1210901990,
             0,
             0,
             0,
@@ -91,17 +86,12 @@ class OutfitEventTest extends Specification {
           outfit_points1 = 223190045,
           outfit_points2 = 223190045,
           member_count = 171,
-          unk9 = 0,
           OutfitRankNames("Dog Meat","Russian","","","Squad Leaders","Acting Commanders","Reapers",""),
           "\\#0000ffMumble \\#0033ffInfo \\#0066ffis \\#0099ffthemoose.typefrag.com \\#00ccffport \\#00ffff9350 \\#00ccffjoin \\#0099ffit \\#0066ffor \\#0033ffbe \\#0000ffkicked.",
           15,
-          128,
-          0,
-          0,
-          0,
-          0,
-          1210901990,
-          0,
+          unk11 = true,
+          unk12 = 0,
+          created_timestamp = 1210901990,
           0,
           0,
           0,
@@ -118,10 +108,7 @@ class OutfitEventTest extends Specification {
       case OutfitEvent(request_type, outfit_guid, action) =>
         request_type mustEqual RequestType.Unk1
         outfit_guid mustEqual 529688L
-        action mustEqual Unk1(
-          unk2 = 0,
-          unk3 = false
-        )
+        action mustEqual Unk1()
       case _ =>
         ko
     }
@@ -131,10 +118,7 @@ class OutfitEventTest extends Specification {
     val msg = OutfitEvent(
       RequestType.Unk1,
       529688L,
-      Unk1(
-        unk2 = 0,
-        unk3 = false,
-      )
+      Unk1()
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -151,20 +135,15 @@ class OutfitEventTest extends Specification {
           outfit_points1 = 0,
           outfit_points2 = 0,
           member_count = 1,
-          unk9 = 0,
           OutfitRankNames("","","","","","","",""),
           "",
           0,
-          112,
-          73,
-          130,
+          unk11 = false,
+          unk12 = 300000,
+          created_timestamp = 0,
           0,
           0,
           0,
-          0,
-          0,
-          0,
-          0
         ))
       case _ =>
         ko
@@ -181,20 +160,15 @@ class OutfitEventTest extends Specification {
           outfit_points1 = 0,
           outfit_points2 = 0,
           member_count = 1,
-          unk9 = 0,
           OutfitRankNames("","","","","","","",""),
           "",
           0,
-          112,
-          73,
-          130,
+          unk11 = false,
+          unk12 = 300000,
+          created_timestamp = 0,
           0,
           0,
           0,
-          0,
-          0,
-          0,
-          0
         )
       )
     )
@@ -208,11 +182,7 @@ class OutfitEventTest extends Specification {
       case OutfitEvent(request_type, outfit_guid, action) =>
         request_type mustEqual RequestType.Unk3
         outfit_guid mustEqual 2147418113L
-        action mustEqual Unk3(
-          unk2 = 0,
-          unk3 = false,
-          BitVector.fromValidHex("")
-        )
+        action mustEqual Unk3()
       case _ =>
         ko
     }
@@ -222,11 +192,7 @@ class OutfitEventTest extends Specification {
     val msg = OutfitEvent(
       RequestType.Unk3,
       2147418113L,
-      Unk3(
-        unk2 = 0,
-        unk3 = false,
-        BitVector.fromValidHex("")
-      )
+      Unk3()
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -236,13 +202,10 @@ class OutfitEventTest extends Specification {
   "decode Unk4 ABC" in {
     PacketCoding.decodePacket(unk4_ABC).require match {
       case OutfitEvent(request_type, outfit_guid, action) =>
-        request_type mustEqual RequestType.Unk4
+        request_type mustEqual RequestType.UpdateOutfitId
         outfit_guid mustEqual 2147418113L
-        action mustEqual Unk4(
+        action mustEqual UpdateOutfitId(
           new_outfit_id = 529744L,
-          0,
-          unk4 = false,
-          BitVector.fromValidHex("")
         )
       case _ =>
         ko
@@ -251,13 +214,10 @@ class OutfitEventTest extends Specification {
 
   "encode Unk4 ABC" in {
     val msg = OutfitEvent(
-      RequestType.Unk4,
+      RequestType.UpdateOutfitId,
       2147418113L,
-      Unk4(
+      UpdateOutfitId(
         new_outfit_id = 529744L,
-        unk3 = 0,
-        unk4 = false,
-        BitVector.fromValidHex("")
       )
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
@@ -272,10 +232,6 @@ class OutfitEventTest extends Specification {
         outfit_guid mustEqual 2147418113L
         action mustEqual Unk5(
           unk1 = 2,
-          unk2 = 0,
-          unk3 = 0,
-          unk4 = false,
-          BitVector.fromValidHex("") // OR f88c2a0417c1a06101001f20f4b8c00000404090ac9c6745dea88cadf0f810e03e0200f92 with bool at the back
         )
       case _ =>
         ko
@@ -288,10 +244,6 @@ class OutfitEventTest extends Specification {
       2147418113L,
       Unk5(
         unk1 = 2,
-        unk2 = 0,
-        unk3 = 0,
-        unk4 = false,
-        BitVector.fromValidHex("")
       )
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
