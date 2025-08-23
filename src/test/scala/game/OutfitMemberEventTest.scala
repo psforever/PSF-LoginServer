@@ -2,8 +2,8 @@
 package game
 
 import net.psforever.packet._
-import net.psforever.packet.game.OutfitMemberEvent
-import net.psforever.packet.game.OutfitMemberEventAction.Padding
+import net.psforever.packet.game.{OutfitMemberEvent, OutfitMemberEventAction}
+import net.psforever.packet.game.OutfitMemberEventAction._
 import org.specs2.mutable._
 import scodec.bits._
 
@@ -18,20 +18,20 @@ class OutfitMemberEventTest extends Specification {
   val PvtPa  = hex"90 0 4864 0000 1e69 e80a 2c 0 500076007400500061006e00630061006b0065007300  705e a080 0a85 e060 10"
   val Night  = hex"90 0 4864 0002 4cf0 3802 28 0 4e006900670068007400770069006e0067003100      b8fb 9a40 0da6 ec80 50"
 
-  val Unk1 = hex"90 5 40542002 3f61e808 0"
+  val unk1   = hex"90 5 40542002 3f61e808 0"
 
   "decode Lazer padding" in {
     PacketCoding.decodePacket(Lazer).require match {
-      case OutfitMemberEvent(packet_type, outfit_id, member_id, member_name, rank, points, last_login, action, unk0_padding) =>
-        packet_type  mustEqual 0
-        outfit_id    mustEqual 6418
-        member_id    mustEqual 705344
-        member_name  mustEqual "Lazer1982"
-        rank         mustEqual 7
-        points       mustEqual 3134113
-        last_login   mustEqual 156506
-        action       mustEqual OutfitMemberEvent.PacketType.Padding
-        unk0_padding mustEqual Padding(0)
+      case OutfitMemberEvent(packet_type, outfit_id, member_id, Unk0(member_name, rank, points, last_login, action, padding)) =>
+        packet_type mustEqual OutfitMemberEvent.PacketType.Unk0
+        outfit_id   mustEqual 6418
+        member_id   mustEqual 705344
+        member_name mustEqual "Lazer1982"
+        rank        mustEqual 7
+        points      mustEqual 3134113
+        last_login  mustEqual 156506
+        action      mustEqual OutfitMemberEventAction.PacketType.Padding
+        padding     mustEqual 0
       case _ =>
         ko
     }
@@ -39,15 +39,17 @@ class OutfitMemberEventTest extends Specification {
 
   "encode Lazer padding" in {
     val msg = OutfitMemberEvent(
-      packet_type = 0,
+      packet_type = OutfitMemberEvent.PacketType.Unk0,
       outfit_id = 6418,
       member_id = 705344,
-      member_name = "Lazer1982",
-      rank = 7,
-      points = 3134113,
-      last_login = 156506,
-      action = OutfitMemberEvent.PacketType.Padding,
-      unk0_padding = Padding(0)
+      Unk0(
+        member_name = "Lazer1982",
+        rank = 7,
+        points = 3134113,
+        last_login = 156506,
+        action = OutfitMemberEventAction.PacketType.Padding,
+        padding = 0
+      )
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -56,16 +58,16 @@ class OutfitMemberEventTest extends Specification {
 
   "decode OpolE padding" in {
     PacketCoding.decodePacket(OpolE).require match {
-      case OutfitMemberEvent(packet_type, outfit_id, member_id, member_name, rank, points, last_login, action, unk0_padding) =>
-        packet_type  mustEqual 0
+      case OutfitMemberEvent(packet_type, outfit_id, member_id, Unk0(member_name, rank, points, last_login, action, unk0_padding)) =>
+        packet_type  mustEqual OutfitMemberEvent.PacketType.Unk0
         outfit_id    mustEqual 6418
         member_id    mustEqual 42644970
         member_name  mustEqual "OpolE"
         rank         mustEqual 6
         points       mustEqual 461901
         last_login   mustEqual 137576
-        action       mustEqual OutfitMemberEvent.PacketType.Padding
-        unk0_padding mustEqual Padding(0)
+        action       mustEqual OutfitMemberEventAction.PacketType.Padding
+        unk0_padding mustEqual 0
       case _ =>
         ko
     }
@@ -73,44 +75,44 @@ class OutfitMemberEventTest extends Specification {
 
   "encode OpolE padding" in {
     val msg = OutfitMemberEvent(
-      packet_type = 0,
+      packet_type = OutfitMemberEvent.PacketType.Unk0,
       outfit_id = 6418,
       member_id = 42644970,
-      member_name = "OpolE",
-      rank = 6,
-      points = 461901,
-      last_login = 137576,
-      action = OutfitMemberEvent.PacketType.Padding,
-      unk0_padding = Padding(0)
+      Unk0(
+        member_name = "OpolE",
+        rank = 6,
+        points = 461901,
+        last_login = 137576,
+        action = OutfitMemberEventAction.PacketType.Padding,
+        padding = 0
+      )
+
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual OpolE
   }
 
-  // TODO: these are broken because the decoder can only handle packet_type 0
-
-  /*
-  "decode Unk0" in {
-    PacketCoding.decodePacket(Unk1).require match {
-      case OutfitMemberEvent(packet_type, outfit_id, member_id) =>
-        packet_type  mustEqual 1
-        outfit_id    mustEqual 6418
-        member_id    mustEqual 42644970
+  "decode Unk1" in {
+    PacketCoding.decodePacket(unk1).require match {
+      case OutfitMemberEvent(packet_type,outfit_id, member_id, Unk1()) =>
+        packet_type  mustEqual OutfitMemberEvent.PacketType.Unk1
+        outfit_id    mustEqual 529744
+        member_id    mustEqual 41605263
       case _ =>
         ko
     }
   }
 
-  "encode Unk0" in {
+  "encode Unk1" in {
     val msg = OutfitMemberEvent(
-      packet_type = 1,
-      outfit_id = 6418,
-      member_id = 42644970,
+      packet_type = OutfitMemberEvent.PacketType.Unk1,
+      outfit_id = 529744,
+      member_id = 41605263,
+      Unk1()
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
-    pkt mustEqual Unk1
+    pkt mustEqual unk1
   }
-  */
 }
