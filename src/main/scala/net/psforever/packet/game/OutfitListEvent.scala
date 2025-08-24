@@ -37,7 +37,6 @@ object OutfitListEventAction {
    */
   final case class Unk3(
     unk1: Long,
-    data: ByteVector
   ) extends OutfitListEventAction(code = 3)
 
   final case class Unknown(badCode: Int, data: BitVector) extends OutfitListEventAction(badCode)
@@ -67,16 +66,15 @@ object OutfitListEventAction {
     )
 
     val Unk3Codec: Codec[Unk3] = (
-      ("unk1" | uint32L) ::
-        ("data" | bytes)
+      ("unk1" | uint32L)
       ).xmap[Unk3](
       {
-        case u1 :: data :: HNil =>
-          Unk3(u1, data)
+        case u1 =>
+          Unk3(u1)
       },
       {
-        case Unk3(u1, data) =>
-          u1 :: data :: HNil
+        case Unk3(u1) =>
+          u1
       }
     )
 
