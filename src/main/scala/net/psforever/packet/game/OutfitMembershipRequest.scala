@@ -9,7 +9,6 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 final case class OutfitMembershipRequest(
-    request_type: OutfitMembershipRequest.RequestType.Type,
     outfit_id: Long,
     action: OutfitMembershipRequestAction
   ) extends PlanetSideGamePacket {
@@ -61,8 +60,8 @@ object OutfitMembershipRequestAction {
   ) extends OutfitMembershipRequestAction(code = 6)
 
   final case class SetRank(
-    avatar_id: Long, // 32
-    rank: Int, // 3
+    avatar_id: Long,
+    rank: Int,
     member_name: String,
   ) extends OutfitMembershipRequestAction(code = 7)
 
@@ -75,120 +74,116 @@ object OutfitMembershipRequestAction {
   object Codecs {
     private val everFailCondition = conditional(included = false, bool)
 
-    val CreateCodec: Codec[Create] =
-      (
-        PacketHelpers.encodedWideStringAligned(5) ::
-          PacketHelpers.encodedWideString
-        ).xmap[Create](
-        {
-          case u1 :: outfit_name :: HNil =>
-            Create(u1, outfit_name)
-        },
-        {
-          case Create(u1, outfit_name) =>
-            u1 :: outfit_name :: HNil
-        }
-      )
+    val CreateCodec: Codec[Create] = (
+      PacketHelpers.encodedWideStringAligned(5) ::
+      PacketHelpers.encodedWideString
+    ).xmap[Create](
+      {
+        case u1 :: outfit_name :: HNil =>
+          Create(u1, outfit_name)
+      },
+      {
+        case Create(u1, outfit_name) =>
+          u1 :: outfit_name :: HNil
+      }
+    )
 
-    val FormCodec: Codec[Form] =
-      (
-        PacketHelpers.encodedWideStringAligned(5) ::
-          PacketHelpers.encodedWideString
-        ).xmap[Form](
-        {
-          case u1 :: outfit_name :: HNil =>
-            Form(u1, outfit_name)
-        },
-        {
-          case Form(u1, outfit_name) =>
-            u1 :: outfit_name :: HNil
-        }
-      )
+    val FormCodec: Codec[Form] = (
+      PacketHelpers.encodedWideStringAligned(5) ::
+      PacketHelpers.encodedWideString
+    ).xmap[Form](
+      {
+        case u1 :: outfit_name :: HNil =>
+          Form(u1, outfit_name)
+      },
+      {
+        case Form(u1, outfit_name) =>
+          u1 :: outfit_name :: HNil
+      }
+    )
 
-    val InviteCodec: Codec[Invite] =
-      (
-        uint32L ::
-          PacketHelpers.encodedWideStringAligned(5)
-        ).xmap[Invite](
-        {
-          case u1 :: member_name :: HNil =>
-            Invite(u1, member_name)
-        },
-        {
-          case Invite(u1, member_name) =>
-            u1 :: member_name :: HNil
-        }
-      )
+    val InviteCodec: Codec[Invite] = (
+      uint32L ::
+      PacketHelpers.encodedWideStringAligned(5)
+    ).xmap[Invite](
+      {
+        case avatar_id :: member_name :: HNil =>
+          Invite(avatar_id, member_name)
+      },
+      {
+        case Invite(avatar_id, member_name) =>
+          avatar_id :: member_name :: HNil
+      }
+    )
 
-    val AcceptInviteCodec: Codec[AcceptInvite] =
-      PacketHelpers.encodedWideString.xmap[AcceptInvite](
-        {
-          case u1 =>
-            AcceptInvite(u1)
-        },
-        {
-          case AcceptInvite(u1) =>
-            u1
-        }
-      )
+    val AcceptInviteCodec: Codec[AcceptInvite] = (
+      PacketHelpers.encodedWideString
+    ).xmap[AcceptInvite](
+      {
+        case member_name =>
+          AcceptInvite(member_name)
+      },
+      {
+        case AcceptInvite(member_name) =>
+          member_name
+      }
+    )
 
-    val RejectInviteCodec: Codec[RejectInvite] =
-      PacketHelpers.encodedWideString.xmap[RejectInvite](
-        {
-          case u1 =>
-            RejectInvite(u1)
-        },
-        {
-          case RejectInvite(u1) =>
-            u1
-        }
-      )
+    val RejectInviteCodec: Codec[RejectInvite] = (
+      PacketHelpers.encodedWideString
+    ).xmap[RejectInvite](
+      {
+        case member_name =>
+          RejectInvite(member_name)
+      },
+      {
+        case RejectInvite(member_name) =>
+          member_name
+      }
+    )
 
-    val CancelInviteCodec: Codec[CancelInvite] =
-      (
-        uint32L ::
-          PacketHelpers.encodedWideStringAligned(5)
-        ).xmap[CancelInvite](
-        {
-          case u1 :: outfit_name :: HNil =>
-            CancelInvite(u1, outfit_name)
-        },
-        {
-          case CancelInvite(u1, outfit_name) =>
-            u1 :: outfit_name :: HNil
-        }
-      )
+    val CancelInviteCodec: Codec[CancelInvite] = (
+      uint32L ::
+      PacketHelpers.encodedWideStringAligned(5)
+    ).xmap[CancelInvite](
+      {
+        case avatar_id :: outfit_name :: HNil =>
+          CancelInvite(avatar_id, outfit_name)
+      },
+      {
+        case CancelInvite(avatar_id, outfit_name) =>
+          avatar_id :: outfit_name :: HNil
+      }
+    )
 
-    val KickCodec: Codec[Kick] =
-      (
-        uint32L ::
-          PacketHelpers.encodedWideStringAligned(5)
-        ).xmap[Kick](
-        {
-          case u1 :: member_name :: HNil =>
-            Kick(u1, member_name)
-        },
-        {
-          case Kick(u1, member_name) =>
-            u1 :: member_name :: HNil
-        }
-      )
+    val KickCodec: Codec[Kick] = (
+      uint32L ::
+      PacketHelpers.encodedWideStringAligned(5)
+    ).xmap[Kick](
+      {
+        case avatar_id :: member_name :: HNil =>
+          Kick(avatar_id, member_name)
+      },
+      {
+        case Kick(avatar_id, member_name) =>
+          avatar_id :: member_name :: HNil
+      }
+    )
 
-    val SetRankCodec: Codec[SetRank] =
-      (
-        uint32L ::
-          uintL(3) ::
-          PacketHelpers.encodedWideStringAligned(2)
-        ).xmap[SetRank](
-        {
-          case u1 :: rank :: member_name :: HNil =>
-            SetRank(u1, rank, member_name)
-        },
-        {
-          case SetRank(u1, rank, member_name) =>
-            u1 :: rank :: member_name :: HNil
-        }
-      )
+    val SetRankCodec: Codec[SetRank] = (
+      uint32L ::
+      uintL(3) ::
+      PacketHelpers.encodedWideStringAligned(2)
+    ).xmap[SetRank](
+      {
+        case avatar_id :: rank :: member_name :: HNil =>
+          SetRank(avatar_id, rank, member_name)
+      },
+      {
+        case SetRank(avatar_id, rank, member_name) =>
+          avatar_id :: rank :: member_name :: HNil
+      }
+    )
 
 
     /**
@@ -221,17 +216,17 @@ object OutfitMembershipRequestAction {
 
 object OutfitMembershipRequest extends Marshallable[OutfitMembershipRequest] {
 
-  object RequestType extends Enumeration {
+  object PacketType extends Enumeration {
     type Type = Value
 
-    val Create: RequestType.Value = Value(0)
-    val Form:   RequestType.Value = Value(1)
-    val Invite:   RequestType.Value = Value(2)
-    val Accept: RequestType.Value = Value(3)
-    val Reject: RequestType.Value = Value(4)
-    val Cancel: RequestType.Value = Value(5)
-    val Kick:   RequestType.Value = Value(6)
-    val SetRank:   RequestType.Value = Value(7)
+    val Create: PacketType.Value = Value(0)
+    val Form:   PacketType.Value = Value(1)
+    val Invite:   PacketType.Value = Value(2)
+    val Accept: PacketType.Value = Value(3)
+    val Reject: PacketType.Value = Value(4)
+    val Cancel: PacketType.Value = Value(5)
+    val Kick:   PacketType.Value = Value(6)
+    val SetRank:   PacketType.Value = Value(7)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
@@ -255,18 +250,18 @@ object OutfitMembershipRequest extends Marshallable[OutfitMembershipRequest] {
   }
 
   implicit val codec: Codec[OutfitMembershipRequest] = (
-    ("request_type" | RequestType.codec) >>:~ { request_type =>
+    ("packet_type" | PacketType.codec) >>:~ { packet_type =>
       ("outfit_id" | uint32L) ::
-        ("action" | selectFromType(request_type.id))
+      ("action" | selectFromType(packet_type.id))
     }
   ).xmap[OutfitMembershipRequest](
     {
-      case request_type :: outfit_id :: action :: HNil =>
-        OutfitMembershipRequest(request_type, outfit_id, action)
+      case _ :: outfit_id :: action :: HNil =>
+        OutfitMembershipRequest(outfit_id, action)
     },
     {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type :: outfit_id :: action :: HNil
+      case OutfitMembershipRequest(outfit_id, action) =>
+        OutfitMembershipRequest.PacketType(action.code) :: outfit_id :: action :: HNil
     }
   )
 }

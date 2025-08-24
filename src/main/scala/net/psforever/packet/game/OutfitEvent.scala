@@ -9,8 +9,7 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 final case class OutfitEvent(
-    request_type: OutfitEvent.RequestType.Type,
-    outfit_guid: Long,
+    outfit_id: Long,
     action: OutfitEventAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitEvent
@@ -84,13 +83,13 @@ object OutfitEventAction {
 
     private val OutfitRankNamesCodec: Codec[OutfitRankNames] = (
       PacketHelpers.encodedWideString ::
-        PacketHelpers.encodedWideString ::
-        PacketHelpers.encodedWideString ::
-        PacketHelpers.encodedWideString ::
-        PacketHelpers.encodedWideString ::
-        PacketHelpers.encodedWideString ::
-        PacketHelpers.encodedWideString ::
-        PacketHelpers.encodedWideString
+      PacketHelpers.encodedWideString ::
+      PacketHelpers.encodedWideString ::
+      PacketHelpers.encodedWideString ::
+      PacketHelpers.encodedWideString ::
+      PacketHelpers.encodedWideString ::
+      PacketHelpers.encodedWideString ::
+      PacketHelpers.encodedWideString
     ).xmap[OutfitRankNames](
       {
         case u0 :: u1 :: u2 :: u3 :: u4 :: u5 :: u6 :: u7 :: HNil =>
@@ -103,20 +102,20 @@ object OutfitEventAction {
     )
 
     private val InfoCodec: Codec[OutfitInfo] = (
-        ("outfit_name" | PacketHelpers.encodedWideStringAligned(5)) ::
-        ("outfit_points1" | uint32L) ::
-        ("outfit_points2" | uint32L) ::
-        ("member_count" | uint32L) ::
-        ("outfit_rank_names" | OutfitRankNamesCodec) ::
-        ("motd" | PacketHelpers.encodedWideString) ::
-        ("" | uint8L) ::
-        ("" | bool) ::
-        ("" | uint32L) ::
-        ("created_timestamp" | uint32L) ::
-        ("" | uint32L) ::
-        ("" | uint32L) ::
-        ("" | uint32L)
-      ).xmap[OutfitInfo](
+      ("outfit_name" | PacketHelpers.encodedWideStringAligned(5)) ::
+      ("outfit_points1" | uint32L) ::
+      ("outfit_points2" | uint32L) ::
+      ("member_count" | uint32L) ::
+      ("outfit_rank_names" | OutfitRankNamesCodec) ::
+      ("motd" | PacketHelpers.encodedWideString) ::
+      ("" | uint8L) ::
+      ("" | bool) ::
+      ("" | uint32L) ::
+      ("created_timestamp" | uint32L) ::
+      ("" | uint32L) ::
+      ("" | uint32L) ::
+      ("" | uint32L)
+    ).xmap[OutfitInfo](
         {
           case outfit_name :: outfit_points1 :: outfit_points2 :: member_count :: outfit_rank_names :: motd :: u10 :: u11 :: u12 :: created_timestamp :: u23 :: u24 :: u25 :: HNil =>
             OutfitInfo(outfit_name, outfit_points1, outfit_points2, member_count, outfit_rank_names, motd, u10, u11, u12, created_timestamp, u23, u24, u25)
@@ -213,17 +212,17 @@ object OutfitEventAction {
 
 object OutfitEvent extends Marshallable[OutfitEvent] {
 
-  object RequestType extends Enumeration {
+  object PacketType extends Enumeration {
     type Type = Value
 
-    val Unk0: RequestType.Value = Value(0) // start listing of members
-    val Unk1: RequestType.Value = Value(1) // end listing of members
-    val Unk2: RequestType.Value = Value(2) // send after creating an outfit // normal info, same as Unk0
-    val Unk3: RequestType.Value = Value(3) // below
-    val UpdateOutfitId: RequestType.Value = Value(4)
-    val Unk5: RequestType.Value = Value(5)
-    val Unk6: RequestType.Value = Value(6)
-    val Unk7: RequestType.Value = Value(7)
+    val Unk0: PacketType.Value = Value(0) // start listing of members
+    val Unk1: PacketType.Value = Value(1) // end listing of members
+    val Unk2: PacketType.Value = Value(2) // send after creating an outfit // normal info, same as Unk0
+    val Unk3: PacketType.Value = Value(3) // below
+    val UpdateOutfitId: PacketType.Value = Value(4)
+    val Unk5: PacketType.Value = Value(5)
+    val Unk6: PacketType.Value = Value(6)
+    val Unk7: PacketType.Value = Value(7)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
@@ -247,18 +246,18 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
   }
 
   implicit val codec: Codec[OutfitEvent] = (
-    ("request_type" | RequestType.codec) >>:~ { request_type =>
+    ("packet_type" | PacketType.codec) >>:~ { packet_type =>
       ("outfit_guid" | uint32L) ::
-        ("action" | selectFromType(request_type.id))
+      ("action" | selectFromType(packet_type.id))
     }
-    ).xmap[OutfitEvent](
+  ).xmap[OutfitEvent](
     {
-      case request_type :: outfit_guid :: action :: HNil =>
-        OutfitEvent(request_type, outfit_guid, action)
+      case _ :: outfit_guid :: action :: HNil =>
+        OutfitEvent(outfit_guid, action)
     },
     {
-      case OutfitEvent(request_type, outfit_guid, action) =>
-        request_type :: outfit_guid :: action :: HNil
+      case OutfitEvent(outfit_guid, action) =>
+        OutfitEvent.PacketType(action.code) :: outfit_guid :: action :: HNil
     }
   )
 }

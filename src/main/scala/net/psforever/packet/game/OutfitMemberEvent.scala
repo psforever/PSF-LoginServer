@@ -9,7 +9,6 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 final case class OutfitMemberEvent(
-    packet_type: OutfitMemberEvent.PacketType.Type,
     outfit_id: Long,
     member_id: Long,
     action: OutfitMemberEventAction
@@ -36,13 +35,13 @@ object OutfitMemberEventAction {
 
   /*
     action is unimplemented! if action == 0 unk2 will contain one additional uint32L
-    unk0_padding contains one byte of padding. may contain 4byte of unknown data depending on action
+    padding contains one uint4L of padding. may contain uint32L of unknown data depending on action
  */
   final case class Unk0(
     member_name: String,
     rank: Int,
     points: Long, // client divides this by 100
-    last_login: Long, // seconds ago from current time, 0 if online
+    last_online: Long, // seconds ago from current time, 0 if online
     action: PacketType.Type, // should always be 1, otherwise there will be actual data in padding. not implemented!
     padding: Int // should always be 0, 4 bits of padding // only contains data if action is 0
   ) extends OutfitMemberEventAction(code = 0)
@@ -60,13 +59,13 @@ object OutfitMemberEventAction {
     private val everFailCondition = conditional(included = false, bool)
 
     val Unk0Codec: Codec[Unk0] = (
-        ("member_name" | PacketHelpers.encodedWideStringAligned(6)) :: // from here is packet_type == 0 only
-        ("rank" | uint(3)) ::
-        ("points" | uint32L) ::
-        ("last_login" | uint32L) ::
-        ("action" | OutfitMemberEventAction.PacketType.codec) ::
-        ("padding" | uint4L)
-      ).xmap[Unk0](
+      ("member_name" | PacketHelpers.encodedWideStringAligned(6)) :: // from here is packet_type == 0 only
+      ("rank" | uint(3)) ::
+      ("points" | uint32L) ::
+      ("last_login" | uint32L) ::
+      ("action" | OutfitMemberEventAction.PacketType.codec) ::
+      ("padding" | uint4L)
+    ).xmap[Unk0](
       {
         case member_name :: rank :: points :: last_login :: action :: padding :: HNil =>
           Unk0(member_name, rank, points, last_login, action, padding)
@@ -112,6 +111,8 @@ object OutfitMemberEvent extends Marshallable[OutfitMemberEvent] {
 
     val Unk0: PacketType.Value = Value(0)
     val Unk1: PacketType.Value = Value(1) // Info: Player has been invited / response to OutfitMembershipRequest Unk2 for that player
+    val Unk2: PacketType.Value = Value(2)
+    val Unk3: PacketType.Value = Value(3)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(2))
   }
@@ -123,6 +124,8 @@ object OutfitMemberEvent extends Marshallable[OutfitMemberEvent] {
     ((code: @switch) match {
       case 0 => Unk0Codec
       case 1 => Unk1Codec
+      case 2 => unknownCodec(code)
+      case 3 => unknownCodec(code)
 
       case _ => failureCodec(code)
     }).asInstanceOf[Codec[OutfitMemberEventAction]]
@@ -134,14 +137,14 @@ object OutfitMemberEvent extends Marshallable[OutfitMemberEvent] {
       ("member_id" | uint32L) ::
       ("action" | selectFromType(packet_type.id)).hlist
     }
-    ).xmap[OutfitMemberEvent](
+  ).xmap[OutfitMemberEvent](
     {
-      case packet_type :: outfit_id :: member_id:: action :: HNil =>
-        OutfitMemberEvent(packet_type, outfit_id, member_id, action)
+      case _ :: outfit_id :: member_id:: action :: HNil =>
+        OutfitMemberEvent(outfit_id, member_id, action)
     },
     {
-      case OutfitMemberEvent(packet_type, outfit_id, member_id, action) =>
-        packet_type :: outfit_id :: member_id :: action :: HNil
+      case OutfitMemberEvent(outfit_id, member_id, action) =>
+        OutfitMemberEvent.PacketType(action.code) :: outfit_id :: member_id :: action :: HNil
     }
   )
 }

@@ -9,7 +9,6 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 final case class OutfitListEvent(
-    request_type: OutfitListEvent.RequestType.Type,
     action: OutfitListEventAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitListEvent
@@ -50,11 +49,11 @@ object OutfitListEventAction {
 
     val ListElementOutfitCodec: Codec[ListElementOutfit] = (
       ("unk1" | uint32L) ::
-        ("points" | uint32L) ::
-        ("members" | uint32L) ::
-        ("outfit_name" | PacketHelpers.encodedWideStringAligned(5)) ::
-        ("outfit_leader" | PacketHelpers.encodedWideString)
-      ).xmap[ListElementOutfit](
+      ("points" | uint32L) ::
+      ("members" | uint32L) ::
+      ("outfit_name" | PacketHelpers.encodedWideStringAligned(5)) ::
+      ("outfit_leader" | PacketHelpers.encodedWideString)
+    ).xmap[ListElementOutfit](
       {
         case u1 :: points :: members :: outfit_name :: outfit_leader :: HNil =>
           ListElementOutfit(u1, points, members, outfit_name, outfit_leader)
@@ -67,7 +66,7 @@ object OutfitListEventAction {
 
     val Unk3Codec: Codec[Unk3] = (
       ("unk1" | uint32L)
-      ).xmap[Unk3](
+    ).xmap[Unk3](
       {
         case u1 =>
           Unk3(u1)
@@ -109,17 +108,17 @@ object OutfitListEventAction {
 object OutfitListEvent extends Marshallable[OutfitListEvent] {
   import shapeless.{::, HNil}
 
-  object RequestType extends Enumeration {
+  object PacketType extends Enumeration {
     type Type = Value
 
-    val Unk0: RequestType.Value = Value(0)
-    val Unk1: RequestType.Value = Value(1)
-    val ListElementOutfit: RequestType.Value = Value(2)
-    val Unk3: RequestType.Value = Value(3)
-    val Unk4: RequestType.Value = Value(4)
-    val Unk5: RequestType.Value = Value(5)
-    val unk6: RequestType.Value = Value(6)
-    val unk7: RequestType.Value = Value(7)
+    val Unk0: PacketType.Value = Value(0)
+    val Unk1: PacketType.Value = Value(1)
+    val ListElementOutfit: PacketType.Value = Value(2)
+    val Unk3: PacketType.Value = Value(3)
+    val Unk4: PacketType.Value = Value(4)
+    val Unk5: PacketType.Value = Value(5)
+    val unk6: PacketType.Value = Value(6)
+    val unk7: PacketType.Value = Value(7)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
@@ -132,7 +131,7 @@ object OutfitListEvent extends Marshallable[OutfitListEvent] {
       case 0 => unknownCodec(action = code)
       case 1 => unknownCodec(action = code)
       case 2 => ListElementOutfitCodec
-      case 3 => Unk3Codec // indicated in code
+      case 3 => Unk3Codec
       case 4 => unknownCodec(action = code)
       case 5 => unknownCodec(action = code)
       case 6 => unknownCodec(action = code)
@@ -143,17 +142,17 @@ object OutfitListEvent extends Marshallable[OutfitListEvent] {
   }
 
   implicit val codec: Codec[OutfitListEvent] = (
-    ("request_type" | RequestType.codec) >>:~ { request_type =>
-      ("action" | selectFromType(request_type.id)).hlist
+    ("packet_type" | PacketType.codec) >>:~ { packet_type =>
+      ("action" | selectFromType(packet_type.id)).hlist
     }
-    ).xmap[OutfitListEvent](
+  ).xmap[OutfitListEvent](
     {
-      case request_type :: action :: HNil =>
-        OutfitListEvent(request_type, action)
+      case _ :: action :: HNil =>
+        OutfitListEvent(action)
     },
     {
-      case OutfitListEvent(request_type, action) =>
-        request_type :: action :: HNil
+      case OutfitListEvent(action) =>
+        OutfitListEvent.PacketType(action.code) :: action :: HNil
     }
   )
 }

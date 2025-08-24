@@ -43,22 +43,22 @@ object OutfitMembershipResponse extends Marshallable[OutfitMembershipResponse] {
   }
 
   implicit val codec: Codec[OutfitMembershipResponse] = (
-    ("response_type" | PacketType.codec) ::
-      ("unk0" | uintL(5)) ::
-      ("unk1" | uintL(3)) ::
-      ("outfit_id" | uint32L) ::
-      ("target_id" | uint32L) ::
-      ("str1" | PacketHelpers.encodedWideStringAligned(5)) ::
-      ("str2" | PacketHelpers.encodedWideString) ::
-      ("flag" | bool)
-    ).xmap[OutfitMembershipResponse](
+    ("packet_type" | PacketType.codec) ::
+    ("unk0" | uintL(5)) ::
+    ("unk1" | uintL(3)) ::
+    ("outfit_id" | uint32L) ::
+    ("target_id" | uint32L) ::
+    ("str1" | PacketHelpers.encodedWideStringAligned(5)) ::
+    ("str2" | PacketHelpers.encodedWideString) ::
+    ("flag" | bool)
+  ).xmap[OutfitMembershipResponse](
     {
-      case response_type :: u0 :: u1 :: outfit_id :: target_id :: str1 :: str2 :: flag :: HNil =>
-        OutfitMembershipResponse(response_type, u0, u1, outfit_id, target_id, str1, str2, flag)
+      case packet_type :: u0 :: u1 :: outfit_id :: target_id :: str1 :: str2 :: flag :: HNil =>
+        OutfitMembershipResponse(packet_type, u0, u1, outfit_id, target_id, str1, str2, flag)
     },
     {
-      case OutfitMembershipResponse(response_type, u0, u1, outfit_id, target_id, str1, str2, flag) =>
-        response_type :: u0 :: u1 :: outfit_id :: target_id :: str1 :: str2 :: flag :: HNil
+      case OutfitMembershipResponse(packet_type, u0, u1, outfit_id, target_id, str1, str2, flag) =>
+        packet_type :: u0 :: u1 :: outfit_id :: target_id :: str1 :: str2 :: flag :: HNil
     }
   )
 }

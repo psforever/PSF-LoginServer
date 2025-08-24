@@ -37,16 +37,19 @@ object OutfitRequestAction {
    * @param unk na
    */
   final case class Unk2(unk: Int) extends OutfitRequestAction(code = 2)
+
   /**
    * na
    * @param unk na
    */
   final case class Unk3(menuOpen: Boolean) extends OutfitRequestAction(code = 3)
+
   /**
    * na
    * @param unk na
    */
   final case class Unk4(menuOpen: Boolean) extends OutfitRequestAction(code = 4)
+
   /**
    * na
    * @param unk na
@@ -142,14 +145,14 @@ object OutfitRequest extends Marshallable[OutfitRequest] {
     _ => Attempt.Failure(Err(s"can not encode $action-type info - no such thing"))
   )
 
-  object RequestType extends Enumeration {
+  object PacketType extends Enumeration {
     type Type = Value
 
-    val Motd: RequestType.Value = Value(0)
-    val Rank:   RequestType.Value = Value(1)
-    val Unk2:   RequestType.Value = Value(2)
-    val Detail: RequestType.Value = Value(3)
-    val List: RequestType.Value = Value(4) // sent by client if menu is either open (true) or closed (false)
+    val Motd: PacketType.Value = Value(0)
+    val Rank:   PacketType.Value = Value(1)
+    val Unk2:   PacketType.Value = Value(2)
+    val Detail: PacketType.Value = Value(3)
+    val List: PacketType.Value = Value(4) // sent by client if menu is either open (true) or closed (false)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
@@ -169,18 +172,18 @@ object OutfitRequest extends Marshallable[OutfitRequest] {
   }
 
   implicit val codec: Codec[OutfitRequest] = (
-    uint(bits = 3) >>:~ { code =>
+    ("packet_type" | PacketType.codec) >>:~ { packet_type =>
       ("id" | uint32L) ::
-        ("action" | selectFromType(code))
+      ("action" | selectFromType(packet_type.id)).hlist
     }
-    ).xmap[OutfitRequest](
+  ).xmap[OutfitRequest](
     {
       case _ :: id:: action :: HNil =>
         OutfitRequest(id, action)
     },
     {
       case OutfitRequest(id, action) =>
-        action.code :: id :: action :: HNil
+        OutfitRequest.PacketType(action.code) :: id :: action :: HNil
     }
   )
 }

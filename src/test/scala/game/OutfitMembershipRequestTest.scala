@@ -2,13 +2,13 @@
 package game
 
 import net.psforever.packet._
-import net.psforever.packet.game._
-import net.psforever.packet.game.OutfitMembershipRequest.RequestType
+import net.psforever.packet.game.OutfitMembershipRequest
 import net.psforever.packet.game.OutfitMembershipRequestAction._
 import org.specs2.mutable._
 import scodec.bits._
 
 class OutfitMembershipRequestTest extends Specification {
+
   val create_ABC   = hex"8c 0 0200 000 1000 83 410042004300"
   val create_2222  = hex"8c 0 1000 000 1000 84 3200320032003200"
   val form_abc     = hex"8c 2 0200 000 1000 83 610062006300"
@@ -30,8 +30,8 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode CreateOutfit ABC" in {
     PacketCoding.decodePacket(create_ABC).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Create
+      case OutfitMembershipRequest(outfit_id, action) =>
+
         outfit_id mustEqual 1
         action mustEqual Create("", "ABC")
       case _ =>
@@ -40,7 +40,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode CreateOutfit ABC" in {
-    val msg = OutfitMembershipRequest(RequestType.Create, 1, Create("", "ABC"))
+    val msg = OutfitMembershipRequest(1, Create("", "ABC"))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual create_ABC
@@ -48,8 +48,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode CreateOutfit 2222" in {
     PacketCoding.decodePacket(create_2222).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Create
+      case OutfitMembershipRequest(outfit_id, action) =>
         outfit_id mustEqual 8
         action mustEqual Create("", "2222")
       case _ =>
@@ -58,7 +57,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode CreateOutfit 2222" in {
-    val msg = OutfitMembershipRequest(RequestType.Create, 8, Create("", "2222"))
+    val msg = OutfitMembershipRequest(8, Create("", "2222"))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual create_2222
@@ -66,8 +65,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode FormOutfit abc" in {
     PacketCoding.decodePacket(form_abc).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Form
+      case OutfitMembershipRequest(outfit_id, action) =>
         outfit_id mustEqual 1
         action mustEqual Form("", "abc")
       case _ =>
@@ -76,7 +74,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode FormOutfit abc" in {
-    val msg = OutfitMembershipRequest(RequestType.Form, 1, Form("", "abc"))
+    val msg = OutfitMembershipRequest(1, Form("", "abc"))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual form_abc
@@ -84,8 +82,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode FormOutfit 1" in {
     PacketCoding.decodePacket(form_1).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Form
+      case OutfitMembershipRequest(outfit_id, action) =>
         outfit_id mustEqual 8
         action mustEqual Form("", "1")
       case _ =>
@@ -94,7 +91,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode FormOutfit 1" in {
-    val msg = OutfitMembershipRequest(RequestType.Form, 8, Form("", "1"))
+    val msg = OutfitMembershipRequest(8, Form("", "1"))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual form_1
@@ -102,8 +99,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode Invite" in {
     PacketCoding.decodePacket(invite_old).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Invite
+      case OutfitMembershipRequest(outfit_id, action) =>
         outfit_id mustEqual 30383325L
         action mustEqual Invite(0, "virusgiver")
       case _ =>
@@ -112,7 +108,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode Invite" in {
-    val msg = OutfitMembershipRequest(RequestType.Invite, 30383325L, Invite(0, "virusgiver"))
+    val msg = OutfitMembershipRequest(30383325L, Invite(0, "virusgiver"))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual invite_old
@@ -120,8 +116,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode AcceptOutfitInvite 1" in {
     PacketCoding.decodePacket(accept_1).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Accept
+      case OutfitMembershipRequest(outfit_id, action) =>
         outfit_id mustEqual 1
         action mustEqual AcceptInvite("")
       case _ =>
@@ -130,7 +125,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode AcceptOutfitInvite 1" in {
-    val msg = OutfitMembershipRequest(RequestType.Accept, 1, AcceptInvite(""))
+    val msg = OutfitMembershipRequest(1, AcceptInvite(""))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual accept_1
@@ -138,8 +133,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode AcceptOutfitInvite 2" in {
     PacketCoding.decodePacket(accept_2).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Accept
+      case OutfitMembershipRequest(outfit_id, action) =>
         outfit_id mustEqual 2
         action mustEqual AcceptInvite("")
       case _ =>
@@ -148,7 +142,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode AcceptOutfitInvite 2" in {
-    val msg = OutfitMembershipRequest(RequestType.Accept, 2, AcceptInvite(""))
+    val msg = OutfitMembershipRequest(2, AcceptInvite(""))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual accept_2
@@ -156,8 +150,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode RejectOutfitInvite 1" in {
     PacketCoding.decodePacket(reject_1).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Reject
+      case OutfitMembershipRequest(outfit_id, action) =>
         outfit_id mustEqual 1
         action mustEqual RejectInvite("")
       case _ =>
@@ -166,7 +159,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode RejectOutfitInvite 1" in {
-    val msg = OutfitMembershipRequest(RequestType.Reject, 1, RejectInvite(""))
+    val msg = OutfitMembershipRequest(1, RejectInvite(""))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual reject_1
@@ -174,8 +167,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode RejectOutfitInvite 2" in {
     PacketCoding.decodePacket(reject_2).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Reject
+      case OutfitMembershipRequest(outfit_id, action) =>
         outfit_id mustEqual 2
         action mustEqual RejectInvite("")
       case _ =>
@@ -184,7 +176,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode RejectOutfitInvite 2" in {
-    val msg = OutfitMembershipRequest(RequestType.Reject, 2, RejectInvite(""))
+    val msg = OutfitMembershipRequest(2, RejectInvite(""))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual reject_2
@@ -192,8 +184,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode CancelOutfitInvite 3" in {
     PacketCoding.decodePacket(cancel_3).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Cancel
+      case OutfitMembershipRequest(outfit_id, action) =>
         outfit_id mustEqual 3
         action mustEqual CancelInvite(0, "")
       case _ =>
@@ -202,7 +193,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode CancelOutfitInvite 3" in {
-    val msg = OutfitMembershipRequest(RequestType.Cancel, 3, CancelInvite(0, ""))
+    val msg = OutfitMembershipRequest(3, CancelInvite(0, ""))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual cancel_3
@@ -210,8 +201,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode CancelOutfitInvite 1 abc" in {
     PacketCoding.decodePacket(cancel_1_abc).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Cancel
+      case OutfitMembershipRequest(outfit_id, action) =>
         outfit_id mustEqual 1
         action mustEqual CancelInvite(0, "abc")
       case _ =>
@@ -220,7 +210,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode CancelOutfitInvite 1 abc" in {
-    val msg = OutfitMembershipRequest(RequestType.Cancel, 1, CancelInvite(0, "abc"))
+    val msg = OutfitMembershipRequest(1, CancelInvite(0, "abc"))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual cancel_1_abc
@@ -228,8 +218,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode CancelOutfitInvite 3 def" in {
     PacketCoding.decodePacket(cancel_3_def).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, action) =>
-        request_type mustEqual RequestType.Cancel
+      case OutfitMembershipRequest(outfit_id, action) =>
         outfit_id mustEqual 3
         action mustEqual CancelInvite(0, "def")
       case _ =>
@@ -238,7 +227,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode CancelOutfitInvite 3 def" in {
-    val msg = OutfitMembershipRequest(RequestType.Cancel, 3, CancelInvite(0, "def"))
+    val msg = OutfitMembershipRequest(3, CancelInvite(0, "def"))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual cancel_3_def
@@ -248,8 +237,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode invite" in {
     PacketCoding.decodePacket(invite).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, Invite(unk1, member_name)) =>
-        request_type mustEqual RequestType.Invite
+      case OutfitMembershipRequest(outfit_id, Invite(unk1, member_name)) =>
         outfit_id mustEqual 1
         unk1 mustEqual 0
         member_name mustEqual "inviteTest1"
@@ -259,7 +247,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode invite" in {
-    val msg = OutfitMembershipRequest(RequestType.Invite, 1, Invite(0, "inviteTest1"))
+    val msg = OutfitMembershipRequest(1, Invite(0, "inviteTest1"))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual invite
@@ -268,8 +256,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode kick" in {
     PacketCoding.decodePacket(kick).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, Kick(avatar_id, member_name)) =>
-        request_type mustEqual RequestType.Kick
+      case OutfitMembershipRequest(outfit_id, Kick(avatar_id, member_name)) =>
         outfit_id mustEqual 1
         avatar_id mustEqual 41575613
         member_name mustEqual ""
@@ -279,7 +266,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode kick" in {
-    val msg = OutfitMembershipRequest(RequestType.Kick, 1, Kick(41575613, ""))
+    val msg = OutfitMembershipRequest(1, Kick(41575613, ""))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual kick
@@ -287,8 +274,7 @@ class OutfitMembershipRequestTest extends Specification {
 
   "decode setrank" in {
     PacketCoding.decodePacket(setrank).require match {
-      case OutfitMembershipRequest(request_type, outfit_id, SetRank(avatar_id, rank, member_name)) =>
-        request_type mustEqual RequestType.SetRank
+      case OutfitMembershipRequest(outfit_id, SetRank(avatar_id, rank, member_name)) =>
         outfit_id mustEqual 1
         avatar_id mustEqual 41575613
         rank mustEqual 1
@@ -299,7 +285,7 @@ class OutfitMembershipRequestTest extends Specification {
   }
 
   "encode setrank" in {
-    val msg = OutfitMembershipRequest(RequestType.SetRank, 1, SetRank(41575613, 1, ""))
+    val msg = OutfitMembershipRequest(1, SetRank(41575613, 1, ""))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual setrank

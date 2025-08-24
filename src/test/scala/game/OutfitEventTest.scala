@@ -2,13 +2,13 @@
 package game
 
 import net.psforever.packet._
-import net.psforever.packet.game.OutfitEvent.RequestType
+import net.psforever.packet.game.OutfitEvent
 import net.psforever.packet.game.OutfitEventAction._
-import net.psforever.packet.game._
 import org.specs2.mutable._
 import scodec.bits._
 
 class OutfitEventTest extends Specification {
+
   val unk0_ABC: ByteVector = ByteVector.fromValidHex(
     "8f 1 a8c2 0001" + // packet head
     "2a 0 42006c00610063006b002000410072006d006f0072006500640020005200650061007000650072007300" + // Black Armored Reapers
@@ -51,8 +51,7 @@ class OutfitEventTest extends Specification {
 
   "decode Unk0 ABC" in {
     PacketCoding.decodePacket(unk0_ABC).require match {
-      case OutfitEvent(request_type, outfit_guid, action) =>
-        request_type mustEqual RequestType.Unk0
+      case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 25044
         action mustEqual Unk0(
           OutfitInfo(
@@ -78,7 +77,6 @@ class OutfitEventTest extends Specification {
 
   "encode Unk0 ABC" in {
     val msg = OutfitEvent(
-      RequestType.Unk0,
       25044,
       Unk0(
         OutfitInfo(
@@ -105,8 +103,7 @@ class OutfitEventTest extends Specification {
 
   "decode Unk1 ABC" in {
     PacketCoding.decodePacket(unk1_ABC).require match {
-      case OutfitEvent(request_type, outfit_guid, action) =>
-        request_type mustEqual RequestType.Unk1
+      case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 529688L
         action mustEqual Unk1()
       case _ =>
@@ -116,7 +113,6 @@ class OutfitEventTest extends Specification {
 
   "encode Unk1 ABC" in {
     val msg = OutfitEvent(
-      RequestType.Unk1,
       529688L,
       Unk1()
     )
@@ -127,8 +123,7 @@ class OutfitEventTest extends Specification {
 
   "decode Unk2 ABC" in {
     PacketCoding.decodePacket(unk2_ABC).require match {
-      case OutfitEvent(request_type, outfit_guid, action) =>
-        request_type mustEqual RequestType.Unk2
+      case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 2147418113L
         action mustEqual Unk2(OutfitInfo(
           outfit_name = "PlanetSide_Forever_Vanu",
@@ -152,7 +147,6 @@ class OutfitEventTest extends Specification {
 
   "encode Unk2 ABC" in {
     val msg = OutfitEvent(
-      RequestType.Unk2,
       2147418113L,
       Unk2(
         OutfitInfo(
@@ -179,8 +173,7 @@ class OutfitEventTest extends Specification {
 
   "decode Unk3 ABC" in {
     PacketCoding.decodePacket(unk3_ABC).require match {
-      case OutfitEvent(request_type, outfit_guid, action) =>
-        request_type mustEqual RequestType.Unk3
+      case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 2147418113L
         action mustEqual Unk3()
       case _ =>
@@ -190,7 +183,6 @@ class OutfitEventTest extends Specification {
 
   "encode Unk3 ABC" in {
     val msg = OutfitEvent(
-      RequestType.Unk3,
       2147418113L,
       Unk3()
     )
@@ -201,8 +193,7 @@ class OutfitEventTest extends Specification {
 
   "decode Unk4 ABC" in {
     PacketCoding.decodePacket(unk4_ABC).require match {
-      case OutfitEvent(request_type, outfit_guid, action) =>
-        request_type mustEqual RequestType.UpdateOutfitId
+      case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 2147418113L
         action mustEqual UpdateOutfitId(
           new_outfit_id = 529744L,
@@ -214,7 +205,6 @@ class OutfitEventTest extends Specification {
 
   "encode Unk4 ABC" in {
     val msg = OutfitEvent(
-      RequestType.UpdateOutfitId,
       2147418113L,
       UpdateOutfitId(
         new_outfit_id = 529744L,
@@ -227,8 +217,7 @@ class OutfitEventTest extends Specification {
 
   "decode Unk5 ABC" in {
     PacketCoding.decodePacket(unk5_ABC).require match {
-      case OutfitEvent(request_type, outfit_guid, action) =>
-        request_type mustEqual RequestType.Unk5
+      case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 2147418113L
         action mustEqual Unk5(
           unk1 = 2,
@@ -240,7 +229,6 @@ class OutfitEventTest extends Specification {
 
   "encode Unk5 ABC" in {
     val msg = OutfitEvent(
-      RequestType.Unk5,
       2147418113L,
       Unk5(
         unk1 = 2,

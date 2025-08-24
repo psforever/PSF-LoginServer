@@ -3,12 +3,12 @@ package game
 
 import net.psforever.packet._
 import net.psforever.packet.game.OutfitListEvent
-import net.psforever.packet.game.OutfitListEvent.RequestType
 import net.psforever.packet.game.OutfitListEventAction.ListElementOutfit
 import org.specs2.mutable._
 import scodec.bits.ByteVector
 
 class OutfitListEventTest extends Specification {
+
   val unk2_0_ABC: ByteVector = ByteVector.fromValidHex("98 5 e83a0000 000e1800 0800000 11404e0069006700680074004c006f00720064007300 854e005900430061007400")
   val unk2_0_DEF: ByteVector = ByteVector.fromValidHex("98 4 ec281001 51a62800 3400000 11a0490052004f004e004600490053005400200043006c0061006e00 8654006f006c006a00")
   val unk2_1_ABC: ByteVector = ByteVector.fromValidHex("98 4 723c0000 2aa81e00 2200000 11006900470061006d00650073002d004500 906900670061006d006500730043005400460057006800610063006b002d004500")
@@ -21,8 +21,7 @@ class OutfitListEventTest extends Specification {
 
   "decode unk0_ABC" in {
     PacketCoding.decodePacket(unk2_0_ABC).require match {
-      case OutfitListEvent(code, ListElementOutfit(unk1, points, members, outfit_name, outfit_leader)) =>
-        code mustEqual OutfitListEvent.RequestType.ListElementOutfit
+      case OutfitListEvent(ListElementOutfit(unk1, points, members, outfit_name, outfit_leader)) =>
         unk1 mustEqual 7668
         points mustEqual 788224
         members mustEqual 4
@@ -34,7 +33,15 @@ class OutfitListEventTest extends Specification {
   }
 
   "encode unk0_ABC" in {
-    val msg = OutfitListEvent(RequestType.ListElementOutfit, ListElementOutfit(7668, 788224, 4, "NightLords", "NYCat"))
+    val msg = OutfitListEvent(
+      ListElementOutfit(
+        7668,
+        788224,
+        4,
+        "NightLords",
+        "NYCat"
+      )
+    )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual unk2_0_ABC
