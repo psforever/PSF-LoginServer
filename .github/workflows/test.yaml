@@ -37,7 +37,7 @@ jobs:
       - name: Setup Scala
         uses: coursier/setup-action@v1
         with:
-          jvm: temurin:21
+          jvm: adopt:11
           apps: sbt
 
       - name: Run migrations
