@@ -38,16 +38,16 @@ jobs:
         uses: coursier/setup-action@v1
         with:
           jvm: adopt:11
-          apps: sbtn
+          apps: sbt
 
       - name: Run migrations
-        run: sbtn "server/run migrate"
+        run: sbt "server/run migrate"
 
       - name: Run build
-        run: sbtn server/packArchiveZip
+        run: sbt server/packArchiveZip
 
       - name: Run tests
-        run: sbtn coverage test:compile quiet:test coverageReport
+        run: sbt coverage test:compile quiet:test coverageReport
 
       - name: Upload coverage
         run: bash <(curl -s https://codecov.io/bash)
