@@ -29,7 +29,7 @@ object SessionOutfitHandlers {
                     rank6: Option[String],
                     rank7: Option[String])
   case class Outfitmember(id: Long, outfit_id: Long, avatar_id: Long, rank: Int)
-  case class Outfitpoint(id: Long, outfit_id: Long, avatar_id: Long, points: Long)
+  case class Outfitpoint(id: Long, outfit_id: Long, avatar_id: Option[Long], points: Long)
   case class OutfitpointMv(outfit_id: Long, points: Long)
 
   val ctx = new PostgresJAsyncContext(SnakeCase, Config.config.getConfig("database"))
@@ -73,6 +73,12 @@ object SessionOutfitHandlers {
 
               player.outfit_id = outfit.id
               player.outfit_name = outfit.name
+
+              player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.id,
+                AvatarAction.PlanetsideAttributeToAll(player.GUID, 39, player.outfit_id))
+
+              player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.id,
+                AvatarAction.PlanetsideStringAttribute(player.GUID, 0, player.outfit_name))
 
               session.chat.JoinChannel(OutfitChannel(player.outfit_id))
             }
@@ -152,6 +158,12 @@ object SessionOutfitHandlers {
             session.chat.JoinChannel(OutfitChannel(outfit.id))
             invited.outfit_id = outfit.id
             invited.outfit_name = outfit.name
+
+            invited.Zone.AvatarEvents ! AvatarServiceMessage(invited.Zone.id,
+              AvatarAction.PlanetsideAttributeToAll(invited.GUID, 39, invited.outfit_id))
+
+            invited.Zone.AvatarEvents ! AvatarServiceMessage(invited.Zone.id,
+              AvatarAction.PlanetsideStringAttribute(invited.GUID, 0, invited.outfit_name))
           case (None, _, _) =>
 
             PlayerControl.sendResponse(invited.Zone, invited.Name,
@@ -165,28 +177,101 @@ object SessionOutfitHandlers {
     }
   }
 
-  def HandleOutfitKick(zones: Seq[Zone], kickedId: Long, kickedBy: Player): Unit = {
+  def HandleOutfitInviteReject(invited: Player): Unit = {
+    OutfitInviteManager.getOutfitInvite(invited.CharId) match {
+      case Some(outfitInvite) =>
+
+        PlayerControl.sendResponse(outfitInvite.sentFrom.Zone, outfitInvite.sentFrom.Name,
+          OutfitMembershipResponse(
+            OutfitMembershipResponse.PacketType.Unk3, 0, 0,
+            invited.CharId, outfitInvite.sentFrom.CharId, invited.Name, "", flag = false))
+
+        PlayerControl.sendResponse(invited.Zone, invited.Name,
+          OutfitMembershipResponse(
+            OutfitMembershipResponse.PacketType.Unk3, 0, 0,
+            invited.CharId, outfitInvite.sentFrom.CharId, invited.Name, "", flag = true))
+
+        OutfitInviteManager.removeOutfitInvite(invited.CharId)
+      case None =>
+    }
+  }
+
+  def HandleOutfitKick(zones: Seq[Zone], kickedId: Long, kickedBy: Player, session: SessionData): Unit = {
     // if same id, player has left the outfit by their own choice
     if (kickedId == kickedBy.CharId) {
-      // db stuff first
-      PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name, OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Unk1()))
+      removeMemberFromOutfit(kickedBy.outfit_id, kickedId).map {
+        case (deleted, _) =>
+          if (deleted > 0) {
+            PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name,
+              OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Unk1()))
+
+            zones.filter(z => z.AllPlayers.nonEmpty).flatMap(_.AllPlayers)
+              .filter(p => p.outfit_id == kickedBy.outfit_id).foreach(outfitMember =>
+              PlayerControl.sendResponse(outfitMember.Zone, outfitMember.Name,
+                OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Unk1()))
+            )
+
+            session.chat.LeaveChannel(OutfitChannel(kickedBy.outfit_id))
+            kickedBy.outfit_name = ""
+            kickedBy.outfit_id = 0
+
+            val pZone = zones.filter(z => z.id == kickedBy.Zone.id).head
+            pZone.AllPlayers.filter(p => p.Faction == kickedBy.Faction).foreach { friendly =>
+              PlayerControl.sendResponse(friendly.Zone, friendly.Name,
+                PlanetsideAttributeMessage(kickedBy.GUID, 39, 0))
+
+              PlayerControl.sendResponse(friendly.Zone, friendly.Name,
+                PlanetsideStringAttributeMessage(kickedBy.GUID, 0, ""))
+            }
+          }
+      }.recover { case e =>
+        e.printStackTrace()
+      }
     }
     else {
-      // db stuff first
-      // tell player they've been kicked (if online)
-      findPlayerByIdForOutfitAction(zones, kickedId, kickedBy).foreach { kicked =>
-        PlayerControl.sendResponse(kicked.Zone, kicked.Name, OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Kick, 0, 1, kickedBy.CharId, kicked.CharId, kicked.Name, kickedBy.Name, flag = false))
-        kicked.Zone.AvatarEvents ! AvatarServiceMessage(kicked.Zone.id, AvatarAction.PlanetsideAttributeToAll(kicked.GUID, 39, 0))
-        //kicked.Zone.AvatarEvents ! AvatarServiceMessage(kicked.Zone.id, AvatarAction.PlanetsideStringAttributeMessage(kicked.GUID, 0, ""))
-        kicked.outfit_id = 0
-        kicked.outfit_name = ""
-        PlayerControl.sendResponse(kicked.Zone, kicked.Name, OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Unk1()))
+      removeMemberFromOutfit(kickedBy.outfit_id, kickedId).map {
+        case (deleted, _) =>
+          if (deleted > 0) {
+            findPlayerByIdForOutfitAction(zones, kickedId, kickedBy).foreach { kicked =>
+              PlayerControl.sendResponse(kicked.Zone, kicked.Name,
+                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Kick, 0, 1,
+                  kickedBy.CharId, kicked.CharId, kicked.Name, kickedBy.Name, flag = false))
 
-        // move this out of foreach - db will provide kicked char details
-        PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name, OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Kick, 0, 1, kickedBy.CharId, kicked.CharId, kicked.Name, "", flag = true))
-        PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name, OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Unk1()))
-        // new number of outfit members?
-        PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name, OutfitEvent(kickedBy.outfit_id, OutfitEventAction.Unk5(34)))
+              kicked.Zone.AvatarEvents ! AvatarServiceMessage(kicked.Zone.id,
+                AvatarAction.PlanetsideAttributeToAll(kicked.GUID, 39, 0))
+
+              kicked.Zone.AvatarEvents ! AvatarServiceMessage(kicked.Zone.id,
+                AvatarAction.PlanetsideStringAttribute(kicked.GUID, 0, ""))
+
+              kicked.outfit_id = 0
+              kicked.outfit_name = ""
+              PlayerControl.sendResponse(kicked.Zone, kicked.Name,
+                OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Unk1()))
+            }
+            val avatarName: Future[Option[String]] =
+            ctx.run(
+              quote { query[Avatar].filter(_.id == lift(kickedId)).map(_.name) }
+            ).map(_.headOption)
+
+            avatarName.foreach {
+              case Some(name) => PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name,
+                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Kick, 0, 1, kickedBy.CharId, kickedId, name, "", flag = true))
+
+              case None => PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name,
+                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Kick, 0, 1, kickedBy.CharId, kickedId, "NameNotFound", "", flag = true))
+            }
+            zones.filter(z => z.AllPlayers.nonEmpty).flatMap(_.AllPlayers)
+              .filter(p => p.outfit_id == kickedBy.outfit_id).foreach(outfitMember =>
+              PlayerControl.sendResponse(outfitMember.Zone, outfitMember.Name,
+                OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Unk1()))
+            )
+            // this needs to be the kicked player
+            // session.chat.LeaveChannel(OutfitChannel(kickedBy.outfit_id))
+            // new number of outfit members?
+            //PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name, OutfitEvent(kickedBy.outfit_id, OutfitEventAction.Unk5(34)))
+          }
+      }.recover { case e =>
+        e.printStackTrace()
       }
     }
   }
@@ -282,7 +367,7 @@ object SessionOutfitHandlers {
 
   def findPlayerByNameForOutfitAction(zones: Iterable[Zone], targetName: String, inviter: Player): Option[Player] = {
     zones
-      .flatMap(_.LivePlayers)
+      .flatMap(_.AllPlayers)
       .find(p =>
         p.Name.equalsIgnoreCase(targetName) && p.Name != inviter.Name &&
           p.Faction == inviter.Faction && p.outfit_id == 0
@@ -291,7 +376,7 @@ object SessionOutfitHandlers {
 
   def findPlayerByIdForOutfitAction(zones: Iterable[Zone], targetId: Long, initiator: Player): Option[Player] = {
     zones
-      .flatMap(_.LivePlayers)
+      .flatMap(_.AllPlayers)
       .find(p =>
         p.CharId == targetId && p.Name != initiator.Name &&
           p.Faction == initiator.Faction && p.outfit_id == initiator.outfit_id
@@ -321,7 +406,7 @@ object SessionOutfitHandlers {
   def insertOutfitPoint(outfit_id: Long, avatar_id: Long): Quoted[Insert[Outfitpoint]] = quote {
     query[Outfitpoint].insert(
       _.outfit_id -> lift(outfit_id),
-      _.avatar_id -> lift(avatar_id)
+      _.avatar_id -> lift(Some(avatar_id): Option[Long])
     )
   }
 
@@ -344,6 +429,24 @@ object SessionOutfitHandlers {
     }
   }
 
+  def removeMemberFromOutfit(outfit_id: Long, avatar_id: Long): Future[(Long, Long)] = {
+    val avatarOpt: Option[Long] = Some(avatar_id)
+    ctx.transaction { _ =>
+      for {
+        deleted <- ctx.run(
+          query[Outfitmember]
+            .filter(m => m.outfit_id == lift(outfit_id) && m.avatar_id == lift(avatar_id))
+            .delete
+        )
+        updated <- ctx.run(
+          query[Outfitpoint]
+            .filter(p => p.outfit_id == lift(outfit_id) && p.avatar_id == lift(avatarOpt))
+            .update(_.avatar_id -> None)
+        )
+      } yield (deleted, updated)
+    }
+  }
+
   def getOutfitById(id: Long): Quoted[EntityQuery[Outfit]] = quote {
     query[Outfit].filter(_.id == lift(id))
   }
@@ -362,7 +465,7 @@ object SessionOutfitHandlers {
       .join(query[Avatar]).on(_.avatar_id == _.id)
       .leftJoin(query[Outfitpoint]).on {
       case ((member, _), points) =>
-        points.outfit_id == member.outfit_id && points.avatar_id == member.avatar_id
+        points.outfit_id == member.outfit_id && points.avatar_id.getOrElse(0L) == member.avatar_id
     }
       .map {
         case ((member, avatar), pointsOpt) =>

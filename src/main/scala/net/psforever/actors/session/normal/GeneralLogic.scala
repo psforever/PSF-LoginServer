@@ -809,14 +809,17 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.Invite(_, invitedName)) =>
         SessionOutfitHandlers.HandleOutfitInvite(zones, invitedName, player)
 
+      case OutfitMembershipRequest(_, OutfitMembershipRequestAction.AcceptInvite(_)) =>
+        SessionOutfitHandlers.HandleOutfitInviteAccept(player, sessionLogic)
+
+      case OutfitMembershipRequest(_, OutfitMembershipRequestAction.RejectInvite(_)) =>
+        SessionOutfitHandlers.HandleOutfitInviteReject(player)
+
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.Kick(memberId, _)) =>
-        SessionOutfitHandlers.HandleOutfitKick(zones, memberId, player)
+        SessionOutfitHandlers.HandleOutfitKick(zones, memberId, player, sessionLogic)
 
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.SetRank(memberId, newRank, _)) =>
         SessionOutfitHandlers.HandleOutfitPromote(zones, memberId, newRank, player)
-
-      case OutfitMembershipRequest(_, OutfitMembershipRequestAction.AcceptInvite(_)) =>
-        SessionOutfitHandlers.HandleOutfitInviteAccept(player, sessionLogic)
 
       case _ =>
     }

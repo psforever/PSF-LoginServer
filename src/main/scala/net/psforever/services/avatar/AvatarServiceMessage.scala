@@ -78,6 +78,8 @@ object AvatarAction {
       extends Action
   final case class PlanetsideAttributeSelf(player_guid: PlanetSideGUID, attribute_type: Int, attribute_value: Long)
       extends Action
+  final case class PlanetsideStringAttribute(player_guid: PlanetSideGUID, attribute_type: Int, attribute_value: String)
+    extends Action
   final case class PlayerState(
       player_guid: PlanetSideGUID,
       pos: Vector3,
