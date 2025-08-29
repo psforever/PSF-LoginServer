@@ -3,12 +3,14 @@ on:
   push:
     branches:
       - master
+
 jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
+
       - name: Set variables
         id: prep
         run: |
@@ -16,23 +18,25 @@ jobs:
           REPOSITORY="$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')" # Repository name must be lowercase in image tags
 
           if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
-              GITHUB_SHA=$(cat $GITHUB_EVENT_PATH | jq -r .pull_request.head.sha) # GITHUB_SHA is the merge SHA, not the head commit SHA in a PR, replace it.
+              GITHUB_SHA=$(jq -r .pull_request.head.sha < "$GITHUB_EVENT_PATH") # GITHUB_SHA is the merge SHA, not the head commit SHA in a PR, replace it.
           fi
 
           TAGS="ghcr.io/${REPOSITORY}/${DOCKER_IMAGE}:${GITHUB_SHA}"
-          if [ "${{ github.ref }}" = "refs/heads/master" ]; then
+          if [ "${GITHUB_REF}" = "refs/heads/master" ]; then
             TAGS="$TAGS,ghcr.io/${REPOSITORY}/${DOCKER_IMAGE}:latest,ghcr.io/${REPOSITORY}/${DOCKER_IMAGE}:master"
           fi
 
-          echo ::set-output name=tags::${TAGS}
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+
       - name: Log in to GitHub Docker Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build container image
-        uses: docker/build-push-action@v2
+
+      - name: Build and Push container image
+        uses: docker/build-push-action@v5
         with:
           push: true
           tags: ${{ steps.prep.outputs.tags }}

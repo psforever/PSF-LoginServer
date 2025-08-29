@@ -24,29 +24,36 @@ jobs:
           - 5432:5432
     steps:
       - name: Cache SBT
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.ivy2/cache
             ~/.sbt
           key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
       - name: Setup Scala
         uses: coursier/setup-action@v1
         with:
           jvm: adopt:11
-          apps: sbtn
+          apps: sbt
+
       - name: Run migrations
         run: sbt "server/run migrate"
+
       - name: Run build
         run: sbt server/packArchiveZip
+
       - name: Run tests
         run: sbt coverage test:compile quiet:test coverageReport
+
       - name: Upload coverage
         run: bash <(curl -s https://codecov.io/bash)
+
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: server.zip
           path: server/target/psforever-server-*.zip
