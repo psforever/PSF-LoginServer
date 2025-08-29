@@ -12,3 +12,5 @@ final case class SquadChannel(guid: PlanetSideGUID) extends ChatChannel
 case object SpectatorChannel extends ChatChannel
 
 case object CustomerServiceChannel extends ChatChannel
+
+final case class OutfitChannel(id: Long) extends ChatChannel

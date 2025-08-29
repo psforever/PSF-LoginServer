@@ -31,11 +31,11 @@ object OutfitMembershipResponse extends Marshallable[OutfitMembershipResponse] {
     type Type = Value
 
     val CreateResponse: PacketType.Value = Value(0)
-    val Unk1: PacketType.Value = Value(1) // Info: Player has been invited / response to OutfitMembershipRequest Unk2 for that player
+    val Invite: PacketType.Value = Value(1) // Info: Player has been invited / response to OutfitMembershipRequest Unk2 for that player
     val Unk2: PacketType.Value = Value(2) // Invited / Accepted / Added
     val Unk3: PacketType.Value = Value(3)
     val Unk4: PacketType.Value = Value(4)
-    val Unk5: PacketType.Value = Value(5)
+    val Kick: PacketType.Value = Value(5)
     val Unk6: PacketType.Value = Value(6) // 6 and 7 seen as failed decodes, validity unknown
     val Unk7: PacketType.Value = Value(7)
 

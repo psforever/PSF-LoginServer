@@ -57,6 +57,7 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
         (channel, message.messageType) match {
           case (SquadChannel(_), CMT_SQUAD)                                      => ()
           case (SquadChannel(_), CMT_VOICE) if message.contents.startsWith("SH") => ()
+          case (OutfitChannel(_), CMT_OUTFIT)                                    => ()
           case (DefaultChannel, messageType) if messageType != CMT_SQUAD         => ()
           case (SpectatorChannel, messageType) if messageType != CMT_SQUAD       => ()
           case _ =>
@@ -156,6 +157,9 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
             }
 
           case CMT_SQUAD =>
+            subs.foreach(_.actor ! MessageResponse(session, message, channel))
+
+          case CMT_OUTFIT =>
             subs.foreach(_.actor ! MessageResponse(session, message, channel))
 
           case CMT_NOTE =>

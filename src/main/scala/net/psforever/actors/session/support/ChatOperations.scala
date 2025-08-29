@@ -14,7 +14,7 @@ import net.psforever.objects.LivePlayerList
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.ZoneInfo
 import net.psforever.packet.game.SetChatFilterMessage
-import net.psforever.services.chat.{DefaultChannel, SquadChannel}
+import net.psforever.services.chat.{DefaultChannel, OutfitChannel, SquadChannel}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.teamwork.{SquadResponse, SquadService, SquadServiceResponse}
 import net.psforever.types.ChatMessageType.CMT_QUIT
@@ -441,6 +441,14 @@ class ChatOperations(
   def commandSquad(session: Session, message: ChatMsg, toChannel: ChatChannel): Unit = {
     channels.foreach {
       case _/*channel*/: SquadChannel =>
+        commandSendToRecipient(session, message, toChannel)
+      case _ => ()
+    }
+  }
+
+  def commandOutfit(session: Session, message: ChatMsg, toChannel: ChatChannel): Unit = {
+    channels.foreach {
+      case _/*channel*/: OutfitChannel =>
         commandSendToRecipient(session, message, toChannel)
       case _ => ()
     }
