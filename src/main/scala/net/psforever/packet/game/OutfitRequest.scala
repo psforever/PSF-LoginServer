@@ -8,7 +8,7 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 final case class OutfitRequest(
-    id: Long,
+    outfit_id: Long,
     action: OutfitRequestAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitRequest

@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PSForever
 package net.psforever.actors.session.support
 
-import io.getquill.{ActionReturning, EntityQuery, Insert, PostgresJAsyncContext, Query, Quoted, SnakeCase}
+import io.getquill.{ActionReturning, EntityQuery, Insert, PostgresJAsyncContext, Query, Quoted, SnakeCase, Update}
 import net.psforever.objects.avatar.PlayerControl
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.Player
@@ -19,15 +19,23 @@ import scala.util.{Failure, Success}
 object SessionOutfitHandlers {
 
   case class Avatar(id: Long, name: String, faction_id: Int, last_login: java.time.LocalDateTime)
-  case class Outfit(id: Long, name: String, faction: Int, owner_id: Long, motd: Option[String], created: java.time.LocalDateTime,
-                    rank0: Option[String],
-                    rank1: Option[String],
-                    rank2: Option[String],
-                    rank3: Option[String],
-                    rank4: Option[String],
-                    rank5: Option[String],
-                    rank6: Option[String],
-                    rank7: Option[String])
+  case class Outfit(
+    id: Long,
+    name: String,
+    faction: Int,
+    owner_id: Long,
+    motd: Option[String],
+    created: java.time.LocalDateTime,
+    deleted: Boolean,
+    rank0: Option[String],
+    rank1: Option[String],
+    rank2: Option[String],
+    rank3: Option[String],
+    rank4: Option[String],
+    rank5: Option[String],
+    rank6: Option[String],
+    rank7: Option[String]
+  )
   case class Outfitmember(id: Long, outfit_id: Long, avatar_id: Long, rank: Int)
   case class Outfitpoint(id: Long, outfit_id: Long, avatar_id: Option[Long], points: Long)
   case class OutfitpointMv(outfit_id: Long, points: Long)
@@ -126,12 +134,12 @@ object SessionOutfitHandlers {
 
             PlayerControl.sendResponse(outfitInvite.sentFrom.Zone, outfitInvite.sentFrom.Name,
               OutfitMembershipResponse(
-                OutfitMembershipResponse.PacketType.Unk2, 0, 0,
+                OutfitMembershipResponse.PacketType.InviteAccepted, 0, 0,
                 invited.CharId, outfitInvite.sentFrom.CharId, invited.Name, outfit.name, flag = false))
 
             PlayerControl.sendResponse(invited.Zone, invited.Name,
               OutfitMembershipResponse(
-                OutfitMembershipResponse.PacketType.Unk2, 0, 0,
+                OutfitMembershipResponse.PacketType.InviteAccepted, 0, 0,
                 invited.CharId, outfitInvite.sentFrom.CharId, invited.Name, outfit.name, flag = true))
 
             PlayerControl.sendResponse(outfitInvite.sentFrom.Zone, outfitInvite.sentFrom.Name,
@@ -183,12 +191,12 @@ object SessionOutfitHandlers {
 
         PlayerControl.sendResponse(outfitInvite.sentFrom.Zone, outfitInvite.sentFrom.Name,
           OutfitMembershipResponse(
-            OutfitMembershipResponse.PacketType.Unk3, 0, 0,
+            OutfitMembershipResponse.PacketType.InviteRejected, 0, 0,
             invited.CharId, outfitInvite.sentFrom.CharId, invited.Name, "", flag = false))
 
         PlayerControl.sendResponse(invited.Zone, invited.Name,
           OutfitMembershipResponse(
-            OutfitMembershipResponse.PacketType.Unk3, 0, 0,
+            OutfitMembershipResponse.PacketType.InviteRejected, 0, 0,
             invited.CharId, outfitInvite.sentFrom.CharId, invited.Name, "", flag = true))
 
         OutfitInviteManager.removeOutfitInvite(invited.CharId)
@@ -277,10 +285,60 @@ object SessionOutfitHandlers {
   }
 
   def HandleOutfitPromote(zones: Seq[Zone], promotedId: Long, newRank: Int, promoter: Player): Unit = {
-    // send to all online players in outfit
+
+    val outfit_id = promoter.outfit_id
+
     findPlayerByIdForOutfitAction(zones, promotedId, promoter).foreach { promoted =>
-      PlayerControl.sendResponse(promoted.Zone, promoted.Name, OutfitMemberEvent(6418, promotedId, OutfitMemberEventAction.Unk0(promoted.Name, newRank, 1032432, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
-      PlayerControl.sendResponse(promoter.Zone, promoter.Name, OutfitMemberEvent(6418, promotedId, OutfitMemberEventAction.Unk0(promoted.Name, newRank, 1032432, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
+
+      if (newRank == 7) {
+
+        // demote owner to rank 6
+        // promote promoted to rank 7
+        // update outfit
+        updateOutfitOwner(outfit_id, promoter.avatar.id, promoted.avatar.id)
+
+        // TODO: does every member get the notification like this?
+        getOutfitMemberPoints(outfit_id, promoter.avatar.id).map {
+          owner_points =>
+            // announce owner rank change
+            zones.foreach(zone => {
+              zone.AllPlayers.filter(_.outfit_id == outfit_id).foreach(outfitMember => {
+                PlayerControl.sendResponse(
+                  zone, outfitMember.Name,
+                  OutfitMemberEvent(outfit_id, promoter.avatar.id,
+                    OutfitMemberEventAction.Unk0(promoter.Name, 6, owner_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
+              })
+          })
+        }
+
+        // update promoter rank
+        PlayerControl.sendResponse(
+          promoter.Zone, promoter.Name,
+          OutfitMemberUpdate(outfit_id, promoter.avatar.id, rank = 6, flag = true))
+      }
+      else {
+        // promote promoted
+        updateOutfitMemberRank(outfit_id, promoted.avatar.id, rank = newRank)
+      }
+
+      // TODO: does every member get the notification like this?
+      getOutfitMemberPoints(outfit_id, promoted.avatar.id).map {
+        member_points =>
+          // tell everyone about the new rank of the promoted member
+          zones.foreach(zone => {
+            zone.AllPlayers.filter(_.outfit_id == outfit_id).foreach(player => {
+              PlayerControl.sendResponse(
+                zone, player.Name,
+                OutfitMemberEvent(outfit_id, promoted.avatar.id,
+                  OutfitMemberEventAction.Unk0(promoted.Name, newRank, member_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
+            })
+          })
+      }
+
+      // update promoted rank
+      PlayerControl.sendResponse(
+        promoted.Zone, promoted.Name,
+        OutfitMemberUpdate(outfit_id, promoted.avatar.id, rank = newRank, flag = true))
     }
   }
 
@@ -306,7 +364,16 @@ object SessionOutfitHandlers {
             totalPoints,
             totalPoints,
             memberCount,
-            OutfitRankNames("", "", "", "", "", "", "", ""),
+            OutfitRankNames(
+              outfit.rank0.getOrElse(""),
+              outfit.rank1.getOrElse(""),
+              outfit.rank2.getOrElse(""),
+              outfit.rank3.getOrElse(""),
+              outfit.rank4.getOrElse(""),
+              outfit.rank5.getOrElse(""),
+              outfit.rank6.getOrElse(""),
+              outfit.rank7.getOrElse(""),
+            ),
             outfit.motd.getOrElse(""),
             14, unk11 = true, 0, seconds, 0, 0, 0))))
 
@@ -353,6 +420,71 @@ object SessionOutfitHandlers {
           ChatMsg(ChatMessageType.UNK_227, "Outfit list failed to return")
         )
     }
+  }
+
+  def HandleOutfitMotd(zones: Seq[Zone], message: String, player: Player): Unit = {
+
+    val outfit_id = player.outfit_id
+
+    // update MOTD
+    updateOutfitMotd(outfit_id, message)
+
+    // TODO this does not notify clients with open windows. Do they update in the first place?
+    val outfitDetails = for {
+      outfitOpt <- ctx.run(getOutfitById(outfit_id)).map(_.headOption)
+      memberCount <- ctx.run(query[Outfitmember].filter(_.outfit_id == lift(outfit_id)).size)
+      pointsTotal <- ctx.run(querySchema[OutfitpointMv]("outfitpoint_mv").filter(_.outfit_id == lift(outfit_id)))
+    } yield (outfitOpt, memberCount, pointsTotal.headOption.map(_.points).getOrElse(0L))
+
+    for {
+      (outfitOpt, memberCount, totalPoints) <- outfitDetails
+    } yield {
+      outfitOpt.foreach { outfit =>
+
+        // send to all online players in outfit
+        val outfit_event = OutfitEvent(
+            outfit_id,
+            Unk2(
+              OutfitInfo(
+                outfit_name = outfit.name,
+                outfit_points1 = totalPoints,
+                outfit_points2 = totalPoints,
+                member_count = memberCount,
+                outfit_rank_names = OutfitRankNames(
+                  outfit.rank0.getOrElse(""),
+                  outfit.rank1.getOrElse(""),
+                  outfit.rank2.getOrElse(""),
+                  outfit.rank3.getOrElse(""),
+                  outfit.rank4.getOrElse(""),
+                  outfit.rank5.getOrElse(""),
+                  outfit.rank6.getOrElse(""),
+                  outfit.rank7.getOrElse(""),
+                ),
+                motd = outfit.motd.getOrElse(""),
+                unk10 = 0,
+                unk11 = true,
+                unk12 = 0,
+                created_timestamp = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000,
+                unk23 = 0,
+                unk24 = 0,
+                unk25 = 0
+              )
+            )
+        )
+
+        zones.foreach(zone => {
+          zone.AllPlayers.filter(_.outfit_id == outfit_id).foreach(player => {
+            PlayerControl.sendResponse(
+              zone, player.Name,
+              outfit_event
+            )
+          })
+        })
+      }
+    }
+
+    // C >> S OutfitRequest(41593365, Motd(Vanu outfit for the planetside forever project!                                                                                      -find out more about the PSEMU project at PSforever.net))
+    // S >> C OutfitEvent(Unk2, 529744, Unk2(OutfitInfo(PlanetSide_Forever_Vanu, 0, 0, 3, OutfitRankNames(, , , , , , , ), Vanu outfit for the planetside forever project!                                                                                      -find out more about the PSEMU project at PSforever.net, 0, 1, 0, 1458331641, 0, 0, 0)))
   }
 
   /* supporting functions */
@@ -435,12 +567,14 @@ object SessionOutfitHandlers {
       for {
         deleted <- ctx.run(
           query[Outfitmember]
-            .filter(m => m.outfit_id == lift(outfit_id) && m.avatar_id == lift(avatar_id))
+            .filter(_.outfit_id == lift(outfit_id))
+            .filter(_.avatar_id == lift(avatar_id))
             .delete
         )
         updated <- ctx.run(
           query[Outfitpoint]
-            .filter(p => p.outfit_id == lift(outfit_id) && p.avatar_id == lift(avatarOpt))
+            .filter(_.outfit_id == lift(outfit_id))
+            .filter(_.avatar_id == lift(avatarOpt))
             .update(_.avatar_id -> None)
         )
       } yield (deleted, updated)
@@ -453,6 +587,18 @@ object SessionOutfitHandlers {
 
   def getOutfitMemberCount(id: Long): Quoted[Long] = quote {
     query[Outfitmember].filter(_.outfit_id == lift(id)).size
+  }
+
+  def getOutfitMemberPoints(outfit_id: Long, avatar_id: Long): Future[Long] = {
+    val avatarOpt: Option[Long] = Some(avatar_id)
+    for {
+      points <- ctx.run(
+        query[Outfitpoint]
+          .filter(_.outfit_id == lift(outfit_id))
+          .filter(_.avatar_id == lift(avatarOpt))
+          .map(_.points)
+      )
+    } yield (points.headOption.getOrElse(0))
   }
 
   def getOutfitPoints(id: Long): Quoted[EntityQuery[OutfitpointMv]] = quote {
@@ -489,5 +635,50 @@ object SessionOutfitHandlers {
         case (((outfit, leader), memberCounts), points) =>
           (outfit.id, points.map(_.points).getOrElse(0L), outfit.name, leader.name, memberCounts.map(_._2).getOrElse(0L))
       }
+  }
+
+  def updateMemberRankById(outfit_id: Long, avatar_id: Long, rank: Int): Quoted[Update[Outfitmember]] = quote {
+    query[Outfitmember]
+      .filter(_.outfit_id == lift(outfit_id))
+      .filter(_.avatar_id == lift(avatar_id))
+      .update(_.rank -> lift(rank))
+  }
+
+  def updateOutfitMemberRank(outfit_id: Long, avatar_id: Long, rank: Int): Future[Unit] = {
+    ctx.transaction { implicit ec =>
+      for {
+        _ <- ctx.run(updateMemberRankById(outfit_id, avatar_id, rank))
+      } yield ()
+    }
+  }
+
+  def updateOutfitOwnerById(outfit_id: Long, owner_id: Long): Quoted[Update[Outfit]] = quote {
+    query[Outfit]
+      .filter(_.id == lift(outfit_id))
+      .update(_.owner_id -> lift(owner_id))
+  }
+
+  def updateOutfitOwner(outfit_id: Long, owner_id: Long, new_owner_id: Long): Future[Unit] = {
+    ctx.transaction { implicit ec =>
+      for {
+        _ <- ctx.run(updateMemberRankById(outfit_id, owner_id, 6))
+        _ <- ctx.run(updateMemberRankById(outfit_id, new_owner_id, 7))
+        _ <- ctx.run(updateOutfitOwnerById(outfit_id, new_owner_id))
+      } yield ()
+    }
+  }
+
+  def updateOutfitMotdById(outfit_id: Long, motd: Option[String]): Quoted[Update[Outfit]] = quote {
+    query[Outfit]
+      .filter(_.id == lift(outfit_id))
+      .update(_.motd -> lift(motd))
+  }
+
+  def updateOutfitMotd(outfit_id: Long, motd: String): Future[Unit] = {
+    ctx.transaction { implicit ec =>
+      for {
+        _ <- ctx.run(updateOutfitMotdById(outfit_id, Some(motd)))
+      } yield ()
+    }
   }
 }

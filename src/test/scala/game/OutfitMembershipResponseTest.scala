@@ -42,7 +42,7 @@ class OutfitMembershipResponseTest extends Specification {
   "decode unk1" in {
     PacketCoding.decodePacket(unk1).require match {
       case OutfitMembershipResponse(packet_type, unk0, unk1, outfit_id, target_id, str1, str2, flag) =>
-        packet_type mustEqual PacketType.Unk1
+        packet_type mustEqual PacketType.Invite
         unk0 mustEqual 0
         unk1 mustEqual 0
         outfit_id mustEqual 30383325
@@ -56,7 +56,7 @@ class OutfitMembershipResponseTest extends Specification {
   }
 
   "encode unk1" in {
-    val msg = OutfitMembershipResponse(PacketType.Unk1, 0, 0, 30383325, 41605870, "xNick", "PlanetSide_Forever_TR", flag = false)
+    val msg = OutfitMembershipResponse(PacketType.Invite, 0, 0, 30383325, 41605870, "xNick", "PlanetSide_Forever_TR", flag = false)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual unk1
@@ -65,7 +65,7 @@ class OutfitMembershipResponseTest extends Specification {
   "decode unk2" in {
     PacketCoding.decodePacket(unk2).require match {
       case OutfitMembershipResponse(packet_type, unk0, unk1, outfit_id, target_id, str1, str2, flag) =>
-        packet_type mustEqual PacketType.Unk2
+        packet_type mustEqual PacketType.InviteAccepted
         unk0 mustEqual 0
         unk1 mustEqual 0
         outfit_id mustEqual 41605156
@@ -79,7 +79,7 @@ class OutfitMembershipResponseTest extends Specification {
   }
 
   "encode unk2" in {
-    val msg = OutfitMembershipResponse(PacketType.Unk2, 0, 0, 41605156, 41593365, "Zergling92", "PlanetSide_Forever_Vanu", flag = false)
+    val msg = OutfitMembershipResponse(PacketType.InviteAccepted, 0, 0, 41605156, 41593365, "Zergling92", "PlanetSide_Forever_Vanu", flag = false)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual unk2
@@ -88,7 +88,7 @@ class OutfitMembershipResponseTest extends Specification {
   "decode unk3" in {
     PacketCoding.decodePacket(unk3).require match {
       case OutfitMembershipResponse(packet_type, unk0, unk1, outfit_id, target_id, str1, str2, flag) =>
-        packet_type mustEqual PacketType.Unk3
+        packet_type mustEqual PacketType.InviteRejected
         unk0 mustEqual 0
         unk1 mustEqual 0
         outfit_id mustEqual 41574772
@@ -102,7 +102,7 @@ class OutfitMembershipResponseTest extends Specification {
   }
 
   "encode unk3" in {
-    val msg = OutfitMembershipResponse(PacketType.Unk3, 0, 0, 41574772, 31156616, "", "", flag = true)
+    val msg = OutfitMembershipResponse(PacketType.InviteRejected, 0, 0, 41574772, 31156616, "", "", flag = true)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual unk3
@@ -134,7 +134,7 @@ class OutfitMembershipResponseTest extends Specification {
   "decode unk5" in {
     PacketCoding.decodePacket(unk5).require match {
       case OutfitMembershipResponse(packet_type, unk0, unk1, outfit_id, target_id, str1, str2, flag) =>
-        packet_type mustEqual PacketType.Unk5
+        packet_type mustEqual PacketType.Kick
         unk0 mustEqual 0
         unk1 mustEqual 1
         outfit_id mustEqual 41593365
@@ -148,7 +148,7 @@ class OutfitMembershipResponseTest extends Specification {
   }
 
   "encode unk5" in {
-    val msg = OutfitMembershipResponse(PacketType.Unk5, 0, 1, 41593365, 41605263, "PSFoutfittest1", "", flag = true)
+    val msg = OutfitMembershipResponse(PacketType.Kick, 0, 1, 41593365, 41605263, "PSFoutfittest1", "", flag = true)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual unk5

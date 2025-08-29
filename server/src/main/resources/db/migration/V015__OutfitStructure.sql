@@ -104,4 +104,4 @@ CREATE MATERIALIZED VIEW outfitpoint_mv AS
         "outfitpoint"
     GROUP BY "outfit_id";
 
-CREATE INDEX "outfitpoint_mv_outfit_id_idx" ON "outfitpoint_mv" ("outfit_id");
+CREATE UNIQUE INDEX "outfitpoint_mv_outfit_id_unique" ON "outfitpoint_mv" ("outfit_id");
