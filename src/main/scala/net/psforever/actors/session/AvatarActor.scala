@@ -253,6 +253,8 @@ object AvatarActor {
 
   final case class SupportExperienceDeposit(bep: Long, delay: Long) extends Command
 
+  case class Outfitpoint(id: Long, outfit_id: Long, avatar_id: Option[Long], points: Long)
+
   /**
     * A player loadout represents all of the items in the player's hands (equipment slots)
     * and all of the items in the player's backpack (inventory)
@@ -967,6 +969,22 @@ object AvatarActor {
 
         _ <- ctx.run(query[persistence.Avatar].filter(_.id == lift(avatarId)).update(_.bep -> lift(newBep)))
       } yield newBep
+    }
+  }
+
+  def setOutfitPoints(avatarId: Long, exp: Long): Future[Unit] = {
+    import ctx._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val avatarOpt: Option[Long] = Some(avatarId)
+    ctx.transaction { implicit ec =>
+      for {
+        currOp <- ctx.run(query[Outfitpoint].filter(_.avatar_id == lift(avatarOpt)).map(_.points))
+          .map(_.headOption.getOrElse(0L))
+
+        newOp = currOp + exp
+
+        _ <- ctx.run(query[Outfitpoint].filter(_.avatar_id == lift(avatarOpt)).update(_.points -> lift(newOp)))
+      } yield ()
     }
   }
 
@@ -2994,6 +3012,13 @@ class AvatarActor(
             }
         }
         avatar = avatar.copy(bep = newBep, implants = implants)
+
+        if (player.outfit_id != 0) {
+          setOutfitPoints(player.avatar.id, bep).onComplete {
+            case Success(_)  =>
+            case Failure(exception) => log.error(exception)("db failure")
+          }
+        }
       case Failure(exception) =>
         log.error(exception)("db failure")
     }
@@ -3010,6 +3035,12 @@ class AvatarActor(
           zone.id,
           AvatarAction.PlanetsideAttributeToAll(sess.player.GUID, 18, cep)
         )
+        if (sess.player.outfit_id != 0) {
+          setOutfitPoints(sess.player.avatar.id, cep * 2).onComplete {
+            case Success(_)  =>
+            case Failure(exception) => log.error(exception)("db failure")
+          }
+        }
       case Failure(exception) =>
         log.error(exception)("db failure")
     }
