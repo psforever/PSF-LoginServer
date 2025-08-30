@@ -2532,6 +2532,7 @@ class ZoningOperations(
             sessionLogic.general.toggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
           }
       }
+      SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
       //make weather happen
       sendResponse(WeatherMessage(List(),List(
         StormInfo(Vector3(0.1f, 0.15f, 0.0f), 240, 217),
@@ -2655,6 +2656,7 @@ class ZoningOperations(
           log.debug(s"AvatarRejoin: ${player.Name} - $guid -> $data")
       }
       setupAvatarFunc = AvatarCreate
+      SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
       //make weather happen
         sendResponse(WeatherMessage(List(),List(
           StormInfo(Vector3(0.1f, 0.15f, 0.0f), 240, 217),
@@ -3196,8 +3198,6 @@ class ZoningOperations(
       continent.AllPlayers.filter(_.ExoSuit == ExoSuitType.MAX).foreach(max => sendResponse(PlanetsideAttributeMessage(max.GUID, 4, max.Armor)))
       // AvatarAwardMessage
       //populateAvatarAwardRibbonsFunc(1, 20L)
-
-      sendResponse(PlanetsideStringAttributeMessage(guid, 0, "Outfit Name"))
       //squad stuff (loadouts, assignment)
       sessionLogic.squad.squadSetup()
       //MapObjectStateBlockMessage and ObjectCreateMessage?

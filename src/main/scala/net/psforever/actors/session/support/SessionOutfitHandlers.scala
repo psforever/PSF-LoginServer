@@ -83,10 +83,10 @@ object SessionOutfitHandlers {
               player.outfit_name = outfit.name
 
               player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.id,
-                AvatarAction.PlanetsideAttributeToAll(player.GUID, 39, player.outfit_id))
+                AvatarAction.PlanetsideAttributeToAll(player.GUID, 39, outfit.id))
 
               player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.id,
-                AvatarAction.PlanetsideStringAttribute(player.GUID, 0, player.outfit_name))
+                AvatarAction.PlanetsideStringAttribute(player.GUID, 0, outfit.name))
 
               session.chat.JoinChannel(OutfitChannel(player.outfit_id))
             }
@@ -168,10 +168,10 @@ object SessionOutfitHandlers {
             invited.outfit_name = outfit.name
 
             invited.Zone.AvatarEvents ! AvatarServiceMessage(invited.Zone.id,
-              AvatarAction.PlanetsideAttributeToAll(invited.GUID, 39, invited.outfit_id))
+              AvatarAction.PlanetsideAttributeToAll(invited.GUID, 39, outfit.id))
 
             invited.Zone.AvatarEvents ! AvatarServiceMessage(invited.Zone.id,
-              AvatarAction.PlanetsideStringAttribute(invited.GUID, 0, invited.outfit_name))
+              AvatarAction.PlanetsideStringAttribute(invited.GUID, 0, outfit.name))
           case (None, _, _) =>
 
             PlayerControl.sendResponse(invited.Zone, invited.Name,
@@ -223,14 +223,11 @@ object SessionOutfitHandlers {
             kickedBy.outfit_name = ""
             kickedBy.outfit_id = 0
 
-            val pZone = zones.filter(z => z.id == kickedBy.Zone.id).head
-            pZone.AllPlayers.filter(p => p.Faction == kickedBy.Faction).foreach { friendly =>
-              PlayerControl.sendResponse(friendly.Zone, friendly.Name,
-                PlanetsideAttributeMessage(kickedBy.GUID, 39, 0))
+            kickedBy.Zone.AvatarEvents ! AvatarServiceMessage(kickedBy.Zone.id,
+              AvatarAction.PlanetsideAttributeToAll(kickedBy.GUID, 39, 0))
 
-              PlayerControl.sendResponse(friendly.Zone, friendly.Name,
-                PlanetsideStringAttributeMessage(kickedBy.GUID, 0, ""))
-            }
+            kickedBy.Zone.AvatarEvents ! AvatarServiceMessage(kickedBy.Zone.id,
+              AvatarAction.PlanetsideStringAttribute(kickedBy.GUID, 0, ""))
           }
       }.recover { case e =>
         e.printStackTrace()
@@ -426,11 +423,8 @@ object SessionOutfitHandlers {
 
     val outfit_id = player.outfit_id
 
-    // update MOTD
-    updateOutfitMotd(outfit_id, message)
-
-    // TODO this does not notify clients with open windows. Do they update in the first place?
     val outfitDetails = for {
+      _           <- updateOutfitMotd(outfit_id, message)
       outfitOpt <- ctx.run(getOutfitById(outfit_id)).map(_.headOption)
       memberCount <- ctx.run(query[Outfitmember].filter(_.outfit_id == lift(outfit_id)).size)
       pointsTotal <- ctx.run(querySchema[OutfitpointMv]("outfitpoint_mv").filter(_.outfit_id == lift(outfit_id)))
@@ -485,6 +479,56 @@ object SessionOutfitHandlers {
 
     // C >> S OutfitRequest(41593365, Motd(Vanu outfit for the planetside forever project!                                                                                      -find out more about the PSEMU project at PSforever.net))
     // S >> C OutfitEvent(Unk2, 529744, Unk2(OutfitInfo(PlanetSide_Forever_Vanu, 0, 0, 3, OutfitRankNames(, , , , , , , ), Vanu outfit for the planetside forever project!                                                                                      -find out more about the PSEMU project at PSforever.net, 0, 1, 0, 1458331641, 0, 0, 0)))
+  }
+
+  def HandleLoginOutfitCheck(player: Player, session: SessionData): Unit = {
+    ctx.run(getOutfitOnLogin(player.avatar.id)).flatMap { memberships =>
+      memberships.headOption match {
+        case Some(membership) =>
+          val outfitId = membership.outfit_id
+          (for {
+            outfitOpt   <- ctx.run(getOutfitById(outfitId)).map(_.headOption)
+            memberCount <- ctx.run(getOutfitMemberCount(outfitId))
+            points      <- ctx.run(getOutfitPoints(outfitId)).map(_.headOption.map(_.points).getOrElse(0L))
+          } yield (outfitOpt, memberCount, points))
+            .map {
+              case (Some(outfit), memberCount, points) =>
+                val seconds: Long = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000
+
+                PlayerControl.sendResponse(player.Zone, player.Name,
+                  OutfitEvent(outfitId, Unk2(OutfitInfo(
+                    outfit.name, points, points, memberCount,
+                    OutfitRankNames(outfit.rank0.getOrElse(""), outfit.rank1.getOrElse(""), outfit.rank2.getOrElse(""),
+                      outfit.rank3.getOrElse(""), outfit.rank4.getOrElse(""), outfit.rank5.getOrElse(""),
+                      outfit.rank6.getOrElse(""), outfit.rank7.getOrElse("")),
+                    outfit.motd.getOrElse(""),
+                    14, unk11 = true, 0, seconds, 0, 0, 0))))
+
+                PlayerControl.sendResponse(player.Zone, player.Name,
+                  OutfitMemberUpdate(outfit.id, player.CharId, membership.rank, flag = true))
+
+                session.chat.JoinChannel(OutfitChannel(outfit.id))
+                player.outfit_id = outfit.id
+                player.outfit_name = outfit.name
+
+                player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.id,
+                  AvatarAction.PlanetsideAttributeToAll(player.GUID, 39, outfit.id))
+
+                player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.id,
+                  AvatarAction.PlanetsideStringAttribute(player.GUID, 0, outfit.name))
+
+              case (None, _, _) =>
+                PlayerControl.sendResponse(player.Zone, player.Name,
+                  ChatMsg(ChatMessageType.UNK_227, "Failed to load outfit"))
+            }
+            .recover { case _ =>
+              PlayerControl.sendResponse(player.Zone, player.Name,
+                ChatMsg(ChatMessageType.UNK_227, "Failed to load outfit"))
+            }
+        case None =>
+          Future.successful(())
+      }
+    }
   }
 
   /* supporting functions */
@@ -603,6 +647,10 @@ object SessionOutfitHandlers {
 
   def getOutfitPoints(id: Long): Quoted[EntityQuery[OutfitpointMv]] = quote {
     querySchema[OutfitpointMv]("outfitpoint_mv").filter(_.outfit_id == lift(id))
+  }
+
+  def getOutfitOnLogin(avatarId: Long): Quoted[EntityQuery[Outfitmember]] = quote {
+    query[Outfitmember].filter(_.avatar_id == lift(avatarId))
   }
 
   def getOutfitMembersWithDetails(outfitId: Long): Quoted[Query[(Long, String, Long, Int, LocalDateTime)]] = quote {
