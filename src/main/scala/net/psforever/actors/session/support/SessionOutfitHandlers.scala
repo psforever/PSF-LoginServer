@@ -437,33 +437,33 @@ object SessionOutfitHandlers {
 
         // send to all online players in outfit
         val outfit_event = OutfitEvent(
-            outfit_id,
-            Unk2(
-              OutfitInfo(
-                outfit_name = outfit.name,
-                outfit_points1 = totalPoints,
-                outfit_points2 = totalPoints,
-                member_count = memberCount,
-                outfit_rank_names = OutfitRankNames(
-                  outfit.rank0.getOrElse(""),
-                  outfit.rank1.getOrElse(""),
-                  outfit.rank2.getOrElse(""),
-                  outfit.rank3.getOrElse(""),
-                  outfit.rank4.getOrElse(""),
-                  outfit.rank5.getOrElse(""),
-                  outfit.rank6.getOrElse(""),
-                  outfit.rank7.getOrElse(""),
-                ),
-                motd = outfit.motd.getOrElse(""),
-                unk10 = 0,
-                unk11 = true,
-                unk12 = 0,
-                created_timestamp = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000,
-                unk23 = 0,
-                unk24 = 0,
-                unk25 = 0
-              )
+          outfit_id,
+          Unk2(
+            OutfitInfo(
+              outfit_name = outfit.name,
+              outfit_points1 = totalPoints,
+              outfit_points2 = totalPoints,
+              member_count = memberCount,
+              outfit_rank_names = OutfitRankNames(
+                outfit.rank0.getOrElse(""),
+                outfit.rank1.getOrElse(""),
+                outfit.rank2.getOrElse(""),
+                outfit.rank3.getOrElse(""),
+                outfit.rank4.getOrElse(""),
+                outfit.rank5.getOrElse(""),
+                outfit.rank6.getOrElse(""),
+                outfit.rank7.getOrElse(""),
+              ),
+              motd = outfit.motd.getOrElse(""),
+              unk10 = 0,
+              unk11 = true,
+              unk12 = 0,
+              created_timestamp = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000,
+              unk23 = 0,
+              unk24 = 0,
+              unk25 = 0
             )
+          )
         )
 
         zones.foreach(zone => {
@@ -479,6 +479,65 @@ object SessionOutfitHandlers {
 
     // C >> S OutfitRequest(41593365, Motd(Vanu outfit for the planetside forever project!                                                                                      -find out more about the PSEMU project at PSforever.net))
     // S >> C OutfitEvent(Unk2, 529744, Unk2(OutfitInfo(PlanetSide_Forever_Vanu, 0, 0, 3, OutfitRankNames(, , , , , , , ), Vanu outfit for the planetside forever project!                                                                                      -find out more about the PSEMU project at PSforever.net, 0, 1, 0, 1458331641, 0, 0, 0)))
+  }
+
+  def HandleOutfitRank(zones: Seq[Zone], list: List[Option[String]], player: Player): Unit = {
+
+    val outfit_id = player.outfit_id
+
+    val outfitDetails = for {
+      _           <- updateOutfitRanks(outfit_id, list)
+      outfitOpt   <- ctx.run(getOutfitById(outfit_id)).map(_.headOption)
+      memberCount <- ctx.run(query[Outfitmember].filter(_.outfit_id == lift(outfit_id)).size)
+      pointsTotal <- ctx.run(querySchema[OutfitpointMv]("outfitpoint_mv").filter(_.outfit_id == lift(outfit_id)))
+    } yield (outfitOpt, memberCount, pointsTotal.headOption.map(_.points).getOrElse(0L))
+
+    for {
+      (outfitOpt, memberCount, totalPoints) <- outfitDetails
+    } yield {
+      outfitOpt.foreach { outfit =>
+
+        // send to all online players in outfit
+        val outfit_event = OutfitEvent(
+          outfit_id,
+          Unk2(
+            OutfitInfo(
+              outfit_name = outfit.name,
+              outfit_points1 = totalPoints,
+              outfit_points2 = totalPoints,
+              member_count = memberCount,
+              outfit_rank_names = OutfitRankNames(
+                outfit.rank0.getOrElse(""),
+                outfit.rank1.getOrElse(""),
+                outfit.rank2.getOrElse(""),
+                outfit.rank3.getOrElse(""),
+                outfit.rank4.getOrElse(""),
+                outfit.rank5.getOrElse(""),
+                outfit.rank6.getOrElse(""),
+                outfit.rank7.getOrElse(""),
+              ),
+              motd = outfit.motd.getOrElse(""),
+              unk10 = 0,
+              unk11 = true,
+              unk12 = 0,
+              created_timestamp = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000,
+              unk23 = 0,
+              unk24 = 0,
+              unk25 = 0
+            )
+          )
+        )
+
+        zones.foreach(zone => {
+          zone.AllPlayers.filter(_.outfit_id == outfit_id).foreach(player => {
+            PlayerControl.sendResponse(
+              zone, player.Name,
+              outfit_event
+            )
+          })
+        })
+      }
+    }
   }
 
   def HandleLoginOutfitCheck(player: Player, session: SessionData): Unit = {
@@ -726,6 +785,36 @@ object SessionOutfitHandlers {
     ctx.transaction { implicit ec =>
       for {
         _ <- ctx.run(updateOutfitMotdById(outfit_id, Some(motd)))
+      } yield ()
+    }
+  }
+
+  def updateOutfitRanksById(outfit_id: Long, list: List[Option[String]]): Quoted[Update[Outfit]] = {
+
+    // Normalize: turn empty strings into None
+    val normalized = list.map {
+      case Some(value) if value.trim.nonEmpty => Some(value)
+      case _ => None
+    }
+
+    query[Outfit]
+      .filter(_.id == lift(outfit_id))
+      .update(
+        _.rank0 -> lift(normalized(0)),
+        _.rank1 -> lift(normalized(1)),
+        _.rank2 -> lift(normalized(2)),
+        _.rank3 -> lift(normalized(3)),
+        _.rank4 -> lift(normalized(4)),
+        _.rank5 -> lift(normalized(5)),
+        _.rank6 -> lift(normalized(6)),
+        _.rank7 -> lift(normalized(7))
+      )
+  }
+
+  def updateOutfitRanks(outfit_id: Long, list: List[Option[String]]): Future[Unit] = {
+    ctx.transaction { _ =>
+      for {
+        _ <- ctx.run(updateOutfitRanksById(outfit_id, list))
       } yield ()
     }
   }

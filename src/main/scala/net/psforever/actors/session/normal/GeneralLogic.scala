@@ -834,8 +834,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         SessionOutfitHandlers.HandleOutfitMotd(zones, message, player)
 
       case OutfitRequest(_, OutfitRequestAction.Ranks(List(r1, r2, r3, r4, r5, r6, r7, r8))) =>
-        // update db
-        //sendResponse(OutfitEvent(6418, Unk2(OutfitInfo(player.outfit_name, 0, 0, 1, OutfitRankNames(r1.getOrElse(""), r2.getOrElse(""), r3.getOrElse(""), r4.getOrElse(""), r5.getOrElse(""), r6.getOrElse(""), r7.getOrElse(""), r8.getOrElse("")), "Welcome to the first PSForever Outfit!", 0, unk11=true, 0, 8888888, 0, 0, 0))))
+        SessionOutfitHandlers.HandleOutfitRank(zones, List(r1, r2, r3, r4, r5, r6, r7, r8), player)
 
       case OutfitRequest(_, OutfitRequestAction.Unk3(true)) =>
         SessionOutfitHandlers.HandleViewOutfitWindow(zones, player, player.outfit_id)
