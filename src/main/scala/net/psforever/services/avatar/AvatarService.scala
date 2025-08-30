@@ -198,6 +198,14 @@ class AvatarService(zone: Zone) extends Actor {
               AvatarResponse.PlanetsideAttributeSelf(attribute_type, attribute_value)
             )
           )
+        case AvatarAction.PlanetsideStringAttribute(guid, attribute_type, attribute_value) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              guid,
+              AvatarResponse.PlanetsideStringAttribute(attribute_type, attribute_value)
+            )
+          )
         case AvatarAction.PlayerState(
               guid,
               pos,

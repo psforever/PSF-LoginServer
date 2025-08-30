@@ -47,7 +47,7 @@ object AvatarResponse {
   final case class EquipmentInHand(pkt: ObjectCreateMessage)                                       extends Response
   final case class GenericObjectAction(object_guid: PlanetSideGUID, action_code: Int)              extends Response
   final case class HitHint(source_guid: PlanetSideGUID)                                            extends Response
-  final case class Killed(cause: DamageResult, mount_guid: Option[PlanetSideGUID])                                      extends Response
+  final case class Killed(cause: DamageResult, mount_guid: Option[PlanetSideGUID])                 extends Response
   final case class LoadPlayer(pkt: ObjectCreateMessage)                                            extends Response
   final case class LoadProjectile(pkt: ObjectCreateMessage)                                        extends Response
   final case class ObjectDelete(item_guid: PlanetSideGUID, unk: Int)                               extends Response
@@ -56,6 +56,7 @@ object AvatarResponse {
   final case class PlanetsideAttribute(attribute_type: Int, attribute_value: Long)                 extends Response
   final case class PlanetsideAttributeToAll(attribute_type: Int, attribute_value: Long)            extends Response
   final case class PlanetsideAttributeSelf(attribute_type: Int, attribute_value: Long)             extends Response
+  final case class PlanetsideStringAttribute(attribute_type: Int, attribute_value: String)         extends Response
   final case class PlayerState(
       pos: Vector3,
       vel: Option[Vector3],

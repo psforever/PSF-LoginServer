@@ -85,6 +85,8 @@ class Player(var avatar: Avatar)
   var silenced: Boolean                  = false
   var death_by: Int                      = 0
   var lastShotSeq_time: Int              = -1
+  var outfit_name: String                = ""
+  var outfit_id: Long                    = 0
 
   /** From PlanetsideAttributeMessage */
   var PlanetsideAttribute: Array[Long] = Array.ofDim(120)
@@ -646,6 +648,8 @@ object Player {
       obj.silenced = player.silenced
       obj.allowInteraction = player.allowInteraction
       obj.avatar.scorecard.respawn()
+      obj.outfit_name = player.outfit_name
+      obj.outfit_id = player.outfit_id
       obj
     } else {
       player

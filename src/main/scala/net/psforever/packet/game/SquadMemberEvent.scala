@@ -82,9 +82,7 @@ object SquadMemberEvent extends Marshallable[SquadMemberEvent] {
             Some(outfit_id)
           ) =>
         Attempt.Successful(
-          MemberEvent.Add :: unk2 :: char_id :: member_position :: Some(player_name) :: Some(zone_number) :: Some(
-            outfit_id
-          ) :: HNil
+          MemberEvent.Add :: unk2 :: char_id :: member_position :: Some(player_name) :: Some(zone_number) :: Some(outfit_id) :: HNil
         )
       case SquadMemberEvent(MemberEvent.UpdateZone, unk2, char_id, member_position, None, Some(zone_number), None) =>
         Attempt.Successful(

@@ -7,7 +7,7 @@ import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
 import net.psforever.objects.Session
 import net.psforever.packet.game.{ChatMsg, ServerType, SetChatFilterMessage}
-import net.psforever.services.chat.{DefaultChannel, SquadChannel}
+import net.psforever.services.chat.{DefaultChannel, OutfitChannel, SquadChannel}
 import net.psforever.types.ChatMessageType
 import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}
 import net.psforever.util.Config
@@ -79,6 +79,9 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_SQUAD, _, _) =>
         ops.commandSquad(session, message, SquadChannel(sessionLogic.squad.squad_guid))
 
+      case (CMT_OUTFIT, _, _) =>
+        ops.commandOutfit(session, message, OutfitChannel(sessionLogic.player.outfit_id))
+
       case (CMT_WHO | CMT_WHO_CSR | CMT_WHO_CR | CMT_WHO_PLATOONLEADERS | CMT_WHO_SQUADLEADERS | CMT_WHO_TEAMS, _, _) =>
         ops.commandWho(session)
 
@@ -100,7 +103,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
   def handleIncomingMessage(message: ChatMsg, fromSession: Session): Unit = {
     import ChatMessageType._
     message.messageType match {
-      case CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | CMT_NOTE =>
+      case CMT_BROADCAST | CMT_SQUAD | CMT_PLATOON | CMT_COMMAND | CMT_NOTE | CMT_OUTFIT =>
         ops.commandIncomingSendAllIfOnline(session, message)
 
       case CMT_OPEN =>
