@@ -5,7 +5,7 @@ import io.getquill.{ActionReturning, EntityQuery, Insert, PostgresJAsyncContext,
 import net.psforever.objects.avatar.PlayerControl
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.Player
-import net.psforever.packet.game.OutfitEventAction.{OutfitInfo, OutfitRankNames, Unk0, Unk1, Unk2}
+import net.psforever.packet.game.OutfitEventAction.{Leaving, OutfitInfo, OutfitRankNames, Initial, Unk1, Update, UpdateMemberCount}
 import net.psforever.packet.game.OutfitMembershipResponse.PacketType.CreateResponse
 import net.psforever.packet.game._
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -63,7 +63,7 @@ object SessionOutfitHandlers {
                 outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000
 
               PlayerControl.sendResponse(player.Zone, player.Name,
-                OutfitEvent(outfit.id, Unk2(
+                OutfitEvent(outfit.id, Update(
                   OutfitInfo(
                     outfit.name, 0, 0, 1,
                     OutfitRankNames("", "", "", "", "", "", "", ""),
@@ -143,16 +143,16 @@ object SessionOutfitHandlers {
                 invited.CharId, outfitInvite.sentFrom.CharId, invited.Name, outfit.name, flag = true))
 
             PlayerControl.sendResponse(outfitInvite.sentFrom.Zone, outfitInvite.sentFrom.Name,
-              OutfitEvent(outfitId, OutfitEventAction.Unk5(memberCount)))
+              OutfitEvent(outfitId, UpdateMemberCount(memberCount)))
 
             PlayerControl.sendResponse(outfitInvite.sentFrom.Zone, outfitInvite.sentFrom.Name,
               OutfitMemberEvent(outfitId, invited.CharId,
-                OutfitMemberEventAction.Unk0(invited.Name, 0, 0, 0,
+                OutfitMemberEventAction.Update(invited.Name, 0, 0, 0,
                   OutfitMemberEventAction.PacketType.Padding, 0)))
 
             val seconds: Long = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000
             PlayerControl.sendResponse(invited.Zone, invited.Name,
-              OutfitEvent(outfitId, Unk0(OutfitInfo(
+              OutfitEvent(outfitId, Initial(OutfitInfo(
                 outfit.name, points, points, memberCount,
                 OutfitRankNames("", "", "", "", "", "", "", ""),
                 outfit.motd.getOrElse(""),
@@ -211,12 +211,12 @@ object SessionOutfitHandlers {
         case (deleted, _) =>
           if (deleted > 0) {
             PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name,
-              OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Unk1()))
+              OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Kicked()))
 
             zones.filter(z => z.AllPlayers.nonEmpty).flatMap(_.AllPlayers)
               .filter(p => p.outfit_id == kickedBy.outfit_id).foreach(outfitMember =>
               PlayerControl.sendResponse(outfitMember.Zone, outfitMember.Name,
-                OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Unk1()))
+                OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Kicked()))
             )
 
             session.chat.LeaveChannel(OutfitChannel(kickedBy.outfit_id))
@@ -238,8 +238,13 @@ object SessionOutfitHandlers {
         case (deleted, _) =>
           if (deleted > 0) {
             findPlayerByIdForOutfitAction(zones, kickedId, kickedBy).foreach { kicked =>
+
               PlayerControl.sendResponse(kicked.Zone, kicked.Name,
-                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Kick, 0, 1,
+                OutfitEvent(kickedBy.outfit_id, Leaving())
+              )
+
+              PlayerControl.sendResponse(kicked.Zone, kicked.Name,
+                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.YouGotKicked, 0, 1,
                   kickedBy.CharId, kicked.CharId, kicked.Name, kickedBy.Name, flag = false))
 
               kicked.Zone.AvatarEvents ! AvatarServiceMessage(kicked.Zone.id,
@@ -251,7 +256,7 @@ object SessionOutfitHandlers {
               kicked.outfit_id = 0
               kicked.outfit_name = ""
               PlayerControl.sendResponse(kicked.Zone, kicked.Name,
-                OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Unk1()))
+                OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Kicked()))
             }
             val avatarName: Future[Option[String]] =
             ctx.run(
@@ -260,15 +265,15 @@ object SessionOutfitHandlers {
 
             avatarName.foreach {
               case Some(name) => PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name,
-                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Kick, 0, 1, kickedBy.CharId, kickedId, name, "", flag = true))
+                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.YouKicked, 0, 1, kickedBy.CharId, kickedId, name, "", flag = true))
 
               case None => PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name,
-                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.Kick, 0, 1, kickedBy.CharId, kickedId, "NameNotFound", "", flag = true))
+                OutfitMembershipResponse(OutfitMembershipResponse.PacketType.YouKicked, 0, 1, kickedBy.CharId, kickedId, "NameNotFound", "", flag = true))
             }
             zones.filter(z => z.AllPlayers.nonEmpty).flatMap(_.AllPlayers)
               .filter(p => p.outfit_id == kickedBy.outfit_id).foreach(outfitMember =>
               PlayerControl.sendResponse(outfitMember.Zone, outfitMember.Name,
-                OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Unk1()))
+                OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Kicked()))
             )
             // this needs to be the kicked player
             // session.chat.LeaveChannel(OutfitChannel(kickedBy.outfit_id))
@@ -303,7 +308,7 @@ object SessionOutfitHandlers {
                 PlayerControl.sendResponse(
                   zone, outfitMember.Name,
                   OutfitMemberEvent(outfit_id, promoter.avatar.id,
-                    OutfitMemberEventAction.Unk0(promoter.Name, 6, owner_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
+                    OutfitMemberEventAction.Update(promoter.Name, 6, owner_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
               })
           })
         }
@@ -327,7 +332,7 @@ object SessionOutfitHandlers {
               PlayerControl.sendResponse(
                 zone, player.Name,
                 OutfitMemberEvent(outfit_id, promoted.avatar.id,
-                  OutfitMemberEventAction.Unk0(promoted.Name, newRank, member_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
+                  OutfitMemberEventAction.Update(promoted.Name, newRank, member_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
             })
           })
       }
@@ -356,7 +361,7 @@ object SessionOutfitHandlers {
         val seconds: Long = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000
 
         PlayerControl.sendResponse(player.Zone, player.Name,
-          OutfitEvent(outfit.id, Unk0(OutfitInfo(
+          OutfitEvent(outfit.id, Initial(OutfitInfo(
             outfit.name,
             totalPoints,
             totalPoints,
@@ -382,7 +387,7 @@ object SessionOutfitHandlers {
           }
           PlayerControl.sendResponse(player.Zone, player.Name,
             OutfitMemberEvent(outfit.id, avatarId,
-              OutfitMemberEventAction.Unk0(
+              OutfitMemberEventAction.Update(
                 avatarName,
                 rank,
                 points,
@@ -438,7 +443,7 @@ object SessionOutfitHandlers {
         // send to all online players in outfit
         val outfit_event = OutfitEvent(
           outfit_id,
-          Unk2(
+          Update(
             OutfitInfo(
               outfit_name = outfit.name,
               outfit_points1 = totalPoints,
@@ -500,7 +505,7 @@ object SessionOutfitHandlers {
         // send to all online players in outfit
         val outfit_event = OutfitEvent(
           outfit_id,
-          Unk2(
+          Update(
             OutfitInfo(
               outfit_name = outfit.name,
               outfit_points1 = totalPoints,
@@ -555,7 +560,7 @@ object SessionOutfitHandlers {
                 val seconds: Long = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000
 
                 PlayerControl.sendResponse(player.Zone, player.Name,
-                  OutfitEvent(outfitId, Unk2(OutfitInfo(
+                  OutfitEvent(outfitId, Update(OutfitInfo(
                     outfit.name, points, points, memberCount,
                     OutfitRankNames(outfit.rank0.getOrElse(""), outfit.rank1.getOrElse(""), outfit.rank2.getOrElse(""),
                       outfit.rank3.getOrElse(""), outfit.rank4.getOrElse(""), outfit.rank5.getOrElse(""),
@@ -744,7 +749,7 @@ object SessionOutfitHandlers {
       }
   }
 
-  def updateMemberRankById(outfit_id: Long, avatar_id: Long, rank: Int): Quoted[Update[Outfitmember]] = quote {
+  def updateMemberRankById(outfit_id: Long, avatar_id: Long, rank: Int): Quoted[io.getquill.Update[Outfitmember]] = quote {
     query[Outfitmember]
       .filter(_.outfit_id == lift(outfit_id))
       .filter(_.avatar_id == lift(avatar_id))
@@ -759,7 +764,7 @@ object SessionOutfitHandlers {
     }
   }
 
-  def updateOutfitOwnerById(outfit_id: Long, owner_id: Long): Quoted[Update[Outfit]] = quote {
+  def updateOutfitOwnerById(outfit_id: Long, owner_id: Long): Quoted[io.getquill.Update[Outfit]] = quote {
     query[Outfit]
       .filter(_.id == lift(outfit_id))
       .update(_.owner_id -> lift(owner_id))
@@ -775,7 +780,7 @@ object SessionOutfitHandlers {
     }
   }
 
-  def updateOutfitMotdById(outfit_id: Long, motd: Option[String]): Quoted[Update[Outfit]] = quote {
+  def updateOutfitMotdById(outfit_id: Long, motd: Option[String]): Quoted[io.getquill.Update[Outfit]] = quote {
     query[Outfit]
       .filter(_.id == lift(outfit_id))
       .update(_.motd -> lift(motd))
@@ -789,7 +794,7 @@ object SessionOutfitHandlers {
     }
   }
 
-  def updateOutfitRanksById(outfit_id: Long, list: List[Option[String]]): Quoted[Update[Outfit]] = {
+  def updateOutfitRanksById(outfit_id: Long, list: List[Option[String]]): Quoted[io.getquill.Update[Outfit]] = {
 
     // Normalize: turn empty strings into None
     val normalized = list.map {

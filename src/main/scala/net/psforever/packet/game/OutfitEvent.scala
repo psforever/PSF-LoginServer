@@ -50,26 +50,55 @@ object OutfitEventAction {
     unk25: Long,
   )
 
-  final case class Unk0(
+  /**
+    * Initial
+    *
+    * Send at the start of an OutfitWindow info dump.
+    *
+    * Not always complete, seen as an initialization after login, join or while outfit is in formation.
+    * @param outfit_info
+    */
+  final case class Initial(
     outfit_info: OutfitInfo
   ) extends OutfitEventAction(code = 0)
 
   final case class Unk1(
   ) extends OutfitEventAction(code = 1)
 
-  final case class Unk2(
+  /**
+    * Update
+    *
+    * Send after changing outfit Ranks, MOTD and other situations.
+    * @param outfit_info
+    */
+  final case class Update(
     outfit_info: OutfitInfo,
   ) extends OutfitEventAction(code = 2)
 
-  final case class Unk3(
+  /**
+    * Send to players to tell them they left the outfit.
+    *
+    * Resets them to behave like they have no outfit.
+    * Will have them open the OutfitListWindow instead of the OutfitWindow.
+    */
+  final case class Leaving(
   ) extends OutfitEventAction(code = 3)
 
+  /**
+    * Used to switch from the temporary "invalid" outfit ID used while formation to a valid ID used from that point on.
+    * @param new_outfit_id the new ID that represents this specific outfit in the DB
+    */
   final case class UpdateOutfitId(
     new_outfit_id: Long,
   ) extends OutfitEventAction(code = 4)
 
-  final case class Unk5(
-    unk1: Long,
+  /**
+    * Used to tell outfit members that the member count changed.
+    * Send after InviteAccept or Kick actions
+    * @param member_count
+    */
+  final case class UpdateMemberCount(
+    member_count: Long,
   ) extends OutfitEventAction(code = 5)
 
   final case class Unknown(badCode: Int, data: BitVector) extends OutfitEventAction(badCode)
@@ -126,35 +155,35 @@ object OutfitEventAction {
         }
       )
 
-    val Unk0Codec: Codec[Unk0] = (
+    val Unk0Codec: Codec[Initial] = (
       ("outfit_info" | InfoCodec)
-    ).xmap[Unk0](
+    ).xmap[Initial](
       {
         case info =>
-          Unk0(info)
+          Initial(info)
       },
       {
-        case Unk0(info) =>
+        case Initial(info) =>
           info
       }
     )
 
     val Unk1Codec: Codec[Unk1] = PacketHelpers.emptyCodec(Unk1())
 
-    val Unk2Codec: Codec[Unk2] = (
+    val Unk2Codec: Codec[Update] = (
       ("outfit_info" | InfoCodec)
-    ).xmap[Unk2](
+    ).xmap[Update](
       {
         case info =>
-          Unk2(info)
+          Update(info)
       },
       {
-        case Unk2(info) =>
+        case Update(info) =>
           info
       }
     )
 
-    val Unk3Codec: Codec[Unk3] = PacketHelpers.emptyCodec(Unk3())
+    val Unk3Codec: Codec[Leaving] = PacketHelpers.emptyCodec(Leaving())
 
     val UpdateOutfitIdCodec: Codec[UpdateOutfitId] = ( // update outfit_id? // 2016.03.18 #10640 // after this packet the referenced id changes to the new one, old is not used again
       ("new_outfit_id" | uint32L)
@@ -169,15 +198,15 @@ object OutfitEventAction {
       }
     )
 
-    val Unk5Codec: Codec[Unk5] = (
+    val UpdateMemberCountCodec: Codec[UpdateMemberCount] = (
       ("" | uint32L)
-    ).xmap[Unk5](
+    ).xmap[UpdateMemberCount](
       {
         case u1 =>
-          Unk5(u1)
+          UpdateMemberCount(u1)
       },
       {
-        case Unk5(u1) =>
+        case UpdateMemberCount(u1) =>
           u1
       }
     )
@@ -220,7 +249,7 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
     val Unk2: PacketType.Value = Value(2) // send after creating an outfit // normal info, same as Unk0
     val Unk3: PacketType.Value = Value(3) // below
     val UpdateOutfitId: PacketType.Value = Value(4)
-    val Unk5: PacketType.Value = Value(5)
+    val UpdateMemberCount: PacketType.Value = Value(5)
     val Unk6: PacketType.Value = Value(6)
     val Unk7: PacketType.Value = Value(7)
 
@@ -237,7 +266,7 @@ object OutfitEvent extends Marshallable[OutfitEvent] {
       case 2 => Unk2Codec // sent after /outfitcreate and on login if in an outfit
       case 3 => Unk3Codec
       case 4 => UpdateOutfitIdCodec
-      case 5 => Unk5Codec
+      case 5 => UpdateMemberCountCodec
       case 6 => unknownCodec(action = code)
       case 7 => unknownCodec(action = code)
 

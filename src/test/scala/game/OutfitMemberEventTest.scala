@@ -22,7 +22,7 @@ class OutfitMemberEventTest extends Specification {
 
   "decode Lazer padding" in {
     PacketCoding.decodePacket(Lazer).require match {
-      case OutfitMemberEvent(outfit_id, member_id, Unk0(member_name, rank, points, last_login, action, padding)) =>
+      case OutfitMemberEvent(outfit_id, member_id, Update(member_name, rank, points, last_login, action, padding)) =>
         outfit_id   mustEqual 6418
         member_id   mustEqual 705344
         member_name mustEqual "Lazer1982"
@@ -40,7 +40,7 @@ class OutfitMemberEventTest extends Specification {
     val msg = OutfitMemberEvent(
       outfit_id = 6418,
       member_id = 705344,
-      Unk0(
+      Update(
         member_name = "Lazer1982",
         rank = 7,
         points = 3134113,
@@ -56,7 +56,7 @@ class OutfitMemberEventTest extends Specification {
 
   "decode OpolE padding" in {
     PacketCoding.decodePacket(OpolE).require match {
-      case OutfitMemberEvent(outfit_id, member_id, Unk0(member_name, rank, points, last_login, action, unk0_padding)) =>
+      case OutfitMemberEvent(outfit_id, member_id, Update(member_name, rank, points, last_login, action, unk0_padding)) =>
         outfit_id    mustEqual 6418
         member_id    mustEqual 42644970
         member_name  mustEqual "OpolE"
@@ -74,7 +74,7 @@ class OutfitMemberEventTest extends Specification {
     val msg = OutfitMemberEvent(
       outfit_id = 6418,
       member_id = 42644970,
-      Unk0(
+      Update(
         member_name = "OpolE",
         rank = 6,
         points = 461901,
@@ -91,7 +91,7 @@ class OutfitMemberEventTest extends Specification {
 
   "decode Unk1" in {
     PacketCoding.decodePacket(unk1).require match {
-      case OutfitMemberEvent(outfit_id, member_id, Unk1()) =>
+      case OutfitMemberEvent(outfit_id, member_id, Kicked()) =>
         outfit_id    mustEqual 529744
         member_id    mustEqual 41605263
       case _ =>
@@ -103,7 +103,7 @@ class OutfitMemberEventTest extends Specification {
     val msg = OutfitMemberEvent(
       outfit_id = 529744,
       member_id = 41605263,
-      Unk1()
+      Kicked()
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 

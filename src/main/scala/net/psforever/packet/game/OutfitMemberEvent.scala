@@ -33,20 +33,30 @@ object OutfitMemberEventAction {
 
   }
 
-  /*
-    action is unimplemented! if action == 0 unk2 will contain one additional uint32L
-    padding contains one uint4L of padding. may contain uint32L of unknown data depending on action
- */
-  final case class Unk0(
+  /**
+    *
+    * Update
+    *
+    * Update is used to inform outfit members about a new member.
+    * Gets send after an InviteAccept or Rank changes.
+    *
+    * @param member_name
+    * @param rank
+    * @param points client divides this by 100
+    * @param last_online seconds ago from current time, 0 if online
+    * @param action should always be 1, otherwise there will be actual data in padding. not implemented!
+    * @param padding should always be 0, 4 bits of padding // only contains data if action is 0
+    */
+  final case class Update(
     member_name: String,
     rank: Int,
-    points: Long, // client divides this by 100
-    last_online: Long, // seconds ago from current time, 0 if online
-    action: PacketType.Type, // should always be 1, otherwise there will be actual data in padding. not implemented!
-    padding: Int // should always be 0, 4 bits of padding // only contains data if action is 0
+    points: Long,
+    last_online: Long,
+    action: PacketType.Type,
+    padding: Int
   ) extends OutfitMemberEventAction(code = 0)
 
-  final case class Unk1(
+  final case class Kicked(
   ) extends OutfitMemberEventAction(code = 1)
 
   final case class Unknown(badCode: Int, data: BitVector) extends OutfitMemberEventAction(badCode)
@@ -58,25 +68,25 @@ object OutfitMemberEventAction {
   object Codecs {
     private val everFailCondition = conditional(included = false, bool)
 
-    val Unk0Codec: Codec[Unk0] = (
-      ("member_name" | PacketHelpers.encodedWideStringAligned(6)) :: // from here is packet_type == 0 only
+    val UpdateCodec: Codec[Update] = (
+      ("member_name" | PacketHelpers.encodedWideStringAligned(6)) ::
       ("rank" | uint(3)) ::
       ("points" | uint32L) ::
       ("last_login" | uint32L) ::
       ("action" | OutfitMemberEventAction.PacketType.codec) ::
       ("padding" | uint4L)
-    ).xmap[Unk0](
+    ).xmap[Update](
       {
         case member_name :: rank :: points :: last_login :: action :: padding :: HNil =>
-          Unk0(member_name, rank, points, last_login, action, padding)
+          Update(member_name, rank, points, last_login, action, padding)
       },
       {
-        case Unk0(member_name, rank, points, last_login, action, padding) =>
+        case Update(member_name, rank, points, last_login, action, padding) =>
           member_name :: rank :: points :: last_login :: action :: padding :: HNil
       }
     )
 
-    val Unk1Codec: Codec[Unk1] = PacketHelpers.emptyCodec(Unk1())
+    val KickedCodec: Codec[Kicked] = PacketHelpers.emptyCodec(Kicked())
 
     /**
       * A common form for known action code indexes with an unknown purpose and transformation is an "Unknown" object.
@@ -109,8 +119,8 @@ object OutfitMemberEvent extends Marshallable[OutfitMemberEvent] {
   object PacketType extends Enumeration {
     type Type = Value
 
-    val Unk0: PacketType.Value = Value(0)
-    val Unk1: PacketType.Value = Value(1) // Info: Player has been invited / response to OutfitMembershipRequest Unk2 for that player
+    val Update: PacketType.Value = Value(0)
+    val Kicked: PacketType.Value = Value(1)
     val Unk2: PacketType.Value = Value(2)
     val Unk3: PacketType.Value = Value(3)
 
@@ -122,8 +132,8 @@ object OutfitMemberEvent extends Marshallable[OutfitMemberEvent] {
     import scala.annotation.switch
 
     ((code: @switch) match {
-      case 0 => Unk0Codec
-      case 1 => Unk1Codec
+      case 0 => UpdateCodec
+      case 1 => KickedCodec
       case 2 => unknownCodec(code)
       case 3 => unknownCodec(code)
 

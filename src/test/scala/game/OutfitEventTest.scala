@@ -53,7 +53,7 @@ class OutfitEventTest extends Specification {
     PacketCoding.decodePacket(unk0_ABC).require match {
       case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 25044
-        action mustEqual Unk0(
+        action mustEqual Initial(
           OutfitInfo(
             outfit_name = "Black Armored Reapers",
             outfit_points1 = 223190045,
@@ -78,7 +78,7 @@ class OutfitEventTest extends Specification {
   "encode Unk0 ABC" in {
     val msg = OutfitEvent(
       25044,
-      Unk0(
+      Initial(
         OutfitInfo(
           outfit_name = "Black Armored Reapers",
           outfit_points1 = 223190045,
@@ -125,7 +125,7 @@ class OutfitEventTest extends Specification {
     PacketCoding.decodePacket(unk2_ABC).require match {
       case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 2147418113L
-        action mustEqual Unk2(OutfitInfo(
+        action mustEqual Update(OutfitInfo(
           outfit_name = "PlanetSide_Forever_Vanu",
           outfit_points1 = 0,
           outfit_points2 = 0,
@@ -148,7 +148,7 @@ class OutfitEventTest extends Specification {
   "encode Unk2 ABC" in {
     val msg = OutfitEvent(
       2147418113L,
-      Unk2(
+      Update(
         OutfitInfo(
           outfit_name = "PlanetSide_Forever_Vanu",
           outfit_points1 = 0,
@@ -175,7 +175,7 @@ class OutfitEventTest extends Specification {
     PacketCoding.decodePacket(unk3_ABC).require match {
       case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 2147418113L
-        action mustEqual Unk3()
+        action mustEqual Leaving()
       case _ =>
         ko
     }
@@ -184,7 +184,7 @@ class OutfitEventTest extends Specification {
   "encode Unk3 ABC" in {
     val msg = OutfitEvent(
       2147418113L,
-      Unk3()
+      Leaving()
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -219,8 +219,8 @@ class OutfitEventTest extends Specification {
     PacketCoding.decodePacket(unk5_ABC).require match {
       case OutfitEvent(outfit_guid, action) =>
         outfit_guid mustEqual 2147418113L
-        action mustEqual Unk5(
-          unk1 = 2,
+        action mustEqual UpdateMemberCount(
+          member_count = 2,
         )
       case _ =>
         ko
@@ -230,8 +230,8 @@ class OutfitEventTest extends Specification {
   "encode Unk5 ABC" in {
     val msg = OutfitEvent(
       2147418113L,
-      Unk5(
-        unk1 = 2,
+      UpdateMemberCount(
+        member_count = 2,
       )
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector

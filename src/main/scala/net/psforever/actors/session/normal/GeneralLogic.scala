@@ -37,7 +37,7 @@ import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones.{ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.OutfitEventAction.{OutfitInfo, OutfitRankNames, Unk2}
+import net.psforever.packet.game.OutfitEventAction.{OutfitInfo, OutfitRankNames, Update}
 import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitEvent, OutfitMembershipRequest, OutfitMembershipRequestAction, OutfitMembershipResponse, OutfitRequest, OutfitRequestAction, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.{AccountPersistenceService, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -836,12 +836,12 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case OutfitRequest(_, OutfitRequestAction.Ranks(List(r1, r2, r3, r4, r5, r6, r7, r8))) =>
         SessionOutfitHandlers.HandleOutfitRank(zones, List(r1, r2, r3, r4, r5, r6, r7, r8), player)
 
-      case OutfitRequest(_, OutfitRequestAction.Unk3(true)) =>
+      case OutfitRequest(_, OutfitRequestAction.OutfitWindowOpen(true)) =>
         SessionOutfitHandlers.HandleViewOutfitWindow(zones, player, player.outfit_id)
 
-      case OutfitRequest(_, OutfitRequestAction.Unk3(false)) =>
+      case OutfitRequest(_, OutfitRequestAction.OutfitWindowOpen(false)) =>
 
-      case OutfitRequest(_, OutfitRequestAction.Unk4(true)) =>
+      case OutfitRequest(_, OutfitRequestAction.OutfitListWindowOpen(true)) =>
         SessionOutfitHandlers.HandleGetOutfitList(player)
 
       case _ =>

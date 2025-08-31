@@ -46,7 +46,7 @@ class OutfitRequestTest extends Specification {
 
   "decode Unk3" in {
     PacketCoding.decodePacket(string6).require match {
-      case OutfitRequest(id, OutfitRequestAction.Unk3(value)) =>
+      case OutfitRequest(id, OutfitRequestAction.OutfitWindowOpen(value)) =>
         id mustEqual 1176612L
         value mustEqual true
       case _ =>
@@ -56,7 +56,7 @@ class OutfitRequestTest extends Specification {
 
   "decode Unk4" in {
     PacketCoding.decodePacket(string8).require match {
-      case OutfitRequest(id, OutfitRequestAction.Unk4(value)) =>
+      case OutfitRequest(id, OutfitRequestAction.OutfitListWindowOpen(value)) =>
         id mustEqual 41588237L
         value mustEqual true
       case _ =>
@@ -88,14 +88,14 @@ class OutfitRequestTest extends Specification {
   }
 
   "encode Unk3" in {
-    val msg = OutfitRequest(1176612L, OutfitRequestAction.Unk3(true))
+    val msg = OutfitRequest(1176612L, OutfitRequestAction.OutfitWindowOpen(true))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string6
   }
 
   "encode Unk4" in {
-    val msg = OutfitRequest(41588237L, OutfitRequestAction.Unk4(true))
+    val msg = OutfitRequest(41588237L, OutfitRequestAction.OutfitListWindowOpen(true))
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string8

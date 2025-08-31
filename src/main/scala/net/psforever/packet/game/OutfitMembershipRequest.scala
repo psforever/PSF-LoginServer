@@ -9,7 +9,7 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 final case class OutfitMembershipRequest(
-    outfit_id: Long,
+    requester_id: Long,
     action: OutfitMembershipRequestAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitMembershipRequest
@@ -37,8 +37,8 @@ object OutfitMembershipRequestAction {
   ) extends OutfitMembershipRequestAction(code = 1)
 
   final case class Invite(
-    avatar_id: Long,
-    member_name: String,
+    target_id: Long,
+    target_name: String,
   ) extends OutfitMembershipRequestAction(code = 2)
 
   final case class AcceptInvite(
@@ -50,19 +50,19 @@ object OutfitMembershipRequestAction {
   ) extends OutfitMembershipRequestAction(code = 4)
 
   final case class CancelInvite(
-    avatar_id: Long,
-    member_name: String,
+    target_id: Long,
+    target_name: String,
   ) extends OutfitMembershipRequestAction(code = 5)
 
   final case class Kick(
-    avatar_id: Long,
-    member_name: String,
+    target_id: Long,
+    target_name: String,
   ) extends OutfitMembershipRequestAction(code = 6)
 
   final case class SetRank(
-    avatar_id: Long,
+    target_id: Long,
     rank: Int,
-    member_name: String,
+    target_name: String,
   ) extends OutfitMembershipRequestAction(code = 7)
 
   final case class Unknown(badCode: Int, data: BitVector) extends OutfitMembershipRequestAction(badCode)

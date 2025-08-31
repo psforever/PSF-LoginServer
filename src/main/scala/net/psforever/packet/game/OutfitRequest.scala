@@ -8,7 +8,7 @@ import scodec.codecs._
 import shapeless.{::, HNil}
 
 final case class OutfitRequest(
-    outfit_id: Long,
+    requester_id: Long,
     action: OutfitRequestAction
   ) extends PlanetSideGamePacket {
   type Packet = OutfitRequest
@@ -42,13 +42,13 @@ object OutfitRequestAction {
    * na
    * @param unk na
    */
-  final case class Unk3(menuOpen: Boolean) extends OutfitRequestAction(code = 3)
+  final case class OutfitWindowOpen(menuOpen: Boolean) extends OutfitRequestAction(code = 3)
 
   /**
    * na
    * @param unk na
    */
-  final case class Unk4(menuOpen: Boolean) extends OutfitRequestAction(code = 4)
+  final case class OutfitListWindowOpen(menuOpen: Boolean) extends OutfitRequestAction(code = 4)
 
   /**
    * na
@@ -116,24 +116,24 @@ object OutfitRequest extends Marshallable[OutfitRequest] {
   /**
    * na
    */
-  private val unk3Codec: Codec[OutfitRequestAction] = bool.hlist.xmap[OutfitRequestAction] (
+  private val OutfitWindowOpenCodec: Codec[OutfitRequestAction] = bool.hlist.xmap[OutfitRequestAction] (
     {
-      case value :: HNil => OutfitRequestAction.Unk3(value)
+      case value :: HNil => OutfitRequestAction.OutfitWindowOpen(value)
     },
     {
-      case OutfitRequestAction.Unk3(value) => value :: HNil
+      case OutfitRequestAction.OutfitWindowOpen(value) => value :: HNil
     }
   )
 
   /**
    * na
    */
-  private val unk4Codec: Codec[OutfitRequestAction] = bool.hlist.xmap[OutfitRequestAction] (
+  private val OutfitListWindowOpenCodec: Codec[OutfitRequestAction] = bool.hlist.xmap[OutfitRequestAction] (
     {
-      case value :: HNil => OutfitRequestAction.Unk4(value)
+      case value :: HNil => OutfitRequestAction.OutfitListWindowOpen(value)
     },
     {
-      case OutfitRequestAction.Unk4(value) => value :: HNil
+      case OutfitRequestAction.OutfitListWindowOpen(value) => value :: HNil
     }
   )
 
@@ -151,8 +151,8 @@ object OutfitRequest extends Marshallable[OutfitRequest] {
     val Motd: PacketType.Value = Value(0)
     val Rank:   PacketType.Value = Value(1)
     val Unk2:   PacketType.Value = Value(2)
-    val Detail: PacketType.Value = Value(3)
-    val List: PacketType.Value = Value(4) // sent by client if menu is either open (true) or closed (false)
+    val OutfitWindowOpen: PacketType.Value = Value(3)
+    val OutfitListWindowOpen: PacketType.Value = Value(4) // sent by client if menu is either open (true) or closed (false)
 
     implicit val codec: Codec[Type] = PacketHelpers.createEnumerationCodec(this, uintL(3))
   }
@@ -165,8 +165,8 @@ object OutfitRequest extends Marshallable[OutfitRequest] {
       case 0 => MotdCodec
       case 1 => RankCodec
       case 2 => unk2Codec
-      case 3 => unk3Codec
-      case 4 => unk4Codec
+      case 3 => OutfitWindowOpenCodec
+      case 4 => OutfitListWindowOpenCodec
       case _ => failCodec(code)
     }
   }

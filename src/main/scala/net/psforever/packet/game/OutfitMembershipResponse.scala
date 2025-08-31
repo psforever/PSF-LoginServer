@@ -12,7 +12,7 @@ final case class OutfitMembershipResponse(
     packet_type: OutfitMembershipResponse.PacketType.Type,
     unk0: Int,
     unk1: Int,
-    outfit_id: Long,
+    requester_id: Long,
     target_id: Long,
     str1: String,
     str2: String,
@@ -34,8 +34,8 @@ object OutfitMembershipResponse extends Marshallable[OutfitMembershipResponse] {
     val Invite: PacketType.Value = Value(1) // response to OutfitMembershipRequest Unk2 for that player
     val InviteAccepted: PacketType.Value = Value(2)
     val InviteRejected: PacketType.Value = Value(3)
-    val Unk4: PacketType.Value = Value(4)
-    val Kick: PacketType.Value = Value(5)
+    val YouGotKicked: PacketType.Value = Value(4)
+    val YouKicked: PacketType.Value = Value(5)
     val Unk6: PacketType.Value = Value(6) // 6 and 7 seen as failed decodes, validity unknown
     val Unk7: PacketType.Value = Value(7)
 
