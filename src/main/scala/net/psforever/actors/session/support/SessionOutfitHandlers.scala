@@ -818,17 +818,23 @@ object SessionOutfitHandlers {
       case _ => None
     }
 
+    // Colorize: prepend \ in front of # if it is the fist character
+    val colorized = normalized.map {
+      case Some(s) if s.startsWith("#") => Some("\\" + s)
+      case other                        => other
+    }
+
     query[Outfit]
       .filter(_.id == lift(outfit_id))
       .update(
-        _.rank0 -> lift(normalized(0)),
-        _.rank1 -> lift(normalized(1)),
-        _.rank2 -> lift(normalized(2)),
-        _.rank3 -> lift(normalized(3)),
-        _.rank4 -> lift(normalized(4)),
-        _.rank5 -> lift(normalized(5)),
-        _.rank6 -> lift(normalized(6)),
-        _.rank7 -> lift(normalized(7))
+        _.rank0 -> lift(colorized(0)),
+        _.rank1 -> lift(colorized(1)),
+        _.rank2 -> lift(colorized(2)),
+        _.rank3 -> lift(colorized(3)),
+        _.rank4 -> lift(colorized(4)),
+        _.rank5 -> lift(colorized(5)),
+        _.rank6 -> lift(colorized(6)),
+        _.rank7 -> lift(colorized(7))
       )
   }
 
