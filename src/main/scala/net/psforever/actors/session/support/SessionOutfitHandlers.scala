@@ -14,6 +14,7 @@ import net.psforever.types.ChatMessageType
 import net.psforever.util.Config
 
 import java.time.LocalDateTime
+import java.util.concurrent.Executors
 import scala.util.{Failure, Success}
 
 object SessionOutfitHandlers {
@@ -561,7 +562,25 @@ object SessionOutfitHandlers {
     }
   }
 
+  private var outfitPointSheduleStarted = false
+
   def HandleLoginOutfitCheck(player: Player, session: SessionData): Unit = {
+
+    // TODO: implement this the proper way, please
+    // start the shedule on first run of the function
+    if (!outfitPointSheduleStarted) {
+      outfitPointSheduleStarted = true
+
+      Executors.newSingleThreadScheduledExecutor.scheduleAtFixedRate(
+        () => {
+          ctx.run(updateOutfitPointMV())
+        },
+        0,
+        5,
+        java.util.concurrent.TimeUnit.MINUTES
+      )
+    }
+
     ctx.run(getOutfitOnLogin(player.avatar.id)).flatMap { memberships =>
       memberships.headOption match {
         case Some(membership) =>
@@ -847,6 +866,6 @@ object SessionOutfitHandlers {
   }
 
   def updateOutfitPointMV(): Quoted[Action[Unit]] = quote(
-    infix"REFRESH MATERIALIZED VIEW outfitpoint_mv".as[Action[Unit]]
+    infix"REFRESH MATERIALIZED VIEW CONCURRENTLY outfitpoint_mv".as[Action[Unit]]
   )
 }
