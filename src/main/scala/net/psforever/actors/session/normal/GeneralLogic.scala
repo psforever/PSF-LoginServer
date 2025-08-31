@@ -837,12 +837,18 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         SessionOutfitHandlers.HandleOutfitRank(zones, List(r1, r2, r3, r4, r5, r6, r7, r8), player)
 
       case OutfitRequest(_, OutfitRequestAction.OutfitWindowOpen(true)) =>
+        player.outfit_window_open = true
         SessionOutfitHandlers.HandleViewOutfitWindow(zones, player, player.outfit_id)
 
       case OutfitRequest(_, OutfitRequestAction.OutfitWindowOpen(false)) =>
+        player.outfit_window_open = false
 
       case OutfitRequest(_, OutfitRequestAction.OutfitListWindowOpen(true)) =>
+        player.outfit_list_open = true
         SessionOutfitHandlers.HandleGetOutfitList(player)
+
+      case OutfitRequest(_, OutfitRequestAction.OutfitListWindowOpen(false)) =>
+        player.outfit_list_open = false
 
       case _ =>
     }

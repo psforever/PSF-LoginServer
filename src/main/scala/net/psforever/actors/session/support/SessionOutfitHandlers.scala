@@ -1,11 +1,11 @@
 // Copyright (c) 2025 PSForever
 package net.psforever.actors.session.support
 
-import io.getquill.{ActionReturning, EntityQuery, Insert, PostgresJAsyncContext, Query, Quoted, SnakeCase, Update}
+import io.getquill.{Action, ActionReturning, EntityQuery, Insert, PostgresJAsyncContext, Query, Quoted, SnakeCase}
 import net.psforever.objects.avatar.PlayerControl
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.Player
-import net.psforever.packet.game.OutfitEventAction.{Leaving, OutfitInfo, OutfitRankNames, Initial, Unk1, Update, UpdateMemberCount}
+import net.psforever.packet.game.OutfitEventAction.{Initial, Leaving, OutfitInfo, OutfitRankNames, Unk1, Update, UpdateMemberCount}
 import net.psforever.packet.game.OutfitMembershipResponse.PacketType.CreateResponse
 import net.psforever.packet.game._
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -207,21 +207,27 @@ object SessionOutfitHandlers {
   def HandleOutfitKick(zones: Seq[Zone], kickedId: Long, kickedBy: Player, session: SessionData): Unit = {
     // if same id, player has left the outfit by their own choice
     if (kickedId == kickedBy.CharId) {
-      removeMemberFromOutfit(kickedBy.outfit_id, kickedId).map {
+
+      // store outfit_id since it will be nulled soon
+      val outfit_id = kickedBy.outfit_id
+
+      removeMemberFromOutfit(outfit_id, kickedId).map {
         case (deleted, _) =>
           if (deleted > 0) {
-            PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name,
-              OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Kicked()))
 
-            zones.filter(z => z.AllPlayers.nonEmpty).flatMap(_.AllPlayers)
-              .filter(p => p.outfit_id == kickedBy.outfit_id).foreach(outfitMember =>
-              PlayerControl.sendResponse(outfitMember.Zone, outfitMember.Name,
-                OutfitMemberEvent(kickedBy.outfit_id, kickedId, OutfitMemberEventAction.Kicked()))
+            PlayerControl.sendResponse(kickedBy.Zone, kickedBy.Name,
+              OutfitEvent(outfit_id, Leaving())
             )
 
-            session.chat.LeaveChannel(OutfitChannel(kickedBy.outfit_id))
+            session.chat.LeaveChannel(OutfitChannel(outfit_id))
             kickedBy.outfit_name = ""
             kickedBy.outfit_id = 0
+
+            zones.filter(z => z.AllPlayers.nonEmpty).flatMap(_.AllPlayers)
+              .filter(p => p.outfit_id == outfit_id).foreach(outfitMember =>
+              PlayerControl.sendResponse(outfitMember.Zone, outfitMember.Name,
+                OutfitMemberEvent(outfit_id, kickedId, OutfitMemberEventAction.Kicked()))
+            )
 
             kickedBy.Zone.AvatarEvents ! AvatarServiceMessage(kickedBy.Zone.id,
               AvatarAction.PlanetsideAttributeToAll(kickedBy.GUID, 39, 0))
@@ -304,13 +310,15 @@ object SessionOutfitHandlers {
           owner_points =>
             // announce owner rank change
             zones.foreach(zone => {
-              zone.AllPlayers.filter(_.outfit_id == outfit_id).foreach(outfitMember => {
-                PlayerControl.sendResponse(
-                  zone, outfitMember.Name,
-                  OutfitMemberEvent(outfit_id, promoter.avatar.id,
-                    OutfitMemberEventAction.Update(promoter.Name, 6, owner_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
-              })
-          })
+              zone.AllPlayers
+                .filter(_.outfit_id == outfit_id)
+                .foreach(outfitMember => {
+                  PlayerControl.sendResponse(
+                    zone, outfitMember.Name,
+                    OutfitMemberEvent(outfit_id, promoter.avatar.id,
+                      OutfitMemberEventAction.Update(promoter.Name, 6, owner_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
+                })
+            })
         }
 
         // update promoter rank
@@ -328,12 +336,14 @@ object SessionOutfitHandlers {
         member_points =>
           // tell everyone about the new rank of the promoted member
           zones.foreach(zone => {
-            zone.AllPlayers.filter(_.outfit_id == outfit_id).foreach(player => {
-              PlayerControl.sendResponse(
-                zone, player.Name,
-                OutfitMemberEvent(outfit_id, promoted.avatar.id,
-                  OutfitMemberEventAction.Update(promoted.Name, newRank, member_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
-            })
+            zone.AllPlayers
+              .filter(_.outfit_id == outfit_id)
+              .foreach(player => {
+                PlayerControl.sendResponse(
+                  zone, player.Name,
+                  OutfitMemberEvent(outfit_id, promoted.avatar.id,
+                    OutfitMemberEventAction.Update(promoted.Name, newRank, member_points, 0, OutfitMemberEventAction.PacketType.Padding, 0)))
+              })
           })
       }
 
@@ -472,7 +482,10 @@ object SessionOutfitHandlers {
         )
 
         zones.foreach(zone => {
-          zone.AllPlayers.filter(_.outfit_id == outfit_id).foreach(player => {
+          zone.AllPlayers
+            .filter(_.outfit_id == outfit_id)
+            .filter(_.outfit_window_open)
+            .foreach(player => {
             PlayerControl.sendResponse(
               zone, player.Name,
               outfit_event
@@ -502,7 +515,7 @@ object SessionOutfitHandlers {
     } yield {
       outfitOpt.foreach { outfit =>
 
-        // send to all online players in outfit
+        // send to all online players in outfit with window open
         val outfit_event = OutfitEvent(
           outfit_id,
           Update(
@@ -534,7 +547,10 @@ object SessionOutfitHandlers {
         )
 
         zones.foreach(zone => {
-          zone.AllPlayers.filter(_.outfit_id == outfit_id).foreach(player => {
+          zone.AllPlayers
+            .filter(_.outfit_id == outfit_id)
+            .filter(_.outfit_window_open)
+            .foreach(player => {
             PlayerControl.sendResponse(
               zone, player.Name,
               outfit_event
@@ -823,4 +839,8 @@ object SessionOutfitHandlers {
       } yield ()
     }
   }
+
+  def updateOutfitPointMV(): Quoted[Action[Unit]] = quote(
+    infix"REFRESH MATERIALIZED VIEW outfitpoint_mv".as[Action[Unit]]
+  )
 }

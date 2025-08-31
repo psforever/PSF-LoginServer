@@ -87,6 +87,8 @@ class Player(var avatar: Avatar)
   var lastShotSeq_time: Int              = -1
   var outfit_name: String                = ""
   var outfit_id: Long                    = 0
+  var outfit_window_open: Boolean        = false
+  var outfit_list_open: Boolean          = false
 
   /** From PlanetsideAttributeMessage */
   var PlanetsideAttribute: Array[Long] = Array.ofDim(120)
