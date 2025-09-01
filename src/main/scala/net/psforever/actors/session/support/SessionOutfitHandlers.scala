@@ -252,7 +252,7 @@ object SessionOutfitHandlers {
 
               PlayerControl.sendResponse(kicked.Zone, kicked.Name,
                 OutfitMembershipResponse(OutfitMembershipResponse.PacketType.YouGotKicked, 0, 1,
-                  kickedBy.CharId, kicked.CharId, kicked.Name, kickedBy.Name, flag = false))
+                  kickedBy.CharId, kicked.CharId, kickedBy.Name, kicked.Name, flag = false))
 
               kicked.Zone.AvatarEvents ! AvatarServiceMessage(kicked.Zone.id,
                 AvatarAction.PlanetsideAttributeToAll(kicked.GUID, 39, 0))

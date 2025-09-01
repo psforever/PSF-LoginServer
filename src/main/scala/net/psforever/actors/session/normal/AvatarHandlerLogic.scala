@@ -479,6 +479,9 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarResponse.ShareKillExperienceWithSquad(killer, exp) =>
         ops.shareKillExperienceWithSquad(killer, exp)
 
+      case AvatarResponse.ShareAntExperienceWithSquad(owner, exp, vehicle) =>
+        ops.shareAntExperienceWithSquad(owner, exp, vehicle)
+
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
 

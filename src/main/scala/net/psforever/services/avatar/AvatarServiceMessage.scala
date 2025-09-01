@@ -1,13 +1,13 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar
 
-import net.psforever.objects.Player
+import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.avatar.scoring.KDAStat
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
-import net.psforever.objects.sourcing.SourceEntry
+import net.psforever.objects.sourcing.{SourceEntry, UniquePlayer}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
@@ -163,6 +163,7 @@ object AvatarAction {
   final case class AwardCep(charId: Long, bep: Long) extends Action
   final case class FacilityCaptureRewards(building_id: Int, zone_number: Int, exp: Long) extends Action
   final case class ShareKillExperienceWithSquad(killer: Player, exp: Long) extends Action
+  final case class ShareAntExperienceWithSquad(owner: UniquePlayer, exp: Long, vehicle: Vehicle) extends Action
 
   final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action

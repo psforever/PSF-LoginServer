@@ -3,8 +3,8 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, typed}
 import net.psforever.objects.serverobject.mount.Mountable
-import net.psforever.objects.{Default, PlanetSideGameObject, Player}
-import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
+import net.psforever.objects.{Default, PlanetSideGameObject, Player, Vehicle}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, UniquePlayer}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
 import net.psforever.services.Service
@@ -141,6 +141,21 @@ class SessionAvatarHandlers(
         killer.Zone.AvatarEvents ! AvatarServiceMessage(
           member._2,
           AvatarAction.AwardBep(member._1, expSplit, ExperienceType.Normal))
+      }
+    }
+  }
+
+  def shareAntExperienceWithSquad(driver: UniquePlayer, exp: Long, vehicle: Vehicle): Unit = {
+    val squadUI = sessionLogic.squad.squadUI
+    val squadSize = squadUI.size
+    if (squadSize > 1) {
+      val squadMembers = squadUI.filterNot(_._1 == driver.charId).map { case (_, member) => member }.toList.map(_.name)
+      val playersInZone = vehicle.Zone.Players.map { avatar => (avatar.id, avatar.basic.name) }
+      val squadMembersHere = playersInZone.filter(member => squadMembers.contains(member._2))
+      squadMembersHere.foreach { member =>
+        vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
+          member._2,
+          AvatarAction.AwardBep(member._1, exp, ExperienceType.Normal))
       }
     }
   }

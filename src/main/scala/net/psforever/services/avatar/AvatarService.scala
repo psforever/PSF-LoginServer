@@ -475,6 +475,15 @@ class AvatarService(zone: Zone) extends Actor {
             )
           )
 
+        case AvatarAction.ShareAntExperienceWithSquad(owner, exp, vehicle) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.ShareAntExperienceWithSquad(owner, exp, vehicle)
+            )
+          )
+
         case _ => ()
       }
 

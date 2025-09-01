@@ -37,11 +37,9 @@ import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones.{ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.OutfitEventAction.{OutfitInfo, OutfitRankNames, Update}
-import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitEvent, OutfitMembershipRequest, OutfitMembershipRequestAction, OutfitMembershipResponse, OutfitRequest, OutfitRequestAction, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitMembershipRequest, OutfitMembershipRequestAction, OutfitMembershipResponse, OutfitRequest, OutfitRequestAction, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.{AccountPersistenceService, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.chat.OutfitChannel
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.types.{CapacitorStateType, ChatMessageType, Cosmetic, ExoSuitType, ImplantType, PlanetSideEmpire, PlanetSideGUID, Vector3}
@@ -807,7 +805,9 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         }
 
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.Invite(_, invitedName)) =>
-        SessionOutfitHandlers.HandleOutfitInvite(zones, invitedName, player)
+        if (player.outfit_id != 0) {
+          SessionOutfitHandlers.HandleOutfitInvite(zones, invitedName, player)
+        }
 
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.AcceptInvite(_)) =>
         SessionOutfitHandlers.HandleOutfitInviteAccept(player, sessionLogic)
@@ -816,7 +816,9 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         SessionOutfitHandlers.HandleOutfitInviteReject(player)
 
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.Kick(memberId, _)) =>
-        SessionOutfitHandlers.HandleOutfitKick(zones, memberId, player, sessionLogic)
+        if (player.outfit_id != 0) {
+          SessionOutfitHandlers.HandleOutfitKick(zones, memberId, player, sessionLogic)
+        }
 
       case OutfitMembershipRequest(_, OutfitMembershipRequestAction.SetRank(memberId, newRank, _)) =>
         SessionOutfitHandlers.HandleOutfitPromote(zones, memberId, newRank, player)
