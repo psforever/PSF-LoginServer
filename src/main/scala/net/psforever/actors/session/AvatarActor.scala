@@ -1755,6 +1755,12 @@ class AvatarActor(
         case AwardCep(cep) =>
           if (experienceDebt == 0L) {
             setCep(avatar.cep + cep)
+            if (session.get.player.outfit_id != 0) {
+              setOutfitPoints(avatar.id.toLong, cep * 2).onComplete {
+              case Success(_)  =>
+              case Failure(exception) => log.error(exception)("db failure")
+              }
+            }
           } else if (cep > 0) {
             sessionActor ! SessionActor.SendResponse(ExperienceAddedMessage())
           }
@@ -3035,12 +3041,6 @@ class AvatarActor(
           zone.id,
           AvatarAction.PlanetsideAttributeToAll(sess.player.GUID, 18, cep)
         )
-        if (sess.player.outfit_id != 0) {
-          setOutfitPoints(sess.player.avatar.id, cep * 2).onComplete {
-            case Success(_)  =>
-            case Failure(exception) => log.error(exception)("db failure")
-          }
-        }
       case Failure(exception) =>
         log.error(exception)("db failure")
     }
