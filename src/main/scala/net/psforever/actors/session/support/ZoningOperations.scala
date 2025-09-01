@@ -2532,7 +2532,9 @@ class ZoningOperations(
             sessionLogic.general.toggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
           }
       }
-      SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
+      if (player.outfit_id == 0) {
+        SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
+      }
       //make weather happen
       sendResponse(WeatherMessage(List(),List(
         StormInfo(Vector3(0.1f, 0.15f, 0.0f), 240, 217),
