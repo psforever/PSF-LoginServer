@@ -482,6 +482,9 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarResponse.ShareAntExperienceWithSquad(owner, exp, vehicle) =>
         ops.shareAntExperienceWithSquad(owner, exp, vehicle)
 
+      case AvatarResponse.RemoveFromOutfitChat(outfit_id) =>
+        ops.removeFromOutfitChat(outfit_id)
+
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)
 

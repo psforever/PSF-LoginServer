@@ -260,6 +260,9 @@ object SessionOutfitHandlers {
               kicked.Zone.AvatarEvents ! AvatarServiceMessage(kicked.Zone.id,
                 AvatarAction.PlanetsideStringAttribute(kicked.GUID, 0, ""))
 
+              kicked.Zone.AvatarEvents ! AvatarServiceMessage(
+                kicked.Name, AvatarAction.RemoveFromOutfitChat(kickedBy.outfit_id))
+
               kicked.outfit_id = 0
               kicked.outfit_name = ""
               PlayerControl.sendResponse(kicked.Zone, kicked.Name,

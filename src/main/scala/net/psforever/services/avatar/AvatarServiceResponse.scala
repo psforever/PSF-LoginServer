@@ -135,4 +135,5 @@ object AvatarResponse {
   final case class FacilityCaptureRewards(building_id: Int, zone_number: Int, exp: Long) extends Response
   final case class ShareKillExperienceWithSquad(killer: Player, exp: Long) extends Response
   final case class ShareAntExperienceWithSquad(owner: UniquePlayer, exp: Long, vehicle: Vehicle) extends Response
+  final case class RemoveFromOutfitChat(outfit_id: Long) extends Response
 }

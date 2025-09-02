@@ -9,6 +9,7 @@ import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage, AvatarServiceResponse}
+import net.psforever.services.chat.OutfitChannel
 
 import scala.collection.mutable
 //
@@ -236,6 +237,10 @@ class SessionAvatarHandlers(
       )
     }
     player.VehicleSeated = None
+  }
+
+  def removeFromOutfitChat(outfit_id: Long): Unit = {
+    sessionLogic.chat.LeaveChannel(OutfitChannel(outfit_id))
   }
 }
 

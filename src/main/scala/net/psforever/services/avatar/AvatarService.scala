@@ -484,6 +484,15 @@ class AvatarService(zone: Zone) extends Actor {
             )
           )
 
+        case AvatarAction.RemoveFromOutfitChat(outfit_id) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.RemoveFromOutfitChat(outfit_id)
+            )
+          )
+
         case _ => ()
       }
 

@@ -164,6 +164,7 @@ object AvatarAction {
   final case class FacilityCaptureRewards(building_id: Int, zone_number: Int, exp: Long) extends Action
   final case class ShareKillExperienceWithSquad(killer: Player, exp: Long) extends Action
   final case class ShareAntExperienceWithSquad(owner: UniquePlayer, exp: Long, vehicle: Vehicle) extends Action
+  final case class RemoveFromOutfitChat(outfit_id: Long) extends Action
 
   final case class TeardownConnection() extends Action
   //  final case class PlayerStateShift(killer : PlanetSideGUID, victim : PlanetSideGUID) extends Action
