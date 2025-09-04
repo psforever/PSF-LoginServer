@@ -197,6 +197,8 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
             owner.name,
             AvatarAction.AwardBep(owner.charId, deposit, ExperienceType.Normal)
           )
+          vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
+            owner.name, AvatarAction.ShareAntExperienceWithSquad(owner, deposit, vehicle))
           zones.exp.ToDatabase.reportNtuActivity(owner.charId, resourceSilo.Zone.Number, resourceSilo.Owner.GUID.guid, deposit)
         }
     }

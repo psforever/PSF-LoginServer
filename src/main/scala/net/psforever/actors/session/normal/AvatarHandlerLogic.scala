@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.interaction.Adversarial
-import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
+import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction, PlanetsideStringAttributeMessage}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.ImplantType
 
@@ -252,6 +252,9 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarResponse.PlanetsideAttributeSelf(attributeType, attributeValue) if isSameTarget =>
         sendResponse(PlanetsideAttributeMessage(guid, attributeType, attributeValue))
 
+      case AvatarResponse.PlanetsideStringAttribute(attributeType, attributeValue) =>
+        sendResponse(PlanetsideStringAttributeMessage(guid, attributeType, attributeValue))
+
       case AvatarResponse.GenericObjectAction(objectGuid, actionCode) if isNotSameTarget =>
         sendResponse(GenericObjectActionMessage(objectGuid, actionCode))
 
@@ -475,6 +478,12 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
       case AvatarResponse.ShareKillExperienceWithSquad(killer, exp) =>
         ops.shareKillExperienceWithSquad(killer, exp)
+
+      case AvatarResponse.ShareAntExperienceWithSquad(owner, exp, vehicle) =>
+        ops.shareAntExperienceWithSquad(owner, exp, vehicle)
+
+      case AvatarResponse.RemoveFromOutfitChat(outfit_id) =>
+        ops.removeFromOutfitChat(outfit_id)
 
       case AvatarResponse.SendResponse(msg) =>
         sendResponse(msg)

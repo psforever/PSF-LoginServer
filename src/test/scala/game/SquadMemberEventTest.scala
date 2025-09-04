@@ -1,4 +1,4 @@
-// Copyright (c) 2019 PSForever
+// Copyright (c) 2019-2025 PSForever
 package game
 
 import net.psforever.packet._
@@ -11,14 +11,14 @@ class SquadMemberEventTest extends Specification {
 
   "decode" in {
     PacketCoding.decodePacket(string).require match {
-      case SquadMemberEvent(u1, u2, u3, u4, u5, u6, u7) =>
-        u1 mustEqual MemberEvent.Add
+      case SquadMemberEvent(event, u2, char_id, position, player_name, zone_number, outfit_id) =>
+        event mustEqual MemberEvent.Add
         u2 mustEqual 7
-        u3 mustEqual 42771010L
-        u4 mustEqual 0
-        u5.contains("HofD") mustEqual true
-        u6.contains(7) mustEqual true
-        u7.contains(529745L) mustEqual true
+        char_id mustEqual 42771010L
+        position mustEqual 0
+        player_name.contains("HofD") mustEqual true
+        zone_number.contains(7) mustEqual true
+        outfit_id.contains(529745L) mustEqual true
       case _ =>
         ko
     }

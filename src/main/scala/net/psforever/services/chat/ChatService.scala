@@ -57,8 +57,9 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
         (channel, message.messageType) match {
           case (SquadChannel(_), CMT_SQUAD)                                      => ()
           case (SquadChannel(_), CMT_VOICE) if message.contents.startsWith("SH") => ()
-          case (DefaultChannel, messageType) if messageType != CMT_SQUAD         => ()
-          case (SpectatorChannel, messageType) if messageType != CMT_SQUAD       => ()
+          case (OutfitChannel(_), CMT_OUTFIT)                                    => ()
+          case (DefaultChannel, messageType) if messageType != CMT_SQUAD && messageType != CMT_OUTFIT => ()
+          case (SpectatorChannel, messageType) if messageType != CMT_SQUAD && messageType != CMT_OUTFIT => ()
           case _ =>
             log.error(s"invalid chat channel $channel for messageType ${message.messageType}")
             return this
@@ -156,6 +157,9 @@ class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBe
             }
 
           case CMT_SQUAD =>
+            subs.foreach(_.actor ! MessageResponse(session, message, channel))
+
+          case CMT_OUTFIT =>
             subs.foreach(_.actor ! MessageResponse(session, message, channel))
 
           case CMT_NOTE =>

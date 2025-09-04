@@ -1,13 +1,13 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar
 
-import net.psforever.objects.Player
+import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.avatar.scoring.KDAStat
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
-import net.psforever.objects.sourcing.SourceEntry
+import net.psforever.objects.sourcing.{SourceEntry, UniquePlayer}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
@@ -47,7 +47,7 @@ object AvatarResponse {
   final case class EquipmentInHand(pkt: ObjectCreateMessage)                                       extends Response
   final case class GenericObjectAction(object_guid: PlanetSideGUID, action_code: Int)              extends Response
   final case class HitHint(source_guid: PlanetSideGUID)                                            extends Response
-  final case class Killed(cause: DamageResult, mount_guid: Option[PlanetSideGUID])                                      extends Response
+  final case class Killed(cause: DamageResult, mount_guid: Option[PlanetSideGUID])                 extends Response
   final case class LoadPlayer(pkt: ObjectCreateMessage)                                            extends Response
   final case class LoadProjectile(pkt: ObjectCreateMessage)                                        extends Response
   final case class ObjectDelete(item_guid: PlanetSideGUID, unk: Int)                               extends Response
@@ -56,6 +56,7 @@ object AvatarResponse {
   final case class PlanetsideAttribute(attribute_type: Int, attribute_value: Long)                 extends Response
   final case class PlanetsideAttributeToAll(attribute_type: Int, attribute_value: Long)            extends Response
   final case class PlanetsideAttributeSelf(attribute_type: Int, attribute_value: Long)             extends Response
+  final case class PlanetsideStringAttribute(attribute_type: Int, attribute_value: String)         extends Response
   final case class PlayerState(
       pos: Vector3,
       vel: Option[Vector3],
@@ -133,4 +134,6 @@ object AvatarResponse {
   final case class AwardCep(charId: Long, bep: Long) extends Response
   final case class FacilityCaptureRewards(building_id: Int, zone_number: Int, exp: Long) extends Response
   final case class ShareKillExperienceWithSquad(killer: Player, exp: Long) extends Response
+  final case class ShareAntExperienceWithSquad(owner: UniquePlayer, exp: Long, vehicle: Vehicle) extends Response
+  final case class RemoveFromOutfitChat(outfit_id: Long) extends Response
 }

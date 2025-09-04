@@ -12,7 +12,7 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{AIDamage, ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarGrenadeStateMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BeginZoningMessage, BindPlayerMessage, BugReportMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, ChildObjectStateMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DeployRequestMessage, DismountVehicleCargoMsg, DismountVehicleMsg, DisplayedAwardMessage, DropItemMessage, DroppodLaunchRequestMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FavoritesRequest, FrameVehicleStateMessage, FriendsRequest, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, HitMessage, InvalidTerrainMessage, ItemTransactionMessage, LashMessage, LongRangeProjectileInfoMessage, LootItemMessage, MountVehicleCargoMsg, MountVehicleMsg, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitRequest, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, ProjectileStateMessage, ProximityTerminalUseMessage, ReleaseAvatarRequestMessage, ReloadMessage, RequestDestroyMessage, SetChatFilterMessage, SpawnRequestMessage, SplashHitMessage, SquadDefinitionActionMessage, SquadMembershipRequest, SquadWaypointRequest, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UplinkRequest, UseItemMessage, VehicleStateMessage, VehicleSubStateMessage, VoiceHostInfo, VoiceHostRequest, WarpgateRequest, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage, ZipLineMessage}
+import net.psforever.packet.game.{AIDamage, ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarGrenadeStateMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BeginZoningMessage, BindPlayerMessage, BugReportMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, ChildObjectStateMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DeployRequestMessage, DismountVehicleCargoMsg, DismountVehicleMsg, DisplayedAwardMessage, DropItemMessage, DroppodLaunchRequestMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FavoritesRequest, FrameVehicleStateMessage, FriendsRequest, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, HitMessage, InvalidTerrainMessage, ItemTransactionMessage, LashMessage, LongRangeProjectileInfoMessage, LootItemMessage, MountVehicleCargoMsg, MountVehicleMsg, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitMembershipRequest, OutfitMembershipResponse, OutfitRequest, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, ProjectileStateMessage, ProximityTerminalUseMessage, ReleaseAvatarRequestMessage, ReloadMessage, RequestDestroyMessage, SetChatFilterMessage, SpawnRequestMessage, SplashHitMessage, SquadDefinitionActionMessage, SquadMembershipRequest, SquadWaypointRequest, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UplinkRequest, UseItemMessage, VehicleStateMessage, VehicleSubStateMessage, VoiceHostInfo, VoiceHostRequest, WarpgateRequest, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage, ZipLineMessage}
 import net.psforever.services.{InterstellarClusterService => ICS}
 import net.psforever.services.CavernRotationService
 import net.psforever.services.CavernRotationService.SendCavernRotationUpdates
@@ -610,7 +610,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case packet: HitHint =>
       logic.general.handleHitHint(packet)
 
-    case _: OutfitRequest => ()
+    case packet: OutfitRequest =>
+      logic.general.handleOutfitRequest(packet)
+
+    case packet: OutfitMembershipRequest =>
+      logic.general.handleOutfitMembershipRequest(packet)
+
+    case packet: OutfitMembershipResponse =>
+      logic.general.handleOutfitMembershipResponse(packet)
 
     case pkt =>
       data.log.warn(s"Unhandled GamePacket $pkt")

@@ -93,8 +93,8 @@ object AvatarConverter {
       0
     )
     val ab: (Boolean, Int) => CharacterAppearanceB = CharacterAppearanceB(
-      0L,
-      outfit_name = "",
+      obj.outfit_id,
+      obj.outfit_name,
       outfit_logo = 0,
       unk1 = false,
       obj.isBackpack,

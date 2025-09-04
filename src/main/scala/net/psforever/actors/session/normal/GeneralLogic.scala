@@ -4,7 +4,7 @@ package net.psforever.actors.session.normal
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.{AvatarActor, SessionActor}
-import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData}
+import net.psforever.actors.session.support.{GeneralFunctions, GeneralOperations, SessionData, SessionOutfitHandlers}
 import net.psforever.objects.{Account, BoomerDeployable, BoomerTrigger, ConstructionItem, GlobalDefinitions, LivePlayerList, Player, SensorDeployable, ShieldGeneratorDeployable, SpecialEmp, TelepadDeployable, Tool, TrapDeployable, TurretDeployable, Vehicle}
 import net.psforever.objects.avatar.{Avatar, PlayerControl, SpecialCarry}
 import net.psforever.objects.ballistics.Projectile
@@ -37,13 +37,14 @@ import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones.{ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitMembershipRequest, OutfitMembershipRequestAction, OutfitMembershipResponse, OutfitRequest, OutfitRequestAction, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.{AccountPersistenceService, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.types.{CapacitorStateType, ChatMessageType, Cosmetic, ExoSuitType, ImplantType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.util.Config
+import net.psforever.zones.Zones.zones
 
 import scala.concurrent.duration._
 
@@ -794,6 +795,65 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
 
   def handleHitHint(pkt: HitHint): Unit = {
     val HitHint(_, _) = pkt
+  }
+
+  def handleOutfitMembershipRequest(pkt: OutfitMembershipRequest): Unit = {
+    pkt match {
+      case OutfitMembershipRequest(_, OutfitMembershipRequestAction.Form(_, outfitName)) =>
+        if (player.outfit_id == 0) {
+          SessionOutfitHandlers.HandleOutfitForm(outfitName, player, sessionLogic)
+        }
+
+      case OutfitMembershipRequest(_, OutfitMembershipRequestAction.Invite(_, invitedName)) =>
+        if (player.outfit_id != 0) {
+          SessionOutfitHandlers.HandleOutfitInvite(zones, invitedName, player)
+        }
+
+      case OutfitMembershipRequest(_, OutfitMembershipRequestAction.AcceptInvite(_)) =>
+        SessionOutfitHandlers.HandleOutfitInviteAccept(player, sessionLogic)
+
+      case OutfitMembershipRequest(_, OutfitMembershipRequestAction.RejectInvite(_)) =>
+        SessionOutfitHandlers.HandleOutfitInviteReject(player)
+
+      case OutfitMembershipRequest(_, OutfitMembershipRequestAction.Kick(memberId, _)) =>
+        if (player.outfit_id != 0) {
+          SessionOutfitHandlers.HandleOutfitKick(zones, memberId, player, sessionLogic)
+        }
+
+      case OutfitMembershipRequest(_, OutfitMembershipRequestAction.SetRank(memberId, newRank, _)) =>
+        SessionOutfitHandlers.HandleOutfitPromote(zones, memberId, newRank, player)
+
+      case _ =>
+    }
+  }
+
+  def handleOutfitMembershipResponse(pkt: OutfitMembershipResponse): Unit = {}
+
+  def handleOutfitRequest(pkt: OutfitRequest): Unit = {
+    pkt match {
+
+      case OutfitRequest(_, OutfitRequestAction.Motd(message)) =>
+        SessionOutfitHandlers.HandleOutfitMotd(zones, message, player)
+
+      case OutfitRequest(_, OutfitRequestAction.Ranks(List(r1, r2, r3, r4, r5, r6, r7, r8))) =>
+        SessionOutfitHandlers.HandleOutfitRank(zones, List(r1, r2, r3, r4, r5, r6, r7, r8), player)
+
+      case OutfitRequest(_, OutfitRequestAction.OutfitWindowOpen(true)) =>
+        player.outfit_window_open = true
+        SessionOutfitHandlers.HandleViewOutfitWindow(zones, player, player.outfit_id)
+
+      case OutfitRequest(_, OutfitRequestAction.OutfitWindowOpen(false)) =>
+        player.outfit_window_open = false
+
+      case OutfitRequest(_, OutfitRequestAction.OutfitListWindowOpen(true)) =>
+        player.outfit_list_open = true
+        SessionOutfitHandlers.HandleGetOutfitList(player)
+
+      case OutfitRequest(_, OutfitRequestAction.OutfitListWindowOpen(false)) =>
+        player.outfit_list_open = false
+
+      case _ =>
+    }
   }
 
   /* messages */

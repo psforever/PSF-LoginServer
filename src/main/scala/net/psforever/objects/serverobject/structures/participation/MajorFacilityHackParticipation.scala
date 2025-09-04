@@ -121,12 +121,25 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
       } else {
         (defenderFaction, attackingFaction, socketOpt.nonEmpty, None)
       }
-      val (contributionVictor, contributionOpposing, _) = {
-        val (a, b1) = playerContribution.partition { case (_, (p, _, _)) => p.Faction == victorFaction }
-        val (b, c) = b1.partition { case (_, (p, _, _)) => p.Faction == opposingFaction }
-        (a.values, b.values, c.values)
+      val (contributionVictor, contributionOpposing) = {
+        val (a, b) = playerContribution.partition { case (_, (p, _, _)) => p.Faction == victorFaction }
+        //val (b, c) = b1.partition { case (_, (p, _, _)) => p.Faction == opposingFaction }
+        (a.values, b.values)
       }
       val contributionVictorSize = contributionVictor.size
+
+      //sometimes attackingFaction and defenderFaction are the same *shrug*
+      val failSafeOpposingFaction =
+          contributionOpposing
+            .map { case (p, _, _) => p.Faction }
+            .groupBy(identity)
+            .view.mapValues(_.size)
+            .toSeq
+            .sortBy(-_._2)
+            .headOption
+            .map(_._1)
+            .getOrElse(PlanetSideEmpire.NEUTRAL)
+
       if (contributionVictorSize > 0) {
         //setup for ...
         val populationIndices = playerPopulationOverTime.indices
@@ -137,7 +150,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
           val individualPopulationByLayer = allFactions.map { f =>
             (f, populationIndices.indices.map { i => playerPopulationOverTime(i)(f) })
           }.toMap[PlanetSideEmpire.Value, Seq[Int]]
-          (individualPopulationByLayer(victorFaction), individualPopulationByLayer(opposingFaction))
+          (individualPopulationByLayer(victorFaction), individualPopulationByLayer(failSafeOpposingFaction))
         }
         val contributionOpposingSize = contributionOpposing.size
         val killsByPlayersNotInTower = eliminateClosestTowerFromParticipating(
@@ -147,7 +160,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
             building.Definition.SOIRadius.toFloat,
             hackStart,
             completionTime,
-            opposingFaction,
+            failSafeOpposingFaction,
             contributionVictor
           )
         )
@@ -215,7 +228,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
             }
             val heatMapModifier = FacilityHackParticipation.heatMapComparison(
               FacilityHackParticipation.diffHeatForFactionMap(regionHeatMapProgression, victorFaction).values,
-              FacilityHackParticipation.diffHeatForFactionMap(regionHeatMapProgression, opposingFaction).values
+              FacilityHackParticipation.diffHeatForFactionMap(regionHeatMapProgression, failSafeOpposingFaction).values
             )
             heatMapModifier * populationBalanceModifier
           }
@@ -275,13 +288,13 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
               Config.app.game.experience.cep.rate + competitionBonus
           ).toLong
           //8. reward participants that are still in the zone
-          val hackerId = hacker.CharId
+          //val hackerId = hacker.CharId
           val contributingPlayers = contributionVictor
             .filter { case (player, _, _) => player.Zone.id == building.Zone.id }
             .map { case (player, _, _) => player }
             .toList
           //terminal hacker (always cep)
-          if (contributingPlayers.exists(_.CharId == hackerId) && flagCarrier.map(_.CharId).getOrElse(0L) != hackerId) {
+          /*if (contributingPlayers.exists(_.CharId == hackerId) && flagCarrier.map(_.CharId).getOrElse(0L) != hackerId) {
             ToDatabase.reportFacilityCapture(
               hackerId,
               zoneNumber,
@@ -290,10 +303,10 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
               expType = "cep"
             )
             events ! AvatarServiceMessage(hacker.Name, AvatarAction.AwardCep(hackerId, finalCep))
-          }
+          }*/
           //bystanders (cep if squad leader, bep otherwise)
           contributingPlayers
-            .filterNot { _.CharId == hackerId }
+            //.filterNot { _.CharId == hackerId }
             .foreach { player =>
               val charId = player.CharId
               val contributionMultiplier = contributionPerPlayerByTime.getOrElse(charId, 1f)

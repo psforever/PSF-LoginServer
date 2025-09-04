@@ -198,6 +198,14 @@ class AvatarService(zone: Zone) extends Actor {
               AvatarResponse.PlanetsideAttributeSelf(attribute_type, attribute_value)
             )
           )
+        case AvatarAction.PlanetsideStringAttribute(guid, attribute_type, attribute_value) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              guid,
+              AvatarResponse.PlanetsideStringAttribute(attribute_type, attribute_value)
+            )
+          )
         case AvatarAction.PlayerState(
               guid,
               pos,
@@ -464,6 +472,24 @@ class AvatarService(zone: Zone) extends Actor {
               s"/$forChannel/Avatar",
               Service.defaultPlayerGUID,
               AvatarResponse.ShareKillExperienceWithSquad(killer, exp)
+            )
+          )
+
+        case AvatarAction.ShareAntExperienceWithSquad(owner, exp, vehicle) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.ShareAntExperienceWithSquad(owner, exp, vehicle)
+            )
+          )
+
+        case AvatarAction.RemoveFromOutfitChat(outfit_id) =>
+          AvatarEvents.publish(
+            AvatarServiceResponse(
+              s"/$forChannel/Avatar",
+              Service.defaultPlayerGUID,
+              AvatarResponse.RemoveFromOutfitChat(outfit_id)
             )
           )
 

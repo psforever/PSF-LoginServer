@@ -166,6 +166,12 @@ trait GeneralFunctions extends CommonSessionInterfacingFunctionality {
   def handleCanNotPutItemInSlot(msg: Containable.CanNotPutItemInSlot): Unit
 
   def handleReceiveDefaultMessage(default: Any, sender: ActorRef): Unit
+
+  def handleOutfitMembershipRequest(pkt: OutfitMembershipRequest): Unit
+
+  def handleOutfitMembershipResponse(pkt: OutfitMembershipResponse): Unit
+
+  def handleOutfitRequest(pkt: OutfitRequest): Unit
 }
 
 class GeneralOperations(
