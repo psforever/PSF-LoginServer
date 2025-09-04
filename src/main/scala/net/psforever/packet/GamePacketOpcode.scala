@@ -437,7 +437,7 @@ object GamePacketOpcode extends Enumeration {
 
       // OPCODES 0x70-7f
       case 0x70 => game.SquadMemberEvent.decode
-      case 0x71 => noDecoder(PlatoonEvent)
+      case 0x71 => game.PlatoonEvent.decode
       case 0x72 => game.FriendsRequest.decode
       case 0x73 => game.FriendsResponse.decode
       case 0x74 => game.TriggerEnvironmentalDamageMessage.decode
