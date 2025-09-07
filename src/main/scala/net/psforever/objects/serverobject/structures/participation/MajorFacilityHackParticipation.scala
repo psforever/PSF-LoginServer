@@ -143,9 +143,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
       if (contributionVictorSize > 0) {
         //setup for ...
         val populationIndices = playerPopulationOverTime.indices
-        val allFactions = PlanetSideEmpire.values.filterNot {
-          _ == PlanetSideEmpire.NEUTRAL
-        }.toSeq
+        val allFactions = PlanetSideEmpire.values.toSeq
         val (victorPopulationByLayer, opposingPopulationByLayer) = {
           val individualPopulationByLayer = allFactions.map { f =>
             (f, populationIndices.indices.map { i => playerPopulationOverTime(i)(f) })
