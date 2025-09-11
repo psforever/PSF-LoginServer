@@ -82,7 +82,7 @@ class SessionAvatarHandlers(
             maxCepList.lift(squadSize - 1).getOrElse(squadSize * maxCepList.head).toLong
           }
           val groupContribution: Float = squadUI
-            .map { case (id, _) => (id, squadParticipation.getOrElse(id, 0f) / 10f) }
+            .map { case (id, _) => (id, squadParticipation.getOrElse(id, 0f)) }
             .values
             .max
           val modifiedExp: Long = (cep.toFloat * groupContribution).toLong
@@ -115,7 +115,8 @@ class SessionAvatarHandlers(
             }
           }
           val modifiedExp = (cep * individualContribution).toLong
-          exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, modifiedExp, expType="bep")
+          val finalBep = math.min(modifiedExp, 2250L) // 2250 max bep for capture
+          exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, finalBep, expType="bep")
           avatarActor ! AvatarActor.AwardFacilityCaptureBep(modifiedExp)
           Some(modifiedExp)
       }

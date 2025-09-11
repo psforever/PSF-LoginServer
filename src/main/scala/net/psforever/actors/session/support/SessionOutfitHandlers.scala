@@ -13,7 +13,7 @@ import net.psforever.services.chat.OutfitChannel
 import net.psforever.types.ChatMessageType
 import net.psforever.util.Config
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, ZoneId}
 import java.util.concurrent.Executors
 import scala.util.{Failure, Success}
 
@@ -61,7 +61,7 @@ object SessionOutfitHandlers {
           case _ =>
             createNewOutfit(validName, player.Faction.id, player.CharId).map { outfit =>
               val seconds: Long =
-                outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000
+                outfit.created.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli / 1000
 
               PlayerControl.sendResponse(player.Zone, player.Name,
                 OutfitEvent(outfit.id, Update(
@@ -151,7 +151,7 @@ object SessionOutfitHandlers {
                 OutfitMemberEventAction.Update(invited.Name, 0, 0, 0,
                   OutfitMemberEventAction.PacketType.Padding, 0)))
 
-            val seconds: Long = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000
+            val seconds: Long = outfit.created.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli / 1000
             PlayerControl.sendResponse(invited.Zone, invited.Name,
               OutfitEvent(outfitId, Initial(OutfitInfo(
                 outfit.name, points, points, memberCount,
@@ -372,7 +372,7 @@ object SessionOutfitHandlers {
       members                              <- membersF
     } yield {
       outfitOpt.foreach { outfit =>
-        val seconds: Long = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000
+        val seconds: Long = outfit.created.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli / 1000
 
         PlayerControl.sendResponse(player.Zone, player.Name,
           OutfitEvent(outfit.id, Initial(OutfitInfo(
@@ -397,7 +397,7 @@ object SessionOutfitHandlers {
           val lastLogin = findPlayerByIdForOutfitAction(zones, avatarId, player) match {
             case Some(_) => 0L
             case None if player.Name == avatarName => 0L
-            case None =>  (System.currentTimeMillis() - login.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli) / 1000
+            case None =>  (System.currentTimeMillis() - login.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli) / 1000
           }
           PlayerControl.sendResponse(player.Zone, player.Name,
             OutfitMemberEvent(outfit.id, avatarId,
@@ -477,7 +477,7 @@ object SessionOutfitHandlers {
               unk10 = 0,
               unk11 = true,
               unk12 = 0,
-              created_timestamp = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000,
+              created_timestamp = outfit.created.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli / 1000,
               unk23 = 0,
               unk24 = 0,
               unk25 = 0
@@ -542,7 +542,7 @@ object SessionOutfitHandlers {
               unk10 = 0,
               unk11 = true,
               unk12 = 0,
-              created_timestamp = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000,
+              created_timestamp = outfit.created.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli / 1000,
               unk23 = 0,
               unk24 = 0,
               unk25 = 0
@@ -595,7 +595,7 @@ object SessionOutfitHandlers {
           } yield (outfitOpt, memberCount, points))
             .map {
               case (Some(outfit), memberCount, points) =>
-                val seconds: Long = outfit.created.atZone(java.time.ZoneOffset.UTC).toInstant.toEpochMilli / 1000
+                val seconds: Long = outfit.created.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli / 1000
 
                 PlayerControl.sendResponse(player.Zone, player.Name,
                   OutfitEvent(outfitId, Update(OutfitInfo(

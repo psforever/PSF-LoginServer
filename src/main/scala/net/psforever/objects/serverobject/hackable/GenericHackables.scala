@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.hackable
 
-import net.psforever.objects.serverobject.structures.{Building, WarpGate}
+import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
@@ -148,9 +148,11 @@ object GenericHackables {
    */
   def EndHackProgress(target: PlanetSideServerObject, hacker: Player): Boolean = {
     val building = target.asInstanceOf[CaptureTerminal].Owner.asInstanceOf[Building]
-    if (building.Faction == PlanetSideEmpire.NEUTRAL) {
+    if (building.Faction == PlanetSideEmpire.NEUTRAL || building.BuildingType == StructureType.Tower
+        || building.Faction == hacker.Faction) {
       false
-    } else {
+    }
+    else {
       val stopHackingCount = building.Neighbours match {
         case Some(neighbors) =>
           neighbors.count {
