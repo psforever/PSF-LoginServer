@@ -103,8 +103,11 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
   private var buffer: Seq[Any] = Seq() //for typed actors, this becomes an akka.actor.typed.scaladsl.StashBuffer (size 10?)
 
+  log.info("LOGIN_TEST::actor start: port activity starts the actor")
+
   override def preStart(): Unit = {
     super.preStart()
+    log.info("LOGIN_TEST::actor start: formal actor prestart")
     ServiceManager.serviceManager ! Lookup("accountIntermediary")
     ServiceManager.receptionist ! Receptionist.Find(SocketPane.SocketPaneKey, context.self)
   }
@@ -118,9 +121,11 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
   private def persistentSetupMixinBehavior: Receive = {
     case ServiceManager.LookupResult("accountIntermediary", endpoint) =>
+      log.info("LOGIN_TEST::account intermediary received (must be completed before actual login attempt)")
       accountIntermediary = endpoint
 
     case SocketPane.SocketPaneKey.Listing(listings) =>
+      log.info("LOGIN_TEST::socket pane received (must be completed before actual login attempt)")
       sockets = listings.head
   }
 
@@ -141,8 +146,10 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
      port = address.Port
      context.become(idlingBufferBehavior)
      runLoginTest()
+     log.info("LOGIN_TEST::ip address received")
 
     case _ => ()
+      log.info("LOGIN_TEST::weird message when waiting for ip address")
   }
 
   private def accountLoginBehavior: Receive = persistentSetupMixinBehavior.orElse {
@@ -228,11 +235,13 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
     result.onComplete {
       case Success(Some(_)) =>
+        log.info("LOGIN_TEST::login test passed")
         context.become(accountLoginBehavior) // account found
         buffer.foreach { self ! _ }
         buffer = Seq()
       case Success(None) =>
         log.error("account database not found")
+        log.info("LOGIN_TEST::login test failed, not found")
         middlewareActor ! MiddlewareActor.Send(DisconnectMessage("Account database not found; stopping ..."))
         middlewareActor ! MiddlewareActor.Close()
       case Failure(e) =>
@@ -311,6 +320,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
                     .update(_.password -> lift(bcryptedPassword))
                 )
               }
+              log.info("LOGIN_TEST::login successful")
               loginSuccessfulResponse(username, newToken)
               context.become(displayingServerListBehavior)
               updateServerListTask =
@@ -318,14 +328,17 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
               future
 
             case (_, false) =>
+              log.info("LOGIN_TEST::login failure, password")
               loginFailurePasswordResponse(username, newToken)
               loginFailureAction()
 
             case (true, _) =>
+              log.info("LOGIN_TEST::login failure, general but with token")
               loginAccountFailureResponse(username, newToken)
               loginFailureAction()
           }
         case None =>
+          log.info("LOGIN_TEST::login failure, general")
           loginFailureAction()
       }
     } yield login
@@ -392,6 +405,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
     result.onComplete {
       case Success(_) => ()
+        log.info("LOGIN_TEST::login successful")
       case Failure(e) => log.error(e.getMessage)
     }
   }
