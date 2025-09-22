@@ -85,7 +85,6 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
     with MDCContextAware {
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  //private val usernameRegex: Regex = """[A-Za-z\d]{3,}""".r might be useful one day
   private var accountIntermediary: ActorRef = Default.Actor
   private var sockets: typed.ActorRef[SocketPane.Command] = Default.typed.Actor
 
@@ -100,8 +99,6 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
   private val gameTestServerAddress = new InetSocketAddress(InetAddress.getByName(Config.app.public), Config.app.world.port)
 
   private val bcryptRounds = 12
-
-  private var buffer: Seq[Any] = Seq() //for typed actors, this becomes an akka.actor.typed.scaladsl.StashBuffer (size 10?)
 
   override def preStart(): Unit = {
     super.preStart()
@@ -124,23 +121,17 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       sockets = listings.head
   }
 
-  private def idlingBufferBehavior: Receive = persistentSetupMixinBehavior.orElse {
-    case packet =>
-      buffer = buffer :+ packet
-  }
-
-  private def idlingIgnoreBehavior: Receive = persistentSetupMixinBehavior.orElse {
+  private def idlingBehavior: Receive = persistentSetupMixinBehavior.orElse {
     case _ => ()
   }
 
- private def beforeLoginBehavior: Receive = persistentSetupMixinBehavior.orElse {
-   case ReceiveIPAddress(address) =>
-     ipAddress = address.Address
-     hostName = address.HostName
-     canonicalHostName = address.CanonicalHostName
-     port = address.Port
-     context.become(idlingBufferBehavior)
-     runLoginTest()
+  private def beforeLoginBehavior: Receive = persistentSetupMixinBehavior.orElse {
+    case ReceiveIPAddress(address) =>
+      ipAddress = address.Address
+      hostName = address.HostName
+      canonicalHostName = address.CanonicalHostName
+      port = address.Port
+      context.become(accountLoginBehavior) // Proceed directly to account login behavior without test
 
     case _ => ()
   }
@@ -153,33 +144,35 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       failWithError(s"Invalid packet class received: $default")
   }
 
-  private def nextPortTransferBehavior: Receive = {
+  private def displayingServerListBehavior: Receive = persistentSetupMixinBehavior.orElse {
+    case packet: PlanetSideGamePacket =>
+      handleGamePktDuringWorldSelect(packet)
+
+    case LoginActor.UpdateServerList =>
+      updateServerList()
+
     case SocketPane.NextPort(_, _, portNum) =>
       val address = gameTestServerAddress.getAddress.getHostAddress
       log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
       val response = ConnectToWorldMessage(serverName, address, portNum)
-      context.become(idlingIgnoreBehavior)
+      context.become(idlingBehavior)
       middlewareActor ! MiddlewareActor.Send(response)
       middlewareActor ! MiddlewareActor.Close()
+
+    case default =>
+      failWithError(s"Invalid packet class received: $default")
   }
 
-  private def displayingServerListBehavior: Receive = persistentSetupMixinBehavior
-    .orElse(nextPortTransferBehavior)
-    .orElse {
-      case packet: PlanetSideGamePacket =>
-        handleGamePktDuringWorldSelect(packet)
+  private def waitingForServerTransferBehavior: Receive = persistentSetupMixinBehavior.orElse {
+    case SocketPane.NextPort(_, _, portNum) =>
+      val address = gameTestServerAddress.getAddress.getHostAddress
+      log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
+      val response = ConnectToWorldMessage(serverName, address, portNum)
+      context.become(idlingBehavior)
+      middlewareActor ! MiddlewareActor.Send(response)
+      middlewareActor ! MiddlewareActor.Close()
 
-      case LoginActor.UpdateServerList =>
-        updateServerList()
-
-      case default =>
-        failWithError(s"Invalid packet class received: $default")
-  }
-
-  private def waitingForServerTransferBehavior: Receive = persistentSetupMixinBehavior
-    .orElse(nextPortTransferBehavior)
-    .orElse {
-      case _ => ()
+    case _ => ()
   }
 
   private def handleGamePktDuringLogin(pkt: PlanetSideGamePacket): Unit = {
@@ -187,17 +180,15 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       case LoginMessage(majorVersion, minorVersion, buildDate, username, _, Some(token), revision) =>
         val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
         log.debug(s"New login UN:$username Token:$token. $clientVersion")
-        context.become(idlingIgnoreBehavior)
         accountLoginWithToken(token)
 
       case LoginMessage(majorVersion, minorVersion, buildDate, username, password, None, revision) =>
         val clientVersion = s"Client Version: $majorVersion.$minorVersion.$revision, $buildDate"
         log.debug(s"New login UN:$username. $clientVersion")
-        context.become(idlingIgnoreBehavior)
         accountLogin(username, password.getOrElse(""))
 
       case _ =>
-        log.warning(s"Unhandled GamePacket during login $pkt")
+        log.warning(s"Unhandled GamePacket $pkt")
     }
   }
 
@@ -210,35 +201,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
         sockets ! SocketPane.GetNextPort("world", context.self)
 
       case _ =>
-        log.warning(s"Unhandled GamePacket during world select $pkt")
-    }
-  }
-
-  private def runLoginTest(): Unit = {
-    import ctx._
-    val result = for {
-      accountsExact <- ctx.run(query[persistence.Account].filter(_.username == lift("PSForever")))
-      accountOption <- accountsExact.headOption match {
-        case Some(account) =>
-          Future.successful(Some(account))
-        case None =>
-          Future.successful(None)
-      }
-    } yield accountOption
-
-    result.onComplete {
-      case Success(Some(_)) =>
-        context.become(accountLoginBehavior) // account found
-        buffer.foreach { self ! _ }
-        buffer = Seq()
-      case Success(None) =>
-        log.error("account database not found")
-        middlewareActor ! MiddlewareActor.Send(DisconnectMessage("Account database not found; stopping ..."))
-        middlewareActor ! MiddlewareActor.Close()
-      case Failure(e) =>
-        log.error(e.getMessage)
-        middlewareActor ! MiddlewareActor.Send(DisconnectMessage("Encountered login error; stopping ..."))
-        middlewareActor ! MiddlewareActor.Close()
+        log.warning(s"Unhandled GamePacket $pkt")
     }
   }
 
