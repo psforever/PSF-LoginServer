@@ -73,7 +73,8 @@ object Players {
     //give credit even if the player does not revive
     target.LogActivity(RevivingActivity(PlayerSource(target), PlayerSource(medic), target.MaxHealth, item.Definition))
     val magazine = item.Discharge(Some(25))
-    target.Zone.AvatarEvents ! AvatarServiceMessage(
+    PlayerControl.sendResponse(
+      target.Zone,
       medicName,
       AvatarAction.SendResponse(
         Service.defaultPlayerGUID,
