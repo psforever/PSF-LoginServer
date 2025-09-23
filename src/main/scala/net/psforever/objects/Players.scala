@@ -70,6 +70,7 @@ object Players {
     val name = target.Name
     val medicName = medic.Name
     log.info(s"$medicName had revived $name")
+    //give credit even if the player does not revive
     target.LogActivity(RevivingActivity(PlayerSource(target), PlayerSource(medic), target.MaxHealth, item.Definition))
     val magazine = item.Discharge(Some(25))
     target.Zone.AvatarEvents ! AvatarServiceMessage(
@@ -79,9 +80,7 @@ object Players {
         InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine)
       )
     )
-    target.Zone.AvatarEvents ! AvatarServiceMessage(name, AvatarAction.Revive(target.GUID))
-    val reviveMessage = s"@YouHaveBeenMessage^revived~^$medicName~"
-    PlayerControl.sendResponse(target.Zone, name, ChatMsg(ChatMessageType.UNK_227, reviveMessage))
+    PlayerControl.sendResponse(target.Zone, name, AvatarAction.Revive(target.GUID))
   }
 
   /**

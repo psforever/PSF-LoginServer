@@ -201,20 +201,12 @@ class SessionAvatarHandlers(
     )
   }
 
-  def revive(revivalTargetGuid: PlanetSideGUID): Unit = {
+  def revive(): Unit = {
     val spawn = sessionLogic.zoning.spawn
     spawn.reviveTimer.cancel()
     spawn.reviveTimer = Default.Cancellable
     spawn.respawnTimer.cancel()
     spawn.respawnTimer = Default.Cancellable
-    player.Revive
-    val health = player.Health
-    sendResponse(PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
-    sendResponse(AvatarDeadStateMessage(DeadState.Alive, timer_max=0, timer=0, player.Position, player.Faction, unk5=true))
-    continent.AvatarEvents ! AvatarServiceMessage(
-      continent.id,
-      AvatarAction.PlanetsideAttributeToAll(revivalTargetGuid, attribute_type=0, health)
-    )
   }
 
   def killedWhileMounted(obj: PlanetSideGameObject with Mountable, playerGuid: PlanetSideGUID): Unit = {

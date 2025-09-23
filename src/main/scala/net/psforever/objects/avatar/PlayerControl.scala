@@ -116,6 +116,19 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case Player.Die(None) =>
           suicide()
 
+        case Player.Revive
+          if player.Health == 0 && !player.isBackpack =>
+          player.Revive
+          val revivalTargetGuid = player.GUID
+          val health = player.Health
+          val zone = player.Zone
+          val zoneId = zone.id
+          sendResponse(zone, zoneId, PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
+          sendResponse(zone, zoneId, AvatarDeadStateMessage(DeadState.Alive, timer_max=0, timer=0, player.Position, player.Faction, unk5=true))
+          sendResponse(zone, zoneId, AvatarAction.PlanetsideAttributeToAll(revivalTargetGuid, attribute_type=0, health))
+          avatarActor ! AvatarActor.InitializeImplants
+          avatarActor ! AvatarActor.SuspendStaminaRegeneration(Duration(1, "second"))
+
         case CommonMessages.Use(user, Some(item: Tool))
           if item.Definition == GlobalDefinitions.medicalapplicator && player.isAlive =>
           //heal
@@ -982,6 +995,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     super.CancelJammeredStatus(target)
     //uninitialize implants
     avatarActor ! AvatarActor.DeinitializeImplants
+    //no stamina
+    avatarActor ! AvatarActor.SuspendStaminaRegeneration(Duration(1, "day"))
+    avatarActor ! AvatarActor.ConsumeStamina(player.avatar.maxStamina)
 
     //log historical event
     target.LogActivity(cause)
@@ -1220,6 +1236,10 @@ object PlayerControl {
 
   def sendResponse(zone: Zone, channel: String, msg: PlanetSideGamePacket): Unit = {
     zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.SendResponse(Service.defaultPlayerGUID, msg))
+  }
+
+  def sendResponse(zone: Zone, channel: String, msg: AvatarAction.Action): Unit = {
+    zone.AvatarEvents ! AvatarServiceMessage(channel, msg)
   }
 
   def maxRestriction(player: Player, slot: Int): Boolean = {
