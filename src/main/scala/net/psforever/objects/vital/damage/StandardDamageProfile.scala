@@ -48,7 +48,7 @@ trait StandardDamageProfile extends DamageProfile {
     Damage2
   }
 
-  def Damage3: Int = damage3.getOrElse(Damage2)
+  def Damage3: Int = damage3.getOrElse(Damage1)
 
   def Damage3_=(damage: Int): Int = Damage3_=(Some(damage))
 
@@ -57,7 +57,7 @@ trait StandardDamageProfile extends DamageProfile {
     Damage3
   }
 
-  def Damage4: Int = damage4.getOrElse(Damage3)
+  def Damage4: Int = damage4.getOrElse(Damage1)
 
   def Damage4_=(damage: Int): Int = Damage4_=(Some(damage))
 
