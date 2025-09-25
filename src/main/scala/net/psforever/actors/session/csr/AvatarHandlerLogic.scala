@@ -10,6 +10,7 @@ import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.inventory.Container
 import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.objects.serverobject.mount.Mountable
+import net.psforever.objects.vital.RevivingActivity
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
 import net.psforever.services.avatar.AvatarServiceResponse
 import net.psforever.types.ImplantType
@@ -474,7 +475,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         player.FreeHand.Equipment.foreach(DropEquipmentFromInventory(player)(_))
         AvatarActor.updateToolDischargeFor(avatar)
         AvatarActor.savePlayerLocation(player)
-        ops.revive(player.GUID)
+        ops.revive()
         avatarActor ! AvatarActor.InitializeImplants
         //render
         CustomerServiceRepresentativeMode.renderPlayer(sessionLogic, continent, player)
@@ -484,7 +485,17 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
       case AvatarResponse.Revive(revivalTargetGuid)
         if resolvedPlayerGuid == revivalTargetGuid =>
-        ops.revive(revivalTargetGuid)
+        ops.revive()
+        player.Actor ! Player.Revive
+        player.History
+          .findLast { _.isInstanceOf[RevivingActivity] }
+          .map {
+            case activity: RevivingActivity
+              if System.currentTimeMillis() - activity.time < 5000L =>
+              val reviveMessage = s"@YouHaveBeenMessage^revived~^${activity.user.unique.name}~"
+              sendResponse(ChatMsg(ChatMessageType.UNK_227, reviveMessage))
+              None
+          }
 
       /* uncommon messages (utility, or once in a while) */
       case AvatarResponse.ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data)

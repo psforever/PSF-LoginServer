@@ -629,6 +629,8 @@ object Player {
     }
   }
 
+  case object Revive
+
   def apply(core: Avatar): Player = {
     new Player(core)
   }
