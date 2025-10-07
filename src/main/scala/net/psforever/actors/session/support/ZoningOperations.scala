@@ -2535,7 +2535,7 @@ class ZoningOperations(
       if (player.outfit_id == 0) {
         SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
       }
-      //make weather happen
+      /*make weather happen
       sendResponse(WeatherMessage(List(),List(
         StormInfo(Vector3(0.1f, 0.15f, 0.0f), 240, 217),
         StormInfo(Vector3(0.5f, 0.11f, 0.0f), 240, 215),
@@ -2547,7 +2547,7 @@ class ZoningOperations(
         StormInfo(Vector3(0.9f, 0.57f, 0.0f), 244, 215),
         StormInfo(Vector3(0.9f, 0.9f, 0.0f), 243, 215),
         StormInfo(Vector3(0.1f, 0.2f, 0.0f), 241, 215),
-        StormInfo(Vector3(0.95f, 0.2f, 0.0f), 241, 215))))
+        StormInfo(Vector3(0.95f, 0.2f, 0.0f), 241, 215))))*/
       //begin looking for conditions to set the avatar
       context.system.scheduler.scheduleOnce(delay = 250 millisecond, context.self, SessionActor.SetCurrentAvatar(player, 200))
     }
@@ -2659,7 +2659,7 @@ class ZoningOperations(
       }
       setupAvatarFunc = AvatarCreate
       SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
-      //make weather happen
+      /*make weather happen
         sendResponse(WeatherMessage(List(),List(
           StormInfo(Vector3(0.1f, 0.15f, 0.0f), 240, 217),
           StormInfo(Vector3(0.5f, 0.11f, 0.0f), 240, 215),
@@ -2671,7 +2671,7 @@ class ZoningOperations(
           StormInfo(Vector3(0.9f, 0.57f, 0.0f), 244, 215),
           StormInfo(Vector3(0.9f, 0.9f, 0.0f), 243, 215),
           StormInfo(Vector3(0.1f, 0.2f, 0.0f), 241, 215),
-          StormInfo(Vector3(0.95f, 0.2f, 0.0f), 241, 215))))
+          StormInfo(Vector3(0.95f, 0.2f, 0.0f), 241, 215))))*/
       //begin looking for conditions to set the avatar
       context.system.scheduler.scheduleOnce(delay = 750 millisecond, context.self, SessionActor.SetCurrentAvatar(player, 200))
     }
