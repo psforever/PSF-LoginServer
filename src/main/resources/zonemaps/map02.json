@@ -10538,7 +10538,7 @@
     "AbsY": 3005.953,
     "AbsZ": 45.12653,
     "Yaw": 270.0,
-    "GUID": 841,
+    "GUID": 842,
     "MapID": null,
     "IsChildObject": true
   },
@@ -10551,7 +10551,7 @@
     "AbsY": 2993.183,
     "AbsZ": 52.54653,
     "Yaw": 0.0,
-    "GUID": 842,
+    "GUID": 841,
     "MapID": null,
     "IsChildObject": true
   },
