@@ -44,7 +44,7 @@ class HackCaptureActor extends Actor {
       val hackingFaction = HackCaptureActor.GetHackingFaction(target).get
       val duration = target.Owner match {
           case b: Building if b.IsCtfBase && b.Neighbours(hackingFaction).nonEmpty =>
-            10.minutes
+            15.minutes
           case _ =>
             target.Definition.FacilityHackTime
         }
