@@ -41,7 +41,13 @@ class HackCaptureActor extends Actor {
 
     case HackCaptureActor.StartCaptureTerminalHack(target, zone, unk1, unk2, startTime) =>
       log.trace(s"StartCaptureTerminalHack: ${target.GUID} is hacked")
-      val duration = target.Definition.FacilityHackTime
+      val hackingFaction = HackCaptureActor.GetHackingFaction(target).get
+      val duration = target.Owner match {
+          case b: Building if b.IsCtfBase && b.Neighbours(hackingFaction).nonEmpty =>
+            15.minutes
+          case _ =>
+            target.Definition.FacilityHackTime
+        }
       target.HackedBy.map {
         hackInfo => target.HackedBy = hackInfo.Duration(duration.toMillis)
       }
