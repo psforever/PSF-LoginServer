@@ -145,6 +145,11 @@ object MiddlewareActor {
     packet.isInstanceOf[SquadDetailDefinitionUpdateMessage]
   }
 
+  /** `ChatMsg` [sometimes] causes the same issue as the squad packet above. Isolating for now */
+  private def chatMsgGuard(packet: PlanetSidePacket): Boolean = {
+    packet.isInstanceOf[ChatMsg]
+  }
+
   /**
     * A function for blanking tasks related to inbound packet resolution.
     * Do nothing.
@@ -253,7 +258,8 @@ class MiddlewareActor(
   private val packetsBundledByThemselves: List[PlanetSidePacket => Boolean] = List(
     MiddlewareActor.keepAliveMessageGuard,
     MiddlewareActor.characterInfoMessageGuard,
-    MiddlewareActor.squadDetailDefinitionMessageGuard
+    MiddlewareActor.squadDetailDefinitionMessageGuard,
+    MiddlewareActor.chatMsgGuard
   )
 
   private val smpHistoryLength: Int = 100

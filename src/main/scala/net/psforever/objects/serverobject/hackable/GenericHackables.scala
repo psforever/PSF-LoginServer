@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -166,14 +166,12 @@ object GenericHackables {
               friendlyBaseOpt.exists { fb =>
                 fb.Faction == hacker.Faction &&
                   !fb.CaptureTerminalIsHacked &&
-                  fb.NtuLevel > 0 &&
-                  fb.Generator.forall(_.Condition != PlanetSideGeneratorState.Destroyed)
+                  fb.NtuLevel > 0
               }
             case b =>
               b.Faction == hacker.Faction &&
                 !b.CaptureTerminalIsHacked &&
-                b.NtuLevel > 0 &&
-                b.Generator.forall(_.Condition != PlanetSideGeneratorState.Destroyed)
+                b.NtuLevel > 0
           }
         case None => 0
       }
