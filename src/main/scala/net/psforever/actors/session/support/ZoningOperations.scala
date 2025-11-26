@@ -2988,7 +2988,7 @@ class ZoningOperations(
       }
       val toSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) }
       respawnTimer = context.system.scheduler.scheduleOnce(respawnTime) {
-        if (player.isBackpack) { // if the player is dead, he is handled as dead infantry, even if he died in a vehicle
+        if (!player.isAlive && player.History.nonEmpty) { // if the player is dead, handle as dead infantry, even if dead in a vehicle
           // new player is spawning
           val newPlayer = RespawnClone(player)
           newPlayer.LogActivity(SpawningActivity(PlayerSource(newPlayer), toZoneNumber, toSpawnPoint))
