@@ -2,7 +2,9 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.{ActorRef, Cancellable}
+import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.sourcing.AmenitySource
+import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.HackState1
 import org.log4s.Logger
 
@@ -135,6 +137,20 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
         log.warn(s"unexpected format for CommonMessages.Unuse in this context")
       case _ => ;
     }
+
+  override protected def DamageAwareness(target: Target, cause: DamageResult, amount: Any) : Unit = {
+    tryAutoRepair()
+    super.DamageAwareness(target, cause, amount)
+  }
+
+  override protected def DestructionAwareness(target: Damageable.Target, cause: DamageResult) : Unit = {
+    tryAutoRepair()
+    if (term.HackedBy.nonEmpty) {
+      val zone = term.Zone
+      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ClearTemporaryHack(Service.defaultPlayerGUID, term))
+    }
+    super.DestructionAwareness(target, cause)
+  }
 
   override def PerformRepairs(target : Target, amount : Int) : Int = {
     val newHealth = super.PerformRepairs(target, amount)
@@ -355,7 +371,7 @@ object ProximityTerminalControl {
 
   /**
    * When standing in a friendly SOI whose facility is under the influence of an Ancient Weapon Module benefit,
-   * and the player is in possession of Ancient weaponnry whose magazine is not full,
+   * and the player is in possession of Ancient weaponry whose magazine is not full,
    * restore some ammunition to its magazine.
    * If no valid weapons are discovered or the discovered valid weapons have full magazines, stop using the terminal.
    * @param unit the terminal
