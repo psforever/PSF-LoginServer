@@ -9,6 +9,7 @@ import net.psforever.objects.ballistics.ProjectileQuality
 import net.psforever.objects.definition.{ProjectileDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.entity.SimpleWorldEntity
 import net.psforever.objects.equipment.{ChargeFireModeDefinition, Equipment, FireModeSwitch}
+import net.psforever.objects.geometry.d3.Point
 import net.psforever.objects.guid.{GUIDTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -704,26 +705,24 @@ class WeaponAndProjectileOperations(
             Nil
           } else if (proxy.tool_def == GlobalDefinitions.maelstrom) {
             //server-side maelstrom grenade target selection
-            val radius = proxy.profile.LashRadius * proxy.profile.LashRadius
-            val targets = Zone.findAllTargets(continent, hitPos, proxy.profile.LashRadius, { _.livePlayerList })
-              .filter { target =>
-                Vector3.DistanceSquared(target.Position, hitPos) <= radius
-              }
+            val radius = proxy.profile.LashRadius
+            val hitPosVolGeo = Point(hitPos)
+            val (chainLashTargets, outputTargets) = sessionLogic
+              .localSector
+              .livePlayerList
+              .filter { target => Zone.distanceCheck(hitPosVolGeo, target, radius * radius) }
+              .map { target =>
+                (target.GUID, (target, proxy, hitPos, target.Position))
+              }.unzip
             //chainlash is separated from the actual damage application for convenience
             continent.AvatarEvents ! AvatarServiceMessage(
               continent.id,
               AvatarAction.SendResponse(
                 PlanetSideGUID(0),
-                ChainLashMessage(
-                  hitPos,
-                  projectile.profile.ObjectId,
-                  targets.map { _.GUID }
-                )
+                ChainLashMessage(hitPos, projectile.profile.ObjectId, chainLashTargets)
               )
             )
-            targets.map { target =>
-              (target, proxy, hitPos, target.Position)
-            }
+            outputTargets
           } else {
             Nil
           }
