@@ -141,18 +141,18 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
   }
 
   def handleDirectHit(pkt: HitMessage): Unit = {
+    val projectileGuid = pkt.projectile_guid
     val list = ops.composeDirectDamageInformation(pkt)
       .collect {
         case (target, projectile, hitPos, _) =>
-          ops.checkForHitPositionDiscrepancy(projectile.GUID, hitPos, target)
+          ops.checkForHitPositionDiscrepancy(projectileGuid, hitPos, target)
           ops.resolveProjectileInteraction(target, projectile, DamageResolution.Hit, hitPos)
           projectile
       }
     //...
     if (list.isEmpty) {
-      ops.handleProxyDamage(pkt.projectile_guid, pkt.hit_info.map(_.hit_pos).getOrElse(Vector3.Zero)).foreach {
+      ops.handleProxyDamage(projectileGuid, pkt.hit_info.map(_.hit_pos).getOrElse(Vector3.Zero)).foreach {
         case (target, proxy, hitPos, _) =>
-          ops.checkForHitPositionDiscrepancy(proxy.GUID, hitPos, target)
           ops.resolveProjectileInteraction(target, proxy, DamageResolution.Hit, hitPos)
       }
     }
@@ -180,7 +180,6 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
       }
       others.foreach {
         case (target, _, hitPos, _) =>
-          ops.checkForHitPositionDiscrepancy(projectileGuid, hitPos, target)
           ops.resolveProjectileInteraction(target, projectile, resolution2, hitPos)
       }
       //...
@@ -207,7 +206,6 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
     //...
     ops.handleProxyDamage(pkt.projectile_uid, pkt.projectile_pos).foreach {
       case (target, proxy, hitPos, _) =>
-        ops.checkForHitPositionDiscrepancy(proxy.GUID, hitPos, target)
         ops.resolveProjectileInteraction(target, proxy, DamageResolution.Splash, hitPos)
     }
   }

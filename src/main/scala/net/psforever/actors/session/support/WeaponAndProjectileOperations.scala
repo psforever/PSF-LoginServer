@@ -9,7 +9,7 @@ import net.psforever.objects.ballistics.ProjectileQuality
 import net.psforever.objects.definition.{ProjectileDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.entity.SimpleWorldEntity
 import net.psforever.objects.equipment.{ChargeFireModeDefinition, Equipment, FireModeSwitch}
-import net.psforever.objects.geometry.d3.Point
+import net.psforever.objects.geometry.d3.{Point, VolumetricGeometry}
 import net.psforever.objects.guid.{GUIDTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -696,33 +696,43 @@ class WeaponAndProjectileOperations(
       case list =>
         setupDamageProxyLittleBuddy(list, hitPos)
         WeaponAndProjectileOperations.updateProjectileSidednessAfterHit(continent, projectile, hitPos)
-        val projectileSide = projectile.WhichSide
         list.flatMap { proxy =>
           if (proxy.profile.ExistsOnRemoteClients) {
             proxy.Position = hitPos
-            proxy.WhichSide = projectileSide
+            proxy.WhichSide = projectile.WhichSide
             continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
             Nil
           } else if (proxy.tool_def == GlobalDefinitions.maelstrom) {
             //server-side maelstrom grenade target selection
-            val radius = proxy.profile.LashRadius
-            val hitPosVolGeo = Point(hitPos)
-            val (chainLashTargets, outputTargets) = sessionLogic
-              .localSector
-              .livePlayerList
-              .filter { target => Zone.distanceCheck(hitPosVolGeo, target, radius * radius) }
-              .map { target =>
-                (target.GUID, (target, proxy, hitPos, target.Position))
-              }.unzip
-            //chainlash is separated from the actual damage application for convenience
+            //for convenience purposes, all resulting chain lashing is handled here and resolves in one pass
+            proxy.WhichSide = Sidedness.StrictlyBetweenSides
+            val radiusSquared = proxy.profile.LashRadius * proxy.profile.LashRadius
+            var availableTargets = sessionLogic.localSector.livePlayerList
+            var unresolvedChainLashHits: Seq[VolumetricGeometry] = Seq(Point(hitPos))
+            var uniqueChainLashTargets: Seq[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile)] = Seq()
+            while (unresolvedChainLashHits.nonEmpty) {
+              val newChainLashTargets = unresolvedChainLashHits.flatMap { availableCarrier =>
+                val proxyCopy = proxy.copy(shot_origin = availableCarrier.center.asVector3)
+                val (hits, misses) = availableTargets.partition { target => Zone.distanceCheck(availableCarrier, target, radiusSquared) }
+                availableTargets = misses
+                hits.map(t => (t, proxyCopy))
+              }
+              uniqueChainLashTargets = uniqueChainLashTargets ++ newChainLashTargets
+              unresolvedChainLashHits = newChainLashTargets.map { case (t, _) => t.Definition.Geometry(t) }
+            }
+            val (guidRefs, outputRefs) = uniqueChainLashTargets.map { case (target, proxyCopy) =>
+              (target.GUID, (target, proxyCopy, proxyCopy.shot_origin, target.Position))
+            }.unzip
+            //chain lash effect
             continent.AvatarEvents ! AvatarServiceMessage(
               continent.id,
               AvatarAction.SendResponse(
                 PlanetSideGUID(0),
-                ChainLashMessage(hitPos, projectile.profile.ObjectId, chainLashTargets)
+                ChainLashMessage(hitPos, projectile.profile.ObjectId, guidRefs.toList)
               )
             )
-            outputTargets
+            //chain lash target output
+            outputRefs.toList
           } else {
             Nil
           }
@@ -1568,7 +1578,8 @@ object WeaponAndProjectileOperations {
   def updateProjectileSidednessAfterHit(zone: Zone, projectile: Projectile, hitPosition: Vector3): Unit = {
     val origin = projectile.Position
     val distance = Vector3.Magnitude(hitPosition - origin)
-    zone.blockMap
+    zone
+      .blockMap
       .sector(hitPosition, distance)
       .environmentList
       .collect { case o: InteriorDoorPassage =>

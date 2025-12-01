@@ -68,7 +68,7 @@ add_property mini_chaingun equiptime 750
 add_property mini_chaingun holstertime 750
 add_property nano_dispenser equiptime 750
 add_property nano_dispenser holstertime 750
-add_property oicw allowed false
+add_property oicw allowed true
 add_property pellet_gun equiptime 600
 add_property pellet_gun holstertime 600
 add_property peregrine_flight requirement_award0 false
