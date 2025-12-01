@@ -16,7 +16,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     Success(
       if (obj.VehicleSeated.isEmpty) {
         PlayerData(
-          PlacementData(obj.Position, obj.Orientation, obj.Velocity),
+          PlacementData(obj.Position, obj.Orientation, None),
           MakeAppearanceData(obj),
           MakeCharacterData(obj),
           MakeInventoryData(obj),
@@ -38,7 +38,7 @@ class AvatarConverter extends ObjectCreateConverter[Player]() {
     Success(
       if (obj.VehicleSeated.isEmpty) {
         DetailedPlayerData.apply(
-          PlacementData(obj.Position, obj.Orientation, obj.Velocity),
+          PlacementData(obj.Position, obj.Orientation, None),
           MakeAppearanceData(obj),
           MakeDetailedCharacterData(obj),
           MakeDetailedInventoryData(obj),
