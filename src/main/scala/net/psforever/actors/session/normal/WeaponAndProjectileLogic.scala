@@ -8,8 +8,8 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.{BoomerDeployable, BoomerTrigger, Player, SpecialEmp, Tool, Vehicle}
 import net.psforever.objects.vital.base.{DamageResolution, DamageType}
 import net.psforever.objects.zones.{Zone, ZoneProjectile}
-import net.psforever.packet.game.{AIDamage, AvatarGrenadeStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, HitMessage, LashMessage, LongRangeProjectileInfoMessage, OrbitalStrikeWaypointMessage, ProjectileStateMessage, ReloadMessage, SplashHitMessage, TriggerEffectMessage, TriggeredEffectLocation, UplinkRequest, UplinkRequestType, UplinkResponse, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage}
-import net.psforever.types.{ValidPlanetSideGUID, Vector3}
+import net.psforever.packet.game.{AIDamage, AvatarGrenadeStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, HitMessage, LashMessage, LongRangeProjectileInfoMessage, ProjectileStateMessage, ReloadMessage, SplashHitMessage, UplinkRequest, WeaponDelayFireMessage, WeaponDryFireMessage, WeaponFireMessage, WeaponLazeTargetPositionMessage}
+import net.psforever.types.Vector3
 
 object WeaponAndProjectileLogic {
   def apply(ops: WeaponAndProjectileOperations): WeaponAndProjectileLogic = {
@@ -153,6 +153,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
       ops.handleProxyDamage(pkt.projectile_guid, pkt.hit_info.map(_.hit_pos).getOrElse(Vector3.Zero)).foreach {
         case (target, proxy, hitPos, _) =>
           ops.checkForHitPositionDiscrepancy(proxy.GUID, hitPos, target)
+          ops.resolveProjectileInteraction(target, proxy, DamageResolution.Hit, hitPos)
       }
     }
   }
@@ -207,6 +208,7 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
     ops.handleProxyDamage(pkt.projectile_uid, pkt.projectile_pos).foreach {
       case (target, proxy, hitPos, _) =>
         ops.checkForHitPositionDiscrepancy(proxy.GUID, hitPos, target)
+        ops.resolveProjectileInteraction(target, proxy, DamageResolution.Splash, hitPos)
     }
   }
 

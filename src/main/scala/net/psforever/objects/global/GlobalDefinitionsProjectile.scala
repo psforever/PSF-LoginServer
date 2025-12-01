@@ -12,7 +12,7 @@ import net.psforever.objects.definition.converter.{
 import net.psforever.objects.equipment.{ArmorSiphonRepairHost, EffectTarget, TargetValidation}
 import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.vital.base.DamageType
-import net.psforever.objects.vital.damage.{RadialDegrade, StandardDamageProfile}
+import net.psforever.objects.vital.damage.{RadialDegrade, SameHit, StandardDamageProfile}
 import net.psforever.objects.vital.etc.{
   ArmorSiphonMaxDistanceCutoff,
   ExplosionDamagesOnlyAbove,
@@ -1054,7 +1054,7 @@ object GlobalDefinitionsProjectile {
     maelstrom_grenade_projectile.Lifespan = 2f
     maelstrom_grenade_projectile.DamageProxy = 464 //maelstrom_grenade_damager
     ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile)
-    maelstrom_grenade_projectile.Modifiers = RadialDegrade
+    maelstrom_grenade_projectile.Modifiers = SameHit
 
     maelstrom_grenade_projectile_contact.Name = "maelstrom_grenade_projectile_contact"
     // TODO for later, maybe : set_resource_parent maelstrom_grenade_projectile_contact game_objects maelstrom_grenade_projectile
@@ -1069,7 +1069,7 @@ object GlobalDefinitionsProjectile {
     maelstrom_grenade_projectile_contact.Lifespan = 15f
     maelstrom_grenade_projectile_contact.DamageProxy = 464 //maelstrom_grenade_damager
     ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile_contact)
-    maelstrom_grenade_projectile_contact.Modifiers = RadialDegrade
+    maelstrom_grenade_projectile_contact.Modifiers = SameHit
 
     maelstrom_stream_projectile.Name = "maelstrom_stream_projectile"
     maelstrom_stream_projectile.Damage0 = 15

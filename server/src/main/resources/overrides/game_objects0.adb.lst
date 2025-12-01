@@ -55,7 +55,7 @@ add_property lasher holstertime 750
 add_property lasher_projectile_ap lasher_projectile_ap false
 add_property lasher_projectile_ap lasher_projectile true
 add_property lightgunship maxhealth 855
-add_property maelstrom allowed false
+add_property maelstrom allowed true
 add_property maelstrom equiptime 1000
 add_property maelstrom holstertime 1000
 add_property magcutter equiptime 250

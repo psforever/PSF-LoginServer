@@ -132,7 +132,10 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
       }
       //...
       if (list.isEmpty) {
-        ops.handleProxyDamage(pkt.projectile_guid, pkt.hit_info.map(_.hit_pos).getOrElse(Vector3.Zero))
+        ops.handleProxyDamage(pkt.projectile_guid, pkt.hit_info.map(_.hit_pos).getOrElse(Vector3.Zero)).foreach {
+          case (target, proxy, hitPos, _) =>
+            ops.resolveProjectileInteraction(target, proxy, DamageResolution.Hit, hitPos)
+        }
       }
     }
   }
@@ -182,7 +185,10 @@ class WeaponAndProjectileLogic(val ops: WeaponAndProjectileOperations, implicit 
         }
       }
       //...
-      ops.handleProxyDamage(pkt.projectile_uid, pkt.projectile_pos)
+      ops.handleProxyDamage(pkt.projectile_uid, pkt.projectile_pos).foreach {
+        case (target, proxy, hitPos, _) =>
+          ops.resolveProjectileInteraction(target, proxy, DamageResolution.Splash, hitPos)
+      }
     }
   }
 
