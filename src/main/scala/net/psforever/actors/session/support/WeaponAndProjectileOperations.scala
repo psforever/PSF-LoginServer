@@ -663,14 +663,9 @@ class WeaponAndProjectileOperations(
                          projectileGuid: PlanetSideGUID,
                          explosionPosition: Vector3
                        ):  List[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile, Vector3, Vector3)] = {
-    val proxyList = FindProjectileEntry(projectileGuid)
+    FindProjectileEntry(projectileGuid)
       .map(projectile => resolveDamageProxy(projectile, projectile.GUID, explosionPosition))
       .getOrElse(Nil)
-    proxyList.collectFirst {
-      case (_, proxy, _, _) if proxy.profile == GlobalDefinitions.oicw_little_buddy =>
-        performLittleBuddyExplosion(proxyList.map(_._2))
-    }
-    proxyList
   }
 
   /**
@@ -697,8 +692,12 @@ class WeaponAndProjectileOperations(
         setupDamageProxyLittleBuddy(list, hitPos)
         WeaponAndProjectileOperations.updateProjectileSidednessAfterHit(continent, projectile, hitPos)
         list.flatMap { proxy =>
-          if (proxy.profile.ExistsOnRemoteClients) {
-            proxy.Position = hitPos
+          if (proxy.profile == GlobalDefinitions.oicw_little_buddy) {
+            proxy.WhichSide = projectile.WhichSide
+            continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
+            queueLittleBuddyExplosion(proxy)
+            Nil
+          } else if (proxy.profile.ExistsOnRemoteClients) {
             proxy.WhichSide = projectile.WhichSide
             continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
             Nil
@@ -793,28 +792,12 @@ class WeaponAndProjectileOperations(
     }
   }
 
-  private def performLittleBuddyExplosion(listOfProjectiles: List[Projectile]): Boolean = {
-    val listOfLittleBuddies: List[Projectile] = listOfProjectiles.filter { _.tool_def == GlobalDefinitions.oicw }
-    val size: Int = listOfLittleBuddies.size
-    if (size > 0) {
-      val desiredDownwardsProjectiles: Int = 2
-      val firstHalf: Int = math.min(size, desiredDownwardsProjectiles) //number that fly straight down
+  private def queueLittleBuddyExplosion(proxy: Projectile): Boolean = {
+    if (proxy.profile == GlobalDefinitions.oicw_little_buddy) {
       val speed: Float = 144f //speed (packet discovered)
       val dist: Float = 25 //distance (client defined)
-      //downwards projectiles
-      var i: Int = 0
-      listOfLittleBuddies.take(firstHalf).foreach { proxy =>
-        val dir = proxy.Velocity.map(_ / speed).getOrElse(Vector3.Zero)
-        queueLittleBuddyDamage(proxy, dir, dist)
-        i += 1
-      }
-      //flared out projectiles
-      i = 0
-      listOfLittleBuddies.drop(firstHalf).foreach { proxy =>
-        val dir = proxy.Velocity.map(_ / speed).getOrElse(Vector3.Zero)
-        queueLittleBuddyDamage(proxy, dir, dist)
-        i += 1
-      }
+      val dir = proxy.Velocity.map(_ / speed).getOrElse(Vector3.Zero)
+      queueLittleBuddyDamage(proxy, dir, dist)
       true
     } else {
       false
@@ -1668,13 +1651,15 @@ object WeaponAndProjectileOperations {
    * @param source a game object that represents the source of the explosion
    * @param owner who or what to accredit damage from the explosion to;
    *              clarifies a normal `SourceEntry(source)` accreditation
+   * @return a list of affected entities
+
    */
   def detonateLittleBuddy(
                            zone: Zone,
                            source: PlanetSideGameObject with FactionAffinity with Vitality,
                            proxy: Projectile,
                            owner: SourceEntry
-                         )(): Unit = {
+                         )(): List[PlanetSideServerObject] = {
     Zone.serverSideDamage(zone, source, littleBuddyExplosionDamage(owner, proxy.id, source.Position))
   }
 
