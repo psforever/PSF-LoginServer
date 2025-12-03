@@ -9,6 +9,7 @@ import net.psforever.objects.ballistics.ProjectileQuality
 import net.psforever.objects.definition.{ProjectileDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.entity.SimpleWorldEntity
 import net.psforever.objects.equipment.{ChargeFireModeDefinition, Equipment, FireModeSwitch}
+import net.psforever.objects.geometry.d3.{Point, VolumetricGeometry}
 import net.psforever.objects.guid.{GUIDTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -662,14 +663,9 @@ class WeaponAndProjectileOperations(
                          projectileGuid: PlanetSideGUID,
                          explosionPosition: Vector3
                        ):  List[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile, Vector3, Vector3)] = {
-    val proxyList = FindProjectileEntry(projectileGuid)
+    FindProjectileEntry(projectileGuid)
       .map(projectile => resolveDamageProxy(projectile, projectile.GUID, explosionPosition))
       .getOrElse(Nil)
-    proxyList.collectFirst {
-      case (_, proxy, _, _) if proxy.profile == GlobalDefinitions.oicw_little_buddy =>
-        performLittleBuddyExplosion(proxyList.map(_._2))
-    }
-    proxyList
   }
 
   /**
@@ -695,35 +691,47 @@ class WeaponAndProjectileOperations(
       case list =>
         setupDamageProxyLittleBuddy(list, hitPos)
         WeaponAndProjectileOperations.updateProjectileSidednessAfterHit(continent, projectile, hitPos)
-        val projectileSide = projectile.WhichSide
         list.flatMap { proxy =>
-          if (proxy.profile.ExistsOnRemoteClients) {
-            proxy.Position = hitPos
-            proxy.WhichSide = projectileSide
+          if (proxy.profile == GlobalDefinitions.oicw_little_buddy) {
+            proxy.WhichSide = projectile.WhichSide
+            continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
+            queueLittleBuddyExplosion(proxy)
+            Nil
+          } else if (proxy.profile.ExistsOnRemoteClients) {
+            proxy.WhichSide = projectile.WhichSide
             continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
             Nil
           } else if (proxy.tool_def == GlobalDefinitions.maelstrom) {
             //server-side maelstrom grenade target selection
-            val radius = proxy.profile.LashRadius * proxy.profile.LashRadius
-            val targets = Zone.findAllTargets(continent, hitPos, proxy.profile.LashRadius, { _.livePlayerList })
-              .filter { target =>
-                Vector3.DistanceSquared(target.Position, hitPos) <= radius
+            //for convenience purposes, all resulting chain lashing is handled here and resolves in one pass
+            proxy.WhichSide = Sidedness.StrictlyBetweenSides
+            val radiusSquared = proxy.profile.LashRadius * proxy.profile.LashRadius
+            var availableTargets = sessionLogic.localSector.livePlayerList
+            var unresolvedChainLashHits: Seq[VolumetricGeometry] = Seq(Point(hitPos))
+            var uniqueChainLashTargets: Seq[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile)] = Seq()
+            while (unresolvedChainLashHits.nonEmpty) {
+              val newChainLashTargets = unresolvedChainLashHits.flatMap { availableCarrier =>
+                val proxyCopy = proxy.copy(shot_origin = availableCarrier.center.asVector3)
+                val (hits, misses) = availableTargets.partition { target => Zone.distanceCheck(availableCarrier, target, radiusSquared) }
+                availableTargets = misses
+                hits.map(t => (t, proxyCopy))
               }
-            //chainlash is separated from the actual damage application for convenience
+              uniqueChainLashTargets = uniqueChainLashTargets ++ newChainLashTargets
+              unresolvedChainLashHits = newChainLashTargets.map { case (t, _) => t.Definition.Geometry(t) }
+            }
+            val (guidRefs, outputRefs) = uniqueChainLashTargets.map { case (target, proxyCopy) =>
+              (target.GUID, (target, proxyCopy, proxyCopy.shot_origin, target.Position))
+            }.unzip
+            //chain lash effect
             continent.AvatarEvents ! AvatarServiceMessage(
               continent.id,
               AvatarAction.SendResponse(
                 PlanetSideGUID(0),
-                ChainLashMessage(
-                  hitPos,
-                  projectile.profile.ObjectId,
-                  targets.map { _.GUID }
-                )
+                ChainLashMessage(hitPos, projectile.profile.ObjectId, guidRefs.toList)
               )
             )
-            targets.map { target =>
-              (target, proxy, hitPos, target.Position)
-            }
+            //chain lash target output
+            outputRefs.toList
           } else {
             Nil
           }
@@ -784,28 +792,12 @@ class WeaponAndProjectileOperations(
     }
   }
 
-  private def performLittleBuddyExplosion(listOfProjectiles: List[Projectile]): Boolean = {
-    val listOfLittleBuddies: List[Projectile] = listOfProjectiles.filter { _.tool_def == GlobalDefinitions.oicw }
-    val size: Int = listOfLittleBuddies.size
-    if (size > 0) {
-      val desiredDownwardsProjectiles: Int = 2
-      val firstHalf: Int = math.min(size, desiredDownwardsProjectiles) //number that fly straight down
+  private def queueLittleBuddyExplosion(proxy: Projectile): Boolean = {
+    if (proxy.profile == GlobalDefinitions.oicw_little_buddy) {
       val speed: Float = 144f //speed (packet discovered)
       val dist: Float = 25 //distance (client defined)
-      //downwards projectiles
-      var i: Int = 0
-      listOfLittleBuddies.take(firstHalf).foreach { proxy =>
-        val dir = proxy.Velocity.map(_ / speed).getOrElse(Vector3.Zero)
-        queueLittleBuddyDamage(proxy, dir, dist)
-        i += 1
-      }
-      //flared out projectiles
-      i = 0
-      listOfLittleBuddies.drop(firstHalf).foreach { proxy =>
-        val dir = proxy.Velocity.map(_ / speed).getOrElse(Vector3.Zero)
-        queueLittleBuddyDamage(proxy, dir, dist)
-        i += 1
-      }
+      val dir = proxy.Velocity.map(_ / speed).getOrElse(Vector3.Zero)
+      queueLittleBuddyDamage(proxy, dir, dist)
       true
     } else {
       false
@@ -1569,7 +1561,8 @@ object WeaponAndProjectileOperations {
   def updateProjectileSidednessAfterHit(zone: Zone, projectile: Projectile, hitPosition: Vector3): Unit = {
     val origin = projectile.Position
     val distance = Vector3.Magnitude(hitPosition - origin)
-    zone.blockMap
+    zone
+      .blockMap
       .sector(hitPosition, distance)
       .environmentList
       .collect { case o: InteriorDoorPassage =>
@@ -1658,13 +1651,15 @@ object WeaponAndProjectileOperations {
    * @param source a game object that represents the source of the explosion
    * @param owner who or what to accredit damage from the explosion to;
    *              clarifies a normal `SourceEntry(source)` accreditation
+   * @return a list of affected entities
+
    */
   def detonateLittleBuddy(
                            zone: Zone,
                            source: PlanetSideGameObject with FactionAffinity with Vitality,
                            proxy: Projectile,
                            owner: SourceEntry
-                         )(): Unit = {
+                         )(): List[PlanetSideServerObject] = {
     Zone.serverSideDamage(zone, source, littleBuddyExplosionDamage(owner, proxy.id, source.Position))
   }
 
