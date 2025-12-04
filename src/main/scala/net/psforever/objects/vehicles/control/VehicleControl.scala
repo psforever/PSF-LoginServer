@@ -126,58 +126,31 @@ class VehicleControl(vehicle: Vehicle)
         mountBehavior.apply(msg)
         mountCleanup(mount_point, player)
 
-        // Issue 1133. Todo: There may be a better way to address the issue?
-      case Mountable.TryDismount(user, seat_num, bailType) if GlobalDefinitions.isFlightVehicle(vehicle.Definition) &&
-           (vehicle.History.find { entry => entry.isInstanceOf[SpawningActivity] } match {
-        case Some(entry) if System.currentTimeMillis() - entry.time < 3000L => true
-        case _ => false
-        }) =>
-        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
-
-      case Mountable.TryDismount(user, seat_num, bailType) if !GlobalDefinitions.isFlightVehicle(vehicle.Definition) &&
-           (vehicle.History.find { entry => entry.isInstanceOf[SpawningActivity] } match {
-          case Some(entry) if System.currentTimeMillis() - entry.time < 8500L => true
-          case _ => false
-        }) =>
-        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
-
-      case Mountable.TryDismount(user, seat_num, bailType)
-        if vehicle.Health <= (vehicle.Definition.MaxHealth * .1).round && bailType == BailType.Bailed
-          && GlobalDefinitions.isFlightVehicle(vehicle.Definition)
-          && (seat_num == 0 || vehicle.SeatPermissionGroup(seat_num).getOrElse(0) == AccessPermissionGroup.Gunner)
-          && (vehicle.History.findLast { entry => entry.isInstanceOf[DamagingActivity] } match {
-          case Some(entry) if System.currentTimeMillis() - entry.time < 4000L => true
-          case _ if Random.nextInt(10) == 1 => false
-          case _ => true }) =>
-        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
-
-      case Mountable.TryDismount(user, seat_num, bailType)
-        if vehicle.Health <= (vehicle.Definition.MaxHealth * .2).round && bailType == BailType.Bailed
-          && GlobalDefinitions.isFlightVehicle(vehicle.Definition)
-          && (seat_num == 0 || vehicle.SeatPermissionGroup(seat_num).getOrElse(0) == AccessPermissionGroup.Gunner)
-          && (vehicle.History.findLast { entry => entry.isInstanceOf[DamagingActivity] } match {
-          case Some(entry) if System.currentTimeMillis() - entry.time < 3500L => true
-          case _ if Random.nextInt(5) == 1 => false
-          case _ => true }) =>
-        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
-
-      case Mountable.TryDismount(user, seat_num, bailType)
-        if vehicle.Health <= (vehicle.Definition.MaxHealth * .35).round && bailType == BailType.Bailed
-          && GlobalDefinitions.isFlightVehicle(vehicle.Definition)
-          && (seat_num == 0 || vehicle.SeatPermissionGroup(seat_num).getOrElse(0) == AccessPermissionGroup.Gunner)
-          && (vehicle.History.findLast { entry => entry.isInstanceOf[DamagingActivity] } match {
-          case Some(entry) if System.currentTimeMillis() - entry.time < 3000L => true
-          case _ if Random.nextInt(4) == 1 => false
-          case _ => true }) =>
-        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
-
       case Mountable.TryDismount(user, seat_num, bailType)
         if vehicle.DeploymentState == DriveState.AutoPilot =>
         sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
 
+        // Issue 1133. Todo: There may be a better way to address the issue?
       case Mountable.TryDismount(user, seat_num, bailType)
-        if vehicle.isMoving(test = 1f) && bailType == BailType.Normal =>
+        if {
+          val curr = System.currentTimeMillis()
+          vehicle.History.find { entry => entry.isInstanceOf[SpawningActivity] } match {
+            case Some(entry) if curr - entry.time < 3000L => GlobalDefinitions.isFlightVehicle(vehicle.Definition)
+            case Some(entry) if curr - entry.time < 8500L => !GlobalDefinitions.isFlightVehicle(vehicle.Definition)
+            case _ => false
+          }
+        } =>
         sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
+
+      case msg @ Mountable.TryDismount(user, seat_num, BailType.Bailed)
+        if GlobalDefinitions.isFlightVehicle(vehicle.Definition) &&
+          (seat_num == 0 || vehicle.SeatPermissionGroup(seat_num).contains(AccessPermissionGroup.Gunner)) =>
+        dismountBailFromFlightVehicle(msg)
+        dismountCleanup(seat_num, user)
+
+      case Mountable.TryDismount(user, seat_num, BailType.Normal) //todo this may not be necessary; see MountableBehavior.dismountTest
+        if vehicle.isMoving(test = 1f) =>
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, BailType.Normal))
 
       case msg @ Mountable.TryDismount(player, seat_num, _) =>
         dismountBehavior.apply(msg)
@@ -367,6 +340,27 @@ class VehicleControl(vehicle: Vehicle)
         }
         updateZoneInteractionProgressUI(user)
       case None => ;
+    }
+  }
+
+  def dismountBailFromFlightVehicle(msg: Mountable.TryDismount): Unit = {
+    val Mountable.TryDismount(user, seat_num, bailType) = msg
+    val health = vehicle.Health
+    val maxhealth = vehicle.Definition.MaxHealth
+    val lastdamage = vehicle.History.findLast { entry => entry.isInstanceOf[DamagingActivity] }
+    if (List((0.1, 4000L, 10), (0.2, 3500L, 5), (0.35, 3000L, 4)).exists {
+      case (percent, time, randVal) =>
+        health <= (maxhealth * percent).round &&
+          (lastdamage match {
+            case Some(entry) if System.currentTimeMillis() - entry.time < time => true
+            case _ if Random.nextInt(randVal) == 1 => false
+            case _ => true
+          })
+    }
+    ) {
+      sender() ! Mountable.MountMessages(user, Mountable.CanNotDismount(vehicle, seat_num, bailType))
+    } else {
+      dismountBehavior.apply(msg)
     }
   }
 
