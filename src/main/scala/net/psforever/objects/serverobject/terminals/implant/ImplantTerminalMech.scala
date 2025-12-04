@@ -2,9 +2,11 @@
 package net.psforever.objects.serverobject.terminals.implant
 
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.serverobject.mount.{Mountable, Seat}
+import net.psforever.objects.serverobject.mount.{InteractWithRadiationCloudsSeatedInEntity, Mountable, Seat}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAware
+import net.psforever.objects.vital.resistance.StandardResistanceProfile
+import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.types.Vector3
 
@@ -17,7 +19,10 @@ class ImplantTerminalMech(private val idef: ImplantTerminalMechDefinition)
     extends Amenity
     with Mountable
     with Hackable
+    with StandardResistanceProfile
+    with InteractsWithZone
     with CaptureTerminalAware {
+  interaction(new InteractWithRadiationCloudsSeatedInEntity(obj = this, range = 50f))
   seats = Map(0 -> new Seat(idef.Seats.head._2))
 
   HackSound = TriggeredSound.HackTerminal
