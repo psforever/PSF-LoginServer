@@ -5,7 +5,7 @@ import net.psforever.objects.Vehicle
 import net.psforever.objects.avatar.interaction.WithEntrance
 import net.psforever.objects.serverobject.doors.InteriorDoorPassage
 import net.psforever.objects.serverobject.environment.PieceOfEnvironment
-import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 
 class WithEntranceInVehicle
   extends WithEntrance() {

@@ -20,7 +20,8 @@ import net.psforever.objects.vital.damage.DamageProfile
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resolution.DamageResistanceModel
 import net.psforever.objects.zones.blockmap.BlockMapEntity
-import net.psforever.objects.zones.{InteractsWithZone, ZoneAware, Zoning}
+import net.psforever.objects.zones.interaction.InteractsWithZone
+import net.psforever.objects.zones.{ZoneAware, Zoning}
 import net.psforever.types._
 
 import scala.annotation.tailrec

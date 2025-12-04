@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.environment.interaction.InteractWithEnvironment
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, EnvironmentTrait, PieceOfEnvironment}
-import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.types.{OxygenState, PlanetSideGUID}
 
 trait Watery {

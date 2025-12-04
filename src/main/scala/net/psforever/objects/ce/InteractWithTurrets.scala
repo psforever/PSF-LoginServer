@@ -5,8 +5,8 @@ import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.turret.auto.{AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.zones.blockmap.SectorPopulation
-import net.psforever.objects.zones.{InteractsWithZone, ZoneInteraction, ZoneInteractionType}
 import net.psforever.objects.sourcing.SourceUniqueness
+import net.psforever.objects.zones.interaction.{InteractsWithZone, ZoneInteraction, ZoneInteractionType}
 import net.psforever.types.Vector3
 
 case object TurretInteraction extends ZoneInteractionType

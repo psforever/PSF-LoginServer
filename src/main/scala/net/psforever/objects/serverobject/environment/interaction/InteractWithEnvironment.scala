@@ -5,6 +5,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.environment.{EnvironmentTrait, PieceOfEnvironment}
 import net.psforever.objects.zones._
 import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorGroup, SectorPopulation}
+import net.psforever.objects.zones.interaction.{InteractsWithZone, ZoneInteraction, ZoneInteractionType}
 import net.psforever.types.Vector3
 
 import scala.collection.mutable

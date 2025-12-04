@@ -8,11 +8,12 @@ import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.resolution.{DamageAndResistance, DamageResistanceModel}
 import net.psforever.objects.vital.{NoResistanceSelection, SimpleResolutions}
-import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 
 /**
   * A wrapper for a "damage source" in damage calculations
   * that parameterizes information necessary to explain the environment being antagonistic.
+ *
   * @see `DamageCalculations`
   * @param body a representative of an element of the environment
   * @param against for the purposes of damage, what kind of target is being acted upon

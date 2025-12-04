@@ -4,20 +4,14 @@ package net.psforever.objects.global
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.ballistics.{AggravatedDamage, AggravatedInfo, AggravatedTiming, ChargeDamage}
 import net.psforever.objects.definition.ProjectileDefinition
-import net.psforever.objects.definition.converter.{
-  LittleBuddyProjectileConverter,
-  ProjectileConverter,
-  RadiationCloudConverter
-}
+import net.psforever.objects.definition.converter.{LittleBuddyProjectileConverter, ProjectileConverter, RadiationCloudConverter}
 import net.psforever.objects.equipment.{ArmorSiphonRepairHost, EffectTarget, TargetValidation}
 import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage.{RadialDegrade, SameHit, StandardDamageProfile}
 import net.psforever.objects.vital.etc.{
   ArmorSiphonMaxDistanceCutoff,
-  ExplosionDamagesOnlyAbove,
-  InfantryAggravatedRadiation,
-  InfantryAggravatedRadiationBurn
+  ExplosionDamagesOnlyAbove
 }
 import net.psforever.objects.vital.projectile._
 
@@ -1529,7 +1523,7 @@ object GlobalDefinitionsProjectile {
     ProjectileDefinition.CalculateDerivedFields(quasar_projectile)
 
     radiator_cloud.Name = "radiator_cloud"
-    radiator_cloud.Damage0 = 1 //2
+    radiator_cloud.Damage0 = 2
     radiator_cloud.DamageAtEdge = 1.0f
     radiator_cloud.DamageRadius = 5f
     radiator_cloud.DamageToHealthOnly = true
@@ -1539,7 +1533,7 @@ object GlobalDefinitionsProjectile {
     //custom aggravated information
     radiator_cloud.ProjectileDamageTypeSecondary = DamageType.Aggravated
     radiator_cloud.Aggravated = AggravatedDamage(
-      AggravatedInfo(DamageType.Splash, 1f, 80),
+      AggravatedInfo(DamageType.Splash, 0f, 80),
       Aura.None,
       AggravatedTiming(250, 2),
       0f,
@@ -1552,12 +1546,7 @@ object GlobalDefinitionsProjectile {
     radiator_cloud.ExistsOnRemoteClients = true
     radiator_cloud.Packet = radCloudConverter
     //radiator_cloud.Geometry = GeometryForm.representProjectileBySphere()
-    radiator_cloud.Modifiers = List(
-      MaxDistanceCutoff,
-      InfantryAggravatedRadiation,
-      InfantryAggravatedRadiationBurn,
-      ShieldAgainstRadiation
-    )
+    radiator_cloud.Modifiers = MaxDistanceCutoff
 
     radiator_grenade_projectile.Name = "radiator_grenade_projectile" // Todo : Radiator damages ?
     radiator_grenade_projectile.GrenadeProjectile = true             //not really, but technically yes
@@ -2037,12 +2026,7 @@ object GlobalDefinitionsProjectile {
     aphelion_plasma_cloud.ExistsOnRemoteClients = true
     aphelion_plasma_cloud.Packet = radCloudConverter
     //aphelion_plasma_cloud.Geometry = GeometryForm.representProjectileBySphere()
-    aphelion_plasma_cloud.Modifiers = List( //TODO placeholder values
-      MaxDistanceCutoff,
-      InfantryAggravatedRadiation,
-      InfantryAggravatedRadiationBurn,
-      ShieldAgainstRadiation
-    )
+    aphelion_plasma_cloud.Modifiers = MaxDistanceCutoff
 
     aphelion_plasma_rocket_projectile.Name = "aphelion_plasma_rocket_projectile"
     //has property aggravated_damage_max_factor, but it's the aphelion_plasma_cloud that performs aggravated damage
@@ -2240,10 +2224,7 @@ object GlobalDefinitionsProjectile {
     peregrine_particle_cannon_radiation_cloud.ExistsOnRemoteClients = true
     peregrine_particle_cannon_radiation_cloud.Packet = radCloudConverter
     //peregrine_particle_cannon_radiation_cloud.Geometry = GeometryForm.representProjectileBySphere()
-    peregrine_particle_cannon_radiation_cloud.Modifiers = List(
-      MaxDistanceCutoff,
-      ShieldAgainstRadiation
-    )
+    peregrine_particle_cannon_radiation_cloud.Modifiers = MaxDistanceCutoff
 
     peregrine_rocket_pod_projectile.Name = "peregrine_rocket_pod_projectile"
     peregrine_rocket_pod_projectile.Damage0 = 30
