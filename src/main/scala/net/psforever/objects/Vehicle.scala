@@ -20,8 +20,8 @@ import net.psforever.objects.vehicles.interaction.{TriggerOnVehicleRule, WithLav
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.resolution.DamageResistanceModel
-import net.psforever.objects.zones.InteractsWithZone
 import net.psforever.objects.zones.blockmap.BlockMapEntity
+import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
