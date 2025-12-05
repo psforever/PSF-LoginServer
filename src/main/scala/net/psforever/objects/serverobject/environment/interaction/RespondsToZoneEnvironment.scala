@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.environment.interaction
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.objects.serverobject.environment.EnvironmentTrait
-import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 
 import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration

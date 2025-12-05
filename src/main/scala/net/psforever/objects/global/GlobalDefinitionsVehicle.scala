@@ -1634,6 +1634,7 @@ object GlobalDefinitionsVehicle {
     droppod.Packet = new DroppodConverter()
     droppod.DeconstructionTime = Some(5 seconds)
     droppod.DestroyedModel = None //the adb calls out a droppod; the cyclic nature of this confounds me
+    droppod.RadiationShielding = 1.0f
     droppod.DamageUsing = DamageCalculations.AgainstAircraft
     droppod.DrownAtMaxDepth = false
     droppod.mass = 2500f
@@ -1667,6 +1668,7 @@ object GlobalDefinitionsVehicle {
     orbital_shuttle.Packet = new OrbitalShuttleConverter
     orbital_shuttle.DeconstructionTime = None
     orbital_shuttle.DestroyedModel = None
+    orbital_shuttle.RadiationShielding = 1.0f
     orbital_shuttle.DamageUsing = DamageCalculations.AgainstNothing
     orbital_shuttle.DrownAtMaxDepth = false
     orbital_shuttle.mass = 25000f

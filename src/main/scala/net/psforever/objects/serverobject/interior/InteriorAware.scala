@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.interior
 
 import net.psforever.objects.avatar.interaction.WithEntrance
 import net.psforever.objects.serverobject.environment.interaction.InteractWithEnvironment
-import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 
 import scala.annotation.unused
 
