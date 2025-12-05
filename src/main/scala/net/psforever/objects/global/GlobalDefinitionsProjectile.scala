@@ -1047,6 +1047,9 @@ object GlobalDefinitionsProjectile {
     maelstrom_grenade_projectile.InitialVelocity = 30
     maelstrom_grenade_projectile.Lifespan = 2f
     maelstrom_grenade_projectile.DamageProxy = 464 //maelstrom_grenade_damager
+    maelstrom_grenade_projectile.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.All, EffectTarget.Validation.Valid)
+    )
     ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile)
     maelstrom_grenade_projectile.Modifiers = SameHit
 
@@ -1062,6 +1065,9 @@ object GlobalDefinitionsProjectile {
     maelstrom_grenade_projectile_contact.InitialVelocity = 30
     maelstrom_grenade_projectile_contact.Lifespan = 15f
     maelstrom_grenade_projectile_contact.DamageProxy = 464 //maelstrom_grenade_damager
+    maelstrom_grenade_projectile_contact.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.All, EffectTarget.Validation.Valid)
+    )
     ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile_contact)
     maelstrom_grenade_projectile_contact.Modifiers = SameHit
 
@@ -1554,6 +1560,9 @@ object GlobalDefinitionsProjectile {
     radiator_grenade_projectile.InitialVelocity = 30
     radiator_grenade_projectile.Lifespan = 3f
     radiator_grenade_projectile.DamageProxy = 717 //radiator_cloud
+    radiator_grenade_projectile.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player)
+    )
     ProjectileDefinition.CalculateDerivedFields(radiator_grenade_projectile)
 
     radiator_sticky_projectile.Name = "radiator_sticky_projectile"
@@ -1563,6 +1572,9 @@ object GlobalDefinitionsProjectile {
     radiator_sticky_projectile.InitialVelocity = 30
     radiator_sticky_projectile.Lifespan = 4f
     radiator_sticky_projectile.DamageProxy = 717 //radiator_cloud
+    radiator_sticky_projectile.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.All, EffectTarget.Validation.Valid)
+    )
     ProjectileDefinition.CalculateDerivedFields(radiator_sticky_projectile)
 
     reaver_rocket_projectile.Name = "reaver_rocket_projectile"
@@ -2041,6 +2053,9 @@ object GlobalDefinitionsProjectile {
     aphelion_plasma_rocket_projectile.DamageRadius = 3f
     aphelion_plasma_rocket_projectile.ProjectileDamageType = DamageType.Splash
     //aphelion_plasma_rocket_projectile.DamageProxy = 96 //aphelion_plama_cloud
+    aphelion_plasma_rocket_projectile.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.All, EffectTarget.Validation.Valid)
+    )
     aphelion_plasma_rocket_projectile.InitialVelocity = 75
     aphelion_plasma_rocket_projectile.Lifespan = 5f
     ProjectileDefinition.CalculateDerivedFields(aphelion_plasma_rocket_projectile)
@@ -2206,6 +2221,9 @@ object GlobalDefinitionsProjectile {
     peregrine_particle_cannon_projectile.DamageRadius = 3f
     peregrine_particle_cannon_projectile.ProjectileDamageType = DamageType.Splash
     //peregrine_particle_cannon_projectile.DamageProxy = 655 //peregrine_particle_cannon_radiation_cloud
+    peregrine_particle_cannon_projectile.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.All, EffectTarget.Validation.Valid)
+    )
     peregrine_particle_cannon_projectile.InitialVelocity = 500
     peregrine_particle_cannon_projectile.Lifespan = .6f
     ProjectileDefinition.CalculateDerivedFields(peregrine_particle_cannon_projectile)

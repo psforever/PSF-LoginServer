@@ -668,6 +668,18 @@ class WeaponAndProjectileOperations(
       .getOrElse(Nil)
   }
 
+  private def handleProxyDamage(
+                                 projectile: Projectile,
+                                 explosionPosition: Vector3
+                               ):  List[(PlanetSideGameObject with FactionAffinity with Vitality, Projectile, Vector3, Vector3)] = {
+    val proxyList = resolveDamageProxy(projectile, projectile.GUID, explosionPosition)
+    proxyList.collectFirst {
+      case (_, proxy, _, _) if proxy.profile == GlobalDefinitions.oicw_little_buddy =>
+        queueLittleBuddyExplosion(proxy)
+    }
+    proxyList
+  }
+
   /**
    * Take a projectile that was introduced into the game world and
    * determine if it generates a secondary damage projectile or
@@ -828,6 +840,9 @@ class WeaponAndProjectileOperations(
     if (projectile.isMiss) {
       None
     } else {
+      if (projectile.profile.DamageProxyOnDirectHit.exists(_.test(target))) {
+        handleProxyDamage(projectile, hitPosition)
+      }
       val outProjectile = ProjectileQuality.modifiers(projectile, resolution, target, hitPosition, Some(player))
       if (projectile.tool_def.Size == EquipmentSize.Melee && outProjectile.quality == ProjectileQuality.Modified(25)) {
         avatarActor ! AvatarActor.ConsumeStamina(10)
