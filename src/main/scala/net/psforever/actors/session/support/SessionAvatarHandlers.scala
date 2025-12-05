@@ -97,7 +97,7 @@ class SessionAvatarHandlers(
           } else {
             cappedModifiedExp
           }
-          exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, finalExp, expType="cep")
+          exp.ToDatabase.reportFacilityCapture(charId, zoneNumber, buildingId, finalExp, expType="cep")
           avatarActor ! AvatarActor.AwardCep(finalExp)
           Some(finalExp)
 
@@ -116,9 +116,9 @@ class SessionAvatarHandlers(
           }
           val modifiedExp = (cep * individualContribution).toLong
           val finalBep = math.min(modifiedExp, 2250L) // 2250 max bep for capture
-          exp.ToDatabase.reportFacilityCapture(charId, buildingId, zoneNumber, finalBep, expType="bep")
-          avatarActor ! AvatarActor.AwardFacilityCaptureBep(modifiedExp)
-          Some(modifiedExp)
+          exp.ToDatabase.reportFacilityCapture(charId, zoneNumber, buildingId, finalBep, expType="bep")
+          avatarActor ! AvatarActor.AwardFacilityCaptureBep(finalBep)
+          Some(finalBep)
       }
   }
 

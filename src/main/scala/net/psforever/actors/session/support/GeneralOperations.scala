@@ -1441,9 +1441,12 @@ class GeneralOperations(
   }
 
   def handleUseCaptureFlag(obj: CaptureFlag): Unit = {
+    if (player.ZoningRequest != Zoning.Method.None) {
+      sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    }
     // LLU can normally only be picked up the faction that owns it
     specialItemSlotGuid match {
-      case None if obj.Faction == player.Faction =>
+      case None if obj.Faction == player.Faction && player.ZoningRequest == Zoning.Method.None =>
         specialItemSlotGuid = Some(obj.GUID)
         player.Carrying = SpecialCarry.CaptureFlag
         continent.LocalEvents ! CaptureFlagManager.PickupFlag(obj, player)

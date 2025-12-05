@@ -24,6 +24,7 @@ import scala.concurrent.Future
 
 final case class MajorFacilityHackParticipation(building: Building) extends FacilityHackParticipation {
   private implicit val timeout: Timeout = 10.seconds
+  private val log = org.log4s.getLogger
 
   private var hotSpotLayersOverTime: Seq[List[HotSpotInfo]] = Seq[List[HotSpotInfo]]()
 
@@ -174,6 +175,8 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
         val playersInSoi = building.PlayersInSOI.filter {
           _.Faction == victorFaction
         }
+        log.info(s"Facility Capture Event - Was Resecure: $isResecured, Victor: $victorFaction, Opposing: $failSafeOpposingFaction, " +
+          s"Victor Size: $contributionVictorSize, Opposing Size: $contributionOpposingSize, Experience: $baseExperienceFromFacilityCapture")
         if (baseExperienceFromFacilityCapture > 0) {
           //2) population modifier
           //The value of the first should grow as population grows.

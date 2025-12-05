@@ -8,7 +8,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import net.psforever.actors.session.support.SpawnOperations.ActivityQueuedTask
 import net.psforever.login.WorldSession
-import net.psforever.objects.avatar.{BattleRank, DeployableToolbox}
+import net.psforever.objects.avatar.{BattleRank, DeployableToolbox, SpecialCarry}
 import net.psforever.objects.avatar.scoring.{CampaignStatistics, ScoreCard, SessionStatistics}
 import net.psforever.objects.definition.converter.OCM
 import net.psforever.objects.entity.WorldEntity
@@ -781,41 +781,56 @@ class ZoningOperations(
   }
 
   def handleRecall(): Unit = {
-    player.ZoningRequest = Zoning.Method.Recall
-    zoningType = Zoning.Method.Recall
-    zoningChatMessageType = ChatMessageType.CMT_RECALL
-    zoningStatus = Zoning.Status.Request
-    beginZoningCountdown(() => {
-      cluster ! ICS.GetRandomSpawnPoint(
-        Zones.sanctuaryZoneNumber(player.Faction),
-        player.Faction,
-        Seq(SpawnGroup.Sanctuary),
-        context.self
-      )
-    })
+    if (player.Carrying.contains(SpecialCarry.CaptureFlag)) {
+      CancelZoningProcessWithDescriptiveReason("cancel")
+    }
+    else {
+      player.ZoningRequest = Zoning.Method.Recall
+      zoningType = Zoning.Method.Recall
+      zoningChatMessageType = ChatMessageType.CMT_RECALL
+      zoningStatus = Zoning.Status.Request
+      beginZoningCountdown(() => {
+        cluster ! ICS.GetRandomSpawnPoint(
+          Zones.sanctuaryZoneNumber(player.Faction),
+          player.Faction,
+          Seq(SpawnGroup.Sanctuary),
+          context.self
+        )
+      })
+    }
   }
 
   def handleInstantAction(): Unit = {
-    player.ZoningRequest = Zoning.Method.InstantAction
-    zoningType = Zoning.Method.InstantAction
-    zoningChatMessageType = ChatMessageType.CMT_INSTANTACTION
-    zoningStatus = Zoning.Status.Request
-    cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
+    if (player.Carrying.contains(SpecialCarry.CaptureFlag)) {
+      CancelZoningProcessWithDescriptiveReason("cancel")
+    }
+    else {
+      player.ZoningRequest = Zoning.Method.InstantAction
+      zoningType = Zoning.Method.InstantAction
+      zoningChatMessageType = ChatMessageType.CMT_INSTANTACTION
+      zoningStatus = Zoning.Status.Request
+      cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
+    }
   }
 
   def handleQuit(): Unit = {
-    //priority is given to quit over other zoning methods
-    if (session.zoningType == Zoning.Method.InstantAction || session.zoningType == Zoning.Method.Recall) {
+    if (player.Carrying.contains(SpecialCarry.CaptureFlag)) {
       CancelZoningProcessWithDescriptiveReason("cancel")
     }
-    player.ZoningRequest = Zoning.Method.Quit
-    zoningType = Zoning.Method.Quit
-    zoningChatMessageType = ChatMessageType.CMT_QUIT
-    zoningStatus = Zoning.Status.Request
-    beginZoningCountdown(() => {
-      log.info(s"Good-bye, ${player.Name}")
-      sessionLogic.immediateDisconnect()
-    })
+    else {
+      //priority is given to quit over other zoning methods
+      if (session.zoningType == Zoning.Method.InstantAction || session.zoningType == Zoning.Method.Recall) {
+        CancelZoningProcessWithDescriptiveReason("cancel")
+      }
+      player.ZoningRequest = Zoning.Method.Quit
+      zoningType = Zoning.Method.Quit
+      zoningChatMessageType = ChatMessageType.CMT_QUIT
+      zoningStatus = Zoning.Status.Request
+      beginZoningCountdown(() => {
+        log.info(s"Good-bye, ${player.Name}")
+        sessionLogic.immediateDisconnect()
+      })
+    }
   }
 
   def handleSetZone(zoneId: String, position: Vector3): Unit = {

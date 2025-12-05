@@ -284,8 +284,8 @@ object CaptureFlagManager {
       .GUID(flagGuid)
       .collect {
         case flag: CaptureFlag
-          if LoseFlagViolentlyToEnvironment(target, Set(EnvironmentAttribute.Water, EnvironmentAttribute.Lava, EnvironmentAttribute.Death)) ||
-            LoseFlagViolentlyToWarpGateEnvelope(zone, target) =>
+          if LoseFlagViolentlyToEnvironment(target, Set(EnvironmentAttribute.Water, EnvironmentAttribute.Lava, EnvironmentAttribute.Death)) /*||
+            LoseFlagViolentlyToWarpGateEnvelope(zone, target)*/ =>
           flag.Destroyed = true
           zone.LocalEvents ! LocalServiceMessage("", LocalAction.LluLost(flag))
           true
