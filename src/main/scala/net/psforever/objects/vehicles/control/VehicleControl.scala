@@ -4,6 +4,7 @@ package net.psforever.objects.vehicles.control
 import akka.actor.Cancellable
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
+import net.psforever.objects.avatar.SpecialCarry
 import net.psforever.objects.definition.{VehicleDefinition, WithShields}
 import net.psforever.objects.definition.converter.OCM
 import net.psforever.objects.entity.WorldEntity
@@ -21,6 +22,7 @@ import net.psforever.objects.serverobject.environment.interaction.{InteractWithE
 import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior, RadiationInMountableInteraction}
 import net.psforever.objects.serverobject.repair.RepairableVehicle
+import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.turret.auto.AffectedByAutomaticTurretFire
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
@@ -120,6 +122,14 @@ class VehicleControl(vehicle: Vehicle)
 
       case Mountable.TryMount(user, mountPoint)
         if vehicle.DeploymentState == DriveState.AutoPilot =>
+        sender() ! Mountable.MountMessages(user, Mountable.CanNotMount(vehicle, mountPoint))
+
+      case Mountable.TryMount(user, mountPoint)
+        if vehicle.Zone.blockMap.sector(vehicle).buildingList.exists {
+          case wg: WarpGate =>
+            Vector3.DistanceSquared(vehicle.Position, wg.Position) < math.pow(wg.Definition.SOIRadius, 2)
+          case _ => false
+        } && user.Carrying.contains(SpecialCarry.CaptureFlag) =>
         sender() ! Mountable.MountMessages(user, Mountable.CanNotMount(vehicle, mountPoint))
 
       case msg @ Mountable.TryMount(player, mount_point) =>

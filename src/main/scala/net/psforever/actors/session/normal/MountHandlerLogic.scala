@@ -4,6 +4,7 @@ package net.psforever.actors.session.normal
 import akka.actor.ActorContext
 import net.psforever.actors.session.support.{MountHandlerFunctions, SessionData, SessionMountHandlers}
 import net.psforever.actors.zone.ZoneActor
+import net.psforever.objects.avatar.SpecialCarry
 import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Player, Vehicle, Vehicles}
 import net.psforever.objects.definition.{BasicDefinition, ObjectDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -295,6 +296,13 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
             sendResponse(
               ChatMsg(ChatMessageType.CMT_OPEN, wideContents=false, recipient="", "You are not the driver of this vehicle.", note=None)
             )
+        }
+        if (obj.Zone.blockMap.sector(obj).buildingList.exists {
+          case wg: WarpGate =>
+            Vector3.DistanceSquared(obj.Position, wg.Position) < math.pow(wg.Definition.SOIRadius, 2)
+          case _ => false
+          } && tplayer.Carrying.contains(SpecialCarry.CaptureFlag)) {
+          sendResponse(ChatMsg(ChatMessageType.UNK_224, "@VehicleMount_CaptureFlagWithVehicleInWarpgate"))
         }
 
       case Mountable.CanNotMount(obj: Mountable, seatNumber) =>
