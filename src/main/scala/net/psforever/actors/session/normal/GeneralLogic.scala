@@ -586,6 +586,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
           if (avatar.lookingForSquad && (sessionLogic.squad.squadUI.isEmpty || sessionLogic.squad.squadUI(player.CharId).index == 0)) {
             avatarActor ! AvatarActor.SetLookingForSquad(false)
           }
+        case GenericAction.MaxEnableAutoRun =>
+          player.maxAutoRunEnabled = true
+        case GenericAction.MaxDisableAutoRun =>
+          player.maxAutoRunEnabled = false
         case _ =>
           log.warn(s"GenericActionMessage: ${player.Name} can't handle $action")
       }

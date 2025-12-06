@@ -282,8 +282,8 @@ object EffectTarget {
     def FacilityTurretValidateMaxTarget(target: PlanetSideGameObject): Boolean =
       target match {
         case p: Player
-          if p.ExoSuit == ExoSuitType.MAX && p.VehicleSeated.isEmpty =>
-          val now = System.currentTimeMillis()
+          if p.ExoSuit == ExoSuitType.MAX && p.VehicleSeated.isEmpty && p.maxAutoRunEnabled =>
+          /* val now = System.currentTimeMillis()
           val pos = p.Position
           val faction = p.Faction
           val sector = p.Zone.blockMap.sector(p.Position, range = 51f)
@@ -293,7 +293,8 @@ object EffectTarget {
           if (radarCloakedAms(sector, pos) || radarCloakedAegis(sector, pos)) false
           else if (radarCloakedSensor(sector, pos, faction)) entityTookDamage(p, now) || usedEquipment
           else if (radarEnhancedInterlink(sector, pos, faction)) true
-          else p.isMoving(test = 15.5d)
+          else p.isMoving(test = 15.5d) */
+          true
         case _ =>
           false
       }

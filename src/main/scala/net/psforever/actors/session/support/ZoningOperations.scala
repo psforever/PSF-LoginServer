@@ -2221,6 +2221,7 @@ class ZoningOperations(
         if (zoningStatus == Zoning.Status.Deconstructing) {
           stopDeconstructing()
         }
+        player.maxAutoRunEnabled = false //reset flag in case max ran through a direct gate
         sessionLogic.avatarResponse.lastSeenStreamMessage.clear()
         upstreamMessageCount = 0
         setAvatar = false
