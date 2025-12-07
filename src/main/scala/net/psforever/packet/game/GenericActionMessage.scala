@@ -21,6 +21,8 @@ object GenericAction extends IntEnum[GenericAction] {
   final case object NewCharacterBasicTrainingPrompt  extends GenericAction(value = 14)
   final case object MaxAnchorsExtend_RCV             extends GenericAction(value = 15)
   final case object MaxAnchorsRelease_RCV            extends GenericAction(value = 16)
+  final case object MaxEnableAutoRun                 extends GenericAction(value = 17)
+  final case object MaxDisableAutoRun                extends GenericAction(value = 18)
   final case object MaxSpecialEffect_RCV             extends GenericAction(value = 20)
   final case object StopMaxSpecialEffect_RCV         extends GenericAction(value = 21)
   final case object CavernFacilityCapture            extends GenericAction(value = 22)
