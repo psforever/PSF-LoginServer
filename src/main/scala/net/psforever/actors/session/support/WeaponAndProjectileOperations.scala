@@ -710,12 +710,14 @@ class WeaponAndProjectileOperations(
             queueLittleBuddyExplosion(proxy)
             Nil
           } else if (proxy.profile.ExistsOnRemoteClients) {
+            proxy.Position = hitPos
             proxy.WhichSide = projectile.WhichSide
             continent.Projectile ! ZoneProjectile.Add(player.GUID, proxy)
             Nil
           } else if (proxy.tool_def == GlobalDefinitions.maelstrom) {
             //server-side maelstrom grenade target selection
             //for convenience purposes, all resulting chain lashing is handled here and resolves in one pass
+            proxy.Position = hitPos
             proxy.WhichSide = Sidedness.StrictlyBetweenSides
             val radiusSquared = proxy.profile.LashRadius * proxy.profile.LashRadius
             var availableTargets = sessionLogic.localSector.livePlayerList
