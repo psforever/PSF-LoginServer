@@ -513,6 +513,7 @@ class WeaponAndProjectileOperations(
           hit_info match {
             case Some(hitInfo) =>
               val hitPos = hitInfo.hit_pos
+              projectile.Position = hitPos
               sessionLogic.validObject(hitInfo.hitobject_guid, decorator = "Hit/hitInfo") match {
                 case _ if projectile.profile == GlobalDefinitions.flail_projectile =>
                   val radius = projectile.profile.DamageRadius * projectile.profile.DamageRadius
@@ -522,7 +523,7 @@ class WeaponAndProjectileOperations(
                     .map(target => (target, projectile, hitPos, target.Position))
 
                 case Some(target: PlanetSideGameObject with FactionAffinity with Vitality) =>
-                  List((target, projectile, hitInfo.shot_origin, hitPos))
+                  List((target, projectile, hitPos, target.Position))
 
                 case None =>
                   Nil
@@ -585,7 +586,9 @@ class WeaponAndProjectileOperations(
     FindProjectileEntry(projectile_guid)
       .flatMap {
         projectile =>
-        sessionLogic
+          //projectile may still be moving, and may lash other targets in the future when in a different position
+          projectile.Position = hit_pos
+          sessionLogic
             .validObject(victim_guid, decorator = "LashHit/victim_guid")
             .collect {
               case target: PlanetSideGameObject with FactionAffinity with Vitality =>
@@ -829,6 +832,26 @@ class WeaponAndProjectileOperations(
   /**
    * Find a projectile with the given globally unique identifier and mark it as a resolved shot.
    * A `Resolved` shot has either encountered an obstacle or is being cleaned up for not finding an obstacle.
+   * Check if we are required to deal with damage proxy management as well.
+   * @param projectile projectile
+   * @param resolution resolution status to promote the projectile
+   * @return package that contains information about the damage
+   */
+  def resolveProjectileInteractionAndProxy(
+                                            target: PlanetSideGameObject with FactionAffinity with Vitality,
+                                            projectile: Projectile,
+                                            resolution: DamageResolution.Value,
+                                            hitPosition: Vector3
+                                          ): Option[DamageInteraction] = {
+    if (projectile.profile.DamageProxyOnDirectHit.exists(_.test(target))) {
+      handleProxyDamage(projectile, hitPosition)
+    }
+    resolveProjectileInteraction(target, projectile, resolution, hitPosition)
+  }
+
+  /**
+   * Find a projectile with the given globally unique identifier and mark it as a resolved shot.
+   * A `Resolved` shot has either encountered an obstacle or is being cleaned up for not finding an obstacle.
    * @param projectile projectile
    * @param resolution resolution status to promote the projectile
    * @return package that contains information about the damage
@@ -842,9 +865,6 @@ class WeaponAndProjectileOperations(
     if (projectile.isMiss) {
       None
     } else {
-      if (projectile.profile.DamageProxyOnDirectHit.exists(_.test(target))) {
-        handleProxyDamage(projectile, hitPosition)
-      }
       val outProjectile = ProjectileQuality.modifiers(projectile, resolution, target, hitPosition, Some(player))
       if (projectile.tool_def.Size == EquipmentSize.Melee && outProjectile.quality == ProjectileQuality.Modified(25)) {
         avatarActor ! AvatarActor.ConsumeStamina(10)
@@ -1462,15 +1482,23 @@ class WeaponAndProjectileOperations(
   }
 
   def checkForHitPositionDiscrepancy(
-                                      projectile_guid: PlanetSideGUID,
-                                      hitPos: Vector3,
+                                      projectileGuid: PlanetSideGUID,
+                                      hitPosition: Vector3,
                                       target: PlanetSideGameObject with Vitality
                                     ): Unit = {
-    val hitPositionDiscrepancy = Vector3.DistanceSquared(hitPos, target.Position)
+    checkForHitPositionDiscrepancy(projectileGuid, hitPosition, target.Position)
+  }
+
+  def checkForHitPositionDiscrepancy(
+                                      projectileGuid: PlanetSideGUID,
+                                      hitPosition: Vector3,
+                                      targetPosition: Vector3
+                                    ): Unit = {
+    val hitPositionDiscrepancy = Vector3.DistanceSquared(hitPosition, targetPosition)
     if (hitPositionDiscrepancy > Config.app.antiCheat.hitPositionDiscrepancyThreshold) {
       // If the target position on the server does not match the position where the projectile landed within reason there may be foul play
       log.warn(
-        s"${player.Name}'s shot #${projectile_guid.guid} has hit discrepancy with target. Target: ${target.Position}, Reported: $hitPos, Distance: $hitPositionDiscrepancy / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect"
+        s"${player.Name}'s shot #${projectileGuid.guid} has hit discrepancy with target. Target: $targetPosition, Reported: $hitPosition, Distance: $hitPositionDiscrepancy / ${math.sqrt(hitPositionDiscrepancy).toFloat}; suspect"
       )
     }
   }
