@@ -78,6 +78,8 @@ object ZoneActor {
   final case class RewardThisDeath(entity: PlanetSideGameObject with FactionAffinity with InGameHistory) extends Command
 
   final case class RewardOurSupporters(target: SourceEntry, history: Iterable[InGameActivity], kill: Kill, bep: Long) extends Command
+
+  final case class AssignLockedBy(zone: Zone, notifyPlayers: Boolean) extends Command
 }
 
 class ZoneActor(
@@ -115,6 +117,7 @@ class ZoneActor(
           // TODO this happens during testing, need a way to not always persist during tests
         }
       }
+      AssignLockedBy(zone, notifyPlayers=false)
     case Failure(e) => log.error(e.getMessage)
   }
 
@@ -187,10 +190,29 @@ class ZoneActor(
           .values
           .foreach(_.Actor ! BuildingActor.MapUpdate())
         Behaviors.same
+
+      case AssignLockedBy(zone, notifyPlayers) =>
+        AssignLockedBy(zone, notifyPlayers)
+        Behaviors.same
     }
     .receiveSignal {
       case (_, PostStop) =>
         Behaviors.same
     }
+  }
+
+  def AssignLockedBy(zone: Zone, notifyPlayers: Boolean): Unit = {
+    val buildings = zone.Buildings.values
+    val facilities = buildings.filter(_.BuildingType == StructureType.Facility).toSeq
+    val factions = facilities.map(_.Faction).toSet
+    zone.lockedBy =
+      if (factions.size == 1) factions.head
+      else PlanetSideEmpire.NEUTRAL
+    zone.benefitRecipient =
+      if (facilities.nonEmpty && facilities.forall(_.Faction == facilities.head.Faction))
+        facilities.head.Faction
+      else
+        zone.benefitRecipient
+    if (facilities.nonEmpty && notifyPlayers) { zone.NotifyContinentalLockBenefits(zone, facilities.head) }
   }
 }
