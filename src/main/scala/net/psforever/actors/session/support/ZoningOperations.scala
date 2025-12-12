@@ -54,7 +54,7 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.{Zone, ZoneHotSpotProjector, Zoning}
 import net.psforever.objects._
-import net.psforever.packet.game.{AvatarAwardMessage, AvatarSearchCriteriaMessage, AvatarStatisticsMessage, AwardCompletion, BindPlayerMessage, BindStatus, CargoMountPointStatusMessage, ChangeShortcutBankMessage, ChatChannel, CreateShortcutMessage, DroppodFreefallingMessage, LoadMapMessage, ObjectCreateDetailedMessage, ObjectDeleteMessage, PlanetsideStringAttributeMessage, PlayerStateShiftMessage, SetChatFilterMessage, SetCurrentAvatarMessage, ShiftState}
+import net.psforever.packet.game.{AvatarAwardMessage, AvatarSearchCriteriaMessage, AvatarStatisticsMessage, AwardCompletion, BindPlayerMessage, BindStatus, CargoMountPointStatusMessage, ChangeShortcutBankMessage, ChatChannel, CreateShortcutMessage, DroppodFreefallingMessage, LoadMapMessage, ObjectCreateDetailedMessage, ObjectDeleteMessage, PlayerStateShiftMessage, SetChatFilterMessage, SetCurrentAvatarMessage, ShiftState}
 import net.psforever.packet.game.{AvatarDeadStateMessage, BroadcastWarpgateUpdateMessage, ChatMsg, ContinentalLockUpdateMessage, DeadState, DensityLevelUpdateMessage, DeployRequestMessage, DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, DisconnectMessage, DroppodError, DroppodLaunchResponseMessage, FriendsResponse, GenericObjectActionMessage, GenericObjectStateMsg, HotSpotUpdateMessage, ObjectAttachMessage, ObjectCreateMessage, PlanetsideAttributeEnum, PlanetsideAttributeMessage, PropertyOverrideMessage, ReplicationStreamMessage, SetEmpireMessage, TimeOfDayMessage, TriggerEffectMessage, ZoneForcedCavernConnectionsMessage, ZoneInfoMessage, ZoneLockInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.packet.game.{BeginZoningMessage, DroppodLaunchRequestMessage, ReleaseAvatarRequestMessage, SpawnRequestMessage, WarpgateRequest}
 import net.psforever.packet.game.DeathStatistic
@@ -559,18 +559,12 @@ class ZoningOperations(
       val popTR = zone.Players.count(_.faction == PlanetSideEmpire.TR)
       val popNC = zone.Players.count(_.faction == PlanetSideEmpire.NC)
       val popVS = zone.Players.count(_.faction == PlanetSideEmpire.VS)
-
       zone.Buildings.foreach({ case (_, building) => initBuilding(continentNumber, building.MapId, building) })
       sendResponse(ZonePopulationUpdateMessage(continentNumber, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
-      //TODO should actually not claim that the sanctuary or VR zones are locked by their respective empire
-      if (continentNumber == 11)
-        sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NC))
-      else if (continentNumber == 12)
-        sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.TR))
-      else if (continentNumber == 13)
-        sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.VS))
-      else
+      if (continentNumber == 11 || continentNumber == 12 || continentNumber == 13)
         sendResponse(ContinentalLockUpdateMessage(continentNumber, PlanetSideEmpire.NEUTRAL))
+      else
+        sendResponse(ContinentalLockUpdateMessage(continentNumber, zone.lockedBy))
       //CaptureFlagUpdateMessage()
       //VanuModuleUpdateMessage()
       //ModuleLimitsMessage()
@@ -642,6 +636,8 @@ class ZoningOperations(
           )
         }
     }
+    player.Zone.ApplyHomeLockBenefitsOnLogin(player)
+    SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
   }
 
   def handleZoneResponse(foundZone: Zone): Unit = {
@@ -2094,7 +2090,7 @@ class ZoningOperations(
           session = session.copy(player = p, avatar = a)
           sessionLogic.persist()
           setupAvatarFunc = AvatarRejoin
-          dropMedicalApplicators(p)
+          //dropMedicalApplicators(p)
           avatarActor ! AvatarActor.ReplaceAvatar(a)
           avatarLoginResponse(a)
 
@@ -2104,7 +2100,7 @@ class ZoningOperations(
           deadState = DeadState.Dead
           session = session.copy(player = p, avatar = a)
           sessionLogic.persist()
-          dropMedicalApplicators(p)
+          //dropMedicalApplicators(p)
           HandleReleaseAvatar(p, inZone)
           avatarActor ! AvatarActor.ReplaceAvatar(a)
           avatarLoginResponse(a)
@@ -2548,9 +2544,6 @@ class ZoningOperations(
             sessionLogic.general.toggleTeleportSystem(obj, TelepadLike.AppraiseTeleportationSystem(obj, continent))
           }
       }
-      if (player.outfit_id == 0) {
-        SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
-      }
       /*make weather happen
       sendResponse(WeatherMessage(List(),List(
         StormInfo(Vector3(0.1f, 0.15f, 0.0f), 240, 217),
@@ -2674,7 +2667,6 @@ class ZoningOperations(
           log.debug(s"AvatarRejoin: ${player.Name} - $guid -> $data")
       }
       setupAvatarFunc = AvatarCreate
-      SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
       /*make weather happen
         sendResponse(WeatherMessage(List(),List(
           StormInfo(Vector3(0.1f, 0.15f, 0.0f), 240, 217),

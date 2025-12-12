@@ -275,19 +275,27 @@ class HackCaptureActor extends Actor {
         .collect { case p if p.Faction == hackedByFaction =>
           events ! LocalServiceMessage(p.Name, msg)
         }
-      val zoneBases = building.Zone.Buildings.filter(base =>
-        base._2.BuildingType == StructureType.Facility)
-      val ownedBases = building.Zone.Buildings.filter(base =>
-        base._2.BuildingType == StructureType.Facility && base._2.Faction == hackedByFaction
-        && base._2.GUID != building.GUID)
-      val zoneTowers = building.Zone.Buildings.filter(tower =>
-        tower._2.BuildingType == StructureType.Tower && tower._2.Faction != hackedByFaction)
-      // All major facilities in zone are now owned by the hacking faction. Capture all towers in the zone
-      // Base that was just hacked is not counted (hence the size - 1) because it wasn't always in ownedBases (async?)
-      if (zoneBases.size - 1 == ownedBases.size && zoneTowers.nonEmpty)
-        {
-          processBuildingsWithDelay(zoneTowers.values.toSeq, hackedByFaction, 1000)
+      val buildings = building.Zone.Buildings.values
+      val hackedBaseId = building.GUID
+      val facilities = buildings.filter(_.BuildingType == StructureType.Facility).toSeq
+      val ownedFacilities = facilities.filter(b =>
+        b.Faction == hackedByFaction && b.GUID != hackedBaseId
+      )
+      val towersToCapture = buildings.filter(b =>
+        b.BuildingType == StructureType.Tower && b.Faction != hackedByFaction
+      ).toSeq
+      if (ownedFacilities.size == facilities.size - 1) {
+        building.Zone.lockedBy = hackedByFaction
+        building.Zone.benefitRecipient = hackedByFaction
+        building.Zone.NotifyContinentalLockBenefits(building.Zone, building)
+        if (towersToCapture.nonEmpty) {
+          processBuildingsWithDelay(towersToCapture, hackedByFaction, 1000)
         }
+      }
+      else if (building.Zone.lockedBy != PlanetSideEmpire.NEUTRAL) {
+        building.Zone.lockedBy = PlanetSideEmpire.NEUTRAL
+        building.Zone.NotifyContinentalLockBenefits(building.Zone, building)
+      }
     } else {
       log.info("Base hack completed, but base was out of NTU.")
     }

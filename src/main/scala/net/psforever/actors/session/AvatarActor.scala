@@ -2218,12 +2218,12 @@ class AvatarActor(
               .Holsters()
               .foreach(holster =>
                 holster.Equipment match {
-                  case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
+                  /*case Some(tool: Tool) if tool.Definition == GlobalDefinitions.medicalapplicator =>
                     //todo fix so player may hold medapp when loading the zone (client crash)
                     val item = SimpleItem(GlobalDefinitions.flail_targeting_laser)
                     holster.Equipment = None
                     holster.Equipment = item
-                    item.GUID = PlanetSideGUID(gen.getAndIncrement)
+                    item.GUID = PlanetSideGUID(gen.getAndIncrement)*/
                   case Some(tool: Tool) =>
                     tool.AmmoSlots.foreach(slot => {
                       slot.Box.GUID = PlanetSideGUID(gen.getAndIncrement)

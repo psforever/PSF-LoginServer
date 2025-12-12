@@ -60,10 +60,6 @@ add_property maelstrom equiptime 1000
 add_property maelstrom holstertime 1000
 add_property magcutter equiptime 250
 add_property magcutter holstertime 250
-add_property medicalapplicator equiptime 500
-add_property medicalapplicator holstertime 500
-add_property medicalapplicator firemode0_refiretime 500
-add_property medicalapplicator firemode1_refiretime 500
 add_property mini_chaingun equiptime 750
 add_property mini_chaingun holstertime 750
 add_property nano_dispenser equiptime 750
