@@ -574,12 +574,10 @@ class ZoningOperations(
       //CaptureFlagUpdateMessage()
       //VanuModuleUpdateMessage()
       //ModuleLimitsMessage()
-      val isCavern = continent.map.cavern
-      sendResponse(ZoneInfoMessage(continentNumber, empire_status=true, if (isCavern) {
-        Int.MaxValue.toLong
-      } else {
-        0L
-      }))
+      val isCavern = zone.map.cavern
+      if (!isCavern) {
+        sendResponse(ZoneInfoMessage(continentNumber, empire_status = true, 0L))
+      }
       sendResponse(ZoneLockInfoMessage(continentNumber, lock_status=false, unk=true))
       sendResponse(ZoneForcedCavernConnectionsMessage(continentNumber, 0))
       sendResponse(
