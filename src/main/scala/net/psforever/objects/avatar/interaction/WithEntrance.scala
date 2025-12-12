@@ -5,7 +5,7 @@ import net.psforever.objects.serverobject.doors.{Door, InteriorDoorPassage}
 import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, EnvironmentTrait, PieceOfEnvironment, interaction}
 import net.psforever.objects.serverobject.environment.interaction.{InteractionWith, RespondsToZoneEnvironment}
 import net.psforever.objects.serverobject.interior.{Sidedness, TraditionalInteriorAware}
-import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.types.Vector3
 
 import scala.annotation.unused

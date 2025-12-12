@@ -8,91 +8,43 @@ import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.etc.RadiationReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
-import net.psforever.objects.zones.blockmap.SectorPopulation
-import net.psforever.objects.zones.{InteractsWithZone, Zone, ZoneInteraction}
-import net.psforever.types.PlanetSideGUID
+import net.psforever.objects.zones.interaction.{InteractsWithZone, RadiationCloudInteraction, ZoneInteractionType}
 
 /**
  * This game entity may infrequently test whether it may interact with radiation cloud projectiles
  * that may be emitted in the game environment for a limited amount of time.
- * Since the entity in question is a vehicle, the occupants of the vehicle get tested their interaction.
+ * Since the entity in question is mountable, its occupants get tested for their interaction.
  */
 class InteractWithRadiationCloudsSeatedInEntity(
                                                  private val obj: Mountable with StandardResistanceProfile,
                                                  val range: Float
-                                               ) extends ZoneInteraction {
-  /**
-   * radiation clouds that, though detected, are skipped from affecting the target;
-   * in between interaction tests, a memory of the clouds that were tested last are retained and
-   * are excluded from being tested this next time;
-   * clouds that are detected a second time are cleared from the list and are available to be tested next time
-   */
-  private var skipTargets: List[PlanetSideGUID] = List()
+                                               ) extends RadiationCloudInteraction {
+  def Type: ZoneInteractionType = RadiationInMountableInteraction
 
-  def Type: RadiationInMountableInteraction.type = RadiationInMountableInteraction
-
-  /**
-   * Drive into a radiation cloud and all the vehicle's occupants suffer the consequences.
-   * @param sector the portion of the block map being tested
-   * @param target the fixed element in this test
-   */
-  override def interaction(sector: SectorPopulation, target: InteractsWithZone): Unit = {
-    val position = target.Position
-    val targetList = List(target)
-    //collect all projectiles in sector/range
-    val projectiles = sector
-      .projectileList
-      .filter { cloud =>
-        val definition = cloud.Definition
-        val radius = definition.DamageRadius
-        definition.radiation_cloud &&
-          Zone.allOnSameSide(cloud, definition, targetList).nonEmpty &&
-          Zone.distanceCheck(target, cloud, radius * radius)
-      }
-      .distinct
-    val notSkipped = projectiles.filterNot { t => skipTargets.contains(t.GUID) }
-    skipTargets = notSkipped.map { _.GUID }
-    if (notSkipped.nonEmpty) {
-      (
-        //isolate one of each type of projectile
-        notSkipped
-          .foldLeft(Nil: List[Projectile]) {
-            (acc, next) => if (acc.exists { _.profile == next.profile }) acc else next :: acc
-          },
-        obj.Seats
-          .values
-          .collect { case seat => seat.occupant }
-          .flatten
-      ) match {
-        case (uniqueProjectiles, targets) if uniqueProjectiles.nonEmpty && targets.nonEmpty =>
-          val shielding = obj.RadiationShielding
-          targets.foreach { t =>
-            uniqueProjectiles.foreach { p =>
-              t.Actor ! Vitality.Damage(
-                DamageInteraction(
-                  SourceEntry(t),
-                  RadiationReason(
-                    ProjectileQuality.modifiers(p, DamageResolution.Radiation, t, t.Position, None),
-                    t.DamageModel,
-                    shielding
-                  ),
-                  position
-                ).calculate()
-              )
-            }
-          }
-        case _ => ()
+  def performInteractionWithTarget(projectiles: List[Projectile], target: InteractsWithZone): Unit = {
+    val mountedTargets = obj.Seats
+      .values
+      .collect { case seat => seat.occupant }
+      .flatten
+    if (projectiles.nonEmpty && mountedTargets.nonEmpty) {
+      val position = target.Position
+      val shielding = RadiationCloudInteraction.RadiationShieldingFrom(target)
+      mountedTargets
+        .flatMap(t => projectiles.map(p => (t, p)))
+        .foreach { case (t, p) =>
+          t.Actor ! Vitality.Damage(
+            DamageInteraction(
+              SourceEntry(t),
+              RadiationReason(
+                ProjectileQuality.modifiers(p, DamageResolution.Radiation, t, t.Position, None),
+                t.DamageModel,
+                shielding
+              ),
+              position
+            ).calculate()
+          )
       }
     }
-  }
-
-  /**
-   * Any radiation clouds blocked from being tested should be cleared.
-   * All that can be done is blanking our retained previous effect targets.
-   * @param target the fixed element in this test
-   */
-  def resetInteraction(target: InteractsWithZone): Unit = {
-    skipTargets = List()
   }
 }
 

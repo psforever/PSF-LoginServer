@@ -13,7 +13,8 @@ import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, SourceUniquene
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.exp.ToDatabase
-import net.psforever.objects.zones.{InteractsWithZone, Zone}
+import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.objects.{Default, PlanetSideGameObject, Player}
 import net.psforever.packet.game.{ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ObjectDetectedMessage}
 import net.psforever.services.Service
