@@ -277,7 +277,13 @@ class HackCaptureActor extends Actor {
         }
       val buildings = building.Zone.Buildings.values
       val hackedBaseId = building.GUID
-      val facilities = buildings.filter(_.BuildingType == StructureType.Facility).toSeq
+      val facilities = if (building.Zone.id.startsWith("c")) {
+        buildings.filter(b =>
+          b.Name.startsWith("N") || b.Name.startsWith("S")).toSeq
+        }
+        else {
+          buildings.filter(_.BuildingType == StructureType.Facility).toSeq
+        }
       val ownedFacilities = facilities.filter(b =>
         b.Faction == hackedByFaction && b.GUID != hackedBaseId
       )

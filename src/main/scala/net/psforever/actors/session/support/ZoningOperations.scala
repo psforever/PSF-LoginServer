@@ -634,8 +634,6 @@ class ZoningOperations(
           )
         }
     }
-    player.Zone.ApplyHomeLockBenefitsOnLogin(player)
-    SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
   }
 
   def handleZoneResponse(foundZone: Zone): Unit = {
@@ -695,6 +693,7 @@ class ZoningOperations(
           log.warn(
             s"SpawnPointResponse: ${player.Name}'s zoning was not in order at the time a response was received; attempting to guess what ${player.Sex.pronounSubject} wants to do"
           )
+          player.protectedWhileZoning = true
         }
         val previousZoningType = ztype
         CancelZoningProcess()
@@ -1111,6 +1110,12 @@ class ZoningOperations(
               PlanetsideAttributeEnum.ControlConsoleHackUpdate,
               HackCaptureActor.GetHackUpdateAttributeValue(amenity.asInstanceOf[CaptureTerminal], isResecured = false)
             )
+          case GlobalDefinitions.vanu_control_console =>
+            sessionLogic.general.sendPlanetsideAttributeMessage(
+              amenity.GUID,
+              PlanetsideAttributeEnum.ControlConsoleHackUpdate,
+              HackCaptureActor.GetHackUpdateAttributeValue(amenity.asInstanceOf[CaptureTerminal], isResecured = false)
+            )
           case _ =>
             sessionLogic.general.hackObject(amenity.GUID, unk1 = 1114636288L, HackState7.Unk8) //generic hackable object
         }
@@ -1397,6 +1402,7 @@ class ZoningOperations(
           s"LoadZoneTransferPassengerMessages: ${player.Name} expected a manifest for zone transfer; got nothing"
         )
     }
+    vehicle.protectedWhileZoning = false
   }
 
   /** Before changing zones, perform the following task (which can be a nesting of subtasks). */
@@ -1961,6 +1967,7 @@ class ZoningOperations(
       deadState = DeadState.RespawnTime
       val tplayer = new Player(avatar)
       session = session.copy(player = tplayer)
+      tplayer.protectedWhileZoning = true
       //actual zone is undefined; going to our sanctuary
       RandomSanctuarySpawnPosition(tplayer)
       DefinitionUtil.applyDefaultLoadout(tplayer)
@@ -1973,6 +1980,7 @@ class ZoningOperations(
       deadState = DeadState.RespawnTime
       session = session.copy(player = new Player(avatar))
       player.Zone = inZone
+      player.protectedWhileZoning = true
       optionalSavedData match {
         case Some(results) =>
           val health = results.health
@@ -2086,6 +2094,7 @@ class ZoningOperations(
           log.info(s"RestoreInfo: player $name is alive")
           deadState = DeadState.Alive
           session = session.copy(player = p, avatar = a)
+          p.protectedWhileZoning = true
           sessionLogic.persist()
           setupAvatarFunc = AvatarRejoin
           //dropMedicalApplicators(p)
@@ -2635,6 +2644,7 @@ class ZoningOperations(
     def AvatarRejoin(): Unit = {
       sessionLogic.vehicles.GetKnownVehicleAndSeat() match {
         case (Some(vehicle: Vehicle), Some(seat: Int)) =>
+          vehicle.protectedWhileZoning = true
           //vehicle and driver/passenger
           val vguid = vehicle.GUID
           sendResponse(OCM.apply(vehicle))
@@ -2678,6 +2688,8 @@ class ZoningOperations(
           StormInfo(Vector3(0.9f, 0.9f, 0.0f), 243, 215),
           StormInfo(Vector3(0.1f, 0.2f, 0.0f), 241, 215),
           StormInfo(Vector3(0.95f, 0.2f, 0.0f), 241, 215))))*/
+      player.Zone.ApplyHomeLockBenefitsOnLogin(player)
+      SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
       //begin looking for conditions to set the avatar
       context.system.scheduler.scheduleOnce(delay = 750 millisecond, context.self, SessionActor.SetCurrentAvatar(player, 200))
     }
@@ -3474,6 +3486,7 @@ class ZoningOperations(
       deadState = DeadState.Release //we may be alive or dead, may or may not be a corpse
       sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, unk5=true))
       DrawCurrentAmsSpawnPoint()
+      player.protectedWhileZoning = true
     }
 
     /**
@@ -3653,6 +3666,9 @@ class ZoningOperations(
       //originally the client sent a death statistic update in between each change of statistic categories, about 30 times
       sendResponse(AvatarStatisticsMessage(DeathStatistic(ScoreCard.deathCount(avatar.scorecard))))
       statisticsPacketFunc = respawnAvatarStatisticsFields
+      player.protectedWhileZoning = false
+      player.Zone.ApplyHomeLockBenefitsOnLogin(player)
+      SessionOutfitHandlers.HandleLoginOutfitCheck(player, sessionLogic)
     }
 
     /**
@@ -3683,6 +3699,7 @@ class ZoningOperations(
         }
       //originally the client sent a death statistic update in between each change of statistic categories, about 30 times
       sendResponse(AvatarStatisticsMessage(DeathStatistic(ScoreCard.deathCount(avatar.scorecard))))
+      player.protectedWhileZoning = false
     }
 
     /**

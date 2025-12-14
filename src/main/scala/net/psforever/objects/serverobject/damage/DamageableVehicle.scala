@@ -75,7 +75,7 @@ trait DamageableVehicle
         val shields         = obj.Shields
         val damageToHealth  = originalHealth - health
         val damageToShields = originalShields - shields
-        if (WillAffectTarget(target, damageToHealth + damageToShields, cause)) {
+        if (WillAffectTarget(target, damageToHealth + damageToShields, cause) && !obj.protectedWhileZoning) {
           target.LogActivity(cause)
           DamageLog(
             target,
