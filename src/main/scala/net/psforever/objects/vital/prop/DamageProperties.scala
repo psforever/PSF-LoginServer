@@ -21,7 +21,11 @@ trait DamageProperties
   private var damageTypeSecondary: DamageType.Value      = DamageType.None
   /** against Infantry targets, damage does not apply to armor damage */
   private var damageToHealthOnly: Boolean                = false
-  /** against Vehicle targets, damage does not apply to vehicle shield */
+  /** against Infantry targets, damage does not apply to armor damage */
+  private var damageToArmorFirst: Boolean                = false
+  /** against Infantry targets, damage applies to armor before it does health;
+   * regardless of other resistance conditions, non-zero armor is reduced before health;
+   * should not have priority over the flag for infantry health only */
   private var damageToVehicleOnly: Boolean               = false
   /** against battleframe targets, damage does not apply to battleframe robotics shield;
     * this is equivalent to the property "bfr_permeate_shield" */
@@ -79,6 +83,13 @@ trait DamageProperties
   def DamageToHealthOnly_=(healthOnly: Boolean) : Boolean = {
     damageToHealthOnly = healthOnly
     DamageToHealthOnly
+  }
+
+  def DamageToArmorFirst : Boolean = damageToArmorFirst
+
+  def DamageToArmorFirst_=(armorFirst: Boolean) : Boolean = {
+    damageToArmorFirst = armorFirst
+    DamageToArmorFirst
   }
 
   def DamageToVehicleOnly : Boolean = damageToVehicleOnly

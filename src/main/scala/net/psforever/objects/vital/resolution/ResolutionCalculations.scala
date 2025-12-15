@@ -8,12 +8,14 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vehicles.VehicleSubsystemEntry
 import net.psforever.objects.vital.base.DamageResolution
-import net.psforever.objects.vital.{DamagingActivity, Vitality, InGameHistory}
+import net.psforever.objects.vital.{DamagingActivity, InGameHistory, Vitality}
 import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resistance.ResistanceSelection
 import net.psforever.types.{ExoSuitType, ImplantType}
+
+import scala.annotation.unused
 
 /**
   * The base for the combining step of all projectile-induced damage calculation function literals.
@@ -37,13 +39,16 @@ object ResolutionCalculations {
   type Output = PlanetSideGameObject with FactionAffinity => DamageResult
   type Form   = (DamageCalculations.Selector, ResistanceSelection.Format, DamageInteraction) => Output
 
-  def NoDamage(data: DamageInteraction)(a: Int, b: Int): Int = 0
+
+  def NoDamage(@unused data: DamageInteraction)(@unused a: Int, @unused b: Int): Int = 0
 
   def InfantryDamage(data: DamageInteraction): (Int, Int) => (Int, Int) = {
     data.target match {
       case target: PlayerSource =>
-        if(data.cause.source.DamageToHealthOnly) {
+        if (data.cause.source.DamageToHealthOnly) {
           DamageToHealthOnly(target.health)
+        } else if (data.cause.source.DamageToArmorFirst) {
+          InfantryArmorDamageFirst(target.health, target.armor)
         } else {
           InfantryDamageAfterResist(target.health, target.armor)
         }
@@ -73,6 +78,25 @@ object ResolutionCalculations {
         //(resistedDam, resistance)
         if (resistance <= currentArmor) {
           (resistedDam, resistance) //armor and health damage
+        } else {
+          (resistedDam + (resistance - currentArmor), currentArmor) //deplete armor; health damage + bonus
+        }
+      } else {
+        (0, damages) //too weak; armor damage (less than resistance)
+      }
+    } else {
+      (0, 0) //no damage
+    }
+  }
+
+  def InfantryArmorDamageFirst(currentHP: Int, currentArmor: Int)(damages: Int, resistance: Int): (Int, Int) = {
+    if (damages > 0 && currentHP > 0) {
+      if (currentArmor <= 0) {
+        (damages, 0) //no armor; health damage
+      } else if (damages > resistance) {
+        val resistedDam = damages - resistance
+        if (resistedDam <= currentArmor) {
+          (0, resistedDam) //armor damage
         } else {
           (resistedDam + (resistance - currentArmor), currentArmor) //deplete armor; health damage + bonus
         }
@@ -131,7 +155,7 @@ object ResolutionCalculations {
     }
   }
 
-  def NoApplication(damageValue: Int, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
+  def NoApplication(@unused damageValue: Int, data: DamageInteraction)(target: PlanetSideGameObject with FactionAffinity): DamageResult = {
     val sameTarget = SourceEntry(target)
     DamageResult(sameTarget, sameTarget, data)
   }

@@ -99,5 +99,6 @@ object CollisionReason {
     * Damage is considered `Direct`, however, which defines some resistance. */
   val noDamage = new DamageProperties {
     CausesDamageType = DamageType.Direct
+    DamageToArmorFirst = true
   }
 }
