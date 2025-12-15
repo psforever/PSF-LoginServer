@@ -98,7 +98,7 @@ object ResolutionCalculations {
         if (resistedDam <= currentArmor) {
           (0, resistedDam) //armor damage
         } else {
-          (resistedDam + (resistance - currentArmor), currentArmor) //deplete armor; health damage + bonus
+          (resistedDam, currentArmor) //deplete armor; health damage
         }
       } else {
         (0, damages) //too weak; armor damage (less than resistance)
