@@ -114,6 +114,7 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
   private var cloaked: Boolean                    = false
   private var flying: Option[Int]                 = None
   private var capacitor: Int                      = 0
+  var protectedWhileZoning: Boolean               = false
 
   /**
     * Permissions control who gets to access different parts of the vehicle;

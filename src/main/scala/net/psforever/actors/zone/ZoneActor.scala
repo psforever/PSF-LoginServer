@@ -203,7 +203,13 @@ class ZoneActor(
 
   def AssignLockedBy(zone: Zone, notifyPlayers: Boolean): Unit = {
     val buildings = zone.Buildings.values
-    val facilities = buildings.filter(_.BuildingType == StructureType.Facility).toSeq
+    val facilities = if (zone.id.startsWith("c")) {
+       buildings.filter(b =>
+        b.Name.startsWith("N") || b.Name.startsWith("S")).toSeq
+      }
+      else {
+        buildings.filter(_.BuildingType == StructureType.Facility).toSeq
+      }
     val factions = facilities.map(_.Faction).toSet
     zone.lockedBy =
       if (factions.size == 1) factions.head

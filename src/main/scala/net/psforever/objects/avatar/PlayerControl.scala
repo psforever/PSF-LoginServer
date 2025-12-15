@@ -790,7 +790,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     target: Target,
     applyDamageTo: Output
   ): Unit = {
-    if (player.isAlive && !player.spectator) {
+    if (player.isAlive && !player.spectator && !player.protectedWhileZoning) {
       val originalHealth    = player.Health
       val originalArmor     = player.Armor
       val originalStamina   = player.avatar.stamina
