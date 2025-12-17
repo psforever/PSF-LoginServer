@@ -58,7 +58,7 @@ trait RepairableEntity extends Repairable {
     */
   protected def CanPerformRepairs(target: Repairable.Target, player: Player, item: Tool): Boolean = {
     val definition = target.Definition
-    definition.Repairable && target.Health < definition.MaxHealth && (definition.RepairIfDestroyed || !target.Destroyed) &&
+    definition.Repairable && target.Health < target.MaxHealth && (definition.RepairIfDestroyed || !target.Destroyed) &&
     (target.Faction == player.Faction || target.Faction == PlanetSideEmpire.NEUTRAL) && item.Magazine > 0 &&
     player.isAlive && Vector3.Distance(target.Position, player.Position) < definition.RepairDistance
   }
