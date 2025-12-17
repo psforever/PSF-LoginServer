@@ -36,7 +36,7 @@ class UtilityVehiclesTest extends Specification {
           ant.driveState mustEqual DriveState.Mobile
           ant.health mustEqual 255
           ant.cloak mustEqual false
-          ant.unk3 mustEqual false
+          ant.boostMaxHealth mustEqual false
           ant.unk4 mustEqual false
           ant.unk5 mustEqual false
           ant.unk6 mustEqual false
@@ -67,7 +67,7 @@ class UtilityVehiclesTest extends Specification {
           ams.vehicle_format_data mustEqual Some(UtilityVehicleData(60))
           ams.health mustEqual 236
           ams.cloak mustEqual true
-          ams.unk3 mustEqual false
+          ams.boostMaxHealth mustEqual false
           ams.unk4 mustEqual false
           ams.unk5 mustEqual false
           ams.unk6 mustEqual true
@@ -120,7 +120,7 @@ class UtilityVehiclesTest extends Specification {
                 case _ =>
                   ko
               }
-              ams.unk3 mustEqual false
+              ams.boostMaxHealth mustEqual false
               ams.health mustEqual 255
               ams.unk4 mustEqual false
               ams.no_mount_points mustEqual false
@@ -320,7 +320,7 @@ class UtilityVehiclesTest extends Specification {
           Some(Vector3(27.3375f, -0.78749996f, 0.1125f))
         ),
         CommonFieldData(PlanetSideEmpire.TR, false, false, false, None, false, Some(false), None, PlanetSideGUID(3087)),
-        unk3 = false,
+        boostMaxHealth = false,
         health = 255,
         unk4 = false,
         no_mount_points = false,
