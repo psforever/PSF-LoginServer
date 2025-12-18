@@ -2924,9 +2924,11 @@ class ZoningOperations(
         0 seconds
       } else {
         //for other zones ...
+        //Searhus lock benefit also gives biolab faster respawn
+        val searhusBenefit = Zones.zones.find(_.Number == 9).exists(_.benefitRecipient == player.Faction)
         //biolabs have/grant benefits
         val cryoBenefit: Float = toSpawnPoint.Owner match {
-          case b: Building if b.hasLatticeBenefit(LatticeBenefit.BioLaboratory) => 0.5f
+          case b: Building if b.hasLatticeBenefit(LatticeBenefit.BioLaboratory) || (b.BuildingType == StructureType.Facility && !b.CaptureTerminalIsHacked && searhusBenefit) => 0.5f
           case _                                                                => 1f
         }
         //TODO cumulative death penalty

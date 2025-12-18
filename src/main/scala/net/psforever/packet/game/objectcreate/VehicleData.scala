@@ -44,7 +44,7 @@ final case class VariantVehicleData(unk: Int) extends SpecificVehicleData(Vehicl
   *             -jammered - vehicles will not be jammered by setting this field<br>
   *             -player_guid the vehicle's (official) owner;
   *              a living player in the game world on the same continent as the vehicle who may mount the driver mount
-  * @param unk3 na
+  * @param boostMaxHealth vehicle gets 10% more armor from vehicle armor benefit given by Cyssor empire lock
   * @param health the amount of health the vehicle has, as a percentage of a filled bar (255)
   * @param unk4 na
   * @param no_mount_points do not display entry points for the seats
@@ -65,7 +65,7 @@ final case class VariantVehicleData(unk: Int) extends SpecificVehicleData(Vehicl
 final case class VehicleData(
     pos: PlacementData,
     data: CommonFieldData,
-    unk3: Boolean,
+    boostMaxHealth: Boolean,
     health: Int,
     unk4: Boolean,
     no_mount_points: Boolean,
@@ -106,7 +106,7 @@ object VehicleData extends Marshallable[VehicleData] {
       cloak: Boolean,
       inventory: Option[InventoryData]
   ): VehicleData = {
-    VehicleData(pos, basic, unk3 = false, health, unk4 = false, no_mount_points = false, driveState, unk5 = false, unk6 = false, cloak = cloak, None, inventory)(
+    VehicleData(pos, basic, boostMaxHealth = false, health, unk4 = false, no_mount_points = false, driveState, unk5 = false, unk6 = false, cloak = cloak, None, inventory)(
       VehicleFormat.Normal
     )
   }
@@ -128,7 +128,7 @@ object VehicleData extends Marshallable[VehicleData] {
       format: UtilityVehicleData,
       inventory: Option[InventoryData]
   ): VehicleData = {
-    VehicleData(pos, basic, unk3 = false, health, unk4 = false, no_mount_points = false, driveState, unk5 = false, unk6 = false, cloak = cloak, Some(format), inventory)(
+    VehicleData(pos, basic, boostMaxHealth = false, health, unk4 = false, no_mount_points = false, driveState, unk5 = false, unk6 = false, cloak = cloak, Some(format), inventory)(
       VehicleFormat.Utility
     )
   }
@@ -150,7 +150,7 @@ object VehicleData extends Marshallable[VehicleData] {
       format: VariantVehicleData,
       inventory: Option[InventoryData]
   ): VehicleData = {
-    VehicleData(pos, basic, unk3 = false, health, unk4 = false, no_mount_points = false, driveState, unk5 = false, unk6 = false, cloak = cloak, Some(format), inventory)(
+    VehicleData(pos, basic, boostMaxHealth = false, health, unk4 = false, no_mount_points = false, driveState, unk5 = false, unk6 = false, cloak = cloak, Some(format), inventory)(
       VehicleFormat.Variant
     )
   }
