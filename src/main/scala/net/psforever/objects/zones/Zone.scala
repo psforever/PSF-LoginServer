@@ -664,9 +664,9 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       PlanetSideEmpire.NC -> Set(7, 10)
     )
     val homePerks: Map[PlanetSideEmpire.Value, String] = Map(
-      PlanetSideEmpire.TR -> "battlewagon prowler threemanheavybuggy",
-      PlanetSideEmpire.VS -> "magrider twomanhoverbuggy aurora",
-      PlanetSideEmpire.NC -> "thunderer twomanheavybuggy vanguard"
+      PlanetSideEmpire.TR -> "battlewagon 15mmbullet prowler 105mmbullet threemanheavybuggy heavy_grenade_mortar apc_tr",
+      PlanetSideEmpire.VS -> "magrider pulse_battery heavy_rail_beam_battery twomanhoverbuggy flux_cannon_thresher_battery aurora fluxpod_ammo apc_vs",
+      PlanetSideEmpire.NC -> "thunderer gauss_cannon_ammo twomanheavybuggy firebird_missile vanguard 150mmbullet apc_nc"
     )
 
     def isLockedBy(homeSet: Set[Int], empire: PlanetSideEmpire.Value): Boolean =
@@ -702,9 +702,9 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       PlanetSideEmpire.NC -> Set(7, 10)
     )
     val homePerks: Map[PlanetSideEmpire.Value, String] = Map(
-      PlanetSideEmpire.TR -> "battlewagon prowler threemanheavybuggy",
-      PlanetSideEmpire.VS -> "magrider twomanhoverbuggy aurora",
-      PlanetSideEmpire.NC -> "thunderer twomanheavybuggy vanguard"
+      PlanetSideEmpire.TR -> "battlewagon 15mmbullet prowler 105mmbullet threemanheavybuggy heavy_grenade_mortar apc_tr",
+      PlanetSideEmpire.VS -> "magrider pulse_battery heavy_rail_beam_battery twomanhoverbuggy flux_cannon_thresher_battery aurora fluxpod_ammo apc_vs",
+      PlanetSideEmpire.NC -> "thunderer gauss_cannon_ammo twomanheavybuggy firebird_missile vanguard 150mmbullet apc_nc"
     )
 
     def isLockedBy(homeSet: Set[Int], empire: PlanetSideEmpire.Value): Boolean =
