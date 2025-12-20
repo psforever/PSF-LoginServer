@@ -91,7 +91,7 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   var actor: typed.ActorRef[ZoneActor.Command] = Default.typed.Actor
 
   /** Actor that handles SOI related functionality, for example if a player is in an SOI */
-  private var soi = Default.Actor
+  //private var soi = Default.Actor
 
   /** The basic support structure for the globally unique number system used by this `Zone`. */
   private var guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(max = 65536))
@@ -520,11 +520,11 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   }
 
   def StartPlayerManagementSystems(): Unit = {
-    soi ! SOI.Start()
+    //soi ! SOI.Start()
   }
 
   def StopPlayerManagementSystems(): Unit = {
-    soi ! SOI.Stop()
+    //soi ! SOI.Stop()
   }
 
   def Activity: ActorRef = projector
@@ -1536,7 +1536,7 @@ object Zone {
           Props(classOf[ZoneHotSpotDisplay], zone, zone.hotspots, 15 seconds, zone.hotspotHistory, 60 seconds),
           s"$id-hotspots"
         )
-        zone.soi = context.actorOf(Props(classOf[SphereOfInfluenceActor], zone), s"$id-soi")
+        //zone.soi = context.actorOf(Props(classOf[SphereOfInfluenceActor], zone), s"$id-soi")
 
         zone.avatarEvents = context.actorOf(Props(classOf[AvatarService], zone), s"$id-avatar-events")
         zone.localEvents = context.actorOf(Props(classOf[LocalService], zone), s"$id-local-events")
@@ -1647,7 +1647,7 @@ object Zone {
           obj.Actor ! Service.Startup()
         }
       //allocate soi information
-      zone.soi ! SOI.Build()
+      //zone.soi ! SOI.Build()
     }
 
     private def MakeLattice(zone: Zone): Unit = {
