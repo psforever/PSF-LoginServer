@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import net.psforever.objects.avatar.interaction.{TriggerOnPlayerRule, WithEntrance, WithGantry, WithLava, WithWater}
+import net.psforever.objects.avatar.interaction.{InteractWithSOI, TriggerOnPlayerRule, WithEntrance, WithGantry, WithLava, WithWater}
 import net.psforever.objects.avatar.{Avatar, LoadoutManager, SpecialCarry}
 import net.psforever.objects.ballistics.InteractWithRadiationClouds
 import net.psforever.objects.ce.{Deployable, InteractWithMines, InteractWithTurrets}
@@ -39,6 +39,7 @@ class Player(var avatar: Avatar)
     with InteriorAwareFromInteraction
     with AuraContainer
     with MountableEntity {
+  interaction(new InteractWithSOI())
   interaction(environment.interaction.InteractWithEnvironment(Seq(
     new WithEntrance(),
     new WithWater(avatar.name),

@@ -20,6 +20,8 @@ import net.psforever.objects.serverobject.structures.participation.{MajorFacilit
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.util.Config
 
+import scala.collection.mutable
+
 class Building(
                 private val name: String,
                 private val building_guid: Int,
@@ -31,7 +33,7 @@ class Building(
   with BlockMapEntity {
 
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
-  private var playersInSOI: List[Player]      = List.empty
+  private var playersInSOI: mutable.HashMap[Long, Player] = mutable.HashMap[Long, Player]()
   private var forceDomeActive: Boolean        = false
   private var participationFunc: ParticipationLogic = NoParticipation
   super.Zone_=(zone)
@@ -69,9 +71,10 @@ class Building(
     Faction
   }
 
-  def PlayersInSOI: List[Player] = playersInSOI
+  def PlayersInSOI: List[Player] = playersInSOI.values.toList
 
   def PlayersInSOI_=(list: List[Player]): List[Player] = {
+    //todo
     if (playersInSOI.isEmpty && list.nonEmpty) {
       Amenities.collect {
         case box: Painbox =>
@@ -83,9 +86,29 @@ class Building(
           box.Actor ! Painbox.Stop()
       }
     }
-    playersInSOI = list
+    list.foreach { player =>
+      playersInSOI.put(player.CharId, player)
+    }
     participationFunc.TryUpdate()
-    playersInSOI
+    PlayersInSOI
+  }
+
+  def AddPlayersInSOI(player: Player): List[Player] = {
+    AddPlayersInSOI(player.CharId, player)
+  }
+  def AddPlayersInSOI(key: Long, player: Player): List[Player] = {
+    playersInSOI.put(key, player)
+    participationFunc.TryUpdate()
+    PlayersInSOI
+  }
+
+  def RemovePlayersFromSOI(player: Player): List[Player] = {
+    RemovePlayersFromSOI(player.CharId)
+  }
+  def RemovePlayersFromSOI(key: Long): List[Player] = {
+    playersInSOI.remove(key)
+    participationFunc.TryUpdate()
+    PlayersInSOI
   }
 
   // Get all lattice neighbours
