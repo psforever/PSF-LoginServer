@@ -14,11 +14,11 @@ class SquadFacilityBindInfoMessageTest extends Specification {
 
   "decode sample1" in {
     PacketCoding.decodePacket(sample1).require match {
-      case SquadFacilityBindInfoMessage(unk0, unk1, unk2, unk3) =>
+      case SquadFacilityBindInfoMessage(unk0, squadID, mapID, zoneID) =>
         unk0 mustEqual false
-        unk1 mustEqual 7
-        unk2 mustEqual 0
-        unk3 mustEqual 0
+        squadID mustEqual 7
+        mapID mustEqual 0
+        zoneID mustEqual 0
       case _ =>
         ko
     }
@@ -27,9 +27,9 @@ class SquadFacilityBindInfoMessageTest extends Specification {
   "encode sample1" in {
     val msg = SquadFacilityBindInfoMessage(
       unk0 = false,
-      unk1 = 7,
-      unk2 = 0,
-      unk3 = 0
+      squadID = 7,
+      mapID = 0,
+      zoneID = 0
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -38,11 +38,11 @@ class SquadFacilityBindInfoMessageTest extends Specification {
 
   "decode sample2" in {
     PacketCoding.decodePacket(sample2).require match {
-      case SquadFacilityBindInfoMessage(unk0, unk1, unk2, unk3) =>
+      case SquadFacilityBindInfoMessage(unk0, squadID, mapID, zoneID) =>
         unk0 mustEqual false
-        unk1 mustEqual 4
-        unk2 mustEqual 16
-        unk3 mustEqual 7
+        squadID mustEqual 4
+        mapID mustEqual 16
+        zoneID mustEqual 7
       case _ =>
         ko
     }
@@ -51,9 +51,9 @@ class SquadFacilityBindInfoMessageTest extends Specification {
   "encode sample2" in {
     val msg = SquadFacilityBindInfoMessage(
       unk0 = false,
-      unk1 = 4,
-      unk2 = 16,
-      unk3 = 7
+      squadID = 4,
+      mapID = 16,
+      zoneID = 7
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
@@ -62,11 +62,11 @@ class SquadFacilityBindInfoMessageTest extends Specification {
 
   "decode sample3" in {
     PacketCoding.decodePacket(sample3).require match {
-      case SquadFacilityBindInfoMessage(unk0, unk1, unk2, unk3) =>
+      case SquadFacilityBindInfoMessage(unk0, squadID, mapID, zoneID) =>
         unk0 mustEqual false
-        unk1 mustEqual 3
-        unk2 mustEqual 9
-        unk3 mustEqual 5
+        squadID mustEqual 3
+        mapID mustEqual 9
+        zoneID mustEqual 5
       case _ =>
         ko
     }
@@ -75,9 +75,9 @@ class SquadFacilityBindInfoMessageTest extends Specification {
   "encode sample3" in {
     val msg = SquadFacilityBindInfoMessage(
       unk0 = false,
-      unk1 = 3,
-      unk2 = 9,
-      unk3 = 5
+      squadID = 3,
+      mapID = 9,
+      zoneID = 5
     )
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 

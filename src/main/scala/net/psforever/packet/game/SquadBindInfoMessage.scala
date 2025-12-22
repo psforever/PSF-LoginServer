@@ -7,8 +7,8 @@ import scodec.Codec
 import scodec.codecs._
 
 final case class SquadBindInfoMessage(
-                                       unk0: Int, // squad?
-                                       elements: Vector[SquadBindEntry],
+    unk0: Int, // squad/platoon index?
+    elements: Vector[SquadBindEntry],
   ) extends PlanetSideGamePacket {
   type Packet = SquadBindInfoMessage
   def opcode = GamePacketOpcode.SquadBindInfoMessage
@@ -17,19 +17,28 @@ final case class SquadBindInfoMessage(
 
 object SquadBindInfoMessage extends Marshallable[SquadBindInfoMessage] {
 
+  /**
+    * SquadBindEntry
+    *
+    * If isBound is false unk1 and unk2 are 0.
+    * unk1
+    * @param squadMember index of squad member
+    * @param zoneID zone ID as in zX / mapX
+    * @param mapID MapID identifier in mapX.json
+    * @param isBound is bound to a facility
+    */
   final case class SquadBindEntry(
-    unk0: Long,
-    unk1: Long,
-    unk2: Int,
-    unk3: Boolean,
+    squadMember: Long,
+    zoneID: Long,
+    mapID: Int,
+    isBound: Boolean,
   )
 
-
   private implicit val squadBindEntryCodec: Codec[SquadBindEntry] = (
-    ("unk0" | uint32L) ::
-      ("unk1" | uint32L) ::
-      ("unk2" | uint16L) ::
-      ("unk3" | bool)
+    ("squadMember" | uint32L) ::
+      ("zoneID" | uint32L) ::
+      ("mapID" | uint16L) ::
+      ("isBound" | bool)
     ).as[SquadBindEntry]
 
   implicit val codec: Codec[SquadBindInfoMessage] = (

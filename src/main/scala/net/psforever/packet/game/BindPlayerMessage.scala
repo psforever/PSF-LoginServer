@@ -58,7 +58,9 @@ object BindStatus extends Enumeration(1) {
   * @param zone_number the number of the zone in which to display this spawn option;
   *                    if `zone_number` is not the current zone, and the action is positive,
   *                    a small map of the alternate zone with selectable spawn point will become visible
-  * @param unk4 na
+  * @param map_id the "MapID" of the facility the player is bound to;
+  *               if spawn_group is AMS it is likely the source facility of the AMS;
+  *               with spawn_group AMS pos does point to the AMS position;
   * @param pos coordinates for any displayed deployment map icon;
   *            `x` and `y` determine the position
   */
@@ -69,7 +71,7 @@ final case class BindPlayerMessage(
     logging: Boolean,
     spawn_group: SpawnGroup,
     zone_number: Long,
-    unk4: Long,
+    map_id: Long,
     pos: Vector3
 ) extends PlanetSideGamePacket {
   type Packet = BindPlayerMessage
