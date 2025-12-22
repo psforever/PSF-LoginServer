@@ -569,9 +569,9 @@ object GamePacketOpcode extends Enumeration {
       case 0xdf => game.ZoneLockInfoMessage.decode
 
       // OPCODES 0xe0-ef
-      case 0xe0 => noDecoder(SquadBindInfoMessage)
+      case 0xe0 => game.SquadBindInfoMessage.decode
       case 0xe1 => noDecoder(AudioSequenceMessage)
-      case 0xe2 => noDecoder(SquadFacilityBindInfoMessage)
+      case 0xe2 => game.SquadFacilityBindInfoMessage.decode
       case 0xe3 => game.ZoneForcedCavernConnectionsMessage.decode
       case 0xe4 => noDecoder(MissionActionMessage)
       case 0xe5 => noDecoder(MissionKillTriggerMessage)
