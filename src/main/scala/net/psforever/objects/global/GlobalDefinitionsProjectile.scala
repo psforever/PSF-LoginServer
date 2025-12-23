@@ -1781,6 +1781,8 @@ object GlobalDefinitionsProjectile {
     spitfire_aa_ammo_projectile.ProjectileDamageTypeSecondary = DamageType.Splash
     spitfire_aa_ammo_projectile.InitialVelocity = 100
     spitfire_aa_ammo_projectile.Lifespan = 5f
+    spitfire_aa_ammo_projectile.DamageToArmorFirst = true
+    spitfire_aa_ammo_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(spitfire_aa_ammo_projectile)
     spitfire_aa_ammo_projectile.Modifiers = List(
       CerberusTurretWrongTarget,
@@ -1796,6 +1798,7 @@ object GlobalDefinitionsProjectile {
     spitfire_ammo_projectile.DegradeMultiplier = 0.5f
     spitfire_ammo_projectile.InitialVelocity = 100
     spitfire_ammo_projectile.Lifespan = .5f
+    spitfire_ammo_projectile.DamageToArmorFirst = true
     spitfire_ammo_projectile.DamageToBattleframeOnly = true
     ProjectileDefinition.CalculateDerivedFields(spitfire_ammo_projectile)
 
