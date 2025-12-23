@@ -7,7 +7,7 @@ import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.interaction.DamageInteraction
-import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 
 import scala.concurrent.duration._
 

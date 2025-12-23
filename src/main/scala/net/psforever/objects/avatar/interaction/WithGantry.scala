@@ -5,7 +5,7 @@ import net.psforever.objects.serverobject.environment.interaction.{InteractionWi
 import net.psforever.objects.{Player, Vehicle, Vehicles}
 import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, EnvironmentTrait, GantryDenialField, PieceOfEnvironment, interaction}
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
-import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game.{ChatMsg, PlayerStateShiftMessage, ShiftState}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
