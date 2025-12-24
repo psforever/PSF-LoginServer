@@ -50,6 +50,7 @@ import shapeless.{::, HNil}
   *             53 - Put down an FDU<br/>
   *             56 - Sets vehicle or player to be black ops<br/>
   *             57 - Reverts player from black ops<br/>
+  *             58 - Virus installed, changes lighting in facility to green
   *             <br>
   *             What are these values?<br>
   *             90? - for observed driven BFR's, model pitches up slightly and stops idle animation<br>

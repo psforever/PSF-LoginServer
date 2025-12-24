@@ -156,7 +156,7 @@ object Zones {
     "vanu_vehicle_station"
   )
   private val basicTerminalTypes =
-    Seq("order_terminal", "spawn_terminal", "cert_terminal", "order_terminal", "vanu_equipment_term")
+    Seq("order_terminal", "spawn_terminal", "cert_terminal", "order_terminal", "vanu_equipment_term", "main_terminal")
   private val spawnPadTerminalTypes = Seq(
     "ground_vehicle_terminal",
     "air_vehicle_terminal",

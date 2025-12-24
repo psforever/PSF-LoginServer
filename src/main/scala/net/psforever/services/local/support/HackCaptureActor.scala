@@ -265,8 +265,10 @@ class HackCaptureActor extends Actor {
   private def HackCompleted(terminal: CaptureTerminal with Hackable, hackedByFaction: PlanetSideEmpire.Value): Unit = {
     val building = terminal.Owner.asInstanceOf[Building]
     if (building.NtuLevel > 0) {
+      building.virusId = 8
+      building.virusInstalledBy = None
       log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
-      building.Actor! BuildingActor.SetFaction(hackedByFaction)
+      building.Actor ! BuildingActor.SetFaction(hackedByFaction)
       //dispatch to players aligned with the capturing faction within the SOI
       val events = building.Zone.LocalEvents
       val msg = LocalAction.SendGenericActionMessage(Service.defaultPlayerGUID, GenericAction.FacilityCaptureFanfare)

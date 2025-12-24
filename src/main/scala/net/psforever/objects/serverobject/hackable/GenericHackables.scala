@@ -1,11 +1,13 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.hackable
 
+import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
-import net.psforever.objects.{Player, Vehicle}
+import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
-import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7}
+import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, TriggeredSound}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -137,6 +139,116 @@ object GenericHackables {
           )
         case Failure(_) =>
           log.warn(s"Hack message failed on target: ${target.Definition.Name}@${target.GUID.guid}")
+      }
+  }
+
+  def FinishVirusAction(target: PlanetSideServerObject with Hackable, user: Player, hackValue: Int, hackClearValue: Int, virus: Long)(): Unit = {
+    import akka.pattern.ask
+    import scala.concurrent.duration._
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val tplayer = user
+    ask(target.Actor, CommonMessages.Hack(tplayer, target))(timeout = 2 second)
+      .mapTo[CommonMessages.EntityHackState]
+      .onComplete {
+        case Success(_) =>
+          val building = target.asInstanceOf[Terminal].Owner.asInstanceOf[Building]
+          val zone     = target.Zone
+          val zoneId   = zone.id
+          val pguid    = tplayer.GUID
+          if (tplayer.Faction == target.Faction) {
+            //clear virus
+            val currVirus = building.virusId
+            building.virusId = 8
+            building.virusInstalledBy = None
+            zone.LocalEvents ! LocalServiceMessage(
+              zoneId,
+              LocalAction
+                .ClearTemporaryHack(pguid, target)
+            )
+            val msg = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, target.GUID, 60)
+            val events = zone.AvatarEvents
+            building.PlayersInSOI.foreach { player =>
+              events ! AvatarServiceMessage(player.Name, msg)
+            }
+            currVirus match {
+              case 0L =>
+                building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach { iff =>
+                  zone.LocalEvents ! LocalServiceMessage(
+                    zoneId,
+                    LocalAction.ClearTemporaryHack(PlanetSideGUID(0), iff)
+                  )
+                }
+              case 4L =>
+                building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach { term =>
+                  zone.LocalEvents ! LocalServiceMessage(
+                    zoneId,
+                    LocalAction.ClearTemporaryHack(PlanetSideGUID(0), term)
+                  )
+                }
+              case _ => ()
+            }
+            building.Actor ! BuildingActor.MapUpdate()
+          }
+          else {
+            //install virus
+            val virusLength: Map[Long, Int] = Map(
+              0L -> 3600,
+              1L -> 900,
+              2L -> 3600,
+              3L -> 900,
+              4L -> 120
+            )
+            val installedVirusDuration = virusLength(virus)
+            val hackStateMap: Map[Long, HackState7] = Map(
+              0L -> HackState7.UnlockDoors,
+              1L -> HackState7.DisableLatticeBenefits,
+              2L -> HackState7.NTUDrain,
+              3L -> HackState7.DisableRadar,
+              4L -> HackState7.AccessEquipmentTerms
+            )
+            val hackState = hackStateMap.getOrElse(virus, HackState7.Unk8)
+            building.virusId = virus
+            building.virusInstalledBy = Some(tplayer.Faction.id)
+            zone.LocalEvents ! LocalServiceMessage(
+              zoneId,
+              LocalAction.TriggerSound(pguid, TriggeredSound.TREKSuccessful, tplayer.Position, 30, 0.49803925f)
+            )
+            zone.LocalEvents ! LocalServiceMessage(
+              zoneId,
+              LocalAction
+                .HackTemporarily(pguid, zone, target, installedVirusDuration, hackClearValue, installedVirusDuration, unk2=hackState)
+            )
+            val msg = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, target.GUID, 58)
+            val events = zone.AvatarEvents
+            building.PlayersInSOI.foreach { player =>
+              events ! AvatarServiceMessage(player.Name, msg)
+            }
+            //amenities if applicable
+            virus match {
+              case 0L =>
+                building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach{ iff =>
+                  var setHacked = iff.asInstanceOf[PlanetSideServerObject with Hackable]
+                  setHacked.HackedBy = tplayer
+                    zone.LocalEvents ! LocalServiceMessage(
+                      zoneId,
+                      LocalAction.HackTemporarily(pguid, zone, iff, hackValue, hackClearValue, installedVirusDuration)
+                    )
+                }
+              case 4L =>
+                building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach{ term =>
+                  var setHacked = term.asInstanceOf[PlanetSideServerObject with Hackable]
+                  setHacked.HackedBy = tplayer
+                    zone.LocalEvents ! LocalServiceMessage(
+                      zoneId,
+                      LocalAction.HackTemporarily(pguid, zone, term, hackValue, hackClearValue, installedVirusDuration)
+                    )
+                }
+              case _ => ()
+            }
+            building.Actor ! BuildingActor.MapUpdate()
+          }
+        case Failure(_) =>
+          log.warn(s"Virus action failed on target: ${target.Definition.Name}@${target.GUID.guid}")
       }
   }
 

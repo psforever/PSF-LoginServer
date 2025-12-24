@@ -1258,7 +1258,12 @@ class GeneralOperations(
   def handleUseTerminal(terminal: Terminal, equipment: Option[Equipment], msg: UseItemMessage): Unit = {
     equipment match {
       case Some(item) =>
-        sendUseGeneralEntityMessage(terminal, item)
+        if (terminal.Definition == GlobalDefinitions.main_terminal) {
+          sendUseMainTerminalMessage(terminal, item, msg.unk2)
+        }
+        else {
+          sendUseGeneralEntityMessage(terminal, item)
+        }
       case None
         if terminal.Owner == Building.NoBuilding || terminal.Faction == player.Faction ||
           terminal.HackedBy.nonEmpty || terminal.Faction == PlanetSideEmpire.NEUTRAL =>
@@ -1482,6 +1487,14 @@ class GeneralOperations(
   def sendUseGeneralEntityMessage(obj: PlanetSideServerObject, equipment: Equipment): Unit = {
     sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
     obj.Actor ! CommonMessages.Use(player, Some(equipment))
+  }
+
+  def sendUseMainTerminalMessage(obj: PlanetSideServerObject, equipment: Equipment, virus: Long): Unit = {
+    sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
+    if (player.Faction == obj.Faction)
+      obj.Actor ! CommonMessages.RemoveVirus(player, Some(equipment))
+    else
+      obj.Actor ! CommonMessages.UploadVirus(player, Some(equipment), virus)
   }
 
   def handleUseDefaultEntity(obj: PlanetSideGameObject, equipment: Option[Equipment]): Unit = {

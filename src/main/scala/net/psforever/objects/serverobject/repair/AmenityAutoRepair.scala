@@ -270,20 +270,19 @@ trait AmenityAutoRepair
     autoRepairTimer.cancel()
     autoRepairQueueTask = Some(System.currentTimeMillis() + delay)
     val modifiedDrain = drain * Config.app.game.amenityAutorepairDrainRate //doubled intentionally
-    autoRepairTimer = if(AutoRepairObject.Owner == Building.NoBuilding) {
-      //without an owner, auto-repair freely
-      context.system.scheduler.scheduleOnce(
-        delay milliseconds,
-        self,
-        NtuCommand.Grant(null, modifiedDrain)
-      )
-    } else {
-      //ask politely
-      context.system.scheduler.scheduleOnce(
-        delay milliseconds,
-        AutoRepairObject.Owner.Actor,
-        BuildingActor.Ntu(NtuCommand.Request(modifiedDrain, ntuGrantActorRef))
-      )
-    }
+    AutoRepairObject.Owner match {
+      case Building.NoBuilding =>
+        autoRepairTimer = context.system.scheduler.scheduleOnce(
+          delay.milliseconds,
+          self,
+          NtuCommand.Grant(null, modifiedDrain))
+      case b: Building =>
+        val doubledDrain = if (b.virusId == 2) modifiedDrain * 2 else modifiedDrain
+        autoRepairTimer = context.system.scheduler.scheduleOnce(
+          delay.milliseconds,
+          b.Actor,
+          BuildingActor.Ntu(NtuCommand.Request(doubledDrain, ntuGrantActorRef)))
+      case _ => ()
+      }
   }
 }

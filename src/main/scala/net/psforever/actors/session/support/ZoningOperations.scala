@@ -1116,6 +1116,17 @@ class ZoningOperations(
               PlanetsideAttributeEnum.ControlConsoleHackUpdate,
               HackCaptureActor.GetHackUpdateAttributeValue(amenity.asInstanceOf[CaptureTerminal], isResecured = false)
             )
+          case GlobalDefinitions.main_terminal =>
+            val virus = amenity.asInstanceOf[Terminal].Owner.asInstanceOf[Building].virusId
+            val hackStateMap: Map[Long, HackState7] = Map(
+              0L -> HackState7.UnlockDoors,
+              1L -> HackState7.DisableLatticeBenefits,
+              2L -> HackState7.NTUDrain,
+              3L -> HackState7.DisableRadar,
+              4L -> HackState7.AccessEquipmentTerms
+            )
+            val hackState = hackStateMap.getOrElse(virus, HackState7.Unk8)
+            sessionLogic.general.hackObject(amenity.GUID, unk1 = 1114636288L, hackState)
           case _ =>
             sessionLogic.general.hackObject(amenity.GUID, unk1 = 1114636288L, HackState7.Unk8) //generic hackable object
         }
@@ -2928,7 +2939,8 @@ class ZoningOperations(
         val searhusBenefit = Zones.zones.find(_.Number == 9).exists(_.benefitRecipient == player.Faction)
         //biolabs have/grant benefits
         val cryoBenefit: Float = toSpawnPoint.Owner match {
-          case b: Building if b.hasLatticeBenefit(LatticeBenefit.BioLaboratory) || (b.BuildingType == StructureType.Facility && !b.CaptureTerminalIsHacked && searhusBenefit) => 0.5f
+          case b: Building if (b.hasLatticeBenefit(LatticeBenefit.BioLaboratory) && b.virusId != 1) ||
+            (b.BuildingType == StructureType.Facility && !b.CaptureTerminalIsHacked && searhusBenefit) => 0.5f
           case _                                                                => 1f
         }
         //TODO cumulative death penalty
