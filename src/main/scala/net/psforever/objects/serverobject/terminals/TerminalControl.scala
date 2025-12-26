@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.terminals
 
 import akka.actor.ActorRef
-import net.psforever.objects.{GlobalDefinitions, SimpleItem}
+import net.psforever.objects.{GlobalDefinitions, SimpleItem, Tool}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable.Target
@@ -57,7 +57,28 @@ class TerminalControl(term: Terminal)
               )
             case _ => ()
           }
-
+        case CommonMessages.UploadVirus(player, Some(item: Tool), virus)
+          if item.Definition == GlobalDefinitions.trek =>
+          term.Owner match {
+            case _: Building =>
+              sender() ! CommonMessages.Progress(
+                1.66f,
+                GenericHackables.FinishVirusAction(term, player, hackValue = -1, hackClearValue = -1, virus),
+                GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID)
+              )
+            case _ => ()
+          }
+        case CommonMessages.RemoveVirus(player, Some(item: SimpleItem))
+          if item.Definition == GlobalDefinitions.remote_electronics_kit =>
+          term.Owner match {
+            case _: Building =>
+              sender() ! CommonMessages.Progress(
+                1.66f,
+                GenericHackables.FinishVirusAction(term, player, hackValue = -1, hackClearValue = -1, virus=8L),
+                GenericHackables.HackingTickAction(HackState1.Unk1, player, term, item.GUID)
+              )
+            case _ => ()
+          }
         case _ => ()
       }
 

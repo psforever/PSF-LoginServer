@@ -720,6 +720,10 @@ object GlobalDefinitionsMiscellaneous {
     vanu_control_console.Repairable = false
     vanu_control_console.FacilityHackTime = 10.minutes
 
+    main_terminal.Name = "main_terminal"
+    main_terminal.Damageable = false
+    main_terminal.Repairable = false
+
     lodestar_repair_terminal.Name = "lodestar_repair_terminal"
     lodestar_repair_terminal.Interval = 1000
     lodestar_repair_terminal.HealAmount = 60

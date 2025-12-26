@@ -91,7 +91,7 @@ add_property super_staminakit nodrop false
 add_property super_staminakit requirement_award0 false
 add_property suppressor equiptime 600
 add_property suppressor holstertime 600
-add_property trek allowed false
+add_property trek allowed true
 add_property trek equiptime 500
 add_property trek holstertime 500
 add_property vulture requirement_award0 false

@@ -24,11 +24,12 @@ final case class Additional1(unk1: String, unk2: Int, unk3: Long)
 final case class Additional2(unk1: Int, unk2: Long)
 
 /**
-  * na
-  * @param unk1 na
-  * @param unk2 na
+  * Used for building information window on map. Tells the empire who installed the virus which one
+  * and tells the defending faction generic "Infected"
+  * @param inform_defenders na
+  * @param installed_by_id na
   */
-final case class Additional3(unk1: Boolean, unk2: Int)
+final case class Additional3(inform_defenders: Boolean, installed_by_id: Int)
 
 /**
   * Update the state of map asset for a client's specific building's state.
@@ -73,9 +74,14 @@ final case class Additional3(unk1: Boolean, unk2: Int)
   * @param unk4 na
   * @param unk5 na
   * @param unk6 na
-  * @param unk7 na;
-  *             value != 8 causes the next field to be defined
-  * @param unk7x na
+  * @param virus_id id of virus installed. value != 8 causes the next field to be defined.
+  *                 0 - unlock all doors
+  *                 1 - disable linked benefits
+  *                 2 - double ntu drain
+  *                 3 - disable enemy radar
+  *                 4 - access equipment terminals
+  *                 8 - no virus installed - if 8, virus_installed_by is None
+  * @param virus_installed_by if virus_id = 8, None, else this has bool and id of the empire that installed the virus
   * @param boost_spawn_pain if the building has spawn tubes, the (boosted) strength of its enemy pain field
   * @param boost_generator_pain if the building has a generator, the (boosted) strength of its enemy pain field
   */
@@ -97,8 +103,8 @@ final case class BuildingInfoUpdateMessage(
     unk4: List[Additional2],
     unk5: Long,
     unk6: Boolean,
-    unk7: Int,
-    unk7x: Option[Additional3],
+    virus_id: Int,
+    virus_installed_by: Option[Additional3],
     boost_spawn_pain: Boolean,
     boost_generator_pain: Boolean
 ) extends PlanetSideGamePacket {
@@ -129,8 +135,8 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
     * A `Codec` for a set of additional fields.
     */
   private val additional3_codec: Codec[Additional3] = (
-    ("unk1" | bool) ::
-      ("unk2" | uint2L)
+    ("inform_defenders" | bool) ::
+      ("installed_by_id" | uint2L)
   ).as[Additional3]
 
   /**
@@ -190,8 +196,8 @@ object BuildingInfoUpdateMessage extends Marshallable[BuildingInfoUpdateMessage]
         ("unk4" | listOfN(uint4L, additional2_codec)) ::
         ("unk5" | uint32L) ::
         ("unk6" | bool) ::
-        (("unk7" | uint4L) >>:~ { unk7 =>
-        conditional(unk7 != 8, codec = "unk7x" | additional3_codec) ::
+        (("virus_id" | uint4L) >>:~ { virus_id =>
+        conditional(virus_id != 8, codec = "virus_installed_by" | additional3_codec) ::
           ("boost_spawn_pain" | bool) ::
           ("boost_generator_pain" | bool)
       })

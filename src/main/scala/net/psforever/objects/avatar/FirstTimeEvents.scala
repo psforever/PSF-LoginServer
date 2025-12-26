@@ -72,9 +72,9 @@ object FirstTimeEvents {
     )
 
     val Other: Set[String] = Set(
-      "used_nchev_scattercannon",
-      "used_nchev_falcon",
-      "used_nchev_sparrow",
+      "used_nc_hev_scattercannon",
+      "used_nc_hev_falcon",
+      "used_nc_hev_sparrow",
       "used_energy_gun_nc",
       "visited_portable_manned_turret_nc"
     )

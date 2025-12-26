@@ -3,7 +3,7 @@ package net.psforever.services.local.support
 
 import java.util.concurrent.TimeUnit
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.Default
+import net.psforever.objects.{Default, GlobalDefinitions}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
@@ -30,8 +30,12 @@ class HackClearActor() extends Actor {
   def receive: Receive = {
     case HackClearActor.ObjectIsHacked(target, zone, unk1, unk2, duration, time) =>
       val durationMillis = TimeUnit.MILLISECONDS.convert(duration, TimeUnit.SECONDS)
-      hackedObjects = hackedObjects :+ HackClearActor.HackEntry(target, zone, unk1, unk2, time, durationMillis)
-
+      val newEntry = HackClearActor.HackEntry(target, zone, unk1, unk2, time, durationMillis)
+      // Remove any existing entry for this GUID + zone in case of virus adding an entry for same target
+      hackedObjects = hackedObjects.filterNot(e => e.target.GUID == target.GUID && e.zone.id == zone.id)
+      hackedObjects = newEntry :: hackedObjects
+      // Sort so they are removed in the correct order
+      hackedObjects = hackedObjects.sortBy(e => e.time + e.duration)
       // Restart the timer, in case this is the first object in the hacked objects list
       RestartTimer()
 
@@ -49,6 +53,9 @@ class HackClearActor() extends Actor {
           entry.unk1,
           entry.unk2
         ) //call up to the main event system
+      if (entry.target.Definition == GlobalDefinitions.main_terminal) {
+        ClearVirusFromBuilding(entry.target)
+        }
       })
 
       RestartTimer()
@@ -91,6 +98,29 @@ class HackClearActor() extends Actor {
       }
 
     }
+  }
+
+  /**
+    * When the hack timer expires on a main_terminal, clear the virus from the building and
+    * inform the players in the area
+    * @param target main_terminal object
+    */
+  private def ClearVirusFromBuilding(target: PlanetSideServerObject): Unit = {
+    import net.psforever.objects.serverobject.structures.Building
+    import net.psforever.objects.serverobject.terminals.Terminal
+    import net.psforever.actors.zone.BuildingActor
+    import net.psforever.services.Service
+    import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+
+    val building = target.asInstanceOf[Terminal].Owner.asInstanceOf[Building]
+    building.virusId = 8
+    building.virusInstalledBy = None
+    val msg = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, target.GUID, 60)
+    val events = building.Zone.AvatarEvents
+    building.PlayersInSOI.foreach { player =>
+      events ! AvatarServiceMessage(player.Name, msg)
+    }
+    building.Actor ! BuildingActor.MapUpdate()
   }
 
   /**

@@ -28,11 +28,11 @@ sealed abstract class HackState7(val value: Int) extends IntEnumEntry
 object HackState7 extends IntEnum[HackState7] {
   val values: IndexedSeq[HackState7] = findValues
 
-  case object Unk0 extends HackState7(value = 0)
-  case object Unk1 extends HackState7(value = 1)
-  case object Unk2 extends HackState7(value = 2)
-  case object Unk3 extends HackState7(value = 3)
-  case object Unk4 extends HackState7(value = 4)
+  case object UnlockDoors extends HackState7(value = 0)
+  case object DisableLatticeBenefits extends HackState7(value = 1)
+  case object NTUDrain extends HackState7(value = 2)
+  case object DisableRadar extends HackState7(value = 3)
+  case object AccessEquipmentTerms extends HackState7(value = 4)
   case object Unk5 extends HackState7(value = 5)
   case object Unk6 extends HackState7(value = 6)
   case object Unk7 extends HackState7(value = 7)

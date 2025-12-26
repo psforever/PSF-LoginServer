@@ -30,8 +30,8 @@ class BuildingInfoUpdateMessageTest extends Specification {
             unk4,
             unk5,
             unk6,
-            unk7,
-            unk7x,
+            virus_id,
+            virus_installed_by,
             boost_spawn_pain,
             boost_generator_pain
           ) =>
@@ -53,8 +53,8 @@ class BuildingInfoUpdateMessageTest extends Specification {
         unk4.isEmpty mustEqual true
         unk5 mustEqual 0
         unk6 mustEqual false
-        unk7 mustEqual 8
-        unk7x.isEmpty mustEqual true
+        virus_id mustEqual 8
+        virus_installed_by.isEmpty mustEqual true
         boost_spawn_pain mustEqual false
         boost_generator_pain mustEqual false
       case _ =>
