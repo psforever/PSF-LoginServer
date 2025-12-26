@@ -193,6 +193,10 @@ object SpawnOperations {
   def sendEventMessage(msg: ChatMsg)(sessionLogic: SessionData): Unit = {
     sessionLogic.sendResponse(msg)
   }
+
+  def delaySendGenericObjectActionMessage(msg: PlanetSideGamePacket)(sessionLogic: SessionData): Unit = {
+    sessionLogic.sendResponse(msg)
+  }
 }
 
 class ZoningOperations(

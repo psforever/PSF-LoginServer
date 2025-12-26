@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.terminals.Terminal
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
-import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, TriggeredSound}
+import net.psforever.packet.game.{GenericObjectActionMessage, HackMessage, HackState, HackState1, HackState7, TriggeredSound}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -165,11 +165,10 @@ object GenericHackables {
               LocalAction
                 .ClearTemporaryHack(pguid, target)
             )
-            val msg = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, target.GUID, 60)
-            val events = zone.AvatarEvents
-            building.PlayersInSOI.foreach { player =>
-              events ! AvatarServiceMessage(player.Name, msg)
-            }
+            zone.LocalEvents ! LocalServiceMessage(
+              zone.id,
+              LocalAction.SendResponse(GenericObjectActionMessage(target.GUID, 60))
+            )
             currVirus match {
               case 0L =>
                 building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach { iff =>
@@ -218,11 +217,10 @@ object GenericHackables {
               LocalAction
                 .HackTemporarily(pguid, zone, target, installedVirusDuration, hackClearValue, installedVirusDuration, unk2=hackState)
             )
-            val msg = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, target.GUID, 58)
-            val events = zone.AvatarEvents
-            building.PlayersInSOI.foreach { player =>
-              events ! AvatarServiceMessage(player.Name, msg)
-            }
+            zone.LocalEvents ! LocalServiceMessage(
+              zone.id,
+              LocalAction.SendResponse(GenericObjectActionMessage(target.GUID, 58))
+            )
             //amenities if applicable
             virus match {
               case 0L =>
