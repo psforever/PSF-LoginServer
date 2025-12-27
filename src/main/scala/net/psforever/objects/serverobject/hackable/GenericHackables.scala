@@ -190,6 +190,29 @@ object GenericHackables {
           }
           else {
             //install virus
+            val currVirus = building.virusId
+            //clear previous virus unlocks to prevent virus stacking
+            currVirus match {
+              case 0L =>
+                if (virus != 0) {
+                  building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach { iff =>
+                    zone.LocalEvents ! LocalServiceMessage(
+                      zoneId,
+                      LocalAction.ClearTemporaryHack(PlanetSideGUID(0), iff)
+                    )
+                  }
+                }
+              case 4L =>
+                if (virus != 4) {
+                  building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach { term =>
+                    zone.LocalEvents ! LocalServiceMessage(
+                      zoneId,
+                      LocalAction.ClearTemporaryHack(PlanetSideGUID(0), term)
+                    )
+                  }
+                }
+              case _ => ()
+            }
             val virusLength: Map[Long, Int] = Map(
               0L -> 3600,
               1L -> 900,
@@ -216,6 +239,10 @@ object GenericHackables {
               zoneId,
               LocalAction
                 .HackTemporarily(pguid, zone, target, installedVirusDuration, hackClearValue, installedVirusDuration, unk2=hackState)
+            )
+            zone.LocalEvents ! LocalServiceMessage(
+              zone.id,
+              LocalAction.SendResponse(GenericObjectActionMessage(target.GUID, 61))
             )
             zone.LocalEvents ! LocalServiceMessage(
               zone.id,

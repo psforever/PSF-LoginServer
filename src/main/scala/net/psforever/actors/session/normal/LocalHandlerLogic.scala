@@ -195,7 +195,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
         msg match {
           case m: GenericObjectActionMessage =>
             // delay building virus alert if player is dead/respawning
-            if ((m.code == 58 || m.code == 60) && !sessionLogic.zoning.spawn.startEnqueueSquadMessages) {
+            if ((m.code == 58 || m.code == 60 || m.code == 61) && !sessionLogic.zoning.spawn.startEnqueueSquadMessages) {
               sessionLogic.zoning.spawn.enqueueNewActivity(ActivityQueuedTask(
                 SpawnOperations.delaySendGenericObjectActionMessage(msg), 1))
             }
