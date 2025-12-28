@@ -1131,6 +1131,10 @@ class ZoningOperations(
             )
             val hackState = hackStateMap.getOrElse(virus, HackState7.Unk8)
             sessionLogic.general.hackObject(amenity.GUID, unk1 = 1114636288L, hackState)
+            if (virus != 8 && !sessionLogic.zoning.spawn.startEnqueueSquadMessages) {
+                sessionLogic.zoning.spawn.enqueueNewActivity(ActivityQueuedTask(
+                  SpawnOperations.delaySendGenericObjectActionMessage(GenericObjectActionMessage(amenityId, 58)), 1))
+              }
           case _ =>
             sessionLogic.general.hackObject(amenity.GUID, unk1 = 1114636288L, HackState7.Unk8) //generic hackable object
         }
