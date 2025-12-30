@@ -932,7 +932,7 @@ class MiddlewareActor(
   private def inSubslotNotMissing(slot: Int, subslot: Int, inner: ByteVector): Unit = {
     if (subslot == inSubslot + 1) {
       in(PacketCoding.decodePacket(inner))
-      send(RelatedB(slot, subslot))
+      send(RelatedB(slot % 4, subslot))
       inSubslot = subslot
     } else if (subslot > inSubslot + 1) {
       in(PacketCoding.decodePacket(inner))
@@ -1005,7 +1005,7 @@ class MiddlewareActor(
     if (inSubslotsMissing.isEmpty) {
       subslotMissingProcessor.cancel()
       activeSubslotsFunc = inSubslotNotMissing
-      send(RelatedB(slot, inSubslot)) //send a confirmation packet after all requested packets are handled
+      send(RelatedB(slot % 4, inSubslot)) //send a confirmation packet after all requested packets are handled
       log.trace("normalcy with packet subslot order; resuming normal workflow")
     }
   }
