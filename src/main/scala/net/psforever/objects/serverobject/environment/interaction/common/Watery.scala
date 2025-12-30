@@ -152,7 +152,7 @@ object Watery {
         val oldTimeRemaining: Long = math.max(0, completionTime - System.currentTimeMillis())
         val oldTimeRatio: Float = oldTimeRemaining / oldDuration.toFloat
         val percentage: Float = oldTimeRatio * 100
-        val recoveryTime: Long = newDuration * (1f - oldTimeRatio).toLong
+        val recoveryTime: Long = (newDuration * (1f - oldTimeRatio)).toLong
         (true, recoveryTime, percentage)
       case Some(OxygenState.Recovery) =>
         //interrupted while recovering, calculate the progress and keep recovering
