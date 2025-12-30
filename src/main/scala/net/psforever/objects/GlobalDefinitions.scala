@@ -1239,6 +1239,8 @@ object GlobalDefinitions {
 
   val vanu_control_console = new CaptureTerminalDefinition(930) // Cavern CC
 
+  val main_terminal = new MainTerminalDefinition(473)
+
   val llm_socket = new CaptureFlagSocketDefinition()
 
   val capture_flag = new CaptureFlagDefinition()

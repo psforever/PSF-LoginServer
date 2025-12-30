@@ -45,6 +45,7 @@ trait FacilityHackParticipation extends ParticipationLogic {
         .filterNot { p =>
           playerContribution.exists { case (u, _) => p.CharId == u }
         }
+      informOfInstalledVirus(newParticipants)
       playerContribution =
         vanguardParticipants.map { case (u, (p, d, _)) => (u, (p, d + 1, curr)) } ++
           newParticipants.map { p => (p.CharId, (p, 1, curr)) } ++
@@ -94,6 +95,27 @@ trait FacilityHackParticipation extends ParticipationLogic {
           case -1 => list
           case cutOffIndex => list.drop(cutOffIndex)
         }) :+ newEntry
+    }
+  }
+
+  /**
+    * send packet that makes building lights green in case a virus was installed before this player got there
+    * @param list new players to the SOI
+    */
+  protected def informOfInstalledVirus(list : List[Player]): Unit = {
+    if (building.virusId != 8) {
+      import net.psforever.objects.serverobject.terminals.Terminal
+      import net.psforever.objects.GlobalDefinitions
+      import net.psforever.services.Service
+      import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+      val mainTerm = building.Amenities.filter(x => x.isInstanceOf[Terminal] && x.Definition == GlobalDefinitions.main_terminal).head.GUID
+      val msg1 = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, mainTerm, 61)
+      val msg2 = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, mainTerm, 58)
+      val events = building.Zone.AvatarEvents
+      list.foreach { p =>
+        events ! AvatarServiceMessage(p.Name, msg1)
+        events ! AvatarServiceMessage(p.Name, msg2)
+      }
     }
   }
 }
