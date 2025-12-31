@@ -299,7 +299,7 @@ class HackCaptureActor extends Actor {
         building.Zone.benefitRecipient = hackedByFaction
         building.Zone.NotifyContinentalLockBenefits(building.Zone, building)
         if (towersToCapture.nonEmpty) {
-          processBuildingsWithDelay(towersToCapture, hackedByFaction, 1000)
+          processBuildingsWithDelay(towersToCapture, hackedByFaction, 100)
         }
       }
       else if (building.Zone.lockedBy != PlanetSideEmpire.NEUTRAL) {
