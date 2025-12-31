@@ -45,6 +45,13 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
 
       case GalaxyResponse.MapUpdate(msg) =>
         sendResponse(msg)
+        import net.psforever.actors.zone.ZoneActor
+        import net.psforever.zones.Zones
+        Zones.zones.find(_.Number == msg.continent_id) match {
+          case Some(zone) =>
+            zone.actor ! ZoneActor.BuildingInfoState(msg)
+          case None =>
+        }
 
       case GalaxyResponse.UpdateBroadcastPrivileges(zoneId, gateMapId, fromFactions, toFactions) =>
         val faction = player.Faction

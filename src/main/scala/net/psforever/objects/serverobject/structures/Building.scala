@@ -36,6 +36,7 @@ class Building(
   private var participationFunc: ParticipationLogic = NoParticipation
   var virusId: Long                           = 8 // 8 default = no virus
   var virusInstalledBy: Option[Int]           = None // faction id
+  var hasCavernLockBenefit: Boolean           = false
   super.Zone_=(zone)
   super.GUID_=(PlanetSideGUID(building_guid)) //set
   Invalidate()                                //unset; guid can be used during setup, but does not stop being registered properly later
@@ -206,11 +207,14 @@ class Building(
     }
     val cavernBenefit: Set[CavernBenefit] = if (
       generatorState != PlanetSideGeneratorState.Destroyed &&
-        faction != PlanetSideEmpire.NEUTRAL &&
-        connectedCavern().nonEmpty
+        faction != PlanetSideEmpire.NEUTRAL && !CaptureTerminalIsHacked &&
+        connectedCavern().exists(_.Zone.lockedBy == faction)
     ) {
-      Set(CavernBenefit.VehicleModule, CavernBenefit.EquipmentModule)
+      hasCavernLockBenefit = true
+      Set(CavernBenefit.VehicleModule, CavernBenefit.EquipmentModule, CavernBenefit.ShieldModule,
+          CavernBenefit.SpeedModule, CavernBenefit.HealthModule, CavernBenefit.PainModule)
     } else {
+      hasCavernLockBenefit = false
       Set(CavernBenefit.None)
     }
     val (installedVirus, installedByFac) = if (virusId == 8)  {

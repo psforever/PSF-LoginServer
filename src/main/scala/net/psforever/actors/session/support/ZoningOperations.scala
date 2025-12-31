@@ -342,6 +342,13 @@ class ZoningOperations(
           sendResponse(PlanetsideAttributeMessage(targetPlayer.GUID, 19, 1))
         }
       }
+    //adjust for health module benefit so overhead health bar accounts for added health
+    live.filter { tplayer =>
+      tplayer.MaxHealth == 120
+    }
+      .foreach { targetPlayer =>
+        sendResponse(PlanetsideAttributeMessage(targetPlayer.GUID, 1, 120))
+      }
     //load corpses in zone
     continent.Corpses.foreach {
       spawn.DepictPlayerAsCorpse
@@ -2943,16 +2950,40 @@ class ZoningOperations(
         0 seconds
       } else {
         //for other zones ...
-        //Searhus lock benefit also gives biolab faster respawn
-        val searhusBenefit = Zones.zones.find(_.Number == 9).exists(_.benefitRecipient == player.Faction)
-        //biolabs have/grant benefits
-        val cryoBenefit: Float = toSpawnPoint.Owner match {
-          case b: Building if (b.hasLatticeBenefit(LatticeBenefit.BioLaboratory) && b.virusId != 1) ||
-            (b.BuildingType == StructureType.Facility && !b.CaptureTerminalIsHacked && searhusBenefit) => 0.5f
-          case _                                                                => 1f
+        val spawnTimeBenefit: Float = toSpawnPoint.Owner match {
+          case b: Building          => FasterRespawnBenefits(b)
+          case _                    => 1f
         }
         //TODO cumulative death penalty
-        (toSpawnPoint.Definition.Delay.toFloat * cryoBenefit).seconds
+        (toSpawnPoint.Definition.Delay.toFloat * spawnTimeBenefit).seconds
+      }
+    }
+
+    /**
+      * Multiple benefits can be given to an empire based on global ownership of certain zones or facility types that
+      * are linked to the facility being spawned at.
+      * @return float to potentially lower the respawn time if benefits are available
+      */
+      def FasterRespawnBenefits(building: Building): Float = {
+      //Searhus lock benefit also gives biolab faster respawn
+      val searhusBenefit = Zones.zones.find(_.Number == 9).exists(_.benefitRecipient == player.Faction)
+      building match {
+        case b: Building
+          if (b.hasLatticeBenefit(LatticeBenefit.BioLaboratory) && b.virusId != 1 &&
+            b.hasCavernLockBenefit) ||
+            (b.BuildingType == StructureType.Facility && !b.CaptureTerminalIsHacked &&
+              searhusBenefit && b.hasCavernLockBenefit) =>
+          0.3f
+        case b: Building
+          if !b.CaptureTerminalIsHacked && b.hasCavernLockBenefit && b.virusId != 1 =>
+          0.5f
+        case b: Building
+          if (b.hasLatticeBenefit(LatticeBenefit.BioLaboratory) && b.virusId != 1) ||
+            (b.BuildingType == StructureType.Facility && !b.CaptureTerminalIsHacked &&
+              searhusBenefit) =>
+          0.5f
+        case _ =>
+          1f
       }
     }
 
@@ -3228,7 +3259,11 @@ class ZoningOperations(
             buildingType == StructureType.Bunker
         }
         .foreach { case (_, building) =>
-          sendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0 /*building.BuildingType == StructureType.Facility*/))
+          if (building.hasCavernLockBenefit) {
+            sendResponse(PlanetsideAttributeMessage(building.GUID, 67, 1))
+          }
+          else
+            sendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0))
         }
       statisticsPacketFunc()
       if (tplayer.ExoSuit == ExoSuitType.MAX) {
@@ -3352,6 +3387,20 @@ class ZoningOperations(
                 SpawningActivity(PlayerSource(tplayer), continent.Number, effortBy)
             }
           })
+        }
+        nextSpawnPoint.map(_.Owner) match {
+          case Some(b: Building) if b.hasCavernLockBenefit =>
+            tplayer.MaxHealth = 120
+            tplayer.Health = 120
+            tplayer.Zone.AvatarEvents ! AvatarServiceMessage(
+              tplayer.Zone.id,
+              AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 0, 120)
+            )
+            tplayer.Zone.AvatarEvents ! AvatarServiceMessage(
+              tplayer.Zone.id,
+              AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 1, 120)
+            )
+          case _ => ()
         }
         doorsThatShouldBeOpenInRange(pos, range = 100f)
         setAvatar = true

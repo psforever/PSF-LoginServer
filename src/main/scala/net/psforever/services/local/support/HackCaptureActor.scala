@@ -259,7 +259,10 @@ class HackCaptureActor extends Actor {
           )
       }
     // Push map update to clients
-    owner.Zone.actor ! ZoneActor.ZoneMapUpdate()
+    if (owner.BuildingType == StructureType.Tower)
+      owner.Actor ! BuildingActor.MapUpdate()
+    else
+      owner.Zone.actor ! ZoneActor.ZoneMapUpdate()
   }
 
   private def HackCompleted(terminal: CaptureTerminal with Hackable, hackedByFaction: PlanetSideEmpire.Value): Unit = {
@@ -268,7 +271,6 @@ class HackCaptureActor extends Actor {
       building.virusId = 8
       building.virusInstalledBy = None
       log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
-      building.Actor ! BuildingActor.SetFaction(hackedByFaction)
       //dispatch to players aligned with the capturing faction within the SOI
       val events = building.Zone.LocalEvents
       val msg = LocalAction.SendGenericActionMessage(Service.defaultPlayerGUID, GenericAction.FacilityCaptureFanfare)
@@ -304,6 +306,7 @@ class HackCaptureActor extends Actor {
         building.Zone.lockedBy = PlanetSideEmpire.NEUTRAL
         building.Zone.NotifyContinentalLockBenefits(building.Zone, building)
       }
+      building.Actor ! BuildingActor.SetFaction(hackedByFaction)
     } else {
       log.info("Base hack completed, but base was out of NTU.")
     }
@@ -333,23 +336,10 @@ class HackCaptureActor extends Actor {
         if (buildingIterator.hasNext) {
           val building = buildingIterator.next()
           val terminal = building.CaptureTerminal.get
-          val zone = building.Zone
-          val zoneActor = zone.actor
           val buildingActor = building.Actor
-          //clear any previous hack
-          if (building.CaptureTerminalIsHacked) {
-            zone.LocalEvents ! LocalServiceMessage(
-              zone.id,
-              LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody)
-            )
-          }
-          //push any updates this might cause
-          zoneActor ! ZoneActor.ZoneMapUpdate()
-          //convert faction affiliation
           buildingActor ! BuildingActor.SetFaction(faction)
           buildingActor ! BuildingActor.AmenityStateChange(terminal, Some(false))
-          //push for map updates again
-          zoneActor ! ZoneActor.ZoneMapUpdate()
+          buildingActor ! BuildingActor.MapUpdate()
         }
       },
       0,

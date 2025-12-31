@@ -368,7 +368,8 @@ class ChatOperations(
       case (Some(buildings), Some(faction), Some(_)) =>
           //TODO implement timer
         //schedule processing of buildings with a delay
-        processBuildingsWithDelay(buildings, faction, 1000) { zone =>
+        processBuildingsWithDelay(buildings, faction, 100) { zone =>
+          zone.actor ! ZoneActor.ZoneMapUpdate()
           zone.actor ! ZoneActor.AssignLockedBy(zone, notifyPlayers=true)
         }
         true
@@ -382,6 +383,7 @@ class ChatOperations(
                                  faction: PlanetSideEmpire.Value,
                                  delayMillis: Long
                                )(onComplete: Zone => Unit): Unit = {
+    import net.psforever.objects.serverobject.structures.StructureType
     val buildingsToProcess = buildings.filter(b => b.CaptureTerminal.isDefined && b.Faction != faction)
     val iterator = buildingsToProcess.iterator
     val zone = buildings.head.Zone
@@ -391,18 +393,23 @@ class ChatOperations(
         if (iterator.hasNext) {
           val building = iterator.next()
           val terminal = building.CaptureTerminal.get
-          val zoneActor = zone.actor
-          if (building.CaptureTerminalIsHacked) {
-            zone.LocalEvents ! LocalServiceMessage(
-              zone.id,
-              LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody)
-            )
+          if (building.BuildingType == StructureType.Tower) {
+            building.Actor ! BuildingActor.SetFaction(faction)
+            building.Actor ! BuildingActor.AmenityStateChange(terminal, Some(false))
+            building.Actor ! BuildingActor.MapUpdate()
           }
-          zoneActor ! ZoneActor.ZoneMapUpdate()
-          building.Actor ! BuildingActor.SetFaction(faction)
-          building.Actor ! BuildingActor.AmenityStateChange(terminal, Some(false))
-          zoneActor ! ZoneActor.ZoneMapUpdate()
-        } else {
+          else {
+            if (building.CaptureTerminalIsHacked) {
+              zone.LocalEvents ! LocalServiceMessage(
+                zone.id,
+                LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody)
+              )
+            }
+            building.Actor ! BuildingActor.SetFaction(faction)
+            building.Actor ! BuildingActor.AmenityStateChange(terminal, Some(false))
+          }
+        }
+        else {
           handle.cancel(false)
           onComplete(zone)
         }

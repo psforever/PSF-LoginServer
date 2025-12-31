@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAware, CaptureTerminalAwareBehavior}
 import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.packet.game.PlanetsideAttributeMessage
 import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
@@ -244,6 +245,8 @@ case object MajorFacilityLogic
     }
     setFactionTo(details, PlanetSideEmpire.NEUTRAL)
     details.asInstanceOf[MajorFacilityWrapper].hasNtuSupply = false
+    details.building.Zone.lockedBy = PlanetSideEmpire.NEUTRAL
+    details.building.Zone.NotifyContinentalLockBenefits(details.building.Zone, details.building)
     Behaviors.same
   }
 
@@ -299,6 +302,12 @@ case object MajorFacilityLogic
         val msg = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, guid, 16)
         building.PlayersInSOI.foreach { player =>
           events ! AvatarServiceMessage(player.Name, msg)
+        }
+        if (building.hasCavernLockBenefit) {
+          zone.LocalEvents ! LocalServiceMessage(
+            zone.id,
+            LocalAction.SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0))
+          )
         }
         false
       case Some(GeneratorControl.Event.Destroyed) =>

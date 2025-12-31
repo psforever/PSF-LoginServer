@@ -167,7 +167,6 @@ object BuildingActor {
     val building = details.building
     val zone = building.Zone
     building.Faction = faction
-    zone.actor ! ZoneActor.ZoneMapUpdate() // Update entire lattice to show lattice benefits
     zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(building.GUID, faction))
   }
 }

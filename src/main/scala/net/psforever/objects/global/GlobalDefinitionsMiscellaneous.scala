@@ -370,6 +370,15 @@ object GlobalDefinitionsMiscellaneous {
     medical_terminal.RepairIfDestroyed = true
     medical_terminal.Geometry = GeometryForm.representByCylinder(radius = 0.711f, height = 1.75f)
 
+    medical_terminal_healing_module.Name = "medical_terminal_healing_module"
+    medical_terminal_healing_module.Interval = 2000
+    medical_terminal_healing_module.HealAmount = 1
+    medical_terminal_healing_module.ArmorAmount = 0
+    medical_terminal_healing_module.UseRadius = 300
+    medical_terminal_healing_module.TargetValidation += EffectTarget.Category.Player -> EffectTarget.Validation.HealthModule
+    medical_terminal_healing_module.Damageable = false
+    medical_terminal_healing_module.Repairable = false
+
     adv_med_terminal.Name = "adv_med_terminal"
     adv_med_terminal.Interval = 500
     adv_med_terminal.HealAmount = 8
