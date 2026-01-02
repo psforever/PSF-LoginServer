@@ -681,6 +681,19 @@ object ContainableBehavior {
       entry.obj.isInstanceOf[BoomerTrigger] ||
       (faction != tplayer.Faction && faction != PlanetSideEmpire.NEUTRAL)
     }
+
+  /**
+    * Same as above except the terminal used is from a facility that has cavern equipment benefit
+    * so allow cavern equipment to be kept
+    */
+  def DropPredicateEquipmentBenefit(tplayer: Player): InventoryItem => Boolean =
+    entry => {
+      val objDef  = entry.obj.Definition
+      val faction = GlobalDefinitions.isFactionEquipment(objDef)
+        objDef == GlobalDefinitions.router_telepad ||
+        entry.obj.isInstanceOf[BoomerTrigger] ||
+        (faction != tplayer.Faction && faction != PlanetSideEmpire.NEUTRAL)
+    }
 }
 
 object Containable {
