@@ -288,11 +288,11 @@ class VehicleControl(vehicle: Vehicle)
   final def Enabled: Receive =
     commonEnabledBehavior
       .orElse {
-        case VehicleControl.RadiationTick =>
-          vehicle.interaction().find { _.Type == RadiationInMountableInteraction } match {
-            case Some(func) => func.interaction(vehicle.getInteractionSector, vehicle)
-            case _ => ()
-          }
+        case VehicleControl.RadiationTick if !passengerRadiationCloudTimer.isCancelled =>
+          vehicle
+            .interaction()
+            .find(_.Type == RadiationInMountableInteraction)
+            .foreach(_.interaction(vehicle.getInteractionSector, vehicle))
         case _ => ()
       }
 
@@ -355,13 +355,12 @@ class VehicleControl(vehicle: Vehicle)
   }
 
   def mountCleanup(mount_point: Int, user: Player): Unit = {
-    val obj = MountableObject
-    obj.PassengerInSeat(user) match {
-      case Some(seatNumber) =>
+    vehicle.PassengerInSeat(user) match {
+      case Some(0) => //driver seat
         val vsrc = VehicleSource(vehicle)
-        user.LogActivity(VehicleMountActivity(vsrc, PlayerSource.inSeat(user, vsrc, seatNumber), vehicle.Zone.Number))
+        user.LogActivity(VehicleMountActivity(vsrc, PlayerSource.inSeat(user, vsrc, seatNumber = 0), vehicle.Zone.Number))
         //if the driver mount, change ownership if that is permissible for this vehicle
-        if (seatNumber == 0 && !obj.OwnerName.contains(user.Name) && obj.Definition.CanBeOwned.nonEmpty) {
+        if (!vehicle.OwnerName.contains(user.Name) && vehicle.Definition.CanBeOwned.nonEmpty) {
           //whatever vehicle was previously owned
           vehicle.Zone.GUID(user.avatar.vehicle) match {
             case Some(v: Vehicle) =>
@@ -370,13 +369,24 @@ class VehicleControl(vehicle: Vehicle)
               user.avatar.vehicle = None
           }
           GainOwnership(user) //gain new ownership
-          passengerRadiationCloudTimer.cancel()
         } else {
           decaying = false
           decayTimer.cancel()
         }
+        passengerRadiationCloudTimer.cancel()
         updateZoneInteractionProgressUI(user)
-      case None => ;
+
+      case Some(seatNumber) => //literally any other seat
+        val vsrc = VehicleSource(vehicle)
+        user.LogActivity(VehicleMountActivity(vsrc, PlayerSource.inSeat(user, vsrc, seatNumber), vehicle.Zone.Number))
+        decaying = false
+        decayTimer.cancel()
+        if (!vehicle.Seats(0).isOccupied && passengerRadiationCloudTimer.isCancelled) {
+          StartRadiationSelfReporting()
+        }
+        updateZoneInteractionProgressUI(user)
+
+      case None => ()
     }
   }
 
@@ -390,19 +400,17 @@ class VehicleControl(vehicle: Vehicle)
 
   def dismountCleanup(seatBeingDismounted: Int, user: Player): Unit = {
     val obj = MountableObject
+    val allSeatsUnoccupied = !obj.Seats.values.exists(_.isOccupied)
     // Reset velocity to zero when driver dismounts, to allow jacking/repair if vehicle was moving slightly before dismount
     if (!obj.Seats(0).isOccupied) {
       obj.Velocity = Some(Vector3.Zero)
     }
-    if (seatBeingDismounted == 0) {
-      passengerRadiationCloudTimer = context.system.scheduler.scheduleWithFixedDelay(
-        250.milliseconds,
-        250.milliseconds,
-        self,
-        VehicleControl.RadiationTick
-      )
+    if (allSeatsUnoccupied) {
+      passengerRadiationCloudTimer.cancel()
+    } else if (seatBeingDismounted == 0) {
+      StartRadiationSelfReporting()
     }
-    if (!obj.Seats(seatBeingDismounted).isOccupied) { //seat was vacated
+    if (!obj.Seats(seatBeingDismounted).isOccupied) { //this seat really was vacated
       user.LogActivity(VehicleDismountActivity(VehicleSource(vehicle), PlayerSource(user), vehicle.Zone.Number))
       //we were only owning the vehicle while we sat in its driver seat
       val canBeOwned = obj.Definition.CanBeOwned
@@ -411,9 +419,9 @@ class VehicleControl(vehicle: Vehicle)
       }
       //are we already decaying? are we unowned? is no one seated anywhere?
       if (!decaying &&
-          obj.Definition.undergoesDecay &&
-          obj.OwnerGuid.isEmpty &&
-          obj.Seats.values.forall(!_.isOccupied)) {
+        obj.Definition.undergoesDecay &&
+        obj.OwnerGuid.isEmpty &&
+        allSeatsUnoccupied) {
         decaying = true
         decayTimer = context.system.scheduler.scheduleOnce(
           MountableObject.Definition.DeconstructionTime.getOrElse(5 minutes),
@@ -422,6 +430,16 @@ class VehicleControl(vehicle: Vehicle)
         )
       }
     }
+  }
+
+  private def StartRadiationSelfReporting(): Unit = {
+    passengerRadiationCloudTimer.cancel()
+    passengerRadiationCloudTimer = context.system.scheduler.scheduleWithFixedDelay(
+      250.milliseconds,
+      250.milliseconds,
+      self,
+      VehicleControl.RadiationTick
+    )
   }
 
   def PrepareForDisabled(kickPassengers: Boolean) : Unit = {
@@ -492,7 +510,7 @@ class VehicleControl(vehicle: Vehicle)
       case Some(_) =>
         decaying = false
         decayTimer.cancel()
-      case None => ;
+      case None => ()
     }
   }
 
@@ -507,9 +525,9 @@ class VehicleControl(vehicle: Vehicle)
               self.toString,
               AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(obj.GUID, item.GUID, slot))
             )
-          case None => ;
+          case None =>  ()
         }
-      case _ => ;
+      case _ => ()
     }
   }
 
