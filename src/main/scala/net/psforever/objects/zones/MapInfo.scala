@@ -51,34 +51,16 @@ case object MapInfo extends StringEnum[MapInfo] {
         scale = MapScale.Dim8192,
         hotSpotSpan = 80,
         environment = {
-          //exclude parts of voltan and naum due to their generator rooms being below sealevel
-          val northVoltan = 3562.4844f
-          val southVoltan = 3401.6875f
-          val eastVoltan = 4556.703f
-          val westVoltan = 4411.6875f
-          val northNaum = 3575.8047f
-          val southNaum = 3539.5234f
-          val eastNaum = 5490.6875f
-          val westNaum = 5427.078f
-          List(
-            Pool(EnvironmentAttribute.Water, 11, 8192, westVoltan, 0, 0), //west of voltan
-            Pool(EnvironmentAttribute.Water, 11, 8192, westNaum, 0, eastVoltan), //between voltan and naum
-            Pool(EnvironmentAttribute.Water, 11, 8192, 8192, 0, eastNaum), //east of naum
-            Pool(EnvironmentAttribute.Water, 11, 8192, eastVoltan, northVoltan, westVoltan), //north of voltan
-            Pool(EnvironmentAttribute.Water, 11, southVoltan, eastVoltan, 0, westVoltan), //south of voltan
-            Pool(EnvironmentAttribute.Water, 11, 8192, eastNaum, northNaum, westNaum), //north of naum
-            Pool(EnvironmentAttribute.Water, 11, southNaum, eastNaum, 0, westNaum) //south of naum
-            //TODO voltan Killplane
-            //TODO naum Killplane
-          ) ++ MapEnvironment.zoneMapEdgeKillPlane(
-            MapScale.Dim8192,
-            (400, 400, 200, 400),
-            List(
-              (450, 450, 250, 450, 3),
-              (500, 500, 300, 500, 2),
-              (600, 600, 400, 600, 1)
+          List(SeaLevel(EnvironmentAttribute.Water, 11)) ++
+            MapEnvironment.zoneMapEdgeKillPlane(
+              MapScale.Dim8192,
+              (400, 400, 200, 400),
+              List(
+                (450, 450, 250, 450, 3),
+                (500, 500, 300, 500, 2),
+                (600, 600, 400, 600, 1)
+              )
             )
-          )
         }
       )
 
@@ -185,8 +167,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         hotSpotSpan = 80,
         environment = List(
           SeaLevel(EnvironmentAttribute.Water, 10.03125f),
-          Pool(EnvironmentAttribute.Water, 213.03125f, 3116.7266f, 4724.414f, 2685.8281f, 4363.461f), //east side of southwest of tootega
-          Pool(EnvironmentAttribute.Water, 213.03125f, 2994.2969f, 4363.461f, 2685.8281f, 4187.4375f), //west side of southwest of tootega
+          Pool(EnvironmentAttribute.Water, 213.03125f, 3116.7266f, 4724.414f, 2685.8281f, 4187.4375f) //southwest of tootega
         ) ++ MapEnvironment.zoneMapEdgeKillPlane(
           MapScale.Dim8192,
           (400, 400, 400, 400),
@@ -265,15 +246,16 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 230810349L,
         scale = MapScale.Dim8192,
         hotSpotSpan = 80,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 28)) ++ MapEnvironment.zoneMapEdgeKillPlane(
-          MapScale.Dim8192,
-          (200, 200, 200, 200),
-          List(
-            (250, 250, 250, 250, 3),
-            (300, 300, 300, 300, 2),
-            (400, 400, 400, 400, 1)
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 28)) ++
+          MapEnvironment.zoneMapEdgeKillPlane(
+            MapScale.Dim8192,
+            (200, 200, 200, 200),
+            List(
+              (250, 250, 250, 250, 3),
+              (300, 300, 300, 300, 2),
+              (400, 400, 400, 400, 1)
+            )
           )
-        )
       )
 
   case object Map11
@@ -370,13 +352,13 @@ case object MapInfo extends StringEnum[MapInfo] {
         scale = MapScale.Dim2560,
         hotSpotSpan = 80,
         environment = List(
+          SeaLevel(EnvironmentAttribute.Death, 10),
           Pool(EnvironmentAttribute.Water, 194.89062f, 1763.4141f, 1415.125f, 1333.9531f, 1280.4609f), //east, northern pool
           Pool(EnvironmentAttribute.Water, 192.40625f, 1717.5703f, 1219.3359f, 1572.8828f, 1036.1328f), //bottom, northern pool
           Pool(EnvironmentAttribute.Water, 192.32812f, 1966.1562f, 1252.7344f, 1889.8047f, 1148.5312f), //top, northern pool
           Pool(EnvironmentAttribute.Water, 191.65625f, 1869.1484f, 1195.6406f, 1743.8125f, 1050.7344f), //middle, northern pool
           Pool(EnvironmentAttribute.Water, 183.98438f, 914.33594f, 1369.5f, 626.03906f, 666.3047f), //upper southern pools
-          Pool(EnvironmentAttribute.Water, 182.96875f, 580.7578f, 913.52344f, 520.4531f, 843.97656f), //lowest southern pool
-          SeaLevel(EnvironmentAttribute.Death, 10)
+          Pool(EnvironmentAttribute.Water, 182.96875f, 580.7578f, 913.52344f, 520.4531f, 843.97656f) //lowest southern pool
         )
       )
 
@@ -449,14 +431,8 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 3654267088L,
         scale = MapScale.Dim4096,
         hotSpotSpan = 80,
-        environment = List(
-          Pool(EnvironmentAttribute.Water, 3.5f, 2867f, 1228f, 1128f, 0f), //west
-          Pool(EnvironmentAttribute.Water, 3.5f, 4096f, 4096f, 2867f, 0f), //north
-          Pool(EnvironmentAttribute.Water, 3.5f, 2867f, 4096f, 1227f, 2900f), //east
-          Pool(EnvironmentAttribute.Water, 3.5f, 1227f, 4096f, 0f, 2000f), //southeast
-          Pool(EnvironmentAttribute.Water, 3.5f, 1128f, 2000f, 0f, 0f), //southwest
-          Pool(EnvironmentAttribute.Death, 0.5f, 2867f, 2900f, 1128f, 1228f), //central, kill
-        ) ++ MapEnvironment.dim4096MapEdgeKillPlanes
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 3.5f)) ++
+          MapEnvironment.dim4096MapEdgeKillPlanes
       )
 
   case object Map99

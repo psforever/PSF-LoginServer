@@ -1,6 +1,7 @@
 // Copyright (c) 2020-2024 PSForever
 package net.psforever.objects.serverobject.environment
 
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.vital.Vitality
 import net.psforever.types.Vector3
@@ -22,8 +23,8 @@ object EnvironmentAttribute {
       (obj.Definition.DrownAtMaxDepth || obj.Definition.DisableAtMaxDepth) &&
         canInteractWithPlayersAndVehicles(obj) &&
         (obj match {
-          case p: Player  => p.VehicleSeated.isEmpty
-          case v: Vehicle => v.MountedIn.isEmpty
+          case p: Player  => p.VehicleSeated.isEmpty && p.WhichSide == Sidedness.OutsideOf
+          case v: Vehicle => v.MountedIn.isEmpty && v.WhichSide == Sidedness.OutsideOf
           case _          => false
         })
     }
