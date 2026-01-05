@@ -407,10 +407,28 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               terminalUsedAction
 
             case Terminal.InfantryLoadout(exosuit, subtype, holsters, inventory) =>
+              import net.psforever.objects.serverobject.structures.Building
               log.info(s"${player.Name} wants to change equipment loadout to their option #${msg.unk1 + 1}")
               val originalSuit = player.ExoSuit
               val originalSubtype = Loadout.DetermineSubtype(player)
-              val dropPred = ContainableBehavior.DropPredicate(player)
+              val terminalOpt: Option[Terminal] =
+                player.Zone.GUID(msg.terminal_guid).collect {
+                  case t: Terminal => t
+                }
+              val hasCavernEquipmentBenefit: Boolean =
+                terminalOpt.exists { terminal =>
+                  terminal.Owner match {
+                    case fac: Building =>
+                      fac.hasCavernLockBenefit && player.Faction == fac.Faction
+                    case _ =>
+                      false
+                  }
+                }
+              val dropPred =
+                if (hasCavernEquipmentBenefit)
+                  ContainableBehavior.DropPredicateEquipmentBenefit(player)
+                else
+                  ContainableBehavior.DropPredicate(player)
               //determine player's next exo-suit
               val (nextSuit, nextSubtype) = {
                 lazy val fallbackSuit = if (Players.CertificationToUseExoSuit(player, originalSuit, originalSubtype)) {

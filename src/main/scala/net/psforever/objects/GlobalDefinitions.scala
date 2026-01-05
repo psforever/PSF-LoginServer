@@ -1125,6 +1125,8 @@ object GlobalDefinitions {
 
   val medical_terminal = new MedicalTerminalDefinition(529)
 
+  val medical_terminal_healing_module = new MedicalTerminalDefinition(530)
+
   val portable_med_terminal = new MedicalTerminalDefinition(689)
 
   val pad_landing_frame = new MedicalTerminalDefinition(618)

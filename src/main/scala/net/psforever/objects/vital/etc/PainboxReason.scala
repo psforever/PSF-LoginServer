@@ -1,7 +1,9 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.vital.etc
 
+import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.painbox.Painbox
+import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.{NoResistanceSelection, SimpleResolutions}
 import net.psforever.objects.vital.base.{DamageReason, DamageResolution}
@@ -13,7 +15,18 @@ final case class PainboxReason(entity: Painbox) extends DamageReason {
   private val definition = entity.Definition
   assert(definition.innateDamage.nonEmpty, s"causal entity '${definition.Name}' does not emit pain field")
 
-  def source: DamageWithPosition = definition.innateDamage.get
+  def source: DamageWithPosition = {
+    val base = definition.innateDamage.get
+    entity.Owner match {
+      case b: Building if b.hasCavernLockBenefit =>
+        new DamageWithPosition {
+          Damage0 = 5
+          DamageRadius = 0
+          DamageToHealthOnly = true
+        }
+          case _ => base
+        }
+    }
 
   def resolution: DamageResolution.Value = DamageResolution.Resolved
 
