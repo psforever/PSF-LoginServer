@@ -74,7 +74,7 @@ add_property pulsar equiptime 600
 add_property pulsar holstertime 600
 add_property punisher equiptime 600
 add_property punisher holstertime 600
-add_property radiator allowed false
+add_property radiator allowed true
 add_property r_shotgun equiptime 750
 add_property r_shotgun holstertime 750
 add_property remote_electronics_kit equiptime 500

@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.environment.interaction.common.Watery
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.environment.{EnvironmentTrait, PieceOfEnvironment, interaction}
 import net.psforever.objects.vehicles.control.VehicleControl
-import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.types.OxygenState
 
 import scala.annotation.unused

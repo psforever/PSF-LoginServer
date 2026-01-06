@@ -3,17 +3,23 @@ package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.interior.Sidedness
+import net.psforever.objects.serverobject.mount.InteractWithRadiationCloudsSeatedInEntity
 import net.psforever.objects.serverobject.structures.{Amenity, AmenityOwner, Building}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAware
 import net.psforever.objects.serverobject.turret.auto.AutomatedTurret
 import net.psforever.objects.sourcing.SourceEntry
+import net.psforever.objects.vital.resistance.StandardResistanceProfile
+import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.types.Vector3
 
 class FacilityTurret(tDef: FacilityTurretDefinition)
   extends Amenity
     with AutomatedTurret
+    with StandardResistanceProfile
     with JammableUnit
+    with InteractsWithZone
     with CaptureTerminalAware {
+  interaction(new InteractWithRadiationCloudsSeatedInEntity(obj = this, range = 100f))
   WeaponTurret.LoadDefinition(turret = this)
   WhichSide = Sidedness.OutsideOf
 

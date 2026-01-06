@@ -3,7 +3,7 @@ package net.psforever.objects.ce
 
 import net.psforever.objects.geometry.d3.VolumetricGeometry
 import net.psforever.objects.zones.blockmap.SectorPopulation
-import net.psforever.objects.zones.{InteractsWithZone, ZoneInteraction, ZoneInteractionType}
+import net.psforever.objects.zones.interaction.{InteractsWithZone, ZoneInteraction, ZoneInteractionType}
 import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable}
 import net.psforever.types.PlanetSideGUID
 

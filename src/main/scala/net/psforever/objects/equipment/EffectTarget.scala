@@ -17,7 +17,7 @@ object EffectTarget {
     * Arbitrary, but useful.
     */
   object Category extends Enumeration {
-    val Aircraft, Deployable, Equipment, Player, Turret, Vehicle = Value
+    val Aircraft, Deployable, Equipment, Player, Turret, Vehicle, All = Value
   }
 
   object Validation {
@@ -25,6 +25,9 @@ object EffectTarget {
 
     //noinspection ScalaUnusedSymbol
     def Invalid(target: PlanetSideGameObject): Boolean = false
+
+    //noinspection ScalaUnusedSymbol
+    def Valid(target: PlanetSideGameObject): Boolean = true
 
     def Medical(target: PlanetSideGameObject): Boolean = {
       target match {

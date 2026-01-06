@@ -1,7 +1,7 @@
 package net.psforever.objects.serverobject.environment.interaction
 
 import net.psforever.objects.serverobject.environment.{EnvironmentTrait, PieceOfEnvironment}
-import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 
 trait InteractionWith {
   def attribute: EnvironmentTrait

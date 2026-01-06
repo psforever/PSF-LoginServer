@@ -4,20 +4,14 @@ package net.psforever.objects.global
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.ballistics.{AggravatedDamage, AggravatedInfo, AggravatedTiming, ChargeDamage}
 import net.psforever.objects.definition.ProjectileDefinition
-import net.psforever.objects.definition.converter.{
-  LittleBuddyProjectileConverter,
-  ProjectileConverter,
-  RadiationCloudConverter
-}
+import net.psforever.objects.definition.converter.{LittleBuddyProjectileConverter, ProjectileConverter, RadiationCloudConverter}
 import net.psforever.objects.equipment.{ArmorSiphonRepairHost, EffectTarget, TargetValidation}
 import net.psforever.objects.serverobject.aura.Aura
 import net.psforever.objects.vital.base.DamageType
 import net.psforever.objects.vital.damage.{RadialDegrade, SameHit, StandardDamageProfile}
 import net.psforever.objects.vital.etc.{
   ArmorSiphonMaxDistanceCutoff,
-  ExplosionDamagesOnlyAbove,
-  InfantryAggravatedRadiation,
-  InfantryAggravatedRadiationBurn
+  ExplosionDamagesOnlyAbove
 }
 import net.psforever.objects.vital.projectile._
 
@@ -1053,6 +1047,9 @@ object GlobalDefinitionsProjectile {
     maelstrom_grenade_projectile.InitialVelocity = 30
     maelstrom_grenade_projectile.Lifespan = 2f
     maelstrom_grenade_projectile.DamageProxy = 464 //maelstrom_grenade_damager
+    maelstrom_grenade_projectile.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.All, EffectTarget.Validation.Valid)
+    )
     ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile)
     maelstrom_grenade_projectile.Modifiers = SameHit
 
@@ -1068,6 +1065,9 @@ object GlobalDefinitionsProjectile {
     maelstrom_grenade_projectile_contact.InitialVelocity = 30
     maelstrom_grenade_projectile_contact.Lifespan = 15f
     maelstrom_grenade_projectile_contact.DamageProxy = 464 //maelstrom_grenade_damager
+    maelstrom_grenade_projectile_contact.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.All, EffectTarget.Validation.Valid)
+    )
     ProjectileDefinition.CalculateDerivedFields(maelstrom_grenade_projectile_contact)
     maelstrom_grenade_projectile_contact.Modifiers = SameHit
 
@@ -1529,7 +1529,7 @@ object GlobalDefinitionsProjectile {
     ProjectileDefinition.CalculateDerivedFields(quasar_projectile)
 
     radiator_cloud.Name = "radiator_cloud"
-    radiator_cloud.Damage0 = 1 //2
+    radiator_cloud.Damage0 = 2
     radiator_cloud.DamageAtEdge = 1.0f
     radiator_cloud.DamageRadius = 5f
     radiator_cloud.DamageToHealthOnly = true
@@ -1539,7 +1539,7 @@ object GlobalDefinitionsProjectile {
     //custom aggravated information
     radiator_cloud.ProjectileDamageTypeSecondary = DamageType.Aggravated
     radiator_cloud.Aggravated = AggravatedDamage(
-      AggravatedInfo(DamageType.Splash, 1f, 80),
+      AggravatedInfo(DamageType.Splash, 0f, 80),
       Aura.None,
       AggravatedTiming(250, 2),
       0f,
@@ -1552,12 +1552,7 @@ object GlobalDefinitionsProjectile {
     radiator_cloud.ExistsOnRemoteClients = true
     radiator_cloud.Packet = radCloudConverter
     //radiator_cloud.Geometry = GeometryForm.representProjectileBySphere()
-    radiator_cloud.Modifiers = List(
-      MaxDistanceCutoff,
-      InfantryAggravatedRadiation,
-      InfantryAggravatedRadiationBurn,
-      ShieldAgainstRadiation
-    )
+    radiator_cloud.Modifiers = MaxDistanceCutoff
 
     radiator_grenade_projectile.Name = "radiator_grenade_projectile" // Todo : Radiator damages ?
     radiator_grenade_projectile.GrenadeProjectile = true             //not really, but technically yes
@@ -1565,6 +1560,9 @@ object GlobalDefinitionsProjectile {
     radiator_grenade_projectile.InitialVelocity = 30
     radiator_grenade_projectile.Lifespan = 3f
     radiator_grenade_projectile.DamageProxy = 717 //radiator_cloud
+    radiator_grenade_projectile.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.Player, EffectTarget.Validation.Player)
+    )
     ProjectileDefinition.CalculateDerivedFields(radiator_grenade_projectile)
 
     radiator_sticky_projectile.Name = "radiator_sticky_projectile"
@@ -1574,6 +1572,9 @@ object GlobalDefinitionsProjectile {
     radiator_sticky_projectile.InitialVelocity = 30
     radiator_sticky_projectile.Lifespan = 4f
     radiator_sticky_projectile.DamageProxy = 717 //radiator_cloud
+    radiator_sticky_projectile.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.All, EffectTarget.Validation.Valid)
+    )
     ProjectileDefinition.CalculateDerivedFields(radiator_sticky_projectile)
 
     reaver_rocket_projectile.Name = "reaver_rocket_projectile"
@@ -2040,12 +2041,7 @@ object GlobalDefinitionsProjectile {
     aphelion_plasma_cloud.ExistsOnRemoteClients = true
     aphelion_plasma_cloud.Packet = radCloudConverter
     //aphelion_plasma_cloud.Geometry = GeometryForm.representProjectileBySphere()
-    aphelion_plasma_cloud.Modifiers = List( //TODO placeholder values
-      MaxDistanceCutoff,
-      InfantryAggravatedRadiation,
-      InfantryAggravatedRadiationBurn,
-      ShieldAgainstRadiation
-    )
+    aphelion_plasma_cloud.Modifiers = MaxDistanceCutoff
 
     aphelion_plasma_rocket_projectile.Name = "aphelion_plasma_rocket_projectile"
     //has property aggravated_damage_max_factor, but it's the aphelion_plasma_cloud that performs aggravated damage
@@ -2060,6 +2056,9 @@ object GlobalDefinitionsProjectile {
     aphelion_plasma_rocket_projectile.DamageRadius = 3f
     aphelion_plasma_rocket_projectile.ProjectileDamageType = DamageType.Splash
     //aphelion_plasma_rocket_projectile.DamageProxy = 96 //aphelion_plama_cloud
+    aphelion_plasma_rocket_projectile.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.All, EffectTarget.Validation.Valid)
+    )
     aphelion_plasma_rocket_projectile.InitialVelocity = 75
     aphelion_plasma_rocket_projectile.Lifespan = 5f
     ProjectileDefinition.CalculateDerivedFields(aphelion_plasma_rocket_projectile)
@@ -2225,6 +2224,9 @@ object GlobalDefinitionsProjectile {
     peregrine_particle_cannon_projectile.DamageRadius = 3f
     peregrine_particle_cannon_projectile.ProjectileDamageType = DamageType.Splash
     //peregrine_particle_cannon_projectile.DamageProxy = 655 //peregrine_particle_cannon_radiation_cloud
+    peregrine_particle_cannon_projectile.DamageProxyOnDirectHit = List(
+      TargetValidation(EffectTarget.Category.All, EffectTarget.Validation.Valid)
+    )
     peregrine_particle_cannon_projectile.InitialVelocity = 500
     peregrine_particle_cannon_projectile.Lifespan = .6f
     ProjectileDefinition.CalculateDerivedFields(peregrine_particle_cannon_projectile)
@@ -2243,10 +2245,7 @@ object GlobalDefinitionsProjectile {
     peregrine_particle_cannon_radiation_cloud.ExistsOnRemoteClients = true
     peregrine_particle_cannon_radiation_cloud.Packet = radCloudConverter
     //peregrine_particle_cannon_radiation_cloud.Geometry = GeometryForm.representProjectileBySphere()
-    peregrine_particle_cannon_radiation_cloud.Modifiers = List(
-      MaxDistanceCutoff,
-      ShieldAgainstRadiation
-    )
+    peregrine_particle_cannon_radiation_cloud.Modifiers = MaxDistanceCutoff
 
     peregrine_rocket_pod_projectile.Name = "peregrine_rocket_pod_projectile"
     peregrine_rocket_pod_projectile.Damage0 = 30

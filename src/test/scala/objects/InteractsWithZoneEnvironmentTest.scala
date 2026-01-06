@@ -10,7 +10,8 @@ import net.psforever.objects.serverobject.aura.{Aura, AuraEffectBehavior}
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.environment.interaction.RespondsToZoneEnvironment
 import net.psforever.objects.vital.Vitality
-import net.psforever.objects.zones.{InteractsWithZone, Zone, ZoneMap}
+import net.psforever.objects.zones.interaction.InteractsWithZone
+import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration._

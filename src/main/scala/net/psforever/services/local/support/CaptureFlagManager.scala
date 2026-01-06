@@ -10,7 +10,8 @@ import net.psforever.objects.serverobject.environment.interaction.InteractWithEn
 import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
-import net.psforever.objects.zones.{InteractsWithZone, Zone}
+import net.psforever.objects.zones.Zone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game._
 import net.psforever.services.{Service, ServiceManager}
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}

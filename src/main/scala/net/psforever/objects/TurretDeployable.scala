@@ -18,7 +18,7 @@ import net.psforever.objects.vital.damage.DamageCalculations
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
-import net.psforever.objects.zones.InteractsWithZone
+import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game.TriggeredSound
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
