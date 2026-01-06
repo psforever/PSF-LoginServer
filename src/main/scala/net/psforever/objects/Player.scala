@@ -91,6 +91,7 @@ class Player(var avatar: Avatar)
   var outfit_window_open: Boolean        = false
   var outfit_list_open: Boolean          = false
   var maxAutoRunEnabled: Boolean         = false
+  var protectedWhileZoning: Boolean      = false
 
   /** From PlanetsideAttributeMessage */
   var PlanetsideAttribute: Array[Long] = Array.ofDim(120)

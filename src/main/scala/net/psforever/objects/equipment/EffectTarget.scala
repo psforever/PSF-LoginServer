@@ -29,13 +29,23 @@ object EffectTarget {
     //noinspection ScalaUnusedSymbol
     def Valid(target: PlanetSideGameObject): Boolean = true
 
-    def Medical(target: PlanetSideGameObject): Boolean =
+    def Medical(target: PlanetSideGameObject): Boolean = {
       target match {
         case p: Player =>
           p.Health > 0 && (p.Health < p.MaxHealth || p.Armor < p.MaxArmor)
         case _ =>
           false
       }
+    }
+
+    def HealthModule(target: PlanetSideGameObject): Boolean = {
+      target match {
+        case p: Player =>
+          p.Health > 0 && p.Health < 120
+        case _ =>
+          false
+      }
+    }
 
     def HealthCrystal(target: PlanetSideGameObject): Boolean =
       target match {

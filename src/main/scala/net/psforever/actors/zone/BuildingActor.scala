@@ -8,6 +8,8 @@ import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.building._
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType, WarpGate}
 import net.psforever.objects.zones.Zone
+import net.psforever.packet.PlanetSideGamePacket
+import net.psforever.packet.game.ContinentalLockUpdateMessage
 import net.psforever.persistence
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -76,6 +78,9 @@ object BuildingActor {
 
   final case class DensityLevelUpdate(building: Building) extends Command
 
+  final case class ContinentalLock(zone: Zone) extends Command
+
+  final case class HomeLockBenefits(msg: PlanetSideGamePacket) extends Command
   /**
     * Set a facility affiliated to one faction to be affiliated to a different faction.
     * @param details building and event system references
@@ -162,7 +167,6 @@ object BuildingActor {
     val building = details.building
     val zone = building.Zone
     building.Faction = faction
-    zone.actor ! ZoneActor.ZoneMapUpdate() // Update entire lattice to show lattice benefits
     zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SetEmpire(building.GUID, faction))
   }
 }
@@ -251,6 +255,14 @@ class BuildingActor(
 
       case DensityLevelUpdate(building) =>
         details.galaxyService ! GalaxyServiceMessage(GalaxyAction.SendResponse(details.building.densityLevelUpdateMessage(building)))
+        Behaviors.same
+
+      case ContinentalLock(zone) =>
+        details.galaxyService ! GalaxyServiceMessage(GalaxyAction.SendResponse(ContinentalLockUpdateMessage(zone.Number, zone.lockedBy)))
+        Behaviors.same
+
+      case HomeLockBenefits(msg) =>
+        details.galaxyService ! GalaxyServiceMessage(GalaxyAction.SendResponse(msg))
         Behaviors.same
     }
   }

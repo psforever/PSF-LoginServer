@@ -12,7 +12,7 @@ import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.LivePlayerList
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.objects.zones.ZoneInfo
+import net.psforever.objects.zones.{Zone, ZoneInfo}
 import net.psforever.packet.game.SetChatFilterMessage
 import net.psforever.services.chat.{DefaultChannel, OutfitChannel, SquadChannel}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
@@ -20,7 +20,7 @@ import net.psforever.services.teamwork.{SquadResponse, SquadService, SquadServic
 import net.psforever.types.ChatMessageType.CMT_QUIT
 import org.log4s.Logger
 
-import java.util.concurrent.{Executors, TimeUnit}
+import java.util.concurrent.{Executors, ScheduledFuture, TimeUnit}
 import scala.annotation.unused
 import scala.collection.{Seq, mutable}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -368,7 +368,10 @@ class ChatOperations(
       case (Some(buildings), Some(faction), Some(_)) =>
           //TODO implement timer
         //schedule processing of buildings with a delay
-        processBuildingsWithDelay(buildings, faction, 1000) //delay of 1000ms between each building operation
+        processBuildingsWithDelay(buildings, faction, 100) { zone =>
+          zone.actor ! ZoneActor.ZoneMapUpdate()
+          zone.actor ! ZoneActor.AssignLockedBy(zone, notifyPlayers=true)
+        }
         true
       case _ =>
         false
@@ -379,30 +382,36 @@ class ChatOperations(
                                  buildings: Seq[Building],
                                  faction: PlanetSideEmpire.Value,
                                  delayMillis: Long
-                               ): Unit = {
-    val buildingIterator = buildings.iterator
-    scheduler.scheduleAtFixedRate(
+                               )(onComplete: Zone => Unit): Unit = {
+    import net.psforever.objects.serverobject.structures.StructureType
+    val buildingsToProcess = buildings.filter(b => b.CaptureTerminal.isDefined && b.Faction != faction)
+    val iterator = buildingsToProcess.iterator
+    val zone = buildings.head.Zone
+    var handle: ScheduledFuture[_] = null
+    handle = scheduler.scheduleAtFixedRate(
       () => {
-        if (buildingIterator.hasNext) {
-          val building = buildingIterator.next()
+        if (iterator.hasNext) {
+          val building = iterator.next()
           val terminal = building.CaptureTerminal.get
-          val zone = building.Zone
-          val zoneActor = zone.actor
-          val buildingActor = building.Actor
-          //clear any previous hack
-          if (building.CaptureTerminalIsHacked) {
-            zone.LocalEvents ! LocalServiceMessage(
-              zone.id,
-              LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody)
-            )
+          if (building.BuildingType == StructureType.Tower) {
+            building.Actor ! BuildingActor.SetFaction(faction)
+            building.Actor ! BuildingActor.AmenityStateChange(terminal, Some(false))
+            building.Actor ! BuildingActor.MapUpdate()
           }
-          //push any updates this might cause
-          zoneActor ! ZoneActor.ZoneMapUpdate()
-          //convert faction affiliation
-          buildingActor ! BuildingActor.SetFaction(faction)
-          buildingActor ! BuildingActor.AmenityStateChange(terminal, Some(false))
-          //push for map updates again
-          zoneActor ! ZoneActor.ZoneMapUpdate()
+          else {
+            if (building.CaptureTerminalIsHacked) {
+              zone.LocalEvents ! LocalServiceMessage(
+                zone.id,
+                LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody)
+              )
+            }
+            building.Actor ! BuildingActor.SetFaction(faction)
+            building.Actor ! BuildingActor.AmenityStateChange(terminal, Some(false))
+          }
+        }
+        else {
+          handle.cancel(false)
+          onComplete(zone)
         }
       },
       0,

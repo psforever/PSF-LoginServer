@@ -32,9 +32,9 @@ import scalax.collection.GraphEdge._
 import scala.util.Try
 import akka.actor.typed
 import net.psforever.actors.session.AvatarActor
-import net.psforever.actors.zone.ZoneActor
+import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.actors.zone.building.WarpGateLogic
-import net.psforever.objects.avatar.Avatar
+import net.psforever.objects.avatar.{Avatar, PlayerControl}
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.geometry.d3.VolumetricGeometry
 import net.psforever.objects.guid.pool.NumberPool
@@ -56,6 +56,8 @@ import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.blockmap.{BlockMap, SectorPopulation}
+import net.psforever.packet.game.EmpireBenefitsMessage.{ZoneBenefit, ZoneLock, ZoneLockBenefit, ZoneLockZone}
+import net.psforever.packet.game.{EmpireBenefitsMessage, PropertyOverrideMessage}
 import net.psforever.services.Service
 import net.psforever.zones.Zones
 
@@ -193,6 +195,16 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     * @see `init(ActorContext)`
     */
   private var zoneInitialized: Promise[Boolean] = Promise[Boolean]()
+
+  /**
+    * For ContinentalLockUpdateMessage
+    */
+  var lockedBy: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
+
+  /**
+    * Used with lockedBy, but persists until another empire locks the cont
+    */
+  var benefitRecipient: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
 
   /**
     * When the zone has completed initializing, this will be the future.
@@ -638,6 +650,142 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
       liveFireAllowed.update(f, state)
     }
     output.toList
+  }
+
+  def NotifyContinentalLockBenefits(zone: Zone, building: Building): Unit = {
+    building.Actor ! BuildingActor.ContinentalLock(zone)
+    ApplyHomeLockBenefits(building)
+  }
+
+  def ApplyHomeLockBenefits(building: Building): Unit = {
+    val homeSets: Map[PlanetSideEmpire.Value, Set[Int]] = Map(
+      PlanetSideEmpire.TR -> Set(1, 2),
+      PlanetSideEmpire.VS -> Set(5, 6),
+      PlanetSideEmpire.NC -> Set(7, 10)
+    )
+    val homePerks: Map[PlanetSideEmpire.Value, String] = Map(
+      PlanetSideEmpire.TR -> "battlewagon 15mmbullet prowler 105mmbullet threemanheavybuggy heavy_grenade_mortar apc_tr",
+      PlanetSideEmpire.VS -> "magrider pulse_battery heavy_rail_beam_battery twomanhoverbuggy flux_cannon_thresher_battery aurora fluxpod_ammo apc_vs",
+      PlanetSideEmpire.NC -> "thunderer gauss_cannon_ammo twomanheavybuggy firebird_missile vanguard 150mmbullet apc_nc"
+    )
+
+    def isLockedBy(homeSet: Set[Int], empire: PlanetSideEmpire.Value): Boolean =
+      Zones.zones.filter(z => homeSet.contains(z.Number)).forall(_.benefitRecipient == empire)
+
+    val perks: Map[PlanetSideEmpire.Value, String] =
+      PlanetSideEmpire.values.map { empire =>
+        val empirePerks = homeSets.collect {
+          case (owner, zoneSet) if owner != empire && isLockedBy(zoneSet, empire) =>
+            homePerks(owner)
+        }
+        empire -> empirePerks.mkString(" ")
+      }.toMap
+
+    if (perks.values.forall(_.isEmpty)) {/*do nothing*/}
+    else {
+      val overrideMsg = PropertyOverrideMessage(List(PropertyOverrideMessage.GamePropertyScope(0, List(PropertyOverrideMessage.GamePropertyTarget(343,
+        List(PropertyOverrideMessage.GameProperty("purchase_exempt_vs", perks(PlanetSideEmpire.VS)),
+          PropertyOverrideMessage.GameProperty("purchase_exempt_tr", perks(PlanetSideEmpire.TR)),
+          PropertyOverrideMessage.GameProperty("purchase_exempt_nc", perks(PlanetSideEmpire.NC))))))))
+      building.Actor ! BuildingActor.HomeLockBenefits(overrideMsg)
+    }
+    val benefitMsg = BuildEmpireBenefits()
+    if (benefitMsg.zoneLocks.nonEmpty) {
+      building.Actor ! BuildingActor.HomeLockBenefits(benefitMsg)
+    }
+  }
+
+  def ApplyHomeLockBenefitsOnLogin(player: Player): Unit = {
+    val homeSets: Map[PlanetSideEmpire.Value, Set[Int]] = Map(
+      PlanetSideEmpire.TR -> Set(1, 2),
+      PlanetSideEmpire.VS -> Set(5, 6),
+      PlanetSideEmpire.NC -> Set(7, 10)
+    )
+    val homePerks: Map[PlanetSideEmpire.Value, String] = Map(
+      PlanetSideEmpire.TR -> "battlewagon 15mmbullet prowler 105mmbullet threemanheavybuggy heavy_grenade_mortar apc_tr",
+      PlanetSideEmpire.VS -> "magrider pulse_battery heavy_rail_beam_battery twomanhoverbuggy flux_cannon_thresher_battery aurora fluxpod_ammo apc_vs",
+      PlanetSideEmpire.NC -> "thunderer gauss_cannon_ammo twomanheavybuggy firebird_missile vanguard 150mmbullet apc_nc"
+    )
+
+    def isLockedBy(homeSet: Set[Int], empire: PlanetSideEmpire.Value): Boolean =
+      Zones.zones.filter(z => homeSet.contains(z.Number)).forall(_.benefitRecipient == empire)
+
+    val perks: Map[PlanetSideEmpire.Value, String] =
+      PlanetSideEmpire.values.map { empire =>
+        val empirePerks = homeSets.collect {
+          case (owner, zoneSet) if owner != empire && isLockedBy(zoneSet, empire) =>
+            homePerks(owner)
+        }
+        empire -> empirePerks.mkString(" ")
+      }.toMap
+
+    if (perks.values.forall(_.isEmpty)) {/*do nothing*/}
+    else {
+      val overrideMsg = PropertyOverrideMessage(List(PropertyOverrideMessage.GamePropertyScope(0, List(PropertyOverrideMessage.GamePropertyTarget(343,
+        List(PropertyOverrideMessage.GameProperty("purchase_exempt_vs", perks(PlanetSideEmpire.VS)),
+          PropertyOverrideMessage.GameProperty("purchase_exempt_tr", perks(PlanetSideEmpire.TR)),
+          PropertyOverrideMessage.GameProperty("purchase_exempt_nc", perks(PlanetSideEmpire.NC))))))))
+      PlayerControl.sendResponse(player.Zone, player.Name, overrideMsg)
+    }
+
+    val benefitMsg = BuildEmpireBenefits()
+    if (benefitMsg.zoneLocks.nonEmpty) {
+      PlayerControl.sendResponse(player.Zone, player.Name, benefitMsg)
+    }
+  }
+
+  def BuildEmpireBenefits(): EmpireBenefitsMessage = {
+    val locks = scala.collection.mutable.ArrayBuffer[ZoneLock]()
+    val benefits = scala.collection.mutable.ArrayBuffer[ZoneBenefit]()
+    val homeSets: Map[PlanetSideEmpire.Value, Set[Int]] = Map(
+      PlanetSideEmpire.TR -> Set(1, 2),
+      PlanetSideEmpire.VS -> Set(5, 6),
+      PlanetSideEmpire.NC -> Set(7, 10)
+    )
+    val benefitOfZones: Map[Int, Int] = Map(
+      3 -> 6,  // Cyssor gives benefit 6 (+10% armor bonus to vehicles)
+      4 -> 1,  // Ishundar gives benefit 1 (vehicle shields)
+      9 -> 3   // Searhus gives benefit 3 (faster respawn)
+    )
+    val homePerkBenefits: Map[PlanetSideEmpire.Value, Int] = Map(
+      PlanetSideEmpire.TR -> 7,
+      PlanetSideEmpire.NC -> 8,
+      PlanetSideEmpire.VS -> 9
+    )
+    def isLockedBy(homeSet: Set[Int], empire: PlanetSideEmpire.Value): Boolean =
+      Zones.zones.filter(z => homeSet.contains(z.Number)).forall(_.benefitRecipient == empire)
+
+    // home zone perks
+    homeSets.foreach { case (owner, set) =>
+      PlanetSideEmpire.values.filterNot(_ == PlanetSideEmpire.NEUTRAL).foreach { empire =>
+        if (owner != empire && isLockedBy(set, empire)) {
+          locks += ZoneLock(empire, s"lock-${owner.toString.toLowerCase}-homes")
+          benefits += ZoneBenefit(empire, ZoneLockBenefit(homePerkBenefits(owner)))
+        }
+      }
+    }
+
+    benefitOfZones.foreach { case (zoneNum, benefitId) =>
+      Zones.zones.find(_.Number == zoneNum).foreach { z =>
+        z.benefitRecipient match {
+          case PlanetSideEmpire.NEUTRAL =>
+          //nothing
+          case empire =>
+            locks += ZoneLock(empire, s"lock-z$zoneNum")
+            benefits += ZoneBenefit(empire, ZoneLockBenefit(benefitId))
+        }
+      }
+    }
+    // all four islands together give benefit 4 (vehicle repair)
+    val islandZones: Set[Int] = Set(29, 30, 31, 32)
+    val islandBenefit: Int = 4
+    PlanetSideEmpire.values.filterNot(_ == PlanetSideEmpire.NEUTRAL).foreach { empire =>
+      if (isLockedBy(islandZones, empire)) {
+        locks += ZoneLock(empire, ZoneLockZone.i1_i2_i3_i4)
+        benefits += ZoneBenefit(empire, ZoneLockBenefit(islandBenefit))
+      }
+    }
+    EmpireBenefitsMessage(locks.toVector, benefits.toVector)
   }
 }
 

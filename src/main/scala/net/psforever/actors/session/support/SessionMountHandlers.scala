@@ -7,7 +7,8 @@ import net.psforever.objects.serverobject.interior.Sidedness.OutsideOf
 import net.psforever.objects.{PlanetSideGameObject, Tool, Vehicle}
 import net.psforever.objects.vehicles.{CargoBehavior, MountableWeapons}
 import net.psforever.objects.vital.InGameHistory
-import net.psforever.packet.game.{DismountVehicleCargoMsg, InventoryStateMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectAttachMessage}
+import net.psforever.packet.game.{DismountVehicleCargoMsg, GenericObjectActionMessage, InventoryStateMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
+import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{BailType, PlanetSideGUID, Vector3}
 //
@@ -197,8 +198,23 @@ class SessionMountHandlers(
    * @param seatNum the mount out of which which the player is disembarking
    */
   def DismountVehicleAction(tplayer: Player, obj: PlanetSideGameObject with FactionAffinity with InGameHistory, seatNum: Int): Unit = {
-    DismountAction(tplayer, obj, seatNum)
     tplayer.WhichSide = OutsideOf
+    if (tplayer.BailProtection) {
+      tplayer.ContributionFrom(obj)
+      sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
+      continent.VehicleEvents ! VehicleServiceMessage(
+        continent.id,
+        VehicleAction.SendResponse(Service.defaultPlayerGUID, PlanetsideAttributeMessage(obj.GUID, 81, 1))
+      )
+      continent.VehicleEvents ! VehicleServiceMessage(
+        continent.id,
+        VehicleAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(obj.GUID, tplayer.GUID, tplayer.Position, obj.Orientation))
+      )
+    }
+    else {
+      sendResponse(GenericObjectActionMessage(obj.GUID, 24))
+      DismountAction(tplayer, obj, seatNum)
+    }
     //until vehicles maintain synchronized momentum without a driver
     obj match {
       case v: Vehicle

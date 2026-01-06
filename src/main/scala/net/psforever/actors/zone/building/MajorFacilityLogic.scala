@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAware, CaptureTerminalAwareBehavior}
 import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.packet.game.PlanetsideAttributeMessage
 import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
@@ -158,6 +159,7 @@ case object MajorFacilityLogic
     * @return the next behavior for this control agency messaging system
     */
   def amenityStateChange(details: BuildingWrapper, entity: Amenity, data: Option[Any]): Behavior[Command] = {
+    import net.psforever.objects.GlobalDefinitions
     entity match {
       case gen: Generator =>
         if (generatorStateChange(details, gen, data)) {
@@ -176,12 +178,24 @@ case object MajorFacilityLogic
           case _ =>
             log(details).warn("CaptureTerminal AmenityStateChange was received with no attached data.")
         }
-        // When a CC is hacked (or resecured) all currently hacked amenities for the base should return to their default unhacked state
-        building.HackableAmenities.foreach(amenity => {
-          if (amenity.HackedBy.isDefined) {
-            building.Zone.LocalEvents ! LocalServiceMessage(amenity.Zone.id,LocalAction.ClearTemporaryHack(PlanetSideGUID(0), amenity))
-          }
-        })
+        // When a CC is hacked (or resecured) clear hacks on amenities based on currently installed virus
+        val hackedAmenities = building.HackableAmenities.filter(_.HackedBy.isDefined)
+        val amenitiesToClear = building.virusId match {
+          case 0 =>
+            hackedAmenities.filterNot(a => a.Definition == GlobalDefinitions.lock_external || a.Definition == GlobalDefinitions.main_terminal)
+          case 4 =>
+            hackedAmenities.filterNot(a => a.Definition == GlobalDefinitions.order_terminal || a.Definition == GlobalDefinitions.main_terminal)
+          case 8 =>
+            hackedAmenities
+          case _ =>
+            hackedAmenities
+        }
+        amenitiesToClear.foreach { amenity =>
+          building.Zone.LocalEvents ! LocalServiceMessage(
+            amenity.Zone.id,
+            LocalAction.ClearTemporaryHack(PlanetSideGUID(0), amenity)
+          )
+        }
       // No map update needed - will be sent by `HackCaptureActor` when required
       case _ =>
         details.galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(details.building.infoUpdateMessage()))
@@ -231,6 +245,8 @@ case object MajorFacilityLogic
     }
     setFactionTo(details, PlanetSideEmpire.NEUTRAL)
     details.asInstanceOf[MajorFacilityWrapper].hasNtuSupply = false
+    details.building.Zone.lockedBy = PlanetSideEmpire.NEUTRAL
+    details.building.Zone.NotifyContinentalLockBenefits(details.building.Zone, details.building)
     Behaviors.same
   }
 
@@ -286,6 +302,12 @@ case object MajorFacilityLogic
         val msg = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, guid, 16)
         building.PlayersInSOI.foreach { player =>
           events ! AvatarServiceMessage(player.Name, msg)
+        }
+        if (building.hasCavernLockBenefit) {
+          zone.LocalEvents ! LocalServiceMessage(
+            zone.id,
+            LocalAction.SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0))
+          )
         }
         false
       case Some(GeneratorControl.Event.Destroyed) =>

@@ -247,6 +247,9 @@ object ProximityTerminalControl {
                                          target: PlanetSideGameObject
                                        ): Boolean = {
     (terminal.Definition, target) match {
+      case (_: MedicalTerminalDefinition, p: Player)
+        if terminal.Definition ==
+          GlobalDefinitions.medical_terminal_healing_module  => HealthModule(terminal, p)
       case (_: MedicalTerminalDefinition, p: Player)         => HealthAndArmorTerminal(terminal, p)
       case (_: WeaponRechargeTerminalDefinition, p: Player)  => WeaponRechargeTerminal(terminal, p)
       case (_: MedicalTerminalDefinition, v: Vehicle)        => VehicleRepairTerminal(terminal, v)
@@ -267,6 +270,16 @@ object ProximityTerminalControl {
     val fullHeal = HealAction(unit, target, medDef.HealAmount, PlayerHealthCallback)
     val fullRepair = ArmorRepairAction(unit, target, medDef.ArmorAmount)
     fullHeal && fullRepair
+  }
+
+  /**
+    * Activated by a facility having a linked cavern lock or health module installed. Friendly players
+    * within the SOI receive constant healing as requested by the client
+    */
+  def HealthModule(unit: Terminal with ProximityUnit, target: Player): Boolean = {
+    val medDef = unit.Definition.asInstanceOf[MedicalTerminalDefinition]
+    val fullHeal = HealthModuleAction(unit, target, medDef.HealAmount, PlayerHealthCallback)
+    fullHeal
   }
 
   /**
@@ -316,6 +329,35 @@ object ProximityTerminalControl {
     } else {
       true
     }
+  }
+
+  /**
+    * Heals players and increases their health/max health up to 120 if they enter the SOI this benefit is active in.
+    */
+  def HealthModuleAction(
+                          terminal: Terminal,
+                          target: PlanetSideGameObject with Vitality with ZoneAware,
+                          healAmount: Int,
+                          updateFunc: PlanetSideGameObject with Vitality with ZoneAware => Unit
+                        ): Boolean = {
+    val maxHealthCap = 120
+    val zone = target.Zone
+    val oldMax = target.MaxHealth
+    val newMax = math.min(oldMax + healAmount, maxHealthCap)
+
+    if (oldMax < maxHealthCap) {
+      target.MaxHealth = newMax
+      zone.AvatarEvents ! AvatarServiceMessage(
+        zone.id,
+        AvatarAction.PlanetsideAttributeToAll(target.GUID, 1, newMax)
+      )
+    }
+    if (target.Health < newMax) {
+      target.Health = math.min(target.Health + healAmount, newMax)
+      target.LogActivity(HealFromTerminal(AmenitySource(terminal), 1))
+      updateFunc(target)
+    }
+    target.Health == newMax
   }
 
   def PlayerHealthCallback(target: PlanetSideGameObject with Vitality with ZoneAware): Unit = {

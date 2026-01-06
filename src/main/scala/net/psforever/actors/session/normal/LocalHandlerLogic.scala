@@ -2,7 +2,8 @@
 package net.psforever.actors.session.normal
 
 import akka.actor.ActorContext
-import net.psforever.actors.session.support.{LocalHandlerFunctions, SessionData, SessionLocalHandlers}
+import net.psforever.actors.session.support.SpawnOperations.ActivityQueuedTask
+import net.psforever.actors.session.support.{LocalHandlerFunctions, SessionData, SessionLocalHandlers, SpawnOperations}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.vehicles.MountableWeapons
@@ -191,7 +192,17 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
         sessionLogic.general.useRouterTelepadEffect(passengerGuid, srcGuid, destGuid)
 
       case LocalResponse.SendResponse(msg) =>
-        sendResponse(msg)
+        msg match {
+          case m: GenericObjectActionMessage =>
+            // delay building virus alert if player is dead/respawning
+            if ((m.code == 58 || m.code == 60 || m.code == 61) && !sessionLogic.zoning.spawn.startEnqueueSquadMessages) {
+              sessionLogic.zoning.spawn.enqueueNewActivity(ActivityQueuedTask(
+                SpawnOperations.delaySendGenericObjectActionMessage(msg), 1))
+            }
+            else sendResponse(msg)
+          case _ =>
+            sendResponse(msg)
+        }
 
       case LocalResponse.SetEmpire(objectGuid, empire) =>
         sendResponse(SetEmpireMessage(objectGuid, empire))

@@ -150,6 +150,11 @@ object MiddlewareActor {
     packet.isInstanceOf[ChatMsg]
   }
 
+  /** `PropertyOverrideMessage` ptsd from other large packets causing issues when bundled */
+  private def propertyOverrideMessageGuard(packet: PlanetSidePacket): Boolean = {
+    packet.isInstanceOf[PropertyOverrideMessage]
+  }
+
   /**
     * A function for blanking tasks related to inbound packet resolution.
     * Do nothing.
@@ -259,7 +264,8 @@ class MiddlewareActor(
     MiddlewareActor.keepAliveMessageGuard,
     MiddlewareActor.characterInfoMessageGuard,
     MiddlewareActor.squadDetailDefinitionMessageGuard,
-    MiddlewareActor.chatMsgGuard
+    MiddlewareActor.chatMsgGuard,
+    MiddlewareActor.propertyOverrideMessageGuard
   )
 
   private val smpHistoryLength: Int = 100

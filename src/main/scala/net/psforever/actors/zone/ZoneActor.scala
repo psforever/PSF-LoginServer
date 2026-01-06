@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.structures.{StructureType, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorGroup}
 import net.psforever.objects.{ConstructionItem, PlanetSideGameObject, Player, Vehicle}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState, Vector3}
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.building.MajorFacilityLogic
 import net.psforever.objects.avatar.scoring.Kill
@@ -18,8 +18,10 @@ import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.{InGameActivity, InGameHistory}
 import net.psforever.objects.zones.exp.{ExperienceCalculator, SupportExperienceCalculator}
+import net.psforever.packet.game.{BuildingInfoUpdateMessage, PlanetsideAttributeMessage}
 import net.psforever.util.Database._
 import net.psforever.persistence
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.collection.mutable
 import scala.util.{Failure, Success}
@@ -78,6 +80,10 @@ object ZoneActor {
   final case class RewardThisDeath(entity: PlanetSideGameObject with FactionAffinity with InGameHistory) extends Command
 
   final case class RewardOurSupporters(target: SourceEntry, history: Iterable[InGameActivity], kill: Kill, bep: Long) extends Command
+
+  final case class AssignLockedBy(zone: Zone, notifyPlayers: Boolean) extends Command
+
+  final case class BuildingInfoState(msg: BuildingInfoUpdateMessage) extends Command
 }
 
 class ZoneActor(
@@ -115,6 +121,7 @@ class ZoneActor(
           // TODO this happens during testing, need a way to not always persist during tests
         }
       }
+      AssignLockedBy(zone, notifyPlayers=false)
     case Failure(e) => log.error(e.getMessage)
   }
 
@@ -183,14 +190,75 @@ class ZoneActor(
       case ZoneMapUpdate() =>
         zone.Buildings
           .filter(building =>
-            building._2.BuildingType == StructureType.Facility || building._2.BuildingType == StructureType.Tower)
+            building._2.BuildingType == StructureType.Facility)
           .values
           .foreach(_.Actor ! BuildingActor.MapUpdate())
+        Behaviors.same
+
+      case AssignLockedBy(zone, notifyPlayers) =>
+        AssignLockedBy(zone, notifyPlayers)
+        Behaviors.same
+
+      case BuildingInfoState(msg) =>
+        UpdateBuildingState(msg)
         Behaviors.same
     }
     .receiveSignal {
       case (_, PostStop) =>
         Behaviors.same
+    }
+  }
+
+  def AssignLockedBy(zone: Zone, notifyPlayers: Boolean): Unit = {
+    val buildings = zone.Buildings.values
+    val facilities = if (zone.id.startsWith("c")) {
+       buildings.filter(b =>
+        b.Name.startsWith("N") || b.Name.startsWith("S")).toSeq
+      }
+      else {
+        buildings.filter(_.BuildingType == StructureType.Facility).toSeq
+      }
+    val factions = facilities.map(_.Faction).toSet
+    zone.lockedBy =
+      if (factions.size == 1) factions.head
+      else PlanetSideEmpire.NEUTRAL
+    zone.benefitRecipient =
+      if (facilities.nonEmpty && facilities.forall(_.Faction == facilities.head.Faction))
+        facilities.head.Faction
+      else
+        zone.benefitRecipient
+    if (facilities.nonEmpty && notifyPlayers) { zone.NotifyContinentalLockBenefits(zone, facilities.head) }
+  }
+
+  def UpdateBuildingState(msg: BuildingInfoUpdateMessage): Unit = {
+    val buildingOpt = zone.Buildings.collectFirst {
+      case (_, b) if b.MapId == msg.building_map_id => b
+    }
+    buildingOpt.foreach { building =>
+      if (msg.generator_state == PlanetSideGeneratorState.Normal && building.hasCavernLockBenefit) {
+        zone.LocalEvents ! LocalServiceMessage(
+          zone.id,
+          LocalAction.SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 1))
+        )
+      }
+      msg.is_hacked match {
+        case true if building.BuildingType == StructureType.Facility && !zone.map.cavern =>
+          zone.LocalEvents ! LocalServiceMessage(
+            zone.id,
+            LocalAction.SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0))
+          )
+        case false if building.hasCavernLockBenefit =>
+          zone.LocalEvents ! LocalServiceMessage(
+            zone.id,
+            LocalAction.SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 1))
+          )
+        case false if building.BuildingType == StructureType.Facility && !zone.map.cavern && !building.hasCavernLockBenefit =>
+          zone.LocalEvents ! LocalServiceMessage(
+            zone.id,
+            LocalAction.SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0))
+          )
+        case _ =>
+      }
     }
   }
 }

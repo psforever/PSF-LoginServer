@@ -10,6 +10,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.Vector3
+import net.psforever.zones.Zones
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -44,6 +45,12 @@ class VehicleSpawnControlLoadVehicle(pad: VehicleSpawnPad) extends VehicleSpawnC
         ) //appear below the trench and doors
         vehicle.WhichSide = pad.WhichSide
         vehicle.Cloaked = vehicle.Definition.CanCloak && driver.Cloaked
+        // increase MaxHealth by 10% if driver has Cyssor empire armor benefit
+        if (Zones.zones.find(_.Number == 3).exists(_.benefitRecipient == driver.Faction)) {
+          val boosted = Math.round(vehicle.MaxHealth * 1.1).toInt
+          vehicle.MaxHealth = boosted
+          vehicle.Health = boosted
+        }
 
         temp = Some(order)
         val result = ask(pad.Zone.Transport, Zone.Vehicle.Spawn(vehicle))

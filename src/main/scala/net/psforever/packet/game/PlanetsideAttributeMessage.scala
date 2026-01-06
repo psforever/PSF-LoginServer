@@ -201,7 +201,7 @@ import scodec.codecs._
   * `68 - Vehicle shield health`<br>
   * `79 - ???`<br>
   * `80 - Damage vehicle (unknown value)`<br>
-  * `81 - ???`<br>
+  * `81 - Player bailed from vehicle, causes bail animation `<br>
   * `113 - Vehicle capacitor - e.g. Leviathan EMP charge`
   * @param guid the object
   * @param attribute_type the field

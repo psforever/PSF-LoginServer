@@ -122,9 +122,6 @@ case object WarpGateLogic
           }
           updateBroadcastCapabilitiesOfWarpGate(details, wg, setBroadcastTo)
           updateBroadcastCapabilitiesOfWarpGate(details, otherWg, setBroadcastTo)
-          if (wg.Zone.map.cavern && !otherWg.Zone.map.cavern) {
-            otherWg.Zone.actor ! ZoneActor.ZoneMapUpdate()
-          }
 
         case (Some(_), Some(wg : WarpGate), Some(otherWg : WarpGate), None) =>
           handleWarpGateDeadendPair(details, otherWg, wg)

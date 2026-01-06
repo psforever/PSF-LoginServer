@@ -1125,6 +1125,8 @@ object GlobalDefinitions {
 
   val medical_terminal = new MedicalTerminalDefinition(529)
 
+  val medical_terminal_healing_module = new MedicalTerminalDefinition(530)
+
   val portable_med_terminal = new MedicalTerminalDefinition(689)
 
   val pad_landing_frame = new MedicalTerminalDefinition(618)
@@ -1238,6 +1240,8 @@ object GlobalDefinitions {
   val secondary_capture = new CaptureTerminalDefinition(751) // Tower CC
 
   val vanu_control_console = new CaptureTerminalDefinition(930) // Cavern CC
+
+  val main_terminal = new MainTerminalDefinition(473)
 
   val llm_socket = new CaptureFlagSocketDefinition()
 

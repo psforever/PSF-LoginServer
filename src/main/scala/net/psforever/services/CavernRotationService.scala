@@ -555,15 +555,37 @@ class CavernRotationService(
   def sendCavernRotationUpdates(sendToSession: ActorRef): Unit = {
     val curr = System.currentTimeMillis()
     val (lockedZones, unlockedZones) = managedZones.partition(_.locked)
-    //borrow GalaxyService response structure, but send to the specific endpoint
-    lockedZones.foreach { monitor =>
+    //borrow GalaxyService response structure, but send to the specific endpoint math.max(0, monitor.start + monitor.duration - curr)
+    unlockedZones.foreach { monitor =>
+      sendToSession ! GalaxyServiceResponse("", GalaxyResponse.UnlockedZoneUpdate(monitor.zone))
+    }
+    val sortedLocked = lockedZones.sortBy(z => z.start)
+    sortedLocked.take(2).foreach { monitor =>
       sendToSession ! GalaxyServiceResponse(
         "",
         GalaxyResponse.LockedZoneUpdate(monitor.zone, math.max(0, monitor.start + monitor.duration - curr))
       )
     }
-    unlockedZones.foreach { monitor =>
-      sendToSession ! GalaxyServiceResponse("", GalaxyResponse.UnlockedZoneUpdate(monitor.zone))
+    sortedLocked.takeRight(2).foreach { monitor =>
+      sendToSession ! GalaxyServiceResponse(
+        "",
+        GalaxyResponse.LockedZoneUpdate(monitor.zone, 0L)
+      )
+    }
+  }
+
+  def sendCavernRotationUpdatesToAll(galaxyService: ActorRef): Unit = {
+    val curr = System.currentTimeMillis()
+    val (lockedZones, unlockedZones) = managedZones.partition(_.locked)
+    unlockedZones.foreach { z =>
+      galaxyService ! GalaxyServiceMessage(GalaxyAction.UnlockedZoneUpdate(z.zone))
+    }
+    val sortedLocked = lockedZones.sortBy(z => z.start)
+    sortedLocked.take(2).foreach { z =>
+      galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(z.zone, z.start + z.duration - curr))
+    }
+    sortedLocked.takeRight(2).foreach { z =>
+      galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(z.zone, 0L))
     }
   }
 
@@ -595,9 +617,9 @@ class CavernRotationService(
       //zone transition immediately
       lockTimer.cancel()
       unlockTimer.cancel()
+      retimeZonesUponForcedRotation(galaxyService)
       zoneRotationFunc(galaxyService)
       lockTimerToDisplayWarning(timeBetweenRotationsHours.hours - firstClosingWarningAtMinutes.minutes)
-      retimeZonesUponForcedRotation(galaxyService)
     } else {
       //instead of transitioning immediately, jump to the 5 minute rotation warning for the benefit of players
       lockTimer.cancel() //won't need to retime until zone change
@@ -651,7 +673,6 @@ class CavernRotationService(
       galaxyService ! GalaxyServiceMessage(GalaxyAction.SendResponse(
         ChatMsg(ChatMessageType.UNK_229, s"@cavern_switched^@${lockingZone.id}~^@${unlockingZone.id}")
       ))
-      galaxyService ! GalaxyServiceMessage(GalaxyAction.UnlockedZoneUpdate(unlockingZone))
       //change warp gate statuses to reflect zone lock state
       CavernRotationService.disableLatticeLinksAndWarpGateAccessibility(
         ((prevToLock until managedZones.size) ++ (0 until prevToLock))
@@ -664,7 +685,7 @@ class CavernRotationService(
           .map(managedZones(_).zone)
       )
     }
-    galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(locking.zone, fullHoursBetweenRotationsAsMillis))
+    sendCavernRotationUpdatesToAll(galaxyService)
   }
 
   /**
@@ -689,9 +710,6 @@ class CavernRotationService(
         val zone = managedZones(monitorIndex)
         val newStart = startingInThePast + (index * timeBetweenRotationsHours).hours.toMillis
         zone.start = newStart
-        if (zone.locked) {
-          galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(zone.zone, newStart + fullDurationAsMillis - curr))
-        }
       }
     //println(managedZones.flatMap { z => s"[${z.start + z.duration - curr}]"}.mkString(""))
   }
@@ -715,10 +733,8 @@ class CavernRotationService(
     val advanceByTimeAsMillis = advanceTimeBy.toMillis
     managedZones.foreach { zone =>
       zone.start = zone.start - advanceByTimeAsMillis
-      if (zone.locked) {
-        galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(zone.zone, zone.start + zone.duration - curr))
-      }
     }
+    sendCavernRotationUpdatesToAll(galaxyService)
     //println(managedZones.flatMap { z => s"[${z.start + z.duration - curr}]"}.mkString(""))
   }
 

@@ -5,6 +5,7 @@ import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.{PlanetSideGameObject, Vehicle}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{DriveState, PlanetSideGUID, VehicleFormat}
+import net.psforever.zones.Zones
 
 import scala.util.{Failure, Success, Try}
 
@@ -14,6 +15,8 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
 
   override def ConstructorData(obj: Vehicle): Try[VehicleData] = {
     val health = StatConverter.Health(obj.Health, obj.MaxHealth)
+    val boosted = if (Zones.zones.find(_.Number == 3).exists(_.benefitRecipient == obj.Faction)) true
+                  else false
     if (health > 0) { //active
       Success(
         VehicleData(
@@ -32,7 +35,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
               case None        => PlanetSideGUID(0)
             }
           ),
-          unk3 = false,
+          boostMaxHealth = boosted,
           health,
           unk4 = false,
           no_mount_points = false,
@@ -59,7 +62,7 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
             v5 = None,
             guid = PlanetSideGUID(0)
           ),
-          unk3 = false,
+          boostMaxHealth = boosted,
           health = 0,
           unk4 = false,
           no_mount_points = true,

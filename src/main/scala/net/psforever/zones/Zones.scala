@@ -156,7 +156,7 @@ object Zones {
     "vanu_vehicle_station"
   )
   private val basicTerminalTypes =
-    Seq("order_terminal", "spawn_terminal", "cert_terminal", "order_terminal", "vanu_equipment_term")
+    Seq("order_terminal", "spawn_terminal", "cert_terminal", "order_terminal", "vanu_equipment_term", "main_terminal")
   private val spawnPadTerminalTypes = Seq(
     "ground_vehicle_terminal",
     "air_vehicle_terminal",
@@ -342,6 +342,15 @@ object Zones {
                     ProximityTerminal.Constructor(
                       structure.position,
                       GlobalDefinitions.recharge_terminal_weapon_module
+                    ),
+                    owningBuildingGuid = buildingGuid
+                  )
+                  //health module slowly heals friendly players in the soi
+                  zoneMap.addLocalObject(
+                    buildingGuid + 2,
+                    ProximityTerminal.Constructor(
+                      structure.position,
+                      GlobalDefinitions.medical_terminal_healing_module
                     ),
                     owningBuildingGuid = buildingGuid
                   )
@@ -557,7 +566,7 @@ object Zones {
 
         case "adv_med_terminal" | "repair_silo" | "pad_landing_frame" | "pad_landing_tower_frame" | "medical_terminal" |
             "crystals_health_a" | "crystals_health_b" | "crystals_repair_a" | "crystals_repair_b" | "crystals_vehicle_a" |
-            "crystals_vehicle_b" | "crystals_energy_a" | "crystals_energy_b" =>
+            "crystals_vehicle_b" | "crystals_energy_a" | "crystals_energy_b" | "medical_terminal_healing_module" =>
           zoneMap.addLocalObject(
             obj.guid,
             ProximityTerminal

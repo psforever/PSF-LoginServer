@@ -39,7 +39,7 @@ class MountedVehiclesTest extends Specification {
             vdata.no_mount_points mustEqual false
             vdata.driveState mustEqual DriveState.Mobile
             vdata.cloak mustEqual false
-            vdata.unk3 mustEqual false
+            vdata.boostMaxHealth mustEqual false
             vdata.unk4 mustEqual false
             vdata.unk5 mustEqual false
             vdata.unk6 mustEqual false
