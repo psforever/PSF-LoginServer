@@ -758,7 +758,8 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       val deployables = player.avatar.deployables
       if (deployables.Valid(obj) &&
           !deployables.Contains(obj) &&
-          Players.deployableWithinBuildLimits(player, obj)) {
+          Players.deployableWithinBuildLimits(player, obj) &&
+          routerFactionSame(obj)) {
         //deployables, upon construction, may display an animation effect
         tool.Definition match {
           case GlobalDefinitions.router_telepad => () /* no special animation */
@@ -801,6 +802,29 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       val zone = player.Zone
       zone.Deployables ! Zone.Deployable.Dismiss(obj)
       Players.buildCooldownReset(zone, player.Name, obj.GUID)
+    }
+  }
+
+  /**
+  Prevent a player from deploying a telepad that belongs to a Router of a different faction
+   */
+  private def routerFactionSame(obj: Deployable): Boolean = {
+    obj match {
+      case tp: TelepadDeployable =>
+        val zone = player.Zone
+        tp.Router match {
+          case Some(routerGuid) =>
+            zone.Vehicles.find(_.GUID == routerGuid) match {
+              case Some(router) =>
+                router.Faction == player.Faction
+              case None =>
+                false
+            }
+          case None =>
+            false
+        }
+      case _ =>
+        true //not a telepad
     }
   }
 
