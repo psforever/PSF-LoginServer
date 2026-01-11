@@ -40,7 +40,39 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
 
   def handleDismountVehicle(pkt: DismountVehicleMsg): Unit = {
     //can't do this if we're not in vehicle, so also not csr spectator
-    ops.handleDismountVehicle(pkt.copy(bailType = BailType.Bailed))
+    val DismountVehicleMsg(player_guid, _, _) = pkt
+    player
+      .avatar
+      .vehicle
+      .flatMap { obj_guid =>
+        (
+          sessionLogic.validObject(obj_guid, decorator = "csr/DismountVehicle/Vehicle"),
+          sessionLogic.validObject(player_guid, decorator = "csr/DismountVehicle/Player")
+        ) match {
+          case (Some(obj: Vehicle), Some(tplayer: Player)) if obj.MountedIn.isEmpty =>
+            Some((obj, tplayer))
+          case (Some(obj: Mountable), Some(tplayer: Player)) =>
+            Some((obj, tplayer))
+          case _ =>
+            None
+        }
+      }.foreach { case (obj, tplayer) =>
+      obj
+        .PassengerInSeat(tplayer)
+        .foreach { seatNum =>
+          if (obj.Seat(seatNum).flatMap(seat => seat.unmount(tplayer)).isEmpty) {
+            obj.Actor ! Mountable.TryDismount(tplayer, seatNum, BailType.Bailed) //attempt dismount cleanup
+            context.self ! Mountable.MountMessages(
+              tplayer,
+              Mountable.CanDismount(
+                obj,
+                seatNum,
+                obj.MountPoints.find(_._2.seatIndex == seatNum).map(_._1).getOrElse(0) //todo is accurate mount point necessary?
+              )
+            )
+          }
+        }
+    }
   }
 
   def handleMountVehicleCargo(pkt: MountVehicleCargoMsg): Unit = {
@@ -320,7 +352,6 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
 
       case Mountable.CanNotDismount(obj: Vehicle, _, _)
         if obj.isMoving(test = 1f) =>
-        ops.handleDismountVehicle(DismountVehicleMsg(player.GUID, BailType.Bailed, wasKickedByDriver=true))
         if (!player.spectator) {
           sendResponse(ChatMsg(ChatMessageType.UNK_224, "@TooFastToDismount"))
         }
