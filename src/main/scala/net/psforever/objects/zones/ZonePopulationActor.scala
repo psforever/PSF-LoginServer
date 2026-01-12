@@ -110,6 +110,7 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], c
     case Zone.Corpse.Remove(player) =>
       if (CorpseRemove(player, corpseList)) {
         PlayerLeave(player)
+        player.allowInteraction = false
         zone.actor ! ZoneActor.RemoveFromBlockMap(player)
       }
 

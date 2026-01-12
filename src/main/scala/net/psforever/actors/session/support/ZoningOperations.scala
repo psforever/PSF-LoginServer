@@ -3025,6 +3025,7 @@ class ZoningOperations(
                                     physSpawnPoint: Option[SpawnPoint]
                                   ): Unit = {
       log.info(s"${player.Name} will load in zone $zoneId at position $pos in $respawnTime")
+      player.resetInteractions()
       respawnTimer.cancel()
       reviveTimer.cancel()
       deadState = DeadState.RespawnTime
