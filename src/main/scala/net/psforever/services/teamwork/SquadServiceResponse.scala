@@ -6,10 +6,10 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadResponseType, SquadWaypoint}
-import net.psforever.services.GenericEventBusMsg
+import net.psforever.services.base.{EventResponse, GenericEventBusMsg}
 
 final case class SquadServiceResponse(channel: String, exclude: Iterable[Long], response: SquadResponse.Response)
-    extends GenericEventBusMsg
+     extends EventResponse with GenericEventBusMsg
 
 object SquadServiceResponse {
   def apply(toChannel: String, response: SquadResponse.Response): SquadServiceResponse =

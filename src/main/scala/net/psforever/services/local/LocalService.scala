@@ -8,8 +8,9 @@ import net.psforever.packet.game.{ObjectCreateMessage, TriggeredEffect, Triggere
 import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.local.support._
-import net.psforever.services.{GenericEventBus, Service}
-import net.psforever.services.support.SupportActor
+import net.psforever.services.Service
+import net.psforever.services.base.GenericEventBus
+import net.psforever.services.base.support.SupportActor
 
 class LocalService(zone: Zone) extends Actor {
   private val doorCloser = context.actorOf(

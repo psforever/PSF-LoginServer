@@ -3,9 +3,10 @@ package net.psforever.actors.session.normal
 
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
-import net.psforever.actors.session.support.{GalaxyHandlerFunctions, SessionGalaxyHandlers, SessionData}
+import net.psforever.actors.session.support.{GalaxyHandlerFunctions, SessionData, SessionGalaxyHandlers}
 import net.psforever.packet.game.{BroadcastWarpgateUpdateMessage, FriendsResponse, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyResponse, GalaxyServiceMessage}
+import net.psforever.services.base.EventResponse
+import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.types.{MemberAction, PlanetSideEmpire}
 
 object GalaxyHandlerLogic {
@@ -32,9 +33,9 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
 
   /* response handlers */
 
-  def handle(reply: GalaxyResponse.Response): Unit = {
+  def handle(reply: EventResponse): Unit = {
     reply match {
-      case GalaxyResponse.HotSpotUpdate(zone_index, priority, hot_spot_info) =>
+      case GalaxyAction.HotSpotUpdate(zone_index, priority, hot_spot_info) =>
         sendResponse(
           HotSpotUpdateMessage(
             zone_index,
@@ -43,7 +44,7 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
           )
         )
 
-      case GalaxyResponse.MapUpdate(msg) =>
+      case GalaxyAction.MapUpdate(msg) =>
         sendResponse(msg)
         import net.psforever.actors.zone.ZoneActor
         import net.psforever.zones.Zones
@@ -53,7 +54,7 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
           case None =>
         }
 
-      case GalaxyResponse.UpdateBroadcastPrivileges(zoneId, gateMapId, fromFactions, toFactions) =>
+      case GalaxyAction.UpdateBroadcastPrivileges(zoneId, gateMapId, fromFactions, toFactions) =>
         val faction = player.Faction
         val from = fromFactions.contains(faction)
         val to = toFactions.contains(faction)
@@ -63,16 +64,16 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
           sendResponse(BroadcastWarpgateUpdateMessage(zoneId, gateMapId, faction))
         }
 
-      case GalaxyResponse.FlagMapUpdate(msg) =>
+      case GalaxyAction.FlagMapUpdate(msg) =>
         sendResponse(msg)
 
-      case GalaxyResponse.TransferPassenger(temp_channel, vehicle, _, manifest) =>
+      case GalaxyAction.TransferPassenger(_, temp_channel, vehicle, _, manifest) =>
         sessionLogic.zoning.handleTransferPassenger(temp_channel, vehicle, manifest)
 
-      case GalaxyResponse.LockedZoneUpdate(zone, time) =>
+      case GalaxyAction.LockedZoneUpdate(zone, time) =>
         sendResponse(ZoneInfoMessage(zone.Number, empire_status=false, lock_time=time))
 
-      case GalaxyResponse.UnlockedZoneUpdate(zone) =>
+      case GalaxyAction.UnlockedZoneUpdate(zone) =>
         sendResponse(ZoneInfoMessage(zone.Number, empire_status=true, lock_time=0L))
         val popBO = 0
         val pop = zone.LivePlayers.distinctBy(_.CharId)
@@ -81,10 +82,10 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
         val popVS = pop.count(_.Faction == PlanetSideEmpire.VS)
         sendResponse(ZonePopulationUpdateMessage(zone.Number, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
 
-      case GalaxyResponse.LogStatusChange(name) if avatar.people.friend.exists(_.name.equals(name)) =>
+      case GalaxyAction.LogStatusChange(name) if avatar.people.friend.exists(_.name.equals(name)) =>
         avatarActor ! AvatarActor.MemberListRequest(MemberAction.UpdateFriend, name)
 
-      case GalaxyResponse.SendResponse(msg) =>
+      case GalaxyAction.SendResponse(msg) =>
         sendResponse(msg)
 
       case _ => ()

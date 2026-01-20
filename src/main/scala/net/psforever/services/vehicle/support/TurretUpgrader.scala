@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade,
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
-import net.psforever.services.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
+import net.psforever.services.base.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.Future

@@ -4,8 +4,8 @@ package net.psforever.services.hart
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.objects.zones.Zone
+import net.psforever.services.base.{EventResponse, GenericEventBus, GenericEventBusMsg}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.{GenericEventBus, GenericEventBusMsg}
 import net.psforever.types.{HartSequence, PlanetSideGUID}
 
 import scala.concurrent.duration._
@@ -20,7 +20,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
   */
 class HartTimer(zone: Zone) extends Actor {
   /** since the system is zone-locked, caching this value is fine */
-  val zoneId = zone.id
+  val zoneId: String = zone.id
   /** all of the paired HART facility amenities and the shuttle housed in that facility (in that order) */
   var padAndShuttlePairs: List[(PlanetSideGUID, PlanetSideGUID)] = List()
 
@@ -45,8 +45,8 @@ class HartTimer(zone: Zone) extends Actor {
   /** a message bus to which all associated orbital shuttle pads are subscribed */
   val padEvents = new GenericEventBus[HartTimer.Command]
   /** cache common messages */
-  val shuttleDockedInThisZone = HartTimer.ShuttleDocked(zoneId)
-  val shuttleFreeFromDockInThisZone = HartTimer.ShuttleFreeFromDock(zoneId)
+  val shuttleDockedInThisZone: HartTimer.ShuttleDocked = HartTimer.ShuttleDocked(zoneId)
+  val shuttleFreeFromDockInThisZone: HartTimer.ShuttleFreeFromDock = HartTimer.ShuttleFreeFromDock(zoneId)
 
   /** the behaviors common to both the inert and active operations of the hart */
   val commonBehavior: Receive = {
@@ -259,7 +259,7 @@ object HartTimer {
     * to relay instructions back to the individual facility amenity portions of this HART system.
     * The channel is blank because it does not need special designation.
     */
-  trait Command extends GenericEventBusMsg { def channel: String = "" }
+  trait Command extends EventResponse with GenericEventBusMsg { def channel: String = "" }
   /**
     * Forbid entry through the boartding gantry doors.
     */

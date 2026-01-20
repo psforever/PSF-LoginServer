@@ -12,7 +12,7 @@ import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
-import net.psforever.services.GenericEventBusMsg
+import net.psforever.services.base.{EventResponse, GenericEventBusMsg}
 import net.psforever.services.hart.HartTimer.OrbitalShuttleEvent
 
 final case class LocalServiceResponse(
@@ -22,7 +22,7 @@ final case class LocalServiceResponse(
 ) extends GenericEventBusMsg
 
 object LocalResponse {
-  trait Response
+  trait Response extends EventResponse
 
   final case class DeployableMapIcon(action: DeploymentAction.Value, deployInfo: DeployableInfo) extends Response
   final case class DeployableUIFor(obj: DeployedItem.Value)                                      extends Response

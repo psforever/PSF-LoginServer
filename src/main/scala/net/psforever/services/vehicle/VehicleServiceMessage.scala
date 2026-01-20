@@ -7,6 +7,7 @@ import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
+import net.psforever.services.base.{EventMessage, EventResponse}
 import net.psforever.types.{BailType, DriveState, PlanetSideGUID, Vector3}
 
 final case class VehicleServiceMessage(forChannel: String, actionMessage: VehicleAction.Action)
@@ -21,7 +22,9 @@ object VehicleServiceMessage {
 }
 
 object VehicleAction {
-  trait Action
+  trait Action extends EventMessage {
+    def response(): EventResponse = null
+  }
 
   final case class ChangeAmmo(
                                player_guid: PlanetSideGUID,

@@ -13,6 +13,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.ImplantAction
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
+import net.psforever.services.base.{EventMessage, EventResponse}
 import net.psforever.types.{ExoSuitType, ExperienceType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
@@ -25,7 +26,9 @@ object AvatarServiceMessage {
 }
 
 object AvatarAction {
-  sealed trait Action
+  sealed trait Action extends EventMessage {
+    def response(): EventResponse = null
+  }
 
   final case class ArmorChanged(player_guid: PlanetSideGUID, suit: ExoSuitType.Value, subtype: Int) extends Action
   final case class AvatarImplant(player_guid: PlanetSideGUID, action: ImplantAction.Value, implantSlot: Int, status: Int) extends Action

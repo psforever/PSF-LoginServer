@@ -15,6 +15,7 @@ import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.GenericObjectActionEnum.GenericObjectActionEnum
 import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.{ChatMsg, DeployableInfo, DeploymentAction, GenericAction, HackState7, TriggeredSound}
+import net.psforever.services.base.{EventMessage, EventResponse}
 import net.psforever.services.hart.HartTimer.OrbitalShuttleEvent
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
@@ -25,7 +26,9 @@ object LocalServiceMessage {
 }
 
 object LocalAction {
-  trait Action
+  trait Action extends EventMessage {
+    def response(): EventResponse = null
+  }
 
   final case class DeployItem(item: Deployable) extends Action
   final case class DeployableMapIcon(

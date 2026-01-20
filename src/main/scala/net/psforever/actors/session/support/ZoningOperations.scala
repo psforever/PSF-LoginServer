@@ -602,7 +602,7 @@ class ZoningOperations(
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty)) //clear squad list
     spawn.initializeFriendsAndIgnoredLists()
     //the following subscriptions last until character switch/logout
-    galaxyService ! Service.Join("galaxy") //for galaxy-wide messages
+    galaxyService ! Service.Join("") //for galaxy-wide messages
     galaxyService ! Service.Join(s"${avatar.faction}") //for hotspots, etc.
     sessionLogic.squadService ! Service.Join(s"${avatar.faction}") //channel will be player.Faction
     sessionLogic.squadService ! Service.Join(s"${avatar.id}") //channel will be player.CharId (in order to work with packets)
@@ -1470,10 +1470,7 @@ class ZoningOperations(
       case Some(manifest) =>
         val toChannel = manifest.file
         val topLevel  = interstellarFerryTopLevelGUID.getOrElse(vehicle.GUID)
-        galaxyService ! GalaxyServiceMessage(
-          toChannel,
-          GalaxyAction.TransferPassenger(player_guid, toChannel, vehicle, topLevel, manifest)
-        )
+        galaxyService ! GalaxyServiceMessage(toChannel, GalaxyAction.TransferPassenger(player_guid, toChannel, vehicle, topLevel, manifest))
         vehicle.CargoHolds.values
           .collect {
             case hold if hold.isOccupied =>

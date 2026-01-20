@@ -7,13 +7,16 @@ import net.psforever.objects.zones.{HotSpotInfo, Zone}
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{BuildingInfoUpdateMessage, CaptureFlagUpdateMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
-import net.psforever.services.GenericEventBusMsg
+import net.psforever.services.Service
+import net.psforever.services.base.{EventResponse, GenericResponseEnvelope}
 
-final case class GalaxyServiceResponse(channel: String, replyMessage: GalaxyResponse.Response)
-    extends GenericEventBusMsg
+final case class GalaxyServiceResponse(channel: String, reply: EventResponse)
+    extends GenericResponseEnvelope {
+  def exclude: PlanetSideGUID = Service.defaultPlayerGUID
+}
 
 object GalaxyResponse {
-  trait Response
+  trait Response extends EventResponse
 
   final case class HotSpotUpdate(zone_id: Int, priority: Int, host_spot_info: List[HotSpotInfo]) extends Response
   final case class MapUpdate(msg: BuildingInfoUpdateMessage)                                     extends Response

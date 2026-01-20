@@ -11,7 +11,7 @@ import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.types.{BailType, DriveState, PlanetSideGUID, Vector3}
-import net.psforever.services.GenericEventBusMsg
+import net.psforever.services.base.{EventResponse, GenericEventBusMsg}
 
 final case class VehicleServiceResponse(
     channel: String,
@@ -20,7 +20,7 @@ final case class VehicleServiceResponse(
 ) extends GenericEventBusMsg
 
 object VehicleResponse {
-  trait Response
+  trait Response extends EventResponse
 
   final case class ChangeAmmo(
                                weapon_guid: PlanetSideGUID,

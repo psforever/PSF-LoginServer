@@ -1,5 +1,5 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.services.support
+package net.psforever.services.base.support
 
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.zones.Zone

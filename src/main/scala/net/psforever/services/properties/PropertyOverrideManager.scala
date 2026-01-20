@@ -4,7 +4,9 @@ import akka.actor.Actor
 import net.psforever.packet.game.{GamePropertyTarget, PropertyOverrideMessage}
 import net.psforever.packet.game.PropertyOverrideMessage.GamePropertyScope
 import net.psforever.packet.game.objectcreate.ObjectClass
+import net.psforever.services.base.{EventMessage, EventResponse}
 import net.psforever.zones.Zones
+
 import scala.collection.mutable.ListBuffer
 
 class PropertyOverrideManager extends Actor {
@@ -87,5 +89,7 @@ class PropertyOverrideManager extends Actor {
 }
 
 object PropertyOverrideManager {
-  final case object GetOverridesMessage
+  final case object GetOverridesMessage extends EventMessage {
+    def response(): EventResponse = null
+  }
 }

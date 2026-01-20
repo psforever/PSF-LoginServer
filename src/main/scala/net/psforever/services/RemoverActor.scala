@@ -5,8 +5,8 @@ import akka.actor.Cancellable
 import net.psforever.objects.guid.{StraightforwardTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Default, PlanetSideGameObject}
+import net.psforever.services.base.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 import net.psforever.types.Vector3
-import net.psforever.services.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._

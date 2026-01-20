@@ -13,7 +13,7 @@ import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.packet.game.{ImplantAction, ObjectCreateMessage}
 import net.psforever.types.{ExoSuitType, ExperienceType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
-import net.psforever.services.GenericEventBusMsg
+import net.psforever.services.base.{EventResponse, GenericEventBusMsg}
 
 final case class AvatarServiceResponse(
     channel: String,
@@ -22,7 +22,7 @@ final case class AvatarServiceResponse(
 ) extends GenericEventBusMsg
 
 object AvatarResponse {
-  sealed trait Response
+  sealed trait Response extends EventResponse
 
   final case class ArmorChanged(suit: ExoSuitType.Value, subtype: Int) extends Response
   final case class AvatarImplant(action: ImplantAction.Value, implantSlot: Int, status: Int) extends Response

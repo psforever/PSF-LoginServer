@@ -6,6 +6,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import net.psforever.objects.{Session, SessionSource}
 import net.psforever.packet.game.ChatMsg
+import net.psforever.services.base.{EventMessage, EventResponse}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire}
 
 object ChatService {
@@ -17,14 +18,16 @@ object ChatService {
       new ChatService(context)
     }
 
-  sealed trait Command
+  sealed trait Command extends EventMessage {
+    def response(): EventResponse = null
+  }
 
   final case class JoinChannel(actor: ActorRef[MessageResponse], sessionSource: SessionSource, channel: ChatChannel) extends Command
   final case class LeaveChannel(actor: ActorRef[MessageResponse], channel: ChatChannel)                  extends Command
   final case class LeaveAllChannels(actor: ActorRef[MessageResponse])                                    extends Command
 
   final case class Message(session: Session, message: ChatMsg, channel: ChatChannel) extends Command
-  final case class MessageResponse(session: Session, message: ChatMsg, channel: ChatChannel)
+  final case class MessageResponse(session: Session, message: ChatMsg, channel: ChatChannel) extends EventResponse
 }
 
 class ChatService(context: ActorContext[ChatService.Command]) extends AbstractBehavior[ChatService.Command](context) {

@@ -7,7 +7,8 @@ import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectCreateMessageParent, PlacementData}
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.avatar.support.{CorpseRemovalActor, DroppedItemRemover}
-import net.psforever.services.{GenericEventBus, RemoverActor, Service}
+import net.psforever.services.base.GenericEventBus
+import net.psforever.services.{RemoverActor, Service}
 
 class AvatarService(zone: Zone) extends Actor {
   private val undertaker: ActorRef = context.actorOf(Props[CorpseRemovalActor](), s"${zone.id}-corpse-removal-agent")
