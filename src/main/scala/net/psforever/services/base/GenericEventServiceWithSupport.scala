@@ -16,11 +16,11 @@ trait GenericMessageToSupportEnvelope
   def response(outChannel: String): GenericResponseEnvelope = null
 }
 
-abstract class GenericEventServiceWithSupport[OUT <: GenericResponseEnvelope](
-                                                                               busName: String,
-                                                                               eventSupportServices: List[EventServiceSupport]
-                                                                             )
-  extends GenericEventService[OUT](busName) {
+abstract class GenericEventServiceWithSupport[IN <: GenericMessageEnvelope, OUT <: GenericResponseEnvelope]
+(
+  busName: String,
+  eventSupportServices: List[EventServiceSupport]
+) extends GenericEventService[IN, OUT](busName) {
 
   private val supportServices: Map[String, ActorRef] =
     eventSupportServices

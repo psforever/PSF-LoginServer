@@ -19,7 +19,7 @@ trait GenericMessageEnvelope {
   def response(outChannel: String): GenericResponseEnvelope
 }
 
-abstract class GenericEventService[OUT <: GenericResponseEnvelope](busName: String)
+abstract class GenericEventService[IN <: GenericMessageEnvelope, OUT <: GenericResponseEnvelope](busName: String)
   extends Actor {
   protected lazy val log: Logger = org.log4s.getLogger(getClass.getSimpleName)
 
@@ -47,7 +47,7 @@ abstract class GenericEventService[OUT <: GenericResponseEnvelope](busName: Stri
   def receive: Receive =
     commonJoinBehavior.orElse(commonLeaveBehavior)
       .orElse {
-        case msg: GenericMessageEnvelope =>
+        case msg: IN =>
           compose(msg)
 
         case msg => ()
