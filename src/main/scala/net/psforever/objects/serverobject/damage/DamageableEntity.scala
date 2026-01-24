@@ -167,7 +167,8 @@ object DamageableEntity {
       val zone = target.Zone
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.PlanetsideAttributeToAll(target.GUID, 0, target.Health)
+        target.GUID,
+        AvatarAction.PlanetsideAttributeToAll(0, target.Health)
       )
       true
     }
@@ -199,7 +200,7 @@ object DamageableEntity {
     val zoneId = zone.id
     val tguid  = target.GUID
     val attribution = attributionTo(cause, target.Zone)
-    zone.AvatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health))
+    zone.AvatarEvents ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(0, target.Health))
     if (target.isInstanceOf[SpawnTube]) {}//do nothing to prevent issue #1057
     else {
       zone.AvatarEvents ! AvatarServiceMessage(

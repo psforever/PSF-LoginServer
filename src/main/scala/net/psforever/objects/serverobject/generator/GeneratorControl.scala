@@ -113,10 +113,7 @@ class GeneratorControl(gen: Generator)
           //kaboom
           zone.AvatarEvents ! AvatarServiceMessage(
             zone.id,
-            AvatarAction.SendResponse(
-              Service.defaultPlayerGUID,
-              TriggerEffectMessage(gen.GUID, "explosion_generator", None, None)
-            )
+            AvatarAction.SendResponse(TriggerEffectMessage(gen.GUID, "explosion_generator", None, None))
           )
           queuedExplosion.cancel()
           queuedExplosion = Default.Cancellable

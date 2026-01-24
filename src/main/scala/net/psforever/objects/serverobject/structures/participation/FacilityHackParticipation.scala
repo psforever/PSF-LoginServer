@@ -109,8 +109,8 @@ trait FacilityHackParticipation extends ParticipationLogic {
       import net.psforever.services.Service
       import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
       val mainTerm = building.Amenities.filter(x => x.isInstanceOf[Terminal] && x.Definition == GlobalDefinitions.main_terminal).head.GUID
-      val msg1 = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, mainTerm, 61)
-      val msg2 = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, mainTerm, 58)
+      val msg1 = AvatarAction.GenericObjectAction(mainTerm, 61)
+      val msg2 = AvatarAction.GenericObjectAction(mainTerm, 58)
       val events = building.Zone.AvatarEvents
       list.foreach { p =>
         events ! AvatarServiceMessage(p.Name, msg1)

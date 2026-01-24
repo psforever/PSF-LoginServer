@@ -193,7 +193,6 @@ object OrbitalShuttlePadControl {
         zone.AvatarEvents ! AvatarServiceMessage(
           p.Name,
           AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
             ChatMsg(ChatMessageType.UNK_225, wideContents=false, "", "@DoorWillOpenWhenShuttleReturns", None)
           )
         )

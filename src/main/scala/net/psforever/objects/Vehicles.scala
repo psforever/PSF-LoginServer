@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.transfer.TransferContainer
 import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ChatMsg, FrameVehicleStateMessage, GenericObjectActionEnum, GenericObjectActionMessage, HackMessage, HackState, HackState1, HackState7, TriggeredSound, VehicleStateMessage}
+import net.psforever.packet.game.{ChatMsg, FrameVehicleStateMessage, GenericObjectActionEnum, HackMessage, HackState, HackState1, HackState7, TriggeredSound, VehicleStateMessage}
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -169,7 +169,8 @@ object Vehicles {
     (0 to 3).foreach(group => {
       vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
         toChannel,
-        AvatarAction.PlanetsideAttributeToAll(vehicle_guid, group + 10, vehicle.PermissionGroup(group).get.id)
+        vehicle_guid,
+        AvatarAction.PlanetsideAttributeToAll(group + 10, vehicle.PermissionGroup(group).get.id)
       )
     })
   }
@@ -313,7 +314,7 @@ object Vehicles {
       // And broadcast the faction change to other clients
       zone.AvatarEvents ! AvatarServiceMessage(
         zoneid,
-        AvatarAction.SetEmpire(Service.defaultPlayerGUID, tGuid, hFaction)
+        AvatarAction.SetEmpire(tGuid, hFaction)
       )
     }
     localEvents ! LocalServiceMessage(

@@ -7,5 +7,5 @@ import net.psforever.services.base.{EventResponse, GenericResponseEnvelope}
 
 final case class GalaxyServiceResponse(channel: String, reply: EventResponse)
     extends GenericResponseEnvelope {
-  def exclude: PlanetSideGUID = Service.defaultPlayerGUID
+  def filter: PlanetSideGUID = Service.defaultPlayerGUID
 }

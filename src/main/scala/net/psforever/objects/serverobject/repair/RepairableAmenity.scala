@@ -37,8 +37,8 @@ object RepairableAmenity {
     val zoneId     = zone.id
     val events     = zone.AvatarEvents
     val targetGUID = target.GUID
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 50, 0))
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 51, 0))
+    events ! AvatarServiceMessage(zoneId, targetGUID, AvatarAction.PlanetsideAttributeToAll(50, 0))
+    events ! AvatarServiceMessage(zoneId, targetGUID, AvatarAction.PlanetsideAttributeToAll(51, 0))
     RestorationOfHistory(target)
   }
 

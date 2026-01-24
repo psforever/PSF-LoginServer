@@ -2,6 +2,8 @@
 package net.psforever.services.base
 
 import akka.actor.{ActorContext, ActorRef}
+import net.psforever.services.Service
+import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.unused
 
@@ -12,15 +14,22 @@ trait EventServiceSupport {
 
 trait GenericMessageToSupportEnvelope
   extends GenericMessageEnvelope {
-  def toSupport: String
-  def response(outChannel: String): GenericResponseEnvelope = null
+  def supportLabel: String
+  def supportMessage: Any
 }
 
-abstract class GenericEventServiceWithSupport[IN <: GenericMessageEnvelope, OUT <: GenericResponseEnvelope]
+trait GenericMessageToSupportEnvelopeOnly
+  extends GenericMessageToSupportEnvelope {
+  def channel: String = ""
+  def filter: PlanetSideGUID = Service.defaultPlayerGUID
+  def msg: EventMessage = null
+}
+
+abstract class GenericEventServiceWithSupport[OUT <: GenericResponseEnvelope]
 (
   busName: String,
   eventSupportServices: List[EventServiceSupport]
-) extends GenericEventService[IN, OUT](busName) {
+) extends GenericEventService[OUT](busName) {
 
   private val supportServices: Map[String, ActorRef] =
     eventSupportServices
@@ -28,24 +37,24 @@ abstract class GenericEventServiceWithSupport[IN <: GenericMessageEnvelope, OUT 
       .toMap[String, ActorRef]
 
   private def supportReceive: Receive = {
+    case msg: GenericMessageToSupportEnvelopeOnly =>
+      forwardToSupport(msg)
     case msg: GenericMessageToSupportEnvelope =>
       forwardToSupport(msg)
+      handleMessage(msg)
   }
 
   override def receive: Receive = supportReceive.orElse(super.receive)
 
   private def forwardToSupport(msg: GenericMessageToSupportEnvelope): Unit = {
     supportServices
-      .get(msg.toSupport)
+      .get(msg.supportLabel)
       .map { support =>
-        support.forward(msg)
+        support.forward(msg.supportMessage)
         msg
       }
       .getOrElse {
-        log.error(s"support service ${msg.toSupport} was not found - check message routing or service params")
+        log.error(s"support service ${msg.supportLabel} was not found - check message routing or service params")
       }
-    if (msg.response(outChannel = "") != null) {
-      compose(msg)
-    }
   }
 }

@@ -24,7 +24,7 @@ class DroppedItemRemover extends RemoverActor() {
     entry.zone.Ground ! Zone.Ground.RemoveItem(entry.obj.GUID)
     context.parent ! AvatarServiceMessage(
       entry.zone.id,
-      AvatarAction.ObjectDelete(Service.defaultPlayerGUID, entry.obj.GUID)
+      AvatarAction.ObjectDelete(entry.obj.GUID)
     )
   }
 

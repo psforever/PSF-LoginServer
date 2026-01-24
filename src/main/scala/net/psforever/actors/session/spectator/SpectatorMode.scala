@@ -68,7 +68,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     player.Inventory.Items
       .foreach { entry => sendResponse(ObjectDeleteMessage(entry.GUID, 0)) }
     sendResponse(ObjectDeleteMessage(player.avatar.locker.GUID, 0))
-    continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(pguid, pguid))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.id, pguid, AvatarAction.ObjectDelete(pguid))
     player.Holsters()
       .collect { case slot if slot.Equipment.nonEmpty => sendResponse(ObjectDeleteMessage(slot.Equipment.get.GUID, 0)) }
     val vehicleAndSeat = data.vehicles.GetMountableAndSeat(None, player, continent) match {

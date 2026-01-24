@@ -326,10 +326,7 @@ object WorldSession {
             case _ =>
               forcedTolowerRaisedArm(localPlayer, localPlayer.GUID, localZone)
               localPlayer.DrawnSlot = localSlot
-              localZone.AvatarEvents ! AvatarServiceMessage(
-                localZone.id,
-                AvatarAction.ObjectHeld(localGUID, localSlot, localSlot)
-              )
+              localZone.AvatarEvents ! AvatarServiceMessage(localZone.id, localGUID, AvatarAction.ObjectHeld(localSlot, localSlot))
           }
         Future(this)
       }
@@ -370,10 +367,7 @@ object WorldSession {
         localZone.GUID(item_guid) match {
           case Some(_) => ()
           case None => //acting on old data?
-            localZone.AvatarEvents ! AvatarServiceMessage(
-              localZone.id,
-              AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item_guid)
-            )
+            localZone.AvatarEvents ! AvatarServiceMessage(localZone.id, AvatarAction.ObjectDelete(item_guid))
         }
       case _ => ()
     }
@@ -597,10 +591,7 @@ object WorldSession {
           localGUID match {
             case Some(guid) =>
               //see LockerContainerControl.RemoveItemFromSlotCallback
-              localSource.Zone.AvatarEvents ! AvatarServiceMessage(
-                localChannel,
-                AvatarAction.ObjectDelete(Service.defaultPlayerGUID, guid)
-              )
+              localSource.Zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(guid))
             case None => ()
           }
           val moveResult = ask(localDestination.Actor, Containable.PutItemInSlotOrAway(localItem, Some(localDestSlot)))
@@ -702,10 +693,7 @@ object WorldSession {
           localGUID match {
             case Some(guid) =>
               //see LockerContainerControl.RemoveItemFromSlotCallback
-              localSource.Zone.AvatarEvents ! AvatarServiceMessage(
-                localChannel,
-                AvatarAction.ObjectDelete(Service.defaultPlayerGUID, guid)
-              )
+              localSource.Zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(guid))
             case None => ()
           }
           val moveResult = ask(localDestination.Actor, Containable.PutItemInSlotOrAway(localItem, Some(localDestSlot)))
@@ -795,10 +783,7 @@ object WorldSession {
             }
             //put up hand with grenade in it
             tplayer.DrawnSlot = slotNum
-            zone.AvatarEvents ! AvatarServiceMessage(
-              zone.id,
-              AvatarAction.ObjectHeld(guid, slotNum, slotNum)
-            )
+            zone.AvatarEvents ! AvatarServiceMessage(zone.id, guid, AvatarAction.ObjectHeld(slotNum, slotNum))
             log.info(s"${tplayer.Name} has quickly drawn a ${grenade.Definition.Name}")
             None
           case None =>
@@ -885,10 +870,7 @@ object WorldSession {
     val slot = tplayer.DrawnSlot
     if (slot != Player.HandsDownSlot) {
       tplayer.DrawnSlot = Player.HandsDownSlot
-      zone.AvatarEvents ! AvatarServiceMessage(
-        zone.id,
-        AvatarAction.ObjectHeld(guid, Player.HandsDownSlot, slot)
-      )
+      zone.AvatarEvents ! AvatarServiceMessage(zone.id, guid, AvatarAction.ObjectHeld(Player.HandsDownSlot, slot))
       true
     } else {
       false

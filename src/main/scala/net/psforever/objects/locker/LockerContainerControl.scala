@@ -36,7 +36,7 @@ class LockerContainerControl(locker: LockerContainer, toChannel: String)
           case Some(slot) =>
             obj.Zone.AvatarEvents ! AvatarServiceMessage(
               toChannel,
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(obj.GUID, item.GUID, slot))
+              AvatarAction.SendResponse(ObjectAttachMessage(obj.GUID, item.GUID, slot))
             )
           case None => ;
         }
@@ -46,7 +46,7 @@ class LockerContainerControl(locker: LockerContainer, toChannel: String)
 
   def RemoveItemFromSlotCallback(item: Equipment, slot: Int): Unit = {
     val zone = locker.Zone
-    zone.AvatarEvents ! AvatarServiceMessage(toChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
+    zone.AvatarEvents ! AvatarServiceMessage(toChannel, AvatarAction.ObjectDelete(item.GUID))
   }
 
   def PutItemInSlotCallback(item: Equipment, slot: Int): Unit = {
@@ -56,7 +56,6 @@ class LockerContainerControl(locker: LockerContainer, toChannel: String)
     zone.AvatarEvents ! AvatarServiceMessage(
       toChannel,
       AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
         ObjectCreateDetailedMessage(
           definition.ObjectId,
           item.GUID,
@@ -71,10 +70,7 @@ class LockerContainerControl(locker: LockerContainer, toChannel: String)
     val zone = locker.Zone
     zone.AvatarEvents ! AvatarServiceMessage(
       toChannel,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-        ObjectDetachMessage(locker.GUID, item.GUID, Vector3.Zero, 0f)
-      )
+      AvatarAction.SendResponse(ObjectDetachMessage(locker.GUID, item.GUID, Vector3.Zero, 0f))
     )
   }
 }

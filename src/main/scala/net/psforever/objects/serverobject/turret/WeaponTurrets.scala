@@ -33,7 +33,7 @@ object WeaponTurrets {
     tool.Magazine = 0
     target.Zone.AvatarEvents ! AvatarServiceMessage(
       user.Name,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
+      AvatarAction.SendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
     )
     FinishUpgradingMannedTurret(target, upgrade)
   }
@@ -88,7 +88,6 @@ object WeaponTurrets {
     turret.Zone.AvatarEvents ! AvatarServiceMessage(
       tplayer.Name,
       AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
         HackMessage(progressType, turret.GUID, tplayer.GUID, progressGrade, -1f, progressState, HackState7.Unk8)
       )
     )
@@ -118,7 +117,7 @@ object WeaponTurrets {
       //convert faction
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.SetEmpire(Service.defaultPlayerGUID, target.GUID, hacker.Faction)
+        AvatarAction.SetEmpire(target.GUID, hacker.Faction)
       )
       zone.LocalEvents ! LocalServiceMessage(
         zone.id,

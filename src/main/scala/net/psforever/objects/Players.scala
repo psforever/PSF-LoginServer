@@ -50,7 +50,7 @@ object Players {
       val uname  = user.Name
       events ! AvatarServiceMessage(
         uname,
-        AvatarAction.SendResponse(Service.defaultPlayerGUID, RepairMessage(target.GUID, progress.toInt))
+        AvatarAction.SendResponse(RepairMessage(target.GUID, progress.toInt))
       )
       true
     } else {
@@ -61,7 +61,7 @@ object Players {
   /**
     * na
     * @see `AvatarAction.Revive`
-    * @see `AvatarResponse.Revive`
+    * @see `AvatarAction.Revive`
     * @param target the player being revived
     * @param medic the name of the player doing the reviving
     * @param item the tool being used to revive the target player
@@ -76,12 +76,12 @@ object Players {
     PlayerControl.sendResponse(
       target.Zone,
       medicName,
+      Service.defaultPlayerGUID,
       AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
         InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine)
       )
     )
-    PlayerControl.sendResponse(target.Zone, name, AvatarAction.Revive(target.GUID))
+    PlayerControl.sendResponse(target.Zone, name, Service.defaultPlayerGUID, AvatarAction.Revive(target.GUID))
   }
 
   /**
@@ -347,10 +347,7 @@ object Players {
     */
   def buildCooldownReset(zone: Zone, channel: String, guid: PlanetSideGUID): Unit = {
     //sent to avatar event bus to preempt additional tool management
-    zone.AvatarEvents ! AvatarServiceMessage(
-      channel,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, GenericObjectActionMessage(guid, 21))
-    )
+    zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.SendResponse(GenericObjectActionMessage(guid, 21)))
   }
 
   /**
@@ -406,10 +403,7 @@ object Players {
       }
     }) {
       val zone = player.Zone
-      zone.AvatarEvents ! AvatarServiceMessage(
-        zone.id,
-        AvatarAction.ObjectDelete(Service.defaultPlayerGUID, tool.GUID)
-      )
+      zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(tool.GUID))
       true
     } else {
       false
@@ -449,21 +443,18 @@ object Players {
             //TODO any penalty for being handed an OCM version of the tool?
             events ! AvatarServiceMessage(
               zone.id,
-              AvatarAction.EquipmentInHand(Service.defaultPlayerGUID, pguid, index, obj)
+              AvatarAction.EquipmentInHand(pguid, index, obj)
             )
             if (obj.AmmoTypeIndex != ammoType) {
               obj.AmmoTypeIndex = ammoType
               events ! AvatarServiceMessage(
                 name,
-                AvatarAction.SendResponse(Service.defaultPlayerGUID, ChangeAmmoMessage(obj.GUID, ammoType))
+                AvatarAction.SendResponse(ChangeAmmoMessage(obj.GUID, ammoType))
               )
             }
             if (player.DrawnSlot == Player.HandsDownSlot) {
               player.DrawnSlot = index
-              events ! AvatarServiceMessage(
-                zone.id,
-                AvatarAction.ObjectHeld(pguid, index, index)
-              )
+              events ! AvatarServiceMessage(zone.id, pguid, AvatarAction.ObjectHeld(index, index))
             }
           }
         case Nil => ; //no replacements found

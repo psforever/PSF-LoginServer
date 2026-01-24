@@ -100,7 +100,7 @@ class WithEntrance()
     if (door.Outwards == Vector3.Zero) {
       obj.Zone.AvatarEvents ! AvatarServiceMessage(
         channel,
-        AvatarAction.SendResponse(PlanetSideGUID(0), ChatMsg(ChatMessageType.UNK_229, "Door not configured."))
+        AvatarAction.SendResponse(ChatMsg(ChatMessageType.UNK_229, "Door not configured."))
       )
       WhichSide
     } else {
@@ -109,14 +109,14 @@ class WithEntrance()
         //outside
         obj.Zone.AvatarEvents ! AvatarServiceMessage(
           channel,
-          AvatarAction.SendResponse(PlanetSideGUID(0), ChatMsg(ChatMessageType.UNK_229, "You are now outside"))
+          AvatarAction.SendResponse(ChatMsg(ChatMessageType.UNK_229, "You are now outside"))
         )
         Sidedness.OutsideOf
       } else if (!result && WhichSide != Sidedness.InsideOf) {
         //inside
         obj.Zone.AvatarEvents ! AvatarServiceMessage(
           channel,
-          AvatarAction.SendResponse(PlanetSideGUID(0), ChatMsg(ChatMessageType.UNK_229, "You are now inside"))
+          AvatarAction.SendResponse(ChatMsg(ChatMessageType.UNK_229, "You are now inside"))
         )
         Sidedness.InsideOf
       } else {

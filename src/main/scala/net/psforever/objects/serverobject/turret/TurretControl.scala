@@ -39,8 +39,8 @@ trait TurretControl
     val zoneId = zone.id
     val events = zone.AvatarEvents
     val tguid  = TurretObject.GUID
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 0))
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 0))
+    events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(50, 0))
+    events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(51, 0))
   }
 
   /**
@@ -56,7 +56,7 @@ trait TurretControl
     val tguid  = target.GUID
     CancelJammeredSound(target)
     CancelJammeredStatus(target)
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 50, 1))
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 51, 1))
+    events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(50, 1))
+    events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(51, 1))
   }
 }

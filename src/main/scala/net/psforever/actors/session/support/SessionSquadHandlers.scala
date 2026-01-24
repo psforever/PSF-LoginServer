@@ -107,7 +107,8 @@ class SessionSquadHandlers(
           sendResponse(PlanetsideAttributeMessage(player.GUID, 31, squad_supplement_id))
           continent.AvatarEvents ! AvatarServiceMessage(
             s"${player.Faction}",
-            AvatarAction.PlanetsideAttribute(player.GUID, 31, squad_supplement_id)
+            player.GUID,
+            AvatarAction.PlanetsideAttribute(31, squad_supplement_id)
           )
           sendResponse(PlanetsideAttributeMessage(player.GUID, 32, elem.index))
         case _ =>
@@ -286,7 +287,7 @@ class SessionSquadHandlers(
    * @param value value to associate the player
    */
   def GiveSquadColorsForOthers(guid: PlanetSideGUID, factionChannel: String, value: Long): Unit = {
-    continent.AvatarEvents ! AvatarServiceMessage(factionChannel, AvatarAction.PlanetsideAttribute(guid, 31, value))
+    continent.AvatarEvents ! AvatarServiceMessage(factionChannel, guid, AvatarAction.PlanetsideAttribute(31, value))
   }
 
   /**

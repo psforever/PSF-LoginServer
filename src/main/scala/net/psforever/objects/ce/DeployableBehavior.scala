@@ -288,7 +288,7 @@ object DeployableBehavior {
       //visual tells in regards to ownership by faction
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.SetEmpire(Service.defaultPlayerGUID, dGuid, toFaction)
+        AvatarAction.SetEmpire(dGuid, toFaction)
       )
       //remove knowledge by the previous owner's faction
       localEvents ! LocalServiceMessage(

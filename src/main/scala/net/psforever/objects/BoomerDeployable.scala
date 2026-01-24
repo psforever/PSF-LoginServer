@@ -109,7 +109,7 @@ class BoomerDeployableControl(mine: BoomerDeployable)
         }
         zone.AvatarEvents! AvatarServiceMessage(
           zone.id,
-          AvatarAction.ObjectDelete(Service.defaultPlayerGUID, guid)
+          AvatarAction.ObjectDelete(guid)
         )
         TaskWorkflow.execute(GUIDTask.unregisterObject(zone.GUID, trigger))
       case None => ()

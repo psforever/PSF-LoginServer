@@ -349,7 +349,8 @@ object ProximityTerminalControl {
       target.MaxHealth = newMax
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.PlanetsideAttributeToAll(target.GUID, 1, newMax)
+        target.GUID,
+        AvatarAction.PlanetsideAttributeToAll(1, newMax)
       )
     }
     if (target.Health < newMax) {
@@ -364,7 +365,8 @@ object ProximityTerminalControl {
     val zone = target.Zone
     zone.AvatarEvents ! AvatarServiceMessage(
       zone.id,
-      AvatarAction.PlanetsideAttributeToAll(target.GUID, 0, target.Health)
+      target.GUID,
+      AvatarAction.PlanetsideAttributeToAll(0, target.Health)
     )
   }
 
@@ -403,7 +405,8 @@ object ProximityTerminalControl {
       val zone = target.Zone
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.PlanetsideAttributeToAll(target.GUID, 4, target.Armor)
+        target.GUID,
+        AvatarAction.PlanetsideAttributeToAll(4, target.Armor)
       )
       target.Armor == maxArmor
     } else {
@@ -432,7 +435,7 @@ object ProximityTerminalControl {
       slots.foreach { slot =>
         events ! AvatarServiceMessage(
           channel,
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
+          AvatarAction.SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
         )
       }
     }

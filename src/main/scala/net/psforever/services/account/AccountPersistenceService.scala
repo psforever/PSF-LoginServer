@@ -434,7 +434,7 @@ class PersistenceMonitor(
       case _ => ;
     }
     inZone.Population.tell(Zone.Population.Release(avatar), parent)
-    inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.id, AvatarAction.ObjectDelete(pguid, pguid)), parent)
+    inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.id, pguid, AvatarAction.ObjectDelete(pguid)), parent)
     TaskWorkflow.execute(GUIDTask.unregisterPlayer(inZone.GUID, player))
     //inZone.tasks.tell(GUIDTask.UnregisterPlayer(player)(inZone.GUID), parent)
     AvatarLogout(avatar)

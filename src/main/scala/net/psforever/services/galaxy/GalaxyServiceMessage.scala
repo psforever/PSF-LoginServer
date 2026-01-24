@@ -7,11 +7,7 @@ import net.psforever.types.PlanetSideGUID
 
 final case class GalaxyServiceMessage(channel: String, msg: EventMessage)
   extends GenericMessageEnvelope {
-  def exclude: PlanetSideGUID = Service.defaultPlayerGUID
-
-  def response(outChannel: String): GalaxyServiceResponse = {
-    GalaxyServiceResponse(outChannel, msg.response())
-  }
+  def filter: PlanetSideGUID = Service.defaultPlayerGUID
 }
 
 object GalaxyServiceMessage {

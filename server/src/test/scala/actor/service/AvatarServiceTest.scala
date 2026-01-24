@@ -3,8 +3,8 @@ package actor.service
 
 import akka.actor.Props
 import akka.testkit.TestProbe
-import scala.concurrent.duration._
 
+import scala.concurrent.duration._
 import actor.base.{ActorTest, FreedContextActorTest}
 import net.psforever.objects._
 import net.psforever.objects.avatar.Avatar
@@ -80,12 +80,12 @@ class ArmorChangedTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.ArmorChanged(PlanetSideGUID(10), ExoSuitType.Reinforced, 0))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.ArmorChanged(ExoSuitType.Reinforced, 0))
       expectMsg(
         AvatarServiceResponse(
           "/test/Avatar",
           PlanetSideGUID(10),
-          AvatarResponse.ArmorChanged(ExoSuitType.Reinforced, 0)
+          AvatarAction.ArmorChanged(ExoSuitType.Reinforced, 0)
         )
       )
     }
@@ -99,7 +99,7 @@ class ConcealPlayerTest extends ActorTest {
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.ConcealPlayer(PlanetSideGUID(10)))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ConcealPlayer()))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.ConcealPlayer(PlanetSideGUID(10))))
     }
   }
 }
@@ -123,9 +123,10 @@ class EquipmentInHandTest extends ActorTest {
       service ! Service.Join("test")
       service ! AvatarServiceMessage(
         "test",
-        AvatarAction.EquipmentInHand(PlanetSideGUID(10), PlanetSideGUID(11), 2, tool)
+        PlanetSideGUID(10),
+        AvatarAction.EquipmentInHand(PlanetSideGUID(11), 2, tool)
       )
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.EquipmentInHand(pkt)))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.EquipmentCreatedInHand(pkt)))
     }
   }
 }
@@ -151,8 +152,8 @@ class DroptItemTest extends ActorTest {
   "AvatarService" should {
     "pass DropItem" in {
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.DropItem(PlanetSideGUID(10), tool))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.DropItem(pkt)))
+      service ! DropItemMessage("test", PlanetSideGUID(10), AvatarAction.DropItem(tool), Zone.Nowhere)
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.DropCreatedItem(pkt)))
     }
   }
 }
@@ -176,15 +177,17 @@ class LoadPlayerTest extends ActorTest {
       //no parent data
       service ! AvatarServiceMessage(
         "test",
-        AvatarAction.LoadPlayer(PlanetSideGUID(20), ObjectClass.avatar, PlanetSideGUID(10), c1data, None)
+        PlanetSideGUID(20),
+        AvatarAction.LoadPlayer(ObjectClass.avatar, PlanetSideGUID(10), c1data, None)
       )
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(20), AvatarResponse.LoadPlayer(pkt1)))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(20), AvatarAction.LoadCreatedPlayer(pkt1)))
       //parent data
       service ! AvatarServiceMessage(
         "test",
-        AvatarAction.LoadPlayer(PlanetSideGUID(20), ObjectClass.avatar, PlanetSideGUID(10), c2data, Some(parent))
+        PlanetSideGUID(20),
+        AvatarAction.LoadPlayer(ObjectClass.avatar, PlanetSideGUID(10), c2data, Some(parent))
       )
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(20), AvatarResponse.LoadPlayer(pkt2)))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(20), AvatarAction.LoadCreatedPlayer(pkt2)))
     }
   }
 }
@@ -195,14 +198,14 @@ class ObjectDeleteTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(10), PlanetSideGUID(11)))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.ObjectDelete(PlanetSideGUID(11)))
       expectMsg(
-        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ObjectDelete(PlanetSideGUID(11), 0))
+        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.ObjectDelete(PlanetSideGUID(11), 0))
       )
 
-      service ! AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(10), PlanetSideGUID(11), 55))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.ObjectDelete(PlanetSideGUID(11), 55))
       expectMsg(
-        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ObjectDelete(PlanetSideGUID(11), 55))
+        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.ObjectDelete(PlanetSideGUID(11), 55))
       )
     }
   }
@@ -214,8 +217,8 @@ class ObjectHeldTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.ObjectHeld(PlanetSideGUID(10), 1, 2))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ObjectHeld(1, 2)))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.ObjectHeld(1, 2))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.ObjectHeld(1, 2)))
     }
   }
 }
@@ -228,7 +231,7 @@ class PutDownFDUTest extends ActorTest {
       service ! Service.Join("test")
       service ! AvatarServiceMessage("test", AvatarAction.PutDownFDU(PlanetSideGUID(10)))
       expectMsg(
-        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.PutDownFDU(PlanetSideGUID(10)))
+        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.PutDownFDU(PlanetSideGUID(10)))
       )
     }
   }
@@ -240,8 +243,8 @@ class PlanetsideAttributeTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.PlanetsideAttribute(PlanetSideGUID(10), 5, 1200L))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.PlanetsideAttribute(5, 1200L)))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.PlanetsideAttribute(5, 1200L))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.PlanetsideAttribute(5, 1200L)))
     }
   }
 }
@@ -271,8 +274,8 @@ class PlayerStateTest extends ActorTest {
       service ! Service.Join("test")
       service ! AvatarServiceMessage(
         "test",
+        PlanetSideGUID(10),
         AvatarAction.PlayerState(
-          PlanetSideGUID(10),
           Vector3(3694.1094f, 2735.4531f, 90.84375f),
           Some(Vector3(4.375f, 2.59375f, 0.0f)),
           61.875f,
@@ -291,7 +294,7 @@ class PlayerStateTest extends ActorTest {
         AvatarServiceResponse(
           "/test/Avatar",
           PlanetSideGUID(10),
-          AvatarResponse.PlayerState(
+          AvatarAction.PlayerState(
             Vector3(3694.1094f, 2735.4531f, 90.84375f),
             Some(Vector3(4.375f, 2.59375f, 0.0f)),
             61.875f,
@@ -320,8 +323,8 @@ class PickupItemTest extends ActorTest {
     ServiceManager.boot(system)
     val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
     service ! Service.Join("test")
-    service ! AvatarServiceMessage("test", AvatarAction.PickupItem(PlanetSideGUID(10), tool))
-    expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ObjectDelete(tool.GUID, 0)))
+    service ! PickupItemMessage("test", AvatarAction.PickupItem(tool), Zone.Nowhere)
+    expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.ObjectDelete(tool.GUID, 0)))
   }
 }
 
@@ -331,8 +334,8 @@ class ReloadTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.Reload(PlanetSideGUID(10), PlanetSideGUID(40)))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.Reload(PlanetSideGUID(40))))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.Reload(PlanetSideGUID(40)))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.Reload(PlanetSideGUID(40))))
     }
   }
 }
@@ -348,8 +351,8 @@ class ChangeAmmoTest extends ActorTest {
       service ! Service.Join("test")
       service ! AvatarServiceMessage(
         "test",
+        PlanetSideGUID(10),
         AvatarAction.ChangeAmmo(
-          PlanetSideGUID(10),
           PlanetSideGUID(40),
           0,
           PlanetSideGUID(40),
@@ -362,7 +365,7 @@ class ChangeAmmoTest extends ActorTest {
         AvatarServiceResponse(
           "/test/Avatar",
           PlanetSideGUID(10),
-          AvatarResponse.ChangeAmmo(
+          AvatarAction.ChangeAmmo(
             PlanetSideGUID(40),
             0,
             PlanetSideGUID(40),
@@ -385,9 +388,9 @@ class ChangeFireModeTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.ChangeFireMode(PlanetSideGUID(10), PlanetSideGUID(40), 0))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.ChangeFireMode(PlanetSideGUID(40), 0))
       expectMsg(
-        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.ChangeFireMode(PlanetSideGUID(40), 0))
+        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.ChangeFireMode(PlanetSideGUID(40), 0))
       )
     }
   }
@@ -399,12 +402,12 @@ class ChangeFireStateStartTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.ChangeFireState_Start(PlanetSideGUID(10), PlanetSideGUID(40)))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.ChangeFireState_Start(PlanetSideGUID(40)))
       expectMsg(
         AvatarServiceResponse(
           "/test/Avatar",
           PlanetSideGUID(10),
-          AvatarResponse.ChangeFireState_Start(PlanetSideGUID(40))
+          AvatarAction.ChangeFireState_Start(PlanetSideGUID(40))
         )
       )
     }
@@ -417,12 +420,12 @@ class ChangeFireStateStopTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.ChangeFireState_Stop(PlanetSideGUID(10), PlanetSideGUID(40)))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.ChangeFireState_Stop(PlanetSideGUID(40)))
       expectMsg(
         AvatarServiceResponse(
           "/test/Avatar",
           PlanetSideGUID(10),
-          AvatarResponse.ChangeFireState_Stop(PlanetSideGUID(40))
+          AvatarAction.ChangeFireState_Stop(PlanetSideGUID(40))
         )
       )
     }
@@ -435,9 +438,9 @@ class WeaponDryFireTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", AvatarAction.WeaponDryFire(PlanetSideGUID(10), PlanetSideGUID(40)))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.WeaponDryFire(PlanetSideGUID(40)))
       expectMsg(
-        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarResponse.WeaponDryFire(PlanetSideGUID(40)))
+        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.WeaponDryFire(PlanetSideGUID(40)))
       )
     }
   }
@@ -453,13 +456,14 @@ class AvatarStowEquipmentTest extends ActorTest {
       service ! Service.Join("test")
       service ! AvatarServiceMessage(
         "test",
-        AvatarAction.StowEquipment(PlanetSideGUID(10), PlanetSideGUID(11), 2, tool)
+        PlanetSideGUID(10),
+        AvatarAction.StowEquipment(PlanetSideGUID(11), 2, tool)
       )
       expectMsg(
         AvatarServiceResponse(
           "/test/Avatar",
           PlanetSideGUID(10),
-          AvatarResponse.StowEquipment(PlanetSideGUID(11), 2, tool)
+          AvatarAction.StowEquipment(PlanetSideGUID(11), 2, tool)
         )
       )
     }
@@ -504,23 +508,23 @@ class AvatarReleaseTest extends FreedContextActorTest {
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
       val guid = obj.GUID
-      zone.AvatarEvents ! AvatarServiceMessage("test", AvatarAction.Release(obj, zone, Some(1 second))) //alive for one second
+      zone.AvatarEvents ! ReleaseMessage("test", AvatarAction.Release(obj, zone, Some(1 second))) //alive for one second
 
       val reply1 = subscriber.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])
       val reply1msg = reply1.asInstanceOf[AvatarServiceResponse]
       assert(reply1msg.channel == "/test/Avatar")
-      assert(reply1msg.avatar_guid == guid)
-      assert(reply1msg.replyMessage.isInstanceOf[AvatarResponse.Release])
-      assert(reply1msg.replyMessage.asInstanceOf[AvatarResponse.Release].player == obj)
+      assert(reply1msg.filter == guid)
+      assert(reply1msg.reply.isInstanceOf[AvatarAction.Release])
+      assert(reply1msg.reply.asInstanceOf[AvatarAction.Release].player == obj)
 
       val reply2 = subscriber.receiveOne(2 seconds)
       assert(reply2.isInstanceOf[AvatarServiceResponse])
       val reply2msg = reply2.asInstanceOf[AvatarServiceResponse]
       assert(reply2msg.channel.equals("/test/Avatar"))
-      assert(reply2msg.avatar_guid == Service.defaultPlayerGUID)
-      assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
-      assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
+      assert(reply2msg.filter == Service.defaultPlayerGUID)
+      assert(reply2msg.reply.isInstanceOf[AvatarAction.ObjectDelete])
+      assert(reply2msg.reply.asInstanceOf[AvatarAction.ObjectDelete].item_guid == guid)
 
       subscriber.expectNoMessage(1 seconds)
       assert(zone.Corpses.isEmpty)
@@ -555,24 +559,24 @@ class AvatarReleaseEarly1Test extends FreedContextActorTest {
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
       val guid = obj.GUID
-      zone.AvatarEvents ! AvatarServiceMessage("test", AvatarAction.Release(obj, zone)) //3+ minutes!
+      zone.AvatarEvents ! ReleaseMessage("test", AvatarAction.Release(obj, zone)) //3+ minutes!
 
       val reply1 = subscriber.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])
       val reply1msg = reply1.asInstanceOf[AvatarServiceResponse]
       assert(reply1msg.channel == "/test/Avatar")
-      assert(reply1msg.avatar_guid == guid)
-      assert(reply1msg.replyMessage.isInstanceOf[AvatarResponse.Release])
-      assert(reply1msg.replyMessage.asInstanceOf[AvatarResponse.Release].player == obj)
+      assert(reply1msg.filter == guid)
+      assert(reply1msg.reply.isInstanceOf[AvatarAction.Release])
+      assert(reply1msg.reply.asInstanceOf[AvatarAction.Release].player == obj)
 
-      zone.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), zone)) //IMPORTANT: ONE ENTRY
+      zone.AvatarEvents ! CorpseEnvelope(RemoverActor.HurrySpecific(List(obj), zone)) //IMPORTANT: ONE ENTRY
       val reply2 = subscriber.receiveOne(200 milliseconds)
       assert(reply2.isInstanceOf[AvatarServiceResponse])
       val reply2msg = reply2.asInstanceOf[AvatarServiceResponse]
       assert(reply2msg.channel.equals("/test/Avatar"))
-      assert(reply2msg.avatar_guid == Service.defaultPlayerGUID)
-      assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
-      assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
+      assert(reply2msg.filter == Service.defaultPlayerGUID)
+      assert(reply2msg.reply.isInstanceOf[AvatarAction.ObjectDelete])
+      assert(reply2msg.reply.asInstanceOf[AvatarAction.ObjectDelete].item_guid == guid)
 
       subscriber.expectNoMessage(1 seconds)
       assert(zone.Corpses.isEmpty)
@@ -613,26 +617,26 @@ class AvatarReleaseEarly2Test extends FreedContextActorTest {
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
       val guid = obj.GUID
-      zone.AvatarEvents ! AvatarServiceMessage("test", AvatarAction.Release(obj, zone)) //3+ minutes!
+      zone.AvatarEvents ! ReleaseMessage("test", AvatarAction.Release(obj, zone)) //3+ minutes!
 
       val reply1 = subscriber.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])
       val reply1msg = reply1.asInstanceOf[AvatarServiceResponse]
       assert(reply1msg.channel == "/test/Avatar")
-      assert(reply1msg.avatar_guid == guid)
-      assert(reply1msg.replyMessage.isInstanceOf[AvatarResponse.Release])
-      assert(reply1msg.replyMessage.asInstanceOf[AvatarResponse.Release].player == obj)
+      assert(reply1msg.filter == guid)
+      assert(reply1msg.reply.isInstanceOf[AvatarAction.Release])
+      assert(reply1msg.reply.asInstanceOf[AvatarAction.Release].player == obj)
 
-      zone.AvatarEvents ! AvatarServiceMessage.Corpse(
+      zone.AvatarEvents ! CorpseEnvelope(
         RemoverActor.HurrySpecific(List(objAlt, obj), zone)
       ) //IMPORTANT: TWO ENTRIES
       val reply2 = subscriber.receiveOne(100 milliseconds)
       assert(reply2.isInstanceOf[AvatarServiceResponse])
       val reply2msg = reply2.asInstanceOf[AvatarServiceResponse]
       assert(reply2msg.channel.equals("/test/Avatar"))
-      assert(reply2msg.avatar_guid == Service.defaultPlayerGUID)
-      assert(reply2msg.replyMessage.isInstanceOf[AvatarResponse.ObjectDelete])
-      assert(reply2msg.replyMessage.asInstanceOf[AvatarResponse.ObjectDelete].item_guid == guid)
+      assert(reply2msg.filter == Service.defaultPlayerGUID)
+      assert(reply2msg.reply.isInstanceOf[AvatarAction.ObjectDelete])
+      assert(reply2msg.reply.asInstanceOf[AvatarAction.ObjectDelete].item_guid == guid)
 
       subscriber.expectNoMessage(1 seconds)
       assert(zone.Corpses.isEmpty)

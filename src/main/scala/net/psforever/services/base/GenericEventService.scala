@@ -6,28 +6,31 @@ import net.psforever.services.Service
 import net.psforever.types.PlanetSideGUID
 import org.log4s.Logger
 
+import scala.annotation.unused
+
 trait GenericResponseEnvelope
   extends GenericEventBusMsg {
-  def exclude: PlanetSideGUID
+  def filter: PlanetSideGUID
   def reply: EventResponse
 }
 
 trait GenericMessageEnvelope {
   def channel: String
-  def exclude: PlanetSideGUID
+  def filter: PlanetSideGUID
   def msg: EventMessage
-  def response(outChannel: String): GenericResponseEnvelope
 }
 
-abstract class GenericEventService[IN <: GenericMessageEnvelope, OUT <: GenericResponseEnvelope](busName: String)
+abstract class GenericEventService[OUT <: GenericResponseEnvelope](busName: String)
   extends Actor {
   protected lazy val log: Logger = org.log4s.getLogger(getClass.getSimpleName)
 
   protected val eventBus = new GenericEventBus[OUT]
 
+  def BusName: String = busName
+
   def commonJoinBehavior: Receive = {
     case Service.Join(channel) =>
-      val path = formatChannelOnBusName(channel, busName)
+      val path = formatChannelOnBusName(channel)
       val who  = sender()
       eventBus.subscribe(who, path)
   }
@@ -37,7 +40,7 @@ abstract class GenericEventService[IN <: GenericMessageEnvelope, OUT <: GenericR
       eventBus.unsubscribe(sender())
 
     case Service.Leave(Some(channel)) =>
-      val path = formatChannelOnBusName(channel, busName)
+      val path = formatChannelOnBusName(channel)
       eventBus.unsubscribe(sender(), path)
 
     case Service.LeaveAll() =>
@@ -47,22 +50,24 @@ abstract class GenericEventService[IN <: GenericMessageEnvelope, OUT <: GenericR
   def receive: Receive =
     commonJoinBehavior.orElse(commonLeaveBehavior)
       .orElse {
-        case msg: IN =>
-          compose(msg)
+        case msg: GenericMessageEnvelope =>
+          handleMessage(msg)
 
         case msg => ()
           log.warn(s"Unhandled message $msg from ${sender()}")
       }
 
-  protected def compose(msg: GenericMessageEnvelope): Unit = {
-    eventBus.publish(msg.response(formatChannelOnBusName(msg.channel, busName)).asInstanceOf[OUT])
+  protected def handleMessage(msg: GenericMessageEnvelope): Unit = {
+    eventBus.publish(compose(msg))
   }
 
-  def formatChannelOnBusName: (String, String) => String = GenericEventService.BusOnChannelFormat
+  protected def compose(@unused msg: GenericMessageEnvelope): OUT
+
+  def formatChannelOnBusName(channel: String): String = GenericEventService.BusOnChannelFormat(busName)(channel)
 }
 
 object GenericEventService {
-  final def BusOnChannelFormat(channel: String, busName: String): String = {
+  final def BusOnChannelFormat(busName: String)(channel: String): String = {
     if (channel.trim.isEmpty) {
       s"/$busName"
     } else {

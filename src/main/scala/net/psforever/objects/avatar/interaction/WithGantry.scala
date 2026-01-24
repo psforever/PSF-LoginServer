@@ -37,16 +37,10 @@ class WithGantry(val channel: String)
         val events = shuttle.Zone.AvatarEvents
         events ! AvatarServiceMessage(
           channel,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            PlayerStateShiftMessage(ShiftState(0, pos, ang, None)))
-        )
+          AvatarAction.SendResponse(PlayerStateShiftMessage(ShiftState(0, pos, ang, None))))
         events ! AvatarServiceMessage(
           channel,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            ChatMsg(ChatMessageType.UNK_227, "@Vehicle_OS_PlacedOutsideHallway")
-          )
+          AvatarAction.SendResponse(ChatMsg(ChatMessageType.UNK_227, "@Vehicle_OS_PlacedOutsideHallway"))
         )
       case (Some(_: Vehicle) , _)=>
         obj.Actor ! RespondsToZoneEnvironment.Timer(

@@ -18,6 +18,7 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.services.RemoverActor
+import net.psforever.services.avatar.GroundEnvelope
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.collection.mutable
@@ -851,7 +852,7 @@ class GeneralOperations(
       case _ if continent.EquipmentOnGround.contains(obj) =>
         obj.Position = Vector3.Zero
         continent.Ground ! Zone.Ground.RemoveItem(objectGuid)
-        continent.AvatarEvents ! AvatarServiceMessage.Ground(RemoverActor.ClearSpecific(List(obj), continent))
+        continent.AvatarEvents ! GroundEnvelope(RemoverActor.ClearSpecific(List(obj), continent))
         true
       case _ =>
         Zone.EquipmentIs.Where(obj, objectGuid, continent) match {
@@ -988,7 +989,8 @@ class GeneralOperations(
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
         continent.AvatarEvents ! AvatarServiceMessage(
           continent.id,
-          AvatarAction.PlanetsideAttributeToAll(player.GUID, 8, 0)
+          player.GUID,
+          AvatarAction.PlanetsideAttributeToAll(8, 0)
         )
       }
     }
@@ -997,7 +999,8 @@ class GeneralOperations(
   private def activateMaxSpecialStateMessage(): Unit = {
     continent.AvatarEvents ! AvatarServiceMessage(
       continent.id,
-      AvatarAction.PlanetsideAttributeToAll(player.GUID, 8, 1)
+      player.GUID,
+      AvatarAction.PlanetsideAttributeToAll(8, 1)
     )
   }
 

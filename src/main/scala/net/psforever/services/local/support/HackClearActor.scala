@@ -115,7 +115,7 @@ class HackClearActor() extends Actor {
     val building = target.asInstanceOf[Terminal].Owner.asInstanceOf[Building]
     building.virusId = 8
     building.virusInstalledBy = None
-    val msg = AvatarAction.GenericObjectAction(Service.defaultPlayerGUID, target.GUID, 60)
+    val msg = AvatarAction.GenericObjectAction(target.GUID, 60)
     val events = building.Zone.AvatarEvents
     building.PlayersInSOI.foreach { player =>
       events ! AvatarServiceMessage(player.Name, msg)

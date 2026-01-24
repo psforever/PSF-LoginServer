@@ -83,11 +83,17 @@ object SessionOutfitHandlers {
               player.outfit_id = outfit.id
               player.outfit_name = outfit.name
 
-              player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.id,
-                AvatarAction.PlanetsideAttributeToAll(player.GUID, 39, outfit.id))
+              player.Zone.AvatarEvents ! AvatarServiceMessage(
+                player.Zone.id,
+                player.GUID,
+                AvatarAction.PlanetsideAttributeToAll(39, outfit.id)
+              )
 
-              player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.id,
-                AvatarAction.PlanetsideStringAttribute(player.GUID, 0, outfit.name))
+              player.Zone.AvatarEvents ! AvatarServiceMessage(
+                player.Zone.id,
+                player.GUID,
+                AvatarAction.PlanetsideStringAttribute(0, outfit.name)
+              )
 
               session.chat.JoinChannel(OutfitChannel(player.outfit_id))
             }
@@ -168,11 +174,17 @@ object SessionOutfitHandlers {
             invited.outfit_id = outfit.id
             invited.outfit_name = outfit.name
 
-            invited.Zone.AvatarEvents ! AvatarServiceMessage(invited.Zone.id,
-              AvatarAction.PlanetsideAttributeToAll(invited.GUID, 39, outfit.id))
+            invited.Zone.AvatarEvents ! AvatarServiceMessage(
+              invited.Zone.id,
+              invited.GUID,
+              AvatarAction.PlanetsideAttributeToAll(39, outfit.id)
+            )
 
-            invited.Zone.AvatarEvents ! AvatarServiceMessage(invited.Zone.id,
-              AvatarAction.PlanetsideStringAttribute(invited.GUID, 0, outfit.name))
+            invited.Zone.AvatarEvents ! AvatarServiceMessage(
+              invited.Zone.id,
+              invited.GUID,
+              AvatarAction.PlanetsideStringAttribute(0, outfit.name)
+            )
           case (None, _, _) =>
 
             PlayerControl.sendResponse(invited.Zone, invited.Name,
@@ -230,11 +242,17 @@ object SessionOutfitHandlers {
                 OutfitMemberEvent(outfit_id, kickedId, OutfitMemberEventAction.Kicked()))
             )
 
-            kickedBy.Zone.AvatarEvents ! AvatarServiceMessage(kickedBy.Zone.id,
-              AvatarAction.PlanetsideAttributeToAll(kickedBy.GUID, 39, 0))
+            kickedBy.Zone.AvatarEvents ! AvatarServiceMessage(
+              kickedBy.Zone.id,
+              kickedBy.GUID,
+              AvatarAction.PlanetsideAttributeToAll(39, 0)
+            )
 
-            kickedBy.Zone.AvatarEvents ! AvatarServiceMessage(kickedBy.Zone.id,
-              AvatarAction.PlanetsideStringAttribute(kickedBy.GUID, 0, ""))
+            kickedBy.Zone.AvatarEvents ! AvatarServiceMessage(
+              kickedBy.Zone.id,
+              kickedBy.GUID,
+              AvatarAction.PlanetsideStringAttribute(0, "")
+            )
           }
       }.recover { case e =>
         e.printStackTrace()
@@ -254,11 +272,17 @@ object SessionOutfitHandlers {
                 OutfitMembershipResponse(OutfitMembershipResponse.PacketType.YouGotKicked, 0, 1,
                   kickedBy.CharId, kicked.CharId, kickedBy.Name, kicked.Name, flag = false))
 
-              kicked.Zone.AvatarEvents ! AvatarServiceMessage(kicked.Zone.id,
-                AvatarAction.PlanetsideAttributeToAll(kicked.GUID, 39, 0))
+              kicked.Zone.AvatarEvents ! AvatarServiceMessage(
+                kicked.Zone.id,
+                kicked.GUID,
+                AvatarAction.PlanetsideAttributeToAll(39, 0)
+              )
 
-              kicked.Zone.AvatarEvents ! AvatarServiceMessage(kicked.Zone.id,
-                AvatarAction.PlanetsideStringAttribute(kicked.GUID, 0, ""))
+              kicked.Zone.AvatarEvents ! AvatarServiceMessage(
+                kicked.Zone.id,
+                kicked.GUID,
+                AvatarAction.PlanetsideStringAttribute(0, "")
+              )
 
               kicked.Zone.AvatarEvents ! AvatarServiceMessage(
                 kicked.Name, AvatarAction.RemoveFromOutfitChat(kickedBy.outfit_id))
@@ -613,11 +637,17 @@ object SessionOutfitHandlers {
                 player.outfit_id = outfit.id
                 player.outfit_name = outfit.name
 
-                player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.id,
-                  AvatarAction.PlanetsideAttributeToAll(player.GUID, 39, outfit.id))
+                player.Zone.AvatarEvents ! AvatarServiceMessage(
+                  player.Zone.id,
+                  player.GUID,
+                  AvatarAction.PlanetsideAttributeToAll(39, outfit.id)
+                )
 
-                player.Zone.AvatarEvents ! AvatarServiceMessage(player.Zone.id,
-                  AvatarAction.PlanetsideStringAttribute(player.GUID, 0, outfit.name))
+                player.Zone.AvatarEvents ! AvatarServiceMessage(
+                  player.Zone.id,
+                  player.GUID,
+                  AvatarAction.PlanetsideStringAttribute(0, outfit.name)
+                )
 
               case (None, _, _) =>
                 PlayerControl.sendResponse(player.Zone, player.Name,

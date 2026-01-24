@@ -45,7 +45,7 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
     //
     player.spectator = true
     data.chat.JoinChannel(SpectatorChannel)
-    continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(pguid, pguid))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.id, pguid, AvatarAction.ObjectDelete(pguid))
     sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "on"))
     sendResponse(ChatMsg(ChatMessageType.UNK_225, "CSR SPECTATOR MODE ON"))
   }
@@ -61,7 +61,8 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
     data.chat.LeaveChannel(SpectatorChannel)
     continent.AvatarEvents ! AvatarServiceMessage(
       continent.id,
-      AvatarAction.LoadPlayer(pguid, avatarId, pguid, player.Definition.Packet.ConstructorData(player).get, None)
+      pguid,
+      AvatarAction.LoadPlayer(avatarId, pguid, player.Definition.Packet.ConstructorData(player).get, None)
     )
     sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "off"))
   }

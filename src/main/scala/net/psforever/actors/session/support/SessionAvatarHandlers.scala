@@ -9,6 +9,7 @@ import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage, AvatarServiceResponse}
+import net.psforever.services.base.EventResponse
 import net.psforever.services.chat.OutfitChannel
 
 import scala.collection.mutable
@@ -16,14 +17,13 @@ import scala.collection.mutable
 import net.psforever.actors.session.AvatarActor
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game._
-import net.psforever.services.avatar.AvatarResponse
 import net.psforever.types._
 import net.psforever.util.Config
 
 trait AvatarHandlerFunctions extends CommonSessionInterfacingFunctionality {
   val ops: SessionAvatarHandlers
 
-  def handle(toChannel: String, guid: PlanetSideGUID, reply: AvatarResponse.Response): Unit
+  def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit
 }
 
 class SessionAvatarHandlers(
@@ -215,7 +215,7 @@ class SessionAvatarHandlers(
     context.self ! AvatarServiceResponse(
       playerName,
       Service.defaultPlayerGUID,
-      AvatarResponse.SendResponse(
+      AvatarAction.SendResponse(
         ObjectDetachMessage(obj.GUID, playerGuid, player.Position, Vector3.Zero)
       )
     )
@@ -239,7 +239,7 @@ class SessionAvatarHandlers(
 
 object SessionAvatarHandlers {
   private[session] case class LastUpstream(
-                                            msg: Option[AvatarResponse.PlayerState],
+                                            msg: Option[AvatarAction.PlayerState],
                                             visible: Boolean,
                                             shooting: Option[PlanetSideGUID],
                                             time: Long

@@ -45,23 +45,23 @@ object DamageableMountable {
         val name = pSource.Name
         (zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
           case Some(player) =>
-            AvatarAction.HitHint(player.GUID, player.GUID)
+            AvatarAction.HitHint(player.GUID)
           case None =>
-            AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, pSource.Position))
+            AvatarAction.SendResponse(DamageWithPositionMessage(countableDamage, pSource.Position))
         }) match {
-          case AvatarAction.HitHint(_, guid) =>
-            occupants.map { tplayer => (tplayer.Name, AvatarAction.HitHint(guid, tplayer.GUID)) }
+          case AvatarAction.HitHint(guid) =>
+            occupants.map { tplayer => (tplayer.Name, guid, AvatarAction.HitHint(tplayer.GUID)) }
           case msg =>
-            occupants.map { tplayer => (tplayer.Name, msg) }
+            occupants.map { tplayer => (tplayer.Name, Service.defaultPlayerGUID, msg) }
         }
       case Some(source) => //object damage
-        val msg = AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(countableDamage, source.Position))
-        occupants.map { tplayer => (tplayer.Name, msg) }
+        val msg = AvatarAction.SendResponse(DamageWithPositionMessage(countableDamage, source.Position))
+        occupants.map { tplayer => (tplayer.Name, Service.defaultPlayerGUID, msg) }
       case None =>
         List.empty
     }).foreach {
-      case (channel, msg) =>
-        events ! AvatarServiceMessage(channel, msg)
+      case (channel, filter, msg) =>
+        events ! AvatarServiceMessage(channel, filter, msg)
     }
   }
 

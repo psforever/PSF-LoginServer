@@ -320,7 +320,8 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         val definition = spectator.Definition
         events ! AvatarServiceMessage(
           channel,
-          AvatarAction.LoadPlayer(guid, definition.ObjectId, guid, definition.Packet.ConstructorData(spectator).get, None)
+          guid,
+          AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(spectator).get, None)
         )
       }
     true
@@ -336,10 +337,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       .filter(_.spectator)
       .foreach { spectator =>
         val guid = spectator.GUID
-        events ! AvatarServiceMessage(
-          channel,
-          AvatarAction.ObjectDelete(guid, guid)
-        )
+        events ! AvatarServiceMessage(channel, guid, AvatarAction.ObjectDelete(guid))
       }
     true
   }
@@ -394,7 +392,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
           o.Faction = foundFaction
           continent.AvatarEvents ! AvatarServiceMessage(
             continent.id,
-            AvatarAction.SetEmpire(Service.defaultPlayerGUID, o.GUID, foundFaction)
+            AvatarAction.SetEmpire(o.GUID, foundFaction)
           )
           true
         case o: Building =>
@@ -407,7 +405,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
           o.Faction = foundFaction
           continent.AvatarEvents ! AvatarServiceMessage(
             continent.id,
-            AvatarAction.SetEmpire(Service.defaultPlayerGUID, o.GUID, foundFaction)
+            AvatarAction.SetEmpire(o.GUID, foundFaction)
           )
           true
       }

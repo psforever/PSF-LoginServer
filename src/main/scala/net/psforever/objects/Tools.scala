@@ -24,10 +24,7 @@ object Tools {
         val magazine = tool.Magazine -= mode.RoundsPerInterval
         player.Zone.AvatarEvents ! AvatarServiceMessage(
           player.Name,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, magazine)
-          )
+          AvatarAction.SendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, magazine))
         )
         player.isAlive
       case _ =>

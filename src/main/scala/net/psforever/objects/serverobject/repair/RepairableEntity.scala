@@ -91,10 +91,7 @@ trait RepairableEntity extends Repairable {
         val magazine  = item.Discharge()
         events ! AvatarServiceMessage(
           player.Name,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)
-          )
+          AvatarAction.SendResponse(InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong))
         )
         target.LogActivity(
           RepairFromEquipment(
@@ -110,10 +107,7 @@ trait RepairableEntity extends Repairable {
     //progress bar remains visible
     events ! AvatarServiceMessage(
       name,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-        RepairMessage(target.GUID, updatedHealth * 100 / definition.MaxHealth)
-      )
+      AvatarAction.SendResponse(RepairMessage(target.GUID, updatedHealth * 100 / definition.MaxHealth))
     )
     //if vehicle and vehicle is owned by another player, send repair chat message to the vehicle's owner
     if (target.Zone.Vehicles.exists(_.GUID == target.GUID)) {
@@ -146,11 +140,11 @@ trait RepairableEntity extends Repairable {
     val newHealth = target.Health = target.Health + amount
     if (target.Destroyed) {
       if (newHealth >= target.Definition.RepairRestoresAt) {
-        events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, newHealth))
+        events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(0, newHealth))
         Restoration(target)
       }
     } else {
-      events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, newHealth))
+      events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(0, newHealth))
     }
     newHealth
   }

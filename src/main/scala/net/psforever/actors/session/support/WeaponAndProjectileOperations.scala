@@ -281,10 +281,7 @@ class WeaponAndProjectileOperations(
       .orElse { continent.GUID(weapon_guid) }
       .collect {
         case _: Equipment if containerOpt.exists(_.isInstanceOf[Player]) =>
-          continent.AvatarEvents ! AvatarServiceMessage(
-            continent.id,
-            AvatarAction.WeaponDryFire(player.GUID, weapon_guid)
-          )
+          continent.AvatarEvents ! AvatarServiceMessage(continent.id, player.GUID, AvatarAction.WeaponDryFire(weapon_guid))
         case _: Equipment =>
           continent.VehicleEvents ! VehicleServiceMessage(
             continent.id,
@@ -459,7 +456,8 @@ class WeaponAndProjectileOperations(
           sendResponse(ChangeFireModeMessage(item_guid, modeIndex))
           continent.AvatarEvents ! AvatarServiceMessage(
             sessionLogic.zoning.zoneChannel,
-            AvatarAction.ChangeFireMode(player.GUID, item_guid, modeIndex)
+            player.GUID,
+            AvatarAction.ChangeFireMode(item_guid, modeIndex)
           )
         }
       case Some(_) =>
@@ -480,8 +478,8 @@ class WeaponAndProjectileOperations(
         projectile.Velocity = shot_vel
         continent.AvatarEvents ! AvatarServiceMessage(
           continent.id,
+          player.GUID,
           AvatarAction.ProjectileState(
-            player.GUID,
             projectileGlobalUID,
             shot_pos,
             shot_vel,
@@ -744,10 +742,7 @@ class WeaponAndProjectileOperations(
             //chain lash effect
             continent.AvatarEvents ! AvatarServiceMessage(
               continent.id,
-              AvatarAction.SendResponse(
-                PlanetSideGUID(0),
-                ChainLashMessage(hitPos, projectile.profile.ObjectId, guidRefs.toList)
-              )
+              AvatarAction.SendResponse(ChainLashMessage(hitPos, projectile.profile.ObjectId, guidRefs.toList))
             )
             //chain lash target output
             outputRefs.toList
@@ -931,12 +926,9 @@ class WeaponAndProjectileOperations(
     tool.Magazine = 0
     sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, weapon_guid, 0))
     sendResponse(ChangeFireStateMessage_Stop(weapon_guid))
-    continent.AvatarEvents ! AvatarServiceMessage(
-      continent.id,
-      AvatarAction.ChangeFireState_Stop(player.GUID, weapon_guid)
-    )
+    continent.AvatarEvents ! AvatarServiceMessage(continent.id, player.GUID, AvatarAction.ChangeFireState_Stop(weapon_guid))
     sendResponse(WeaponDryFireMessage(weapon_guid))
-    continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.WeaponDryFire(player.GUID, weapon_guid))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.id, player.GUID, AvatarAction.WeaponDryFire(weapon_guid))
   }
 
   /**
@@ -1079,7 +1071,8 @@ class WeaponAndProjectileOperations(
   def fireStateStartPlayerMessages(itemGuid: PlanetSideGUID): Unit = {
     continent.AvatarEvents ! AvatarServiceMessage(
       sessionLogic.zoning.zoneChannel,
-      AvatarAction.ChangeFireState_Start(player.GUID, itemGuid)
+      player.GUID,
+      AvatarAction.ChangeFireState_Start(itemGuid)
     )
   }
 
@@ -1118,7 +1111,8 @@ class WeaponAndProjectileOperations(
   def fireStateStopPlayerMessages(itemGuid: PlanetSideGUID): Unit = {
     continent.AvatarEvents ! AvatarServiceMessage(
       sessionLogic.zoning.zoneChannel,
-      AvatarAction.ChangeFireState_Stop(player.GUID, itemGuid)
+      player.GUID,
+      AvatarAction.ChangeFireState_Stop(itemGuid)
     )
   }
 
@@ -1186,10 +1180,7 @@ class WeaponAndProjectileOperations(
   used by ReloadMessage handling
   */
   def reloadPlayerMessages(itemGuid: PlanetSideGUID): Unit = {
-    continent.AvatarEvents ! AvatarServiceMessage(
-      sessionLogic.zoning.zoneChannel,
-      AvatarAction.Reload(player.GUID, itemGuid)
-    )
+    continent.AvatarEvents ! AvatarServiceMessage(sessionLogic.zoning.zoneChannel, player.GUID, AvatarAction.Reload(itemGuid))
   }
 
   def reloadVehicleMessages(itemGuid: PlanetSideGUID): Unit = {
@@ -1371,8 +1362,8 @@ class WeaponAndProjectileOperations(
             sendResponse(ChangeAmmoMessage(tool_guid, box.Capacity))
             continent.AvatarEvents ! AvatarServiceMessage(
               sessionLogic.zoning.zoneChannel,
+              player.GUID,
               AvatarAction.ChangeAmmo(
-                player.GUID,
                 tool_guid,
                 ammoSlotIndex,
                 previous_box_guid,
@@ -1582,10 +1573,7 @@ class WeaponAndProjectileOperations(
     shootingStop.clear()
     (prefire ++ shooting).foreach { guid =>
       sendResponse(ChangeFireStateMessage_Stop(guid))
-      continent.AvatarEvents ! AvatarServiceMessage(
-        continent.id,
-        AvatarAction.ChangeFireState_Stop(player.GUID, guid)
-      )
+      continent.AvatarEvents ! AvatarServiceMessage(continent.id, player.GUID, AvatarAction.ChangeFireState_Stop(guid))
     }
     prefire.clear()
     shooting.clear()

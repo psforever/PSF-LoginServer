@@ -61,7 +61,6 @@ trait CarrierBehavior {
         obj.Zone.AvatarEvents ! AvatarServiceMessage(
           obj.Zone.id,
           AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
             CargoMountPointStatusMessage(
               obj.GUID,
               PlanetSideGUID(0),

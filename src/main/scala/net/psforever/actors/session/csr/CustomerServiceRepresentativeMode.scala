@@ -120,6 +120,10 @@ class CustomerServiceRepresentativeMode(data: SessionData) extends ModeLogic {
         .GUID(player.VehicleSeated)
         .collect { case obj: PlanetSideGameObject with Vitality =>
           CustomerServiceRepresentativeMode.topOffHealth(data, obj)
+          obj
+        }
+        .getOrElse {
+          data.updateBlockMap(player, player.Position)
         }
       data.squad.updateSquad()
     } else {
@@ -144,13 +148,16 @@ case object CustomerServiceRepresentativeMode extends PlayerMode {
       packet.DetailedConstructorData(player).get
     ))
     data.zoning.spawn.HandleSetCurrentAvatar(player)
-    zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.LoadPlayer(
+    zone.AvatarEvents ! AvatarServiceMessage(
+      zone.id,
       pguid,
-      objectClass,
-      pguid,
-      packet.ConstructorData(player).get,
-      None
-    ))
+      AvatarAction.LoadPlayer(
+        objectClass,
+        pguid,
+        packet.ConstructorData(player).get,
+        None
+      )
+    )
   }
 
   def topOffHealth(data: SessionData, obj: PlanetSideGameObject with Vitality): Unit = {
@@ -174,14 +181,14 @@ case object CustomerServiceRepresentativeMode extends PlayerMode {
       player.Health = maxHealthOfPlayer.toInt
       player.LogActivity(player.ClearHistory().head)
       data.sendResponse(PlanetsideAttributeMessage(guid, 0, maxHealthOfPlayer))
-      data.continent.AvatarEvents ! AvatarServiceMessage(zoneid, AvatarAction.PlanetsideAttribute(guid, 0, maxHealthOfPlayer))
+      data.continent.AvatarEvents ! AvatarServiceMessage(zoneid, guid, AvatarAction.PlanetsideAttribute(0, maxHealthOfPlayer))
     }
     //below half armor, full armor
     val maxArmor = player.MaxArmor.toLong
     if (player.Armor < maxArmor) {
       player.Armor = maxArmor.toInt
       data.sendResponse(PlanetsideAttributeMessage(guid, 4, maxArmor))
-      data.continent.AvatarEvents ! AvatarServiceMessage(zoneid, AvatarAction.PlanetsideAttribute(guid, 4, maxArmor))
+      data.continent.AvatarEvents ! AvatarServiceMessage(zoneid, guid, AvatarAction.PlanetsideAttribute(4, maxArmor))
     }
   }
 

@@ -523,7 +523,7 @@ class VehicleControl(vehicle: Vehicle)
           case Some(slot) =>
             obj.Zone.AvatarEvents ! AvatarServiceMessage(
               self.toString,
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(obj.GUID, item.GUID, slot))
+              AvatarAction.SendResponse(ObjectAttachMessage(obj.GUID, item.GUID, slot))
             )
           case None =>  ()
         }

@@ -6,7 +6,7 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.equipment.Equipment
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage, DropItemMessage, PickupItemMessage}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -31,10 +31,7 @@ class ZoneGroundActor(zone: Zone, equipmentOnGround: ListBuffer[Equipment]) exte
         equipmentOnGround += item
         item.Position = pos
         item.Orientation = orient
-        zone.AvatarEvents ! AvatarServiceMessage(
-          zone.id,
-          AvatarAction.DropItem(Service.defaultPlayerGUID, item)
-        )
+        zone.AvatarEvents ! DropItemMessage(zone.id, AvatarAction.DropItem(item), zone)
         zone.actor ! ZoneActor.AddToBlockMap(item, pos)
         Zone.Ground.ItemOnGround(item, pos, orient)
       })
@@ -42,7 +39,7 @@ class ZoneGroundActor(zone: Zone, equipmentOnGround: ListBuffer[Equipment]) exte
     case Zone.Ground.PickupItem(item_guid) =>
       sender() ! (FindItemOnGround(item_guid) match {
         case Some(item) =>
-          zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PickupItem(Service.defaultPlayerGUID, item, 0))
+          zone.AvatarEvents ! PickupItemMessage(zone.id, AvatarAction.PickupItem(item, 0), zone)
           zone.actor ! ZoneActor.RemoveFromBlockMap(item)
           Zone.Ground.ItemInHand(item)
         case None =>
@@ -54,7 +51,7 @@ class ZoneGroundActor(zone: Zone, equipmentOnGround: ListBuffer[Equipment]) exte
       FindItemOnGround(item_guid) match {
         case Some(item) =>
           zone.actor ! ZoneActor.RemoveFromBlockMap(item)
-          zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PickupItem(Service.defaultPlayerGUID, item, 0))
+          zone.AvatarEvents ! PickupItemMessage(zone.id, AvatarAction.PickupItem(item, 0), zone)
         case None => ;
       }
 

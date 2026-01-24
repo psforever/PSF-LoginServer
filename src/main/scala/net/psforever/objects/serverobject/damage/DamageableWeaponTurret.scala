@@ -131,7 +131,7 @@ object DamageableWeaponTurret {
       }
       .foreach(slot => {
         val wep = slot.Equipment.get
-        avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
+        avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.ObjectDelete(wep.GUID))
       })
     target match {
       case turret: WeaponTurret =>

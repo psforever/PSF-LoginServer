@@ -22,6 +22,7 @@ import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, Reconstr
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.GenericAction.FirstPersonViewWithEffect
 import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TriggeredSound, TrainingZoneMessage, WeatherMessage}
+import net.psforever.services.avatar.{CorpseEnvelope, ReleaseMessage}
 import net.psforever.services.chat.DefaultChannel
 
 import scala.concurrent.duration._
@@ -2637,7 +2638,8 @@ class ZoningOperations(
           sendResponse(OCM.detailed(player))
           continent.AvatarEvents ! AvatarServiceMessage(
             s"spectator",
-            AvatarAction.LoadPlayer(guid, definition.ObjectId, guid, definition.Packet.ConstructorData(player).get, None)
+            guid,
+            AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(player).get, None)
           )
 
         case _ =>
@@ -2648,7 +2650,8 @@ class ZoningOperations(
           sendResponse(OCM.detailed(player))
           continent.AvatarEvents ! AvatarServiceMessage(
             zoneid,
-            AvatarAction.LoadPlayer(guid, definition.ObjectId, guid, definition.Packet.ConstructorData(player).get, None)
+            guid,
+            AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(player).get, None)
           )
       }
       continent.Population ! Zone.Population.Spawn(avatar, player, avatarActor)
@@ -2720,8 +2723,8 @@ class ZoningOperations(
       }
       continent.AvatarEvents ! AvatarServiceMessage(
         continent.id,
+        pguid,
         AvatarAction.LoadPlayer(
-          pguid,
           pdef.ObjectId,
           pguid,
           pdef.Packet.ConstructorData(tplayer).get,
@@ -2879,7 +2882,7 @@ class ZoningOperations(
           if (player.VisibleSlots.contains(index)) {
             events ! AvatarServiceMessage(
               zoneId,
-              AvatarAction.ObjectDelete(Service.defaultPlayerGUID, obj.GUID)
+              AvatarAction.ObjectDelete(obj.GUID)
             )
           } else {
             sendResponse(ObjectDeleteMessage(obj.GUID, 0))
@@ -2913,7 +2916,7 @@ class ZoningOperations(
         val pguid = tplayer.GUID
         zone.Population ! Zone.Population.Release(avatar)
         sendResponse(ObjectDeleteMessage(pguid, 0))
-        zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(pguid, pguid))
+        zone.AvatarEvents ! AvatarServiceMessage(zone.id, pguid, AvatarAction.ObjectDelete(pguid))
         TaskWorkflow.execute(GUIDTask.unregisterPlayer(zone.GUID, tplayer))
       }
     }
@@ -2936,7 +2939,7 @@ class ZoningOperations(
       tplayer.Release
       DepictPlayerAsCorpse(tplayer)
       zone.Population ! Zone.Corpse.Add(tplayer)
-      zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.Release(tplayer, zone))
+      zone.AvatarEvents ! ReleaseMessage(zone.id, AvatarAction.Release(tplayer, zone))
     }
 
     /**
@@ -2975,7 +2978,7 @@ class ZoningOperations(
      */
     def TryDisposeOfLootedCorpse(obj: Player): Boolean = {
       if (obj.isBackpack && WellLootedDeadBody(obj)) {
-        obj.Zone.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.HurrySpecific(List(obj), obj.Zone))
+        obj.Zone.AvatarEvents ! CorpseEnvelope(RemoverActor.HurrySpecific(List(obj), obj.Zone))
         true
       } else {
         false
@@ -3171,7 +3174,8 @@ class ZoningOperations(
               sendResponse(ObjectDeleteMessage(player_guid, unk1=effect))
               continent.AvatarEvents ! AvatarServiceMessage(
                 continent.id,
-                AvatarAction.ObjectDelete(player_guid, player_guid, unk=effect)
+                player_guid,
+                AvatarAction.ObjectDelete(player_guid, unk=effect)
               )
               InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
               LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
@@ -3335,7 +3339,7 @@ class ZoningOperations(
       //looking for squad (members)
       if (tplayer.avatar.lookingForSquad) {
         sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
-        continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttribute(guid, 53, 1))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.id, guid, AvatarAction.PlanetsideAttribute(53, 1))
       }
       sendResponse(AvatarSearchCriteriaMessage(guid, List(0, 0, 0, 0, 0, 0)))
       //these are facilities and towers and bunkers in the zone, but not necessarily all of them for some reason
@@ -3361,7 +3365,7 @@ class ZoningOperations(
       if (tplayer.ExoSuit == ExoSuitType.MAX) {
         sendResponse(PlanetsideAttributeMessage(guid, 7, tplayer.Capacitor.toLong))
         sendResponse(PlanetsideAttributeMessage(guid, 4, tplayer.Armor))
-        continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.PlanetsideAttributeToAll(guid, 4, tplayer.Armor))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.id, guid, AvatarAction.PlanetsideAttributeToAll(4, tplayer.Armor))
       }
       // for issue #1269
       continent.AllPlayers.filter(_.ExoSuit == ExoSuitType.MAX).foreach(max => sendResponse(PlanetsideAttributeMessage(max.GUID, 4, max.Armor)))
@@ -3484,14 +3488,8 @@ class ZoningOperations(
           case Some(b: Building) if b.hasCavernLockBenefit =>
             tplayer.MaxHealth = 120
             tplayer.Health = 120
-            tplayer.Zone.AvatarEvents ! AvatarServiceMessage(
-              tplayer.Zone.id,
-              AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 0, 120)
-            )
-            tplayer.Zone.AvatarEvents ! AvatarServiceMessage(
-              tplayer.Zone.id,
-              AvatarAction.PlanetsideAttributeToAll(tplayer.GUID, 1, 120)
-            )
+            tplayer.Zone.AvatarEvents ! AvatarServiceMessage(tplayer.Zone.id, tplayer.GUID, AvatarAction.PlanetsideAttributeToAll(0, 120))
+            tplayer.Zone.AvatarEvents ! AvatarServiceMessage(tplayer.Zone.id, tplayer.GUID, AvatarAction.PlanetsideAttributeToAll(1, 120))
           case _ => ()
         }
         doorsThatShouldBeOpenInRange(pos, range = 100f)

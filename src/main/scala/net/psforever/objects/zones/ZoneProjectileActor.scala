@@ -158,8 +158,8 @@ class ZoneProjectileActor(
     )
     zone.AvatarEvents ! AvatarServiceMessage(
       zone.id,
+      clarifiedFilterGuid,
       AvatarAction.LoadProjectile(
-        clarifiedFilterGuid,
         definition.ObjectId,
         projectileGuid,
         definition.Packet.ConstructorData(projectile).get
@@ -190,17 +190,17 @@ class ZoneProjectileActor(
       zone.blockMap.removeFrom(projectile)
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.ObjectDelete(PlanetSideGUID(0), projectile_guid, 2)
+        AvatarAction.ObjectDelete(projectile_guid, 2)
       )
     } else if (projectile.Definition.RemoteClientData == (0,0)) {
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.ObjectDelete(PlanetSideGUID(0), projectile_guid, 2)
+        AvatarAction.ObjectDelete(projectile_guid, 2)
       )
     } else {
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.ProjectileExplodes(PlanetSideGUID(0), projectile_guid, projectile)
+        AvatarAction.ProjectileExplodes(projectile_guid, projectile)
       )
     }
   }

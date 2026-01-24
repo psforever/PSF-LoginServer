@@ -44,7 +44,7 @@ class WithEntranceInVehicle
     import net.psforever.types.ChatMessageType
     obj.Zone.AvatarEvents ! AvatarServiceMessage(
       obj.Actor.toString(),
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, ChatMsg(ChatMessageType.UNK_227, msg))
+      AvatarAction.SendResponse(ChatMsg(ChatMessageType.UNK_227, msg))
     )
   }
 }
