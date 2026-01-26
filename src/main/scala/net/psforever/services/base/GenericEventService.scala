@@ -12,6 +12,7 @@ trait GenericResponseEnvelope
   extends GenericEventBusMsg {
   def filter: PlanetSideGUID
   def reply: EventResponse
+  def inner: EventResponse = reply
 }
 
 trait GenericMessageEnvelope {

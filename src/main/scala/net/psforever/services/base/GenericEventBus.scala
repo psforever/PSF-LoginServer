@@ -6,9 +6,11 @@ import akka.util.Subclassification
 
 trait GenericEventBusMsg {
   def channel: String
+  def inner: Any
 }
 
-class GenericEventBus[A <: GenericEventBusMsg] extends ActorEventBus with SubchannelClassification {
+class GenericEventBus[A <: GenericEventBusMsg]
+  extends ActorEventBus with SubchannelClassification {
   type Event = A
   type Classifier = String
 
