@@ -13,9 +13,8 @@ import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.participation.MajorFacilityHackParticipation
 import net.psforever.packet.game.{ChatMsg, GenericAction, HackState7, PlanetsideAttributeEnum}
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.services.Service
 import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.{FlagMessage, LocalAction, LocalServiceMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
 
 import java.util.concurrent.{Executors, TimeUnit}
@@ -156,24 +155,19 @@ class HackCaptureActor extends Actor {
     case HackCaptureActor.FlagLost(flag) =>
       val owner = flag.Owner.asInstanceOf[Building]
       val guid = owner.GUID
-      val terminalOpt = owner.CaptureTerminal
-      hackedObjects
-        .find(entry => guid == entry.target.Owner.GUID)
-        .collect { entry =>
-          val terminal = terminalOpt.get
-          hackedObjects = hackedObjects.filterNot(x => x eq entry)
-          log.info(s"FlagLost: ${flag.Carrier.map(_.Name).getOrElse("")} the flag carrier screwed up the capture for ${flag.Target.Name} and the LLU has been lost")
-          terminal.Actor ! CommonMessages.ClearHack()
-          NotifyHackStateChange(terminal, isResecured = true)
-          // If there's hacked objects left in the list restart the timer with the shortest hack time left
-          RestartTimer()
-          entry
-        }
-        .orElse{
-          log.warn(s"FlagLost: flag data does not match to an entry in the hacked objects list")
-          None
-        }
-      context.parent ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.FlagLost)
+      val (found, remaining) = hackedObjects.partition(_.target.Owner.GUID == guid)
+      hackedObjects = remaining
+      found.collectFirst { _ =>
+        val terminal = owner.CaptureTerminal.get
+        log.info(s"FlagLost: ${flag.Carrier.map(_.Name).getOrElse("")} the flag carrier screwed up the capture for ${flag.Target.Name} and the LLU has been lost")
+        terminal.Actor ! CommonMessages.ClearHack()
+        NotifyHackStateChange(terminal, isResecured = true)
+        RestartTimer() // If there's hacked objects left in the list restart the timer with the shortest hack time left
+      }
+      if (found.isEmpty) {
+        log.warn(s"FlagLost: flag data does not match to an entry in the hacked objects list")
+      }
+      owner.Zone.LocalEvents ! FlagMessage(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.FlagLost))
 
     case _ => ()
   }
@@ -195,7 +189,7 @@ class HackCaptureActor extends Actor {
         true
       case Some((owner, Some(flag), Some(neighbours))) if neighbours.nonEmpty && hackingFaction != flag.Faction =>
         log.info(s"$hackingFaction is overriding the ongoing LLU hack of facility ${owner.Name} by ${flag.Faction}")
-        terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended)
+        terminal.Zone.LocalEvents ! FlagMessage(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended))
         NotifyHackStateChange(terminal, isResecured = false)
         RestartTimer()
         spawnCaptureFlag(neighbours, terminal, hackingFaction)
@@ -209,7 +203,7 @@ class HackCaptureActor extends Actor {
       case Some((owner, Some(flag), _)) =>
         log.warn(s"TrySpawnCaptureFlag: couldn't find any neighbouring $hackingFaction facilities of ${owner.Name} for LLU hack")
         owner.GetFlagSocket.foreach { _.clearOldFlagData() }
-        terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended)
+        terminal.Zone.LocalEvents ! FlagMessage(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended))
         false
       case _ =>
         log.error(s"TrySpawnCaptureFlag: expecting a terminal ${terminal.GUID.guid} with the ctf owning facility")
@@ -225,7 +219,7 @@ class HackCaptureActor extends Actor {
     // Find a random neighbouring base matching the hacking faction
     val targetBase = neighbours.toVector((new Random).nextInt(neighbours.size))
     // Request LLU is created by CaptureFlagActor via LocalService
-    terminal.Zone.LocalEvents ! CaptureFlagManager.SpawnCaptureFlag(terminal, targetBase, hackingFaction)
+    terminal.Zone.LocalEvents ! FlagMessage(CaptureFlagManager.SpawnCaptureFlag(terminal, targetBase, hackingFaction))
   }
 
   private def NotifyHackStateChange(
@@ -236,8 +230,8 @@ class HackCaptureActor extends Actor {
     // Notify all clients that CC has had its hack state changed
     terminal.Zone.LocalEvents ! LocalServiceMessage(
       terminal.Zone.id,
-      LocalAction.SendPlanetsideAttributeMessage(
-        PlanetSideGUID(-1),
+      PlanetSideGUID(-1),
+      LocalAction.PlanetsideAttribute(
         terminal.GUID,
         PlanetsideAttributeEnum.ControlConsoleHackUpdate,
         attributeValue
@@ -273,7 +267,7 @@ class HackCaptureActor extends Actor {
       log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
       //dispatch to players aligned with the capturing faction within the SOI
       val events = building.Zone.LocalEvents
-      val msg = LocalAction.SendGenericActionMessage(Service.defaultPlayerGUID, GenericAction.FacilityCaptureFanfare)
+      val msg = LocalAction.GenericActionMessage(GenericAction.FacilityCaptureFanfare)
       building
         .PlayersInSOI
         .collect { case p if p.Faction == hackedByFaction =>
@@ -312,7 +306,8 @@ class HackCaptureActor extends Actor {
     }
     NotifyHackStateChange(terminal, isResecured = true)
     // todo: this appears to be the way to reset the base warning lights after the hack finishes but it doesn't seem to work.
-    context.parent ! HackClearActor.SendHackMessageHackCleared(building.GUID, terminal.Zone.id, 3212836864L, HackState7.Unk8) //call up
+    val zone = building.Zone
+    zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SendHackMessageHackCleared(building.GUID, 3212836864L, HackState7.Unk8))
   }
 
   private def RestartTimer(): Unit = {

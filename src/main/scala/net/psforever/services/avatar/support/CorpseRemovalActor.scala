@@ -4,7 +4,7 @@ package net.psforever.services.avatar.support
 import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.objects.Player
 import net.psforever.types.ExoSuitType
-import net.psforever.services.{RemoverActor, Service}
+import net.psforever.services.RemoverActor
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.duration._

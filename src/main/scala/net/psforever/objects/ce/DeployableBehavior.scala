@@ -202,11 +202,7 @@ trait DeployableBehavior {
     //zone map icon
     localEvents ! LocalServiceMessage(
       obj.Faction.toString,
-      LocalAction.DeployableMapIcon(
-        Service.defaultPlayerGUID,
-        DeploymentAction.Build,
-        DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID))
-      )
+      LocalAction.DeployableMapIcon(DeploymentAction.Build, DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID)))
     )
     //local build management
     callback ! Zone.Deployable.IsBuilt(obj)
@@ -293,7 +289,7 @@ object DeployableBehavior {
       //remove knowledge by the previous owner's faction
       localEvents ! LocalServiceMessage(
         originalFaction.toString,
-        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Dismiss, info)
+        LocalAction.DeployableMapIcon(DeploymentAction.Dismiss, info)
       )
       //remove deployable from original owner's toolbox and UI counter
       zone.AllPlayers.filter(p => obj.OriginalOwnerName.contains(p.Name))
@@ -304,7 +300,7 @@ object DeployableBehavior {
       //display to the given faction
       localEvents ! LocalServiceMessage(
         toFaction.toString,
-        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
+        LocalAction.DeployableMapIcon(DeploymentAction.Build, info)
       )
     }
   }

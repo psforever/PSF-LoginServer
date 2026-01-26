@@ -119,7 +119,7 @@ object ZoningOperations {
                                               additionalChannels: List[String]
                                             ): Unit = {
     val events = zone.LocalEvents
-    val effectMessage = LocalAction.TriggerEffectLocation(Service.defaultPlayerGUID, s"respawn_$faction", position, orientation)
+    val effectMessage = LocalAction.TriggerEffectLocation(s"respawn_$faction", position, orientation)
     (zone
       .blockMap
       .sector(position, range = 100f)
@@ -153,11 +153,11 @@ object ZoningOperations {
           Vector3.DistanceSquared(t.Position.xy, posxy) < 2500f && /* literal 50m */
           heightDiff < 5f && heightDiff > -1f
       }
-    val effectMessage = LocalAction.TriggerEffectLocation(Service.defaultPlayerGUID, s"respawn_$faction", position, orientation)
+    val effectMessage = LocalAction.TriggerEffectLocation(s"respawn_$faction", position, orientation)
     (effectTargets.map(_.Name) ++ additionalChannels).foreach { target =>
       events ! LocalServiceMessage(target, effectMessage)
     }
-    val soundMessage = LocalAction.TriggerSound(Service.defaultPlayerGUID, TriggeredSound.SpawnInTube, position, 50, 0.69803923f)
+    val soundMessage = LocalAction.TriggerSound(TriggeredSound.SpawnInTube, position, 50, 0.69803923f)
     (soundTargets.map(_.Name) ++ additionalChannels).foreach { target =>
       events ! LocalServiceMessage(target, soundMessage)
     }
@@ -1208,7 +1208,8 @@ class ZoningOperations(
         if (llu.Carrier.nonEmpty) {
           continent.LocalEvents ! LocalServiceMessage(
             continent.id,
-            LocalAction.SendPacket(ObjectAttachMessage(llu.Carrier.get.GUID, llu.GUID, 252))
+            PlanetSideGUID(-1),
+            LocalAction.SendResponse(ObjectAttachMessage(llu.Carrier.get.GUID, llu.GUID, 252))
           )
         }
       case _ => ()
@@ -3993,10 +3994,18 @@ class ZoningOperations(
       val pZone = player.Zone
       sendResponse(GenericActionMessage(FirstPersonViewWithEffect))
       pZone.blockMap.sector(player).livePlayerList.collect { case t if t.GUID != player.GUID =>
-        pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendGenericObjectActionMessage(t.GUID, player.GUID, GenericObjectActionEnum.PlayerDeconstructs))
+        pZone.LocalEvents ! LocalServiceMessage(
+          t.Name,
+          t.GUID,
+          LocalAction.GenericObjectAction(player.GUID, GenericObjectActionEnum.PlayerDeconstructs)
+        )
       }
       pZone.AllPlayers.collect { case t if t.GUID != player.GUID && !t.allowInteraction =>
-        pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendGenericObjectActionMessage(t.GUID, player.GUID, GenericObjectActionEnum.PlayerDeconstructs))
+        pZone.LocalEvents ! LocalServiceMessage(
+          t.Name,
+          t.GUID,
+          LocalAction.GenericObjectAction(player.GUID, GenericObjectActionEnum.PlayerDeconstructs)
+        )
       }
     }
 

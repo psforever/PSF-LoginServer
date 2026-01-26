@@ -5,6 +5,7 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.{Default, Doors}
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.tailrec
@@ -43,10 +44,10 @@ class DoorCloseActor() extends Actor {
         doorsLeftOpen1 ++
           doorsLeftOpen2.map(entry => DoorCloseActor.DoorEntry(entry.door, entry.zone, now))
       ).sortBy(_.time)
-      doorsToClose2.foreach(entry => {
-        entry.door.Open = None                                                       //permissible break from synchronization
-        context.parent ! DoorCloseActor.CloseTheDoor(entry.door.GUID, entry.zone.id) //call up to the main event system
-      })
+      doorsToClose2.foreach { case DoorCloseActor.DoorEntry(door, zone, _) =>
+        door.Open = None //permissible break from synchronization
+        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.DoorCloses(door.GUID)) //call up to the main event system
+      }
 
       if (openDoors.nonEmpty) {
         val short_timeout: FiniteDuration = math.max(1, DoorCloseActor.timeout_time - (now - openDoors.head.time)).milliseconds

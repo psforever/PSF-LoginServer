@@ -8,7 +8,6 @@ import net.psforever.objects.serverobject.containable.{Containable, ContainableB
 import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types.{PlanetSideEmpire, Vector3}
-import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 class CorpseControl(player: Player) extends Actor with ContainableBehavior {

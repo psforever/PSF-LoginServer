@@ -8,7 +8,6 @@ import net.psforever.objects.vital.RepairFromEquipment
 import net.psforever.objects.{Player, Tool}
 import net.psforever.packet.game.{ChatMsg, InventoryStateMessage, RepairMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
-import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 /**

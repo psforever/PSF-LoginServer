@@ -10,7 +10,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.packet.game.{CharacterKnowledgeInfo, CharacterKnowledgeMessage, ChatMsg, PlanetsideAttributeMessage, ReplicationStreamMessage, SquadAction, SquadDefinitionActionMessage, SquadDetailDefinitionUpdateMessage, SquadListing, SquadMemberEvent, SquadMembershipRequest, SquadMembershipResponse, SquadState, SquadStateInfo, SquadWaypointEvent, SquadWaypointRequest, WaypointEventAction}
 import net.psforever.services.chat.SquadChannel
 import net.psforever.services.teamwork.SquadResponse
-import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadListDecoration, SquadResponseType}
+import net.psforever.types.{PlanetSideGUID, SquadListDecoration, SquadResponseType}
 
 object SquadHandlerLogic {
   def apply(ops: SessionSquadHandlers): SquadHandlerLogic = {

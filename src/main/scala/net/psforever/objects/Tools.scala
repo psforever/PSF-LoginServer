@@ -3,7 +3,6 @@ package net.psforever.objects
 
 import net.psforever.objects.equipment.ChargeFireModeDefinition
 import net.psforever.packet.game.QuantityUpdateMessage
-import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 object Tools {

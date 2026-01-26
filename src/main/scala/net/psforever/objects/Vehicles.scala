@@ -279,7 +279,9 @@ object Vehicles {
       if (GlobalDefinitions.isBattleFrameVehicle(target.Definition) && target.Seat(0).isDefined) {
         zone.LocalEvents ! LocalServiceMessage(
           zoneid,
-          LocalAction.SendGenericObjectActionMessage(PlanetSideGUID(-1), target.GUID, GenericObjectActionEnum.BFRShieldsDown))
+          PlanetSideGUID(-1),
+          LocalAction.GenericObjectAction(target.GUID, GenericObjectActionEnum.BFRShieldsDown)
+        )
         zone.LocalEvents ! LocalServiceMessage(
           zoneid,
           LocalAction.SendResponse(
@@ -319,7 +321,8 @@ object Vehicles {
     }
     localEvents ! LocalServiceMessage(
       zoneid,
-      LocalAction.TriggerSound(hGuid, TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f)
+      hGuid,
+      LocalAction.TriggerSound(TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f)
     )
     if (zone.Players.exists(_.name.equals(previousOwnerName))) {
       localEvents ! LocalServiceMessage(

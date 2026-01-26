@@ -381,14 +381,13 @@ class ExplosiveDeployableJammerTest extends ActorTest {
 //        case _ => assert(false, "")
 //      }
       eventMsgs(1) match {
-        case LocalServiceMessage("test", LocalAction.Detonate(PlanetSideGUID(1), _)) => ;
+        case LocalServiceMessage("test", _, LocalAction.Detonate(PlanetSideGUID(1), _)) => ;
         case _ => assert(false, "")
       }
       eventMsgs(2) match {
         case LocalServiceMessage(
-          "NC",
+          "NC", _,
           LocalAction.DeployableMapIcon(
-            ValidPlanetSideGUID(0),
             DeploymentAction.Dismiss,
             DeployableInfo(ValidPlanetSideGUID(1), DeployableIcon.HEMine, Vector3.Zero, ValidPlanetSideGUID(0))
           )
@@ -398,8 +397,9 @@ class ExplosiveDeployableJammerTest extends ActorTest {
       eventMsgs(3) match {
         case AvatarServiceMessage(
           "test",
+          _,
           AvatarAction.Destroy(
-            ValidPlanetSideGUID(1),
+          ValidPlanetSideGUID(1),
             ValidPlanetSideGUID(3),
             ValidPlanetSideGUID(0),
             Vector3.Zero
@@ -484,15 +484,14 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
         case _ => assert(false, "")
       }
       eventMsgs(1) match {
-        case LocalServiceMessage("test", LocalAction.Detonate(PlanetSideGUID(2), target))
+        case LocalServiceMessage("test", _, LocalAction.Detonate(PlanetSideGUID(2), target))
           if target eq h_mine => ()
         case _ => assert(false, "")
       }
       eventMsgs(2) match {
         case LocalServiceMessage(
-          "NC",
+          "NC", _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Dismiss,
             DeployableInfo(PlanetSideGUID(2), DeployableIcon.HEMine, _, PlanetSideGUID(0))
           )
@@ -578,9 +577,8 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
       val p2Msgs = player2Probe.receiveN(1, 200 milliseconds)
       eventMsgs.head match {
         case LocalServiceMessage(
-          "NC",
+          "NC", _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Dismiss,
             DeployableInfo(PlanetSideGUID(2), DeployableIcon.HEMine, _, PlanetSideGUID(0))
           )
@@ -589,13 +587,13 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
       }
       eventMsgs(1) match {
         case AvatarServiceMessage(
-          "test",
+          "test", _,
           AvatarAction.Destroy(PlanetSideGUID(2), PlanetSideGUID(3), Service.defaultPlayerGUID, Vector3.Zero)
         ) => ;
         case _ => assert(false, "")
       }
       eventMsgs(2) match {
-        case LocalServiceMessage("test", LocalAction.TriggerEffect(_, "detonate_damaged_mine", PlanetSideGUID(2))) => ;
+        case LocalServiceMessage("test", _, LocalAction.TriggerEffect("detonate_damaged_mine", PlanetSideGUID(2))) => ;
         case _ => assert(false, "")
       }
       p2Msgs.head match {

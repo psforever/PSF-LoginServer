@@ -6,7 +6,6 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
-import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
@@ -19,7 +18,7 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 class LockerContainerControl(locker: LockerContainer, toChannel: String)
   extends Actor
   with ContainableBehavior {
-  def ContainerObject = locker
+  def ContainerObject: LockerContainer = locker
 
   def receive: Receive =
     containerBehavior

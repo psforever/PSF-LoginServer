@@ -6,6 +6,8 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.HackState1
+import net.psforever.services.local.ClearMessage
+import net.psforever.services.local.support.HackClearActor
 import org.log4s.Logger
 
 import scala.annotation.unused
@@ -147,7 +149,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     tryAutoRepair()
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone
-      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ClearTemporaryHack(Service.defaultPlayerGUID, term))
+      zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(term))
     }
     super.DestructionAwareness(target, cause)
   }
@@ -181,7 +183,8 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
           self,
           ProximityTerminalControl.TerminalAction()
         )
-        TerminalObject.Zone.LocalEvents ! Terminal.StartProximityEffect(term)
+        val zone = TerminalObject.Zone
+        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = true))
       }
     } else {
       log.warn(s"ProximityTerminal.Use: $target was rejected by unit ${term.Definition.Name}@${term.GUID.guid}")
@@ -201,7 +204,8 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
       //de-activation (global / local)
       if (term.NumberUsers == 0 && hadUsers) {
         terminalAction.cancel()
-        TerminalObject.Zone.LocalEvents ! Terminal.StopProximityEffect(term)
+        val zone = TerminalObject.Zone
+        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = false))
       }
     } else {
       log.debug(
@@ -216,12 +220,13 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     terminalAction.cancel()
     if (callbacks.nonEmpty) {
       callbacks.clear()
-      TerminalObject.Zone.LocalEvents ! Terminal.StopProximityEffect(term)
+      val zone = TerminalObject.Zone
+      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = true))
     }
     //clear hack state
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone
-      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ClearTemporaryHack(Service.defaultPlayerGUID, term))
+      zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(term))
     }
   }
 

@@ -106,7 +106,6 @@ trait FacilityHackParticipation extends ParticipationLogic {
     if (building.virusId != 8) {
       import net.psforever.objects.serverobject.terminals.Terminal
       import net.psforever.objects.GlobalDefinitions
-      import net.psforever.services.Service
       import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
       val mainTerm = building.Amenities.filter(x => x.isInstanceOf[Terminal] && x.Definition == GlobalDefinitions.main_terminal).head.GUID
       val msg1 = AvatarAction.GenericObjectAction(mainTerm, 61)

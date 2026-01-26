@@ -15,7 +15,6 @@ import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.TerminalUsedActivity
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{ExoSuitType, PlanetSideGUID, TransactionType, Vector3}
-import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global

@@ -39,7 +39,6 @@ class WithEntranceInVehicle
 
   private def warnAboutProximity(obj: InteractsWithZone, msg: String): Unit = {
     import net.psforever.packet.game.ChatMsg
-    import net.psforever.services.Service
     import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
     import net.psforever.types.ChatMessageType
     obj.Zone.AvatarEvents ! AvatarServiceMessage(

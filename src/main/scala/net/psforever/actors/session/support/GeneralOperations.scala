@@ -19,7 +19,8 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.services.RemoverActor
 import net.psforever.services.avatar.GroundEnvelope
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.support.HackCaptureActor
+import net.psforever.services.local.{CaptureMessage, LocalAction, LocalServiceMessage}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -1252,7 +1253,7 @@ class GeneralOperations(
         continent.GUID(specialItemSlotGuid) match {
           case Some(llu: CaptureFlag) =>
             if (llu.Target.GUID == captureTerminal.Owner.GUID) {
-              continent.LocalEvents ! LocalServiceMessage(continent.id, LocalAction.LluCaptured(llu))
+              continent.LocalEvents ! CaptureMessage(HackCaptureActor.FlagCaptured(llu))
             } else {
               log.info(
                 s"LLU target is not this base. Target GUID: ${llu.Target.GUID} This base: ${captureTerminal.Owner.GUID}"
@@ -1435,13 +1436,12 @@ class GeneralOperations(
         val events = continent.AvatarEvents
         val zoneid = continent.id
         val destinationPosition = dest.Position
-        events ! AvatarServiceMessage(zoneid, AvatarAction.ObjectDelete(pguid, pguid))
+        events ! AvatarServiceMessage(zoneid, pguid, AvatarAction.ObjectDelete(pguid))
         events ! AvatarServiceMessage(player.Name,
-          AvatarAction.SendResponse(PlanetSideGUID(0), PlayerStateShiftMessage(ShiftState(0, destinationPosition, player.Orientation.z)))
+          AvatarAction.SendResponse(PlayerStateShiftMessage(ShiftState(0, destinationPosition, player.Orientation.z)))
         )
         player.Position = destinationPosition
-        events ! AvatarServiceMessage(zoneid, AvatarAction.LoadPlayer(
-          pguid,
+        events ! AvatarServiceMessage(zoneid, pguid, AvatarAction.LoadPlayer(
           player.Definition.ObjectId,
           pguid,
           player.Definition.Packet.ConstructorData(player).get,
@@ -1450,7 +1450,8 @@ class GeneralOperations(
         useRouterTelepadEffect(pguid, sguid, dguid)
         continent.LocalEvents ! LocalServiceMessage(
           continent.id,
-          LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid)
+          pguid,
+          LocalAction.RouterTelepadTransport(pguid, sguid, dguid)
         )
         sessionLogic.zoning.spawn.ShiftPosition = destinationPosition
         player.LogActivity(TelepadUseActivity(VehicleSource(router), DeployableSource(remoteTelepad), PlayerSource(player)))

@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffi
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.structures.PoweredAmenityControl
 import net.psforever.services.Service
-import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
+import net.psforever.services.local.{LocalAction, LocalServiceMessage, LocalServiceResponse}
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Door`.
@@ -107,20 +107,19 @@ object DoorControl {
    */
   private def openDoor(player: Player, door: Door, replyTo: ActorRef = Default.Actor): Unit = {
     val zone = door.Zone
-    val doorGUID = door.GUID
     if (!door.isOpen) {
       //global open
       door.Open = player
       zone.LocalEvents ! LocalServiceMessage(
         zone.id,
-        LocalAction.DoorOpens(Service.defaultPlayerGUID, zone, door)
+        LocalAction.DoorOpens(zone, door)
       )
     } else {
       //the door should already open, but the requesting player does not see it as open
       replyTo ! LocalServiceResponse(
         player.Name,
         Service.defaultPlayerGUID,
-        LocalResponse.DoorOpens(doorGUID)
+        LocalAction.DoorOpens(door.Zone, door)
       )
     }
   }

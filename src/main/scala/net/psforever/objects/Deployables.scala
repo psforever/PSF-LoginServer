@@ -94,11 +94,7 @@ object Deployables {
       }
     events ! LocalServiceMessage(
       s"${target.Faction}",
-      LocalAction.DeployableMapIcon(
-        PlanetSideGUID(0),
-        DeploymentAction.Dismiss,
-        DeployableInfo(target.GUID, Deployable.Icon(item), target.Position, PlanetSideGUID(0))
-      )
+      LocalAction.DeployableMapIcon(DeploymentAction.Dismiss, DeployableInfo(target.GUID, Deployable.Icon(item), target.Position, PlanetSideGUID(0)))
     )
   }
 

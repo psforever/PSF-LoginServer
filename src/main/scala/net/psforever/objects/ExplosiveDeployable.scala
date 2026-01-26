@@ -217,7 +217,7 @@ object ExplosiveDeployableControl {
     if (target.Health == 0) {
       zone.LocalEvents ! LocalServiceMessage(
         zone.id,
-        LocalAction.TriggerEffect(Service.defaultPlayerGUID, "detonate_damaged_mine", target.GUID)
+        LocalAction.TriggerEffect("detonate_damaged_mine", target.GUID)
       )
     }
   }

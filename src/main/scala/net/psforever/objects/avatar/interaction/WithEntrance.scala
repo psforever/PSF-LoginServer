@@ -91,7 +91,7 @@ class WithEntrance()
     import net.psforever.objects.{Player, Vehicle}
     import net.psforever.packet.game.ChatMsg
     import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-    import net.psforever.types.{ChatMessageType, PlanetSideGUID}
+    import net.psforever.types.ChatMessageType
     val channel = obj match {
       case p: Player => p.Name
       case v: Vehicle => v.Actor.toString()

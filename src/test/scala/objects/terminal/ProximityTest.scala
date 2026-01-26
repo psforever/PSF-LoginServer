@@ -2,25 +2,19 @@
 package objects.terminal
 
 import java.util.concurrent.atomic.AtomicInteger
-
 import akka.actor.Props
 import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
-import net.psforever.objects.serverobject.terminals.{
-  ProximityTerminal,
-  ProximityTerminalControl,
-  ProximityUnit,
-  Terminal
-}
+import net.psforever.objects.serverobject.terminals.{ProximityTerminal, ProximityTerminalControl, ProximityUnit, Terminal}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 import org.specs2.mutable.Specification
 import net.psforever.services.Service
-import net.psforever.services.local.LocalService
+import net.psforever.services.local.{LocalService, LocalServiceMessage}
 
 import scala.concurrent.duration._
 import akka.actor.typed.scaladsl.adapter._
@@ -206,7 +200,7 @@ class ProximityTerminalControlStartTest extends ActorTest {
       assert(terminal.Owner.Continent.equals("test"))
 
       terminal.Actor.tell(CommonMessages.Use(avatar, Some(avatar)), probe2.ref)
-      probe1.expectMsgClass(1 second, classOf[Terminal.StartProximityEffect])
+      probe1.expectMsgClass(1 second, classOf[LocalServiceMessage])
       probe2.expectMsgClass(1 second, classOf[ProximityUnit.Action])
       assert(terminal.NumberUsers == 1)
     }
@@ -276,7 +270,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
       assert(terminal.Owner.Continent.equals("test"))
 
       terminal.Actor.tell(CommonMessages.Use(avatar, Some(avatar)), probe2.ref)
-      probe1.expectMsgClass(1 second, classOf[Terminal.StartProximityEffect])
+      probe1.expectMsgClass(1 second, classOf[LocalServiceMessage])
       probe2.expectMsgClass(5 second, classOf[ProximityUnit.Action])
 
       terminal.Actor.tell(CommonMessages.Use(avatar2, Some(avatar2)), probe3.ref)
@@ -334,7 +328,7 @@ class ProximityTerminalControlStopTest extends ActorTest {
       assert(terminal.Owner.Continent.equals("test"))
 
       terminal.Actor.tell(CommonMessages.Use(avatar, Some(avatar)), probe2.ref)
-      probe1.expectMsgClass(1 second, classOf[Terminal.StartProximityEffect])
+      probe1.expectMsgClass(1 second, classOf[LocalServiceMessage])
       probe2.expectMsgClass(1 second, classOf[ProximityUnit.Action])
 
       terminal.Actor ! CommonMessages.Unuse(avatar, Some(avatar))
@@ -346,7 +340,7 @@ class ProximityTerminalControlStopTest extends ActorTest {
         case out                            => assert(false, s"last message $out is not StopAction")
       }
       //probe2.expectMsgClass(1 second, classOf[ProximityUnit.StopAction])
-      probe1.expectMsgClass(1 second, classOf[Terminal.StopProximityEffect])
+      probe1.expectMsgClass(1 second, classOf[LocalServiceMessage])
       assert(terminal.NumberUsers == 0)
     }
   }
@@ -412,7 +406,7 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
       assert(terminal.Owner.Continent.equals("test"))
 
       terminal.Actor.tell(CommonMessages.Use(avatar, Some(avatar)), probe2.ref)
-      probe1.expectMsgClass(100 millisecond, classOf[Terminal.StartProximityEffect])
+      probe1.expectMsgClass(100 millisecond, classOf[LocalServiceMessage])
       assert(terminal.NumberUsers == 1)
 
       terminal.Actor.tell(CommonMessages.Use(avatar2, Some(avatar2)), probe3.ref)
@@ -424,7 +418,7 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
       assert(terminal.NumberUsers == 1)
 
       terminal.Actor ! CommonMessages.Unuse(avatar2, Some(avatar2))
-      probe1.expectMsgClass(100 millisecond, classOf[Terminal.StopProximityEffect])
+      probe1.expectMsgClass(100 millisecond, classOf[LocalServiceMessage])
       assert(terminal.NumberUsers == 0)
     }
   }

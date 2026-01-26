@@ -20,7 +20,8 @@ import net.psforever.packet.game.{SetChatFilterMessage, TimeOfDayMessage}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.chat.{DefaultChannel, OutfitChannel, SquadChannel}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.support.HackCaptureActor
+import net.psforever.services.local.CaptureMessage
 import net.psforever.services.teamwork.{SquadResponse, SquadService, SquadServiceResponse}
 import net.psforever.types.ChatMessageType.CMT_QUIT
 import org.log4s.Logger
@@ -405,10 +406,7 @@ class ChatOperations(
           }
           else {
             if (building.CaptureTerminalIsHacked) {
-              zone.LocalEvents ! LocalServiceMessage(
-                zone.id,
-                LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody)
-              )
+              zone.LocalEvents ! CaptureMessage(HackCaptureActor.ResecureCaptureTerminal(terminal, zone, PlayerSource.Nobody))
             }
             building.Actor ! BuildingActor.SetFaction(faction)
             building.Actor ! BuildingActor.AmenityStateChange(terminal, Some(false))

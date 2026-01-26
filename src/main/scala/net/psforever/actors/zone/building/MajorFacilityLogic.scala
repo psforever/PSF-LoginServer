@@ -14,11 +14,12 @@ import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAware, CaptureTerminalAwareBehavior}
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.packet.game.PlanetsideAttributeMessage
-import net.psforever.services.{InterstellarClusterService, Service}
+import net.psforever.services.InterstellarClusterService
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.services.local.{CaptureMessage, ClearMessage, LocalAction, LocalServiceMessage}
+import net.psforever.services.local.support.{HackCaptureActor, HackClearActor}
+import net.psforever.types.PlanetSideEmpire
 
 /**
   * A package class that conveys the important information for handling facility updates.
@@ -101,10 +102,7 @@ case object MajorFacilityLogic
             hackedAmenities
         }
         amenitiesToClear.foreach { amenity =>
-          building.Zone.LocalEvents ! LocalServiceMessage(
-            amenity.Zone.id,
-            LocalAction.ClearTemporaryHack(PlanetSideGUID(0), amenity)
-          )
+          building.Zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(amenity))
         }
       // No map update needed - will be sent by `HackCaptureActor` when required
       case dome: ForceDomePhysics =>
@@ -283,7 +281,7 @@ case object MajorFacilityLogic
     (bldg.GetFlag, bldg.CaptureTerminal) match {
       case (Some(flag), Some(terminal)) if (flag.Target eq building) && flag.Faction != building.Faction =>
         //our hack destination may have been compromised and the hack needs to be cancelled
-        bldg.Zone.LocalEvents ! LocalServiceMessage("", LocalAction.ResecureCaptureTerminal(terminal, PlayerSource.Nobody))
+        bldg.Zone.LocalEvents ! CaptureMessage(HackCaptureActor.ResecureCaptureTerminal(terminal, terminal.Zone, PlayerSource.Nobody))
       case _ => ()
     }
     Behaviors.same

@@ -1,8 +1,8 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.locks
 
-import net.psforever.services.Service
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.support.HackClearActor
+import net.psforever.services.local.ClearMessage
 
 object IFFLocks {
 
@@ -14,9 +14,6 @@ object IFFLocks {
     */
   def FinishResecuringIFFLock(lock: IFFLock)(): Unit = {
     val zone = lock.Zone
-    lock.Zone.LocalEvents ! LocalServiceMessage(
-      zone.id,
-      LocalAction.ClearTemporaryHack(Service.defaultPlayerGUID, lock)
-    )
+    lock.Zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(lock))
   }
 }

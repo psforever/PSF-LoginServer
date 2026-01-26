@@ -89,7 +89,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
         val zone = obj.Zone
         zone.LocalEvents ! LocalServiceMessage(
           zone.id,
-          LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, unk1=false, 1000)
+          LocalAction.TriggerEffectInfo(obj.GUID, "on", unk1=false, 1000)
         )
         super.StartJammeredStatus(obj, dur)
       case _ => ;
@@ -114,7 +114,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
         val zone = sensor.Zone
         zone.LocalEvents ! LocalServiceMessage(
           zone.id,
-          LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", obj.GUID, unk1=true, 1000)
+          LocalAction.TriggerEffectInfo(obj.GUID, "on", unk1=true, 1000)
         )
       case _ => ;
     }
@@ -126,7 +126,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
     val zone = sensor.Zone
     zone.LocalEvents ! LocalServiceMessage(
       zone.id,
-      LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", sensor.GUID, unk1=true, 1000)
+      LocalAction.TriggerEffectInfo(sensor.GUID, "on", unk1=true, 1000)
     )
   }
 }
@@ -143,7 +143,7 @@ object SensorDeployableControl {
     val zone = target.Zone
     zone.LocalEvents ! LocalServiceMessage(
       zone.id,
-      LocalAction.TriggerEffectInfo(Service.defaultPlayerGUID, "on", target.GUID, unk1=false, 1000)
+      LocalAction.TriggerEffectInfo(target.GUID, "on", unk1=false, 1000)
     )
     //position the explosion effect near the bulky area of the sensor stalk
     val ang = target.Orientation
@@ -159,7 +159,7 @@ object SensorDeployableControl {
     }
     zone.LocalEvents ! LocalServiceMessage(
       zone.id,
-      LocalAction.TriggerEffectLocation(Service.defaultPlayerGUID, "motion_sensor_destroyed", explosionPos, ang)
+      LocalAction.TriggerEffectLocation("motion_sensor_destroyed", explosionPos, ang)
     )
     //TODO replaced by an alternate model (charred stub)?
   }

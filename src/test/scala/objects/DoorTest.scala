@@ -105,7 +105,7 @@ class DoorControlAlreadyOpenTest extends ActorTest {
       door.Actor.tell(CommonMessages.Use(player), probe.ref)
       val reply = probe.receiveOne(1000 milliseconds)
       assert(reply match {
-        case LocalServiceResponse("test", _, LocalResponse.DoorOpens(guid)) => guid == door.GUID
+        case LocalServiceResponse("test", _, LocalAction.DoorOpens(guid)) => guid == door.GUID
         case _ => false
       })
     }

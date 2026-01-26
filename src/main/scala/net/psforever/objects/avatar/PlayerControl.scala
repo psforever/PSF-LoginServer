@@ -371,7 +371,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   //make sure the player didn't just initialte an orbital strike. If not (the if below is true), make sure waypoint is removed
                   if (holsteredEquipment.Definition == GlobalDefinitions.command_detonater && player.avatar.cr.value > 3 &&
                     !player.avatar.cooldowns.purchase.exists(os => os._1 == "orbital_strike" && Seconds.secondsBetween(os._2, LocalDateTime.now()).getSeconds < 12)) {
-                    player.Zone.LocalEvents ! LocalServiceMessage(s"${player.Faction}", LocalAction.SendPacket(OrbitalStrikeWaypointMessage(player.GUID, None)))
+                    player.Zone.LocalEvents ! LocalServiceMessage(
+                      s"${player.Faction}",
+                      PlanetSideGUID(-1),
+                      LocalAction.SendResponse(OrbitalStrikeWaypointMessage(player.GUID, None))
+                    )
                   }
                 case None =>
                   log.info(s"${player.Name} lowers ${player.Sex.possessive} hand")
@@ -764,14 +768,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           case GlobalDefinitions.router_telepad => () /* no special animation */
           case GlobalDefinitions.ace
             if obj.Definition.deployAnimation == DeployAnimation.Standard =>
+            val ownerGuid = obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID)
             zone.LocalEvents ! LocalServiceMessage(
               zone.id,
-              LocalAction.TriggerEffectLocation(
-                obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID),
-                "spawn_object_effect",
-                obj.Position,
-                obj.Orientation
-              )
+              ownerGuid,
+              LocalAction.TriggerEffectLocation("spawn_object_effect", obj.Position, obj.Orientation)
             )
           case GlobalDefinitions.advanced_ace
             if obj.Definition.deployAnimation == DeployAnimation.Fdu =>

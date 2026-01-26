@@ -5,8 +5,7 @@ import akka.actor.Actor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.equipment.Equipment
 import net.psforever.types.PlanetSideGUID
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage, DropItemMessage, PickupItemMessage}
+import net.psforever.services.avatar.{AvatarAction, DropItemMessage, PickupItemMessage}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer

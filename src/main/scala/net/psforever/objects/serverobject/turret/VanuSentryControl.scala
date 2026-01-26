@@ -53,7 +53,8 @@ class VanuSentryControl(turret: FacilityTurret)
               case player: Player =>
                 TurretObject.Zone.LocalEvents ! LocalServiceMessage(
                   TurretObject.Zone.id,
-                  LocalAction.RechargeVehicleWeapon(player.GUID, TurretObject.GUID, weapon.GUID)
+                  player.GUID,
+                  LocalAction.RechargeVehicleWeapon(TurretObject.GUID, weapon.GUID)
                 )
             }
           }

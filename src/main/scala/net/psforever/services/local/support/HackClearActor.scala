@@ -8,6 +8,7 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.HackState7
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.tailrec
@@ -45,32 +46,22 @@ class HackClearActor() extends Actor {
       //TODO we can just walk across the list of doors and extract only the first few entries
       val (unhackObjects, stillHackedObjects) = PartitionEntries(hackedObjects, now)
       hackedObjects = stillHackedObjects
-      unhackObjects.foreach(entry => {
-        entry.target.Actor ! CommonMessages.ClearHack()
-        context.parent ! HackClearActor.SendHackMessageHackCleared(
-          entry.target.GUID,
-          entry.zone.id,
-          entry.unk1,
-          entry.unk2
-        ) //call up to the main event system
-      if (entry.target.Definition == GlobalDefinitions.main_terminal) {
-        ClearVirusFromBuilding(entry.target)
+      unhackObjects.foreach { case HackClearActor.HackEntry(target, zone, unk1, unk2, _, _) =>
+        target.Actor ! CommonMessages.ClearHack()
+        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SendHackMessageHackCleared(target.GUID, unk1, unk2))
+        if (target.Definition == GlobalDefinitions.main_terminal) {
+          ClearVirusFromBuilding(target)
         }
-      })
+      }
 
       RestartTimer()
 
     case HackClearActor.ObjectIsResecured(target) =>
       hackedObjects.find { _.target == target } match {
-        case Some(entry: HackClearActor.HackEntry) =>
+        case Some(HackClearActor.HackEntry(target, zone, unk1, unk2, _, _)) =>
           hackedObjects = hackedObjects.filterNot(x => x.target == target)
-          entry.target.Actor ! CommonMessages.ClearHack()
-          context.parent ! HackClearActor.SendHackMessageHackCleared(
-            entry.target.GUID,
-            entry.zone.id,
-            entry.unk1,
-            entry.unk2
-          ) //call up to the main event system
+          target.Actor ! CommonMessages.ClearHack()
+          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SendHackMessageHackCleared(target.GUID, 3212836864L, HackState7.Unk8))
 
           // Restart the timer in case the object we just removed was the next one scheduled
           RestartTimer()
@@ -109,7 +100,6 @@ class HackClearActor() extends Actor {
     import net.psforever.objects.serverobject.structures.Building
     import net.psforever.objects.serverobject.terminals.Terminal
     import net.psforever.actors.zone.BuildingActor
-    import net.psforever.services.Service
     import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 
     val building = target.asInstanceOf[Terminal].Owner.asInstanceOf[Building]

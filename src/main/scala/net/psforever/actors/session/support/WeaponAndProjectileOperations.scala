@@ -27,6 +27,7 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.UplinkRequest
+import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, ValidPlanetSideGUID, Vector3}
 import net.psforever.util.Config
@@ -345,14 +346,21 @@ class WeaponAndProjectileOperations(
       sendResponse(UplinkResponse(code.value, 0))
       sendResponse(PlanetsideAttributeMessage(player.GUID, 59, 1200000))
       avatarActor ! AvatarActor.UpdateCUDTime("emp_blast")
-      player.Zone.LocalEvents ! LocalServiceMessage(s"${player.Zone.id}",
-        LocalAction.SendPacket(TriggerEffectMessage(ValidPlanetSideGUID(0), empColor, None, Some(TriggeredEffectLocation(player.Position, Vector3(0, 0, 90))))))
+      player.Zone.LocalEvents ! LocalServiceMessage(
+        s"${player.Zone.id}",
+        PlanetSideGUID(-1),
+        LocalAction.SendResponse(TriggerEffectMessage(Service.defaultPlayerGUID, empColor, None, Some(TriggeredEffectLocation(player.Position, Vector3(0, 0, 90)))))
+      )
       context.system.scheduler.scheduleOnce(delay = 1 seconds) {
         Zone.serverSideDamage(player.Zone, player, empSize, SpecialEmp.createEmpInteraction(empSize, player.Position),
           ExplosiveDeployableControl.detectionForExplosiveSource(player), Zone.findAllTargets)
         }
     case UplinkRequestType.OrbitalStrike =>
-      player.Zone.LocalEvents ! LocalServiceMessage(s"$playerFaction", LocalAction.SendPacket(OrbitalStrikeWaypointMessage(player.GUID, pos.get.x, pos.get.y)))
+      player.Zone.LocalEvents ! LocalServiceMessage(
+        s"$playerFaction",
+        PlanetSideGUID(-1),
+        LocalAction.SendResponse(OrbitalStrikeWaypointMessage(player.GUID, pos.get.x, pos.get.y))
+      )
       sendResponse(UplinkResponse(code.value, 0))
       orbitalStrikePos = pos
     case UplinkRequestType.Unknown5 =>
@@ -377,9 +385,16 @@ class WeaponAndProjectileOperations(
       sendResponse(PlanetsideAttributeMessage(player.GUID, 60, 10800000))
       avatarActor ! AvatarActor.UpdateCUDTime("orbital_strike")
       context.system.scheduler.scheduleOnce(delay = 5 seconds) {
-        player.Zone.LocalEvents ! LocalServiceMessage(s"${player.Zone.id}",
-          LocalAction.SendPacket(TriggerEffectMessage(ValidPlanetSideGUID(0), strikeType, None, Some(TriggeredEffectLocation(orbitalStrikePos.get, Vector3(0, 0, 90))))))
-        player.Zone.LocalEvents ! LocalServiceMessage(s"$playerFaction", LocalAction.SendPacket(OrbitalStrikeWaypointMessage(player.GUID, None)))
+        player.Zone.LocalEvents ! LocalServiceMessage(
+          s"${player.Zone.id}",
+          PlanetSideGUID(-1),
+          LocalAction.SendResponse(TriggerEffectMessage(ValidPlanetSideGUID(0), strikeType, None, Some(TriggeredEffectLocation(orbitalStrikePos.get, Vector3(0, 0, 90)))))
+        )
+        player.Zone.LocalEvents ! LocalServiceMessage(
+          s"$playerFaction",
+          PlanetSideGUID(-1),
+          LocalAction.SendResponse(OrbitalStrikeWaypointMessage(player.GUID, None))
+        )
         context.system.scheduler.scheduleOnce(delay = 5 seconds) {
         val sectorTargets = Zone.findOrbitalStrikeTargets(player.Zone, orbitalStrikePos.get, osSize.DamageRadius, Zone.getOrbitbalStrikeTargets)
         val withinRange = sectorTargets.filter { target => Zone.orbitalStrikeDistanceCheck(orbitalStrikePos.get, target.Position, osSize.DamageRadius) }
