@@ -3,6 +3,7 @@ package net.psforever.services.base
 
 import akka.actor.{ActorContext, ActorRef}
 import net.psforever.services.Service
+import net.psforever.services.base.bus.{GenericEventBus, GenericEventBusResponseToSupport, GenericEventBusWithSupport}
 import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.unused
@@ -36,16 +37,6 @@ abstract class GenericEventServiceWithSupport[OUT <: GenericResponseEnvelope]
       .map { supportService => (supportService.label, supportService.constructor(context)) }
       .toMap[String, ActorRef]
 
-  private def supportReceive: Receive = {
-    case msg: GenericMessageToSupportEnvelopeOnly =>
-      forwardToSupport(msg)
-    case msg: GenericMessageToSupportEnvelope =>
-      forwardToSupport(msg)
-      handleMessage(msg)
-  }
-
-  override def receive: Receive = supportReceive.orElse(super.receive)
-
   private def forwardToSupport(msg: GenericMessageToSupportEnvelope): Unit = {
     supportServices
       .get(msg.supportLabel)
@@ -56,5 +47,22 @@ abstract class GenericEventServiceWithSupport[OUT <: GenericResponseEnvelope]
       .getOrElse {
         log.error(s"support service ${msg.supportLabel} was not found - check message routing or service params")
       }
+  }
+
+  override protected def setupEventBus(): GenericEventBus[OUT] = {
+    new GenericEventBus[OUT] with GenericEventBusWithSupport[OUT] {
+      override def publish(event: OUT): Unit = publishingWithSupport(event)
+
+      override def forwardToExternalSupport(msg: GenericEventBusResponseToSupport): Unit = {
+        msg match {
+          case supportMessage: GenericMessageToSupportEnvelope => forwardToExternal(supportMessage)
+          case _ => ()
+        }
+      }
+
+      private def forwardToExternal(msg: GenericMessageToSupportEnvelope): Unit = {
+        forwardToSupport(msg)
+      }
+    }
   }
 }

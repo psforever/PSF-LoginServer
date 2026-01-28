@@ -4,7 +4,9 @@ package net.psforever.services.hart
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.objects.zones.Zone
-import net.psforever.services.base.{EventResponse, GenericEventBus, GenericEventBusMsg}
+import net.psforever.services.Service
+import net.psforever.services.base.bus.{GenericEventBus, GenericEventBusResponse}
+import net.psforever.services.base.EventResponse
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{HartSequence, PlanetSideGUID}
 
@@ -259,7 +261,10 @@ object HartTimer {
     * to relay instructions back to the individual facility amenity portions of this HART system.
     * The channel is blank because it does not need special designation.
     */
-  trait Command extends EventResponse with GenericEventBusMsg { def channel: String = "" }
+  trait Command extends EventResponse with GenericEventBusResponse {
+    def channel: String = ""
+    def filter: PlanetSideGUID = Service.defaultPlayerGUID
+  }
   /**
     * Forbid entry through the boartding gantry doors.
     */

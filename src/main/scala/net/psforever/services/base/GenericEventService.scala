@@ -3,21 +3,18 @@ package net.psforever.services.base
 
 import akka.actor.Actor
 import net.psforever.services.Service
-import net.psforever.types.PlanetSideGUID
+import net.psforever.services.base.bus.{AllGenericBusMsg, GenericEventBus, GenericEventBusResponse}
 import org.log4s.Logger
 
 import scala.annotation.unused
 
 trait GenericResponseEnvelope
-  extends GenericEventBusMsg {
-  def filter: PlanetSideGUID
+  extends GenericEventBusResponse {
   def reply: EventResponse
-  def inner: EventResponse = reply
 }
 
-trait GenericMessageEnvelope {
-  def channel: String
-  def filter: PlanetSideGUID
+trait GenericMessageEnvelope
+  extends AllGenericBusMsg {
   def msg: EventMessage
 }
 
@@ -25,7 +22,7 @@ abstract class GenericEventService[OUT <: GenericResponseEnvelope](busName: Stri
   extends Actor {
   protected lazy val log: Logger = org.log4s.getLogger(getClass.getSimpleName)
 
-  protected val eventBus = new GenericEventBus[OUT]
+  protected val eventBus: GenericEventBus[OUT] = setupEventBus()
 
   def BusName: String = busName
 
@@ -48,18 +45,21 @@ abstract class GenericEventService[OUT <: GenericResponseEnvelope](busName: Stri
       eventBus.unsubscribe(sender())
   }
 
-  def receive: Receive =
-    commonJoinBehavior.orElse(commonLeaveBehavior)
-      .orElse {
-        case msg: GenericMessageEnvelope =>
-          handleMessage(msg)
+  def receive: Receive = commonJoinBehavior
+    .orElse(commonLeaveBehavior)
+    .orElse {
+      case msg: GenericMessageEnvelope =>
+        handleMessage(msg)
+      case msg => ()
+        log.warn(s"Unhandled message $msg from ${sender()}")
+    }
 
-        case msg => ()
-          log.warn(s"Unhandled message $msg from ${sender()}")
-      }
-
-  protected def handleMessage(msg: GenericMessageEnvelope): Unit = {
+  private def handleMessage(msg: GenericMessageEnvelope): Unit = {
     eventBus.publish(compose(msg))
+  }
+
+  protected def setupEventBus(): GenericEventBus[OUT] = {
+    new GenericEventBus[OUT]
   }
 
   protected def compose(@unused msg: GenericMessageEnvelope): OUT

@@ -6,7 +6,7 @@ import akka.actor.ActorRef
 import scala.collection.mutable
 import net.psforever.objects.teamwork.{Squad, SquadFeatures}
 import net.psforever.packet.game.SquadDetail
-import net.psforever.services.base.GenericEventBus
+import net.psforever.services.base.bus.GenericEventBus
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 class SquadSubscriptionEntity {

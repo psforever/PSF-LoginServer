@@ -1,15 +1,19 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.services.base
+package net.psforever.services.base.bus
 
 import akka.event.{ActorEventBus, SubchannelClassification}
 import akka.util.Subclassification
+import net.psforever.types.PlanetSideGUID
 
-trait GenericEventBusMsg {
+trait AllGenericBusMsg {
   def channel: String
-  def inner: Any
+  def filter: PlanetSideGUID
 }
 
-class GenericEventBus[A <: GenericEventBusMsg]
+trait GenericEventBusResponse
+  extends AllGenericBusMsg
+
+class GenericEventBus[A <: GenericEventBusResponse]
   extends ActorEventBus with SubchannelClassification {
   type Event = A
   type Classifier = String
@@ -25,5 +29,9 @@ class GenericEventBus[A <: GenericEventBusMsg]
 
   protected def publish(event: Event, subscriber: Subscriber): Unit = {
     subscriber ! event
+  }
+
+  def truePublish(event: Event): Unit = {
+    super[SubchannelClassification].publish(event)
   }
 }

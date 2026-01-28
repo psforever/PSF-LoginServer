@@ -1,21 +1,24 @@
 // Copyright (c) 2026 PSForever
-package net.psforever.services.base
+package net.psforever.services.base.bus
 
 import net.psforever.types.PlanetSideGUID
-import scala.collection.concurrent.{Map => CMap}
-import scala.jdk.CollectionConverters._
+
 import java.util.concurrent.ConcurrentHashMap
 import scala.annotation.unused
+import scala.collection.concurrent.{Map => CMap}
+import scala.jdk.CollectionConverters._
 
 /*
 Adapted from the rating limiting code in https://github.com/Pinapse/giant with permission
  */
 
-trait GenericGuidEventBusMsg extends GenericEventBusMsg {
+trait GenericGuidEventBusResponse
+  extends GenericEventBusResponse {
   def guid: PlanetSideGUID
+  def inner: Any
 }
 
-class RateLimitScheduler[A <: GenericGuidEventBusMsg](eventBus: GenericGuidEventBus[A], interval: Long) extends Thread {
+class RateLimitScheduler[A <: GenericGuidEventBusResponse](eventBus: GenericEventBus[A], interval: Long) extends Thread {
   private var hasWork: Boolean = false
   private var working: Boolean = false
   private var timeOfLastFlush: Long = 0L
@@ -50,7 +53,7 @@ class RateLimitScheduler[A <: GenericGuidEventBusMsg](eventBus: GenericGuidEvent
     buffer.foreachEntry { (_, map) =>
       map.foreachEntry { (_, map) =>
         map.foreachEntry { (_, event) =>
-          eventBus.publishForce(event)
+          eventBus.truePublish(event)
         }
         map.clear()
       }
@@ -75,7 +78,7 @@ class RateLimitScheduler[A <: GenericGuidEventBusMsg](eventBus: GenericGuidEvent
   }
 }
 
-abstract class GenericGuidEventBus[A <: GenericGuidEventBusMsg](rateLimit: Double)
+abstract class GenericGuidEventBus[A <: GenericGuidEventBusResponse](rateLimit: Double)
   extends GenericEventBus[A] {
   private val rateLimitedDispatch = new RateLimitScheduler[A](
     eventBus = this,
@@ -87,15 +90,11 @@ abstract class GenericGuidEventBus[A <: GenericGuidEventBusMsg](rateLimit: Doubl
     if (rateLimit > 0 && shouldRateLimit(event) && rateLimitedDispatch.isRunning) {
       rateLimitedDispatch.push(event)
     } else {
-      publishForce(event)
+      truePublish(event)
     }
   }
 
   def shouldRateLimit(@unused event: Event): Boolean
-
-  def publishForce(event: Event): Unit = {
-    super.publish(event)
-  }
 
 //  override protected def publish(event: Event, subscriber: Subscriber): Unit = {
 //    val trimmedEventClassName =

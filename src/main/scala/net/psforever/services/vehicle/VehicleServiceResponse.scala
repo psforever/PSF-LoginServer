@@ -11,13 +11,14 @@ import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.types.{BailType, DriveState, PlanetSideGUID, Vector3}
-import net.psforever.services.base.{EventResponse, GenericEventBusMsg}
+import net.psforever.services.base.EventResponse
+import net.psforever.services.base.bus.GenericEventBusResponse
 
 final case class VehicleServiceResponse(
-    channel: String,
-    avatar_guid: PlanetSideGUID,
-    replyMessage: VehicleResponse.Response
-) extends GenericEventBusMsg
+                                         channel: String,
+                                         filter: PlanetSideGUID,
+                                         reply: VehicleResponse.Response
+                                       ) extends GenericEventBusResponse
 
 object VehicleResponse {
   trait Response extends EventResponse
