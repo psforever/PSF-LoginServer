@@ -16,7 +16,7 @@ trait GenericEventBusResponseToSupportOnly
 
 trait GenericEventBusWithSupport[T <: GenericEventBusResponse] {
   bus: GenericEventBus[T] =>
-  def publishingWithSupport(event: T): Unit = {
+  def handleMessageWithSupport(event: T): Unit = {
     event match {
       case msg: GenericEventBusResponseToSupportOnly =>
         forwardToExternalSupport(msg)

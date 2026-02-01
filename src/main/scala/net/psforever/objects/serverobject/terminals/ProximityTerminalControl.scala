@@ -26,7 +26,6 @@ import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityCo
 import net.psforever.objects.vital.{HealFromTerminal, RepairFromTerminal, Vitality}
 import net.psforever.objects.zones.ZoneAware
 import net.psforever.packet.game.InventoryStateMessage
-import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -379,7 +378,7 @@ object ProximityTerminalControl {
     val zone = target.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
-      VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 0, target.Health)
+      VehicleAction.PlanetsideAttribute(target.GUID, 0, target.Health)
     )
   }
 
@@ -466,7 +465,7 @@ object ProximityTerminalControl {
       slots.foreach { slot =>
         events ! VehicleServiceMessage(
           channel,
-          VehicleAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
+          VehicleAction.SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
         )
       }
     }

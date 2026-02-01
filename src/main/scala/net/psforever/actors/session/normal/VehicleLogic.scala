@@ -77,8 +77,8 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         //
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
+          player.GUID,
           VehicleAction.VehicleState(
-            player.GUID,
             vehicle_guid,
             unk1,
             position,
@@ -164,23 +164,8 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         obj.DeploymentState = if (is_crouched || !notMountedState) DriveState.Kneeling else DriveState.Mobile
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
-          VehicleAction.FrameVehicleState(
-            player.GUID,
-            vehicle_guid,
-            unk1,
-            position,
-            angle,
-            velocity,
-            unk2,
-            unk3,
-            unk4,
-            is_crouched,
-            is_airborne,
-            ascending_flight,
-            flight_time,
-            unk9,
-            unkA
-          )
+          player.GUID,
+          VehicleAction.FrameVehicleState(vehicle_guid, unk1, position, angle, velocity, unk2, unk3, unk4, is_crouched, is_airborne, ascending_flight, flight_time, unk9, unkA)
         )
         sessionLogic.squad.updateSquad()
       case (None, _) =>
@@ -232,7 +217,8 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         player.Orientation = angle
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
-          VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw)
+          player.GUID,
+          VehicleAction.ChildObjectState(object_guid, pitch, yaw)
         )
     }
     //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
@@ -254,20 +240,8 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
           obj.zoneInteractions()
           continent.VehicleEvents ! VehicleServiceMessage(
             continent.id,
-            VehicleAction.VehicleState(
-              player.GUID,
-              vehicle_guid,
-              unk1,
-              pos,
-              ang,
-              obj.Velocity,
-              obj.Flying,
-              0,
-              0,
-              15,
-              unk5 = false,
-              obj.Cloaked
-            )
+            player.GUID,
+            VehicleAction.VehicleState(vehicle_guid, unk1, pos, ang, obj.Velocity, obj.Flying, 0, 0, 15, unk5 = false, obj.Cloaked)
           )
       }
   }
@@ -348,7 +322,8 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
       sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Mobile, 0, unk3=false, Vector3.Zero))
       continent.VehicleEvents ! VehicleServiceMessage(
         continent.id,
-        VehicleAction.DeployRequest(player.GUID, obj.GUID, DriveState.Mobile, 0, unk2=false, Vector3.Zero)
+        player.GUID,
+        VehicleAction.DeployRequest(obj.GUID, DriveState.Mobile, 0, unk2=false, Vector3.Zero)
       )
       "; enforcing Mobile deployment state"
     } else {

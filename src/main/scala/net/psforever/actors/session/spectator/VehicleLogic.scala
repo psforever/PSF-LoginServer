@@ -41,20 +41,8 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         obj.zoneInteractions()
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
-          VehicleAction.VehicleState(
-            player.GUID,
-            vehicle_guid,
-            unk1,
-            pos,
-            ang,
-            obj.Velocity,
-            obj.Flying,
-            0,
-            0,
-            15,
-            unk5 = false,
-            obj.Cloaked
-          )
+          player.GUID,
+          VehicleAction.VehicleState(vehicle_guid, unk1, pos, ang, obj.Velocity, obj.Flying, 0, 0, 15, unk5 = false, obj.Cloaked)
         )
       case _ => ()
     }
@@ -94,7 +82,8 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
       sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Mobile, 0, unk3=false, Vector3.Zero))
       continent.VehicleEvents ! VehicleServiceMessage(
         continent.id,
-        VehicleAction.DeployRequest(player.GUID, obj.GUID, DriveState.Mobile, 0, unk2=false, Vector3.Zero)
+        player.GUID,
+        VehicleAction.DeployRequest(obj.GUID, DriveState.Mobile, 0, unk2=false, Vector3.Zero)
       )
       "; enforcing Mobile deployment state"
     } else {

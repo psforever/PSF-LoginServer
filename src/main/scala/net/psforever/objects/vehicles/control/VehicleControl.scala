@@ -213,7 +213,7 @@ class VehicleControl(vehicle: Vehicle)
         })
           .flatMap { _.getMessage(vehicle) }
           .foreach { pkt =>
-            events ! VehicleServiceMessage(toChannel, VehicleAction.SendResponse(guid0, pkt))
+            events ! VehicleServiceMessage(toChannel, VehicleAction.SendResponse(pkt))
           }
 
       case FactionAffinity.ConvertFactionAffinity(faction) =>
@@ -332,7 +332,7 @@ class VehicleControl(vehicle: Vehicle)
         val zone = vehicle.Zone
         zone.VehicleEvents ! VehicleServiceMessage(
           zone.id,
-          VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, vehicle, vehicle.GUID)
+          VehicleAction.UnloadVehicle(vehicle, vehicle.GUID)
         )
         zone.Transport.tell(Zone.Vehicle.Despawn(vehicle), zone.Transport)
         //notify target spawner that the vehicle has despawned if this is a VR Shooting Range zone
@@ -451,7 +451,7 @@ class VehicleControl(vehicle: Vehicle)
             zone.actor ! ZoneActor.AddToBlockMap(player, vehicle.Position)
           }
           if (player.HasGUID) {
-            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2 = true, guid))
+            events ! VehicleServiceMessage(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2 = true, guid))
           }
         }
       }
@@ -535,7 +535,7 @@ class VehicleControl(vehicle: Vehicle)
     val zone = ContainerObject.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       self.toString,
-      VehicleAction.UnstowEquipment(Service.defaultPlayerGUID, item.GUID)
+      VehicleAction.UnstowEquipment(item.GUID)
     )
   }
 
@@ -550,22 +550,19 @@ class VehicleControl(vehicle: Vehicle)
     events ! VehicleServiceMessage(
       //TODO when a new weapon, the equipment slot ui goes blank, but the weapon functions; remount vehicle to correct it
       if (obj.VisibleSlots.contains(slot)) zone.id else channel,
-      VehicleAction.SendResponse(
-        Service.defaultPlayerGUID,
-        OCM.detailed(item, ObjectCreateMessageParent(oguid, slot))
-      )
+      VehicleAction.SendResponse(OCM.detailed(item, ObjectCreateMessageParent(oguid, slot)))
     )
     item match {
       case box: AmmoBox =>
         events ! VehicleServiceMessage(
           channel,
-          VehicleAction.InventoryState2(Service.defaultPlayerGUID, iguid, oguid, box.Capacity)
+          VehicleAction.InventoryState2(iguid, oguid, box.Capacity)
         )
       case weapon: Tool =>
         weapon.AmmoSlots.map { slot => slot.Box }.foreach { box =>
           events ! VehicleServiceMessage(
             channel,
-            VehicleAction.InventoryState2(Service.defaultPlayerGUID, box.GUID, iguid, box.Capacity)
+            VehicleAction.InventoryState2(box.GUID, iguid, box.Capacity)
           )
         }
       case _ => ()
@@ -641,7 +638,7 @@ class VehicleControl(vehicle: Vehicle)
       vehicle.Shields = vehicle.Shields + amount
       vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
         s"${vehicle.Actor}",
-        VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), vehicle.GUID, vehicle.Definition.shieldUiAttribute, vehicle.Shields)
+        VehicleAction.PlanetsideAttribute(vehicle.GUID, vehicle.Definition.shieldUiAttribute, vehicle.Shields)
       )
     }
   }
@@ -696,7 +693,8 @@ class VehicleControl(vehicle: Vehicle)
           log.info(s"$dname changed ${vehicle.Definition.Name}'s access permission $group to $allow")
           zone.VehicleEvents ! VehicleServiceMessage(
             zone.id,
-            VehicleAction.SeatPermissions(dguid, vguid, attribute, value)
+            dguid,
+            VehicleAction.SeatPermissions(vguid, attribute, value)
           )
           //kick players who should not be seated in the vehicle due to permission changes
           if (allow == VehicleLockState.Locked) { //TODO only important permission atm
@@ -709,7 +707,8 @@ class VehicleControl(vehicle: Vehicle)
                       tplayer.VehicleSeated = None
                       zone.VehicleEvents ! VehicleServiceMessage(
                         zone.id,
-                        VehicleAction.KickPassenger(tplayer.GUID, 4, unk2 = false, vguid)
+                        tplayer.GUID,
+                        VehicleAction.KickPassenger(4, unk2 = false, vguid)
                       )
                     }
                   case _ => () // No player seated
@@ -761,7 +760,7 @@ class VehicleControl(vehicle: Vehicle)
     messages.foreach { pkt =>
       events ! VehicleServiceMessage(
         zoneid,
-        VehicleAction.SendResponse(guid0, pkt)
+        VehicleAction.SendResponse(pkt)
       )
     }
   }

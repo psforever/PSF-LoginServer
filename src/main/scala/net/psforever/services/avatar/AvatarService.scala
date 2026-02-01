@@ -27,7 +27,7 @@ class AvatarService(zone: Zone)
     busName = "Avatar",
     eventSupportServices = List(CorpseRemovalSupport, ItemRemoverSupport)
   ) {
-  protected def compose(msg: GenericMessageEnvelope): AvatarServiceResponse = {
+  protected def composeResponseEnvelope(msg: GenericMessageEnvelope): AvatarServiceResponse = {
     AvatarServiceResponse(formatChannelOnBusName(msg.channel), msg.filter, msg.msg.response())
   }
 }

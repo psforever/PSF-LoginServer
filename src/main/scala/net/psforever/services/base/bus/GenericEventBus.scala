@@ -31,6 +31,10 @@ class GenericEventBus[A <: GenericEventBusResponse]
     subscriber ! event
   }
 
+  override def publish(event: Event): Unit = {
+    truePublish(event)
+  }
+
   def truePublish(event: Event): Unit = {
     super[SubchannelClassification].publish(event)
   }

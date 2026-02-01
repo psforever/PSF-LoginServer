@@ -5,7 +5,6 @@ import net.psforever.objects.Tool
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.serverobject.turret.WeaponTurret
 import net.psforever.objects.vehicles.MountedWeapons
-import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 /**
@@ -48,7 +47,7 @@ object RepairableWeaponTurret {
         case (index: Int, Some(tool: Tool)) =>
           events ! VehicleServiceMessage(
             zoneId,
-            VehicleAction.EquipmentInSlot(Service.defaultPlayerGUID, tguid, index, tool)
+            VehicleAction.EquipmentInSlot(tguid, index, tool)
           )
       }
   }

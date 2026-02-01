@@ -5,7 +5,15 @@ import net.psforever.services.base.{GenericEventService, GenericMessageEnvelope}
 
 class GalaxyService
   extends GenericEventService[GalaxyServiceResponse](busName = "Galaxy") {
-  protected def compose(msg: GenericMessageEnvelope): GalaxyServiceResponse = {
+  protected def composeResponseEnvelope(msg: GenericMessageEnvelope): GalaxyServiceResponse = {
     GalaxyServiceResponse(formatChannelOnBusName(msg.channel), msg.msg.response())
+  }
+
+  override protected def formatChannelOnBusName(channel: String): String = {
+    if (channel.trim.isEmpty) {
+      s"/$BusName"
+    } else {
+      s"/$channel/$BusName"
+    }
   }
 }

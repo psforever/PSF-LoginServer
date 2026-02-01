@@ -111,7 +111,8 @@ abstract class TurretDeployableControl
             player.VehicleSeated = None
             zone.VehicleEvents ! VehicleServiceMessage(
               zone.id,
-              VehicleAction.KickPassenger(player.GUID, 4, wasKickedByDriver, TurretObject.GUID)
+              player.GUID,
+              VehicleAction.KickPassenger(4, wasKickedByDriver, TurretObject.GUID)
             )
         }
       }

@@ -149,7 +149,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
         case player =>
           seat.unmount(player)
           player.VehicleSeated = None
-          events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2=false, guid))
+          events ! VehicleServiceMessage(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2=false, guid))
       }
     )
   }
@@ -277,7 +277,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
         case player if test(player.Faction) =>
           seat.unmount(player)
           player.VehicleSeated = None
-          events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2 = false, guid))
+          events ! VehicleServiceMessage(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2 = false, guid))
       }
     )
   }

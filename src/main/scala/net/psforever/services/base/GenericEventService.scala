@@ -22,18 +22,18 @@ abstract class GenericEventService[OUT <: GenericResponseEnvelope](busName: Stri
   extends Actor {
   protected lazy val log: Logger = org.log4s.getLogger(getClass.getSimpleName)
 
-  protected val eventBus: GenericEventBus[OUT] = setupEventBus()
+  protected val eventBus: GenericEventBus[OUT] = new GenericEventBus[OUT]
 
   def BusName: String = busName
 
-  def commonJoinBehavior: Receive = {
+  private def commonJoinBehavior: Receive = {
     case Service.Join(channel) =>
       val path = formatChannelOnBusName(channel)
       val who  = sender()
       eventBus.subscribe(who, path)
   }
 
-  def commonLeaveBehavior: Receive = {
+  private def commonLeaveBehavior: Receive = {
     case Service.Leave(None) =>
       eventBus.unsubscribe(sender())
 
@@ -54,25 +54,11 @@ abstract class GenericEventService[OUT <: GenericResponseEnvelope](busName: Stri
         log.warn(s"Unhandled message $msg from ${sender()}")
     }
 
-  private def handleMessage(msg: GenericMessageEnvelope): Unit = {
-    eventBus.publish(compose(msg))
+  protected def handleMessage(msg: GenericMessageEnvelope): Unit = {
+    eventBus.publish(composeResponseEnvelope(msg))
   }
 
-  protected def setupEventBus(): GenericEventBus[OUT] = {
-    new GenericEventBus[OUT]
-  }
+  protected def composeResponseEnvelope(@unused msg: GenericMessageEnvelope): OUT
 
-  protected def compose(@unused msg: GenericMessageEnvelope): OUT
-
-  def formatChannelOnBusName(channel: String): String = GenericEventService.BusOnChannelFormat(busName)(channel)
-}
-
-object GenericEventService {
-  final def BusOnChannelFormat(busName: String)(channel: String): String = {
-    if (channel.trim.isEmpty) {
-      s"/$busName"
-    } else {
-      s"/$channel/$busName"
-    }
-  }
+  protected def formatChannelOnBusName(channel: String): String = s"/$channel/$busName"
 }

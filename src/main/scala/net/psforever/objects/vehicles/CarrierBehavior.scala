@@ -207,11 +207,11 @@ object CarrierBehavior {
           cargo.Velocity = None
           zone.VehicleEvents ! VehicleServiceMessage(
             s"${cargo.Actor}",
-            VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health))
+            VehicleAction.SendResponse(PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health))
           )
           zone.VehicleEvents ! VehicleServiceMessage(
             s"${cargo.Actor}",
-            VehicleAction.SendResponse(PlanetSideGUID(0), PlanetsideAttributeMessage(cargoGUID, cargo.Definition.shieldUiAttribute, cargo.Shields))
+            VehicleAction.SendResponse(PlanetsideAttributeMessage(cargoGUID, cargo.Definition.shieldUiAttribute, cargo.Shields))
           )
           CargoMountBehaviorForAll(carrier, cargo, mountPoint)
           zone.actor ! ZoneActor.RemoveFromBlockMap(cargo)
@@ -225,9 +225,8 @@ object CarrierBehavior {
           val cargoDriverGUID = cargo.Seats(0).occupant.get.GUID
           zone.VehicleEvents ! VehicleServiceMessage(
             zone.id,
-            VehicleAction.SendResponse(
-              cargoDriverGUID,
-              CargoMountPointStatusMessage(
+            cargoDriverGUID,
+            VehicleAction.SendResponse(CargoMountPointStatusMessage(
                 carrierGUID,
                 PlanetSideGUID(0),
                 PlanetSideGUID(0),
@@ -235,8 +234,7 @@ object CarrierBehavior {
                 mountPoint,
                 CargoStatus.Empty,
                 0
-              )
-            )
+              ))
           )
           false
           //sending packet to the cargo vehicle's client results in player being lock in own vehicle
@@ -327,9 +325,8 @@ object CarrierBehavior {
           val cargoDriverGUID = cargo.Seats(0).occupant.get.GUID
           zone.VehicleEvents ! VehicleServiceMessage(
             zone.id,
-            VehicleAction.SendResponse(
-              cargoDriverGUID,
-              CargoMountPointStatusMessage(
+            cargoDriverGUID,
+            VehicleAction.SendResponse(CargoMountPointStatusMessage(
                 carrierGUID,
                 PlanetSideGUID(0),
                 PlanetSideGUID(0),
@@ -337,8 +334,7 @@ object CarrierBehavior {
                 mountPoint,
                 CargoStatus.Empty,
                 0
-              )
-            )
+              ))
           )
           false
           //sending packet to the cargo vehicle's client results in player being lock in own vehicle
@@ -453,11 +449,11 @@ object CarrierBehavior {
         val cargoActor = cargo.Actor
         events ! VehicleServiceMessage(
           s"$cargoActor",
-          VehicleAction.SendResponse(GUID0, PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health))
+          VehicleAction.SendResponse(PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health))
         )
         events ! VehicleServiceMessage(
           s"$cargoActor",
-          VehicleAction.SendResponse(GUID0, PlanetsideAttributeMessage(cargoGUID, cargo.Definition.shieldUiAttribute, cargo.Shields))
+          VehicleAction.SendResponse(PlanetsideAttributeMessage(cargoGUID, cargo.Definition.shieldUiAttribute, cargo.Shields))
         )
         zone.actor ! ZoneActor.AddToBlockMap(cargo, carrier.Position)
         if (carrier.isFlying) {
@@ -467,9 +463,9 @@ object CarrierBehavior {
           val detachCargoMsg = ObjectDetachMessage(carrierGUID, cargoGUID, cargoHoldPosition - Vector3.z(1), rotation)
           val resetCargoMsg =
             CargoMountPointStatusMessage(carrierGUID, GUID0, GUID0, cargoGUID, mountPoint, CargoStatus.Empty, 0)
-          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, ejectCargoMsg))
-          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, detachCargoMsg))
-          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, resetCargoMsg))
+          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(ejectCargoMsg))
+          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(detachCargoMsg))
+          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(resetCargoMsg))
           log.debug(s"HandleVehicleCargoDismount: eject - $ejectCargoMsg, detach - $detachCargoMsg")
           if (driverOpt.isEmpty) {
             //TODO cargo should drop like a rock like normal; until then, deconstruct it
@@ -482,18 +478,18 @@ object CarrierBehavior {
             CargoMountPointStatusMessage(carrierGUID, GUID0, cargoGUID, GUID0, mountPoint, CargoStatus.InProgress, 0)
           val cargoDetachMessage =
             ObjectDetachMessage(carrierGUID, cargoGUID, cargoHoldPosition + Vector3.z(1f), rotation)
-          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, cargoStatusMessage))
-          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, cargoDetachMessage))
+          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(cargoStatusMessage))
+          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(cargoDetachMessage))
           driverOpt match {
             case Some(driver) =>
               events ! VehicleServiceMessage(
                 s"${driver.Name}",
-                VehicleAction.KickCargo(GUID0, cargo, cargo.Definition.AutoPilotSpeed2, 2500)
+                VehicleAction.KickCargo(cargo, cargo.Definition.AutoPilotSpeed2, 2500)
               )
             case None =>
               val resetCargoMsg =
                 CargoMountPointStatusMessage(carrierGUID, GUID0, GUID0, cargoGUID, mountPoint, CargoStatus.Empty, 0)
-              events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(GUID0, resetCargoMsg)) //lazy
+              events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(resetCargoMsg)) //lazy
               //TODO cargo should back out like normal; until then, deconstruct it
               cargoActor ! Vehicle.Deconstruct()
           }
@@ -609,8 +605,8 @@ object CarrierBehavior {
                                    attachMessage: ObjectAttachMessage,
                                    mountPointStatusMessage: CargoMountPointStatusMessage
                                  ): Unit = {
-    zone.VehicleEvents ! VehicleServiceMessage(zone.id, VehicleAction.SendResponse(exclude, attachMessage))
-    zone.VehicleEvents ! VehicleServiceMessage(zone.id, VehicleAction.SendResponse(exclude, mountPointStatusMessage))
+    zone.VehicleEvents ! VehicleServiceMessage(zone.id, exclude, VehicleAction.SendResponse(attachMessage))
+    zone.VehicleEvents ! VehicleServiceMessage(zone.id, exclude, VehicleAction.SendResponse(mountPointStatusMessage))
   }
 
   /**
@@ -632,11 +628,11 @@ object CarrierBehavior {
     val msgs @ (attachMessage, mountPointStatusMessage) = CargoMountMessages(carrier, cargo, mountPoint)
     zone.VehicleEvents ! VehicleServiceMessage(
       zoneId,
-      VehicleAction.SendResponse(Service.defaultPlayerGUID, attachMessage)
+      VehicleAction.SendResponse(attachMessage)
     )
     zone.VehicleEvents ! VehicleServiceMessage(
       zoneId,
-      VehicleAction.SendResponse(Service.defaultPlayerGUID, mountPointStatusMessage)
+      VehicleAction.SendResponse(mountPointStatusMessage)
     )
     msgs
   }

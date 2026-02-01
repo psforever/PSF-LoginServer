@@ -7,8 +7,8 @@ import net.psforever.objects.{Player, Tool, TurretDeployable}
 import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, InventoryStateMessage}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.services.vehicle.support.TurretUpgrader
+import net.psforever.services.vehicle.{TurretMessage, VehicleAction, VehicleServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
 object WeaponTurrets {
@@ -44,7 +44,7 @@ object WeaponTurrets {
     * @see `TurretUpgrade`
     * @see `TurretUpgrader.AddTask`
     * @see `TurretUpgrader.ClearSpecific`
-    * @see `VehicleServiceMessage.TurretUpgrade`
+    * @see `TurretMessage`
     * @param target the facility turret being upgraded
     * @param upgrade the upgrade being applied to the turret (usually, it's weapon system)
     */
@@ -52,8 +52,8 @@ object WeaponTurrets {
     log.info(s"Manned wall turret weapon being converted to $upgrade")
     val zone   = target.Zone
     val events = zone.VehicleEvents
-    events ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), zone))
-    events ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, zone, upgrade))
+    events ! TurretMessage(TurretUpgrader.ClearSpecific(List(target), zone))
+    events ! TurretMessage(TurretUpgrader.AddTask(target, zone, upgrade))
   }
 
   /**
@@ -106,7 +106,8 @@ object WeaponTurrets {
             player.VehicleSeated = None
             zone.VehicleEvents ! VehicleServiceMessage(
               zone.id,
-              VehicleAction.KickPassenger(player.GUID, 4, unk2 = false, target.GUID)
+              player.GUID,
+              VehicleAction.KickPassenger(4, unk2 = false, target.GUID)
             )
         }
       }

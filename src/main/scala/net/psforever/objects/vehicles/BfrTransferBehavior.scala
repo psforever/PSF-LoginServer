@@ -118,7 +118,7 @@ trait BfrTransferBehavior
       case equip: NtuSiphon =>
         vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
           vehicle.Actor.toString,
-          VehicleAction.InventoryState2(PlanetSideGUID(0), equip.storageGUID, siphon.GUID, siphon.NtuCapacitor.toInt)
+          VehicleAction.InventoryState2(equip.storageGUID, siphon.GUID, siphon.NtuCapacitor.toInt)
         )
       case _ => ;
     }

@@ -569,7 +569,8 @@ class SessionData(
         obj.Seats(seatNum).unmount(tplayer)
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
-          VehicleAction.KickPassenger(tplayer.GUID, seatNum, unk2=false, obj.GUID)
+          tplayer.GUID,
+          VehicleAction.KickPassenger(seatNum, unk2=false, obj.GUID)
         )
       case _ => ()
     }

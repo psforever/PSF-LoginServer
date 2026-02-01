@@ -77,7 +77,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
       case obj: PlanetSideServerObject if !jammedSound =>
         obj.Zone.VehicleEvents ! VehicleServiceMessage(
           obj.Zone.id,
-          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 54, 1)
+          VehicleAction.PlanetsideAttribute(obj.GUID, 54, 1)
         )
         super.StartJammeredSound(obj, dur)
       case _ => ;
@@ -101,7 +101,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
         val zone = obj.Zone
         zone.VehicleEvents ! VehicleServiceMessage(
           zone.id,
-          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 54, 0)
+          VehicleAction.PlanetsideAttribute(obj.GUID, 54, 0)
         )
       case _ => ;
     }

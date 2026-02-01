@@ -298,7 +298,7 @@ class FacilityTurretControlRestorationTest extends ActorTest {
       )
       assert(
         msg4 match {
-          case VehicleServiceMessage("test", VehicleAction.EquipmentInSlot(_, PlanetSideGUID(2), 1, t))
+          case VehicleServiceMessage("test", _, VehicleAction.EquipmentInSlot(_, PlanetSideGUID(2), 1, t))
               if t eq turretWeapon =>
             true
           case _ => false

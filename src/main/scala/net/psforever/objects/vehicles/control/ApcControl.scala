@@ -54,15 +54,12 @@ class ApcControl(vehicle: Vehicle)
       //cause the emp
       events ! VehicleServiceMessage(
         zone.id,
-        VehicleAction.SendResponse(
-          GUID0,
-          TriggerEffectMessage(
+        VehicleAction.SendResponse(TriggerEffectMessage(
             GUID0,
             s"apc_explosion_emp_${faction.toString.toLowerCase}",
             None,
             Some(TriggeredEffectLocation(pos, obj.Orientation))
-          )
-        )
+          ))
       )
       //resolve what targets are affected by the emp
       Zone.serverSideDamage(

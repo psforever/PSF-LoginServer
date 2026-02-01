@@ -286,7 +286,8 @@ class WeaponAndProjectileOperations(
         case _: Equipment =>
           continent.VehicleEvents ! VehicleServiceMessage(
             continent.id,
-            VehicleAction.WeaponDryFire(player.GUID, weapon_guid)
+            player.GUID,
+            VehicleAction.WeaponDryFire(weapon_guid)
           )
       }
       .orElse {
@@ -1098,7 +1099,8 @@ class WeaponAndProjectileOperations(
     }
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
-      VehicleAction.ChangeFireState_Start(player.GUID, itemGuid)
+      player.GUID,
+      VehicleAction.ChangeFireState_Start(itemGuid)
     )
   }
 
@@ -1138,7 +1140,8 @@ class WeaponAndProjectileOperations(
     }
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
-      VehicleAction.ChangeFireState_Stop(player.GUID, itemGuid)
+      player.GUID,
+      VehicleAction.ChangeFireState_Stop(itemGuid)
     )
   }
 
@@ -1201,7 +1204,8 @@ class WeaponAndProjectileOperations(
   def reloadVehicleMessages(itemGuid: PlanetSideGUID): Unit = {
     continent.VehicleEvents ! VehicleServiceMessage(
       continent.id,
-      VehicleAction.Reload(player.GUID, itemGuid)
+      player.GUID,
+      VehicleAction.Reload(itemGuid)
     )
   }
 
@@ -1478,13 +1482,8 @@ class WeaponAndProjectileOperations(
     obj.Find(box).collect { index =>
       continent.VehicleEvents ! VehicleServiceMessage(
         s"${obj.Actor}",
-        VehicleAction.InventoryState(
-          player.GUID,
-          box,
-          obj.GUID,
-          index,
-          box.Definition.Packet.DetailedConstructorData(box).get
-        )
+        player.GUID,
+        VehicleAction.InventoryState(box, obj.GUID, index, box.Definition.Packet.DetailedConstructorData(box).get)
       )
     }
   }

@@ -44,7 +44,7 @@ class LocalService(zone: Zone)
     busName = "Local",
     eventSupportServices = List(DoorCloserSupport, HackClearSupport, HackCaptureSupport, CaptureFlagSupport(zone))
   ) {
-  protected def compose(msg: GenericMessageEnvelope): LocalServiceResponse = {
+  protected def composeResponseEnvelope(msg: GenericMessageEnvelope): LocalServiceResponse = {
     LocalServiceResponse(formatChannelOnBusName(msg.channel), msg.filter, msg.msg.response())
   }
 }

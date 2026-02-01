@@ -3,7 +3,6 @@ package net.psforever.services.base
 
 import akka.actor.{ActorContext, ActorRef}
 import net.psforever.services.Service
-import net.psforever.services.base.bus.{GenericEventBus, GenericEventBusResponseToSupport, GenericEventBusWithSupport}
 import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.unused
@@ -49,20 +48,15 @@ abstract class GenericEventServiceWithSupport[OUT <: GenericResponseEnvelope]
       }
   }
 
-  override protected def setupEventBus(): GenericEventBus[OUT] = {
-    new GenericEventBus[OUT] with GenericEventBusWithSupport[OUT] {
-      override def publish(event: OUT): Unit = publishingWithSupport(event)
-
-      override def forwardToExternalSupport(msg: GenericEventBusResponseToSupport): Unit = {
-        msg match {
-          case supportMessage: GenericMessageToSupportEnvelope => forwardToExternal(supportMessage)
-          case _ => ()
-        }
-      }
-
-      private def forwardToExternal(msg: GenericMessageToSupportEnvelope): Unit = {
+  override protected def handleMessage(event: GenericMessageEnvelope): Unit = {
+    event match {
+      case msg: GenericMessageToSupportEnvelopeOnly =>
         forwardToSupport(msg)
-      }
+      case msg: GenericMessageToSupportEnvelope =>
+        forwardToSupport(msg)
+        eventBus.publish(composeResponseEnvelope(event))
+      case _ =>
+        eventBus.publish(composeResponseEnvelope(event))
     }
   }
 }

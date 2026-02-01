@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.pad.process
 
 import akka.actor.Props
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.services.vehicle.VehicleServiceMessage
 
 /**
   * An `Actor` that handles vehicle spawning orders for a `VehicleSpawnPad`.
@@ -24,7 +25,7 @@ class VehicleSpawnControlDriverControl(pad: VehicleSpawnPad) extends VehicleSpaw
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
       trace(s"returning control of ${vehicle.Definition.Name} to its current driver")
       if (vehicle.PassengerInSeat(driver).nonEmpty) {
-        pad.Zone.VehicleEvents ! VehicleSpawnPad.ServerVehicleOverrideEnd(driver.Name, vehicle, pad)
+        pad.Zone.VehicleEvents ! VehicleServiceMessage(driver.Name, VehicleSpawnPad.ServerVehicleOverrideEnd(vehicle, pad))
       }
       finalClear ! order
 

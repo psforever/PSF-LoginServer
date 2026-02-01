@@ -12,7 +12,6 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMech
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.packet.game.{DelayedPathMountMsg, DismountVehicleCargoMsg, DismountVehicleMsg, GenericObjectActionMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectDetachMessage, PlayerStasisMessage, PlayerStateShiftMessage, ShiftState}
-import net.psforever.services.Service
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
@@ -78,7 +77,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         //DismountAction(...) uses vehicle service, so use that service to coordinate the remainder of the messages
         events ! VehicleServiceMessage(
           player.Name,
-          VehicleAction.SendResponse(Service.defaultPlayerGUID, PlayerStasisMessage(pguid)) //the stasis message
+          VehicleAction.SendResponse(PlayerStasisMessage(pguid)) //the stasis message
         )
         //when the player dismounts, they will be positioned where the shuttle was when it disappeared in the sky
         //the player will fall to the ground and is perfectly vulnerable in this state
@@ -86,14 +85,12 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         //having no in-game avatar target will throw us out of the map screen when deploying and cause softlock
         events ! VehicleServiceMessage(
           player.Name,
-          VehicleAction.SendResponse(
-            Service.defaultPlayerGUID,
-            PlayerStateShiftMessage(ShiftState(unk=0, obj.Position, obj.Orientation.z, vel=None)) //cower in the shuttle bay
-          )
+          VehicleAction.SendResponse(PlayerStateShiftMessage(ShiftState(unk=0, obj.Position, obj.Orientation.z, vel=None)))
         )
         events ! VehicleServiceMessage(
           continent.id,
-          VehicleAction.SendResponse(pguid, GenericObjectActionMessage(pguid, code=9)) //conceal the player
+          pguid,
+          VehicleAction.SendResponse(GenericObjectActionMessage(pguid, code=9)) //conceal the player
         )
         context.self ! SessionActor.SetMode(NormalMode)
         sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
@@ -113,7 +110,8 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
       case Mountable.CanDismount(obj: Vehicle, seat_num, _) =>
         continent.VehicleEvents ! VehicleServiceMessage(
           continent.id,
-          VehicleAction.KickPassenger(tplayer.GUID, seat_num, unk2=true, obj.GUID)
+          tplayer.GUID,
+          VehicleAction.KickPassenger(seat_num, unk2=true, obj.GUID)
         )
 
       case Mountable.CanDismount(obj: PlanetSideGameObject with PlanetSideGameObject with Mountable with FactionAffinity with InGameHistory, seatNum, _) =>

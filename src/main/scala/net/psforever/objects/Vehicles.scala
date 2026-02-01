@@ -47,7 +47,8 @@ object Vehicles {
         Vehicles.ReloadAccessPermissions(vehicle, tplayer.Faction.toString)
         vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
           vehicle.Zone.id,
-          VehicleAction.Ownership(tplayer.GUID, vehicle.GUID)
+          tplayer.GUID,
+          VehicleAction.Ownership(vehicle.GUID)
         )
         Some(vehicle)
       case None =>
@@ -138,13 +139,14 @@ object Vehicles {
     val pguid = player.GUID
     if (vehicle.OwnerGuid.contains(pguid)) {
       vehicle.AssignOwnership(None)
-      //vehicle.Zone.VehicleEvents ! VehicleServiceMessage(player.Name, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
+      //vehicle.Zone.VehicleEvents ! VehicleServiceMessage(player.Name, pguid, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
       //val vguid  = vehicle.GUID
       val empire = VehicleLockState.Empire.id
       (0 to 2).foreach(group => {
         vehicle.PermissionGroup(group, empire)
         /*vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
           s"${vehicle.Faction}",
+          pguid,
           VehicleAction.SeatPermissions(pguid, vguid, group, empire)
         )*/
       })
@@ -252,10 +254,7 @@ object Vehicles {
     val previousOwnerName = target.OwnerName.getOrElse("")
     vehicleEvents ! VehicleServiceMessage(
       zoneid,
-      VehicleAction.SendResponse(
-        Service.defaultPlayerGUID,
-        HackMessage(HackState1.Unk2, tGuid, hGuid, 100, 0f, HackState.Hacked, HackState7.Unk8)
-      )
+      VehicleAction.SendResponse(HackMessage(HackState1.Unk2, tGuid, hGuid, 100, 0f, HackState.Hacked, HackState7.Unk8))
     )
     target.Actor ! CommonMessages.Hack(hacker, target)
     // Forcefully dismount any cargo
@@ -272,7 +271,8 @@ object Vehicles {
           player.VehicleSeated = None
           vehicleEvents ! VehicleServiceMessage(
             zoneid,
-            VehicleAction.KickPassenger(player.GUID, 4, unk2 = false, tGuid)
+            player.GUID,
+            VehicleAction.KickPassenger(4, unk2 = false, tGuid)
           )
       }
       // In case BFR is occupied and may or may not be crouched
@@ -345,15 +345,12 @@ object Vehicles {
             util.Actor ! TelepadLike.Activate(util)
         }
       case GlobalDefinitions.ams if target.DeploymentState == DriveState.Deployed =>
-        vehicleEvents ! VehicleServiceMessage.AMSDeploymentChange(zone)
+        vehicleEvents ! VehicleServiceMessage(zone.id, VehicleAction.AMSDeploymentChange(zone))
       case _ => ()
     }
     vehicleEvents ! VehicleServiceMessage(
       zoneid,
-      VehicleAction.SendResponse(
-        Service.defaultPlayerGUID,
-        HackMessage(HackState1.Unk2, tGuid, tGuid, 0, 1L, HackState.HackCleared, HackState7.Unk8)
-      )
+      VehicleAction.SendResponse(HackMessage(HackState1.Unk2, tGuid, tGuid, 0, 1L, HackState.HackCleared, HackState7.Unk8))
     )
     target.Actor ! CommonMessages.ClearHack()
   }

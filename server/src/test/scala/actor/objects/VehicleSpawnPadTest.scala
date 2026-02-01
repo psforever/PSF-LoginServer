@@ -82,11 +82,11 @@ class VehicleSpawnControl3Test extends ActorTest {
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ServerVehicleOverrideStart])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ServerVehicleOverrideEnd])
       assert(probe.receiveOne(1 minute) match {
-        case VehicleSpawnPad.PeriodicReminder(_, VehicleSpawnPad.Reminders.Blocked, _) => true
+        case VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, _) => true
         case _                                                                         => false
       })
       assert(probe.receiveOne(1 minute) match {
-        case VehicleSpawnPad.PeriodicReminder(_, VehicleSpawnPad.Reminders.Blocked, _) => true
+        case VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, _) => true
         case _                                                                         => false
       })
 
@@ -139,7 +139,7 @@ class VehicleSpawnControl5Test extends ActorTest() {
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DetachFromRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.RevealPlayer])
       assert(probe.receiveOne(1 minute) match {
-        case VehicleServiceMessage(_, VehicleAction.LoadVehicle(_, _, _, _, _)) => true
+        case VehicleServiceMessage(_, _, VehicleAction.LoadVehicle(_, _, _, _, _)) => true
         case _                                                                  => false
       })
       assert(probe.receiveOne(1 minute) match {
@@ -166,7 +166,7 @@ class VehicleSpawnControl6Test extends ActorTest() {
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DetachFromRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.RevealPlayer])
       assert(probe.receiveOne(1 minute) match {
-        case VehicleServiceMessage(_, VehicleAction.LoadVehicle(_, _, _, _, _)) => true
+        case VehicleServiceMessage(_, _, VehicleAction.LoadVehicle(_, _, _, _, _)) => true
         case _                                                                  => false
       })
       assert(probe.receiveOne(1 minute) match {
@@ -194,7 +194,7 @@ class VehicleSpawnControl7Test extends ActorTest {
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DetachFromRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.RevealPlayer])
       assert(probe.receiveOne(1 minute) match {
-        case VehicleServiceMessage(_, VehicleAction.LoadVehicle(_, _, _, _, _)) => true
+        case VehicleServiceMessage(_, _, VehicleAction.LoadVehicle(_, _, _, _, _)) => true
         case _                                                                  => false
       })
       assert(probe.receiveOne(1 minute) match {

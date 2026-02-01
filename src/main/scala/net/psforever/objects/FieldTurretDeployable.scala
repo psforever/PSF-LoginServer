@@ -13,7 +13,6 @@ import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, TurretSource}
 import net.psforever.objects.vital.{DismountingActivity, InGameActivity, MountingActivity, ShieldCharge}
 import net.psforever.packet.game.HackState1
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.unused
 
@@ -100,7 +99,7 @@ class FieldTurretControl(turret: TurretDeployable)
       turret.Shields = turret.Shields + amount
       turret.Zone.VehicleEvents ! VehicleServiceMessage(
         s"${turret.Actor}",
-        VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), turret.GUID, turret.Definition.shieldUiAttribute, turret.Shields)
+        VehicleAction.PlanetsideAttribute(turret.GUID, turret.Definition.shieldUiAttribute, turret.Shields)
       )
     }
   }

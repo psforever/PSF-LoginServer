@@ -271,7 +271,7 @@ class BfrControl(vehicle: Vehicle)
     val zone = vehicle.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       s"${zone.id}",
-      VehicleAction.SendResponse(PlanetSideGUID(0), GenericObjectActionMessage(vehicle.GUID, 45))
+      VehicleAction.SendResponse(GenericObjectActionMessage(vehicle.GUID, 45))
     )
   }
 
@@ -285,7 +285,7 @@ class BfrControl(vehicle: Vehicle)
     val zone = vehicle.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       s"${zone.id}",
-      VehicleAction.SendResponse(PlanetSideGUID(0), GenericObjectActionMessage(vehicle.GUID, 44))
+      VehicleAction.SendResponse(GenericObjectActionMessage(vehicle.GUID, 44))
     )
   }
 
@@ -336,7 +336,7 @@ class BfrControl(vehicle: Vehicle)
     val shields = vehicle.Shields
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
-      VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vguid, vehicle.Definition.shieldUiAttribute, shields)
+      VehicleAction.PlanetsideAttribute(vguid, vehicle.Definition.shieldUiAttribute, shields)
     )
   }
 
@@ -416,7 +416,8 @@ class BfrControl(vehicle: Vehicle)
               val zone = vehicle.Zone
               zone.VehicleEvents ! VehicleServiceMessage(
                 zone.id,
-                VehicleAction.GenericObjectAction(doNotSendTo, useThisGuid, action)
+                doNotSendTo,
+                VehicleAction.GenericObjectAction(useThisGuid, action)
               )
             case _ => ()
           }
@@ -565,15 +566,12 @@ class BfrControl(vehicle: Vehicle)
           //TODO this is the apc emp effect; is there an ntu siphon emp effect?
           events ! VehicleServiceMessage(
             zone.id,
-            VehicleAction.SendResponse(
-              GUID0,
-              TriggerEffectMessage(
+            VehicleAction.SendResponse(TriggerEffectMessage(
                 GUID0,
                 s"apc_explosion_emp_${faction.toString.toLowerCase}",
                 None,
                 Some(TriggeredEffectLocation(pos, obj.Orientation))
-              )
-            )
+              ))
           )
           //resolve what targets are affected by the emp
           Zone.serverSideDamage(
@@ -590,10 +588,7 @@ class BfrControl(vehicle: Vehicle)
           //it does not even dispatch the packet before that, making it rare if this precautionary message is seen
           events ! VehicleServiceMessage(
             obj.Seats(0).occupant.get.Name,
-            VehicleAction.SendResponse(
-              GUID0,
-              ChatMsg(ChatMessageType.UNK_225, wideContents = false, "", s"@TimeUntilNextUse^${30000 - elapsedWait}", None)
-            )
+            VehicleAction.SendResponse(ChatMsg(ChatMessageType.UNK_225, wideContents = false, "", s"@TimeUntilNextUse^${30000 - elapsedWait}", None))
           )
         }
       case _ => ()

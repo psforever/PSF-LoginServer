@@ -11,6 +11,7 @@ import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.TerminalUsedActivity
 import net.psforever.objects.zones.{Zone, ZoneAware, Zoning}
 import net.psforever.objects.{Default, PlanetSideGameObject, Player, Vehicle}
+import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.types.{PlanetSideGUID, TransactionType, Vector3}
 
 import scala.annotation.tailrec
@@ -128,7 +129,7 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
         }
         trackedOrder = None
         handleOrderFunc = NewTasking
-        pad.Zone.VehicleEvents ! VehicleSpawnPad.ResetSpawnPad(pad) //cautious animation reset
+        pad.Zone.VehicleEvents ! VehicleServiceMessage(pad.Zone.id, VehicleSpawnPad.ResetSpawnPad(pad)) //cautious animation reset
         self ! akka.actor.Kill //should cause the actor to restart, which will abort any trapped messages
 
       case _ => ()
@@ -164,19 +165,17 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
           //first queued order
           orders = List(order)
           queueManagementTask()
-          pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
+          pad.Zone.VehicleEvents ! VehicleServiceMessage(
             name,
-            VehicleSpawnPad.Reminders.Queue,
-            Some(s"@SVCP_PositionInQueue^2~^2~")
+            VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Queue, Some(s"@SVCP_PositionInQueue^2~^2~"))
           )
         case -1 =>
           //new order
           orders = orders :+ order
           val size = orders.size + 1
-          pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
+          pad.Zone.VehicleEvents ! VehicleServiceMessage(
             name,
-            VehicleSpawnPad.Reminders.Queue,
-            Some(s"@SVCP_PositionInQueue^$size~^$size~")
+            VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Queue, Some(s"@SVCP_PositionInQueue^$size~^$size~"))
           )
         case n if orders(n).vehicle.Definition ne order.vehicle.Definition =>
           //replace existing order with new order
@@ -185,10 +184,9 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
           val originalVehicle = originalOrder.vehicle.Definition.Name
           orders = (orders.take(n) :+ order) ++ orders.drop(n+1)
           VehicleSpawnControl.DisposeVehicle(originalOrder.vehicle, zone)
-          zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
+          zone.VehicleEvents ! VehicleServiceMessage(
             name,
-            VehicleSpawnPad.Reminders.Queue,
-            Some(s"@SVCP_ReplacedVehicleWithVehicle^@$originalVehicle~^@${order.vehicle.Definition.Name}~")
+            VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Queue, Some(s"@SVCP_ReplacedVehicleWithVehicle^@$originalVehicle~^@${order.vehicle.Definition.Name}~"))
           )
         case _ =>
           //order is the duplicate of an existing order; do nothing to the queue
@@ -245,10 +243,9 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
         val newOrder = VehicleSpawnControl.Order(driver, vehicle)
         recursiveOrderReminder(orders.iterator, size)
         trace(s"processing next order - a ${vehicle.Definition.Name} for $name")
-        pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
+        pad.Zone.VehicleEvents ! VehicleServiceMessage(
           name,
-          VehicleSpawnPad.Reminders.Queue,
-          Some(s"@SVCP_PositionInQueue^1~^$size~")
+          VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Queue, Some(s"@SVCP_PositionInQueue^1~^$size~"))
         )
         trackedOrder = Some(newOrder) //guard on
         context.system.scheduler.scheduleOnce(2000 milliseconds, concealPlayer, newOrder)
@@ -324,7 +321,10 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
   private def CancelOrder(vehicle: Vehicle, player: Player, msg: Option[String]): Unit = {
     if (vehicle.Seats.values.count(_.isOccupied) == 0) {
       VehicleSpawnControl.DisposeSpawnedVehicle(vehicle, player, pad.Zone)
-      pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(player.Name, VehicleSpawnPad.Reminders.Cancelled, msg)
+      pad.Zone.VehicleEvents ! VehicleServiceMessage(
+        player.Name,
+        VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Cancelled, msg)
+      )
     }
   }
 
@@ -451,10 +451,9 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
                                          entry: VehicleSpawnPad.VehicleOrder,
                                          cause: Option[Any]
                                        ): Unit = {
-    pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
+    pad.Zone.VehicleEvents ! VehicleServiceMessage(
       entry.player.Name,
-      VehicleSpawnPad.Reminders.Blocked,
-      cause
+      VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, cause)
     )
   }
 
@@ -465,10 +464,9 @@ class VehicleSpawnControl(pad: VehicleSpawnPad)
   ): Unit = {
     if (iter.hasNext) {
       val recipient = iter.next()
-      pad.Zone.VehicleEvents ! VehicleSpawnPad.PeriodicReminder(
+      pad.Zone.VehicleEvents ! VehicleServiceMessage(
         recipient.player.Name,
-        VehicleSpawnPad.Reminders.Queue,
-        Some(s"@SVCP_PositionInQueue^$position~^$size~")
+        VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Queue, Some(s"@SVCP_PositionInQueue^$position~^$size~"))
       )
       recursiveOrderReminder(iter, size, position + 1)
     }
@@ -564,7 +562,7 @@ object VehicleSpawnControl {
     */
   private def DisposeSpawnedVehicle(vehicle: Vehicle, player: Player, zone: Zone): Unit = {
     DisposeVehicle(vehicle, zone)
-    zone.VehicleEvents ! VehicleSpawnPad.RevealPlayer(player.GUID)
+    zone.VehicleEvents ! VehicleServiceMessage(zone.id, VehicleSpawnPad.RevealPlayer(player.GUID))
   }
 
   /**

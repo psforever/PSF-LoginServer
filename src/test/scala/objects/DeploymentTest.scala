@@ -74,7 +74,8 @@ class DeploymentBehavior2Test extends ActorTest {
       reply2.head match {
         case VehicleServiceMessage(
           "test",
-           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deploying, 0, false, Vector3.Zero)
+          _,
+          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deploying, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }
@@ -86,6 +87,7 @@ class DeploymentBehavior2Test extends ActorTest {
       reply2(1) match {
         case VehicleServiceMessage(
           "test",
+          _,
           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deployed, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
@@ -102,6 +104,7 @@ class DeploymentBehavior2Test extends ActorTest {
       reply4.head match {
         case VehicleServiceMessage(
           "test",
+           _,
           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Undeploying, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
@@ -114,6 +117,7 @@ class DeploymentBehavior2Test extends ActorTest {
       reply4(1) match {
         case VehicleServiceMessage(
           "test",
+          _,
           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Mobile, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
@@ -141,8 +145,9 @@ class DeploymentBehavior3Test extends ActorTest {
       }
       reply2.head match {
         case VehicleServiceMessage(
-        "test",
-        VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deploying, 0, false, Vector3.Zero)
+          "test",
+          _,
+          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deploying, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }
@@ -153,8 +158,9 @@ class DeploymentBehavior3Test extends ActorTest {
       }
       reply2(1) match {
         case VehicleServiceMessage(
-        "test",
-        VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deployed, 0, false, Vector3.Zero)
+          "test",
+          _,
+          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deployed, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }
@@ -169,8 +175,9 @@ class DeploymentBehavior3Test extends ActorTest {
       }
       reply4.head match {
         case VehicleServiceMessage(
-        "test",
-        VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Undeploying, 0, false, Vector3.Zero)
+          "test",
+          _,
+          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Undeploying, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }
@@ -181,8 +188,9 @@ class DeploymentBehavior3Test extends ActorTest {
       }
       reply4(1) match {
         case VehicleServiceMessage(
-        "test",
-        VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Mobile, 0, false, Vector3.Zero)
+          "test",
+          _,
+          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Mobile, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }

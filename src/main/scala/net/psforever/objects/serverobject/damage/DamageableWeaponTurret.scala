@@ -9,10 +9,10 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types.Vector3
-import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.support.SupportActor
 import net.psforever.services.vehicle.support.TurretUpgrader
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.{TurretMessage, VehicleAction, VehicleServiceMessage}
 
 /**
   * The "control" `Actor` mixin for damage-handling code for `WeaponTurret` objects.
@@ -64,14 +64,14 @@ trait DamageableWeaponTurret
         DamageableMountable.DamageAwareness(DamageableObject, cause, damageToHealth)
         events ! VehicleServiceMessage(
           zoneId,
-          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, obj.Health)
+          VehicleAction.PlanetsideAttribute(targetGUID, 0, obj.Health)
         )
         announceConfrontation = true
       }
     }
     if (announceConfrontation) {
       if (aggravated) {
-        val msg = VehicleAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(damageToHealth, Vector3.Zero))
+        val msg = VehicleAction.SendResponse(DamageWithPositionMessage(damageToHealth, Vector3.Zero))
         obj.Seats.values
           .collect { case seat if seat.occupant.nonEmpty => seat.occupant.get.Name }
           .foreach { channel =>
@@ -112,7 +112,7 @@ object DamageableWeaponTurret {
     * @see `TurretUpgrader.AddTask`
     * @see `TurretUpgrader.ClearSpecific`
     * @see `WeaponTurret`
-    * @see `VehicleServiceMessage.TurretUpgrade`
+    * @see `TurretMessage`
     * @see `Zone.AvatarEvents`
     * @see `Zone.VehicleEvents`
     * @param target the entity being destroyed;
@@ -137,8 +137,8 @@ object DamageableWeaponTurret {
       case turret: WeaponTurret =>
         if (turret.Upgrade != TurretUpgrade.None) {
           val vehicleEvents = zone.VehicleEvents
-          vehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(turret), zone))
-          vehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(turret, zone, TurretUpgrade.None))
+          vehicleEvents ! TurretMessage(SupportActor.ClearSpecific(List(turret), zone))
+          vehicleEvents ! TurretMessage(TurretUpgrader.AddTask(turret, zone, TurretUpgrade.None))
         }
       case _ =>
     }

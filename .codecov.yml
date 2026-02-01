@@ -77,4 +77,3 @@ ignore:
   - "src/main/scala/net/psforever/services/hart/HartTimerActions.scala"
   - "src/main/scala/net/psforever/services/local/LocalAction.scala"
   - "src/main/scala/net/psforever/services/vehicle/VehicleAction.scala"
-  - "src/main/scala/net/psforever/services/vehicle/VehicleResponse.scala"

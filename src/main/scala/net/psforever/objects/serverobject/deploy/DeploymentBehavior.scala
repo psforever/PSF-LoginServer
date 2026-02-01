@@ -106,7 +106,7 @@ trait DeploymentBehavior {
       obj.Velocity = Some(Vector3.Zero) //no velocity
       zone.VehicleEvents ! VehicleServiceMessage(
         zoneChannel,
-        VehicleAction.DeployRequest(GUID0, guid, state, 0, unk2=false, Vector3.Zero)
+        VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )
       deploymentTimer.cancel()
       deploymentTimer = context.system.scheduler.scheduleOnce(obj.DeployTime.milliseconds)({
@@ -117,7 +117,7 @@ trait DeploymentBehavior {
       obj.Velocity = Some(Vector3.Zero) //no velocity
       zone.VehicleEvents ! VehicleServiceMessage(
         zoneChannel,
-        VehicleAction.DeployRequest(GUID0, guid, state, 0, unk2=false, Vector3.Zero)
+        VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )
       state
     } else {
@@ -138,7 +138,7 @@ trait DeploymentBehavior {
     if (state == DriveState.Undeploying) {
       zone.VehicleEvents ! VehicleServiceMessage(
         zoneChannel,
-        VehicleAction.DeployRequest(GUID0, guid, state, 0, unk2=false, Vector3.Zero)
+        VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )
       import scala.concurrent.ExecutionContext.Implicits.global
       deploymentTimer.cancel()
@@ -149,7 +149,7 @@ trait DeploymentBehavior {
     } else if (state == DriveState.Mobile) {
       zone.VehicleEvents ! VehicleServiceMessage(
         zoneChannel,
-        VehicleAction.DeployRequest(GUID0, guid, state, 0, unk2=false, Vector3.Zero)
+        VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )
       state
     } else {

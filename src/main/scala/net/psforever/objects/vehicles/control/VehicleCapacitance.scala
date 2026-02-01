@@ -3,7 +3,6 @@ package net.psforever.objects.vehicles.control
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects._
-import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -61,7 +60,7 @@ trait VehicleCapacitance {
     val obj = CapacitanceObject
     obj.Zone.VehicleEvents ! VehicleServiceMessage(
       self.toString(),
-      VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 113, obj.Capacitor)
+      VehicleAction.PlanetsideAttribute(obj.GUID, 113, obj.Capacitor)
     )
   }
 

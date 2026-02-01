@@ -3,6 +3,7 @@ package net.psforever.objects.serverobject.pad.process
 
 import akka.actor.Props
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.services.vehicle.VehicleServiceMessage
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -28,7 +29,7 @@ class VehicleSpawnControlConcealPlayer(pad: VehicleSpawnPad) extends VehicleSpaw
     case order @ VehicleSpawnControl.Order(driver, vehicle) =>
       if (VehicleSpawnControl.validateOrderCredentials(pad, driver, vehicle).isEmpty) {
         trace(s"hiding ${driver.Name}")
-        pad.Zone.VehicleEvents ! VehicleSpawnPad.ConcealPlayer(driver.GUID)
+        pad.Zone.VehicleEvents ! VehicleServiceMessage(pad.Zone.id, VehicleSpawnPad.ConcealPlayer(driver.GUID))
         context.system.scheduler.scheduleOnce(2000 milliseconds, loadVehicle, order)
       } else {
         trace(s"integral component lost; abort order fulfillment")

@@ -203,7 +203,7 @@ case object CustomerServiceRepresentativeMode extends PlayerMode {
       data.sendResponse(PlanetsideAttributeMessage(guid, shieldsUi, maxShieldsOfVehicle))
       data.continent.VehicleEvents ! VehicleServiceMessage(
         data.continent.id,
-        VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), guid, shieldsUi, maxShieldsOfVehicle)
+        VehicleAction.PlanetsideAttribute(guid, shieldsUi, maxShieldsOfVehicle)
       )
     }
   }
@@ -217,7 +217,7 @@ case object CustomerServiceRepresentativeMode extends PlayerMode {
       data.sendResponse(PlanetsideAttributeMessage(guid, 0, maxHealthOf))
       data.continent.VehicleEvents ! VehicleServiceMessage(
         data.continent.id,
-        VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), guid, 0, maxHealthOf)
+        VehicleAction.PlanetsideAttribute(guid, 0, maxHealthOf)
       )
     }
   }

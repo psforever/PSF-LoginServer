@@ -700,10 +700,7 @@ object MapEnvironment {
         case v: Vehicle =>
           v.Zone.VehicleEvents ! VehicleServiceMessage(
             v.Actor.toString(),
-            VehicleAction.SendResponse(
-              Service.defaultPlayerGUID,
-              OffshoreVehicleMessage(v.Seats(0).occupant.get.GUID, v.GUID, msg)
-            )
+            VehicleAction.SendResponse(OffshoreVehicleMessage(v.Seats(0).occupant.get.GUID, v.GUID, msg))
           )
         case _ => ;
       }

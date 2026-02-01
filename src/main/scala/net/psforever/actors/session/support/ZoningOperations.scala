@@ -549,7 +549,7 @@ class ZoningOperations(
     }
     //spawn point update request
     continent.VehicleEvents ! VehicleServiceMessage(
-      continent.id,
+      player.Name,
       VehicleAction.UpdateAmsSpawnPoint(continent)
     )
     spawn.upstreamMessageCount = 0
@@ -1353,7 +1353,8 @@ class ZoningOperations(
     val topLevel  = interstellarFerryTopLevelGUID.getOrElse(vehicle.GUID)
     continent.VehicleEvents ! VehicleServiceMessage(
       s"${vehicle.Actor}",
-      VehicleAction.TransferPassengerChannel(pguid, s"${vehicle.Actor}", toChannel, vehicle, topLevel)
+      pguid,
+      VehicleAction.TransferPassengerChannel(s"${vehicle.Actor}", toChannel, vehicle, topLevel)
     )
     manifest.cargo.foreach {
       case ManifestPassengerEntry("MISSING_DRIVER", index) =>
@@ -1366,7 +1367,8 @@ class ZoningOperations(
         val cargo = vehicle.CargoHolds(entry.mount).occupant.get
         continent.VehicleEvents ! VehicleServiceMessage(
           entry.name,
-          VehicleAction.TransferPassengerChannel(pguid, s"${cargo.Actor}", toChannel, cargo, topLevel)
+          pguid,
+          VehicleAction.TransferPassengerChannel(s"${cargo.Actor}", toChannel, cargo, topLevel)
         )
     }
     //
@@ -1397,7 +1399,8 @@ class ZoningOperations(
           //do not delete if vehicle has passengers or cargo
           continent.VehicleEvents ! VehicleServiceMessage(
             continent.id,
-            VehicleAction.UnloadVehicle(pguid, vehicle, topLevel)
+            pguid,
+            VehicleAction.UnloadVehicle(vehicle, topLevel)
           )
           None
         } else {
@@ -2595,7 +2598,8 @@ class ZoningOperations(
               .foreach { _.MountedIn = vguid }
             events ! VehicleServiceMessage(
               zoneid,
-              VehicleAction.LoadVehicle(player.GUID, vehicle, vObjectId, vguid, data)
+              player.GUID,
+              VehicleAction.LoadVehicle(vehicle, vObjectId, vguid, data)
             )
             carrierInfo match {
               case (Some(carrier), Some((index, _))) =>
@@ -2622,7 +2626,8 @@ class ZoningOperations(
             val zone            = vehicle.PreviousGatingManifest().get.origin
             zone.VehicleEvents ! VehicleServiceMessage(
               zone.id,
-              VehicleAction.UnloadVehicle(player.GUID, vehicle, vehicleToDelete)
+              player.GUID,
+              VehicleAction.UnloadVehicle(vehicle, vehicleToDelete)
             )
             log.debug(
               s"AvatarCreate: cleaning up ghost of transitioning vehicle ${vehicle.Definition.Name}@${vehicleToDelete.guid} in zone ${zone.id}"
@@ -3392,7 +3397,8 @@ class ZoningOperations(
           vehicle.OwnerGuid = guid
           continent.VehicleEvents ! VehicleServiceMessage(
             s"${tplayer.Faction}",
-            VehicleAction.Ownership(guid, vehicle.GUID)
+            guid,
+            VehicleAction.Ownership(vehicle.GUID)
           )
         case _ =>
           avatarActor ! AvatarActor.SetVehicle(None)

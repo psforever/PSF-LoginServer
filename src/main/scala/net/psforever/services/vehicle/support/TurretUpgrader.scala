@@ -161,7 +161,8 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
         if (tplayer.HasGUID) {
           context.parent ! VehicleServiceMessage(
             zoneId,
-            VehicleAction.KickPassenger(tplayer.GUID, 4, unk2=false, turretGUID)
+            tplayer.GUID,
+            VehicleAction.KickPassenger(4, unk2=false, turretGUID)
           )
         }
       })
@@ -235,7 +236,7 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
           case (index, Some(tool: Tool)) =>
             context.parent ! VehicleServiceMessage(
               zone.id,
-              VehicleAction.EquipmentInSlot(PlanetSideGUID(0), targetGUID, index, tool)
+              VehicleAction.EquipmentInSlot(targetGUID, index, tool)
             )
         }
     }
