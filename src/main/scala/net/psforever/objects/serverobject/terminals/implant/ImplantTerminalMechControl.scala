@@ -16,7 +16,8 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
 import net.psforever.packet.game.HackState1
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.messages.SetEmpire
+import net.psforever.services.local.LocalServiceMessage
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
@@ -173,7 +174,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     if (player.Faction == localFaction) {
       if (mech.Owner.asInstanceOf[Building].CaptureTerminalIsHacked) {
         //this is actually futile, as a hacked base does not grant access to the terminal
-        events ! LocalServiceMessage(localFaction.toString, LocalAction.SetEmpire(guid, localFaction))
+        events ! LocalServiceMessage(localFaction.toString, SetEmpire(guid, localFaction))
       }
       kickAllOccupantsNotOfFaction(zone, guid, mech, localFaction)
     } else {
@@ -225,7 +226,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
                                        ): Unit = {
     val events = zone.LocalEvents
     opposingFactionsAre(setToFaction).foreach { faction =>
-      events ! LocalServiceMessage(faction.toString, LocalAction.SetEmpire(guid, faction))
+      events ! LocalServiceMessage(faction.toString, SetEmpire(guid, faction))
     }
   }
 
@@ -236,7 +237,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
                                         ): Unit = {
     val events = zone.LocalEvents
     opposingFactionsAre(setToFaction).foreach { faction =>
-      events ! LocalServiceMessage(faction.toString, LocalAction.SetEmpire(guid, setToFaction))
+      events ! LocalServiceMessage(faction.toString, SetEmpire(guid, setToFaction))
     }
   }
 

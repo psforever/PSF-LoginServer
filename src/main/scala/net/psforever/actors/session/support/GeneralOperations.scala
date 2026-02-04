@@ -19,6 +19,7 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.services.RemoverActor
 import net.psforever.services.avatar.GroundEnvelope
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.local.support.HackCaptureActor
 import net.psforever.services.local.{CaptureMessage, LocalAction, LocalServiceMessage}
 
@@ -194,6 +195,32 @@ class GeneralOperations(
   private[session] var heightHistory: Float = 0f
   private[session] var progressBarUpdate: Cancellable = Default.Cancellable
   private var charSavedTimer: Cancellable = Default.Cancellable
+
+  def handleEmote(pkt: EmoteMsg): Unit = {
+    val guid = player.GUID
+    val zone = player.Zone
+    val events = zone.LocalEvents
+    val msg = SendResponse(pkt)
+    sessionLogic
+      .localSector
+      .livePlayerList
+      .filter(_.GUID != guid)
+      .foreach { p =>
+        events ! LocalServiceMessage(p.Name, msg)
+      }
+    //todo better way to collect csr players while utilizing the aforementioned benefit of localSector
+    val position = player.Position
+    val rangeSq = {
+      val range = math.sqrt(2 * math.pow(sessionLogic.localSector.rangeX.toDouble, 2))
+      range * range
+    }
+    zone
+      .AllPlayers
+      .filter { p => !p.allowInteraction && p.GUID != guid && Vector3.DistanceSquared(p.Position, position) < rangeSq }
+      .foreach { p =>
+        events ! LocalServiceMessage(p.Name, msg)
+      }
+  }
 
   def handleDropItem(pkt: DropItemMessage): GeneralOperations.ItemDropState.Behavior = {
     val DropItemMessage(itemGuid) = pkt
@@ -884,12 +911,25 @@ class GeneralOperations(
   /**
    * Send a PlanetsideAttributeMessage packet to the client
    * @param targetGuid The target of the attribute
+   * @param attribute The attribute
+   * @param attributeValue The attribute value
+   */
+  def sendPlanetsideAttributeMessage(
+                                      targetGuid: PlanetSideGUID,
+                                      attribute: PlanetsideAttributeEnum,
+                                      attributeValue: Long
+                                    ): Unit = {
+    sendPlanetsideAttributeMessage(targetGuid, attribute.id, attributeValue)
+  }
+  /**
+   * Send a PlanetsideAttributeMessage packet to the client
+   * @param targetGuid The target of the attribute
    * @param attributeNumber The attribute number
    * @param attributeValue The attribute value
    */
   def sendPlanetsideAttributeMessage(
                                       targetGuid: PlanetSideGUID,
-                                      attributeNumber: PlanetsideAttributeEnum,
+                                      attributeNumber: Int,
                                       attributeValue: Long
                                     ): Unit = {
     sendResponse(PlanetsideAttributeMessage(targetGuid, attributeNumber, attributeValue))

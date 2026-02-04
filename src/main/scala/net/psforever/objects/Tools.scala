@@ -3,7 +3,8 @@ package net.psforever.objects
 
 import net.psforever.objects.equipment.ChargeFireModeDefinition
 import net.psforever.packet.game.QuantityUpdateMessage
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.SendResponse
 
 object Tools {
   /**
@@ -23,7 +24,7 @@ object Tools {
         val magazine = tool.Magazine -= mode.RoundsPerInterval
         player.Zone.AvatarEvents ! AvatarServiceMessage(
           player.Name,
-          AvatarAction.SendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, magazine))
+          SendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, magazine))
         )
         player.isAlive
       case _ =>

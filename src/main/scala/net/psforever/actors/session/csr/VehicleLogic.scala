@@ -11,7 +11,9 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.interaction.InteractsWithZone
-import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
+import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, PlanetsideAttributeMessage, VehicleStateMessage, VehicleSubStateMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.PlanetsideAttribute
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{DriveState, Vector3}
 

@@ -13,9 +13,9 @@ import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.SimpleResolutions
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.types.{PlanetSideGUID, Vector3}
-import net.psforever.services.Service
+import net.psforever.services.base.messages.PlanetsideAttribute
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleServiceMessage
 
 import scala.annotation.unused
 import scala.concurrent.duration._
@@ -77,7 +77,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
       case obj: PlanetSideServerObject if !jammedSound =>
         obj.Zone.VehicleEvents ! VehicleServiceMessage(
           obj.Zone.id,
-          VehicleAction.PlanetsideAttribute(obj.GUID, 54, 1)
+          PlanetsideAttribute(obj.GUID, 54, 1)
         )
         super.StartJammeredSound(obj, dur)
       case _ => ;
@@ -101,7 +101,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
         val zone = obj.Zone
         zone.VehicleEvents ! VehicleServiceMessage(
           zone.id,
-          VehicleAction.PlanetsideAttribute(obj.GUID, 54, 0)
+          PlanetsideAttribute(obj.GUID, 54, 0)
         )
       case _ => ;
     }

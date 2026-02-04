@@ -25,6 +25,7 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.packet.game._
 import net.psforever.types._
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.{HintsAtAttacker, SendResponse}
 
 import scala.concurrent.duration._
 
@@ -70,7 +71,8 @@ class PlayerControlHealTest extends ActorTest {
         msg_avatar.head match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
               ) =>
             true
           case _ => false
@@ -96,7 +98,8 @@ class PlayerControlHealTest extends ActorTest {
         msg_avatar(3) match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(_, RepairMessage(PlanetSideGUID(2), _))
+                _,
+                SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
               ) =>
             true
           case _ => false
@@ -148,7 +151,8 @@ class PlayerControlHealSelfTest extends ActorTest {
         msg_avatar1.head match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
               ) =>
             true
           case _ => false
@@ -171,7 +175,8 @@ class PlayerControlHealSelfTest extends ActorTest {
         msg_avatar2.head match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
               ) =>
             true
           case _ => false
@@ -231,7 +236,8 @@ class PlayerControlRepairTest extends ActorTest {
         msg_avatar.head match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
               ) =>
             true
           case _ => false
@@ -257,7 +263,8 @@ class PlayerControlRepairTest extends ActorTest {
         msg_avatar(3) match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(_, RepairMessage(PlanetSideGUID(2), _))
+                _,
+                SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
               ) =>
             true
           case _ => false
@@ -321,7 +328,8 @@ class PlayerControlRepairSelfTest extends ActorTest {
         msg_avatar1.head match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
               ) =>
             true
           case _ => false
@@ -344,7 +352,8 @@ class PlayerControlRepairSelfTest extends ActorTest {
         msg_avatar2.head match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(_, InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(4), _, PlanetSideGUID(3), _)))
               ) =>
             true
           case _ => false
@@ -454,7 +463,8 @@ class PlayerControlDamageTest extends ActorTest {
         msg_avatar(2) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
-                AvatarAction.HitHint(PlanetSideGUID(1), PlanetSideGUID(2))
+                PlanetSideGUID(1),
+                HintsAtAttacker(PlanetSideGUID(2))
               ) =>
             true
           case _ => false
@@ -570,7 +580,8 @@ class PlayerControlDeathStandingTest extends ActorTest {
         msg_avatar(4) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
-                AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _))
+                _,
+                SendResponse(Seq(DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _)))
               ) =>
             true
           case _ => false
@@ -681,7 +692,8 @@ class PlayerControlDeathStandingTest extends ActorTest {
 //        msg_avatar(2) match {
 //          case AvatarServiceMessage(
 //                "TestCharacter2",
-//                AvatarAction.SendResponse(_, DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _))
+//                _,
+//                SendResponse(DestroyMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _))
 //              ) =>
 //            true
 //          case _ => false

@@ -16,6 +16,7 @@ import net.psforever.persistence
 import net.psforever.types.Vector3
 import net.psforever.services.{Service, ServiceManager}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.ObjectDelete
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.zones.Zones
 
@@ -434,7 +435,7 @@ class PersistenceMonitor(
       case _ => ;
     }
     inZone.Population.tell(Zone.Population.Release(avatar), parent)
-    inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.id, pguid, AvatarAction.ObjectDelete(pguid)), parent)
+    inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.id, pguid, ObjectDelete(pguid)), parent)
     TaskWorkflow.execute(GUIDTask.unregisterPlayer(inZone.GUID, player))
     //inZone.tasks.tell(GUIDTask.UnregisterPlayer(player)(inZone.GUID), parent)
     AvatarLogout(avatar)

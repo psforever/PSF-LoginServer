@@ -8,6 +8,7 @@ import net.psforever.objects.{Player, Session, Vehicle}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.ObjectDelete
 import net.psforever.services.chat.SpectatorChannel
 import net.psforever.services.teamwork.{SquadAction, SquadServiceMessage}
 import net.psforever.types.{ChatMessageType, SquadRequestType}
@@ -45,7 +46,7 @@ class SpectatorCSRModeLogic(data: SessionData) extends ModeLogic {
     //
     player.spectator = true
     data.chat.JoinChannel(SpectatorChannel)
-    continent.AvatarEvents ! AvatarServiceMessage(continent.id, pguid, AvatarAction.ObjectDelete(pguid))
+    continent.AvatarEvents ! AvatarServiceMessage(continent.id, pguid, ObjectDelete(pguid))
     sendResponse(ChatMsg(ChatMessageType.CMT_TOGGLESPECTATORMODE, "on"))
     sendResponse(ChatMsg(ChatMessageType.UNK_225, "CSR SPECTATOR MODE ON"))
   }

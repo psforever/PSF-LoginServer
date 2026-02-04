@@ -9,6 +9,7 @@ import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.packet.game.{AvatarImplantMessage, ImplantAction}
 import net.psforever.services.base.EventResponse
+import net.psforever.services.base.messages.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, GenericObjectAction, HintsAtAttacker, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, SetEmpire, WeaponDryFire}
 
 import scala.concurrent.duration._
 //
@@ -182,23 +183,23 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarAction.ObjectHeld(_, previousSlot) =>
         sendResponse(ObjectHeldMessage(guid, previousSlot, unk1=false))
 
-      case AvatarAction.ChangeFireState_Start(weaponGuid)
+      case ChangeFireState_Start(weaponGuid)
         if isNotSameTarget && ops.lastSeenStreamMessage.get(guid.guid).exists { _.visible } =>
         sendResponse(ChangeFireStateMessage_Start(weaponGuid))
         val entry = ops.lastSeenStreamMessage(guid.guid)
         ops.lastSeenStreamMessage.put(guid.guid, entry.copy(shooting = Some(weaponGuid)))
 
-      case AvatarAction.ChangeFireState_Start(weaponGuid)
+      case ChangeFireState_Start(weaponGuid)
         if isNotSameTarget =>
         sendResponse(ChangeFireStateMessage_Start(weaponGuid))
 
-      case AvatarAction.ChangeFireState_Stop(weaponGuid)
+      case ChangeFireState_Stop(weaponGuid)
         if isNotSameTarget && ops.lastSeenStreamMessage.get(guid.guid).exists { msg => msg.visible || msg.shooting.nonEmpty } =>
         sendResponse(ChangeFireStateMessage_Stop(weaponGuid))
         val entry = ops.lastSeenStreamMessage(guid.guid)
         ops.lastSeenStreamMessage.put(guid.guid, entry.copy(shooting = None))
 
-      case AvatarAction.ChangeFireState_Stop(weaponGuid)
+      case ChangeFireState_Stop(weaponGuid)
         if isNotSameTarget =>
         sendResponse(ChangeFireStateMessage_Stop(weaponGuid))
 
@@ -208,8 +209,8 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarAction.EquipmentCreatedInHand(pkt) if isNotSameTarget =>
         sendResponse(pkt)
 
-      case AvatarAction.PlanetsideAttribute(attributeType, attributeValue) if isNotSameTarget =>
-        sendResponse(PlanetsideAttributeMessage(guid, attributeType, attributeValue))
+      case PlanetsideAttribute(target_guid, attributeType, attributeValue) if isNotSameTarget =>
+        sendResponse(PlanetsideAttributeMessage(target_guid, attributeType, attributeValue))
 
       case AvatarAction.PlanetsideAttributeToAll(attributeType, attributeValue) =>
         sendResponse(PlanetsideAttributeMessage(guid, attributeType, attributeValue))
@@ -217,10 +218,10 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarAction.PlanetsideAttributeSelf(attributeType, attributeValue) if isSameTarget =>
         sendResponse(PlanetsideAttributeMessage(guid, attributeType, attributeValue))
 
-      case AvatarAction.GenericObjectAction(objectGuid, actionCode) if isNotSameTarget =>
+      case GenericObjectAction(objectGuid, actionCode) if isNotSameTarget =>
         sendResponse(GenericObjectActionMessage(objectGuid, actionCode))
 
-      case AvatarAction.HitHint(sourceGuid) if player.isAlive =>
+      case HintsAtAttacker(sourceGuid) if player.isAlive =>
         sendResponse(HitHint(sourceGuid, guid))
         sessionLogic.zoning.CancelZoningProcess()
 
@@ -411,19 +412,21 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarAction.FacilityCaptureRewards(buildingId, zoneNumber, cep) =>
         ops.facilityCaptureRewards(buildingId, zoneNumber, cep)
 
-      case AvatarAction.SendResponse(pkt: AvatarImplantMessage)
-        if pkt.player_guid == player.GUID && pkt.action == ImplantAction.Initialization =>
-        //special spectator implants stay initialized and do not deinitialize
-        ()
-
-      case AvatarAction.SendResponse(msg) =>
-        sendResponse(msg)
+      case SendResponse(msgs) =>
+        msgs.foreach {
+          case pkt: AvatarImplantMessage
+            if pkt.player_guid == player.GUID && pkt.action == ImplantAction.Initialization =>
+            //special spectator implants stay initialized and do not deinitialize
+            ()
+          case msg =>
+            sendResponse(msg)
+        }
 
       case AvatarAction.SendResponseTargeted(targetGuid, msg) if resolvedPlayerGuid == targetGuid =>
         sendResponse(msg)
 
       /* common messages (maybe once every respawn) */
-      case AvatarAction.Reload(itemGuid)
+      case ReloadTool(itemGuid)
         if isNotSameTarget && ops.lastSeenStreamMessage.get(guid.guid).exists { _.visible } =>
         sendResponse(ReloadMessage(itemGuid, ammo_clip=1, unk1=0))
 
@@ -496,12 +499,12 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         )
 
       /* uncommon messages (utility, or once in a while) */
-      case AvatarAction.ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data)
+      case ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data)
         if isNotSameTarget && ops.lastSeenStreamMessage.get(guid.guid).exists { _.visible } =>
         ops.changeAmmoProcedures(weapon_guid, previous_guid, ammo_id, ammo_guid, weapon_slot, ammo_data)
         sendResponse(ChangeAmmoMessage(weapon_guid, 1))
 
-      case AvatarAction.ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data)
+      case ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data)
         if isNotSameTarget =>
         ops.changeAmmoProcedures(weapon_guid, previous_guid, ammo_id, ammo_guid, weapon_slot, ammo_data)
 
@@ -518,11 +521,11 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarAction.DropCreatedItem(pkt) if isNotSameTarget =>
         sendResponse(pkt)
 
-      case AvatarAction.ObjectDelete(itemGuid, unk) if isNotSameTarget =>
+      case ObjectDelete(itemGuid, unk) if isNotSameTarget =>
         sendResponse(ObjectDeleteMessage(itemGuid, unk))
 
       /* rare messages */
-      case AvatarAction.SetEmpire(objectGuid, faction) if isNotSameTarget =>
+      case SetEmpire(objectGuid, faction) if isNotSameTarget =>
         sendResponse(SetEmpireMessage(objectGuid, faction))
 
       case AvatarAction.DropSpecialItem() =>
@@ -571,7 +574,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           )
         )
 
-      case AvatarAction.WeaponDryFire(weaponGuid)
+      case WeaponDryFire(weaponGuid)
         if isNotSameTarget && ops.lastSeenStreamMessage.get(guid.guid).exists { _.visible } =>
         continent.GUID(weaponGuid).collect {
           case tool: Tool if tool.Magazine == 0 =>

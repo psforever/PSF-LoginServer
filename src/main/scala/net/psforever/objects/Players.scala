@@ -21,6 +21,7 @@ import net.psforever.packet.game._
 import net.psforever.types.{ChatMessageType, ExoSuitType, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.{ObjectDelete, SendResponse}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.annotation.tailrec
@@ -50,7 +51,7 @@ object Players {
       val uname  = user.Name
       events ! AvatarServiceMessage(
         uname,
-        AvatarAction.SendResponse(RepairMessage(target.GUID, progress.toInt))
+        SendResponse(RepairMessage(target.GUID, progress.toInt))
       )
       true
     } else {
@@ -77,7 +78,7 @@ object Players {
       target.Zone,
       medicName,
       Service.defaultPlayerGUID,
-      AvatarAction.SendResponse(
+      SendResponse(
         InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine)
       )
     )
@@ -347,7 +348,7 @@ object Players {
     */
   def buildCooldownReset(zone: Zone, channel: String, guid: PlanetSideGUID): Unit = {
     //sent to avatar event bus to preempt additional tool management
-    zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.SendResponse(GenericObjectActionMessage(guid, 21)))
+    zone.AvatarEvents ! AvatarServiceMessage(channel, SendResponse(GenericObjectActionMessage(guid, 21)))
   }
 
   /**
@@ -403,7 +404,7 @@ object Players {
       }
     }) {
       val zone = player.Zone
-      zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(tool.GUID))
+      zone.AvatarEvents ! AvatarServiceMessage(zone.id, ObjectDelete(tool.GUID))
       true
     } else {
       false
@@ -449,7 +450,7 @@ object Players {
               obj.AmmoTypeIndex = ammoType
               events ! AvatarServiceMessage(
                 name,
-                AvatarAction.SendResponse(ChangeAmmoMessage(obj.GUID, ammoType))
+                SendResponse(ChangeAmmoMessage(obj.GUID, ammoType))
               )
             }
             if (player.DrawnSlot == Player.HandsDownSlot) {

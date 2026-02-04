@@ -9,7 +9,7 @@ trait EventMessage extends EventExchange {
   def response(): EventResponse
 }
 
-trait SelfResponseMessage
+trait SelfRespondingEvent
   extends EventMessage
     with EventResponse {
   def response(): EventResponse = this

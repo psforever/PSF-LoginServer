@@ -6,6 +6,7 @@ import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, Env
 import net.psforever.objects.serverobject.environment.interaction.{InteractionWith, RespondsToZoneEnvironment}
 import net.psforever.objects.serverobject.interior.{Sidedness, TraditionalInteriorAware}
 import net.psforever.objects.zones.interaction.InteractsWithZone
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.types.Vector3
 
 import scala.annotation.unused
@@ -90,7 +91,7 @@ class WithEntrance()
                                 ): Sidedness = {
     import net.psforever.objects.{Player, Vehicle}
     import net.psforever.packet.game.ChatMsg
-    import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+    import net.psforever.services.avatar.AvatarServiceMessage
     import net.psforever.types.ChatMessageType
     val channel = obj match {
       case p: Player => p.Name
@@ -100,7 +101,7 @@ class WithEntrance()
     if (door.Outwards == Vector3.Zero) {
       obj.Zone.AvatarEvents ! AvatarServiceMessage(
         channel,
-        AvatarAction.SendResponse(ChatMsg(ChatMessageType.UNK_229, "Door not configured."))
+        SendResponse(ChatMsg(ChatMessageType.UNK_229, "Door not configured."))
       )
       WhichSide
     } else {
@@ -109,14 +110,14 @@ class WithEntrance()
         //outside
         obj.Zone.AvatarEvents ! AvatarServiceMessage(
           channel,
-          AvatarAction.SendResponse(ChatMsg(ChatMessageType.UNK_229, "You are now outside"))
+          SendResponse(ChatMsg(ChatMessageType.UNK_229, "You are now outside"))
         )
         Sidedness.OutsideOf
       } else if (!result && WhichSide != Sidedness.InsideOf) {
         //inside
         obj.Zone.AvatarEvents ! AvatarServiceMessage(
           channel,
-          AvatarAction.SendResponse(ChatMsg(ChatMessageType.UNK_229, "You are now inside"))
+          SendResponse(ChatMsg(ChatMessageType.UNK_229, "You are now inside"))
         )
         Sidedness.InsideOf
       } else {

@@ -12,6 +12,7 @@ import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage, GalaxyServiceResponse}
 import net.psforever.types.ChatMessageType
 import net.psforever.util.Config
@@ -89,7 +90,7 @@ object CavernRotationService {
     */
   private def closedCavernWarning(zone: ZoneMonitor, counter: Int, galaxyService: ActorRef): Boolean = {
     if (!zone.locked) {
-      galaxyService ! GalaxyServiceMessage(GalaxyAction.SendResponse(
+      galaxyService ! GalaxyServiceMessage(SendResponse(
         ChatMsg(ChatMessageType.UNK_229, s"@cavern_closing_warning^@${zone.zone.id}~^@$counter~")
       ))
       true
@@ -664,7 +665,7 @@ class CavernRotationService(
     lockTimerToDisplayWarning(hoursBetweenRotationsAsHours - firstClosingWarningAtMinutes.minutes)
     //alert clients to change
     if (lockingZone ne unlockingZone) {
-      galaxyService ! GalaxyServiceMessage(GalaxyAction.SendResponse(
+      galaxyService ! GalaxyServiceMessage(SendResponse(
         ChatMsg(ChatMessageType.UNK_229, s"@cavern_switched^@${lockingZone.id}~^@${unlockingZone.id}")
       ))
       //change warp gate statuses to reflect zone lock state

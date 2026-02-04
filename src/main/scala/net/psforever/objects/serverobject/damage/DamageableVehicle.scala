@@ -13,7 +13,8 @@ import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.services.Service
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.types.Vector3
 
 import scala.concurrent.duration._
@@ -144,21 +145,21 @@ trait DamageableVehicle
       if (damageToShields > 0) {
         events ! VehicleServiceMessage(
           shieldChannel,
-          VehicleAction.PlanetsideAttribute(targetGUID, obj.Definition.shieldUiAttribute, obj.Shields)
+          PlanetsideAttribute(targetGUID, obj.Definition.shieldUiAttribute, obj.Shields)
         )
         announceConfrontation = true
       }
       if (damageToHealth > 0) {
         events ! VehicleServiceMessage(
           healthChannel,
-          VehicleAction.PlanetsideAttribute(targetGUID, 0, obj.Health)
+          PlanetsideAttribute(targetGUID, 0, obj.Health)
         )
         announceConfrontation = true
       }
     }
     if (announceConfrontation) {
       if (showAsAggravated) {
-        val msg = VehicleAction.SendResponse(DamageWithPositionMessage(totalDamage, Vector3.Zero))
+        val msg = SendResponse(DamageWithPositionMessage(totalDamage, Vector3.Zero))
         obj.Seats.values
           .collect { case seat if seat.occupant.nonEmpty => seat.occupant.get.Name }
           .foreach { channel =>
@@ -219,7 +220,7 @@ trait DamageableVehicle
       obj.Shields = 0
       zone.VehicleEvents ! VehicleServiceMessage(
         zone.id,
-        VehicleAction.PlanetsideAttribute(target.GUID, obj.Definition.shieldUiAttribute, 0)
+        PlanetsideAttribute(target.GUID, obj.Definition.shieldUiAttribute, 0)
       )
     }
     //database entry
@@ -252,13 +253,13 @@ trait DamageableVehicle
     val guid = obj.GUID
     events ! VehicleServiceMessage(
       zoneid,
-      VehicleAction.PlanetsideAttribute(guid, 0, 1)
+      PlanetsideAttribute(guid, 0, 1)
     )
     if (obj.Shields > 0) {
       obj.Shields = 0
       zone.VehicleEvents ! VehicleServiceMessage(
         zone.id,
-        VehicleAction.PlanetsideAttribute(obj.GUID, obj.Definition.shieldUiAttribute, 0)
+        PlanetsideAttribute(obj.GUID, obj.Definition.shieldUiAttribute, 0)
       )
     }
     //aggravation cancel

@@ -25,6 +25,7 @@ import net.psforever.packet.game.{InventoryStateMessage, RepairMessage, TriggerE
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.SendResponse
 
 import scala.concurrent.duration._
 
@@ -326,7 +327,8 @@ class GeneratorControlDestroyedTest extends ActorTest {
         msg_avatar2(2) match {
           case AvatarServiceMessage(
                 "test",
-                AvatarAction.SendResponse(_, TriggerEffectMessage(PlanetSideGUID(2), "explosion_generator", None, None))
+                _,
+                SendResponse(Seq(TriggerEffectMessage(PlanetSideGUID(2), "explosion_generator", None, None)))
               ) =>
             true
           case _ => false
@@ -454,7 +456,8 @@ class GeneratorControlKillsTest extends ActorTest {
         msg_avatar2(2) match {
           case AvatarServiceMessage(
           "test",
-          AvatarAction.SendResponse(_, TriggerEffectMessage(PlanetSideGUID(2), "explosion_generator", None, None))
+          _,
+          SendResponse(Seq(TriggerEffectMessage(PlanetSideGUID(2), "explosion_generator", None, None)))
           ) =>
             true
           case _ => false
@@ -820,8 +823,8 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
         msg_avatar.head match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction
-                  .SendResponse(_, InventoryStateMessage(ValidPlanetSideGUID(5), _, ValidPlanetSideGUID(4), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(ValidPlanetSideGUID(5), _, ValidPlanetSideGUID(4), _)))
               ) =>
             true
           case _ => false
@@ -837,7 +840,8 @@ class GeneratorControlRepairPastRestorePoint extends ActorTest {
         msg_avatar(2) match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(_, RepairMessage(ValidPlanetSideGUID(2), _))
+                _,
+                SendResponse(Seq(RepairMessage(ValidPlanetSideGUID(2), _)))
               ) =>
             true
           case _ => false

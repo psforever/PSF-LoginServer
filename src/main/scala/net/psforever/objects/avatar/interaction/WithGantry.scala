@@ -7,7 +7,8 @@ import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, Env
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game.{ChatMsg, PlayerStateShiftMessage, ShiftState}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.hart.ShuttleState
 import net.psforever.types.ChatMessageType
 
@@ -36,10 +37,10 @@ class WithGantry(val channel: String)
         val events = shuttle.Zone.AvatarEvents
         events ! AvatarServiceMessage(
           channel,
-          AvatarAction.SendResponse(PlayerStateShiftMessage(ShiftState(0, pos, ang, None))))
+          SendResponse(PlayerStateShiftMessage(ShiftState(0, pos, ang, None))))
         events ! AvatarServiceMessage(
           channel,
-          AvatarAction.SendResponse(ChatMsg(ChatMessageType.UNK_227, "@Vehicle_OS_PlacedOutsideHallway"))
+          SendResponse(ChatMsg(ChatMessageType.UNK_227, "@Vehicle_OS_PlacedOutsideHallway"))
         )
       case (Some(_: Vehicle) , _)=>
         obj.Actor ! RespondsToZoneEnvironment.Timer(

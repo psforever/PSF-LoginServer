@@ -7,7 +7,8 @@ import net.psforever.objects._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.SetEmpire
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideEmpire
 
@@ -284,7 +285,7 @@ object DeployableBehavior {
       //visual tells in regards to ownership by faction
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.SetEmpire(dGuid, toFaction)
+        SetEmpire(dGuid, toFaction)
       )
       //remove knowledge by the previous owner's faction
       localEvents ! LocalServiceMessage(

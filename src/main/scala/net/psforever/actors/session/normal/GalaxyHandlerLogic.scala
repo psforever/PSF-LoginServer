@@ -6,6 +6,7 @@ import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GalaxyHandlerFunctions, SessionData, SessionGalaxyHandlers}
 import net.psforever.packet.game.{BroadcastWarpgateUpdateMessage, FriendsResponse, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.services.base.EventResponse
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.types.{MemberAction, PlanetSideEmpire}
 
@@ -85,8 +86,8 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
       case GalaxyAction.LogStatusChange(name) if avatar.people.friend.exists(_.name.equals(name)) =>
         avatarActor ! AvatarActor.MemberListRequest(MemberAction.UpdateFriend, name)
 
-      case GalaxyAction.SendResponse(msg) =>
-        sendResponse(msg)
+      case SendResponse(msgs) =>
+        msgs.foreach(sendResponse)
 
       case _ => ()
     }

@@ -9,6 +9,7 @@ import net.psforever.objects.{Player, Tool}
 import net.psforever.packet.game.{ChatMsg, InventoryStateMessage, RepairMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.SendResponse
 
 /**
   * The "control" `Actor` mixin for repair-handling code,
@@ -67,7 +68,7 @@ trait RepairableEntity extends Repairable {
     * Restore the target entity to a not destroyed state if applicable.
     * Always show the repair progress bar window by using the appropriate packet.
     * @see `AvatarAction.PlanetsideAttributeToAll`
-    * @see `AvatarAction.SendResponse`
+    * @see `SendResponse`
     * @see `AvatarService`
     * @see `InventoryStateMessage`
     * @see `PlanetSideGameObject.isMoving`
@@ -90,7 +91,7 @@ trait RepairableEntity extends Repairable {
         val magazine  = item.Discharge()
         events ! AvatarServiceMessage(
           player.Name,
-          AvatarAction.SendResponse(InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong))
+          SendResponse(InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong))
         )
         target.LogActivity(
           RepairFromEquipment(
@@ -106,7 +107,7 @@ trait RepairableEntity extends Repairable {
     //progress bar remains visible
     events ! AvatarServiceMessage(
       name,
-      AvatarAction.SendResponse(RepairMessage(target.GUID, updatedHealth * 100 / definition.MaxHealth))
+      SendResponse(RepairMessage(target.GUID, updatedHealth * 100 / definition.MaxHealth))
     )
     //if vehicle and vehicle is owned by another player, send repair chat message to the vehicle's owner
     if (target.Zone.Vehicles.exists(_.GUID == target.GUID)) {

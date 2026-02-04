@@ -8,7 +8,8 @@ import net.psforever.objects.serverobject.containable.{Containable, ContainableB
 import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types.{PlanetSideEmpire, Vector3}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.{ObjectDelete, SendResponse}
 
 class CorpseControl(player: Player) extends Actor with ContainableBehavior {
   def ContainerObject = player
@@ -26,7 +27,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
           case Some(slot) =>
             obj.Zone.AvatarEvents ! AvatarServiceMessage(
               player.Zone.id,
-              AvatarAction.SendResponse(ObjectAttachMessage(obj.GUID, item.GUID, slot))
+              SendResponse(ObjectAttachMessage(obj.GUID, item.GUID, slot))
             )
           case None => ;
         }
@@ -39,7 +40,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
     val zone   = obj.Zone
     val events = zone.AvatarEvents
     item.Faction = PlanetSideEmpire.NEUTRAL
-    events ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(item.GUID))
+    events ! AvatarServiceMessage(zone.id, ObjectDelete(item.GUID))
   }
 
   def PutItemInSlotCallback(item: Equipment, slot: Int): Unit = {
@@ -49,7 +50,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
     val definition = item.Definition
     events ! AvatarServiceMessage(
       zone.id,
-      AvatarAction.SendResponse(
+      SendResponse(
         ObjectCreateDetailedMessage(
           definition.ObjectId,
           item.GUID,
@@ -65,7 +66,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
     val zone = obj.Zone
     zone.AvatarEvents ! AvatarServiceMessage(
       zone.id,
-      AvatarAction.SendResponse(ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f))
+      SendResponse(ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f))
     )
   }
 }

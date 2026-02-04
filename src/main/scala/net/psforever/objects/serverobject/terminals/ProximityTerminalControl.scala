@@ -6,7 +6,8 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.HackState1
-import net.psforever.services.local.ClearMessage
+import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.local.HackClearMessage
 import net.psforever.services.local.support.HackClearActor
 import org.log4s.Logger
 
@@ -28,7 +29,7 @@ import net.psforever.objects.zones.ZoneAware
 import net.psforever.packet.game.InventoryStateMessage
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleServiceMessage
 
 /**
  * An `Actor` that handles messages being dispatched to a specific `ProximityTerminal`.
@@ -148,7 +149,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     tryAutoRepair()
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone
-      zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(term))
+      zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(term))
     }
     super.DestructionAwareness(target, cause)
   }
@@ -225,7 +226,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     //clear hack state
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone
-      zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(term))
+      zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(term))
     }
   }
 
@@ -378,7 +379,7 @@ object ProximityTerminalControl {
     val zone = target.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
-      VehicleAction.PlanetsideAttribute(target.GUID, 0, target.Health)
+      PlanetsideAttribute(target.GUID, 0, target.Health)
     )
   }
 
@@ -439,7 +440,7 @@ object ProximityTerminalControl {
       slots.foreach { slot =>
         events ! AvatarServiceMessage(
           channel,
-          AvatarAction.SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
+          SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
         )
       }
     }
@@ -465,7 +466,7 @@ object ProximityTerminalControl {
       slots.foreach { slot =>
         events ! VehicleServiceMessage(
           channel,
-          VehicleAction.SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
+          SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
         )
       }
     }

@@ -18,6 +18,7 @@ import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
 import net.psforever.types._
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
@@ -72,8 +73,8 @@ class RepairableEntityRepairTest extends ActorTest {
         msg123.head match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction
-                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _)))
               ) =>
             true
           case _ => false
@@ -89,7 +90,8 @@ class RepairableEntityRepairTest extends ActorTest {
         msg123(2) match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))
+                _,
+                SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
               ) =>
             true
           case _ => false
@@ -189,8 +191,8 @@ class RepairableAmenityTest extends ActorTest {
         msg12345.head match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction
-                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _)))
               ) =>
             true
           case _ => false
@@ -218,7 +220,8 @@ class RepairableAmenityTest extends ActorTest {
         msg12345(4) match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))
+                _,
+                SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
               ) =>
             true
           case _ => false
@@ -287,8 +290,8 @@ class RepairableTurretWeapon extends ActorTest {
         msg12345.head match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction
-                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(8), _, PlanetSideGUID(7), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(8), _, PlanetSideGUID(7), _)))
               ) =>
             true
           case _ => false
@@ -305,7 +308,8 @@ class RepairableTurretWeapon extends ActorTest {
         msg12345(4) match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))
+                _,
+                SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
               ) =>
             true
           case _ => false
@@ -368,8 +372,8 @@ class RepairableVehicleRepair extends ActorTest {
         msg123.head match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction
-                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(6), _, PlanetSideGUID(5), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(6), _, PlanetSideGUID(5), _)))
               ) =>
             true
           case _ => false
@@ -385,7 +389,8 @@ class RepairableVehicleRepair extends ActorTest {
         msg123(2) match {
           case AvatarServiceMessage(
                 "TestCharacter1",
-                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(1), _))
+                _,
+                SendResponse(Seq(RepairMessage(PlanetSideGUID(1), _)))
               ) =>
             true
           case _ => false

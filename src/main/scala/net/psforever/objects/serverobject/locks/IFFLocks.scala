@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.locks
 
 import net.psforever.services.local.support.HackClearActor
-import net.psforever.services.local.ClearMessage
+import net.psforever.services.local.HackClearMessage
 
 object IFFLocks {
 
@@ -14,6 +14,6 @@ object IFFLocks {
     */
   def FinishResecuringIFFLock(lock: IFFLock)(): Unit = {
     val zone = lock.Zone
-    lock.Zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(lock))
+    lock.Zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(lock))
   }
 }

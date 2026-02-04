@@ -9,10 +9,11 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types.Vector3
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.base.support.SupportActor
 import net.psforever.services.vehicle.support.TurretUpgrader
-import net.psforever.services.vehicle.{TurretMessage, VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.{TurretMessage, VehicleServiceMessage}
 
 /**
   * The "control" `Actor` mixin for damage-handling code for `WeaponTurret` objects.
@@ -64,14 +65,14 @@ trait DamageableWeaponTurret
         DamageableMountable.DamageAwareness(DamageableObject, cause, damageToHealth)
         events ! VehicleServiceMessage(
           zoneId,
-          VehicleAction.PlanetsideAttribute(targetGUID, 0, obj.Health)
+          PlanetsideAttribute(targetGUID, 0, obj.Health)
         )
         announceConfrontation = true
       }
     }
     if (announceConfrontation) {
       if (aggravated) {
-        val msg = VehicleAction.SendResponse(DamageWithPositionMessage(damageToHealth, Vector3.Zero))
+        val msg = SendResponse(DamageWithPositionMessage(damageToHealth, Vector3.Zero))
         obj.Seats.values
           .collect { case seat if seat.occupant.nonEmpty => seat.occupant.get.Name }
           .foreach { channel =>
@@ -131,7 +132,7 @@ object DamageableWeaponTurret {
       }
       .foreach(slot => {
         val wep = slot.Equipment.get
-        avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.ObjectDelete(wep.GUID))
+        avatarEvents ! AvatarServiceMessage(zoneId, ObjectDelete(wep.GUID))
       })
     target match {
       case turret: WeaponTurret =>

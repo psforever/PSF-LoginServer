@@ -67,36 +67,9 @@ object Door {
     */
   sealed trait Exchange
 
-  /**
-    * Message that carries the result of the processed request message back to the original user (`player`).
-    * @param player the player who sent this request message
-    * @param msg the original packet carrying the request
-    * @param response the result of the processed request
-    */
-  final case class DoorMessage(player: Player, msg: UseItemMessage, response: Exchange)
-
-  /**
-    * This door will open.
-    */
-  final case class OpenEvent() extends Exchange
-
-  /**
-    * This door will close.
-    */
-  final case class CloseEvent() extends Exchange
-
-  /**
-    * This door will do nothing.
-    */
-  final case class NoEvent() extends Exchange
-
   type LockingMechanismLogic = (PlanetSideServerObject, Door) => Boolean
 
   final case class UpdateMechanism(mechanism: LockingMechanismLogic) extends Exchange
-
-  case object Lock extends Exchange
-
-  case object Unlock extends Exchange
 
   /**
     * Overloaded constructor.

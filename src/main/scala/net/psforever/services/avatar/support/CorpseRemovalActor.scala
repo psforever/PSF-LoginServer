@@ -5,7 +5,8 @@ import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.objects.Player
 import net.psforever.types.ExoSuitType
 import net.psforever.services.RemoverActor
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.ObjectDelete
 
 import scala.concurrent.duration._
 
@@ -25,7 +26,7 @@ class CorpseRemovalActor extends RemoverActor() {
     entry.zone.Population ! Zone.Corpse.Remove(entry.obj.asInstanceOf[Player])
     context.parent ! AvatarServiceMessage(
       entry.zone.id,
-      AvatarAction.ObjectDelete(entry.obj.GUID, unk=1)
+      ObjectDelete(entry.obj.GUID, unk=1)
     )
   }
 

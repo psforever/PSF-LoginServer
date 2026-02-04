@@ -129,18 +129,6 @@ final case class HackMessage(
 }
 
 object HackMessage extends Marshallable[HackMessage] {
-  def apply(
-             unk1: HackState1,
-             target_guid: PlanetSideGUID,
-             player_guid: PlanetSideGUID,
-             progress: Int,
-             unk5: Int,
-             hack_state: HackState,
-             unk7: HackState7
-           ): HackMessage = {
-    new HackMessage(unk1, target_guid, player_guid, progress, unk5.toFloat, hack_state, unk7)
-  }
-
   implicit val codec: Codec[HackMessage] = (
     ("unk1" | HackState1.codec) ::
       ("object_guid" | PlanetSideGUID.codec) ::

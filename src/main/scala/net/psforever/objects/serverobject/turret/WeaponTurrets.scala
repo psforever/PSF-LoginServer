@@ -5,7 +5,8 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.{Player, Tool, TurretDeployable}
 import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, InventoryStateMessage}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.{SendResponse, SetEmpire}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.support.TurretUpgrader
 import net.psforever.services.vehicle.{TurretMessage, VehicleAction, VehicleServiceMessage}
@@ -32,7 +33,7 @@ object WeaponTurrets {
     tool.Magazine = 0
     target.Zone.AvatarEvents ! AvatarServiceMessage(
       user.Name,
-      AvatarAction.SendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
+      SendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
     )
     FinishUpgradingMannedTurret(target, upgrade)
   }
@@ -86,7 +87,7 @@ object WeaponTurrets {
     }
     turret.Zone.AvatarEvents ! AvatarServiceMessage(
       tplayer.Name,
-      AvatarAction.SendResponse(
+      SendResponse(
         HackMessage(progressType, turret.GUID, tplayer.GUID, progressGrade, -1f, progressState, HackState7.Unk8)
       )
     )
@@ -117,7 +118,7 @@ object WeaponTurrets {
       //convert faction
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.SetEmpire(target.GUID, hacker.Faction)
+        SetEmpire(target.GUID, hacker.Faction)
       )
       zone.LocalEvents ! LocalServiceMessage(
         zone.id,

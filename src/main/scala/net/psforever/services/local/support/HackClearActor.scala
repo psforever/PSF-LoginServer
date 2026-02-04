@@ -8,6 +8,7 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.HackState7
+import net.psforever.services.base.messages.GenericObjectAction
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
@@ -48,7 +49,7 @@ class HackClearActor() extends Actor {
       hackedObjects = stillHackedObjects
       unhackObjects.foreach { case HackClearActor.HackEntry(target, zone, unk1, unk2, _, _) =>
         target.Actor ! CommonMessages.ClearHack()
-        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SendHackMessageHackCleared(target.GUID, unk1, unk2))
+        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.HackClear(target.GUID, unk1, unk2))
         if (target.Definition == GlobalDefinitions.main_terminal) {
           ClearVirusFromBuilding(target)
         }
@@ -61,7 +62,7 @@ class HackClearActor() extends Actor {
         case Some(HackClearActor.HackEntry(target, zone, unk1, unk2, _, _)) =>
           hackedObjects = hackedObjects.filterNot(x => x.target == target)
           target.Actor ! CommonMessages.ClearHack()
-          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SendHackMessageHackCleared(target.GUID, 3212836864L, HackState7.Unk8))
+          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.HackClear(target.GUID, 3212836864L, HackState7.Unk8))
 
           // Restart the timer in case the object we just removed was the next one scheduled
           RestartTimer()
@@ -100,12 +101,12 @@ class HackClearActor() extends Actor {
     import net.psforever.objects.serverobject.structures.Building
     import net.psforever.objects.serverobject.terminals.Terminal
     import net.psforever.actors.zone.BuildingActor
-    import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+    import net.psforever.services.avatar.AvatarServiceMessage
 
     val building = target.asInstanceOf[Terminal].Owner.asInstanceOf[Building]
     building.virusId = 8
     building.virusInstalledBy = None
-    val msg = AvatarAction.GenericObjectAction(target.GUID, 60)
+    val msg = GenericObjectAction(target.GUID, 60)
     val events = building.Zone.AvatarEvents
     building.PlayersInSOI.foreach { player =>
       events ! AvatarServiceMessage(player.Name, msg)

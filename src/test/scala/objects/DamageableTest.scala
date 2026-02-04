@@ -37,6 +37,7 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
+import net.psforever.services.base.messages.{ObjectDelete, PlanetsideAttribute, SendResponse}
 
 class DamageableTest extends Specification {
   val player1: Player = Player(Avatar(0, "TestCharacter1", PlanetSideEmpire.TR, CharacterSex.Male, 0, CharacterVoice.Mute))
@@ -657,7 +658,8 @@ class DamageableMountableDamageTest extends ActorTest {
         msg1_3(1) match {
           case AvatarServiceMessage(
                 "TestCharacter2",
-                AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(_, Vector3(2, 2, 2)))
+                _,
+                SendResponse(Seq(DamageWithPositionMessage(_, Vector3(2, 2, 2))))
               ) =>
             true
           case _ => false
@@ -830,7 +832,7 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
       val msg4  = avatarProbe.receiveOne(500 milliseconds)
       assert(
         msg12 match {
-          case VehicleServiceMessage("test", _, VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(2), 0, _)) => true
+          case VehicleServiceMessage("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
           case _                                                                                                            => false
         }
       )
@@ -847,7 +849,8 @@ class DamageableWeaponTurretDamageTest extends ActorTest {
         msg4 match {
           case AvatarServiceMessage(
                 "TestCharacter2",
-                AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(_, Vector3(2, 2, 2)))
+                _,
+                SendResponse(Seq(DamageWithPositionMessage(_, Vector3(2, 2, 2))))
               ) =>
             true
           case _ => false
@@ -933,7 +936,7 @@ class DamageableWeaponTurretJammerTest extends ActorTest {
           case VehicleServiceMessage(
                 "test",
                 _,
-                VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, PlanetSideGUID(2), 27, 1)
+                PlanetsideAttribute(PlanetSideGUID(2), 27, 1)
               ) =>
             true
           case _ => false
@@ -944,7 +947,7 @@ class DamageableWeaponTurretJammerTest extends ActorTest {
           case VehicleServiceMessage(
                 "test",
                 _,
-                VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, PlanetSideGUID(5), 27, 1)
+                PlanetsideAttribute(PlanetSideGUID(5), 27, 1)
               ) =>
             true
           case _ => false
@@ -1086,7 +1089,7 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
           assert(false, s"DamageableWeaponTurretDestructionTest-3: player not dead - $msg3")
       }
       msg12_4(2) match {
-        case AvatarServiceMessage("test", _, AvatarAction.ObjectDelete(PlanetSideGUID(5), _)) => ;
+        case AvatarServiceMessage("test", _, ObjectDelete(PlanetSideGUID(5), _)) => ;
         case _ =>
           assert(false, s"DamageableWeaponTurretDestructionTest-4: ${msg12_4(2)}")
       }
@@ -1181,13 +1184,13 @@ class DamageableVehicleDamageTest extends ActorTest {
       val msg4   = avatarProbe.receiveOne(200 milliseconds)
       assert(
         msg12.head match {
-          case VehicleServiceMessage(_, _, VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 68, _)) => true
+          case VehicleServiceMessage(_, _, PlanetsideAttribute(PlanetSideGUID(1), 68, _)) => true
           case _                                                                                                        => false
         }
       )
       assert(
         msg12(1) match {
-          case VehicleServiceMessage("test", _, VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 0, _)) => true
+          case VehicleServiceMessage("test", _, PlanetsideAttribute(PlanetSideGUID(1), 0, _)) => true
           case _                                                                                                            => false
         }
       )
@@ -1203,8 +1206,9 @@ class DamageableVehicleDamageTest extends ActorTest {
       assert(
         msg4 match {
           case AvatarServiceMessage(
-          "TestCharacter2",
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(9, Vector3(2, 0, 0)))
+            "TestCharacter2",
+            _,
+            SendResponse(Seq(DamageWithPositionMessage(9, Vector3(2, 0, 0))))
           ) =>
             true
           case _ => false
@@ -1317,11 +1321,11 @@ class DamageableVehicleDamageMountedTest extends FreedContextActorTest {
     val msg3    = activityProbe.receiveOne(500 milliseconds)
     val msg45   = avatarProbe.receiveN(2,500 milliseconds)
     msg12.head match {
-      case VehicleServiceMessage(_, _, VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 68, _)) => ;
+      case VehicleServiceMessage(_, _, PlanetsideAttribute(PlanetSideGUID(1), 68, _)) => ;
       case _                                                                                                        => assert(false)
     }
     msg12(1) match {
-      case VehicleServiceMessage("test", _, VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), PlanetSideGUID(1), 0, _)) => ;
+      case VehicleServiceMessage("test", _, PlanetsideAttribute(PlanetSideGUID(1), 0, _)) => ;
       case _                                                                                                            => assert(false)
     }
     msg3 match {
@@ -1334,14 +1338,16 @@ class DamageableVehicleDamageMountedTest extends FreedContextActorTest {
     msg45.head match {
       case AvatarServiceMessage(
             "TestCharacter2",
-            AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(400, Vector3(2, 0, 0)))
+            _,
+            SendResponse(Seq(DamageWithPositionMessage(400, Vector3(2, 0, 0))))
           ) => ;
       case _ => assert(false)
     }
     msg45(1) match {
       case AvatarServiceMessage(
             "TestCharacter3",
-            AvatarAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(0, Vector3(2, 0, 0)))
+            _,
+            SendResponse(Seq(DamageWithPositionMessage(0, Vector3(2, 0, 0))))
           ) => ;
       case _ => assert(false)
     }
@@ -1455,7 +1461,7 @@ class DamageableVehicleJammeringMountedTest extends FreedContextActorTest {
         case VehicleServiceMessage(
               "test",
               _,
-              VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, PlanetSideGUID(4), 27, 1)
+              PlanetsideAttribute(PlanetSideGUID(4), 27, 1)
             ) =>
           true
         case _ => false
@@ -1736,7 +1742,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
 //    )
 //    assert(
 //      msg_avatar.exists({
-//        case AvatarServiceMessage("test", AvatarAction.ObjectDelete(PlanetSideGUID(0), PlanetSideGUID(2), _)) => true
+//        case AvatarServiceMessage("test", ObjectDelete(PlanetSideGUID(0), PlanetSideGUID(2), _)) => true
 //        case _                                                                                                => false
 //      })
 //    )
@@ -1757,7 +1763,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
 //        case VehicleServiceMessage(
 //              "test",
 //              _,
-//              VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, PlanetSideGUID(4), 27, 0)
+//              PlanetsideAttribute(PlanetSideGUID(4), 27, 0)
 //            ) =>
 //          true
 //        case _ => false
@@ -1768,7 +1774,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
 //        case VehicleServiceMessage(
 //              "test",
 //              _,
-//              VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, PlanetSideGUID(1), 68, 0)
+//              PlanetsideAttribute(PlanetSideGUID(1), 68, 0)
 //            ) =>
 //          true
 //        case _ => false

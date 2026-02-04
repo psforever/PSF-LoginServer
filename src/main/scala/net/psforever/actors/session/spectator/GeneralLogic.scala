@@ -17,6 +17,7 @@ import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitMembershipRequest, OutfitMembershipResponse, OutfitRequest, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.PlanetsideAttribute
 import net.psforever.types.{ExoSuitType, Vector3}
 
 import scala.concurrent.duration.DurationInt
@@ -106,8 +107,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleEmote(pkt: EmoteMsg): Unit = {
-    val EmoteMsg(avatarGuid, emote) = pkt
-    sendResponse(EmoteMsg(avatarGuid, emote))
+    sendResponse(pkt)
   }
 
   def handleDropItem(pkt: DropItemMessage): Unit = { /* intentionally blank */ }
@@ -231,7 +231,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         continent.AvatarEvents ! AvatarServiceMessage(
           continent.id,
           player.GUID,
-          AvatarAction.PlanetsideAttribute(19, 1)
+          PlanetsideAttribute(player.GUID, 19, 1)
         )
         definition match {
           case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
@@ -253,7 +253,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
         continent.AvatarEvents ! AvatarServiceMessage(
           continent.id,
           player.GUID,
-          AvatarAction.PlanetsideAttribute(19, 0)
+          PlanetsideAttribute(player.GUID, 19, 0)
         )
         definition match {
           case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>

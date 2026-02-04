@@ -13,6 +13,7 @@ import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.participation.MajorFacilityHackParticipation
 import net.psforever.packet.game.{ChatMsg, GenericAction, HackState7, PlanetsideAttributeEnum}
 import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.services.base.messages.PlanetsideAttribute
 import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
 import net.psforever.services.local.{FlagMessage, LocalAction, LocalServiceMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
@@ -231,9 +232,9 @@ class HackCaptureActor extends Actor {
     terminal.Zone.LocalEvents ! LocalServiceMessage(
       terminal.Zone.id,
       PlanetSideGUID(-1),
-      LocalAction.PlanetsideAttribute(
+      PlanetsideAttribute(
         terminal.GUID,
-        PlanetsideAttributeEnum.ControlConsoleHackUpdate,
+        PlanetsideAttributeEnum.ControlConsoleHackUpdate.id,
         attributeValue
       )
     )
@@ -307,7 +308,7 @@ class HackCaptureActor extends Actor {
     NotifyHackStateChange(terminal, isResecured = true)
     // todo: this appears to be the way to reset the base warning lights after the hack finishes but it doesn't seem to work.
     val zone = building.Zone
-    zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SendHackMessageHackCleared(building.GUID, 3212836864L, HackState7.Unk8))
+    zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.HackClear(building.GUID, 3212836864L, HackState7.Unk8))
   }
 
   private def RestartTimer(): Unit = {

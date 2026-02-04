@@ -9,8 +9,9 @@ import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vital.VehicleCargoMountActivity
 import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.types.{BailType, CargoStatus, PlanetSideGUID, Vector3}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
 import net.psforever.services.Service
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._
@@ -60,7 +61,7 @@ trait CarrierBehavior {
         //open the cargo bay door
         obj.Zone.AvatarEvents ! AvatarServiceMessage(
           obj.Zone.id,
-          AvatarAction.SendResponse(
+          SendResponse(
             CargoMountPointStatusMessage(
               obj.GUID,
               PlanetSideGUID(0),
@@ -205,14 +206,10 @@ object CarrierBehavior {
           log.debug(s"HandleCheckCargoMounting: mounting cargo vehicle in carrier at distance of $distance")
           CargoMountAction(carrier, cargo, hold, carrierGUID)
           cargo.Velocity = None
-          zone.VehicleEvents ! VehicleServiceMessage(
-            s"${cargo.Actor}",
-            VehicleAction.SendResponse(PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health))
-          )
-          zone.VehicleEvents ! VehicleServiceMessage(
-            s"${cargo.Actor}",
-            VehicleAction.SendResponse(PlanetsideAttributeMessage(cargoGUID, cargo.Definition.shieldUiAttribute, cargo.Shields))
-          )
+          zone.VehicleEvents ! VehicleServiceMessage(s"${cargo.Actor}", SendResponse(Seq(
+            PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health),
+            PlanetsideAttributeMessage(cargoGUID, cargo.Definition.shieldUiAttribute, cargo.Shields)
+          )))
           CargoMountBehaviorForAll(carrier, cargo, mountPoint)
           zone.actor ! ZoneActor.RemoveFromBlockMap(cargo)
           false
@@ -226,7 +223,7 @@ object CarrierBehavior {
           zone.VehicleEvents ! VehicleServiceMessage(
             zone.id,
             cargoDriverGUID,
-            VehicleAction.SendResponse(CargoMountPointStatusMessage(
+            SendResponse(CargoMountPointStatusMessage(
                 carrierGUID,
                 PlanetSideGUID(0),
                 PlanetSideGUID(0),
@@ -326,7 +323,7 @@ object CarrierBehavior {
           zone.VehicleEvents ! VehicleServiceMessage(
             zone.id,
             cargoDriverGUID,
-            VehicleAction.SendResponse(CargoMountPointStatusMessage(
+            SendResponse(CargoMountPointStatusMessage(
                 carrierGUID,
                 PlanetSideGUID(0),
                 PlanetSideGUID(0),
@@ -447,14 +444,10 @@ object CarrierBehavior {
         val zoneId     = zone.id
         val events     = zone.VehicleEvents
         val cargoActor = cargo.Actor
-        events ! VehicleServiceMessage(
-          s"$cargoActor",
-          VehicleAction.SendResponse(PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health))
-        )
-        events ! VehicleServiceMessage(
-          s"$cargoActor",
-          VehicleAction.SendResponse(PlanetsideAttributeMessage(cargoGUID, cargo.Definition.shieldUiAttribute, cargo.Shields))
-        )
+        events ! VehicleServiceMessage(s"$cargoActor", SendResponse(Seq(
+          PlanetsideAttributeMessage(cargoGUID, 0, cargo.Health),
+          PlanetsideAttributeMessage(cargoGUID, cargo.Definition.shieldUiAttribute, cargo.Shields)
+        )))
         zone.actor ! ZoneActor.AddToBlockMap(cargo, carrier.Position)
         if (carrier.isFlying) {
           //the carrier vehicle is flying; eject the cargo vehicle
@@ -463,9 +456,7 @@ object CarrierBehavior {
           val detachCargoMsg = ObjectDetachMessage(carrierGUID, cargoGUID, cargoHoldPosition - Vector3.z(1), rotation)
           val resetCargoMsg =
             CargoMountPointStatusMessage(carrierGUID, GUID0, GUID0, cargoGUID, mountPoint, CargoStatus.Empty, 0)
-          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(ejectCargoMsg))
-          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(detachCargoMsg))
-          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(resetCargoMsg))
+          events ! VehicleServiceMessage(zoneId, SendResponse(Seq(ejectCargoMsg, detachCargoMsg, resetCargoMsg)))
           log.debug(s"HandleVehicleCargoDismount: eject - $ejectCargoMsg, detach - $detachCargoMsg")
           if (driverOpt.isEmpty) {
             //TODO cargo should drop like a rock like normal; until then, deconstruct it
@@ -478,8 +469,7 @@ object CarrierBehavior {
             CargoMountPointStatusMessage(carrierGUID, GUID0, cargoGUID, GUID0, mountPoint, CargoStatus.InProgress, 0)
           val cargoDetachMessage =
             ObjectDetachMessage(carrierGUID, cargoGUID, cargoHoldPosition + Vector3.z(1f), rotation)
-          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(cargoStatusMessage))
-          events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(cargoDetachMessage))
+          events ! VehicleServiceMessage(zoneId, SendResponse(Seq(cargoStatusMessage, cargoDetachMessage)))
           driverOpt match {
             case Some(driver) =>
               events ! VehicleServiceMessage(
@@ -489,7 +479,7 @@ object CarrierBehavior {
             case None =>
               val resetCargoMsg =
                 CargoMountPointStatusMessage(carrierGUID, GUID0, GUID0, cargoGUID, mountPoint, CargoStatus.Empty, 0)
-              events ! VehicleServiceMessage(zoneId, VehicleAction.SendResponse(resetCargoMsg)) //lazy
+              events ! VehicleServiceMessage(zoneId, SendResponse(resetCargoMsg)) //lazy
               //TODO cargo should back out like normal; until then, deconstruct it
               cargoActor ! Vehicle.Deconstruct()
           }
@@ -605,8 +595,7 @@ object CarrierBehavior {
                                    attachMessage: ObjectAttachMessage,
                                    mountPointStatusMessage: CargoMountPointStatusMessage
                                  ): Unit = {
-    zone.VehicleEvents ! VehicleServiceMessage(zone.id, exclude, VehicleAction.SendResponse(attachMessage))
-    zone.VehicleEvents ! VehicleServiceMessage(zone.id, exclude, VehicleAction.SendResponse(mountPointStatusMessage))
+    zone.VehicleEvents ! VehicleServiceMessage(zone.id, exclude, SendResponse(Seq(attachMessage, mountPointStatusMessage)))
   }
 
   /**
@@ -626,14 +615,10 @@ object CarrierBehavior {
     val zone                                            = carrier.Zone
     val zoneId                                          = zone.id
     val msgs @ (attachMessage, mountPointStatusMessage) = CargoMountMessages(carrier, cargo, mountPoint)
-    zone.VehicleEvents ! VehicleServiceMessage(
-      zoneId,
-      VehicleAction.SendResponse(attachMessage)
-    )
-    zone.VehicleEvents ! VehicleServiceMessage(
-      zoneId,
-      VehicleAction.SendResponse(mountPointStatusMessage)
-    )
+    zone.VehicleEvents ! VehicleServiceMessage(zoneId, SendResponse(Seq(
+      attachMessage,
+      mountPointStatusMessage
+    )))
     msgs
   }
 

@@ -43,7 +43,7 @@ import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestAction, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitMembershipRequest, OutfitMembershipRequestAction, OutfitMembershipResponse, OutfitRequest, OutfitRequestAction, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.{AccountPersistenceService, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.messages.PlanetsideAttribute
 import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.types.{CapacitorStateType, ChatMessageType, Cosmetic, ExoSuitType, ImplantType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.util.Config
@@ -213,15 +213,8 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleEmote(pkt: EmoteMsg): Unit = {
-    val EmoteMsg(avatarGuid, emote) = pkt
-    val pZone = player.Zone
-    sendResponse(EmoteMsg(avatarGuid, emote))
-    pZone.blockMap.sector(player).livePlayerList.collect { case t if t.GUID != player.GUID =>
-      pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendResponse(EmoteMsg(avatarGuid, emote)))
-    }
-    pZone.AllPlayers.collect { case t if t.GUID != player.GUID && !t.allowInteraction =>
-      pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendResponse(EmoteMsg(avatarGuid, emote)))
-    }
+    sendResponse(pkt)
+    ops.handleEmote(pkt)
   }
 
   def handleDropItem(pkt: DropItemMessage): Unit = {
@@ -528,7 +521,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
           continent.AvatarEvents ! AvatarServiceMessage(
             continent.id,
             player.GUID,
-            AvatarAction.PlanetsideAttribute(19, 1)
+            PlanetsideAttribute(player.GUID, 19, 1)
           )
           definition match {
             case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
@@ -550,7 +543,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
           continent.AvatarEvents ! AvatarServiceMessage(
             continent.id,
             player.GUID,
-            AvatarAction.PlanetsideAttribute(19, 0)
+            PlanetsideAttribute(player.GUID, 19, 0)
           )
           definition match {
             case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>

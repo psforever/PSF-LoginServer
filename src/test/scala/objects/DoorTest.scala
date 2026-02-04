@@ -12,7 +12,7 @@ import net.psforever.objects.{Default, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
+import net.psforever.services.local.{DoorMessage, LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
@@ -77,7 +77,7 @@ class DoorControlOpenTest extends ActorTest {
       door.Actor ! CommonMessages.Use(player)
       val reply = probe.receiveOne(1000 milliseconds)
       assert(reply match {
-        case LocalServiceMessage("test", LocalAction.DoorOpens(PlanetSideGUID(0), _, d)) => d eq door
+        case DoorMessage("test", LocalAction.DoorOpens(_, thisDoor), _) => thisDoor eq door
         case _ => false
       })
       assert(door.Open.isDefined)
@@ -105,7 +105,7 @@ class DoorControlAlreadyOpenTest extends ActorTest {
       door.Actor.tell(CommonMessages.Use(player), probe.ref)
       val reply = probe.receiveOne(1000 milliseconds)
       assert(reply match {
-        case LocalServiceResponse("test", _, LocalAction.DoorOpens(guid)) => guid == door.GUID
+        case LocalServiceResponse("test", _, LocalAction.DoorOpens(_, thisDoor)) => thisDoor eq door
         case _ => false
       })
     }

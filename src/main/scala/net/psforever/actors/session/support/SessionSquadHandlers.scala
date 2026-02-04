@@ -2,6 +2,7 @@
 package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, typed}
+import net.psforever.services.base.messages.PlanetsideAttribute
 import net.psforever.services.teamwork.SquadServiceResponse
 
 import scala.collection.mutable
@@ -10,7 +11,7 @@ import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.teamwork.Squad
 import net.psforever.objects.{Default, Player}
 import net.psforever.packet.game._
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
 import net.psforever.services.teamwork.{SquadResponse, SquadServiceMessage, SquadAction => SquadServiceAction}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
@@ -108,7 +109,7 @@ class SessionSquadHandlers(
           continent.AvatarEvents ! AvatarServiceMessage(
             s"${player.Faction}",
             player.GUID,
-            AvatarAction.PlanetsideAttribute(31, squad_supplement_id)
+            PlanetsideAttribute(player.GUID, 31, squad_supplement_id)
           )
           sendResponse(PlanetsideAttributeMessage(player.GUID, 32, elem.index))
         case _ =>
@@ -287,7 +288,7 @@ class SessionSquadHandlers(
    * @param value value to associate the player
    */
   def GiveSquadColorsForOthers(guid: PlanetSideGUID, factionChannel: String, value: Long): Unit = {
-    continent.AvatarEvents ! AvatarServiceMessage(factionChannel, guid, AvatarAction.PlanetsideAttribute(31, value))
+    continent.AvatarEvents ! AvatarServiceMessage(factionChannel, guid, PlanetsideAttribute(guid, 31, value))
   }
 
   /**

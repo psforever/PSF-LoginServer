@@ -15,6 +15,7 @@ import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
 import net.psforever.packet.game._
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.{ObjectDelete, SendResponse}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types._
 
@@ -161,9 +162,7 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
         case AvatarServiceMessage(
           "TestCharacter1",
           _,
-          AvatarAction.SendResponse(
-            ObjectDeployedMessage(0, "jammer_mine", DeployOutcome.Success, 1, 20)
-          )
+          SendResponse(Seq(ObjectDeployedMessage(0, "jammer_mine", DeployOutcome.Success, 1, 20)))
         ) => ;
         case _ =>
           assert(false, "owned setup test, 2 - did not receive build confirmation")
@@ -199,14 +198,15 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
       }
       eventsMsgs(5) match {
         case AvatarServiceMessage(
-          "TestCharacter1", _,
-          AvatarAction.SendResponse(GenericObjectActionMessage(PlanetSideGUID(1), 21))
+          "TestCharacter1",
+          _,
+          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(1), 21)))
         ) => ;
         case _ =>
           assert(false, "owned setup test, 2 - build action not reset (GOAM21)")
       }
       eventsMsgs(6) match {
-        case AvatarServiceMessage("test", _, AvatarAction.ObjectDelete(PlanetSideGUID(2), 0)) => ;
+        case AvatarServiceMessage("test", _, ObjectDelete(PlanetSideGUID(2), 0)) => ;
         case _ =>
           assert(false, "owned setup test, 2 - construction tool not deleted")
       }

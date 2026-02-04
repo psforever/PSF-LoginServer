@@ -8,8 +8,9 @@ import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneAware}
+import net.psforever.services.base.messages.PlanetsideAttribute
 import net.psforever.types.Vector3
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleServiceMessage
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -244,7 +245,7 @@ trait JammableMountedWeapons extends JammableBehavior {
       case obj: PlanetSideServerObject with MountedWeapons with JammableUnit if !jammedSound =>
         obj.Zone.VehicleEvents ! VehicleServiceMessage(
           obj.Zone.id,
-          VehicleAction.PlanetsideAttribute(obj.GUID, 27, 1)
+          PlanetsideAttribute(obj.GUID, 27, 1)
         )
         super.StartJammeredSound(target, dur)
       case _ => ;
@@ -265,7 +266,7 @@ trait JammableMountedWeapons extends JammableBehavior {
       case obj: PlanetSideServerObject if jammedSound =>
         obj.Zone.VehicleEvents ! VehicleServiceMessage(
           obj.Zone.id,
-          VehicleAction.PlanetsideAttribute(obj.GUID, 27, 0)
+          PlanetsideAttribute(obj.GUID, 27, 0)
         )
       case _ => ;
     }
@@ -309,7 +310,7 @@ object JammableMountedWeapons {
     target.Jammed = statusCode == 1
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
-      VehicleAction.PlanetsideAttribute(target.GUID, 27, statusCode)
+      PlanetsideAttribute(target.GUID, 27, statusCode)
     )
   }
 }

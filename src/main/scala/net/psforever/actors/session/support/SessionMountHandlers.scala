@@ -8,6 +8,7 @@ import net.psforever.objects.{PlanetSideGameObject, Tool, Vehicle}
 import net.psforever.objects.vehicles.{CargoBehavior, MountableWeapons}
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.packet.game.{DismountVehicleCargoMsg, GenericObjectActionMessage, InventoryStateMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{BailType, PlanetSideGUID, Vector3}
 //
@@ -204,11 +205,11 @@ class SessionMountHandlers(
       sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
       continent.VehicleEvents ! VehicleServiceMessage(
         continent.id,
-        VehicleAction.SendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
+        SendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
       )
       continent.VehicleEvents ! VehicleServiceMessage(
         continent.id,
-        VehicleAction.SendResponse(ObjectDetachMessage(obj.GUID, tplayer.GUID, tplayer.Position, obj.Orientation))
+        SendResponse(ObjectDetachMessage(obj.GUID, tplayer.GUID, tplayer.Position, obj.Orientation))
       )
     }
     else {

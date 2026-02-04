@@ -11,7 +11,8 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.etc.TriggerUsedReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones.Zone
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.ObjectDelete
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideEmpire
 
@@ -108,7 +109,7 @@ class BoomerDeployableControl(mine: BoomerDeployable)
         }
         zone.AvatarEvents! AvatarServiceMessage(
           zone.id,
-          AvatarAction.ObjectDelete(guid)
+          ObjectDelete(guid)
         )
         TaskWorkflow.execute(GUIDTask.unregisterObject(zone.GUID, trigger))
       case None => ()

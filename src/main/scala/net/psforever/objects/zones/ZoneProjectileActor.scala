@@ -6,6 +6,7 @@ import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.guid.{GUIDTask, StraightforwardTask, TaskBundle, TaskWorkflow}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.ObjectDelete
 import net.psforever.types.PlanetSideGUID
 
 import scala.collection.mutable
@@ -190,12 +191,12 @@ class ZoneProjectileActor(
       zone.blockMap.removeFrom(projectile)
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.ObjectDelete(projectile_guid, 2)
+        ObjectDelete(projectile_guid, 2)
       )
     } else if (projectile.Definition.RemoteClientData == (0,0)) {
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        AvatarAction.ObjectDelete(projectile_guid, 2)
+        ObjectDelete(projectile_guid, 2)
       )
     } else {
       zone.AvatarEvents ! AvatarServiceMessage(

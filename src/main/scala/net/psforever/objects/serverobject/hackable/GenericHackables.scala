@@ -11,9 +11,10 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.{GenericObjectActionMessage, HackMessage, HackState, HackState1, HackState7, TriggeredSound}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.local.support.HackClearActor
-import net.psforever.services.local.{ClearMessage, HackEntityMessage, LocalAction, LocalServiceMessage}
+import net.psforever.services.local.{HackClearMessage, HackEntityMessage, LocalAction, LocalServiceMessage}
 
 import scala.annotation.unused
 import scala.util.{Failure, Success}
@@ -90,7 +91,7 @@ object GenericHackables {
     }
     target.Zone.AvatarEvents ! AvatarServiceMessage(
       hacker.Name,
-      AvatarAction.SendResponse(
+      SendResponse(
         HackMessage(progressType, target.GUID, hacker.GUID, progressGrade, 0L, progressState, HackState7.Unk8)
       )
     )
@@ -179,7 +180,7 @@ object GenericHackables {
           zone.LocalEvents ! HackEntityMessage(
             zoneId,
             pguid,
-            LocalAction.HackTemporarily(zone, target, hackValue, hackClearValue, duration),
+            LocalAction.HackObject(target.GUID, hackValue, HackState7.Unk8),
             HackClearActor.ObjectIsHacked(target, zone, hackClearValue, HackState7.Unk8, duration)
           )
         case Failure(_) =>
@@ -205,19 +206,19 @@ object GenericHackables {
             val currVirus = building.virusId
             building.virusId = 8
             building.virusInstalledBy = None
-            zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(target))
+            zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(target))
             zone.LocalEvents ! LocalServiceMessage(
               zone.id,
-              LocalAction.SendResponse(GenericObjectActionMessage(target.GUID, 60))
+              SendResponse(GenericObjectActionMessage(target.GUID, 60))
             )
             currVirus match {
               case 0L =>
                 building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach { iff =>
-                  zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(iff))
+                  zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(iff))
                 }
               case 4L =>
                 building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach { term =>
-                  zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(term))
+                  zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(term))
                 }
               case _ => ()
             }
@@ -231,13 +232,13 @@ object GenericHackables {
               case 0L =>
                 if (virus != 0) {
                   building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach { iff =>
-                    zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(iff))
+                    zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(iff))
                   }
                 }
               case 4L =>
                 if (virus != 4) {
                   building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach { term =>
-                    zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(term))
+                    zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(term))
                   }
                 }
               case _ => ()
@@ -268,16 +269,16 @@ object GenericHackables {
             zone.LocalEvents ! HackEntityMessage(
               zoneId,
               pguid,
-              LocalAction.HackTemporarily(zone, target, installedVirusDuration, hackClearValue, installedVirusDuration, unk2=hackState),
+              LocalAction.HackObject(target.GUID, installedVirusDuration.toLong, hackState),
               HackClearActor.ObjectIsHacked(target, zone, hackClearValue, hackState, installedVirusDuration)
             )
             zone.LocalEvents ! LocalServiceMessage(
               zone.id,
-              LocalAction.SendResponse(GenericObjectActionMessage(target.GUID, 61))
+              SendResponse(GenericObjectActionMessage(target.GUID, 61))
             )
             zone.LocalEvents ! LocalServiceMessage(
               zone.id,
-              LocalAction.SendResponse(GenericObjectActionMessage(target.GUID, 58))
+              SendResponse(GenericObjectActionMessage(target.GUID, 58))
             )
             //amenities if applicable
             virus match {
@@ -287,7 +288,7 @@ object GenericHackables {
                   zone.LocalEvents ! HackEntityMessage(
                     zoneId,
                     pguid,
-                    LocalAction.HackTemporarily(zone, iff, hackValue, hackClearValue, installedVirusDuration),
+                    LocalAction.HackObject(target.GUID, hackValue.toLong, HackState7.Unk8),
                     HackClearActor.ObjectIsHacked(target, zone, hackClearValue, HackState7.Unk8, installedVirusDuration)
                   )
                 }
@@ -297,7 +298,7 @@ object GenericHackables {
                   zone.LocalEvents ! HackEntityMessage(
                     zoneId,
                     pguid,
-                    LocalAction.HackTemporarily(zone, term, hackValue, hackClearValue, installedVirusDuration),
+                    LocalAction.HackObject(term.GUID, hackValue.toLong, HackState7.Unk8),
                     HackClearActor.ObjectIsHacked(target, zone, hackClearValue, HackState7.Unk8, installedVirusDuration)
                   )
                 }

@@ -49,6 +49,7 @@ import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingAc
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
 import net.psforever.persistence
+import net.psforever.services.base.messages.{SendResponse, PlanetsideAttribute}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.{
   CharacterSex,
@@ -587,7 +588,7 @@ object AvatarActor {
     session.zone.AvatarEvents ! AvatarServiceMessage(
       player.Faction.toString,
       player.GUID,
-      AvatarAction.PlanetsideAttribute(53, state)
+      PlanetsideAttribute(player.GUID, 53, state)
     )
   }
 
@@ -1386,7 +1387,7 @@ class AvatarActor(
           session.get.zone.AvatarEvents ! AvatarServiceMessage(
             avatar.faction.toString,
             session.get.player.GUID,
-            AvatarAction.PlanetsideAttribute(53, if (lfs) 1 else 0)
+            PlanetsideAttribute(session.get.player.GUID, 53, if (lfs) 1 else 0)
           )
           Behaviors.same
 
@@ -1797,7 +1798,7 @@ class AvatarActor(
           val zone   = player.Zone
           zone.AvatarEvents ! AvatarServiceMessage(
             zone.id,
-            AvatarAction.SendResponse(DisplayedAwardMessage(player.GUID, ribbon, bar))
+            SendResponse(DisplayedAwardMessage(player.GUID, ribbon, bar))
           )
           Behaviors.same
 
@@ -3163,7 +3164,7 @@ class AvatarActor(
     val player   = _session.player
     zone.AvatarEvents ! AvatarServiceMessage(
       player.Name,
-      AvatarAction.SendResponse(AvatarStatisticsMessage(DeathStatistic(ScoreCard.deathCount(avatar.scorecard))))
+      SendResponse(AvatarStatisticsMessage(DeathStatistic(ScoreCard.deathCount(avatar.scorecard))))
     )
   }
 
@@ -3650,7 +3651,7 @@ class AvatarActor(
       // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s
       session.get.zone.AvatarEvents ! AvatarServiceMessage(
         avatar.name,
-        AvatarAction.SendResponse(ActionProgressMessage(slot + 6, actionProgress))
+        SendResponse(ActionProgressMessage(slot + 6, actionProgress))
       )
       implant.copy(initialized = false, active = false, timer = futureDelay)
     } else {
@@ -3699,7 +3700,7 @@ class AvatarActor(
     //can not formally stop the initialization time on the character information window; set it to 100 to make it look blank
     session.get.zone.AvatarEvents ! AvatarServiceMessage(
       avatar.name,
-      AvatarAction.SendResponse(ActionProgressMessage(slot + 6, 100))
+      SendResponse(ActionProgressMessage(slot + 6, 100))
     )
     implant.copy(initialized = false, active = false, timer = 0L)
   }
@@ -3770,7 +3771,7 @@ class AvatarActor(
     session.get.zone.AvatarEvents ! AvatarServiceMessage(
       session.get.zone.id,
       session.get.player.GUID,
-      AvatarAction.PlanetsideAttribute(28, implant.definition.implantType.value * 2)
+      PlanetsideAttribute(session.get.player.GUID, 28, implant.definition.implantType.value * 2)
     )
     sendAvatarImplantMessageToSelf(session.get.player.GUID, ImplantAction.Activation, slot, value = 0)
     implant.copy(active = false)
@@ -3862,7 +3863,8 @@ class AvatarActor(
     zone.AvatarEvents ! AvatarServiceMessage(
       zone.id,
       sess.player.GUID,
-      AvatarAction.PlanetsideAttribute(
+      PlanetsideAttribute(
+        sess.player.GUID,
         28,
         implant.definition.implantType.value * 2 + 1
       )
@@ -3886,7 +3888,7 @@ class AvatarActor(
             val actionProgress = calculateImplantTimerStats(implant, AvatarActor.initializationTime(implant))._3
             session.get.zone.AvatarEvents ! AvatarServiceMessage(
               avatar.name,
-              AvatarAction.SendResponse(ActionProgressMessage(slot + 6, actionProgress))
+              SendResponse(ActionProgressMessage(slot + 6, actionProgress))
             )
             implantOpt
           case (None, _) =>

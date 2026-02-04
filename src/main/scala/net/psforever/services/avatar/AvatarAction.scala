@@ -13,42 +13,30 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{ImplantAction, ObjectCreateMessage}
 import net.psforever.packet.game.objectcreate.{ConstructorData, DroppedItemData, ObjectCreateMessageParent, PlacementData}
-import net.psforever.services.base.{EventMessage, EventResponse, SelfResponseMessage}
-import net.psforever.types.{ExoSuitType, ExperienceType, PlanetSideEmpire, PlanetSideGUID, TransactionType, Vector3}
+import net.psforever.services.base.messages.ObjectDelete
+import net.psforever.services.base.{EventMessage, EventResponse, SelfRespondingEvent}
+import net.psforever.types.{ExoSuitType, ExperienceType, PlanetSideGUID, TransactionType, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
 
 object AvatarAction {
-  final case class ArmorChanged(suit: ExoSuitType.Value, subtype: Int) extends SelfResponseMessage
+  final case class ArmorChanged(suit: ExoSuitType.Value, subtype: Int) extends SelfRespondingEvent
 
-  final case class AvatarImplant(action: ImplantAction.Value, implantSlot: Int, status: Int) extends SelfResponseMessage
+  final case class AvatarImplant(action: ImplantAction.Value, implantSlot: Int, status: Int) extends SelfRespondingEvent
 
-  final case class ChangeAmmo(
-                               weapon_guid: PlanetSideGUID,
-                               weapon_slot: Int,
-                               old_ammo_guid: PlanetSideGUID,
-                               ammo_id: Int,
-                               ammo_guid: PlanetSideGUID,
-                               ammo_data: ConstructorData
-                             ) extends SelfResponseMessage
+  final case class ChangeFireMode(item_guid: PlanetSideGUID, mode: Int) extends SelfRespondingEvent
 
-  final case class ChangeFireMode(item_guid: PlanetSideGUID, mode: Int) extends SelfResponseMessage
+  final case class ConcealPlayer(player_guid: PlanetSideGUID) extends SelfRespondingEvent
 
-  final case class ChangeFireState_Start(weapon_guid: PlanetSideGUID) extends SelfResponseMessage
+  final case class EnvironmentalDamage(player_guid: PlanetSideGUID, source_guid: PlanetSideGUID, amount: Int) extends SelfRespondingEvent
 
-  final case class ChangeFireState_Stop(weapon_guid: PlanetSideGUID) extends SelfResponseMessage
+  final case class DeactivateImplantSlot(player_guid: PlanetSideGUID, slot: Int) extends SelfRespondingEvent
 
-  final case class ConcealPlayer(player_guid: PlanetSideGUID) extends SelfResponseMessage
+  final case class ActivateImplantSlot(player_guid: PlanetSideGUID, slot: Int) extends SelfRespondingEvent
 
-  final case class EnvironmentalDamage(player_guid: PlanetSideGUID, source_guid: PlanetSideGUID, amount: Int) extends SelfResponseMessage
+  final case class Destroy(victim: PlanetSideGUID, killer: PlanetSideGUID, weapon: PlanetSideGUID, pos: Vector3) extends SelfRespondingEvent
 
-  final case class DeactivateImplantSlot(player_guid: PlanetSideGUID, slot: Int) extends SelfResponseMessage
-
-  final case class ActivateImplantSlot(player_guid: PlanetSideGUID, slot: Int) extends SelfResponseMessage
-
-  final case class Destroy(victim: PlanetSideGUID, killer: PlanetSideGUID, weapon: PlanetSideGUID, pos: Vector3) extends SelfResponseMessage
-
-  final case class DestroyDisplay(killer: SourceEntry, victim: SourceEntry, method: Int, unk: Int = 121) extends SelfResponseMessage
+  final case class DestroyDisplay(killer: SourceEntry, victim: SourceEntry, method: Int, unk: Int = 121) extends SelfRespondingEvent
 
   final case class DropCreatedItem(packet: ObjectCreateMessage) extends EventResponse
 
@@ -73,18 +61,10 @@ object AvatarAction {
       AvatarAction.EquipmentCreatedInHand(
         ObjectCreateMessage(definition.ObjectId, item.GUID, containerData, objectData)
       )
-
-      AvatarAction.DropCreatedItem(
-        ObjectCreateMessage(definition.ObjectId, item.GUID, containerData, objectData)
-      )
     }
   }
 
-  final case class GenericObjectAction(object_guid: PlanetSideGUID, action_code: Int) extends SelfResponseMessage
-
-  final case class HitHint(source_guid: PlanetSideGUID) extends SelfResponseMessage
-
-  final case class Killed(cause: DamageResult, mount_guid: Option[PlanetSideGUID]) extends SelfResponseMessage
+  final case class Killed(cause: DamageResult, mount_guid: Option[PlanetSideGUID]) extends SelfRespondingEvent
 
   final case class LoadCreatedPlayer(pkt: ObjectCreateMessage) extends EventResponse
 
@@ -117,19 +97,15 @@ object AvatarAction {
     }
   }
 
-  final case class ObjectDelete(item_guid: PlanetSideGUID, unk: Int = 0) extends SelfResponseMessage
+  final case class ObjectHeld(slot: Int, previousSLot: Int) extends SelfRespondingEvent
 
-  final case class ObjectHeld(slot: Int, previousSLot: Int) extends SelfResponseMessage
+  final case class OxygenState(player: OxygenStateTarget, vehicle: Option[OxygenStateTarget]) extends SelfRespondingEvent
 
-  final case class OxygenState(player: OxygenStateTarget, vehicle: Option[OxygenStateTarget]) extends SelfResponseMessage
+  final case class PlanetsideAttributeToAll(attribute_type: Int, attribute_value: Long) extends SelfRespondingEvent
 
-  final case class PlanetsideAttribute(attribute_type: Int, attribute_value: Long) extends SelfResponseMessage
+  final case class PlanetsideAttributeSelf(attribute_type: Int, attribute_value: Long) extends SelfRespondingEvent
 
-  final case class PlanetsideAttributeToAll(attribute_type: Int, attribute_value: Long) extends SelfResponseMessage
-
-  final case class PlanetsideAttributeSelf(attribute_type: Int, attribute_value: Long) extends SelfResponseMessage
-
-  final case class PlanetsideStringAttribute(attribute_type: Int, attribute_value: String) extends SelfResponseMessage
+  final case class PlanetsideStringAttribute(attribute_type: Int, attribute_value: String) extends SelfRespondingEvent
 
   final case class PlayerState(
                                 pos: Vector3,
@@ -144,7 +120,7 @@ object AvatarAction {
                                 is_cloaked: Boolean,
                                 spectator: Boolean,
                                 weaponInHand: Boolean
-                              ) extends SelfResponseMessage
+                              ) extends SelfRespondingEvent
 
   final case class PickupItem(item: Equipment, unk: Int = 0) extends EventMessage {
     def response(): EventResponse = {
@@ -152,9 +128,9 @@ object AvatarAction {
     }
   }
 
-  final case class ProjectileAutoLockAwareness(mode: Int) extends SelfResponseMessage
+  final case class ProjectileAutoLockAwareness(mode: Int) extends SelfRespondingEvent
 
-  final case class ProjectileExplodes(projectile_guid: PlanetSideGUID, projectile: Projectile) extends SelfResponseMessage
+  final case class ProjectileExplodes(projectile_guid: PlanetSideGUID, projectile: Projectile) extends SelfRespondingEvent
 
   final case class ProjectileState(
                                     projectile_guid: PlanetSideGUID,
@@ -164,9 +140,9 @@ object AvatarAction {
                                     sequence: Int,
                                     end: Boolean,
                                     hit_target: PlanetSideGUID
-                                  ) extends SelfResponseMessage
+                                  ) extends SelfRespondingEvent
 
-  final case class PutDownFDU(player_guid: PlanetSideGUID) extends SelfResponseMessage
+  final case class PutDownFDU(player_guid: PlanetSideGUID) extends SelfRespondingEvent
 
   final case class ReleasePlayer(player: Player) extends EventResponse
 
@@ -176,25 +152,15 @@ object AvatarAction {
     }
   }
 
-  final case class Reload(weapon_guid: PlanetSideGUID) extends SelfResponseMessage
-
-  final case class Revive(target_guid: PlanetSideGUID) extends SelfResponseMessage
-
-  final case class SetEmpire(object_guid: PlanetSideGUID, faction: PlanetSideEmpire.Value)
-    extends SelfResponseMessage
+  final case class Revive(target_guid: PlanetSideGUID) extends SelfRespondingEvent
 
   final case class StowEquipment(target_guid: PlanetSideGUID, slot: Int, item: Equipment)
-    extends SelfResponseMessage
+    extends SelfRespondingEvent
 
-  final case class WeaponDryFire(weapon_guid: PlanetSideGUID) extends SelfResponseMessage
-
-
-  final case class SendResponse(msg: PlanetSideGamePacket)         extends SelfResponseMessage
-
-  final case class SendResponseTargeted(target_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends SelfResponseMessage
+  final case class SendResponseTargeted(target_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends SelfRespondingEvent
 
   final case class TerminalOrderResult(terminal_guid: PlanetSideGUID, action: TransactionType.Value, result: Boolean)
-    extends SelfResponseMessage
+    extends SelfRespondingEvent
 
   final case class ChangeExosuit(
                                   target_guid: PlanetSideGUID,
@@ -209,7 +175,7 @@ object AvatarAction {
                                   inventory: List[InventoryItem],
                                   drop: List[InventoryItem],
                                   delete: List[(Equipment, PlanetSideGUID)]
-                                ) extends SelfResponseMessage
+                                ) extends SelfRespondingEvent
 
   final case class ChangeLoadout(
                                   target_guid: PlanetSideGUID,
@@ -223,27 +189,27 @@ object AvatarAction {
                                   old_inventory: List[(Equipment, PlanetSideGUID)],
                                   inventory: List[InventoryItem],
                                   drop: List[InventoryItem]
-                                ) extends SelfResponseMessage
+                                ) extends SelfRespondingEvent
 
-  final case class DropSpecialItem() extends SelfResponseMessage
+  final case class DropSpecialItem() extends SelfRespondingEvent
 
-  final case class UseKit(kit_guid: PlanetSideGUID, kit_objid: Int) extends SelfResponseMessage
+  final case class UseKit(kit_guid: PlanetSideGUID, kit_objid: Int) extends SelfRespondingEvent
 
-  final case class KitNotUsed(kit_guid: PlanetSideGUID, msg: String) extends SelfResponseMessage
+  final case class KitNotUsed(kit_guid: PlanetSideGUID, msg: String) extends SelfRespondingEvent
 
-  final case class UpdateKillsDeathsAssists(charId: Long, kda: KDAStat) extends SelfResponseMessage
+  final case class UpdateKillsDeathsAssists(charId: Long, kda: KDAStat) extends SelfRespondingEvent
 
-  final case class AwardBep(charId: Long, bep: Long, expType: ExperienceType) extends SelfResponseMessage
+  final case class AwardBep(charId: Long, bep: Long, expType: ExperienceType) extends SelfRespondingEvent
 
-  final case class AwardCep(charId: Long, bep: Long) extends SelfResponseMessage
+  final case class AwardCep(charId: Long, bep: Long) extends SelfRespondingEvent
 
-  final case class FacilityCaptureRewards(building_id: Int, zone_number: Int, exp: Long) extends SelfResponseMessage
+  final case class FacilityCaptureRewards(building_id: Int, zone_number: Int, exp: Long) extends SelfRespondingEvent
 
-  final case class ShareKillExperienceWithSquad(killer: Player, exp: Long) extends SelfResponseMessage
+  final case class ShareKillExperienceWithSquad(killer: Player, exp: Long) extends SelfRespondingEvent
 
-  final case class ShareAntExperienceWithSquad(owner: UniquePlayer, exp: Long, vehicle: Vehicle) extends SelfResponseMessage
+  final case class ShareAntExperienceWithSquad(owner: UniquePlayer, exp: Long, vehicle: Vehicle) extends SelfRespondingEvent
 
-  final case class RemoveFromOutfitChat(outfit_id: Long) extends SelfResponseMessage
+  final case class RemoveFromOutfitChat(outfit_id: Long) extends SelfRespondingEvent
 
-  final case class TeardownConnection() extends SelfResponseMessage
+  final case class TeardownConnection() extends SelfRespondingEvent
 }

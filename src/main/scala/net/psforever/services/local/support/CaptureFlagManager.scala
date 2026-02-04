@@ -15,6 +15,7 @@ import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
+import net.psforever.services.base.messages.{GenericObjectAction, SendResponse}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{CaptureMessage, LocalAction, LocalServiceMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
@@ -48,9 +49,9 @@ class CaptureFlagManager(zone: Zone) extends Actor {
       zone.LocalEvents ! LocalServiceMessage(
         zone.id,
         PlanetSideGUID(-1),
-        LocalAction.GenericObjectAction(
+        GenericObjectAction(
           capture_terminal.GUID,
-          GenericObjectActionEnum.FlagSpawned
+          GenericObjectActionEnum.FlagSpawned.id
         )
       )
       // Register LLU object create task and callback to create on clients
@@ -122,7 +123,7 @@ class CaptureFlagManager(zone: Zone) extends Actor {
       zone.LocalEvents ! LocalServiceMessage(
         zone.id,
         PlanetSideGUID(-1),
-        LocalAction.SendResponse(ObjectAttachMessage(player.GUID, flag.GUID, 252))
+        SendResponse(ObjectAttachMessage(player.GUID, flag.GUID, 252))
       )
       zone.LocalEvents ! LocalServiceMessage(
         zone.id,
@@ -147,7 +148,7 @@ class CaptureFlagManager(zone: Zone) extends Actor {
           zone.LocalEvents ! LocalServiceMessage(
             zone.id,
             PlanetSideGUID(-1),
-            LocalAction.SendResponse(ObjectDetachMessage(player.GUID, flag.GUID, player.Position, 0, 0, 0))
+            SendResponse(ObjectDetachMessage(player.GUID, flag.GUID, player.Position, 0, 0, 0))
           )
           // Send dropped chat message
           CaptureFlagManager.ChatBroadcast(

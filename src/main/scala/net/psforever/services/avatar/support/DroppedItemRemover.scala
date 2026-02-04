@@ -4,7 +4,8 @@ package net.psforever.services.avatar.support
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.services.RemoverActor
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.ObjectDelete
 
 import scala.concurrent.duration._
 
@@ -24,7 +25,7 @@ class DroppedItemRemover extends RemoverActor() {
     entry.zone.Ground ! Zone.Ground.RemoveItem(entry.obj.GUID)
     context.parent ! AvatarServiceMessage(
       entry.zone.id,
-      AvatarAction.ObjectDelete(entry.obj.GUID)
+      ObjectDelete(entry.obj.GUID)
     )
   }
 

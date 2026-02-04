@@ -9,6 +9,7 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{GenericObjectActionMessage, ObjectCreateMessage, ObjectDeleteMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
@@ -115,7 +116,7 @@ object TelepadLike {
      */
     events ! LocalServiceMessage(
       zoneId,
-      LocalAction.SendResponse(
+      SendResponse(
         ObjectCreateMessage(
           udef.ObjectId,
           utilityGUID,
@@ -124,28 +125,20 @@ object TelepadLike {
         )
       )
     )
-    events ! LocalServiceMessage(
-      zoneId,
-      LocalAction.SendResponse(GenericObjectActionMessage(utilityGUID, 27))
-    )
-    events ! LocalServiceMessage(
-      zoneId,
-      LocalAction.SendResponse(GenericObjectActionMessage(utilityGUID, 30))
-    )
+    events ! LocalServiceMessage(zoneId, SendResponse(Seq(
+      GenericObjectActionMessage(utilityGUID, 27),
+      GenericObjectActionMessage(utilityGUID, 30)
+    )))
     LinkTelepad(zone, utilityGUID)
   }
 
   def LinkTelepad(zone: Zone, telepadGUID: PlanetSideGUID): Unit = {
     val events = zone.LocalEvents
     val zoneId = zone.id
-    events ! LocalServiceMessage(
-      zoneId,
-      LocalAction.SendResponse(GenericObjectActionMessage(telepadGUID, 27))
-    )
-    events ! LocalServiceMessage(
-      zoneId,
-      LocalAction.SendResponse(GenericObjectActionMessage(telepadGUID, 28))
-    )
+    events ! LocalServiceMessage(zoneId, SendResponse(Seq(
+      GenericObjectActionMessage(telepadGUID, 27),
+      GenericObjectActionMessage(telepadGUID, 28)
+    )))
   }
 
   def InitializeTelepadDeployable(zone: Zone, internal: InternalTelepad, pad: TelepadDeployable): Unit = {
@@ -175,7 +168,7 @@ class TelepadControl(obj: InternalTelepad) extends akka.actor.Actor {
           oldTpad.Actor ! TelepadLike.SeverLink(obj)
       }
       obj.Telepad = None
-      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SendResponse(ObjectDeleteMessage(obj.GUID, 0)))
+      zone.LocalEvents ! LocalServiceMessage(zone.id, SendResponse(ObjectDeleteMessage(obj.GUID, 0)))
 
     case TelepadLike.RequestLink(tpad: TelepadDeployable) =>
       val zone = obj.Zone
@@ -204,7 +197,7 @@ class TelepadControl(obj: InternalTelepad) extends akka.actor.Actor {
       if (obj.Telepad.contains(tpad.GUID)) {
         obj.Telepad = None
         val zone = obj.Zone
-        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SendResponse(ObjectDeleteMessage(obj.GUID, 0)))
+        zone.LocalEvents ! LocalServiceMessage(zone.id, SendResponse(ObjectDeleteMessage(obj.GUID, 0)))
       }
 
     case _ => ()

@@ -2,11 +2,12 @@ package net.psforever.objects.zones
 
 import enumeratum.values.{StringEnum, StringEnumEntry}
 import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
-import net.psforever.objects.serverobject.environment.{Pool, _}
+import net.psforever.objects.serverobject.environment._
 import net.psforever.packet.game.{ChatMsg, OffshoreVehicleMessage}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 sealed abstract class MapInfo(
@@ -700,7 +701,7 @@ object MapEnvironment {
         case v: Vehicle =>
           v.Zone.VehicleEvents ! VehicleServiceMessage(
             v.Actor.toString(),
-            VehicleAction.SendResponse(OffshoreVehicleMessage(v.Seats(0).occupant.get.GUID, v.GUID, msg))
+            SendResponse(OffshoreVehicleMessage(v.Seats(0).occupant.get.GUID, v.GUID, msg))
           )
         case _ => ;
       }

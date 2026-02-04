@@ -14,6 +14,7 @@ import net.psforever.packet.game.{ChatMsg, FrameVehicleStateMessage, GenericObje
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.{GenericObjectAction, SendResponse, SetEmpire}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
@@ -254,7 +255,7 @@ object Vehicles {
     val previousOwnerName = target.OwnerName.getOrElse("")
     vehicleEvents ! VehicleServiceMessage(
       zoneid,
-      VehicleAction.SendResponse(HackMessage(HackState1.Unk2, tGuid, hGuid, 100, 0f, HackState.Hacked, HackState7.Unk8))
+      SendResponse(HackMessage(HackState1.Unk2, tGuid, hGuid, 100, 0f, HackState.Hacked, HackState7.Unk8))
     )
     target.Actor ! CommonMessages.Hack(hacker, target)
     // Forcefully dismount any cargo
@@ -280,15 +281,15 @@ object Vehicles {
         zone.LocalEvents ! LocalServiceMessage(
           zoneid,
           PlanetSideGUID(-1),
-          LocalAction.GenericObjectAction(target.GUID, GenericObjectActionEnum.BFRShieldsDown)
+          GenericObjectAction(target.GUID, GenericObjectActionEnum.BFRShieldsDown.id)
         )
         zone.LocalEvents ! LocalServiceMessage(
           zoneid,
-          LocalAction.SendResponse(
+          SendResponse(
             FrameVehicleStateMessage(target.GUID, 0, target.Position, target.Orientation, Some(Vector3(0f, 0f, 0f)), unk2=false, 0, 0, is_crouched=true, is_airborne=false, ascending_flight=false, 10, 0, 0)))
         zone.LocalEvents ! LocalServiceMessage(
           zoneid,
-          LocalAction.SendResponse(
+          SendResponse(
             VehicleStateMessage(target.GUID, 0, target.Position, target.Orientation, Some(Vector3(0f, 0f, 0f)), None, 0, 0, 15, is_decelerating=false, is_cloaked=false)))
       }
     })
@@ -316,7 +317,7 @@ object Vehicles {
       // And broadcast the faction change to other clients
       zone.AvatarEvents ! AvatarServiceMessage(
         zoneid,
-        AvatarAction.SetEmpire(tGuid, hFaction)
+        SetEmpire(tGuid, hFaction)
       )
     }
     localEvents ! LocalServiceMessage(
@@ -327,12 +328,12 @@ object Vehicles {
     if (zone.Players.exists(_.name.equals(previousOwnerName))) {
       localEvents ! LocalServiceMessage(
         previousOwnerName,
-        LocalAction.SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackStolen"))
+        SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackStolen"))
       )
     }
     localEvents ! LocalServiceMessage(
       hacker.Name,
-      LocalAction.SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackVehicleOwned"))
+      SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackVehicleOwned"))
     )
     // Clean up after specific vehicles, e.g. remove router telepads
     // If AMS is deployed, swap it to the new faction
@@ -350,7 +351,7 @@ object Vehicles {
     }
     vehicleEvents ! VehicleServiceMessage(
       zoneid,
-      VehicleAction.SendResponse(HackMessage(HackState1.Unk2, tGuid, tGuid, 0, 1L, HackState.HackCleared, HackState7.Unk8))
+      SendResponse(HackMessage(HackState1.Unk2, tGuid, tGuid, 0, 1L, HackState.HackCleared, HackState7.Unk8))
     )
     target.Actor ! CommonMessages.ClearHack()
   }

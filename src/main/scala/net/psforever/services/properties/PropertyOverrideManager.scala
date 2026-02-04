@@ -4,7 +4,6 @@ import akka.actor.Actor
 import net.psforever.packet.game.{GamePropertyTarget, PropertyOverrideMessage}
 import net.psforever.packet.game.PropertyOverrideMessage.GamePropertyScope
 import net.psforever.packet.game.objectcreate.ObjectClass
-import net.psforever.services.base.{EventMessage, EventResponse}
 import net.psforever.zones.Zones
 
 import scala.collection.mutable.ListBuffer
@@ -14,11 +13,10 @@ class PropertyOverrideManager extends Actor {
 
   private var overrides: Map[Int, Map[String, List[(String, String)]]]            = Map()
   private var gamePropertyScopes: List[PropertyOverrideMessage.GamePropertyScope] = List()
-  lazy private val zoneIds: Iterable[Int]                                         = Zones.zones.map(_.Number)
 
   override def preStart(): Unit = {
     LoadOverridesFromFile(zoneId = 0) // Global overrides
-    for (zoneId <- zoneIds) {
+    for (zoneId <- Zones.zones.map(_.Number)) {
       LoadOverridesFromFile(zoneId)
     }
     ProcessGamePropertyScopes()
@@ -28,7 +26,7 @@ class PropertyOverrideManager extends Actor {
     case PropertyOverrideManager.GetOverridesMessage =>
       sender() ! gamePropertyScopes
 
-    case _ => ;
+    case _ => ()
   }
 
   private def LoadOverridesFromFile(zoneId: Int): Unit = {
@@ -39,11 +37,11 @@ class PropertyOverrideManager extends Actor {
     }
     if (zoneOverrides == null) {
       log.debug(s"PropertyOverride: no overrides found for zone $zoneId using filename game_objects$zoneId.adb.lst")
-      return
+    } else {
+      val grouped = zoneOverrides.groupBy(_._1).view.mapValues(_.map(x => (x._2, x._3)).toList).toMap
+      log.debug(s"PropertyOverride: loaded property overrides for zone $zoneId: ${grouped.toString}")
+      overrides += (zoneId -> grouped)
     }
-    val grouped = zoneOverrides.groupBy(_._1).view.mapValues(_.map(x => (x._2, x._3)).toList).toMap
-    log.debug(s"PropertyOverride: loaded property overrides for zone $zoneId: ${grouped.toString}")
-    overrides += (zoneId -> grouped)
   }
 
   private def ProcessGamePropertyScopes(): Unit = {
@@ -63,33 +61,29 @@ class PropertyOverrideManager extends Actor {
     gamePropertyScopes = scopesBuffer.toList
   }
 
-  def LoadFile(path: String): ListBuffer[(String, String, String)] = {
+  def LoadFile(path: String): List[(String, String, String)] = {
     val stream = getClass.getClassLoader.getResourceAsStream(path)
     if (stream == null) {
-      return null
-    }
-    val content                                    = scala.io.Source.fromInputStream(stream).getLines().filter(x => x.startsWith("add_property"))
-    val data: ListBuffer[(String, String, String)] = ListBuffer()
-    for (line <- content) {
-      val splitLine = line.split(" ")
-      if (splitLine.length >= 3) {
-        val objectName = splitLine(1)
-        val property   = splitLine(2)
-        var propertyValue = ""
-        for (i <- 3 until splitLine.length) {
-          propertyValue += splitLine(i) + " "
+      List.empty[(String, String, String)]
+    } else {
+      val content = scala.io.Source.fromInputStream(stream).getLines()
+      val data = content
+        .filter(_.startsWith("add_property"))
+        .map { line => (line, line.split("\\s+")) }
+        .filter(_._2.length > 2) //n >= 3
+        .map { case (line, tokens) =>
+          val objectName = tokens(1)
+          val property = tokens(2)
+          val propertyValue = line.drop(objectName.length + property.length + 15) //"add_property" (12) + spaces (3)
+          (objectName, property, propertyValue)
         }
-        propertyValue = propertyValue.trim
-        data += ((objectName, property, propertyValue))
-      }
+        .toList
+      stream.close()
+      data
     }
-    stream.close()
-    data
   }
 }
 
 object PropertyOverrideManager {
-  final case object GetOverridesMessage extends EventMessage {
-    def response(): EventResponse = null
-  }
+  final case object GetOverridesMessage
 }

@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ChangeAmmoMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ReloadMessage, ServerVehicleOverrideMsg, VehicleStateMessage, WeaponDryFireMessage}
 import net.psforever.services.base.EventResponse
+import net.psforever.services.base.messages.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, GenericObjectAction, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, WeaponDryFire}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceResponse}
 import net.psforever.types.{BailType, PlanetSideGUID, Vector3}
 
@@ -83,16 +84,16 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         if isNotSameTarget =>
         sendResponse(FrameVehicleStateMessage(vguid, u1, pos, oient, vel, u2, u3, u4, is_crouched, u6, u7, u8, u9, uA))
 
-      case VehicleAction.ChangeFireState_Start(weaponGuid) if isNotSameTarget =>
+      case ChangeFireState_Start(weaponGuid) if isNotSameTarget =>
         sendResponse(ChangeFireStateMessage_Start(weaponGuid))
 
-      case VehicleAction.ChangeFireState_Stop(weaponGuid) if isNotSameTarget =>
+      case ChangeFireState_Stop(weaponGuid) if isNotSameTarget =>
         sendResponse(ChangeFireStateMessage_Stop(weaponGuid))
 
-      case VehicleAction.Reload(itemGuid) if isNotSameTarget =>
+      case ReloadTool(itemGuid) if isNotSameTarget =>
         sendResponse(ReloadMessage(itemGuid, ammo_clip=1, unk1=0))
 
-      case VehicleAction.ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data) if isNotSameTarget =>
+      case ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data) if isNotSameTarget =>
         sendResponse(ObjectDetachMessage(weapon_guid, previous_guid, Vector3.Zero, 0))
         //TODO? sendResponse(ObjectDeleteMessage(previousAmmoGuid, 0))
         sendResponse(
@@ -105,7 +106,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         )
         sendResponse(ChangeAmmoMessage(weapon_guid, 1))
 
-      case VehicleAction.WeaponDryFire(weaponGuid) if isNotSameTarget =>
+      case WeaponDryFire(weaponGuid) if isNotSameTarget =>
         continent.GUID(weaponGuid).collect {
           case tool: Tool if tool.Magazine == 0 =>
             // check that the magazine is still empty before sending WeaponDryFireMessage
@@ -122,13 +123,13 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       case VehicleAction.DeployRequest(objectGuid, state, unk1, unk2, pos) if isNotSameTarget =>
         sendResponse(DeployRequestMessage(guid, objectGuid, state, unk1, unk2, pos))
 
-      case VehicleAction.SendResponse(msg) =>
-        sendResponse(msg)
+      case SendResponse(msgs) =>
+        msgs.foreach(sendResponse)
 
       case VehicleAction.EquipmentCreatedInSlot(pkt) if isNotSameTarget =>
         sendResponse(pkt)
 
-      case VehicleAction.GenericObjectAction(objectGuid, action) if isNotSameTarget =>
+      case GenericObjectAction(objectGuid, action) if isNotSameTarget =>
         sendResponse(GenericObjectActionMessage(objectGuid, action))
 
       case VehicleAction.InventoryState(obj, parentGuid, start, conData) if isNotSameTarget =>
@@ -165,10 +166,10 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         sendResponse(ObjectCreateMessage(vtype, vguid, vdata))
         Vehicles.ReloadAccessPermissions(vehicle, player.Name)
 
-      case VehicleAction.ObjectDelete(itemGuid) if isNotSameTarget =>
+      case ObjectDelete(itemGuid, _) if isNotSameTarget =>
         sendResponse(ObjectDeleteMessage(itemGuid, unk1=0))
 
-      case VehicleAction.PlanetsideAttribute(vehicleGuid, attributeType, attributeValue) if isNotSameTarget =>
+      case PlanetsideAttribute(vehicleGuid, attributeType, attributeValue) if isNotSameTarget =>
         sendResponse(PlanetsideAttributeMessage(vehicleGuid, attributeType, attributeValue))
 
       case VehicleAction.SeatPermissions(vehicleGuid, seatGroup, permission) if isNotSameTarget =>

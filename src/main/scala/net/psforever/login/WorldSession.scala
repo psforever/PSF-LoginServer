@@ -16,6 +16,7 @@ import net.psforever.objects.vital.TerminalUsedActivity
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{ExoSuitType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.ObjectDelete
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -279,7 +280,7 @@ object WorldSession {
     * @throws `RuntimeException` if slot is not a player visible slot (holsters)
     * @see `ask`
     * @see `AvatarAction.ObjectDelete`
-    * @see `AvatarAction.SendResponse`
+    * @see `SendResponse`
     * @see `Containable.CanNotPutItemInSlot`
     * @see `Containable.PutItemInSlotOnly`
     * @see `GUIDTask.registerEquipment`
@@ -366,7 +367,7 @@ object WorldSession {
         localZone.GUID(item_guid) match {
           case Some(_) => ()
           case None => //acting on old data?
-            localZone.AvatarEvents ! AvatarServiceMessage(localZone.id, AvatarAction.ObjectDelete(item_guid))
+            localZone.AvatarEvents ! AvatarServiceMessage(localZone.id, ObjectDelete(item_guid))
         }
       case _ => ()
     }
@@ -590,7 +591,7 @@ object WorldSession {
           localGUID match {
             case Some(guid) =>
               //see LockerContainerControl.RemoveItemFromSlotCallback
-              localSource.Zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(guid))
+              localSource.Zone.AvatarEvents ! AvatarServiceMessage(localChannel, ObjectDelete(guid))
             case None => ()
           }
           val moveResult = ask(localDestination.Actor, Containable.PutItemInSlotOrAway(localItem, Some(localDestSlot)))
@@ -692,7 +693,7 @@ object WorldSession {
           localGUID match {
             case Some(guid) =>
               //see LockerContainerControl.RemoveItemFromSlotCallback
-              localSource.Zone.AvatarEvents ! AvatarServiceMessage(localChannel, AvatarAction.ObjectDelete(guid))
+              localSource.Zone.AvatarEvents ! AvatarServiceMessage(localChannel, ObjectDelete(guid))
             case None => ()
           }
           val moveResult = ask(localDestination.Actor, Containable.PutItemInSlotOrAway(localItem, Some(localDestSlot)))

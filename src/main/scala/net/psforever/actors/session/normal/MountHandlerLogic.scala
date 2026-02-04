@@ -16,7 +16,8 @@ import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.vehicles.AccessPermissionGroup
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.packet.game.{ChatMsg, DelayedPathMountMsg, DismountVehicleCargoMsg, DismountVehicleMsg, GenericObjectActionMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectDetachMessage, PlanetsideAttributeMessage, PlayerStasisMessage, PlayerStateShiftMessage, ShiftState}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.messages.{SendResponse, SetEmpire}
+import net.psforever.services.local.LocalServiceMessage
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{BailType, ChatMessageType, DriveState, PlanetSideGUID, Vector3}
 
@@ -190,7 +191,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         if obj.Definition == GlobalDefinitions.vanu_sentry_turret =>
         log.info(s"${player.Name} mounts the ${obj.Definition.Name}")
         sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_mount")
-        obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.id, LocalAction.SetEmpire(obj.GUID, player.Faction))
+        obj.Zone.LocalEvents ! LocalServiceMessage(obj.Zone.id, SetEmpire(obj.GUID, player.Faction))
         sendResponse(PlanetsideAttributeMessage(obj.GUID, attribute_type=0, obj.Health))
         ops.updateWeaponAtSeatPosition(obj, seatNumber)
         ops.MountingAction(tplayer, obj, seatNumber)
@@ -235,7 +236,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         sendResponse(DelayedPathMountMsg(pguid, sguid, u1=60, u2=true))
         continent.LocalEvents ! LocalServiceMessage(
           continent.id,
-          LocalAction.SendResponse(ObjectDetachMessage(sguid, pguid, pos, roll=0, pitch=0, zang))
+          SendResponse(ObjectDetachMessage(sguid, pguid, pos, roll=0, pitch=0, zang))
         )
         sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
 
@@ -248,22 +249,18 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         ops.DismountAction(tplayer, obj, seatNum)
         continent.actor ! ZoneActor.RemoveFromBlockMap(player) //character doesn't need it
         //DismountAction(...) uses vehicle service, so use that service to coordinate the remainder of the messages
-        events ! VehicleServiceMessage(
-          player.Name,
-          VehicleAction.SendResponse(PlayerStasisMessage(pguid)) //the stasis message
-        )
         //when the player dismounts, they will be positioned where the shuttle was when it disappeared in the sky
         //the player will fall to the ground and is perfectly vulnerable in this state
         //additionally, our player must exist in the current zone
         //having no in-game avatar target will throw us out of the map screen when deploying and cause softlock
-        events ! VehicleServiceMessage(
-          player.Name,
-          VehicleAction.SendResponse(PlayerStateShiftMessage(ShiftState(unk=0, obj.Position, obj.Orientation.z, vel=None)))
-        )
+        events ! VehicleServiceMessage(player.Name, SendResponse(Seq(
+          PlayerStasisMessage(pguid),
+          PlayerStateShiftMessage(ShiftState(unk=0, obj.Position, obj.Orientation.z, vel=None))
+        )))
         events ! VehicleServiceMessage(
           continent.id,
           pguid,
-          VehicleAction.SendResponse(GenericObjectActionMessage(pguid, code=9)) //conceal the player
+          SendResponse(GenericObjectActionMessage(pguid, code=9)) //conceal the player
         )
         sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
 

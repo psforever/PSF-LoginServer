@@ -10,6 +10,7 @@ import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable, TelepadDeployable, Tool, TurretDeployable}
 import net.psforever.packet.game.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, HackState1, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, SetEmpireMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
 import net.psforever.services.base.EventResponse
+import net.psforever.services.base.messages.{GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse, SetEmpire}
 import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.local.LocalAction
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, SpawnGroup}
@@ -138,16 +139,16 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
         obj.Destroyed = true
         ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
 
-      case LocalAction.SendHackMessageHackCleared(targetGuid, unk1, unk2) =>
+      case LocalAction.HackClear(targetGuid, unk1, unk2) =>
         sendResponse(HackMessage(HackState1.Unk0, targetGuid, guid, progress=0, unk1.toFloat, HackState.HackCleared, unk2))
 
       case LocalAction.HackObject(targetGuid, unk1, unk2) =>
         sessionLogic.general.hackObject(targetGuid, unk1, unk2)
 
-      case LocalAction.PlanetsideAttribute(targetGuid, attributeType, attributeValue) =>
+      case PlanetsideAttribute(targetGuid, attributeType, attributeValue) =>
         sessionLogic.general.sendPlanetsideAttributeMessage(targetGuid, attributeType, attributeValue)
 
-      case LocalAction.GenericObjectAction(targetGuid, actionNumber) =>
+      case GenericObjectAction(targetGuid, actionNumber) =>
         sendResponse(GenericObjectActionMessage(targetGuid, actionNumber))
 
       case LocalAction.GenericActionMessage(actionNumber) =>
@@ -174,7 +175,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
           player.Carrying = None
         }
 
-      case LocalAction.ObjectDelete(objectGuid, unk) if isNotSameTarget =>
+      case ObjectDelete(objectGuid, unk) if isNotSameTarget =>
         sendResponse(ObjectDeleteMessage(objectGuid, unk))
 
       case LocalAction.ProximityTerminalEffect(object_guid, true) =>
@@ -190,21 +191,19 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       case LocalAction.RouterTelepadTransport(passengerGuid, srcGuid, destGuid) =>
         sessionLogic.general.useRouterTelepadEffect(passengerGuid, srcGuid, destGuid)
 
-      case LocalAction.SendResponse(msg) =>
-        msg match {
-          case m: GenericObjectActionMessage =>
+      case SendResponse(msgs) =>
+        msgs.foreach {
+          case msg @ (m: GenericObjectActionMessage)
+            if (m.code == 58 || m.code == 60 || m.code == 61) && !sessionLogic.zoning.spawn.startEnqueueSquadMessages =>
             // delay building virus alert if player is dead/respawning
-            if ((m.code == 58 || m.code == 60 || m.code == 61) && !sessionLogic.zoning.spawn.startEnqueueSquadMessages) {
-              sessionLogic.zoning.spawn.enqueueNewActivity(ActivityQueuedTask(
-                SpawnOperations.delaySendGenericObjectActionMessage(msg), 1))
-            } else {
-              sendResponse(msg)
-            }
-          case _ =>
+            sessionLogic.zoning.spawn.enqueueNewActivity(ActivityQueuedTask(
+              SpawnOperations.delaySendGenericObjectActionMessage(msg), 1)
+            )
+          case msg =>
             sendResponse(msg)
         }
 
-      case LocalAction.SetEmpire(objectGuid, empire) =>
+      case SetEmpire(objectGuid, empire) =>
         sendResponse(SetEmpireMessage(objectGuid, empire))
 
       case LocalAction.ShuttleEvent(ev) =>

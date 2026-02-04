@@ -10,6 +10,7 @@ import net.psforever.objects.zones.exp
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage, AvatarServiceResponse}
 import net.psforever.services.base.EventResponse
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.chat.OutfitChannel
 
 import scala.collection.mutable
@@ -215,9 +216,7 @@ class SessionAvatarHandlers(
     context.self ! AvatarServiceResponse(
       playerName,
       Service.defaultPlayerGUID,
-      AvatarAction.SendResponse(
-        ObjectDetachMessage(obj.GUID, playerGuid, player.Position, Vector3.Zero)
-      )
+      SendResponse(ObjectDetachMessage(obj.GUID, playerGuid, player.Position, Vector3.Zero))
     )
     //player no longer seated
     obj.PassengerInSeat(player).foreach { seatNumber =>

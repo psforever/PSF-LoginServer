@@ -10,7 +10,8 @@ import net.psforever.objects.vital.RepairFromArmorSiphon
 import net.psforever.objects.vital.etc.{ArmorSiphonModifiers, ArmorSiphonReason}
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.packet.game.QuantityUpdateMessage
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.types.PlanetSideGUID
 
 import scala.collection.mutable
@@ -79,7 +80,7 @@ object ArmorSiphonBehavior {
               val zone = obj.Zone
               zone.VehicleEvents ! VehicleServiceMessage(
                 zone.id,
-                VehicleAction.PlanetsideAttribute(obj.GUID, 0, after)
+                PlanetsideAttribute(obj.GUID, 0, after)
               )
             }
           case _ => ;
@@ -98,7 +99,7 @@ object ArmorSiphonBehavior {
             //update current charge level
             zone.VehicleEvents ! VehicleServiceMessage(
               obj.Actor.toString,
-              VehicleAction.SendResponse(QuantityUpdateMessage(siphon.AmmoSlot.Box.GUID, siphon.Magazine))
+              SendResponse(QuantityUpdateMessage(siphon.AmmoSlot.Box.GUID, siphon.Magazine))
             )
             siphonRecharge.put(guid, context.system.scheduler.scheduleWithFixedDelay(
               initialDelay = 3000 milliseconds,
@@ -120,7 +121,7 @@ object ArmorSiphonBehavior {
             if (after > before) {
               zone.VehicleEvents ! VehicleServiceMessage(
                 obj.Actor.toString,
-                VehicleAction.SendResponse(QuantityUpdateMessage(siphon.AmmoSlot.Box.GUID, after))
+                SendResponse(QuantityUpdateMessage(siphon.AmmoSlot.Box.GUID, after))
               )
               if (after == siphon.MaxMagazine) {
                 endSiphonRecharge(guid)

@@ -15,6 +15,7 @@ import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game._
+import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
 
@@ -281,51 +282,58 @@ class TelepadDeployableResponseFromRouterTest extends FreedContextActorTest {
       eventsMsgs(2) match {
         case LocalServiceMessage(
           "test",
-          LocalAction.SendResponse(
+          _,
+          SendResponse(Seq(
             ObjectCreateMessage(_, 744, PlanetSideGUID(3), Some(ObjectCreateMessageParent(PlanetSideGUID(2), 2)), _)
-          )
+          ))
         ) => ;
         case _ => assert(false, "link to router test - did not create the internal router telepad (1)")
       }
       eventsMsgs(3) match {
         case LocalServiceMessage(
           "test",
-          LocalAction.SendResponse(GenericObjectActionMessage(PlanetSideGUID(3), 27))
+          _,
+          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(3), 27)))
         ) => ;
         case _ => assert(false, "link to router test - did not create the internal router telepad (2)")
       }
       eventsMsgs(4) match {
         case LocalServiceMessage(
           "test",
-          LocalAction.SendResponse(GenericObjectActionMessage(PlanetSideGUID(3), 30))
+          _,
+          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(3), 30)))
         ) => ;
         case _ => assert(false, "link to router test - did not create the internal router telepad (3)")
       }
       eventsMsgs(5) match {
         case LocalServiceMessage(
           "test",
-          LocalAction.SendResponse(GenericObjectActionMessage(PlanetSideGUID(3), 27))
+          _,
+          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(3), 27)))
         ) => ;
         case _ => assert(false, "link to router test - did not link the internal telepad (1)")
       }
       eventsMsgs(6) match {
         case LocalServiceMessage(
           "test",
-          LocalAction.SendResponse(GenericObjectActionMessage(PlanetSideGUID(3), 28))
+          _,
+          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(3), 28)))
         ) => ;
         case _ => assert(false, "link to router test - did not link the internal telepad (2)")
       }
       eventsMsgs(7) match {
         case LocalServiceMessage(
           "test",
-          LocalAction.SendResponse(GenericObjectActionMessage(PlanetSideGUID(1), 27))
+          _,
+          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(1), 27)))
         ) => ;
         case _ => assert(false, "link to router test - did not link the telepad (1)")
       }
       eventsMsgs(8) match {
         case LocalServiceMessage(
           "test",
-          LocalAction.SendResponse(GenericObjectActionMessage(PlanetSideGUID(1), 28))
+          _,
+          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(1), 28)))
         ) => ;
         case _ => assert(false, "link to router test - did not link the telepad (2)")
       }

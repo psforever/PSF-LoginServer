@@ -6,6 +6,7 @@ import net.psforever.objects.avatar.interaction.WithEntrance
 import net.psforever.objects.serverobject.doors.InteriorDoorPassage
 import net.psforever.objects.serverobject.environment.PieceOfEnvironment
 import net.psforever.objects.zones.interaction.InteractsWithZone
+import net.psforever.services.base.messages.SendResponse
 
 class WithEntranceInVehicle
   extends WithEntrance() {
@@ -39,11 +40,11 @@ class WithEntranceInVehicle
 
   private def warnAboutProximity(obj: InteractsWithZone, msg: String): Unit = {
     import net.psforever.packet.game.ChatMsg
-    import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+    import net.psforever.services.avatar.AvatarServiceMessage
     import net.psforever.types.ChatMessageType
     obj.Zone.AvatarEvents ! AvatarServiceMessage(
       obj.Actor.toString(),
-      AvatarAction.SendResponse(ChatMsg(ChatMessageType.UNK_227, msg))
+      SendResponse(ChatMsg(ChatMessageType.UNK_227, msg))
     )
   }
 }

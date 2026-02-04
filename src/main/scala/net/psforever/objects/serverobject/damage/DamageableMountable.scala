@@ -8,6 +8,7 @@ import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.{HintsAtAttacker, SendResponse}
 
 /**
   * Functions to assist other damage-dealing code for objects that contain users.
@@ -17,8 +18,8 @@ object DamageableMountable {
   /**
     * A damaged target alerts its occupants (as it is a `Mountable` object) of the source of the damage.
     *
-    * @see `AvatarAction.HitHint`
-    * @see `AvatarAction.SendResponse`
+    * @see `HitHint`
+    * @see `SendResponse`
     * @see `AvatarServiceMessage`
     * @see `DamageWithPositionMessage`
     * @see `Mountable.Seats`
@@ -45,17 +46,17 @@ object DamageableMountable {
         val name = pSource.Name
         (zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
           case Some(player) =>
-            AvatarAction.HitHint(player.GUID)
+            HintsAtAttacker(player.GUID)
           case None =>
-            AvatarAction.SendResponse(DamageWithPositionMessage(countableDamage, pSource.Position))
+            SendResponse(DamageWithPositionMessage(countableDamage, pSource.Position))
         }) match {
-          case AvatarAction.HitHint(guid) =>
-            occupants.map { tplayer => (tplayer.Name, guid, AvatarAction.HitHint(tplayer.GUID)) }
+          case msg @ HintsAtAttacker(guid) =>
+            occupants.map { tplayer => (tplayer.Name, guid, msg) }
           case msg =>
             occupants.map { tplayer => (tplayer.Name, Service.defaultPlayerGUID, msg) }
         }
       case Some(source) => //object damage
-        val msg = AvatarAction.SendResponse(DamageWithPositionMessage(countableDamage, source.Position))
+        val msg = SendResponse(DamageWithPositionMessage(countableDamage, source.Position))
         occupants.map { tplayer => (tplayer.Name, Service.defaultPlayerGUID, msg) }
       case None =>
         List.empty

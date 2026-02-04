@@ -13,7 +13,7 @@ import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityCo
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.HackState1
 import net.psforever.services.local.support.HackClearActor
-import net.psforever.services.local.ClearMessage
+import net.psforever.services.local.HackClearMessage
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Terminal`.
@@ -100,7 +100,7 @@ class TerminalControl(term: Terminal)
     tryAutoRepair()
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone
-      zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(term))
+      zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(term))
     }
     super.DestructionAwareness(target, cause)
   }
@@ -122,7 +122,7 @@ class TerminalControl(term: Terminal)
     //clear hack state
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone
-      zone.LocalEvents ! ClearMessage(HackClearActor.ObjectIsResecured(term))
+      zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(term))
     }
   }
 

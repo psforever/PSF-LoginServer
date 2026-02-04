@@ -18,7 +18,8 @@ import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.objects.{Default, PlanetSideGameObject, Player}
 import net.psforever.packet.game.{ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ObjectDetectedMessage}
 import net.psforever.services.Service
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.local.LocalServiceMessage
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -891,7 +892,7 @@ object AutomatedTurretBehavior {
   def startTracking(zone: Zone, channel: String, turretGuid: PlanetSideGUID, list: List[PlanetSideGUID]): Unit = {
     zone.LocalEvents ! LocalServiceMessage(
       channel,
-      LocalAction.SendResponse(ObjectDetectedMessage(turretGuid, turretGuid, 0, list))
+      SendResponse(ObjectDetectedMessage(turretGuid, turretGuid, 0, list))
     )
   }
 
@@ -904,7 +905,7 @@ object AutomatedTurretBehavior {
   def stopTracking(zone: Zone, channel: String, turretGuid: PlanetSideGUID): Unit = {
     zone.LocalEvents ! LocalServiceMessage(
       channel,
-      LocalAction.SendResponse(ObjectDetectedMessage(turretGuid, turretGuid, 0, noTargets))
+      SendResponse(ObjectDetectedMessage(turretGuid, turretGuid, 0, noTargets))
     )
   }
 
@@ -917,7 +918,7 @@ object AutomatedTurretBehavior {
   def startShooting(zone: Zone, channel: String, weaponGuid: PlanetSideGUID): Unit = {
     zone.LocalEvents ! LocalServiceMessage(
       channel,
-      LocalAction.SendResponse(ChangeFireStateMessage_Start(weaponGuid))
+      SendResponse(ChangeFireStateMessage_Start(weaponGuid))
     )
   }
 
@@ -930,7 +931,7 @@ object AutomatedTurretBehavior {
   def stopShooting(zone: Zone, channel: String, weaponGuid: PlanetSideGUID): Unit = {
     zone.LocalEvents ! LocalServiceMessage(
       channel,
-      LocalAction.SendResponse(ChangeFireStateMessage_Stop(weaponGuid))
+      SendResponse(ChangeFireStateMessage_Stop(weaponGuid))
     )
   }
 

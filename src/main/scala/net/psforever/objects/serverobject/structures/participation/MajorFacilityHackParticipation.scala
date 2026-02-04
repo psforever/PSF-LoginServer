@@ -15,7 +15,8 @@ import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.local.LocalServiceMessage
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -438,7 +439,7 @@ object MajorFacilityHackParticipation {
                                               msg: ChatMsg
                                             ): Unit = {
     val events = building.Zone.LocalEvents
-    val message = LocalAction.SendResponse(msg)
+    val message = SendResponse(msg)
     targets.foreach { player =>
       events ! LocalServiceMessage(player.Name, message)
     }

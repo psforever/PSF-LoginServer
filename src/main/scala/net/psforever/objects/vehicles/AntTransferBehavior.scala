@@ -10,9 +10,10 @@ import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
 import net.psforever.objects.{NtuContainer, _}
 import net.psforever.types.DriveState
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleServiceMessage
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.serverobject.transfer.TransferContainer.TransferMaterial
+import net.psforever.services.base.messages.PlanetsideAttribute
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -34,7 +35,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
     val zone = obj.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
-      VehicleAction.PlanetsideAttribute(vehicle.GUID, 52, 1L)
+      PlanetsideAttribute(vehicle.GUID, 52, 1L)
     ) // panel glow on
   }
 
@@ -44,7 +45,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
     val zone = obj.Zone
     zone.VehicleEvents ! VehicleServiceMessage(
       zone.id,
-      VehicleAction.PlanetsideAttribute(vehicle.GUID, 49, 1L)
+      PlanetsideAttribute(vehicle.GUID, 49, 1L)
     ) // orb particle effect on
   }
 
@@ -53,7 +54,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
       val display = vehicle.NtuCapacitorScaled.toLong
       vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
         vehicle.Actor.toString,
-        VehicleAction.PlanetsideAttribute(vehicle.GUID, 45, display)
+        PlanetsideAttribute(vehicle.GUID, 45, display)
       )
     }
   }
@@ -159,16 +160,16 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
         if (transferEvent == TransferBehavior.Event.Charging) {
           events ! VehicleServiceMessage(
             zoneId,
-            VehicleAction.PlanetsideAttribute(vguid, 52, 0L)
+            PlanetsideAttribute(vguid, 52, 0L)
           ) // panel glow off
           events ! VehicleServiceMessage(
             zoneId,
-            VehicleAction.PlanetsideAttribute(vguid, 49, 0L)
+            PlanetsideAttribute(vguid, 49, 0L)
           ) // orb particle effect off
         } else if (transferEvent == TransferBehavior.Event.Discharging) {
           events ! VehicleServiceMessage(
             zoneId,
-            VehicleAction.PlanetsideAttribute(vguid, 52, 0L)
+            PlanetsideAttribute(vguid, 52, 0L)
           ) // panel glow off
         }
       }

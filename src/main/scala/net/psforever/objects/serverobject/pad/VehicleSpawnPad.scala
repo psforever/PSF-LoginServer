@@ -5,7 +5,7 @@ import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.services.base.SelfResponseMessage
+import net.psforever.services.base.SelfRespondingEvent
 import net.psforever.types.PlanetSideGUID
 
 /**
@@ -39,14 +39,14 @@ object VehicleSpawnPad {
     * @see `GenericObjectActionMessage`
     * @param player_guid the player
     */
-  final case class ConcealPlayer(player_guid: PlanetSideGUID) extends SelfResponseMessage
+  final case class ConcealPlayer(player_guid: PlanetSideGUID) extends SelfRespondingEvent
 
   /**
     * Message is intended to undo the effects of the above message, `ConcealPlayer`.
     * @see `ConcealPlayer`
     * @param player_guid the player
     */
-  final case class RevealPlayer(player_guid: PlanetSideGUID) extends SelfResponseMessage
+  final case class RevealPlayer(player_guid: PlanetSideGUID) extends SelfRespondingEvent
 
   /**
     * Message to attach the vehicle to the spawn pad's lifting platform ("put on rails").
@@ -55,7 +55,7 @@ object VehicleSpawnPad {
     * @param vehicle the vehicle being spawned
     * @param pad the spawn pad
     */
-  final case class AttachToRails(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfResponseMessage
+  final case class AttachToRails(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfRespondingEvent
 
   /**
     * Message to detach the vehicle from the spawn pad's lifting platform ("put on rails").
@@ -63,14 +63,14 @@ object VehicleSpawnPad {
     * @param vehicle the vehicle being spawned
     * @param pad the spawn pad
     */
-  final case class DetachFromRails(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfResponseMessage
+  final case class DetachFromRails(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfRespondingEvent
 
   /**
     * Message that resets the spawn pad for its next order fulfillment operation by lowering the lifting platform.
     * @see `GenericObjectActionMessage`
     * @param pad the spawn pad
     */
-  final case class ResetSpawnPad(pad: VehicleSpawnPad) extends SelfResponseMessage
+  final case class ResetSpawnPad(pad: VehicleSpawnPad) extends SelfRespondingEvent
 
   /**
     * Message that acts as callback to the driver that the process of sitting in the driver mount will be initiated soon.
@@ -78,7 +78,7 @@ object VehicleSpawnPad {
     * @param vehicle the vehicle being spawned
     * @param pad the spawn pad
     */
-  final case class StartPlayerSeatedInVehicle(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfResponseMessage
+  final case class StartPlayerSeatedInVehicle(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfRespondingEvent
 
   /**
     * Message that acts as callback to the driver that the process of sitting in the driver mount should be finished.
@@ -87,7 +87,7 @@ object VehicleSpawnPad {
     * @param pad the spawn pad
     */
   //TODO while using fake rails (later edit: what does this mean?)
-  final case class PlayerSeatedInVehicle(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfResponseMessage
+  final case class PlayerSeatedInVehicle(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfRespondingEvent
 
   /**
     * Message that starts the newly-spawned vehicle to begin driving away from the spawn pad.
@@ -97,7 +97,7 @@ object VehicleSpawnPad {
     * @param vehicle the vehicle
     * @param pad the spawn pad
     */
-  final case class ServerVehicleOverrideStart(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfResponseMessage
+  final case class ServerVehicleOverrideStart(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfRespondingEvent
 
   /**
     * Message that transitions the newly-spawned vehicle into a cancellable auto-drive state.
@@ -107,20 +107,20 @@ object VehicleSpawnPad {
     * @param vehicle the vehicle
     * @param pad the spawn pad
     */
-  final case class ServerVehicleOverrideEnd(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfResponseMessage
+  final case class ServerVehicleOverrideEnd(vehicle: Vehicle, pad: VehicleSpawnPad) extends SelfRespondingEvent
 
   /**
     * Message to initiate the process of properly disposing of the vehicle that may have been or was spawned into the game world.
     * @param vehicle the vehicle
     */
-  final case class DisposeVehicle(vehicle: Vehicle) extends SelfResponseMessage
+  final case class DisposeVehicle(vehicle: Vehicle) extends SelfRespondingEvent
 
   /**
     * Message to send targeted messages to the clients of specific users.
     * @param reason the nature of the message
     * @param data optional information for rendering the message to the client
     */
-  final case class PeriodicReminder(reason: Reminders.Value, data: Option[Any] = None) extends SelfResponseMessage
+  final case class PeriodicReminder(reason: Reminders.Value, data: Option[Any] = None) extends SelfRespondingEvent
 
   /**
     * An `Enumeration` of reasons for sending a periodic reminder to the user.

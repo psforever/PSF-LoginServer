@@ -8,8 +8,10 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.support.SupportActor
+import net.psforever.services.local.{DoorMessage, LocalAction}
 import net.psforever.services.hart.{HartTimer, HartTimerActions}
 import net.psforever.services.{Service, ServiceManager}
 import net.psforever.types.ChatMessageType
@@ -48,8 +50,13 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
       managedDoors.foreach { door =>
         door.Actor ! Door.UpdateMechanism(OrbitalShuttlePadControl.lockedWaitingForShuttle)
         val zone = pad.Zone
-        if(door.isOpen) {
-          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.DoorSlamsShut(door))
+        if (door.isOpen) {
+          door.Open = None
+          zone.LocalEvents ! DoorMessage(
+            zone.id,
+            LocalAction.DoorCloses(door.GUID),
+            SupportActor.ClearSpecific(List(door), zone)
+          )
         }
       }
 
@@ -175,7 +182,7 @@ object OrbitalShuttlePadControl {
     * Logic for door mechanism that keeps select doors shut when the shuttle is not ready for boarding.
     * A message flashes onscreen to explain this reason.
     * The message will not flash if the door has no expectation of ever opening for a user.
-    * @see `AvatarAction.SendResponse`
+    * @see `SendResponse`
     * @see `AvatarServiceMessage`
     * @see `ChatMessageType`
     * @see `ChatMsg`
@@ -192,12 +199,12 @@ object OrbitalShuttlePadControl {
       case p: Player if p.Faction == door.Faction =>
         zone.AvatarEvents ! AvatarServiceMessage(
           p.Name,
-          AvatarAction.SendResponse(
+          SendResponse(
             ChatMsg(ChatMessageType.UNK_225, wideContents=false, "", "@DoorWillOpenWhenShuttleReturns", None)
           )
         )
         p.Name
-      case _ => ;
+      case _ => ()
     }
     false
   }

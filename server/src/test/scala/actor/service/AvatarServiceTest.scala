@@ -16,6 +16,7 @@ import net.psforever.packet.game.{ObjectCreateMessage, PlayerStateMessageUpstrea
 import net.psforever.types._
 import net.psforever.services.{RemoverActor, Service, ServiceManager}
 import net.psforever.services.avatar._
+import net.psforever.services.base.messages.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ObjectDelete, PlanetsideAttribute, WeaponDryFire}
 
 class AvatarService1Test extends ActorTest {
   "AvatarService" should {
@@ -198,14 +199,14 @@ class ObjectDeleteTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.ObjectDelete(PlanetSideGUID(11)))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), ObjectDelete(PlanetSideGUID(11)))
       expectMsg(
-        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.ObjectDelete(PlanetSideGUID(11), 0))
+        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), ObjectDelete(PlanetSideGUID(11), 0))
       )
 
-      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.ObjectDelete(PlanetSideGUID(11), 55))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), ObjectDelete(PlanetSideGUID(11), 55))
       expectMsg(
-        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.ObjectDelete(PlanetSideGUID(11), 55))
+        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), ObjectDelete(PlanetSideGUID(11), 55))
       )
     }
   }
@@ -243,8 +244,8 @@ class PlanetsideAttributeTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.PlanetsideAttribute(5, 1200L))
-      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.PlanetsideAttribute(5, 1200L)))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), PlanetsideAttribute(PlanetSideGUID(10), 5, 1200L))
+      expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), PlanetsideAttribute(PlanetSideGUID(10), 5, 1200L)))
     }
   }
 }
@@ -324,7 +325,7 @@ class PickupItemTest extends ActorTest {
     val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
     service ! Service.Join("test")
     service ! PickupItemMessage("test", AvatarAction.PickupItem(tool), Zone.Nowhere)
-    expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.ObjectDelete(tool.GUID, 0)))
+    expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), ObjectDelete(tool.GUID, 0)))
   }
 }
 
@@ -352,7 +353,7 @@ class ChangeAmmoTest extends ActorTest {
       service ! AvatarServiceMessage(
         "test",
         PlanetSideGUID(10),
-        AvatarAction.ChangeAmmo(
+        ChangeAmmo(
           PlanetSideGUID(40),
           0,
           PlanetSideGUID(40),
@@ -365,7 +366,7 @@ class ChangeAmmoTest extends ActorTest {
         AvatarServiceResponse(
           "/test/Avatar",
           PlanetSideGUID(10),
-          AvatarAction.ChangeAmmo(
+          ChangeAmmo(
             PlanetSideGUID(40),
             0,
             PlanetSideGUID(40),
@@ -402,12 +403,12 @@ class ChangeFireStateStartTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.ChangeFireState_Start(PlanetSideGUID(40)))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), ChangeFireState_Start(PlanetSideGUID(40)))
       expectMsg(
         AvatarServiceResponse(
           "/test/Avatar",
           PlanetSideGUID(10),
-          AvatarAction.ChangeFireState_Start(PlanetSideGUID(40))
+          ChangeFireState_Start(PlanetSideGUID(40))
         )
       )
     }
@@ -420,12 +421,12 @@ class ChangeFireStateStopTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.ChangeFireState_Stop(PlanetSideGUID(40)))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), ChangeFireState_Stop(PlanetSideGUID(40)))
       expectMsg(
         AvatarServiceResponse(
           "/test/Avatar",
           PlanetSideGUID(10),
-          AvatarAction.ChangeFireState_Stop(PlanetSideGUID(40))
+          ChangeFireState_Stop(PlanetSideGUID(40))
         )
       )
     }
@@ -438,9 +439,9 @@ class WeaponDryFireTest extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService], Zone.Nowhere), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! AvatarServiceMessage("test", PlanetSideGUID(10), AvatarAction.WeaponDryFire(PlanetSideGUID(40)))
+      service ! AvatarServiceMessage("test", PlanetSideGUID(10), WeaponDryFire(PlanetSideGUID(40)))
       expectMsg(
-        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.WeaponDryFire(PlanetSideGUID(40)))
+        AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), WeaponDryFire(PlanetSideGUID(40)))
       )
     }
   }

@@ -10,6 +10,7 @@ import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Terminal
 import net.psforever.objects.vehicles.control.VehicleControl
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game._
+import net.psforever.services.base.messages.{SendResponse, SetEmpire}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.{Service, ServiceManager}
 import net.psforever.services.local._
@@ -98,7 +99,7 @@ class DeployItemTest extends ActorTest {
     "pass DeployItem" in {
       service ! Service.Join("test")
       service ! LocalServiceMessage("test", LocalAction.DeployItem(obj))
-      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(0), LocalAction.SendResponse(pkt)))
+      expectMsg(LocalServiceResponse("/test/Local", PlanetSideGUID(0), SendResponse(Seq(pkt))))
     }
   }
 }
@@ -158,9 +159,9 @@ class HackClearTest extends ActorTest {
     "pass HackClear" in {
       val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
-      service ! LocalServiceMessage("test", PlanetSideGUID(10), LocalAction.HackClear(obj, 0L, HackState7.Unk8))
+      service ! LocalServiceMessage("test", PlanetSideGUID(10), LocalAction.HackClear(obj.GUID, 0L, HackState7.Unk8))
       expectMsg(
-        LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalAction.SendHackMessageHackCleared(PlanetSideGUID(40), 0L, HackState7.Unk8))
+        LocalServiceResponse("/test/Local", PlanetSideGUID(10), LocalAction.HackClear(PlanetSideGUID(40), 0L, HackState7.Unk8))
       )
     }
   }
@@ -243,12 +244,12 @@ class SetEmpireTest extends ActorTest {
     "pass SetEmpire" in {
       val service = system.actorOf(Props(classOf[LocalService], Zone.Nowhere), "l_service")
       service ! Service.Join("test")
-      service ! LocalServiceMessage("test", LocalAction.SetEmpire(PlanetSideGUID(10), PlanetSideEmpire.TR))
+      service ! LocalServiceMessage("test", SetEmpire(PlanetSideGUID(10), PlanetSideEmpire.TR))
       expectMsg(
         LocalServiceResponse(
           "/test/Local",
           PlanetSideGUID(0),
-          LocalAction.SetEmpire(PlanetSideGUID(10), PlanetSideEmpire.TR)
+          SetEmpire(PlanetSideGUID(10), PlanetSideEmpire.TR)
         )
       )
     }

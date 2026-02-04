@@ -13,7 +13,8 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggerEffectMessage
 import net.psforever.types.{PlanetSideGeneratorState, Vector3}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.SendResponse
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -112,7 +113,7 @@ class GeneratorControl(gen: Generator)
           //kaboom
           zone.AvatarEvents ! AvatarServiceMessage(
             zone.id,
-            AvatarAction.SendResponse(TriggerEffectMessage(gen.GUID, "explosion_generator", None, None))
+            SendResponse(TriggerEffectMessage(gen.GUID, "explosion_generator", None, None))
           )
           queuedExplosion.cancel()
           queuedExplosion = Default.Cancellable

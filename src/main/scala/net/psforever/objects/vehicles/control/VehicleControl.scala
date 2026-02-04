@@ -36,8 +36,8 @@ import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
-import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.annotation.unused
@@ -204,8 +204,7 @@ class VehicleControl(vehicle: Vehicle)
 
       case Vehicle.UpdateSubsystemStates(toChannel, stateToResolve) =>
         val events = vehicle.Zone.VehicleEvents
-        val guid0 = Service.defaultPlayerGUID
-        (stateToResolve match {
+        val pkts = (stateToResolve match {
           case Some(state) =>
             vehicle.Subsystems().filter { _.Enabled == state } //only subsystems that are enabled or are disabled
           case None =>
@@ -213,7 +212,7 @@ class VehicleControl(vehicle: Vehicle)
         })
           .flatMap { _.getMessage(vehicle) }
           .foreach { pkt =>
-            events ! VehicleServiceMessage(toChannel, VehicleAction.SendResponse(pkt))
+            events ! VehicleServiceMessage(toChannel, SendResponse(pkt))
           }
 
       case FactionAffinity.ConvertFactionAffinity(faction) =>
@@ -523,7 +522,7 @@ class VehicleControl(vehicle: Vehicle)
           case Some(slot) =>
             obj.Zone.AvatarEvents ! AvatarServiceMessage(
               self.toString,
-              AvatarAction.SendResponse(ObjectAttachMessage(obj.GUID, item.GUID, slot))
+              SendResponse(ObjectAttachMessage(obj.GUID, item.GUID, slot))
             )
           case None =>  ()
         }
@@ -550,7 +549,7 @@ class VehicleControl(vehicle: Vehicle)
     events ! VehicleServiceMessage(
       //TODO when a new weapon, the equipment slot ui goes blank, but the weapon functions; remount vehicle to correct it
       if (obj.VisibleSlots.contains(slot)) zone.id else channel,
-      VehicleAction.SendResponse(OCM.detailed(item, ObjectCreateMessageParent(oguid, slot)))
+      SendResponse(OCM.detailed(item, ObjectCreateMessageParent(oguid, slot)))
     )
     item match {
       case box: AmmoBox =>
@@ -575,7 +574,7 @@ class VehicleControl(vehicle: Vehicle)
     val toChannel = if (obj.VisibleSlots.contains(fromSlot)) zone.id else self.toString
     zone.VehicleEvents ! VehicleServiceMessage(
       toChannel,
-      VehicleAction.ObjectDelete(item.GUID)
+      ObjectDelete(item.GUID)
     )
   }
 
@@ -638,7 +637,7 @@ class VehicleControl(vehicle: Vehicle)
       vehicle.Shields = vehicle.Shields + amount
       vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
         s"${vehicle.Actor}",
-        VehicleAction.PlanetsideAttribute(vehicle.GUID, vehicle.Definition.shieldUiAttribute, vehicle.Shields)
+        PlanetsideAttribute(vehicle.GUID, vehicle.Definition.shieldUiAttribute, vehicle.Shields)
       )
     }
   }
@@ -754,15 +753,10 @@ class VehicleControl(vehicle: Vehicle)
 
   def vehicleSubsystemMessages(messages: List[PlanetSideGamePacket]): Unit = {
     val zone = vehicle.Zone
-    val zoneid = zone.id
-    val events = zone.VehicleEvents
-    val guid0 = Service.defaultPlayerGUID
-    messages.foreach { pkt =>
-      events ! VehicleServiceMessage(
-        zoneid,
-        VehicleAction.SendResponse(pkt)
-      )
-    }
+    zone.VehicleEvents ! VehicleServiceMessage(
+      zone.id,
+      SendResponse(messages)
+    )
   }
 
   override protected def canChangeVulnerability(state: Damageable.PersonalVulnerability): Boolean = {

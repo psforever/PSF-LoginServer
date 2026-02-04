@@ -4,7 +4,7 @@ package net.psforever.actors.zone.building
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import net.psforever.actors.commands.NtuCommand
-import net.psforever.actors.zone.{BuildingActor, ZoneActor}
+import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.types.PlanetSideEmpire

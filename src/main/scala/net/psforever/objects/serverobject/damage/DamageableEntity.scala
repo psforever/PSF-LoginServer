@@ -141,7 +141,7 @@ object DamageableEntity {
     * - alert the activity monitor for that `Zone` about the damage; and,
     * - provide a feedback message regarding the damage.
     * @see `AvatarAction.PlanetsideAttributeToAll`
-    * @see `AvatarAction.SendResponse`
+    * @see `SendResponse`
     * @see `AvatarServiceMessage`
     * @see `DamageFeedbackMessage`
     * @see `JammableUnit.Jammered`
