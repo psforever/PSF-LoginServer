@@ -9,6 +9,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.PlanetsideAttribute
 
 /**
   * The "control" `Actor` mixin for damage-handling code,
@@ -140,7 +141,7 @@ object DamageableEntity {
     * - reports its adjusted its health;
     * - alert the activity monitor for that `Zone` about the damage; and,
     * - provide a feedback message regarding the damage.
-    * @see `AvatarAction.PlanetsideAttributeToAll`
+    * @see `PlanetsideAttribute`
     * @see `SendResponse`
     * @see `AvatarServiceMessage`
     * @see `DamageFeedbackMessage`
@@ -167,8 +168,7 @@ object DamageableEntity {
       val zone = target.Zone
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        target.GUID,
-        AvatarAction.PlanetsideAttributeToAll(0, target.Health)
+        PlanetsideAttribute(target.GUID, 0, target.Health)
       )
       true
     }
@@ -200,7 +200,7 @@ object DamageableEntity {
     val zoneId = zone.id
     val tguid  = target.GUID
     val attribution = attributionTo(cause, target.Zone)
-    zone.AvatarEvents ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(0, target.Health))
+    zone.AvatarEvents ! AvatarServiceMessage(zoneId, PlanetsideAttribute(tguid, 0, target.Health))
     if (target.isInstanceOf[SpawnTube]) {}//do nothing to prevent issue #1057
     else {
       zone.AvatarEvents ! AvatarServiceMessage(

@@ -19,9 +19,10 @@ import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
 import net.psforever.types._
 import org.specs2.mutable.Specification
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.SendResponse
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.MessageEnvelope
+import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.vehicle.VehicleAction
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -260,7 +261,7 @@ class FacilityTurretControlRestorationTest extends ActorTest {
       val msg4     = vehicleProbe.receiveOne(500 milliseconds)
       assert(
         msg12345.head match {
-          case AvatarServiceMessage(
+          case MessageEnvelope(
                 "TestCharacter1",
                 _,
                 SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(8), _, PlanetSideGUID(7), _)))
@@ -271,25 +272,25 @@ class FacilityTurretControlRestorationTest extends ActorTest {
       )
       assert(
         msg12345(1) match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
+          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
           case _                                                                                            => false
         }
       )
       assert(
         msg12345(2) match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 50, 0)) => true
+          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 50, 0)) => true
           case _                                                                                             => false
         }
       )
       assert(
         msg12345(3) match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 51, 0)) => true
+          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 51, 0)) => true
           case _                                                                                             => false
         }
       )
       assert(
         msg12345(4) match {
-          case AvatarServiceMessage(
+          case MessageEnvelope(
                 "TestCharacter1",
                 _,
                 SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
@@ -300,7 +301,7 @@ class FacilityTurretControlRestorationTest extends ActorTest {
       )
       assert(
         msg4 match {
-          case VehicleServiceMessage("test", _, VehicleAction.EquipmentInSlot(_, PlanetSideGUID(2), 1, t))
+          case MessageEnvelope("test", _, VehicleAction.EquipmentInSlot(PlanetSideGUID(2), 1, t))
               if t eq turretWeapon =>
             true
           case _ => false

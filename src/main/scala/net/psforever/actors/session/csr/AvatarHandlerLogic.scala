@@ -249,12 +249,6 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case PlanetsideAttribute(target_guid, attributeType, attributeValue) if isNotSameTarget =>
         sendResponse(PlanetsideAttributeMessage(target_guid, attributeType, attributeValue))
 
-      case AvatarAction.PlanetsideAttributeToAll(attributeType, attributeValue) =>
-        sendResponse(PlanetsideAttributeMessage(guid, attributeType, attributeValue))
-
-      case AvatarAction.PlanetsideAttributeSelf(attributeType, attributeValue) if isSameTarget =>
-        sendResponse(PlanetsideAttributeMessage(guid, attributeType, attributeValue))
-
       case GenericObjectAction(objectGuid, actionCode) if isNotSameTarget =>
         sendResponse(GenericObjectActionMessage(objectGuid, actionCode))
 

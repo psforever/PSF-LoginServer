@@ -27,7 +27,7 @@ import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityCo
 import net.psforever.objects.vital.{HealFromTerminal, RepairFromTerminal, Vitality}
 import net.psforever.objects.zones.ZoneAware
 import net.psforever.packet.game.InventoryStateMessage
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.VehicleServiceMessage
 
@@ -354,8 +354,7 @@ object ProximityTerminalControl {
       target.MaxHealth = newMax
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        target.GUID,
-        AvatarAction.PlanetsideAttributeToAll(1, newMax)
+        PlanetsideAttribute(target.GUID, 1, newMax)
       )
     }
     if (target.Health < newMax) {
@@ -370,8 +369,7 @@ object ProximityTerminalControl {
     val zone = target.Zone
     zone.AvatarEvents ! AvatarServiceMessage(
       zone.id,
-      target.GUID,
-      AvatarAction.PlanetsideAttributeToAll(0, target.Health)
+      PlanetsideAttribute(target.GUID, 0, target.Health)
     )
   }
 
@@ -410,8 +408,7 @@ object ProximityTerminalControl {
       val zone = target.Zone
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        target.GUID,
-        AvatarAction.PlanetsideAttributeToAll(4, target.Armor)
+        PlanetsideAttribute(target.GUID, 4, target.Armor)
       )
       target.Armor == maxArmor
     } else {

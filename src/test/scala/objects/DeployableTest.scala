@@ -17,14 +17,15 @@ import net.psforever.packet.game.{DeployableIcon, DeployableInfo, DeploymentActi
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.local.LocalAction
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
+import net.psforever.services.base.MessageEnvelope
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -370,8 +371,9 @@ class ExplosiveDeployableJammerTest extends ActorTest {
         case _ => assert(false, "")
       }
 //      eventMsgs.head match {
-//        case LocalServiceMessage(
+//        case MessageEnvelope(
 //          "NC",
+//          _,
 //          LocalAction.DeployableMapIcon(
 //            ValidPlanetSideGUID(0),
 //            DeploymentAction.Dismiss,
@@ -381,12 +383,13 @@ class ExplosiveDeployableJammerTest extends ActorTest {
 //        case _ => assert(false, "")
 //      }
       eventMsgs(1) match {
-        case LocalServiceMessage("test", _, LocalAction.Detonate(PlanetSideGUID(1), _)) => ;
+        case MessageEnvelope("test", _, LocalAction.Detonate(PlanetSideGUID(1), _)) => ;
         case _ => assert(false, "")
       }
       eventMsgs(2) match {
-        case LocalServiceMessage(
-          "NC", _,
+        case MessageEnvelope(
+          "NC",
+          _,
           LocalAction.DeployableMapIcon(
             DeploymentAction.Dismiss,
             DeployableInfo(ValidPlanetSideGUID(1), DeployableIcon.HEMine, Vector3.Zero, ValidPlanetSideGUID(0))
@@ -395,7 +398,7 @@ class ExplosiveDeployableJammerTest extends ActorTest {
         case _ => assert(false, "")
       }
       eventMsgs(3) match {
-        case AvatarServiceMessage(
+        case MessageEnvelope(
           "test",
           _,
           AvatarAction.Destroy(
@@ -484,13 +487,14 @@ class ExplosiveDeployableJammerExplodeTest extends ActorTest {
         case _ => assert(false, "")
       }
       eventMsgs(1) match {
-        case LocalServiceMessage("test", _, LocalAction.Detonate(PlanetSideGUID(2), target))
+        case MessageEnvelope("test", _, LocalAction.Detonate(PlanetSideGUID(2), target))
           if target eq h_mine => ()
         case _ => assert(false, "")
       }
       eventMsgs(2) match {
-        case LocalServiceMessage(
-          "NC", _,
+        case MessageEnvelope(
+          "NC",
+          _,
           LocalAction.DeployableMapIcon(
             DeploymentAction.Dismiss,
             DeployableInfo(PlanetSideGUID(2), DeployableIcon.HEMine, _, PlanetSideGUID(0))
@@ -576,8 +580,9 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
       player1Probe.expectNoMessage(200 milliseconds)
       val p2Msgs = player2Probe.receiveN(1, 200 milliseconds)
       eventMsgs.head match {
-        case LocalServiceMessage(
-          "NC", _,
+        case MessageEnvelope(
+          "NC",
+          _,
           LocalAction.DeployableMapIcon(
             DeploymentAction.Dismiss,
             DeployableInfo(PlanetSideGUID(2), DeployableIcon.HEMine, _, PlanetSideGUID(0))
@@ -586,14 +591,14 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
         case _ => assert(false, "")
       }
       eventMsgs(1) match {
-        case AvatarServiceMessage(
+        case MessageEnvelope(
           "test", _,
           AvatarAction.Destroy(PlanetSideGUID(2), PlanetSideGUID(3), Service.defaultPlayerGUID, Vector3.Zero)
         ) => ;
         case _ => assert(false, "")
       }
       eventMsgs(2) match {
-        case LocalServiceMessage("test", _, LocalAction.TriggerEffect("detonate_damaged_mine", PlanetSideGUID(2))) => ;
+        case MessageEnvelope("test", _, LocalAction.TriggerEffect("detonate_damaged_mine", PlanetSideGUID(2))) => ;
         case _ => assert(false, "")
       }
       p2Msgs.head match {

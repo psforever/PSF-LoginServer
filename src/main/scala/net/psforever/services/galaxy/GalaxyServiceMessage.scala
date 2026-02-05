@@ -2,14 +2,10 @@
 package net.psforever.services.galaxy
 
 import net.psforever.services.Service
-import net.psforever.services.base.{EventMessage, GenericMessageEnvelope}
-import net.psforever.types.PlanetSideGUID
-
-final case class GalaxyServiceMessage(channel: String, msg: EventMessage)
-  extends GenericMessageEnvelope {
-  def filter: PlanetSideGUID = Service.defaultPlayerGUID
-}
+import net.psforever.services.base.{EventMessage, MessageEnvelope}
 
 object GalaxyServiceMessage {
-  def apply(actionMessage: EventMessage): GalaxyServiceMessage = GalaxyServiceMessage("", actionMessage)
+  def apply(msg: EventMessage): MessageEnvelope = MessageEnvelope("", Service.defaultPlayerGUID, msg)
+
+  def apply(channel: String, msg: EventMessage): MessageEnvelope = MessageEnvelope(channel, Service.defaultPlayerGUID, msg)
 }

@@ -2077,8 +2077,8 @@ class AvatarActor(
           avatarCopy(avatar.copy(decoration = avatar.decoration.copy(cosmetics = Some(cosmetics))))
           zone.AvatarEvents ! AvatarServiceMessage(
             zone.id,
-            session.get.player.GUID,
-            AvatarAction.PlanetsideAttributeToAll(
+            PlanetsideAttribute(
+              session.get.player.GUID,
               106,
               Cosmetic.valuesToAttributeValue(cosmetics)
             )
@@ -3002,13 +3002,13 @@ class AvatarActor(
         val next      = BattleRank.withExperience(newBep).value
         val br24 = BattleRank.BR24.value
         sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(pguid, newBep, localModifier))
-        events ! AvatarServiceMessage(zoneId, pguid, AvatarAction.PlanetsideAttributeToAll(17, newBep))
+        events ! AvatarServiceMessage(zoneId, PlanetsideAttribute(pguid, 17, newBep))
         if (current < br24 && next >= br24 || current >= br24 && next < br24) {
           setCosmetics(Set()).onComplete { _ =>
             val evts = events
             val name = player.Name
             val guid = pguid
-            evts ! AvatarServiceMessage(name, guid, AvatarAction.PlanetsideAttributeToAll(106, 1)) //set to no helmet
+            evts ! AvatarServiceMessage(name, PlanetsideAttribute(guid, 106, 1)) //set to no helmet
           }
         }
         // when the level is reduced, take away any implants over the implant slot limit
@@ -3053,7 +3053,7 @@ class AvatarActor(
         val sess = session.get
         val zone = sess.zone
         avatar = avatar.copy(cep = cep)
-        zone.AvatarEvents ! AvatarServiceMessage(zone.id, sess.player.GUID, AvatarAction.PlanetsideAttributeToAll(18, cep))
+        zone.AvatarEvents ! AvatarServiceMessage(zone.id, PlanetsideAttribute(sess.player.GUID, 18, cep))
       case Failure(exception) =>
         log.error(exception)("db failure")
     }
@@ -3848,7 +3848,7 @@ class AvatarActor(
       val newHealth      = player.Health = originalHealth + 1
       val events         = zone.AvatarEvents
       player.LogActivity(HealFromImplant(implant.definition.implantType, 1))
-      events ! AvatarServiceMessage(zone.id, guid, AvatarAction.PlanetsideAttributeToAll(0, newHealth))
+      events ! AvatarServiceMessage(zone.id, PlanetsideAttribute(guid, 0, newHealth))
       false
     } else {
       !aliveAndWounded

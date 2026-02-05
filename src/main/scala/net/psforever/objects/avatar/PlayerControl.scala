@@ -127,7 +127,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           val zoneId = zone.id
           sendResponse(zone, zoneId, PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
           sendResponse(zone, zoneId, AvatarDeadStateMessage(DeadState.Alive, timer_max=0, timer=0, player.Position, player.Faction, unk5=true))
-          sendResponse(zone, zoneId, revivalTargetGuid, AvatarAction.PlanetsideAttributeToAll(attribute_type=0, health))
+          sendResponse(zone, zoneId, PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
           avatarActor ! AvatarActor.InitializeImplants
           avatarActor ! AvatarActor.SuspendStaminaRegeneration(Duration(1, "second"))
 
@@ -153,7 +153,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 uname,
                 SendResponse(InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong))
               )
-              events ! AvatarServiceMessage(zone.id, guid, AvatarAction.PlanetsideAttributeToAll(0, newHealth))
+              events ! AvatarServiceMessage(zone.id, PlanetsideAttribute(guid, 0, newHealth))
               player.LogActivity(
                 HealFromEquipment(
                   PlayerSource(user),
@@ -173,7 +173,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             }
             if (player != user) {
               //"Someone is trying to heal you"
-              events ! AvatarServiceMessage(player.Name, guid, AvatarAction.PlanetsideAttributeToAll(55, 1))
+              events ! AvatarServiceMessage(player.Name, PlanetsideAttribute(guid, 55, 1))
               //progress bar remains visible for all heal attempts
               events ! AvatarServiceMessage(
                 uname,
@@ -219,7 +219,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 uname,
                 SendResponse(InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong))
               )
-              events ! AvatarServiceMessage(zone.id, guid, AvatarAction.PlanetsideAttributeToAll(4, player.Armor))
+              events ! AvatarServiceMessage(zone.id, PlanetsideAttribute(guid, 4, player.Armor))
               player.LogActivity(
                 RepairFromEquipment(
                   PlayerSource(user),
@@ -240,7 +240,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             if (player != user) {
               if (player.isAlive) {
                 //"Someone is trying to repair you" gets strobed twice for visibility
-                val msg = AvatarServiceMessage(player.Name, guid, AvatarAction.PlanetsideAttributeToAll(56, 1))
+                val msg = AvatarServiceMessage(player.Name, PlanetsideAttribute(guid, 56, 1))
                 events ! msg
                 import scala.concurrent.ExecutionContext.Implicits.global
                 context.system.scheduler.scheduleOnce(250 milliseconds, events, msg)
@@ -315,8 +315,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               TaskWorkflow.execute(GUIDTask.unregisterEquipment(zone.GUID, kit))
               zone.AvatarEvents ! AvatarServiceMessage(
                 zone.id,
-                player.GUID,
-                AvatarAction.PlanetsideAttributeToAll(attribute, value)
+                PlanetsideAttribute(player.GUID, attribute, value)
               )
               zone.AvatarEvents ! AvatarServiceMessage(
                 player.Name,
@@ -882,8 +881,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       val zone = target.Zone
       zone.AvatarEvents ! AvatarServiceMessage(
         zone.id,
-        target.GUID,
-        AvatarAction.PlanetsideAttributeToAll(4, target.Armor)
+        PlanetsideAttribute(target.GUID, 4, target.Armor)
       )
     }
     //choose
@@ -939,7 +937,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     target.LogActivity(cause)
     //stat changes
     if (damageToCapacitor > 0) {
-      events ! AvatarServiceMessage(target.Name, targetGUID, AvatarAction.PlanetsideAttributeSelf(7, target.Capacitor.toLong))
+      events ! AvatarServiceMessage(target.Name, PlanetsideAttribute(targetGUID, 7, target.Capacitor.toLong))
       announceConfrontation = true //TODO should we?
     }
     if (damageToStamina > 0) {
@@ -947,7 +945,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       announceConfrontation = true //TODO should we?
     }
     if (damageToHealth > 0) {
-      events ! AvatarServiceMessage(zoneId, targetGUID, AvatarAction.PlanetsideAttributeToAll(0, health))
+      events ! AvatarServiceMessage(zoneId, PlanetsideAttribute(targetGUID, 0, health))
       announceConfrontation = true
     }
     val countableDamage = damageToHealth + damageToArmor
@@ -1055,10 +1053,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     }
 
     events ! AvatarServiceMessage(nameChannel, player_guid, AvatarAction.Killed(cause, target.VehicleSeated)) //align client interface fields with state
-    events ! AvatarServiceMessage(zoneChannel, player_guid, AvatarAction.PlanetsideAttributeToAll(0, 0)) //health
+    events ! AvatarServiceMessage(zoneChannel, PlanetsideAttribute(player_guid, 0, 0)) //health
     if (target.Capacitor > 0) {
       target.Capacitor = 0
-      events ! AvatarServiceMessage(nameChannel, player_guid, AvatarAction.PlanetsideAttributeToAll(7, 0)) // capacitor
+      events ! AvatarServiceMessage(nameChannel, PlanetsideAttribute(player_guid, 7, 0)) // capacitor
     }
     val attribute = DamageableEntity.attributionTo(cause, target.Zone, player_guid)
     events ! AvatarServiceMessage(
@@ -1094,8 +1092,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case obj: Player if !jammedSound =>
         obj.Zone.AvatarEvents ! AvatarServiceMessage(
           obj.Zone.id,
-          obj.GUID,
-          AvatarAction.PlanetsideAttributeToAll(27, 1)
+          PlanetsideAttribute(obj.GUID, 27, 1)
         )
         super.StartJammeredSound(obj, 3000)
       case _ => ()
@@ -1131,8 +1128,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       case obj: Player if jammedSound =>
         obj.Zone.AvatarEvents ! AvatarServiceMessage(
           obj.Zone.id,
-          obj.GUID,
-          AvatarAction.PlanetsideAttributeToAll(27, 0)
+          PlanetsideAttribute(obj.GUID, 27, 0)
         )
         super.CancelJammeredSound(obj)
       case _ => ()
@@ -1243,10 +1239,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   }
 
   def UpdateAuraEffect(target: AuraEffectBehavior.Target) : Unit = {
-    import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+    import net.psforever.services.avatar.AvatarServiceMessage
     val zone = target.Zone
     val value = target.Aura.foldLeft(0)(_ + PlayerControl.auraEffectToAttributeValue(_))
-    zone.AvatarEvents ! AvatarServiceMessage(zone.id, target.GUID, AvatarAction.PlanetsideAttributeToAll(54, value))
+    zone.AvatarEvents ! AvatarServiceMessage(zone.id, PlanetsideAttribute(target.GUID, 54, value))
   }
 }
 

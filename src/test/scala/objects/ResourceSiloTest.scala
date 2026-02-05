@@ -16,8 +16,8 @@ import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.UseItemMessage
 import net.psforever.types._
 import org.specs2.mutable.Specification
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.objects.avatar.Avatar
+import net.psforever.services.base.MessageEnvelope
 import net.psforever.services.base.messages.PlanetsideAttribute
 import net.psforever.services.{InterstellarClusterService, Service, ServiceManager}
 import net.psforever.services.galaxy.GalaxyService
@@ -236,7 +236,7 @@ class ResourceSiloControlNtuWarningTest extends ActorTest {
 
       val reply = zoneEvents.receiveOne(5000 milliseconds)
       reply match {
-        case AvatarServiceMessage("nowhere", _, PlanetsideAttribute(PlanetSideGUID(6), 47, 0)) => ;
+        case MessageEnvelope("nowhere", _, PlanetsideAttribute(PlanetSideGUID(6), 47, 0)) => ;
         case _ => assert(ResourceSiloTest.fail, s"$reply is wrong")
       }
       assert(!obj.LowNtuWarningOn)
@@ -275,12 +275,12 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
       assert(obj.NtuCapacitor == 305)
       assert(obj.CapacitorDisplay == 3)
       reply1.head match {
-        case AvatarServiceMessage("nowhere", _, PlanetsideAttribute(PlanetSideGUID(1), 45, 3)) => ;
+        case MessageEnvelope("nowhere", _, PlanetsideAttribute(PlanetSideGUID(1), 45, 3)) => ;
         case _ => assert(ResourceSiloTest.fail, s"$reply1 is wrong")
       }
       assert(reply2.isInstanceOf[BuildingActor.MapUpdate], s"$reply2 is wrong")
       reply1(1) match {
-        case AvatarServiceMessage("nowhere", _, PlanetsideAttribute(PlanetSideGUID(6), 47, 0)) => ;
+        case MessageEnvelope("nowhere", _, PlanetsideAttribute(PlanetSideGUID(6), 47, 0)) => ;
         case _ => assert(ResourceSiloTest.fail, s"${reply1(1)} is wrong")
       }
       assert(!obj.LowNtuWarningOn)
@@ -319,12 +319,12 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
       assert(obj.NtuCapacitor == 205)
       assert(obj.CapacitorDisplay == 2)
       reply1.head match {
-        case AvatarServiceMessage("nowhere", _, PlanetsideAttribute(PlanetSideGUID(1), 45, 2)) => ;
+        case MessageEnvelope("nowhere", _, PlanetsideAttribute(PlanetSideGUID(1), 45, 2)) => ;
         case _ => assert(ResourceSiloTest.fail, s"$reply1 is wrong")
       }
       assert(reply2.isInstanceOf[BuildingActor.MapUpdate])
       reply1(1) match {
-        case AvatarServiceMessage("nowhere", _, PlanetsideAttribute(PlanetSideGUID(6), 47, 0)) => ;
+        case MessageEnvelope("nowhere", _, PlanetsideAttribute(PlanetSideGUID(6), 47, 0)) => ;
         case _ => assert(ResourceSiloTest.fail, s"${reply1(1)} is wrong")
       }
       assert(!obj.LowNtuWarningOn)

@@ -25,8 +25,9 @@ import net.psforever.objects.vital.{ShieldCharge, SpawningActivity, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
+import net.psforever.services.base.MessageEnvelope
 import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types._
 
 import scala.concurrent.duration._
@@ -73,7 +74,7 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
 
       val vehicle_msg = vehicleProbe.receiveN(1, 500 milliseconds)
       vehicle_msg.head match {
-        case VehicleServiceMessage("test", _, VehicleAction.KickPassenger(PlanetSideGUID(2), 4, true, PlanetSideGUID(1))) => ;
+        case MessageEnvelope("test", _, VehicleAction.KickPassenger(PlanetSideGUID(2), 4, true, PlanetSideGUID(1))) => ;
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionPassengerTest: ${vehicle_msg.head}")
       }
@@ -137,32 +138,32 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
 //      val vehicle_msg = vehicleProbe.receiveN(6, 1 minute)
 //      //dismounting as cargo messages
 //      vehicle_msg.head match {
-//        case VehicleServiceMessage("test", _, VehicleAction.KickPassenger(PlanetSideGUID(3), 4, true, PlanetSideGUID(1))) => ;
+//        case MessageEnvelope("test", _, VehicleAction.KickPassenger(PlanetSideGUID(3), 4, true, PlanetSideGUID(1))) => ;
 //        case _ =>
 //          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-1: ${vehicle_msg.head}")
 //      }
 //      vehicle_msg(1) match {
-//        case VehicleServiceMessage(_, _, SendResponse(PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))) => ;
+//        case MessageEnvelope(_, _, SendResponse(PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _))) => ;
 //        case _ =>
 //          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-2: ${vehicle_msg(1)}")
 //      }
 //      vehicle_msg(2) match {
-//        case VehicleServiceMessage(_, _, SendResponse(PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))) => ;
+//        case MessageEnvelope(_, _, SendResponse(PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _))) => ;
 //        case _ =>
 //          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-3: ${vehicle_msg(2)}")
 //      }
 //      vehicle_msg(3) match {
-//        case VehicleServiceMessage("test", _, SendResponse(CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0))) => ;
+//        case MessageEnvelope("test", _, SendResponse(CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0))) => ;
 //        case _ =>
 //          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-4: ${vehicle_msg(3)}")
 //      }
 //      vehicle_msg(4) match {
-//        case VehicleServiceMessage("test", _, SendResponse(ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))) => ;
+//        case MessageEnvelope("test", _, SendResponse(ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _))) => ;
 //        case _ =>
 //          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-5: ${vehicle_msg(4)}")
 //      }
 //      vehicle_msg(5) match {
-//        case VehicleServiceMessage("test", _, SendResponse(CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0))) => ;
+//        case MessageEnvelope("test", _, SendResponse(CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0))) => ;
 //        case _ =>
 //          assert(false, s"VehicleControlPrepareForDeletionMountedInTest-6: ${vehicle_msg(5)}")
 //      }
@@ -225,7 +226,7 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
       val vehicleMsgs = eventsProbe.receiveN(6, 10.seconds)
       val cargoMsgs = cargoProbe.receiveN(1, 1.seconds)
       vehicleMsgs.head match {
-        case VehicleServiceMessage("test", _, VehicleAction.KickPassenger(PlanetSideGUID(4), 4, true, PlanetSideGUID(2))) => ()
+        case MessageEnvelope("test", _, VehicleAction.KickPassenger(PlanetSideGUID(4), 4, true, PlanetSideGUID(2))) => ()
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-1: ${vehicleMsgs.head}")
       }
@@ -233,27 +234,27 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
       assert(lodestar.Seats(0).occupant.isEmpty)
       //cargo dismounting messages
       vehicleMsgs(1) match {
-        case VehicleServiceMessage(_, _, SendResponse(Seq(PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _)))) => ()
+        case MessageEnvelope(_, _, SendResponse(Seq(PlanetsideAttributeMessage(PlanetSideGUID(1), 0, _)))) => ()
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-2: ${vehicleMsgs(1)}")
       }
       vehicleMsgs(2) match {
-        case VehicleServiceMessage(_, _, SendResponse(Seq(PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _)))) => ()
+        case MessageEnvelope(_, _, SendResponse(Seq(PlanetsideAttributeMessage(PlanetSideGUID(1), 68, _)))) => ()
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-3: ${vehicleMsgs(2)}")
       }
       vehicleMsgs(3) match {
-        case VehicleServiceMessage("test", _, SendResponse(Seq(CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)))) => ;
+        case MessageEnvelope("test", _, SendResponse(Seq(CargoMountPointStatusMessage(PlanetSideGUID(2), _, PlanetSideGUID(1), _, 1, CargoStatus.InProgress, 0)))) => ;
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-4: ${vehicleMsgs(3)}")
       }
       vehicleMsgs(4) match {
-        case VehicleServiceMessage("test", _, SendResponse(Seq(ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _)))) => ()
+        case MessageEnvelope("test", _, SendResponse(Seq(ObjectDetachMessage(PlanetSideGUID(2), PlanetSideGUID(1), _, _, _, _)))) => ()
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-5: ${vehicleMsgs(4)}")
       }
       vehicleMsgs(5) match {
-        case VehicleServiceMessage("test", _, SendResponse(Seq(CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)))) => ()
+        case MessageEnvelope("test", _, SendResponse(Seq(CargoMountPointStatusMessage(PlanetSideGUID(2), _, _, PlanetSideGUID(1), 1, CargoStatus.Empty, 0)))) => ()
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-6: ${vehicleMsgs(5)}")
       }
@@ -545,7 +546,7 @@ class VehicleControlShieldsNotChargingTooEarlyTest extends ActorTest {
     val msg = probe.receiveOne(200 milliseconds)
     //assert(msg.isInstanceOf[Vehicle.UpdateShieldsCharge])
     assert(msg match {
-      case VehicleServiceMessage(_, _, PlanetsideAttribute(PlanetSideGUID(10), 68, 15)) => true
+      case MessageEnvelope(_, _, PlanetsideAttribute(PlanetSideGUID(10), 68, 15)) => true
       case _                                                                                          => false
     })
     assert(vehicle.Shields == 15)
@@ -1005,7 +1006,7 @@ class VehicleControlInteractWithLavaTest extends ActorTest {
       msg_burn.foreach { msg =>
         assert(
           msg match {
-            case VehicleServiceMessage("test-zone", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
+            case MessageEnvelope("test-zone", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
             case _ => false
           }
         )
@@ -1103,7 +1104,7 @@ class ApcControlCanChargeCapacitor extends FreedContextActorTest {
       do {
         val msg = vehicleProbe.receiveOne(3.seconds)
         msg match {
-          case VehicleServiceMessage(_, _, PlanetsideAttribute(PlanetSideGUID(1), 113, capacitance)) =>
+          case MessageEnvelope(_, _, PlanetsideAttribute(PlanetSideGUID(1), 113, capacitance)) =>
             assert(capacitance > 0)
           case _ =>
             assert(false)
@@ -1177,11 +1178,11 @@ class ApcControlCanEmp extends FreedContextActorTest {
       apc.Actor ! SpecialEmp.Burst()
       val vehicleMsgs = vehicleProbe.receiveN(2, 500.milliseconds)
       vehicleMsgs.head match {
-        case VehicleServiceMessage(_, _, PlanetsideAttribute(PlanetSideGUID(1), 113, 0)) => ;
+        case MessageEnvelope(_, _, PlanetsideAttribute(PlanetSideGUID(1), 113, 0)) => ;
         case _ => assert(false)
       }
       vehicleMsgs(1) match {
-        case VehicleServiceMessage(
+        case MessageEnvelope(
           "test-zone",
           _,
           SendResponse(Seq(

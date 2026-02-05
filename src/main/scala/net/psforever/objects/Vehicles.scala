@@ -13,8 +13,8 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, FrameVehicleStateMessage, GenericObjectActionEnum, HackMessage, HackState, HackState1, HackState7, TriggeredSound, VehicleStateMessage}
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.{GenericObjectAction, SendResponse, SetEmpire}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.{GenericObjectAction, PlanetsideAttribute, SendResponse, SetEmpire}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
@@ -172,8 +172,7 @@ object Vehicles {
     (0 to 3).foreach(group => {
       vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
         toChannel,
-        vehicle_guid,
-        AvatarAction.PlanetsideAttributeToAll(group + 10, vehicle.PermissionGroup(group).get.id)
+        PlanetsideAttribute(vehicle_guid, group + 10, vehicle.PermissionGroup(group).get.id)
       )
     })
   }

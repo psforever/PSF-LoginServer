@@ -101,10 +101,6 @@ object AvatarAction {
 
   final case class OxygenState(player: OxygenStateTarget, vehicle: Option[OxygenStateTarget]) extends SelfRespondingEvent
 
-  final case class PlanetsideAttributeToAll(attribute_type: Int, attribute_value: Long) extends SelfRespondingEvent
-
-  final case class PlanetsideAttributeSelf(attribute_type: Int, attribute_value: Long) extends SelfRespondingEvent
-
   final case class PlanetsideStringAttribute(attribute_type: Int, attribute_value: String) extends SelfRespondingEvent
 
   final case class PlayerState(

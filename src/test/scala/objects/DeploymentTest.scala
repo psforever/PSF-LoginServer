@@ -8,9 +8,10 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
 import net.psforever.objects.zones.{Zone, ZoneMap}
+import net.psforever.services.base.MessageEnvelope
 import net.psforever.types.{DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import org.specs2.mutable.Specification
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 
 import scala.concurrent.duration.Duration
 
@@ -72,7 +73,7 @@ class DeploymentBehavior2Test extends ActorTest {
         case _ => assert(false, "")
       }
       reply2.head match {
-        case VehicleServiceMessage(
+        case MessageEnvelope(
           "test",
           _,
           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deploying, 0, false, Vector3.Zero)
@@ -85,7 +86,7 @@ class DeploymentBehavior2Test extends ActorTest {
         case _ => assert(false, "")
       }
       reply2(1) match {
-        case VehicleServiceMessage(
+        case MessageEnvelope(
           "test",
           _,
           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deployed, 0, false, Vector3.Zero)
@@ -102,7 +103,7 @@ class DeploymentBehavior2Test extends ActorTest {
         case _ => assert(false, "")
       }
       reply4.head match {
-        case VehicleServiceMessage(
+        case MessageEnvelope(
           "test",
            _,
           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Undeploying, 0, false, Vector3.Zero)
@@ -115,7 +116,7 @@ class DeploymentBehavior2Test extends ActorTest {
         case _ => assert(false, "")
       }
       reply4(1) match {
-        case VehicleServiceMessage(
+        case MessageEnvelope(
           "test",
           _,
           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Mobile, 0, false, Vector3.Zero)
@@ -144,7 +145,7 @@ class DeploymentBehavior3Test extends ActorTest {
         case _ => assert(false, "")
       }
       reply2.head match {
-        case VehicleServiceMessage(
+        case MessageEnvelope(
           "test",
           _,
           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deploying, 0, false, Vector3.Zero)
@@ -157,7 +158,7 @@ class DeploymentBehavior3Test extends ActorTest {
         case _ => assert(false, "")
       }
       reply2(1) match {
-        case VehicleServiceMessage(
+        case MessageEnvelope(
           "test",
           _,
           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deployed, 0, false, Vector3.Zero)
@@ -174,7 +175,7 @@ class DeploymentBehavior3Test extends ActorTest {
         case _ => assert(false, "")
       }
       reply4.head match {
-        case VehicleServiceMessage(
+        case MessageEnvelope(
           "test",
           _,
           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Undeploying, 0, false, Vector3.Zero)
@@ -187,7 +188,7 @@ class DeploymentBehavior3Test extends ActorTest {
         case _ => assert(false, "")
       }
       reply4(1) match {
-        case VehicleServiceMessage(
+        case MessageEnvelope(
           "test",
           _,
           VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Mobile, 0, false, Vector3.Zero)

@@ -248,12 +248,6 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case PlanetsideAttribute(target_guid, attributeType, attributeValue) if isNotSameTarget =>
         sendResponse(PlanetsideAttributeMessage(target_guid, attributeType, attributeValue))
 
-      case AvatarAction.PlanetsideAttributeToAll(attributeType, attributeValue) =>
-        sendResponse(PlanetsideAttributeMessage(guid, attributeType, attributeValue))
-
-      case AvatarAction.PlanetsideAttributeSelf(attributeType, attributeValue) if isSameTarget =>
-        sendResponse(PlanetsideAttributeMessage(guid, attributeType, attributeValue))
-
       case AvatarAction.PlanetsideStringAttribute(attributeType, attributeValue) =>
         sendResponse(PlanetsideStringAttributeMessage(guid, attributeType, attributeValue))
 
@@ -699,7 +693,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
     val events = continent.AvatarEvents
     ops.killedWhileMounted(obj, playerGuid)
     //make player invisible on client
-    events ! AvatarServiceMessage(player.Name, playerGuid, AvatarAction.PlanetsideAttributeToAll(29, 1))
+    events ! AvatarServiceMessage(player.Name, PlanetsideAttribute(playerGuid, 29, 1))
     //only the dead player should "see" their own body, so that the death camera has something to focus on
     events ! AvatarServiceMessage(continent.id, playerGuid, ObjectDelete(playerGuid))
   }

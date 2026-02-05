@@ -8,7 +8,8 @@ import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableWeaponTurret}
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.PlanetsideAttribute
 
 trait TurretControl
   extends Actor
@@ -39,8 +40,8 @@ trait TurretControl
     val zoneId = zone.id
     val events = zone.AvatarEvents
     val tguid  = TurretObject.GUID
-    events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(50, 0))
-    events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(51, 0))
+    events ! AvatarServiceMessage(zoneId, PlanetsideAttribute(tguid, 50, 0))
+    events ! AvatarServiceMessage(zoneId, PlanetsideAttribute(tguid, 51, 0))
   }
 
   /**
@@ -56,7 +57,7 @@ trait TurretControl
     val tguid  = target.GUID
     CancelJammeredSound(target)
     CancelJammeredStatus(target)
-    events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(50, 1))
-    events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(51, 1))
+    events ! AvatarServiceMessage(zoneId, PlanetsideAttribute(tguid, 50, 1))
+    events ! AvatarServiceMessage(zoneId, PlanetsideAttribute(tguid, 51, 1))
   }
 }

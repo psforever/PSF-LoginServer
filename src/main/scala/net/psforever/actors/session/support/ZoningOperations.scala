@@ -3372,7 +3372,7 @@ class ZoningOperations(
       if (tplayer.ExoSuit == ExoSuitType.MAX) {
         sendResponse(PlanetsideAttributeMessage(guid, 7, tplayer.Capacitor.toLong))
         sendResponse(PlanetsideAttributeMessage(guid, 4, tplayer.Armor))
-        continent.AvatarEvents ! AvatarServiceMessage(continent.id, guid, AvatarAction.PlanetsideAttributeToAll(4, tplayer.Armor))
+        continent.AvatarEvents ! AvatarServiceMessage(continent.id, PlanetsideAttribute(guid, 4, tplayer.Armor))
       }
       // for issue #1269
       continent.AllPlayers.filter(_.ExoSuit == ExoSuitType.MAX).foreach(max => sendResponse(PlanetsideAttributeMessage(max.GUID, 4, max.Armor)))
@@ -3496,8 +3496,12 @@ class ZoningOperations(
           case Some(b: Building) if b.hasCavernLockBenefit =>
             tplayer.MaxHealth = 120
             tplayer.Health = 120
-            tplayer.Zone.AvatarEvents ! AvatarServiceMessage(tplayer.Zone.id, tplayer.GUID, AvatarAction.PlanetsideAttributeToAll(0, 120))
-            tplayer.Zone.AvatarEvents ! AvatarServiceMessage(tplayer.Zone.id, tplayer.GUID, AvatarAction.PlanetsideAttributeToAll(1, 120))
+            val guid = tplayer.GUID
+            val zone = tplayer.Zone
+            val channel = zone.id
+            val events = zone.AvatarEvents
+            events ! AvatarServiceMessage(channel, PlanetsideAttribute(guid, 0, 120))
+            events ! AvatarServiceMessage(channel, PlanetsideAttribute(guid, 1, 120))
           case _ => ()
         }
         doorsThatShouldBeOpenInRange(pos, range = 100f)

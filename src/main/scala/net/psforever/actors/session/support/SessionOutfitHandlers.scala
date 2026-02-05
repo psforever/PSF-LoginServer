@@ -9,6 +9,7 @@ import net.psforever.packet.game.OutfitEventAction.{Initial, Leaving, OutfitInfo
 import net.psforever.packet.game.OutfitMembershipResponse.PacketType.CreateResponse
 import net.psforever.packet.game._
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.messages.PlanetsideAttribute
 import net.psforever.services.chat.OutfitChannel
 import net.psforever.types.ChatMessageType
 import net.psforever.util.Config
@@ -85,8 +86,7 @@ object SessionOutfitHandlers {
 
               player.Zone.AvatarEvents ! AvatarServiceMessage(
                 player.Zone.id,
-                player.GUID,
-                AvatarAction.PlanetsideAttributeToAll(39, outfit.id)
+                PlanetsideAttribute(player.GUID, 39, outfit.id)
               )
 
               player.Zone.AvatarEvents ! AvatarServiceMessage(
@@ -176,8 +176,7 @@ object SessionOutfitHandlers {
 
             invited.Zone.AvatarEvents ! AvatarServiceMessage(
               invited.Zone.id,
-              invited.GUID,
-              AvatarAction.PlanetsideAttributeToAll(39, outfit.id)
+              PlanetsideAttribute(invited.GUID, 39, outfit.id)
             )
 
             invited.Zone.AvatarEvents ! AvatarServiceMessage(
@@ -244,8 +243,7 @@ object SessionOutfitHandlers {
 
             kickedBy.Zone.AvatarEvents ! AvatarServiceMessage(
               kickedBy.Zone.id,
-              kickedBy.GUID,
-              AvatarAction.PlanetsideAttributeToAll(39, 0)
+              PlanetsideAttribute(kickedBy.GUID, 39, 0)
             )
 
             kickedBy.Zone.AvatarEvents ! AvatarServiceMessage(
@@ -274,8 +272,7 @@ object SessionOutfitHandlers {
 
               kicked.Zone.AvatarEvents ! AvatarServiceMessage(
                 kicked.Zone.id,
-                kicked.GUID,
-                AvatarAction.PlanetsideAttributeToAll(39, 0)
+                PlanetsideAttribute(kicked.GUID, 39, 0)
               )
 
               kicked.Zone.AvatarEvents ! AvatarServiceMessage(
@@ -639,8 +636,7 @@ object SessionOutfitHandlers {
 
                 player.Zone.AvatarEvents ! AvatarServiceMessage(
                   player.Zone.id,
-                  player.GUID,
-                  AvatarAction.PlanetsideAttributeToAll(39, outfit.id)
+                  PlanetsideAttribute(player.GUID, 39, outfit.id)
                 )
 
                 player.Zone.AvatarEvents ! AvatarServiceMessage(

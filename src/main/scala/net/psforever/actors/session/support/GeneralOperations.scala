@@ -19,7 +19,7 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.services.RemoverActor
 import net.psforever.services.avatar.GroundEnvelope
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.local.support.HackCaptureActor
 import net.psforever.services.local.{CaptureMessage, LocalAction, LocalServiceMessage}
 
@@ -1030,8 +1030,7 @@ class GeneralOperations(
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
         continent.AvatarEvents ! AvatarServiceMessage(
           continent.id,
-          player.GUID,
-          AvatarAction.PlanetsideAttributeToAll(8, 0)
+          PlanetsideAttribute(player.GUID, 8, 0)
         )
       }
     }
@@ -1040,8 +1039,7 @@ class GeneralOperations(
   private def activateMaxSpecialStateMessage(): Unit = {
     continent.AvatarEvents ! AvatarServiceMessage(
       continent.id,
-      player.GUID,
-      AvatarAction.PlanetsideAttributeToAll(8, 1)
+      PlanetsideAttribute(player.GUID, 8, 1)
     )
   }
 

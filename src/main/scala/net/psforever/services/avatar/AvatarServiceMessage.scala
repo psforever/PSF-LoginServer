@@ -4,15 +4,15 @@ package net.psforever.services.avatar
 import net.psforever.objects.zones.Zone
 import net.psforever.services.{RemoverActor, Service}
 import net.psforever.services.avatar.AvatarAction.{DropItem, PickupItem, Release}
-import net.psforever.services.base.{EventMessage, GenericMessageEnvelope, GenericMessageToSupportEnvelope, GenericMessageToSupportEnvelopeOnly}
+import net.psforever.services.base.{EventMessage, GenericMessageToSupportEnvelope, GenericMessageToSupportEnvelopeOnly, MessageEnvelope}
 import net.psforever.types.PlanetSideGUID
 
-final case class AvatarServiceMessage(channel: String, filter: PlanetSideGUID, msg: EventMessage)
-  extends GenericMessageEnvelope
-
 object AvatarServiceMessage {
-  def apply(channel: String, actionMessage: EventMessage): AvatarServiceMessage =
-    AvatarServiceMessage(channel, Service.defaultPlayerGUID, actionMessage)
+  def apply(channel: String, msg: EventMessage): MessageEnvelope =
+    MessageEnvelope(channel, Service.defaultPlayerGUID, msg)
+
+  def apply(channel: String, filter: PlanetSideGUID, msg: EventMessage): MessageEnvelope =
+    MessageEnvelope(channel, filter, msg)
 }
 
 final case class ReleaseMessage(

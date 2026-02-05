@@ -8,8 +8,8 @@ import net.psforever.objects.vital.RepairFromEquipment
 import net.psforever.objects.{Player, Tool}
 import net.psforever.packet.game.{ChatMsg, InventoryStateMessage, RepairMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
 
 /**
   * The "control" `Actor` mixin for repair-handling code,
@@ -67,7 +67,7 @@ trait RepairableEntity extends Repairable {
     * Calculate the health points change and enact that repair action if the targets are stationary.
     * Restore the target entity to a not destroyed state if applicable.
     * Always show the repair progress bar window by using the appropriate packet.
-    * @see `AvatarAction.PlanetsideAttributeToAll`
+    * @see `PlanetsideAttribute`
     * @see `SendResponse`
     * @see `AvatarService`
     * @see `InventoryStateMessage`
@@ -140,11 +140,11 @@ trait RepairableEntity extends Repairable {
     val newHealth = target.Health = target.Health + amount
     if (target.Destroyed) {
       if (newHealth >= target.Definition.RepairRestoresAt) {
-        events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(0, newHealth))
+        events ! AvatarServiceMessage(zoneId, PlanetsideAttribute(tguid, 0, newHealth))
         Restoration(target)
       }
     } else {
-      events ! AvatarServiceMessage(zoneId, tguid, AvatarAction.PlanetsideAttributeToAll(0, newHealth))
+      events ! AvatarServiceMessage(zoneId, PlanetsideAttribute(tguid, 0, newHealth))
     }
     newHealth
   }

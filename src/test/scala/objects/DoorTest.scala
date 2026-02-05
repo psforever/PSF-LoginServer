@@ -12,7 +12,7 @@ import net.psforever.objects.{Default, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.services.local.{DoorMessage, LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
+import net.psforever.services.local.{DoorMessage, LocalAction, LocalServiceResponse}
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
