@@ -28,6 +28,7 @@ import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.UplinkRequest
 import net.psforever.services.Service
+import net.psforever.services.base.CachedMessage
 import net.psforever.services.base.messages.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ReloadTool, SendResponse, WeaponDryFire}
 import net.psforever.services.local.LocalServiceMessage
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, ValidPlanetSideGUID, Vector3}
@@ -493,7 +494,7 @@ class WeaponAndProjectileOperations(
         projectile.Position = shot_pos
         projectile.Orientation = shot_orient
         projectile.Velocity = shot_vel
-        continent.AvatarEvents ! AvatarServiceMessage(
+        continent.AvatarEvents ! CachedMessage(
           continent.id,
           player.GUID,
           AvatarAction.ProjectileState(

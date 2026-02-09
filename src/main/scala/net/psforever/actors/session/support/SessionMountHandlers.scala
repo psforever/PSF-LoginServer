@@ -8,6 +8,7 @@ import net.psforever.objects.{PlanetSideGameObject, Tool, Vehicle}
 import net.psforever.objects.vehicles.{CargoBehavior, MountableWeapons}
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.packet.game.{DismountVehicleCargoMsg, GenericObjectActionMessage, InventoryStateMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
+import net.psforever.services.base.CachedMessage
 import net.psforever.services.base.messages.SendResponse
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{BailType, PlanetSideGUID, Vector3}
@@ -224,7 +225,7 @@ class SessionMountHandlers(
           sessionLogic.vehicles.ServerVehicleOverrideStop(v)
         }*/
         v.Velocity = Vector3.Zero
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! CachedMessage(
           continent.id,
           tplayer.GUID,
           VehicleAction.VehicleState(v.GUID, unk1 = 0, tplayer.Position, v.Orientation, v.Velocity, v.Flying, unk3 = 0, unk4 = 0, wheel_direction = 15, unk5 = false, unk6 = v.Cloaked)

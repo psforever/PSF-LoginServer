@@ -12,6 +12,7 @@ import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game.{ChatMsg, ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
+import net.psforever.services.base.CachedMessage
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{ChatMessageType, DriveState, Vector3}
 
@@ -75,7 +76,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         obj.Position = position
         obj.Orientation = angle
         //
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! CachedMessage(
           continent.id,
           player.GUID,
           VehicleAction.VehicleState(
@@ -166,7 +167,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
           continent.id,
           player.GUID,
           VehicleAction.FrameVehicleState(vehicle_guid, unk1, position, angle, velocity, unk2, unk3, unk4, is_crouched, is_airborne, ascending_flight, flight_time, unk9, unkA)
-        )
+        ) //todo CachedMessage
         sessionLogic.squad.updateSquad()
       case (None, _) =>
         //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
@@ -219,7 +220,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
           continent.id,
           player.GUID,
           VehicleAction.ChildObjectState(object_guid, pitch, yaw)
-        )
+        ) //todo CachedMessage
     }
     //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
     if (player.death_by == -1) {
@@ -238,7 +239,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
           obj.Velocity = vel
           sessionLogic.updateBlockMap(obj, pos)
           obj.zoneInteractions()
-          continent.VehicleEvents ! VehicleServiceMessage(
+          continent.VehicleEvents ! CachedMessage(
             continent.id,
             player.GUID,
             VehicleAction.VehicleState(vehicle_guid, unk1, pos, ang, obj.Velocity, obj.Flying, 0, 0, 15, unk5 = false, obj.Cloaked)

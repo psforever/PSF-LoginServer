@@ -17,6 +17,7 @@ import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitMembershipRequest, OutfitMembershipResponse, OutfitRequest, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.CachedMessage
 import net.psforever.services.base.messages.PlanetsideAttribute
 import net.psforever.types.{ExoSuitType, Vector3}
 
@@ -75,7 +76,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     player.Crouching = isCrouching
     player.Jumping = isJumping
     player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && isCloaking
-    continent.AvatarEvents ! AvatarServiceMessage(
+    continent.AvatarEvents ! CachedMessage(
       "spectator",
       avatarGuid,
       AvatarAction.PlayerState(

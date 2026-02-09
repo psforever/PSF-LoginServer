@@ -45,12 +45,16 @@ abstract class GenericEventService[OUT <: GenericResponseEnvelope](busName: Stri
       eventBus.unsubscribe(sender())
   }
 
+  protected def commonBehavior: Receive = {
+    case msg: GenericMessageEnvelope =>
+      handleMessage(msg)
+  }
+
   def receive: Receive = commonJoinBehavior
     .orElse(commonLeaveBehavior)
+    .orElse(commonBehavior)
     .orElse {
-      case msg: GenericMessageEnvelope =>
-        handleMessage(msg)
-      case msg => ()
+      case msg =>
         log.warn(s"Unhandled message $msg from ${sender()}")
     }
 

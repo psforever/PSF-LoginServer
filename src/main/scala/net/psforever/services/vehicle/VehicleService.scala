@@ -3,7 +3,7 @@ package net.psforever.services.vehicle
 
 import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.zones.Zone
-import net.psforever.services.base.{EventServiceSupport, GenericEventServiceWithSupport, GenericMessageEnvelope}
+import net.psforever.services.base.{EventServiceSupport, GenericEventServiceWithCacheAndSupport, GenericMessageEnvelope}
 import net.psforever.services.vehicle.support.TurretUpgrader
 
 case object TurretUpgradeSupport
@@ -15,7 +15,7 @@ case object TurretUpgradeSupport
 }
 
 class VehicleService(zone: Zone)
-  extends GenericEventServiceWithSupport[VehicleServiceResponse](
+  extends GenericEventServiceWithCacheAndSupport[VehicleServiceResponse](
     busName = "Vehicle",
     eventSupportServices = List(TurretUpgradeSupport)
   ) {

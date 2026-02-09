@@ -7,6 +7,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
+import net.psforever.services.base.CachedMessage
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{DriveState, Vector3}
 
@@ -39,7 +40,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         obj.Velocity = vel
         sessionLogic.updateBlockMap(obj, pos)
         obj.zoneInteractions()
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! CachedMessage(
           continent.id,
           player.GUID,
           VehicleAction.VehicleState(vehicle_guid, unk1, pos, ang, obj.Velocity, obj.Flying, 0, 0, 15, unk5 = false, obj.Cloaked)
