@@ -44,7 +44,7 @@ import net.psforever.packet.game.{ActionCancelMessage, ActionResultMessage, Avat
 import net.psforever.services.account.{AccountPersistenceService, RetrieveAccountData}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.base.CachedMessage
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.types.{CapacitorStateType, ChatMessageType, Cosmetic, ExoSuitType, ImplantType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.util.Config

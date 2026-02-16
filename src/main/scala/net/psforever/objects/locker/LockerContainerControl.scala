@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.containable.{Containable, ContainableB
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.{ObjectDelete, SendResponse}
+import net.psforever.services.base.message.{ObjectDelete, SendResponse}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 /**

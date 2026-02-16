@@ -3,7 +3,7 @@ package net.psforever.objects.vehicles.control
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects._
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.vehicle.VehicleServiceMessage
 
 import scala.concurrent.ExecutionContext.Implicits.global

@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, Env
 import net.psforever.objects.serverobject.environment.interaction.{InteractionWith, RespondsToZoneEnvironment}
 import net.psforever.objects.serverobject.interior.{Sidedness, TraditionalInteriorAware}
 import net.psforever.objects.zones.interaction.InteractsWithZone
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.types.Vector3
 
 import scala.annotation.unused

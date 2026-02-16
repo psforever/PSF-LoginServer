@@ -36,8 +36,8 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
-import net.psforever.services.base.MessageEnvelope
-import net.psforever.services.base.messages.{ObjectDelete, PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.vehicle.support.TurretUpgrader
 
 class DamageableTest extends Specification {

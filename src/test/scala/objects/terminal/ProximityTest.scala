@@ -19,7 +19,7 @@ import net.psforever.services.local.LocalService
 import scala.concurrent.duration._
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.avatar.Avatar
-import net.psforever.services.base.MessageEnvelope
+import net.psforever.services.base.envelope.MessageEnvelope
 
 class ProximityTest extends Specification {
 

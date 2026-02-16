@@ -5,8 +5,7 @@ import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GalaxyHandlerFunctions, SessionData, SessionGalaxyHandlers}
 import net.psforever.packet.game.{BroadcastWarpgateUpdateMessage, FriendsResponse, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
-import net.psforever.services.base.EventResponse
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.{EventResponse, SendResponse}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.types.{MemberAction, PlanetSideEmpire}
 

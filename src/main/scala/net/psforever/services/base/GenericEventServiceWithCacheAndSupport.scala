@@ -2,24 +2,31 @@
 package net.psforever.services.base
 
 import net.psforever.services.Service
+import net.psforever.services.base.envelope.{GenericMessageEnvelope, MessageEnvelope, MessageTransformationBehavior}
+import net.psforever.services.base.message.EventMessage
 import net.psforever.types.PlanetSideGUID
 
 import scala.collection.concurrent.{Map => CMap}
 import scala.jdk.CollectionConverters._
 import java.util.concurrent.ConcurrentHashMap
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /*
 Adapted from the rating limiting code in https://github.com/Pinapse/giant with permission
  */
 
 trait CachedGenericEventMessageEnvelope
-  extends GenericMessageEnvelope {
+  extends MessageTransformationBehavior {
   def guid: PlanetSideGUID
 }
 
-final case class CachedMessage(guid: PlanetSideGUID, channel: String, filter: PlanetSideGUID, msg: EventMessage)
-  extends CachedGenericEventMessageEnvelope
+final case class CachedMessage(
+                                guid: PlanetSideGUID,
+                                originalChannel: String,
+                                override val filter: PlanetSideGUID,
+                                override val msg: EventMessage
+                              ) extends CachedGenericEventMessageEnvelope {
+  assert(guid != Service.defaultPlayerGUID, "can not cache message under default GUID")
+}
 
 object CachedMessage {
   def apply(channel: String, filter: PlanetSideGUID, msg: EventMessage): GenericMessageEnvelope = {
@@ -31,31 +38,13 @@ object CachedMessage {
   }
 }
 
-object CachedGenericEventMessageEnvelope {
-  def apply(channel: String, filter: PlanetSideGUID, msg: EventMessage): GenericMessageEnvelope = {
-    if (filter == Service.defaultPlayerGUID) {
-      MessageEnvelope(channel, filter, msg)
-    } else {
-      CachedMessage(filter, channel, filter, msg)
-    }
-  }
-
-  def apply(guid: PlanetSideGUID, channel: String, filter: PlanetSideGUID, msg: EventMessage): GenericMessageEnvelope = {
-    if (guid == Service.defaultPlayerGUID) {
-      MessageEnvelope(channel, filter, msg)
-    } else {
-      CachedMessage(guid, channel, filter, msg)
-    }
-  }
-}
-
 private case object FlushCachedMessages
 
-abstract class GenericEventServiceWithCacheAndSupport[OUT <: GenericResponseEnvelope]
+abstract class GenericEventServiceWithCacheAndSupport
 (
-  busName: String,
+  stamp: EventSystemStamp,
   eventSupportServices: List[EventServiceSupport]
-) extends GenericEventServiceWithSupport[OUT](busName, eventSupportServices) {
+) extends GenericEventServiceWithSupport(stamp, eventSupportServices) {
   private val flushCacheWait: Long = 50 //milliseconds
   private var hasCachedMessages: Boolean = false
   private var nextTimeToFlushCache: Long = 0L

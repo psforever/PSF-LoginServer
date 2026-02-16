@@ -8,8 +8,7 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ChangeAmmoMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ReloadMessage, ServerVehicleOverrideMsg, VehicleStateMessage, WeaponDryFireMessage}
-import net.psforever.services.base.EventResponse
-import net.psforever.services.base.messages.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, GenericObjectAction, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, WeaponDryFire}
+import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, EventResponse, GenericObjectAction, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, WeaponDryFire}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceResponse}
 import net.psforever.types.{BailType, PlanetSideGUID, Vector3}
 

@@ -9,7 +9,7 @@ import net.psforever.objects.serverobject.damage.{Damageable, DamageableWeaponTu
 import net.psforever.objects.serverobject.repair.RepairableWeaponTurret
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 
 trait TurretControl
   extends Actor

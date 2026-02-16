@@ -1,11 +1,9 @@
 // Copyright (c) 2026 PSForever
-package net.psforever.services.base
+package net.psforever.services.base.message
 
-trait EventExchange
+trait EventResponse
 
-trait EventResponse extends EventExchange
-
-trait EventMessage extends EventExchange {
+trait EventMessage {
   def response(): EventResponse
 }
 

@@ -13,7 +13,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.services.Service
-import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.types.Vector3
 

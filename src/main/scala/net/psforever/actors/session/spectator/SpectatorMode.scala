@@ -12,7 +12,7 @@ import net.psforever.packet.game.{DeployableInfo, DeployableObjectsInfoMessage, 
 import net.psforever.packet.game.objectcreate.{ObjectClass, ObjectCreateMessageParent, RibbonBars}
 import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.ObjectDelete
+import net.psforever.services.base.message.ObjectDelete
 import net.psforever.services.chat.SpectatorChannel
 import net.psforever.services.teamwork.{SquadAction, SquadServiceMessage}
 import net.psforever.types.{CapacitorStateType, ChatMessageType, ExoSuitType, MeritCommendation, SquadRequestType}

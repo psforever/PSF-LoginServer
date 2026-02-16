@@ -1,19 +1,17 @@
 // Copyright (c) 2017-2026 PSForever
 package net.psforever.services.galaxy
 
-import net.psforever.services.base.{GenericEventService, GenericMessageEnvelope}
+import net.psforever.services.base.{EventSystemStamp, GenericEventService}
+
+case object GalaxyStamp extends EventSystemStamp
 
 class GalaxyService
-  extends GenericEventService[GalaxyServiceResponse](busName = "Galaxy") {
-  protected def composeResponseEnvelope(msg: GenericMessageEnvelope): GalaxyServiceResponse = {
-    GalaxyServiceResponse(formatChannelOnBusName(msg.channel), msg.msg.response())
-  }
-
-  override protected def formatChannelOnBusName(channel: String): String = {
+  extends GenericEventService(stamp = GalaxyStamp) {
+  override protected def formatChannel(channel: String): String = {
     if (channel.trim.isEmpty) {
-      s"/$BusName"
+      "/all"
     } else {
-      s"/$channel/$BusName"
+      s"/$channel"
     }
   }
 }

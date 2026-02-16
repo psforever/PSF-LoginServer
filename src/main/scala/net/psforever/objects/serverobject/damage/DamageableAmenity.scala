@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.damage
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 
 /**
   * The "control" `Actor` mixin for damage-handling code

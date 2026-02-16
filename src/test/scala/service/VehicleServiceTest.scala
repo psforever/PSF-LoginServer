@@ -15,7 +15,7 @@ class VehicleService1Test extends ActorTest {
 
   "VehicleService" should {
     "construct" in {
-      system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      system.actorOf(Props(classOf[VehicleService]), "v-service")
       assert(true)
     }
   }
@@ -26,7 +26,7 @@ class VehicleService2Test extends ActorTest {
 
   "VehicleService" should {
     "subscribe" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       assert(true)
     }
@@ -38,7 +38,7 @@ class VehicleService3Test extends ActorTest {
 
   "VehicleService" should {
     "subscribe to a specific channel" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! Service.Leave()
       assert(true)
@@ -51,7 +51,7 @@ class VehicleService4Test extends ActorTest {
 
   "VehicleService" should {
     "subscribe" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! Service.LeaveAll()
       assert(true)
@@ -64,7 +64,7 @@ class VehicleService5Test extends ActorTest {
 
   "VehicleService" should {
     "pass an unhandled message" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! "hello"
       expectNoMessage()
@@ -77,7 +77,7 @@ class OwnershipTest extends ActorTest {
 
   "VehicleService" should {
     "pass Awareness" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage("test", PlanetSideGUID(10), VehicleAction.Ownership(PlanetSideGUID(11)))
       expectMsg(
@@ -92,7 +92,7 @@ class ChildObjectStateTest extends ActorTest {
 
   "VehicleService" should {
     "pass ChildObjectState" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage(
         "test",
@@ -115,7 +115,7 @@ class DeployRequestTest extends ActorTest {
 
   "VehicleService" should {
     "pass DeployRequest" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage(
         "test",
@@ -138,7 +138,7 @@ class DismountVehicleTest extends ActorTest {
 
   "VehicleService" should {
     "pass DismountVehicle" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage("test", PlanetSideGUID(10), VehicleAction.DismountVehicle(BailType.Normal, false))
       expectMsg(
@@ -160,7 +160,7 @@ class InventoryStateTest extends ActorTest {
 
   "VehicleService" should {
     "pass InventoryState" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage(
         "test",
@@ -186,7 +186,7 @@ class InventoryState2Test extends ActorTest {
 
   "VehicleService" should {
     "pass InventoryState2" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage(
         "test",
@@ -209,7 +209,7 @@ class KickPassengerTest extends ActorTest {
 
   "VehicleService" should {
     "pass KickPassenger" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage(
         "test",
@@ -235,7 +235,7 @@ class LoadVehicleTest extends ActorTest {
 
   "VehicleService" should {
     "pass LoadVehicle" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage(
         "test",
@@ -258,7 +258,7 @@ class MountVehicleTest extends ActorTest {
 
   "VehicleService" should {
     "pass MountVehicle" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage("test", VehicleAction.MountVehicle(PlanetSideGUID(11), 0))
       expectMsg(
@@ -273,7 +273,7 @@ class SeatPermissionsTest extends ActorTest {
 
   "VehicleService" should {
     "pass SeatPermissions" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage(
         "test",
@@ -300,7 +300,7 @@ class StowEquipmentTest extends ActorTest {
 
   "StowEquipment" should {
     "pass StowEquipment" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage(
         "test",
@@ -323,7 +323,7 @@ class UnstowEquipmentTest extends ActorTest {
 
   "VehicleService" should {
     "pass UnstowEquipment" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage("test", PlanetSideGUID(10), VehicleAction.UnstowEquipment(PlanetSideGUID(11)))
       expectMsg(
@@ -338,7 +338,7 @@ class VehicleStateTest extends ActorTest {
 
   "VehicleService" should {
     "pass VehicleState" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       service ! Service.Join("test")
       service ! VehicleServiceMessage(
         "test",
@@ -372,7 +372,7 @@ class TransferPassengerChannelTest extends ActorTest {
 
   "VehicleService" should {
     "pass TransferPassengerChannel" in {
-      val service = system.actorOf(Props(classOf[VehicleService], Zone.Nowhere), "v-service")
+      val service = system.actorOf(Props(classOf[VehicleService]), "v-service")
       val fury    = Vehicle(GlobalDefinitions.fury)
       fury.Actor = system.actorOf(Props(classOf[VehicleControl], fury), "test-fury")
       service ! Service.Join("test")

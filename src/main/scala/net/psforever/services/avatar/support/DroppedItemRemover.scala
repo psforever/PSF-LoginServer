@@ -5,7 +5,7 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.services.RemoverActor
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.ObjectDelete
+import net.psforever.services.base.message.ObjectDelete
 
 import scala.concurrent.duration._
 

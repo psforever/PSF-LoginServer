@@ -9,7 +9,7 @@ import net.psforever.packet.game.OutfitEventAction.{Initial, Leaving, OutfitInfo
 import net.psforever.packet.game.OutfitMembershipResponse.PacketType.CreateResponse
 import net.psforever.packet.game._
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.chat.OutfitChannel
 import net.psforever.types.ChatMessageType
 import net.psforever.util.Config

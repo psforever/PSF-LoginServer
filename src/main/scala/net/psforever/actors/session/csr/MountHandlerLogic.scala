@@ -15,7 +15,7 @@ import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.vehicles.AccessPermissionGroup
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.packet.game.{ChatMsg, DelayedPathMountMsg, DismountVehicleCargoMsg, DismountVehicleMsg, GenericObjectActionMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectDetachMessage, PlanetsideAttributeMessage, PlayerStasisMessage, PlayerStateShiftMessage, ShiftState}
-import net.psforever.services.base.messages.{SendResponse, SetEmpire}
+import net.psforever.services.base.message.{SendResponse, SetEmpire}
 import net.psforever.services.local.LocalServiceMessage
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{BailType, ChatMessageType, DriveState, PlanetSideGUID, Vector3}

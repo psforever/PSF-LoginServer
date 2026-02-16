@@ -18,8 +18,8 @@ import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
-import net.psforever.services.base.MessageEnvelope
-import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.vehicle.VehicleAction
 
 import scala.concurrent.duration._

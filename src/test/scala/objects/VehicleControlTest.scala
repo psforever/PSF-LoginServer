@@ -25,8 +25,8 @@ import net.psforever.objects.vital.{ShieldCharge, SpawningActivity, Vitality}
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
-import net.psforever.services.base.MessageEnvelope
-import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types._
 

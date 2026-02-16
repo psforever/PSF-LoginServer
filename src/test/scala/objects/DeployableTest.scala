@@ -12,7 +12,7 @@ import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.serverobject.mount.{MountInfo, Mountable, SeatDefinition}
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
-import net.psforever.objects.{TurretDeployable, _}
+import net.psforever.objects._
 import net.psforever.packet.game.{DeployableIcon, DeployableInfo, DeploymentAction}
 import net.psforever.types._
 import org.specs2.mutable.Specification
@@ -25,7 +25,7 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
-import net.psforever.services.base.MessageEnvelope
+import net.psforever.services.base.envelope.MessageEnvelope
 
 import scala.collection.mutable
 import scala.concurrent.duration._

@@ -20,7 +20,7 @@ import net.psforever.objects.zones.exp.{ExperienceCalculator, SupportExperienceC
 import net.psforever.packet.game.{BuildingInfoUpdateMessage, PlanetsideAttributeMessage}
 import net.psforever.util.Database._
 import net.psforever.persistence
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalServiceMessage
 
 import scala.collection.mutable

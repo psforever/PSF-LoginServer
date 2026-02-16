@@ -8,9 +8,8 @@ import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.game.{ChatMsg, DeployableInfo, DeploymentAction, GenericAction, HackState7, ObjectCreateMessage, TriggeredEffect, TriggeredEffectLocation, TriggeredSound}
-import net.psforever.services.base.messages.SendResponse
-import net.psforever.services.base.{EventMessage, EventResponse, SelfRespondingEvent}
+import net.psforever.packet.game.{DeployableInfo, DeploymentAction, GenericAction, HackState7, ObjectCreateMessage, TriggeredEffect, TriggeredEffectLocation, TriggeredSound}
+import net.psforever.services.base.message.{EventMessage, EventResponse, SelfRespondingEvent, SendResponse}
 import net.psforever.services.hart.HartTimer.OrbitalShuttleEvent
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
@@ -58,8 +57,6 @@ object LocalAction {
                                  guid: PlanetSideGUID,
                                  position: Vector3
                                ) extends SelfRespondingEvent
-
-  final case class ChatMessage(msg: ChatMsg) extends SelfRespondingEvent
 
   final case class GenericActionMessage(action_num: GenericAction) extends SelfRespondingEvent
 

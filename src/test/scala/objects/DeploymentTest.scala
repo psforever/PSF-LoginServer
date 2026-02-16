@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
 import net.psforever.objects.zones.{Zone, ZoneMap}
-import net.psforever.services.base.MessageEnvelope
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.types.{DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import org.specs2.mutable.Specification
 import net.psforever.services.vehicle.VehicleAction

@@ -3,40 +3,58 @@ package net.psforever.services.base
 
 import akka.actor.{ActorContext, ActorRef}
 import net.psforever.services.Service
+import net.psforever.services.base.envelope.{GenericMessageEnvelope, GenericResponseEnvelope, MessageTransformationBehavior, NoReply, Undelivered}
+import net.psforever.services.base.message.{EventMessage, EventResponse, SelfRespondingEvent}
 import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.unused
+
+case object NoMessage extends SelfRespondingEvent
+
+case object NoResponseEnvelope extends GenericResponseEnvelope {
+  def reply: EventResponse = NoReply
+  def stamp: EventSystemStamp = Undelivered
+  def channel: String = ""
+  def filter: PlanetSideGUID = Service.defaultPlayerGUID
+}
 
 trait EventServiceSupport {
   def label: String
   def constructor(@unused context: ActorContext): ActorRef
 }
 
-trait GenericMessageToSupportEnvelope
-  extends GenericMessageEnvelope {
+sealed trait GenericMessageToSupport {
   def supportLabel: String
   def supportMessage: Any
 }
 
-trait GenericMessageToSupportEnvelopeOnly
-  extends GenericMessageToSupportEnvelope {
+trait GenericSupportEnvelope
+  extends GenericMessageToSupport
+    with MessageTransformationBehavior
+
+trait GenericSupportEnvelopeOnly
+  extends GenericMessageToSupport
+    with GenericMessageEnvelope {
+  def originalChannel: String = ""
   def channel: String = ""
   def filter: PlanetSideGUID = Service.defaultPlayerGUID
-  def msg: EventMessage = null
+  def msg: EventMessage = NoMessage
+
+  def response(@unused stamp: EventSystemStamp, @unused sendToChannel: String => String): GenericResponseEnvelope = NoResponseEnvelope
 }
 
-abstract class GenericEventServiceWithSupport[OUT <: GenericResponseEnvelope]
+abstract class GenericEventServiceWithSupport
 (
-  busName: String,
+  stamp: EventSystemStamp,
   eventSupportServices: List[EventServiceSupport]
-) extends GenericEventService[OUT](busName) {
+) extends GenericEventService(stamp) {
 
   private val supportServices: Map[String, ActorRef] =
     eventSupportServices
       .map { supportService => (supportService.label, supportService.constructor(context)) }
       .toMap[String, ActorRef]
 
-  private def forwardToSupport(msg: GenericMessageToSupportEnvelope): Unit = {
+  private def forwardToSupport(msg: GenericMessageToSupport): Unit = {
     supportServices
       .get(msg.supportLabel)
       .map { support =>
@@ -50,12 +68,12 @@ abstract class GenericEventServiceWithSupport[OUT <: GenericResponseEnvelope]
 
   override protected def handleMessage(event: GenericMessageEnvelope): Unit = {
     event match {
-      case msg: GenericMessageToSupportEnvelopeOnly =>
+      case msg: GenericSupportEnvelopeOnly =>
         forwardToSupport(msg)
-      case msg: GenericMessageToSupportEnvelope =>
+      case msg: GenericSupportEnvelope =>
         forwardToSupport(msg)
         eventBus.publish(composeResponseEnvelope(event))
-      case _ =>
+      case event =>
         eventBus.publish(composeResponseEnvelope(event))
     }
   }

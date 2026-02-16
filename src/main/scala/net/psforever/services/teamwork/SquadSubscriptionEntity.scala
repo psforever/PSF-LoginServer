@@ -28,7 +28,7 @@ class SquadSubscriptionEntity {
     * @see `Service.Join`
     * @see `Service.Leave`
     */
-  val SquadEvents = new GenericEventBus[SquadServiceResponse]
+  val SquadEvents = new GenericEventBus
 
   /**
     * This collection contains the message-sending contact reference for individuals.

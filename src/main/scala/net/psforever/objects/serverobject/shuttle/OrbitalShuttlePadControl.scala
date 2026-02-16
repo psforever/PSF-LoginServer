@@ -9,7 +9,7 @@ import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.base.support.SupportActor
 import net.psforever.services.local.{DoorMessage, LocalAction}
 import net.psforever.services.hart.{HartTimer, HartTimerActions}

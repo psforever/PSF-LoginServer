@@ -8,12 +8,12 @@ import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
-import net.psforever.objects.{NtuContainer, _}
+import net.psforever.objects._
 import net.psforever.types.DriveState
 import net.psforever.services.vehicle.VehicleServiceMessage
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.serverobject.transfer.TransferContainer.TransferMaterial
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._

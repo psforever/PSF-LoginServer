@@ -17,7 +17,7 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.services.Service
-import net.psforever.services.base.messages.{GenericObjectAction, PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse}
 import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.types._
 

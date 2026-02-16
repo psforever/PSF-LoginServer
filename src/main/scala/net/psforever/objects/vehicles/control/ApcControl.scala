@@ -11,7 +11,7 @@ import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{TriggerEffectMessage, TriggeredEffectLocation}
 import net.psforever.services.Service
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.types.PlanetSideGUID
 

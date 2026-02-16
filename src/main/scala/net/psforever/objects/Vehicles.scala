@@ -14,7 +14,7 @@ import net.psforever.packet.game.{ChatMsg, FrameVehicleStateMessage, GenericObje
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.{GenericObjectAction, PlanetsideAttribute, SendResponse, SetEmpire}
+import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse, SetEmpire}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 

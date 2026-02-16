@@ -6,7 +6,7 @@ import net.psforever.objects.Player
 import net.psforever.types.ExoSuitType
 import net.psforever.services.RemoverActor
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.ObjectDelete
+import net.psforever.services.base.message.ObjectDelete
 
 import scala.concurrent.duration._
 

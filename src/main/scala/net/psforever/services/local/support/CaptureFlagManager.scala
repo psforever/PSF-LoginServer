@@ -15,7 +15,7 @@ import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
-import net.psforever.services.base.messages.{GenericObjectAction, SendResponse}
+import net.psforever.services.base.message.{GenericObjectAction, SendResponse}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{CaptureMessage, LocalAction, LocalServiceMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
@@ -266,7 +266,7 @@ object CaptureFlagManager {
     zone.LocalEvents ! LocalServiceMessage(
       zone.id,
       PlanetSideGUID(-1),
-      LocalAction.ChatMessage(ChatMsg(messageType, wideContents = true, "", message, None))
+      SendResponse(ChatMsg(messageType, wideContents = true, "", message, None))
     )
   }
 

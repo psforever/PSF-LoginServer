@@ -11,7 +11,7 @@ import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectAttachMess
 import net.psforever.types.{BailType, CargoStatus, PlanetSideGUID, Vector3}
 import net.psforever.services.avatar.AvatarServiceMessage
 import net.psforever.services.Service
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.concurrent.duration._

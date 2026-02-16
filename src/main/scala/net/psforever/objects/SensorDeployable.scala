@@ -13,7 +13,7 @@ import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.SimpleResolutions
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.types.{PlanetSideGUID, Vector3}
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.VehicleServiceMessage
 

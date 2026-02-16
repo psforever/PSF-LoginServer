@@ -5,7 +5,7 @@ import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.{Player, Vehicle}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.terminals.Terminal
-import net.psforever.services.base.SelfRespondingEvent
+import net.psforever.services.base.message.SelfRespondingEvent
 import net.psforever.types.PlanetSideGUID
 
 /**

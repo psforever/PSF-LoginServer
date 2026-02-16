@@ -21,7 +21,7 @@ import net.psforever.packet.game._
 import net.psforever.types.{ChatMessageType, ExoSuitType, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.{ObjectDelete, SendResponse}
+import net.psforever.services.base.message.{ObjectDelete, SendResponse}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.annotation.tailrec

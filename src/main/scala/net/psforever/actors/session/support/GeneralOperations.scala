@@ -19,7 +19,7 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.services.RemoverActor
 import net.psforever.services.avatar.GroundEnvelope
-import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.local.support.HackCaptureActor
 import net.psforever.services.local.{CaptureMessage, LocalAction, LocalServiceMessage}
 

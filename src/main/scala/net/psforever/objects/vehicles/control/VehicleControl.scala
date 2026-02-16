@@ -37,7 +37,7 @@ import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.{ObjectDelete, PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 
 import scala.annotation.unused

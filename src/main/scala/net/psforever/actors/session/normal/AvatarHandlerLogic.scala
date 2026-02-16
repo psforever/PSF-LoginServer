@@ -13,8 +13,7 @@ import net.psforever.objects.vital.RevivingActivity
 import net.psforever.objects.vital.interaction.Adversarial
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction, PlanetsideStringAttributeMessage}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.EventResponse
-import net.psforever.services.base.messages.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, GenericObjectAction, HintsAtAttacker, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, SetEmpire, WeaponDryFire}
+import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ConcealPlayer, EventResponse, GenericObjectAction, HintsAtAttacker, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, SetEmpire, WeaponDryFire}
 import net.psforever.types.ImplantType
 
 import scala.concurrent.duration._
@@ -484,9 +483,6 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case SendResponse(msgs) =>
         msgs.foreach(sendResponse)
 
-      case AvatarAction.SendResponseTargeted(targetGuid, msg) if resolvedPlayerGuid == targetGuid =>
-        sendResponse(msg)
-
       /* common messages (maybe once every respawn) */
       case ReloadTool(itemGuid)
         if isNotSameTarget && ops.lastSeenStreamMessage.get(guid.guid).exists { _.visible } =>
@@ -613,7 +609,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       case AvatarAction.ChangeFireMode(itemGuid, mode) if isNotSameTarget =>
         sendResponse(ChangeFireModeMessage(itemGuid, mode))
 
-      case AvatarAction.ConcealPlayer(_) =>
+      case ConcealPlayer(_) =>
         sendResponse(GenericObjectActionMessage(guid, code=9))
 
       case AvatarAction.EnvironmentalDamage(_, _, _) =>

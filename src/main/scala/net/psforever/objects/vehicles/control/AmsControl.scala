@@ -2,7 +2,7 @@
 package net.psforever.objects.vehicles.control
 
 import net.psforever.objects._
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.DriveState
 

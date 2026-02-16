@@ -1,8 +1,7 @@
 // Copyright (c) 2026 PSForever
-package net.psforever.services.base.messages
+package net.psforever.services.base.message
 
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.services.base.SelfRespondingEvent
 
 final case class SendResponse(pkts: Seq[PlanetSideGamePacket]) extends SelfRespondingEvent
 

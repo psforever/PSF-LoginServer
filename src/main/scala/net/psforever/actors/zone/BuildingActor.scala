@@ -11,7 +11,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.ContinentalLockUpdateMessage
 import net.psforever.persistence
-import net.psforever.services.base.messages.{SendResponse, SetEmpire}
+import net.psforever.services.base.message.{SendResponse, SetEmpire}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.LocalServiceMessage
 import net.psforever.services.{InterstellarClusterService, ServiceManager}

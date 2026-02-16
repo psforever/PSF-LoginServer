@@ -16,7 +16,7 @@ import net.psforever.objects.vital.TerminalUsedActivity
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{ExoSuitType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.ObjectDelete
+import net.psforever.services.base.message.ObjectDelete
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

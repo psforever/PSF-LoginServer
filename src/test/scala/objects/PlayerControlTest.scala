@@ -25,8 +25,8 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.packet.game._
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
-import net.psforever.services.base.MessageEnvelope
-import net.psforever.services.base.messages.{HintsAtAttacker, PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{HintsAtAttacker, PlanetsideAttribute, SendResponse}
 
 import scala.concurrent.duration._
 

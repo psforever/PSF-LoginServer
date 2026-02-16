@@ -49,7 +49,7 @@ import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingAc
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
 import net.psforever.persistence
-import net.psforever.services.base.messages.{SendResponse, PlanetsideAttribute}
+import net.psforever.services.base.message.{SendResponse, PlanetsideAttribute}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.{
   CharacterSex,

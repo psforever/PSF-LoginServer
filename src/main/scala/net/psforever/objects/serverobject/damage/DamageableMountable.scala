@@ -8,7 +8,7 @@ import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.{HintsAtAttacker, SendResponse}
+import net.psforever.services.base.message.{HintsAtAttacker, SendResponse}
 
 /**
   * Functions to assist other damage-dealing code for objects that contain users.

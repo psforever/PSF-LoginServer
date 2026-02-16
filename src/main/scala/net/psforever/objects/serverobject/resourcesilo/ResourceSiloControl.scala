@@ -12,7 +12,7 @@ import net.psforever.objects.{GlobalDefinitions, Ntu, NtuContainer, NtuStorageBe
 import net.psforever.types.{ExperienceType, PlanetSideEmpire}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.util.Config
 

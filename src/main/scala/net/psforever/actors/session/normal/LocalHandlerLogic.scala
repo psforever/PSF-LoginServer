@@ -9,8 +9,7 @@ import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable, TelepadDeployable, Tool, TurretDeployable}
 import net.psforever.packet.game.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, HackState1, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, SetEmpireMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
-import net.psforever.services.base.EventResponse
-import net.psforever.services.base.messages.{GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse, SetEmpire}
+import net.psforever.services.base.message.{EventResponse, GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse, SetEmpire}
 import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.local.LocalAction
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, SpawnGroup}
@@ -153,9 +152,6 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
 
       case LocalAction.GenericActionMessage(actionNumber) =>
         sendResponse(GenericActionMessage(actionNumber))
-
-      case LocalAction.ChatMessage(msg) =>
-        sendResponse(msg)
 
       case LocalAction.LluSpawned(llu) =>
         // Create LLU on client

@@ -6,7 +6,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import net.psforever.objects.{Session, SessionSource}
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.base.{EventMessage, EventResponse}
+import net.psforever.services.base.message.{EventMessage, EventResponse}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire}
 
 object ChatService {

@@ -18,7 +18,7 @@ import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.objects.{Default, PlanetSideGameObject, Player}
 import net.psforever.packet.game.{ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ObjectDetectedMessage}
 import net.psforever.services.Service
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalServiceMessage
 import net.psforever.types.{PlanetSideGUID, Vector3}
 

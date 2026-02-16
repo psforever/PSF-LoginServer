@@ -5,7 +5,7 @@ import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.zones.Zone
 import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.services.local.support._
-import net.psforever.services.base.{EventServiceSupport, GenericEventServiceWithSupport, GenericMessageEnvelope}
+import net.psforever.services.base.{EventServiceSupport, EventSystemStamp, GenericEventServiceWithSupport}
 
 case object DoorCloserSupport
   extends EventServiceSupport {
@@ -39,12 +39,10 @@ case class CaptureFlagSupport(zone: Zone)
   }
 }
 
+case object LocalStamp extends EventSystemStamp
+
 class LocalService(zone: Zone)
-  extends GenericEventServiceWithSupport[LocalServiceResponse](
-    busName = "Local",
+  extends GenericEventServiceWithSupport(
+    stamp = LocalStamp,
     eventSupportServices = List(DoorCloserSupport, HackClearSupport, HackCaptureSupport, CaptureFlagSupport(zone))
-  ) {
-  protected def composeResponseEnvelope(msg: GenericMessageEnvelope): LocalServiceResponse = {
-    LocalServiceResponse(formatChannelOnBusName(msg.channel), msg.filter, msg.msg.response())
-  }
-}
+  )

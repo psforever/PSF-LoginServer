@@ -17,8 +17,8 @@ import net.psforever.packet.game.UseItemMessage
 import net.psforever.types._
 import org.specs2.mutable.Specification
 import net.psforever.objects.avatar.Avatar
-import net.psforever.services.base.MessageEnvelope
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.{InterstellarClusterService, Service, ServiceManager}
 import net.psforever.services.galaxy.GalaxyService
 

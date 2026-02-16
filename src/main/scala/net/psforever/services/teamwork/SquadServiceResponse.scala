@@ -6,12 +6,18 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
 import net.psforever.services.Service
+import net.psforever.services.base.message.EventResponse
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadResponseType, SquadWaypoint}
-import net.psforever.services.base.{EventResponse, GenericResponseEnvelope}
+import net.psforever.services.base.EventSystemStamp
+import net.psforever.services.base.envelope.GenericResponseEnvelope
+
+case object SquadStamp extends EventSystemStamp
 
 final case class SquadServiceResponse(channel: String, exclude: Iterable[Long], reply: SquadResponse.Response)
      extends EventResponse with GenericResponseEnvelope {
-  override def filter: PlanetSideGUID = Service.defaultPlayerGUID
+  def filter: PlanetSideGUID = Service.defaultPlayerGUID
+
+  def stamp: EventSystemStamp = SquadStamp
 }
 
 object SquadServiceResponse {

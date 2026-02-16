@@ -36,8 +36,7 @@ import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.services.base.EventMessage
-import net.psforever.services.base.messages.{HintsAtAttacker, ObjectDelete, PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.message.{EventMessage, HintsAtAttacker, ObjectDelete, PlanetsideAttribute, SendResponse}
 import org.joda.time.{LocalDateTime, Seconds}
 
 import scala.concurrent.duration._

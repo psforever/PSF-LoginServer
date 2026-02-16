@@ -13,7 +13,7 @@ import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.participation.MajorFacilityHackParticipation
 import net.psforever.packet.game.{ChatMsg, GenericAction, HackState7, PlanetsideAttributeEnum}
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
 import net.psforever.services.local.{FlagMessage, LocalAction, LocalServiceMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}

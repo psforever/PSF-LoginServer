@@ -9,7 +9,7 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{GenericObjectActionMessage, ObjectCreateMessage, ObjectDeleteMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideGUID
 

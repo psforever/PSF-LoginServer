@@ -1616,7 +1616,7 @@ object Zone {
 
         zone.avatarEvents = context.actorOf(Props(classOf[AvatarService], zone), s"$id-avatar-events")
         zone.localEvents = context.actorOf(Props(classOf[LocalService], zone), s"$id-local-events")
-        zone.vehicleEvents = context.actorOf(Props(classOf[VehicleService], zone), s"$id-vehicle-events")
+        zone.vehicleEvents = context.actorOf(Props(classOf[VehicleService]), s"$id-vehicle-events")
 
         zone.timeOfDayOrigin = System.currentTimeMillis()
 

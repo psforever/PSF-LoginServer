@@ -4,7 +4,9 @@ package net.psforever.services.avatar
 import net.psforever.objects.zones.Zone
 import net.psforever.services.{RemoverActor, Service}
 import net.psforever.services.avatar.AvatarAction.{DropItem, PickupItem, Release}
-import net.psforever.services.base.{EventMessage, GenericMessageToSupportEnvelope, GenericMessageToSupportEnvelopeOnly, MessageEnvelope}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.EventMessage
+import net.psforever.services.base.{GenericSupportEnvelope, GenericSupportEnvelopeOnly}
 import net.psforever.types.PlanetSideGUID
 
 object AvatarServiceMessage {
@@ -16,11 +18,11 @@ object AvatarServiceMessage {
 }
 
 final case class ReleaseMessage(
-                                 channel: String,
+                                 originalChannel: String,
                                  filter: PlanetSideGUID,
                                  msg: Release
                                )
-  extends GenericMessageToSupportEnvelope {
+  extends GenericSupportEnvelope {
   def supportLabel: String = "undertaker"
   def supportMessage: Any = {
     val Release(player, zone, time) = msg
@@ -34,12 +36,12 @@ object ReleaseMessage {
 }
 
 final case class PickupItemMessage(
-                                    channel: String,
+                                    originalChannel: String,
                                     filter: PlanetSideGUID,
                                     msg: PickupItem,
                                     zone: Zone
                                   )
-  extends GenericMessageToSupportEnvelope {
+  extends GenericSupportEnvelope {
   def supportLabel: String = "janitor"
   def supportMessage: Any = {
     val PickupItem(item, _) = msg
@@ -53,12 +55,12 @@ object PickupItemMessage {
 }
 
 final case class DropItemMessage(
-                                  channel: String,
+                                  originalChannel: String,
                                   filter: PlanetSideGUID,
                                   msg: DropItem,
                                   zone: Zone
                                 )
-  extends GenericMessageToSupportEnvelope {
+  extends GenericSupportEnvelope {
   def supportLabel: String = "janitor"
   def supportMessage: Any = {
     val DropItem(item) = msg
@@ -72,11 +74,11 @@ object DropItemMessage {
 }
 
 final case class CorpseEnvelope(supportMessage: Any)
-  extends GenericMessageToSupportEnvelopeOnly {
+  extends GenericSupportEnvelopeOnly {
   def supportLabel: String = "undertaker"
 }
 
 final case class GroundEnvelope(supportMessage: Any)
-  extends GenericMessageToSupportEnvelopeOnly {
+  extends GenericSupportEnvelopeOnly {
   def supportLabel: String = "janitor"
 }

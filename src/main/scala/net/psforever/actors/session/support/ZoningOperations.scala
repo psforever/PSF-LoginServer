@@ -23,7 +23,7 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.GenericAction.FirstPersonViewWithEffect
 import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TriggeredSound, TrainingZoneMessage, WeatherMessage}
 import net.psforever.services.avatar.{CorpseEnvelope, ReleaseMessage}
-import net.psforever.services.base.messages.{GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.message.{GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.chat.DefaultChannel
 
 import scala.concurrent.duration._

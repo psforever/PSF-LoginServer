@@ -10,11 +10,9 @@ import net.psforever.objects.serverobject.environment.interaction.common.Watery.
 import net.psforever.objects.sourcing.{SourceEntry, UniquePlayer}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
-import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{ImplantAction, ObjectCreateMessage}
 import net.psforever.packet.game.objectcreate.{ConstructorData, DroppedItemData, ObjectCreateMessageParent, PlacementData}
-import net.psforever.services.base.messages.ObjectDelete
-import net.psforever.services.base.{EventMessage, EventResponse, SelfRespondingEvent}
+import net.psforever.services.base.message.{EventMessage, EventResponse, ObjectDelete, SelfRespondingEvent}
 import net.psforever.types.{ExoSuitType, ExperienceType, PlanetSideGUID, TransactionType, Vector3}
 
 import scala.concurrent.duration.FiniteDuration
@@ -25,8 +23,6 @@ object AvatarAction {
   final case class AvatarImplant(action: ImplantAction.Value, implantSlot: Int, status: Int) extends SelfRespondingEvent
 
   final case class ChangeFireMode(item_guid: PlanetSideGUID, mode: Int) extends SelfRespondingEvent
-
-  final case class ConcealPlayer(player_guid: PlanetSideGUID) extends SelfRespondingEvent
 
   final case class EnvironmentalDamage(player_guid: PlanetSideGUID, source_guid: PlanetSideGUID, amount: Int) extends SelfRespondingEvent
 
@@ -152,8 +148,6 @@ object AvatarAction {
 
   final case class StowEquipment(target_guid: PlanetSideGUID, slot: Int, item: Equipment)
     extends SelfRespondingEvent
-
-  final case class SendResponseTargeted(target_guid: PlanetSideGUID, msg: PlanetSideGamePacket) extends SelfRespondingEvent
 
   final case class TerminalOrderResult(terminal_guid: PlanetSideGUID, action: TransactionType.Value, result: Boolean)
     extends SelfRespondingEvent

@@ -14,7 +14,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.TriggerEffectMessage
 import net.psforever.types.{PlanetSideGeneratorState, Vector3}
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global

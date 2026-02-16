@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game.{ChatMsg, PlayerStateShiftMessage, ShiftState}
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.hart.ShuttleState
 import net.psforever.types.ChatMessageType
 

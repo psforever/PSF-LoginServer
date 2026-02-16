@@ -9,7 +9,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 
 /**
   * The "control" `Actor` mixin for damage-handling code,

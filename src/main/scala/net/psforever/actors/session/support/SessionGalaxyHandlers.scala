@@ -3,7 +3,7 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.packet.game.FriendsResponse
-import net.psforever.services.base.EventResponse
+import net.psforever.services.base.message.EventResponse
 
 import scala.annotation.unused
 //

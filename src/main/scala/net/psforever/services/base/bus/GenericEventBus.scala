@@ -3,19 +3,11 @@ package net.psforever.services.base.bus
 
 import akka.event.{ActorEventBus, SubchannelClassification}
 import akka.util.Subclassification
-import net.psforever.types.PlanetSideGUID
+import net.psforever.services.base.envelope.GenericResponseEnvelope
 
-trait AllGenericBusMsg {
-  def channel: String
-  def filter: PlanetSideGUID
-}
-
-trait GenericEventBusResponse
-  extends AllGenericBusMsg
-
-class GenericEventBus[A <: GenericEventBusResponse]
+class GenericEventBus
   extends ActorEventBus with SubchannelClassification {
-  type Event = A
+  type Event = GenericResponseEnvelope
   type Classifier = String
 
   protected def classify(event: Event): Classifier = event.channel

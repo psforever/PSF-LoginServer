@@ -2,9 +2,8 @@
 package net.psforever.services.avatar
 
 import akka.actor.{ActorContext, ActorRef, Props}
-import net.psforever.objects.zones.Zone
 import net.psforever.services.avatar.support.{CorpseRemovalActor, DroppedItemRemover}
-import net.psforever.services.base.{EventServiceSupport, GenericEventServiceWithCacheAndSupport, GenericMessageEnvelope}
+import net.psforever.services.base.{EventServiceSupport, EventSystemStamp, GenericEventServiceWithCacheAndSupport}
 
 case object CorpseRemovalSupport
   extends EventServiceSupport {
@@ -22,12 +21,10 @@ case object LitterRemovalSupport
   }
 }
 
-class AvatarService(zone: Zone)
-  extends GenericEventServiceWithCacheAndSupport[AvatarServiceResponse](
-    busName = "Avatar",
+case object AvatarStamp extends EventSystemStamp
+
+class AvatarService
+  extends GenericEventServiceWithCacheAndSupport(
+    stamp = AvatarStamp,
     eventSupportServices = List(CorpseRemovalSupport, LitterRemovalSupport)
-  ) {
-  protected def composeResponseEnvelope(msg: GenericMessageEnvelope): AvatarServiceResponse = {
-    AvatarServiceResponse(formatChannelOnBusName(msg.channel), msg.filter, msg.msg.response())
-  }
-}
+  )

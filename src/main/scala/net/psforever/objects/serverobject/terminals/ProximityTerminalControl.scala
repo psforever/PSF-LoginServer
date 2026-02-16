@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.HackState1
-import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.local.HackClearMessage
 import net.psforever.services.local.support.HackClearActor
 import org.log4s.Logger

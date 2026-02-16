@@ -12,7 +12,7 @@ import net.psforever.objects.vital.etc.TriggerUsedReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones.Zone
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.ObjectDelete
+import net.psforever.services.base.message.ObjectDelete
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideEmpire
 

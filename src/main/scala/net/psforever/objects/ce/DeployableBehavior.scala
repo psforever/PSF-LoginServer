@@ -8,7 +8,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.SetEmpire
+import net.psforever.services.base.message.SetEmpire
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideEmpire
 

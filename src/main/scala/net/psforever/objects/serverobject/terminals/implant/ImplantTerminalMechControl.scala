@@ -16,7 +16,7 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
 import net.psforever.packet.game.HackState1
-import net.psforever.services.base.messages.SetEmpire
+import net.psforever.services.base.message.SetEmpire
 import net.psforever.services.local.LocalServiceMessage
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}

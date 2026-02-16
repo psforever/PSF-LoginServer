@@ -5,7 +5,7 @@ import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.Vehicle
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.base.EventResponse
+import net.psforever.services.base.message.EventResponse
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideGUID}
 
 trait VehicleHandlerFunctions extends CommonSessionInterfacingFunctionality {

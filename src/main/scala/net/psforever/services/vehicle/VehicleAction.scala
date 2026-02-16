@@ -8,13 +8,11 @@ import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ObjectCreateMessage
 import net.psforever.packet.game.objectcreate.{ConstructorData, ObjectCreateMessageParent}
-import net.psforever.services.base.{EventMessage, EventResponse, SelfRespondingEvent}
+import net.psforever.services.base.message.{EventMessage, EventResponse, SelfRespondingEvent}
 import net.psforever.types.{BailType, DriveState, PlanetSideGUID, Vector3}
 
 object VehicleAction {
   final case class ChildObjectState(object_guid: PlanetSideGUID, pitch: Float, yaw: Float) extends SelfRespondingEvent
-
-  final case class ConcealPlayer(player_guid: PlanetSideGUID) extends SelfRespondingEvent
 
   final case class DeployRequest(
                                   object_guid: PlanetSideGUID,
@@ -81,8 +79,6 @@ object VehicleAction {
   final case class Ownership(vehicle_guid: PlanetSideGUID) extends SelfRespondingEvent
 
   final case class LoseOwnership(owner_guid: PlanetSideGUID, vehicle_guid: PlanetSideGUID) extends SelfRespondingEvent
-
-  final case class RevealPlayer(player_guid: PlanetSideGUID) extends EventResponse
 
   final case class SeatPermissions(vehicle_guid: PlanetSideGUID, seat_group: Int, permission: Long) extends SelfRespondingEvent
 

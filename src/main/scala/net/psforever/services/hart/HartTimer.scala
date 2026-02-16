@@ -5,8 +5,10 @@ import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.objects.zones.Zone
 import net.psforever.services.Service
-import net.psforever.services.base.bus.{GenericEventBus, GenericEventBusResponse}
-import net.psforever.services.base.EventResponse
+import net.psforever.services.base.EventSystemStamp
+import net.psforever.services.base.bus.GenericEventBus
+import net.psforever.services.base.envelope.{GenericResponseEnvelope, NoReply}
+import net.psforever.services.base.message.EventResponse
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{HartSequence, PlanetSideGUID}
 
@@ -45,7 +47,7 @@ class HartTimer(zone: Zone) extends Actor {
   var timer: Cancellable = Default.Cancellable
 
   /** a message bus to which all associated orbital shuttle pads are subscribed */
-  val padEvents = new GenericEventBus[HartTimer.Command]
+  val padEvents = new GenericEventBus
   /** cache common messages */
   val shuttleDockedInThisZone: HartTimer.ShuttleDocked = HartTimer.ShuttleDocked(zoneId)
   val shuttleFreeFromDockInThisZone: HartTimer.ShuttleFreeFromDock = HartTimer.ShuttleFreeFromDock(zoneId)
@@ -256,17 +258,22 @@ object HartTimer {
                                         pairs: List[((PlanetSideGUID, PlanetSideGUID), Int)]
                                       )
 
+  case object HartStamp extends EventSystemStamp
+
   /**
     * Design for the envelop for the message bus
     * to relay instructions back to the individual facility amenity portions of this HART system.
     * The channel is blank because it does not need special designation.
     */
-  trait Command extends EventResponse with GenericEventBusResponse {
+  trait Command extends GenericResponseEnvelope {
+    def originalChannel: String = ""
     def channel: String = ""
     def filter: PlanetSideGUID = Service.defaultPlayerGUID
+    def stamp: EventSystemStamp = HartStamp
+    def reply: EventResponse = NoReply
   }
   /**
-    * Forbid entry through the boartding gantry doors.
+    * Forbid entry through the boarding gantry doors.
     */
   case object LockDoors extends Command
   /**

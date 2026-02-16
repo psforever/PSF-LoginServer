@@ -15,7 +15,7 @@ import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalServiceMessage
 
 import scala.collection.mutable

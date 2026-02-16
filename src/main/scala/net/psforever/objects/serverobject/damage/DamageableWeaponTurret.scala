@@ -10,7 +10,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types.Vector3
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.{ObjectDelete, PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.base.support.SupportActor
 import net.psforever.services.vehicle.support.TurretUpgrader
 import net.psforever.services.vehicle.{TurretMessage, VehicleServiceMessage}

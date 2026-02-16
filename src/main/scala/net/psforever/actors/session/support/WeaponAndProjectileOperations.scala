@@ -29,7 +29,7 @@ import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.UplinkRequest
 import net.psforever.services.Service
 import net.psforever.services.base.CachedMessage
-import net.psforever.services.base.messages.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ReloadTool, SendResponse, WeaponDryFire}
+import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ReloadTool, SendResponse, WeaponDryFire}
 import net.psforever.services.local.LocalServiceMessage
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, ValidPlanetSideGUID, Vector3}
 import net.psforever.util.Config

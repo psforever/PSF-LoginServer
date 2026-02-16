@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.structures.participation
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.sourcing.UniquePlayer
-import net.psforever.services.base.messages.GenericObjectAction
+import net.psforever.services.base.message.GenericObjectAction
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.collection.mutable

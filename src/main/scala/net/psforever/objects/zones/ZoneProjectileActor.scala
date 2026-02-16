@@ -6,7 +6,7 @@ import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.guid.{GUIDTask, StraightforwardTask, TaskBundle, TaskWorkflow}
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.ObjectDelete
+import net.psforever.services.base.message.ObjectDelete
 import net.psforever.types.PlanetSideGUID
 
 import scala.collection.mutable

@@ -13,7 +13,7 @@ import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
 import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.{ChangeFireModeMessage, HackState1}
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.vehicle.support.TurretUpgrader
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{BailType, PlanetSideEmpire, PlanetSideGUID}

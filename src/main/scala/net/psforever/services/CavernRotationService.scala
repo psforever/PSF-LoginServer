@@ -12,7 +12,7 @@ import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage, GalaxyServiceResponse}
 import net.psforever.types.ChatMessageType
 import net.psforever.util.Config

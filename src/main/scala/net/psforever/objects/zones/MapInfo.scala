@@ -4,9 +4,8 @@ import enumeratum.values.{StringEnum, StringEnumEntry}
 import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.serverobject.environment._
 import net.psforever.packet.game.{ChatMsg, OffshoreVehicleMessage}
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
@@ -690,10 +689,7 @@ object MapEnvironment {
           val warning = s"Do not travel any further $trespass of the battlefield or you$punishment"
           p.Zone.AvatarEvents ! AvatarServiceMessage(
             p.Name,
-            AvatarAction.SendResponseTargeted(
-              Service.defaultPlayerGUID,
-              ChatMsg(ChatMessageType.CMT_QUIT, warning)
-            )
+            SendResponse(ChatMsg(ChatMessageType.CMT_QUIT, warning))
           )
         case _ => ;
       }

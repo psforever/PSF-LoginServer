@@ -9,8 +9,7 @@ import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage, AvatarServiceResponse}
-import net.psforever.services.base.EventResponse
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.{EventResponse, SendResponse}
 import net.psforever.services.chat.OutfitChannel
 
 import scala.collection.mutable

@@ -6,7 +6,7 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.{Player, Tool, TurretDeployable}
 import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, InventoryStateMessage}
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.{SendResponse, SetEmpire}
+import net.psforever.services.base.message.{SendResponse, SetEmpire}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.vehicle.support.TurretUpgrader
 import net.psforever.services.vehicle.{TurretMessage, VehicleAction, VehicleServiceMessage}

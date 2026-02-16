@@ -8,7 +8,7 @@ import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.{Zone, ZoneAware}
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.types.Vector3
 import net.psforever.services.vehicle.VehicleServiceMessage
 

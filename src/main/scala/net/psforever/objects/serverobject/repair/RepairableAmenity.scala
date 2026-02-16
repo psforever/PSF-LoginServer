@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.sourcing.{SourceEntry, SourceWithHealthEntry}
 import net.psforever.objects.vital.{DamagingActivity, RepairFromEquipment, SpawningActivity}
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.PlanetsideAttribute
+import net.psforever.services.base.message.PlanetsideAttribute
 
 /**
   * The "control" `Actor` mixin for repair-handling code

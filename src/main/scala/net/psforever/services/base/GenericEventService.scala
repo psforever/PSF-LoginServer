@@ -3,32 +3,23 @@ package net.psforever.services.base
 
 import akka.actor.Actor
 import net.psforever.services.Service
-import net.psforever.services.base.bus.{AllGenericBusMsg, GenericEventBus, GenericEventBusResponse}
+import net.psforever.services.base.bus.GenericEventBus
+import net.psforever.services.base.envelope.{GenericMessageEnvelope, GenericResponseEnvelope}
 import org.log4s.Logger
 
 import scala.annotation.unused
 
-trait GenericResponseEnvelope
-  extends GenericEventBusResponse {
-  def reply: EventResponse
-}
+trait EventSystemStamp
 
-trait GenericMessageEnvelope
-  extends AllGenericBusMsg {
-  def msg: EventMessage
-}
-
-abstract class GenericEventService[OUT <: GenericResponseEnvelope](busName: String)
+abstract class GenericEventService(stamp: EventSystemStamp)
   extends Actor {
   protected lazy val log: Logger = org.log4s.getLogger(getClass.getSimpleName)
 
-  protected val eventBus: GenericEventBus[OUT] = new GenericEventBus[OUT]
-
-  def BusName: String = busName
+  protected val eventBus: GenericEventBus = new GenericEventBus
 
   private def commonJoinBehavior: Receive = {
     case Service.Join(channel) =>
-      val path = formatChannelOnBusName(channel)
+      val path = formatChannel(channel)
       val who  = sender()
       eventBus.subscribe(who, path)
   }
@@ -38,7 +29,7 @@ abstract class GenericEventService[OUT <: GenericResponseEnvelope](busName: Stri
       eventBus.unsubscribe(sender())
 
     case Service.Leave(Some(channel)) =>
-      val path = formatChannelOnBusName(channel)
+      val path = formatChannel(channel)
       eventBus.unsubscribe(sender(), path)
 
     case Service.LeaveAll() =>
@@ -62,7 +53,9 @@ abstract class GenericEventService[OUT <: GenericResponseEnvelope](busName: Stri
     eventBus.publish(composeResponseEnvelope(msg))
   }
 
-  protected def composeResponseEnvelope(@unused msg: GenericMessageEnvelope): OUT
+  protected def composeResponseEnvelope(@unused msg: GenericMessageEnvelope): GenericResponseEnvelope = {
+    msg.response(stamp, formatChannel)
+  }
 
-  protected def formatChannelOnBusName(channel: String): String = s"/$channel/$busName"
+  protected def formatChannel(channel: String): String = s"/$channel"
 }

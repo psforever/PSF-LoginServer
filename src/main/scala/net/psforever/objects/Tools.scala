@@ -4,7 +4,7 @@ package net.psforever.objects
 import net.psforever.objects.equipment.ChargeFireModeDefinition
 import net.psforever.packet.game.QuantityUpdateMessage
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 
 object Tools {
   /**

@@ -15,8 +15,8 @@ import net.psforever.objects.vehicles.{Utility, UtilityType}
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game._
-import net.psforever.services.base.MessageEnvelope
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalAction
 import net.psforever.types.{DriveState, PlanetSideGUID, Vector3}
 

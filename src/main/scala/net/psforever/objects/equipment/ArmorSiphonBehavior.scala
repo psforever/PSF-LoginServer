@@ -10,7 +10,7 @@ import net.psforever.objects.vital.RepairFromArmorSiphon
 import net.psforever.objects.vital.etc.{ArmorSiphonModifiers, ArmorSiphonReason}
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.packet.game.QuantityUpdateMessage
-import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.types.PlanetSideGUID
 

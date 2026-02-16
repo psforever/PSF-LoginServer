@@ -9,7 +9,7 @@ import net.psforever.objects.{Player, Tool}
 import net.psforever.packet.game.{ChatMsg, InventoryStateMessage, RepairMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.messages.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 
 /**
   * The "control" `Actor` mixin for repair-handling code,

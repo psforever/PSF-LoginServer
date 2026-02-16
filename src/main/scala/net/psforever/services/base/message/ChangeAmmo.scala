@@ -1,8 +1,7 @@
 // Copyright (c) 2026 PSForever
-package net.psforever.services.base.messages
+package net.psforever.services.base.message
 
 import net.psforever.packet.game.objectcreate.ConstructorData
-import net.psforever.services.base.SelfRespondingEvent
 import net.psforever.types.PlanetSideGUID
 
 final case class ChangeAmmo(

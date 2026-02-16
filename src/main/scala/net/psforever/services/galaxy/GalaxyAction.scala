@@ -5,7 +5,7 @@ import net.psforever.objects.Vehicle
 import net.psforever.objects.vehicles.VehicleManifest
 import net.psforever.objects.zones.{HotSpotInfo, Zone}
 import net.psforever.packet.game.{BuildingInfoUpdateMessage, CaptureFlagUpdateMessage}
-import net.psforever.services.base.SelfRespondingEvent
+import net.psforever.services.base.message.SelfRespondingEvent
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 object GalaxyAction {

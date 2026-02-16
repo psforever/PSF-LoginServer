@@ -10,7 +10,7 @@ import net.psforever.objects.sourcing.ObjectSource
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.vital.SpawningActivity
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.base.messages.SendResponse
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalServiceMessage
 import net.psforever.types.ChatMessageType
 

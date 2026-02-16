@@ -18,12 +18,13 @@ import net.psforever.services.CavernRotationService
 import net.psforever.services.CavernRotationService.SendCavernRotationUpdates
 import net.psforever.services.ServiceManager.LookupResult
 import net.psforever.services.account.{PlayerToken, ReceiveAccountData}
-import net.psforever.services.avatar.AvatarServiceResponse
+import net.psforever.services.avatar.AvatarStamp
+import net.psforever.services.base.envelope.{GenericResponseEnvelope, Undelivered}
 import net.psforever.services.chat.ChatService
-import net.psforever.services.galaxy.GalaxyServiceResponse
-import net.psforever.services.local.LocalServiceResponse
+import net.psforever.services.galaxy.GalaxyStamp
+import net.psforever.services.local.LocalStamp
 import net.psforever.services.teamwork.SquadServiceResponse
-import net.psforever.services.vehicle.VehicleServiceResponse
+import net.psforever.services.vehicle.VehicleStamp
 import org.joda.time.LocalDateTime
 import org.log4s.MDC
 
@@ -170,26 +171,31 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case packet: PlanetSideGamePacket =>
       handleGamePkt(packet)
 
-    case AvatarServiceResponse(toChannel, guid, reply) =>
-      logic.avatarResponse.handle(toChannel, guid, reply)
+    case SquadServiceResponse(_, excluded, reply) =>
+      logic.squad.handle(reply, excluded)
 
-    case GalaxyServiceResponse(_, reply) =>
-      logic.galaxy.handle(reply)
-
-    case LocalServiceResponse(toChannel, guid, reply) =>
-      logic.local.handle(toChannel, guid, reply)
+    case envelope: GenericResponseEnvelope =>
+      val GenericResponseEnvelope(toChannel, guid, reply) = envelope
+      envelope.stamp match {
+        case AvatarStamp =>
+          logic.avatarResponse.handle(toChannel, guid, reply)
+        case LocalStamp =>
+          logic.local.handle(toChannel, guid, reply)
+        case VehicleStamp =>
+          logic.vehicleResponse.handle(toChannel, guid, reply)
+        case GalaxyStamp =>
+          logic.galaxy.handle(reply)
+        case Undelivered =>
+          log.error(s"received a message's response that was not delivered by an event system - $reply")
+        case unknownStamp =>
+          log.error(s"received a message's response from an unknown event system - stamp: $unknownStamp")
+      }
 
     case Mountable.MountMessages(tplayer, reply) =>
       logic.mountResponse.handle(tplayer, reply)
 
-    case SquadServiceResponse(_, excluded, response) =>
-      logic.squad.handle(response, excluded)
-
     case Terminal.TerminalMessage(tplayer, msg, order) =>
       logic.terminals.handle(tplayer, msg, order)
-
-    case VehicleServiceResponse(toChannel, guid, reply) =>
-      logic.vehicleResponse.handle(toChannel, guid, reply)
 
     case ChatService.MessageResponse(fromSession, message, _) =>
       logic.chat.handleIncomingMessage(message, fromSession)
