@@ -9,8 +9,8 @@ import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.structures.PoweredAmenityControl
 import net.psforever.services.Service
 import net.psforever.services.base.support.SupportActor
-import net.psforever.services.local.support.DoorCloseActor
-import net.psforever.services.local.{DoorMessage, LocalAction, LocalServiceResponse}
+import net.psforever.services.local.support.{DoorCloseActor, DoorMessage}
+import net.psforever.services.local.{LocalAction, LocalServiceResponse}
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Door`.

@@ -1,8 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.locks
 
-import net.psforever.services.local.support.HackClearActor
-import net.psforever.services.local.HackClearMessage
+import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope}
 
 object IFFLocks {
 
@@ -14,6 +13,6 @@ object IFFLocks {
     */
   def FinishResecuringIFFLock(lock: IFFLock)(): Unit = {
     val zone = lock.Zone
-    lock.Zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(lock))
+    lock.Zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(lock))
   }
 }

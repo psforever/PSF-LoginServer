@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.zones.Zone
+import net.psforever.services.base.GenericSupportEnvelopeOnly
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.base.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
@@ -16,6 +17,11 @@ import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+
+final case class TurretEnvelope(supportMessage: Any)
+  extends GenericSupportEnvelopeOnly {
+  def supportLabel: String = "turretUpgrader"
+}
 
 class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
   var task: Cancellable = Default.Cancellable

@@ -563,7 +563,7 @@ class PlayerControlDeathStandingTest extends ActorTest {
       )
       assert(
         msg_avatar(1) match {
-          case MessageEnvelope("TestCharacter2", _, AvatarAction.Killed(PlanetSideGUID(2), _, None)) => true
+          case MessageEnvelope("TestCharacter2", _, AvatarAction.Killed(_, None)) => true
           case _                                                                                    => false
         }
       )

@@ -702,15 +702,18 @@ object GridInventory {
     */
   private def sortKnapsack(list: List[InventoryItem], width: Int, height: Int): Unit = {
     val root = new KnapsackNode(0, 0, width, height)
-    list.foreach(item => {
-      findKnapsackSpace(root, item.obj.Tile.Width, item.obj.Tile.Height) match {
+    list.foreach { item =>
+      val tile = item.obj.Tile
+      val twidth = tile.Width
+      val theight = tile.Height
+      findKnapsackSpace(root, twidth, theight) match {
         case Some(node) =>
-          splitKnapsackSpace(node, item.obj.Tile.Width, item.obj.Tile.Height)
+          splitKnapsackSpace(node, twidth, theight)
           item.start = node.y * width + node.x
-        case _ => ;
+        case _ =>
           item.start = -1
       }
-    })
+    }
   }
 
   /**
@@ -720,42 +723,32 @@ object GridInventory {
     * Horizontal space for the `down` child is emphasized over vertical space for the `right` child.
     * By dividing and reducing a defined space like this, it can be tightly packed with a given number of elements.<br>
     * <br>
-    * Due to the nature of the knapsack problem and the naivette of the algorithm, small holes in the solution are bound to crop-up.
+    * Due to the nature of the knapsack problem and the naivete of the algorithm, small holes in the solution are bound to crop-up.
     * @param x the x-coordinate, upper left corner
     * @param y the y-coordinate, upper left corner
     * @param width the width
     * @param height the height
     */
-  private class KnapsackNode(var x: Int, var y: Int, var width: Int, var height: Int) {
-    private var used: Boolean       = false
-    var down: Option[KnapsackNode]  = None
-    var right: Option[KnapsackNode] = None
+  private class KnapsackNode(val x: Int, val y: Int, val width: Int, val height: Int) {
+    private var used: Boolean = false
+    private var down: Option[KnapsackNode] = None
+    private var right: Option[KnapsackNode] = None
 
     def Used: Boolean = used
 
-    /**
-      * Initialize the `down` and `right` children of this node.
-      */
-    def Split(): Unit = {
-      used = true
-      down = Some(new KnapsackNode(0, 0, 0, 0))
-      right = Some(new KnapsackNode(0, 0, 0, 0))
-    }
+    def Down: Option[KnapsackNode] = down
+
+    def Right: Option[KnapsackNode] = right
 
     /**
-      * Change the dimensions of the node.<br>
-      * <br>
-      * Use: `{node}(nx, ny, nw, nh)`
-      * @param nx the new x-coordinate, upper left corner
-      * @param ny the new y-coordinate, upper left corner
-      * @param nw the new width
-      * @param nh the new height
-      */
-    def apply(nx: Int, ny: Int, nw: Int, nh: Int): Unit = {
-      x = nx
-      y = ny
-      width = nw
-      height = nh
+     * Initialize the `down` and `right` children of this node.
+     * @param insertDown new "down" knapsack division
+     * @param insertRight new "right" knapsack division
+     */
+    def Split(insertDown: KnapsackNode, insertRight: KnapsackNode): Unit = {
+      used = true
+      down = Some(insertDown)
+      right = Some(insertRight)
     }
   }
 
@@ -768,7 +761,7 @@ object GridInventory {
     */
   private def findKnapsackSpace(node: KnapsackNode, width: Int, height: Int): Option[KnapsackNode] = {
     if (node.Used) {
-      findKnapsackSpace(node.right.get, width, height).orElse(findKnapsackSpace(node.down.get, width, height))
+      findKnapsackSpace(node.Right.get, width, height).orElse(findKnapsackSpace(node.Down.get, width, height))
     } else if (width <= node.width && height <= node.height) {
       Some(node)
     } else {
@@ -787,13 +780,14 @@ object GridInventory {
     * @param height height of the element
     */
   private def splitKnapsackSpace(node: KnapsackNode, width: Int, height: Int): Unit = {
-    node.Split()
-    node.down.get(node.x, node.y + height, node.width, node.height - height)
-    node.right.get(node.x + width, node.y, node.width - width, height)
+    node.Split(
+      new KnapsackNode(node.x, node.y + height, node.width, node.height - height),
+      new KnapsackNode(node.x + width, node.y, node.width - width, height)
+    )
   }
 
   def toPrintedList(inv: GridInventory): String = {
-    val list = new StringBuilder
+    val list = new mutable.StringBuilder
     list.append("\n")
     inv.Items.zipWithIndex.foreach {
       case (InventoryItem(obj, start), index) =>
@@ -803,6 +797,6 @@ object GridInventory {
   }
 
   def toPrintedGrid(inv: GridInventory): String = {
-    new StringBuilder().append("\n").append(inv.grid.toSeq.grouped(inv.width).mkString("\n")).toString
+    new mutable.StringBuilder().append("\n").append(inv.grid.toSeq.grouped(inv.width).mkString("\n")).toString
   }
 }

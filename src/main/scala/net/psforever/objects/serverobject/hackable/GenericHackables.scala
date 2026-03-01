@@ -13,8 +13,8 @@ import net.psforever.packet.game.{GenericObjectActionMessage, HackMessage, HackS
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 import net.psforever.services.avatar.AvatarServiceMessage
 import net.psforever.services.base.message.SendResponse
-import net.psforever.services.local.support.HackClearActor
-import net.psforever.services.local.{HackClearMessage, HackEntityMessage, LocalAction, LocalServiceMessage}
+import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope, HackEntityEnvelope}
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.annotation.unused
 import scala.util.{Failure, Success}
@@ -177,7 +177,7 @@ object GenericHackables {
             LocalAction.TriggerSound(target.HackSound, tplayer.Position, 30, 0.49803925f)
           )
           val duration = target.HackEffectDuration(user.avatar.hackingSkillLevel())
-          zone.LocalEvents ! HackEntityMessage(
+          zone.LocalEvents ! HackEntityEnvelope(
             zoneId,
             pguid,
             LocalAction.HackObject(target.GUID, hackValue, HackState7.Unk8),
@@ -206,7 +206,7 @@ object GenericHackables {
             val currVirus = building.virusId
             building.virusId = 8
             building.virusInstalledBy = None
-            zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(target))
+            zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(target))
             zone.LocalEvents ! LocalServiceMessage(
               zone.id,
               SendResponse(GenericObjectActionMessage(target.GUID, 60))
@@ -214,11 +214,11 @@ object GenericHackables {
             currVirus match {
               case 0L =>
                 building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach { iff =>
-                  zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(iff))
+                  zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(iff))
                 }
               case 4L =>
                 building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach { term =>
-                  zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(term))
+                  zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(term))
                 }
               case _ => ()
             }
@@ -232,13 +232,13 @@ object GenericHackables {
               case 0L =>
                 if (virus != 0) {
                   building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach { iff =>
-                    zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(iff))
+                    zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(iff))
                   }
                 }
               case 4L =>
                 if (virus != 4) {
                   building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach { term =>
-                    zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(term))
+                    zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(term))
                   }
                 }
               case _ => ()
@@ -266,7 +266,7 @@ object GenericHackables {
               pguid,
               LocalAction.TriggerSound(TriggeredSound.TREKSuccessful, tplayer.Position, 30, 0.49803925f)
             )
-            zone.LocalEvents ! HackEntityMessage(
+            zone.LocalEvents ! HackEntityEnvelope(
               zoneId,
               pguid,
               LocalAction.HackObject(target.GUID, installedVirusDuration.toLong, hackState),
@@ -285,7 +285,7 @@ object GenericHackables {
               case 0L =>
                 building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.lock_external).foreach{ iff =>
                   iff.HackedBy = tplayer
-                  zone.LocalEvents ! HackEntityMessage(
+                  zone.LocalEvents ! HackEntityEnvelope(
                     zoneId,
                     pguid,
                     LocalAction.HackObject(target.GUID, hackValue.toLong, HackState7.Unk8),
@@ -295,7 +295,7 @@ object GenericHackables {
               case 4L =>
                 building.HackableAmenities.filter(d => d.Definition == GlobalDefinitions.order_terminal).foreach{ term =>
                   term.HackedBy = tplayer
-                  zone.LocalEvents ! HackEntityMessage(
+                  zone.LocalEvents ! HackEntityEnvelope(
                     zoneId,
                     pguid,
                     LocalAction.HackObject(term.GUID, hackValue.toLong, HackState7.Unk8),

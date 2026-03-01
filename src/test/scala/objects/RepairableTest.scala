@@ -318,7 +318,7 @@ class RepairableTurretWeapon extends ActorTest {
       )
       assert(
         msg4 match {
-          case MessageEnvelope("test", _, VehicleAction.EquipmentInSlot(_, PlanetSideGUID(2), 1, t))
+          case MessageEnvelope("test", _, VehicleAction.EquipmentInSlot(PlanetSideGUID(2), 1, t))
               if t eq turretWeapon =>
             true
           case _ => false

@@ -114,13 +114,13 @@ object VehicleAction {
 
   final case class UpdateAmsSpawnPoint(zone: Zone) extends EventMessage {
     override def response(): EventResponse = {
-      VehicleAction.UpdateAmsSpawnList(AmsSpawnPoints(zone))
+      VehicleAction.UpdateAmsSpawnList(Zone.AmsSpawnPoints(zone))
     }
   }
 
   final case class AMSDeploymentChange(zone: Zone) extends EventMessage {
     override def response(): EventResponse = {
-      VehicleAction.UpdateAmsSpawnList(AmsSpawnPoints(zone))
+      VehicleAction.UpdateAmsSpawnList(Zone.AmsSpawnPoints(zone))
     }
   }
 
@@ -140,16 +140,4 @@ object VehicleAction {
                                   old_inventory: List[(Equipment, PlanetSideGUID)],
                                   new_inventory: List[InventoryItem]
                                 ) extends SelfRespondingEvent
-
-  import net.psforever.objects.serverobject.tube.SpawnTube
-  private def AmsSpawnPoints(zone: Zone): List[SpawnTube] = {
-    import net.psforever.objects.vehicles.UtilityType
-    import net.psforever.objects.GlobalDefinitions
-    zone.Vehicles
-      .filter(veh =>
-        veh.Health > 0 && veh.Definition == GlobalDefinitions.ams && veh.DeploymentState == DriveState.Deployed
-      )
-      .flatMap(veh => veh.Utilities.values.filter(util => util.UtilType == UtilityType.ams_respawn_tube))
-      .map(util => util().asInstanceOf[SpawnTube])
-  }
 }

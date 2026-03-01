@@ -6,9 +6,10 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.services.local.{CaptureMessage, LocalAction, LocalServiceMessage}
-import net.psforever.types.PlanetSideEmpire
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.local.support.HackCaptureActor
+import net.psforever.services.local.support.CaptureEnvelope
+import net.psforever.types.PlanetSideEmpire
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -47,10 +48,10 @@ object CaptureTerminals {
           )
           if (isResecured) {
             // Resecure the CC
-            events ! CaptureMessage(HackCaptureActor.ResecureCaptureTerminal(target, zone, PlayerSource(hackingPlayer)))
+            events ! CaptureEnvelope(HackCaptureActor.ResecureCaptureTerminal(target, zone, PlayerSource(hackingPlayer)))
           } else {
             // Start the CC hack timer
-            events ! CaptureMessage(HackCaptureActor.StartCaptureTerminalHack(target, zone, 0, 8L))
+            events ! CaptureEnvelope(HackCaptureActor.StartCaptureTerminalHack(target, zone, 0, 8L))
           }
         case Failure(_) =>
           log.warn(s"Hack message failed on target guid: ${target.GUID}")

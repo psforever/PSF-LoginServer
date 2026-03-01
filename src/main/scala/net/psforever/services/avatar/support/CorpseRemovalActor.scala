@@ -3,12 +3,37 @@ package net.psforever.services.avatar.support
 
 import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.objects.Player
-import net.psforever.types.ExoSuitType
-import net.psforever.services.RemoverActor
+import net.psforever.types.{ExoSuitType, PlanetSideGUID}
+import net.psforever.services.{RemoverActor, Service}
+import net.psforever.services.avatar.AvatarAction.Release
 import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.{GenericSupportEnvelope, GenericSupportEnvelopeOnly}
 import net.psforever.services.base.message.ObjectDelete
 
 import scala.concurrent.duration._
+
+final case class ReleaseEnvelope(
+                                  originalChannel: String,
+                                  filter: PlanetSideGUID,
+                                  msg: Release
+                                )
+  extends GenericSupportEnvelope {
+  def supportLabel: String = "undertaker"
+  def supportMessage: Any = {
+    val Release(player, zone, time) = msg
+    RemoverActor.AddTask(player, zone, time)
+  }
+}
+
+object ReleaseEnvelope {
+  def apply(channel: String, actionMessage: Release): ReleaseEnvelope =
+    ReleaseEnvelope(channel, Service.defaultPlayerGUID, actionMessage)
+}
+
+final case class CorpseEnvelope(supportMessage: Any)
+  extends GenericSupportEnvelopeOnly {
+  def supportLabel: String = "undertaker"
+}
 
 class CorpseRemovalActor extends RemoverActor() {
   final val FirstStandardDuration: FiniteDuration = 1 minute

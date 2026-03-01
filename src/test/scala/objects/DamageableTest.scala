@@ -24,7 +24,7 @@ import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types._
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.support.SupportActor
-import net.psforever.services.vehicle.TurretMessage
+import net.psforever.services.vehicle.support.TurretEnvelope
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration._
@@ -1095,12 +1095,12 @@ class DamageableWeaponTurretDestructionTest extends ActorTest {
           assert(false, s"DamageableWeaponTurretDestructionTest-4: ${msg12_4(2)}")
       }
       msg56.head match {
-        case TurretMessage(SupportActor.ClearSpecific(List(t), _)) if turret eq t => ;
+        case TurretEnvelope(SupportActor.ClearSpecific(List(t), _)) if turret eq t => ;
         case _ =>
           assert(false, s"DamageableWeaponTurretDestructionTest-5: ${msg56.head}")
       }
       msg56(1) match {
-        case TurretMessage(TurretUpgrader.AddTask(t, _, TurretUpgrade.None, _)) if t eq turret => ()
+        case TurretEnvelope(TurretUpgrader.AddTask(t, _, TurretUpgrade.None, _)) if t eq turret => ()
         case _ => assert(false, s"DamageableWeaponTurretDestructionTest-6: ${msg56(1)}")
       }
       assert(turret.Health <= turret.Definition.DamageDestroysAt)

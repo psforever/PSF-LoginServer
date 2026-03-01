@@ -16,6 +16,7 @@ import net.psforever.packet.game.{ObjectCreateMessage, PlayerStateMessageUpstrea
 import net.psforever.types._
 import net.psforever.services.{RemoverActor, Service, ServiceManager}
 import net.psforever.services.avatar._
+import net.psforever.services.avatar.support.{CorpseEnvelope, DropItemEnvelope, PickupItemEnvelope, ReleaseEnvelope}
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ConcealPlayer, ObjectDelete, PlanetsideAttribute, ReloadTool, WeaponDryFire}
 
 class AvatarService1Test extends ActorTest {
@@ -153,7 +154,7 @@ class DroptItemTest extends ActorTest {
   "AvatarService" should {
     "pass DropItem" in {
       service ! Service.Join("test")
-      service ! DropItemMessage("test", PlanetSideGUID(10), AvatarAction.DropItem(tool), Zone.Nowhere)
+      service ! DropItemEnvelope("test", PlanetSideGUID(10), AvatarAction.DropItem(tool), Zone.Nowhere)
       expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), AvatarAction.DropCreatedItem(pkt)))
     }
   }
@@ -324,7 +325,7 @@ class PickupItemTest extends ActorTest {
     ServiceManager.boot(system)
     val service = system.actorOf(Props(classOf[AvatarService]), AvatarServiceTest.TestName)
     service ! Service.Join("test")
-    service ! PickupItemMessage("test", AvatarAction.PickupItem(tool), Zone.Nowhere)
+    service ! PickupItemEnvelope("test", AvatarAction.PickupItem(tool), Zone.Nowhere)
     expectMsg(AvatarServiceResponse("/test/Avatar", PlanetSideGUID(10), ObjectDelete(tool.GUID, 0)))
   }
 }
@@ -509,7 +510,7 @@ class AvatarReleaseTest extends FreedContextActorTest {
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
       val guid = obj.GUID
-      zone.AvatarEvents ! ReleaseMessage("test", AvatarAction.Release(obj, zone, Some(1 second))) //alive for one second
+      zone.AvatarEvents ! ReleaseEnvelope("test", AvatarAction.Release(obj, zone, Some(1 second))) //alive for one second
 
       val reply1 = subscriber.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])
@@ -560,7 +561,7 @@ class AvatarReleaseEarly1Test extends FreedContextActorTest {
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
       val guid = obj.GUID
-      zone.AvatarEvents ! ReleaseMessage("test", AvatarAction.Release(obj, zone)) //3+ minutes!
+      zone.AvatarEvents ! ReleaseEnvelope("test", AvatarAction.Release(obj, zone)) //3+ minutes!
 
       val reply1 = subscriber.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])
@@ -576,8 +577,8 @@ class AvatarReleaseEarly1Test extends FreedContextActorTest {
       val reply2msg = reply2.asInstanceOf[AvatarServiceResponse]
       assert(reply2msg.channel.equals("/test/Avatar"))
       assert(reply2msg.filter == Service.defaultPlayerGUID)
-      assert(reply2msg.reply.isInstanceOf[AvatarAction.ObjectDelete])
-      assert(reply2msg.reply.asInstanceOf[AvatarAction.ObjectDelete].item_guid == guid)
+      assert(reply2msg.reply.isInstanceOf[ObjectDelete])
+      assert(reply2msg.reply.asInstanceOf[ObjectDelete].obj_guid == guid)
 
       subscriber.expectNoMessage(1 seconds)
       assert(zone.Corpses.isEmpty)
@@ -618,7 +619,7 @@ class AvatarReleaseEarly2Test extends FreedContextActorTest {
       assert(zone.Corpses.size == 1)
       assert(obj.HasGUID)
       val guid = obj.GUID
-      zone.AvatarEvents ! ReleaseMessage("test", AvatarAction.Release(obj, zone)) //3+ minutes!
+      zone.AvatarEvents ! ReleaseEnvelope("test", AvatarAction.Release(obj, zone)) //3+ minutes!
 
       val reply1 = subscriber.receiveOne(200 milliseconds)
       assert(reply1.isInstanceOf[AvatarServiceResponse])

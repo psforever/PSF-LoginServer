@@ -9,6 +9,7 @@ import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{DeployableInfo, DeploymentAction, GenericAction, HackState7, ObjectCreateMessage, TriggeredEffect, TriggeredEffectLocation, TriggeredSound}
+import net.psforever.services.Service
 import net.psforever.services.base.message.{EventMessage, EventResponse, SelfRespondingEvent, SendResponse}
 import net.psforever.services.hart.HartTimer.OrbitalShuttleEvent
 import net.psforever.types.{PlanetSideGUID, Vector3}
@@ -126,7 +127,7 @@ object LocalAction {
                                           orient: Vector3
                                         ) extends EventMessage {
     def response(): EventResponse = {
-      TriggerEffectAtLocation(PlanetSideGUID(0), effect, None, Some(TriggeredEffectLocation(pos, orient)))
+      TriggerEffectAtLocation(Service.defaultPlayerGUID, effect, None, Some(TriggeredEffectLocation(pos, orient)))
     }
   }
 

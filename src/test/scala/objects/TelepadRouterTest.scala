@@ -59,7 +59,6 @@ class TelepadDeployableNoRouterTest extends ActorTest {
           "NEUTRAL",
           _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Build,
             DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
           )
@@ -75,7 +74,6 @@ class TelepadDeployableNoRouterTest extends ActorTest {
           "NEUTRAL",
           _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Dismiss,
             DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
           )
@@ -130,7 +128,6 @@ class TelepadDeployableNoActivationTest extends ActorTest {
           "NEUTRAL",
           _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Build,
             DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
           )
@@ -147,7 +144,6 @@ class TelepadDeployableNoActivationTest extends ActorTest {
           "NEUTRAL",
           _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Dismiss,
             DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
           )
@@ -205,7 +201,6 @@ class TelepadDeployableAttemptTest extends ActorTest {
           "NEUTRAL",
           _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Build,
             DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
           )
@@ -279,7 +274,6 @@ class TelepadDeployableResponseFromRouterTest extends FreedContextActorTest {
           "NEUTRAL",
           _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Build,
             DeployableInfo(PlanetSideGUID(1), DeployableIcon.RouterTelepad, Vector3.Zero, PlanetSideGUID(0))
           )

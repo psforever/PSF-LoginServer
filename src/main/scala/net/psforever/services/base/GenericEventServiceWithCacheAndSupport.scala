@@ -1,17 +1,21 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.services.base
 
+import akka.actor.Cancellable
+import net.psforever.objects.Default
 import net.psforever.services.Service
-import net.psforever.services.base.envelope.{GenericMessageEnvelope, MessageEnvelope, MessageTransformationBehavior}
+import net.psforever.services.base.envelope.{GenericMessageEnvelope, GenericResponseEnvelope, MessageEnvelope, MessageTransformationBehavior}
 import net.psforever.services.base.message.EventMessage
 import net.psforever.types.PlanetSideGUID
 
 import scala.collection.concurrent.{Map => CMap}
 import scala.jdk.CollectionConverters._
 import java.util.concurrent.ConcurrentHashMap
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.DurationInt
 
 /*
-Adapted from the rating limiting code in https://github.com/Pinapse/giant with permission
+Adapted from the rating limiting code in PSForever fork https://github.com/Pinapse/giant with permission
  */
 
 trait CachedGenericEventMessageEnvelope
@@ -19,26 +23,42 @@ trait CachedGenericEventMessageEnvelope
   def guid: PlanetSideGUID
 }
 
-final case class CachedMessage(
-                                guid: PlanetSideGUID,
-                                originalChannel: String,
-                                override val filter: PlanetSideGUID,
-                                override val msg: EventMessage
-                              ) extends CachedGenericEventMessageEnvelope {
+final case class CachedEnvelope(
+                                 guid: PlanetSideGUID,
+                                 originalChannel: String,
+                                 override val filter: PlanetSideGUID,
+                                 override val msg: EventMessage
+                               ) extends CachedGenericEventMessageEnvelope {
   assert(guid != Service.defaultPlayerGUID, "can not cache message under default GUID")
 }
 
-object CachedMessage {
+object CachedEnvelope {
   def apply(channel: String, filter: PlanetSideGUID, msg: EventMessage): GenericMessageEnvelope = {
     if (filter == Service.defaultPlayerGUID) {
+      org.log4s.getLogger("CachedEnvelope").warn("(1) cached message envelope downgraded to normal message envelope")
       MessageEnvelope(channel, filter, msg)
     } else {
-      CachedMessage(filter, channel, filter, msg)
+      CachedEnvelope(filter, channel, filter, msg)
+    }
+  }
+
+  def apply(guid: PlanetSideGUID, channel: String, msg: EventMessage): GenericMessageEnvelope = {
+    if (guid == Service.defaultPlayerGUID) {
+      org.log4s.getLogger("CachedEnvelope").warn("(2) cached message envelope downgraded to normal message envelope")
+      MessageEnvelope(channel, guid, msg)
+    } else {
+      CachedEnvelope(guid, channel, guid, msg)
     }
   }
 }
 
-private case object FlushCachedMessages
+private case object FlushCachedMessages extends GenericMessageEnvelope {
+  def originalChannel: String = ""
+  def msg: EventMessage = NoMessage
+  def response(stamp: EventSystemStamp, sendToChannel: String => String): GenericResponseEnvelope = NoResponseEnvelope
+  def channel: String = ""
+  def filter: PlanetSideGUID = Service.defaultPlayerGUID
+}
 
 abstract class GenericEventServiceWithCacheAndSupport
 (
@@ -48,6 +68,8 @@ abstract class GenericEventServiceWithCacheAndSupport
   private val flushCacheWait: Long = 50 //milliseconds
   private var hasCachedMessages: Boolean = false
   private var nextTimeToFlushCache: Long = 0L
+  private var emergencyFlush: Cancellable = Default.Cancellable
+
   private val cache: CMap[String, CMap[String, CMap[PlanetSideGUID, GenericMessageEnvelope]]] =
     new ConcurrentHashMap[String, CMap[String, CMap[PlanetSideGUID, GenericMessageEnvelope]]]().asScala
 
@@ -60,6 +82,7 @@ abstract class GenericEventServiceWithCacheAndSupport
     if (!hasCachedMessages) {
       hasCachedMessages = true
       nextTimeToFlushCache = System.currentTimeMillis() + flushCacheWait
+      emergencyFlush = context.system.scheduler.scheduleOnce(55 milliseconds, self, FlushCachedMessages)
     }
   }
 
@@ -88,12 +111,16 @@ abstract class GenericEventServiceWithCacheAndSupport
       }
     }
     hasCachedMessages = false
+    emergencyFlush.cancel()
+    emergencyFlush = Default.Cancellable
   }
 
   override protected def handleMessage(event: GenericMessageEnvelope): Unit = {
     event match {
       case envelope: CachedGenericEventMessageEnvelope =>
         pushToCache(envelope)
+      case FlushCachedMessages =>
+        tryFlushCache()
       case _ =>
         super.handleMessage(event)
     }

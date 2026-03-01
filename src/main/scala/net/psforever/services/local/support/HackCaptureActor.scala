@@ -13,15 +13,21 @@ import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.participation.MajorFacilityHackParticipation
 import net.psforever.packet.game.{ChatMsg, GenericAction, HackState7, PlanetsideAttributeEnum}
 import net.psforever.objects.sourcing.PlayerSource
+import net.psforever.services.base.GenericSupportEnvelopeOnly
 import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
-import net.psforever.services.local.{FlagMessage, LocalAction, LocalServiceMessage}
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
 
 import java.util.concurrent.{Executors, TimeUnit}
 import scala.collection.Seq
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.Random
+
+final case class CaptureEnvelope(supportMessage: Any)
+  extends GenericSupportEnvelopeOnly {
+  def supportLabel: String = "hackCapturer"
+}
 
 /**
  * Responsible for handling the aspects related to hacking control consoles and capturing bases.
@@ -168,7 +174,7 @@ class HackCaptureActor extends Actor {
       if (found.isEmpty) {
         log.warn(s"FlagLost: flag data does not match to an entry in the hacked objects list")
       }
-      owner.Zone.LocalEvents ! FlagMessage(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.FlagLost))
+      owner.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.FlagLost))
 
     case _ => ()
   }
@@ -190,7 +196,7 @@ class HackCaptureActor extends Actor {
         true
       case Some((owner, Some(flag), Some(neighbours))) if neighbours.nonEmpty && hackingFaction != flag.Faction =>
         log.info(s"$hackingFaction is overriding the ongoing LLU hack of facility ${owner.Name} by ${flag.Faction}")
-        terminal.Zone.LocalEvents ! FlagMessage(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended))
+        terminal.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended))
         NotifyHackStateChange(terminal, isResecured = false)
         RestartTimer()
         spawnCaptureFlag(neighbours, terminal, hackingFaction)
@@ -204,7 +210,7 @@ class HackCaptureActor extends Actor {
       case Some((owner, Some(flag), _)) =>
         log.warn(s"TrySpawnCaptureFlag: couldn't find any neighbouring $hackingFaction facilities of ${owner.Name} for LLU hack")
         owner.GetFlagSocket.foreach { _.clearOldFlagData() }
-        terminal.Zone.LocalEvents ! FlagMessage(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended))
+        terminal.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended))
         false
       case _ =>
         log.error(s"TrySpawnCaptureFlag: expecting a terminal ${terminal.GUID.guid} with the ctf owning facility")
@@ -220,7 +226,7 @@ class HackCaptureActor extends Actor {
     // Find a random neighbouring base matching the hacking faction
     val targetBase = neighbours.toVector((new Random).nextInt(neighbours.size))
     // Request LLU is created by CaptureFlagActor via LocalService
-    terminal.Zone.LocalEvents ! FlagMessage(CaptureFlagManager.SpawnCaptureFlag(terminal, targetBase, hackingFaction))
+    terminal.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.SpawnCaptureFlag(terminal, targetBase, hackingFaction))
   }
 
   private def NotifyHackStateChange(

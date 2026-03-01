@@ -7,8 +7,6 @@ import net.psforever.services.base.bus.GenericEventBus
 import net.psforever.services.base.envelope.{GenericMessageEnvelope, GenericResponseEnvelope}
 import org.log4s.Logger
 
-import scala.annotation.unused
-
 trait EventSystemStamp
 
 abstract class GenericEventService(stamp: EventSystemStamp)
@@ -18,7 +16,13 @@ abstract class GenericEventService(stamp: EventSystemStamp)
   protected val eventBus: GenericEventBus = new GenericEventBus
 
   private def commonJoinBehavior: Receive = {
-    case Service.Join(channel) =>
+    case Service.Join(channel, true) =>
+      val path = formatChannel(channel)
+      val who  = sender()
+      eventBus.subscribe(who, path)
+      who ! Service.JoinConfirmation(self, channel)
+
+    case Service.Join(channel, _) =>
       val path = formatChannel(channel)
       val who  = sender()
       eventBus.subscribe(who, path)
@@ -53,7 +57,7 @@ abstract class GenericEventService(stamp: EventSystemStamp)
     eventBus.publish(composeResponseEnvelope(msg))
   }
 
-  protected def composeResponseEnvelope(@unused msg: GenericMessageEnvelope): GenericResponseEnvelope = {
+  protected def composeResponseEnvelope(msg: GenericMessageEnvelope): GenericResponseEnvelope = {
     msg.response(stamp, formatChannel)
   }
 

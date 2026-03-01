@@ -4,8 +4,9 @@ package net.psforever.objects.zones
 import akka.actor.Actor
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.equipment.Equipment
+import net.psforever.services.avatar.support.{DropItemEnvelope, PickupItemEnvelope}
 import net.psforever.types.PlanetSideGUID
-import net.psforever.services.avatar.{AvatarAction, DropItemMessage, PickupItemMessage}
+import net.psforever.services.avatar.AvatarAction
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -30,7 +31,7 @@ class ZoneGroundActor(zone: Zone, equipmentOnGround: ListBuffer[Equipment]) exte
         equipmentOnGround += item
         item.Position = pos
         item.Orientation = orient
-        zone.AvatarEvents ! DropItemMessage(zone.id, AvatarAction.DropItem(item), zone)
+        zone.AvatarEvents ! DropItemEnvelope(zone.id, AvatarAction.DropItem(item), zone)
         zone.actor ! ZoneActor.AddToBlockMap(item, pos)
         Zone.Ground.ItemOnGround(item, pos, orient)
       })
@@ -38,7 +39,7 @@ class ZoneGroundActor(zone: Zone, equipmentOnGround: ListBuffer[Equipment]) exte
     case Zone.Ground.PickupItem(item_guid) =>
       sender() ! (FindItemOnGround(item_guid) match {
         case Some(item) =>
-          zone.AvatarEvents ! PickupItemMessage(zone.id, AvatarAction.PickupItem(item, 0), zone)
+          zone.AvatarEvents ! PickupItemEnvelope(zone.id, AvatarAction.PickupItem(item, 0), zone)
           zone.actor ! ZoneActor.RemoveFromBlockMap(item)
           Zone.Ground.ItemInHand(item)
         case None =>
@@ -50,7 +51,7 @@ class ZoneGroundActor(zone: Zone, equipmentOnGround: ListBuffer[Equipment]) exte
       FindItemOnGround(item_guid) match {
         case Some(item) =>
           zone.actor ! ZoneActor.RemoveFromBlockMap(item)
-          zone.AvatarEvents ! PickupItemMessage(zone.id, AvatarAction.PickupItem(item, 0), zone)
+          zone.AvatarEvents ! PickupItemEnvelope(zone.id, AvatarAction.PickupItem(item, 0), zone)
         case None => ;
       }
 

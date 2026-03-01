@@ -8,8 +8,8 @@ import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7
 import net.psforever.services.avatar.AvatarServiceMessage
 import net.psforever.services.base.message.{SendResponse, SetEmpire}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.vehicle.support.TurretUpgrader
-import net.psforever.services.vehicle.{TurretMessage, VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.support.{TurretEnvelope, TurretUpgrader}
+import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
 object WeaponTurrets {
@@ -53,8 +53,8 @@ object WeaponTurrets {
     log.info(s"Manned wall turret weapon being converted to $upgrade")
     val zone   = target.Zone
     val events = zone.VehicleEvents
-    events ! TurretMessage(TurretUpgrader.ClearSpecific(List(target), zone))
-    events ! TurretMessage(TurretUpgrader.AddTask(target, zone, upgrade))
+    events ! TurretEnvelope(TurretUpgrader.ClearSpecific(List(target), zone))
+    events ! TurretEnvelope(TurretUpgrader.AddTask(target, zone, upgrade))
   }
 
   /**

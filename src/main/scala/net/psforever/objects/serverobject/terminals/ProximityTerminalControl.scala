@@ -7,8 +7,7 @@ import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.HackState1
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
-import net.psforever.services.local.HackClearMessage
-import net.psforever.services.local.support.HackClearActor
+import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope}
 import org.log4s.Logger
 
 import scala.annotation.unused
@@ -149,7 +148,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     tryAutoRepair()
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone
-      zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(term))
+      zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(term))
     }
     super.DestructionAwareness(target, cause)
   }
@@ -226,7 +225,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     //clear hack state
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone
-      zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(term))
+      zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(term))
     }
   }
 

@@ -8,8 +8,7 @@ import net.psforever.actors.zone.{BuildingActor, BuildingControlDetails, ZoneAct
 import net.psforever.objects.serverobject.structures.{Amenity, Building, StructureType}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAware, CaptureTerminalAwareBehavior}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
-import net.psforever.services.local.support.HackClearActor
-import net.psforever.services.local.HackClearMessage
+import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope}
 import net.psforever.types.PlanetSideEmpire
 
 /**
@@ -53,7 +52,7 @@ case object CavernFacilityLogic
         // When a CC is hacked (or resecured) all currently hacked amenities for the base should return to their default unhacked state
         building.HackableAmenities.foreach(amenity => {
           if (amenity.HackedBy.isDefined) {
-            building.Zone.LocalEvents ! HackClearMessage(HackClearActor.ObjectIsResecured(amenity))
+            building.Zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(amenity))
           }
         })
       // No map update needed - will be sent by `HackCaptureActor` when required

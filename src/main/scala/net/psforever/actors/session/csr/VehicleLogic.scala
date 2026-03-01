@@ -11,10 +11,8 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.interaction.InteractsWithZone
-import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, PlanetsideAttributeMessage, VehicleStateMessage, VehicleSubStateMessage}
-import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.CachedMessage
-import net.psforever.services.base.message.PlanetsideAttribute
+import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
+import net.psforever.services.base.CachedEnvelope
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{DriveState, Vector3}
 
@@ -245,7 +243,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
           obj.Velocity = vel
           sessionLogic.updateBlockMap(obj, pos)
           obj.zoneInteractions()
-          continent.VehicleEvents ! CachedMessage(
+          continent.VehicleEvents ! CachedEnvelope(
             continent.id,
             player.GUID,
             VehicleAction.VehicleState(vehicle_guid, unk1, pos, ang, obj.Velocity, obj.Flying, 0, 0, 15, unk5 = false, obj.Cloaked)

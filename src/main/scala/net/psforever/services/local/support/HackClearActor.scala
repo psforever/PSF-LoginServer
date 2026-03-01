@@ -8,12 +8,28 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.HackState7
+import net.psforever.services.base.{GenericSupportEnvelope, GenericSupportEnvelopeOnly}
 import net.psforever.services.base.message.GenericObjectAction
+import net.psforever.services.local.LocalAction.IsAHackMessage
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
+
+final case class HackEntityEnvelope(
+                                     originalChannel: String,
+                                     filter: PlanetSideGUID,
+                                     msg: IsAHackMessage,
+                                     supportMessage: Any
+                                   ) extends GenericSupportEnvelope {
+  def supportLabel: String = "hackClearer"
+}
+
+final case class HackClearEnvelope(supportMessage: Any)
+  extends GenericSupportEnvelopeOnly {
+  def supportLabel: String = "hackClearer"
+}
 
 /**
   * Restore original functionality to an object that has been hacked after a certain amount of time has passed.

@@ -18,10 +18,10 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.services.RemoverActor
-import net.psforever.services.avatar.GroundEnvelope
+import net.psforever.services.avatar.support.GroundEnvelope
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
-import net.psforever.services.local.support.HackCaptureActor
-import net.psforever.services.local.{CaptureMessage, LocalAction, LocalServiceMessage}
+import net.psforever.services.local.support.{CaptureEnvelope, HackCaptureActor}
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -1292,7 +1292,7 @@ class GeneralOperations(
         continent.GUID(specialItemSlotGuid) match {
           case Some(llu: CaptureFlag) =>
             if (llu.Target.GUID == captureTerminal.Owner.GUID) {
-              continent.LocalEvents ! CaptureMessage(HackCaptureActor.FlagCaptured(llu))
+              continent.LocalEvents ! CaptureEnvelope(HackCaptureActor.FlagCaptured(llu))
             } else {
               log.info(
                 s"LLU target is not this base. Target GUID: ${llu.Target.GUID} This base: ${captureTerminal.Owner.GUID}"

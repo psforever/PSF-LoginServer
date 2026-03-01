@@ -22,7 +22,7 @@ import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, Reconstr
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.GenericAction.FirstPersonViewWithEffect
 import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TriggeredSound, TrainingZoneMessage, WeatherMessage}
-import net.psforever.services.avatar.{CorpseEnvelope, ReleaseMessage}
+import net.psforever.services.avatar.support.{CorpseEnvelope, ReleaseEnvelope}
 import net.psforever.services.base.message.{GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.chat.DefaultChannel
 
@@ -2946,7 +2946,7 @@ class ZoningOperations(
       tplayer.Release
       DepictPlayerAsCorpse(tplayer)
       zone.Population ! Zone.Corpse.Add(tplayer)
-      zone.AvatarEvents ! ReleaseMessage(zone.id, AvatarAction.Release(tplayer, zone))
+      zone.AvatarEvents ! ReleaseEnvelope(zone.id, AvatarAction.Release(tplayer, zone))
     }
 
     /**

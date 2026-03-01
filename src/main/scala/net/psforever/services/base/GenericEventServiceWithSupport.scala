@@ -23,7 +23,7 @@ trait EventServiceSupport {
   def constructor(@unused context: ActorContext): ActorRef
 }
 
-sealed trait GenericMessageToSupport {
+trait GenericMessageToSupport {
   def supportLabel: String
   def supportMessage: Any
 }

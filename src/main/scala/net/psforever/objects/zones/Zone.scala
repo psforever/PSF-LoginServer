@@ -1571,6 +1571,17 @@ object Zone {
     }
   }
 
+  def AmsSpawnPoints(zone: Zone): List[SpawnTube] = {
+    import net.psforever.objects.vehicles.UtilityType
+    import net.psforever.objects.GlobalDefinitions
+    zone.Vehicles
+      .filter(veh =>
+        veh.Health > 0 && veh.Definition == GlobalDefinitions.ams && veh.DeploymentState == DriveState.Deployed
+      )
+      .flatMap(veh => veh.Utilities.values.filter(util => util.UtilType == UtilityType.ams_respawn_tube))
+      .map(util => util().asInstanceOf[SpawnTube])
+  }
+
   object Setup {
     /* zone setup code */
 

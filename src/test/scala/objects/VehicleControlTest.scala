@@ -27,7 +27,7 @@ import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
-import net.psforever.services.vehicle.VehicleAction
+import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types._
 
 import scala.concurrent.duration._
@@ -74,7 +74,7 @@ class VehicleControlPrepareForDeletionPassengerTest extends ActorTest {
 
       val vehicle_msg = vehicleProbe.receiveN(1, 500 milliseconds)
       vehicle_msg.head match {
-        case MessageEnvelope("test", _, VehicleAction.KickPassenger(PlanetSideGUID(2), 4, true, PlanetSideGUID(1))) => ;
+        case MessageEnvelope("test", _, VehicleAction.KickPassenger(4, true, PlanetSideGUID(1))) => ;
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionPassengerTest: ${vehicle_msg.head}")
       }
@@ -226,7 +226,7 @@ class VehicleControlPrepareForDeletionMountedCargoTest extends FreedContextActor
       val vehicleMsgs = eventsProbe.receiveN(6, 10.seconds)
       val cargoMsgs = cargoProbe.receiveN(1, 1.seconds)
       vehicleMsgs.head match {
-        case MessageEnvelope("test", _, VehicleAction.KickPassenger(PlanetSideGUID(4), 4, true, PlanetSideGUID(2))) => ()
+        case MessageEnvelope("test", _, VehicleAction.KickPassenger(4, true, PlanetSideGUID(2))) => ()
         case _ =>
           assert(false, s"VehicleControlPrepareForDeletionMountedCargoTest-1: ${vehicleMsgs.head}")
       }
@@ -478,8 +478,8 @@ class VehicleControlShieldsChargingTest extends ActorTest {
     vehicle.Actor ! CommonMessages.ChargeShields(15, None)
     val msg = probe.receiveOne(500 milliseconds)
     assert(msg match {
-      case VehicleServiceMessage(_, _, PlanetsideAttribute(PlanetSideGUID(10), 68, 15)) => true
-      case _                                                                                          => false
+      case MessageEnvelope(_, _, PlanetsideAttribute(PlanetSideGUID(10), 68, 15)) => true
+      case _                                                                      => false
     })
     assert(vehicle.Shields == 15)
     assert(vehicle.History.exists({ p => p.isInstanceOf[ShieldCharge] }))

@@ -15,12 +15,18 @@ import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
+import net.psforever.services.base.GenericSupportEnvelopeOnly
 import net.psforever.services.base.message.{GenericObjectAction, SendResponse}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
-import net.psforever.services.local.{CaptureMessage, LocalAction, LocalServiceMessage}
+import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration.DurationInt
+
+final case class FlagEnvelope(supportMessage: CaptureFlagManager.Command)
+  extends GenericSupportEnvelopeOnly {
+  def supportLabel: String = "captureFlagManager"
+}
 
 /**
   * Responsible for handling capture flag related lifecycles
@@ -303,7 +309,7 @@ object CaptureFlagManager {
           if LoseFlagViolentlyToEnvironment(target, Set(EnvironmentAttribute.Water, EnvironmentAttribute.Lava, EnvironmentAttribute.Death)) /*||
             LoseFlagViolentlyToWarpGateEnvelope(zone, target)*/ =>
           flag.Destroyed = true
-          zone.LocalEvents ! CaptureMessage(HackCaptureActor.FlagLost(flag))
+          zone.LocalEvents ! CaptureEnvelope(HackCaptureActor.FlagLost(flag))
           true
       }
       .getOrElse(false)

@@ -76,7 +76,7 @@ class DeploymentBehavior2Test extends ActorTest {
         case MessageEnvelope(
           "test",
           _,
-          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deploying, 0, false, Vector3.Zero)
+          VehicleAction.DeployRequest(PlanetSideGUID(1), DriveState.Deploying, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }
@@ -89,7 +89,7 @@ class DeploymentBehavior2Test extends ActorTest {
         case MessageEnvelope(
           "test",
           _,
-          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deployed, 0, false, Vector3.Zero)
+          VehicleAction.DeployRequest(PlanetSideGUID(1), DriveState.Deployed, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }
@@ -106,7 +106,7 @@ class DeploymentBehavior2Test extends ActorTest {
         case MessageEnvelope(
           "test",
            _,
-          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Undeploying, 0, false, Vector3.Zero)
+          VehicleAction.DeployRequest(PlanetSideGUID(1), DriveState.Undeploying, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }
@@ -119,7 +119,7 @@ class DeploymentBehavior2Test extends ActorTest {
         case MessageEnvelope(
           "test",
           _,
-          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Mobile, 0, false, Vector3.Zero)
+          VehicleAction.DeployRequest(PlanetSideGUID(1), DriveState.Mobile, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }
@@ -148,7 +148,7 @@ class DeploymentBehavior3Test extends ActorTest {
         case MessageEnvelope(
           "test",
           _,
-          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deploying, 0, false, Vector3.Zero)
+          VehicleAction.DeployRequest(PlanetSideGUID(1), DriveState.Deploying, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }
@@ -161,7 +161,7 @@ class DeploymentBehavior3Test extends ActorTest {
         case MessageEnvelope(
           "test",
           _,
-          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Deployed, 0, false, Vector3.Zero)
+          VehicleAction.DeployRequest(PlanetSideGUID(1), DriveState.Deployed, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }
@@ -178,7 +178,7 @@ class DeploymentBehavior3Test extends ActorTest {
         case MessageEnvelope(
           "test",
           _,
-          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Undeploying, 0, false, Vector3.Zero)
+          VehicleAction.DeployRequest(PlanetSideGUID(1), DriveState.Undeploying, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }
@@ -191,7 +191,7 @@ class DeploymentBehavior3Test extends ActorTest {
         case MessageEnvelope(
           "test",
           _,
-          VehicleAction.DeployRequest(_, PlanetSideGUID(1), DriveState.Mobile, 0, false, Vector3.Zero)
+          VehicleAction.DeployRequest(PlanetSideGUID(1), DriveState.Mobile, 0, false, Vector3.Zero)
         ) => ()
         case _ => assert(false, "")
       }

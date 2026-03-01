@@ -12,8 +12,8 @@ import net.psforever.types.Vector3
 import net.psforever.services.avatar.AvatarServiceMessage
 import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.base.support.SupportActor
-import net.psforever.services.vehicle.support.TurretUpgrader
-import net.psforever.services.vehicle.{TurretMessage, VehicleServiceMessage}
+import net.psforever.services.vehicle.support.{TurretEnvelope, TurretUpgrader}
+import net.psforever.services.vehicle.VehicleServiceMessage
 
 /**
   * The "control" `Actor` mixin for damage-handling code for `WeaponTurret` objects.
@@ -138,8 +138,8 @@ object DamageableWeaponTurret {
       case turret: WeaponTurret =>
         if (turret.Upgrade != TurretUpgrade.None) {
           val vehicleEvents = zone.VehicleEvents
-          vehicleEvents ! TurretMessage(SupportActor.ClearSpecific(List(turret), zone))
-          vehicleEvents ! TurretMessage(TurretUpgrader.AddTask(turret, zone, TurretUpgrade.None))
+          vehicleEvents ! TurretEnvelope(SupportActor.ClearSpecific(List(turret), zone))
+          vehicleEvents ! TurretEnvelope(TurretUpgrader.AddTask(turret, zone, TurretUpgrade.None))
         }
       case _ =>
     }

@@ -5,11 +5,23 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.{Default, Doors}
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
+import net.psforever.services.Service
+import net.psforever.services.base.GenericSupportEnvelope
+import net.psforever.services.local.LocalAction.IsADoorMessage
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
+
+final case class DoorMessage(
+                              originalChannel: String,
+                              msg: IsADoorMessage,
+                              supportMessage: Any
+                            ) extends GenericSupportEnvelope {
+  def filter: PlanetSideGUID = Service.defaultPlayerGUID
+  def supportLabel: String = "doorCloser"
+}
 
 /**
   * Close an opened door after a certain amount of time has passed.
