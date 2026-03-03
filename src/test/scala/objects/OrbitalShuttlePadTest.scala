@@ -82,7 +82,7 @@ class OrbitalShuttlePadControlTest extends FreedContextActorTest {
     "startup and create the shuttle" in {
       assert(building.Amenities.size == 9)
       assert(vehicles.isEmpty)
-      pad.Actor ! Service.Startup()
+      pad.Actor ! Service.Startup
       expectNoMessage(max = 5 seconds)
       assert(building.Amenities.size == 10)
       assert(vehicles.size == 1)

@@ -106,7 +106,7 @@ class OrbitalShuttlePadControl(pad: OrbitalShuttlePad) extends Actor {
     * register and add the shuttle as a common vehicle of the said zone
     */
   val startUp: Receive = {
-    case Service.Startup() =>
+    case Service.Startup =>
       import net.psforever.types.Vector3
       import net.psforever.types.Vector3.DistanceSquared
       import net.psforever.objects.GlobalDefinitions._

@@ -6,7 +6,7 @@ import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.services.Service
 import net.psforever.services.base.message.EventMessage
-import net.psforever.services.base.{CachedGenericEventMessageEnvelope, EventServiceSupport, GenericEventServiceWithCacheAndSupport, GenericSupportEnvelope}
+import net.psforever.services.base.{CachedGenericEventEnvelope, EventServiceSupport, GenericEventServiceWithCacheAndSupport, GenericSupportEnvelope}
 import net.psforever.types.PlanetSideGUID
 
 import scala.concurrent.duration._
@@ -20,7 +20,7 @@ object EventServiceCacheSupportTest {
                                               originalChannel: String,
                                               override val msg: EventMessage,
                                               supportMessage: Any
-                                            ) extends CachedGenericEventMessageEnvelope with GenericSupportEnvelope {
+                                            ) extends CachedGenericEventEnvelope with GenericSupportEnvelope {
     assert(guid != Service.defaultPlayerGUID, "can not cache message under default GUID")
     def filter: PlanetSideGUID = Service.defaultPlayerGUID
     def supportLabel: String = "supportActor"

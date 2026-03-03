@@ -6,7 +6,7 @@ import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.services.Service
 import net.psforever.services.base.GenericEventService
-import net.psforever.services.base.envelope.GenericResponseEnvelope
+import net.psforever.services.base.envelope.{GenericResponseEnvelope, MessageEnvelope}
 
 import scala.concurrent.duration._
 
@@ -160,7 +160,7 @@ class EventServiceTest7 extends ActorTest {
         case _ => assert(false, "(7) message expected but not received")
       }
 
-      events.tell(Service.Leave(), probe.ref)
+      events.tell(Service.LeaveAll, probe.ref)
       events ! MessageEnvelope("test", Service.defaultPlayerGUID, TestMessage(5))
       events ! MessageEnvelope("anotherTest", Service.defaultPlayerGUID, TestMessage(6))
       probe.expectNoMessage(250 milliseconds)
@@ -190,7 +190,7 @@ class EventServiceTest8 extends ActorTest {
         case _ => assert(false, "(7) message expected but not received")
       }
 
-      events.tell(Service.LeaveAll(), probe.ref)
+      events.tell(Service.LeaveAll, probe.ref)
       events ! MessageEnvelope("test", Service.defaultPlayerGUID, TestMessage(5))
       events ! MessageEnvelope("anotherTest", Service.defaultPlayerGUID, TestMessage(6))
       probe.expectNoMessage(250 milliseconds)

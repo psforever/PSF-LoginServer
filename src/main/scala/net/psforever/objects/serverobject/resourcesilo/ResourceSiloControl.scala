@@ -40,7 +40,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   private var drainMultiplier: Float = 1.0f
 
   def receive: Receive = {
-    case Service.Startup() =>
+    case Service.Startup =>
       resourceSilo.Owner match {
         case building: Building =>
           UpdateChargeLevel(amount = 0)

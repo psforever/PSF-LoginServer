@@ -3,15 +3,15 @@ package net.psforever.services.galaxy
 
 import net.psforever.services.base.{EventSystemStamp, GenericEventService}
 
-case object GalaxyStamp extends EventSystemStamp
-
-class GalaxyService
-  extends GenericEventService(stamp = GalaxyStamp) {
-  override protected def formatChannel(channel: String): String = {
+case object GalaxyStamp extends EventSystemStamp {
+  override def routing(channel: String): String = {
     if (channel.trim.isEmpty) {
-      "/all"
+      "/out"
     } else {
-      s"/$channel"
+      s"/$channel/out"
     }
   }
 }
+
+class GalaxyService
+  extends GenericEventService(stamp = GalaxyStamp)

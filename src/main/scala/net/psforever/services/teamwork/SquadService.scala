@@ -176,20 +176,20 @@ class SquadService extends Actor {
 
   def receive: Receive = {
     //subscribe to a faction's channel - necessary to receive updates about listed squads
-    case Service.Join(faction) if SquadService.FactionWordSalad.indexOf(faction) > -1 =>
+    case Service.Join(faction, _) if SquadService.FactionWordSalad.indexOf(faction) > -1 =>
       JoinByFaction(faction, sender())
 
     //subscribe to the player's personal channel - necessary for future and previous squad information
-    case Service.Join(char_id) =>
+    case Service.Join(char_id, _) =>
       JoinByCharacterId(char_id, sender())
 
-    case Service.Leave(Some(faction)) if SquadService.FactionWordSalad.indexOf(faction) > -1 =>
+    case Service.Leave(faction) if SquadService.FactionWordSalad.indexOf(faction) > -1 =>
       LeaveByFaction(faction, sender())
 
-    case Service.Leave(Some(char_id)) =>
+    case Service.Leave(char_id) =>
       LeaveByCharacterId(char_id, sender())
 
-    case Service.Leave(None) | Service.LeaveAll() =>
+    case Service.LeaveAll =>
       LeaveInGeneral(sender())
 
     case Terminated(actorRef) =>

@@ -83,7 +83,7 @@ object ProximityTerminal {
     if (obj.Actor == Default.Actor) {
       obj.Actor =
         context.actorOf(Props(classOf[ProximityTerminalControl], obj), PlanetSideServerObject.UniqueActorName(obj))
-      obj.Actor ! Service.Startup()
+      obj.Actor ! Service.Startup
     }
   }
 }

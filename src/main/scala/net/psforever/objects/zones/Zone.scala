@@ -1718,14 +1718,14 @@ object Zone {
         .flatMap(_.Amenities.filter(_.Definition == GlobalDefinitions.resource_silo))
         .collect {
           case silo: ResourceSilo =>
-            silo.Actor ! Service.Startup()
+            silo.Actor ! Service.Startup
         }
       //some painfields need to look for their closest door
       buildings.values
         .flatMap(_.Amenities.filter(_.Definition.isInstanceOf[PainboxDefinition]))
         .collect {
           case painbox: Painbox =>
-            painbox.Actor ! Service.Startup()
+            painbox.Actor ! Service.Startup
         }
       //the orbital_buildings in sanctuary zones have to establish their shuttle routes
       map.shuttleBays
@@ -1733,7 +1733,7 @@ object Zone {
           guid(_)
         }
         .collect { case Some(obj: OrbitalShuttlePad) =>
-          obj.Actor ! Service.Startup()
+          obj.Actor ! Service.Startup
         }
       //allocate soi information
       zone.soi ! SOI.Build()

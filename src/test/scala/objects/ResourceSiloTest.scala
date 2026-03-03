@@ -91,7 +91,7 @@ class ResourceSiloControlStartupTest extends ActorTest {
 
   "Resource silo" should {
     "startup properly" in {
-      obj.Actor ! Service.Startup()
+      obj.Actor ! Service.Startup
       expectNoMessage(max = 1000 milliseconds)
     }
   }
@@ -113,7 +113,7 @@ class ResourceSiloControlStartupMessageNoneTest extends ActorTest {
     "report if it has no NTU on startup" in {
       obj.NtuCapacitor = 0
       assert(obj.NtuCapacitor == 0)
-      obj.Actor ! Service.Startup()
+      obj.Actor ! Service.Startup
       val ownerMsg = buildingEvents.receiveOne(200 milliseconds)
       assert(ownerMsg match {
         case BuildingActor.NtuDepleted() => true
@@ -139,7 +139,7 @@ class ResourceSiloControlStartupMessageSomeTest extends ActorTest {
     "report if it has any NTU on startup" in {
       obj.NtuCapacitor = 1
       assert(obj.NtuCapacitor == 1)
-      obj.Actor ! Service.Startup()
+      obj.Actor ! Service.Startup
       val ownerMsg = buildingEvents.receiveOne(200 milliseconds)
       assert(ownerMsg match {
         case BuildingActor.SuppliedWithNtu() => true
@@ -197,7 +197,7 @@ class ResourceSiloControlUseTest extends FreedContextActorTest {
   ant.DeploymentState = DriveState.Deployed
   building.Amenities = silo
   silo.Actor = system.actorOf(Props(classOf[ResourceSiloControl], silo), "test-silo")
-  silo.Actor ! Service.Startup()
+  silo.Actor ! Service.Startup
 
   "Resource silo" should {
     "respond when being used" in {
@@ -225,7 +225,7 @@ class ResourceSiloControlNtuWarningTest extends ActorTest {
 
   val zoneEvents: TestProbe = TestProbe("zone-events")
   zone.AvatarEvents = zoneEvents.ref
-  obj.Actor ! Service.Startup()
+  obj.Actor ! Service.Startup
   obj.Actor ! ResourceSilo.UpdateChargeLevel(-obj.NtuCapacitor)
   zoneEvents.receiveN(3, 500.milliseconds) //events from setup
 
@@ -257,7 +257,7 @@ class ResourceSiloControlUpdate1Test extends ActorTest {
   val buildingEvents: TestProbe = TestProbe("building-events")
   zone.AvatarEvents = zoneEvents.ref
   bldg.Actor = buildingEvents.ref
-  obj.Actor ! Service.Startup()
+  obj.Actor ! Service.Startup
   buildingEvents.receiveOne(500 milliseconds) //message caused by "startup"
   obj.Actor ! ResourceSilo.UpdateChargeLevel(-obj.NtuCapacitor)
   zoneEvents.receiveN(3, 500.milliseconds) //events from setup
@@ -301,7 +301,7 @@ class ResourceSiloControlUpdate2Test extends ActorTest {
   val buildingEvents: TestProbe = TestProbe("building-events")
   zone.AvatarEvents = zoneEvents.ref
   bldg.Actor = buildingEvents.ref
-  obj.Actor ! Service.Startup()
+  obj.Actor ! Service.Startup
   buildingEvents.receiveOne(500 milliseconds) //message caused by "startup"
   obj.Actor ! ResourceSilo.UpdateChargeLevel(-obj.NtuCapacitor + 100)
   zoneEvents.receiveN(3, 500.milliseconds) //events from setup
@@ -345,7 +345,7 @@ class ResourceSiloControlNoUpdateTest extends ActorTest {
   val buildingEvents: TestProbe = TestProbe("building-events")
   zone.AvatarEvents = zoneEvents.ref
   bldg.Actor = buildingEvents.ref
-  obj.Actor ! Service.Startup()
+  obj.Actor ! Service.Startup
   obj.NtuCapacitor = 0
 
   "Resource silo" should {

@@ -620,9 +620,9 @@ class ZoningOperations(
         //the only zone-level event system subscription necessary before BeginZoningMessage (for persistence purposes)
         zone.AvatarEvents ! Service.Join(player.Name)
         sessionLogic.persist()
-        oldZone.AvatarEvents ! Service.Leave()
-        oldZone.LocalEvents ! Service.Leave()
-        oldZone.VehicleEvents ! Service.Leave()
+        oldZone.AvatarEvents ! Service.LeaveAll
+        oldZone.LocalEvents ! Service.LeaveAll
+        oldZone.VehicleEvents ! Service.LeaveAll
 
         if (player.isAlive && zoningType != Zoning.Method.Reset) {
           if (player.HasGUID) {
@@ -651,9 +651,9 @@ class ZoningOperations(
     val oldZone = session.zone
     session = session.copy(zone = foundZone)
     sessionLogic.persist()
-    oldZone.AvatarEvents ! Service.Leave()
-    oldZone.LocalEvents ! Service.Leave()
-    oldZone.VehicleEvents ! Service.Leave()
+    oldZone.AvatarEvents ! Service.LeaveAll
+    oldZone.LocalEvents ! Service.LeaveAll
+    oldZone.VehicleEvents ! Service.LeaveAll
     //the only zone-level event system subscription necessary before BeginZoningMessage (for persistence purposes)
     foundZone.AvatarEvents ! Service.Join(player.Name)
     foundZone.Population ! Zone.Population.Join(avatar)
@@ -762,7 +762,7 @@ class ZoningOperations(
       case _ =>
         interstellarFerry match {
           case None =>
-            galaxyService ! Service.Leave(Some(temp_channel)) //no longer being transferred between zones
+            galaxyService ! Service.Leave(temp_channel) //no longer being transferred between zones
             interstellarFerryTopLevelGUID = None
           case Some(_) => () //wait patiently
         }
@@ -770,7 +770,7 @@ class ZoningOperations(
   }
 
   private def handleTransferPassengerVehicle(vehicle: Vehicle, temporaryChannel: String): Unit = {
-    galaxyService ! Service.Leave(Some(temporaryChannel)) //temporary vehicle-specific channel (see above)
+    galaxyService ! Service.Leave(temporaryChannel) //temporary vehicle-specific channel (see above)
     spawn.deadState = DeadState.Release
     sendResponse(AvatarDeadStateMessage(DeadState.Release, 0, 0, player.Position, player.Faction, unk5=true))
     interstellarFerry = Some(vehicle) //on the other continent and registered to that continent's GUID system

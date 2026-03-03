@@ -743,7 +743,7 @@ class GeneralOperations(
    * @param channel the channel name
    */
   private def unaccessContainerChannel(events: ActorRef, channel: String): Unit = {
-    events ! Service.Leave(Some(channel))
+    events ! Service.Leave(channel)
   }
 
   /**

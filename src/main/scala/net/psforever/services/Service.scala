@@ -7,7 +7,7 @@ import net.psforever.types.PlanetSideGUID
 object Service {
   final val defaultPlayerGUID: PlanetSideGUID = PlanetSideGUID(0)
 
-  final case class Startup()
+  case object Startup
 
   final case class Join(channel: String, sendJoinConfirmation: Boolean)
 
@@ -17,7 +17,7 @@ object Service {
 
   final case class JoinConfirmation(eventSystem: ActorRef, channel: String)
 
-  final case class Leave(channel: Option[String] = None)
+  final case class Leave(channel: String)
 
-  final case class LeaveAll()
+  case object LeaveAll
 }

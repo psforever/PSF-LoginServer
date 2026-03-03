@@ -4,42 +4,78 @@ package net.psforever.services.base
 import akka.actor.Actor
 import net.psforever.services.Service
 import net.psforever.services.base.bus.GenericEventBus
-import net.psforever.services.base.envelope.{GenericMessageEnvelope, GenericResponseEnvelope}
+import net.psforever.services.base.envelope.GenericMessageEnvelope
 import org.log4s.Logger
 
-trait EventSystemStamp
+/**
+ * A distinct tag associated with an event system.
+ * The stamp is intended to demonstrate that the input message has been interpreted into an output response
+ * through actual use of an event system
+ * and that the response has not been fabricated and is not fraudulent.
+ * While the word "stamp" more probably calls to mind the concept of a postage stamp,
+ * the purpose of this artifact is closer to that of the routing information
+ * stamped onto an envelope over the postage stamp area of a letter.
+ */
+trait EventSystemStamp {
+  /*
+  Example Classifiers: "foo", "foo.fizz", and "foo.buzz"
+  In general, Classifier channels will perform left-pattern matching.
+  "foo" will publish to "foo", "foo.fizz", and "foo.buzz"
+  To isolate "foo", one must distinguish it with a right-pattern.
+  "foo" is appended as "foo.bar" and no longer publishes to "foo.fizz.bar" or to "foo.buzz.bar"
+  */
+  /**
+   * Take an input channel and produce the publishing output channel.
+   * @param channel publishing channel
+   * @return appended publishing channel
+   */
+  def routing(channel: String): String = s"/$channel/out"
+}
 
+/**
+ * Basic opt-in event response relay system.
+ * Remembers "subscribers" (`ActorRef`) to "channels" (`String`);
+ * accepts "messages" (`GenericMessageEnvelope`) and interprets the message as a response (`GenericResponseEnvelope`);
+ * and, dispatches the response to all subscribers associated with the channel provided in the message.
+ * @param stamp distinct tag associated with an event system
+ */
 abstract class GenericEventService(stamp: EventSystemStamp)
   extends Actor {
   protected lazy val log: Logger = org.log4s.getLogger(getClass.getSimpleName)
 
   protected val eventBus: GenericEventBus = new GenericEventBus
 
+  /**
+   * Add subscription handling.
+   */
   private def commonJoinBehavior: Receive = {
     case Service.Join(channel, true) =>
-      val path = formatChannel(channel)
+      val path = stamp.routing(channel)
       val who  = sender()
       eventBus.subscribe(who, path)
       who ! Service.JoinConfirmation(self, channel)
 
     case Service.Join(channel, _) =>
-      val path = formatChannel(channel)
+      val path = stamp.routing(channel)
       val who  = sender()
       eventBus.subscribe(who, path)
   }
 
+  /**
+   * Remove subscription handling.
+   */
   private def commonLeaveBehavior: Receive = {
-    case Service.Leave(None) =>
+    case Service.LeaveAll =>
       eventBus.unsubscribe(sender())
 
-    case Service.Leave(Some(channel)) =>
-      val path = formatChannel(channel)
+    case Service.Leave(channel) =>
+      val path = stamp.routing(channel)
       eventBus.unsubscribe(sender(), path)
-
-    case Service.LeaveAll() =>
-      eventBus.unsubscribe(sender())
   }
 
+  /**
+   * Accept and handle designated messages.
+   */
   protected def commonBehavior: Receive = {
     case msg: GenericMessageEnvelope =>
       handleMessage(msg)
@@ -53,13 +89,12 @@ abstract class GenericEventService(stamp: EventSystemStamp)
         log.warn(s"Unhandled message $msg from ${sender()}")
     }
 
-  protected def handleMessage(msg: GenericMessageEnvelope): Unit = {
-    eventBus.publish(composeResponseEnvelope(msg))
+  /**
+   * Handle designated messages.
+   * Interpret the input message as an output response and publish that response.
+   * @param event event system message
+   */
+  protected def handleMessage(event: GenericMessageEnvelope): Unit = {
+    eventBus.publish(event.response(stamp))
   }
-
-  protected def composeResponseEnvelope(msg: GenericMessageEnvelope): GenericResponseEnvelope = {
-    msg.response(stamp, formatChannel)
-  }
-
-  protected def formatChannel(channel: String): String = s"/$channel"
 }

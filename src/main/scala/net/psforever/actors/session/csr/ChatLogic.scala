@@ -332,7 +332,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     val channel = player.Name
     val events = continent.AvatarEvents
     seeSpectatorsIn = None
-    events ! Service.Leave(Some("spectator"))
+    events ! Service.Leave("spectator")
     continent
       .AllPlayers
       .filter(_.spectator)

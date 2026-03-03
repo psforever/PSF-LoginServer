@@ -190,7 +190,7 @@ class ProximityTerminalControlStartTest extends ActorTest {
 
     avatar.GUID = PlanetSideGUID(1)
     terminal.GUID = PlanetSideGUID(2)
-    terminal.Actor ! Service.Startup()
+    terminal.Actor ! Service.Startup
     expectNoMessage(500 milliseconds) //spacer
     val probe1 = new TestProbe(system, "local-events")
     val probe2 = new TestProbe(system, "target-callback")
@@ -258,7 +258,7 @@ class ProximityTerminalControlTwoUsersTest extends ActorTest {
     avatar.GUID = PlanetSideGUID(1)
     avatar2.GUID = PlanetSideGUID(2)
     terminal.GUID = PlanetSideGUID(3)
-    terminal.Actor ! Service.Startup()
+    terminal.Actor ! Service.Startup
     expectNoMessage(500 milliseconds) //spacer
     val probe1 = new TestProbe(system, "local-events")
     val probe2 = new TestProbe(system, "target-callback-1")
@@ -317,7 +317,7 @@ class ProximityTerminalControlStopTest extends ActorTest {
 
     avatar.GUID = PlanetSideGUID(1)
     terminal.GUID = PlanetSideGUID(2)
-    terminal.Actor ! Service.Startup()
+    terminal.Actor ! Service.Startup
     expectNoMessage(500 milliseconds) //spacer
     val probe1 = new TestProbe(system, "local-events")
     val probe2 = new TestProbe(system, "target-callback")
@@ -395,7 +395,7 @@ class ProximityTerminalControlNotStopTest extends ActorTest {
     avatar.GUID = PlanetSideGUID(1)
     avatar2.GUID = PlanetSideGUID(2)
     terminal.GUID = PlanetSideGUID(3)
-    terminal.Actor ! Service.Startup()
+    terminal.Actor ! Service.Startup
     expectNoMessage(500 milliseconds) //spacer
     val probe1 = new TestProbe(system, "local-events")
     val probe2 = new TestProbe(system, "target-callback-1")

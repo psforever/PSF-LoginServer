@@ -46,7 +46,7 @@ class AvatarService3Test extends ActorTest {
     "subscribe to a specific channel" in {
       val service = system.actorOf(Props(classOf[AvatarService]), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! Service.Leave()
+      service ! Service.LeaveAll
       assert(true)
     }
   }
@@ -58,7 +58,7 @@ class AvatarService4Test extends ActorTest {
       ServiceManager.boot(system)
       val service = system.actorOf(Props(classOf[AvatarService]), AvatarServiceTest.TestName)
       service ! Service.Join("test")
-      service ! Service.LeaveAll()
+      service ! Service.LeaveAll
       assert(true)
     }
   }

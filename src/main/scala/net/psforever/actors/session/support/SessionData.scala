@@ -616,12 +616,12 @@ class SessionData(
     squadResponseOpt.foreach(_.stop())
     zoningOpt.foreach(_.stop())
     chatOpt.foreach(_.stop())
-    continent.AvatarEvents ! Service.Leave()
-    continent.LocalEvents ! Service.Leave()
-    continent.VehicleEvents ! Service.Leave()
-    galaxyService ! Service.Leave()
+    continent.AvatarEvents ! Service.LeaveAll
+    continent.LocalEvents ! Service.LeaveAll
+    continent.VehicleEvents ! Service.LeaveAll
+    galaxyService ! Service.LeaveAll
     if (avatar != null && squadService != Default.Actor) {
-      squadService ! Service.Leave()
+      squadService ! Service.LeaveAll
     }
   }
 }

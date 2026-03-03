@@ -453,7 +453,7 @@ class PersistenceMonitor(
     */
   def AvatarLogout(avatar: Avatar): Unit = {
     LivePlayerList.Remove(avatar.id)
-    squadService.tell(Service.Leave(Some(avatar.id.toString)), context.parent)
+    squadService.tell(Service.Leave(avatar.id.toString), context.parent)
     galaxyService.tell(GalaxyServiceMessage(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     Deployables.Disown(inZone, avatar, context.parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)

@@ -250,9 +250,9 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
         //todo we might be able to piggyback this for squad recalls later
         if(session.zone eq zone) {
           sessionLogic.zoning.zoneReload = true
-          zone.AvatarEvents ! Service.Leave()
-          zone.LocalEvents ! Service.Leave()
-          zone.VehicleEvents ! Service.Leave()
+          zone.AvatarEvents ! Service.LeaveAll
+          zone.LocalEvents ! Service.LeaveAll
+          zone.VehicleEvents ! Service.LeaveAll
           zone.AvatarEvents ! Service.Join(player.Name) //must manually restore this subscriptions
           sessionLogic.zoning.spawn.handleNewPlayerLoaded(player) //will restart subscriptions and dispatch a LoadMapMessage
         } else {

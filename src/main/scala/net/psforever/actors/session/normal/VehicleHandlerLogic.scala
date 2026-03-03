@@ -232,7 +232,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       case VehicleAction.TransferPassengerChannel(oldChannel, tempChannel, vehicle, vehicleToDelete) if isNotSameTarget =>
         sessionLogic.zoning.interstellarFerry = Some(vehicle)
         sessionLogic.zoning.interstellarFerryTopLevelGUID = Some(vehicleToDelete)
-        continent.VehicleEvents ! Service.Leave(Some(oldChannel)) //old vehicle-specific channel (was s"${vehicle.Actor}")
+        continent.VehicleEvents ! Service.Leave(oldChannel) //old vehicle-specific channel (was s"${vehicle.Actor}")
         galaxyService ! Service.Join(tempChannel) //temporary vehicle-specific channel
         log.debug(s"TransferPassengerChannel: ${player.Name} now subscribed to $tempChannel for vehicle gating")
 

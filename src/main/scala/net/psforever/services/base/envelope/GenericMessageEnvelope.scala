@@ -7,12 +7,23 @@ import net.psforever.types.PlanetSideGUID
 
 trait GenericMessageEnvelope
   extends AllEnvelopes {
+  /** channel information provided with the message */
   def originalChannel: String
+  /** input payload transported by this envelope */
   def msg: EventMessage
-  def response(stamp: EventSystemStamp, sendToChannel: String => String): GenericResponseEnvelope
+  /** method that counts as "processing" the envelope by an event system;
+   * the event system supplies their stamp and converts the message envelope into a response envelope;
+   * the input message is converted into a response message */
+  def response(stamp: EventSystemStamp): GenericResponseEnvelope
 }
 
 object GenericMessageEnvelope {
+  /**
+   * The `unapply`ed data from a message envelope resembles the data from includes the filter and the channel information.
+   * The original channel information.
+   * @param obj response envelope
+   * @return a tuple containing the channel, filter, and reply message
+   */
   def unapply(obj: GenericMessageEnvelope): Option[(String, PlanetSideGUID, EventMessage)] = {
     Some((obj.originalChannel, obj.filter, obj.msg))
   }
