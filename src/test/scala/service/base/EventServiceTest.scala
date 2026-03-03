@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PSForever
 package service.base
 
-import akka.actor.Props
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
 import base.ActorTest
 import net.psforever.services.Service
@@ -12,36 +12,50 @@ import scala.concurrent.duration._
 
 object EventServiceTest {
   class TestService() extends GenericEventService(EventServiceTestBase.TestStamp)
+
+  def SpawnTestSystem()(implicit system: ActorSystem, self: ActorRef): ActorRef = {
+    val name = self.getClass.getSimpleName.replace("EventServiceTest", "")
+    system.actorOf(Props[TestService](), name = s"EventServiceTest.$name")
+  }
 }
 
 class EventServiceTestDefault extends ActorTest {
-  import EventServiceTest._
   "GenericEventSystem" should {
     "construct" in {
-      system.actorOf(Props[TestService](), name = "EventServiceTest.0")
+      EventServiceTest.SpawnTestSystem()
     }
   }
 }
 
-class EventServiceTest1 extends ActorTest {
-  import EventServiceTest._
+class EventServiceTestSubscribe extends ActorTest {
   "GenericEventSystem" should {
     "be subscribed to by channel name" in {
       val probe = TestProbe("testProbe")
-      val events = system.actorOf(Props[TestService](), name = "EventServiceTest.1")
+      val events = EventServiceTest.SpawnTestSystem()
       events.tell(Service.Join("test"), probe.ref)
       probe.expectNoMessage(100 milliseconds)
     }
   }
 }
 
-class EventServiceTest2 extends ActorTest {
-  import EventServiceTest._
+class EventServiceTestSubscribeConfirm extends ActorTest {
+  "GenericEventSystem" should {
+    "be subscribed to by channel name and send a confirmation when prompted" in {
+      val probe = TestProbe("testProbe")
+      val events = EventServiceTest.SpawnTestSystem()
+      events.tell(Service.Join("test", sendJoinConfirmation = true), probe.ref)
+      val reply = probe.receiveOne(100 milliseconds)
+      assert(reply == Service.JoinConfirmation(events, "test"), "join confirmation expected but not received")
+    }
+  }
+}
+
+class EventServiceTestSubscriptionMessage extends ActorTest {
   import EventServiceTestBase._
   "GenericEventSystem" should {
     "receive messages from a subscribed channel" in {
       val probe = TestProbe("testProbe")
-      val events = system.actorOf(Props[TestService](), name = "EventServiceTest.2")
+      val events = EventServiceTest.SpawnTestSystem()
       events.tell(Service.Join("test"), probe.ref)
       events ! MessageEnvelope("test", Service.defaultPlayerGUID, TestMessage(5))
       probe.receiveN(1, 100 milliseconds)
@@ -49,16 +63,15 @@ class EventServiceTest2 extends ActorTest {
   }
 }
 
-class EventServiceTest3 extends ActorTest {
-  import EventServiceTest._
+class EventServiceTestSubscriptionReply extends ActorTest {
   import EventServiceTestBase._
   "GenericEventSystem" should {
     "receive messages that are responses to the original message from a subscribed channel" in {
       val probe = TestProbe("testProbe")
-      val events = system.actorOf(Props[TestService](), name = "EventServiceTest.3")
+      val events = EventServiceTest.SpawnTestSystem()
       val msg = MessageEnvelope("test", Service.defaultPlayerGUID, TestMessage(5))
       // s => "/$s" is the default channel manipulation of the event system
-      val formalReply = msg.response(EventServiceTestBase.TestStamp, s => "/$s")
+      val formalReply = msg.response(EventServiceTestBase.TestStamp)
       events.tell(Service.Join("test"), probe.ref)
       events ! MessageEnvelope("test", Service.defaultPlayerGUID, TestMessage(5))
       val reply = probe.receiveOne(100 milliseconds)
@@ -67,14 +80,13 @@ class EventServiceTest3 extends ActorTest {
   }
 }
 
-class EventServiceTest4 extends ActorTest {
-  import EventServiceTest._
+class EventServiceTestNotSubscribed extends ActorTest {
   import EventServiceTestBase._
   "GenericEventSystem" should {
     "not receive messages from an unsubscribed channel" in {
       val probe = TestProbe("testProbe")
       val missedProbe = TestProbe("testProbe")
-      val events = system.actorOf(Props[TestService](), name = "EventServiceTest.4")
+      val events = EventServiceTest.SpawnTestSystem()
       events.tell(Service.Join("test"), probe.ref)
       events.tell(Service.Join("notATest"), missedProbe.ref)
       events ! MessageEnvelope("test", Service.defaultPlayerGUID, TestMessage(5))
@@ -88,13 +100,12 @@ class EventServiceTest4 extends ActorTest {
   }
 }
 
-class EventServiceTest5 extends ActorTest {
-  import EventServiceTest._
+class EventServiceTestUnexpectedMessages extends ActorTest {
   import EventServiceTestBase._
   "GenericEventSystem" should {
     "ignore unexpected messages" in {
       val probe = TestProbe("testProbe")
-      val events = system.actorOf(Props[TestService](), name = "EventServiceTest.5")
+      val events = EventServiceTest.SpawnTestSystem()
       events.tell(Service.Join("test"), probe.ref)
       events ! TestMessage(5)
       probe.expectNoMessage(250 milliseconds)
@@ -103,13 +114,12 @@ class EventServiceTest5 extends ActorTest {
   }
 }
 
-class EventServiceTest6 extends ActorTest {
-  import EventServiceTest._
+class EventServiceTestLeave extends ActorTest {
   import EventServiceTestBase._
   "GenericEventSystem" should {
     "leave single channels" in {
       val probe = TestProbe("testProbe")
-      val events = system.actorOf(Props[TestService](), name = "EventServiceTest.6")
+      val events = EventServiceTest.SpawnTestSystem()
       events.tell(Service.Join("test"), probe.ref)
       events.tell(Service.Join("anotherTest"), probe.ref)
 
@@ -125,7 +135,7 @@ class EventServiceTest6 extends ActorTest {
         case _ => assert(false, "(4) message expected but not received")
       }
 
-      events.tell(Service.Leave(Some("anotherTest")), probe.ref)
+      events.tell(Service.Leave("anotherTest"), probe.ref)
       events ! MessageEnvelope("test", Service.defaultPlayerGUID, TestMessage(5))
       events ! MessageEnvelope("anotherTest", Service.defaultPlayerGUID, TestMessage(6))
       val reply2 = probe.receiveOne(100 milliseconds)
@@ -138,13 +148,12 @@ class EventServiceTest6 extends ActorTest {
   }
 }
 
-class EventServiceTest7 extends ActorTest {
-  import EventServiceTest._
+class EventServiceTestLeaveAll1 extends ActorTest {
   import EventServiceTestBase._
   "GenericEventSystem" should {
     "leave all channels (1)" in {
       val probe = TestProbe("testProbe")
-      val events = system.actorOf(Props[TestService](), name = "EventServiceTest.7")
+      val events = EventServiceTest.SpawnTestSystem()
       events.tell(Service.Join("test"), probe.ref)
       events.tell(Service.Join("anotherTest"), probe.ref)
 
@@ -168,13 +177,12 @@ class EventServiceTest7 extends ActorTest {
   }
 }
 
-class EventServiceTest8 extends ActorTest {
-  import EventServiceTest._
+class EventServiceTestLeaveAll2 extends ActorTest {
   import EventServiceTestBase._
   "GenericEventSystem" should {
     "leave all channels" in {
       val probe = TestProbe("testProbe")
-      val events = system.actorOf(Props[TestService](), name = "EventServiceTest.8")
+      val events = EventServiceTest.SpawnTestSystem()
       events.tell(Service.Join("test"), probe.ref)
       events.tell(Service.Join("anotherTest"), probe.ref)
 
