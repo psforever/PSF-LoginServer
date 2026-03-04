@@ -31,6 +31,9 @@ class DamageCalculationsTests extends Specification {
     val projectile = Projectile(proj, wep, wep_fmode, player, Vector3(2, 2, 0), Vector3.Zero)
     val target     = Vehicle(GlobalDefinitions.fury)
     target.Position = Vector3(10, 0, 0)
+    player.GUID = PlanetSideGUID(1)
+    projectile.GUID = PlanetSideGUID(2)
+    target.GUID = PlanetSideGUID(3)
     val resprojectile = DamageInteraction(
       SourceEntry(target),
       ProjectileReason(
@@ -271,6 +274,7 @@ class DamageCalculationsTests extends Specification {
     )
     val minDamageBase = charge_weapon.Projectile.Charging.get.min.Damage0
     val chargeBaseDamage = charge_weapon.Projectile.Damage0
+    charge_projectile.GUID = PlanetSideGUID(1)
 
     "charge (none)" in {
       val cprojectile = charge_projectile.quality(ProjectileQuality.Modified(0))
@@ -329,6 +333,7 @@ class DamageCalculationsTests extends Specification {
       Vector3(2, 2, 0),
       Vector3.Zero
     )
+    flak_projectile.GUID = PlanetSideGUID(1)
 
     "flak hit (resolution is splash, no degrade)" in {
       val resfprojectile = DamageInteraction(

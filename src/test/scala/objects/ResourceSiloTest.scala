@@ -151,7 +151,7 @@ class ResourceSiloControlStartupMessageSomeTest extends ActorTest {
 
 class ResourceSiloControlUseTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
-  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
+  ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 10))

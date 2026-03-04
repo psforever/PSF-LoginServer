@@ -101,7 +101,7 @@ object Server {
     val zones = Zones.zones :+ Zone.Nowhere
     val serviceManager = ServiceManager.boot
     serviceManager ! ServiceManager.Register(classic.Props[AccountIntermediaryService](), "accountIntermediary")
-    serviceManager ! ServiceManager.Register(classic.Props[GalaxyService](), "galaxy")
+    serviceManager ! ServiceManager.Register(GalaxyService(), "galaxy")
     serviceManager ! ServiceManager.Register(classic.Props[SquadService](), "squad")
     serviceManager ! ServiceManager.Register(classic.Props[AccountPersistenceService](), "accountPersistence")
     serviceManager ! ServiceManager.Register(classic.Props[PropertyOverrideManager](), "propertyOverrideManager")

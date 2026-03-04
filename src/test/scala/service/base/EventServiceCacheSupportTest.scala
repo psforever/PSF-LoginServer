@@ -8,7 +8,6 @@ import net.psforever.services.Service
 import net.psforever.services.base.message.EventMessage
 import net.psforever.services.base.{CachedEnvelope, CachedGenericEventEnvelope, EventServiceSupport, GenericEventServiceWithCacheAndSupport, GenericSupportEnvelope}
 import net.psforever.types.PlanetSideGUID
-import service.base.EventServiceSupportTest.TestSupportService
 
 import scala.concurrent.duration._
 
@@ -29,7 +28,7 @@ object EventServiceCacheSupportTest {
 
   def SpawnTestSystem(eventSupportServices: List[EventServiceSupport])(implicit system: ActorSystem, self: ActorRef): ActorRef = {
     val name = self.getClass.getSimpleName.replace("EventServiceCacheSupportTest", "")
-    system.actorOf(Props(classOf[TestSupportService], eventSupportServices), name = s"EventServiceCacheSupportTest.$name")
+    system.actorOf(Props(classOf[TestCacheService], eventSupportServices), name = s"EventServiceCacheSupportTest.$name")
   }
 }
 
@@ -135,9 +134,9 @@ class EventServiceCacheSupportTestMultipleCachedSameMessages extends ActorTest {
       val secondMessage = CachedEnvelope(PlanetSideGUID(1), "test", TestMessage(2))
       val thirdMessage = CachedEnvelope(PlanetSideGUID(1), "test", TestMessage(3)) //this one!
       events ! firstMessage
+      mainProbe.expectNoMessage(50 milliseconds)
       events ! secondMessage
       events ! thirdMessage
-      mainProbe.expectNoMessage(50 milliseconds)
       val reply = mainProbe.receiveOne(125 milliseconds)
       reply match {
         case badmsg if badmsg == firstMessage =>
@@ -148,6 +147,7 @@ class EventServiceCacheSupportTestMultipleCachedSameMessages extends ActorTest {
         case badmsg =>
           assert(false, s"(7) expected delivery of test envelope, but received $badmsg instead")
       }
+      mainProbe.expectNoMessage(150 milliseconds)
     }
   }
 }

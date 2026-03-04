@@ -41,8 +41,12 @@ case class CaptureFlagSupport(zone: Zone)
 
 case object LocalStamp extends EventSystemStamp
 
-class LocalService(zone: Zone)
-  extends GenericEventServiceWithSupport(
-    stamp = LocalStamp,
-    eventSupportServices = List(DoorCloserSupport, HackClearSupport, HackCaptureSupport, CaptureFlagSupport(zone))
-  )
+object LocalService {
+  def apply(zone: Zone): Props = {
+    Props(
+      classOf[GenericEventServiceWithSupport],
+      LocalStamp,
+      List(DoorCloserSupport, HackClearSupport, HackCaptureSupport, CaptureFlagSupport(zone))
+    )
+  }
+}

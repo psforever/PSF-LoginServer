@@ -39,7 +39,7 @@ trait EventSystemStamp {
  * and, dispatches the response to all subscribers associated with the channel provided in the message.
  * @param stamp distinct tag associated with an event system
  */
-abstract class GenericEventService(stamp: EventSystemStamp)
+class GenericEventService(stamp: EventSystemStamp)
   extends Actor {
   protected lazy val log: Logger = org.log4s.getLogger(getClass.getSimpleName)
 

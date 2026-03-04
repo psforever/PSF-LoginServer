@@ -80,7 +80,7 @@ trait GenericSupportEnvelopeOnly
  * @param stamp distinct tag associated with an event system
  * @param eventSupportServices list of support actors to initialize
  */
-abstract class GenericEventServiceWithSupport
+class GenericEventServiceWithSupport
 (
   stamp: EventSystemStamp,
   eventSupportServices: List[EventServiceSupport]

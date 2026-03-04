@@ -15,8 +15,12 @@ case object TurretUpgradeSupport
 
 case object VehicleStamp extends EventSystemStamp
 
-class VehicleService
-  extends GenericEventServiceWithCacheAndSupport(
-    stamp = VehicleStamp,
-    eventSupportServices = List(TurretUpgradeSupport)
-  )
+object VehicleService {
+  def apply(): Props = {
+    Props(
+      classOf[GenericEventServiceWithCacheAndSupport],
+      VehicleStamp,
+      List(TurretUpgradeSupport)
+    )
+  }
+}

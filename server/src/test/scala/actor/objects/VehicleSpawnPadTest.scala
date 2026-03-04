@@ -9,11 +9,12 @@ import net.psforever.objects.serverobject.structures.StructureType
 import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, _}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.terminals.Terminal
+import net.psforever.services.base.envelope.GenericMessageEnvelope
 
 import scala.concurrent.duration._
 
@@ -37,7 +38,7 @@ class VehicleSpawnControl2Test extends ActorTest {
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle, terminal) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
-      probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
+      probe.expectMsgClass(1 minute, classOf[GenericMessageEnvelope])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.StartPlayerSeatedInVehicle])
       vehicle.Seats(0).mount(player)
@@ -69,11 +70,11 @@ class VehicleSpawnControl3Test extends ActorTest {
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player2, vehicle, terminal) //second order (vehicle shared)
 
       assert(probe.receiveOne(1 seconds) match {
-        case VehicleSpawnPad.PeriodicReminder(_, VehicleSpawnPad.Reminders.Queue, _) => true
-        case _                                                                       => false
+        case VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Queue, _) => true
+        case _                                                                    => false
       })
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
-      probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
+      probe.expectMsgClass(1 minute, classOf[GenericMessageEnvelope])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.StartPlayerSeatedInVehicle])
       vehicle.Seats(0).mount(player)
@@ -110,14 +111,6 @@ class VehicleSpawnControl4Test extends ActorTest {
       player.Continent = "problem" //problem
 
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle, terminal) //order
-
-      val msg = probe.receiveOne(1 minute)
-//      assert(
-//        msg match {
-//          case VehicleServiceMessage.Decon(RemoverActor.AddTask(v, z, _)) => (v == vehicle) && (z == zone)
-//          case _                                                          => false
-//        }
-//      )
       probe.expectNoMessage(5 seconds)
     }
   }
@@ -133,18 +126,18 @@ class VehicleSpawnControl5Test extends ActorTest() {
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle, terminal) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
-      probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
+      probe.expectMsgClass(1 minute, classOf[GenericMessageEnvelope])
       vehicle.Health = 0 //problem
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DetachFromRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.RevealPlayer])
       assert(probe.receiveOne(1 minute) match {
-        case VehicleServiceMessage(_, _, VehicleAction.LoadVehicle(_, _, _, _, _)) => true
-        case _                                                                  => false
+        case GenericMessageEnvelope(_, _, VehicleAction.LoadVehicle(_, _, _, _)) => true
+        case _                                                                   => false
       })
       assert(probe.receiveOne(1 minute) match {
-        case VehicleSpawnPad.PeriodicReminder(_, VehicleSpawnPad.Reminders.Blocked, _) => true
-        case _                                                                         => false
+        case VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, _) => true
+        case _                                                                      => false
       })
     }
   }
@@ -160,18 +153,18 @@ class VehicleSpawnControl6Test extends ActorTest() {
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle, terminal) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
-      probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
+      probe.expectMsgClass(1 minute, classOf[GenericMessageEnvelope])
       player.Die
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DetachFromRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.RevealPlayer])
       assert(probe.receiveOne(1 minute) match {
-        case VehicleServiceMessage(_, _, VehicleAction.LoadVehicle(_, _, _, _, _)) => true
-        case _                                                                  => false
+        case GenericMessageEnvelope(_, _, VehicleAction.LoadVehicle(_, _, _, _)) => true
+        case _                                                                   => false
       })
       assert(probe.receiveOne(1 minute) match {
-        case VehicleSpawnPad.PeriodicReminder(_, VehicleSpawnPad.Reminders.Blocked, _) => true
-        case _                                                                         => false
+        case VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, _) => true
+        case _                                                                      => false
       })
     }
   }
@@ -188,18 +181,18 @@ class VehicleSpawnControl7Test extends ActorTest {
       pad.Actor ! VehicleSpawnPad.VehicleOrder(player, vehicle, terminal) //order
 
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.ConcealPlayer])
-      probe.expectMsgClass(1 minute, classOf[VehicleServiceMessage])
+      probe.expectMsgClass(1 minute, classOf[GenericMessageEnvelope])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.AttachToRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.StartPlayerSeatedInVehicle])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.DetachFromRails])
       probe.expectMsgClass(1 minute, classOf[VehicleSpawnPad.RevealPlayer])
       assert(probe.receiveOne(1 minute) match {
-        case VehicleServiceMessage(_, _, VehicleAction.LoadVehicle(_, _, _, _, _)) => true
-        case _                                                                  => false
+        case GenericMessageEnvelope(_, _, VehicleAction.LoadVehicle(_, _, _, _)) => true
+        case _                                                                   => false
       })
       assert(probe.receiveOne(1 minute) match {
-        case VehicleSpawnPad.PeriodicReminder(_, VehicleSpawnPad.Reminders.Blocked, _) => true
-        case _                                                                         => false
+        case VehicleSpawnPad.PeriodicReminder(VehicleSpawnPad.Reminders.Blocked, _) => true
+        case _                                                                      => false
       })
     }
   }

@@ -429,9 +429,4 @@ object ProximityTest {
   val avatarId = new AtomicInteger(0)
 
   class SampleTerminal extends Terminal(GlobalDefinitions.dropship_vehicle_terminal) with ProximityUnit
-
-  class ProbedLocalService(probe: TestProbe, zone: Zone) extends LocalService(zone) {
-    self.tell(Service.Join("test"), probe.ref)
-  }
-
 }

@@ -92,7 +92,7 @@ private case object FlushCachedMessages extends GenericMessageEnvelope {
   def filter: PlanetSideGUID = Service.defaultPlayerGUID
 }
 
-abstract class GenericEventServiceWithCacheAndSupport
+class GenericEventServiceWithCacheAndSupport
 (
   stamp: EventSystemStamp,
   eventSupportServices: List[EventServiceSupport]

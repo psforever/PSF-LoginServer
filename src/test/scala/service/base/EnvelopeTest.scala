@@ -79,7 +79,7 @@ class EnvelopeTest extends Specification {
     "construct (quick)" in {
       val input = GenericResponseEnvelope(TestStamp, "test", TestFilter, TestMessage(5))
       input match {
-        case reply @ GenericResponseEnvelope("test", TestFilter, TestMessage(5)) =>
+        case reply @ GenericResponseEnvelope("/test/out", TestFilter, TestMessage(5)) =>
           reply.stamp mustEqual TestStamp
         case _ =>
           ko

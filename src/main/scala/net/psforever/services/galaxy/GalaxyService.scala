@@ -1,6 +1,7 @@
 // Copyright (c) 2017-2026 PSForever
 package net.psforever.services.galaxy
 
+import akka.actor.Props
 import net.psforever.services.base.{EventSystemStamp, GenericEventService}
 
 case object GalaxyStamp extends EventSystemStamp {
@@ -13,5 +14,8 @@ case object GalaxyStamp extends EventSystemStamp {
   }
 }
 
-class GalaxyService
-  extends GenericEventService(stamp = GalaxyStamp)
+object GalaxyService {
+  def apply(): Props = {
+    Props(classOf[GenericEventService], GalaxyStamp)
+  }
+}

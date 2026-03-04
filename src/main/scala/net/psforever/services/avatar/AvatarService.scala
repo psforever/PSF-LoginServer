@@ -23,8 +23,12 @@ case object LitterRemovalSupport
 
 case object AvatarStamp extends EventSystemStamp
 
-class AvatarService
-  extends GenericEventServiceWithCacheAndSupport(
-    stamp = AvatarStamp,
-    eventSupportServices = List(CorpseRemovalSupport, LitterRemovalSupport)
-  )
+object AvatarService {
+  def apply(): Props = {
+    Props(
+      classOf[GenericEventServiceWithCacheAndSupport],
+      AvatarStamp,
+      List(CorpseRemovalSupport, LitterRemovalSupport)
+    )
+  }
+}
