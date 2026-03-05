@@ -27,7 +27,7 @@ import net.psforever.packet.game._
 import net.psforever.services.ServiceManager
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types._
 
 import scala.concurrent.duration._

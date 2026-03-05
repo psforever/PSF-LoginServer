@@ -14,7 +14,6 @@ import net.psforever.objects.{GlobalDefinitions, Player}
 import net.psforever.types.{CharacterSex, CharacterVoice, PlanetSideEmpire, PlanetSideGUID}
 import org.specs2.mutable.Specification
 import net.psforever.services.Service
-import net.psforever.services.local.LocalService
 
 import scala.concurrent.duration._
 import akka.actor.typed.scaladsl.adapter._

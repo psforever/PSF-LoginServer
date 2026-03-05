@@ -15,7 +15,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration._
 
 final case class DoorMessage(
-                              originalChannel: String,
+                              channel: String,
                               msg: IsADoorMessage,
                               supportMessage: Any
                             ) extends GenericSupportEnvelope {

@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 object EventServiceCacheSupportTest {
   final case class CachedSupportTestEnvelope(
                                               guid: PlanetSideGUID,
-                                              originalChannel: String,
+                                              channel: String,
                                               override val msg: EventMessage,
                                               supportMessage: Any
                                             ) extends CachedGenericEventEnvelope with GenericSupportEnvelope {

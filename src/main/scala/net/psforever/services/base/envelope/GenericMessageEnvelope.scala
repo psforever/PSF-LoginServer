@@ -7,8 +7,6 @@ import net.psforever.types.PlanetSideGUID
 
 trait GenericMessageEnvelope
   extends AllEnvelopes {
-  /** channel information provided with the message */
-  def originalChannel: String
   /** input payload transported by this envelope */
   def msg: EventMessage
   /** method that counts as "processing" the envelope by an event system;
@@ -25,6 +23,6 @@ object GenericMessageEnvelope {
    * @return a tuple containing the channel, filter, and reply message
    */
   def unapply(obj: GenericMessageEnvelope): Option[(String, PlanetSideGUID, EventMessage)] = {
-    Some((obj.originalChannel, obj.filter, obj.msg))
+    Some((obj.channel, obj.filter, obj.msg))
   }
 }

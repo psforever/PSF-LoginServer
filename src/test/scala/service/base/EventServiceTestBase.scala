@@ -29,7 +29,7 @@ object EventServiceTestBase {
   }
 
   final case class TestSupportEnvelope(
-      originalChannel: String,
+      channel: String,
       msg: SupportActorRepliesWith
   ) extends GenericSupportEnvelope {
     def filter: PlanetSideGUID = Service.defaultPlayerGUID

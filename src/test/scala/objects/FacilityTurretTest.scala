@@ -19,7 +19,6 @@ import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
 import net.psforever.types._
 import org.specs2.mutable.Specification
-import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.vehicle.VehicleAction

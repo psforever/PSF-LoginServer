@@ -14,7 +14,9 @@ case object NoReply extends EventResponse
  * A stamp that represents not having been processed by an event system.
  * Should never been given out to an event system.
  */
-case object Undelivered extends EventSystemStamp
+case object Undelivered extends EventSystemStamp {
+  override def routing(channel: String): String = ""
+}
 
 /**
  * The mechanics of a proper event system envelope.
@@ -32,16 +34,11 @@ trait MessageTransformationBehavior
   extends GenericMessageEnvelope
     with GenericResponseEnvelope {
   private var outputStamp: EventSystemStamp = Undelivered
-  private var outputChannel: String = originalChannel
   private var outputReply: EventResponse = NoReply
-
-  // satisfies GenericMessageEnvelope (and GenericResponseEnvelope)
-  def channel: String = outputChannel
 
   // satisfies GenericMessageEnvelope
   def response(stamp: EventSystemStamp): GenericResponseEnvelope = {
     outputStamp = stamp
-    outputChannel = stamp.routing(originalChannel)
     outputReply = msg.response()
     this
   }
@@ -54,5 +51,5 @@ trait MessageTransformationBehavior
 /**
  * A proper event system envelope.
  */
-case class MessageEnvelope(originalChannel: String, filter: PlanetSideGUID, msg: EventMessage)
+case class MessageEnvelope(channel: String, filter: PlanetSideGUID, msg: EventMessage)
   extends MessageTransformationBehavior

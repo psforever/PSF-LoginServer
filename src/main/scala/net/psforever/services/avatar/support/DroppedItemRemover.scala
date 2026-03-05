@@ -14,7 +14,7 @@ import net.psforever.types.PlanetSideGUID
 import scala.concurrent.duration._
 
 final case class PickupItemEnvelope(
-                                     originalChannel: String,
+                                     channel: String,
                                      filter: PlanetSideGUID,
                                      msg: PickupItem,
                                      zone: Zone
@@ -33,7 +33,7 @@ object PickupItemEnvelope {
 }
 
 final case class DropItemEnvelope(
-                                   originalChannel: String,
+                                   channel: String,
                                    filter: PlanetSideGUID,
                                    msg: DropItem,
                                    zone: Zone

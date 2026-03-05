@@ -31,7 +31,7 @@ trait CachedGenericEventEnvelope
 
 final case class CachedEnvelope(
                                  guid: PlanetSideGUID,
-                                 originalChannel: String,
+                                 channel: String,
                                  filter: PlanetSideGUID,
                                  msg: EventMessage
                                ) extends CachedGenericEventEnvelope {

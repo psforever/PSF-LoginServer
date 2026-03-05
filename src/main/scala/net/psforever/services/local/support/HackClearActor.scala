@@ -18,7 +18,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration._
 
 final case class HackEntityEnvelope(
-                                     originalChannel: String,
+                                     channel: String,
                                      filter: PlanetSideGUID,
                                      msg: IsAHackMessage,
                                      supportMessage: Any

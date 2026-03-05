@@ -20,19 +20,20 @@ class GenericEventBus
   type Event = GenericResponseEnvelope
   type Classifier = String
 
-  protected def classify(event: Event): Classifier = event.channel
+  protected def classify(event: Event): Classifier = event.outChannel
 
   /*
-  Example Classifiers: "foo", "foo.fizz", and "foo.buzz"
-  In general, Classifier channels will perform left-pattern matching.
-  "foo" will publish to "foo", "foo.fizz", and "foo.buzz"
+  Example:
+  The channels are "foo", "foo.fizz", and "foo.buzz"
+  In general, Classifier channels will perform left-pattern matching
+  Publishing to channel "foo" will allocate Classifiers "foo", "foo.fizz", and "foo.buzz"
+  See `GenericResponseEnvelope.outChannel` to determine how this is applied
    */
-  protected def subclassification: Subclassification[String] =
-    new Subclassification[Classifier] {
-      def isEqual(x: Classifier, y: Classifier): Boolean = x == y
+  protected def subclassification: Subclassification[String] = new Subclassification[Classifier] {
+    def isEqual(x: Classifier, y: Classifier): Boolean = x.equals(y)
 
-      def isSubclass(x: Classifier, y: Classifier): Boolean = x.startsWith(y)
-    }
+    def isSubclass(x: Classifier, y: Classifier): Boolean = x.startsWith(y)
+  }
 
   override def publish(event: Event): Unit = {
     super[SubchannelClassification].publish(event)

@@ -9,7 +9,7 @@ case object GalaxyStamp extends EventSystemStamp {
     if (channel.trim.isEmpty) {
       "/out"
     } else {
-      s"/$channel/out"
+      super.routing(channel)
     }
   }
 }

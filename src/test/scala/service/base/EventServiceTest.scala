@@ -92,7 +92,7 @@ class EventServiceTestNotSubscribed extends ActorTest {
       events ! MessageEnvelope("test", Service.defaultPlayerGUID, TestMessage(5))
       val reply = probe.receiveOne(100 milliseconds)
       reply match {
-        case GenericResponseEnvelope("/test/out", _, TestMessage(5)) => ()
+        case GenericResponseEnvelope("test", _, TestMessage(5)) => ()
         case _ => assert(false, "(2) message expected but not received")
       }
       missedProbe.expectNoMessage(100 milliseconds)
@@ -127,11 +127,11 @@ class EventServiceTestLeave extends ActorTest {
       events ! MessageEnvelope("anotherTest", Service.defaultPlayerGUID, TestMessage(5))
       val reply1 = probe.receiveN(2, 100 milliseconds)
       reply1.head match {
-        case GenericResponseEnvelope("/test/out", _, _) => ()
+        case GenericResponseEnvelope("test", _, _) => ()
         case _ => assert(false, "(3) message expected but not received")
       }
       reply1(1) match {
-        case GenericResponseEnvelope("/anotherTest/out", _, _) => ()
+        case GenericResponseEnvelope("anotherTest", _, _) => ()
         case _ => assert(false, "(4) message expected but not received")
       }
 
@@ -140,7 +140,7 @@ class EventServiceTestLeave extends ActorTest {
       events ! MessageEnvelope("anotherTest", Service.defaultPlayerGUID, TestMessage(6))
       val reply2 = probe.receiveOne(100 milliseconds)
       reply2 match {
-        case GenericResponseEnvelope("/test/out", _, TestMessage(5)) => ()
+        case GenericResponseEnvelope("test", _, TestMessage(5)) => ()
         case _ => assert(false, "(5) message expected but not received")
       }
       probe.expectNoMessage(250 milliseconds)
@@ -161,11 +161,11 @@ class EventServiceTestLeaveAll extends ActorTest {
       events ! MessageEnvelope("anotherTest", Service.defaultPlayerGUID, TestMessage(6))
       val reply = probe.receiveN(2,100 milliseconds)
       reply.head match {
-        case GenericResponseEnvelope("/test/out", _, TestMessage(5)) => ()
+        case GenericResponseEnvelope("test", _, TestMessage(5)) => ()
         case _ => assert(false, "(6) message expected but not received")
       }
       reply(1) match {
-        case GenericResponseEnvelope("/anotherTest/out", _, TestMessage(6)) => ()
+        case GenericResponseEnvelope("anotherTest", _, TestMessage(6)) => ()
         case _ => assert(false, "(7) message expected but not received")
       }
 

@@ -13,7 +13,7 @@ import net.psforever.services.base.message.ObjectDelete
 import scala.concurrent.duration._
 
 final case class ReleaseEnvelope(
-                                  originalChannel: String,
+                                  channel: String,
                                   filter: PlanetSideGUID,
                                   msg: Release
                                 )

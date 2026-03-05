@@ -14,6 +14,8 @@ trait GenericResponseEnvelope
   def reply: EventResponse
   /** marker indicating the routing through which the original message was processed */
   def stamp: EventSystemStamp
+  /** channel information tailored to the event system */
+  def outChannel: String = stamp.routing(channel)
 }
 
 object GenericResponseEnvelope {

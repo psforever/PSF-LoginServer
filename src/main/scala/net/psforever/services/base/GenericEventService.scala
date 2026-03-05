@@ -18,11 +18,12 @@ import org.log4s.Logger
  */
 trait EventSystemStamp {
   /*
-  Example Classifiers: "foo", "foo.fizz", and "foo.buzz"
-  In general, Classifier channels will perform left-pattern matching.
-  "foo" will publish to "foo", "foo.fizz", and "foo.buzz"
-  To isolate "foo", one must distinguish it with a right-pattern.
-  "foo" is appended as "foo.bar" and no longer publishes to "foo.fizz.bar" or to "foo.buzz.bar"
+  Example:
+  The channels are "foo", "foo.fizz", and "foo.buzz"
+  In general, Classifier channels will perform left-pattern matching
+  Publishing to channel "foo" will allocate Classifiers "foo", "foo.fizz", and "foo.buzz"
+  To isolate "foo", one must distinguish it with a right-pattern such as "out"
+  Publishing to channel "foo.out" no longer publishes to "foo.fizz.out" or to "foo.buzz.out"
   */
   /**
    * Take an input channel and produce the publishing output channel.
