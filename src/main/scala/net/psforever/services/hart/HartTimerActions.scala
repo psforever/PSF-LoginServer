@@ -3,7 +3,8 @@ package net.psforever.services.hart
 
 import net.psforever.objects.Vehicle
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.local.LocalAction
 
 object HartTimerActions {
   /**
@@ -17,7 +18,7 @@ object HartTimerActions {
     if(toChannel.equals(zone.id)) {
       shuttle.MountedIn = pad.GUID
     }
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       toChannel,
       LocalAction.ShuttleDock(pad.GUID, shuttle.GUID, 3)
     )
@@ -34,7 +35,7 @@ object HartTimerActions {
     if(toChannel.equals(zone.id)) {
       shuttle.MountedIn = None
     }
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       toChannel,
       LocalAction.ShuttleUndock(pad.GUID, shuttle.GUID, shuttle.Position, shuttle.Orientation)
     )
@@ -51,7 +52,7 @@ object HartTimerActions {
     if(toChannel.equals(zone.id)) {
       shuttle.Flying = state
     }
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       toChannel,
       LocalAction.ShuttleState(shuttle.GUID, shuttle.Position, shuttle.Orientation, state)
     )

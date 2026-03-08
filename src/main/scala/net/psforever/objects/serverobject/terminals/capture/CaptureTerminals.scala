@@ -6,10 +6,11 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 import net.psforever.services.local.support.HackCaptureActor
 import net.psforever.services.local.support.CaptureEnvelope
 import net.psforever.types.PlanetSideEmpire
+import net.psforever.services.base.envelope.MessageEnvelope
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -41,7 +42,7 @@ object CaptureTerminals {
           val zoneid = zone.id
           val events = zone.LocalEvents
           val isResecured = hackingPlayer.Faction == target.Faction
-          events ! LocalServiceMessage(
+          events ! MessageEnvelope(
             zoneid,
             hackingPlayer.GUID,
             LocalAction.TriggerSound(target.HackSound, hackingPlayer.Position, 30, 0.49803925f)

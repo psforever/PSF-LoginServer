@@ -11,9 +11,9 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.etc.TriggerUsedReason
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.zones.Zone
-import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.ObjectDelete
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 import net.psforever.types.PlanetSideEmpire
 
 import scala.annotation.unused
@@ -87,9 +87,9 @@ class BoomerDeployableControl(mine: BoomerDeployable)
     val events = mine.Zone.LocalEvents
     val msg = LocalAction.DeployItem(mine)
     originalOwner.collect { name =>
-      events ! LocalServiceMessage(name, msg)
+      events ! MessageEnvelope(name, msg)
     }
-    events ! LocalServiceMessage(player.Name, msg)
+    events ! MessageEnvelope(player.Name, msg)
   }
 
   override def dismissDeployable() : Unit = {
@@ -107,7 +107,7 @@ class BoomerDeployableControl(mine: BoomerDeployable)
             zone.Ground ! Zone.Ground.RemoveItem(guid)
           case _ => ()
         }
-        zone.AvatarEvents! AvatarServiceMessage(
+        zone.AvatarEvents! MessageEnvelope(
           zone.id,
           ObjectDelete(guid)
         )

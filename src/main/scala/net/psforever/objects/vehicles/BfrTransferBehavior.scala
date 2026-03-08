@@ -11,8 +11,9 @@ import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -116,7 +117,7 @@ trait BfrTransferBehavior
   def UpdateNtuUI(vehicle: Vehicle with NtuContainer, siphon: NtuContainer): Unit = {
     siphon match {
       case equip: NtuSiphon =>
-        vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
+        vehicle.Zone.VehicleEvents ! MessageEnvelope(
           vehicle.Actor.toString,
           VehicleAction.InventoryState2(equip.storageGUID, siphon.GUID, siphon.NtuCapacitor.toInt)
         )

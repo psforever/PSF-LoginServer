@@ -8,7 +8,8 @@ import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, UniquePlayer}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage, AvatarServiceResponse}
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceResponse}
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{EventResponse, SendResponse}
 import net.psforever.services.chat.OutfitChannel
 
@@ -140,7 +141,7 @@ class SessionAvatarHandlers(
       val playersInZone = killer.Zone.Players.map { avatar => (avatar.id, avatar.basic.name) }
       val squadMembersHere = playersInZone.filter(member => squadMembers.contains(member._2))
       squadMembersHere.foreach { member =>
-        killer.Zone.AvatarEvents ! AvatarServiceMessage(
+        killer.Zone.AvatarEvents ! MessageEnvelope(
           member._2,
           AvatarAction.AwardBep(member._1, expSplit, ExperienceType.Normal))
       }
@@ -155,7 +156,7 @@ class SessionAvatarHandlers(
       val playersInZone = vehicle.Zone.Players.map { avatar => (avatar.id, avatar.basic.name) }
       val squadMembersHere = playersInZone.filter(member => squadMembers.contains(member._2))
       squadMembersHere.foreach { member =>
-        vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
+        vehicle.Zone.AvatarEvents ! MessageEnvelope(
           member._2,
           AvatarAction.AwardBep(member._1, exp, ExperienceType.Normal))
       }

@@ -16,9 +16,9 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
 import net.psforever.packet.game.HackState1
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SetEmpire
-import net.psforever.services.local.LocalServiceMessage
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.annotation.unused
@@ -150,7 +150,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
         case player =>
           seat.unmount(player)
           player.VehicleSeated = None
-          events ! VehicleServiceMessage(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2=false, guid))
+          events ! MessageEnvelope(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2=false, guid))
       }
     )
   }
@@ -174,7 +174,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     if (player.Faction == localFaction) {
       if (mech.Owner.asInstanceOf[Building].CaptureTerminalIsHacked) {
         //this is actually futile, as a hacked base does not grant access to the terminal
-        events ! LocalServiceMessage(localFaction.toString, SetEmpire(guid, localFaction))
+        events ! MessageEnvelope(localFaction.toString, SetEmpire(guid, localFaction))
       }
       kickAllOccupantsNotOfFaction(zone, guid, mech, localFaction)
     } else {
@@ -226,7 +226,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
                                        ): Unit = {
     val events = zone.LocalEvents
     opposingFactionsAre(setToFaction).foreach { faction =>
-      events ! LocalServiceMessage(faction.toString, SetEmpire(guid, faction))
+      events ! MessageEnvelope(faction.toString, SetEmpire(guid, faction))
     }
   }
 
@@ -237,7 +237,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
                                         ): Unit = {
     val events = zone.LocalEvents
     opposingFactionsAre(setToFaction).foreach { faction =>
-      events ! LocalServiceMessage(faction.toString, SetEmpire(guid, setToFaction))
+      events ! MessageEnvelope(faction.toString, SetEmpire(guid, setToFaction))
     }
   }
 
@@ -278,7 +278,7 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
         case player if test(player.Faction) =>
           seat.unmount(player)
           player.VehicleSeated = None
-          events ! VehicleServiceMessage(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2 = false, guid))
+          events ! MessageEnvelope(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2 = false, guid))
       }
     )
   }

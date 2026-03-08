@@ -20,9 +20,10 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types.{ChatMessageType, ExoSuitType, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ObjectDelete, SendResponse}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 
 import scala.annotation.tailrec
 
@@ -49,7 +50,7 @@ object Players {
     ) {
       val events = target.Zone.AvatarEvents
       val uname  = user.Name
-      events ! AvatarServiceMessage(
+      events ! MessageEnvelope(
         uname,
         SendResponse(RepairMessage(target.GUID, progress.toInt))
       )
@@ -317,7 +318,7 @@ object Players {
                              ): Boolean = {
     if (player.Zone == obj.Zone && addFunc(obj)) {
       obj.Actor ! Deployable.Ownership(player)
-      player.Zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
+      player.Zone.LocalEvents ! MessageEnvelope(player.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
       true
     } else {
       false
@@ -334,7 +335,7 @@ object Players {
     //sent to avatar event bus to preempt additional tool management
     buildCooldownReset(zone, channel, obj.GUID)
     //sent to local event bus to cooperate with deployable management
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       channel,
       LocalAction.DeployableUIFor(obj.Definition.Item)
     )
@@ -348,7 +349,7 @@ object Players {
     */
   def buildCooldownReset(zone: Zone, channel: String, guid: PlanetSideGUID): Unit = {
     //sent to avatar event bus to preempt additional tool management
-    zone.AvatarEvents ! AvatarServiceMessage(channel, SendResponse(GenericObjectActionMessage(guid, 21)))
+    zone.AvatarEvents ! MessageEnvelope(channel, SendResponse(GenericObjectActionMessage(guid, 21)))
   }
 
   /**
@@ -404,7 +405,7 @@ object Players {
       }
     }) {
       val zone = player.Zone
-      zone.AvatarEvents ! AvatarServiceMessage(zone.id, ObjectDelete(tool.GUID))
+      zone.AvatarEvents ! MessageEnvelope(zone.id, ObjectDelete(tool.GUID))
       true
     } else {
       false
@@ -442,20 +443,20 @@ object Players {
             player.Inventory -= x.start
             obj.FireModeIndex = fireMode
             //TODO any penalty for being handed an OCM version of the tool?
-            events ! AvatarServiceMessage(
+            events ! MessageEnvelope(
               zone.id,
               AvatarAction.EquipmentInHand(pguid, index, obj)
             )
             if (obj.AmmoTypeIndex != ammoType) {
               obj.AmmoTypeIndex = ammoType
-              events ! AvatarServiceMessage(
+              events ! MessageEnvelope(
                 name,
                 SendResponse(ChangeAmmoMessage(obj.GUID, ammoType))
               )
             }
             if (player.DrawnSlot == Player.HandsDownSlot) {
               player.DrawnSlot = index
-              events ! AvatarServiceMessage(zone.id, pguid, AvatarAction.ObjectHeld(index, index))
+              events ! MessageEnvelope(zone.id, pguid, AvatarAction.ObjectHeld(index, index))
             }
           }
         case Nil => ; //no replacements found

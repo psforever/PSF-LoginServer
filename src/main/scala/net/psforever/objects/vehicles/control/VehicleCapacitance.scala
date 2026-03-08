@@ -3,8 +3,8 @@ package net.psforever.objects.vehicles.control
 
 import akka.actor.{Actor, Cancellable}
 import net.psforever.objects._
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
-import net.psforever.services.vehicle.VehicleServiceMessage
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -59,7 +59,7 @@ trait VehicleCapacitance {
 
   protected def showCapacitorCharge(): Unit = {
     val obj = CapacitanceObject
-    obj.Zone.VehicleEvents ! VehicleServiceMessage(
+    obj.Zone.VehicleEvents ! MessageEnvelope(
       self.toString(),
       PlanetsideAttribute(obj.GUID, 113, obj.Capacitor)
     )

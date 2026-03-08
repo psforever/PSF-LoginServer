@@ -3,8 +3,9 @@ package net.psforever.objects.serverobject.damage
 
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.vital.interaction.DamageResult
-import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.message.PlanetsideAttribute
+import net.psforever.packet.game.PlanetsideAttributeMessage
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.SendResponse
 
 /**
   * The "control" `Actor` mixin for damage-handling code
@@ -27,7 +28,6 @@ object DamageableAmenity {
     * The common manifestation is a sparking entity that will no longer report being accessible.
     * These `PlanetSideAttributeMessage` attributes are the same as reported during zone load client configuration.
     * @see `PlanetsideAttribute`
-    * @see `AvatarServiceMessage`
     * @see `Zone.AvatarEvents`
     * @param target the entity being destroyed
     * @param cause historical information about the damage
@@ -37,7 +37,9 @@ object DamageableAmenity {
     val zoneId     = zone.id
     val events     = zone.AvatarEvents
     val targetGUID = target.GUID
-    events ! AvatarServiceMessage(zoneId, PlanetsideAttribute(targetGUID, 50, 1))
-    events ! AvatarServiceMessage(zoneId, PlanetsideAttribute(targetGUID, 51, 1))
+    events ! MessageEnvelope(
+      zoneId,
+      SendResponse(List(PlanetsideAttributeMessage(targetGUID, 50, 1), PlanetsideAttributeMessage(targetGUID, 51, 1)))
+    )
   }
 }

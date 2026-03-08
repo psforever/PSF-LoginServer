@@ -13,7 +13,8 @@ import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game.{ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
 import net.psforever.services.base.CachedEnvelope
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.types.{DriveState, Vector3}
 
 object VehicleLogic {
@@ -77,7 +78,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         obj.Position = position
         obj.Orientation = angle
         //
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! MessageEnvelope(
           continent.id,
           player.GUID,
           VehicleAction.VehicleState(
@@ -165,7 +166,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         obj.Position = position
         obj.Orientation = angle
         obj.DeploymentState = if (is_crouched || !notMountedState) DriveState.Kneeling else DriveState.Mobile
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! MessageEnvelope(
           continent.id,
           player.GUID,
           VehicleAction.FrameVehicleState(vehicle_guid, unk1, position, angle, velocity, unk2, unk3, unk4, is_crouched, is_airborne, ascending_flight, flight_time, unk9, unkA)
@@ -220,7 +221,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         val angle = Vector3(0f, pitch, yaw)
         tool.Orientation = angle
         player.Orientation = angle
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! MessageEnvelope(
           continent.id,
           player.GUID,
           VehicleAction.ChildObjectState(object_guid, pitch, yaw)
@@ -303,7 +304,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
     if (obj.DeploymentState != DriveState.Mobile) {
       obj.DeploymentState = DriveState.Mobile
       sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Mobile, 0, unk3=false, Vector3.Zero))
-      continent.VehicleEvents ! VehicleServiceMessage(
+      continent.VehicleEvents ! MessageEnvelope(
         continent.id,
         player.GUID,
         VehicleAction.DeployRequest(obj.GUID, DriveState.Mobile, 0, unk2=false, Vector3.Zero)

@@ -12,8 +12,8 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, TurretSource}
 import net.psforever.objects.vital.{DismountingActivity, InGameActivity, MountingActivity, ShieldCharge}
 import net.psforever.packet.game.HackState1
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
-import net.psforever.services.vehicle.VehicleServiceMessage
 
 import scala.annotation.unused
 
@@ -98,7 +98,7 @@ class FieldTurretControl(turret: TurretDeployable)
     if (canChargeShields) {
       turret.LogActivity(ShieldCharge(amount, motivator))
       turret.Shields = turret.Shields + amount
-      turret.Zone.VehicleEvents ! VehicleServiceMessage(
+      turret.Zone.VehicleEvents ! MessageEnvelope(
         s"${turret.Actor}",
         PlanetsideAttribute(turret.GUID, turret.Definition.shieldUiAttribute, turret.Shields)
       )

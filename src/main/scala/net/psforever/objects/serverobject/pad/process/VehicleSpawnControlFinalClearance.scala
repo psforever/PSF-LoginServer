@@ -4,8 +4,9 @@ package net.psforever.objects.serverobject.pad.process
 import akka.actor.Cancellable
 import net.psforever.objects.Default
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.types.Vector3
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -35,7 +36,7 @@ class VehicleSpawnControlFinalClearance(pad: VehicleSpawnPad) extends VehicleSpa
         //ensure the vacant vehicle is above the trench and the doors
         vehicle.Position = pad.Position + Vector3.z(pad.Definition.VehicleCreationZOffset)
         val definition = vehicle.Definition
-        pad.Zone.VehicleEvents ! VehicleServiceMessage(
+        pad.Zone.VehicleEvents ! MessageEnvelope(
           s"${pad.Continent}",
           VehicleAction.LoadVehicle(vehicle, definition.ObjectId, vehicle.GUID, definition.Packet.ConstructorData(vehicle).get)
         )
@@ -64,7 +65,7 @@ class VehicleSpawnControlFinalClearance(pad: VehicleSpawnPad) extends VehicleSpa
       }
 
     case VehicleSpawnControlFinalClearance.NextOrder =>
-      pad.Zone.VehicleEvents ! VehicleServiceMessage(pad.Zone.id, VehicleSpawnPad.ResetSpawnPad(pad))
+      pad.Zone.VehicleEvents ! MessageEnvelope(pad.Zone.id, VehicleSpawnPad.ResetSpawnPad(pad))
       context.parent ! VehicleSpawnControl.ProcessControl.GetNewOrder
 
     case _ => ()

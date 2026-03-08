@@ -15,9 +15,10 @@ import net.psforever.objects.zones.Zone
 import net.psforever.persistence
 import net.psforever.types.Vector3
 import net.psforever.services.{Service, ServiceManager}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.ObjectDelete
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
+import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.zones.Zones
 
 import scala.util.Success
@@ -368,7 +369,7 @@ class PersistenceMonitor(
     (inZone.Players.find(p => p.name == name), inZone.AllPlayers.find(p => p.Name == name)) match {
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
         //in case the player is holding the llu and disconnects
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DropSpecialItem())
+        player.Zone.AvatarEvents ! MessageEnvelope(player.Name, AvatarAction.DropSpecialItem())
         //alive or dead in a vehicle
         //if the avatar is dead while in a vehicle, they haven't released yet
         AvatarActor.saveAvatarData(avatar)
@@ -386,7 +387,7 @@ class PersistenceMonitor(
 
       case (Some(avatar), Some(player)) =>
         //in case the player is holding the llu and disconnects
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DropSpecialItem())
+        player.Zone.AvatarEvents ! MessageEnvelope(player.Name, AvatarAction.DropSpecialItem())
         //alive or dead, as standard Infantry
         AvatarActor.saveAvatarData(avatar)
         AvatarActor.finalSavePlayerData(player)
@@ -415,8 +416,7 @@ class PersistenceMonitor(
     * As this persistence monitor is about to become invalid,
     * any messages sent in response to what we are sending are received by the monitor's parent.
     * @see `Avatar`
-    * @see `AvatarAction.ObjectDelete`
-    * @see `AvatarServiceMessage`
+    * @see `ObjectDelete`
     * @see `GUIDTask.UnregisterPlayer`
     * @see `Player`
     * @see `Zone.AvatarEvents`
@@ -435,7 +435,7 @@ class PersistenceMonitor(
       case _ => ;
     }
     inZone.Population.tell(Zone.Population.Release(avatar), parent)
-    inZone.AvatarEvents.tell(AvatarServiceMessage(inZone.id, pguid, ObjectDelete(pguid)), parent)
+    inZone.AvatarEvents.tell(MessageEnvelope(inZone.id, pguid, ObjectDelete(pguid)), parent)
     TaskWorkflow.execute(GUIDTask.unregisterPlayer(inZone.GUID, player))
     //inZone.tasks.tell(GUIDTask.UnregisterPlayer(player)(inZone.GUID), parent)
     AvatarLogout(avatar)
@@ -454,7 +454,7 @@ class PersistenceMonitor(
   def AvatarLogout(avatar: Avatar): Unit = {
     LivePlayerList.Remove(avatar.id)
     squadService.tell(Service.Leave(avatar.id.toString), context.parent)
-    galaxyService.tell(GalaxyServiceMessage(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
+    galaxyService.tell(MessageEnvelope(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     Deployables.Disown(inZone, avatar, context.parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)
     TaskWorkflow.execute(GUIDTask.unregisterObject(inZone.GUID, avatar.locker))

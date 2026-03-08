@@ -12,8 +12,9 @@ import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage, GalaxyServiceResponse}
+import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceResponse}
 import net.psforever.types.ChatMessageType
 import net.psforever.util.Config
 import net.psforever.zones.Zones
@@ -90,7 +91,7 @@ object CavernRotationService {
     */
   private def closedCavernWarning(zone: ZoneMonitor, counter: Int, galaxyService: ActorRef): Boolean = {
     if (!zone.locked) {
-      galaxyService ! GalaxyServiceMessage(SendResponse(
+      galaxyService ! MessageEnvelope("", SendResponse(
         ChatMsg(ChatMessageType.UNK_229, s"@cavern_closing_warning^@${zone.zone.id}~^@$counter~")
       ))
       true
@@ -573,14 +574,14 @@ class CavernRotationService(
     val curr = System.currentTimeMillis()
     val (lockedZones, unlockedZones) = managedZones.partition(_.locked)
     unlockedZones.foreach { z =>
-      galaxyService ! GalaxyServiceMessage(GalaxyAction.UnlockedZoneUpdate(z.zone))
+      galaxyService ! MessageEnvelope("", GalaxyAction.UnlockedZoneUpdate(z.zone))
     }
     val sortedLocked = lockedZones.sortBy(z => z.start)
     sortedLocked.take(2).foreach { z =>
-      galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(z.zone, z.start + z.duration - curr))
+      galaxyService ! MessageEnvelope("", GalaxyAction.LockedZoneUpdate(z.zone, z.start + z.duration - curr))
     }
     sortedLocked.takeRight(2).foreach { z =>
-      galaxyService ! GalaxyServiceMessage(GalaxyAction.LockedZoneUpdate(z.zone, 0L))
+      galaxyService ! MessageEnvelope("", GalaxyAction.LockedZoneUpdate(z.zone, 0L))
     }
   }
 
@@ -665,7 +666,7 @@ class CavernRotationService(
     lockTimerToDisplayWarning(hoursBetweenRotationsAsHours - firstClosingWarningAtMinutes.minutes)
     //alert clients to change
     if (lockingZone ne unlockingZone) {
-      galaxyService ! GalaxyServiceMessage(SendResponse(
+      galaxyService ! MessageEnvelope("", SendResponse(
         ChatMsg(ChatMessageType.UNK_229, s"@cavern_switched^@${lockingZone.id}~^@${unlockingZone.id}")
       ))
       //change warp gate statuses to reflect zone lock state

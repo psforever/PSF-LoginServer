@@ -5,7 +5,8 @@ import net.psforever.objects.Tool
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.serverobject.turret.WeaponTurret
 import net.psforever.objects.vehicles.MountedWeapons
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.vehicle.VehicleAction
 
 /**
   * The "control" `Actor` mixin for repair-handling code for `WeaponTurret` objects.
@@ -29,8 +30,7 @@ object RepairableWeaponTurret {
     * @see `MountedWeapons.Weapons`
     * @see `Service.defaultPlayerGUID`
     * @see `WeaponTurret`
-    * @see `VehicleAction.EquipmentInSlot`
-    * @see `VehicleServiceMessage`
+    * @see `EquipmentInSlot`
     * @see `Zone.VehicleEvents`
     * @param target the entity being destroyed;
     *               note: `MountedWeapons` is a parent of `WeaponTurret`
@@ -45,7 +45,7 @@ object RepairableWeaponTurret {
       .map({ case (index, slot: EquipmentSlot) => (index, slot.Equipment) })
       .collect {
         case (index: Int, Some(tool: Tool)) =>
-          events ! VehicleServiceMessage(
+          events ! MessageEnvelope(
             zoneId,
             VehicleAction.EquipmentInSlot(tguid, index, tool)
           )

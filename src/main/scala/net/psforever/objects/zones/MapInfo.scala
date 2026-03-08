@@ -4,9 +4,8 @@ import enumeratum.values.{StringEnum, StringEnumEntry}
 import net.psforever.objects.{PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.serverobject.environment._
 import net.psforever.packet.game.{ChatMsg, OffshoreVehicleMessage}
-import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
-import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 sealed abstract class MapInfo(
@@ -687,7 +686,7 @@ object MapEnvironment {
             " will be executed for treason." //TODO for bops, eventually
           }
           val warning = s"Do not travel any further $trespass of the battlefield or you$punishment"
-          p.Zone.AvatarEvents ! AvatarServiceMessage(
+          p.Zone.AvatarEvents ! MessageEnvelope(
             p.Name,
             SendResponse(ChatMsg(ChatMessageType.CMT_QUIT, warning))
           )
@@ -695,7 +694,7 @@ object MapEnvironment {
       }
       obj match {
         case v: Vehicle =>
-          v.Zone.VehicleEvents ! VehicleServiceMessage(
+          v.Zone.VehicleEvents ! MessageEnvelope(
             v.Actor.toString(),
             SendResponse(OffshoreVehicleMessage(v.Seats(0).occupant.get.GUID, v.GUID, msg))
           )

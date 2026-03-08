@@ -8,7 +8,8 @@ import net.psforever.objects.Player
 import net.psforever.packet.game.OutfitEventAction.{Initial, Leaving, OutfitInfo, OutfitRankNames, Unk1, Update, UpdateMemberCount}
 import net.psforever.packet.game.OutfitMembershipResponse.PacketType.CreateResponse
 import net.psforever.packet.game._
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.chat.OutfitChannel
 import net.psforever.types.ChatMessageType
@@ -84,12 +85,12 @@ object SessionOutfitHandlers {
               player.outfit_id = outfit.id
               player.outfit_name = outfit.name
 
-              player.Zone.AvatarEvents ! AvatarServiceMessage(
+              player.Zone.AvatarEvents ! MessageEnvelope(
                 player.Zone.id,
                 PlanetsideAttribute(player.GUID, 39, outfit.id)
               )
 
-              player.Zone.AvatarEvents ! AvatarServiceMessage(
+              player.Zone.AvatarEvents ! MessageEnvelope(
                 player.Zone.id,
                 player.GUID,
                 AvatarAction.PlanetsideStringAttribute(0, outfit.name)
@@ -174,12 +175,12 @@ object SessionOutfitHandlers {
             invited.outfit_id = outfit.id
             invited.outfit_name = outfit.name
 
-            invited.Zone.AvatarEvents ! AvatarServiceMessage(
+            invited.Zone.AvatarEvents ! MessageEnvelope(
               invited.Zone.id,
               PlanetsideAttribute(invited.GUID, 39, outfit.id)
             )
 
-            invited.Zone.AvatarEvents ! AvatarServiceMessage(
+            invited.Zone.AvatarEvents ! MessageEnvelope(
               invited.Zone.id,
               invited.GUID,
               AvatarAction.PlanetsideStringAttribute(0, outfit.name)
@@ -241,12 +242,12 @@ object SessionOutfitHandlers {
                 OutfitMemberEvent(outfit_id, kickedId, OutfitMemberEventAction.Kicked()))
             )
 
-            kickedBy.Zone.AvatarEvents ! AvatarServiceMessage(
+            kickedBy.Zone.AvatarEvents ! MessageEnvelope(
               kickedBy.Zone.id,
               PlanetsideAttribute(kickedBy.GUID, 39, 0)
             )
 
-            kickedBy.Zone.AvatarEvents ! AvatarServiceMessage(
+            kickedBy.Zone.AvatarEvents ! MessageEnvelope(
               kickedBy.Zone.id,
               kickedBy.GUID,
               AvatarAction.PlanetsideStringAttribute(0, "")
@@ -270,18 +271,18 @@ object SessionOutfitHandlers {
                 OutfitMembershipResponse(OutfitMembershipResponse.PacketType.YouGotKicked, 0, 1,
                   kickedBy.CharId, kicked.CharId, kickedBy.Name, kicked.Name, flag = false))
 
-              kicked.Zone.AvatarEvents ! AvatarServiceMessage(
+              kicked.Zone.AvatarEvents ! MessageEnvelope(
                 kicked.Zone.id,
                 PlanetsideAttribute(kicked.GUID, 39, 0)
               )
 
-              kicked.Zone.AvatarEvents ! AvatarServiceMessage(
+              kicked.Zone.AvatarEvents ! MessageEnvelope(
                 kicked.Zone.id,
                 kicked.GUID,
                 AvatarAction.PlanetsideStringAttribute(0, "")
               )
 
-              kicked.Zone.AvatarEvents ! AvatarServiceMessage(
+              kicked.Zone.AvatarEvents ! MessageEnvelope(
                 kicked.Name, AvatarAction.RemoveFromOutfitChat(kickedBy.outfit_id))
 
               kicked.outfit_id = 0
@@ -634,12 +635,12 @@ object SessionOutfitHandlers {
                 player.outfit_id = outfit.id
                 player.outfit_name = outfit.name
 
-                player.Zone.AvatarEvents ! AvatarServiceMessage(
+                player.Zone.AvatarEvents ! MessageEnvelope(
                   player.Zone.id,
                   PlanetsideAttribute(player.GUID, 39, outfit.id)
                 )
 
-                player.Zone.AvatarEvents ! AvatarServiceMessage(
+                player.Zone.AvatarEvents ! MessageEnvelope(
                   player.Zone.id,
                   player.GUID,
                   AvatarAction.PlanetsideStringAttribute(0, outfit.name)

@@ -13,9 +13,10 @@ import net.psforever.objects.serverobject.turret.auto.AutomatedTurret.Target
 import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret, AutomatedTurretBehavior}
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.{ChangeFireModeMessage, HackState1}
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.vehicle.support.TurretUpgrader
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.{BailType, PlanetSideEmpire, PlanetSideGUID}
 
 /**
@@ -179,7 +180,7 @@ class FacilityTurretControl(turret: FacilityTurret)
           seat.unmount(player)
           player.VehicleSeated = None
           if (player.HasGUID) {
-            events ! VehicleServiceMessage(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2=false, guid))
+            events ! MessageEnvelope(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2=false, guid))
           }
         case None => ()
       }
@@ -237,7 +238,7 @@ class FacilityTurretControl(turret: FacilityTurret)
         .flatMap(_.Equipment)
         .collect { case weapon: Tool if weapon.FireModeIndex > 0 =>
           weapon.FireModeIndex = 0
-          events ! VehicleServiceMessage(
+          events ! MessageEnvelope(
             zoneid,
             SendResponse(ChangeFireModeMessage(weapon.GUID, 0))
           )
@@ -341,7 +342,7 @@ class FacilityTurretControl(turret: FacilityTurret)
           case player =>
             seat.unmount(player)
             player.VehicleSeated = None
-            events ! VehicleServiceMessage(zoneId, player.GUID, VehicleAction.KickPassenger(seat_num, unk2=true, guid))
+            events ! MessageEnvelope(zoneId, player.GUID, VehicleAction.KickPassenger(seat_num, unk2=true, guid))
         }
     }
     captureTerminalChanges(terminal, super.captureTerminalIsHacked, actionDelays = 3000L)

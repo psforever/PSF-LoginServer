@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.services.local.support
 
-import akka.actor.{Actor, Cancellable}
+import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -13,16 +13,25 @@ import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.participation.MajorFacilityHackParticipation
 import net.psforever.packet.game.{ChatMsg, GenericAction, HackState7, PlanetsideAttributeEnum}
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.services.base.GenericSupportEnvelopeOnly
+import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelopeOnly}
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
 
 import java.util.concurrent.{Executors, TimeUnit}
 import scala.collection.Seq
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.Random
+
+case object HackCaptureSupport
+  extends EventServiceSupport {
+  def label: String = "hackCapturer"
+  def constructor(context: ActorContext): ActorRef = {
+    context.actorOf(Props[HackCaptureActor](), name = "HackCapturer")
+  }
+}
 
 final case class CaptureEnvelope(supportMessage: Any)
   extends GenericSupportEnvelopeOnly {
@@ -235,7 +244,7 @@ class HackCaptureActor extends Actor {
                                    ): Unit = {
     val attributeValue = HackCaptureActor.GetHackUpdateAttributeValue(terminal, isResecured)
     // Notify all clients that CC has had its hack state changed
-    terminal.Zone.LocalEvents ! LocalServiceMessage(
+    terminal.Zone.LocalEvents ! MessageEnvelope(
       terminal.Zone.id,
       PlanetSideGUID(-1),
       PlanetsideAttribute(
@@ -278,7 +287,7 @@ class HackCaptureActor extends Actor {
       building
         .PlayersInSOI
         .collect { case p if p.Faction == hackedByFaction =>
-          events ! LocalServiceMessage(p.Name, msg)
+          events ! MessageEnvelope(p.Name, msg)
         }
       val buildings = building.Zone.Buildings.values
       val hackedBaseId = building.GUID
@@ -314,7 +323,7 @@ class HackCaptureActor extends Actor {
     NotifyHackStateChange(terminal, isResecured = true)
     // todo: this appears to be the way to reset the base warning lights after the hack finishes but it doesn't seem to work.
     val zone = building.Zone
-    zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.HackClear(building.GUID, 3212836864L, HackState7.Unk8))
+    zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.HackClear(building.GUID, 3212836864L, HackState7.Unk8))
   }
 
   private def RestartTimer(): Unit = {

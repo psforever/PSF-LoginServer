@@ -11,7 +11,7 @@ import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.prop.DamageProperties
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
-import net.psforever.services.vehicle.VehicleServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -41,7 +41,7 @@ class VehicleSpawnControlRailJack(pad: VehicleSpawnPad) extends VehicleSpawnCont
         pad.Definition.killBox(pad, vehicle.Definition.CanFly),
         Zone.findAllTargets
       )
-      pad.Zone.VehicleEvents ! VehicleServiceMessage(pad.Zone.id, VehicleSpawnPad.AttachToRails(vehicle, pad))
+      pad.Zone.VehicleEvents ! MessageEnvelope(pad.Zone.id, VehicleSpawnPad.AttachToRails(vehicle, pad))
       context.system.scheduler.scheduleOnce(10 milliseconds, seatDriver, order)
 
     case msg @ (VehicleSpawnControl.ProcessControl.Reminder | VehicleSpawnControl.ProcessControl.GetNewOrder) =>

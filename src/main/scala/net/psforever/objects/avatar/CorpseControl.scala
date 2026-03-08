@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.containable.{Containable, ContainableB
 import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types.{PlanetSideEmpire, Vector3}
-import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ObjectDelete, SendResponse}
 
 class CorpseControl(player: Player) extends Actor with ContainableBehavior {
@@ -25,7 +25,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
         val obj = ContainerObject
         obj.Find(item) match {
           case Some(slot) =>
-            obj.Zone.AvatarEvents ! AvatarServiceMessage(
+            obj.Zone.AvatarEvents ! MessageEnvelope(
               player.Zone.id,
               SendResponse(ObjectAttachMessage(obj.GUID, item.GUID, slot))
             )
@@ -40,7 +40,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
     val zone   = obj.Zone
     val events = zone.AvatarEvents
     item.Faction = PlanetSideEmpire.NEUTRAL
-    events ! AvatarServiceMessage(zone.id, ObjectDelete(item.GUID))
+    events ! MessageEnvelope(zone.id, ObjectDelete(item.GUID))
   }
 
   def PutItemInSlotCallback(item: Equipment, slot: Int): Unit = {
@@ -48,7 +48,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
     val zone       = obj.Zone
     val events     = zone.AvatarEvents
     val definition = item.Definition
-    events ! AvatarServiceMessage(
+    events ! MessageEnvelope(
       zone.id,
       SendResponse(
         ObjectCreateDetailedMessage(
@@ -64,7 +64,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
   def SwapItemCallback(item: Equipment, fromSlot: Int): Unit = {
     val obj  = ContainerObject
     val zone = obj.Zone
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       zone.id,
       SendResponse(ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f))
     )

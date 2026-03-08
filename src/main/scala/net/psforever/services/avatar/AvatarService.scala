@@ -1,25 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar
 
-import akka.actor.{ActorContext, ActorRef, Props}
-import net.psforever.services.avatar.support.{CorpseRemovalActor, DroppedItemRemover}
-import net.psforever.services.base.{EventServiceSupport, EventSystemStamp, GenericEventServiceWithCacheAndSupport}
-
-case object CorpseRemovalSupport
-  extends EventServiceSupport {
-  def label: String = "undertaker"
-  def constructor(context: ActorContext): ActorRef = {
-    context.actorOf(Props[CorpseRemovalActor](), name = "CorpseRemoval")
-  }
-}
-
-case object LitterRemovalSupport
-  extends EventServiceSupport {
-  def label: String = "janitor"
-  def constructor(context: ActorContext): ActorRef = {
-    context.actorOf(Props[DroppedItemRemover](), name = "DroppedItemRemover")
-  }
-}
+import akka.actor.Props
+import net.psforever.services.avatar.support.{CorpseRemovalSupport, LitterRemovalSupport}
+import net.psforever.services.base.{EventSystemStamp, GenericEventServiceWithCacheAndSupport}
 
 case object AvatarStamp extends EventSystemStamp
 

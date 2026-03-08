@@ -4,7 +4,8 @@ package net.psforever.objects.serverobject.structures.participation
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.exp.ToDatabase
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
 
@@ -144,7 +145,7 @@ final case class TowerHackParticipation(building: Building) extends FacilityHack
         //7. reward participants
         //Classically, only players in the SOI are rewarded
         //terminal hacker (always cep)
-        events ! AvatarServiceMessage(hacker.Name, AvatarAction.AwardCep(hacker.CharId, finalCep))
+        events ! MessageEnvelope(hacker.Name, AvatarAction.AwardCep(hacker.CharId, finalCep))
         ToDatabase.reportFacilityCapture(
           hackerId,
           zoneNumber,
@@ -160,7 +161,7 @@ final case class TowerHackParticipation(building: Building) extends FacilityHack
             val contributionTimeMultiplier = contributionPerPlayerByTime.getOrElse(charId, 0.5f)
             val contributionDistanceMultiplier = contributionPerPlayerByDistanceFromGoal.getOrElse(charId, 0.5f)
             val outputValue = (finalCep * contributionTimeMultiplier * contributionDistanceMultiplier).toLong
-            events ! AvatarServiceMessage(
+            events ! MessageEnvelope(
               player.Name,
               AvatarAction.FacilityCaptureRewards(buildingId, zoneNumber, outputValue)
             )

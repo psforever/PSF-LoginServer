@@ -7,7 +7,8 @@ import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{HintsAtAttacker, SendResponse}
 
 /**
@@ -20,7 +21,6 @@ object DamageableMountable {
     *
     * @see `HitHint`
     * @see `SendResponse`
-    * @see `AvatarServiceMessage`
     * @see `DamageWithPositionMessage`
     * @see `Mountable.Seats`
     * @see `Service.defaultPlayerGUID`
@@ -62,7 +62,7 @@ object DamageableMountable {
         List.empty
     }).foreach {
       case (channel, filter, msg) =>
-        events ! AvatarServiceMessage(channel, filter, msg)
+        events ! MessageEnvelope(channel, filter, msg)
     }
   }
 
@@ -79,7 +79,7 @@ object DamageableMountable {
     val targets = target.Seats.values.flatMap(_.occupant).filter(_.isAlive)
     targets.foreach { player =>
         //make llu visible to others in zone if passenger is carrying one
-        player.Zone.AvatarEvents ! AvatarServiceMessage(player.Name, AvatarAction.DropSpecialItem())
+        player.Zone.AvatarEvents ! MessageEnvelope(player.Name, AvatarAction.DropSpecialItem())
         //player.LogActivity(cause)
         player.Actor ! Player.Die(
           DamageInteraction(interaction.resolution, SourceEntry(player), interaction.cause, interaction.hitPos)

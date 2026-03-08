@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.services.base.envelope
 
+import net.psforever.services.Service
 import net.psforever.services.base.EventSystemStamp
 import net.psforever.services.base.message.{EventMessage, EventResponse}
 import net.psforever.types.PlanetSideGUID
@@ -53,3 +54,11 @@ trait MessageTransformationBehavior
  */
 case class MessageEnvelope(channel: String, filter: PlanetSideGUID, msg: EventMessage)
   extends MessageTransformationBehavior
+
+object MessageEnvelope {
+  def apply(msg: EventMessage): MessageEnvelope =
+    MessageEnvelope("", Service.defaultPlayerGUID, msg)
+
+  def apply(channel: String, msg: EventMessage): MessageEnvelope =
+    MessageEnvelope(channel, Service.defaultPlayerGUID, msg)
+}

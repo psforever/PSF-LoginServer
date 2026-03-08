@@ -9,11 +9,10 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types.Vector3
-import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.base.support.SupportActor
 import net.psforever.services.vehicle.support.{TurretEnvelope, TurretUpgrader}
-import net.psforever.services.vehicle.VehicleServiceMessage
 
 /**
   * The "control" `Actor` mixin for damage-handling code for `WeaponTurret` objects.
@@ -63,7 +62,7 @@ trait DamageableWeaponTurret
       //TODO some turrets have shields
       if (damageToHealth > 0) {
         DamageableMountable.DamageAwareness(DamageableObject, cause, damageToHealth)
-        events ! VehicleServiceMessage(
+        events ! MessageEnvelope(
           zoneId,
           PlanetsideAttribute(targetGUID, 0, obj.Health)
         )
@@ -76,7 +75,7 @@ trait DamageableWeaponTurret
         obj.Seats.values
           .collect { case seat if seat.occupant.nonEmpty => seat.occupant.get.Name }
           .foreach { channel =>
-            events ! VehicleServiceMessage(channel, msg)
+            events ! MessageEnvelope(channel, msg)
           }
       }
       else {
@@ -104,8 +103,7 @@ object DamageableWeaponTurret {
     * A destroyed target dispatches a message to conceal (delete) its weapons from users.
     * If affected by a jammer property, the jammer propoerty will be removed.
     * If the type of entity is a `WeaponTurret`, the weapons are converted to their "normal" upgrade state.
-    * @see `AvatarAction.DeleteObject`
-    * @see `AvatarServiceMessage`
+    * @see `DeleteObject`
     * @see `MountedWeapons`
     * @see `MountedWeapons.Weapons`
     * @see `Service.defaultPlayerGUID`
@@ -132,7 +130,7 @@ object DamageableWeaponTurret {
       }
       .foreach(slot => {
         val wep = slot.Equipment.get
-        avatarEvents ! AvatarServiceMessage(zoneId, ObjectDelete(wep.GUID))
+        avatarEvents ! MessageEnvelope(zoneId, ObjectDelete(wep.GUID))
       })
     target match {
       case turret: WeaponTurret =>

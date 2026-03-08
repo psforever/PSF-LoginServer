@@ -13,9 +13,9 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.resolution.ResolutionCalculations
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.types.PlanetSideGUID
-import net.psforever.services.vehicle.VehicleServiceMessage
 
 class ShieldGeneratorDeployable(cdef: ShieldGeneratorDefinition)
     extends Deployable(cdef)
@@ -125,7 +125,7 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
   override def StartJammeredStatus(target: Any, dur: Int): Unit =
     target match {
       case obj: PlanetSideServerObject with JammableUnit =>
-        obj.Zone.VehicleEvents ! VehicleServiceMessage(
+        obj.Zone.VehicleEvents ! MessageEnvelope(
           obj.Zone.id,
           PlanetsideAttribute(obj.GUID, 27, 1)
         )
@@ -138,7 +138,7 @@ class ShieldGeneratorControl(gen: ShieldGeneratorDeployable)
   override def CancelJammeredStatus(target: Any): Unit = {
     target match {
       case obj: PlanetSideServerObject with JammableUnit if obj.Jammed =>
-        obj.Zone.VehicleEvents ! VehicleServiceMessage(
+        obj.Zone.VehicleEvents ! MessageEnvelope(
           obj.Zone.id,
           PlanetsideAttribute(obj.GUID, 27, 0)
         )
@@ -160,7 +160,7 @@ object ShieldGeneratorControl {
     //shields
     if (damageToShields) {
       val zone = target.Zone
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zone.id,
         PlanetsideAttribute(target.GUID, 68, target.Shields)
       )

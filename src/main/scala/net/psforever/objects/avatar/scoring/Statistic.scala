@@ -2,7 +2,7 @@
 package net.psforever.objects.avatar.scoring
 
 /**
- * Organizes the eight fields one would find in an `AvatarServiceMessage` statistic field.
+ * Organizes the eight fields one would find in an statistic field.
  * The `_c` fields and the `_s` fields are paired when the values populate the packet
  * where `c` stands for "campaign" and `s` stands for "session".
  * "Session" values reflect on the UI as the K in K/D

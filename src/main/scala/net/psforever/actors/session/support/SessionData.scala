@@ -4,6 +4,7 @@ package net.psforever.actors.session.support
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.{ActorContext, ActorRef, typed}
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.chat.ChatService
 
 import scala.collection.mutable
@@ -31,7 +32,7 @@ import net.psforever.packet._
 import net.psforever.packet.game._
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.ServiceManager.LookupResult
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.services.{Service, InterstellarClusterService => ICS}
 import net.psforever.types._
 import net.psforever.util.Config
@@ -567,7 +568,7 @@ class SessionData(
       case (Some(obj), Some(seatNum)) =>
         tplayer.VehicleSeated = None
         obj.Seats(seatNum).unmount(tplayer)
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! MessageEnvelope(
           continent.id,
           tplayer.GUID,
           VehicleAction.KickPassenger(seatNum, unk2=false, obj.GUID)

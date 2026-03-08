@@ -9,8 +9,9 @@ import net.psforever.objects.vehicles.{CargoBehavior, MountableWeapons}
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.packet.game.{DismountVehicleCargoMsg, GenericObjectActionMessage, InventoryStateMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.services.base.CachedEnvelope
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.{BailType, PlanetSideGUID, Vector3}
 //
 import net.psforever.actors.session.AvatarActor
@@ -186,7 +187,7 @@ class SessionMountHandlers(
     avatarActor ! AvatarActor.DeactivateActiveImplants
     avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)
     sendResponse(ObjectAttachMessage(objGuid, playerGuid, seatNum))
-    continent.VehicleEvents ! VehicleServiceMessage(
+    continent.VehicleEvents ! MessageEnvelope(
       continent.id,
       playerGuid,
       VehicleAction.MountVehicle(objGuid, seatNum)
@@ -204,13 +205,12 @@ class SessionMountHandlers(
     if (tplayer.BailProtection) {
       tplayer.ContributionFrom(obj)
       sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
-      continent.VehicleEvents ! VehicleServiceMessage(
+      continent.VehicleEvents ! MessageEnvelope(
         continent.id,
-        SendResponse(PlanetsideAttributeMessage(obj.GUID, 81, 1))
-      )
-      continent.VehicleEvents ! VehicleServiceMessage(
-        continent.id,
-        SendResponse(ObjectDetachMessage(obj.GUID, tplayer.GUID, tplayer.Position, obj.Orientation))
+        SendResponse(List(
+          PlanetsideAttributeMessage(obj.GUID, 81, 1),
+          ObjectDetachMessage(obj.GUID, tplayer.GUID, tplayer.Position, obj.Orientation))
+        )
       )
     }
     else {
@@ -250,7 +250,7 @@ class SessionMountHandlers(
       BailType.Normal
     }
     sendResponse(DismountVehicleMsg(playerGuid, bailType, wasKickedByDriver = false))
-    continent.VehicleEvents ! VehicleServiceMessage(
+    continent.VehicleEvents ! MessageEnvelope(
       continent.id,
       playerGuid,
       VehicleAction.DismountVehicle(bailType, unk2 = false)

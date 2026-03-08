@@ -23,6 +23,7 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.GenericAction.FirstPersonViewWithEffect
 import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TriggeredSound, TrainingZoneMessage, WeatherMessage}
 import net.psforever.services.avatar.support.{CorpseEnvelope, ReleaseEnvelope}
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.chat.DefaultChannel
 
@@ -64,16 +65,16 @@ import net.psforever.packet.game.objectcreate.{DroppedItemData, ObjectCreateMess
 import net.psforever.packet.game.objectcreate.ObjectClass
 import net.psforever.packet.{PlanetSideGamePacket, game}
 import net.psforever.persistence.Savedplayer
-import net.psforever.services.RemoverActor
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
 import net.psforever.services.account.{AccountPersistenceService, PlayerToken}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.support.RemoverActor
+import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.services.hart.HartTimer
 import net.psforever.services.local.support.HackCaptureActor
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 import net.psforever.services.properties.PropertyOverrideManager
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.services.{CavernRotationService, Service, ServiceManager, InterstellarClusterService => ICS}
 import net.psforever.types._
 import net.psforever.util.{Config, DefinitionUtil}
@@ -128,7 +129,7 @@ object ZoningOperations {
       .filter(p => Sidedness.equals(side, p.WhichSide))
       .map(_.Name) ++ additionalChannels)
       .foreach { target =>
-        events ! LocalServiceMessage(target, effectMessage)
+        events ! MessageEnvelope(target, effectMessage)
       }
   }
 
@@ -156,11 +157,11 @@ object ZoningOperations {
       }
     val effectMessage = LocalAction.TriggerEffectLocation(s"respawn_$faction", position, orientation)
     (effectTargets.map(_.Name) ++ additionalChannels).foreach { target =>
-      events ! LocalServiceMessage(target, effectMessage)
+      events ! MessageEnvelope(target, effectMessage)
     }
     val soundMessage = LocalAction.TriggerSound(TriggeredSound.SpawnInTube, position, 50, 0.69803923f)
     (soundTargets.map(_.Name) ++ additionalChannels).foreach { target =>
-      events ! LocalServiceMessage(target, soundMessage)
+      events ! MessageEnvelope(target, soundMessage)
     }
   }
 
@@ -549,7 +550,7 @@ class ZoningOperations(
       sendResponse(OCM.apply(projectile))
     }
     //spawn point update request
-    continent.VehicleEvents ! VehicleServiceMessage(
+    continent.VehicleEvents ! MessageEnvelope(
       player.Name,
       VehicleAction.UpdateAmsSpawnPoint(continent)
     )
@@ -597,7 +598,7 @@ class ZoningOperations(
       context.self
     )
     LivePlayerList.Add(avatar.id, avatar)
-    galaxyService.tell(GalaxyServiceMessage(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
+    galaxyService.tell(MessageEnvelope("", GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     //PropertyOverrideMessage
     ServiceManager.serviceManager ! Lookup("propertyOverrideManager")
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
@@ -853,7 +854,7 @@ class ZoningOperations(
         case None =>
           spawn.deadState = DeadState.Release // cancel movement updates
           player.Position = position
-          // continent.AvatarEvents ! AvatarServiceMessage(continent.Id, ObjectDelete(player.GUID, player.GUID))
+          // continent.AvatarEvents ! MessageEnvelope(continent.Id, ObjectDelete(player.GUID, player.GUID))
           spawn.LoadZonePhysicalSpawnPoint(zoneId, position, Vector3.Zero, 0 seconds, None)
         case _ => // seated in something that is not a vehicle or the vehicle is cargo, in which case we can't move
       }
@@ -1207,7 +1208,7 @@ class ZoningOperations(
         sendResponse(OCM.apply(llu))
         // Attach it to a player if it has a carrier
         if (llu.Carrier.nonEmpty) {
-          continent.LocalEvents ! LocalServiceMessage(
+          continent.LocalEvents ! MessageEnvelope(
             continent.id,
             PlanetSideGUID(-1),
             SendResponse(ObjectAttachMessage(llu.Carrier.get.GUID, llu.GUID, 252))
@@ -1352,7 +1353,7 @@ class ZoningOperations(
     val pguid     = player.GUID
     val toChannel = manifest.file
     val topLevel  = interstellarFerryTopLevelGUID.getOrElse(vehicle.GUID)
-    continent.VehicleEvents ! VehicleServiceMessage(
+    continent.VehicleEvents ! MessageEnvelope(
       s"${vehicle.Actor}",
       pguid,
       VehicleAction.TransferPassengerChannel(s"${vehicle.Actor}", toChannel, vehicle, topLevel)
@@ -1366,7 +1367,7 @@ class ZoningOperations(
         cargo.Actor ! CargoBehavior.StartCargoDismounting(bailed = false)
       case entry =>
         val cargo = vehicle.CargoHolds(entry.mount).occupant.get
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! MessageEnvelope(
           entry.name,
           pguid,
           VehicleAction.TransferPassengerChannel(s"${cargo.Actor}", toChannel, cargo, topLevel)
@@ -1398,7 +1399,7 @@ class ZoningOperations(
       interstellarFerryTopLevelGUID =
         if (manifest.passengers.isEmpty && manifest.cargo.count { !_.name.equals("MISSING_DRIVER") } == 0) {
           //do not delete if vehicle has passengers or cargo
-          continent.VehicleEvents ! VehicleServiceMessage(
+          continent.VehicleEvents ! MessageEnvelope(
             continent.id,
             pguid,
             VehicleAction.UnloadVehicle(vehicle, topLevel)
@@ -1476,14 +1477,14 @@ class ZoningOperations(
       case Some(manifest) =>
         val toChannel = manifest.file
         val topLevel  = interstellarFerryTopLevelGUID.getOrElse(vehicle.GUID)
-        galaxyService ! GalaxyServiceMessage(toChannel, GalaxyAction.TransferPassenger(player_guid, toChannel, vehicle, topLevel, manifest))
+        galaxyService ! MessageEnvelope(toChannel, GalaxyAction.TransferPassenger(player_guid, toChannel, vehicle, topLevel, manifest))
         vehicle.CargoHolds.values
           .collect {
             case hold if hold.isOccupied =>
               val cargo = hold.occupant.get
               cargo.Continent = toZoneId
             //point to the cargo vehicle to instigate cargo vehicle driver transportation
-            //              galaxyService ! GalaxyServiceMessage(
+            //              galaxyService ! MesdsageEnvelope(
             //                toChannel,
             //                GalaxyAction.TransferPassenger(player_guid, toChannel, vehicle, topLevel, manifest)
             //              )
@@ -2194,7 +2195,7 @@ class ZoningOperations(
       log.info(s"RestoreInfo: player $name is already logged in zone ${inZone.id}; rejoining that character")
       sessionLogic.persistFunc = UpdatePersistence(from)
       //tell the old WorldSessionActor to kill itself by using its own subscriptions against itself
-      inZone.AvatarEvents ! AvatarServiceMessage(name, AvatarAction.TeardownConnection())
+      inZone.AvatarEvents ! MessageEnvelope(name, AvatarAction.TeardownConnection())
       spawn.switchAvatarStatisticsFieldToRefreshAfterRespawn()
       //find and reload previous player
       (
@@ -2597,7 +2598,7 @@ class ZoningOperations(
             vehicle.CargoHolds.values
               .collect { case hold if hold.isOccupied => hold.occupant.get }
               .foreach { _.MountedIn = vguid }
-            events ! VehicleServiceMessage(
+            events ! MessageEnvelope(
               zoneid,
               player.GUID,
               VehicleAction.LoadVehicle(vehicle, vObjectId, vguid, data)
@@ -2625,7 +2626,7 @@ class ZoningOperations(
             //do not dispatch delete action if any hierarchical occupant has not gotten this far through the summoning process
             val vehicleToDelete = interstellarFerryTopLevelGUID.orElse(originalSeated).getOrElse(PlanetSideGUID(0))
             val zone            = vehicle.PreviousGatingManifest().get.origin
-            zone.VehicleEvents ! VehicleServiceMessage(
+            zone.VehicleEvents ! MessageEnvelope(
               zone.id,
               player.GUID,
               VehicleAction.UnloadVehicle(vehicle, vehicleToDelete)
@@ -2643,7 +2644,7 @@ class ZoningOperations(
           val definition = player.avatar.definition
           val guid = player.GUID
           sendResponse(OCM.detailed(player))
-          continent.AvatarEvents ! AvatarServiceMessage(
+          continent.AvatarEvents ! MessageEnvelope(
             s"spectator",
             guid,
             AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(player).get, None)
@@ -2655,7 +2656,7 @@ class ZoningOperations(
           val guid = player.GUID
           usingSpawnTubeAnimation()
           sendResponse(OCM.detailed(player))
-          continent.AvatarEvents ! AvatarServiceMessage(
+          continent.AvatarEvents ! MessageEnvelope(
             zoneid,
             guid,
             AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(player).get, None)
@@ -2728,7 +2729,7 @@ class ZoningOperations(
         interimUngunnedVehicle = Some(vguid)
         interimUngunnedVehicleSeat = Some(seat)
       }
-      continent.AvatarEvents ! AvatarServiceMessage(
+      continent.AvatarEvents ! MessageEnvelope(
         continent.id,
         pguid,
         AvatarAction.LoadPlayer(
@@ -2887,7 +2888,7 @@ class ZoningOperations(
             case _ => ()
           }
           if (player.VisibleSlots.contains(index)) {
-            events ! AvatarServiceMessage(
+            events ! MessageEnvelope(
               zoneId,
               ObjectDelete(obj.GUID)
             )
@@ -2905,7 +2906,6 @@ class ZoningOperations(
      * To the game, that is a backpack (or some pastry, festive graphical modification allowing).
      * @see `AvatarAction.ObjectDelete`
      * @see `AvatarAction.Release`
-     * @see `AvatarServiceMessage`
      * @see `FriskDeadBody`
      * @see `GUIDTask.unregisterPlayer`
      * @see `ObjectDeleteMessage`
@@ -2923,7 +2923,7 @@ class ZoningOperations(
         val pguid = tplayer.GUID
         zone.Population ! Zone.Population.Release(avatar)
         sendResponse(ObjectDeleteMessage(pguid, 0))
-        zone.AvatarEvents ! AvatarServiceMessage(zone.id, pguid, ObjectDelete(pguid))
+        zone.AvatarEvents ! MessageEnvelope(zone.id, pguid, ObjectDelete(pguid))
         TaskWorkflow.execute(GUIDTask.unregisterPlayer(zone.GUID, tplayer))
       }
     }
@@ -2933,7 +2933,6 @@ class ZoningOperations(
      * To the game, that is a backpack (or some pastry, festive graphical modification allowing).
      * A player who has been kicked may not turn into a corpse.
      * @see `AvatarAction.Release`
-     * @see `AvatarServiceMessage`
      * @see `CorpseConverter.converter`
      * @see `DepictPlayerAsCorpse`
      * @see `Player.Release`
@@ -3179,7 +3178,7 @@ class ZoningOperations(
               // entering or exiting VR zones uses a fade-out effect for the player instead of the usual green cloud deconstruction effect
               val effect = if (player.IsInVRZone || zoneId.startsWith("tz")) 2 else 1
               sendResponse(ObjectDeleteMessage(player_guid, unk1=effect))
-              continent.AvatarEvents ! AvatarServiceMessage(
+              continent.AvatarEvents ! MessageEnvelope(
                 continent.id,
                 player_guid,
                 ObjectDelete(player_guid, unk=effect)
@@ -3346,7 +3345,7 @@ class ZoningOperations(
       //looking for squad (members)
       if (tplayer.avatar.lookingForSquad) {
         sendResponse(PlanetsideAttributeMessage(guid, 53, 1))
-        continent.AvatarEvents ! AvatarServiceMessage(continent.id, guid, PlanetsideAttribute(guid, 53, 1))
+        continent.AvatarEvents ! MessageEnvelope(continent.id, guid, PlanetsideAttribute(guid, 53, 1))
       }
       sendResponse(AvatarSearchCriteriaMessage(guid, List(0, 0, 0, 0, 0, 0)))
       //these are facilities and towers and bunkers in the zone, but not necessarily all of them for some reason
@@ -3372,7 +3371,7 @@ class ZoningOperations(
       if (tplayer.ExoSuit == ExoSuitType.MAX) {
         sendResponse(PlanetsideAttributeMessage(guid, 7, tplayer.Capacitor.toLong))
         sendResponse(PlanetsideAttributeMessage(guid, 4, tplayer.Armor))
-        continent.AvatarEvents ! AvatarServiceMessage(continent.id, PlanetsideAttribute(guid, 4, tplayer.Armor))
+        continent.AvatarEvents ! MessageEnvelope(continent.id, PlanetsideAttribute(guid, 4, tplayer.Armor))
       }
       // for issue #1269
       continent.AllPlayers.filter(_.ExoSuit == ExoSuitType.MAX).foreach(max => sendResponse(PlanetsideAttributeMessage(max.GUID, 4, max.Armor)))
@@ -3396,7 +3395,7 @@ class ZoningOperations(
       continent.GUID(tplayer.avatar.vehicle) match {
         case Some(vehicle: Vehicle) if vehicle.OwnerName.contains(tplayer.Name) =>
           vehicle.OwnerGuid = guid
-          continent.VehicleEvents ! VehicleServiceMessage(
+          continent.VehicleEvents ! MessageEnvelope(
             s"${tplayer.Faction}",
             guid,
             VehicleAction.Ownership(vehicle.GUID)
@@ -3500,8 +3499,10 @@ class ZoningOperations(
             val zone = tplayer.Zone
             val channel = zone.id
             val events = zone.AvatarEvents
-            events ! AvatarServiceMessage(channel, PlanetsideAttribute(guid, 0, 120))
-            events ! AvatarServiceMessage(channel, PlanetsideAttribute(guid, 1, 120))
+            events ! MessageEnvelope(
+              channel,
+              SendResponse(List(PlanetsideAttributeMessage(guid, 0, 120), PlanetsideAttributeMessage(guid, 1, 120)))
+            )
           case _ => ()
         }
         doorsThatShouldBeOpenInRange(pos, range = 100f)
@@ -4005,14 +4006,14 @@ class ZoningOperations(
       val pZone = player.Zone
       sendResponse(GenericActionMessage(FirstPersonViewWithEffect))
       pZone.blockMap.sector(player).livePlayerList.collect { case t if t.GUID != player.GUID =>
-        pZone.LocalEvents ! LocalServiceMessage(
+        pZone.LocalEvents ! MessageEnvelope(
           t.Name,
           t.GUID,
           GenericObjectAction(player.GUID, GenericObjectActionEnum.PlayerDeconstructs.id)
         )
       }
       pZone.AllPlayers.collect { case t if t.GUID != player.GUID && !t.allowInteraction =>
-        pZone.LocalEvents ! LocalServiceMessage(
+        pZone.LocalEvents ! MessageEnvelope(
           t.Name,
           t.GUID,
           GenericObjectAction(player.GUID, GenericObjectActionEnum.PlayerDeconstructs.id)

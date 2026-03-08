@@ -10,10 +10,11 @@ import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
 import net.psforever.objects._
 import net.psforever.types.DriveState
-import net.psforever.services.vehicle.VehicleServiceMessage
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.serverobject.transfer.TransferContainer.TransferMaterial
-import net.psforever.services.base.message.PlanetsideAttribute
+import net.psforever.packet.game.PlanetsideAttributeMessage
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -33,7 +34,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   def ActivatePanelsForChargingEvent(vehicle: NtuContainer): Unit = {
     val obj = ChargeTransferObject
     val zone = obj.Zone
-    zone.VehicleEvents ! VehicleServiceMessage(
+    zone.VehicleEvents ! MessageEnvelope(
       zone.id,
       PlanetsideAttribute(vehicle.GUID, 52, 1L)
     ) // panel glow on
@@ -43,7 +44,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   def StartNtuChargingEvent(vehicle: NtuContainer): Unit = {
     val obj = ChargeTransferObject
     val zone = obj.Zone
-    zone.VehicleEvents ! VehicleServiceMessage(
+    zone.VehicleEvents ! MessageEnvelope(
       zone.id,
       PlanetsideAttribute(vehicle.GUID, 49, 1L)
     ) // orb particle effect on
@@ -52,7 +53,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   def UpdateNtuUI(vehicle: Vehicle with NtuContainer): Unit = {
     if (vehicle.Seats.values.exists(_.isOccupied)) {
       val display = vehicle.NtuCapacitorScaled.toLong
-      vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
+      vehicle.Zone.VehicleEvents ! MessageEnvelope(
         vehicle.Actor.toString,
         PlanetsideAttribute(vehicle.GUID, 45, display)
       )
@@ -158,16 +159,14 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
         val zoneId = zone.id
         val events = zone.VehicleEvents
         if (transferEvent == TransferBehavior.Event.Charging) {
-          events ! VehicleServiceMessage(
+          //1. panel glow off
+          //2. orb particle effect off
+          events ! MessageEnvelope(
             zoneId,
-            PlanetsideAttribute(vguid, 52, 0L)
-          ) // panel glow off
-          events ! VehicleServiceMessage(
-            zoneId,
-            PlanetsideAttribute(vguid, 49, 0L)
-          ) // orb particle effect off
+            SendResponse(List(PlanetsideAttributeMessage(vguid, 52, 0L), PlanetsideAttributeMessage(vguid, 49, 0L)))
+          )
         } else if (transferEvent == TransferBehavior.Event.Discharging) {
-          events ! VehicleServiceMessage(
+          events ! MessageEnvelope(
             zoneId,
             PlanetsideAttribute(vguid, 52, 0L)
           ) // panel glow off

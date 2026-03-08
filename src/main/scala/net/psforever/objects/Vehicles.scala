@@ -13,10 +13,10 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, FrameVehicleStateMessage, GenericObjectActionEnum, HackMessage, HackState, HackState1, HackState7, TriggeredSound, VehicleStateMessage}
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.Service
-import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse, SetEmpire}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.local.LocalAction
+import net.psforever.services.vehicle.VehicleAction
 
 //import scala.concurrent.duration._
 
@@ -46,7 +46,7 @@ object Vehicles {
         val locked = VehicleLockState.Locked.id
         Array(0, 3).foreach(group => vehicle.PermissionGroup(group, locked))
         Vehicles.ReloadAccessPermissions(vehicle, tplayer.Faction.toString)
-        vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
+        vehicle.Zone.VehicleEvents ! MessageEnvelope(
           vehicle.Zone.id,
           tplayer.GUID,
           VehicleAction.Ownership(vehicle.GUID)
@@ -90,7 +90,7 @@ object Vehicles {
     val empire = VehicleLockState.Empire.id
     (0 to 2).foreach(group => vehicle.PermissionGroup(group, empire))
     ReloadAccessPermissions(vehicle, vehicle.Faction.toString)
-    zone.VehicleEvents ! VehicleServiceMessage(
+    zone.VehicleEvents ! MessageEnvelope(
       zone.id,
       VehicleAction.LoseOwnership(ownerGuid.getOrElse(Service.defaultPlayerGUID), guid)
     )
@@ -140,12 +140,12 @@ object Vehicles {
     val pguid = player.GUID
     if (vehicle.OwnerGuid.contains(pguid)) {
       vehicle.AssignOwnership(None)
-      //vehicle.Zone.VehicleEvents ! VehicleServiceMessage(player.Name, pguid, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
+      //vehicle.Zone.VehicleEvents ! MessageEnvelope(player.Name, pguid, VehicleAction.Ownership(pguid, PlanetSideGUID(0)))
       //val vguid  = vehicle.GUID
       val empire = VehicleLockState.Empire.id
       (0 to 2).foreach(group => {
         vehicle.PermissionGroup(group, empire)
-        /*vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
+        /*vehicle.Zone.VehicleEvents ! MessageEnvelope(
           s"${vehicle.Faction}",
           pguid,
           VehicleAction.SeatPermissions(pguid, vguid, group, empire)
@@ -170,7 +170,7 @@ object Vehicles {
   def ReloadAccessPermissions(vehicle: Vehicle, toChannel: String): Unit = {
     val vehicle_guid = vehicle.GUID
     (0 to 3).foreach(group => {
-      vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
+      vehicle.Zone.AvatarEvents ! MessageEnvelope(
         toChannel,
         PlanetsideAttribute(vehicle_guid, group + 10, vehicle.PermissionGroup(group).get.id)
       )
@@ -252,7 +252,7 @@ object Vehicles {
     val vehicleEvents = zone.VehicleEvents
     val localEvents = zone.LocalEvents
     val previousOwnerName = target.OwnerName.getOrElse("")
-    vehicleEvents ! VehicleServiceMessage(
+    vehicleEvents ! MessageEnvelope(
       zoneid,
       SendResponse(HackMessage(HackState1.Unk2, tGuid, hGuid, 100, 0f, HackState.Hacked, HackState7.Unk8))
     )
@@ -269,7 +269,7 @@ object Vehicles {
         player: Player =>
           seat.unmount(player)
           player.VehicleSeated = None
-          vehicleEvents ! VehicleServiceMessage(
+          vehicleEvents ! MessageEnvelope(
             zoneid,
             player.GUID,
             VehicleAction.KickPassenger(4, unk2 = false, tGuid)
@@ -277,16 +277,16 @@ object Vehicles {
       }
       // In case BFR is occupied and may or may not be crouched
       if (GlobalDefinitions.isBattleFrameVehicle(target.Definition) && target.Seat(0).isDefined) {
-        zone.LocalEvents ! LocalServiceMessage(
+        zone.LocalEvents ! MessageEnvelope(
           zoneid,
           PlanetSideGUID(-1),
           GenericObjectAction(target.GUID, GenericObjectActionEnum.BFRShieldsDown.id)
         )
-        zone.LocalEvents ! LocalServiceMessage(
+        zone.LocalEvents ! MessageEnvelope(
           zoneid,
           SendResponse(
             FrameVehicleStateMessage(target.GUID, 0, target.Position, target.Orientation, Some(Vector3(0f, 0f, 0f)), unk2=false, 0, 0, is_crouched=true, is_airborne=false, ascending_flight=false, 10, 0, 0)))
-        zone.LocalEvents ! LocalServiceMessage(
+        zone.LocalEvents ! MessageEnvelope(
           zoneid,
           SendResponse(
             VehicleStateMessage(target.GUID, 0, target.Position, target.Orientation, Some(Vector3(0f, 0f, 0f)), None, 0, 0, 15, is_decelerating=false, is_cloaked=false)))
@@ -314,23 +314,23 @@ object Vehicles {
       Vehicles.Own(target, hacker)
       //todo: Send HackMessage -> HackCleared to vehicle? can be found in packet captures. Not sure if necessary.
       // And broadcast the faction change to other clients
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zoneid,
         SetEmpire(tGuid, hFaction)
       )
     }
-    localEvents ! LocalServiceMessage(
+    localEvents ! MessageEnvelope(
       zoneid,
       hGuid,
       LocalAction.TriggerSound(TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f)
     )
     if (zone.Players.exists(_.name.equals(previousOwnerName))) {
-      localEvents ! LocalServiceMessage(
+      localEvents ! MessageEnvelope(
         previousOwnerName,
         SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackStolen"))
       )
     }
-    localEvents ! LocalServiceMessage(
+    localEvents ! MessageEnvelope(
       hacker.Name,
       SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackVehicleOwned"))
     )
@@ -345,10 +345,10 @@ object Vehicles {
             util.Actor ! TelepadLike.Activate(util)
         }
       case GlobalDefinitions.ams if target.DeploymentState == DriveState.Deployed =>
-        vehicleEvents ! VehicleServiceMessage(zone.id, VehicleAction.AMSDeploymentChange(zone))
+        vehicleEvents ! MessageEnvelope(zone.id, VehicleAction.AMSDeploymentChange(zone))
       case _ => ()
     }
-    vehicleEvents ! VehicleServiceMessage(
+    vehicleEvents ! MessageEnvelope(
       zoneid,
       SendResponse(HackMessage(HackState1.Unk2, tGuid, tGuid, 0, 1L, HackState.HackCleared, HackState7.Unk8))
     )

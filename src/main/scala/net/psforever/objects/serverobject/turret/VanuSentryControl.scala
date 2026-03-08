@@ -4,7 +4,8 @@ package net.psforever.objects.serverobject.turret
 import akka.actor.Cancellable
 import net.psforever.objects.serverobject.ServerObjectControl
 import net.psforever.objects.{Default, Player, Tool}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.local.LocalAction
 import net.psforever.types.Vector3
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -51,7 +52,7 @@ class VanuSentryControl(turret: FacilityTurret)
             val seat = TurretObject.Seat(0).get
             seat.occupant.collect {
               case player: Player =>
-                TurretObject.Zone.LocalEvents ! LocalServiceMessage(
+                TurretObject.Zone.LocalEvents ! MessageEnvelope(
                   TurretObject.Zone.id,
                   player.GUID,
                   LocalAction.RechargeVehicleWeapon(TurretObject.GUID, weapon.GUID)

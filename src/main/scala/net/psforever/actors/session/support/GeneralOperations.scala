@@ -17,11 +17,12 @@ import net.psforever.objects.sourcing.{DeployableSource, PlayerSource, VehicleSo
 import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.exp.ToDatabase
-import net.psforever.services.RemoverActor
 import net.psforever.services.avatar.support.GroundEnvelope
-import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.support.RemoverActor
 import net.psforever.services.local.support.{CaptureEnvelope, HackCaptureActor}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -51,9 +52,9 @@ import net.psforever.packet.game.PlanetsideAttributeEnum.PlanetsideAttributeEnum
 import net.psforever.packet.game.objectcreate._
 import net.psforever.packet.game._
 import net.psforever.services.account.AccountPersistenceService
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.local.support.CaptureFlagManager
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.services.Service
 import net.psforever.types._
 import net.psforever.util.Config
@@ -206,7 +207,7 @@ class GeneralOperations(
       .livePlayerList
       .filter(_.GUID != guid)
       .foreach { p =>
-        events ! LocalServiceMessage(p.Name, msg)
+        events ! MessageEnvelope(p.Name, msg)
       }
     //todo better way to collect csr players while utilizing the aforementioned benefit of localSector
     val position = player.Position
@@ -218,7 +219,7 @@ class GeneralOperations(
       .AllPlayers
       .filter { p => !p.allowInteraction && p.GUID != guid && Vector3.DistanceSquared(p.Position, position) < rangeSq }
       .foreach { p =>
-        events ! LocalServiceMessage(p.Name, msg)
+        events ! MessageEnvelope(p.Name, msg)
       }
   }
 
@@ -405,7 +406,7 @@ class GeneralOperations(
         val detectedTargets = sessionLogic.shooting.FindDetectedProjectileTargets(targets)
         val mode = 7 + (if (weapon.Projectile == GlobalDefinitions.wasp_rocket_projectile) 1 else 0)
         detectedTargets.foreach { target =>
-          continent.AvatarEvents ! AvatarServiceMessage(target, AvatarAction.ProjectileAutoLockAwareness(mode))
+          continent.AvatarEvents ! MessageEnvelope(target, AvatarAction.ProjectileAutoLockAwareness(mode))
         }
       case _ => ()
     }
@@ -485,7 +486,7 @@ class GeneralOperations(
                 case attacker
                   if attacker.Faction != player.Faction &&
                     System.currentTimeMillis() - llu.LastCollectionTime >= Config.app.game.experience.cep.lluSlayerCreditDuration.toMillis =>
-                  continent.AvatarEvents ! AvatarServiceMessage(
+                  continent.AvatarEvents ! MessageEnvelope(
                     attacker.Name,
                     AvatarAction.AwardCep(attacker.CharId, Config.app.game.experience.cep.lluSlayerCredit)
                   )
@@ -1028,7 +1029,7 @@ class GeneralOperations(
           sendResponse(ChatMsg(ChatMessageType.UNK_227, "@ArmorShieldOff"))
         }
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
-        continent.AvatarEvents ! AvatarServiceMessage(
+        continent.AvatarEvents ! MessageEnvelope(
           continent.id,
           PlanetsideAttribute(player.GUID, 8, 0)
         )
@@ -1037,7 +1038,7 @@ class GeneralOperations(
   }
 
   private def activateMaxSpecialStateMessage(): Unit = {
-    continent.AvatarEvents ! AvatarServiceMessage(
+    continent.AvatarEvents ! MessageEnvelope(
       continent.id,
       PlanetsideAttribute(player.GUID, 8, 1)
     )
@@ -1052,7 +1053,7 @@ class GeneralOperations(
       case (Some(obj), Some(seatNum)) =>
         tplayer.VehicleSeated = None
         obj.Seats(seatNum).unmount(tplayer)
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! MessageEnvelope(
           continent.id,
           tplayer.GUID,
           VehicleAction.KickPassenger(seatNum, unk2=false, obj.GUID)
@@ -1475,19 +1476,19 @@ class GeneralOperations(
         val events = continent.AvatarEvents
         val zoneid = continent.id
         val destinationPosition = dest.Position
-        events ! AvatarServiceMessage(zoneid, pguid, AvatarAction.ObjectDelete(pguid))
-        events ! AvatarServiceMessage(player.Name,
-          AvatarAction.SendResponse(PlayerStateShiftMessage(ShiftState(0, destinationPosition, player.Orientation.z)))
+        events ! MessageEnvelope(zoneid, pguid, ObjectDelete(pguid))
+        events ! MessageEnvelope(player.Name,
+          SendResponse(PlayerStateShiftMessage(ShiftState(0, destinationPosition, player.Orientation.z)))
         )
         player.Position = destinationPosition
-        events ! AvatarServiceMessage(zoneid, pguid, AvatarAction.LoadPlayer(
+        events ! MessageEnvelope(zoneid, pguid, AvatarAction.LoadPlayer(
           player.Definition.ObjectId,
           pguid,
           player.Definition.Packet.ConstructorData(player).get,
           None
         ))
         useRouterTelepadEffect(pguid, sguid, dguid)
-        continent.LocalEvents ! LocalServiceMessage(
+        events ! MessageEnvelope(
           continent.id,
           pguid,
           LocalAction.RouterTelepadTransport(pguid, sguid, dguid)

@@ -29,8 +29,8 @@ import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.UplinkRequest
 import net.psforever.services.Service
 import net.psforever.services.base.CachedEnvelope
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ReloadTool, SendResponse, WeaponDryFire}
-import net.psforever.services.local.LocalServiceMessage
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, ValidPlanetSideGUID, Vector3}
 import net.psforever.util.Config
 
@@ -48,8 +48,8 @@ import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.turret.FacilityTurret
 import net.psforever.objects._
 import net.psforever.packet.game._
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.{ExoSuitType, PlanetSideGUID}
 
 trait WeaponAndProjectileFunctions extends CommonSessionInterfacingFunctionality {
@@ -284,9 +284,9 @@ class WeaponAndProjectileOperations(
       .orElse { continent.GUID(weapon_guid) }
       .collect {
         case _: Equipment if containerOpt.exists(_.isInstanceOf[Player]) =>
-          continent.AvatarEvents ! AvatarServiceMessage(continent.id, player.GUID, WeaponDryFire(weapon_guid))
+          continent.AvatarEvents ! MessageEnvelope(continent.id, player.GUID, WeaponDryFire(weapon_guid))
         case _: Equipment =>
-          continent.VehicleEvents ! VehicleServiceMessage(
+          continent.VehicleEvents ! MessageEnvelope(
             continent.id,
             player.GUID,
             WeaponDryFire(weapon_guid)
@@ -349,7 +349,7 @@ class WeaponAndProjectileOperations(
       sendResponse(UplinkResponse(code.value, 0))
       sendResponse(PlanetsideAttributeMessage(player.GUID, 59, 1200000))
       avatarActor ! AvatarActor.UpdateCUDTime("emp_blast")
-      player.Zone.LocalEvents ! LocalServiceMessage(
+      player.Zone.LocalEvents ! MessageEnvelope(
         s"${player.Zone.id}",
         PlanetSideGUID(-1),
         SendResponse(TriggerEffectMessage(Service.defaultPlayerGUID, empColor, None, Some(TriggeredEffectLocation(player.Position, Vector3(0, 0, 90)))))
@@ -359,7 +359,7 @@ class WeaponAndProjectileOperations(
           ExplosiveDeployableControl.detectionForExplosiveSource(player), Zone.findAllTargets)
         }
     case UplinkRequestType.OrbitalStrike =>
-      player.Zone.LocalEvents ! LocalServiceMessage(
+      player.Zone.LocalEvents ! MessageEnvelope(
         s"$playerFaction",
         PlanetSideGUID(-1),
         SendResponse(OrbitalStrikeWaypointMessage(player.GUID, pos.get.x, pos.get.y))
@@ -388,12 +388,12 @@ class WeaponAndProjectileOperations(
       sendResponse(PlanetsideAttributeMessage(player.GUID, 60, 10800000))
       avatarActor ! AvatarActor.UpdateCUDTime("orbital_strike")
       context.system.scheduler.scheduleOnce(delay = 5 seconds) {
-        player.Zone.LocalEvents ! LocalServiceMessage(
+        player.Zone.LocalEvents ! MessageEnvelope(
           s"${player.Zone.id}",
           PlanetSideGUID(-1),
           SendResponse(TriggerEffectMessage(ValidPlanetSideGUID(0), strikeType, None, Some(TriggeredEffectLocation(orbitalStrikePos.get, Vector3(0, 0, 90)))))
         )
-        player.Zone.LocalEvents ! LocalServiceMessage(
+        player.Zone.LocalEvents ! MessageEnvelope(
           s"$playerFaction",
           PlanetSideGUID(-1),
           SendResponse(OrbitalStrikeWaypointMessage(player.GUID, None))
@@ -472,7 +472,7 @@ class WeaponAndProjectileOperations(
               log.info(s"${player.Name} changed ${player.Sex.possessive} ${obj.Definition.Name}'s fire mode to #$modeIndex")
           }
           sendResponse(ChangeFireModeMessage(item_guid, modeIndex))
-          continent.AvatarEvents ! AvatarServiceMessage(
+          continent.AvatarEvents ! MessageEnvelope(
             sessionLogic.zoning.zoneChannel,
             player.GUID,
             AvatarAction.ChangeFireMode(item_guid, modeIndex)
@@ -758,7 +758,7 @@ class WeaponAndProjectileOperations(
               (target.GUID, (target, proxyCopy, proxyCopy.shot_origin, target.Position))
             }.unzip
             //chain lash effect
-            continent.AvatarEvents ! AvatarServiceMessage(
+            continent.AvatarEvents ! MessageEnvelope(
               continent.id,
               SendResponse(ChainLashMessage(hitPos, projectile.profile.ObjectId, guidRefs.toList))
             )
@@ -944,9 +944,9 @@ class WeaponAndProjectileOperations(
     tool.Magazine = 0
     sendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, weapon_guid, 0))
     sendResponse(ChangeFireStateMessage_Stop(weapon_guid))
-    continent.AvatarEvents ! AvatarServiceMessage(continent.id, player.GUID, ChangeFireState_Stop(weapon_guid))
+    continent.AvatarEvents ! MessageEnvelope(continent.id, player.GUID, ChangeFireState_Stop(weapon_guid))
     sendResponse(WeaponDryFireMessage(weapon_guid))
-    continent.AvatarEvents ! AvatarServiceMessage(continent.id, player.GUID, WeaponDryFire(weapon_guid))
+    continent.AvatarEvents ! MessageEnvelope(continent.id, player.GUID, WeaponDryFire(weapon_guid))
   }
 
   /**
@@ -962,7 +962,7 @@ class WeaponAndProjectileOperations(
       .map { sessionLogic.validObject(_, decorator="FindDetectedProjectileTargets") }
       .flatMap {
         case Some(obj: Vehicle) if !obj.Cloaked =>
-          //TODO hint: vehicleService ! VehicleServiceMessage(s"${obj.Actor}", VehicleAction.ProjectileAutoLockAwareness(mode))
+          //TODO hint: vehicleService ! MessageEnvelope(s"${obj.Actor}", VehicleAction.ProjectileAutoLockAwareness(mode))
           obj.Seats.values.flatMap { seat => seat.occupants.map(_.Name) }
         case Some(obj: Mountable) =>
           obj.Seats.values.flatMap { seat => seat.occupants.map(_.Name) }
@@ -1087,7 +1087,7 @@ class WeaponAndProjectileOperations(
   }
 
   def fireStateStartPlayerMessages(itemGuid: PlanetSideGUID): Unit = {
-    continent.AvatarEvents ! AvatarServiceMessage(
+    continent.AvatarEvents ! MessageEnvelope(
       sessionLogic.zoning.zoneChannel,
       player.GUID,
       ChangeFireState_Start(itemGuid)
@@ -1099,7 +1099,7 @@ class WeaponAndProjectileOperations(
       case turret: FacilityTurret if continent.map.cavern =>
         turret.Actor ! VanuSentry.ChangeFireStart
     }
-    continent.VehicleEvents ! VehicleServiceMessage(
+    continent.VehicleEvents ! MessageEnvelope(
       continent.id,
       player.GUID,
       ChangeFireState_Start(itemGuid)
@@ -1128,7 +1128,7 @@ class WeaponAndProjectileOperations(
   }
 
   def fireStateStopPlayerMessages(itemGuid: PlanetSideGUID): Unit = {
-    continent.AvatarEvents ! AvatarServiceMessage(
+    continent.AvatarEvents ! MessageEnvelope(
       sessionLogic.zoning.zoneChannel,
       player.GUID,
       ChangeFireState_Stop(itemGuid)
@@ -1140,7 +1140,7 @@ class WeaponAndProjectileOperations(
       case turret: FacilityTurret if continent.map.cavern =>
         turret.Actor ! VanuSentry.ChangeFireStop
     }
-    continent.VehicleEvents ! VehicleServiceMessage(
+    continent.VehicleEvents ! MessageEnvelope(
       continent.id,
       player.GUID,
       ChangeFireState_Stop(itemGuid)
@@ -1200,11 +1200,11 @@ class WeaponAndProjectileOperations(
   used by ReloadMessage handling
   */
   def reloadPlayerMessages(itemGuid: PlanetSideGUID): Unit = {
-    continent.AvatarEvents ! AvatarServiceMessage(sessionLogic.zoning.zoneChannel, player.GUID, ReloadTool(itemGuid))
+    continent.AvatarEvents ! MessageEnvelope(sessionLogic.zoning.zoneChannel, player.GUID, ReloadTool(itemGuid))
   }
 
   def reloadVehicleMessages(itemGuid: PlanetSideGUID): Unit = {
-    continent.VehicleEvents ! VehicleServiceMessage(
+    continent.VehicleEvents ! MessageEnvelope(
       continent.id,
       player.GUID,
       ReloadTool(itemGuid)
@@ -1381,7 +1381,7 @@ class WeaponAndProjectileOperations(
             val previous_box_guid = previousBox.GUID
             val boxDef            = box.Definition
             sendResponse(ChangeAmmoMessage(tool_guid, box.Capacity))
-            continent.AvatarEvents ! AvatarServiceMessage(
+            continent.AvatarEvents ! MessageEnvelope(
               sessionLogic.zoning.zoneChannel,
               player.GUID,
               ChangeAmmo(
@@ -1482,7 +1482,7 @@ class WeaponAndProjectileOperations(
   def modifyAmmunitionInMountable(obj: PlanetSideServerObject with Container)(box: AmmoBox, reloadValue: Int): Unit = {
     modifyAmmunition(obj)(box, reloadValue)
     obj.Find(box).collect { index =>
-      continent.VehicleEvents ! VehicleServiceMessage(
+      continent.VehicleEvents ! MessageEnvelope(
         s"${obj.Actor}",
         player.GUID,
         VehicleAction.InventoryState(box, obj.GUID, index, box.Definition.Packet.DetailedConstructorData(box).get)
@@ -1589,7 +1589,7 @@ class WeaponAndProjectileOperations(
     shootingStop.clear()
     (prefire ++ shooting).foreach { guid =>
       sendResponse(ChangeFireStateMessage_Stop(guid))
-      continent.AvatarEvents ! AvatarServiceMessage(continent.id, player.GUID, ChangeFireState_Stop(guid))
+      continent.AvatarEvents ! MessageEnvelope(continent.id, player.GUID, ChangeFireState_Stop(guid))
     }
     prefire.clear()
     shooting.clear()

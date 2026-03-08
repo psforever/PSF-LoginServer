@@ -7,7 +7,7 @@ import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, Env
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game.{ChatMsg, PlayerStateShiftMessage, ShiftState}
-import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.hart.ShuttleState
 import net.psforever.types.ChatMessageType
@@ -35,10 +35,10 @@ class WithGantry(val channel: String)
           player.VehicleSeated.isEmpty =>
         val (pos, ang) = Vehicles.dismountShuttle(shuttle, field.mountPoint)
         val events = shuttle.Zone.AvatarEvents
-        events ! AvatarServiceMessage(
+        events ! MessageEnvelope(
           channel,
           SendResponse(PlayerStateShiftMessage(ShiftState(0, pos, ang, None))))
-        events ! AvatarServiceMessage(
+        events ! MessageEnvelope(
           channel,
           SendResponse(ChatMsg(ChatMessageType.UNK_227, "@Vehicle_OS_PlacedOutsideHallway"))
         )

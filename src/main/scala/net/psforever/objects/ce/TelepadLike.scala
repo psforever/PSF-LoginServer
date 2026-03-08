@@ -9,8 +9,9 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{GenericObjectActionMessage, ObjectCreateMessage, ObjectDeleteMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 import net.psforever.types.PlanetSideGUID
 
 trait TelepadLike {
@@ -114,7 +115,7 @@ object TelepadLike {
     normally dispatched while the Router is transitioned into its Deploying state
     it is safe, however, to perform these actions at any time during and after the Deploying state
      */
-    events ! LocalServiceMessage(
+    events ! MessageEnvelope(
       zoneId,
       SendResponse(
         ObjectCreateMessage(
@@ -125,7 +126,7 @@ object TelepadLike {
         )
       )
     )
-    events ! LocalServiceMessage(zoneId, SendResponse(Seq(
+    events ! MessageEnvelope(zoneId, SendResponse(Seq(
       GenericObjectActionMessage(utilityGUID, 27),
       GenericObjectActionMessage(utilityGUID, 30)
     )))
@@ -135,7 +136,7 @@ object TelepadLike {
   def LinkTelepad(zone: Zone, telepadGUID: PlanetSideGUID): Unit = {
     val events = zone.LocalEvents
     val zoneId = zone.id
-    events ! LocalServiceMessage(zoneId, SendResponse(Seq(
+    events ! MessageEnvelope(zoneId, SendResponse(Seq(
       GenericObjectActionMessage(telepadGUID, 27),
       GenericObjectActionMessage(telepadGUID, 28)
     )))
@@ -168,7 +169,7 @@ class TelepadControl(obj: InternalTelepad) extends akka.actor.Actor {
           oldTpad.Actor ! TelepadLike.SeverLink(obj)
       }
       obj.Telepad = None
-      zone.LocalEvents ! LocalServiceMessage(zone.id, SendResponse(ObjectDeleteMessage(obj.GUID, 0)))
+      zone.LocalEvents ! MessageEnvelope(zone.id, SendResponse(ObjectDeleteMessage(obj.GUID, 0)))
 
     case TelepadLike.RequestLink(tpad: TelepadDeployable) =>
       val zone = obj.Zone
@@ -189,7 +190,7 @@ class TelepadControl(obj: InternalTelepad) extends akka.actor.Actor {
           }
       } else {
         val channel = obj.Owner.asInstanceOf[Vehicle].OwnerName.getOrElse("")
-        zone.LocalEvents ! LocalServiceMessage(channel, LocalAction.RouterTelepadMessage("@Teleport_NotDeployed"))
+        zone.LocalEvents ! MessageEnvelope(channel, LocalAction.RouterTelepadMessage("@Teleport_NotDeployed"))
         tpad.Actor ! TelepadLike.SeverLink(obj)
       }
 
@@ -197,7 +198,7 @@ class TelepadControl(obj: InternalTelepad) extends akka.actor.Actor {
       if (obj.Telepad.contains(tpad.GUID)) {
         obj.Telepad = None
         val zone = obj.Zone
-        zone.LocalEvents ! LocalServiceMessage(zone.id, SendResponse(ObjectDeleteMessage(obj.GUID, 0)))
+        zone.LocalEvents ! MessageEnvelope(zone.id, SendResponse(ObjectDeleteMessage(obj.GUID, 0)))
       }
 
     case _ => ()

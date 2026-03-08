@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.base.support.SupportActor
 import net.psforever.services.local.LocalAction
@@ -184,7 +184,6 @@ object OrbitalShuttlePadControl {
     * A message flashes onscreen to explain this reason.
     * The message will not flash if the door has no expectation of ever opening for a user.
     * @see `SendResponse`
-    * @see `AvatarServiceMessage`
     * @see `ChatMessageType`
     * @see `ChatMsg`
     * @see `Player`
@@ -198,7 +197,7 @@ object OrbitalShuttlePadControl {
     val zone = door.Zone
     obj match {
       case p: Player if p.Faction == door.Faction =>
-        zone.AvatarEvents ! AvatarServiceMessage(
+        zone.AvatarEvents ! MessageEnvelope(
           p.Name,
           SendResponse(
             ChatMsg(ChatMessageType.UNK_225, wideContents=false, "", "@DoorWillOpenWhenShuttleReturns", None)

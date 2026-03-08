@@ -10,10 +10,10 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, ObjectCreateDetailedMessage, PlanetsideAttributeMessage}
 import net.psforever.packet.game.objectcreate.RibbonBars
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.chat.{CustomerServiceChannel, SpectatorChannel}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.{ChatMessageType, MeritCommendation, PlanetSideGUID}
 
 class CustomerServiceRepresentativeMode(data: SessionData) extends ModeLogic {
@@ -149,7 +149,7 @@ case object CustomerServiceRepresentativeMode extends PlayerMode {
       packet.DetailedConstructorData(player).get
     ))
     data.zoning.spawn.HandleSetCurrentAvatar(player)
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       zone.id,
       pguid,
       AvatarAction.LoadPlayer(
@@ -182,14 +182,14 @@ case object CustomerServiceRepresentativeMode extends PlayerMode {
       player.Health = maxHealthOfPlayer.toInt
       player.LogActivity(player.ClearHistory().head)
       data.sendResponse(PlanetsideAttributeMessage(guid, 0, maxHealthOfPlayer))
-      data.continent.AvatarEvents ! AvatarServiceMessage(zoneid, PlanetsideAttribute(guid, 0, maxHealthOfPlayer))
+      data.continent.AvatarEvents ! MessageEnvelope(zoneid, PlanetsideAttribute(guid, 0, maxHealthOfPlayer))
     }
     //below half armor, full armor
     val maxArmor = player.MaxArmor.toLong
     if (player.Armor < maxArmor) {
       player.Armor = maxArmor.toInt
       data.sendResponse(PlanetsideAttributeMessage(guid, 4, maxArmor))
-      data.continent.AvatarEvents ! AvatarServiceMessage(zoneid, PlanetsideAttribute(guid, 4, maxArmor))
+      data.continent.AvatarEvents ! MessageEnvelope(zoneid, PlanetsideAttribute(guid, 4, maxArmor))
     }
   }
 
@@ -202,7 +202,7 @@ case object CustomerServiceRepresentativeMode extends PlayerMode {
       val guid = vehicle.GUID
       vehicle.Shields = maxShieldsOfVehicle.toInt
       data.sendResponse(PlanetsideAttributeMessage(guid, shieldsUi, maxShieldsOfVehicle))
-      data.continent.VehicleEvents ! VehicleServiceMessage(
+      data.continent.VehicleEvents ! MessageEnvelope(
         data.continent.id,
         PlanetsideAttribute(guid, shieldsUi, maxShieldsOfVehicle)
       )
@@ -216,7 +216,7 @@ case object CustomerServiceRepresentativeMode extends PlayerMode {
     if (obj.Health < maxHealthOf) {
       obj.Health = maxHealthOf.toInt
       data.sendResponse(PlanetsideAttributeMessage(guid, 0, maxHealthOf))
-      data.continent.VehicleEvents ! VehicleServiceMessage(
+      data.continent.VehicleEvents ! MessageEnvelope(
         data.continent.id,
         PlanetsideAttribute(guid, 0, maxHealthOf)
       )

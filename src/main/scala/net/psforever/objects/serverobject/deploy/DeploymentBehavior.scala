@@ -5,7 +5,8 @@ import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.types.{DriveState, Vector3}
 import net.psforever.services.Service
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.vehicle.VehicleAction
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -104,7 +105,7 @@ trait DeploymentBehavior {
       prevState
     } else if (state == DriveState.Deploying) {
       obj.Velocity = Some(Vector3.Zero) //no velocity
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zoneChannel,
         VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )
@@ -115,7 +116,7 @@ trait DeploymentBehavior {
       state
     } else if (state == DriveState.Deployed) {
       obj.Velocity = Some(Vector3.Zero) //no velocity
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zoneChannel,
         VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )
@@ -136,7 +137,7 @@ trait DeploymentBehavior {
     val zoneChannel = zone.id
     val GUID0       = Service.defaultPlayerGUID
     if (state == DriveState.Undeploying) {
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zoneChannel,
         VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )
@@ -147,7 +148,7 @@ trait DeploymentBehavior {
       })
       state
     } else if (state == DriveState.Mobile) {
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zoneChannel,
         VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )

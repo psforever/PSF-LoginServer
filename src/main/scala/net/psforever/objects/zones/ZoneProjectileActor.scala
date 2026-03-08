@@ -5,7 +5,8 @@ import akka.actor.{Actor, Cancellable}
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.guid.{GUIDTask, StraightforwardTask, TaskBundle, TaskWorkflow}
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.ObjectDelete
 import net.psforever.types.PlanetSideGUID
 
@@ -157,7 +158,7 @@ class ZoneProjectileActor(
       projectileGuid,
       context.system.scheduler.scheduleOnce(duration, self, ZoneProjectile.Remove(projectileGuid))
     )
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       zone.id,
       clarifiedFilterGuid,
       AvatarAction.LoadProjectile(
@@ -189,17 +190,17 @@ class ZoneProjectileActor(
     projectileList.remove(projectileList.indexOf(projectile))
     if (projectile.Definition.radiation_cloud) {
       zone.blockMap.removeFrom(projectile)
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
         ObjectDelete(projectile_guid, 2)
       )
     } else if (projectile.Definition.RemoteClientData == (0,0)) {
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
         ObjectDelete(projectile_guid, 2)
       )
     } else {
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
         AvatarAction.ProjectileExplodes(projectile_guid, projectile)
       )

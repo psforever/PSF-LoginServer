@@ -8,6 +8,7 @@ import net.psforever.objects.Players
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.packet.game.{AvatarImplantMessage, ImplantAction}
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ConcealPlayer, EventResponse, GenericObjectAction, HintsAtAttacker, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, SetEmpire, WeaponDryFire}
 
 import scala.concurrent.duration._
@@ -24,7 +25,7 @@ import net.psforever.objects.vital.etc.ExplodingEntityReason
 import net.psforever.objects.zones.Zoning
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ArmorChangedMessage, AvatarDeadStateMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, DeadState, DestroyMessage, DrowningTarget, GenericActionMessage, GenericObjectActionMessage, HitHint, ItemTransactionResultMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectHeldMessage, OxygenStateMessage, PlanetsideAttributeMessage, PlayerStateMessage, ProjectileStateMessage, ReloadMessage, SetEmpireMessage, UseItemMessage, WeaponDryFireMessage}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.Service
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.util.Config
@@ -482,7 +483,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         val health = player.Health
         sendResponse(PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
         sendResponse(AvatarDeadStateMessage(DeadState.Alive, timer_max=0, timer=0, player.Position, player.Faction, unk5=true))
-        continent.AvatarEvents ! AvatarServiceMessage(
+        continent.AvatarEvents ! MessageEnvelope(
           continent.id,
           PlanetsideAttribute(revivalTargetGuid, attribute_type=0, health)
         )

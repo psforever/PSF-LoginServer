@@ -6,6 +6,7 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.HackState1
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope}
 import org.log4s.Logger
@@ -26,9 +27,7 @@ import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityCo
 import net.psforever.objects.vital.{HealFromTerminal, RepairFromTerminal, Vitality}
 import net.psforever.objects.zones.ZoneAware
 import net.psforever.packet.game.InventoryStateMessage
-import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.vehicle.VehicleServiceMessage
+import net.psforever.services.local.LocalAction
 
 /**
  * An `Actor` that handles messages being dispatched to a specific `ProximityTerminal`.
@@ -183,7 +182,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
           ProximityTerminalControl.TerminalAction()
         )
         val zone = TerminalObject.Zone
-        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = true))
+        zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = true))
       }
     } else {
       log.warn(s"ProximityTerminal.Use: $target was rejected by unit ${term.Definition.Name}@${term.GUID.guid}")
@@ -204,7 +203,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
       if (term.NumberUsers == 0 && hadUsers) {
         terminalAction.cancel()
         val zone = TerminalObject.Zone
-        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = false))
+        zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = false))
       }
     } else {
       log.debug(
@@ -220,7 +219,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     if (callbacks.nonEmpty) {
       callbacks.clear()
       val zone = TerminalObject.Zone
-      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = true))
+      zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = true))
     }
     //clear hack state
     if (term.HackedBy.nonEmpty) {
@@ -351,7 +350,7 @@ object ProximityTerminalControl {
 
     if (oldMax < maxHealthCap) {
       target.MaxHealth = newMax
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
         PlanetsideAttribute(target.GUID, 1, newMax)
       )
@@ -366,7 +365,7 @@ object ProximityTerminalControl {
 
   def PlayerHealthCallback(target: PlanetSideGameObject with Vitality with ZoneAware): Unit = {
     val zone = target.Zone
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       zone.id,
       PlanetsideAttribute(target.GUID, 0, target.Health)
     )
@@ -374,7 +373,7 @@ object ProximityTerminalControl {
 
   def VehicleHealthCallback(target: PlanetSideGameObject with Vitality with ZoneAware): Unit = {
     val zone = target.Zone
-    zone.VehicleEvents ! VehicleServiceMessage(
+    zone.VehicleEvents ! MessageEnvelope(
       zone.id,
       PlanetsideAttribute(target.GUID, 0, target.Health)
     )
@@ -405,7 +404,7 @@ object ProximityTerminalControl {
       target.Armor = armor + finalRepairAmount
       target.LogActivity(RepairFromTerminal(AmenitySource(terminal), finalRepairAmount))
       val zone = target.Zone
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
         PlanetsideAttribute(target.GUID, 4, target.Armor)
       )
@@ -434,7 +433,7 @@ object ProximityTerminalControl {
     val channel = target.Name
     ancient.foreach { case (weapon, slots) =>
       slots.foreach { slot =>
-        events ! AvatarServiceMessage(
+        events ! MessageEnvelope(
           channel,
           SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
         )
@@ -460,7 +459,7 @@ object ProximityTerminalControl {
     val channel = target.Actor.toString
     result.foreach { case (weapon, slots) =>
       slots.foreach { slot =>
-        events ! VehicleServiceMessage(
+        events ! MessageEnvelope(
           channel,
           SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
         )

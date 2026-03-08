@@ -16,7 +16,8 @@ import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ObjectDelete, SetEmpire}
 import net.psforever.services.chat.{ChatChannel, DefaultChannel, SpectatorChannel, SquadChannel}
 import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}
@@ -319,7 +320,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       .foreach { spectator =>
         val guid = spectator.GUID
         val definition = spectator.Definition
-        events ! AvatarServiceMessage(
+        events ! MessageEnvelope(
           channel,
           guid,
           AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(spectator).get, None)
@@ -338,7 +339,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       .filter(_.spectator)
       .foreach { spectator =>
         val guid = spectator.GUID
-        events ! AvatarServiceMessage(channel, guid, ObjectDelete(guid))
+        events ! MessageEnvelope(channel, guid, ObjectDelete(guid))
       }
     true
   }
@@ -391,7 +392,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
           true
         case o: Deployable =>
           o.Faction = foundFaction
-          continent.AvatarEvents ! AvatarServiceMessage(
+          continent.AvatarEvents ! MessageEnvelope(
             continent.id,
             SetEmpire(o.GUID, foundFaction)
           )
@@ -404,7 +405,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
           true
         case o: PlanetSideGameObject with FactionAffinity =>
           o.Faction = foundFaction
-          continent.AvatarEvents ! AvatarServiceMessage(
+          continent.AvatarEvents ! MessageEnvelope(
             continent.id,
             SetEmpire(o.GUID, foundFaction)
           )
@@ -511,7 +512,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
           .foreach {
             case (_, false, _) => ()
             case (faction, true, _) =>
-              //events ! AvatarServiceMessage(s"$faction", reloadZoneMsg)
+              //events ! MessageEnvelope(s"$faction", reloadZoneMsg)
           }
       }
     }

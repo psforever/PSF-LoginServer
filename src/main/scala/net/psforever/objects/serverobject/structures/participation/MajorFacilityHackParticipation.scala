@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.structures.participation
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.sourcing.{PlayerSource, UniquePlayer}
 import net.psforever.objects.zones.{HotSpotInfo, ZoneHotSpotProjector}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
 import akka.pattern.ask
@@ -15,8 +15,8 @@ import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.ChatMsg
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
-import net.psforever.services.local.LocalServiceMessage
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -304,7 +304,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
               finalCep,
               expType = "cep"
             )
-            events ! AvatarServiceMessage(hacker.Name, AvatarAction.AwardCep(hackerId, finalCep))
+            events ! MessageEnvelope(hacker.Name, AvatarAction.AwardCep(hackerId, finalCep))
           }*/
           //bystanders (cep if squad leader, bep otherwise)
           contributingPlayers
@@ -313,7 +313,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
               val charId = player.CharId
               val contributionMultiplier = contributionPerPlayerByTime.getOrElse(charId, 1f)
               val outputValue = (finalCep * contributionMultiplier).toLong
-              events ! AvatarServiceMessage(player.Name, AvatarAction.FacilityCaptureRewards(buildingId, zoneNumber, outputValue))
+              events ! MessageEnvelope(player.Name, AvatarAction.FacilityCaptureRewards(buildingId, zoneNumber, outputValue))
             }
           //flag carrier (won't be in soi, but earns cep from capture)
           flagCarrier.collect {
@@ -338,7 +338,7 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
                 finalModifiedCep,
                 expType = "llu"
               )
-              events ! AvatarServiceMessage(player.Name, AvatarAction.AwardCep(charId, finalModifiedCep))
+              events ! MessageEnvelope(player.Name, AvatarAction.AwardCep(charId, finalModifiedCep))
           }
         } else {
           //no need to calculate a fancy score
@@ -441,7 +441,7 @@ object MajorFacilityHackParticipation {
     val events = building.Zone.LocalEvents
     val message = SendResponse(msg)
     targets.foreach { player =>
-      events ! LocalServiceMessage(player.Name, message)
+      events ! MessageEnvelope(player.Name, message)
     }
   }
 }

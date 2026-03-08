@@ -12,7 +12,8 @@ import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.RevivingActivity
 import net.psforever.objects.vital.interaction.Adversarial
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction, PlanetsideStringAttributeMessage}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ConcealPlayer, EventResponse, GenericObjectAction, HintsAtAttacker, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, SetEmpire, WeaponDryFire}
 import net.psforever.types.ImplantType
 
@@ -506,12 +507,12 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
             }.flatten
           } match {
           case Some(adversarial) =>
-            events ! AvatarServiceMessage(
+            events ! MessageEnvelope(
               zoneChannel,
               AvatarAction.DestroyDisplay(adversarial.attacker, pentry, adversarial.implement)
             )
           case _ =>
-            events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
+            events ! MessageEnvelope(zoneChannel, AvatarAction.DestroyDisplay(pentry, pentry, 0))
         }
         //events chat and log
         val excuse = player.LastDamage.flatMap { damage =>
@@ -689,8 +690,8 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
     val events = continent.AvatarEvents
     ops.killedWhileMounted(obj, playerGuid)
     //make player invisible on client
-    events ! AvatarServiceMessage(player.Name, PlanetsideAttribute(playerGuid, 29, 1))
+    events ! MessageEnvelope(player.Name, PlanetsideAttribute(playerGuid, 29, 1))
     //only the dead player should "see" their own body, so that the death camera has something to focus on
-    events ! AvatarServiceMessage(continent.id, playerGuid, ObjectDelete(playerGuid))
+    events ! MessageEnvelope(continent.id, playerGuid, ObjectDelete(playerGuid))
   }
 }

@@ -1,18 +1,27 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local.support
 
-import akka.actor.{Actor, Cancellable}
+import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.objects.{Default, Doors}
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
 import net.psforever.services.Service
-import net.psforever.services.base.GenericSupportEnvelope
+import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelope}
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.local.LocalAction.IsADoorMessage
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
+
+case object DoorCloserSupport
+  extends EventServiceSupport {
+  def label: String = "doorCloser"
+  def constructor(context: ActorContext): ActorRef = {
+    context.actorOf(Props[DoorCloseActor](), name = "DoorCloser")
+  }
+}
 
 final case class DoorMessage(
                               channel: String,
@@ -58,7 +67,7 @@ class DoorCloseActor() extends Actor {
       ).sortBy(_.time)
       doorsToClose2.foreach { case DoorCloseActor.DoorEntry(door, zone, _) =>
         door.Open = None //permissible break from synchronization
-        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.DoorCloses(door.GUID)) //call up to the main event system
+        zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.DoorCloses(door.GUID)) //call up to the main event system
       }
 
       if (openDoors.nonEmpty) {

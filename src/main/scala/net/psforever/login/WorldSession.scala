@@ -15,7 +15,8 @@ import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.TerminalUsedActivity
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{ExoSuitType, PlanetSideGUID, TransactionType, Vector3}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.ObjectDelete
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -326,7 +327,7 @@ object WorldSession {
             case _ =>
               forcedTolowerRaisedArm(localPlayer, localPlayer.GUID, localZone)
               localPlayer.DrawnSlot = localSlot
-              localZone.AvatarEvents ! AvatarServiceMessage(localZone.id, localGUID, AvatarAction.ObjectHeld(localSlot, localSlot))
+              localZone.AvatarEvents ! MessageEnvelope(localZone.id, localGUID, AvatarAction.ObjectHeld(localSlot, localSlot))
           }
         Future(this)
       }
@@ -367,7 +368,7 @@ object WorldSession {
         localZone.GUID(item_guid) match {
           case Some(_) => ()
           case None => //acting on old data?
-            localZone.AvatarEvents ! AvatarServiceMessage(localZone.id, ObjectDelete(item_guid))
+            localZone.AvatarEvents ! MessageEnvelope(localZone.id, ObjectDelete(item_guid))
         }
       case _ => ()
     }
@@ -526,7 +527,6 @@ object WorldSession {
     * Failure of this process is not supported and may lead to irregular behavior.
     * @see `ActorRef`
     * @see `AvatarAction.ObjectDelete`
-    * @see `AvatarServiceMessage`
     * @see `Containable.MoveItem`
     * @see `Container`
     * @see `Equipment`
@@ -591,7 +591,7 @@ object WorldSession {
           localGUID match {
             case Some(guid) =>
               //see LockerContainerControl.RemoveItemFromSlotCallback
-              localSource.Zone.AvatarEvents ! AvatarServiceMessage(localChannel, ObjectDelete(guid))
+              localSource.Zone.AvatarEvents ! MessageEnvelope(localChannel, ObjectDelete(guid))
             case None => ()
           }
           val moveResult = ask(localDestination.Actor, Containable.PutItemInSlotOrAway(localItem, Some(localDestSlot)))
@@ -616,8 +616,7 @@ object WorldSession {
     * Remove an item from a player's locker inventory.
     * Failure of this process is not supported and may lead to irregular behavior.
     * @see `ActorRef`
-    * @see `AvatarAction.ObjectDelete`
-    * @see `AvatarServiceMessage`
+    * @see `ObjectDelete`
     * @see `Containable.MoveItem`
     * @see `Container`
     * @see `Equipment`
@@ -693,7 +692,7 @@ object WorldSession {
           localGUID match {
             case Some(guid) =>
               //see LockerContainerControl.RemoveItemFromSlotCallback
-              localSource.Zone.AvatarEvents ! AvatarServiceMessage(localChannel, ObjectDelete(guid))
+              localSource.Zone.AvatarEvents ! MessageEnvelope(localChannel, ObjectDelete(guid))
             case None => ()
           }
           val moveResult = ask(localDestination.Actor, Containable.PutItemInSlotOrAway(localItem, Some(localDestSlot)))
@@ -730,8 +729,7 @@ object WorldSession {
    * If the player's already-drawn hand is the same as the one that will hold the grenade (first sidearm holster),
    * treat it like the sidearm occupier rather than the already-drawn weapon -
    * the old weapon goes into the backpack or onto the ground.
-   * @see `AvatarAction.ObjectHeld`
-   * @see `AvatarServiceMessage`
+   * @see `ObjectHeld`
    * @see `Containable.RemoveItemFromSlot`
    * @see `countRestrictAttempts`
    * @see `forcedTolowerRaisedArm`
@@ -783,7 +781,7 @@ object WorldSession {
             }
             //put up hand with grenade in it
             tplayer.DrawnSlot = slotNum
-            zone.AvatarEvents ! AvatarServiceMessage(zone.id, guid, AvatarAction.ObjectHeld(slotNum, slotNum))
+            zone.AvatarEvents ! MessageEnvelope(zone.id, guid, AvatarAction.ObjectHeld(slotNum, slotNum))
             log.info(s"${tplayer.Name} has quickly drawn a ${grenade.Definition.Name}")
             None
           case None =>
@@ -857,8 +855,7 @@ object WorldSession {
   /**
    * If the player has a raised arm, lower it.
    * Do it manually, bypassing the checks in the normal procedure.
-   * @see `AvatarAction.ObjectHeld`
-   * @see `AvatarServiceMessage`
+   * @see `ObjectHeld`
    * @see `Player.DrawnSlot`
    * @see `Player.HandsDownSlot`
    * @param tplayer the player
@@ -870,7 +867,7 @@ object WorldSession {
     val slot = tplayer.DrawnSlot
     if (slot != Player.HandsDownSlot) {
       tplayer.DrawnSlot = Player.HandsDownSlot
-      zone.AvatarEvents ! AvatarServiceMessage(zone.id, guid, AvatarAction.ObjectHeld(Player.HandsDownSlot, slot))
+      zone.AvatarEvents ! MessageEnvelope(zone.id, guid, AvatarAction.ObjectHeld(Player.HandsDownSlot, slot))
       true
     } else {
       false
@@ -933,7 +930,7 @@ object WorldSession {
         player.ContributionFrom(term)
       }
     }
-    player.Zone.AvatarEvents ! AvatarServiceMessage(
+    player.Zone.AvatarEvents ! MessageEnvelope(
       player.Name,
       AvatarAction.TerminalOrderResult(guid, transaction, result)
     )

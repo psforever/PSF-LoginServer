@@ -11,8 +11,8 @@ import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{TriggerEffectMessage, TriggeredEffectLocation}
 import net.psforever.services.Service
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
-import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.types.PlanetSideGUID
 
 /**
@@ -53,7 +53,7 @@ class ApcControl(vehicle: Vehicle)
       //drain the capacitor
       capacitorCharge(-vehicle.Capacitor)
       //cause the emp
-      events ! VehicleServiceMessage(
+      events ! MessageEnvelope(
         zone.id,
         SendResponse(TriggerEffectMessage(
             GUID0,

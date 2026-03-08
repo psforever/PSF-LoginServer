@@ -11,10 +11,10 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.{GenericObjectActionMessage, HackMessage, HackState, HackState1, HackState7, TriggeredSound}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
-import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope, HackEntityEnvelope}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 
 import scala.annotation.unused
 import scala.util.{Failure, Success}
@@ -89,7 +89,7 @@ object GenericHackables {
     } else {
       (HackState.Ongoing, progress.toInt)
     }
-    target.Zone.AvatarEvents ! AvatarServiceMessage(
+    target.Zone.AvatarEvents ! MessageEnvelope(
       hacker.Name,
       SendResponse(
         HackMessage(progressType, target.GUID, hacker.GUID, progressGrade, 0L, progressState, HackState7.Unk8)
@@ -171,7 +171,7 @@ object GenericHackables {
           val zoneId = zone.id
           val pguid  = tplayer.GUID
           log.info(s"${user.Name} hacked a ${target.Definition.Name}")
-          zone.LocalEvents ! LocalServiceMessage(
+          zone.LocalEvents ! MessageEnvelope(
             zoneId,
             pguid,
             LocalAction.TriggerSound(target.HackSound, tplayer.Position, 30, 0.49803925f)
@@ -207,7 +207,7 @@ object GenericHackables {
             building.virusId = 8
             building.virusInstalledBy = None
             zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(target))
-            zone.LocalEvents ! LocalServiceMessage(
+            zone.LocalEvents ! MessageEnvelope(
               zone.id,
               SendResponse(GenericObjectActionMessage(target.GUID, 60))
             )
@@ -261,7 +261,7 @@ object GenericHackables {
             val hackState = hackStateMap.getOrElse(virus, HackState7.Unk8)
             building.virusId = virus
             building.virusInstalledBy = Some(tplayer.Faction.id)
-            zone.LocalEvents ! LocalServiceMessage(
+            zone.LocalEvents ! MessageEnvelope(
               zoneId,
               pguid,
               LocalAction.TriggerSound(TriggeredSound.TREKSuccessful, tplayer.Position, 30, 0.49803925f)
@@ -272,13 +272,9 @@ object GenericHackables {
               LocalAction.HackObject(target.GUID, installedVirusDuration.toLong, hackState),
               HackClearActor.ObjectIsHacked(target, zone, hackClearValue, hackState, installedVirusDuration)
             )
-            zone.LocalEvents ! LocalServiceMessage(
+            zone.LocalEvents ! MessageEnvelope(
               zone.id,
-              SendResponse(GenericObjectActionMessage(target.GUID, 61))
-            )
-            zone.LocalEvents ! LocalServiceMessage(
-              zone.id,
-              SendResponse(GenericObjectActionMessage(target.GUID, 58))
+              SendResponse(List(GenericObjectActionMessage(target.GUID, 61), GenericObjectActionMessage(target.GUID, 58)))
             )
             //amenities if applicable
             virus match {

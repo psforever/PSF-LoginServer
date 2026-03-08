@@ -1,11 +1,10 @@
 // Copyright (c) 2017 PSForever
-package net.psforever.services
+package net.psforever.services.base.support
 
 import akka.actor.Cancellable
 import net.psforever.objects.guid.{StraightforwardTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Default, PlanetSideGameObject}
-import net.psforever.services.base.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 import net.psforever.types.Vector3
 
 import scala.concurrent.Future

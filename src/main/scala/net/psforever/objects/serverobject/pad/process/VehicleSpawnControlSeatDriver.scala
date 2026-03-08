@@ -4,7 +4,7 @@ package net.psforever.objects.serverobject.pad.process
 import akka.actor.{ActorRef, Props}
 import net.psforever.objects.{Default, Vehicle}
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
-import net.psforever.services.vehicle.VehicleServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -47,7 +47,7 @@ class VehicleSpawnControlSeatDriver(pad: VehicleSpawnPad) extends VehicleSpawnCo
       vehicle.Actor ! Vehicle.Deconstruct(Some(pad.Definition.VehicleCreationDeconstructTime.seconds))
       if (VehicleSpawnControl.validateOrderCredentials(pad, driver, vehicle).isEmpty) {
         trace("driver to be made seated in vehicle")
-        pad.Zone.VehicleEvents ! VehicleServiceMessage(driver.Name, VehicleSpawnPad.StartPlayerSeatedInVehicle(vehicle, pad))
+        pad.Zone.VehicleEvents ! MessageEnvelope(driver.Name, VehicleSpawnPad.StartPlayerSeatedInVehicle(vehicle, pad))
       } else {
         trace("driver lost; vehicle stranded on pad")
       }
@@ -59,7 +59,7 @@ class VehicleSpawnControlSeatDriver(pad: VehicleSpawnPad) extends VehicleSpawnCo
       if (VehicleSpawnControl.validateOrderCredentials(pad, driver, vehicle).isEmpty &&
           entry.vehicle.PassengerInSeat(entry.driver).contains(0)) {
         trace(s"driver ${entry.driver.Name} has taken the wheel")
-        pad.Zone.VehicleEvents ! VehicleServiceMessage(entry.driver.Name, VehicleSpawnPad.PlayerSeatedInVehicle(entry.vehicle, pad))
+        pad.Zone.VehicleEvents ! MessageEnvelope(entry.driver.Name, VehicleSpawnPad.PlayerSeatedInVehicle(entry.vehicle, pad))
       } else {
         trace("driver lost, but operations can continue")
       }

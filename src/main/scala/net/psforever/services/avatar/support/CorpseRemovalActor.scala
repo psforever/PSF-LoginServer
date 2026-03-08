@@ -1,16 +1,26 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar.support
 
+import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.objects.Player
 import net.psforever.types.{ExoSuitType, PlanetSideGUID}
-import net.psforever.services.{RemoverActor, Service}
+import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarAction.Release
-import net.psforever.services.avatar.AvatarServiceMessage
-import net.psforever.services.base.{GenericSupportEnvelope, GenericSupportEnvelopeOnly}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelope, GenericSupportEnvelopeOnly}
 import net.psforever.services.base.message.ObjectDelete
+import net.psforever.services.base.support.RemoverActor
 
 import scala.concurrent.duration._
+
+case object CorpseRemovalSupport
+  extends EventServiceSupport {
+  def label: String = "undertaker"
+  def constructor(context: ActorContext): ActorRef = {
+    context.actorOf(Props[CorpseRemovalActor](), name = "CorpseRemoval")
+  }
+}
 
 final case class ReleaseEnvelope(
                                   channel: String,
@@ -49,7 +59,7 @@ class CorpseRemovalActor extends RemoverActor() {
   def FirstJob(entry: RemoverActor.Entry): Unit = {
     import net.psforever.objects.zones.Zone
     entry.zone.Population ! Zone.Corpse.Remove(entry.obj.asInstanceOf[Player])
-    context.parent ! AvatarServiceMessage(
+    context.parent ! MessageEnvelope(
       entry.zone.id,
       ObjectDelete(entry.obj.GUID, unk=1)
     )

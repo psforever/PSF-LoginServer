@@ -12,10 +12,10 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.repair.RepairableEntity
 import net.psforever.objects.vital.SimpleResolutions
 import net.psforever.objects.vital.interaction.DamageResult
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.types.{PlanetSideGUID, Vector3}
 import net.psforever.services.base.message.PlanetsideAttribute
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.vehicle.VehicleServiceMessage
+import net.psforever.services.local.LocalAction
 
 import scala.annotation.unused
 import scala.concurrent.duration._
@@ -75,7 +75,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
   override def StartJammeredSound(target: Any, dur: Int): Unit =
     target match {
       case obj: PlanetSideServerObject if !jammedSound =>
-        obj.Zone.VehicleEvents ! VehicleServiceMessage(
+        obj.Zone.VehicleEvents ! MessageEnvelope(
           obj.Zone.id,
           PlanetsideAttribute(obj.GUID, 54, 1)
         )
@@ -87,7 +87,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
     target match {
       case obj: PlanetSideServerObject with JammableUnit =>
         val zone = obj.Zone
-        zone.LocalEvents ! LocalServiceMessage(
+        zone.LocalEvents ! MessageEnvelope(
           zone.id,
           LocalAction.TriggerEffectInfo(obj.GUID, "on", unk1=false, 1000)
         )
@@ -99,7 +99,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
     target match {
       case obj: PlanetSideServerObject if jammedSound =>
         val zone = obj.Zone
-        zone.VehicleEvents ! VehicleServiceMessage(
+        zone.VehicleEvents ! MessageEnvelope(
           zone.id,
           PlanetsideAttribute(obj.GUID, 54, 0)
         )
@@ -112,7 +112,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
     target match {
       case obj: PlanetSideServerObject with JammableUnit if obj.Jammed =>
         val zone = sensor.Zone
-        zone.LocalEvents ! LocalServiceMessage(
+        zone.LocalEvents ! MessageEnvelope(
           zone.id,
           LocalAction.TriggerEffectInfo(obj.GUID, "on", unk1=true, 1000)
         )
@@ -124,7 +124,7 @@ class SensorDeployableControl(sensor: SensorDeployable)
   override def finalizeDeployable(callback: ActorRef) : Unit = {
     super.finalizeDeployable(callback)
     val zone = sensor.Zone
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       zone.id,
       LocalAction.TriggerEffectInfo(sensor.GUID, "on", unk1=true, 1000)
     )
@@ -141,7 +141,7 @@ object SensorDeployableControl {
   def DestructionAwareness(target: Deployable, attribution: PlanetSideGUID): Unit = {
     Deployables.AnnounceDestroyDeployable(target, Some(1 seconds))
     val zone = target.Zone
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       zone.id,
       LocalAction.TriggerEffectInfo(target.GUID, "on", unk1=false, 1000)
     )
@@ -157,7 +157,7 @@ object SensorDeployableControl {
         pos.z + math.cos(yRadians).toFloat * 0.875f
       )
     }
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       zone.id,
       LocalAction.TriggerEffectLocation("motion_sensor_destroyed", explosionPos, ang)
     )

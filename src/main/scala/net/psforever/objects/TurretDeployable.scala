@@ -20,7 +20,8 @@ import net.psforever.objects.vital.resistance.StandardResistanceProfile
 import net.psforever.objects.vital.{SimpleResolutions, StandardVehicleResistance}
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game.TriggeredSound
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.vehicle.VehicleAction
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -109,7 +110,7 @@ abstract class TurretDeployableControl
           case player: Player =>
             seat.unmount(player)
             player.VehicleSeated = None
-            zone.VehicleEvents ! VehicleServiceMessage(
+            zone.VehicleEvents ! MessageEnvelope(
               zone.id,
               player.GUID,
               VehicleAction.KickPassenger(4, wasKickedByDriver, TurretObject.GUID)

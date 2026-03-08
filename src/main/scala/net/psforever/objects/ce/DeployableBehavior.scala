@@ -7,9 +7,9 @@ import net.psforever.objects._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.services.Service
-import net.psforever.services.avatar.AvatarServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SetEmpire
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 import net.psforever.types.PlanetSideEmpire
 
 import scala.concurrent.duration._
@@ -199,9 +199,9 @@ trait DeployableBehavior {
       None
     }
     //zone build
-    localEvents ! LocalServiceMessage(zone.id, LocalAction.DeployItem(obj))
+    localEvents ! MessageEnvelope(zone.id, LocalAction.DeployItem(obj))
     //zone map icon
-    localEvents ! LocalServiceMessage(
+    localEvents ! MessageEnvelope(
       obj.Faction.toString,
       LocalAction.DeployableMapIcon(DeploymentAction.Build, DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID)))
     )
@@ -247,7 +247,7 @@ trait DeployableBehavior {
     //there's no special meaning behind directing any replies from from zone governance straight back to zone governance
     //this deployable control agency, however, will be expiring and can not be a recipient
     zone.Deployables ! Zone.Deployable.Dismiss(obj)
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       zone.id,
       LocalAction.EliminateDeployable(obj, obj.GUID, obj.Position, deletionType)
     )
@@ -283,12 +283,12 @@ object DeployableBehavior {
     if (originalFaction != toFaction) {
       obj.Faction = toFaction
       //visual tells in regards to ownership by faction
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
         SetEmpire(dGuid, toFaction)
       )
       //remove knowledge by the previous owner's faction
-      localEvents ! LocalServiceMessage(
+      localEvents ! MessageEnvelope(
         originalFaction.toString,
         LocalAction.DeployableMapIcon(DeploymentAction.Dismiss, info)
       )
@@ -296,10 +296,10 @@ object DeployableBehavior {
       zone.AllPlayers.filter(p => obj.OriginalOwnerName.contains(p.Name))
         .foreach { originalOwner =>
           originalOwner.avatar.deployables.Remove(obj)
-          originalOwner.Zone.LocalEvents ! LocalServiceMessage(originalOwner.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
+          originalOwner.Zone.LocalEvents ! MessageEnvelope(originalOwner.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
       }
       //display to the given faction
-      localEvents ! LocalServiceMessage(
+      localEvents ! MessageEnvelope(
         toFaction.toString,
         LocalAction.DeployableMapIcon(DeploymentAction.Build, info)
       )

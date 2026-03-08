@@ -8,7 +8,8 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
 
 /**
@@ -143,7 +144,6 @@ object DamageableEntity {
     * - provide a feedback message regarding the damage.
     * @see `PlanetsideAttribute`
     * @see `SendResponse`
-    * @see `AvatarServiceMessage`
     * @see `DamageFeedbackMessage`
     * @see `JammableUnit.Jammered`
     * @see `Service.defaultPlayerGUID`
@@ -166,7 +166,7 @@ object DamageableEntity {
   def DamageToHealth(target: Damageable.Target, cause: DamageResult, amount: Int): Boolean = {
     if (amount > 0 && !target.Destroyed) {
       val zone = target.Zone
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
         PlanetsideAttribute(target.GUID, 0, target.Health)
       )
@@ -182,8 +182,7 @@ object DamageableEntity {
     * - reports its adjusted its health; and,
     * - report about its destruction.
     * @see `AvatarAction.Destroy`
-    * @see `AvatarAction.PlanetsideAttribute`
-    * @see `AvatarServiceMessage`
+    * @see `PlanetsideAttribute`
     * @see `DamageFeedbackMessage`
     * @see `JammableUnit.ClearJammeredSound`
     * @see `JammableUnit.ClearJammeredStatus`
@@ -200,10 +199,10 @@ object DamageableEntity {
     val zoneId = zone.id
     val tguid  = target.GUID
     val attribution = attributionTo(cause, target.Zone)
-    zone.AvatarEvents ! AvatarServiceMessage(zoneId, PlanetsideAttribute(tguid, 0, target.Health))
+    zone.AvatarEvents ! MessageEnvelope(zoneId, PlanetsideAttribute(tguid, 0, target.Health))
     if (target.isInstanceOf[SpawnTube]) {}//do nothing to prevent issue #1057
     else {
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zoneId,
         AvatarAction.Destroy(tguid, attribution, Service.defaultPlayerGUID, target.Position)
       )

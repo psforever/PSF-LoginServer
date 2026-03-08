@@ -3,7 +3,7 @@ package net.psforever.objects.serverobject.pad.process
 
 import akka.actor.Props
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
-import net.psforever.services.vehicle.VehicleServiceMessage
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.types.Vector3
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -32,18 +32,18 @@ class VehicleSpawnControlServerVehicleOverride(pad: VehicleSpawnPad) extends Veh
       val driverFailState =
         !driver.isAlive || driver.Continent != pad.Continent || !vehicle.PassengerInSeat(driver).contains(0)
       vehicle.MountedIn = None
-      pad.Zone.VehicleEvents ! VehicleServiceMessage(pad.Zone.id, VehicleSpawnPad.DetachFromRails(vehicle, pad))
+      pad.Zone.VehicleEvents ! MessageEnvelope(pad.Zone.id, VehicleSpawnPad.DetachFromRails(vehicle, pad))
       if (vehicleFailState || driverFailState) {
         if (vehicleFailState) {
           trace(s"vehicle was already destroyed")
         } else {
           trace(s"driver is not ready")
         }
-        pad.Zone.VehicleEvents ! VehicleServiceMessage(pad.Zone.id, VehicleSpawnPad.RevealPlayer(order.DriverGUID))
+        pad.Zone.VehicleEvents ! MessageEnvelope(pad.Zone.id, VehicleSpawnPad.RevealPlayer(order.DriverGUID))
         driverControl ! order
       } else {
         trace(s"telling ${driver.Name} that the server is assuming control of the ${vehicle.Definition.Name}")
-        pad.Zone.VehicleEvents ! VehicleServiceMessage(driver.Name, VehicleSpawnPad.ServerVehicleOverrideStart(vehicle, pad))
+        pad.Zone.VehicleEvents ! MessageEnvelope(driver.Name, VehicleSpawnPad.ServerVehicleOverrideStart(vehicle, pad))
         context.system.scheduler.scheduleOnce(4000 milliseconds, driverControl, order)
       }
 

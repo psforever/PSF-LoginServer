@@ -4,7 +4,9 @@ package net.psforever.objects.serverobject.structures.participation
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.sourcing.UniquePlayer
-import net.psforever.services.base.message.GenericObjectAction
+import net.psforever.packet.game.GenericObjectActionMessage
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.SendResponse
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 import scala.collection.mutable
@@ -107,14 +109,14 @@ trait FacilityHackParticipation extends ParticipationLogic {
     if (building.virusId != 8) {
       import net.psforever.objects.serverobject.terminals.Terminal
       import net.psforever.objects.GlobalDefinitions
-      import net.psforever.services.avatar.AvatarServiceMessage
       val mainTerm = building.Amenities.filter(x => x.isInstanceOf[Terminal] && x.Definition == GlobalDefinitions.main_terminal).head.GUID
-      val msg1 = GenericObjectAction(mainTerm, 61)
-      val msg2 = GenericObjectAction(mainTerm, 58)
+      val pkts = SendResponse(List(
+        GenericObjectActionMessage(mainTerm, 61),
+        GenericObjectActionMessage(mainTerm, 58)
+      ))
       val events = building.Zone.AvatarEvents
       list.foreach { p =>
-        events ! AvatarServiceMessage(p.Name, msg1)
-        events ! AvatarServiceMessage(p.Name, msg2)
+        events ! MessageEnvelope(p.Name, pkts)
       }
     }
   }

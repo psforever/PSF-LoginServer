@@ -7,7 +7,8 @@ import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.{BuildingActor, BuildingControlDetails}
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAware, CaptureTerminalAwareBehavior}
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope}
 import net.psforever.types.PlanetSideEmpire
 
@@ -57,7 +58,7 @@ case object FacilityLogic
         })
       // No map update needed - will be sent by `HackCaptureActor` when required
       case _ =>
-        details.galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(details.building.infoUpdateMessage()))
+        details.galaxyService ! MessageEnvelope("", GalaxyAction.MapUpdate(details.building.infoUpdateMessage()))
     }
     Behaviors.same
   }

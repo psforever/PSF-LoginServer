@@ -5,8 +5,9 @@ import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GalaxyHandlerFunctions, SessionData, SessionGalaxyHandlers}
 import net.psforever.packet.game.{BroadcastWarpgateUpdateMessage, FriendsResponse, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{EventResponse, SendResponse}
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
+import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.types.{MemberAction, PlanetSideEmpire}
 
 object GalaxyHandlerLogic {
@@ -27,7 +28,7 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
   def handleUpdateIgnoredPlayers(pkt: FriendsResponse): Unit = {
     sendResponse(pkt)
     pkt.friends.foreach { f =>
-      galaxyService ! GalaxyServiceMessage(GalaxyAction.LogStatusChange(f.name))
+      galaxyService ! MessageEnvelope("", GalaxyAction.LogStatusChange(f.name))
     }
   }
 

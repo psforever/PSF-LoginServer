@@ -2,20 +2,29 @@
 package net.psforever.services.local.support
 
 import java.util.concurrent.TimeUnit
-import akka.actor.{Actor, Cancellable}
+import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.objects.{Default, GlobalDefinitions}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.HackState7
-import net.psforever.services.base.{GenericSupportEnvelope, GenericSupportEnvelopeOnly}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelope, GenericSupportEnvelopeOnly}
 import net.psforever.services.base.message.GenericObjectAction
 import net.psforever.services.local.LocalAction.IsAHackMessage
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
+
+case object HackClearSupport
+  extends EventServiceSupport {
+  def label: String = "hackClearer"
+  def constructor(context: ActorContext): ActorRef = {
+    context.actorOf(Props[HackClearActor](), name = "HackClearer")
+  }
+}
 
 final case class HackEntityEnvelope(
                                      channel: String,
@@ -65,7 +74,7 @@ class HackClearActor() extends Actor {
       hackedObjects = stillHackedObjects
       unhackObjects.foreach { case HackClearActor.HackEntry(target, zone, unk1, unk2, _, _) =>
         target.Actor ! CommonMessages.ClearHack()
-        zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.HackClear(target.GUID, unk1, unk2))
+        zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.HackClear(target.GUID, unk1, unk2))
         if (target.Definition == GlobalDefinitions.main_terminal) {
           ClearVirusFromBuilding(target)
         }
@@ -78,7 +87,7 @@ class HackClearActor() extends Actor {
         case Some(HackClearActor.HackEntry(target, zone, unk1, unk2, _, _)) =>
           hackedObjects = hackedObjects.filterNot(x => x.target == target)
           target.Actor ! CommonMessages.ClearHack()
-          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.HackClear(target.GUID, 3212836864L, HackState7.Unk8))
+          zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.HackClear(target.GUID, 3212836864L, HackState7.Unk8))
 
           // Restart the timer in case the object we just removed was the next one scheduled
           RestartTimer()
@@ -117,7 +126,6 @@ class HackClearActor() extends Actor {
     import net.psforever.objects.serverobject.structures.Building
     import net.psforever.objects.serverobject.terminals.Terminal
     import net.psforever.actors.zone.BuildingActor
-    import net.psforever.services.avatar.AvatarServiceMessage
 
     val building = target.asInstanceOf[Terminal].Owner.asInstanceOf[Building]
     building.virusId = 8
@@ -125,7 +133,7 @@ class HackClearActor() extends Actor {
     val msg = GenericObjectAction(target.GUID, 60)
     val events = building.Zone.AvatarEvents
     building.PlayersInSOI.foreach { player =>
-      events ! AvatarServiceMessage(player.Name, msg)
+      events ! MessageEnvelope(player.Name, msg)
     }
     building.Actor ! BuildingActor.MapUpdate()
   }

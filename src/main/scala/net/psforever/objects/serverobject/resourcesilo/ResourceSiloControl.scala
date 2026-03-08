@@ -11,9 +11,9 @@ import net.psforever.objects.zones
 import net.psforever.objects.{GlobalDefinitions, Ntu, NtuContainer, NtuStorageBehavior, Vehicle}
 import net.psforever.types.{ExperienceType, PlanetSideEmpire}
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
-import net.psforever.services.vehicle.VehicleServiceMessage
 import net.psforever.util.Config
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -107,7 +107,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     log.trace(s"LowNtuWarning: Silo ${resourceSilo.GUID} low ntu warning set to $enabled")
     val building = resourceSilo.Owner
     val zone     = building.Zone
-    building.Zone.AvatarEvents ! AvatarServiceMessage(
+    building.Zone.AvatarEvents ! MessageEnvelope(
       zone.id,
       building.GUID,
       PlanetsideAttribute(building.GUID, 47, if (resourceSilo.LowNtuWarningOn) 1 else 0)
@@ -131,7 +131,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
       log.trace(
         s"UpdateChargeLevel: silo ${resourceSilo.GUID} NTU bar level has changed from $siloDisplayBeforeChange to ${resourceSilo.CapacitorDisplay}"
       )
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
         resourceSilo.GUID,
         PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay)
@@ -205,11 +205,11 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
             (Config.app.game.experience.sep.ntuSiloDepositReward.toFloat *
               amount * resourceSilo.Definition.ChargeTime.toSeconds.toFloat / resourceSilo.MaxNtuCapacitor
               ).toLong
-          vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
+          vehicle.Zone.AvatarEvents ! MessageEnvelope(
             owner.name,
             AvatarAction.AwardBep(owner.charId, deposit, ExperienceType.Normal)
           )
-          vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
+          vehicle.Zone.AvatarEvents ! MessageEnvelope(
             owner.name, AvatarAction.ShareAntExperienceWithSquad(owner, deposit, vehicle))
           zones.exp.ToDatabase.reportNtuActivity(owner.charId, resourceSilo.Zone.Number, resourceSilo.Owner.GUID.guid, deposit)
         }
@@ -232,7 +232,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     val amount = (if (trigger > 0) {
       // panel glow & orb particles on
       val zone = resourceSilo.Zone
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zone.id,
         PlanetsideAttribute(resourceSilo.GUID, 49, 1)
       )
@@ -243,7 +243,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     } else {
       // panel glow & orb particles off
       val zone = resourceSilo.Zone
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zone.id,
         PlanetsideAttribute(resourceSilo.GUID, 49, 0)
       )

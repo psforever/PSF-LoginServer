@@ -11,9 +11,9 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.ContinentalLockUpdateMessage
 import net.psforever.persistence
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{SendResponse, SetEmpire}
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
-import net.psforever.services.local.LocalServiceMessage
+import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.services.{InterstellarClusterService, ServiceManager}
 import net.psforever.types.PlanetSideEmpire
 import net.psforever.util.Database.ctx
@@ -168,7 +168,7 @@ object BuildingActor {
     val building = details.building
     val zone = building.Zone
     building.Faction = faction
-    zone.LocalEvents ! LocalServiceMessage(zone.id, SetEmpire(building.GUID, faction))
+    zone.LocalEvents ! MessageEnvelope(zone.id, SetEmpire(building.GUID, faction))
   }
 }
 
@@ -232,8 +232,8 @@ class BuildingActor(
         Behaviors.same
 
       case MapUpdate() =>
-        details.galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(details.building.infoUpdateMessage()))
-        details.galaxyService ! GalaxyServiceMessage(SendResponse(details.building.densityLevelUpdateMessage(building)))
+        details.galaxyService ! MessageEnvelope("", GalaxyAction.MapUpdate(details.building.infoUpdateMessage()))
+        details.galaxyService ! MessageEnvelope("", SendResponse(details.building.densityLevelUpdateMessage(building)))
         Behaviors.same
 
       case AmenityStateChange(amenity, data) =>
@@ -255,15 +255,15 @@ class BuildingActor(
         logic.ntu(details, msg)
 
       case DensityLevelUpdate(building) =>
-        details.galaxyService ! GalaxyServiceMessage(SendResponse(details.building.densityLevelUpdateMessage(building)))
+        details.galaxyService ! MessageEnvelope("", SendResponse(details.building.densityLevelUpdateMessage(building)))
         Behaviors.same
 
       case ContinentalLock(zone) =>
-        details.galaxyService ! GalaxyServiceMessage(SendResponse(ContinentalLockUpdateMessage(zone.Number, zone.lockedBy)))
+        details.galaxyService ! MessageEnvelope("", SendResponse(ContinentalLockUpdateMessage(zone.Number, zone.lockedBy)))
         Behaviors.same
 
       case HomeLockBenefits(msg) =>
-        details.galaxyService ! GalaxyServiceMessage(SendResponse(msg))
+        details.galaxyService ! MessageEnvelope("", SendResponse(msg))
         Behaviors.same
     }
   }
