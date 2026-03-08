@@ -8,8 +8,8 @@ import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, UniquePlayer}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceResponse}
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.avatar.{AvatarAction, AvatarStamp}
+import net.psforever.services.base.envelope.{GenericResponseEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{EventResponse, SendResponse}
 import net.psforever.services.chat.OutfitChannel
 
@@ -213,7 +213,8 @@ class SessionAvatarHandlers(
   def killedWhileMounted(obj: PlanetSideGameObject with Mountable, playerGuid: PlanetSideGUID): Unit = {
     val playerName = player.Name
     //boot cadaver from mount on client
-    context.self ! AvatarServiceResponse(
+    context.self ! GenericResponseEnvelope(
+      AvatarStamp,
       playerName,
       Service.defaultPlayerGUID,
       SendResponse(ObjectDetachMessage(obj.GUID, playerGuid, player.Position, Vector3.Zero))

@@ -12,9 +12,9 @@ import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{GenericResponseEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceResponse}
+import net.psforever.services.galaxy.{GalaxyAction, GalaxyStamp}
 import net.psforever.types.ChatMessageType
 import net.psforever.util.Config
 import net.psforever.zones.Zones
@@ -559,14 +559,17 @@ class CavernRotationService(
     val (lockedZones, unlockedZones) = managedZones.partition(_.locked)
     //borrow GalaxyService response structure, but send to the specific endpoint math.max(0, monitor.start + monitor.duration - curr)
     unlockedZones.foreach { monitor =>
-      sendToSession ! GalaxyServiceResponse("", GalaxyAction.UnlockedZoneUpdate(monitor.zone))
+      val resp = GalaxyAction.UnlockedZoneUpdate(monitor.zone)
+      sendToSession ! GenericResponseEnvelope(GalaxyStamp, "", Service.defaultPlayerGUID, resp)
     }
     val sortedLocked = lockedZones.sortBy(z => z.start)
     sortedLocked.take(2).foreach { monitor =>
-      sendToSession ! GalaxyServiceResponse("", GalaxyAction.LockedZoneUpdate(monitor.zone, math.max(0, monitor.start + monitor.duration - curr)))
+      val resp = GalaxyAction.LockedZoneUpdate(monitor.zone, math.max(0, monitor.start + monitor.duration - curr))
+      sendToSession ! GenericResponseEnvelope(GalaxyStamp, "", Service.defaultPlayerGUID, resp)
     }
     sortedLocked.takeRight(2).foreach { monitor =>
-      sendToSession ! GalaxyServiceResponse("", GalaxyAction.LockedZoneUpdate(monitor.zone, 0L))
+      val resp = GalaxyAction.LockedZoneUpdate(monitor.zone, 0L)
+      sendToSession ! GenericResponseEnvelope(GalaxyStamp, "", Service.defaultPlayerGUID, resp)
     }
   }
 

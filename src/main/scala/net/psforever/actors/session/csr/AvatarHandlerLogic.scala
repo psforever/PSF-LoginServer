@@ -12,7 +12,8 @@ import net.psforever.objects.serverobject.containable.ContainableBehavior
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.vital.RevivingActivity
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, HitHint, ImplantAction}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceResponse}
+import net.psforever.services.avatar.{AvatarAction, AvatarStamp}
+import net.psforever.services.base.envelope.GenericResponseEnvelope
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ConcealPlayer, EventResponse, GenericObjectAction, HintsAtAttacker, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, SetEmpire, WeaponDryFire}
 import net.psforever.types.ImplantType
 
@@ -60,11 +61,11 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       /* special messages */
       case AvatarAction.TeardownConnection() if player.spectator =>
         context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
-        context.self.forward(AvatarServiceResponse(toChannel, guid, reply))
+        context.self.forward(GenericResponseEnvelope(AvatarStamp, toChannel, guid, reply))
 
       case AvatarAction.TeardownConnection() =>
         context.self ! SessionActor.SetMode(NormalMode)
-        context.self.forward(AvatarServiceResponse(toChannel, guid, reply))
+        context.self.forward(GenericResponseEnvelope(AvatarStamp, toChannel, guid, reply))
 
       /* really common messages (very frequently, every life) */
       case pstate @ AvatarAction.PlayerState(

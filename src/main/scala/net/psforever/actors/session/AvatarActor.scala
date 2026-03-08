@@ -12,6 +12,8 @@ import net.psforever.objects.avatar.ModePermissions
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, ScoreCard, SupportActivity}
 import net.psforever.objects.sourcing.{TurretSource, VehicleSource}
 import net.psforever.packet.game.ImplantAction
+import net.psforever.services.avatar.AvatarStamp
+import net.psforever.services.base.envelope.GenericResponseEnvelope
 import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
 import net.psforever.zones.Zones
 import org.joda.time.{LocalDateTime, Seconds}
@@ -3490,8 +3492,8 @@ class AvatarActor(
                                               value: Int
                                             ): Unit = {
     import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
-    import net.psforever.services.avatar.AvatarServiceResponse
-    sessionActor.toClassic ! AvatarServiceResponse("", guid, AvatarAction.AvatarImplant(action, index, value))
+    val resp = AvatarAction.AvatarImplant(action, index, value)
+    sessionActor.toClassic ! GenericResponseEnvelope(AvatarStamp, "", guid, resp)
   }
 
   private def buyImplantAction(

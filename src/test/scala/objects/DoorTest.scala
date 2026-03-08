@@ -12,8 +12,9 @@ import net.psforever.objects.{Default, GlobalDefinitions, Player}
 import net.psforever.objects.serverobject.doors.{Door, DoorControl}
 import net.psforever.objects.serverobject.structures.{Building, StructureType}
 import net.psforever.objects.zones.{Zone, ZoneMap}
+import net.psforever.services.base.envelope.GenericResponseEnvelope
 import net.psforever.services.local.support.DoorMessage
-import net.psforever.services.local.{LocalAction, LocalServiceResponse}
+import net.psforever.services.local.LocalAction
 import net.psforever.types._
 import org.specs2.mutable.Specification
 
@@ -106,7 +107,7 @@ class DoorControlAlreadyOpenTest extends ActorTest {
       door.Actor.tell(CommonMessages.Use(player), probe.ref)
       val reply = probe.receiveOne(1000 milliseconds)
       assert(reply match {
-        case LocalServiceResponse("test", _, LocalAction.DoorOpens(_, thisDoor)) => thisDoor eq door
+        case GenericResponseEnvelope("test", _, LocalAction.DoorOpens(_, thisDoor)) => thisDoor eq door
         case _ => false
       })
     }

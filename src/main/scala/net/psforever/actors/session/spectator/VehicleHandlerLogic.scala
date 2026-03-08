@@ -8,8 +8,9 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ChangeAmmoMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ReloadMessage, ServerVehicleOverrideMsg, VehicleStateMessage, WeaponDryFireMessage}
+import net.psforever.services.base.envelope.GenericResponseEnvelope
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, EventResponse, GenericObjectAction, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, WeaponDryFire}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceResponse}
+import net.psforever.services.vehicle.{VehicleAction, VehicleStamp}
 import net.psforever.types.{BailType, PlanetSideGUID, Vector3}
 
 object VehicleHandlerLogic {
@@ -205,11 +206,13 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         )
         import scala.concurrent.ExecutionContext.Implicits.global
         import scala.concurrent.duration._
-        context.system.scheduler.scheduleOnce(
-          delay milliseconds,
-          context.self,
-          VehicleServiceResponse(toChannel, PlanetSideGUID(0), VehicleAction.KickCargo(vehicle, speed=0, delay))
+        val resp = GenericResponseEnvelope(
+          VehicleStamp,
+          toChannel,
+          PlanetSideGUID(0),
+          VehicleAction.KickCargo(vehicle, speed=0, delay)
         )
+        context.system.scheduler.scheduleOnce(delay milliseconds, context.self, resp)
 
       case VehicleAction.KickCargo(cargo, _, _)
         if player.VehicleSeated.nonEmpty && sessionLogic.zoning.spawn.deadState == DeadState.Alive =>
