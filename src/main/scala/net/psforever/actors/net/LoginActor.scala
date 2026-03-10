@@ -97,6 +97,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
   private val serverName: String = Config.app.world.serverName
   private val gameTestServerAddress = new InetSocketAddress(InetAddress.getByName(Config.app.public), Config.app.world.port)
+  private val localHost: InetAddress = InetAddress.getLocalHost
 
   private val bcryptRounds = 12
 
@@ -152,7 +153,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
       updateServerList()
 
     case SocketPane.NextPort(_, _, portNum) =>
-      val address = gameTestServerAddress.getAddress.getHostAddress
+      val address = if (ipAddress == "127.0.0.1") ipAddress else if (ipAddress.startsWith("192.168")) localHost.getHostAddress else gameTestServerAddress.getAddress.getHostAddress
       log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
       val response = ConnectToWorldMessage(serverName, address, portNum)
       context.become(idlingBehavior)
@@ -165,7 +166,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
   private def waitingForServerTransferBehavior: Receive = persistentSetupMixinBehavior.orElse {
     case SocketPane.NextPort(_, _, portNum) =>
-      val address = gameTestServerAddress.getAddress.getHostAddress
+      val address = if (ipAddress == "127.0.0.1") ipAddress else if (ipAddress.startsWith("192.168")) localHost.getHostAddress else gameTestServerAddress.getAddress.getHostAddress
       log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
       val response = ConnectToWorldMessage(serverName, address, portNum)
       context.become(idlingBehavior)
