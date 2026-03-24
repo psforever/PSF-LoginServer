@@ -5,13 +5,10 @@ import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.Vehicle
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.base.message.EventResponse
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideGUID}
 
-trait VehicleHandlerFunctions extends CommonSessionInterfacingFunctionality {
+trait VehicleHandlerFunctions extends CommonSessionInterfacingFunctionality with CommonHandlerFunctions {
   def ops: SessionVehicleHandlers
-
-  def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit
 }
 
 class SessionVehicleHandlers(

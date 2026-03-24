@@ -10,7 +10,7 @@ import net.psforever.objects.zones.exp
 import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarStamp}
 import net.psforever.services.base.envelope.{GenericResponseEnvelope, MessageEnvelope}
-import net.psforever.services.base.message.{EventResponse, SendResponse}
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.chat.OutfitChannel
 
 import scala.collection.mutable
@@ -21,10 +21,8 @@ import net.psforever.packet.game._
 import net.psforever.types._
 import net.psforever.util.Config
 
-trait AvatarHandlerFunctions extends CommonSessionInterfacingFunctionality {
+trait AvatarHandlerFunctions extends CommonSessionInterfacingFunctionality with CommonHandlerFunctions {
   val ops: SessionAvatarHandlers
-
-  def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit
 }
 
 class SessionAvatarHandlers(
@@ -37,7 +35,7 @@ class SessionAvatarHandlers(
     mutable.LongMap[SessionAvatarHandlers.LastUpstream]()
   private[session] val hidingPlayerRandomizer = new scala.util.Random
 
-  def changeAmmoProcedures(
+  def changeAmmoProcedure(
                                     weaponGuid: PlanetSideGUID,
                                     previousAmmoGuid: PlanetSideGUID,
                                     ammoTypeId: Int,
@@ -46,7 +44,7 @@ class SessionAvatarHandlers(
                                     ammoData: ConstructorData
                                   ): Unit = {
     sendResponse(ObjectDetachMessage(weaponGuid, previousAmmoGuid, Vector3.Zero, 0))
-    //TODO? sendResponse(ObjectDeleteMessage(previousAmmoGuid, 0))
+    sendResponse(ObjectDeleteMessage(previousAmmoGuid, 0))
     sendResponse(
       ObjectCreateMessage(
         ammoTypeId,

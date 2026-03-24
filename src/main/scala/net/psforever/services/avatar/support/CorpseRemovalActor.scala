@@ -5,7 +5,6 @@ import akka.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.objects.Player
 import net.psforever.types.{ExoSuitType, PlanetSideGUID}
-import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarAction.Release
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelope, GenericSupportEnvelopeOnly}
@@ -37,7 +36,7 @@ final case class ReleaseEnvelope(
 
 object ReleaseEnvelope {
   def apply(channel: String, actionMessage: Release): ReleaseEnvelope =
-    ReleaseEnvelope(channel, Service.defaultPlayerGUID, actionMessage)
+    ReleaseEnvelope(channel, actionMessage.player.GUID, actionMessage)
 }
 
 final case class CorpseEnvelope(supportMessage: Any)

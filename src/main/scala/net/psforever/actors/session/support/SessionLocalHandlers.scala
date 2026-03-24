@@ -7,17 +7,14 @@ import net.psforever.objects.ce.Deployable
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.packet.game.{GenericObjectActionMessage, ObjectDeleteMessage, PlanetsideAttributeMessage, TriggerEffectMessage}
-import net.psforever.services.base.message.EventResponse
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
-trait LocalHandlerFunctions extends CommonSessionInterfacingFunctionality {
+trait LocalHandlerFunctions extends CommonSessionInterfacingFunctionality with CommonHandlerFunctions {
   def ops: SessionLocalHandlers
 
   def handleTurretDeployableIsDismissed(obj: TurretDeployable): Unit
 
   def handleDeployableIsDismissed(obj: Deployable): Unit
-
-  def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit
 }
 
 class SessionLocalHandlers(

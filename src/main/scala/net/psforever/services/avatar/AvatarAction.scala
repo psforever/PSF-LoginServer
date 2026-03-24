@@ -201,5 +201,5 @@ object AvatarAction {
 
   final case class RemoveFromOutfitChat(outfit_id: Long) extends SelfRespondingEvent
 
-  final case class TeardownConnection() extends SelfRespondingEvent
+  final case object TeardownConnection extends SelfRespondingEvent
 }

@@ -279,7 +279,6 @@ object Vehicles {
       if (GlobalDefinitions.isBattleFrameVehicle(target.Definition) && target.Seat(0).isDefined) {
         zone.LocalEvents ! MessageEnvelope(
           zoneid,
-          PlanetSideGUID(-1),
           GenericObjectAction(target.GUID, GenericObjectActionEnum.BFRShieldsDown.id)
         )
         zone.LocalEvents ! MessageEnvelope(

@@ -63,7 +63,6 @@ class CaptureFlagManager(zone: Zone) extends Actor {
       // Override CC message when looked at
       zone.LocalEvents ! MessageEnvelope(
         zone.id,
-        PlanetSideGUID(-1),
         GenericObjectAction(
           capture_terminal.GUID,
           GenericObjectActionEnum.FlagSpawned.id

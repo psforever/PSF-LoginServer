@@ -2195,7 +2195,7 @@ class ZoningOperations(
       log.info(s"RestoreInfo: player $name is already logged in zone ${inZone.id}; rejoining that character")
       sessionLogic.persistFunc = UpdatePersistence(from)
       //tell the old WorldSessionActor to kill itself by using its own subscriptions against itself
-      inZone.AvatarEvents ! MessageEnvelope(name, AvatarAction.TeardownConnection())
+      inZone.AvatarEvents ! MessageEnvelope(name, AvatarAction.TeardownConnection)
       spawn.switchAvatarStatisticsFieldToRefreshAfterRespawn()
       //find and reload previous player
       (

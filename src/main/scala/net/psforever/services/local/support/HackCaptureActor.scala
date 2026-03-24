@@ -246,7 +246,7 @@ class HackCaptureActor extends Actor {
     // Notify all clients that CC has had its hack state changed
     terminal.Zone.LocalEvents ! MessageEnvelope(
       terminal.Zone.id,
-      PlanetSideGUID(-1),
+      PlanetSideGUID(-1), /*what is this?, says the person who wrote it*/
       PlanetsideAttribute(
         terminal.GUID,
         PlanetsideAttributeEnum.ControlConsoleHackUpdate.id,
