@@ -10,17 +10,24 @@ import net.psforever.types.PlanetSideGUID
 trait HandlerFilter {
   def resolvedPlayerGuid: PlanetSideGUID
   def isNotSameTarget: Boolean
-  def isSameTarget: Boolean = !isNotSameTarget
+  def isSameTarget: Boolean
 }
 
-class HandlerFilterClass(guid1: PlanetSideGUID, guid2: PlanetSideGUID) extends HandlerFilter {
-  val resolvedPlayerGuid: PlanetSideGUID = guid2
-  val isNotSameTarget: Boolean = resolvedPlayerGuid != guid1
-}
+case class HandlerFilterRules(
+                               resolvedPlayerGuid: PlanetSideGUID,
+                               isNotSameTarget: Boolean,
+                               isSameTarget: Boolean
+                             ) extends HandlerFilter
 
 object HandlerFilter {
+  def apply(guid: PlanetSideGUID, isNotSameTarget: Boolean): HandlerFilter = {
+    HandlerFilterRules(guid, isNotSameTarget, !isNotSameTarget)
+  }
+
   def apply(guid1: PlanetSideGUID, guid2: PlanetSideGUID): HandlerFilter = {
-    new HandlerFilterClass(guid1, guid2)
+    val resolvedPlayerGuid: PlanetSideGUID = guid2
+    val isNotSameTarget: Boolean = resolvedPlayerGuid != guid1
+    this(guid2, isNotSameTarget)
   }
 
   def apply(guid: PlanetSideGUID, player: Player): HandlerFilter = {
@@ -31,17 +38,9 @@ object HandlerFilter {
     })
   }
 
-  final val NeverAllow: HandlerFilter = new HandlerFilter {
-    def resolvedPlayerGuid: PlanetSideGUID = PlanetSideGUID(-1)
-    def isNotSameTarget: Boolean = false
-    override def isSameTarget: Boolean = false
-  }
+  final val NeverAllow: HandlerFilter = HandlerFilterRules(PlanetSideGUID(-1), isNotSameTarget = false, isSameTarget = false)
 
-  final def Allow(guid: PlanetSideGUID): HandlerFilter = new HandlerFilter {
-    def resolvedPlayerGuid: PlanetSideGUID = guid
-    def isNotSameTarget: Boolean = true
-    override def isSameTarget: Boolean = true
-  }
+  final def Allow(guid: PlanetSideGUID): HandlerFilter = HandlerFilterRules(guid, isNotSameTarget = true, isSameTarget = true)
 }
 
 trait CommonHandlerFunctionsBase {
@@ -62,7 +61,13 @@ trait CommonHandlerFunctionsBase {
 
 trait CommonHandlerFunctions extends CommonHandlerFunctionsBase {
   _: CommonSessionInterfacingFunctionality =>
-  protected var filter: HandlerFilter = HandlerFilter.NeverAllow
+  private var filter: HandlerFilter = HandlerFilter.NeverAllow
+
+  def resolvedGuid: PlanetSideGUID = filter.resolvedPlayerGuid
+
+  def isNotSameTarget: Boolean = filter.isNotSameTarget
+
+  def isSameTarget: Boolean = filter.isSameTarget
 
   /**
    * na

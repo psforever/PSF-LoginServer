@@ -49,7 +49,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
           sendResponse(msg)
       }
 
-    case LocalAction.DeployableMapIcon(behavior, deployInfo) if filter.isNotSameTarget =>
+    case LocalAction.DeployableMapIcon(behavior, deployInfo) if isNotSameTarget =>
       sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
 
     case LocalAction.DeployableUIFor(item) =>
@@ -68,7 +68,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
     case LocalAction.Detonate(_, obj) =>
       log.warn(s"LocalAction.Detonate: ${obj.Definition.Name} not configured to explode correctly")
 
-    case LocalAction.DoorOpens(_, door) if filter.isNotSameTarget =>
+    case LocalAction.DoorOpens(_, door) if isNotSameTarget =>
       val doorGuid = door.GUID
       val pos = player.Position.xy
       val range = ops.doorLoadRange()
@@ -139,7 +139,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
 
     case LocalAction.HackClear(targetGuid, unk1, unk2) =>
-      sendResponse(HackMessage(HackState1.Unk0, targetGuid, filter.resolvedPlayerGuid, progress=0, unk1.toFloat, HackState.HackCleared, unk2))
+      sendResponse(HackMessage(HackState1.Unk0, targetGuid, resolvedGuid, progress=0, unk1.toFloat, HackState.HackCleared, unk2))
 
     case LocalAction.HackObject(targetGuid, unk1, unk2) =>
       sessionLogic.general.hackObject(targetGuid, unk1, unk2)
@@ -216,7 +216,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
     case LocalAction.UpdateForceDomeStatus(buildingGuid, false) =>
       sendResponse(GenericObjectActionMessage(buildingGuid, 12))
 
-    case LocalAction.RechargeVehicleWeapon(vehicleGuid, weaponGuid) if filter.isSameTarget /*resolvedPlayerGuid == guid*/ =>
+    case LocalAction.RechargeVehicleWeapon(vehicleGuid, weaponGuid) if isSameTarget /*resolvedPlayerGuid == guid*/ =>
       continent.GUID(vehicleGuid)
         .collect { case vehicle: MountableWeapons => (vehicle, vehicle.PassengerInSeat(player)) }
         .collect { case (vehicle, Some(seat_num)) => vehicle.WeaponControlledFromSeat(seat_num) }

@@ -107,21 +107,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   private[this] val data = new SessionData(middlewareActor, context)
   private[this] var mode: PlayerMode = NormalMode
   private[this] var logic: ModeLogic = _
+  private[this] var listOfHandlers: Seq[CommonHandlerFunctions] = List.empty
 
   private val commonHandlerLogic: CommonHandlerLogic = new CommonHandlerLogic(data, context)
-  private def listOfHandlers: Seq[CommonHandlerFunctions] = {
-    if (logic == null) {
-      List.empty
-    } else {
-      List(
-        logic.avatarResponse,
-        logic.local,
-        logic.vehicleResponse,
-        logic.galaxy,
-        commonHandlerLogic
-      )
-    }
-  }
 
   override def postStop(): Unit = {
     clientKeepAlive.cancel()
@@ -177,6 +165,13 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       logic.switchFrom(data.session)
       mode = newMode
       logic = newMode.setup(data)
+      listOfHandlers = List(
+        logic.avatarResponse,
+        logic.local,
+        logic.vehicleResponse,
+        logic.galaxy,
+        commonHandlerLogic
+      )
     }
     logic.switchTo(data.session)
   }
@@ -396,15 +391,16 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
         CommonHandlerFunctions.HandleNothing
     }
     //try the handler on the input message
+    val filter = HandlerFilter(guid, data.player)
     lazy val alwaysAllowFilter = HandlerFilter.Allow(guid)
-    if (primaryHandler.handleWith(guid).isDefinedAt(reply)) {
+    if (primaryHandler.handleWith(filter).isDefinedAt(reply)) {
       primaryHandler.receive.apply(reply)
     } else if (!primaryHandler.handleWith(alwaysAllowFilter).isDefinedAt(reply)) {
       //check a list of all handlers for any potentially valid case
       val potentiallyValidHandlers = listOfHandlers.filter(_.handleWith(alwaysAllowFilter).isDefinedAt(reply))
       if (potentiallyValidHandlers.nonEmpty) {
         potentiallyValidHandlers
-          .find(_.handleWith(guid).isDefinedAt(reply))
+          .find(_.handleWith(filter).isDefinedAt(reply))
           .foreach(_.receive.apply(reply))
         //arrive here without processing input, the guard for a handler blocked a case; not gonna fault
       } else {
