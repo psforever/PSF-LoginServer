@@ -68,7 +68,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
     canSeeReallyFar
     ) if isNotSameTarget =>
       val pstateToSave = pstate.copy(timestamp = 0)
-      val (lastMsg, lastTime, lastPosition, wasVisible, wasShooting) = ops.lastSeenStreamMessage.get(resolvedGuid.guid) match {
+      val (lastMsg, lastTime, lastPosition, wasVisible, wasShooting) = ops.lastSeenStreamMessage.get(filterGuid.guid) match {
         case Some(SessionAvatarHandlers.LastUpstream(Some(msg), visible, shooting, time)) => (Some(msg), time, msg.pos, visible, shooting)
         case _ => (None, 0L, Vector3.Zero, false, None)
       }
@@ -111,7 +111,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           //must draw
           sendResponse(
             PlayerStateMessage(
-              resolvedGuid,
+              filterGuid,
               pos,
               vel,
               yaw,
@@ -124,10 +124,10 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
               isCloaking
             )
           )
-          ops.lastSeenStreamMessage.put(resolvedGuid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, wasShooting, now))
+          ops.lastSeenStreamMessage.put(filterGuid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, wasShooting, now))
         } else {
           //is visible, but skip reinforcement
-          ops.lastSeenStreamMessage.put(resolvedGuid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, wasShooting, lastTime))
+          ops.lastSeenStreamMessage.put(filterGuid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=true, wasShooting, lastTime))
         }
       } else {
         //conditions where the target is not currently visible
@@ -136,7 +136,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
           val lat = (1 + ops.hidingPlayerRandomizer.nextInt(continent.map.scale.height.toInt)).toFloat
           sendResponse(
             PlayerStateMessage(
-              resolvedGuid,
+              filterGuid,
               Vector3(1f, lat, 1f),
               vel=None,
               facingYaw=0f,
@@ -146,10 +146,10 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
               is_cloaked = isCloaking
             )
           )
-          ops.lastSeenStreamMessage.put(resolvedGuid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, wasShooting, now))
+          ops.lastSeenStreamMessage.put(filterGuid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, wasShooting, now))
         } else {
           //skip drawing altogether
-          ops.lastSeenStreamMessage.put(resolvedGuid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, wasShooting, lastTime))
+          ops.lastSeenStreamMessage.put(filterGuid.guid, SessionAvatarHandlers.LastUpstream(Some(pstateToSave), visible=false, wasShooting, lastTime))
         }
       }
 
@@ -186,7 +186,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
     case AvatarAction.ObjectHeld(slot, _)
       if isSameTarget && player.VisibleSlots.contains(slot) =>
-      sendResponse(ObjectHeldMessage(resolvedGuid, slot, unk1=true))
+      sendResponse(ObjectHeldMessage(filterGuid, slot, unk1=true))
       //Stop using proximity terminals if player unholsters a weapon
       continent.GUID(sessionLogic.terminals.usingMedicalTerminal).collect {
         case term: Terminal with ProximityUnit => sessionLogic.terminals.StopUsingProximityUnit(term)
@@ -197,25 +197,25 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
     case AvatarAction.ObjectHeld(slot, _)
       if isSameTarget && slot > -1 =>
-      sendResponse(ObjectHeldMessage(resolvedGuid, slot, unk1=true))
+      sendResponse(ObjectHeldMessage(filterGuid, slot, unk1=true))
 
     case AvatarAction.ObjectHeld(_, _)
       if isSameTarget => ()
 
     case AvatarAction.ObjectHeld(_, previousSlot) =>
-      sendResponse(ObjectHeldMessage(resolvedGuid, previousSlot, unk1=false))
+      sendResponse(ObjectHeldMessage(filterGuid, previousSlot, unk1=false))
 
     case ChangeFireState_Start(weaponGuid)
-      if isNotSameTarget && ops.lastSeenStreamMessage.get(resolvedGuid.guid).exists { _.visible } =>
+      if isNotSameTarget && ops.lastSeenStreamMessage.get(filterGuid.guid).exists { _.visible } =>
       sendResponse(ChangeFireStateMessage_Start(weaponGuid))
-      val entry = ops.lastSeenStreamMessage(resolvedGuid.guid)
-      ops.lastSeenStreamMessage.put(resolvedGuid.guid, entry.copy(shooting = Some(weaponGuid)))
+      val entry = ops.lastSeenStreamMessage(filterGuid.guid)
+      ops.lastSeenStreamMessage.put(filterGuid.guid, entry.copy(shooting = Some(weaponGuid)))
 
     case ChangeFireState_Stop(weaponGuid)
-      if isNotSameTarget && ops.lastSeenStreamMessage.get(resolvedGuid.guid).exists { msg => msg.visible || msg.shooting.nonEmpty } =>
+      if isNotSameTarget && ops.lastSeenStreamMessage.get(filterGuid.guid).exists { msg => msg.visible || msg.shooting.nonEmpty } =>
       sendResponse(ChangeFireStateMessage_Stop(weaponGuid))
-      val entry = ops.lastSeenStreamMessage(resolvedGuid.guid)
-      ops.lastSeenStreamMessage.put(resolvedGuid.guid, entry.copy(shooting = None))
+      val entry = ops.lastSeenStreamMessage(filterGuid.guid)
+      ops.lastSeenStreamMessage.put(filterGuid.guid, entry.copy(shooting = None))
 
     case AvatarAction.LoadCreatedPlayer(pkt) if isNotSameTarget =>
       sendResponse(pkt)
@@ -224,7 +224,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       sendResponse(pkt)
 
     case AvatarAction.PlanetsideStringAttribute(attributeType, attributeValue) =>
-      sendResponse(PlanetsideStringAttributeMessage(resolvedGuid, attributeType, attributeValue))
+      sendResponse(PlanetsideStringAttributeMessage(filterGuid, attributeType, attributeValue))
 
     case AvatarAction.Destroy(victim, killer, weapon, pos) =>
       // guid = victim // killer = killer
@@ -564,11 +564,12 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
     /* uncommon messages (utility, or once in a while) */
     case ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data)
-      if isNotSameTarget && ops.lastSeenStreamMessage.get(resolvedGuid.guid).exists { _.visible } =>
+      if isNotSameTarget =>
       ops.changeAmmoProcedure(weapon_guid, previous_guid, ammo_id, ammo_guid, weapon_slot, ammo_data)
       sendResponse(ChangeAmmoMessage(weapon_guid, 1))
 
-    case AvatarAction.ChangeFireMode(itemGuid, mode) if isNotSameTarget =>
+    case AvatarAction.ChangeFireMode(itemGuid, mode)
+      if isNotSameTarget =>
       sendResponse(ChangeFireModeMessage(itemGuid, mode))
 
     case AvatarAction.EnvironmentalDamage(_, _, _) =>
@@ -626,11 +627,9 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
       )
 
     case WeaponDryFire(weaponGuid)
-      if isNotSameTarget && ops.lastSeenStreamMessage.get(resolvedGuid.guid).exists { _.visible } =>
+      if isNotSameTarget && ops.lastSeenStreamMessage.get(filterGuid.guid).exists { _.visible } =>
       continent.GUID(weaponGuid).collect {
         case tool: Tool if tool.Magazine == 0 =>
-          // check that the magazine is still empty before sending WeaponDryFireMessage
-          // if it has been reloaded since then, other clients will not see it firing
           sendResponse(WeaponDryFireMessage(weaponGuid))
       }
   }

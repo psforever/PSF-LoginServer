@@ -3,7 +3,7 @@ package net.psforever.actors.session
 
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
 import net.psforever.actors.session.normal.NormalMode
-import net.psforever.actors.session.support.{CommonHandlerFunctions, CommonHandlerLogic, HandlerFilter, ZoningOperations}
+import net.psforever.actors.session.support.{CommonHandlerFunctions, CommonHandlerFunctionsBase, CommonHandlerLogic, HandlerFilter, ZoningOperations}
 import net.psforever.objects.TurretDeployable
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.containable.Containable
@@ -123,7 +123,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       buffer.addOne(msg)
     case _ if data.whenAllEventBusesLoaded() =>
       context.become(inTheGame)
-      logic = mode.setup(data)
+      changeModeSetup(mode)
       buffer.foreach { self.tell(_, self) } //we forget the original sender, shouldn't be doing callbacks at this point
       buffer.clear()
     case _ => ()
@@ -164,16 +164,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (mode != newMode) {
       logic.switchFrom(data.session)
       mode = newMode
-      logic = newMode.setup(data)
-      listOfHandlers = List(
-        logic.avatarResponse,
-        logic.local,
-        logic.vehicleResponse,
-        logic.galaxy,
-        commonHandlerLogic
-      )
+      changeModeSetup(newMode)
     }
     logic.switchTo(data.session)
+  }
+
+  private def changeModeSetup(newMode: PlayerMode): Unit = {
+    logic = newMode.setup(data)
+    listOfHandlers = List(
+      logic.avatarResponse,
+      logic.local,
+      logic.vehicleResponse,
+      logic.galaxy,
+      commonHandlerLogic
+    )
   }
 
   private def parse(sender: ActorRef): Receive = {
@@ -372,39 +376,46 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   }
 
   private def handleGenericResponseEnvelope(envelope: GenericResponseEnvelope): Unit = {
-    val GenericResponseEnvelope(_, guid, reply) = envelope
     //try use the stamp to match the specific handler
-    val primaryHandler = envelope.stamp match {
+    envelope.stamp match {
       case Undelivered =>
+        val GenericResponseEnvelope(_, _, reply) = envelope
         log.error(s"received a message's response that was not processed by an event system - $reply")
-        CommonHandlerFunctions.HandleAnything
       case AvatarStamp =>
-        logic.avatarResponse
+        handleEnvelopeWithResponseHandler(logic.avatarResponse, envelope)
       case LocalStamp =>
-        logic.local
+        handleEnvelopeWithResponseHandler(logic.local, envelope)
       case VehicleStamp =>
-        logic.vehicleResponse
+        handleEnvelopeWithResponseHandler(logic.vehicleResponse, envelope)
       case GalaxyStamp =>
-        logic.galaxy
+        handleEnvelopeWithResponseHandler(logic.galaxy, envelope)
       case unknownStamp =>
-        log.error(s"received a message's response from an unknown event system - stamp: $unknownStamp")
-        CommonHandlerFunctions.HandleNothing
+        log.error(s"received a message from an unknown event system - reply: $envelope, stamp: $unknownStamp")
     }
-    //try the handler on the input message
-    val filter = HandlerFilter(guid, data.player)
-    lazy val alwaysAllowFilter = HandlerFilter.Allow(guid)
-    if (primaryHandler.handleWith(filter).isDefinedAt(reply)) {
-      primaryHandler.receive.apply(reply)
-    } else if (!primaryHandler.handleWith(alwaysAllowFilter).isDefinedAt(reply)) {
-      //check a list of all handlers for any potentially valid case
-      val potentiallyValidHandlers = listOfHandlers.filter(_.handleWith(alwaysAllowFilter).isDefinedAt(reply))
-      if (potentiallyValidHandlers.nonEmpty) {
-        potentiallyValidHandlers
-          .find(_.handleWith(filter).isDefinedAt(reply))
-          .foreach(_.receive.apply(reply))
-        //arrive here without processing input, the guard for a handler blocked a case; not gonna fault
-      } else {
-        log.error(s"received completely unhandled response message - $envelope")
+  }
+
+  private def handleEnvelopeWithResponseHandler(
+                                                 responseHandler: CommonHandlerFunctionsBase,
+                                                 envelope: GenericResponseEnvelope
+                                               ): Unit = {
+    val GenericResponseEnvelope(_, guid, reply) = envelope
+    //try the expected handler with the input response
+    val filter = HandlerFilter.set(data.handlerFilter, guid, data.player)
+    if (responseHandler.isDefinedAt(reply)) {
+      responseHandler.receive.apply(reply)
+    } else {
+      //find any handler that might receive the response (ignore guard booleans during search)
+      data.handlerFilter.set(guid, guid, notSame = true, same = true)
+      if (!responseHandler.isDefinedAt(reply)) {
+        val potentiallyValidHandlers = listOfHandlers.filter(_.isDefinedAt(reply))
+        if (potentiallyValidHandlers.nonEmpty) {
+          data.handlerFilter.set(filter)
+          potentiallyValidHandlers
+            .find(_.isDefinedAt(reply))
+            .foreach(_.receive.apply(reply))
+        } else {
+          log.error(s"received completely unhandled response message - $envelope for ${envelope.stamp}")
+        }
       }
     }
   }

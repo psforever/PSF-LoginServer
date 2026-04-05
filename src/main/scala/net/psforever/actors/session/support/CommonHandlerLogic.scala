@@ -44,14 +44,12 @@ class CommonHandlerLogic(val sessionLogic: SessionData, implicit val context: Ac
       if isNotSameTarget =>
       continent.GUID(weaponGuid).collect {
         case tool: Tool if tool.Magazine == 0 =>
-          // check that the magazine is still empty before sending WeaponDryFireMessage
-          // if it has been reloaded since then, other clients will not see it firing
           sendResponse(WeaponDryFireMessage(weaponGuid))
       }
 
     case HintsAtAttacker(sourceGuid)
       if player.isAlive =>
-      sendResponse(HitHint(sourceGuid, resolvedGuid))
+      sendResponse(HitHint(sourceGuid, filterGuid))
       sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_dmg")
 
     case SetEmpire(objectGuid, faction)
@@ -59,7 +57,7 @@ class CommonHandlerLogic(val sessionLogic: SessionData, implicit val context: Ac
       sendResponse(SetEmpireMessage(objectGuid, faction))
 
     case ConcealPlayer(_) =>
-      sendResponse(GenericObjectActionMessage(resolvedGuid, code=9))
+      sendResponse(GenericObjectActionMessage(filterGuid, code=9))
 
     case SendResponse(msgs) =>
       msgs.foreach(sendResponse)

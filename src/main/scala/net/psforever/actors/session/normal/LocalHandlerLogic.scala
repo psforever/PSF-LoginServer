@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.vehicles.MountableWeapons
 import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable, TelepadDeployable, Tool, TurretDeployable}
 import net.psforever.packet.game.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, HackState1, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
-import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.local.LocalAction
 import net.psforever.types.{ChatMessageType, SpawnGroup}
@@ -139,7 +139,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
 
     case LocalAction.HackClear(targetGuid, unk1, unk2) =>
-      sendResponse(HackMessage(HackState1.Unk0, targetGuid, resolvedGuid, progress=0, unk1.toFloat, HackState.HackCleared, unk2))
+      sendResponse(HackMessage(HackState1.Unk0, targetGuid, filterGuid, progress=0, unk1.toFloat, HackState.HackCleared, unk2))
 
     case LocalAction.HackObject(targetGuid, unk1, unk2) =>
       sessionLogic.general.hackObject(targetGuid, unk1, unk2)
@@ -216,7 +216,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
     case LocalAction.UpdateForceDomeStatus(buildingGuid, false) =>
       sendResponse(GenericObjectActionMessage(buildingGuid, 12))
 
-    case LocalAction.RechargeVehicleWeapon(vehicleGuid, weaponGuid) if isSameTarget /*resolvedPlayerGuid == guid*/ =>
+    case LocalAction.RechargeVehicleWeapon(vehicleGuid, weaponGuid) if isSameTarget =>
       continent.GUID(vehicleGuid)
         .collect { case vehicle: MountableWeapons => (vehicle, vehicle.PassengerInSeat(player)) }
         .collect { case (vehicle, Some(seat_num)) => vehicle.WeaponControlledFromSeat(seat_num) }

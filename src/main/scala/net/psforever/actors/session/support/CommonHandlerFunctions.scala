@@ -9,38 +9,45 @@ import net.psforever.types.PlanetSideGUID
 
 trait HandlerFilter {
   def resolvedPlayerGuid: PlanetSideGUID
+  def otherPlayerGuid: PlanetSideGUID
   def isNotSameTarget: Boolean
   def isSameTarget: Boolean
+
+  def set(resolved: PlanetSideGUID, other: PlanetSideGUID, notSame: Boolean, same: Boolean): HandlerFilter
+  def set(filter: HandlerFilter): HandlerFilter
 }
 
-case class HandlerFilterRules(
-                               resolvedPlayerGuid: PlanetSideGUID,
-                               isNotSameTarget: Boolean,
-                               isSameTarget: Boolean
-                             ) extends HandlerFilter
+class HandlerFilterRules extends HandlerFilter {
+  var resolvedPlayerGuid: PlanetSideGUID = Service.defaultPlayerGUID
+  var otherPlayerGuid: PlanetSideGUID = Service.defaultPlayerGUID
+  var isNotSameTarget: Boolean = false
+  var isSameTarget: Boolean = false
+
+  def set(resolved: PlanetSideGUID, other: PlanetSideGUID, notSame: Boolean, same: Boolean): HandlerFilter = {
+    resolvedPlayerGuid = resolved
+    otherPlayerGuid = other
+    isNotSameTarget = notSame
+    isSameTarget = same
+    this
+  }
+
+  def set(filter: HandlerFilter): HandlerFilter = {
+    set(filter.resolvedPlayerGuid, filter.otherPlayerGuid, filter.isNotSameTarget, filter.isSameTarget)
+  }
+}
 
 object HandlerFilter {
-  def apply(guid: PlanetSideGUID, isNotSameTarget: Boolean): HandlerFilter = {
-    HandlerFilterRules(guid, isNotSameTarget, !isNotSameTarget)
-  }
-
-  def apply(guid1: PlanetSideGUID, guid2: PlanetSideGUID): HandlerFilter = {
-    val resolvedPlayerGuid: PlanetSideGUID = guid2
-    val isNotSameTarget: Boolean = resolvedPlayerGuid != guid1
-    this(guid2, isNotSameTarget)
-  }
-
-  def apply(guid: PlanetSideGUID, player: Player): HandlerFilter = {
-    this(guid, if (player != null && player.HasGUID) {
-      player.GUID
+  def set(filter: HandlerFilter, guid: PlanetSideGUID, player: Player): HandlerFilter = {
+    if (player != null && player.HasGUID) {
+      val pguid = player.GUID
+      filter.set(pguid, guid, pguid != guid, pguid == guid)
     } else {
-      Service.defaultPlayerGUID
-    })
+      filter.set(Service.defaultPlayerGUID, guid, notSame = true, same = false)
+    }
+    filter
   }
 
-  final val NeverAllow: HandlerFilter = HandlerFilterRules(PlanetSideGUID(-1), isNotSameTarget = false, isSameTarget = false)
-
-  final def Allow(guid: PlanetSideGUID): HandlerFilter = HandlerFilterRules(guid, isNotSameTarget = true, isSameTarget = true)
+  final val NeverAllow: HandlerFilter = new HandlerFilterRules().set(PlanetSideGUID(-1), PlanetSideGUID(-2), notSame = false, same = false)
 }
 
 trait CommonHandlerFunctionsBase {
@@ -57,17 +64,19 @@ trait CommonHandlerFunctionsBase {
   def handleWith(filter: HandlerFilter): Receive
 
   def receive: Receive
+
+  def isDefinedAt(x: Any): Boolean = receive.isDefinedAt(x)
 }
 
 trait CommonHandlerFunctions extends CommonHandlerFunctionsBase {
   _: CommonSessionInterfacingFunctionality =>
-  private var filter: HandlerFilter = HandlerFilter.NeverAllow
+  def resolvedGuid: PlanetSideGUID = sessionLogic.handlerFilter.resolvedPlayerGuid
 
-  def resolvedGuid: PlanetSideGUID = filter.resolvedPlayerGuid
+  def filterGuid: PlanetSideGUID = sessionLogic.handlerFilter.otherPlayerGuid
 
-  def isNotSameTarget: Boolean = filter.isNotSameTarget
+  def isNotSameTarget: Boolean = sessionLogic.handlerFilter.isNotSameTarget
 
-  def isSameTarget: Boolean = filter.isSameTarget
+  def isSameTarget: Boolean = sessionLogic.handlerFilter.isSameTarget
 
   /**
    * na
@@ -76,35 +85,19 @@ trait CommonHandlerFunctions extends CommonHandlerFunctionsBase {
    * @param reply     na
    */
   def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit = {
-    filter = HandlerFilter(guid, player)
+    HandlerFilter.set(sessionLogic.handlerFilter, guid, player)
     receive.apply(reply)
   }
 
   def handleWith(guid: PlanetSideGUID): Receive = {
-    filter = HandlerFilter(guid, player)
+    HandlerFilter.set(sessionLogic.handlerFilter, guid, player)
     receive
   }
 
   def handleWith(giveFilter: HandlerFilter): Receive = {
-    filter = giveFilter
+    sessionLogic.handlerFilter = giveFilter
     receive
   }
 
   def receive: Receive
-}
-
-object CommonHandlerFunctions {
-  val HandleNothing: CommonHandlerFunctionsBase = new CommonHandlerFunctionsBase {
-    def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit = { }
-    def handleWith(guid: PlanetSideGUID): Receive = receive
-    def handleWith(filter: HandlerFilter): Receive = receive
-    def receive: Receive = { case _: CommonHandlerFunctions => () }
-  }
-
-  val HandleAnything: CommonHandlerFunctionsBase = new CommonHandlerFunctionsBase {
-    def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit = receive.apply(reply)
-    def handleWith(guid: PlanetSideGUID): Receive = receive
-    def handleWith(filter: HandlerFilter): Receive = receive
-    def receive: Receive = { case _ => () }
-  }
 }

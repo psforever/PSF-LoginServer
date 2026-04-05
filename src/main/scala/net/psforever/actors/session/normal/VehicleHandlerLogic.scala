@@ -6,17 +6,16 @@ import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{SessionData, SessionVehicleHandlers, VehicleHandlerFunctions}
 import net.psforever.objects.avatar.SpecialCarry
-import net.psforever.objects.{GlobalDefinitions, Player, Tool, Vehicle, Vehicles}
+import net.psforever.objects.{GlobalDefinitions, Player, Vehicle, Vehicles}
 import net.psforever.objects.equipment.{Equipment, JammableMountedWeapons, JammableUnit}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.interior.Sidedness.OutsideOf
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.pad.VehicleSpawnPad
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.packet.game.{ChangeAmmoMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, HitHint, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ReloadMessage, ServerVehicleOverrideMsg, VehicleStateMessage, WeaponDryFireMessage}
+import net.psforever.packet.game.{ChatMsg, ChildObjectStateMessage, DeadState, DeployRequestMessage, DismountVehicleMsg, FrameVehicleStateMessage, GenericObjectActionMessage, InventoryStateMessage, ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, PlanetsideAttributeMessage, ServerVehicleOverrideMsg, VehicleStateMessage}
 import net.psforever.services.Service
 import net.psforever.services.base.envelope.GenericResponseEnvelope
-import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, GenericObjectAction, HintsAtAttacker, ObjectDelete, PlanetsideAttribute, ReloadTool, SendResponse, WeaponDryFire}
 import net.psforever.services.local.support.CaptureFlagManager
 import net.psforever.services.vehicle.{VehicleAction, VehicleStamp}
 import net.psforever.types.{BailType, ChatMessageType, PlanetSideGUID, Vector3}
@@ -87,13 +86,13 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       sendResponse(FrameVehicleStateMessage(vguid, u1, pos, oient, vel, u2, u3, u4, is_crouched, u6, u7, u8, u9, uA))
 
     case VehicleAction.DismountVehicle(bailType, wasKickedByDriver) if isNotSameTarget =>
-      sendResponse(DismountVehicleMsg(resolvedGuid, bailType, wasKickedByDriver))
+      sendResponse(DismountVehicleMsg(filterGuid, bailType, wasKickedByDriver))
 
     case VehicleAction.MountVehicle(vehicleGuid, seat) if isNotSameTarget =>
-      sendResponse(ObjectAttachMessage(vehicleGuid, resolvedGuid, seat))
+      sendResponse(ObjectAttachMessage(vehicleGuid, filterGuid, seat))
 
     case VehicleAction.DeployRequest(objectGuid, state, unk1, unk2, pos) if isNotSameTarget =>
-      sendResponse(DeployRequestMessage(resolvedGuid, objectGuid, state, unk1, unk2, pos))
+      sendResponse(DeployRequestMessage(filterGuid, objectGuid, state, unk1, unk2, pos))
 
     case VehicleAction.EquipmentCreatedInSlot(pkt) if isNotSameTarget =>
       sendResponse(pkt)
@@ -109,10 +108,10 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
         conData
       ))
 
-    case VehicleAction.KickPassenger(_, wasKickedByDriver, vehicleGuid) if isSameTarget /*resolvedPlayerGuid == guid*/ =>
+    case VehicleAction.KickPassenger(_, wasKickedByDriver, vehicleGuid) if isSameTarget =>
       //seat number (first field) seems to be correct if passenger is kicked manually by driver
       //but always seems to return 4 if user is kicked by mount permissions changing
-      sendResponse(DismountVehicleMsg(resolvedGuid, BailType.Kicked, wasKickedByDriver))
+      sendResponse(DismountVehicleMsg(filterGuid, BailType.Kicked, wasKickedByDriver))
       val typeOfRide = continent.GUID(vehicleGuid) match {
         case Some(obj: Vehicle) =>
           sessionLogic.general.unaccessContainer(obj)
@@ -126,7 +125,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
     case VehicleAction.KickPassenger(_, wasKickedByDriver, _) =>
       //seat number (first field) seems to be correct if passenger is kicked manually by driver
       //but always seems to return 4 if user is kicked by mount permissions changing
-      sendResponse(DismountVehicleMsg(resolvedGuid, BailType.Kicked, wasKickedByDriver))
+      sendResponse(DismountVehicleMsg(filterGuid, BailType.Kicked, wasKickedByDriver))
 
     case VehicleAction.InventoryState2(objGuid, parentGuid, value) if isNotSameTarget =>
       sendResponse(InventoryStateMessage(objGuid, unk=0, parentGuid, value))
@@ -136,7 +135,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       sendResponse(ObjectCreateMessage(vtype, vguid, vdata))
       Vehicles.ReloadAccessPermissions(vehicle, player.Name)
 
-    case VehicleAction.Ownership(vehicleGuid) if isSameTarget /*resolvedPlayerGuid == guid*/ =>
+    case VehicleAction.Ownership(vehicleGuid) if isSameTarget =>
       //Only the player that owns this vehicle needs the ownership packet
       avatarActor ! AvatarActor.SetVehicle(Some(vehicleGuid))
       sendResponse(PlanetsideAttributeMessage(resolvedGuid, attribute_type=21, vehicleGuid))

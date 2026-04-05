@@ -145,11 +145,11 @@ class GenericEventServiceWithCacheAndSupport
    * flush the cache messages to the normal event system bus.
    */
   private def tryFlushCache(): Boolean = {
-    val willFLush = hasCachedMessages && nextTimeToFlushCache < System.currentTimeMillis()
-    if (willFLush) {
+    val willFlush = hasCachedMessages && nextTimeToFlushCache < System.currentTimeMillis()
+    if (willFlush) {
       flushCache()
     }
-    willFLush
+    willFlush
   }
 
   /**
