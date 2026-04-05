@@ -401,18 +401,14 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     val GenericResponseEnvelope(_, guid, reply) = envelope
     //try the expected handler with the input response
     val filter = HandlerFilter.set(data.handlerFilter, guid, data.player)
-    if (responseHandler.isDefinedAt(reply)) {
-      responseHandler.receive.apply(reply)
-    } else {
+    if (!responseHandler.tryToApply(reply)) {
       //find any handler that might receive the response (ignore guard booleans during search)
       data.handlerFilter.set(guid, guid, notSame = true, same = true)
       if (!responseHandler.isDefinedAt(reply)) {
         val potentiallyValidHandlers = listOfHandlers.filter(_.isDefinedAt(reply))
         if (potentiallyValidHandlers.nonEmpty) {
           data.handlerFilter.set(filter)
-          potentiallyValidHandlers
-            .find(_.isDefinedAt(reply))
-            .foreach(_.receive.apply(reply))
+          potentiallyValidHandlers.find(_.tryToApply(reply))
         } else {
           log.error(s"received completely unhandled response message - $envelope for ${envelope.stamp}")
         }

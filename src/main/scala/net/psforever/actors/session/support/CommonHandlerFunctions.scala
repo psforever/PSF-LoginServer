@@ -59,13 +59,15 @@ trait CommonHandlerFunctionsBase {
    */
   def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit
 
-  def handleWith(guid: PlanetSideGUID): Receive
-
-  def handleWith(filter: HandlerFilter): Receive
-
   def receive: Receive
 
   def isDefinedAt(x: Any): Boolean = receive.isDefinedAt(x)
+
+  def tryToApply(x: Any): Boolean = {
+    var passed = true
+    receive.applyOrElse(x, (_: Any) => { passed = false })
+    passed
+  }
 }
 
 trait CommonHandlerFunctions extends CommonHandlerFunctionsBase {
@@ -87,16 +89,6 @@ trait CommonHandlerFunctions extends CommonHandlerFunctionsBase {
   def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit = {
     HandlerFilter.set(sessionLogic.handlerFilter, guid, player)
     receive.apply(reply)
-  }
-
-  def handleWith(guid: PlanetSideGUID): Receive = {
-    HandlerFilter.set(sessionLogic.handlerFilter, guid, player)
-    receive
-  }
-
-  def handleWith(giveFilter: HandlerFilter): Receive = {
-    sessionLogic.handlerFilter = giveFilter
-    receive
   }
 
   def receive: Receive
