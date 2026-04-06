@@ -3,7 +3,7 @@ package net.psforever.actors.session
 
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
 import net.psforever.actors.session.normal.NormalMode
-import net.psforever.actors.session.support.{CommonHandlerFunctions, CommonHandlerFunctionsBase, CommonHandlerLogic, HandlerFilter, ZoningOperations}
+import net.psforever.actors.session.support.{CommonHandlerFunctions, CommonHandlerFunctionsBase, CommonHandlerLogic, ZoningOperations}
 import net.psforever.objects.TurretDeployable
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.containable.Containable
@@ -398,19 +398,21 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
                                                  responseHandler: CommonHandlerFunctionsBase,
                                                  envelope: GenericResponseEnvelope
                                                ): Unit = {
-    val GenericResponseEnvelope(_, guid, reply) = envelope
+    val GenericResponseEnvelope(toChannel, guid, reply) = envelope
     //try the expected handler with the input response
-    val filter = HandlerFilter.set(data.handlerFilter, guid, data.player)
-    if (!responseHandler.tryToApply(reply)) {
+    if (!responseHandler.handle(toChannel, guid, reply)) {
       //find any handler that might receive the response (ignore guard booleans during search)
       data.handlerFilter.set(guid, guid, notSame = true, same = true)
       if (!responseHandler.isDefinedAt(reply)) {
-        val potentiallyValidHandlers = listOfHandlers.filter(_.isDefinedAt(reply))
-        if (potentiallyValidHandlers.nonEmpty) {
-          data.handlerFilter.set(filter)
-          potentiallyValidHandlers.find(_.tryToApply(reply))
-        } else {
-          log.error(s"received completely unhandled response message - $envelope for ${envelope.stamp}")
+        listOfHandlers.filter(_.isDefinedAt(reply)) match {
+          case Nil =>
+            log.error(s"received completely unhandled response message - $envelope for ${envelope.stamp}")
+          case first :: Nil =>
+            first.handle(toChannel, guid, reply)
+          case first :: others =>
+            if (!first.handle(toChannel, guid, reply)) {
+              others.find(_.tryToHandle(reply))
+            }
         }
       }
     }

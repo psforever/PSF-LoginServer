@@ -13,8 +13,11 @@ trait HandlerFilter {
   def isNotSameTarget: Boolean
   def isSameTarget: Boolean
 
+  def set(filter: HandlerFilter): HandlerFilter = {
+    set(filter.resolvedPlayerGuid, filter.otherPlayerGuid, filter.isNotSameTarget, filter.isSameTarget)
+  }
+
   def set(resolved: PlanetSideGUID, other: PlanetSideGUID, notSame: Boolean, same: Boolean): HandlerFilter
-  def set(filter: HandlerFilter): HandlerFilter
 }
 
 class HandlerFilterRules extends HandlerFilter {
@@ -29,10 +32,6 @@ class HandlerFilterRules extends HandlerFilter {
     isNotSameTarget = notSame
     isSameTarget = same
     this
-  }
-
-  def set(filter: HandlerFilter): HandlerFilter = {
-    set(filter.resolvedPlayerGuid, filter.otherPlayerGuid, filter.isNotSameTarget, filter.isSameTarget)
   }
 }
 
@@ -57,13 +56,13 @@ trait CommonHandlerFunctionsBase {
    * @param guid      na
    * @param reply     na
    */
-  def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit
+  def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Boolean
 
   def receive: Receive
 
   def isDefinedAt(x: Any): Boolean = receive.isDefinedAt(x)
 
-  def tryToApply(x: Any): Boolean = {
+  final def tryToHandle(x: Any): Boolean = {
     var passed = true
     receive.applyOrElse(x, (_: Any) => { passed = false })
     passed
@@ -86,9 +85,9 @@ trait CommonHandlerFunctions extends CommonHandlerFunctionsBase {
    * @param guid      na
    * @param reply     na
    */
-  def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit = {
+  def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Boolean = {
     HandlerFilter.set(sessionLogic.handlerFilter, guid, player)
-    receive.apply(reply)
+    tryToHandle(reply)
   }
 
   def receive: Receive

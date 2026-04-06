@@ -7,9 +7,8 @@ import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GalaxyHandlerFunctions, SessionData, SessionGalaxyHandlers}
 import net.psforever.packet.game.{BroadcastWarpgateUpdateMessage, FriendsResponse, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}
 import net.psforever.services.base.envelope.MessageEnvelope
-import net.psforever.services.base.message.EventResponse
 import net.psforever.services.galaxy.GalaxyAction
-import net.psforever.types.{MemberAction, PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.{MemberAction, PlanetSideEmpire}
 
 object GalaxyHandlerLogic {
   def apply(ops: SessionGalaxyHandlers): GalaxyHandlerLogic = {
@@ -34,10 +33,6 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
   }
 
   /* response handlers */
-
-  override def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit = {
-    receive.apply(reply)
-  }
 
   def receive: Receive = {
     case GalaxyAction.HotSpotUpdate(zone_index, priority, hot_spot_info) =>

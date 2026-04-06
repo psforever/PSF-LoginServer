@@ -15,7 +15,7 @@ import net.psforever.objects.vital.RevivingActivity
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction}
 import net.psforever.services.avatar.{AvatarAction, AvatarStamp}
 import net.psforever.services.base.envelope.GenericResponseEnvelope
-import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, EventResponse, ReloadTool, WeaponDryFire}
+import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ReloadTool, WeaponDryFire}
 import net.psforever.types.ImplantType
 
 //
@@ -29,7 +29,6 @@ import net.psforever.objects.serverobject.terminals.{ProximityUnit, Terminal}
 import net.psforever.objects.zones.Zoning
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ArmorChangedMessage, ChangeAmmoMessage, ChangeFireModeMessage, ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ChatMsg, DestroyMessage, DrowningTarget, GenericActionMessage, GenericObjectActionMessage, ItemTransactionResultMessage, ObjectCreateDetailedMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectHeldMessage, OxygenStateMessage, PlanetsideAttributeMessage, PlayerStateMessage, ProjectileStateMessage, ReloadMessage, UseItemMessage, WeaponDryFireMessage}
-import net.psforever.services.Service
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, TransactionType, Vector3}
 import net.psforever.util.Config
 
@@ -44,27 +43,15 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
 
   private val avatarActor: typed.ActorRef[AvatarActor.Command] = ops.avatarActor
 
-  private var tempGuid: PlanetSideGUID = Service.defaultPlayerGUID
-
-  override def handle(toChannel: String, guid: PlanetSideGUID, reply: EventResponse): Unit = {
-    tempGuid = guid
-    super.handle(toChannel, guid, reply)
-  }
-
-  override def handleWith(guid: PlanetSideGUID): Receive = {
-    tempGuid = guid
-    super.handleWith(guid)
-  }
-
   def receive: Receive = {
     /* special messages */
     case AvatarAction.TeardownConnection if player.spectator =>
       context.self ! SessionActor.SetMode(CustomerServiceRepresentativeMode)
-      context.self.forward(GenericResponseEnvelope(AvatarStamp, "", tempGuid, AvatarAction.TeardownConnection))
+      context.self.forward(GenericResponseEnvelope(AvatarStamp, "", filterGuid, AvatarAction.TeardownConnection))
 
     case AvatarAction.TeardownConnection =>
       context.self ! SessionActor.SetMode(NormalMode)
-      context.self.forward(GenericResponseEnvelope(AvatarStamp, "", tempGuid, AvatarAction.TeardownConnection))
+      context.self.forward(GenericResponseEnvelope(AvatarStamp, "", filterGuid, AvatarAction.TeardownConnection))
 
     /* really common messages (very frequently, every life) */
     case pstate @ AvatarAction.PlayerState(
