@@ -19,10 +19,9 @@ import net.psforever.objects.serverobject.pad.{VehicleSpawnPad, VehicleSpawnPadD
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
-import net.psforever.objects.serverobject.structures.{Building, BuildingDefinition, FoundationBuilder, StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures.{Building, BuildingDefinition, FoundationBuilder, StructureType, VirtualTrainingTeleporter, WarpGate}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalDefinition}
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalInterface, ImplantTerminalMech}
-import net.psforever.objects.serverobject.structures.VirtualTrainingTeleporter
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.serverobject.turret.{FacilityTurret, FacilityTurretDefinition, VanuSentry}
 import net.psforever.objects.serverobject.zipline.ZipLinePath
