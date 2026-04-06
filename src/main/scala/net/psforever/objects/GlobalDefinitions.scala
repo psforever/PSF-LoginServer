@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ballistics._
 import net.psforever.objects.ce.DeployedItem
 import net.psforever.objects.definition._
@@ -1376,6 +1377,10 @@ object GlobalDefinitions {
 
   val orbital_building_vs =  new BuildingDefinition(607)
 
+  val vr_training         =  new BuildingDefinition(955)
+
+  val vt_air_vehicle      =  new BuildingDefinition(976)
+
   val VT_building_nc      =  new BuildingDefinition(978)
 
   val VT_building_tr      =  new BuildingDefinition(979)
@@ -2058,6 +2063,19 @@ object GlobalDefinitions {
             Nil
         }
       }
+  }
+
+  /**
+    * Engineering certifications to temporarily apply to the avatar in VR Training zones.
+    * @return the set of certifications to apply.
+    */
+  def vrZoneTempEngineeringCerts(): Set[Certification] = {
+    Set[Certification](
+        Certification.AdvancedEngineering,
+        Certification.AdvancedHacking,
+        Certification.CombatEngineering,
+        Certification.GroundSupport
+    )
   }
 
   GlobalDefinitionsImplant.init()

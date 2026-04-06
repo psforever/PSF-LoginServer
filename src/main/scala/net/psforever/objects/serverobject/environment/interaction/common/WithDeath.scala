@@ -1,11 +1,13 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.objects.serverobject.environment.interaction.common
 
+import net.psforever.objects.{Player, Vehicle}
+import net.psforever.objects.serverobject.damage.DamageableVehicle
 import net.psforever.objects.serverobject.environment.interaction.InteractionWith
 import net.psforever.objects.serverobject.environment.{EnvironmentAttribute, EnvironmentTrait, PieceOfEnvironment}
-import net.psforever.objects.sourcing.SourceEntry
+import net.psforever.objects.sourcing.{SourceEntry, VehicleSource}
 import net.psforever.objects.vital.etc.SuicideReason
-import net.psforever.objects.vital.interaction.DamageInteraction
+import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.{IncarnationActivity, Vitality}
 import net.psforever.objects.zones.interaction.InteractsWithZone
 
@@ -31,16 +33,33 @@ class WithDeath()
     if (!obj.Destroyed) {
       obj.History.findLast { entry => entry.isInstanceOf[IncarnationActivity] } match {
         case Some(entry) if System.currentTimeMillis() - entry.time > 4000L =>
-          obj.Actor ! Vitality.Damage(
-            DamageInteraction(
-              SourceEntry(obj),
-              SuicideReason(),
-              obj.Position
-            ).calculate()
-          )
+          obj match {
+            //bypass the damagable property, kill players and destroy vehicles directly; needed for map edge kill planes to work in VR zones
+            case player: Player =>
+              player.Actor ! Player.Die()
+            case vehicle: Vehicle =>
+              vehicle.Actor ! DamageableVehicle.Destruction(
+                DamageResult(
+                  VehicleSource(vehicle),
+                  VehicleSource(vehicle),
+                  DamageInteraction(
+                    SourceEntry(vehicle),
+                    SuicideReason(),
+                    vehicle.Position
+                  )
+                )
+              )
+            case _ =>
+              obj.Actor ! Vitality.Damage(
+                DamageInteraction(
+                  SourceEntry(obj),
+                  SuicideReason(),
+                  obj.Position
+                ).calculate()
+              )
+          }
         case _ =>
       }
     }
   }
 }
-

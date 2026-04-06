@@ -37,6 +37,7 @@ object GlobalDefinitionsDeployable {
     boomer.MaxHealth = 50
     boomer.Damageable = true
     boomer.DamageableByFriendlyFire = false
+    boomer.DamageableInVr = true
     boomer.Repairable = false
     boomer.DeployCategory = DeployableCategory.Boomers
     boomer.DeployTime = Duration.create(1000, "ms")
@@ -62,6 +63,7 @@ object GlobalDefinitionsDeployable {
     he_mine.MaxHealth = 25
     he_mine.Damageable = true
     he_mine.DamageableByFriendlyFire = false
+    he_mine.DamageableInVr = true
     he_mine.Repairable = false
     he_mine.DeployTime = Duration.create(1000, "ms")
     he_mine.deployAnimation = DeployAnimation.Standard
@@ -86,6 +88,7 @@ object GlobalDefinitionsDeployable {
     jammer_mine.MaxHealth = 50
     jammer_mine.Damageable = true
     jammer_mine.DamageableByFriendlyFire = false
+    jammer_mine.DamageableInVr = true
     jammer_mine.Repairable = false
     jammer_mine.DeployTime = Duration.create(1000, "ms")
     jammer_mine.deployAnimation = DeployAnimation.Standard
@@ -129,6 +132,7 @@ object GlobalDefinitionsDeployable {
     spitfire_turret.Descriptor = "Spitfires"
     spitfire_turret.MaxHealth = 100
     spitfire_turret.Damageable = true
+    spitfire_turret.DamageableInVr = true
     spitfire_turret.Repairable = true
     spitfire_turret.RepairIfDestroyed = false
     spitfire_turret.WeaponPaths += 1 -> new mutable.HashMap()
@@ -174,6 +178,7 @@ object GlobalDefinitionsDeployable {
     spitfire_cloaked.Descriptor = "CloakingSpitfires"
     spitfire_cloaked.MaxHealth = 100
     spitfire_cloaked.Damageable = true
+    spitfire_cloaked.DamageableInVr = true
     spitfire_cloaked.Repairable = true
     spitfire_cloaked.RepairIfDestroyed = false
     spitfire_cloaked.WeaponPaths += 1 -> new mutable.HashMap()
@@ -225,6 +230,7 @@ object GlobalDefinitionsDeployable {
     spitfire_aa.Descriptor = "FlakSpitfires"
     spitfire_aa.MaxHealth = 100
     spitfire_aa.Damageable = true
+    spitfire_aa.DamageableInVr = true
     spitfire_aa.Repairable = true
     spitfire_aa.RepairIfDestroyed = false
     spitfire_aa.WeaponPaths += 1 -> new mutable.HashMap()
@@ -267,6 +273,7 @@ object GlobalDefinitionsDeployable {
     motionalarmsensor.Descriptor = "MotionSensors"
     motionalarmsensor.MaxHealth = 100
     motionalarmsensor.Damageable = true
+    motionalarmsensor.DamageableInVr = true
     motionalarmsensor.Repairable = true
     motionalarmsensor.RepairIfDestroyed = false
     motionalarmsensor.DeployTime = Duration.create(1000, "ms")
@@ -278,6 +285,7 @@ object GlobalDefinitionsDeployable {
     sensor_shield.Descriptor = "SensorShields"
     sensor_shield.MaxHealth = 100
     sensor_shield.Damageable = true
+    sensor_shield.DamageableInVr = true
     sensor_shield.Repairable = true
     sensor_shield.RepairIfDestroyed = false
     sensor_shield.DeployTime = Duration.create(5000, "ms")
@@ -289,6 +297,7 @@ object GlobalDefinitionsDeployable {
     tank_traps.Descriptor = "TankTraps"
     tank_traps.MaxHealth = 5000
     tank_traps.Damageable = true
+    tank_traps.DamageableInVr = true
     tank_traps.Repairable = true
     tank_traps.RepairIfDestroyed = false
     tank_traps.DeployCategory = DeployableCategory.TankTraps
@@ -453,6 +462,7 @@ object GlobalDefinitionsDeployable {
     deployable_shield_generator.Descriptor = "ShieldGenerators"
     deployable_shield_generator.MaxHealth = 1700
     deployable_shield_generator.Damageable = true
+    deployable_shield_generator.DamageableInVr = true
     deployable_shield_generator.Repairable = true
     deployable_shield_generator.RepairIfDestroyed = false
     deployable_shield_generator.DeployTime = Duration.create(6000, "ms")

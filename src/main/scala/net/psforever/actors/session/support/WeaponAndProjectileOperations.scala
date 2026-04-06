@@ -409,7 +409,8 @@ class WeaponAndProjectileOperations(
     } else {
       equipment foreach {
         case obj: ConstructionItem =>
-          if (Deployables.performConstructionItemAmmoChange(player.avatar.certifications, obj, obj.AmmoTypeIndex)) {
+          val certifications = if (player.IsInVRZone) GlobalDefinitions.vrZoneTempEngineeringCerts() else player.avatar.certifications
+          if (Deployables.performConstructionItemAmmoChange(certifications, obj, obj.AmmoTypeIndex)) {
             log.info(
               s"${player.Name} switched ${player.Sex.possessive} ${obj.Definition.Name} to construct ${obj.AmmoType} (option #${obj.FireModeIndex})"
             )
@@ -437,8 +438,9 @@ class WeaponAndProjectileOperations(
         val originalModeIndex = obj.FireModeIndex
         if (obj match {
           case citem: ConstructionItem =>
+            val certifications = if (player.IsInVRZone) GlobalDefinitions.vrZoneTempEngineeringCerts() else player.avatar.certifications
             val modeChanged = Deployables.performConstructionItemFireModeChange(
-              player.avatar.certifications,
+              certifications,
               citem,
               originalModeIndex
             )

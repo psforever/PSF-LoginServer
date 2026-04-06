@@ -512,6 +512,14 @@ class Vehicle(private val vehicleDef: VehicleDefinition)
 
   def PreviousGatingManifest(): Option[VehicleManifest] = previousVehicleGatingManifest
 
+  override def CanDamage: Boolean = {
+    if (IsInVRZone && !Definition.DamageableInVr) {
+      false
+    } else {
+      !Destroyed && super.CanDamage
+    }
+  }
+
   def DamageModel: DamageResistanceModel = Definition.asInstanceOf[DamageResistanceModel]
 
   override def BailProtection_=(protect: Boolean): Boolean = {
