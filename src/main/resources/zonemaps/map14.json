@@ -13,7 +13,7 @@
     "IsChildObject": false
   },
   {
-    "Id": 8,
+    "Id": 9,
     "ObjectName": "order_terminal",
     "ObjectType": "order_terminal",
     "Owner": 0,
@@ -26,7 +26,7 @@
     "IsChildObject": true
   },
   {
-    "Id": 9,
+    "Id": 10,
     "ObjectName": "order_terminal",
     "ObjectType": "order_terminal",
     "Owner": 0,
@@ -40,6 +40,19 @@
   },
   {
     "Id": 6,
+    "ObjectName": "spawn_pad",
+    "ObjectType": "spawn_pad",
+    "Owner": 0,
+    "AbsX": 500.0,
+    "AbsY": 530.0,
+    "AbsZ": 13.37697,
+    "Yaw": 180.0,
+    "GUID": 833,
+    "MapID": null,
+    "IsChildObject": true
+  },
+  {
+    "Id": 7,
     "ObjectName": "order_terminal",
     "ObjectType": "order_terminal",
     "Owner": 0,
@@ -52,7 +65,7 @@
     "IsChildObject": true
   },
   {
-    "Id": 10,
+    "Id": 11,
     "ObjectName": "order_terminal",
     "ObjectType": "order_terminal",
     "Owner": 0,
@@ -65,7 +78,7 @@
     "IsChildObject": true
   },
   {
-    "Id": 11,
+    "Id": 12,
     "ObjectName": "order_terminal",
     "ObjectType": "order_terminal",
     "Owner": 0,
@@ -78,7 +91,7 @@
     "IsChildObject": true
   },
   {
-    "Id": 7,
+    "Id": 8,
     "ObjectName": "order_terminal",
     "ObjectType": "order_terminal",
     "Owner": 0,
@@ -104,7 +117,7 @@
     "IsChildObject": true
   },
   {
-    "Id": 12,
+    "Id": 13,
     "ObjectName": "order_terminal",
     "ObjectType": "order_terminal",
     "Owner": 0,

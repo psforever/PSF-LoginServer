@@ -18,7 +18,7 @@ import net.psforever.objects.serverobject.painbox.PainboxDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
-import net.psforever.objects.serverobject.structures.{AmenityDefinition, BuildingDefinition, WarpGateDefinition}
+import net.psforever.objects.serverobject.structures.{AmenityDefinition, BuildingDefinition, VirtualTrainingTeleporterDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMechDefinition
 import net.psforever.objects.serverobject.turret.FacilityTurretDefinition
@@ -1280,6 +1280,10 @@ object GlobalDefinitions {
   val generator = new GeneratorDefinition(351)
 
   val obbasemesh: AmenityDefinition = new AmenityDefinition(598) {}
+
+  val spawn_pad = new VirtualTrainingTeleporterDefinition()
+
+  val spawn_zone = new VirtualTrainingTeleporterDefinition()
 
   val targeting_laser_dispenser = new OrderTerminalDefinition(851)
 
