@@ -575,11 +575,7 @@ class Player(var avatar: Avatar)
   }
 
   override def CanDamage: Boolean = {
-    if (IsInVRZone && !Definition.DamageableInVr) {
-      false
-    } else {
-      death_by < 1 && super.CanDamage
-    }
+    death_by < 1 && super.CanDamage
   }
 
   def DamageModel: DamageResistanceModel = exosuit.asInstanceOf[DamageResistanceModel]

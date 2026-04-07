@@ -312,7 +312,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 4276645952L,
         scale = MapScale.Dim1024,
         hotSpotSpan = 0,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 9.95f)) ++
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 10)) ++
                       MapEnvironment.dim1024MapEdgeKillPlanes
       )
 
@@ -322,7 +322,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 3628825458L,
         scale = MapScale.Dim4096,
         hotSpotSpan = 0,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 7.98f)) ++
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 8)) ++
                       MapEnvironment.dim4096MapEdgeKillPlanes
       )
 

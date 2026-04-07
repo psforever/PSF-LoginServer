@@ -993,6 +993,7 @@ class ZoningOperations(
           if (player.Faction == PlanetSideEmpire.NC) Zoning.Time.Friendly else Zoning.Time.None
         case "tzshvs" | "tzdrvs" | "tzcovs" =>
           if (player.Faction == PlanetSideEmpire.VS) Zoning.Time.Friendly else Zoning.Time.None
+        case _ => Zoning.Time.None
       }
     } else {
       ZoningOperations.findBuildingsBySoiOccupancy(continent, player.Position) match {

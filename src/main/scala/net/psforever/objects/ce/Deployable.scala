@@ -42,14 +42,6 @@ trait BaseDeployable
     Faction
   }
 
-  override def CanDamage: Boolean = {
-    if (IsInVRZone && !Definition.DamageableInVr) {
-      false
-    } else {
-      super.CanDamage
-    }
-  }
-
   def DamageModel: DamageResistanceModel = Definition.asInstanceOf[DamageResistanceModel]
 
   def Definition: DeployableDefinition

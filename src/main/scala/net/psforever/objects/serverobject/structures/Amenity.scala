@@ -87,14 +87,6 @@ abstract class Amenity
     LocationOffset
   }
 
-  override def CanDamage: Boolean = {
-    if (IsInVRZone && !Definition.DamageableInVr) {
-      false
-    } else {
-      super.CanDamage
-    }
-  }
-
   def DamageModel: DamageAndResistance = Definition.asInstanceOf[DamageAndResistance]
 
   def Definition: AmenityDefinition

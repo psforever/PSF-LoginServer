@@ -49,9 +49,6 @@ trait VitalityDefinition extends DamageModifiers {
     */
   private var damageableByFriendlyFire: Boolean = true
 
-  /** whether the object type accepts damage in VR training zones */
-  private var damageableInVr: Boolean = false
-
   /** at what `Health` value the object type is considered "destroyed" */
   private var damageDestroysAt: Int = 0
 
@@ -72,13 +69,6 @@ trait VitalityDefinition extends DamageModifiers {
   def DamageableByFriendlyFire_=(state: Boolean): Boolean = {
     damageableByFriendlyFire = state
     DamageableByFriendlyFire
-  }
-
-  def DamageableInVr: Boolean = damageableInVr
-
-  def DamageableInVr_=(state: Boolean): Boolean = {
-    damageableInVr = state
-    DamageableInVr
   }
 
   def DamageDisablesAt: Int = damageDisablesAt.getOrElse(MaxHealth / 2)
