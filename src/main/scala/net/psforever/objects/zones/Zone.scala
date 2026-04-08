@@ -1871,7 +1871,13 @@ object Zone {
     val allAffectedTargets = pssos.filter { target => testTargetsFromZone(source, target, radius) }
     //inform remaining targets that they have suffered damage
     allAffectedTargets
-      .foreach { target => target.Actor ! Vitality.Damage(createInteraction(source, target).calculate()) }
+      .foreach { target => 
+      if (zone.id.startsWith("tz") && source.Faction == target.Faction) {
+        //do not perform friendly-fire in VR zones
+      } else {
+        target.Actor ! Vitality.Damage(createInteraction(source, target).calculate()) 
+      }
+    }
     allAffectedTargets
   }
 

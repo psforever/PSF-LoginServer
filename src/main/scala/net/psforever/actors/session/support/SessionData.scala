@@ -422,7 +422,12 @@ class SessionData(
         if (obj.spectator && obj != player) {
           administrativeKick(player)
         } else {
-          obj.Actor ! Vitality.Damage(func)
+          if (obj.IsInVRZone && obj.Faction == player.Faction && obj.CharId != player.CharId) {
+            //don't do friendly-fire in VR zones
+            general.trainingGriefWarning()
+          } else {
+            obj.Actor ! Vitality.Damage(func)
+          }
         }
 
       case obj: Vehicle if obj.CanDamage =>
@@ -433,10 +438,20 @@ class SessionData(
         } else {
           log.info(s"$name is attacking $ownerName's ${obj.Definition.Name}")
         }
-        obj.Actor ! Vitality.Damage(func)
+        if (obj.IsInVRZone && obj.Faction == player.Faction && !ownerName.equals(name)) {
+          //don't do friendly-fire in VR zones
+          general.trainingGriefWarning()
+        } else {
+          obj.Actor ! Vitality.Damage(func)
+        }
 
       case obj: Amenity if obj.CanDamage =>
-        obj.Actor ! Vitality.Damage(func)
+        if (obj.IsInVRZone && obj.Faction == player.Faction) {
+          //don't do friendly-fire in VR zones
+          general.trainingGriefWarning()
+        } else {
+          obj.Actor ! Vitality.Damage(func)
+        }
 
       case obj: Deployable if obj.CanDamage =>
         val name = player.Name
@@ -446,7 +461,12 @@ class SessionData(
         } else {
           log.info(s"$name is attacking $ownerName's ${obj.Definition.Name}")
         }
-        obj.Actor ! Vitality.Damage(func)
+        if (obj.IsInVRZone && obj.Faction == player.Faction && !ownerName.equals(name)) {
+          //don't do friendly-fire in VR zones
+          general.trainingGriefWarning()
+        } else {
+          obj.Actor ! Vitality.Damage(func)
+        }
 
       case _ => ()
     }

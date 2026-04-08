@@ -160,7 +160,11 @@ object GlobalDefinitionsBuilding {
     orbital_building_tr.Name = "orbital_building_tr"
     
     orbital_building_vs.Name = "orbital_building_vs"
-    
+
+    vr_training.Name = "vr_training"
+
+    vt_air_vehicle.Name = "vt_air_vehicle"
+
     VT_building_nc.Name = "VT_building_nc"
     
     VT_building_tr.Name = "VT_building_tr"

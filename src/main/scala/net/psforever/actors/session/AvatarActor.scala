@@ -1559,6 +1559,8 @@ class AvatarActor(
             .foreach {
               case (item, name) =>
                 Avatar.purchaseCooldowns.get(item) match {
+                  case Some(cooldown) if session.get.player.IsInVRZone => ()
+                    //don't update purchase timers for players in VR training zones
                   case Some(cooldown) =>
                     //only send for items with cooldowns
                     updateTheTimes = true
@@ -2248,7 +2250,15 @@ class AvatarActor(
             sessionActor ! SessionActor.SendResponse(
               CharacterInfoMessage(
                 unk = 15,
-                PlanetSideZoneID(zoneNum),
+                PlanetSideZoneID(
+                  //there is a client bug that causes the NC/VS versions of VR shooting/driving zones to have no background image
+                  //remap them to the TR versions as a workaround
+                  //the VR combat zones have no background image at all, so they are not accounted for
+                  zoneNum match {
+                  case 17 | 20 => 14
+                  case 18 | 21 => 15
+                  case _ => zoneNum
+                }),
                 avatar.id,
                 pguid,
                 finished = false,

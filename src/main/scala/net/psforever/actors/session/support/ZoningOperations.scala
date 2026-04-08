@@ -21,7 +21,7 @@ import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, VehicleSource}
 import net.psforever.objects.vital.{InGameHistory, IncarnationActivity, ReconstructionActivity, SpawningActivity}
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.GenericAction.FirstPersonViewWithEffect
-import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TriggeredSound, WeatherMessage}
+import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TriggeredSound, TrainingZoneMessage, WeatherMessage}
 import net.psforever.services.chat.DefaultChannel
 
 import scala.concurrent.duration._
@@ -863,6 +863,66 @@ class ZoningOperations(
     }
   }
 
+  import scala.util.Random
+  private val rand = Random
+  // temp, will be replaced by proper spawn point logic in the future (hopefully)
+  val vrShootingZoneSpawns: List[Vector3] = List[Vector3](
+    Vector3(491.91f, 531.82f, 13.72f),
+    Vector3(508.36f, 531.56f, 13.72f),
+    Vector3(508.56f, 525.34f, 13.72f),
+    Vector3(500.88f, 521.95f, 13.72f),
+    Vector3(492.85f, 526.03f, 13.72f),
+    Vector3(500.48f, 534.74f, 13.72f)
+  )
+  val vrDrivingAreaSpawns: List[Vector3] = List[Vector3](
+    Vector3(1893.53f, 2988.72f, 19.1f),
+    Vector3(1716.85f, 3198.06f, 17.2f),
+    Vector3(2176.49f, 3174.48f, 16.4f),
+    Vector3(2431.75f, 2995.72f, 19.7f),
+    Vector3(2775.13f, 2562.91f, 19.2f),
+    Vector3(2752.12f, 1442.14f, 13.9f),
+    Vector3(1216.68f, 2283.52f, 19.4f),
+    Vector3(1318.21f, 1786.59f, 14.6f),
+    Vector3(1471.92f, 834.2f, 18.8f),
+    Vector3(2419f, 1167.62f, 15.5f),
+    Vector3(2455.81f, 1860.8f, 23.5f)
+  )
+
+  def handleTrainingZoneMessage(pkt: TrainingZoneMessage): Unit = {
+    pkt.zone.guid match {
+      case 11 | 12 | 13 => 
+        player.avatar.deployables.UpdateMaxCounts(player.avatar.certifications)
+        RequestSanctuaryZoneSpawn(player, player.Zone.Number)
+      // leveraging SetZone for now because the VR zones have no "proper" spawn points configured yet
+      case 17 => 
+        if (player.Zone.id != "tzshtr") {
+          context.self ! SessionActor.SetZone("tzshtr", vrShootingZoneSpawns.toArray.apply(rand.nextInt(vrShootingZoneSpawns.size)))
+        }
+      case 18 => 
+        if (player.Zone.id != "tzshnc") {
+          context.self ! SessionActor.SetZone("tzshnc", vrShootingZoneSpawns.toArray.apply(rand.nextInt(vrShootingZoneSpawns.size)))
+        }
+      case 19 => 
+        if (player.Zone.id != "tzshvs") {
+          context.self ! SessionActor.SetZone("tzshvs", vrShootingZoneSpawns.toArray.apply(rand.nextInt(vrShootingZoneSpawns.size)))
+        }
+      case 20 => 
+        if (player.Zone.id != "tzdrtr") {
+          context.self ! SessionActor.SetZone("tzdrtr", vrDrivingAreaSpawns.toArray.apply(rand.nextInt(vrDrivingAreaSpawns.size)))
+        }
+      case 21 => 
+        if (player.Zone.id != "tzdrnc") {
+          context.self ! SessionActor.SetZone("tzdrnc", vrDrivingAreaSpawns.toArray.apply(rand.nextInt(vrDrivingAreaSpawns.size)))
+        }
+      case 22 => 
+        if (player.Zone.id != "tzdrvs") {
+          context.self ! SessionActor.SetZone("tzdrvs", vrDrivingAreaSpawns.toArray.apply(rand.nextInt(vrDrivingAreaSpawns.size)))
+        }
+      case _ => 
+        log.warn(s"Received TrainingZoneMessage that requests unexpected zone number ${pkt.zone.guid}?")
+    }
+  }
+
   /* support functions */
 
   /**
@@ -918,13 +978,23 @@ class ZoningOperations(
    * the time representative of the the tower has priority.
    * When no spheres of influence are being encroached, one is considered "in the wilderness".
    * The messaging is different but the location is normally treated the same as if in a neutral sphere of influence.
-   * Being anywhere in one's faction's own sanctuary is a special case.
+   * Being anywhere in one's faction's own sanctuary or VR training area(s) is a special case.
    *
    * @return a `Tuple` composed of the initial countdown time and the descriptor for message composition
    */
   def ZoningStartInitialMessageAndTimer(): (Int, String) = {
     val location = if (Zones.sanctuaryZoneNumber(player.Faction) == continent.Number) {
       Zoning.Time.Sanctuary
+    } else if (player.IsInVRZone) {
+      continent.id match {
+        case "tzshtr" | "tzdrtr" | "tzcotr" =>
+          if (player.Faction == PlanetSideEmpire.TR) Zoning.Time.Friendly else Zoning.Time.None
+        case "tzshnc" | "tzdrnc" | "tzconc" =>
+          if (player.Faction == PlanetSideEmpire.NC) Zoning.Time.Friendly else Zoning.Time.None
+        case "tzshvs" | "tzdrvs" | "tzcovs" =>
+          if (player.Faction == PlanetSideEmpire.VS) Zoning.Time.Friendly else Zoning.Time.None
+        case _ => Zoning.Time.None
+      }
     } else {
       ZoningOperations.findBuildingsBySoiOccupancy(continent, player.Position) match {
         case Nil =>
@@ -1218,6 +1288,13 @@ class ZoningOperations(
           ICS.FindZone(_.id.equals(zoneId), context.self)
         ))
       } else if (player.HasGUID) {
+        if (player.IsInVRZone && !zoneId.startsWith("tz")) {
+          // reset the player to default gear to prevent them from smuggling things out of VR
+          log.info(s"${player.Name} is exiting VR Training, resetting ${player.Sex.possessive} loadout")
+          val newPlayer = Player.Respawn(player)
+          DefinitionUtil.applyDefaultLoadout(newPlayer)
+          session = session.copy(player = newPlayer)
+        }
         TaskWorkflow.execute(taskThenZoneChange(
           GUIDTask.unregisterAvatar(continent.GUID, original),
           ICS.FindZone(_.id.equals(zoneId), context.self)
@@ -2051,6 +2128,30 @@ class ZoningOperations(
                   SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@reset_sanctuary_locked")), 20)
                 ) //You have been returned to the sanctuary because the location you logged out is not available.
                 player.Zone = Zone.Nowhere
+              } else if (inZone.id.startsWith("tz")) {
+                inZone.id match {
+                  case "tzshtr" | "tzdrtr" | "tzcotr" =>
+                    if (player.Faction != PlanetSideEmpire.TR) {
+                      enqueueNewActivity(ActivityQueuedTask(
+                        SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@reset_sanctuary_locked")), 20)
+                      ) //You have been returned to the sanctuary because the location you logged out is not available.
+                      player.Zone = Zone.Nowhere
+                    }
+                  case "tzshnc" | "tzdrnc" | "tzconc" =>
+                    if (player.Faction != PlanetSideEmpire.NC) {
+                      enqueueNewActivity(ActivityQueuedTask(
+                        SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@reset_sanctuary_locked")), 20)
+                      ) //You have been returned to the sanctuary because the location you logged out is not available.
+                      player.Zone = Zone.Nowhere
+                    }
+                   case "tzshvs" | "tzdrvs" | "tzcovs" =>
+                    if (player.Faction != PlanetSideEmpire.VS) {
+                      enqueueNewActivity(ActivityQueuedTask(
+                        SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@reset_sanctuary_locked")), 20)
+                      ) //You have been returned to the sanctuary because the location you logged out is not available.
+                      player.Zone = Zone.Nowhere
+                    }
+                }
               } else if (ourBuildings.isEmpty && (amsSpawnPoints.isEmpty || noFriendlyPlayersInZone)) {
                 enqueueNewActivity(ActivityQueuedTask(
                   SpawnOperations.sendEventMessage(ChatMsg(ChatMessageType.CMT_QUIT, "@reset_sanctuary_locked")), 20)
@@ -2230,6 +2331,12 @@ class ZoningOperations(
       sessionLogic.persist = UpdatePersistenceAndRefs
       tplayer.avatar = avatar
       session = session.copy(player = tplayer)
+      if (id.startsWith("tz")) {
+        // have to set the deployable counts as if the player has all the certs so they can deploy CE in VR zones without having the certs
+        player.avatar.deployables.UpdateMaxCounts(GlobalDefinitions.vrZoneTempEngineeringCerts())
+      } else {
+        player.avatar.deployables.UpdateMaxCounts(player.avatar.certifications)
+      }
       //LoadMapMessage causes the client to send BeginZoningMessage, eventually leading to SetCurrentAvatar
       //val weaponsEnabled = !(mapName.equals("map11") || mapName.equals("map12") || mapName.equals("map13"))
       sendResponse(LoadMapMessage(mapName, id, 40100, 25, zone.LiveFireAllowed(tplayer.Faction), map.checksum))

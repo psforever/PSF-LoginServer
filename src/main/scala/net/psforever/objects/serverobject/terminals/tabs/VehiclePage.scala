@@ -24,7 +24,7 @@ final case class VehiclePage(stock: Map[String, () => Vehicle], trunk: Map[Strin
     stock.get(msg.item_name) match {
       case Some(vehicle) =>
         val createdVehicle = vehicle()
-        if(!Exclude.exists(_.checkRule(player, msg, createdVehicle))) {
+        if(!Exclude.exists(_.checkRule(player, msg, createdVehicle)) || player.IsInVRZone) {
           val (weapons, inventory) = trunk.get(msg.item_name) match {
             case Some(loadout: VehicleLoadout) =>
               (

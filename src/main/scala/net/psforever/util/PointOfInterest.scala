@@ -492,19 +492,19 @@ object PointOfInterest {
       "gate3" -> Vector3(4079, 2467, 155)
     )
     zones("home3").locations += "hart_c" -> Vector3(3675, 2727, 91)
-    zones("tzshtr").locations += "roof"  -> Vector3(499, 1568, 25)
+    zones("tzshtr").locations += "roof"  -> Vector3(499, 544, 25)
     zones("tzcotr").locations += "spawn" -> Vector3(960, 1002, 32)
     zones("tzdrtr").locations ++= Map(
       "start"   -> Vector3(2457, 1864, 23),
       "air_pad" -> Vector3(1700, 1900, 32)
     )
-    zones("tzshvs").locations += "roof"  -> Vector3(499, 1568, 25)
+    zones("tzshvs").locations += "roof"  -> Vector3(499, 544, 25)
     zones("tzcovs").locations += "spawn" -> Vector3(960, 1002, 32)
     zones("tzdrvs").locations ++= Map(
       "start"   -> Vector3(2457, 1864, 23),
       "air_pad" -> Vector3(1700, 1900, 32)
     )
-    zones("tzshnc").locations += "roof"  -> Vector3(499, 1568, 25)
+    zones("tzshnc").locations += "roof"  -> Vector3(499, 544, 25)
     zones("tzconc").locations += "spawn" -> Vector3(960, 1002, 32)
     zones("tzdrnc").locations ++= Map(
       "start"   -> Vector3(2457, 1864, 23),

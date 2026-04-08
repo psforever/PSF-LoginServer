@@ -30,7 +30,11 @@ class PropertyOverrideManager extends Actor {
   }
 
   private def LoadOverridesFromFile(zoneId: Int): Unit = {
-    val zoneOverrides = LoadFile(s"overrides/game_objects$zoneId.adb.lst")
+    val zoneOverrides = if (zoneId > 13 && zoneId < 23) {
+      LoadFile(s"overrides/game_objectstz.adb.lst")
+    } else {
+      LoadFile(s"overrides/game_objects$zoneId.adb.lst")
+    }
     if (zoneOverrides == null) {
       log.debug(s"PropertyOverride: no overrides found for zone $zoneId using filename game_objects$zoneId.adb.lst")
       return
