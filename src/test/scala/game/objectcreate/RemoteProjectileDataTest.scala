@@ -36,7 +36,7 @@ class RemoteProjectileDataTest extends Specification {
               deploy.guid mustEqual PlanetSideGUID(0)
               unk2 mustEqual 26214
               lim mustEqual 134
-              unk3 mustEqual FlightPhysics.State4
+              unk3 mustEqual FlightPhysics.State6
               unk4 mustEqual 0
               unk5 mustEqual 0
             case _ =>
@@ -69,7 +69,7 @@ class RemoteProjectileDataTest extends Specification {
               deploy.guid mustEqual PlanetSideGUID(0)
               unk2 mustEqual 39577
               lim mustEqual 201
-              unk3 mustEqual FlightPhysics.State4
+              unk3 mustEqual FlightPhysics.State9
               unk4 mustEqual 0
               unk5 mustEqual 0
             case _ =>
@@ -128,8 +128,7 @@ class RemoteProjectileDataTest extends Specification {
       //pkt mustEqual string_striker_projectile
 
       pkt.toBitVector.take(132) mustEqual string_striker_projectile.toBitVector.take(132)
-      pkt.toBitVector.drop(133).take(7) mustEqual string_striker_projectile.toBitVector.drop(133).take(7)
-      pkt.toBitVector.drop(141) mustEqual string_striker_projectile.toBitVector.drop(141)
+      pkt.toBitVector.drop(132) mustEqual hex"7563040000666686000".toBitVector.drop(4)
     }
 
     "encode (hunter_seeker_missile_projectile)" in {
@@ -149,8 +148,7 @@ class RemoteProjectileDataTest extends Specification {
       //pkt mustEqual string_hunter_seeker_missile_projectile
 
       pkt.toBitVector.take(132) mustEqual string_hunter_seeker_missile_projectile.toBitVector.take(132)
-      pkt.toBitVector.drop(133).take(7) mustEqual string_hunter_seeker_missile_projectile.toBitVector.drop(133).take(7)
-      pkt.toBitVector.drop(141) mustEqual string_hunter_seeker_missile_projectile.toBitVector.drop(141)
+      pkt.toBitVector.drop(132) mustEqual hex"15442400009a99cd000".toBitVector.drop(4)
     }
 
     "encode (oicw_little_buddy)" in {
