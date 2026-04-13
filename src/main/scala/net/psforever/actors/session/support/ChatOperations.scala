@@ -15,6 +15,8 @@ import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.{Zone, ZoneInfo}
 import net.psforever.packet.game.TimeOfDayMessage.GetTimeOfDayValue
 import net.psforever.packet.game.{SetChatFilterMessage, TimeOfDayMessage}
+import net.psforever.services.Service
+import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.chat.{DefaultChannel, OutfitChannel, SquadChannel}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
 import net.psforever.services.teamwork.{SquadResponse, SquadService, SquadServiceResponse}
@@ -1421,19 +1423,27 @@ class ChatOperations(
   }
 
   def commandSetTime(session: Session, contents: String): Unit = {
-    val TimePattern = """([01]?\d|2[0-3]):([0-5]\d)""".r
+    val TimePattern = """([01]?\d|2[0-3]):([0-5]?\d)""".r
 
     TimePattern.findFirstMatchIn(contents) match {
       case Some(m) =>
         val hh = m.group(1).toInt % 24
         val mm = m.group(2).toInt % 60
         val requestedTimeOfDay = GetTimeOfDayValue(hh, mm)
-        val msg = TimeOfDayMessage(requestedTimeOfDay)
+        val zone = session.zone
 
         // update zone
-        session.zone.SetTimeOfDay(requestedTimeOfDay)
+        zone.SetTimeOfDay(requestedTimeOfDay)
 
-        sendResponse(msg)
+        // build update message
+        val msg = TimeOfDayMessage(zone.GetTimeOfDay(), zone.GetTimeOfDaySpeed())
+
+        // update players in zone
+        zone.AvatarEvents ! AvatarServiceMessage(
+          zone.id,
+          AvatarAction.SendResponse(Service.defaultPlayerGUID, msg)
+        )
+
         sendResponse(ChatMsg(messageType = UNK_227, contents = s"@CMT_SETTIME_OK^$hh~^$mm~"))
       case _ =>
         sendResponse(ChatMsg(messageType = UNK_229, contents = "@CMT_SETTIME_usage"))
@@ -1448,12 +1458,20 @@ class ChatOperations(
         var timeSpeed = m.matched.toFloat
         if (timeSpeed < -1000.0f) timeSpeed = -1000.0f
         if (timeSpeed > 1000.0f) timeSpeed = 1000.0f
-        val msg = TimeOfDayMessage(GetTimeOfDayValue(), timeSpeed)
+        val zone = session.zone
 
         // update zone
-        session.zone.SetTimeOfDaySpeed(timeSpeed)
+        zone.SetTimeOfDaySpeed(timeSpeed)
 
-        sendResponse(msg)
+        // build update message
+        val msg = TimeOfDayMessage(zone.GetTimeOfDay(), zone.GetTimeOfDaySpeed())
+
+        // update players in zone
+        zone.AvatarEvents ! AvatarServiceMessage(
+          zone.id,
+          AvatarAction.SendResponse(Service.defaultPlayerGUID, msg)
+        )
+
         sendResponse(ChatMsg(messageType = UNK_227, contents = s"@CMT_SETTIMESPEED_OK^$timeSpeed~"))
       case _ =>
         sendResponse(ChatMsg(messageType = UNK_229, contents = "@CMT_SETTIMESPEED_usage"))
