@@ -392,6 +392,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case unknownStamp =>
         log.error(s"received a message from an unknown event system - reply: $envelope, stamp: $unknownStamp")
     }
+    println(s"event-system-rtt: ${System.currentTimeMillis() - envelope.time} ms")
   }
 
   private def handleEnvelopeWithResponseHandler(

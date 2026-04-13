@@ -7,12 +7,13 @@ import net.psforever.services.Service
 import net.psforever.services.base.envelope.{GenericMessageEnvelope, GenericResponseEnvelope, MessageEnvelope, MessageTransformationBehavior}
 import net.psforever.services.base.message.EventMessage
 import net.psforever.types.PlanetSideGUID
+import net.psforever.util.Config
 
 import scala.collection.concurrent.{Map => CMap}
 import scala.jdk.CollectionConverters._
 import java.util.concurrent.ConcurrentHashMap
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.DurationLong
 
 /*
 Adapted from the rating limiting code in PSForever fork https://github.com/Pinapse/giant with permission
@@ -97,8 +98,11 @@ class GenericEventServiceWithCacheAndSupport
   stamp: EventSystemStamp,
   eventSupportServices: List[EventServiceSupport]
 ) extends GenericEventServiceWithSupport(stamp, eventSupportServices) {
-  private val flushCacheWait: Long = 50L //milliseconds
-  private var hasCachedMessages: Boolean = false
+  private val flushCacheDelay: Long = Config.app.network.eventCaching.flushCacheDelay
+  private val flushCacheMaxDelay: Long = Config.app.network.eventCaching.flushCacheMaxDelay
+  private var hasCachedMessages: Int = 0
+  private var lastCachedMessages: Int = 0
+  private val messageThreshold: Long = Config.app.network.eventCaching.messageTrafficThreshold
   private var nextTimeToFlushCache: Long = 0L
   private var emergencyFlush: Cancellable = Default.Cancellable
 
@@ -110,6 +114,14 @@ class GenericEventServiceWithCacheAndSupport
     super.postStop()
   }
 
+  private def adjustedFlushDelay(): Long = {
+    // flushCacheWait <= t <= emergencyFlushMaxDelay
+    math.min(
+      flushCacheDelay + math.max(0, lastCachedMessages - messageThreshold),
+      flushCacheMaxDelay
+    )
+  }
+
   /**
    * If there were previously no messages in the cache,
    * prepare to flush the cache after the intended interval passes,
@@ -117,10 +129,11 @@ class GenericEventServiceWithCacheAndSupport
    * or if a safety timer expires and the cache is flushed in precaution.
    */
   private def tryRetimeFlushCache(): Unit = {
-    if (!hasCachedMessages) {
-      hasCachedMessages = true
-      nextTimeToFlushCache = System.currentTimeMillis() + flushCacheWait
-      emergencyFlush = context.system.scheduler.scheduleOnce(55 milliseconds, self, FlushCachedMessages)
+    hasCachedMessages += 1
+    if (hasCachedMessages == 1) {
+      val flushDelay = adjustedFlushDelay()
+      nextTimeToFlushCache = System.currentTimeMillis() + flushDelay
+      emergencyFlush = context.system.scheduler.scheduleOnce(delay = (1.25f * flushDelay).toLong milliseconds, self, FlushCachedMessages)
     }
   }
 
@@ -145,7 +158,7 @@ class GenericEventServiceWithCacheAndSupport
    * flush the cache messages to the normal event system bus.
    */
   private def tryFlushCache(): Boolean = {
-    val willFlush = hasCachedMessages && nextTimeToFlushCache < System.currentTimeMillis()
+    val willFlush = hasCachedMessages > 0 && nextTimeToFlushCache < System.currentTimeMillis()
     if (willFlush) {
       flushCache()
     }
@@ -165,7 +178,8 @@ class GenericEventServiceWithCacheAndSupport
         map.clear()
       }
     }
-    hasCachedMessages = false
+    lastCachedMessages = hasCachedMessages
+    hasCachedMessages = 0
     emergencyFlush.cancel()
     emergencyFlush = Default.Cancellable
   }

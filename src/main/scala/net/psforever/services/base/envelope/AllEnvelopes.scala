@@ -12,4 +12,6 @@ trait AllEnvelopes {
   def channel: String
   /** specific subscriber endpoint to be excluded (the subscriber should filter themselves upon receipt) */
   def filter: PlanetSideGUID
+
+  val time: Long = System.currentTimeMillis()
 }
