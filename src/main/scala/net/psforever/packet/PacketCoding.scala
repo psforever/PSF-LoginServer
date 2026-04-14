@@ -39,14 +39,12 @@ object PacketCoding {
   ): Attempt[BitVector] = {
     packet match {
       case _: PlanetSideControlPacket if crypto.isEmpty =>
-        marshalPacketWithSequence(packet, BitVector.empty, crypto)
-      case _: PlanetSideResetSequencePacket =>
-        marshalPacketWithSequence(packet, BitVector.empty, crypto)
+        marshalPacket(packet, BitVector.empty, crypto)
       case _ =>
         sequenceOpt match {
           case Some(sequence) =>
             uint16L.encode(sequence) match {
-              case Successful(encodedSequence) => marshalPacketWithSequence(packet, encodedSequence, crypto)
+              case Successful(encodedSequence) => marshalPacket(packet, encodedSequence, crypto)
               case f: Failure => f
             }
           case None =>
@@ -55,6 +53,19 @@ object PacketCoding {
     }
   }
 
+  /** Common flags for normal encrypted packets. */
+  private val normalSecuredFlags: BitVector = PlanetSidePacketFlags.codec
+    .encode(PlanetSidePacketFlags(PacketType.Normal, secured = true))
+    .require
+  /** Common flags for normal unencrypted packets. */
+  private val normalNotSecuredFlags: BitVector = PlanetSidePacketFlags.codec
+    .encode(PlanetSidePacketFlags(PacketType.Normal, secured = false))
+    .require
+  /** Common flags for crypto unencrypted packets (that's not illogical). */
+  private val cryptoNotSecuredFlags: BitVector = PlanetSidePacketFlags.codec
+    .encode(PlanetSidePacketFlags(PacketType.Crypto, secured = false))
+    .require
+
   /**
    * Transform a kind of packet into the sequence of data that represents it.
    * @param packet the packet to encode
@@ -62,27 +73,25 @@ object PacketCoding {
    * @param crypto if set, encrypt final payload
    * @return a `BitVector` translated from the packet's data
    */
-  private def marshalPacketWithSequence(
-                                         packet: PlanetSidePacket,
-                                         sequence: BitVector,
-                                         crypto: Option[CryptoCoding] = None
-                                       ): Attempt[BitVector] = {
+  private def marshalPacket(
+                             packet: PlanetSidePacket,
+                             sequence: BitVector,
+                             crypto: Option[CryptoCoding]
+                           ): Attempt[BitVector] = {
     packet match {
       case _: PlanetSideGamePacket | _: PlanetSideControlPacket if crypto.isDefined =>
         encodePacket(packet)
           .flatMap { _payload => crypto.get.encrypt(_payload.bytes) }
           .flatMap { encryptedPayload =>
-            // encrypted packets need to be aligned to 4 bytes before encryption/decryption
+            // these encrypted packets need to be aligned to 4 bytes before encryption/decryption
             // first byte are flags, second is the sequence, and third is the pad
-            val flags = PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Normal, secured = true)).require
             val payload = hex"00".bits ++ encryptedPayload.bits
-            Successful(flags ++ sequence ++ payload)
+            Successful(normalSecuredFlags ++ sequence ++ payload)
           }
       case packet: PlanetSideGamePacket =>
         encodePacket(packet)
           .flatMap { _payload =>
-            val flags = PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Normal, secured = false)).require
-            Successful(flags ++ sequence ++ _payload)
+            Successful(normalNotSecuredFlags ++ sequence ++ _payload)
           }
       case packet: PlanetSideControlPacket =>
         encodePacket(packet)
@@ -92,20 +101,18 @@ object PacketCoding {
       case packet: PlanetSideCryptoPacket =>
         encodePacket(packet)
           .flatMap { _payload =>
-            val flags = PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Crypto, secured = false)).require
-            Successful(flags ++ sequence ++ _payload)
+            Successful(cryptoNotSecuredFlags ++ sequence ++ _payload)
           }
       case packet: PlanetSideResetSequencePacket if crypto.isDefined =>
         encodePacket(packet)
           .flatMap { _payload => crypto.get.encrypt(_payload.bytes) }
           .flatMap { encryptedPayload =>
+            //uncommon, so it's fine to not cache these flags (above)
             val flags = PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.ResetSequence, secured = true)).require
             Successful(flags ++ sequence ++ encryptedPayload.bits)
           }
-      case _: PlanetSideResetSequencePacket =>
-        Failure(Err(s"can not marshal a ResetSequence packet when crypto state is unavailable"))
       case _ =>
-        Failure(Err(s"can not marshal $packet"))
+        Failure(Err(s"can not marshal $packet, sequence? $sequence, crypto state? ${crypto.isDefined}"))
     }
   }
 

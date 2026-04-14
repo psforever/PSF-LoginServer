@@ -222,7 +222,8 @@ class MiddlewareActor(
     * @return next sequence number
     */
   private def nextSequence: Int = {
-    if (outSequence >= 0xffff) {
+    if (outSequence >= 0x8000) {
+      send(ResetSequence(), Some(outSequence), crypto)
       performResetSequenceReset()
       0
     } else {
@@ -258,7 +259,6 @@ class MiddlewareActor(
    * and gaslight the client to send packets using refreshed (delivered) id's.
    */
   private def performResetSequenceReset(): Unit = {
-    send(ResetSequence(), None, crypto)
     outSequence = 0
     inSequence = 0
   }
