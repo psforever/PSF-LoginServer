@@ -6,7 +6,6 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.io.Udp
 import java.net.InetSocketAddress
 import java.security.{SecureRandom, Security}
-
 import javax.crypto.spec.SecretKeySpec
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 
@@ -26,6 +25,7 @@ import net.psforever.packet.game._
 import net.psforever.packet.crypto._
 import net.psforever.packet.game.{ChangeFireModeMessage, CharacterInfoMessage, KeepAliveMessage, PingMsg}
 import net.psforever.packet.PacketCoding.CryptoCoding
+import net.psforever.packet.reset.ResetSequence
 import net.psforever.util.{Config, DiffieHellman, Md5Mac}
 
 /**
@@ -219,17 +219,12 @@ class MiddlewareActor(
     * Increment the outbound sequence number.
     * The previous sequence number is returned.
     * The fidelity of the sequence field in packets is 16 bits, so wrap back to 0 after 65535.
-    * @return
+    * @return next sequence number
     */
   private def nextSequence: Int = {
     if (outSequence >= 0xffff) {
-      // TODO resetting the sequence to 0 causes a client crash
-      // but that does not happen when we always send the same number
-      // the solution is most likely to send the proper ResetSequence payload
-      // send(ResetSequence(), None, crypto)
-      // outSequence = -1
-      // return nextSequence
-      outSequence
+      performResetSequenceReset()
+      0
     } else {
       outSequence += 1
       outSequence
@@ -255,6 +250,17 @@ class MiddlewareActor(
       outSubslot += 1
     }
     r
+  }
+
+  /**
+   * When the sequence is reset,
+   * the server resets both the expectant packet sequence id and the delivered packet sequence id
+   * and gaslight the client to send packets using refreshed (delivered) id's.
+   */
+  private def performResetSequenceReset(): Unit = {
+    send(ResetSequence(), None, crypto)
+    outSequence = 0
+    inSequence = 0
   }
 
   /**
@@ -623,7 +629,7 @@ class MiddlewareActor(
         Behaviors.same
 
       case _: PlanetSideResetSequencePacket =>
-        log.error(s"Unexpected crypto packet: received a PlanetSideResetSequencePacket when it should never happen")
+        performResetSequenceReset()
         Behaviors.same
     }
   }

@@ -23,91 +23,90 @@ object PacketCoding {
   final val PLANETSIDE_MIN_PACKET_SIZE = 1
 
   /**
-    * Transform a kind of packet into the sequence of data that represents it.
-    * Wraps around the encoding process for all valid packet container types.
-    * @param packet the packet to encode
-    * @param sequence the packet's sequence number. Must be set for all non ControlPacket packets (but always for encrypted packets).
-    * @param crypto if set, encrypt final payload
-    * @return a `BitVector` translated from the packet's data
-    */
+   * Transform a kind of packet into the sequence of data that represents it.
+   * Wraps around the encoding process for all valid packet container types.
+   * @param packet packet to encode
+   * @param sequenceOpt packet's sequence number;
+   *                    must be set for all packets that are not `ControlPacket`;
+   *                    always for encrypted packets
+   * @param crypto if set, encrypt final payload
+   * @return a `BitVector` translated from the packet's data
+   */
   def marshalPacket(
       packet: PlanetSidePacket,
-      sequence: Option[Int] = None,
+      sequenceOpt: Option[Int] = None,
       crypto: Option[CryptoCoding] = None
   ): Attempt[BitVector] = {
-    val seq = packet match {
-      case _: PlanetSideControlPacket if crypto.isEmpty => BitVector.empty
-      case _: PlanetSideResetSequencePacket             => BitVector.empty
+    packet match {
+      case _: PlanetSideControlPacket if crypto.isEmpty =>
+        marshalPacketWithSequence(packet, BitVector.empty, crypto)
+      case _: PlanetSideResetSequencePacket =>
+        marshalPacketWithSequence(packet, BitVector.empty, crypto)
       case _ =>
-        sequence match {
-          case Some(_sequence) =>
-            uint16L.encode(_sequence) match {
-              case Successful(_seq) => _seq
-              case f @ Failure(_)   => return f
+        sequenceOpt match {
+          case Some(sequence) =>
+            uint16L.encode(sequence) match {
+              case Successful(encodedSequence) => marshalPacketWithSequence(packet, encodedSequence, crypto)
+              case f: Failure => f
             }
           case None =>
-            return Failure(Err(s"Missing sequence"))
+            Failure(Err(s"can not marshal $packet without a proper sequence id"))
         }
     }
+  }
 
-    val (flags, payload) = packet match {
+  /**
+   * Transform a kind of packet into the sequence of data that represents it.
+   * @param packet the packet to encode
+   * @param sequence the packet's sequence number. Must be set for all non ControlPacket packets (but always for encrypted packets).
+   * @param crypto if set, encrypt final payload
+   * @return a `BitVector` translated from the packet's data
+   */
+  private def marshalPacketWithSequence(
+                                         packet: PlanetSidePacket,
+                                         sequence: BitVector,
+                                         crypto: Option[CryptoCoding] = None
+                                       ): Attempt[BitVector] = {
+    packet match {
       case _: PlanetSideGamePacket | _: PlanetSideControlPacket if crypto.isDefined =>
-        encodePacket(packet) match {
-          case Successful(_payload) =>
-            val encryptedPayload = crypto.get.encrypt(_payload.bytes) match {
-              case Successful(p) => p
-              case f: Failure    => return f
-            }
-            (
-              PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Normal, secured = true)).require,
-              // encrypted packets need to be aligned to 4 bytes before encryption/decryption
-              // first byte are flags, second is the sequence, and third is the pad
-              hex"00".bits ++ encryptedPayload.bits
-            )
-          case f @ Failure(_) => return f
-        }
+        encodePacket(packet)
+          .flatMap { _payload => crypto.get.encrypt(_payload.bytes) }
+          .flatMap { encryptedPayload =>
+            // encrypted packets need to be aligned to 4 bytes before encryption/decryption
+            // first byte are flags, second is the sequence, and third is the pad
+            val flags = PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Normal, secured = true)).require
+            val payload = hex"00".bits ++ encryptedPayload.bits
+            Successful(flags ++ sequence ++ payload)
+          }
       case packet: PlanetSideGamePacket =>
-        encodePacket(packet) match {
-          case Successful(_payload) =>
-            (
-              PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Normal, secured = false)).require,
-              _payload
-            )
-          case f @ Failure(_) => return f
-        }
+        encodePacket(packet)
+          .flatMap { _payload =>
+            val flags = PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Normal, secured = false)).require
+            Successful(flags ++ sequence ++ _payload)
+          }
       case packet: PlanetSideControlPacket =>
-        encodePacket(packet) match {
-          case Successful(_payload) =>
-            (
-              // control packets don't have flags
-              BitVector.empty,
-              _payload
-            )
-          case f @ Failure(_) => return f
-        }
+        encodePacket(packet)
+          .flatMap { _payload =>
+            Successful(sequence ++ _payload)
+          }
       case packet: PlanetSideCryptoPacket =>
-        encodePacket(packet) match {
-          case Successful(_payload) =>
-            (
-              PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Crypto, secured = false)).require,
-              _payload
-            )
-          case f @ Failure(_) => return f
-        }
-      case packet: PlanetSideResetSequencePacket =>
-        encodePacket(packet) match {
-          case Successful(_payload) =>
-            (
-              PlanetSidePacketFlags.codec
-                .encode(PlanetSidePacketFlags(PacketType.ResetSequence, secured = false))
-                .require,
-              _payload
-            )
-          case f @ Failure(_) => return f
-        }
+        encodePacket(packet)
+          .flatMap { _payload =>
+            val flags = PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.Crypto, secured = false)).require
+            Successful(flags ++ sequence ++ _payload)
+          }
+      case packet: PlanetSideResetSequencePacket if crypto.isDefined =>
+        encodePacket(packet)
+          .flatMap { _payload => crypto.get.encrypt(_payload.bytes) }
+          .flatMap { encryptedPayload =>
+            val flags = PlanetSidePacketFlags.codec.encode(PlanetSidePacketFlags(PacketType.ResetSequence, secured = true)).require
+            Successful(flags ++ sequence ++ encryptedPayload.bits)
+          }
+      case _: PlanetSideResetSequencePacket =>
+        Failure(Err(s"can not marshal a ResetSequence packet when crypto state is unavailable"))
+      case _ =>
+        Failure(Err(s"can not marshal $packet"))
     }
-
-    Successful(flags ++ seq ++ payload)
   }
 
   /**
@@ -131,17 +130,16 @@ object PacketCoding {
               case Successful(opcode) => Successful(opcode ++ payload)
               case f @ Failure(_)     => f
             }
-
           case packet: PlanetSideResetSequencePacket =>
             ResetSequenceOpcode.codec.encode(packet.opcode) match {
               case Successful(opcode) => Successful(opcode)
-              case f @ Failure(_)     => f
+              case f: Failure => f
             }
 
           case _ =>
             Failure(Err("packet not supported"))
         }
-      case f @ Failure(_) => f
+      case f: Failure => f
     }
   }
 
@@ -360,6 +358,5 @@ object PacketCoding {
 
       Successful(payloadNoMac)
     }
-
   }
 }
