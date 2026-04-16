@@ -91,10 +91,15 @@ object LoginActor {
    * @return the appropriate host address
    */
   private def selectHostAddress(ipAddress: String): InetSocketAddress = {
-    ipAddress.substring(0, ipAddress.indexOf(".")) match {
-      case "127"                        => localHostAddress
-      case "10" | "169" | "172" | "192" => gameTestServerAddressLocal
-      case _                            => gameTestServerAddressPublic
+    val address = InetAddress.getByName(ipAddress)
+    if (address.isLoopbackAddress()) {
+      localHostAddress
+    }
+    else if (address.isSiteLocalAddress()) {
+      gameTestServerAddressLocal
+    }
+    else {
+      gameTestServerAddressPublic
     }
   }
 }
