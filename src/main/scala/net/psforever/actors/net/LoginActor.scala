@@ -171,6 +171,7 @@ class LoginActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], conne
 
     case SocketPane.NextPort(_, _, portNum) =>
       val address = LoginActor.selectHostAddress(ipAddress).getAddress.getHostAddress
+      log.info(s"Connecting to ${address.toLowerCase}: $portNum ...")
       val response = ConnectToWorldMessage(serverName, address, portNum)
       context.become(idlingBehavior)
       middlewareActor ! MiddlewareActor.Send(response)
