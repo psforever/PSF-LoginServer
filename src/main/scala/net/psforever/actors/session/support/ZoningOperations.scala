@@ -35,7 +35,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.avatar.{Award, AwardCategory, PlayerControl, Shortcut => AvatarShortcut}
 import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem, TelepadLike}
 import net.psforever.objects.definition.SpecialExoSuitDefinition
-import net.psforever.objects.definition.converter.{CorpseConverter, DestroyedVehicleConverter}
+import net.psforever.objects.definition.converter.CorpseConverter
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.guid.{GUIDTask, StraightforwardTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
@@ -354,31 +354,30 @@ class ZoningOperations(
       spawn.DepictPlayerAsCorpse
     }
     //load vehicles in zone (put separate the one we may be using)
-    val (wreckages, (vehicles, usedVehicle)) = {
-      val (a, b) = continent.Vehicles.partition(vehicle => {
-        vehicle.Destroyed && vehicle.Definition.DestroyedModel.nonEmpty
-      })
-      (
-        a,
-        continent.GUID(player.VehicleSeated) match {
-          case Some(vehicle: Vehicle) if vehicle.PassengerInSeat(player).isDefined =>
-            b.partition {
-              _.GUID != vehicle.GUID
-            }
-          case Some(_) =>
-            log.warn(
-              s"BeginZoningMessage: ${player.Name} thought ${player.Sex.pronounSubject} was sitting in a vehicle, but it just evaporated around ${player.Sex.pronounObject}"
-            )
-            player.VehicleSeated = None
-            (b, List.empty[Vehicle])
-          case None =>
-            player.VehicleSeated = None
-            (b, List.empty[Vehicle])
-        }
-      )
+    val allActiveVehicles = continent.Vehicles
+    val (vehicles, usedVehicle) = {
+      continent.GUID(player.VehicleSeated) match {
+        case Some(ourVehicle: Vehicle) if ourVehicle.PassengerInSeat(player).isDefined =>
+          val vehicleGuid = ourVehicle.GUID
+          allActiveVehicles.indexWhere(_.GUID == vehicleGuid) match {
+            case -1 =>
+              //todo our vehicle is missing from the list of vehicles; what now?
+              (allActiveVehicles, List.empty[Vehicle])
+            case index =>
+              (allActiveVehicles.take(index) ++ allActiveVehicles.drop(index + 1), List(ourVehicle))
+          }
+        case Some(_) =>
+          log.warn(
+            s"BeginZoningMessage: ${player.Name} thought ${player.Sex.pronounSubject} was sitting in a vehicle, but it just evaporated around ${player.Sex.pronounObject}"
+          )
+          player.VehicleSeated = None
+          (allActiveVehicles, List.empty[Vehicle])
+        case None =>
+          player.VehicleSeated = None
+          (allActiveVehicles, List.empty[Vehicle])
+      }
     }
-    val allActiveVehicles = vehicles ++ usedVehicle
-    //active vehicles (and some wreckage)
+    //active vehicles (and wreckage)
     vehicles.foreach { vehicle =>
       val vguid       = vehicle.GUID
       sendResponse(OCM.apply(vehicle))
@@ -441,16 +440,6 @@ class ZoningOperations(
         if (vehicle.Shields > 0) {
           sendResponse(PlanetsideAttributeMessage(vguid, vehicle.Definition.shieldUiAttribute, vehicle.Shields))
         }
-    }
-    //vehicle wreckages
-    wreckages.foreach { vehicle =>
-      sendResponse(
-        ObjectCreateMessage(
-          vehicle.Definition.DestroyedModel.get.id,
-          vehicle.GUID,
-          DestroyedVehicleConverter.converter.ConstructorData(vehicle).get
-        )
-      )
     }
     //cargo occupants (including our own vehicle as cargo)
     allActiveVehicles.collect {
