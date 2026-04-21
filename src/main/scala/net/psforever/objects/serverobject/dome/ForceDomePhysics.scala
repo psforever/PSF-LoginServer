@@ -11,7 +11,7 @@ class ForceDomePhysics(private val cfddef: ForceDomeDefinition)
   /** whether the dome is active or not */
   private var energized: Boolean = false
   /** defined perimeter of this force dome on the floor;
-   * the walls created by this perimeter are angled inwards towards the facility, but that's not a consideration */
+   * the walls created by this perimeter are angled inwards towards the facility vertically, but that's not a consideration here */
   private var perimeter: List[(Vector3, Vector3)] = List()
 
   override def Position: Vector3 = Owner.Position

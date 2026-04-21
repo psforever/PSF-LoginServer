@@ -15,7 +15,7 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.objects.serverobject.damage.Damageable.Target
-import net.psforever.objects.serverobject.damage.{AggravatedBehavior, DamageableVehicle}
+import net.psforever.objects.serverobject.damage.{AggravatedBehavior, Damageable, DamageableVehicle}
 import net.psforever.objects.serverobject.environment._
 import net.psforever.objects.serverobject.environment.interaction.common.Watery
 import net.psforever.objects.serverobject.environment.interaction.{InteractWithEnvironment, RespondsToZoneEnvironment}
@@ -739,6 +739,15 @@ class VehicleControl(vehicle: Vehicle)
         zoneid,
         VehicleAction.SendResponse(guid0, pkt)
       )
+    }
+  }
+
+  override protected def canChangeVulnerability(state: Damageable.PersonalVulnerability): Boolean = {
+    state match {
+      case Damageable.MakeInvulnerable =>
+        vehicle.LastDamage.exists { d => System.currentTimeMillis() - d.interaction.hitTime > 2500L }
+      case _ =>
+        true
     }
   }
 

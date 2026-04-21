@@ -14,6 +14,8 @@ class ForceDomeDefinition(objectId: Int)
    * these points are the closest to where the dome interacts with the ground at a corner;
    * should be sequential, either clockwise or counterclockwise */
   private var perimeter: List[Vector3] = List()
+  /** offset of the physical location of the force dome generator stalk */
+  private var genOffset: Vector3 = Vector3.Zero
 
   def PerimeterOffsets: List[Vector3] = perimeter
 
@@ -33,6 +35,13 @@ class ForceDomeDefinition(objectId: Int)
   def ApplyProtectionTo_=(protect: List[AmenityDefinition]): List[AmenityDefinition] = {
     protects = protect
     ApplyProtectionTo
+  }
+
+  def GeneratorOffset: Vector3 = genOffset
+
+  def GeneratorOffset_=(offset: Vector3): Vector3 = {
+    genOffset = offset
+    GeneratorOffset
   }
 }
 

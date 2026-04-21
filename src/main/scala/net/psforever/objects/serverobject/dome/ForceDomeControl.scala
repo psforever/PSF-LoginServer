@@ -240,8 +240,7 @@ object ForceDomeControl {
    * where the second condition is one of two qualifications:
    * 1. within an angular perimeter boundary, and
    * 2a. below the base coordinate of the force dome or
-   * 2b. within a region above the base of the force dome represented by a literal "dome" (half of a sphere).
-   * @see `Zone.distanceCheck`
+   * 2b. within a region above the facility encapsulated by the force dome
    * @param segments ground-level perimeter of the force dome is defined by these segments (as vertex pairs)
    * @param obj1 a game entity, should be the force dome
    * @param obj2 a game entity, should be a damageable target of the force dome's wrath
@@ -257,13 +256,36 @@ object ForceDomeControl {
                             obj2: PlanetSideGameObject,
                             @unused maxDistance: Float
                           ): Boolean = {
-    val centerPos @ Vector3(centerX, centerY, centerZ) = obj1.Position
-    val Vector3(targetX, targetY, _) = obj2.Position.xy - centerPos.xy //deltas of segment of target to dome
-    lazy val checkForIntersection = segments.exists { case (point1, point2) =>
-      //want targets within the perimeter; if there's an intersection, target is outside of the perimeter
+    val Vector3(centerX, centerY, centerZ) = obj1.Position
+    val Vector3(targetX, targetY, targetZ) = obj2.Position
+    lazy val insideOfThePerimeter = !segments.exists { case (point1, point2) =>
+      //want targets within the perimeter; if there's any intersection, target is outside of the perimeter
       segmentIntersectionTestPerSegment(centerX, centerY, targetX, targetY, point1.x, point1.y, point2.x, point2.y)
     }
-    segments.nonEmpty && !checkForIntersection && (obj2.Position.z <= centerZ || Zone.distanceCheck(obj1, obj2, math.pow(obj1.Definition.UseRadius, 2).toFloat))
+    segments.nonEmpty && insideOfThePerimeter && (targetZ <= centerZ || underForceDomeCeiling(obj1, obj2, targetZ))
+  }
+
+  /**
+   * The force dome is the top portion of an irregular prism.
+   * It's walls are similarly angled inwards, usually.
+   * There's no way to properly represent this without too much work.
+   * Just ensure the target is either below the dome or within a circular region
+   * defined by the base of the generator to the top of the extended stalk as the measurement of a hemisphere.
+   * @see `Zone.distanceCheck`
+   * @param obj1 a game entity, should be the force dome
+   * @param obj2 a game entity, should be a damageable target of the force dome's wrath
+   * @param height target height that must be under the ceiling
+   * @return `true`, if target is detected within the force dome kill region
+   *        `false`, otherwise
+   */
+  private def underForceDomeCeiling(obj1: PlanetSideGameObject, obj2: PlanetSideGameObject, height: Float): Boolean = {
+    obj1 match {
+      case dome: ForceDomePhysics =>
+        val generatorHeightOffsetZ = dome.Definition.GeneratorOffset.z
+        height < dome.Owner.Position.z + generatorHeightOffsetZ * 1.5f || Zone.distanceCheck(obj1, obj2, generatorHeightOffsetZ + 42f)
+      case _ =>
+        false
+    }
   }
 
   /**
@@ -294,21 +316,23 @@ object ForceDomeControl {
                                                ): Boolean = {
     //based on Franklin Antonio's "Faster Line Segment Intersection" topic "in Graphics Gems III" book (http://www.graphicsgems.org/)
     //compare, java.awt.geom.Line2D.linesIntersect
-    val bx = segmentPoint1x - segmentPoint2x //delta-x of segment
-    val by = segmentPoint1y - segmentPoint2y //delta-y of segment
-    val cx = pointX - segmentPoint1x //delta-x of hypotenuse of triangle formed by center, segment endpoint, and intersection point
-    val cy = pointY - segmentPoint1y //delta-y of hypotenuse of triangle formed by center, segment endpoint, and intersection point
-    val alphaNumerator = by * cx - bx * cy
-    val commonDenominator = targetY * bx - targetX * by
-    val betaNumerator = targetX * cy - targetY * cx
+    val ax = targetX - pointX //delta-x of segment from center to target
+    val ay = targetY - pointY //delta-y of segment from center to target
+    val bx = segmentPoint1x - segmentPoint2x //delta-x of test segment
+    val by = segmentPoint1y - segmentPoint2y //delta-y of test segment
+    val cx = pointX - segmentPoint1x //delta-x of hypotenuse of triangle formed by center, test segment endpoint, and intersection point
+    val cy = pointY - segmentPoint1y //delta-y of hypotenuse of triangle formed by center, test segment endpoint, and intersection point
+    val alphaNumerator = by * cx - bx * cy //cross product of matrix [(by, bx)(cy, cx)]
+    val denominator = ay * bx - ax * by //cross product of matrix [(ay, ax)(cy, cx)]
+    val betaNumerator = ax * cy - ay * cx //cross product of matrix [(ax, ay)(cx, cy)]
     if (
-      commonDenominator > 0 &&
-        (alphaNumerator < 0 || alphaNumerator > commonDenominator || betaNumerator < 0 || betaNumerator > commonDenominator)
+      denominator > 0 &&
+        (alphaNumerator < 0 || alphaNumerator > denominator || betaNumerator < 0 || betaNumerator > denominator)
     ) {
       false
     } else if (
-      commonDenominator < 0 &&
-        (alphaNumerator > 0 || alphaNumerator < commonDenominator || betaNumerator > 0 || betaNumerator < commonDenominator)
+      denominator < 0 &&
+        (alphaNumerator > 0 || alphaNumerator < denominator || betaNumerator > 0 || betaNumerator < denominator)
     ) {
       false
     } else {

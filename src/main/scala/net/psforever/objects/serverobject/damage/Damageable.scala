@@ -10,6 +10,8 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 
+import scala.annotation.unused
+
 /**
   * The base "control" `Actor` mixin for damage-handling code.
   * A valid entity requires health points and
@@ -31,10 +33,10 @@ trait Damageable {
     * `orElse` onto the "control" `Actor` `receive`; or,
     * cite the `originalTakesDamage` protocol during inheritance overrides */
   val takesDamage: Receive = {
-    case Damageable.MakeVulnerable =>
+    case Damageable.MakeVulnerable if canChangeVulnerability(Damageable.MakeVulnerable) =>
       isVulnerable = true
 
-    case Damageable.MakeInvulnerable =>
+    case Damageable.MakeInvulnerable if canChangeVulnerability(Damageable.MakeInvulnerable) =>
       isVulnerable = false
 
     case Vitality.Damage(damage_func) =>
@@ -43,14 +45,18 @@ trait Damageable {
 
   /** a duplicate of the core implementation for the default mixin hook, for use in overriding */
   final val originalTakesDamage: Receive = {
-    case Damageable.MakeVulnerable =>
+    case Damageable.MakeVulnerable if canChangeVulnerability(Damageable.MakeVulnerable) =>
       isVulnerable = true
 
-    case Damageable.MakeInvulnerable =>
+    case Damageable.MakeInvulnerable if canChangeVulnerability(Damageable.MakeInvulnerable) =>
       isVulnerable = false
 
     case Vitality.Damage(damage_func) =>
       PerformDamageIfVulnerable(DamageableObject, damage_func)
+  }
+
+  protected def canChangeVulnerability(@unused state: Damageable.PersonalVulnerability): Boolean = {
+    true
   }
 
   /**
