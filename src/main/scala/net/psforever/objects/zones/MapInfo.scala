@@ -309,21 +309,21 @@ case object MapInfo extends StringEnum[MapInfo] {
   case object Map14
       extends MapInfo(
         value = "map14",
-        checksum = 0L,
+        checksum = 4276645952L,
         scale = MapScale.Dim1024,
         hotSpotSpan = 0,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 0)) ++
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 10)) ++
                       MapEnvironment.dim1024MapEdgeKillPlanes
       )
 
   case object Map15
       extends MapInfo(
         value = "map15",
-        checksum = 0L,
-        scale = MapScale.Dim8192,
+        checksum = 3628825458L,
+        scale = MapScale.Dim4096,
         hotSpotSpan = 0,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 0)) ++
-                      MapEnvironment.dim8192MapEdgeKillPlanes
+        environment = List(SeaLevel(EnvironmentAttribute.Water, 8)) ++
+                      MapEnvironment.dim4096MapEdgeKillPlanes
       )
 
   case object Map16

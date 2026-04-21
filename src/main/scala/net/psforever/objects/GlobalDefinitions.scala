@@ -1,6 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ballistics._
 import net.psforever.objects.ce.DeployedItem
 import net.psforever.objects.definition._
@@ -18,7 +19,7 @@ import net.psforever.objects.serverobject.painbox.PainboxDefinition
 import net.psforever.objects.serverobject.terminals._
 import net.psforever.objects.serverobject.tube.SpawnTubeDefinition
 import net.psforever.objects.serverobject.resourcesilo.ResourceSiloDefinition
-import net.psforever.objects.serverobject.structures.{AmenityDefinition, BuildingDefinition, WarpGateDefinition}
+import net.psforever.objects.serverobject.structures.{AmenityDefinition, BuildingDefinition, VirtualTrainingTeleporterDefinition, WarpGateDefinition}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalDefinition
 import net.psforever.objects.serverobject.terminals.implant.ImplantTerminalMechDefinition
 import net.psforever.objects.serverobject.turret.FacilityTurretDefinition
@@ -1281,6 +1282,10 @@ object GlobalDefinitions {
 
   val obbasemesh: AmenityDefinition = new AmenityDefinition(598) {}
 
+  val spawn_pad = new VirtualTrainingTeleporterDefinition()
+
+  val spawn_zone = new VirtualTrainingTeleporterDefinition()
+
   val targeting_laser_dispenser = new OrderTerminalDefinition(851)
 
   val stationaryteleportpad = new GenericTeleportationDefinition(836)
@@ -1388,6 +1393,10 @@ object GlobalDefinitions {
   val orbital_building_tr =  new BuildingDefinition(606)
 
   val orbital_building_vs =  new BuildingDefinition(607)
+
+  val vr_training         =  new BuildingDefinition(955)
+
+  val vt_air_vehicle      =  new BuildingDefinition(976)
 
   val VT_building_nc      =  new BuildingDefinition(978)
 
@@ -2071,6 +2080,19 @@ object GlobalDefinitions {
             Nil
         }
       }
+  }
+
+  /**
+    * Engineering certifications to temporarily apply to the avatar in VR Training zones.
+    * @return the set of certifications to apply.
+    */
+  def vrZoneTempEngineeringCerts(): Set[Certification] = {
+    Set[Certification](
+        Certification.AdvancedEngineering,
+        Certification.AdvancedHacking,
+        Certification.CombatEngineering,
+        Certification.GroundSupport
+    )
   }
 
   GlobalDefinitionsImplant.init()

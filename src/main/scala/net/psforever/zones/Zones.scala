@@ -20,7 +20,7 @@ import net.psforever.objects.serverobject.pad.{VehicleSpawnPad, VehicleSpawnPadD
 import net.psforever.objects.serverobject.painbox.{Painbox, PainboxDefinition}
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.shuttle.OrbitalShuttlePad
-import net.psforever.objects.serverobject.structures.{Building, BuildingDefinition, FoundationBuilder, StructureType, WarpGate}
+import net.psforever.objects.serverobject.structures.{Building, BuildingDefinition, FoundationBuilder, StructureType, VirtualTrainingTeleporter, WarpGate}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalDefinition}
 import net.psforever.objects.serverobject.terminals.implant.{ImplantTerminalInterface, ImplantTerminalMech}
 import net.psforever.objects.serverobject.tube.SpawnTube
@@ -113,6 +113,8 @@ object Zones {
     "orbital_building_vs",
     "orbital_building_tr",
     "orbital_building_nc",
+    "vr_training",
+    "vt_air_vehicle",
     "VT_building_vs",
     "VT_building_tr",
     "VT_building_nc",
@@ -724,6 +726,10 @@ object Zones {
             )
           zoneMap.linkShuttleToBay(obj.guid)
 
+        case "spawn_pad" | "spawn_zone" =>
+          zoneMap
+            .addLocalObject(obj.guid, VirtualTrainingTeleporter.Constructor(obj.position))
+
         case _ => ()
       }
     }
@@ -780,10 +786,12 @@ object Zones {
             this.HotSpotCoordinateFunction = Zones.HotSpots.standardRemapping(info.map.scale, info.map.hotSpotSpan, info.map.hotSpotSpan)
             this.HotSpotTimeFunction = Zones.HotSpots.standardTimeRules
             Zones.initZoneAmenities(zone = this)
+          } else {
+            Zones.initZoneAmenities(zone = this)
           }
 
           //special conditions
-          //1. sanctuaries are completely owned by a single faction
+          //1. sanctuaries and VR training zones are completely owned by a single faction
           //2. set up the third warp gate on sanctuaries to be a broadcast warp gate
           //3. set up sanctuary-linked warp gates on "home continents" (the names make no sense anymore, don't even ask)
           //4. assign the caverns internally
@@ -833,6 +841,12 @@ object Zones {
               bldgs.filter(_.Name.startsWith("WG_")).map {
                 case gate: WarpGate => gate.AllowBroadcastFor = PlanetSideEmpire.VS
               }
+            case "tzshtr" | "tzdrtr" | "tzcotr" =>
+              bldgs.foreach(_.Faction = PlanetSideEmpire.TR)
+            case "tzshnc" | "tzdrnc" | "tzconc" =>
+              bldgs.foreach(_.Faction = PlanetSideEmpire.NC)
+            case "tzshvs" | "tzdrvs" | "tzcovs" =>
+              bldgs.foreach(_.Faction = PlanetSideEmpire.VS)
             case "i4" =>
               bldgs.find(_.Name.equals("Map96_Gate_Three")).map {
                 case gate: WarpGate => gate.Active = false

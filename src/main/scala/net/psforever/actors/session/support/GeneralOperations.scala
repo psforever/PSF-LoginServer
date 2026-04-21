@@ -1059,6 +1059,12 @@ class GeneralOperations(
     sendResponse(ChatMsg(ChatMessageType.UNK_227, wideContents=false, "", "@charsaved", None))
   }
 
+  def trainingGriefWarning(): Unit = {
+    //don't know the correct ChatMessageType for this one yet; 
+    //it's supposed to use a pop-up that takes 5 seconds before you are allowed to close it, so disabled for now
+    //sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, wideContents=true, "", "@TrainingGriefWarning", None))
+  }
+
   def noVoicedChat(pkt: PlanetSideGamePacket): Unit = {
     log.debug(s"$pkt")
     sendResponse(VoiceHostKill())
