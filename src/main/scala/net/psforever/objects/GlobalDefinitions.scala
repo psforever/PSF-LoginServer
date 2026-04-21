@@ -9,6 +9,7 @@ import net.psforever.objects.definition.converter._
 import net.psforever.objects.equipment._
 import net.psforever.objects.global.{GlobalDefinitionsAmmo, GlobalDefinitionsBuilding, GlobalDefinitionsDeployable, GlobalDefinitionsExoSuit, GlobalDefinitionsImplant, GlobalDefinitionsKit, GlobalDefinitionsMiscellaneous, GlobalDefinitionsProjectile, GlobalDefinitionsTool, GlobalDefinitionsVehicle}
 import net.psforever.objects.locker.LockerContainerDefinition
+import net.psforever.objects.serverobject.dome.ForceDomeDefinition
 import net.psforever.objects.serverobject.doors.DoorDefinition
 import net.psforever.objects.serverobject.generator.GeneratorDefinition
 import net.psforever.objects.serverobject.locks.IFFLockDefinition
@@ -1290,6 +1291,18 @@ object GlobalDefinitions {
   val stationaryteleportpad = new GenericTeleportationDefinition(836)
 
   val zipline = new GenericTeleportationDefinition(1047)
+
+  val force_dome_generator = new ForceDomeDefinition(322)
+
+  val force_dome_amp_physics = new ForceDomeDefinition(313)
+
+  val force_dome_comm_physics = new ForceDomeDefinition(316)
+
+  val force_dome_cryo_physics = new ForceDomeDefinition(319)
+
+  val force_dome_dsp_physics = new ForceDomeDefinition(321)
+
+  val force_dome_tech_physics = new ForceDomeDefinition(323)
 
   /*
   Buildings

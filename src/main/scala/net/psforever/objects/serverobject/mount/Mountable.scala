@@ -35,6 +35,17 @@ trait Mountable {
   }
 
   /**
+   * All the seats that have occupants by their seat number.
+   * @return list of the numbers of all occupied seats
+   */
+  def OccupiedSeats(): List[Int] = {
+    seats
+      .collect { case (index, seat) if seat.isOccupied => index }
+      .toList
+      .sorted
+  }
+
+  /**
     * Retrieve a mapping of each mount from its mount point index.
     * @return the mapping of mount point to mount
     */

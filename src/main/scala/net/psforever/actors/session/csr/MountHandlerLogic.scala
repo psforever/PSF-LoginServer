@@ -166,7 +166,7 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         ops.MountingAction(tplayer, obj, seatNumber)
 
       case Mountable.CanMount(obj: FacilityTurret, seatNumber, _)
-        if !obj.isUpgrading || System.currentTimeMillis() - GenericHackables.getTurretUpgradeTime >= 1500L =>
+        if !obj.isUpgrading || System.currentTimeMillis() - obj.CheckTurretUpgradeTime >= 1500L =>
         obj.setMiddleOfUpgrade(false)
         sessionLogic.zoning.CancelZoningProcess()
         sendResponse(PlanetsideAttributeMessage(obj.GUID, attribute_type=0, obj.Health))

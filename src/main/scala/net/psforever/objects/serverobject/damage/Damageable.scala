@@ -10,6 +10,8 @@ import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 
+import scala.annotation.unused
+
 /**
   * The base "control" `Actor` mixin for damage-handling code.
   * A valid entity requires health points and
@@ -17,7 +19,6 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations
   * All of these should be affected by the damage where applicable.
   */
 trait Damageable {
-
   /**
     * Contextual access to the object being the target of this damage.
     * Needs declaration in lowest implementing code.
@@ -25,24 +26,50 @@ trait Damageable {
     */
   def DamageableObject: Damageable.Target
 
+  /** a local `canDamage` flag */
+  private var isVulnerable: Boolean = true
+
   /** the official mixin hook;
     * `orElse` onto the "control" `Actor` `receive`; or,
     * cite the `originalTakesDamage` protocol during inheritance overrides */
   val takesDamage: Receive = {
+    case Damageable.MakeVulnerable if canChangeVulnerability(Damageable.MakeVulnerable) =>
+      isVulnerable = true
+
+    case Damageable.MakeInvulnerable if canChangeVulnerability(Damageable.MakeInvulnerable) =>
+      isVulnerable = false
+
     case Vitality.Damage(damage_func) =>
-      val obj = DamageableObject
-      if (obj.CanDamage) {
-        PerformDamage(obj, damage_func)
-      }
+      PerformDamageIfVulnerable(DamageableObject, damage_func)
   }
 
   /** a duplicate of the core implementation for the default mixin hook, for use in overriding */
   final val originalTakesDamage: Receive = {
+    case Damageable.MakeVulnerable if canChangeVulnerability(Damageable.MakeVulnerable) =>
+      isVulnerable = true
+
+    case Damageable.MakeInvulnerable if canChangeVulnerability(Damageable.MakeInvulnerable) =>
+      isVulnerable = false
+
     case Vitality.Damage(damage_func) =>
-      val obj = DamageableObject
-      if (obj.CanDamage) {
-        PerformDamage(obj, damage_func)
-      }
+      PerformDamageIfVulnerable(DamageableObject, damage_func)
+  }
+
+  protected def canChangeVulnerability(@unused state: Damageable.PersonalVulnerability): Boolean = {
+    true
+  }
+
+  /**
+   * Assess if the target is vulnerable to damage.
+   * If so, attempt damage calculations.
+   * @see `ResolutionCalculations.Output`
+   * @param obj the entity to be damaged
+   * @param applyDamageTo the function that applies the damage to the target in a target-tailored fashion
+   */
+  def PerformDamageIfVulnerable(obj: Damageable.Target, applyDamageTo: ResolutionCalculations.Output): Unit = {
+    if (isVulnerable && obj.CanDamage) {
+      PerformDamage(obj, applyDamageTo)
+    }
   }
 
   /**
@@ -66,6 +93,20 @@ object Damageable {
    * the fields do not have to be labeled but the first (if not only) should always be Health
    */
   final val LogChannel: String = "DamageResolution"
+
+  trait PersonalVulnerability
+
+  final case object MakeVulnerable extends PersonalVulnerability
+
+  final case object MakeInvulnerable extends PersonalVulnerability
+
+  def Vulnerability(state: Boolean): PersonalVulnerability = {
+    if (state) {
+      MakeInvulnerable
+    } else {
+      MakeVulnerable
+    }
+  }
 
   /**
     * Does the possibility exist that the designated target can be affected by this projectile's damage?

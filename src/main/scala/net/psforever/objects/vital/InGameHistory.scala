@@ -4,7 +4,7 @@ package net.psforever.objects.vital
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.definition.{EquipmentDefinition, KitDefinition, ToolDefinition}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
-import net.psforever.objects.sourcing.{AmenitySource, DeployableSource, PlayerSource, SourceEntry, SourceUniqueness, SourceWithHealthEntry, VehicleSource}
+import net.psforever.objects.sourcing.{AmenitySource, DeployableSource, MountableEntry, PlayerSource, SourceEntry, SourceUniqueness, SourceWithHealthEntry, VehicleSource}
 import net.psforever.objects.vital.environment.EnvironmentReason
 import net.psforever.objects.vital.etc.{ExplodingEntityReason, PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
@@ -79,44 +79,48 @@ final case class RevivingActivity(target: SourceEntry, user: PlayerSource, amoun
 final case class ShieldCharge(amount: Int, cause: Option[SourceEntry])
   extends GeneralActivity
 
+trait TerminalUse {
+  def terminal: AmenitySource
+}
+
 final case class TerminalUsedActivity(terminal: AmenitySource, transaction: TransactionType.Value)
-  extends GeneralActivity
+  extends GeneralActivity with TerminalUse
 
 final case class TelepadUseActivity(router: VehicleSource, telepad: DeployableSource, player: PlayerSource)
   extends GeneralActivity
 
-sealed trait VehicleMountChange extends GeneralActivity {
-  def vehicle: VehicleSource
+sealed trait MountChange extends GeneralActivity {
+  def mount: SourceEntry with MountableEntry
   def zoneNumber: Int
 }
 
-sealed trait VehiclePassengerMountChange extends VehicleMountChange {
+sealed trait PassengerMountChange extends MountChange {
   def player: PlayerSource
 }
 
-sealed trait VehicleCargoMountChange extends VehicleMountChange {
+sealed trait CargoMountChange extends MountChange {
   def cargo: VehicleSource
 }
 
-final case class VehicleMountActivity(vehicle: VehicleSource, player: PlayerSource, zoneNumber: Int)
-  extends VehiclePassengerMountChange
+final case class MountingActivity(mount: SourceEntry with MountableEntry, player: PlayerSource, zoneNumber: Int)
+  extends PassengerMountChange
 
-final case class VehicleDismountActivity(
-                                          vehicle: VehicleSource,
-                                          player: PlayerSource,
-                                          zoneNumber: Int,
-                                          pairedEvent: Option[VehicleMountActivity] = None
-                                        ) extends VehiclePassengerMountChange
+final case class DismountingActivity(
+                                      mount: SourceEntry with MountableEntry,
+                                      player: PlayerSource,
+                                      zoneNumber: Int,
+                                      pairedEvent: Option[MountingActivity] = None
+                                    ) extends PassengerMountChange
 
-final case class VehicleCargoMountActivity(vehicle: VehicleSource, cargo: VehicleSource, zoneNumber: Int)
-  extends VehicleCargoMountChange
+final case class VehicleCargoMountActivity(mount: VehicleSource, cargo: VehicleSource, zoneNumber: Int)
+  extends CargoMountChange
 
 final case class VehicleCargoDismountActivity(
-                                               vehicle: VehicleSource,
+                                               mount: VehicleSource,
                                                cargo: VehicleSource,
                                                zoneNumber: Int,
                                                pairedEvent: Option[VehicleCargoMountActivity] = None
-                                             ) extends VehicleCargoMountChange
+                                             ) extends CargoMountChange
 
 final case class Contribution(src: SourceUniqueness, entries: List[InGameActivity])
   extends GeneralActivity {
@@ -165,8 +169,8 @@ final case class HealFromKit(kit_def: KitDefinition, amount: Int)
 final case class HealFromEquipment(user: PlayerSource, equipment_def: EquipmentDefinition, amount: Int)
   extends HealingActivity with SupportActivityCausedByAnother
 
-final case class HealFromTerminal(term: AmenitySource, amount: Int)
-  extends HealingActivity
+final case class HealFromTerminal(terminal: AmenitySource, amount: Int)
+  extends HealingActivity with TerminalUse
 
 final case class HealFromImplant(implant: ImplantType, amount: Int)
   extends HealingActivity
@@ -180,7 +184,8 @@ final case class RepairFromKit(kit_def: KitDefinition, amount: Int)
 final case class RepairFromEquipment(user: PlayerSource, equipment_def: EquipmentDefinition, amount: Int)
   extends RepairingActivity with SupportActivityCausedByAnother
 
-final case class RepairFromTerminal(term: AmenitySource, amount: Int) extends RepairingActivity
+final case class RepairFromTerminal(terminal: AmenitySource, amount: Int)
+  extends RepairingActivity with TerminalUse
 
 final case class RepairFromArmorSiphon(siphon_def: ToolDefinition, vehicle: VehicleSource, amount: Int)
   extends RepairingActivity
@@ -251,24 +256,24 @@ trait InGameHistory {
    */
   def LogActivity(action: Option[InGameActivity]): List[InGameActivity] = {
     action match {
-      case Some(act: VehicleDismountActivity) if act.pairedEvent.isEmpty =>
+      case Some(act: DismountingActivity) if act.pairedEvent.isEmpty =>
         history
-          .findLast(_.isInstanceOf[VehicleMountActivity])
+          .findLast(_.isInstanceOf[MountingActivity])
           .collect {
-            case event: VehicleMountActivity if event.vehicle.unique == act.vehicle.unique =>
+            case event: MountingActivity if event.mount.unique == act.mount.unique =>
               history = history :+ InGameActivity.ShareTime(act.copy(pairedEvent = Some(event)), act)
           }
           .orElse {
             history = history :+ act
             None
           }
-      case Some(act: VehicleDismountActivity) =>
+      case Some(act: DismountingActivity) =>
         history = history :+ act
       case Some(act: VehicleCargoDismountActivity) =>
         history
           .findLast(_.isInstanceOf[VehicleCargoMountActivity])
           .collect {
-            case event: VehicleCargoMountActivity if event.vehicle.unique == act.vehicle.unique =>
+            case event: VehicleCargoMountActivity if event.mount.unique == act.mount.unique =>
               history = history :+ InGameActivity.ShareTime(act.copy(pairedEvent = Some(event)), act)
           }
           .orElse {

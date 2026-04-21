@@ -8,6 +8,7 @@ import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, Sess
 import net.psforever.objects.{GlobalDefinitions, PlanetSideGameObject, Session, TurretDeployable}
 import net.psforever.objects.ce.{Deployable, DeployableCategory}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
+import net.psforever.objects.serverobject.dome.ForceDomeControl
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.structures.Building
@@ -227,6 +228,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case "sayspectator" => customCommandSpeakAsSpectator(params, message)
         case "setempire" => customCommandSetEmpire(params)
         case "weaponlock" => customCommandZoneWeaponUnlock(session, params)
+        case "forcedome" => customForceDomeCommand(session, params)
         case _ =>
           // command was not handled
           sendResponse(
@@ -505,6 +507,41 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
               //events ! AvatarServiceMessage(s"$faction", reloadZoneMsg)
           }
       }
+    }
+    true
+  }
+
+  private def customForceDomeCommand(session: Session, contents: Seq[String]): Boolean = {
+    //locate force dome
+    var postUsageMessage: Boolean = false
+    val locatedForceDomesInZone = session.zone.Buildings.values.flatMap(_.ForceDome)
+    if (locatedForceDomesInZone.nonEmpty) {
+      contents
+        .headOption
+        .map(_.toLowerCase())
+        .collect {
+          case "on" | "o" | "" =>
+            locatedForceDomesInZone.foreach(_.Actor ! ForceDomeControl.CustomExpand)
+          case "off" | "of" =>
+            locatedForceDomesInZone.foreach(_.Actor ! ForceDomeControl.CustomCollapse)
+          case "protect" =>
+            locatedForceDomesInZone.foreach(_.Actor ! ForceDomeControl.ApplyProtection)
+          case "normal" =>
+            locatedForceDomesInZone.foreach(_.Actor ! ForceDomeControl.NormalBehavior)
+          case "purge" =>
+            locatedForceDomesInZone.foreach(_.Actor ! ForceDomeControl.Purge)
+          case "help" | "usage" =>
+            postUsageMessage = true
+          case token =>
+            sendResponse(ChatMsg(ChatMessageType.UNK_227, s"unknown command - $token"))
+            postUsageMessage = true
+        }
+      if (postUsageMessage) {
+        sendResponse(ChatMsg(ChatMessageType.UNK_227, "!forcedome [o[n]|of[f]|protect|normal|purge]"))
+      }
+    } else {
+      //no force domes in zone
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "no capitol force dome(s) detected in zone"))
     }
     true
   }

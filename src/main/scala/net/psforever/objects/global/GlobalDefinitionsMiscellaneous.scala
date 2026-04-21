@@ -956,5 +956,70 @@ object GlobalDefinitionsMiscellaneous {
 
     zipline.Name = "zipline"
     zipline.interference = InterferenceRange(deployables = 5.5f)
+
+    force_dome_amp_physics.Name = "force_dome_amp_physics"
+    force_dome_amp_physics.UseRadius = 142.26f
+    force_dome_amp_physics.PerimeterOffsets = List(
+      Vector3(83.05469f, 114.875f, 0f),
+      Vector3(-90.328125f, 114.875f, 0f),
+      Vector3(-90.328125f, -106.90625f, 0f),
+      Vector3(83.05469f, -106.90625f, 0f)
+    )
+    force_dome_amp_physics.ApplyProtectionTo = List(generator, manned_turret)
+    force_dome_amp_physics.GeneratorOffset = Vector3(0.148f, -21.867f, 17.623f)
+
+    force_dome_comm_physics.Name = "force_dome_comm_physics"
+    force_dome_comm_physics.UseRadius = 121.8149f
+    force_dome_comm_physics.PerimeterOffsets = List(
+      Vector3(35.1875f, -89.859375f, 0f),
+      Vector3(80.96875f, -43.773438f, 0f),
+      Vector3(80.96875f, 91.08594f, 0f),
+      Vector3(-37.296875f, 91.08594f, 0f),
+      Vector3(-83.640625f, 45.601562f, 0f),
+      Vector3(-83.640625f, -89.859375f, 0f)
+    )
+    force_dome_comm_physics.ApplyProtectionTo = List(generator, manned_turret)
+    force_dome_comm_physics.GeneratorOffset = Vector3(-19.481f, -4.25f, 12.649f)
+
+    force_dome_cryo_physics.Name = "force_dome_cryo_physics"
+    force_dome_cryo_physics.UseRadius = 127.9241f //127.7963f
+    force_dome_cryo_physics.PerimeterOffsets = List(
+      Vector3(72.75476f, 39.902725f, 0),
+      Vector3(24.505968f, 88.03482f, 0),
+      Vector3(-74.73426f, 88.03482f, 0),
+      Vector3(-74.73426f, -103.47f, 0),
+      Vector3(72.75476f, -103.47f, 0)
+    )
+    force_dome_cryo_physics.ApplyProtectionTo = List(generator, implant_terminal_mech, manned_turret)
+    force_dome_cryo_physics.GeneratorOffset = Vector3(-20.709f, 5.387f, 19.466f)
+
+    force_dome_dsp_physics.Name = "force_dome_dsp_physics"
+    force_dome_dsp_physics.UseRadius = 175.8838f //175.7081f
+    force_dome_dsp_physics.PerimeterOffsets = List(
+      Vector3(35.03125f, -93.25f, 0f),
+      Vector3(-83.1875f, -93.25f, 0f),
+      Vector3(-83.1875f, 114.515625f, 0f),
+      Vector3(-12.109375f, 188.26562f, 0f),
+      Vector3(130.44531f, 188.26562f, 0f),
+      Vector3(130.44531f, -93.28125f, 0f)
+    )
+    force_dome_dsp_physics.ApplyProtectionTo = List(generator, manned_turret)
+    force_dome_dsp_physics.GeneratorOffset = Vector3(12.698f, 25.15f, 12.541f)
+
+    force_dome_tech_physics.Name = "force_dome_tech_physics"
+    force_dome_tech_physics.UseRadius = 150.1284f
+    force_dome_tech_physics.PerimeterOffsets = List( //todo double-check, e.g., eisa, esamir
+      Vector3(130.14636f, -95.20665f, 0f),
+      Vector3(130.14636f, 34.441734f, 0f),
+      Vector3(103.98575f, 52.58408f, 0f),
+      Vector3(16.405174f, 54.746464f, 0f),
+      Vector3(14.256668f, 107.01521f, 0f),
+      Vector3(-92.08687f, 107.01521f, 0f),
+      Vector3(-92.08687f, -96.176155f, 0f),
+      Vector3(-73.64424f, -114.65837f, 0f),
+      Vector3(102.12191f, -114.65837f, 0f)
+    )
+    force_dome_tech_physics.ApplyProtectionTo = List(generator, manned_turret)
+    force_dome_tech_physics.GeneratorOffset = Vector3(13.001f, -32.612f, 22.59f)
   }
 }

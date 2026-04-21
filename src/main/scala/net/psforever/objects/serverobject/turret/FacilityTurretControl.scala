@@ -5,7 +5,6 @@ import net.psforever.objects.{GlobalDefinitions, Player, Tool}
 import net.psforever.objects.equipment.Ammo
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.damage.Damageable
-import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.serverobject.repair.AmenityAutoRepair
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
@@ -100,7 +99,7 @@ class FacilityTurretControl(turret: FacilityTurret)
                                     seatNumber: Int,
                                     player: Player): Boolean = {
     super.mountTest(obj, seatNumber, player) &&
-      (!TurretObject.isUpgrading || System.currentTimeMillis() - GenericHackables.getTurretUpgradeTime >= 1500L)
+      (!TurretObject.isUpgrading || System.currentTimeMillis() - TurretObject.CheckTurretUpgradeTime >= 1500L)
   }
 
   override protected def tryMount(obj: PlanetSideServerObject with Mountable, seatNumber: Int, player: Player): Boolean = {

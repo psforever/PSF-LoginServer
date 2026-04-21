@@ -10,7 +10,7 @@ import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.serverobject.mount.InteractWithRadiationCloudsSeatedInEntity
+import net.psforever.objects.serverobject.mount.interaction.{InteractWithForceDomeProtectionSeatedInEntity, InteractWithRadiationCloudsSeatedInEntity}
 import net.psforever.objects.serverobject.turret.auto.{AffectedByAutomaticTurretFire, AutomatedTurret}
 import net.psforever.objects.serverobject.turret.{TurretControl, TurretDefinition, WeaponTurret}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
@@ -36,6 +36,7 @@ class TurretDeployable(tdef: TurretDeployableDefinition)
   HackDuration = Array(0, 20, 10, 5)
 
   if (tdef.Seats.nonEmpty) {
+    interaction(new InteractWithForceDomeProtectionSeatedInEntity)
     interaction(new InteractWithTurrets())
     interaction(new InteractWithRadiationCloudsSeatedInEntity(obj = this, range = 100f))
   }

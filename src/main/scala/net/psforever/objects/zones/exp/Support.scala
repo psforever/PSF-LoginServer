@@ -2,7 +2,7 @@
 package net.psforever.objects.zones.exp
 
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.objects.vital.{ExoSuitChange, InGameActivity, RevivingActivity, TerminalUsedActivity, VehicleDismountActivity, VehicleMountActivity, VehicleMountChange, VitalityDefinition}
+import net.psforever.objects.vital.{ExoSuitChange, InGameActivity, RevivingActivity, TerminalUsedActivity, DismountingActivity, MountingActivity, MountChange, VitalityDefinition}
 import net.psforever.types.{ExoSuitType, PlanetSideEmpire}
 import net.psforever.util.{Config, DefinitionUtil, ThreatAssessment, ThreatLevel}
 
@@ -82,7 +82,7 @@ object Support {
     val wornTime: mutable.HashMap[Int, Long] = mutable.HashMap[Int, Long]()
     var currentSuit: Int = initialExosuit.id
     var lastActTime: Long = history.head.time
-    var lastMountAct: Option[VehicleMountChange] = None
+    var lastMountAct: Option[MountChange] = None
     //collect history events that encompass changes to exo-suits and to mounting conditions
     history.collect {
       case suitChange: ExoSuitChange =>
@@ -93,7 +93,7 @@ object Support {
         )
         currentSuit = suitChange.exosuit.id
         lastActTime = suitChange.time
-      case mount: VehicleMountActivity =>
+      case mount: MountingActivity =>
         updateEquippedEntry(
           currentSuit,
           mount.time - lastActTime,
@@ -101,18 +101,18 @@ object Support {
         )
         lastActTime = mount.time
         lastMountAct = Some(mount)
-      case dismount: VehicleDismountActivity
+      case dismount: DismountingActivity
         if dismount.pairedEvent.isEmpty =>
         updateEquippedEntry(
-          dismount.vehicle.Definition.ObjectId,
+          dismount.mount.Definition.ObjectId,
           dismount.time - lastActTime,
           wornTime
         )
         lastActTime = dismount.time
         lastMountAct = None
-      case dismount: VehicleDismountActivity =>
+      case dismount: DismountingActivity =>
         updateEquippedEntry(
-          dismount.vehicle.Definition.ObjectId,
+          dismount.mount.Definition.ObjectId,
           dismount.time - dismount.pairedEvent.get.time,
           wornTime
         )
@@ -125,7 +125,7 @@ object Support {
       .collect { mount =>
         //dying in a vehicle is a reason to care about the last mount activity
         updateEquippedEntry(
-          mount.vehicle.Definition.ObjectId,
+          mount.mount.Definition.ObjectId,
           lastTime - mount.time,
           wornTime
         )

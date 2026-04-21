@@ -1,8 +1,8 @@
 // Copyright (c) 2021 PSForever
-package net.psforever.objects.vehicles
+package net.psforever.objects.vehicles.interaction
 
 import net.psforever.objects.Vehicle
-import net.psforever.objects.serverobject.mount.{InteractWithRadiationCloudsSeatedInEntity, RadiationInMountableInteraction}
+import net.psforever.objects.serverobject.mount.interaction.{InteractWithRadiationCloudsSeatedInEntity, RadiationInMountableInteraction}
 import net.psforever.objects.zones.blockmap.SectorPopulation
 import net.psforever.objects.zones.interaction.InteractsWithZone
 

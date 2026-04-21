@@ -18,6 +18,10 @@ import net.psforever.util.Config
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
+object ResourceSiloControl {
+  final case class DrainMultiplier(multiplier: Float)
+}
+
 /**
   * An `Actor` that handles messages being dispatched to a specific `ResourceSilo` entity.
   *
@@ -30,7 +34,9 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   def FactionObject: FactionAffinity = resourceSilo
 
   private[this] val log               = org.log4s.getLogger
-  var panelAnimationFunc: (ActorRef, Float) => Unit = PanelAnimation
+  private var panelAnimationFunc: (ActorRef, Float) => Unit = PanelAnimation
+  /** the higher the multiplier, the greater the drain */
+  private var drainMultiplier: Float = 1.0f
 
   def receive: Receive = {
     case Service.Startup() =>
@@ -53,6 +59,9 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     checkBehavior
       .orElse(storageBehavior)
       .orElse {
+        case ResourceSiloControl.DrainMultiplier(multiplier) =>
+          drainMultiplier = multiplier
+
         case CommonMessages.Use(_, Some(vehicle: Vehicle))
           if GlobalDefinitions.isBattleFrameVehicle(vehicle.Definition) =>
           val siloFaction = resourceSilo.Faction
@@ -171,7 +180,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     */
   def HandleNtuRequest(sender: ActorRef, min: Float, max: Float): Unit = {
     val originalAmount = resourceSilo.NtuCapacitor
-    UpdateChargeLevel(-min)
+    UpdateChargeLevel(-min * drainMultiplier)
     sender ! Ntu.Grant(resourceSilo, originalAmount - resourceSilo.NtuCapacitor)
   }
 

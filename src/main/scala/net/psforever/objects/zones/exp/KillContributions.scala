@@ -4,8 +4,8 @@ package net.psforever.objects.zones.exp
 import akka.actor.ActorRef
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.avatar.scoring.{Kill, SupportActivity}
-import net.psforever.objects.sourcing.{BuildingSource, PlayerSource, SourceEntry, SourceUniqueness, TurretSource, VehicleSource}
-import net.psforever.objects.vital.{Contribution, HealFromTerminal, InGameActivity, RepairFromTerminal, RevivingActivity, TelepadUseActivity, TerminalUsedActivity, VehicleCargoDismountActivity, VehicleCargoMountActivity, VehicleDismountActivity, VehicleMountActivity}
+import net.psforever.objects.sourcing.{BuildingSource, MountableEntry, PlayerSource, SourceEntry, SourceUniqueness, TurretSource, UniquePlayer, VehicleSource}
+import net.psforever.objects.vital.{Contribution, InGameActivity, RevivingActivity, TelepadUseActivity, TerminalUsedActivity, VehicleCargoDismountActivity, VehicleCargoMountActivity, DismountingActivity, MountingActivity}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.exp.rec.{CombinedHealthAndArmorContributionProcess, MachineRecoveryExperienceContributionProcess}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
@@ -388,13 +388,15 @@ object KillContributions {
           the player should not get credit from being the vehicle owner in matters of transportation
           there are considerations of time and distance traveled before the kill as well
            */
-        case out: VehicleDismountActivity
-          if !out.vehicle.owner.contains(out.player.unique) && out.pairedEvent.nonEmpty => (out.pairedEvent.get, out)
+        case out: DismountingActivity
+          if out.mount.isInstanceOf[VehicleSource] &&
+            !ownershipFromMount(out.mount).contains(out.player.unique) &&
+            out.pairedEvent.nonEmpty => (out.pairedEvent.get, out)
       }
       .collect {
-        case (in: VehicleMountActivity, out: VehicleDismountActivity)
-          if in.vehicle.unique == out.vehicle.unique &&
-            out.vehicle.Faction == out.player.Faction &&
+        case (in: MountingActivity, out: DismountingActivity)
+          if in.mount.unique == out.mount.unique &&
+            out.mount.Faction == out.player.Faction &&
               /*
               considerations of time and distance transported before the kill
                */
@@ -407,7 +409,7 @@ object KillContributions {
                 }
               } || {
                 val sameZone = in.zoneNumber == out.zoneNumber
-                val distanceTransported = Vector3.DistanceSquared(in.vehicle.Position.xy, out.vehicle.Position.xy)
+                val distanceTransported = Vector3.DistanceSquared(in.mount.Position.xy, out.mount.Position.xy)
                 val distanceMoved = {
                   val killLocation = killerOpt.map(_.Position.xy).getOrElse(Vector3.Zero)
                   Vector3.DistanceSquared(killLocation, out.player.Position.xy)
@@ -423,9 +425,9 @@ object KillContributions {
       }
     //apply
     dismountActivity
-      .groupBy { _.vehicle }
-      .collect { case (mount, dismountsFromVehicle) if mount.owner.nonEmpty =>
-        val promotedOwner = PlayerSource(mount.owner.get, mount.Position)
+      .groupBy { _.mount }
+      .collect { case (mount, dismountsFromVehicle) if ownershipFromMount(mount).nonEmpty =>
+        val promotedOwner = PlayerSource(ownershipFromMount(mount).get, mount.Position)
         val size = dismountsFromVehicle.size
         val time = dismountsFromVehicle.maxBy(_.time).time
         List((HotDropKillAssist(mount.Definition.ObjectId, 0), "hotdrop", promotedOwner))
@@ -458,6 +460,24 @@ object KillContributions {
   }
 
   /**
+   * Determine the owner of the entity based on information about the entity.
+   * @param mount mountable entity which can be owned
+   * @return the optional unique referential signature for the owner
+   */
+  private def ownershipFromMount(mount: SourceEntry with MountableEntry): Option[UniquePlayer] = {
+    mount match {
+      case v: VehicleSource =>
+        v.owner
+      case t: TurretSource => t.occupants.headOption.flatMap {
+        case p: PlayerSource => Some(p.unique)
+        case _ => None
+      }
+      case _ =>
+        None
+    }
+  }
+
+  /**
    * Gather and reward specific in-game equipment use activity.<br>
    * na
    * @param kill the in-game event that maintains information about the other player's death
@@ -486,14 +506,14 @@ object KillContributions {
     val dismountActivity = history
       .collect {
         case out: VehicleCargoDismountActivity
-          if out.vehicle.owner.nonEmpty && out.pairedEvent.nonEmpty => (out.pairedEvent.get, out)
+          if ownershipFromMount(out.mount).nonEmpty && out.pairedEvent.nonEmpty => (out.pairedEvent.get, out)
       }
       .collect {
         case (in: VehicleCargoMountActivity, out: VehicleCargoDismountActivity)
-          if in.vehicle.unique == out.vehicle.unique &&
-            out.vehicle.Faction == out.cargo.Faction &&
-            (in.vehicle.Definition == GlobalDefinitions.router || {
-              val distanceTransported = Vector3.DistanceSquared(in.vehicle.Position.xy, out.vehicle.Position.xy)
+          if in.mount.unique == out.mount.unique &&
+            out.mount.Faction == out.cargo.Faction &&
+            (in.mount.Definition == GlobalDefinitions.router || {
+              val distanceTransported = Vector3.DistanceSquared(in.mount.Position.xy, out.mount.Position.xy)
               val distanceMoved = {
                 val killLocation = kill.info.adversarial
                   .collect { adversarial => adversarial.attacker.Position.xy }
@@ -513,7 +533,7 @@ object KillContributions {
         val promotedOwner = PlayerSource(mount.owner.get, mount.Position)
         val mountId = mount.Definition.ObjectId
         dismountsFromVehicle
-          .groupBy(_.vehicle)
+          .groupBy(_.mount)
           .map { case (vehicle, events) =>
             val size = events.size
             val time = events.maxBy(_.time).time
@@ -673,8 +693,6 @@ object KillContributions {
                                             ): Unit = {
     history
       .collect {
-        case h: HealFromTerminal => (h.term, h)
-        case r: RepairFromTerminal => (r.term, r)
         case t: TerminalUsedActivity => (t.terminal, t)
       }
       .groupBy(_._1.unique)

@@ -9,14 +9,17 @@ import net.psforever.objects.avatar.{Avatar, Implant}
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.definition.{BasicDefinition, KitDefinition, SpecialExoSuitDefinition}
 import net.psforever.objects.serverobject.containable.Containable
+import net.psforever.objects.serverobject.dome.ForceDomePhysics
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.vehicles.Utility
 import net.psforever.objects.zones.ZoneProjectile
 import net.psforever.packet.PlanetSideGamePacket
-import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitMembershipRequest, OutfitMembershipResponse, OutfitRequest, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
+import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitMembershipRequest, OutfitMembershipResponse, OutfitRequest, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.AccountPersistenceService
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.types.{ExoSuitType, Vector3}
+
+import scala.concurrent.duration.DurationInt
 
 object GeneralLogic {
   def apply(ops: GeneralOperations): GeneralLogic = {
@@ -283,7 +286,34 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     }
   }
 
-  def handleGenericCollision(pkt: GenericCollisionMsg): Unit = { /* intentionally blank */ }
+  def handleGenericCollision(pkt: GenericCollisionMsg): Unit = {
+    player.BailProtection = false
+    val GenericCollisionMsg(ctype, p, _, _, pv, t, _, _, _, _, _, _) = pkt
+    if (pv.z * pv.z >= (pv.x * pv.x + pv.y * pv.y) * 0.5f) {
+      if (ops.heightTrend) {
+        ops.heightHistory = ops.heightLast
+      }
+      else {
+        ops.heightLast = ops.heightHistory
+      }
+    }
+    (ctype, sessionLogic.validObject(p, decorator = "GenericCollision/Primary")) match {
+      case (CollisionIs.BetweenThings, Some(v: Vehicle)) =>
+        v.Actor ! Vehicle.Deconstruct(Some(1 millisecond))
+        continent.GUID(t) match {
+          case Some(_: ForceDomePhysics) =>
+            player.Actor ! Player.Die()
+          case _ => ()
+        }
+      case (CollisionIs.BetweenThings, Some(_: Player)) =>
+        continent.GUID(t) match {
+          case Some(_: ForceDomePhysics) =>
+            player.Actor ! Player.Die()
+          case _ => ()
+        }
+      case _ => ()
+    }
+  }
 
   def handleAvatarFirstTimeEvent(pkt: AvatarFirstTimeEventMessage): Unit = { /* intentionally blank */ }
 

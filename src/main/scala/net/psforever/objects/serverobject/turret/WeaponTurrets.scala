@@ -3,7 +3,6 @@ package net.psforever.objects.serverobject.turret
 
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ce.Deployable
-import net.psforever.objects.serverobject.hackable.GenericHackables.updateTurretUpgradeTime
 import net.psforever.objects.{Player, Tool, TurretDeployable}
 import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, InventoryStateMessage}
 import net.psforever.services.Service
@@ -83,7 +82,7 @@ object WeaponTurrets {
     } else if (turret.Destroyed) {
       (HackState.Cancelled, 0)
     } else {
-      updateTurretUpgradeTime()
+      turret.UpdateTurretUpgradeTime()
       (HackState.Ongoing, progress.toInt)
     }
     turret.Zone.AvatarEvents ! AvatarServiceMessage(

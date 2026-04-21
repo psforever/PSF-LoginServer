@@ -33,7 +33,7 @@ final case class VehicleSource(
                                 occupants: List[SourceEntry],
                                 Modifiers: ResistanceProfile,
                                 unique: UniqueVehicle
-                              ) extends SourceWithHealthEntry with SourceWithShieldsEntry {
+                              ) extends SourceWithHealthEntry with SourceWithShieldsEntry with MountableEntry {
   def Name: String = SourceEntry.NameFormat(Definition.Name)
   def Health: Int  = health
   def Shields: Int = shields

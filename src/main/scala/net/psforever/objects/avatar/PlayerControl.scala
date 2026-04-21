@@ -805,6 +805,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     }
   }
 
+  override protected def canChangeVulnerability(state: Damageable.PersonalVulnerability): Boolean = {
+    state match {
+      case Damageable.MakeInvulnerable =>
+        player.LastDamage.exists { d => System.currentTimeMillis() - d.interaction.hitTime > 2500L }
+      case _ =>
+        true   
+    }
+  }
+      
   /**
   Prevent a player from deploying a telepad that belongs to a Router of a different faction
    */

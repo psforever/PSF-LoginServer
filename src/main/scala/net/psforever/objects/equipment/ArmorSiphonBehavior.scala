@@ -43,7 +43,7 @@ object ArmorSiphonBehavior {
             val after = item.Discharge()
             if (before > after) {
               v.Actor ! ArmorSiphonBehavior.Recharge(iguid)
-              PerformDamage(
+              PerformDamageIfVulnerable(
                 obj,
                 DamageInteraction(
                   VehicleSource(obj),

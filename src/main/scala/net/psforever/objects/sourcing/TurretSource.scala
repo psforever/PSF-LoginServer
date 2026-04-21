@@ -18,7 +18,7 @@ final case class TurretSource(
                                Orientation: Vector3,
                                occupants: List[SourceEntry],
                                unique: SourceUniqueness
-                             ) extends SourceWithHealthEntry with SourceWithShieldsEntry {
+                             ) extends SourceWithHealthEntry with SourceWithShieldsEntry with MountableEntry {
   def Name: String = SourceEntry.NameFormat(Definition.Descriptor)
   def Health: Int = health
   def Shields: Int = shields

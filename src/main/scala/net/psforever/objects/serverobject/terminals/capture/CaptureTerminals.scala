@@ -1,13 +1,18 @@
+// Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject.terminals.capture
 
 import net.psforever.objects.Player
-import net.psforever.objects.serverobject.CommonMessages
+import net.psforever.objects.serverobject.hackable.GenericHackables
+import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
+import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.types.PlanetSideEmpire
 
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-object CaptureTerminals {import scala.concurrent.duration._
+object CaptureTerminals {
   private val log = org.log4s.getLogger("CaptureTerminals")
 
   /**
@@ -54,5 +59,48 @@ object CaptureTerminals {import scala.concurrent.duration._
         case Failure(_) =>
           log.warn(s"Hack message failed on target guid: ${target.GUID}")
       }
+  }
+
+  /**
+   * Check if the state of connected facilities has changed since the hack progress began. It accounts for a friendly facility
+   * on the other side of a warpgate as well in case there are no friendly facilities in the same zone
+   * @param target the `Hackable` object that has been hacked
+   * @param hacker the player performing the action
+   * @return `true`, if the hack should be ended; `false`, otherwise
+   */
+  def EndHackProgress(target: PlanetSideServerObject, hacker: Player): Boolean = {
+    val building = target.asInstanceOf[CaptureTerminal].Owner.asInstanceOf[Building]
+    val hackerFaction = hacker.Faction
+    if (GenericHackables.ForceDomeProtectsFromHacking(target, hacker)) {
+      true
+    } else if (building.Faction == PlanetSideEmpire.NEUTRAL ||
+      building.BuildingType == StructureType.Tower ||
+      building.Faction == hackerFaction) {
+      false
+    } else {
+      val stopHackingCount = building.Neighbours match {
+        case Some(neighbors) =>
+          neighbors.count {
+            case wg: WarpGate if wg.Faction == hackerFaction =>
+              true
+            case wg: WarpGate =>
+              val friendlyBaseOpt = for {
+                otherWg <- wg.Neighbours.flatMap(_.find(_.isInstanceOf[WarpGate]))
+                friendly <- otherWg.Neighbours.flatMap(_.collectFirst { case b: Building if !b.isInstanceOf[WarpGate] => b })
+              } yield friendly
+              friendlyBaseOpt.exists { fb =>
+                fb.Faction == hackerFaction &&
+                  !fb.CaptureTerminalIsHacked &&
+                  fb.NtuLevel > 0
+              }
+            case b =>
+              b.Faction == hackerFaction &&
+                !b.CaptureTerminalIsHacked &&
+                b.NtuLevel > 0
+          }
+        case None => 0
+      }
+      stopHackingCount == 0
+    }
   }
 }

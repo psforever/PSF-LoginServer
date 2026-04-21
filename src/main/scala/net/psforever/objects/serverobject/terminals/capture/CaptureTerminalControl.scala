@@ -29,7 +29,7 @@ class CaptureTerminalControl(terminal: CaptureTerminal)
             sender() ! CommonMessages.Progress(
               GenericHackables.GetHackSpeed(player, terminal),
               CaptureTerminals.FinishHackingCaptureConsole(terminal, player, unk = -1),
-              GenericHackables.HackingTickAction(HackState1.Unk1, player, terminal, item.GUID)
+              GenericHackables.HackingTickAction(HackState1.Unk1, player, terminal, item.GUID, CaptureTerminals.EndHackProgress)
             )
           }
 

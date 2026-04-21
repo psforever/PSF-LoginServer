@@ -20,6 +20,7 @@ import net.psforever.services.Service
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types._
 
+import scala.annotation.unused
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
@@ -170,8 +171,21 @@ class BfrControl(vehicle: Vehicle)
     specialArmWeaponEquipManagement(item, slot, handiness)
   }
 
-  override def dismountCleanup(seatBeingDismounted: Int, player: Player): Unit = {
-    super.dismountCleanup(seatBeingDismounted, player)
+  override def mountActionResponse(user: Player, @unused mountPoint: Int, seatNumber: Int): Unit = {
+    super.mountActionResponse(user, mountPoint, seatNumber)
+    if (vehicle.Seats.values.exists(_.isOccupied)) {
+      vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator) match {
+        case Some(subsys)
+          if !subsys.Enabled && vehicle.Shields > 0 && subsys.Enabled_=(state = true) =>
+          //if the shield is damaged, it does not turn on until the damaged is cleared
+          vehicleSubsystemMessages(subsys.changedMessages(vehicle))
+        case _ => ()
+      }
+    }
+  }
+
+  override def dismountActionResponse(user: Player, seatBeingDismounted: Int): Unit = {
+    super.dismountActionResponse(user, seatBeingDismounted)
     if (!vehicle.Seats.values.exists(_.isOccupied)) {
       vehicle
         .Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator) match {
@@ -191,19 +205,6 @@ class BfrControl(vehicle: Vehicle)
                 }
               )
             }
-        case _ => ()
-      }
-    }
-  }
-
-  override def mountCleanup(mount_point: Int, user: Player): Unit = {
-    super.mountCleanup(mount_point, user)
-    if (vehicle.Seats.values.exists(_.isOccupied)) {
-      vehicle.Subsystems(VehicleSubsystemEntry.BattleframeShieldGenerator) match {
-        case Some(subsys)
-          if !subsys.Enabled && vehicle.Shields > 0 && subsys.Enabled_=(state = true) =>
-          //if the shield is damaged, it does not turn on until the damaged is cleared
-          vehicleSubsystemMessages(subsys.changedMessages(vehicle))
         case _ => ()
       }
     }
@@ -455,7 +456,7 @@ class BfrControl(vehicle: Vehicle)
     }
   }
 
-  def specialArmWeaponEquipManagement(item: Equipment, slot: Int, handiness: equipment.Hand): Unit = {
+  def specialArmWeaponEquipManagement(item: Equipment, slot: Int, @unused handiness: equipment.Hand): Unit = {
     if (item.Size == EquipmentSize.BFRArmWeapon && vehicle.VisibleSlots.contains(slot)) {
       val weapons = vehicle.Weapons
       //budget logic: the arm weapons are "next to each other" index-wise

@@ -1130,7 +1130,7 @@ class ZoningOperations(
           case _ => ()
         }
         // capitol force dome state
-        if (building.IsCapitol && building.ForceDomeActive) {
+        if (building.IsCapitol && building.ForceDome.exists(_.Energized)) {
           sendResponse(GenericObjectActionMessage(guid, 13))
         }
         // amenities
@@ -2007,7 +2007,7 @@ class ZoningOperations(
     /** Upstream message counter<br>
      * Checks for server acknowledgement of the following messages in the following conditions:<br>
      * `PlayerStateMessageUpstream` (infantry)<br>
-     * `VehicleStateMessage` (driver mount only)<br>
+     * `VehicleStateMessage` and `FrameVehicleStateMessage` (driver mount)<br>
      * `ChildObjectStateMessage` (any gunner mount that is not the driver)<br>
      * `KeepAliveMessage` (any passenger mount that is not the driver)<br>
      * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second

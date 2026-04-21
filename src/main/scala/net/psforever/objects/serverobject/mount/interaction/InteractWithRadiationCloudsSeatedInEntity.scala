@@ -1,7 +1,8 @@
 // Copyright (c) 2024 PSForever
-package net.psforever.objects.serverobject.mount
+package net.psforever.objects.serverobject.mount.interaction
 
 import net.psforever.objects.ballistics.{Projectile, ProjectileQuality}
+import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.sourcing.SourceEntry
 import net.psforever.objects.vital.Vitality
 import net.psforever.objects.vital.base.DamageResolution

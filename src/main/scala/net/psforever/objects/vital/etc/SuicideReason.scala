@@ -29,7 +29,7 @@ final case class SuicideReason()
   eventually, they stop logging in.
 
   Anyway, this has nothing to do with that.
-  Most playes probably just want to jump to the next base over.
+  Most players probably just want to jump to the next base over.
   */
   def source: DamageProperties = SuicideReason.damageProperties
 

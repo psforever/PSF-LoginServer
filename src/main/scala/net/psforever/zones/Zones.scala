@@ -11,6 +11,7 @@ import io.circe.parser._
 import net.psforever.objects.{GlobalDefinitions, LocalLockerItem, LocalProjectile}
 import net.psforever.objects.definition.BasicDefinition
 import net.psforever.objects.guid.selector.{NumberSelector, RandomSelector, SpecificSelector}
+import net.psforever.objects.serverobject.dome.{ForceDomeDefinition, ForceDomePhysics}
 import net.psforever.objects.serverobject.doors.{Door, DoorDefinition, SpawnTubeDoor}
 import net.psforever.objects.serverobject.generator.Generator
 import net.psforever.objects.serverobject.llu.{CaptureFlagSocket, CaptureFlagSocketDefinition}
@@ -100,17 +101,9 @@ object Zones {
     "PathPoints"
   )(ZipLinePath.apply)
 
-  // monolith, hst, warpgate are ignored for now as the scala code isn't ready to handle them.
   // BFR terminals/doors are ignored as top level elements as sanctuaries have them with no associated building. (repair_silo also has this problem, but currently is ignored in the AmenityExtrator project)
   // Force domes have GUIDs but are currently classed as separate entities. The dome is controlled by sending GOAM 44 / 48 / 52 to the building GUID
-  private val ignoredEntities = Seq(
-    "monolith",
-    "force_dome_dsp_physics",
-    "force_dome_comm_physics",
-    "force_dome_cryo_physics",
-    "force_dome_tech_physics",
-    "force_dome_amp_physics"
-  )
+  private val ignoredEntities = Seq("monolith")
 
   private val towerTypes    = Seq("tower_a", "tower_b", "tower_c")
   private val facilityTypes = Seq("amp_station", "cryo_facility", "comm_station", "comm_station_dsp", "tech_plant")
@@ -128,6 +121,13 @@ object Zones {
     "vt_dropship",
     "vt_spawn",
     "vt_vehicle"
+  )
+  private val forceDomeTypes = Seq(
+    "force_dome_dsp_physics",
+    "force_dome_comm_physics",
+    "force_dome_cryo_physics",
+    "force_dome_tech_physics",
+    "force_dome_amp_physics"
   )
   private val cavernBuildingTypes = Seq(
     "ceiling_bldg_a",
@@ -382,11 +382,27 @@ object Zones {
 
           createObjects(
             zoneMap,
-            zoneObjects.filterNot { _.objectType.startsWith("bfr_") },
+            zoneObjects.filterNot { obj => obj.objectType.startsWith("bfr_") || forceDomeTypes.contains(obj.objectType) },
             ownerGuid = 0,
             None,
             turretWeaponGuid
           )
+          //force dome physics objects have no owner
+          //for our benefit, we can attach them as amenities to the zone's capitol facility
+          zoneObjects
+            .find { obj => forceDomeTypes.contains(obj.objectType) }
+            .foreach { forceDome =>
+              structures
+                .find { structure => Building.Capitols.contains(structure.objectName) }
+                .foreach { structure =>
+                  val definition = DefinitionUtil.fromString(forceDome.objectType).asInstanceOf[ForceDomeDefinition]
+                  zoneMap.addLocalObject(
+                    forceDome.guid,
+                    ForceDomePhysics.Constructor(definition),
+                    owningBuildingGuid = structure.guid
+                  )
+                }
+            }
 
           lattice.asObject.get(mapid).foreach { obj =>
             obj.asArray.get.foreach { entry =>
@@ -716,7 +732,6 @@ object Zones {
 
         case _ => ()
       }
-
     }
   }
 

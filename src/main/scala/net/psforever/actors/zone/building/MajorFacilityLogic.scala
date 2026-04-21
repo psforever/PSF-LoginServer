@@ -6,7 +6,10 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.{BuildingActor, BuildingControlDetails, ZoneActor}
+import net.psforever.objects.serverobject.damage.Damageable
+import net.psforever.objects.serverobject.dome.ForceDomePhysics
 import net.psforever.objects.serverobject.generator.{Generator, GeneratorControl}
+import net.psforever.objects.serverobject.resourcesilo.ResourceSiloControl
 import net.psforever.objects.serverobject.structures.{Amenity, Building}
 import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, CaptureTerminalAware, CaptureTerminalAwareBehavior}
 import net.psforever.objects.sourcing.PlayerSource
@@ -15,7 +18,7 @@ import net.psforever.services.{InterstellarClusterService, Service}
 import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
 import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState}
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 /**
   * A package class that conveys the important information for handling facility updates.
@@ -54,99 +57,6 @@ case object MajorFacilityLogic
                         details: BuildingControlDetails
                       ): BuildingWrapper = {
     MajorFacilityWrapper(building, context, details.galaxyService, details.interstellarCluster)
-  }
-
-  /**
-    * Evaluate the conditions of the building
-    * and determine if its capitol force dome state should be updated
-    * to reflect the actual conditions of the base or its surrounding bases.
-    * If this building is considered a subcapitol facility to the zone's actual capitol facility,
-    * and has the capitol force dome has a dependency upon it,
-    * pass a message onto that facility that it should check its own state alignment.
-    * @param mapUpdateOnChange if `true`, dispatch a `MapUpdate` message for this building
-    */
-  private def alignForceDomeStatus(details: BuildingWrapper, mapUpdateOnChange: Boolean = true): Behavior[Command] = {
-    val building = details.building
-    checkForceDomeStatus(building) match {
-      case Some(updatedStatus) if updatedStatus != building.ForceDomeActive =>
-        updateForceDomeStatus(details, updatedStatus, mapUpdateOnChange)
-      case _ => ;
-    }
-    Behaviors.same
-  }
-
-  /**
-    * Dispatch a message to update the state of the clients with the server state of the capitol force dome.
-    * @param updatedStatus the new capitol force dome status
-    * @param mapUpdateOnChange if `true`, dispatch a `MapUpdate` message for this building
-    */
-  private def updateForceDomeStatus(
-                                     details: BuildingWrapper,
-                                     updatedStatus: Boolean,
-                                     mapUpdateOnChange: Boolean
-                                   ): Unit = {
-    val building = details.building
-    val zone = building.Zone
-    building.ForceDomeActive = updatedStatus
-    zone.LocalEvents ! LocalServiceMessage(
-      zone.id,
-      LocalAction.UpdateForceDomeStatus(Service.defaultPlayerGUID, building.GUID, updatedStatus)
-    )
-    if (mapUpdateOnChange) {
-      details.context.self ! BuildingActor.MapUpdate()
-    }
-  }
-
-  /**
-    * The natural conditions of a facility that is not eligible for its capitol force dome to be expanded.
-    * The only test not employed is whether or not the target building is a capitol.
-    * Ommission of this condition makes this test capable of evaluating subcapitol eligibility
-    * for capitol force dome expansion.
-    * @param building the target building
-    * @return `true`, if the conditions for capitol force dome are not met;
-    *        `false`, otherwise
-    */
-  private def invalidBuildingCapitolForceDomeConditions(building: Building): Boolean = {
-    building.Faction == PlanetSideEmpire.NEUTRAL ||
-    building.NtuLevel == 0 ||
-    (building.Generator match {
-      case Some(o) => o.Condition == PlanetSideGeneratorState.Destroyed
-      case _ => false
-    })
-  }
-
-  /**
-    * If this building is a capitol major facility,
-    * use the faction affinity, the generator status, and the resource silo's capacitance level
-    * to determine if the capitol force dome should be active.
-    * @param building the building being evaluated
-    * @return the condition of the capitol force dome;
-    *         `None`, if the facility is not a capitol building;
-    *         `Some(true|false)` to indicate the state of the force dome
-    */
-  def checkForceDomeStatus(building: Building): Option[Boolean] = {
-    if (building.IsCapitol) {
-      val originalStatus = building.ForceDomeActive
-      val faction = building.Faction
-      val updatedStatus = if (invalidBuildingCapitolForceDomeConditions(building)) {
-        false
-      } else {
-        val ownedSubCapitols = building.Neighbours(faction) match {
-          case Some(buildings: Set[Building]) => buildings.count { b => !invalidBuildingCapitolForceDomeConditions(b) }
-          case None                           => 0
-        }
-        if (originalStatus && ownedSubCapitols <= 1) {
-          false
-        } else if (!originalStatus && ownedSubCapitols > 1) {
-          true
-        } else {
-          originalStatus
-        }
-      }
-      Some(updatedStatus)
-    } else {
-      None
-    }
   }
 
   /**
@@ -197,6 +107,18 @@ case object MajorFacilityLogic
           )
         }
       // No map update needed - will be sent by `HackCaptureActor` when required
+      case dome: ForceDomePhysics =>
+        val building = details.building
+        // The protection of the force dome modifies the NTU drain rate
+        val multiplier: Float = calculateNtuDrainMultiplierFrom(details.building, domeOpt = Some(dome))
+        building.NtuSource.foreach(_.Actor ! ResourceSiloControl.DrainMultiplier(multiplier))
+        // The protection of the force dome marks the generator (and some other amenities) as being invulnerable
+        val msg = Damageable.Vulnerability(dome.Perimeter.nonEmpty)
+        val applicable = dome.Definition.ApplyProtectionTo
+        building
+          .Amenities
+          .filter(amenity => applicable.contains(amenity.Definition))
+          .foreach { _.Actor ! msg }
       case _ =>
         details.galaxyService ! GalaxyServiceMessage(GalaxyAction.MapUpdate(details.building.infoUpdateMessage()))
     }
@@ -267,7 +189,7 @@ case object MajorFacilityLogic
   }
 
   /**
-    * The generator is an extrememly important amenity of a major facility
+    * The generator is an extremely important amenity of a major facility
     * that is given its own status indicators that are apparent from the continental map
     * and warning messages that are displayed to everyone who might have an interest in the that particular generator.
     * @param details package class that conveys the important information
@@ -314,7 +236,6 @@ case object MajorFacilityLogic
         true
       case Some(GeneratorControl.Event.Offline) =>
         powerLost(details)
-        alignForceDomeStatus(details, mapUpdateOnChange = false)
         val zone = building.Zone
         val msg = AvatarAction.PlanetsideAttributeToAll(building.GUID, 46, 2)
         building.PlayersInSOI.foreach { player =>
@@ -326,7 +247,6 @@ case object MajorFacilityLogic
       case Some(GeneratorControl.Event.Online) =>
         // Power restored. Reactor Online. Sensors Online. Weapons Online. All systems nominal.
         powerRestored(details)
-        alignForceDomeStatus(details, mapUpdateOnChange = false)
         val events = zone.AvatarEvents
         val guid = building.GUID
         val msg1 = AvatarAction.PlanetsideAttributeToAll(guid, 46, 0)
@@ -348,16 +268,17 @@ case object MajorFacilityLogic
                   ): Behavior[Command] = {
     if (details.asInstanceOf[MajorFacilityWrapper].hasNtuSupply) {
       BuildingActor.setFactionTo(details, faction, log)
-      alignForceDomeStatus(details, mapUpdateOnChange = false)
       val building = details.building
-      building.Neighbours.getOrElse(Nil).foreach { _.Actor ! BuildingActor.AlertToFactionChange(building) }
+      val alertMsg = BuildingActor.AlertToFactionChange(building)
+      building.Neighbours.getOrElse(Nil).foreach { _.Actor ! alertMsg }
+      building.Amenities.foreach { _.Actor ! alertMsg }
     }
     Behaviors.same
   }
 
   def alertToFactionChange(details: BuildingWrapper, building: Building): Behavior[Command] = {
-    alignForceDomeStatus(details)
     val bldg = details.building
+    bldg.Amenities.foreach { _.Actor ! BuildingActor.AlertToFactionChange(building) } //todo map update?
     //the presence of the flag means that we are involved in an ongoing llu hack
     (bldg.GetFlag, bldg.CaptureTerminal) match {
       case (Some(flag), Some(terminal)) if (flag.Target eq building) && flag.Faction != building.Faction =>
@@ -438,5 +359,36 @@ case object MajorFacilityLogic
       case _ =>
     }
     Behaviors.same
+  }
+
+  private def calculateNtuDrainMultiplierFrom(
+                                               building: Building,
+                                               domeOpt: Option[ForceDomePhysics] = None,
+                                               mainTerminalOpt: Option[Any] = None
+                                             ): Float = {
+    val domeParam = domeOpt.orElse {
+      building.Amenities.find(_.isInstanceOf[ForceDomePhysics]) match {
+        case Some(d: ForceDomePhysics) => Some(d)
+        case _ => None
+      }
+    }
+    val mainTerminalParam = mainTerminalOpt.orElse(None) //todo main terminal and viruses
+    getNtuDrainMultiplierFromAmenities(domeParam, mainTerminalParam)
+  }
+
+  private def getNtuDrainMultiplierFromAmenities(
+                                                  dome: Option[ForceDomePhysics],
+                                                  mainTerminal: Option[Any]
+                                                ): Float = {
+    // The force dome being expanded means all repairs are essentially for free
+    dome
+      .flatMap {
+        case d if d.Energized => Some(0f)
+        case _ => None
+      }
+      .orElse {
+        mainTerminal.flatMap { _ => Some(2f) } //todo main terminal and viruses
+      }
+      .getOrElse(1f)
   }
 }

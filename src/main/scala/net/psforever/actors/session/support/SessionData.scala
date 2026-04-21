@@ -486,7 +486,14 @@ class SessionData(
     zoning.spawn.interimUngunnedVehicle = None
     persist()
     if (player.HasGUID) {
+      zoning.spawn.tryQueuedActivity(player.Velocity)
       turnCounterFunc(player.GUID)
+      continent
+        .GUID(player.VehicleSeated)
+        .collect { case v: PlanetSideGameObject with Mountable =>
+          VehicleOperations.updateMountableZoneInteractionFromEarliestSeat(v, player)
+        }
+      squad.updateSquad()
     } else {
       turnCounterFunc(PlanetSideGUID(0))
     }

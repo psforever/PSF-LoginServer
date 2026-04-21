@@ -122,7 +122,7 @@ class GeneratorControl(gen: Generator)
           queuedExplosion = Default.Cancellable
           imminentExplosion = false
           //hate on everything nearby
-          Zone.serverSideDamage(gen.Zone, gen, Zone.explosionDamage(gen.LastDamage), explosionFunc)
+          Zone.serverSideDamage(gen.Zone, gen, Zone.explosionDamage(gen.LastDamage), explosionFunc, Zone.findAllTargets)
 
         case GeneratorControl.Restored() =>
           gen.ClearHistory()

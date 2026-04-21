@@ -9,11 +9,13 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.mount.{Mountable, MountableBehavior}
 import net.psforever.objects.serverobject.turret.{MountableTurret, WeaponTurrets}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
-import net.psforever.objects.sourcing.SourceEntry
-import net.psforever.objects.vital.{InGameActivity, ShieldCharge}
+import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, TurretSource}
+import net.psforever.objects.vital.{DismountingActivity, InGameActivity, MountingActivity, ShieldCharge}
 import net.psforever.packet.game.HackState1
 import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
 import net.psforever.types.PlanetSideGUID
+
+import scala.annotation.unused
 
 /** definition */
 
@@ -69,6 +71,21 @@ class FieldTurretControl(turret: TurretDeployable)
                                     seatNumber: Int,
                                     player: Player
                                   ): Boolean = MountableTurret.MountTest(TurretObject, player)
+
+  override def mountActionResponse(user: Player, @unused mountPoint: Int, seatNumber: Int): Unit = {
+    super.mountActionResponse(user, mountPoint, seatNumber)
+    if (turret.PassengerInSeat(user).contains(0)) {
+      val vsrc = TurretSource(turret)
+      user.LogActivity(MountingActivity(vsrc, PlayerSource.inSeat(user, vsrc, seatNumber = 0), turret.Zone.Number))
+    }
+  }
+
+  override def dismountActionResponse(user: Player, seatBeingDismounted: Int): Unit = {
+    super.dismountActionResponse(user, seatBeingDismounted)
+    if (!turret.Seats(seatBeingDismounted).isOccupied) { //this seat really was vacated
+      user.LogActivity(DismountingActivity(TurretSource(turret), PlayerSource(user), turret.Zone.Number))
+    }
+  }
 
   //make certain vehicles don't charge shields too quickly
   private def canChargeShields: Boolean = {

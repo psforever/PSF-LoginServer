@@ -15,6 +15,7 @@ import net.psforever.packet.game.{Additional3, BuildingInfoUpdateMessage, Densit
 import net.psforever.types._
 import scalax.collection.{Graph, GraphEdge}
 import akka.actor.typed.scaladsl.adapter._
+import net.psforever.objects.serverobject.dome.ForceDomePhysics
 import net.psforever.objects.serverobject.llu.{CaptureFlag, CaptureFlagSocket}
 import net.psforever.objects.serverobject.structures.participation.{MajorFacilityHackParticipation, NoParticipation, ParticipationLogic, TowerHackParticipation}
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
@@ -32,7 +33,6 @@ class Building(
 
   private var faction: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
   private var playersInSOI: List[Player]      = List.empty
-  private var forceDomeActive: Boolean        = false
   private var participationFunc: ParticipationLogic = NoParticipation
   var virusId: Long                           = 8 // 8 default = no virus
   var virusInstalledBy: Option[Int]           = None // faction id
@@ -58,11 +58,6 @@ class Building(
       case Some(buildings: Set[Building]) => buildings.exists(x => Building.Capitols.contains(x.name))
       case None                           => false
     }
-  }
-  def ForceDomeActive: Boolean = forceDomeActive
-  def ForceDomeActive_=(activated: Boolean): Boolean = {
-    forceDomeActive = activated
-    forceDomeActive
   }
 
   def Faction: PlanetSideEmpire.Value = faction
@@ -105,6 +100,13 @@ class Building(
     AllNeighbours collect {
       case wg: WarpGate if wg.Active => wg
       case b                         => b
+    }
+  }
+
+  def ForceDome: Option[ForceDomePhysics] = {
+    Amenities.find(_.isInstanceOf[ForceDomePhysics]) match {
+      case Some(out: ForceDomePhysics) => Some(out)
+      case _                           => None
     }
   }
 
@@ -223,6 +225,7 @@ class Building(
     else {
       (virusId.toInt, Some(Additional3(inform_defenders=true, virusInstalledBy.getOrElse(3))))
     }
+    val forceDomeActive = ForceDome.exists(_.Energized)
 
     BuildingInfoUpdateMessage(
       Zone.Number,

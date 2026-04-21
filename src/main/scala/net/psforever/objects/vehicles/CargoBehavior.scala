@@ -19,12 +19,12 @@ trait CargoBehavior {
     val zone = obj.Zone
     zone.GUID(isMounting) match {
       case Some(v : Vehicle) => v.Actor ! CargoBehavior.EndCargoMounting(obj.GUID)
-      case _ => ;
+      case _ => ()
     }
     isMounting = None
     zone.GUID(isDismounting) match {
       case Some(v: Vehicle) => v.Actor ! CargoBehavior.EndCargoDismounting(obj.GUID)
-      case _ => ;
+      case _ => ()
     }
     isDismounting = None
     startCargoDismountingNoCleanup(bailed = false)
@@ -38,14 +38,10 @@ trait CargoBehavior {
       startCargoDismounting(bailed)
 
     case CargoBehavior.EndCargoMounting(carrier_guid) =>
-      if (isMounting.contains(carrier_guid)) {
-        isMounting = None
-      }
+      endCargoMounting(carrier_guid)
 
     case CargoBehavior.EndCargoDismounting(carrier_guid) =>
-      if (isDismounting.contains(carrier_guid)) {
-        isDismounting = None
-      }
+      endCargoDismounting(carrier_guid)
   }
 
   def startCargoMounting(carrier_guid: PlanetSideGUID, mountPoint: Int): Unit = {
@@ -83,6 +79,18 @@ trait CargoBehavior {
         true
       }
       .nonEmpty
+  }
+
+  def endCargoMounting(carrierGuid: PlanetSideGUID): Unit = {
+    if (isMounting.contains(carrierGuid)) {
+      isMounting = None
+    }
+  }
+
+  def endCargoDismounting(carrierGuid: PlanetSideGUID): Unit = {
+    if (isDismounting.contains(carrierGuid)) {
+      isDismounting = None
+    }
   }
 }
 

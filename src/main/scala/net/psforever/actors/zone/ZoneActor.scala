@@ -10,7 +10,6 @@ import net.psforever.objects.zones.blockmap.{BlockMapEntity, SectorGroup}
 import net.psforever.objects.{ConstructionItem, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, PlanetSideGeneratorState, Vector3}
 import akka.actor.typed.scaladsl.adapter._
-import net.psforever.actors.zone.building.MajorFacilityLogic
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAwareBehavior
@@ -110,7 +109,6 @@ class ZoneActor(
             //warp gates are controlled by game logic and are better off not restored via the database
           case Some(b) =>
             if ((b.Faction = PlanetSideEmpire(building.factionId)) != PlanetSideEmpire.NEUTRAL) {
-              b.ForceDomeActive = MajorFacilityLogic.checkForceDomeStatus(b).getOrElse(false)
               b.Neighbours.getOrElse(Nil).foreach(_.Actor ! BuildingActor.AlertToFactionChange(b))
               b.CaptureTerminal.collect { terminal =>
                 val msg = CaptureTerminalAwareBehavior.TerminalStatusChanged(terminal, isResecured = true)

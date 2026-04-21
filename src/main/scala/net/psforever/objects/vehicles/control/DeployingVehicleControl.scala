@@ -5,7 +5,6 @@ import akka.actor.ActorRef
 import net.psforever.objects._
 import net.psforever.objects.serverobject.deploy.Deployment.DeploymentObject
 import net.psforever.objects.serverobject.deploy.{Deployment, DeploymentBehavior}
-import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.types._
 
 /**
@@ -36,13 +35,10 @@ class DeployingVehicleControl(vehicle: Vehicle)
     */
   override def commonDisabledBehavior : Receive =
     super.commonDisabledBehavior
+      .orElse(dismountBehavior)
       .orElse {
-        case msg : Deployment.TryUndeploy =>
+        case msg: Deployment.TryUndeploy =>
           deployBehavior.apply(msg)
-
-        case msg @ Mountable.TryDismount(player, seat_num, _) =>
-          dismountBehavior.apply(msg)
-          dismountCleanup(seat_num, player)
       }
 
   /**

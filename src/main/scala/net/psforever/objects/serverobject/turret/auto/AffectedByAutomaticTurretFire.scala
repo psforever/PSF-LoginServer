@@ -60,7 +60,7 @@ trait AffectedByAutomaticTurretFire extends Damageable {
         ProjectileReason(DamageResolution.Hit, modProjectile, target.DamageModel),
         correctedTargetPosition
       )
-      PerformDamage(target, resolvedProjectile.calculate())
+      PerformDamageIfVulnerable(target, resolvedProjectile.calculate())
     }
   }
 }

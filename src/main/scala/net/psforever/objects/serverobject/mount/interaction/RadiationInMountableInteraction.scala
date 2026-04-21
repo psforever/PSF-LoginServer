@@ -1,4 +1,4 @@
-package net.psforever.objects.serverobject.mount
+package net.psforever.objects.serverobject.mount.interaction
 
 import net.psforever.objects.zones.interaction.ZoneInteractionType
 

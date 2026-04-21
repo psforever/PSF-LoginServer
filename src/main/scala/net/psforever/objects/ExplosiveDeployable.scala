@@ -187,7 +187,8 @@ object ExplosiveDeployableControl {
       zone,
       target,
       Zone.explosionDamage(Some(cause)),
-      ExplosiveDeployableControl.detectionForExplosiveSource(target)
+      ExplosiveDeployableControl.detectionForExplosiveSource(target),
+      Zone.findAllTargets
     )
   }
 

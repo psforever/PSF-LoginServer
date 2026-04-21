@@ -2,7 +2,8 @@
 package net.psforever.objects.serverobject.terminals.implant
 
 import net.psforever.objects.serverobject.hackable.Hackable
-import net.psforever.objects.serverobject.mount.{InteractWithRadiationCloudsSeatedInEntity, Mountable, Seat}
+import net.psforever.objects.serverobject.mount.interaction.InteractWithRadiationCloudsSeatedInEntity
+import net.psforever.objects.serverobject.mount.{Mountable, Seat}
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.serverobject.terminals.capture.CaptureTerminalAware
 import net.psforever.objects.vital.resistance.StandardResistanceProfile
