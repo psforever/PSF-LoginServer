@@ -193,71 +193,106 @@ trait DamageableVehicle
     */
   override protected def DestructionAwareness(target: Target, cause: DamageResult): Unit = {
     (queuedDestruction, DamageableObject.Definition.destructionDelay) match {
+      case (_, None) => //explode now
+        destructionImmediate(target, cause)
       case (None, Some(delay)) => //set a future explosion for later
         destructionDelayed(delay, cause)
-      case (Some(_), _) | (None, None) => //explode now
-        val obj = DamageableObject
-        val zone = target.Zone
-        obj.PrepareGatingManifest()
-        super.DestructionAwareness(target, cause)
-        //aggravation cancel
-        EndAllAggravation()
-        //passengers die with us
-        DamageableMountable.DestructionAwareness(obj, cause)
-        Zone.serverSideDamage(obj.Zone, target, Zone.explosionDamage(Some(cause)))
-        //special considerations for certain vehicles
-        Vehicles.BeforeUnloadVehicle(obj, zone)
-        //shields
-        if (obj.Shields > 0) {
-          obj.Shields = 0
-          zone.VehicleEvents ! VehicleServiceMessage(
-            zone.id,
-            VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, obj.Definition.shieldUiAttribute, 0)
-          )
-        }
-        //database entry
-        cause.adversarial.collect {
-          case Adversarial(attacker, victim: VehicleSource, implement) =>
-            ToDatabase.reportMachineDestruction(
-              attacker.CharId,
-              victim,
-              DamageableObject.HackedBy,
-              DamageableObject.MountedIn.nonEmpty,
-              implement,
-              obj.Zone.Number
-            )
-        }
-        //clean up
-        target.Actor ! Vehicle.Deconstruct(Some(1 minute))
-        DamageableWeaponTurret.DestructionAwareness(obj, cause)
-      case _ => ;
+      case (Some(_), _) => //destroy now that delay is expended (can also skip existing delay)
+        destructionAfterDelay(target, cause)
     }
+  }
+
+  def destructionImmediate(target: Target, cause: DamageResult): Unit = {
+    val obj = DamageableObject
+    val zone = target.Zone
+    obj.PrepareGatingManifest()
+    super.DestructionAwareness(target, cause)
+    //aggravation cancel
+    EndAllAggravation()
+    //passengers die with us
+    DamageableMountable.DestructionAwareness(obj, cause)
+    Zone.serverSideDamage(obj.Zone, target, Zone.explosionDamage(Some(cause)))
+    //special considerations for certain vehicles
+    Vehicles.BeforeUnloadVehicle(obj, zone)
+    //shields
+    if (obj.Shields > 0) {
+      obj.Shields = 0
+      zone.VehicleEvents ! VehicleServiceMessage(
+        zone.id,
+        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, obj.Definition.shieldUiAttribute, 0)
+      )
+    }
+    //database entry
+    cause.adversarial.collect {
+      case Adversarial(attacker, victim: VehicleSource, implement) =>
+        ToDatabase.reportMachineDestruction(
+          attacker.CharId,
+          victim,
+          DamageableObject.HackedBy,
+          DamageableObject.MountedIn.nonEmpty,
+          implement,
+          obj.Zone.Number
+        )
+    }
+    //clean up
+    target.Actor ! Vehicle.Deconstruct(Some(1 minute))
+    DamageableWeaponTurret.DestructionAwareness(obj, cause)
   }
 
   def destructionDelayed(delay: Long, cause: DamageResult): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
     import scala.concurrent.duration._
     val obj = DamageableObject
-    //health to 1, shields to 0
-    obj.Health = 1
-    obj.Shields = 0
-    val guid = obj.GUID
     val guid0 = Service.defaultPlayerGUID
     val zone = obj.Zone
     val zoneid = zone.id
     val events = zone.VehicleEvents
+    //health to 1, shields to 0
+    obj.Health = 1
+    val guid = obj.GUID
     events ! VehicleServiceMessage(
       zoneid,
       VehicleAction.PlanetsideAttribute(guid0, guid, 0, 1)
     )
-    events ! VehicleServiceMessage(
-      zoneid,
-      VehicleAction.PlanetsideAttribute(guid0, guid, obj.Definition.shieldUiAttribute, 0)
-    )
+    if (obj.Shields > 0) {
+      obj.Shields = 0
+      zone.VehicleEvents ! VehicleServiceMessage(
+        zone.id,
+        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, obj.Definition.shieldUiAttribute, 0)
+      )
+    }
+    //aggravation cancel
+    EndAllAggravation()
+    //special considerations for certain vehicles
+    Vehicles.BeforeUnloadVehicle(obj, zone)
+    //true death (expedited)
+    DamageableEntity.DestructionAwareness(obj, cause)
     //passengers die with us
     DamageableMountable.DestructionAwareness(DamageableObject, cause)
+    //database entry
+    cause.adversarial.collect {
+      case Adversarial(attacker, victim: VehicleSource, implement) =>
+        ToDatabase.reportMachineDestruction(
+          attacker.CharId,
+          victim,
+          DamageableObject.HackedBy,
+          DamageableObject.MountedIn.nonEmpty,
+          implement,
+          obj.Zone.Number
+        )
+    }
     //come back to this death later
     queuedDestruction = Some(context.system.scheduler.scheduleOnce(delay milliseconds, self, DamageableVehicle.Destruction(cause)))
+  }
+
+  def destructionAfterDelay(target: Target, cause: DamageResult): Unit = {
+    val obj = DamageableObject
+    obj.PrepareGatingManifest()
+    super.DestructionAwareness(target, cause)
+    Zone.serverSideDamage(obj.Zone, target, Zone.explosionDamage(Some(cause)))
+    //clean up
+    target.Actor ! Vehicle.Deconstruct(Some(1 minute))
+    DamageableWeaponTurret.DestructionAwareness(obj, cause)
   }
 }
 

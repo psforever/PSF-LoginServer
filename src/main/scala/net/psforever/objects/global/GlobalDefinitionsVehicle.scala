@@ -1737,7 +1737,7 @@ object GlobalDefinitionsVehicle {
     aphelion_gunner.AutoPilotSpeeds = (5, 1)
     aphelion_gunner.Packet = battleFrameConverter
     aphelion_gunner.DestroyedModel = None
-    //aphelion_gunner.destructionDelay = Some(4000L)
+    aphelion_gunner.destructionDelay = Some(4000L)
     aphelion_gunner.JackingDuration = Array(0, 62, 60, 30)
     aphelion_gunner.RadiationShielding = 0.5f
     aphelion_gunner.DamageUsing = DamageCalculations.AgainstBfr
@@ -1789,7 +1789,7 @@ object GlobalDefinitionsVehicle {
     colossus_gunner.AutoPilotSpeeds = (5, 1)
     colossus_gunner.Packet = battleFrameConverter
     colossus_gunner.DestroyedModel = None
-    //colossus_gunner.destructionDelay = Some(4000L)
+    colossus_gunner.destructionDelay = Some(4000L)
     colossus_gunner.JackingDuration = Array(0, 62, 60, 30)
     colossus_gunner.RadiationShielding = 0.5f
     colossus_gunner.DamageUsing = DamageCalculations.AgainstBfr
@@ -1841,7 +1841,7 @@ object GlobalDefinitionsVehicle {
     peregrine_gunner.AutoPilotSpeeds = (5, 1)
     peregrine_gunner.Packet = battleFrameConverter
     peregrine_gunner.DestroyedModel = None
-    //peregrine_gunner.destructionDelay = Some(4000L)
+    peregrine_gunner.destructionDelay = Some(4000L)
     peregrine_gunner.JackingDuration = Array(0, 62, 60, 30)
     peregrine_gunner.RadiationShielding = 0.5f
     peregrine_gunner.DamageUsing = DamageCalculations.AgainstBfr
