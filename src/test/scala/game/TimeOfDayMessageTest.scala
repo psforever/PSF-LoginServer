@@ -11,18 +11,37 @@ class TimeOfDayMessageTest extends Specification {
 
   "decode" in {
     PacketCoding.decodePacket(string).require match {
-      case TimeOfDayMessage(time, unk) =>
-        time mustEqual 1191182336
-        unk mustEqual 1092616192
+      case TimeOfDayMessage(timeOfDay, timeSpeed) =>
+        timeOfDay mustEqual 32768.0f
+        timeSpeed mustEqual 10.0f
       case _ =>
         ko
     }
   }
 
   "encode" in {
-    val msg = TimeOfDayMessage(1191182336)
+    val msg = TimeOfDayMessage(32768.0f)
     val pkt = PacketCoding.encodePacket(msg).require.toByteVector
 
     pkt mustEqual string
+  }
+
+  val string2 = hex"48 00 00 A0 47 00 00 20 41" //22:45
+
+  "decode2" in {
+    PacketCoding.decodePacket(string2).require match {
+      case TimeOfDayMessage(timeOfDay, timeSpeed) =>
+        timeOfDay mustEqual 81920.0f
+        timeSpeed mustEqual 10.0f
+      case _ =>
+        ko
+    }
+  }
+
+  "encode2" in {
+    val msg = TimeOfDayMessage(81920.0f)
+    val pkt = PacketCoding.encodePacket(msg).require.toByteVector
+
+    pkt mustEqual string2
   }
 }

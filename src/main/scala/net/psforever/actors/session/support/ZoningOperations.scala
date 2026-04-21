@@ -306,7 +306,10 @@ class ZoningOperations(
     continent.VehicleEvents ! Service.Join(continentId)
     continent.VehicleEvents ! Service.Join(factionChannel)
     if (sessionLogic.connectionState != 100) configZone(continent)
-    sendResponse(TimeOfDayMessage(1135214592))
+
+    // set time of day
+    sendResponse(TimeOfDayMessage(continent.GetTimeOfDay(), continent.GetTimeOfDaySpeed()))
+
     //custom
     sendResponse(ReplicationStreamMessage(5, Some(6), Vector.empty))    //clear squad list
     sendResponse(PlanetsideAttributeMessage(PlanetSideGUID(0), 112, 0)) // disable festive backpacks
@@ -879,35 +882,35 @@ class ZoningOperations(
 
   def handleTrainingZoneMessage(pkt: TrainingZoneMessage): Unit = {
     pkt.zone.guid match {
-      case 11 | 12 | 13 => 
+      case 11 | 12 | 13 =>
         player.avatar.deployables.UpdateMaxCounts(player.avatar.certifications)
         RequestSanctuaryZoneSpawn(player, player.Zone.Number)
       // leveraging SetZone for now because the VR zones have no "proper" spawn points configured yet
-      case 17 => 
+      case 17 =>
         if (player.Zone.id != "tzshtr") {
           context.self ! SessionActor.SetZone("tzshtr", vrShootingZoneSpawns.toArray.apply(rand.nextInt(vrShootingZoneSpawns.size)))
         }
-      case 18 => 
+      case 18 =>
         if (player.Zone.id != "tzshnc") {
           context.self ! SessionActor.SetZone("tzshnc", vrShootingZoneSpawns.toArray.apply(rand.nextInt(vrShootingZoneSpawns.size)))
         }
-      case 19 => 
+      case 19 =>
         if (player.Zone.id != "tzshvs") {
           context.self ! SessionActor.SetZone("tzshvs", vrShootingZoneSpawns.toArray.apply(rand.nextInt(vrShootingZoneSpawns.size)))
         }
-      case 20 => 
+      case 20 =>
         if (player.Zone.id != "tzdrtr") {
           context.self ! SessionActor.SetZone("tzdrtr", vrDrivingAreaSpawns.toArray.apply(rand.nextInt(vrDrivingAreaSpawns.size)))
         }
-      case 21 => 
+      case 21 =>
         if (player.Zone.id != "tzdrnc") {
           context.self ! SessionActor.SetZone("tzdrnc", vrDrivingAreaSpawns.toArray.apply(rand.nextInt(vrDrivingAreaSpawns.size)))
         }
-      case 22 => 
+      case 22 =>
         if (player.Zone.id != "tzdrvs") {
           context.self ! SessionActor.SetZone("tzdrvs", vrDrivingAreaSpawns.toArray.apply(rand.nextInt(vrDrivingAreaSpawns.size)))
         }
-      case _ => 
+      case _ =>
         log.warn(s"Received TrainingZoneMessage that requests unexpected zone number ${pkt.zone.guid}?")
     }
   }

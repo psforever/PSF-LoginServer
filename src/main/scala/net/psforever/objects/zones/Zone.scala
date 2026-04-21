@@ -207,6 +207,13 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
   var benefitRecipient: PlanetSideEmpire.Value = PlanetSideEmpire.NEUTRAL
 
   /**
+    * Holds the origin time of this zones
+    * @see `TimeOfDayMessage`
+    */
+  private var timeOfDayOrigin: Long = 0
+  private var timeOfDaySpeed: Float = 10.0f
+
+  /**
     * When the zone has completed initializing, this will be the future.
     * @see `init(ActorContext)`
     */
@@ -563,6 +570,35 @@ class Zone(val id: String, val map: ZoneMap, zoneNumber: Int) {
     hotspotTimeFunc = func
     Activity ! ZoneHotSpotProjector.UpdateDurationFunction()
     HotSpotTimeFunction
+  }
+
+  def GetTimeOfDay(): Float = {
+    // get time since origin
+    val timeDiff = System.currentTimeMillis() - timeOfDayOrigin
+    // get seconds - limit to 24h
+    val diffSeconds = (timeDiff / 1000) % 86400
+
+    diffSeconds.toFloat
+  }
+
+  def SetTimeOfDay(requestedTime: Float) = {
+    // get current time
+    val now = System.currentTimeMillis()
+    // get requested time in millis
+    val requestMillis = requestedTime * 1000
+
+    // substract requestedMillis from now to get new origin
+    val newOrigin = now - requestMillis
+
+    timeOfDayOrigin = newOrigin.toLong
+  }
+
+  def GetTimeOfDaySpeed(): Float = {
+    timeOfDaySpeed
+  }
+
+  def SetTimeOfDaySpeed(requestedSpeed: Float) = {
+    timeOfDaySpeed = requestedSpeed
   }
 
   /**
@@ -1542,6 +1578,8 @@ object Zone {
         zone.localEvents = context.actorOf(Props(classOf[LocalService], zone), s"$id-local-events")
         zone.vehicleEvents = context.actorOf(Props(classOf[VehicleService], zone), s"$id-vehicle-events")
 
+        zone.timeOfDayOrigin = System.currentTimeMillis()
+
         BuildLocalObjects(zone)(context, guid)
         BuildSupportObjects(zone)
         MakeBuildings(zone)(context, guid)
@@ -1898,11 +1936,11 @@ object Zone {
     val allAffectedTargets = pssos.filter { target => testTargetsFromZone(source, target, radius) }
     //inform remaining targets that they have suffered damage
     allAffectedTargets
-      .foreach { target => 
+      .foreach { target =>
       if (zone.id.startsWith("tz") && source.Faction == target.Faction) {
         //do not perform friendly-fire in VR zones
       } else {
-        target.Actor ! Vitality.Damage(createInteraction(source, target).calculate()) 
+        target.Actor ! Vitality.Damage(createInteraction(source, target).calculate())
       }
     }
     allAffectedTargets

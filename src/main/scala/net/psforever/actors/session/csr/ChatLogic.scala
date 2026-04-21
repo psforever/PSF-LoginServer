@@ -98,6 +98,12 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
       case (CMT_CAPTUREBASE, _, contents) =>
         ops.commandCaptureBase(session, message, contents)
 
+      case (CMT_SETTIME, _, contents) =>
+        ops.commandSetTime(session, contents)
+
+      case (CMT_SETTIMESPEED, _, contents) =>
+        ops.commandSetTimeSpeed(session, contents)
+
       case (CMT_GMBROADCAST | CMT_GMBROADCAST_NC | CMT_GMBROADCAST_VS | CMT_GMBROADCAST_TR, _, _) =>
         ops.commandSendToRecipient(session, message, comms)
 
