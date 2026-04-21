@@ -84,6 +84,7 @@ object Config {
 
 case class AppConfig(
     bind: String,
+    local: String,
     public: String,
     login: LoginConfig,
     world: WorldConfig,
