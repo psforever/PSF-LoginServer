@@ -2080,6 +2080,7 @@ class ZoningOperations(
           val position = Vector3(results.px * 0.001f, results.py * 0.001f, results.pz * 0.001f)
           player.Position = position
           player.Orientation = Vector3(0f, 0f, results.orientation * 0.001f)
+          player.WhichSide = if (results.sidedness) Sidedness.InsideOf else Sidedness.OutsideOf
           /*
           @reset_sanctuary=You have been returned to the sanctuary because you played another character.
            */

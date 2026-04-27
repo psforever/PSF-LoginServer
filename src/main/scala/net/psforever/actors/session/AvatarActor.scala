@@ -43,6 +43,7 @@ import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.loadouts.{InfantryLoadout, Loadout, VehicleLoadout}
 import net.psforever.objects.locker.LockerContainer
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.sourcing.{PlayerSource,SourceWithHealthEntry}
 import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingActivity, SpawningActivity}
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
@@ -739,6 +740,7 @@ object AvatarActor {
               _.py          -> lift(0),
               _.pz          -> lift(0),
               _.orientation -> lift(0),
+              _.sidedness   -> lift(false),
               _.zoneNum     -> lift(0),
               _.health      -> lift(0),
               _.armor       -> lift(0),
@@ -746,7 +748,7 @@ object AvatarActor {
               _.loadout     -> lift("")
             )
         )
-        out.completeWith(Future(persistence.Savedplayer(avatarId, 0, 0, 0, 0, 0, 0, 0, 0, "")))
+        out.completeWith(Future(persistence.Savedplayer(avatarId, 0, 0, 0, 0, false, 0, 0, 0, 0, "")))
     }
     out.future
   }
@@ -826,6 +828,7 @@ object AvatarActor {
               _.py          -> lift((position.y * 1000).toInt),
               _.pz          -> lift((position.z * 1000).toInt),
               _.orientation -> lift((player.Orientation.z * 1000).toInt),
+              _.sidedness   -> lift(Sidedness.equals(player.WhichSide, Sidedness.InsideOf)),
               _.zoneNum     -> lift(player.Zone.Number),
               _.health      -> lift(health),
               _.armor       -> lift(player.Armor),
@@ -865,6 +868,7 @@ object AvatarActor {
               _.py          -> lift((position.y * 1000).toInt),
               _.pz          -> lift((position.z * 1000).toInt),
               _.orientation -> lift((player.Orientation.z * 1000).toInt),
+              _.sidedness   -> lift(player.WhichSide == Sidedness.InsideOf),
               _.zoneNum     -> lift(player.Zone.Number)
             )
         )
@@ -2195,14 +2199,14 @@ class AvatarActor(
             val player                = new Player(avatar)
             val zoneNum = saveOpt
               .collect {
-                case persistence.Savedplayer(_, _, _, _, _, zoneNum, _, _, exosuitNum, loadout) =>
+                case persistence.Savedplayer(_, _, _, _, _, _, inZoneNum, _, _, exosuitNum, loadout) =>
                   val exo = ExoSuitType(exosuitNum)
                   player.ExoSuit = exo
                   AvatarActor.buildHolsterEquipmentFromClob(player, loadout, log)
                   if (exo == ExoSuitType.MAX) {
                     player.DrawnSlot = 0 //max arm up
                   }
-                  zoneNum
+                  inZoneNum
               }
               .getOrElse {
                 player.ExoSuit = ExoSuitType.Standard

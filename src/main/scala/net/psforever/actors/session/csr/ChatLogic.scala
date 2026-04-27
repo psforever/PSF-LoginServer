@@ -11,6 +11,7 @@ import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.dome.ForceDomeControl
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.serverobject.hackable.Hackable
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
@@ -229,6 +230,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case "setempire" => customCommandSetEmpire(params)
         case "weaponlock" => customCommandZoneWeaponUnlock(session, params)
         case "forcedome" => customForceDomeCommand(session, params)
+        case "setside" => customSetSidedness(session, params)
         case _ =>
           // command was not handled
           sendResponse(
@@ -542,6 +544,34 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     } else {
       //no force domes in zone
       sendResponse(ChatMsg(ChatMessageType.UNK_227, "no capitol force dome(s) detected in zone"))
+    }
+    true
+  }
+
+  private def customSetSidedness(session: Session, contents: Seq[String]): Boolean = {
+    var postUsageMessage: Boolean = false
+    contents.headOption match {
+      case Some(side) if side.matches("i|in|inside") =>
+        session.player.WhichSide = Sidedness.InsideOf
+      case Some(side) if side.matches("o|out|outside") =>
+        session.player.WhichSide = Sidedness.OutsideOf
+      case Some("check") =>
+        val whichSide = if (session.player.WhichSide == Sidedness.OutsideOf) {
+          "outside"
+        } else {
+          "inside"
+        }
+        sendResponse(ChatMsg(ChatMessageType.UNK_227, s"You are $whichSide."))
+      case Some("help") | Some("usage") =>
+        postUsageMessage = true
+      case Some(token) =>
+        sendResponse(ChatMsg(ChatMessageType.UNK_227, s"unknown command - $token"))
+        postUsageMessage = true
+      case None =>
+        postUsageMessage = true
+    }
+    if (postUsageMessage) {
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "!setside i[n[side]]|o[ut[side]]|check"))
     }
     true
   }

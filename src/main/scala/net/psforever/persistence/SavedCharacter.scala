@@ -9,6 +9,7 @@ case class Savedplayer(
                         py: Int, //Position.y * 1000
                         pz: Int, //Position.z * 1000
                         orientation: Int, //Orientation.z * 1000
+                        sidedness: Boolean,
                         zoneNum: Int,
                         health: Int,
                         armor: Int,

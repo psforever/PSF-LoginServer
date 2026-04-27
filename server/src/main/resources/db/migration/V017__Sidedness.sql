@@ -1,0 +1,3 @@
+/* New */
+ALTER TABLE savedplayer
+    ADD COLUMN sidedness BOOLEAN NOT NULL DEFAULT FALSE;
