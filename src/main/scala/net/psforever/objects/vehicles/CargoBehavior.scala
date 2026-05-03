@@ -61,8 +61,10 @@ trait CargoBehavior {
 
   def startCargoDismounting(bailed: Boolean): Unit = {
     if (!startCargoDismountingNoCleanup(bailed)) {
-      isDismounting = None
-      CargoObject.MountedIn = None
+      CargoObject.Zone.GUID(CargoObject.MountedIn).orElse {
+        isDismounting = None
+        CargoObject.MountedIn = None
+      }
     }
   }
 
