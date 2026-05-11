@@ -1606,7 +1606,7 @@ class WeaponAndProjectileOperations(
 
 object WeaponAndProjectileOperations {
   def updateProjectileSidednessAfterHit(zone: Zone, projectile: Projectile, hitPosition: Vector3): Unit = {
-    val origin = projectile.Position
+    val origin = projectile.shot_origin
     val distance = Vector3.Magnitude(hitPosition - origin)
     zone
       .blockMap

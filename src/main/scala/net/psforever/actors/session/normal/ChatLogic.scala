@@ -6,6 +6,7 @@ import net.psforever.actors.session.SessionActor
 import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}
 import net.psforever.objects.Session
+import net.psforever.objects.serverobject.interior.Sidedness
 import net.psforever.packet.game.{ChatMsg, ServerType, SetChatFilterMessage}
 import net.psforever.services.chat.{DefaultChannel, OutfitChannel, SquadChannel}
 import net.psforever.types.ChatMessageType
@@ -142,6 +143,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
         case "macro" => ops.customCommandMacro(session, params)
         case "progress" => ops.customCommandProgress(session, params)
         case "squad" => ops.customCommandSquad(params)
+        case "setside" => customSetSidedness(session, params)
         case _ =>
           // command was not handled
           sendResponse(
@@ -207,5 +209,29 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
           }
         }
     }
+  }
+
+  private def customSetSidedness(session: Session, contents: Seq[String]): Boolean = {
+    var postUsageMessage: Boolean = false
+    contents.headOption match {
+      case Some("check") =>
+        val whichSide = if (session.player.WhichSide == Sidedness.OutsideOf) {
+          "outside"
+        } else {
+          "inside"
+        }
+        sendResponse(ChatMsg(ChatMessageType.UNK_227, s"You are $whichSide."))
+      case Some("help") | Some("usage") =>
+        postUsageMessage = true
+      case Some(token) =>
+        sendResponse(ChatMsg(ChatMessageType.UNK_227, s"unknown command - $token"))
+        postUsageMessage = true
+      case None =>
+        postUsageMessage = true
+    }
+    if (postUsageMessage) {
+      sendResponse(ChatMsg(ChatMessageType.UNK_227, "!setside check"))
+    }
+    true
   }
 }
