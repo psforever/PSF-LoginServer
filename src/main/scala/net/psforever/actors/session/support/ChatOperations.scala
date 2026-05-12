@@ -11,6 +11,8 @@ import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.{AvatarActor, SessionActor}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.LivePlayerList
+import net.psforever.objects.serverobject.interior.{InteriorAware, Sidedness}
+import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.{Zone, ZoneInfo}
 import net.psforever.packet.game.TimeOfDayMessage.GetTimeOfDayValue
@@ -517,6 +519,7 @@ class ChatOperations(
         )
       case (Some(zone), Some(gate), false) =>
         context.self ! SessionActor.SetZone(zone.zonename, gate)
+        customSetSidednessOfTarget(session.player, Sidedness.OutsideOf) //todo atm all locations are outside
       case (_, None, false) =>
         sendResponse(
           ChatMsg(UNK_229, wideContents=true, "", "Gate id not defined (use '/zone <zone> -list')", None)
@@ -544,6 +547,7 @@ class ChatOperations(
         coordinate.isDefined && coordinate.get >= 0 && coordinate.get <= 8191
       } =>
         context.self ! SessionActor.SetPosition(Vector3(x.toFloat, y.toFloat, z.toFloat))
+        sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, s"Please ensure that the sidedness of target is correct for destination."))
       case (None, Some(waypoint)) if waypoint == "-list" =>
         val zone = PointOfInterest.get(session.player.Zone.id)
         zone match {
@@ -560,6 +564,7 @@ class ChatOperations(
         PointOfInterest.getWarpLocation(session.zone.id, waypoint) match {
           case Some(location) =>
             context.self ! SessionActor.SetPosition(location)
+            customSetSidednessOfTarget(session.player, Sidedness.OutsideOf) //todo atm all quick locations are outside
           case None =>
             sendResponse(
               ChatMsg(UNK_229, wideContents=true, "", s"unknown location '$waypoint'", None)
@@ -1448,6 +1453,16 @@ class ChatOperations(
       case _ =>
         sendResponse(ChatMsg(messageType = UNK_229, contents = "@CMT_SETTIME_usage"))
     }
+  }
+
+  def customSetSidednessOfTarget(target: Player, side: Sidedness): Boolean = {
+    target.WhichSide = side
+    target.Zone.GUID(player.VehicleSeated) match {
+      case v: Mountable with InteriorAware =>
+        v.WhichSide = side
+      case _ => ()
+    }
+    true
   }
 
   def commandSetTimeSpeed(session: Session, contents: String): Unit = {

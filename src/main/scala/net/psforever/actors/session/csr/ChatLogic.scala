@@ -558,9 +558,9 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     var postUsageMessage: Boolean = false
     contents.headOption match {
       case Some(side) if side.matches("i|in|inside") =>
-        session.player.WhichSide = Sidedness.InsideOf
+        ops.customSetSidednessOfTarget(session.player, Sidedness.InsideOf)
       case Some(side) if side.matches("o|out|outside") =>
-        session.player.WhichSide = Sidedness.OutsideOf
+        ops.customSetSidednessOfTarget(session.player, Sidedness.OutsideOf)
       case Some("check") =>
         val whichSide = if (session.player.WhichSide == Sidedness.OutsideOf) {
           "outside"
