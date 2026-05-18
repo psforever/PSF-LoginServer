@@ -313,7 +313,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         scale = MapScale.Dim8192, //Dim1024,
         hotSpotSpan = 0,
         environment = List(SeaLevel(EnvironmentAttribute.Water, 10)) ++
-                      MapEnvironment.dim1024MapEdgeKillPlanesWrap
+                      MapEnvironment.map14KillPlanesWrap
       )
 
   case object Map15
@@ -322,8 +322,7 @@ case object MapInfo extends StringEnum[MapInfo] {
         checksum = 3628825458L,
         scale = MapScale.Dim8192, //Dim4096,
         hotSpotSpan = 0,
-        environment = List(SeaLevel(EnvironmentAttribute.Water, 8)) ++
-                      MapEnvironment.dim4096MapEdgeKillPlanesWrap
+        environment = MapEnvironment.map15EnvironmentPlanesWrap
       )
 
   case object Map16
@@ -741,11 +740,14 @@ object MapEnvironment {
     ns ++ ew
   }
 
+  /*
+   * Instances where the zone contains regular redundancies of the map layout are called "wrapped" or "wraparound".
+   * These redundant maps are housed as smaller map instances within the bounds of the greater zone size,
+   * flush against one another on the interior borders.
+   */
   /**
-   * Instances where the zone contains regular redundancies of the map layout.
-   * These redundant maps are housed as smaller map instances within the bounds of the greater map instance size,
-   * flush against one another on the borders.
-   * @see `MapInfo.zoneMapEdgeKillPlane`
+   * The kill planes and warning fields for a wrapped virtual reality shooting range map.
+   * @see `MapEnvironment.zoneMapEdgeKillPlane`
    * @param scale dimensions of a single map instance
    * @param kplanes single instance offsets for the kill planes;
    *                framed as the world origin map instance
@@ -761,20 +763,21 @@ object MapEnvironment {
     // kill planes on the borders are repeated per instance
     // two are adjacent along an edge internally
     // eight meet at an internal corner, four meet along the outside edge of the whole map
-    val rows = 0 until MapScale.Dim8192.width.toInt by scale.width.toInt
-    val cols = 0 until MapScale.Dim8192.height.toInt by scale.height.toInt
+    val cols = (0 until MapScale.Dim8192.height.toInt by scale.height.toInt).map(_.toFloat)
+    val rows = (0 until MapScale.Dim8192.width.toInt by scale.width.toInt).map(_.toFloat)
     rows.flatMap(row =>
       cols.flatMap(col =>
-        MapEnvironment.zoneMapEdgeKillPlane(scale, kplanes, wplanes, (row.toFloat, col.toFloat))
+        zoneMapEdgeKillPlane(scale, kplanes, wplanes, (row, col))
       )
     ).toList
   }
 
   /**
    * The kill planes and warning fields for a wrapped virtual reality shooting range map.
+   * @see `MapEnvironment.mapEdgeKillPlanesWrap`
    * @return list of environmental representations
    */
-  def dim1024MapEdgeKillPlanesWrap: List[PieceOfEnvironment] = {
+  def map14KillPlanesWrap: List[PieceOfEnvironment] = {
     mapEdgeKillPlanesWrap(
       MapScale.Dim1024,
       (102, 102, 102, 102),
@@ -787,18 +790,70 @@ object MapEnvironment {
   }
 
   /**
-   * The kill planes and warning fields for a wrapped virtual reality driving range map.
+   * The sea level for a single instance of the virtual reality driving range map.
+   * @param offsetX left-most frame of reference for environment planes
+   * @param offsetY lowest frame of reference for environment planes
    * @return list of environmental representations
    */
-  def dim4096MapEdgeKillPlanesWrap: List[PieceOfEnvironment] = {
-    mapEdgeKillPlanesWrap(
-      MapScale.Dim4096,
-      (204, 204, 204, 204),
-      List(
-        (255, 255, 255, 255, 3),
-        (306, 306, 306, 306, 2),
-        (408, 408, 408, 408, 1)
-      )
+  private def map15Water(offsetX: Float, offsetY: Float): List[PieceOfEnvironment] = {
+    //water planes cookie-cut around two air vehicle spawn pads whose spawn trenches are below water level
+    //air vehicles have virtually no drown time so they spawn dead
+    val (top, right, bottom, left) = (4096f + offsetY, 4096f + offsetX, offsetY, offsetX)
+    val (p1n, p1e, p1s, p1w) = (1794f + offsetY, 1320f + offsetX, 1757f + offsetY, 1282f + offsetX)
+    val (p2n, p2e, p2s, p2w) = (1204f + offsetY, 2442f + offsetX, 1171f + offsetY, 2409f + offsetX)
+    List(
+      Pool(EnvironmentAttribute.Water, 8f, top, right, p1n, left), //north
+      Pool(EnvironmentAttribute.Water, 8f, p1n, p1w, bottom, left), //SW
+      Pool(EnvironmentAttribute.Water, 8f, p1s, p1e, bottom, p1w), //below spawn pad #1
+      Pool(EnvironmentAttribute.Water, 8f, p1n, p2w, bottom, p1e), //center south
+      Pool(EnvironmentAttribute.Water, 8f, p1n, p2e, p2n, p2w), //above spawn pad #2
+      Pool(EnvironmentAttribute.Water, 8f, p2s, p2e, bottom, p2w), //below spawn pad #2
+      Pool(EnvironmentAttribute.Water, 8f, p1n, right, bottom, p2e), //SE
     )
+  }
+
+  /**
+   * The sea level, kill planes, and warning fields for a single instance of the virtual reality driving range map.
+   * @see `MapEnvironment.map15Water`
+   * @see `MapEnvironment.zoneMapEdgeKillPlane`
+   * @param scale dimensions of a single map instance
+   * @param kplanes single instance offsets for the kill planes;
+   *                framed as the world origin map instance
+   * @param wplanes single instance offsets for the warning fields;
+   *                framed as the world origin map instance
+   * @param offsets pair of coordinates that indicates the lower left frame of reference;
+   *                defaults to `(0, 0)` as the world origin point on standard map
+   * @return list of environmental representations
+   */
+  def map15EnvironmentPlanes(
+                              scale: MapScale,
+                              kplanes: (Float, Float, Float, Float),
+                              wplanes: List[(Float, Float, Float, Float, Int)],
+                              offsets: (Float,Float) = (0,0)
+                            ): List[PieceOfEnvironment] = {
+    val (offsetX, offsetY) = offsets
+    map15Water(offsetX, offsetY) ++ zoneMapEdgeKillPlane(scale, kplanes, wplanes, (offsetX, offsetY))
+  }
+
+  /**
+   * The sea level, kill planes, and warning fields for wrapped instances of the virtual reality driving range map.
+   * @see `MapEnvironment.map15EnvironmentPlanes`
+   * @return list of environmental representations
+   */
+  def map15EnvironmentPlanesWrap: List[PieceOfEnvironment] = {
+    val scale = MapScale.Dim4096
+    val rows = (0 until MapScale.Dim8192.width.toInt by scale.width.toInt).map(_.toFloat)
+    val cols = (0 until MapScale.Dim8192.height.toInt by scale.height.toInt).map(_.toFloat)
+    val kplanes: (Float,Float,Float,Float) = (204, 204, 204, 204)
+    val wplanes: List[(Float,Float,Float,Float, Int)] = List(
+      (255, 255, 255, 255, 3),
+      (306, 306, 306, 306, 2),
+      (408, 408, 408, 408, 1)
+    )
+    rows.flatMap(row =>
+      cols.flatMap(col =>
+        map15EnvironmentPlanes(scale, kplanes, wplanes, (col, row))
+      )
+    ).toList
   }
 }
