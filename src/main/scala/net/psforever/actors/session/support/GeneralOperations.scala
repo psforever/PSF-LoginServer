@@ -1432,13 +1432,14 @@ class GeneralOperations(
       val pguid = player.GUID
       val sguid = src.GUID
       val dguid = dest.GUID
-      sendResponse(PlayerStateShiftMessage(ShiftState(0, dest.Position, player.Orientation.z)))
+      player.Position = dest.Position
+      sendResponse(ObjectCreateDetailedMessage(player.Definition.ObjectId, pguid, player.Definition.Packet.DetailedConstructorData(player).get))
+      sendResponse(SetCurrentAvatarMessage(pguid, 0, 0))
       useRouterTelepadEffect(pguid, sguid, dguid)
       continent.LocalEvents ! LocalServiceMessage(
         continent.id,
         LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid)
       )
-      player.Position = dest.Position
       player.LogActivity(TelepadUseActivity(VehicleSource(router), DeployableSource(remoteTelepad), PlayerSource(player)))
     } else {
       log.warn(s"UseRouterTelepadSystem: ${player.Name} can not teleport")
