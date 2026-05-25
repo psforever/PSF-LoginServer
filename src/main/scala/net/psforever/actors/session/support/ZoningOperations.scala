@@ -1998,7 +1998,7 @@ class ZoningOperations(
      * As they should arrive roughly every 250 milliseconds this allows for a very crude method of scheduling tasks up to four times per second
      */
     private[session] var upstreamMessageCount: Int = 0
-    private[session] var shiftPosition: Option[Vector3] = None
+    private var shiftPosition: Option[Vector3] = None
     private[session] var shiftOrientation: Option[Vector3] = None
     private[session] var drawDeloyableIcon: PlanetSideGameObject with Deployable => Unit = RedrawDeployableIcons
     private[session] var populateAvatarAwardRibbonsFunc: (Int, Long) => Unit = setupAvatarAwardMessageDelivery
@@ -4119,6 +4119,18 @@ class ZoningOperations(
 
     def clearAllQueuedActivity(): Unit = {
       queuedActivities = Seq()
+    }
+
+    def ShiftPosition: Option[Vector3] = shiftPosition
+
+    def ShiftPosition_=(toPosition: Option[Vector3]): Option[Vector3] = {
+      shiftPosition = toPosition
+      ShiftPosition
+    }
+
+    def ShiftPosition_=(toPosition: Vector3): Option[Vector3] = {
+      shiftPosition = Some(toPosition)
+      ShiftPosition
     }
   }
 

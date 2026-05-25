@@ -169,7 +169,16 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     //
     val eagleEye: Boolean = ops.canSeeReallyFar
     val isNotVisible: Boolean = sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing ||
-      (player.isAlive && sessionLogic.zoning.spawn.deadState == DeadState.RespawnTime)
+      (player.isAlive && sessionLogic.zoning.spawn.deadState == DeadState.RespawnTime) ||
+      (sessionLogic.zoning.spawn.ShiftPosition match {
+        case Some(position) if Vector3.DistanceSquared(position, pos) < 25f =>
+          sessionLogic.zoning.spawn.ShiftPosition = None
+          false
+        case Some(_) =>
+          true
+        case _ =>
+          false
+      })
     continent.AvatarEvents ! AvatarServiceMessage(
       continent.id,
       AvatarAction.PlayerState(

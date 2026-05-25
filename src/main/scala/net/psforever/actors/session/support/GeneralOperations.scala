@@ -182,7 +182,7 @@ class GeneralOperations(
                        ) extends CommonSessionInterfacingFunctionality {
   private[session] var progressBarValue: Option[Float] = None
   private[session] var accessedContainer: Option[PlanetSideGameObject with Container] = None
-  private[session] var recentTeleportAttempt: Long = 0
+  private[session] var recentTeleportAttemptTime: Long = 0
   private[session] var kitToBeUsed: Option[PlanetSideGUID] = None
   // If a special item (e.g. LLU) has been attached to the player the GUID should be stored here, or cleared when dropped, since the drop hotkey doesn't send the GUID of the object to be dropped.
   private[session] var specialItemSlotGuid: Option[PlanetSideGUID] = None
@@ -1210,8 +1210,8 @@ class GeneralOperations(
     sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_use")
     if (msg.unk3) {
       msg.object_id match {
-        case ObjectClass.avatar | ObjectClass.avatar_bot | ObjectClass.avatar_bot_agile | ObjectClass.avatar_bot_agile_no_weapon | 
-        ObjectClass.avatar_bot_max | ObjectClass.avatar_bot_max_no_weapon | ObjectClass.avatar_bot_reinforced | 
+        case ObjectClass.avatar | ObjectClass.avatar_bot | ObjectClass.avatar_bot_agile | ObjectClass.avatar_bot_agile_no_weapon |
+        ObjectClass.avatar_bot_max | ObjectClass.avatar_bot_max_no_weapon | ObjectClass.avatar_bot_reinforced |
         ObjectClass.avatar_bot_reinforced_no_weapon | ObjectClass.avatar_bot_standard | ObjectClass.avatar_bot_standard_no_weapon =>
         equipment match {
           case Some(tool: Tool) if tool.Definition == GlobalDefinitions.bank =>
@@ -1424,38 +1424,38 @@ class GeneralOperations(
                               dest: PlanetSideGameObject with TelepadLike
                             ): Unit = {
     val time = System.currentTimeMillis()
-    if (
-      time - recentTeleportAttempt > 2000L && router.DeploymentState == DriveState.Deployed &&
-        internalTelepad.Active &&
-        remoteTelepad.Active
-    ) {
-      val pguid = player.GUID
-      val sguid = src.GUID
-      val dguid = dest.GUID
-      val events = continent.AvatarEvents
-      val zoneid = continent.id
-      events ! AvatarServiceMessage(zoneid, AvatarAction.ObjectDelete(pguid, pguid))
-      events ! AvatarServiceMessage(player.Name,
-        AvatarAction.SendResponse(PlanetSideGUID(0), PlayerStateShiftMessage(ShiftState(0, dest.Position, player.Orientation.z)))
-      )
-      player.Position = dest.Position
-      events ! AvatarServiceMessage(zoneid, AvatarAction.LoadPlayer(
-        pguid,
-        player.Definition.ObjectId,
-        pguid,
-        player.Definition.Packet.ConstructorData(player).get,
-        None
-      ))
-      useRouterTelepadEffect(pguid, sguid, dguid)
-      continent.LocalEvents ! LocalServiceMessage(
-        zoneid,
-        LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid)
-      )
-      player.LogActivity(TelepadUseActivity(VehicleSource(router), DeployableSource(remoteTelepad), PlayerSource(player)))
-    } else {
-      log.warn(s"UseRouterTelepadSystem: ${player.Name} can not teleport")
+    if (time - recentTeleportAttemptTime > 2000L) {
+      if (router.DeploymentState == DriveState.Deployed && internalTelepad.Active && remoteTelepad.Active) {
+        val pguid = player.GUID
+        val sguid = src.GUID
+        val dguid = dest.GUID
+        val events = continent.AvatarEvents
+        val zoneid = continent.id
+        val destinationPosition = dest.Position
+        events ! AvatarServiceMessage(zoneid, AvatarAction.ObjectDelete(pguid, pguid))
+        events ! AvatarServiceMessage(player.Name,
+          AvatarAction.SendResponse(PlanetSideGUID(0), PlayerStateShiftMessage(ShiftState(0, destinationPosition, player.Orientation.z)))
+        )
+        player.Position = destinationPosition
+        events ! AvatarServiceMessage(zoneid, AvatarAction.LoadPlayer(
+          pguid,
+          player.Definition.ObjectId,
+          pguid,
+          player.Definition.Packet.ConstructorData(player).get,
+          None
+        ))
+        useRouterTelepadEffect(pguid, sguid, dguid)
+        continent.LocalEvents ! LocalServiceMessage(
+          continent.id,
+          LocalAction.RouterTelepadTransport(pguid, pguid, sguid, dguid)
+        )
+        sessionLogic.zoning.spawn.ShiftPosition = destinationPosition
+        player.LogActivity(TelepadUseActivity(VehicleSource(router), DeployableSource(remoteTelepad), PlayerSource(player)))
+      } else {
+        log.warn(s"UseRouterTelepadSystem: ${player.Name} can not teleport")
+      }
     }
-    recentTeleportAttempt = time
+    recentTeleportAttemptTime = time
   }
 
   /**
@@ -1475,7 +1475,7 @@ class GeneralOperations(
                                     ): Unit = {
     val time = System.currentTimeMillis()
     if (
-      time - recentTeleportAttempt > 2000L && router.DeploymentState == DriveState.Deployed &&
+      time - recentTeleportAttemptTime > 2000L && router.DeploymentState == DriveState.Deployed &&
         internalTelepad.Active &&
         remoteTelepad.Active
     ) {
@@ -1488,7 +1488,7 @@ class GeneralOperations(
     } else {
       log.warn(s"UseRouterTelepadSystem: ${player.Name} can not teleport")
     }
-    recentTeleportAttempt = time
+    recentTeleportAttemptTime = time
   }
 
   def handleUseCaptureFlag(obj: CaptureFlag): Unit = {
