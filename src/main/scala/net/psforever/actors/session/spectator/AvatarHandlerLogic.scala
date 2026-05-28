@@ -467,7 +467,7 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
         sessionLogic.actionsToCancel()
         sessionLogic.terminals.CancelAllProximityUnits()
         AvatarActor.savePlayerLocation(player)
-        sessionLogic.zoning.spawn.shiftPosition = Some(player.Position)
+        sessionLogic.zoning.spawn.ShiftPosition = Some(player.Position)
 
         //respawn
         sessionLogic.zoning.spawn.reviveTimer.cancel()
