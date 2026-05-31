@@ -164,7 +164,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         obj.Position = position
         obj.Orientation = angle
         obj.DeploymentState = if (is_crouched || !notMountedState) DriveState.Kneeling else DriveState.Mobile
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! MessageEnvelope(
           continent.id,
           player.GUID,
           VehicleAction.FrameVehicleState(vehicle_guid, unk1, position, angle, velocity, unk2, unk3, unk4, is_crouched, is_airborne, ascending_flight, flight_time, unk9, unkA)
@@ -217,7 +217,7 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         val angle = Vector3(0f, pitch, yaw)
         tool.Orientation = angle
         player.Orientation = angle
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! MessageEnvelope(
           continent.id,
           player.GUID,
           VehicleAction.ChildObjectState(object_guid, pitch, yaw)

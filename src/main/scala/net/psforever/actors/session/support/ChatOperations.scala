@@ -17,8 +17,8 @@ import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.{Zone, ZoneInfo}
 import net.psforever.packet.game.TimeOfDayMessage.GetTimeOfDayValue
 import net.psforever.packet.game.{SetChatFilterMessage, TimeOfDayMessage}
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.SendResponse
 import net.psforever.services.chat.{DefaultChannel, OutfitChannel, SquadChannel}
 import net.psforever.services.local.support.{CaptureEnvelope, HackCaptureActor}
 import net.psforever.services.teamwork.{SquadResponse, SquadService, SquadServiceResponse}
@@ -1441,10 +1441,7 @@ class ChatOperations(
         val msg = TimeOfDayMessage(zone.GetTimeOfDay(), zone.GetTimeOfDaySpeed())
 
         // update players in zone
-        zone.AvatarEvents ! AvatarServiceMessage(
-          zone.id,
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, msg)
-        )
+        zone.AvatarEvents ! MessageEnvelope(zone.id, SendResponse(msg))
 
         sendResponse(ChatMsg(messageType = UNK_227, contents = f"@CMT_SETTIME_OK^$hh~^$mm%02d~"))
       case _ =>
@@ -1479,10 +1476,7 @@ class ChatOperations(
         val msg = TimeOfDayMessage(zone.GetTimeOfDay(), zone.GetTimeOfDaySpeed())
 
         // update players in zone
-        zone.AvatarEvents ! AvatarServiceMessage(
-          zone.id,
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, msg)
-        )
+        zone.AvatarEvents ! MessageEnvelope(zone.id, SendResponse(msg))
 
         sendResponse(ChatMsg(messageType = UNK_227, contents = s"@CMT_SETTIMESPEED_OK^$timeSpeed~"))
       case _ =>

@@ -19,8 +19,7 @@ import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse}
 import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.services.local.support.{CaptureEnvelope, HackCaptureActor, HackClearActor, HackClearEnvelope}
-import net.psforever.services.local.LocalAction
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGeneratorState}
+import net.psforever.types.PlanetSideEmpire
 
 /**
   * A package class that conveys the important information for handling facility updates.

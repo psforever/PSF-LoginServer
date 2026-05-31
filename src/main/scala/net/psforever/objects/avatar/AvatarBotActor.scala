@@ -4,7 +4,6 @@ package net.psforever.objects.avatar
 import akka.actor.{Actor, ActorRef}
 import net.psforever.actors.zone.ShootingRangeTargetSpawner
 import net.psforever.objects.{GlobalDefinitions, Tool}
-import net.psforever.objects.avatar.AvatarBot
 import net.psforever.objects.equipment._
 import net.psforever.objects.serverobject.aura.{Aura, AuraEffectBehavior}
 import net.psforever.objects.serverobject.CommonMessages
@@ -14,18 +13,17 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations.Output
 import net.psforever.objects.zones._
 import net.psforever.packet.game._
 import net.psforever.types._
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.avatar.AvatarAction
 import net.psforever.objects.serverobject.environment.interaction.RespondsToZoneEnvironment
 import net.psforever.objects.serverobject.repair.Repairable
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.{HealFromEquipment, RepairFromEquipment}
 import net.psforever.objects.vital.etc.SuicideReason
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 
 import java.util.concurrent.{Executors, TimeUnit}
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Random
@@ -53,7 +51,7 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
 
   def InteractiveObject: AvatarBot = bot
 
-  private[this] val log = org.log4s.getLogger(bot.Name)
+  //private[this] val log = org.log4s.getLogger(bot.Name)
   private[this] val damageLog = org.log4s.getLogger(Damageable.LogChannel)
   private val scheduler = Executors.newScheduledThreadPool(2)
   /** suffocating, or regaining breath? */
@@ -107,14 +105,13 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
             if (!(bot.isMoving || user.isMoving)) { //only allow stationary heals
               val newHealth = bot.Health = originalHealth + 10
               val magazine = item.Discharge()
-              events ! AvatarServiceMessage(
+              events ! MessageEnvelope(
                 uname,
-                AvatarAction.SendResponse(
-                  Service.defaultPlayerGUID,
+                SendResponse(
                   InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)
                 )
               )
-              events ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth))
+              events ! MessageEnvelope(zone.id, PlanetsideAttribute(guid, 0, newHealth))
               bot.LogActivity(
                 HealFromEquipment(
                   PlayerSource(user),
@@ -124,10 +121,9 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
               )
             }
             //progress bar remains visible for all heal attempts
-            events ! AvatarServiceMessage(
+            events ! MessageEnvelope(
               uname,
-              AvatarAction.SendResponse(
-                Service.defaultPlayerGUID,
+              SendResponse(
                 RepairMessage(guid, bot.Health * 100 / definition.MaxHealth)
               )
             )
@@ -150,14 +146,13 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
               val newArmor = bot.Armor =
                 originalArmor + Repairable.applyLevelModifier(user, item, RepairToolValue(item)).toInt + definition.RepairMod
               val magazine = item.Discharge()
-              events ! AvatarServiceMessage(
+              events ! MessageEnvelope(
                 uname,
-                AvatarAction.SendResponse(
-                  Service.defaultPlayerGUID,
+                SendResponse(
                   InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)
                 )
               )
-              events ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(guid, 4, bot.Armor))
+              events ! MessageEnvelope(zone.id, PlanetsideAttribute(guid, 4, bot.Armor))
               bot.LogActivity(
                 RepairFromEquipment(
                   PlayerSource(user),
@@ -167,10 +162,9 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
               )
             }
             //progress bar remains visible for all repair attempts
-            events ! AvatarServiceMessage(
+            events ! MessageEnvelope(
               uname,
-              AvatarAction
-                .SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, bot.Armor * 100 / bot.MaxArmor))
+              SendResponse(RepairMessage(guid, bot.Armor * 100 / bot.MaxArmor))
             )
           }
 
@@ -231,9 +225,9 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
     //always do armor update
     if (damageToArmor > 0) {
       val zone = target.Zone
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
-        AvatarAction.PlanetsideAttributeToAll(target.GUID, 4, target.Armor)
+        PlanetsideAttribute(target.GUID, 4, target.Armor)
       )
     }
     //choose
@@ -280,16 +274,13 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
       announceConfrontation = true //TODO should we?
     }
     if (damageToHealth > 0) {
-      events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, health))
+      events ! MessageEnvelope(zoneId, PlanetsideAttribute(targetGUID, 0, health))
       announceConfrontation = true
     }
     val countableDamage = damageToHealth + damageToArmor
     if(announceConfrontation) {
       if (aggravated) {
-        events ! AvatarServiceMessage(
-          zoneId,
-          AvatarAction.SendResponse(targetGUID, AggravatedDamageMessage(targetGUID, countableDamage))
-        )
+        events ! MessageEnvelope(zoneId, targetGUID, SendResponse(AggravatedDamageMessage(targetGUID, countableDamage)))
       } else {
         //activity on map
         zone.Activity ! Zone.HotSpot.Activity(cause)
@@ -332,22 +323,22 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
     cause.adversarial match {
       case Some(a) =>
         damageLog.info(s"${a.defender.Name} was killed by ${a.attacker.Name}")
-        events ! AvatarServiceMessage(
+        events ! MessageEnvelope(
           zoneChannel,
           AvatarAction.DestroyDisplay(a.attacker, a.defender, a.implement)
         )
       case _ =>
         damageLog.info(s"${bot.Name} killed ${bot.Sex.pronounObject}self")
-        events ! AvatarServiceMessage(zoneChannel, AvatarAction.DestroyDisplay(cause.interaction.target, cause.interaction.target, 0))
+        events ! MessageEnvelope(zoneChannel, AvatarAction.DestroyDisplay(cause.interaction.target, cause.interaction.target, 0))
     }
 
-    events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(bot_guid, cause, None)) //align client interface fields with state
-    events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(bot_guid, 0, 0)) //health
+    events ! MessageEnvelope(nameChannel, bot_guid, AvatarAction.Killed(cause, None)) //align client interface fields with state
+    events ! MessageEnvelope(zoneChannel, PlanetsideAttribute(bot_guid, 0, 0)) //health
     val attribute = DamageableEntity.attributionTo(cause, target.Zone, bot_guid)
-    events ! AvatarServiceMessage(
+    events ! MessageEnvelope(
       nameChannel,
-      AvatarAction.SendResponse(
-        bot_guid,
+      bot_guid,
+      SendResponse(
         DestroyMessage(bot_guid, attribute, bot_guid, pos)
       ) //how many players get this message?
     )
@@ -402,13 +393,13 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
   private def performEmote(): Unit = {
     val zone = bot.Zone
     zone.blockMap.sector(bot).livePlayerList.collect { t =>
-      zone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendResponse(TriggerBotAction(bot.GUID)))
+      zone.LocalEvents ! MessageEnvelope(t.Name, SendResponse(TriggerBotAction(bot.GUID)))
     }
   }
 
   private def tickLogic(): Unit = {
     val zone = bot.Zone
-    if (!bot.Destroyed && zone.AllPlayers.size > 0) {
+    if (!bot.Destroyed && zone.AllPlayers.nonEmpty) {
       bot.zoneInteractions()
       val rotateRNG = Random.nextDouble()
       if (canRotate) {
@@ -424,10 +415,10 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
           )
         }
       }
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
+        bot.GUID,
         AvatarAction.PlayerState(
-          bot.GUID,
           bot.Position,
           bot.Velocity,
           bot.Orientation.z,
@@ -436,10 +427,10 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
           0,
           bot.Crouching,
           bot.Jumping,
-          false,
-            bot.Cloaked,
-            false,
-            false
+          jump_thrust = false,
+            is_cloaked = bot.Cloaked,
+            spectator = false,
+            weaponInHand = false
           )
       )
       if (canEmote) {
@@ -469,9 +460,9 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
   override def StartJammeredSound(target: Any, dur: Int): Unit =
     target match {
       case obj: AvatarBot if !jammedSound =>
-        obj.Zone.AvatarEvents ! AvatarServiceMessage(
+        obj.Zone.AvatarEvents ! MessageEnvelope(
           obj.Zone.id,
-          AvatarAction.PlanetsideAttributeToAll(obj.GUID, 27, 1)
+          PlanetsideAttribute(obj.GUID, 27, 1)
         )
         super.StartJammeredSound(obj, 3000)
       case _ => ;
@@ -502,9 +493,9 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
   override def CancelJammeredSound(target: Any): Unit =
     target match {
       case obj: AvatarBot if jammedSound =>
-        obj.Zone.AvatarEvents ! AvatarServiceMessage(
+        obj.Zone.AvatarEvents ! MessageEnvelope(
           obj.Zone.id,
-          AvatarAction.PlanetsideAttributeToAll(obj.GUID, 27, 0)
+          PlanetsideAttribute(obj.GUID, 27, 0)
         )
         super.CancelJammeredSound(obj)
       case _ => ;
@@ -521,10 +512,9 @@ class AvatarBotActor(bot: AvatarBot, spawnerActor: ActorRef)
   }
 
   def UpdateAuraEffect(target: AuraEffectBehavior.Target) : Unit = {
-    import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
     val zone = target.Zone
     val value = target.Aura.foldLeft(0)(_ + AvatarBotActor.auraEffectToAttributeValue(_))
-    zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(target.GUID, 54, value))
+    zone.AvatarEvents ! MessageEnvelope(zone.id, PlanetsideAttribute(target.GUID, 54, value))
   }
 }
 
