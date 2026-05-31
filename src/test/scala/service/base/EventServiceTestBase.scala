@@ -1,7 +1,7 @@
 package service.base
 
 import akka.actor.{Actor, ActorContext, ActorRef, Props}
-import net.psforever.services.Service
+import net.psforever.objects.Default
 import net.psforever.services.base.message.SelfRespondingEvent
 import net.psforever.services.base.{EventServiceSupport, EventSystemStamp, GenericSupportEnvelope}
 import net.psforever.types.PlanetSideGUID
@@ -32,7 +32,7 @@ object EventServiceTestBase {
       channel: String,
       msg: SupportActorRepliesWith
   ) extends GenericSupportEnvelope {
-    def filter: PlanetSideGUID = Service.defaultPlayerGUID
+    def filter: PlanetSideGUID = Default.GUID0
     def supportLabel: String   = "supportActor"
     def supportMessage: Any    = msg
   }

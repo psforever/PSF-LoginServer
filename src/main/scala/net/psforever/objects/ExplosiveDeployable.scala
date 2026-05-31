@@ -17,7 +17,6 @@ import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
-import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.local.LocalAction
@@ -213,7 +212,7 @@ object ExplosiveDeployableControl {
     target.Destroyed = true
     zone.AvatarEvents ! MessageEnvelope(
       zone.id,
-      AvatarAction.Destroy(target.GUID, attribution, Service.defaultPlayerGUID, target.Position)
+      AvatarAction.Destroy(target.GUID, attribution, Default.GUID0, target.Position)
     )
     if (target.Health == 0) {
       zone.LocalEvents ! MessageEnvelope(

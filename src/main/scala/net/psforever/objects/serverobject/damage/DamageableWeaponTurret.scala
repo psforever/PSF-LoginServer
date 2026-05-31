@@ -106,7 +106,7 @@ object DamageableWeaponTurret {
     * @see `DeleteObject`
     * @see `MountedWeapons`
     * @see `MountedWeapons.Weapons`
-    * @see `Service.defaultPlayerGUID`
+    * @see `Default.GUID0`
     * @see `TurretUpgrade.None`
     * @see `TurretUpgrader.AddTask`
     * @see `TurretUpgrader.ClearSpecific`

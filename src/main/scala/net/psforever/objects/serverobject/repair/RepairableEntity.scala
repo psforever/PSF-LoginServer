@@ -73,7 +73,7 @@ trait RepairableEntity extends Repairable {
     * @see `InventoryStateMessage`
     * @see `PlanetSideGameObject.isMoving`
     * @see `RepairMessage`
-    * @see `Service.defaultPlayerGUID`
+    * @see `Default.GUID0`
     * @see `Tool.Discharge`
     * @see `Zone.AvatarEvents`
     * @param target the entity being repaired

@@ -7,7 +7,6 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.structures.PoweredAmenityControl
-import net.psforever.services.Service
 import net.psforever.services.base.envelope.GenericResponseEnvelope
 import net.psforever.services.base.support.SupportActor
 import net.psforever.services.local.support.{DoorCloseActor, DoorMessage}
@@ -120,7 +119,7 @@ object DoorControl {
       replyTo ! GenericResponseEnvelope(
         LocalStamp,
         player.Name,
-        Service.defaultPlayerGUID,
+        Default.GUID0,
         LocalAction.DoorOpens(door.Zone, door)
       )
     }

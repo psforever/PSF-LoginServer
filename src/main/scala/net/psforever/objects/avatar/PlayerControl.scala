@@ -25,7 +25,6 @@ import net.psforever.objects.zones._
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
-import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.local.LocalAction
 import net.psforever.objects.locker.LockerContainerControl
@@ -768,7 +767,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           case GlobalDefinitions.router_telepad => () /* no special animation */
           case GlobalDefinitions.ace
             if obj.Definition.deployAnimation == DeployAnimation.Standard =>
-            val ownerGuid = obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID)
+            val ownerGuid = obj.OwnerGuid.getOrElse(Default.GUID0)
             zone.LocalEvents ! MessageEnvelope(
               zone.id,
               ownerGuid,
@@ -1061,7 +1060,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     val attribute = DamageableEntity.attributionTo(cause, target.Zone, player_guid)
     events ! MessageEnvelope(
       nameChannel,
-      SendResponse(DestroyMessage(player_guid, attribute, Service.defaultPlayerGUID, pos)) //how many players get this message?
+      SendResponse(DestroyMessage(player_guid, attribute, Default.GUID0, pos)) //how many players get this message?
     )
   }
 

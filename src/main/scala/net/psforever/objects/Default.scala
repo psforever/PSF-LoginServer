@@ -1,7 +1,12 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
+import net.psforever.types.{PlanetSideGUID, ValidPlanetSideGUID}
+
 object Default {
+  //'g'lobal 'u'nique 'id'entifier
+  final val GUID0: PlanetSideGUID = ValidPlanetSideGUID(0)
+
   //cancellable
   import akka.actor.Cancellable
   protected class InternalCancellable extends Cancellable {

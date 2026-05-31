@@ -16,7 +16,6 @@ import net.psforever.objects.vital.ShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.services.Service
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse}
 import net.psforever.types._
@@ -400,7 +399,7 @@ class BfrControl(vehicle: Vehicle)
       }) match {
         case (slot, Some(_)) =>
           armManagementFunc(slot)
-          val guid0 = Service.defaultPlayerGUID
+          val guid0 = Default.GUID0
           val doNotSendTo = other match {
             case Some(pguid: PlanetSideGUID) => pguid
             case _                           => guid0
@@ -548,7 +547,7 @@ class BfrControl(vehicle: Vehicle)
     val obj = ChargeTransferObject
     val zone = obj.Zone
     val events = zone.VehicleEvents
-    val GUID0 = Service.defaultPlayerGUID
+    val GUID0 = Default.GUID0
     getNtuContainer() match {
       case Some(siphon : NtuSiphon)
         if GlobalDefinitions.isBattleFrameNTUSiphon(siphon.equipment.Definition) &&

@@ -1,13 +1,13 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.damage
 
+import net.psforever.objects.Default
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
-import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.PlanetsideAttribute
@@ -146,7 +146,7 @@ object DamageableEntity {
     * @see `SendResponse`
     * @see `DamageFeedbackMessage`
     * @see `JammableUnit.Jammered`
-    * @see `Service.defaultPlayerGUID`
+    * @see `Default.GUID0`
     * @see `Zone.Activity`
     * @see `Zone.AvatarEvents`
     * @see `Zone.HotSpot.Activity`
@@ -204,7 +204,7 @@ object DamageableEntity {
     else {
       zone.AvatarEvents ! MessageEnvelope(
         zoneId,
-        AvatarAction.Destroy(tguid, attribution, Service.defaultPlayerGUID, target.Position)
+        AvatarAction.Destroy(tguid, attribution, Default.GUID0, target.Position)
       )
     }
   }

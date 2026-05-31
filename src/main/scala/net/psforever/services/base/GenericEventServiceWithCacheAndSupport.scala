@@ -3,7 +3,6 @@ package net.psforever.services.base
 
 import akka.actor.Cancellable
 import net.psforever.objects.Default
-import net.psforever.services.Service
 import net.psforever.services.base.envelope.{GenericMessageEnvelope, GenericResponseEnvelope, MessageEnvelope, MessageTransformationBehavior}
 import net.psforever.services.base.message.EventMessage
 import net.psforever.types.PlanetSideGUID
@@ -36,7 +35,7 @@ final case class CachedEnvelope(
                                  filter: PlanetSideGUID,
                                  msg: EventMessage
                                ) extends CachedGenericEventEnvelope {
-  assert(guid != Service.defaultPlayerGUID, "can not cache message under default GUID")
+  assert(guid != Default.GUID0, "can not cache message under default GUID")
 }
 
 object CachedEnvelope {
@@ -50,7 +49,7 @@ object CachedEnvelope {
    * @return either a `CacheEnvelope` or a `MessageEnvelope`, depending on cache-readiness of the `filter` value
    */
   def apply(channel: String, filter: PlanetSideGUID, msg: EventMessage): GenericMessageEnvelope = {
-    if (filter == Service.defaultPlayerGUID) {
+    if (filter == Default.GUID0) {
       org.log4s.getLogger("CachedEnvelope").warn("(1) cached message envelope downgraded to normal message envelope")
       MessageEnvelope(channel, filter, msg)
     } else {
@@ -69,11 +68,11 @@ object CachedEnvelope {
    * @return either a `CacheEnvelope` or a `MessageEnvelope`, depending on cache-readiness of the target
    */
   def apply(guid: PlanetSideGUID, channel: String, msg: EventMessage): GenericMessageEnvelope = {
-    if (guid == Service.defaultPlayerGUID) {
+    if (guid == Default.GUID0) {
       org.log4s.getLogger("CachedEnvelope").warn("(2) cached message envelope downgraded to normal message envelope")
       MessageEnvelope(channel, guid, msg)
     } else {
-      CachedEnvelope(guid, channel, Service.defaultPlayerGUID, msg)
+      CachedEnvelope(guid, channel, Default.GUID0, msg)
     }
   }
 }
@@ -90,7 +89,7 @@ private case object FlushCachedMessages extends GenericMessageEnvelope {
   def msg: EventMessage = NoMessage
   def response(stamp: EventSystemStamp): GenericResponseEnvelope = NoResponseEnvelope
   def channel: String = ""
-  def filter: PlanetSideGUID = Service.defaultPlayerGUID
+  def filter: PlanetSideGUID = Default.GUID0
 }
 
 class GenericEventServiceWithCacheAndSupport

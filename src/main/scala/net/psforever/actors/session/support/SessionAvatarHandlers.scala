@@ -7,7 +7,6 @@ import net.psforever.objects.{Default, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, UniquePlayer}
 import net.psforever.packet.game.objectcreate.ConstructorData
 import net.psforever.objects.zones.exp
-import net.psforever.services.Service
 import net.psforever.services.avatar.{AvatarAction, AvatarStamp}
 import net.psforever.services.base.envelope.{GenericResponseEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
@@ -214,7 +213,7 @@ class SessionAvatarHandlers(
     context.self ! GenericResponseEnvelope(
       AvatarStamp,
       playerName,
-      Service.defaultPlayerGUID,
+      Default.GUID0,
       SendResponse(ObjectDetachMessage(obj.GUID, playerGuid, player.Position, Vector3.Zero))
     )
     //player no longer seated

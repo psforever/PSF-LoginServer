@@ -2,7 +2,7 @@
 package net.psforever.services.base
 
 import akka.actor.{ActorContext, ActorRef}
-import net.psforever.services.Service
+import net.psforever.objects.Default
 import net.psforever.services.base.envelope.{GenericMessageEnvelope, GenericResponseEnvelope, MessageTransformationBehavior, NoReply, Undelivered}
 import net.psforever.services.base.message.{EventMessage, EventResponse, SelfRespondingEvent}
 import net.psforever.types.PlanetSideGUID
@@ -25,7 +25,7 @@ case object NoResponseEnvelope extends GenericResponseEnvelope {
   def reply: EventResponse = NoReply
   def stamp: EventSystemStamp = Undelivered
   def channel: String = ""
-  def filter: PlanetSideGUID = Service.defaultPlayerGUID
+  def filter: PlanetSideGUID = Default.GUID0
 }
 
 /**
@@ -66,7 +66,7 @@ trait GenericSupportEnvelopeOnly
     with GenericMessageEnvelope {
   def originalChannel: String = ""
   def channel: String = ""
-  def filter: PlanetSideGUID = Service.defaultPlayerGUID
+  def filter: PlanetSideGUID = Default.GUID0
   def msg: EventMessage = NoMessage
 
   def response(@unused stamp: EventSystemStamp): GenericResponseEnvelope = NoResponseEnvelope

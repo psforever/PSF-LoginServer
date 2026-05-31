@@ -10,7 +10,6 @@ import net.psforever.objects.vital.projectile.MaxDistanceCutoff
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{TriggerEffectMessage, TriggeredEffectLocation}
-import net.psforever.services.Service
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.types.PlanetSideGUID
@@ -47,7 +46,7 @@ class ApcControl(vehicle: Vehicle)
       val zone = obj.Zone
       val events = zone.VehicleEvents
       val pos = obj.Position
-      val GUID0 = Service.defaultPlayerGUID
+      val GUID0 = Default.GUID0
       val emp = ApcControl.apc_emp
       val faction = obj.Faction
       //drain the capacitor

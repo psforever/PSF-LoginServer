@@ -2,11 +2,8 @@
 package net.psforever.services
 
 import akka.actor.ActorRef
-import net.psforever.types.PlanetSideGUID
 
 object Service {
-  final val defaultPlayerGUID: PlanetSideGUID = PlanetSideGUID(0)
-
   case object Startup
 
   final case class Join(channel: String, sendJoinConfirmation: Boolean)

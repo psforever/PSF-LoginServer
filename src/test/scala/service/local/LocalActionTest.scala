@@ -63,7 +63,7 @@ class LocalActionTest extends Specification {
     "respond" in {
       val msg = LocalAction.TriggerEffectLocation("on", Vector3(1, 2, 3), Vector3(4, 5, 6))
       msg.response() match {
-        case LocalAction.TriggerEffectAtLocation(Service.defaultPlayerGUID, "on", None, Some(TriggeredEffectLocation(Vector3(1, 2, 3), Vector3(4, 5, 6)))) =>
+        case LocalAction.TriggerEffectAtLocation(Default.GUID0, "on", None, Some(TriggeredEffectLocation(Vector3(1, 2, 3), Vector3(4, 5, 6)))) =>
           ok
         case _ =>
           ko

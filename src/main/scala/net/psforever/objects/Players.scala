@@ -19,7 +19,6 @@ import net.psforever.objects.vital.{InGameActivity, InGameHistory, RevivingActiv
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types.{ChatMessageType, ExoSuitType, PlanetSideGUID, Vector3}
-import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ObjectDelete, SendResponse}
@@ -78,12 +77,12 @@ object Players {
     PlayerControl.sendResponse(
       target.Zone,
       medicName,
-      Service.defaultPlayerGUID,
+      Default.GUID0,
       SendResponse(
         InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine)
       )
     )
-    PlayerControl.sendResponse(target.Zone, name, Service.defaultPlayerGUID, AvatarAction.Revive(target.GUID))
+    PlayerControl.sendResponse(target.Zone, name, Default.GUID0, AvatarAction.Revive(target.GUID))
   }
 
   /**
@@ -165,7 +164,7 @@ object Players {
     ExoSuitDefinition.Select(exosuit, player.Faction).Permissions match {
       case Nil =>
         true
-      case permissions if player.IsInVRZone =>
+      case _ if player.IsInVRZone =>
         true
       case permissions if subtype != 0 =>
         val certs = player.avatar.certifications

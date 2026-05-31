@@ -17,7 +17,6 @@ import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.objects.{Default, PlanetSideGameObject, Player}
 import net.psforever.packet.game.{ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ObjectDetectedMessage}
-import net.psforever.services.Service
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.types.{PlanetSideGUID, Vector3}
@@ -880,7 +879,7 @@ object AutomatedTurretBehavior {
     EffectTarget.Validation.AutoTurretBlankVehicleTarget
   )
 
-  private val noTargets: List[PlanetSideGUID] = List(Service.defaultPlayerGUID)
+  private val noTargets: List[PlanetSideGUID] = List(Default.GUID0)
 
   /**
    * Are we tracking a target entity?

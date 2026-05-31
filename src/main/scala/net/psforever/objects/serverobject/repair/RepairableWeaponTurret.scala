@@ -28,7 +28,7 @@ object RepairableWeaponTurret {
     * and may have been concealed/deleted when the target was destroyed.
     * @see `MountedWeapons`
     * @see `MountedWeapons.Weapons`
-    * @see `Service.defaultPlayerGUID`
+    * @see `Default.GUID0`
     * @see `WeaponTurret`
     * @see `EquipmentInSlot`
     * @see `Zone.VehicleEvents`

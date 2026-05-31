@@ -2,10 +2,10 @@
 package net.psforever.services.teamwork
 
 import akka.actor.ActorRef
+import net.psforever.objects.Default
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
-import net.psforever.services.Service
 import net.psforever.services.base.message.EventResponse
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadResponseType, SquadWaypoint}
 import net.psforever.services.base.EventSystemStamp
@@ -15,7 +15,7 @@ case object SquadStamp extends EventSystemStamp
 
 final case class SquadServiceResponse(channel: String, exclude: Iterable[Long], reply: SquadResponse.Response)
      extends EventResponse with GenericResponseEnvelope {
-  def filter: PlanetSideGUID = Service.defaultPlayerGUID
+  def filter: PlanetSideGUID = Default.GUID0
 
   def stamp: EventSystemStamp = SquadStamp
 }

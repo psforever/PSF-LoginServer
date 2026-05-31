@@ -2,8 +2,7 @@
 package net.psforever.actors.session.support
 
 import akka.actor.Actor.Receive
-import net.psforever.objects.Player
-import net.psforever.services.Service
+import net.psforever.objects.{Default, Player}
 import net.psforever.services.base.message.EventResponse
 import net.psforever.types.PlanetSideGUID
 
@@ -21,8 +20,8 @@ trait HandlerFilter {
 }
 
 class HandlerFilterRules extends HandlerFilter {
-  var resolvedPlayerGuid: PlanetSideGUID = Service.defaultPlayerGUID
-  var otherPlayerGuid: PlanetSideGUID = Service.defaultPlayerGUID
+  var resolvedPlayerGuid: PlanetSideGUID = Default.GUID0
+  var otherPlayerGuid: PlanetSideGUID = Default.GUID0
   var isNotSameTarget: Boolean = false
   var isSameTarget: Boolean = false
 
@@ -41,7 +40,7 @@ object HandlerFilter {
       val pguid = player.GUID
       filter.set(pguid, guid, pguid != guid, pguid == guid)
     } else {
-      filter.set(Service.defaultPlayerGUID, guid, notSame = true, same = false)
+      filter.set(Default.GUID0, guid, notSame = true, same = false)
     }
     filter
   }

@@ -2,11 +2,11 @@
 package net.psforever.services.avatar.support
 
 import akka.actor.{ActorContext, ActorRef, Props}
+import net.psforever.objects.Default
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{GUIDTask, TaskBundle}
 import net.psforever.objects.zones.Zone
 import net.psforever.services.avatar.AvatarAction.{DropItem, PickupItem}
-import net.psforever.services.Service
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelope, GenericSupportEnvelopeOnly}
 import net.psforever.services.base.message.ObjectDelete
@@ -39,7 +39,7 @@ final case class PickupItemEnvelope(
 
 object PickupItemEnvelope {
   def apply(channel: String, actionMessage: PickupItem, zone: Zone): PickupItemEnvelope =
-    PickupItemEnvelope(channel, Service.defaultPlayerGUID, actionMessage, zone)
+    PickupItemEnvelope(channel, Default.GUID0, actionMessage, zone)
 }
 
 final case class DropItemEnvelope(
@@ -58,7 +58,7 @@ final case class DropItemEnvelope(
 
 object DropItemEnvelope {
   def apply(channel: String, actionMessage: DropItem, zone: Zone): DropItemEnvelope =
-    DropItemEnvelope(channel, Service.defaultPlayerGUID, actionMessage, zone)
+    DropItemEnvelope(channel, Default.GUID0, actionMessage, zone)
 }
 
 final case class GroundEnvelope(supportMessage: Any)

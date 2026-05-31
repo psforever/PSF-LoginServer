@@ -12,7 +12,6 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, FrameVehicleStateMessage, GenericObjectActionEnum, HackMessage, HackState, HackState1, HackState7, TriggeredSound, VehicleStateMessage}
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
-import net.psforever.services.Service
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse, SetEmpire}
 import net.psforever.services.local.LocalAction
@@ -92,7 +91,7 @@ object Vehicles {
     ReloadAccessPermissions(vehicle, vehicle.Faction.toString)
     zone.VehicleEvents ! MessageEnvelope(
       zone.id,
-      VehicleAction.LoseOwnership(ownerGuid.getOrElse(Service.defaultPlayerGUID), guid)
+      VehicleAction.LoseOwnership(ownerGuid.getOrElse(Default.GUID0), guid)
     )
     result
   }

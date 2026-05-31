@@ -5,7 +5,6 @@ import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.objects.{Default, Doors}
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
-import net.psforever.services.Service
 import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelope}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.local.LocalAction.IsADoorMessage
@@ -28,7 +27,7 @@ final case class DoorMessage(
                               msg: IsADoorMessage,
                               supportMessage: Any
                             ) extends GenericSupportEnvelope {
-  def filter: PlanetSideGUID = Service.defaultPlayerGUID
+  def filter: PlanetSideGUID = Default.GUID0
   def supportLabel: String = "doorCloser"
 }
 

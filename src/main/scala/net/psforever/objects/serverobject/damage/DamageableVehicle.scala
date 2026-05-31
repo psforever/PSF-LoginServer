@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.damage
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.{Vehicle, Vehicles}
+import net.psforever.objects.{Default, Vehicle, Vehicles}
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.sourcing.VehicleSource
@@ -12,7 +12,6 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.DamageWithPositionMessage
-import net.psforever.services.Service
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.types.Vector3
@@ -103,7 +102,7 @@ trait DamageableVehicle
     * Most all vehicles and the weapons mounted to them can jam
     * if the projectile that strikes (near) them has jammering properties.
     * If this vehicle has shields that were affected by previous damage, that is also reported to the clients.
-    * @see `Service.defaultPlayerGUID`
+    * @see `Default.GUID0`
     * @see `Vehicle.CargoHolds`
     * @see `PlanetsideAttribute`
     * @param target the entity being destroyed
@@ -180,7 +179,7 @@ trait DamageableVehicle
     * Finally, the vehicle is tasked for deconstruction.
     * @see `Deployment.TryDeploymentChange`
     * @see `DriveState.Undeploying`
-    * @see `Service.defaultPlayerGUID`
+    * @see `Default.GUID0`
     * @see `Vehicle.CargoHolds`
     * @see `PlanetsideAttribute`
     * @see `RemoverActor.AddTask`
@@ -241,7 +240,7 @@ trait DamageableVehicle
     import scala.concurrent.ExecutionContext.Implicits.global
     import scala.concurrent.duration._
     val obj = DamageableObject
-    val guid0 = Service.defaultPlayerGUID
+    val guid0 = Default.GUID0
     val zone = obj.Zone
     val zoneid = zone.id
     val events = zone.VehicleEvents

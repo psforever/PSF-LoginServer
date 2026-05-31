@@ -1124,7 +1124,7 @@ class ZoningOperations(
           case obj if obj.Destroyed => configAmenityAsDestroyed(obj)
           case obj                  => configAmenityAsWorking(obj)
         }
-        //sendResponse(HackMessage(HackState1.Unk3, guid, Service.defaultPlayerGUID, progress=0, -1f, HackState.HackCleared, HackState7.Unk8))
+        //sendResponse(HackMessage(HackState1.Unk3, guid, Default.GUID0, progress=0, -1f, HackState.HackCleared, HackState7.Unk8))
       }
   }
 
@@ -1976,7 +1976,7 @@ class ZoningOperations(
           guid,
           Deployable.Icon(obj.Definition.Item),
           obj.Position,
-          obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID)
+          obj.OwnerGuid.getOrElse(Default.GUID0)
         )))
       }
   }

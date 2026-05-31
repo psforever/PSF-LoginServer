@@ -4,7 +4,6 @@ package net.psforever.objects.serverobject.deploy
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.types.{DriveState, Vector3}
-import net.psforever.services.Service
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.vehicle.VehicleAction
 
@@ -98,7 +97,6 @@ trait DeploymentBehavior {
     val guid        = obj.GUID
     val zone        = obj.Zone
     val zoneChannel = zone.id
-    val GUID0       = Service.defaultPlayerGUID
     //TODO remove this arbitrary allowance angle when no longer helpful
     if (obj.Orientation.x > 30 && obj.Orientation.x < 330) {
       obj.DeploymentState = prevState
@@ -135,7 +133,6 @@ trait DeploymentBehavior {
     val guid        = obj.GUID
     val zone        = obj.Zone
     val zoneChannel = zone.id
-    val GUID0       = Service.defaultPlayerGUID
     if (state == DriveState.Undeploying) {
       zone.VehicleEvents ! MessageEnvelope(
         zoneChannel,

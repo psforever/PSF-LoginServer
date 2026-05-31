@@ -290,7 +290,7 @@ object WorldSession {
     * @see `ObjectHeldMessage`
     * @see `Player.DrawnSlot`
     * @see `Player.LastDrawnSlot`
-    * @see `Service.defaultPlayerGUID`
+    * @see `Default.GUID0`
     * @see `TaskBundle`
     * @see `Zone.AvatarEvents`
     * @param player the player whose visible slot will be equipped and drawn

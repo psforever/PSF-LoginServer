@@ -27,7 +27,6 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.UplinkRequest
-import net.psforever.services.Service
 import net.psforever.services.base.CachedEnvelope
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ReloadTool, SendResponse, WeaponDryFire}
@@ -352,7 +351,7 @@ class WeaponAndProjectileOperations(
       player.Zone.LocalEvents ! MessageEnvelope(
         s"${player.Zone.id}",
         PlanetSideGUID(-1),
-        SendResponse(TriggerEffectMessage(Service.defaultPlayerGUID, empColor, None, Some(TriggeredEffectLocation(player.Position, Vector3(0, 0, 90)))))
+        SendResponse(TriggerEffectMessage(Default.GUID0, empColor, None, Some(TriggeredEffectLocation(player.Position, Vector3(0, 0, 90)))))
       )
       context.system.scheduler.scheduleOnce(delay = 1 seconds) {
         Zone.serverSideDamage(player.Zone, player, empSize, SpecialEmp.createEmpInteraction(empSize, player.Position),

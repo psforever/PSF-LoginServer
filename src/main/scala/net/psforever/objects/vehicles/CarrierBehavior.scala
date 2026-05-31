@@ -9,7 +9,6 @@ import net.psforever.objects.sourcing.VehicleSource
 import net.psforever.objects.vital.VehicleCargoMountActivity
 import net.psforever.packet.game.{CargoMountPointStatusMessage, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
 import net.psforever.types.{BailType, CargoStatus, PlanetSideGUID, Vector3}
-import net.psforever.services.Service
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.vehicle.VehicleAction
@@ -440,7 +439,7 @@ object CarrierBehavior {
           //the lodestar's cargo hold is almost the center of the vehicle
           carrier.Position
         }
-        val GUID0      = Service.defaultPlayerGUID
+        val GUID0      = Default.GUID0
         val zoneId     = zone.id
         val events     = zone.VehicleEvents
         val cargoActor = cargo.Actor

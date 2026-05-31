@@ -593,7 +593,7 @@ class ExplosiveDeployableDestructionTest extends ActorTest {
       eventMsgs(1) match {
         case MessageEnvelope(
           "test", _,
-          AvatarAction.Destroy(PlanetSideGUID(2), PlanetSideGUID(3), Service.defaultPlayerGUID, Vector3.Zero)
+          AvatarAction.Destroy(PlanetSideGUID(2), PlanetSideGUID(3), Default.GUID0, Vector3.Zero)
         ) => ;
         case _ => assert(false, "")
       }

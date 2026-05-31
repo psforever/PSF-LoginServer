@@ -560,16 +560,16 @@ class CavernRotationService(
     //borrow GalaxyService response structure, but send to the specific endpoint math.max(0, monitor.start + monitor.duration - curr)
     unlockedZones.foreach { monitor =>
       val resp = GalaxyAction.UnlockedZoneUpdate(monitor.zone)
-      sendToSession ! GenericResponseEnvelope(GalaxyStamp, "", Service.defaultPlayerGUID, resp)
+      sendToSession ! GenericResponseEnvelope(GalaxyStamp, "", Default.GUID0, resp)
     }
     val sortedLocked = lockedZones.sortBy(z => z.start)
     sortedLocked.take(2).foreach { monitor =>
       val resp = GalaxyAction.LockedZoneUpdate(monitor.zone, math.max(0, monitor.start + monitor.duration - curr))
-      sendToSession ! GenericResponseEnvelope(GalaxyStamp, "", Service.defaultPlayerGUID, resp)
+      sendToSession ! GenericResponseEnvelope(GalaxyStamp, "", Default.GUID0, resp)
     }
     sortedLocked.takeRight(2).foreach { monitor =>
       val resp = GalaxyAction.LockedZoneUpdate(monitor.zone, 0L)
-      sendToSession ! GenericResponseEnvelope(GalaxyStamp, "", Service.defaultPlayerGUID, resp)
+      sendToSession ! GenericResponseEnvelope(GalaxyStamp, "", Default.GUID0, resp)
     }
   }
 

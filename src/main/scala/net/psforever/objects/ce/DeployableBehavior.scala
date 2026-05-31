@@ -6,7 +6,6 @@ import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.services.Service
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.base.message.SetEmpire
 import net.psforever.services.local.LocalAction
@@ -112,7 +111,7 @@ trait DeployableBehavior {
       obj,
       toOwner = "",
       toFaction,
-      DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Service.defaultPlayerGUID)
+      DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Default.GUID0)
     )
     startOwnerlessDecay()
   }
@@ -203,7 +202,7 @@ trait DeployableBehavior {
     //zone map icon
     localEvents ! MessageEnvelope(
       obj.Faction.toString,
-      LocalAction.DeployableMapIcon(DeploymentAction.Build, DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID)))
+      LocalAction.DeployableMapIcon(DeploymentAction.Build, DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.OwnerGuid.getOrElse(Default.GUID0)))
     )
     //local build management
     callback ! Zone.Deployable.IsBuilt(obj)

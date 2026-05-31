@@ -8,7 +8,7 @@ import net.psforever.actors.session.support.{LocalHandlerFunctions, SessionData,
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.vehicles.MountableWeapons
-import net.psforever.objects.{BoomerDeployable, ExplosiveDeployable, TelepadDeployable, Tool, TurretDeployable}
+import net.psforever.objects.{BoomerDeployable, Default, ExplosiveDeployable, TelepadDeployable, Tool, TurretDeployable}
 import net.psforever.packet.game.{ChatMsg, DeployableObjectsInfoMessage, GenericActionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HackMessage, HackState, HackState1, InventoryStateMessage, ObjectAttachMessage, ObjectCreateMessage, ObjectDeleteMessage, ObjectDetachMessage, OrbitalShuttleTimeMsg, PadAndShuttlePair, PlanetsideAttributeMessage, ProximityTerminalUseMessage, TriggerEffectMessage, TriggerSoundMessage, TriggeredSound, VehicleStateMessage}
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.{InterstellarClusterService, Service}
@@ -169,10 +169,10 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       }
 
     case LocalAction.ProximityTerminalEffect(object_guid, true) =>
-      sendResponse(ProximityTerminalUseMessage(Service.defaultPlayerGUID, object_guid, unk=true))
+      sendResponse(ProximityTerminalUseMessage(Default.GUID0, object_guid, unk=true))
 
     case LocalAction.ProximityTerminalEffect(objectGuid, false) =>
-      sendResponse(ProximityTerminalUseMessage(Service.defaultPlayerGUID, objectGuid, unk=false))
+      sendResponse(ProximityTerminalUseMessage(Default.GUID0, objectGuid, unk=false))
       sessionLogic.terminals.ForgetAllProximityTerminals(objectGuid)
 
     case LocalAction.RouterTelepadMessage(msg) =>

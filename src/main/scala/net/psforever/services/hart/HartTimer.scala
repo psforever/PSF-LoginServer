@@ -4,7 +4,6 @@ package net.psforever.services.hart
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.objects.zones.Zone
-import net.psforever.services.Service
 import net.psforever.services.base.EventSystemStamp
 import net.psforever.services.base.bus.GenericEventBus
 import net.psforever.services.base.envelope.{GenericResponseEnvelope, MessageEnvelope, NoReply}
@@ -268,7 +267,7 @@ object HartTimer {
   trait Command extends GenericResponseEnvelope {
     def originalChannel: String = ""
     def channel: String = ""
-    def filter: PlanetSideGUID = Service.defaultPlayerGUID
+    def filter: PlanetSideGUID = Default.GUID0
     def stamp: EventSystemStamp = HartStamp
     def reply: EventResponse = NoReply
   }

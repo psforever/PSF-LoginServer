@@ -4,6 +4,7 @@ package service.base
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.TestProbe
 import base.ActorTest
+import net.psforever.objects.Default
 import net.psforever.services.Service
 import net.psforever.services.base.message.EventMessage
 import net.psforever.services.base.{CachedEnvelope, CachedGenericEventEnvelope, EventServiceSupport, GenericEventServiceWithCacheAndSupport, GenericSupportEnvelope}
@@ -18,8 +19,8 @@ object EventServiceCacheSupportTest {
                                               override val msg: EventMessage,
                                               supportMessage: Any
                                             ) extends CachedGenericEventEnvelope with GenericSupportEnvelope {
-    assert(guid != Service.defaultPlayerGUID, "can not cache message under default GUID")
-    def filter: PlanetSideGUID = Service.defaultPlayerGUID
+    assert(guid != Default.GUID0, "can not cache message under default GUID")
+    def filter: PlanetSideGUID = Default.GUID0
     def supportLabel: String = "supportActor"
   }
 
