@@ -3,7 +3,7 @@ package net.psforever.services.base
 
 import akka.actor.Cancellable
 import net.psforever.objects.Default
-import net.psforever.services.base.envelope.{GenericMessageEnvelope, GenericResponseEnvelope, MessageEnvelope, MessageTransformationBehavior}
+import net.psforever.services.base.envelope.{BundledEnvelope, GenericMessageEnvelope, GenericResponseEnvelope, MessageEnvelope, MessageTransformationBehavior}
 import net.psforever.services.base.message.EventMessage
 import net.psforever.types.PlanetSideGUID
 import net.psforever.util.Config
@@ -137,18 +137,35 @@ class GenericEventServiceWithCacheAndSupport
   }
 
   /**
-   * Add messages to the cache based on their channel, then their type, then their cache target identifier.
+   * Add messages to the cache.
+   * @param event event system message
+   */
+  private def pushToCache(event: CachedGenericEventEnvelope): Unit = {
+    pushToCache(event, event.msg.getClass.getName, event.guid)
+  }
+  /**
+   * Add messages to the cache.
+   * @param event event system message
+   * @param eventGuid event system message filter
+   */
+  private def pushToCache(event: GenericMessageEnvelope, eventGuid: PlanetSideGUID): Unit = {
+    pushToCache(event, event.msg.getClass.getName, eventGuid)
+  }
+  /**
+   * Add messages to the cache
+   * based on their channel, then their type, then their cache target identifier.
    * Messages that arrive with the same cache profile as a previous message,
    * but before that previous message was dispatched,
    * will overwrite the previous message without fanfare or warning.
    * @param event event system message
+   * @param eventClassName event system message identifier
+   * @param eventGuid event system message filter
    */
-  private def pushToCache(event: CachedGenericEventEnvelope): Unit = {
-    val eventClassName = event.msg.getClass.getName
+  private def pushToCache(event: GenericMessageEnvelope, eventClassName: String, eventGuid: PlanetSideGUID): Unit = {
     val updateBranch = cache
       .getOrElseUpdate(event.channel, new ConcurrentHashMap[String, CMap[PlanetSideGUID, GenericMessageEnvelope]]().asScala)
       .getOrElseUpdate(eventClassName, new ConcurrentHashMap[PlanetSideGUID, GenericMessageEnvelope]().asScala)
-    updateBranch.updateWith(event.guid) { _ => Some(event) }
+    updateBranch.updateWith(eventGuid) { _ => Some(event) }
     tryRetimeFlushCache()
   }
 
@@ -194,6 +211,8 @@ class GenericEventServiceWithCacheAndSupport
     event match {
       case FlushCachedMessages =>
         flushCache()
+      case bundle: BundledEnvelope =>
+        handleMessageBundled(bundle)
       case _: CachedGenericEventEnvelope if tryFlushCache() =>
         super.handleMessage(event)
       case envelope: CachedGenericEventEnvelope =>
@@ -201,6 +220,26 @@ class GenericEventServiceWithCacheAndSupport
       case _ =>
         tryFlushCache()
         super.handleMessage(event)
+    }
+  }
+
+  /**
+   * If even one message in a bundle is to be cached, the contents of the whole bundle should be cached.
+   * Otherwise, just handle things normally.
+   * @param bundle event system message that may be cached
+   */
+  private def handleMessageBundled(bundle: BundledEnvelope): Unit = {
+    val messages = bundle.msgs
+    messages.find(_.isInstanceOf[CachedGenericEventEnvelope]) match {
+      case Some(cache: CachedGenericEventEnvelope) if messages.size == 1 =>
+        pushToCache(messages.head, cache.guid)
+        tryFlushCache()
+      case Some(cache: CachedGenericEventEnvelope) =>
+        val guid = cache.guid
+        messages.foreach(msg => pushToCache(msg, guid))
+        tryFlushCache()
+      case _ =>
+        messages.foreach(handleMessage)
     }
   }
 }

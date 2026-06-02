@@ -4,7 +4,7 @@ package net.psforever.services.base
 import akka.actor.Actor
 import net.psforever.services.Service
 import net.psforever.services.base.bus.GenericEventBus
-import net.psforever.services.base.envelope.GenericMessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, GenericMessageEnvelope}
 import org.log4s.Logger
 
 /**
@@ -78,6 +78,9 @@ class GenericEventService(stamp: EventSystemStamp)
    * Accept and handle designated messages.
    */
   protected def commonBehavior: Receive = {
+    case bundle: BundledEnvelope =>
+      bundle.msgs.foreach(commonBehavior.apply)
+
     case msg: GenericMessageEnvelope =>
       handleMessage(msg)
   }

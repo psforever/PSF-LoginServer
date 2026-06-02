@@ -11,7 +11,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.ContinentalLockUpdateMessage
 import net.psforever.persistence
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{SendResponse, SetEmpire}
 import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.services.{InterstellarClusterService, ServiceManager}
@@ -232,8 +232,10 @@ class BuildingActor(
         Behaviors.same
 
       case MapUpdate() =>
-        details.galaxyService ! MessageEnvelope("", GalaxyAction.MapUpdate(details.building.infoUpdateMessage()))
-        details.galaxyService ! MessageEnvelope("", SendResponse(details.building.densityLevelUpdateMessage(building)))
+        details.galaxyService ! BundledEnvelope(
+          MessageEnvelope("", GalaxyAction.MapUpdate(details.building.infoUpdateMessage())),
+          MessageEnvelope("", SendResponse(details.building.densityLevelUpdateMessage(building)))
+        )
         Behaviors.same
 
       case AmenityStateChange(amenity, data) =>

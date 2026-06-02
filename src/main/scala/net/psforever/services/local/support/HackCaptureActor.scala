@@ -14,7 +14,7 @@ import net.psforever.objects.serverobject.structures.participation.MajorFacility
 import net.psforever.packet.game.{ChatMsg, GenericAction, HackState7, PlanetsideAttributeEnum}
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelopeOnly}
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
 import net.psforever.services.local.LocalAction
@@ -22,6 +22,7 @@ import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
 
 import java.util.concurrent.{Executors, TimeUnit}
 import scala.collection.Seq
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.Random
 
@@ -277,18 +278,18 @@ class HackCaptureActor extends Actor {
 
   private def HackCompleted(terminal: CaptureTerminal with Hackable, hackedByFaction: PlanetSideEmpire.Value): Unit = {
     val building = terminal.Owner.asInstanceOf[Building]
+    val zone = building.Zone
+    val events = zone.LocalEvents
+    val messages: ArrayBuffer[MessageEnvelope] = ArrayBuffer()
     if (building.NtuLevel > 0) {
       building.virusId = 8
       building.virusInstalledBy = None
       log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
       //dispatch to players aligned with the capturing faction within the SOI
-      val events = building.Zone.LocalEvents
       val msg = LocalAction.GenericActionMessage(GenericAction.FacilityCaptureFanfare)
-      building
-        .PlayersInSOI
-        .collect { case p if p.Faction == hackedByFaction =>
-          events ! MessageEnvelope(p.Name, msg)
-        }
+      messages.appendAll(building.PlayersInSOI.collect { case p if p.Faction == hackedByFaction =>
+        MessageEnvelope(p.Name, msg)
+      })
       val buildings = building.Zone.Buildings.values
       val hackedBaseId = building.GUID
       val facilities = if (building.Zone.id.startsWith("c")) {
@@ -322,8 +323,8 @@ class HackCaptureActor extends Actor {
     }
     NotifyHackStateChange(terminal, isResecured = true)
     // todo: this appears to be the way to reset the base warning lights after the hack finishes but it doesn't seem to work.
-    val zone = building.Zone
-    zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.HackClear(building.GUID, 3212836864L, HackState7.Unk8))
+    messages.append(MessageEnvelope(zone.id, LocalAction.HackClear(building.GUID, 3212836864L, HackState7.Unk8)))
+    events ! BundledEnvelope(messages)
   }
 
   private def RestartTimer(): Unit = {

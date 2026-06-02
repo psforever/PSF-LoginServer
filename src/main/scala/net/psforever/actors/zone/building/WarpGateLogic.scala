@@ -6,7 +6,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.structures.{Amenity, Building, WarpGate}
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.types.PlanetSideEmpire
 import net.psforever.util.Config
@@ -209,9 +209,7 @@ case object WarpGateLogic
       warpgate.Zone.Number, warpgate.MapId, previousAllowances, setBroadcastTo
     )
     warpgate.AllowBroadcastFor = setBroadcastTo
-    (setBroadcastTo ++ previousAllowances).foreach { faction =>
-      events ! MessageEnvelope(faction.toString, msg)
-    }
+    events ! BundledEnvelope((setBroadcastTo ++ previousAllowances).map { faction => MessageEnvelope(faction.toString, msg) })
   }
 
   /**

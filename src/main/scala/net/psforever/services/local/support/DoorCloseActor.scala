@@ -6,7 +6,7 @@ import net.psforever.objects.{Default, Doors}
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
 import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelope}
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.local.LocalAction.IsADoorMessage
 import net.psforever.services.local.LocalAction
 import net.psforever.types.PlanetSideGUID
@@ -64,11 +64,13 @@ class DoorCloseActor() extends Actor {
         doorsLeftOpen1 ++
           doorsLeftOpen2.map(entry => DoorCloseActor.DoorEntry(entry.door, entry.zone, now))
       ).sortBy(_.time)
-      doorsToClose2.foreach { case DoorCloseActor.DoorEntry(door, zone, _) =>
-        door.Open = None //permissible break from synchronization
-        zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.DoorCloses(door.GUID)) //call up to the main event system
-      }
-
+      doorsToClose2
+        .map { case DoorCloseActor.DoorEntry(door, zone, _) =>
+          door.Open = None //permissible break from synchronization
+          (zone, MessageEnvelope(zone.id, LocalAction.DoorCloses(door.GUID))) //call up to the main event system
+        }
+        .groupBy(_._1)
+        .foreach { case (zone, list) => zone.LocalEvents ! BundledEnvelope(list.map(_._2)) }
       if (openDoors.nonEmpty) {
         val short_timeout: FiniteDuration = math.max(1, DoorCloseActor.timeout_time - (now - openDoors.head.time)).milliseconds
         import scala.concurrent.ExecutionContext.Implicits.global

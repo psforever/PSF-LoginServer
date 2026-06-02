@@ -15,7 +15,7 @@ import net.psforever.objects.serverobject.terminals.capture.{CaptureTerminal, Ca
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.packet.game.{GenericObjectActionMessage, PlanetsideAttributeMessage}
 import net.psforever.services.InterstellarClusterService
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse}
 import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.services.local.support.{CaptureEnvelope, HackCaptureActor, HackClearActor, HackClearEnvelope}
@@ -204,25 +204,19 @@ case object MajorFacilityLogic
         val events = zone.AvatarEvents
         val guid = building.GUID
         val msg = GenericObjectAction(guid, 15)
-        building.PlayersInSOI.foreach { player =>
-          events ! MessageEnvelope(player.Name, msg)
-        }
+        events ! BundledEnvelope(building.PlayersInSOI.map { player => MessageEnvelope(player.Name, msg) })
         false
       case Some(GeneratorControl.Event.Critical) =>
         val events = zone.AvatarEvents
         val guid = building.GUID
         val msg = PlanetsideAttribute(guid, 46, 1)
-        building.PlayersInSOI.foreach { player =>
-          events ! MessageEnvelope(player.Name, msg)
-        }
+        events ! BundledEnvelope(building.PlayersInSOI.map { player => MessageEnvelope(player.Name, msg) })
         true
       case Some(GeneratorControl.Event.Destabilized) =>
         val events = zone.AvatarEvents
         val guid = building.GUID
         val msg = GenericObjectAction(guid, 16)
-        building.PlayersInSOI.foreach { player =>
-          events ! MessageEnvelope(player.Name, msg)
-        }
+        events ! BundledEnvelope(building.PlayersInSOI.map { player => MessageEnvelope(player.Name, msg) })
         if (building.hasCavernLockBenefit) {
           zone.LocalEvents ! MessageEnvelope(
             zone.id,
@@ -235,10 +229,9 @@ case object MajorFacilityLogic
       case Some(GeneratorControl.Event.Offline) =>
         powerLost(details)
         val zone = building.Zone
+        val events = zone.AvatarEvents
         val msg = PlanetsideAttribute(building.GUID, 46, 2)
-        building.PlayersInSOI.foreach { player =>
-          zone.AvatarEvents ! MessageEnvelope(player.Name, msg)
-        } //???
+        events ! BundledEnvelope(building.PlayersInSOI.map { player => MessageEnvelope(player.Name, msg) }) //???
         true
       case Some(GeneratorControl.Event.Normal) =>
         true
@@ -253,9 +246,7 @@ case object MajorFacilityLogic
           PlanetsideAttributeMessage(guid, 46, 0),
           GenericObjectActionMessage(guid, 17)
         ))
-        building.PlayersInSOI.foreach { player =>
-          events ! MessageEnvelope(player.Name, list)
-        }
+        events ! BundledEnvelope(building.PlayersInSOI.map { player => MessageEnvelope(player.Name, list) })
         true
       case _ =>
         false

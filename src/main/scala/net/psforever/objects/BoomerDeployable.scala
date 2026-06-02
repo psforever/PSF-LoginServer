@@ -107,10 +107,7 @@ class BoomerDeployableControl(mine: BoomerDeployable)
             zone.Ground ! Zone.Ground.RemoveItem(guid)
           case _ => ()
         }
-        zone.AvatarEvents! MessageEnvelope(
-          zone.id,
-          ObjectDelete(guid)
-        )
+        zone.AvatarEvents! MessageEnvelope(zone.id, ObjectDelete(guid))
         TaskWorkflow.execute(GUIDTask.unregisterObject(zone.GUID, trigger))
       case None => ()
     }

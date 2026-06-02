@@ -12,10 +12,12 @@ import net.psforever.objects.vehicles._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, FrameVehicleStateMessage, GenericObjectActionEnum, HackMessage, HackState, HackState1, HackState7, TriggeredSound, VehicleStateMessage}
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, PlanetSideGUID, Vector3}
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse, SetEmpire}
 import net.psforever.services.local.LocalAction
 import net.psforever.services.vehicle.VehicleAction
+
+import scala.collection.mutable.ArrayBuffer
 
 //import scala.concurrent.duration._
 
@@ -248,13 +250,15 @@ object Vehicles {
     val hFaction = hacker.Faction
     val zone = target.Zone
     val zoneid = zone.id
+    val avatarEvents = zone.AvatarEvents
     val vehicleEvents = zone.VehicleEvents
-    val localEvents = zone.LocalEvents
     val previousOwnerName = target.OwnerName.getOrElse("")
-    vehicleEvents ! MessageEnvelope(
+    val occupantMessages: ArrayBuffer[MessageEnvelope] = ArrayBuffer()
+    val vehicleMessages: ArrayBuffer[MessageEnvelope] = ArrayBuffer()
+    vehicleMessages.append(MessageEnvelope(
       zoneid,
       SendResponse(HackMessage(HackState1.Unk2, tGuid, hGuid, 100, 0f, HackState.Hacked, HackState7.Unk8))
-    )
+    ))
     target.Actor ! CommonMessages.Hack(hacker, target)
     // Forcefully dismount any cargo
     target.CargoHolds.foreach { case (_, cargoHold) =>
@@ -268,26 +272,29 @@ object Vehicles {
         player: Player =>
           seat.unmount(player)
           player.VehicleSeated = None
-          vehicleEvents ! MessageEnvelope(
+          occupantMessages.append(MessageEnvelope(
             zoneid,
             player.GUID,
             VehicleAction.KickPassenger(4, unk2 = false, tGuid)
-          )
+          ))
       }
       // In case BFR is occupied and may or may not be crouched
       if (GlobalDefinitions.isBattleFrameVehicle(target.Definition) && target.Seat(0).isDefined) {
-        zone.LocalEvents ! MessageEnvelope(
-          zoneid,
-          GenericObjectAction(target.GUID, GenericObjectActionEnum.BFRShieldsDown.id)
-        )
-        zone.LocalEvents ! MessageEnvelope(
-          zoneid,
-          SendResponse(
-            FrameVehicleStateMessage(target.GUID, 0, target.Position, target.Orientation, Some(Vector3(0f, 0f, 0f)), unk2=false, 0, 0, is_crouched=true, is_airborne=false, ascending_flight=false, 10, 0, 0)))
-        zone.LocalEvents ! MessageEnvelope(
-          zoneid,
-          SendResponse(
-            VehicleStateMessage(target.GUID, 0, target.Position, target.Orientation, Some(Vector3(0f, 0f, 0f)), None, 0, 0, 15, is_decelerating=false, is_cloaked=false)))
+        vehicleMessages.appendAll(List(
+          MessageEnvelope(zoneid,
+            GenericObjectAction(target.GUID, GenericObjectActionEnum.BFRShieldsDown.id)
+          ),
+          MessageEnvelope(zoneid,
+            SendResponse(
+              FrameVehicleStateMessage(target.GUID, 0, target.Position, target.Orientation, Some(Vector3(0f, 0f, 0f)), unk2=false, 0, 0, is_crouched=true, is_airborne=false, ascending_flight=false, 10, 0, 0)
+            )
+          ),
+          MessageEnvelope(zoneid,
+            SendResponse(
+              VehicleStateMessage(target.GUID, 0, target.Position, target.Orientation, Some(Vector3(0f, 0f, 0f)), None, 0, 0, 15, is_decelerating=false, is_cloaked=false)
+            )
+          )
+        ))
       }
     })
     // If the vehicle can fly and is flying: deconstruct it; and well played to whomever managed to hack a plane in mid air
@@ -312,26 +319,17 @@ object Vehicles {
       Vehicles.Own(target, hacker)
       //todo: Send HackMessage -> HackCleared to vehicle? can be found in packet captures. Not sure if necessary.
       // And broadcast the faction change to other clients
-      zone.AvatarEvents ! MessageEnvelope(
-        zoneid,
-        SetEmpire(tGuid, hFaction)
-      )
+      vehicleMessages.append(MessageEnvelope(zoneid, SetEmpire(tGuid, hFaction)))
     }
-    localEvents ! MessageEnvelope(
+    vehicleMessages.append(MessageEnvelope(
       zoneid,
       hGuid,
       LocalAction.TriggerSound(TriggeredSound.HackVehicle, target.Position, 30, 0.49803925f)
-    )
+    ))
     if (zone.Players.exists(_.name.equals(previousOwnerName))) {
-      localEvents ! MessageEnvelope(
-        previousOwnerName,
-        SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackStolen"))
-      )
+      vehicleMessages.append(MessageEnvelope(previousOwnerName, SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackStolen"))))
     }
-    localEvents ! MessageEnvelope(
-      hacker.Name,
-      SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackVehicleOwned"))
-    )
+    occupantMessages.append(MessageEnvelope(hacker.Name, SendResponse(ChatMsg(ChatMessageType.UNK_226, "@JackVehicleOwned"))))
     // Clean up after specific vehicles, e.g. remove router telepads
     // If AMS is deployed, swap it to the new faction
     target.Definition match {
@@ -343,13 +341,15 @@ object Vehicles {
             util.Actor ! TelepadLike.Activate(util)
         }
       case GlobalDefinitions.ams if target.DeploymentState == DriveState.Deployed =>
-        vehicleEvents ! MessageEnvelope(zone.id, VehicleAction.AMSDeploymentChange(zone))
+        vehicleMessages.append(MessageEnvelope(zone.id, VehicleAction.AMSDeploymentChange(zone)))
       case _ => ()
     }
-    vehicleEvents ! MessageEnvelope(
+    vehicleMessages.append(MessageEnvelope(
       zoneid,
       SendResponse(HackMessage(HackState1.Unk2, tGuid, tGuid, 0, 1L, HackState.HackCleared, HackState7.Unk8))
-    )
+    ))
+    avatarEvents ! BundledEnvelope(occupantMessages)
+    vehicleEvents ! BundledEnvelope(vehicleMessages)
     target.Actor ! CommonMessages.ClearHack()
   }
 

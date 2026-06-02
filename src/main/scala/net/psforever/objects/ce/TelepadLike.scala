@@ -9,7 +9,7 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{GenericObjectActionMessage, ObjectCreateMessage, ObjectDeleteMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalAction
 import net.psforever.types.PlanetSideGUID
@@ -115,21 +115,23 @@ object TelepadLike {
     normally dispatched while the Router is transitioned into its Deploying state
     it is safe, however, to perform these actions at any time during and after the Deploying state
      */
-    events ! MessageEnvelope(
-      zoneId,
-      SendResponse(
-        ObjectCreateMessage(
-          udef.ObjectId,
-          utilityGUID,
-          ObjectCreateMessageParent(routerGUID, 2), //TODO stop assuming slot number
-          udef.Packet.ConstructorData(obj).get
+    events ! BundledEnvelope(
+      MessageEnvelope(
+        zoneId,
+        SendResponse(
+          ObjectCreateMessage(
+            udef.ObjectId,
+            utilityGUID,
+            ObjectCreateMessageParent(routerGUID, 2), //TODO stop assuming slot number
+            udef.Packet.ConstructorData(obj).get
+          )
         )
-      )
+      ),
+      MessageEnvelope(zoneId, SendResponse(Seq(
+        GenericObjectActionMessage(utilityGUID, 27),
+        GenericObjectActionMessage(utilityGUID, 30)
+      )))
     )
-    events ! MessageEnvelope(zoneId, SendResponse(Seq(
-      GenericObjectActionMessage(utilityGUID, 27),
-      GenericObjectActionMessage(utilityGUID, 30)
-    )))
     LinkTelepad(zone, utilityGUID)
   }
 

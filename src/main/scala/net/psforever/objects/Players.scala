@@ -20,11 +20,12 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
 import net.psforever.types.{ChatMessageType, ExoSuitType, PlanetSideGUID, Vector3}
 import net.psforever.services.avatar.AvatarAction
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{ObjectDelete, SendResponse}
 import net.psforever.services.local.LocalAction
 
 import scala.annotation.tailrec
+import scala.collection.mutable.ArrayBuffer
 
 object Players {
   private val log = org.log4s.getLogger("Players")
@@ -49,10 +50,7 @@ object Players {
     ) {
       val events = target.Zone.AvatarEvents
       val uname  = user.Name
-      events ! MessageEnvelope(
-        uname,
-        SendResponse(RepairMessage(target.GUID, progress.toInt))
-      )
+      events ! MessageEnvelope(uname, SendResponse(RepairMessage(target.GUID, progress.toInt)))
       true
     } else {
       false
@@ -439,24 +437,20 @@ object Players {
           if ((player.Slot(index).Equipment = obj).contains(obj)) {
             val fireMode = tool.FireModeIndex
             val ammoType = tool.AmmoTypeIndex
+            val list: ArrayBuffer[MessageEnvelope] = ArrayBuffer()
             player.Inventory -= x.start
             obj.FireModeIndex = fireMode
             //TODO any penalty for being handed an OCM version of the tool?
-            events ! MessageEnvelope(
-              zone.id,
-              AvatarAction.EquipmentInHand(pguid, index, obj)
-            )
+            list.append(MessageEnvelope(zone.id, AvatarAction.EquipmentInHand(pguid, index, obj)))
             if (obj.AmmoTypeIndex != ammoType) {
               obj.AmmoTypeIndex = ammoType
-              events ! MessageEnvelope(
-                name,
-                SendResponse(ChangeAmmoMessage(obj.GUID, ammoType))
-              )
+              list.append(MessageEnvelope(name, SendResponse(ChangeAmmoMessage(obj.GUID, ammoType))))
             }
             if (player.DrawnSlot == Player.HandsDownSlot) {
               player.DrawnSlot = index
-              events ! MessageEnvelope(zone.id, pguid, AvatarAction.ObjectHeld(index, index))
+              list.append(MessageEnvelope(zone.id, pguid, AvatarAction.ObjectHeld(index, index)))
             }
+            events ! BundledEnvelope(list)
           }
         case Nil => ; //no replacements found
       }

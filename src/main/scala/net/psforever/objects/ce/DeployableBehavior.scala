@@ -6,7 +6,7 @@ import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SetEmpire
 import net.psforever.services.local.LocalAction
 import net.psforever.types.PlanetSideEmpire
@@ -198,11 +198,14 @@ trait DeployableBehavior {
       None
     }
     //zone build
-    localEvents ! MessageEnvelope(zone.id, LocalAction.DeployItem(obj))
-    //zone map icon
-    localEvents ! MessageEnvelope(
-      obj.Faction.toString,
-      LocalAction.DeployableMapIcon(DeploymentAction.Build, DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.OwnerGuid.getOrElse(Default.GUID0)))
+    localEvents ! BundledEnvelope(
+      /* zone build */
+      MessageEnvelope(zone.id, LocalAction.DeployItem(obj)),
+      /* zone map icon */
+      MessageEnvelope(
+        obj.Faction.toString,
+        LocalAction.DeployableMapIcon(DeploymentAction.Build, DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.OwnerGuid.getOrElse(Default.GUID0)))
+      )
     )
     //local build management
     callback ! Zone.Deployable.IsBuilt(obj)
@@ -281,15 +284,13 @@ object DeployableBehavior {
     val localEvents = zone.LocalEvents
     if (originalFaction != toFaction) {
       obj.Faction = toFaction
-      //visual tells in regards to ownership by faction
-      zone.AvatarEvents ! MessageEnvelope(
-        zone.id,
-        SetEmpire(dGuid, toFaction)
-      )
-      //remove knowledge by the previous owner's faction
-      localEvents ! MessageEnvelope(
-        originalFaction.toString,
-        LocalAction.DeployableMapIcon(DeploymentAction.Dismiss, info)
+      localEvents ! BundledEnvelope(
+        /* visual tells in regards to ownership by faction */
+        MessageEnvelope(zone.id, SetEmpire(dGuid, toFaction)),
+        /* remove knowledge by the previous owner's faction */
+        MessageEnvelope(originalFaction.toString, LocalAction.DeployableMapIcon(DeploymentAction.Dismiss, info)),
+        /* display to the given faction */
+        MessageEnvelope(toFaction.toString, LocalAction.DeployableMapIcon(DeploymentAction.Build, info))
       )
       //remove deployable from original owner's toolbox and UI counter
       zone.AllPlayers.filter(p => obj.OriginalOwnerName.contains(p.Name))
@@ -297,11 +298,6 @@ object DeployableBehavior {
           originalOwner.avatar.deployables.Remove(obj)
           originalOwner.Zone.LocalEvents ! MessageEnvelope(originalOwner.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
       }
-      //display to the given faction
-      localEvents ! MessageEnvelope(
-        toFaction.toString,
-        LocalAction.DeployableMapIcon(DeploymentAction.Build, info)
-      )
     }
   }
 }

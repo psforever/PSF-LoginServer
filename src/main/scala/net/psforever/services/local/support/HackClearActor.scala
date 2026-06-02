@@ -8,7 +8,7 @@ import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.HackState7
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelope, GenericSupportEnvelopeOnly}
 import net.psforever.services.base.message.GenericObjectAction
 import net.psforever.services.local.LocalAction.IsAHackMessage
@@ -72,13 +72,18 @@ class HackClearActor() extends Actor {
       //TODO we can just walk across the list of doors and extract only the first few entries
       val (unhackObjects, stillHackedObjects) = PartitionEntries(hackedObjects, now)
       hackedObjects = stillHackedObjects
-      unhackObjects.foreach { case HackClearActor.HackEntry(target, zone, unk1, unk2, _, _) =>
-        target.Actor ! CommonMessages.ClearHack()
-        zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.HackClear(target.GUID, unk1, unk2))
-        if (target.Definition == GlobalDefinitions.main_terminal) {
-          ClearVirusFromBuilding(target)
+      unhackObjects
+        .map { case HackClearActor.HackEntry(target, zone, unk1, unk2, _, _) =>
+          target.Actor ! CommonMessages.ClearHack()
+          if (target.Definition == GlobalDefinitions.main_terminal) {
+            ClearVirusFromBuilding(target)
+          }
+          (zone, MessageEnvelope(zone.id, LocalAction.HackClear(target.GUID, unk1, unk2)))
         }
-      }
+        .groupBy(_._1)
+        .foreach { case (zone, list) =>
+          zone.LocalEvents ! BundledEnvelope(list.map(_._2))
+        }
 
       RestartTimer()
 
@@ -132,9 +137,7 @@ class HackClearActor() extends Actor {
     building.virusInstalledBy = None
     val msg = GenericObjectAction(target.GUID, 60)
     val events = building.Zone.AvatarEvents
-    building.PlayersInSOI.foreach { player =>
-      events ! MessageEnvelope(player.Name, msg)
-    }
+    events ! BundledEnvelope(building.PlayersInSOI.map { player => MessageEnvelope(player.Name, msg) })
     building.Actor ! BuildingActor.MapUpdate()
   }
 
