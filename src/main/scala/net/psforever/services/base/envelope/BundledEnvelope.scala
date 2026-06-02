@@ -71,12 +71,11 @@ object BundledEnvelope {
     if (in.isEmpty) {
       out
     } else {
-      val first :: remainder = in
-      first match {
+      in.head match {
         case bundle: BundledEnvelope =>
-          unwind(bundle.msgs ++ remainder, out)
-        case _ =>
-          unwind(remainder, out :+ first)
+          unwind(bundle.msgs ++ in.tail, out)
+        case first =>
+          unwind(in.tail, out :+ first)
       }
     }
   }

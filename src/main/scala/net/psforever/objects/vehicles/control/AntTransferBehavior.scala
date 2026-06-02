@@ -1,7 +1,8 @@
-// Copyright (c) 2020 PSForever
-package net.psforever.objects.vehicles
+package net.psforever.objects.vehicles.control
 
 import akka.actor.{ActorRef, Cancellable}
+import akka.actor.typed.scaladsl.adapter._
+
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.deploy.Deployment
@@ -10,7 +11,6 @@ import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
 import net.psforever.objects._
 import net.psforever.types.DriveState
-import akka.actor.typed.scaladsl.adapter._
 import net.psforever.objects.serverobject.transfer.TransferContainer.TransferMaterial
 import net.psforever.packet.game.PlanetsideAttributeMessage
 import net.psforever.services.base.envelope.MessageEnvelope
@@ -21,8 +21,8 @@ import scala.concurrent.duration._
 
 trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   var panelAnimationFunc: () => Unit = NoCharge
-  var ntuChargingTick: Cancellable = Default.Cancellable
-  findChargeTargetFunc    = Vehicles.FindANTChargingSource
+  var ntuChargingTick: Cancellable   = Default.Cancellable
+  findChargeTargetFunc = Vehicles.FindANTChargingSource
   findDischargeTargetFunc = Vehicles.FindANTDischargingTarget
 
   def TransferMaterial: TransferMaterial = Ntu.Nanites
@@ -32,7 +32,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
   def antBehavior: Receive = storageBehavior.orElse(transferBehavior)
 
   def ActivatePanelsForChargingEvent(vehicle: NtuContainer): Unit = {
-    val obj = ChargeTransferObject
+    val obj  = ChargeTransferObject
     val zone = obj.Zone
     zone.VehicleEvents ! MessageEnvelope(
       zone.id,
@@ -42,7 +42,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
 
   /** Charging */
   def StartNtuChargingEvent(vehicle: NtuContainer): Unit = {
-    val obj = ChargeTransferObject
+    val obj  = ChargeTransferObject
     val zone = obj.Zone
     zone.VehicleEvents ! MessageEnvelope(
       zone.id,
@@ -188,7 +188,8 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
         transferTarget match {
           case Some(silo: ResourceSilo) =>
             scala.math.min(
-              scala.math.min(silo.MaxNtuCapacitor / silo.Definition.ChargeTime.toSeconds.toFloat, chargeable.NtuCapacitor),
+              scala.math
+                .min(silo.MaxNtuCapacitor / silo.Definition.ChargeTime.toSeconds.toFloat, chargeable.NtuCapacitor),
               max
             )
           case _ =>
@@ -208,9 +209,11 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
 
   def HandleNtuGrant(sender: ActorRef, src: NtuContainer, amount: Float): Unit = {
     val obj = ChargeTransferObject
-    if (obj.DeploymentState == DriveState.Deployed &&
-        transferEvent == TransferBehavior.Event.Charging &&
-        ReceiveAndDepositUntilFull(obj, amount)) {
+    if (
+      obj.DeploymentState == DriveState.Deployed &&
+      transferEvent == TransferBehavior.Event.Charging &&
+      ReceiveAndDepositUntilFull(obj, amount)
+    ) {
       panelAnimationFunc()
     } else {
       TryStopChargingEvent(obj)

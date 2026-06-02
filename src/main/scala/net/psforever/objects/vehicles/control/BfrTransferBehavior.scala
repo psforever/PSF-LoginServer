@@ -1,19 +1,20 @@
 // Copyright (c) 2021 PSForever
-package net.psforever.objects.vehicles
+package net.psforever.objects.vehicles.control
 
 import akka.actor.ActorRef
 import akka.actor.typed.scaladsl.adapter._
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.BuildingActor
-import net.psforever.objects.{NtuContainer, NtuContainerDefinition, _}
+import net.psforever.objects._
 import net.psforever.objects.definition.ObjectDefinition
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.serverobject.resourcesilo.ResourceSilo
 import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.serverobject.transfer.{TransferBehavior, TransferContainer}
+import net.psforever.objects.vehicles.VehicleSubsystem
 import net.psforever.services.base.envelope.MessageEnvelope
-import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 import net.psforever.services.vehicle.VehicleAction
+import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._

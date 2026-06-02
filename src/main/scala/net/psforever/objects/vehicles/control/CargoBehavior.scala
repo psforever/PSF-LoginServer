@@ -1,5 +1,5 @@
 // Copyright (c) 2020 PSForever
-package net.psforever.objects.vehicles
+package net.psforever.objects.vehicles.control
 
 import akka.actor.Actor
 import net.psforever.objects._
