@@ -16,7 +16,7 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{GlobalDefinitions, Player, SimpleItem}
 import net.psforever.packet.game.HackState1
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SetEmpire
 import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
@@ -145,14 +145,14 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
     val zone = mech.Zone
     val zoneId = zone.id
     val events = zone.VehicleEvents
-    mech.Seats.values.foreach(seat =>
+    events ! BundledEnvelope(mech.Seats.values.flatMap(seat =>
       seat.occupant.collect {
         case player =>
           seat.unmount(player)
           player.VehicleSeated = None
-          events ! MessageEnvelope(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2=false, guid))
+          MessageEnvelope(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2=false, guid))
       }
-    )
+    ))
   }
 
   def powerTurnOnCallback(): Unit = {
@@ -225,9 +225,9 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
                                          setToFaction: PlanetSideEmpire.Value
                                        ): Unit = {
     val events = zone.LocalEvents
-    opposingFactionsAre(setToFaction).foreach { faction =>
-      events ! MessageEnvelope(faction.toString, SetEmpire(guid, faction))
-    }
+    events ! BundledEnvelope(opposingFactionsAre(setToFaction).toSeq.map { faction =>
+      MessageEnvelope(faction.toString, SetEmpire(guid, faction))
+    })
   }
 
   private def noAccessByOpposingFactions(
@@ -236,9 +236,9 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
                                           setToFaction: PlanetSideEmpire.Value
                                         ): Unit = {
     val events = zone.LocalEvents
-    opposingFactionsAre(setToFaction).foreach { faction =>
-      events ! MessageEnvelope(faction.toString, SetEmpire(guid, setToFaction))
-    }
+    events ! BundledEnvelope(opposingFactionsAre(setToFaction).toSeq.map { faction =>
+      MessageEnvelope(faction.toString, SetEmpire(guid, setToFaction))
+    })
   }
 
   private def opposingFactionsAre(faction: PlanetSideEmpire.Value): PlanetSideEmpire.ValueSet = {
@@ -273,13 +273,13 @@ class ImplantTerminalMechControl(mech: ImplantTerminalMech)
                                                   ): Unit = {
     val zoneId = zone.id
     val events = zone.LocalEvents
-    obj.Seats.values.foreach(seat =>
+    events !  BundledEnvelope(obj.Seats.values.flatMap(seat =>
       seat.occupant.collect {
         case player if test(player.Faction) =>
           seat.unmount(player)
           player.VehicleSeated = None
-          events ! MessageEnvelope(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2 = false, guid))
+          MessageEnvelope(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2 = false, guid))
       }
-    )
+    ))
   }
 }

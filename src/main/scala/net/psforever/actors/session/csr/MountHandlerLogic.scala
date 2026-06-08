@@ -14,7 +14,7 @@ import net.psforever.objects.serverobject.turret.{FacilityTurret, WeaponTurret}
 import net.psforever.objects.vehicles.AccessPermissionGroup
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.packet.game.{ChatMsg, DelayedPathMountMsg, DismountVehicleCargoMsg, DismountVehicleMsg, GenericObjectActionMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectDetachMessage, PlanetsideAttributeMessage, PlayerStasisMessage, PlayerStateShiftMessage, ShiftState}
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{SendResponse, SetEmpire}
 import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.{BailType, ChatMessageType, DriveState, PlanetSideGUID, Vector3}
@@ -212,22 +212,20 @@ class MountHandlerLogic(val ops: SessionMountHandlers, implicit val context: Act
         ops.DismountAction(tplayer, obj, seatNum)
         continent.actor ! ZoneActor.RemoveFromBlockMap(player) //character doesn't need it
         //DismountAction(...) uses vehicle service, so use that service to coordinate the remainder of the messages
-        events ! MessageEnvelope(
-          player.Name,
-          SendResponse(PlayerStasisMessage(pguid)) //the stasis message
-        )
         //when the player dismounts, they will be positioned where the shuttle was when it disappeared in the sky
         //the player will fall to the ground and is perfectly vulnerable in this state
         //additionally, our player must exist in the current zone
         //having no in-game avatar target will throw us out of the map screen when deploying and cause softlock
-        events ! MessageEnvelope(
-          player.Name,
-          SendResponse(PlayerStateShiftMessage(ShiftState(unk=0, obj.Position, obj.Orientation.z, vel=None)))
-        )
-        events ! MessageEnvelope(
-          continent.id,
-          pguid,
-          SendResponse(GenericObjectActionMessage(pguid, code=9)) //conceal the player
+        events ! BundledEnvelope(
+          MessageEnvelope(player.Name,
+            SendResponse(Seq(
+              PlayerStasisMessage(pguid),
+              PlayerStateShiftMessage(ShiftState(unk=0, obj.Position, obj.Orientation.z, vel=None))
+            ))
+          ),
+          MessageEnvelope(continent.id, pguid,
+            SendResponse(GenericObjectActionMessage(pguid, code=9)) /* conceal the player */
+          )
         )
         sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
 

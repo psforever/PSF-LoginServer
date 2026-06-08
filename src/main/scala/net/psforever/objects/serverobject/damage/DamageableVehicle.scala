@@ -253,7 +253,7 @@ trait DamageableVehicle
     )
     if (obj.Shields > 0) {
       obj.Shields = 0
-      zone.VehicleEvents ! MessageEnvelope(
+      events ! MessageEnvelope(
         zone.id,
         PlanetsideAttribute(obj.GUID, obj.Definition.shieldUiAttribute, 0)
       )

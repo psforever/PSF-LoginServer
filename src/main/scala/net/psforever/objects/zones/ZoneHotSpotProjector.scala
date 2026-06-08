@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import net.psforever.objects.Default
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.services.ServiceManager
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.galaxy.GalaxyAction
 
 import scala.collection.mutable.ListBuffer
@@ -305,12 +305,14 @@ class ZoneHotSpotProjector(zone: Zone, hotspots: ListBuffer[HotSpotInfo], blanki
   def UpdateHotSpots(affectedFactions: Iterable[PlanetSideEmpire.Value], hotSpotInfos: Iterable[HotSpotInfo]): Unit = {
     val zoneNumber      = zone.Number
     val hotSpotInfoList = hotSpotInfos.toList
-    affectedFactions.foreach(faction =>
-      galaxy ! MessageEnvelope(faction.toString, GalaxyAction.HotSpotUpdate(
+    galaxy ! BundledEnvelope(
+      affectedFactions.map(faction =>
+        MessageEnvelope(faction.toString, GalaxyAction.HotSpotUpdate(
           zoneNumber,
           1,
           ZoneHotSpotProjector.SpecificHotSpotInfo(faction, hotSpotInfoList)
         ))
+      )
     )
   }
 }

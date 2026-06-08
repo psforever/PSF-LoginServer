@@ -5,7 +5,7 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.{Player, Tool, TurretDeployable}
 import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, InventoryStateMessage}
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{SendResponse, SetEmpire}
 import net.psforever.services.local.LocalAction
 import net.psforever.services.vehicle.support.{TurretEnvelope, TurretUpgrader}
@@ -100,18 +100,18 @@ object WeaponTurrets {
     val certs = hacker.avatar.certifications
     if (certs.contains(Certification.ExpertHacking) || certs.contains(Certification.ElectronicsExpert)) {
       // Forcefully dismount all seated occupants from the turret
-      target.Seats.values.foreach { seat =>
+      zone.VehicleEvents ! BundledEnvelope(target.Seats.values.flatMap { seat =>
         seat.occupant.collect {
           player: Player =>
             seat.unmount(player)
             player.VehicleSeated = None
-            zone.VehicleEvents ! MessageEnvelope(
+            MessageEnvelope(
               zone.id,
               player.GUID,
               VehicleAction.KickPassenger(4, unk2 = false, target.GUID)
             )
         }
-      }
+      })
       //hacker owns the deployable now
       target.OwnerGuid = None
       target.Actor ! Deployable.Ownership(hacker)

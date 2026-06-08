@@ -293,11 +293,12 @@ object DeployableBehavior {
         MessageEnvelope(toFaction.toString, LocalAction.DeployableMapIcon(DeploymentAction.Build, info))
       )
       //remove deployable from original owner's toolbox and UI counter
-      zone.AllPlayers.filter(p => obj.OriginalOwnerName.contains(p.Name))
-        .foreach { originalOwner =>
+      localEvents ! BundledEnvelope(zone.AllPlayers
+        .filter(p => obj.OriginalOwnerName.contains(p.Name))
+        .map { originalOwner =>
           originalOwner.avatar.deployables.Remove(obj)
-          originalOwner.Zone.LocalEvents ! MessageEnvelope(originalOwner.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
-      }
+          MessageEnvelope(originalOwner.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
+        })
     }
   }
 }

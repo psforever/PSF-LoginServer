@@ -10,7 +10,7 @@ import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade,
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.zones.Zone
 import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelopeOnly}
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.types.PlanetSideGUID
 import net.psforever.services.base.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
 import net.psforever.services.vehicle.VehicleAction
@@ -245,15 +245,16 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     trace(s"Wall turret finished ${target.Upgrade} upgrade")
     val targetGUID = target.GUID
     if (target.Health > 0) {
-      target.Weapons
+      context.parent ! BundledEnvelope(target.Weapons
         .map { case (index: Int, slot: EquipmentSlot) => (index, slot.Equipment) }
         .collect {
           case (index, Some(tool: Tool)) =>
-            context.parent ! MessageEnvelope(
+            MessageEnvelope(
               zone.id,
               VehicleAction.EquipmentInSlot(targetGUID, index, tool)
             )
         }
+      )
     }
     Finalize(target, entry.upgrade)
   }

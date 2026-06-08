@@ -5,7 +5,7 @@ import net.psforever.objects.Tool
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.serverobject.turret.WeaponTurret
 import net.psforever.objects.vehicles.MountedWeapons
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.vehicle.VehicleAction
 
 /**
@@ -41,14 +41,15 @@ object RepairableWeaponTurret {
     val zoneId = zone.id
     val tguid  = target.GUID
     val events = zone.VehicleEvents
-    target.Weapons
+    events ! BundledEnvelope(target.Weapons
       .map({ case (index, slot: EquipmentSlot) => (index, slot.Equipment) })
       .collect {
         case (index: Int, Some(tool: Tool)) =>
-          events ! MessageEnvelope(
+          MessageEnvelope(
             zoneId,
             VehicleAction.EquipmentInSlot(tguid, index, tool)
           )
       }
+    )
   }
 }

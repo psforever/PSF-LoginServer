@@ -18,7 +18,7 @@ import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
 import net.psforever.services.local.LocalAction
-import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire}
 
 import java.util.concurrent.{Executors, TimeUnit}
 import scala.collection.Seq
@@ -247,7 +247,6 @@ class HackCaptureActor extends Actor {
     // Notify all clients that CC has had its hack state changed
     terminal.Zone.LocalEvents ! MessageEnvelope(
       terminal.Zone.id,
-      PlanetSideGUID(-1), /*what is this?, says the person who wrote it*/
       PlanetsideAttribute(
         terminal.GUID,
         PlanetsideAttributeEnum.ControlConsoleHackUpdate.id,

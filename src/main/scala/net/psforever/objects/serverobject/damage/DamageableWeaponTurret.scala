@@ -9,7 +9,7 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types.Vector3
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.base.support.SupportActor
 import net.psforever.services.vehicle.support.{TurretEnvelope, TurretUpgrader}
@@ -72,11 +72,12 @@ trait DamageableWeaponTurret
     if (announceConfrontation) {
       if (aggravated) {
         val msg = SendResponse(DamageWithPositionMessage(damageToHealth, Vector3.Zero))
-        obj.Seats.values
+        events ! BundledEnvelope(obj.Seats.values
           .collect { case seat if seat.occupant.nonEmpty => seat.occupant.get.Name }
-          .foreach { channel =>
-            events ! MessageEnvelope(channel, msg)
+          .map { channel =>
+            MessageEnvelope(channel, msg)
           }
+        )
       }
       else {
         //activity on map
@@ -124,14 +125,12 @@ object DamageableWeaponTurret {
     val zone         = target.Zone
     val zoneId       = zone.id
     val avatarEvents = zone.AvatarEvents
-    target.Weapons.values
-      .filter {
-        _.Equipment.nonEmpty
+    avatarEvents ! BundledEnvelope(target.Weapons.values
+      .filter(_.Equipment.nonEmpty)
+      .map { slot =>
+        MessageEnvelope(zoneId, ObjectDelete(slot.Equipment.get.GUID))
       }
-      .foreach(slot => {
-        val wep = slot.Equipment.get
-        avatarEvents ! MessageEnvelope(zoneId, ObjectDelete(wep.GUID))
-      })
+    )
     target match {
       case turret: WeaponTurret =>
         if (turret.Upgrade != TurretUpgrade.None) {

@@ -12,7 +12,7 @@ import net.psforever.objects.{GlobalDefinitions, Ntu, NtuContainer, NtuStorageBe
 import net.psforever.types.{ExperienceType, PlanetSideEmpire}
 import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarAction
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.util.Config
 
@@ -203,12 +203,16 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
             (Config.app.game.experience.sep.ntuSiloDepositReward.toFloat *
               amount * resourceSilo.Definition.ChargeTime.toSeconds.toFloat / resourceSilo.MaxNtuCapacitor
               ).toLong
-          vehicle.Zone.AvatarEvents ! MessageEnvelope(
-            owner.name,
-            AvatarAction.AwardBep(owner.charId, deposit, ExperienceType.Normal)
+          vehicle.Zone.AvatarEvents ! BundledEnvelope(
+            MessageEnvelope(
+              owner.name,
+              AvatarAction.AwardBep(owner.charId, deposit, ExperienceType.Normal)
+            ),
+            MessageEnvelope(
+              owner.name,
+              AvatarAction.ShareAntExperienceWithSquad(owner, deposit, vehicle)
+            )
           )
-          vehicle.Zone.AvatarEvents ! MessageEnvelope(
-            owner.name, AvatarAction.ShareAntExperienceWithSquad(owner, deposit, vehicle))
           zones.exp.ToDatabase.reportNtuActivity(owner.charId, resourceSilo.Zone.Number, resourceSilo.Owner.GUID.guid, deposit)
         }
     }

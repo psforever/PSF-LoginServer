@@ -7,7 +7,7 @@ import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.services.avatar.AvatarAction
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{HintsAtAttacker, SendResponse}
 
 /**
@@ -37,32 +37,34 @@ object DamageableMountable {
     val zone   = target.Zone
     val events = zone.AvatarEvents
     val occupants = target.Seats.values.toSeq.flatMap { seat => seat.occupants.filter(_.isAlive) }
-    ((cause.adversarial match {
-      case Some(adversarial) => Some(adversarial.attacker)
-      case None              => None
-    }) match {
-      case Some(pSource: PlayerSource) => //player damage
-        val name = pSource.Name
-        (zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
-          case Some(player) =>
-            HintsAtAttacker(player.GUID)
-          case None =>
-            SendResponse(DamageWithPositionMessage(countableDamage, pSource.Position))
-        }) match {
-          case msg @ HintsAtAttacker(guid) =>
-            occupants.map { tplayer => (tplayer.Name, guid, msg) }
-          case msg =>
-            occupants.map { tplayer => (tplayer.Name, Default.GUID0, msg) }
-        }
-      case Some(source) => //object damage
-        val msg = SendResponse(DamageWithPositionMessage(countableDamage, source.Position))
-        occupants.map { tplayer => (tplayer.Name, Default.GUID0, msg) }
-      case None =>
-        List.empty
-    }).foreach {
-      case (channel, filter, msg) =>
-        events ! MessageEnvelope(channel, filter, msg)
-    }
+    events ! BundledEnvelope(
+      ((cause.adversarial match {
+        case Some(adversarial) => Some(adversarial.attacker)
+        case None              => None
+      }) match {
+        case Some(pSource: PlayerSource) => //player damage
+          val name = pSource.Name
+          (zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
+            case Some(player) =>
+              HintsAtAttacker(player.GUID)
+            case None =>
+              SendResponse(DamageWithPositionMessage(countableDamage, pSource.Position))
+          }) match {
+            case msg @ HintsAtAttacker(guid) =>
+              occupants.map { tplayer => (tplayer.Name, guid, msg) }
+            case msg =>
+              occupants.map { tplayer => (tplayer.Name, Default.GUID0, msg) }
+          }
+        case Some(source) => //object damage
+          val msg = SendResponse(DamageWithPositionMessage(countableDamage, source.Position))
+          occupants.map { tplayer => (tplayer.Name, Default.GUID0, msg) }
+        case None =>
+          List.empty
+      }).map {
+        case (channel, filter, msg) =>
+          MessageEnvelope(channel, filter, msg)
+      }
+    )
   }
 
   /**

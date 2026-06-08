@@ -15,7 +15,7 @@ import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 
 import scala.collection.mutable
@@ -307,14 +307,15 @@ final case class MajorFacilityHackParticipation(building: Building) extends Faci
             events ! MessageEnvelope(hacker.Name, AvatarAction.AwardCep(hackerId, finalCep))
           }*/
           //bystanders (cep if squad leader, bep otherwise)
-          contributingPlayers
+          events ! BundledEnvelope(contributingPlayers
             //.filterNot { _.CharId == hackerId }
-            .foreach { player =>
+            .map { player =>
               val charId = player.CharId
               val contributionMultiplier = contributionPerPlayerByTime.getOrElse(charId, 1f)
               val outputValue = (finalCep * contributionMultiplier).toLong
-              events ! MessageEnvelope(player.Name, AvatarAction.FacilityCaptureRewards(buildingId, zoneNumber, outputValue))
+              MessageEnvelope(player.Name, AvatarAction.FacilityCaptureRewards(buildingId, zoneNumber, outputValue))
             }
+          )
           //flag carrier (won't be in soi, but earns cep from capture)
           flagCarrier.collect {
             case player if !isResecured =>
@@ -440,8 +441,8 @@ object MajorFacilityHackParticipation {
                                             ): Unit = {
     val events = building.Zone.LocalEvents
     val message = SendResponse(msg)
-    targets.foreach { player =>
-      events ! MessageEnvelope(player.Name, message)
-    }
+    events ! BundledEnvelope(targets.map { player =>
+      MessageEnvelope(player.Name, message)
+    })
   }
 }

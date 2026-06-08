@@ -14,7 +14,7 @@ import net.psforever.objects.vital.RevivingActivity
 import net.psforever.objects.vital.interaction.Adversarial
 import net.psforever.packet.game.{AvatarImplantMessage, CreateShortcutMessage, ImplantAction, PlanetsideStringAttributeMessage}
 import net.psforever.services.avatar.AvatarAction
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{ChangeAmmo, ChangeFireState_Start, ChangeFireState_Stop, ObjectDelete, PlanetsideAttribute, ReloadTool, WeaponDryFire}
 import net.psforever.types.ImplantType
 
@@ -635,11 +635,12 @@ class AvatarHandlerLogic(val ops: SessionAvatarHandlers, implicit val context: A
   }
 
   def killedWhileMounted(obj: PlanetSideGameObject with Mountable, playerGuid: PlanetSideGUID): Unit = {
-    val events = continent.AvatarEvents
     ops.killedWhileMounted(obj, playerGuid)
-    //make player invisible on client
-    events ! MessageEnvelope(player.Name, PlanetsideAttribute(playerGuid, 29, 1))
-    //only the dead player should "see" their own body, so that the death camera has something to focus on
-    events ! MessageEnvelope(continent.id, playerGuid, ObjectDelete(playerGuid))
+    continent.AvatarEvents ! BundledEnvelope(
+      /* make player invisible on client */
+      MessageEnvelope(player.Name, PlanetsideAttribute(playerGuid, 29, 1)),
+      /* only the dead player should "see" their own body, so that the death camera has something to focus on */
+      MessageEnvelope(continent.id, playerGuid, ObjectDelete(playerGuid))
+    )
   }
 }

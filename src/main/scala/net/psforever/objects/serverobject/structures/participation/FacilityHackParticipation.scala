@@ -5,7 +5,7 @@ import net.psforever.objects.Player
 import net.psforever.objects.avatar.scoring.Kill
 import net.psforever.objects.sourcing.UniquePlayer
 import net.psforever.packet.game.GenericObjectActionMessage
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
@@ -115,9 +115,9 @@ trait FacilityHackParticipation extends ParticipationLogic {
         GenericObjectActionMessage(mainTerm, 58)
       ))
       val events = building.Zone.AvatarEvents
-      list.foreach { p =>
-        events ! MessageEnvelope(p.Name, pkts)
-      }
+      events ! BundledEnvelope(list.map { p =>
+        MessageEnvelope(p.Name, pkts)
+      })
     }
   }
 }

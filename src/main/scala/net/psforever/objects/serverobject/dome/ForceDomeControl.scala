@@ -14,7 +14,7 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.local.LocalAction
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGeneratorState, Vector3}
@@ -143,9 +143,9 @@ object ForceDomeControl {
       ChatMessageType.UNK_227,
       "Expected capitol force dome state change will resume."
     ))
-    building.PlayersInSOI.foreach { player =>
-      events ! MessageEnvelope(player.Name, message)
-    }
+    events ! BundledEnvelope(building.PlayersInSOI.map { player =>
+      MessageEnvelope(player.Name, message)
+    })
   }
 
   /**

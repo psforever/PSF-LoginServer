@@ -17,7 +17,7 @@ import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.Service
 import net.psforever.services.avatar.AvatarAction
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{ObjectDelete, SetEmpire}
 import net.psforever.services.chat.{ChatChannel, DefaultChannel, SpectatorChannel, SquadChannel}
 import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}
@@ -314,18 +314,20 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     val events = continent.AvatarEvents
     seeSpectatorsIn = Some(continent)
     events ! Service.Join(s"spectator")
-    continent
-      .AllPlayers
-      .filter(_.spectator)
-      .foreach { spectator =>
-        val guid = spectator.GUID
-        val definition = spectator.Definition
-        events ! MessageEnvelope(
-          channel,
-          guid,
-          AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(spectator).get, None)
-        )
-      }
+    events ! BundledEnvelope(
+      continent
+        .AllPlayers
+        .filter(_.spectator)
+        .map { spectator =>
+          val guid = spectator.GUID
+          val definition = spectator.Definition
+          MessageEnvelope(
+            channel,
+            guid,
+            AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(spectator).get, None)
+          )
+        }
+    )
     true
   }
 
@@ -334,13 +336,15 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     val events = continent.AvatarEvents
     seeSpectatorsIn = None
     events ! Service.Leave("spectator")
-    continent
-      .AllPlayers
-      .filter(_.spectator)
-      .foreach { spectator =>
-        val guid = spectator.GUID
-        events ! MessageEnvelope(channel, guid, ObjectDelete(guid))
-      }
+    events ! BundledEnvelope(
+      continent
+        .AllPlayers
+        .filter(_.spectator)
+        .map { spectator =>
+          val guid = spectator.GUID
+          MessageEnvelope(channel, guid, ObjectDelete(guid))
+        }
+    )
     true
   }
 

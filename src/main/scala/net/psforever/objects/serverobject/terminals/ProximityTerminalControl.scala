@@ -6,7 +6,7 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.HackState1
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope}
 import org.log4s.Logger
@@ -432,12 +432,12 @@ object ProximityTerminalControl {
     val events = unit.Zone.AvatarEvents
     val channel = target.Name
     ancient.foreach { case (weapon, slots) =>
-      slots.foreach { slot =>
-        events ! MessageEnvelope(
+      events ! BundledEnvelope(slots.map { slot =>
+        MessageEnvelope(
           channel,
           SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
         )
-      }
+      })
     }
     !result.flatMap { _._2 }.exists { slot => slot.Magazine < slot.MaxMagazine() }
   }
@@ -457,14 +457,14 @@ object ProximityTerminalControl {
     )
     val events = unit.Zone.VehicleEvents
     val channel = target.Actor.toString
-    result.foreach { case (weapon, slots) =>
-      slots.foreach { slot =>
-        events ! MessageEnvelope(
+    events ! BundledEnvelope(result.flatMap { case (weapon, slots) =>
+      slots.map { slot =>
+        MessageEnvelope(
           channel,
           SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
         )
       }
-    }
+    })
     !result.flatMap { _._2 }.exists { slot => slot.Magazine < slot.MaxMagazine() }
   }
 

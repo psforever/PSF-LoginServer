@@ -5,7 +5,7 @@ import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.services.avatar.AvatarAction
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
 
@@ -154,18 +154,19 @@ final case class TowerHackParticipation(building: Building) extends FacilityHack
           expType = "cep"
         )
         //bystanders (cep if squad leader, bep otherwise)
-        soiPlayers
+        events ! BundledEnvelope(soiPlayers
           .filterNot(_.CharId == hackerId)
-          .foreach { player =>
+          .map { player =>
             val charId = player.CharId
             val contributionTimeMultiplier = contributionPerPlayerByTime.getOrElse(charId, 0.5f)
             val contributionDistanceMultiplier = contributionPerPlayerByDistanceFromGoal.getOrElse(charId, 0.5f)
             val outputValue = (finalCep * contributionTimeMultiplier * contributionDistanceMultiplier).toLong
-            events ! MessageEnvelope(
+            MessageEnvelope(
               player.Name,
               AvatarAction.FacilityCaptureRewards(buildingId, zoneNumber, outputValue)
             )
           }
+        )
       } else {
         //no need to calculate a fancy score
         ToDatabase.reportFacilityCaptureInBulk(

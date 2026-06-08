@@ -24,7 +24,7 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.GenericAction.FirstPersonViewWithEffect
 import net.psforever.packet.game.{CampaignStatistic, ChangeFireStateMessage_Start, CloudInfo, GenericActionMessage, GenericObjectActionEnum, HackState7, MailMessage, ObjectDetectedMessage, SessionStatistic, StormInfo, TrainingZoneMessage, TriggeredSound, WeatherMessage}
 import net.psforever.services.avatar.support.{CorpseEnvelope, ReleaseEnvelope}
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{GenericObjectAction, ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.chat.DefaultChannel
 
@@ -4005,21 +4005,20 @@ class ZoningOperations(
       }
       GoToDeploymentMap()
       val pZone = player.Zone
+      val msg = GenericObjectAction(player.GUID, GenericObjectActionEnum.PlayerDeconstructs.id)
       sendResponse(GenericActionMessage(FirstPersonViewWithEffect))
-      pZone.blockMap.sector(player).livePlayerList.collect { case t if t.GUID != player.GUID =>
-        pZone.LocalEvents ! MessageEnvelope(
-          t.Name,
-          t.GUID,
-          GenericObjectAction(player.GUID, GenericObjectActionEnum.PlayerDeconstructs.id)
-        )
-      }
-      pZone.AllPlayers.collect { case t if t.GUID != player.GUID && !t.allowInteraction =>
-        pZone.LocalEvents ! MessageEnvelope(
-          t.Name,
-          t.GUID,
-          GenericObjectAction(player.GUID, GenericObjectActionEnum.PlayerDeconstructs.id)
-        )
-      }
+      val (localMessageRecipients, localMesages) = pZone.blockMap.sector(player).livePlayerList
+        .collect {
+          case t if t.GUID != player.GUID =>
+            (t.Name, MessageEnvelope(t.Name, msg))
+        }
+        .unzip
+      val otherMessages: Seq[MessageEnvelope] = pZone.AllPlayers
+        .collect {
+          case t if t.GUID != player.GUID && !t.allowInteraction && !localMessageRecipients.contains(t.Name) =>
+            MessageEnvelope(t.Name, msg)
+        }
+      pZone.LocalEvents ! BundledEnvelope(localMesages ++ otherMessages)
     }
 
     def stopDeconstructing(): Unit = {

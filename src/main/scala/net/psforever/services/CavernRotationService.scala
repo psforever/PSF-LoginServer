@@ -12,7 +12,7 @@ import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.{Building, WarpGate}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.base.envelope.{GenericResponseEnvelope, MessageEnvelope}
+import net.psforever.services.base.envelope.{BundledEnvelope, GenericResponseEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.SendResponse
 import net.psforever.services.galaxy.{GalaxyAction, GalaxyStamp}
 import net.psforever.types.ChatMessageType
@@ -576,16 +576,18 @@ class CavernRotationService(
   def sendCavernRotationUpdatesToAll(galaxyService: ActorRef): Unit = {
     val curr = System.currentTimeMillis()
     val (lockedZones, unlockedZones) = managedZones.partition(_.locked)
-    unlockedZones.foreach { z =>
-      galaxyService ! MessageEnvelope("", GalaxyAction.UnlockedZoneUpdate(z.zone))
-    }
     val sortedLocked = lockedZones.sortBy(z => z.start)
-    sortedLocked.take(2).foreach { z =>
-      galaxyService ! MessageEnvelope("", GalaxyAction.LockedZoneUpdate(z.zone, z.start + z.duration - curr))
-    }
-    sortedLocked.takeRight(2).foreach { z =>
-      galaxyService ! MessageEnvelope("", GalaxyAction.LockedZoneUpdate(z.zone, 0L))
-    }
+    galaxyService ! BundledEnvelope(
+      unlockedZones.map { z =>
+        MessageEnvelope("", GalaxyAction.UnlockedZoneUpdate(z.zone))
+      } ++
+      sortedLocked.take(2).map { z =>
+        MessageEnvelope("", GalaxyAction.LockedZoneUpdate(z.zone, z.start + z.duration - curr))
+      } ++
+      sortedLocked.takeRight(2).map { z =>
+        MessageEnvelope("", GalaxyAction.LockedZoneUpdate(z.zone, 0L))
+      }
+    )
   }
 
   /**

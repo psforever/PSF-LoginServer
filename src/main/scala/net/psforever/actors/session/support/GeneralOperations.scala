@@ -18,7 +18,7 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.services.avatar.support.GroundEnvelope
-import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.base.support.RemoverActor
 import net.psforever.services.local.support.{CaptureEnvelope, HackCaptureActor}
@@ -201,26 +201,26 @@ class GeneralOperations(
     val guid = player.GUID
     val zone = player.Zone
     val events = zone.LocalEvents
-    val msg = SendResponse(pkt)
-    sessionLogic
-      .localSector
-      .livePlayerList
-      .filter(_.GUID != guid)
-      .foreach { p =>
-        events ! MessageEnvelope(p.Name, msg)
-      }
     //todo better way to collect csr players while utilizing the aforementioned benefit of localSector
     val position = player.Position
     val rangeSq = {
       val range = math.sqrt(2 * math.pow(sessionLogic.localSector.rangeX.toDouble, 2))
       range * range
     }
-    zone
+    val msg = SendResponse(pkt)
+    val (localRecipients, localRecipientMessages) = sessionLogic
+      .localSector
+      .livePlayerList
+      .filter(_.GUID != guid)
+      .map { p => (p.Name, MessageEnvelope(p.Name, msg)) }
+      .unzip
+    val otherRecipientMessages = zone
       .AllPlayers
-      .filter { p => !p.allowInteraction && p.GUID != guid && Vector3.DistanceSquared(p.Position, position) < rangeSq }
-      .foreach { p =>
-        events ! MessageEnvelope(p.Name, msg)
+      .filter { p =>
+        !p.allowInteraction && p.GUID != guid && !localRecipients.contains(p.Name) && Vector3.DistanceSquared(p.Position, position) < rangeSq
       }
+      .map(p => MessageEnvelope(p.Name, msg))
+    events ! BundledEnvelope(localRecipientMessages ++ otherRecipientMessages)
   }
 
   def handleDropItem(pkt: DropItemMessage): GeneralOperations.ItemDropState.Behavior = {
@@ -1476,23 +1476,21 @@ class GeneralOperations(
         val events = continent.AvatarEvents
         val zoneid = continent.id
         val destinationPosition = dest.Position
-        events ! MessageEnvelope(zoneid, pguid, ObjectDelete(pguid))
-        events ! MessageEnvelope(player.Name,
-          SendResponse(PlayerStateShiftMessage(ShiftState(0, destinationPosition, player.Orientation.z)))
-        )
         player.Position = destinationPosition
-        events ! MessageEnvelope(zoneid, pguid, AvatarAction.LoadPlayer(
-          player.Definition.ObjectId,
-          pguid,
-          player.Definition.Packet.ConstructorData(player).get,
-          None
-        ))
-        useRouterTelepadEffect(pguid, sguid, dguid)
-        events ! MessageEnvelope(
-          continent.id,
-          pguid,
-          LocalAction.RouterTelepadTransport(pguid, sguid, dguid)
+        events ! BundledEnvelope(
+          MessageEnvelope(zoneid, pguid, ObjectDelete(pguid)),
+          MessageEnvelope(player.Name,
+            SendResponse(PlayerStateShiftMessage(ShiftState(0, destinationPosition, player.Orientation.z)))
+          ),
+          MessageEnvelope(zoneid, pguid, AvatarAction.LoadPlayer(
+            player.Definition.ObjectId,
+            pguid,
+            player.Definition.Packet.ConstructorData(player).get,
+            None
+          )),
+          MessageEnvelope(zoneid, pguid, LocalAction.RouterTelepadTransport(pguid, sguid, dguid))
         )
+        useRouterTelepadEffect(pguid, sguid, dguid)
         sessionLogic.zoning.spawn.ShiftPosition = destinationPosition
         player.LogActivity(TelepadUseActivity(VehicleSource(router), DeployableSource(remoteTelepad), PlayerSource(player)))
       } else {
