@@ -12,48 +12,48 @@ class CommonHandlerLogic(val sessionLogic: SessionData, implicit val context: Ac
 
   def receive: Receive = {
     case PlanetsideAttribute(target_guid, attributeType, attributeValue)
-      if isNotSameTarget =>
+      if TestFilter(_ => isNotSameTarget) =>
       sendResponse(PlanetsideAttributeMessage(target_guid, attributeType, attributeValue))
 
     case GenericObjectAction(objectGuid, actionCode)
-      if isNotSameTarget =>
+      if TestFilter(_ => isNotSameTarget) =>
       sendResponse(GenericObjectActionMessage(objectGuid, actionCode))
 
     case ObjectDelete(itemGuid, unk)
-      if isNotSameTarget =>
+      if TestFilter(_ => isNotSameTarget) =>
       sendResponse(ObjectDeleteMessage(itemGuid, unk))
 
     case ChangeFireState_Start(weaponGuid)
-      if isNotSameTarget =>
+      if TestFilter(_ => isNotSameTarget) =>
       sendResponse(ChangeFireStateMessage_Start(weaponGuid))
 
     case ChangeFireState_Stop(weaponGuid)
-      if isNotSameTarget =>
+      if TestFilter(_ => isNotSameTarget) =>
       sendResponse(ChangeFireStateMessage_Stop(weaponGuid))
 
     case ReloadTool(itemGuid)
-      if isNotSameTarget =>
+      if TestFilter(_ => isNotSameTarget) =>
       sendResponse(ReloadMessage(itemGuid, ammo_clip=1, unk1=0))
 
     case ChangeAmmo(weapon_guid, weapon_slot, previous_guid, ammo_id, ammo_guid, ammo_data)
-      if isNotSameTarget =>
+      if TestFilter(_ => isNotSameTarget) =>
       sessionLogic.avatarResponse.changeAmmoProcedure(weapon_guid, previous_guid, ammo_id, ammo_guid, weapon_slot, ammo_data)
       sendResponse(ChangeAmmoMessage(weapon_guid, 1))
 
     case WeaponDryFire(weaponGuid)
-      if isNotSameTarget =>
+      if TestFilter(_ => isNotSameTarget) =>
       continent.GUID(weaponGuid).collect {
         case tool: Tool if tool.Magazine == 0 =>
           sendResponse(WeaponDryFireMessage(weaponGuid))
       }
 
     case HintsAtAttacker(sourceGuid)
-      if player.isAlive =>
+      if TestFilter(_ => { player.isAlive }) =>
       sendResponse(HitHint(sourceGuid, filterGuid))
       sessionLogic.zoning.CancelZoningProcessWithDescriptiveReason("cancel_dmg")
 
     case SetEmpire(objectGuid, faction)
-      if isNotSameTarget =>
+      if TestFilter(_ => isNotSameTarget) =>
       sendResponse(SetEmpireMessage(objectGuid, faction))
 
     case ConcealPlayer(_) =>

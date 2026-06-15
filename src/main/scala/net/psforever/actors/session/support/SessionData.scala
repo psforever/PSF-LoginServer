@@ -119,7 +119,6 @@ class SessionData(
   def squad: SessionSquadHandlers = squadResponseOpt.orNull
   def zoning: ZoningOperations = zoningOpt.orNull
   def chat: ChatOperations = chatOpt.orNull
-  var handlerFilter: HandlerFilter = HandlerFilter.NeverAllow
 
   ServiceManager.serviceManager ! Lookup("accountIntermediary")
   ServiceManager.serviceManager ! Lookup("accountPersistence")

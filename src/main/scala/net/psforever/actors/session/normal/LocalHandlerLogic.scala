@@ -49,7 +49,8 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
           sendResponse(msg)
       }
 
-    case LocalAction.DeployableMapIcon(behavior, deployInfo) if isNotSameTarget =>
+    case LocalAction.DeployableMapIcon(behavior, deployInfo)
+      if TestFilter(_ => isNotSameTarget) =>
       sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
 
     case LocalAction.DeployableUIFor(item) =>
@@ -68,7 +69,8 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
     case LocalAction.Detonate(_, obj) =>
       log.warn(s"LocalAction.Detonate: ${obj.Definition.Name} not configured to explode correctly")
 
-    case LocalAction.DoorOpens(_, door) if isNotSameTarget =>
+    case LocalAction.DoorOpens(_, door)
+      if TestFilter(_ => isNotSameTarget) =>
       val doorGuid = door.GUID
       val pos = player.Position.xy
       val range = ops.doorLoadRange()
@@ -86,7 +88,8 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
     case LocalAction.DoorCloses(doorGuid) => //door closes for everyone
       sendResponse(GenericObjectStateMsg(doorGuid, state=17))
 
-    case LocalAction.EliminateDeployable(obj: TurretDeployable, dguid, _, _) if obj.Destroyed =>
+    case LocalAction.EliminateDeployable(obj: TurretDeployable, dguid, _, _)
+      if TestFilter(_ => obj.Destroyed) =>
       sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
     case LocalAction.EliminateDeployable(obj: TurretDeployable, dguid, pos, _) =>
@@ -100,21 +103,23 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       )
 
     case LocalAction.EliminateDeployable(obj: ExplosiveDeployable, dguid, _, _)
-      if obj.Destroyed || obj.Jammed || obj.Health == 0 =>
+      if TestFilter(_ => { obj.Destroyed || obj.Jammed || obj.Health == 0 }) =>
       sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
     case LocalAction.EliminateDeployable(obj: ExplosiveDeployable, dguid, pos, effect) =>
       obj.Destroyed = true
       ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
 
-    case LocalAction.EliminateDeployable(obj: TelepadDeployable, dguid, _, _) if obj.Active && obj.Destroyed =>
+    case LocalAction.EliminateDeployable(obj: TelepadDeployable, dguid, _, _)
+      if TestFilter(_ => { obj.Active && obj.Destroyed }) =>
       //if active, deactivate
       obj.Active = false
       ops.deactivateTelpadDeployableMessages(dguid)
       //standard deployable elimination behavior
       sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
-    case LocalAction.EliminateDeployable(obj: TelepadDeployable, dguid, pos, _) if obj.Active =>
+    case LocalAction.EliminateDeployable(obj: TelepadDeployable, dguid, pos, _)
+      if TestFilter(_ => obj.Active) =>
       //if active, deactivate
       obj.Active = false
       ops.deactivateTelpadDeployableMessages(dguid)
@@ -122,7 +127,8 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       obj.Destroyed = true
       ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)
 
-    case LocalAction.EliminateDeployable(obj: TelepadDeployable, dguid, _, _) if obj.Destroyed =>
+    case LocalAction.EliminateDeployable(obj: TelepadDeployable, dguid, _, _)
+      if TestFilter(_ => obj.Destroyed) =>
       //standard deployable elimination behavior
       sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
@@ -131,7 +137,8 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       obj.Destroyed = true
       ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)
 
-    case LocalAction.EliminateDeployable(obj, dguid, _, _) if obj.Destroyed =>
+    case LocalAction.EliminateDeployable(obj, dguid, _, _)
+      if TestFilter(_ => obj.Destroyed) =>
       sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
     case LocalAction.EliminateDeployable(obj, dguid, pos, effect) =>
@@ -216,7 +223,8 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
     case LocalAction.UpdateForceDomeStatus(buildingGuid, false) =>
       sendResponse(GenericObjectActionMessage(buildingGuid, 12))
 
-    case LocalAction.RechargeVehicleWeapon(vehicleGuid, weaponGuid) if isSameTarget =>
+    case LocalAction.RechargeVehicleWeapon(vehicleGuid, weaponGuid)
+      if TestFilter(_ => isSameTarget) =>
       continent.GUID(vehicleGuid)
         .collect { case vehicle: MountableWeapons => (vehicle, vehicle.PassengerInSeat(player)) }
         .collect { case (vehicle, Some(seat_num)) => vehicle.WeaponControlledFromSeat(seat_num) }

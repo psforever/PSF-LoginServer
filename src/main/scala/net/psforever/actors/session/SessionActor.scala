@@ -3,7 +3,7 @@ package net.psforever.actors.session
 
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
 import net.psforever.actors.session.normal.NormalMode
-import net.psforever.actors.session.support.{CommonHandlerFunctions, CommonHandlerFunctionsBase, CommonHandlerLogic, ZoningOperations}
+import net.psforever.actors.session.support.{CommonHandlerFunctions, CommonHandlerLogic, ZoningOperations}
 import net.psforever.objects.TurretDeployable
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.containable.Containable
@@ -95,6 +95,17 @@ object SessionActor {
   private final case object PokeClient extends Command
 
   final case class SetMode(mode: PlayerMode) extends Command
+
+  private def HandlerAcceptingMessageTest(reply: Any)(handler: CommonHandlerFunctions): Boolean = {
+    if (handler.IgnoreFilter) {
+      false
+    } else {
+      handler.IgnoreFilter = true
+      val result = handler.isDefinedAt(reply)
+      handler.IgnoreFilter = false
+      result
+    }
+  }
 }
 
 class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
@@ -392,30 +403,31 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       case unknownStamp =>
         log.error(s"received a message from an unknown event system - reply: $envelope, stamp: $unknownStamp")
     }
-    println(s"event-system-rtt: ${System.currentTimeMillis() - envelope.time} ms")
+    //println(s"event-system-rtt: ${System.currentTimeMillis() - envelope.time} ms")
   }
 
   private def handleEnvelopeWithResponseHandler(
-                                                 responseHandler: CommonHandlerFunctionsBase,
+                                                 responseHandler: CommonHandlerFunctions,
                                                  envelope: GenericResponseEnvelope
                                                ): Unit = {
     val GenericResponseEnvelope(toChannel, guid, reply) = envelope
     //try the expected handler with the input response
     if (!responseHandler.handle(toChannel, guid, reply)) {
-      //find any handler that might receive the response (ignore guard booleans during search)
-      data.handlerFilter.set(guid, guid, notSame = true, same = true)
+      //test the expected handler again, ignoring guard booleans; if it would have been handled, stop with this
+      responseHandler.IgnoreFilter = true
       if (!responseHandler.isDefinedAt(reply)) {
-        listOfHandlers.filter(_.isDefinedAt(reply)) match {
+        //find every handler that might accept the input response, ignoring guard booleans only for the search
+        //try each discovered handler with the input response
+        listOfHandlers.filter(SessionActor.HandlerAcceptingMessageTest(reply)) match {
           case Nil =>
             log.error(s"received completely unhandled response message - $envelope for ${envelope.stamp}")
           case first :: Nil =>
             first.handle(toChannel, guid, reply)
           case first :: others =>
-            if (!first.handle(toChannel, guid, reply)) {
-              others.find(_.tryToHandle(reply))
-            }
+            first.handle(toChannel, guid, reply) || others.exists(_.handle(toChannel, guid, reply))
         }
       }
+      responseHandler.IgnoreFilter = false
     }
   }
 
