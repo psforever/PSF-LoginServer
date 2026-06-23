@@ -39,7 +39,7 @@ object DamageableAmenity {
     val targetGUID = target.GUID
     events ! MessageEnvelope(
       zoneId,
-      SendResponse(List(PlanetsideAttributeMessage(targetGUID, 50, 1), PlanetsideAttributeMessage(targetGUID, 51, 1)))
+      SendResponse(PlanetsideAttributeMessage(targetGUID, 50, 1), PlanetsideAttributeMessage(targetGUID, 51, 1))
     )
   }
 }

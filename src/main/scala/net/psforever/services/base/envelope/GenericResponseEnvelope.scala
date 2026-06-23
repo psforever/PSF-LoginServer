@@ -24,7 +24,7 @@ object GenericResponseEnvelope {
    * @param stamp marker indicating the routing through which the original message was processed
    * @param channel set of subscribers on an event system bus the envelope should reach
    * @param filter a specific subscriber endpoint to be excluded
-   * @param msg input payload transported by this envelope
+   * @param msg output payload transported by this envelope
    * @return a faked but typically acceptable response envelope
    */
   def apply(stamp: EventSystemStamp, channel: String, filter: PlanetSideGUID, msg: EventMessage): GenericResponseEnvelope = {

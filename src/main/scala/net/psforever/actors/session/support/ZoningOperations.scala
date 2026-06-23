@@ -3502,7 +3502,7 @@ class ZoningOperations(
             val events = zone.AvatarEvents
             events ! MessageEnvelope(
               channel,
-              SendResponse(List(PlanetsideAttributeMessage(guid, 0, 120), PlanetsideAttributeMessage(guid, 1, 120)))
+              SendResponse(PlanetsideAttributeMessage(guid, 0, 120), PlanetsideAttributeMessage(guid, 1, 120))
             )
           case _ => ()
         }

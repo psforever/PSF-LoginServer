@@ -49,11 +49,6 @@ trait MessageTransformationBehavior
 
   def reply: EventResponse = outputReply
 }
-/**
- * A proper event system envelope.
- */
-case class MessageEnvelope(channel: String, filter: PlanetSideGUID, msg: EventMessage)
-  extends MessageTransformationBehavior
 
 object MessageEnvelope {
   def apply(msg: EventMessage): MessageEnvelope =
@@ -62,3 +57,9 @@ object MessageEnvelope {
   def apply(channel: String, msg: EventMessage): MessageEnvelope =
     MessageEnvelope(channel, Default.GUID0, msg)
 }
+
+/**
+ * A proper event system envelope.
+ */
+case class MessageEnvelope(channel: String, filter: PlanetSideGUID, msg: EventMessage)
+  extends MessageTransformationBehavior

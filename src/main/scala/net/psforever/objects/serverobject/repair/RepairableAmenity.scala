@@ -40,7 +40,7 @@ object RepairableAmenity {
     val targetGUID = target.GUID
     events ! MessageEnvelope(
       zoneId,
-      SendResponse(List(PlanetsideAttributeMessage(targetGUID, 50, 0), PlanetsideAttributeMessage(targetGUID, 51, 0)))
+      SendResponse(PlanetsideAttributeMessage(targetGUID, 50, 0), PlanetsideAttributeMessage(targetGUID, 51, 0))
     )
     RestorationOfHistory(target)
   }

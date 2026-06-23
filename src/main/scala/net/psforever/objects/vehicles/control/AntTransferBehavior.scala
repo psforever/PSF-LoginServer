@@ -163,7 +163,7 @@ trait AntTransferBehavior extends TransferBehavior with NtuStorageBehavior {
           //2. orb particle effect off
           events ! MessageEnvelope(
             zoneId,
-            SendResponse(List(PlanetsideAttributeMessage(vguid, 52, 0L), PlanetsideAttributeMessage(vguid, 49, 0L)))
+            SendResponse(PlanetsideAttributeMessage(vguid, 52, 0L), PlanetsideAttributeMessage(vguid, 49, 0L))
           )
         } else if (transferEvent == TransferBehavior.Event.Discharging) {
           events ! MessageEnvelope(

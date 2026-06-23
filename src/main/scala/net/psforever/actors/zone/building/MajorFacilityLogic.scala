@@ -242,10 +242,10 @@ case object MajorFacilityLogic
         val guid = building.GUID
         //1. reset ???; might be global?
         //2. This facility's generator is back on line
-        val list = SendResponse(List(
+        val list = SendResponse(
           PlanetsideAttributeMessage(guid, 46, 0),
           GenericObjectActionMessage(guid, 17)
-        ))
+        )
         events ! BundledEnvelope(building.PlayersInSOI.map { player => MessageEnvelope(player.Name, list) })
         true
       case _ =>
@@ -300,7 +300,7 @@ case object MajorFacilityLogic
     //2 .disable spawn target on deployment map
     events ! MessageEnvelope(
       zoneId,
-      SendResponse(List(PlanetsideAttributeMessage(guid, 48, 1), PlanetsideAttributeMessage(guid, 38, 0)))
+      SendResponse(PlanetsideAttributeMessage(guid, 48, 1), PlanetsideAttributeMessage(guid, 38, 0))
     )
     Behaviors.same
   }
@@ -325,7 +325,7 @@ case object MajorFacilityLogic
     //2. enable spawn target on deployment map
     events ! MessageEnvelope(
       zoneId,
-      SendResponse(List(PlanetsideAttributeMessage(guid, 48, 0), PlanetsideAttributeMessage(guid, 38, 1)))
+      SendResponse(PlanetsideAttributeMessage(guid, 48, 0), PlanetsideAttributeMessage(guid, 38, 1))
     )
     Behaviors.same
   }

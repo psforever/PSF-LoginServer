@@ -73,7 +73,7 @@ object SessionOutfitHandlers {
               player.outfit_id = outfitId
               player.outfit_name = outfitName
               zone.AvatarEvents ! BundledEnvelope(
-                MessageEnvelope(pname, SendResponse(List(
+                MessageEnvelope(pname, SendResponse(
                   OutfitEvent(outfitId, Update(
                     OutfitInfo(
                       outfitName, 0, 0, 1,
@@ -84,7 +84,7 @@ object SessionOutfitHandlers {
                   OutfitMemberUpdate(outfitId, charid, 7, flag = true),
                   ChatMsg(ChatMessageType.UNK_227, "@OutfitCreateSuccess"),
                   OutfitMembershipResponse(CreateResponse, 0, 0, charid, 0, "", "", flag = true),
-                ))),
+                )),
                 MessageEnvelope(
                   zoneid,
                   PlanetsideAttribute(player.GUID, 39, outfitId)
@@ -148,7 +148,7 @@ object SessionOutfitHandlers {
             val outfitName = outfit.name
             val seconds: Long = outfit.created.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli / 1000
             fromZone.AvatarEvents ! BundledEnvelope(
-              MessageEnvelope(fromName, SendResponse(List(
+              MessageEnvelope(fromName, SendResponse(
                 OutfitMembershipResponse(
                   OutfitMembershipResponse.PacketType.InviteAccepted, 0, 0,
                   toCharId, fromCharId, toName, outfitName, flag = false
@@ -159,10 +159,10 @@ object SessionOutfitHandlers {
                     OutfitMemberEventAction.PacketType.Padding, 0
                   )
                 )
-              )))
+              ))
             )
             toZone.AvatarEvents ! BundledEnvelope(
-              MessageEnvelope(toName, SendResponse(List(
+              MessageEnvelope(toName, SendResponse(
                 OutfitMembershipResponse(
                   OutfitMembershipResponse.PacketType.InviteAccepted, 0, 0,
                   toCharId, fromCharId, toName, outfitName, flag = true
@@ -174,7 +174,7 @@ object SessionOutfitHandlers {
                   14, unk11 = true, 0, seconds, 0, 0, 0
                 ))),
                 OutfitMemberUpdate(outfitId, toCharId, 0, flag=true)
-              ))),
+              )),
               MessageEnvelope(
                 toZoneId,
                 PlanetsideAttribute(toGuid, 39, outfitId)
@@ -266,13 +266,13 @@ object SessionOutfitHandlers {
           if (deleted > 0) {
             findPlayerByIdForOutfitAction(zones, kickedId, kickedBy).foreach { kicked =>
               kicked.Zone.AvatarEvents ! BundledEnvelope(
-                MessageEnvelope(kicked.Name, SendResponse(List(
+                MessageEnvelope(kicked.Name, SendResponse(
                   OutfitEvent(outfit_id, Leaving()),
                   OutfitMembershipResponse(
                     OutfitMembershipResponse.PacketType.YouGotKicked, 0, 1,
                     kickedBy.CharId, kicked.CharId, kickedBy.Name, kicked.Name, flag = false
                   )
-                ))),
+                )),
                 MessageEnvelope(kicked.Zone.id,
                   PlanetsideAttribute(kicked.GUID, 39, 0)
                 ),
@@ -599,7 +599,7 @@ object SessionOutfitHandlers {
               case (Some(outfit), memberCount, points) =>
                 val seconds: Long = outfit.created.atZone(ZoneId.systemDefault()).toInstant.toEpochMilli / 1000
                 player.Zone.AvatarEvents ! BundledEnvelope(
-                  MessageEnvelope(player.Name, SendResponse(List(
+                  MessageEnvelope(player.Name, SendResponse(
                     OutfitEvent(outfitId, Update(OutfitInfo(
                       outfit.name, points, points, memberCount,
                       OutfitRankNames(
@@ -611,7 +611,7 @@ object SessionOutfitHandlers {
                       14, unk11 = true, 0, seconds, 0, 0, 0
                     ))),
                     OutfitMemberUpdate(outfit.id, player.CharId, membership.rank, flag = true)
-                  ))),
+                  )),
                   MessageEnvelope(
                     player.Zone.id,
                     PlanetsideAttribute(player.GUID, 39, outfit.id)

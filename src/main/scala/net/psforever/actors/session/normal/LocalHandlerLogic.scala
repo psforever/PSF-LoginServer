@@ -50,7 +50,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       }
 
     case LocalAction.DeployableMapIcon(behavior, deployInfo)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       sendResponse(DeployableObjectsInfoMessage(behavior, deployInfo))
 
     case LocalAction.DeployableUIFor(item) =>
@@ -70,7 +70,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       log.warn(s"LocalAction.Detonate: ${obj.Definition.Name} not configured to explode correctly")
 
     case LocalAction.DoorOpens(_, door)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       val doorGuid = door.GUID
       val pos = player.Position.xy
       val range = ops.doorLoadRange()
@@ -89,7 +89,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       sendResponse(GenericObjectStateMsg(doorGuid, state=17))
 
     case LocalAction.EliminateDeployable(obj: TurretDeployable, dguid, _, _)
-      if TestFilter(_ => obj.Destroyed) =>
+      if TestFilter(() => obj.Destroyed) =>
       sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
     case LocalAction.EliminateDeployable(obj: TurretDeployable, dguid, pos, _) =>
@@ -103,7 +103,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       )
 
     case LocalAction.EliminateDeployable(obj: ExplosiveDeployable, dguid, _, _)
-      if TestFilter(_ => { obj.Destroyed || obj.Jammed || obj.Health == 0 }) =>
+      if TestFilter(() => { obj.Destroyed || obj.Jammed || obj.Health == 0 }) =>
       sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
     case LocalAction.EliminateDeployable(obj: ExplosiveDeployable, dguid, pos, effect) =>
@@ -111,7 +111,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
 
     case LocalAction.EliminateDeployable(obj: TelepadDeployable, dguid, _, _)
-      if TestFilter(_ => { obj.Active && obj.Destroyed }) =>
+      if TestFilter(() => { obj.Active && obj.Destroyed }) =>
       //if active, deactivate
       obj.Active = false
       ops.deactivateTelpadDeployableMessages(dguid)
@@ -119,7 +119,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
     case LocalAction.EliminateDeployable(obj: TelepadDeployable, dguid, pos, _)
-      if TestFilter(_ => obj.Active) =>
+      if TestFilter(() => obj.Active) =>
       //if active, deactivate
       obj.Active = false
       ops.deactivateTelpadDeployableMessages(dguid)
@@ -128,7 +128,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)
 
     case LocalAction.EliminateDeployable(obj: TelepadDeployable, dguid, _, _)
-      if TestFilter(_ => obj.Destroyed) =>
+      if TestFilter(() => obj.Destroyed) =>
       //standard deployable elimination behavior
       sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
@@ -138,7 +138,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, deletionType=2)
 
     case LocalAction.EliminateDeployable(obj, dguid, _, _)
-      if TestFilter(_ => obj.Destroyed) =>
+      if TestFilter(() => obj.Destroyed) =>
       sendResponse(ObjectDeleteMessage(dguid, unk1=0))
 
     case LocalAction.EliminateDeployable(obj, dguid, pos, effect) =>
@@ -146,13 +146,10 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       ops.DeconstructDeployable(obj, dguid, pos, obj.Orientation, effect)
 
     case LocalAction.HackClear(targetGuid, unk1, unk2) =>
-      sendResponse(HackMessage(HackState1.Unk0, targetGuid, filterGuid, progress=0, unk1.toFloat, HackState.HackCleared, unk2))
+      sendResponse(HackMessage(HackState1.Unk0, targetGuid, FilterGuid, progress=0, unk1.toFloat, HackState.HackCleared, unk2))
 
     case LocalAction.HackObject(targetGuid, unk1, unk2) =>
       sessionLogic.general.hackObject(targetGuid, unk1, unk2)
-
-    case PlanetsideAttribute(targetGuid, attributeType, attributeValue) =>
-      sessionLogic.general.sendPlanetsideAttributeMessage(targetGuid, attributeType, attributeValue)
 
     case LocalAction.GenericActionMessage(actionNumber) =>
       sendResponse(GenericActionMessage(actionNumber))
@@ -224,7 +221,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
       sendResponse(GenericObjectActionMessage(buildingGuid, 12))
 
     case LocalAction.RechargeVehicleWeapon(vehicleGuid, weaponGuid)
-      if TestFilter(_ => isSameTarget) =>
+      if TestFilter(SameTargetTest) =>
       continent.GUID(vehicleGuid)
         .collect { case vehicle: MountableWeapons => (vehicle, vehicle.PassengerInSeat(player)) }
         .collect { case (vehicle, Some(seat_num)) => vehicle.WeaponControlledFromSeat(seat_num) }

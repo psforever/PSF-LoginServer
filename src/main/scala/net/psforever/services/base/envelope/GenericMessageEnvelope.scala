@@ -17,8 +17,8 @@ trait GenericMessageEnvelope
 
 object GenericMessageEnvelope {
   /**
-   * The `unapply`ed data from a message envelope resembles the data from includes the filter and the channel information.
-   * The original channel information.
+   * The extracted data from a message envelope resembles the data from,
+   * including the filter and the original channel information.
    * @param obj response envelope
    * @return a tuple containing the channel, filter, and reply message
    */

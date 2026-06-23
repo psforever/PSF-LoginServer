@@ -274,7 +274,7 @@ object GenericHackables {
             )
             zone.LocalEvents ! MessageEnvelope(
               zone.id,
-              SendResponse(List(GenericObjectActionMessage(target.GUID, 61), GenericObjectActionMessage(target.GUID, 58)))
+              SendResponse(GenericObjectActionMessage(target.GUID, 61), GenericObjectActionMessage(target.GUID, 58))
             )
             //amenities if applicable
             virus match {

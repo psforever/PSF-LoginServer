@@ -83,7 +83,7 @@ class GalaxyHandlerLogic(val ops: SessionGalaxyHandlers, implicit val context: A
       sendResponse(ZonePopulationUpdateMessage(zone.Number, 414, 138, popTR, 138, popNC, 138, popVS, 138, popBO))
 
     case GalaxyAction.LogStatusChange(name)
-      if TestFilter(_ => avatar.people.friend.exists(_.name.equals(name))) =>
+      if TestFilter(() => avatar.people.friend.exists(_.name.equals(name))) =>
       avatarActor ! AvatarActor.MemberListRequest(MemberAction.UpdateFriend, name)
   }
 }

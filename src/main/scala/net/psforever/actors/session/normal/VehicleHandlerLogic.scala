@@ -46,7 +46,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
     wheelDirection,
     unk5,
     unk6
-    ) if TestFilter(_ => { isNotSameTarget && player.VehicleSeated.contains(vehicleGuid) }) =>
+    ) if TestFilter(() => { NotSameTarget && player.VehicleSeated.contains(vehicleGuid) }) =>
       //player who is also in the vehicle (not driver)
       sendResponse(VehicleStateMessage(vehicleGuid, unk1, pos, orient, vel, unk2, unk3, unk4, wheelDirection, unk5, unk6))
       player.Position = pos
@@ -74,36 +74,36 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
     wheelDirection,
     unk5,
     unk6
-    ) if TestFilter(_ => isNotSameTarget) =>
+    ) if TestFilter(NotSameTargetTest) =>
       //player who is watching the vehicle from the outside
       sendResponse(VehicleStateMessage(vehicleGuid, unk1, pos, ang, vel, unk2, unk3, unk4, wheelDirection, unk5, unk6))
 
     case VehicleAction.ChildObjectState(objectGuid, pitch, yaw)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       sendResponse(ChildObjectStateMessage(objectGuid, pitch, yaw))
 
     case VehicleAction.FrameVehicleState(vguid, u1, pos, oient, vel, u2, u3, u4, is_crouched, u6, u7, u8, u9, uA)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       sendResponse(FrameVehicleStateMessage(vguid, u1, pos, oient, vel, u2, u3, u4, is_crouched, u6, u7, u8, u9, uA))
 
     case VehicleAction.DismountVehicle(bailType, wasKickedByDriver)
-      if TestFilter(_ => isNotSameTarget) =>
-      sendResponse(DismountVehicleMsg(filterGuid, bailType, wasKickedByDriver))
+      if TestFilter(NotSameTargetTest) =>
+      sendResponse(DismountVehicleMsg(FilterGuid, bailType, wasKickedByDriver))
 
     case VehicleAction.MountVehicle(vehicleGuid, seat)
-      if TestFilter(_ => isNotSameTarget) =>
-      sendResponse(ObjectAttachMessage(vehicleGuid, filterGuid, seat))
+      if TestFilter(NotSameTargetTest) =>
+      sendResponse(ObjectAttachMessage(vehicleGuid, FilterGuid, seat))
 
     case VehicleAction.DeployRequest(objectGuid, state, unk1, unk2, pos)
-      if TestFilter(_ => isNotSameTarget) =>
-      sendResponse(DeployRequestMessage(filterGuid, objectGuid, state, unk1, unk2, pos))
+      if TestFilter(NotSameTargetTest) =>
+      sendResponse(DeployRequestMessage(FilterGuid, objectGuid, state, unk1, unk2, pos))
 
     case VehicleAction.EquipmentCreatedInSlot(pkt)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       sendResponse(pkt)
 
     case VehicleAction.InventoryState(obj, parentGuid, start, conData)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       //TODO prefer ObjectDetachMessage, but how to force ammo pools to update properly?
       val objGuid = obj.GUID
       sendResponse(ObjectDeleteMessage(objGuid, unk1=0))
@@ -115,10 +115,10 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       ))
 
     case VehicleAction.KickPassenger(_, wasKickedByDriver, vehicleGuid)
-      if TestFilter(_ => isSameTarget) =>
+      if TestFilter(SameTargetTest) =>
       //seat number (first field) seems to be correct if passenger is kicked manually by driver
       //but always seems to return 4 if user is kicked by mount permissions changing
-      sendResponse(DismountVehicleMsg(filterGuid, BailType.Kicked, wasKickedByDriver))
+      sendResponse(DismountVehicleMsg(FilterGuid, BailType.Kicked, wasKickedByDriver))
       val typeOfRide = continent.GUID(vehicleGuid) match {
         case Some(obj: Vehicle) =>
           sessionLogic.general.unaccessContainer(obj)
@@ -132,33 +132,33 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
     case VehicleAction.KickPassenger(_, wasKickedByDriver, _) =>
       //seat number (first field) seems to be correct if passenger is kicked manually by driver
       //but always seems to return 4 if user is kicked by mount permissions changing
-      sendResponse(DismountVehicleMsg(filterGuid, BailType.Kicked, wasKickedByDriver))
+      sendResponse(DismountVehicleMsg(FilterGuid, BailType.Kicked, wasKickedByDriver))
 
     case VehicleAction.InventoryState2(objGuid, parentGuid, value)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       sendResponse(InventoryStateMessage(objGuid, unk=0, parentGuid, value))
 
     case VehicleAction.LoadVehicle(vehicle, vtype, vguid, vdata)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       //this is not be suitable for vehicles with people who are seated in it before it spawns (if that is possible)
       sendResponse(ObjectCreateMessage(vtype, vguid, vdata))
       Vehicles.ReloadAccessPermissions(vehicle, player.Name)
 
     case VehicleAction.Ownership(vehicleGuid)
-      if TestFilter(_ => isSameTarget) =>
+      if TestFilter(SameTargetTest) =>
       //Only the player that owns this vehicle needs the ownership packet
       avatarActor ! AvatarActor.SetVehicle(Some(vehicleGuid))
-      sendResponse(PlanetsideAttributeMessage(resolvedGuid, attribute_type=21, vehicleGuid))
+      sendResponse(PlanetsideAttributeMessage(ResolvedGuid, attribute_type=21, vehicleGuid))
 
     case VehicleAction.LoseOwnership(_, vehicleGuid) =>
       ops.announceAmsDecay(vehicleGuid,msg = "@ams_decaystarted")
 
     case VehicleAction.SeatPermissions(vehicleGuid, seatGroup, permission)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       sendResponse(PlanetsideAttributeMessage(vehicleGuid, seatGroup, permission))
 
     case VehicleAction.StowCreatedEquipment(vehicleGuid, slot, itemType, itemGuid, itemData)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       //TODO prefer ObjectAttachMessage, but how to force ammo pools to update properly?
       sendResponse(ObjectCreateDetailedMessage(itemType, itemGuid, ObjectCreateMessageParent(vehicleGuid, slot), itemData))
 
@@ -176,7 +176,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       }
 
     case VehicleAction.UnstowEquipment(itemGuid)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       //TODO prefer ObjectDetachMessage, but how to force ammo pools to update properly?
       sendResponse(ObjectDeleteMessage(itemGuid, unk1=0))
 
@@ -185,7 +185,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       sessionLogic.zoning.spawn.DrawCurrentAmsSpawnPoint()
 
     case VehicleAction.TransferPassengerChannel(oldChannel, tempChannel, vehicle, vehicleToDelete)
-      if TestFilter(_ => isNotSameTarget) =>
+      if TestFilter(NotSameTargetTest) =>
       sessionLogic.zoning.interstellarFerry = Some(vehicle)
       sessionLogic.zoning.interstellarFerryTopLevelGUID = Some(vehicleToDelete)
       continent.VehicleEvents ! Service.Leave(oldChannel) //old vehicle-specific channel (was s"${vehicle.Actor}")
@@ -193,7 +193,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       log.debug(s"TransferPassengerChannel: ${player.Name} now subscribed to $tempChannel for vehicle gating")
 
     case VehicleAction.KickCargo(vehicle, speed, delay)
-      if TestFilter(_ => { player.VehicleSeated.nonEmpty && sessionLogic.zoning.spawn.deadState == DeadState.Alive && speed > 0 }) =>
+      if TestFilter(() => { player.VehicleSeated.nonEmpty && sessionLogic.zoning.spawn.deadState == DeadState.Alive && speed > 0 }) =>
       val strafe = 1 + Vehicles.CargoOrientation(vehicle)
       val reverseSpeed = if (strafe > 1) { 0 } else { speed }
       //strafe or reverse, not both
@@ -221,11 +221,11 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       context.system.scheduler.scheduleOnce(delay milliseconds, context.self, resp)
 
     case VehicleAction.KickCargo(cargo, _, _)
-      if TestFilter(_ => { player.VehicleSeated.nonEmpty && sessionLogic.zoning.spawn.deadState == DeadState.Alive }) =>
+      if TestFilter(() => { player.VehicleSeated.nonEmpty && sessionLogic.zoning.spawn.deadState == DeadState.Alive }) =>
       sessionLogic.vehicles.TotalDriverVehicleControl(cargo)
 
     case VehicleAction.ChangeLoadout(target, oldWeapons, addedWeapons, oldInventory, newInventory)
-      if TestFilter(_ => { player.avatar.vehicle.contains(target) }) =>
+      if TestFilter(() => { player.avatar.vehicle.contains(target) }) =>
       //TODO when vehicle weapons can be changed without visual glitches, rewrite this
       continent.GUID(target).collect { case vehicle: Vehicle =>
         import net.psforever.login.WorldSession.boolToInt
@@ -249,7 +249,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       }
 
     case VehicleAction.ChangeLoadout(target, oldWeapons, _, oldInventory, _)
-      if TestFilter(_ => { sessionLogic.general.accessedContainer.map(_.GUID).contains(target) }) =>
+      if TestFilter(() => { sessionLogic.general.accessedContainer.map(_.GUID).contains(target) }) =>
       //TODO when vehicle weapons can be changed without visual glitches, rewrite this
       continent.GUID(target).collect { case vehicle: Vehicle =>
         //external participant: observe changes to equipment
@@ -287,7 +287,7 @@ class VehicleHandlerLogic(val ops: SessionVehicleHandlers, implicit val context:
       sendResponse(GenericObjectActionMessage(playerGuid, code=10))
 
     case VehicleSpawnPad.StartPlayerSeatedInVehicle(vehicle, _)
-      if TestFilter(_ => { player.VisibleSlots.contains(player.DrawnSlot) }) =>
+      if TestFilter(() => { player.VisibleSlots.contains(player.DrawnSlot) }) =>
       player.DrawnSlot = Player.HandsDownSlot
       startPlayerSeatedInVehicle(vehicle)
 

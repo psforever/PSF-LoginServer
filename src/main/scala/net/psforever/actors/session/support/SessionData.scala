@@ -120,6 +120,8 @@ class SessionData(
   def zoning: ZoningOperations = zoningOpt.orNull
   def chat: ChatOperations = chatOpt.orNull
 
+  val handlerFilters: CommonHandlerFilters = new CommonHandlerFilters()
+
   ServiceManager.serviceManager ! Lookup("accountIntermediary")
   ServiceManager.serviceManager ! Lookup("accountPersistence")
   ServiceManager.serviceManager ! Lookup("galaxy")

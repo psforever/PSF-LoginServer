@@ -96,6 +96,15 @@ object SessionActor {
 
   final case class SetMode(mode: PlayerMode) extends Command
 
+  /**
+   * Determine if a response handler would process a given reply message, ignoring its guards.
+   * Treat handlers already ignoring their guards as "determined (will not pass)".
+   * @see `CommonHandlerFunctions.IgnoreFilter_=`
+   * @param reply message
+   * @param handler message handler
+   * @return `true`, if the response handler will process the response;
+   *         `false`, if the handler is skipped or if it would not process
+   */
   private def HandlerAcceptingMessageTest(reply: Any)(handler: CommonHandlerFunctions): Boolean = {
     if (handler.IgnoreFilter) {
       false
@@ -417,14 +426,15 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       responseHandler.IgnoreFilter = true
       if (!responseHandler.isDefinedAt(reply)) {
         //find every handler that might accept the input response, ignoring guard booleans only for the search
-        //try each discovered handler with the input response
-        listOfHandlers.filter(SessionActor.HandlerAcceptingMessageTest(reply)) match {
+        //try each discovered handler against the input response until one works
+        val test: CommonHandlerFunctions => Boolean = SessionActor.HandlerAcceptingMessageTest(reply)
+        listOfHandlers.filter(test) match {
           case Nil =>
-            log.error(s"received completely unhandled response message - $envelope for ${envelope.stamp}")
+            log.error(s"received completely unhandled response message - $reply for ${envelope.stamp}:$toChannel")
           case first :: Nil =>
-            first.handle(toChannel, guid, reply)
+            first.tryToHandle(reply)
           case first :: others =>
-            first.handle(toChannel, guid, reply) || others.exists(_.handle(toChannel, guid, reply))
+            first.tryToHandle(reply) || others.exists(_.tryToHandle(reply))
         }
       }
       responseHandler.IgnoreFilter = false

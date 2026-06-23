@@ -208,9 +208,9 @@ class SessionMountHandlers(
       sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
       continent.VehicleEvents ! MessageEnvelope(
         continent.id,
-        SendResponse(List(
+        SendResponse(
           PlanetsideAttributeMessage(obj.GUID, 81, 1),
-          ObjectDetachMessage(obj.GUID, tplayer.GUID, tplayer.Position, obj.Orientation))
+          ObjectDetachMessage(obj.GUID, tplayer.GUID, tplayer.Position, obj.Orientation)
         )
       )
     }

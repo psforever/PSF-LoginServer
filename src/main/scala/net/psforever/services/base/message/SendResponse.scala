@@ -7,4 +7,6 @@ final case class SendResponse(pkts: Seq[PlanetSideGamePacket]) extends SelfRespo
 
 object SendResponse {
   def apply(pkt: PlanetSideGamePacket): SendResponse = SendResponse(Seq(pkt))
+
+  def apply(first: PlanetSideGamePacket, msgs: PlanetSideGamePacket*): SendResponse = SendResponse(first +: msgs)
 }

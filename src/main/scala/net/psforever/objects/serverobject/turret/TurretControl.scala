@@ -43,7 +43,7 @@ trait TurretControl
     val tguid  = TurretObject.GUID
     events ! MessageEnvelope(
       zoneId,
-      SendResponse(List(PlanetsideAttributeMessage(tguid, 50, 0), PlanetsideAttributeMessage(tguid, 51, 0)))
+      SendResponse(PlanetsideAttributeMessage(tguid, 50, 0), PlanetsideAttributeMessage(tguid, 51, 0))
     )
   }
 
@@ -62,7 +62,7 @@ trait TurretControl
     CancelJammeredStatus(target)
     events ! MessageEnvelope(
       zoneId,
-      SendResponse(List(PlanetsideAttributeMessage(tguid, 50, 1), PlanetsideAttributeMessage(tguid, 51, 1)))
+      SendResponse(PlanetsideAttributeMessage(tguid, 50, 1), PlanetsideAttributeMessage(tguid, 51, 1))
     )
   }
 }
