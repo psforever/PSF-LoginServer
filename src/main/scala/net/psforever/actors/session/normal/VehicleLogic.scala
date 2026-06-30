@@ -12,7 +12,9 @@ import net.psforever.objects.vehicles.control.BfrFlight
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game.{ChatMsg, ChildObjectStateMessage, DeployRequestMessage, FrameVehicleStateMessage, VehicleStateMessage, VehicleSubStateMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.CachedEnvelope
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.{ChatMessageType, DriveState, Vector3}
 
 object VehicleLogic {
@@ -75,10 +77,10 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         obj.Position = position
         obj.Orientation = angle
         //
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! CachedEnvelope(
           continent.id,
+          player.GUID,
           VehicleAction.VehicleState(
-            player.GUID,
             vehicle_guid,
             unk1,
             position,
@@ -162,26 +164,11 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         obj.Position = position
         obj.Orientation = angle
         obj.DeploymentState = if (is_crouched || !notMountedState) DriveState.Kneeling else DriveState.Mobile
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! MessageEnvelope(
           continent.id,
-          VehicleAction.FrameVehicleState(
-            player.GUID,
-            vehicle_guid,
-            unk1,
-            position,
-            angle,
-            velocity,
-            unk2,
-            unk3,
-            unk4,
-            is_crouched,
-            is_airborne,
-            ascending_flight,
-            flight_time,
-            unk9,
-            unkA
-          )
-        )
+          player.GUID,
+          VehicleAction.FrameVehicleState(vehicle_guid, unk1, position, angle, velocity, unk2, unk3, unk4, is_crouched, is_airborne, ascending_flight, flight_time, unk9, unkA)
+        ) //todo CachedMessage
         sessionLogic.squad.updateSquad()
       case (None, _) =>
         //log.error(s"VehicleState: no vehicle $vehicle_guid found in zone")
@@ -230,10 +217,11 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
         val angle = Vector3(0f, pitch, yaw)
         tool.Orientation = angle
         player.Orientation = angle
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! MessageEnvelope(
           continent.id,
-          VehicleAction.ChildObjectState(player.GUID, object_guid, pitch, yaw)
-        )
+          player.GUID,
+          VehicleAction.ChildObjectState(object_guid, pitch, yaw)
+        ) //todo CachedMessage
     }
     //TODO status condition of "playing getting out of vehicle to allow for late packets without warning
     if (player.death_by == -1) {
@@ -252,22 +240,10 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
           obj.Velocity = vel
           sessionLogic.updateBlockMap(obj, pos)
           obj.zoneInteractions()
-          continent.VehicleEvents ! VehicleServiceMessage(
+          continent.VehicleEvents ! CachedEnvelope(
             continent.id,
-            VehicleAction.VehicleState(
-              player.GUID,
-              vehicle_guid,
-              unk1,
-              pos,
-              ang,
-              obj.Velocity,
-              obj.Flying,
-              0,
-              0,
-              15,
-              unk5 = false,
-              obj.Cloaked
-            )
+            player.GUID,
+            VehicleAction.VehicleState(vehicle_guid, unk1, pos, ang, obj.Velocity, obj.Flying, 0, 0, 15, unk5 = false, obj.Cloaked)
           )
       }
   }
@@ -346,9 +322,10 @@ class VehicleLogic(val ops: VehicleOperations, implicit val context: ActorContex
     val mobileShift: String = if (obj.DeploymentState != DriveState.Mobile) {
       obj.DeploymentState = DriveState.Mobile
       sendResponse(DeployRequestMessage(player.GUID, obj.GUID, DriveState.Mobile, 0, unk3=false, Vector3.Zero))
-      continent.VehicleEvents ! VehicleServiceMessage(
+      continent.VehicleEvents ! MessageEnvelope(
         continent.id,
-        VehicleAction.DeployRequest(player.GUID, obj.GUID, DriveState.Mobile, 0, unk2=false, Vector3.Zero)
+        player.GUID,
+        VehicleAction.DeployRequest(obj.GUID, DriveState.Mobile, 0, unk2=false, Vector3.Zero)
       )
       "; enforcing Mobile deployment state"
     } else {

@@ -8,8 +8,8 @@ import net.psforever.objects.serverobject.containable.{Containable, ContainableB
 import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types.{PlanetSideEmpire, Vector3}
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{ObjectDelete, SendResponse}
 
 class CorpseControl(player: Player) extends Actor with ContainableBehavior {
   def ContainerObject = player
@@ -25,9 +25,9 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
         val obj = ContainerObject
         obj.Find(item) match {
           case Some(slot) =>
-            obj.Zone.AvatarEvents ! AvatarServiceMessage(
+            obj.Zone.AvatarEvents ! MessageEnvelope(
               player.Zone.id,
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(obj.GUID, item.GUID, slot))
+              SendResponse(ObjectAttachMessage(obj.GUID, item.GUID, slot))
             )
           case None => ;
         }
@@ -40,7 +40,7 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
     val zone   = obj.Zone
     val events = zone.AvatarEvents
     item.Faction = PlanetSideEmpire.NEUTRAL
-    events ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
+    events ! MessageEnvelope(zone.id, ObjectDelete(item.GUID))
   }
 
   def PutItemInSlotCallback(item: Equipment, slot: Int): Unit = {
@@ -48,10 +48,9 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
     val zone       = obj.Zone
     val events     = zone.AvatarEvents
     val definition = item.Definition
-    events ! AvatarServiceMessage(
+    events ! MessageEnvelope(
       zone.id,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
+      SendResponse(
         ObjectCreateDetailedMessage(
           definition.ObjectId,
           item.GUID,
@@ -65,12 +64,9 @@ class CorpseControl(player: Player) extends Actor with ContainableBehavior {
   def SwapItemCallback(item: Equipment, fromSlot: Int): Unit = {
     val obj  = ContainerObject
     val zone = obj.Zone
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       zone.id,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-        ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f)
-      )
+      SendResponse(ObjectDetachMessage(obj.GUID, item.GUID, Vector3.Zero, 0f))
     )
   }
 }

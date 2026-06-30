@@ -6,8 +6,11 @@ import net.psforever.objects.serverobject.hackable.GenericHackables
 import net.psforever.objects.serverobject.structures.{Building, StructureType, WarpGate}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
+import net.psforever.services.local.support.HackCaptureActor
+import net.psforever.services.local.support.CaptureEnvelope
 import net.psforever.types.PlanetSideEmpire
+import net.psforever.services.base.envelope.MessageEnvelope
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -39,22 +42,17 @@ object CaptureTerminals {
           val zoneid = zone.id
           val events = zone.LocalEvents
           val isResecured = hackingPlayer.Faction == target.Faction
-          events ! LocalServiceMessage(
+          events ! MessageEnvelope(
             zoneid,
-            LocalAction.TriggerSound(hackingPlayer.GUID, target.HackSound, hackingPlayer.Position, 30, 0.49803925f)
+            hackingPlayer.GUID,
+            LocalAction.TriggerSound(target.HackSound, hackingPlayer.Position, 30, 0.49803925f)
           )
           if (isResecured) {
             // Resecure the CC
-            events ! LocalServiceMessage(
-              zoneid,
-              LocalAction.ResecureCaptureTerminal(target, PlayerSource(hackingPlayer))
-            )
+            events ! CaptureEnvelope(HackCaptureActor.ResecureCaptureTerminal(target, zone, PlayerSource(hackingPlayer)))
           } else {
             // Start the CC hack timer
-            events ! LocalServiceMessage(
-              zoneid,
-              LocalAction.StartCaptureTerminalHack(target)
-            )
+            events ! CaptureEnvelope(HackCaptureActor.StartCaptureTerminalHack(target, zone, 0, 8L))
           }
         case Failure(_) =>
           log.warn(s"Hack message failed on target guid: ${target.GUID}")

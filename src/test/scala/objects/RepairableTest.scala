@@ -17,8 +17,9 @@ import net.psforever.objects.vehicles.control.VehicleControl
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.packet.game.{InventoryStateMessage, RepairMessage}
 import net.psforever.types._
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.vehicle.VehicleAction
 
 import scala.concurrent.duration._
 
@@ -70,10 +71,10 @@ class RepairableEntityRepairTest extends ActorTest {
       val msg123 = avatarProbe.receiveN(3, 500 milliseconds)
       assert(
         msg123.head match {
-          case AvatarServiceMessage(
+          case MessageEnvelope(
                 "TestCharacter1",
-                AvatarAction
-                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _)))
               ) =>
             true
           case _ => false
@@ -81,15 +82,16 @@ class RepairableEntityRepairTest extends ActorTest {
       )
       assert(
         msg123(1) match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
+          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
           case _                                                                                            => false
         }
       )
       assert(
         msg123(2) match {
-          case AvatarServiceMessage(
+          case MessageEnvelope(
                 "TestCharacter1",
-                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))
+                _,
+                SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
               ) =>
             true
           case _ => false
@@ -187,10 +189,10 @@ class RepairableAmenityTest extends ActorTest {
       val msg12345 = avatarProbe.receiveN(5, 500 milliseconds)
       assert(
         msg12345.head match {
-          case AvatarServiceMessage(
+          case MessageEnvelope(
                 "TestCharacter1",
-                AvatarAction
-                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(5), _, PlanetSideGUID(4), _)))
               ) =>
             true
           case _ => false
@@ -198,27 +200,28 @@ class RepairableAmenityTest extends ActorTest {
       )
       assert(
         msg12345(1) match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
+          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
           case _                                                                                            => false
         }
       )
       assert(
         msg12345(2) match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 50, 0)) => true
+          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 50, 0)) => true
           case _                                                                                             => false
         }
       )
       assert(
         msg12345(3) match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 51, 0)) => true
+          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 51, 0)) => true
           case _                                                                                             => false
         }
       )
       assert(
         msg12345(4) match {
-          case AvatarServiceMessage(
+          case MessageEnvelope(
                 "TestCharacter1",
-                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))
+                _,
+                SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
               ) =>
             true
           case _ => false
@@ -285,10 +288,10 @@ class RepairableTurretWeapon extends ActorTest {
       val msg4     = vehicleProbe.receiveOne(500 milliseconds)
       assert(
         msg12345.head match {
-          case AvatarServiceMessage(
+          case MessageEnvelope(
                 "TestCharacter1",
-                AvatarAction
-                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(8), _, PlanetSideGUID(7), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(8), _, PlanetSideGUID(7), _)))
               ) =>
             true
           case _ => false
@@ -296,16 +299,17 @@ class RepairableTurretWeapon extends ActorTest {
       )
       assert(
         msg12345(1) match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(2), 0, _)) => true
+          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(2), 0, _)) => true
           case _                                                                                            => false
         }
       )
       //msg12345(2) and msg12345(3) are related to RepairableAmenity
       assert(
         msg12345(4) match {
-          case AvatarServiceMessage(
+          case MessageEnvelope(
                 "TestCharacter1",
-                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(2), _))
+                _,
+                SendResponse(Seq(RepairMessage(PlanetSideGUID(2), _)))
               ) =>
             true
           case _ => false
@@ -313,7 +317,7 @@ class RepairableTurretWeapon extends ActorTest {
       )
       assert(
         msg4 match {
-          case VehicleServiceMessage("test", VehicleAction.EquipmentInSlot(_, PlanetSideGUID(2), 1, t))
+          case MessageEnvelope("test", _, VehicleAction.EquipmentInSlot(PlanetSideGUID(2), 1, t))
               if t eq turretWeapon =>
             true
           case _ => false
@@ -366,10 +370,10 @@ class RepairableVehicleRepair extends ActorTest {
       val msg123 = avatarProbe.receiveN(3, 500 milliseconds)
       assert(
         msg123.head match {
-          case AvatarServiceMessage(
+          case MessageEnvelope(
                 "TestCharacter1",
-                AvatarAction
-                  .SendResponse(PlanetSideGUID(0), InventoryStateMessage(PlanetSideGUID(6), _, PlanetSideGUID(5), _))
+                _,
+                SendResponse(Seq(InventoryStateMessage(PlanetSideGUID(6), _, PlanetSideGUID(5), _)))
               ) =>
             true
           case _ => false
@@ -377,15 +381,16 @@ class RepairableVehicleRepair extends ActorTest {
       )
       assert(
         msg123(1) match {
-          case AvatarServiceMessage("test", AvatarAction.PlanetsideAttributeToAll(PlanetSideGUID(1), 0, _)) => true
+          case MessageEnvelope("test", _, PlanetsideAttribute(PlanetSideGUID(1), 0, _)) => true
           case _                                                                                            => false
         }
       )
       assert(
         msg123(2) match {
-          case AvatarServiceMessage(
+          case MessageEnvelope(
                 "TestCharacter1",
-                AvatarAction.SendResponse(PlanetSideGUID(0), RepairMessage(PlanetSideGUID(1), _))
+                _,
+                SendResponse(Seq(RepairMessage(PlanetSideGUID(1), _)))
               ) =>
             true
           case _ => false

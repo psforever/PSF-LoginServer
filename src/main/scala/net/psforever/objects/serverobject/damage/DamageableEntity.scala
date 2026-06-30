@@ -1,14 +1,16 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.damage
 
+import net.psforever.objects.Default
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.tube.SpawnTube
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideGUID
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.PlanetsideAttribute
 
 /**
   * The "control" `Actor` mixin for damage-handling code,
@@ -140,12 +142,11 @@ object DamageableEntity {
     * - reports its adjusted its health;
     * - alert the activity monitor for that `Zone` about the damage; and,
     * - provide a feedback message regarding the damage.
-    * @see `AvatarAction.PlanetsideAttributeToAll`
-    * @see `AvatarAction.SendResponse`
-    * @see `AvatarServiceMessage`
+    * @see `PlanetsideAttribute`
+    * @see `SendResponse`
     * @see `DamageFeedbackMessage`
     * @see `JammableUnit.Jammered`
-    * @see `Service.defaultPlayerGUID`
+    * @see `Default.GUID0`
     * @see `Zone.Activity`
     * @see `Zone.AvatarEvents`
     * @see `Zone.HotSpot.Activity`
@@ -165,9 +166,9 @@ object DamageableEntity {
   def DamageToHealth(target: Damageable.Target, cause: DamageResult, amount: Int): Boolean = {
     if (amount > 0 && !target.Destroyed) {
       val zone = target.Zone
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
-        AvatarAction.PlanetsideAttributeToAll(target.GUID, 0, target.Health)
+        PlanetsideAttribute(target.GUID, 0, target.Health)
       )
       true
     }
@@ -181,8 +182,7 @@ object DamageableEntity {
     * - reports its adjusted its health; and,
     * - report about its destruction.
     * @see `AvatarAction.Destroy`
-    * @see `AvatarAction.PlanetsideAttribute`
-    * @see `AvatarServiceMessage`
+    * @see `PlanetsideAttribute`
     * @see `DamageFeedbackMessage`
     * @see `JammableUnit.ClearJammeredSound`
     * @see `JammableUnit.ClearJammeredStatus`
@@ -199,12 +199,12 @@ object DamageableEntity {
     val zoneId = zone.id
     val tguid  = target.GUID
     val attribution = attributionTo(cause, target.Zone)
-    zone.AvatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(tguid, 0, target.Health))
+    zone.AvatarEvents ! MessageEnvelope(zoneId, PlanetsideAttribute(tguid, 0, target.Health))
     if (target.isInstanceOf[SpawnTube]) {}//do nothing to prevent issue #1057
     else {
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zoneId,
-        AvatarAction.Destroy(tguid, attribution, Service.defaultPlayerGUID, target.Position)
+        AvatarAction.Destroy(tguid, attribution, Default.GUID0, target.Position)
       )
     }
   }

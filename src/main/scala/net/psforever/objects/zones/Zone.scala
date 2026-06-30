@@ -1571,6 +1571,17 @@ object Zone {
     }
   }
 
+  def AmsSpawnPoints(zone: Zone): List[SpawnTube] = {
+    import net.psforever.objects.vehicles.UtilityType
+    import net.psforever.objects.GlobalDefinitions
+    zone.Vehicles
+      .filter(veh =>
+        veh.Health > 0 && veh.Definition == GlobalDefinitions.ams && veh.DeploymentState == DriveState.Deployed
+      )
+      .flatMap(veh => veh.Utilities.values.filter(util => util.UtilType == UtilityType.ams_respawn_tube))
+      .map(util => util().asInstanceOf[SpawnTube])
+  }
+
   object Setup {
     /* zone setup code */
 
@@ -1613,10 +1624,9 @@ object Zone {
         if (zone.id.startsWith("tzsh")) {
           zone.npcPopulation = context.actorOf(Props(classOf[ShootingRangeTargetSpawnerActor], zone), s"$id-npcs")
         }
-
-        zone.avatarEvents = context.actorOf(Props(classOf[AvatarService], zone), s"$id-avatar-events")
-        zone.localEvents = context.actorOf(Props(classOf[LocalService], zone), s"$id-local-events")
-        zone.vehicleEvents = context.actorOf(Props(classOf[VehicleService], zone), s"$id-vehicle-events")
+        zone.avatarEvents = context.actorOf(AvatarService(), s"$id-avatar-events")
+        zone.localEvents = context.actorOf(LocalService(zone), s"$id-local-events")
+        zone.vehicleEvents = context.actorOf(VehicleService(), s"$id-vehicle-events")
 
         zone.timeOfDayOrigin = System.currentTimeMillis()
 
@@ -1707,14 +1717,14 @@ object Zone {
         .flatMap(_.Amenities.filter(_.Definition == GlobalDefinitions.resource_silo))
         .collect {
           case silo: ResourceSilo =>
-            silo.Actor ! Service.Startup()
+            silo.Actor ! Service.Startup
         }
       //some painfields need to look for their closest door
       buildings.values
         .flatMap(_.Amenities.filter(_.Definition.isInstanceOf[PainboxDefinition]))
         .collect {
           case painbox: Painbox =>
-            painbox.Actor ! Service.Startup()
+            painbox.Actor ! Service.Startup
         }
       //the orbital_buildings in sanctuary zones have to establish their shuttle routes
       map.shuttleBays
@@ -1722,7 +1732,7 @@ object Zone {
           guid(_)
         }
         .collect { case Some(obj: OrbitalShuttlePad) =>
-          obj.Actor ! Service.Startup()
+          obj.Actor ! Service.Startup
         }
       //allocate soi information
       zone.soi ! SOI.Build()

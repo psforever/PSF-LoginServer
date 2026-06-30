@@ -2,11 +2,11 @@
 package net.psforever.services.teamwork
 
 import akka.actor.ActorRef
-import scala.collection.mutable
 
+import scala.collection.mutable
 import net.psforever.objects.teamwork.{Squad, SquadFeatures}
 import net.psforever.packet.game.SquadDetail
-import net.psforever.services.GenericEventBus
+import net.psforever.services.base.bus.GenericEventBus
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 class SquadSubscriptionEntity {
@@ -28,7 +28,7 @@ class SquadSubscriptionEntity {
     * @see `Service.Join`
     * @see `Service.Leave`
     */
-  val SquadEvents = new GenericEventBus[SquadServiceResponse]
+  val SquadEvents = new GenericEventBus
 
   /**
     * This collection contains the message-sending contact reference for individuals.

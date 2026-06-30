@@ -9,10 +9,10 @@ import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.DamageWithPositionMessage
 import net.psforever.types.Vector3
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.vehicle.support.TurretUpgrader
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
+import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
+import net.psforever.services.base.support.SupportActor
+import net.psforever.services.vehicle.support.{TurretEnvelope, TurretUpgrader}
 
 /**
   * The "control" `Actor` mixin for damage-handling code for `WeaponTurret` objects.
@@ -62,21 +62,22 @@ trait DamageableWeaponTurret
       //TODO some turrets have shields
       if (damageToHealth > 0) {
         DamageableMountable.DamageAwareness(DamageableObject, cause, damageToHealth)
-        events ! VehicleServiceMessage(
+        events ! MessageEnvelope(
           zoneId,
-          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, obj.Health)
+          PlanetsideAttribute(targetGUID, 0, obj.Health)
         )
         announceConfrontation = true
       }
     }
     if (announceConfrontation) {
       if (aggravated) {
-        val msg = VehicleAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(damageToHealth, Vector3.Zero))
-        obj.Seats.values
+        val msg = SendResponse(DamageWithPositionMessage(damageToHealth, Vector3.Zero))
+        events ! BundledEnvelope(obj.Seats.values
           .collect { case seat if seat.occupant.nonEmpty => seat.occupant.get.Name }
-          .foreach { channel =>
-            events ! VehicleServiceMessage(channel, msg)
+          .map { channel =>
+            MessageEnvelope(channel, msg)
           }
+        )
       }
       else {
         //activity on map
@@ -103,16 +104,15 @@ object DamageableWeaponTurret {
     * A destroyed target dispatches a message to conceal (delete) its weapons from users.
     * If affected by a jammer property, the jammer propoerty will be removed.
     * If the type of entity is a `WeaponTurret`, the weapons are converted to their "normal" upgrade state.
-    * @see `AvatarAction.DeleteObject`
-    * @see `AvatarServiceMessage`
+    * @see `DeleteObject`
     * @see `MountedWeapons`
     * @see `MountedWeapons.Weapons`
-    * @see `Service.defaultPlayerGUID`
+    * @see `Default.GUID0`
     * @see `TurretUpgrade.None`
     * @see `TurretUpgrader.AddTask`
     * @see `TurretUpgrader.ClearSpecific`
     * @see `WeaponTurret`
-    * @see `VehicleServiceMessage.TurretUpgrade`
+    * @see `TurretMessage`
     * @see `Zone.AvatarEvents`
     * @see `Zone.VehicleEvents`
     * @param target the entity being destroyed;
@@ -125,20 +125,18 @@ object DamageableWeaponTurret {
     val zone         = target.Zone
     val zoneId       = zone.id
     val avatarEvents = zone.AvatarEvents
-    target.Weapons.values
-      .filter {
-        _.Equipment.nonEmpty
+    avatarEvents ! BundledEnvelope(target.Weapons.values
+      .filter(_.Equipment.nonEmpty)
+      .map { slot =>
+        MessageEnvelope(zoneId, ObjectDelete(slot.Equipment.get.GUID))
       }
-      .foreach(slot => {
-        val wep = slot.Equipment.get
-        avatarEvents ! AvatarServiceMessage(zoneId, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, wep.GUID))
-      })
+    )
     target match {
       case turret: WeaponTurret =>
         if (turret.Upgrade != TurretUpgrade.None) {
           val vehicleEvents = zone.VehicleEvents
-          vehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(turret), zone))
-          vehicleEvents ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(turret, zone, TurretUpgrade.None))
+          vehicleEvents ! TurretEnvelope(SupportActor.ClearSpecific(List(turret), zone))
+          vehicleEvents ! TurretEnvelope(TurretUpgrader.AddTask(turret, zone, TurretUpgrade.None))
         }
       case _ =>
     }

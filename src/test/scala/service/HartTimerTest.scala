@@ -1,9 +1,9 @@
 // Copyright (c) 2021 PSForever
 package service
 
-import akka.actor.Props
+import akka.actor.{ActorRef, Props}
 import akka.testkit.TestProbe
-import base.ActorTest
+import _root_.base.ActorTest
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.services.hart.HartTimer
 import net.psforever.types.PlanetSideGUID
@@ -14,11 +14,11 @@ class HartTimerNotScheduled extends ActorTest {
   "HartTimer" should {
     val catchall = new TestProbe(system).ref
     val zone = new Zone("test", new ZoneMap("test"), 0) {
-      override def SetupNumberPools() = {}
-      override def AvatarEvents = catchall
-      override def LocalEvents = catchall
-      override def VehicleEvents = catchall
-      override def Activity = catchall
+      override def SetupNumberPools(): Unit = {}
+      override def AvatarEvents: ActorRef = catchall
+      override def LocalEvents: ActorRef = catchall
+      override def VehicleEvents: ActorRef = catchall
+      override def Activity: ActorRef = catchall
     }
     val timer = system.actorOf(Props(classOf[HartTimer], zone), "hart-timer")
 
@@ -34,11 +34,11 @@ class HartTimerInitializedPairingScheduled extends ActorTest {
   "HartTimer" should {
     val catchall = new TestProbe(system).ref
     val zone = new Zone("test", new ZoneMap("test"), 0) {
-      override def SetupNumberPools() = {}
-      override def AvatarEvents = catchall
-      override def LocalEvents = catchall
-      override def VehicleEvents = catchall
-      override def Activity = catchall
+      override def SetupNumberPools(): Unit = {}
+      override def AvatarEvents: ActorRef = catchall
+      override def LocalEvents: ActorRef = catchall
+      override def VehicleEvents: ActorRef = catchall
+      override def Activity: ActorRef = catchall
     }
     val timer = system.actorOf(Props(classOf[HartTimer], zone), "hart-timer")
 

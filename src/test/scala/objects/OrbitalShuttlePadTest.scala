@@ -24,7 +24,7 @@ import scala.concurrent.duration._
 class OrbitalShuttlePadControlTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
   val services: ActorRef = ServiceManager.boot(system)
-  services ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
+  services ! ServiceManager.Register(GalaxyService(), "galaxy")
   services ! ServiceManager.Register(Props[HartService](), "hart")
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
@@ -82,7 +82,7 @@ class OrbitalShuttlePadControlTest extends FreedContextActorTest {
     "startup and create the shuttle" in {
       assert(building.Amenities.size == 9)
       assert(vehicles.isEmpty)
-      pad.Actor ! Service.Startup()
+      pad.Actor ! Service.Startup
       expectNoMessage(max = 5 seconds)
       assert(building.Amenities.size == 10)
       assert(vehicles.size == 1)

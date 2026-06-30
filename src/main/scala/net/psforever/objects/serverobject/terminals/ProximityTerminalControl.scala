@@ -6,6 +6,9 @@ import net.psforever.objects.serverobject.damage.Damageable
 import net.psforever.objects.sourcing.AmenitySource
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.packet.game.HackState1
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
+import net.psforever.services.local.support.{HackClearActor, HackClearEnvelope}
 import org.log4s.Logger
 
 import scala.annotation.unused
@@ -24,10 +27,7 @@ import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityCo
 import net.psforever.objects.vital.{HealFromTerminal, RepairFromTerminal, Vitality}
 import net.psforever.objects.zones.ZoneAware
 import net.psforever.packet.game.InventoryStateMessage
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.local.LocalAction
 
 /**
  * An `Actor` that handles messages being dispatched to a specific `ProximityTerminal`.
@@ -147,7 +147,7 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     tryAutoRepair()
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone
-      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ClearTemporaryHack(Service.defaultPlayerGUID, term))
+      zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(term))
     }
     super.DestructionAwareness(target, cause)
   }
@@ -181,7 +181,8 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
           self,
           ProximityTerminalControl.TerminalAction()
         )
-        TerminalObject.Zone.LocalEvents ! Terminal.StartProximityEffect(term)
+        val zone = TerminalObject.Zone
+        zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = true))
       }
     } else {
       log.warn(s"ProximityTerminal.Use: $target was rejected by unit ${term.Definition.Name}@${term.GUID.guid}")
@@ -201,7 +202,8 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
       //de-activation (global / local)
       if (term.NumberUsers == 0 && hadUsers) {
         terminalAction.cancel()
-        TerminalObject.Zone.LocalEvents ! Terminal.StopProximityEffect(term)
+        val zone = TerminalObject.Zone
+        zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = false))
       }
     } else {
       log.debug(
@@ -216,12 +218,13 @@ class ProximityTerminalControl(term: Terminal with ProximityUnit)
     terminalAction.cancel()
     if (callbacks.nonEmpty) {
       callbacks.clear()
-      TerminalObject.Zone.LocalEvents ! Terminal.StopProximityEffect(term)
+      val zone = TerminalObject.Zone
+      zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.ProximityTerminalEffect(TerminalObject.GUID, effectState = true))
     }
     //clear hack state
     if (term.HackedBy.nonEmpty) {
       val zone = term.Zone
-      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.ClearTemporaryHack(Service.defaultPlayerGUID, term))
+      zone.LocalEvents ! HackClearEnvelope(HackClearActor.ObjectIsResecured(term))
     }
   }
 
@@ -347,9 +350,9 @@ object ProximityTerminalControl {
 
     if (oldMax < maxHealthCap) {
       target.MaxHealth = newMax
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
-        AvatarAction.PlanetsideAttributeToAll(target.GUID, 1, newMax)
+        PlanetsideAttribute(target.GUID, 1, newMax)
       )
     }
     if (target.Health < newMax) {
@@ -362,17 +365,17 @@ object ProximityTerminalControl {
 
   def PlayerHealthCallback(target: PlanetSideGameObject with Vitality with ZoneAware): Unit = {
     val zone = target.Zone
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       zone.id,
-      AvatarAction.PlanetsideAttributeToAll(target.GUID, 0, target.Health)
+      PlanetsideAttribute(target.GUID, 0, target.Health)
     )
   }
 
   def VehicleHealthCallback(target: PlanetSideGameObject with Vitality with ZoneAware): Unit = {
     val zone = target.Zone
-    zone.VehicleEvents ! VehicleServiceMessage(
+    zone.VehicleEvents ! MessageEnvelope(
       zone.id,
-      VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, 0, target.Health)
+      PlanetsideAttribute(target.GUID, 0, target.Health)
     )
   }
 
@@ -401,9 +404,9 @@ object ProximityTerminalControl {
       target.Armor = armor + finalRepairAmount
       target.LogActivity(RepairFromTerminal(AmenitySource(terminal), finalRepairAmount))
       val zone = target.Zone
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
-        AvatarAction.PlanetsideAttributeToAll(target.GUID, 4, target.Armor)
+        PlanetsideAttribute(target.GUID, 4, target.Armor)
       )
       target.Armor == maxArmor
     } else {
@@ -429,12 +432,12 @@ object ProximityTerminalControl {
     val events = unit.Zone.AvatarEvents
     val channel = target.Name
     ancient.foreach { case (weapon, slots) =>
-      slots.foreach { slot =>
-        events ! AvatarServiceMessage(
+      events ! BundledEnvelope(slots.map { slot =>
+        MessageEnvelope(
           channel,
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
+          SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
         )
-      }
+      })
     }
     !result.flatMap { _._2 }.exists { slot => slot.Magazine < slot.MaxMagazine() }
   }
@@ -454,14 +457,14 @@ object ProximityTerminalControl {
     )
     val events = unit.Zone.VehicleEvents
     val channel = target.Actor.toString
-    result.foreach { case (weapon, slots) =>
-      slots.foreach { slot =>
-        events ! VehicleServiceMessage(
+    events ! BundledEnvelope(result.flatMap { case (weapon, slots) =>
+      slots.map { slot =>
+        MessageEnvelope(
           channel,
-          VehicleAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
+          SendResponse(InventoryStateMessage(slot.Box.GUID, weapon.GUID, slot.Box.Capacity))
         )
       }
-    }
+    })
     !result.flatMap { _._2 }.exists { slot => slot.Magazine < slot.MaxMagazine() }
   }
 

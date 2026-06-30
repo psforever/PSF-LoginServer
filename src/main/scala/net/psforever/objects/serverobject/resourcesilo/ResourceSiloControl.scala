@@ -11,8 +11,9 @@ import net.psforever.objects.zones
 import net.psforever.objects.{GlobalDefinitions, Ntu, NtuContainer, NtuStorageBehavior, Vehicle}
 import net.psforever.types.{ExperienceType, PlanetSideEmpire}
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.util.Config
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,7 +40,7 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
   private var drainMultiplier: Float = 1.0f
 
   def receive: Receive = {
-    case Service.Startup() =>
+    case Service.Startup =>
       resourceSilo.Owner match {
         case building: Building =>
           UpdateChargeLevel(amount = 0)
@@ -106,9 +107,9 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     log.trace(s"LowNtuWarning: Silo ${resourceSilo.GUID} low ntu warning set to $enabled")
     val building = resourceSilo.Owner
     val zone     = building.Zone
-    building.Zone.AvatarEvents ! AvatarServiceMessage(
+    building.Zone.AvatarEvents ! MessageEnvelope(
       zone.id,
-      AvatarAction.PlanetsideAttribute(building.GUID, 47, if (resourceSilo.LowNtuWarningOn) 1 else 0)
+      PlanetsideAttribute(building.GUID, 47, if (resourceSilo.LowNtuWarningOn) 1 else 0)
     )
   }
 
@@ -129,9 +130,9 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
       log.trace(
         s"UpdateChargeLevel: silo ${resourceSilo.GUID} NTU bar level has changed from $siloDisplayBeforeChange to ${resourceSilo.CapacitorDisplay}"
       )
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
-        AvatarAction.PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay)
+        PlanetsideAttribute(resourceSilo.GUID, 45, resourceSilo.CapacitorDisplay)
       )
       building.Actor ! BuildingActor.MapUpdate()
     }
@@ -202,12 +203,16 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
             (Config.app.game.experience.sep.ntuSiloDepositReward.toFloat *
               amount * resourceSilo.Definition.ChargeTime.toSeconds.toFloat / resourceSilo.MaxNtuCapacitor
               ).toLong
-          vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
-            owner.name,
-            AvatarAction.AwardBep(owner.charId, deposit, ExperienceType.Normal)
+          vehicle.Zone.AvatarEvents ! BundledEnvelope(
+            MessageEnvelope(
+              owner.name,
+              AvatarAction.AwardBep(owner.charId, deposit, ExperienceType.Normal)
+            ),
+            MessageEnvelope(
+              owner.name,
+              AvatarAction.ShareAntExperienceWithSquad(owner, deposit, vehicle)
+            )
           )
-          vehicle.Zone.AvatarEvents ! AvatarServiceMessage(
-            owner.name, AvatarAction.ShareAntExperienceWithSquad(owner, deposit, vehicle))
           zones.exp.ToDatabase.reportNtuActivity(owner.charId, resourceSilo.Zone.Number, resourceSilo.Owner.GUID.guid, deposit)
         }
     }
@@ -229,9 +234,9 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     val amount = (if (trigger > 0) {
       // panel glow & orb particles on
       val zone = resourceSilo.Zone
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zone.id,
-        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, resourceSilo.GUID, 49, 1)
+        PlanetsideAttribute(resourceSilo.GUID, 49, 1)
       )
       math.min(resourceSilo.MaxNtuCapacitor - currentlyHas, trigger)
     } else if (trigger < 0) {
@@ -240,9 +245,9 @@ class ResourceSiloControl(resourceSilo: ResourceSilo)
     } else {
       // panel glow & orb particles off
       val zone = resourceSilo.Zone
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zone.id,
-        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, resourceSilo.GUID, 49, 0)
+        PlanetsideAttribute(resourceSilo.GUID, 49, 0)
       )
       0
     }) * 0.9f

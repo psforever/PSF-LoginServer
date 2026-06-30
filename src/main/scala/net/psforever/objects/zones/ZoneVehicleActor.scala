@@ -9,8 +9,8 @@ import net.psforever.objects.serverobject.structures.WarpGate
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.objects.{Default, GlobalDefinitions, Vehicle}
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.Service
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.SendResponse
 import net.psforever.types.{ChatMessageType, DriveState, PlanetSideEmpire, Vector3}
 
 import scala.annotation.tailrec
@@ -204,9 +204,9 @@ object ZoneVehicleActor {
       else None
     }
     msgOpt.foreach { msg =>
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         vehicle.Seats.headOption.flatMap(_._2.occupant).map(_.Name).getOrElse(""),
-        VehicleAction.SendResponse(Service.defaultPlayerGUID, ChatMsg(ChatMessageType.UNK_227, msg))
+        SendResponse(ChatMsg(ChatMessageType.UNK_227, msg))
       )
     }
     msgOpt.isDefined

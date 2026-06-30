@@ -8,7 +8,8 @@ import net.psforever.objects.sourcing.{BuildingSource, MountableEntry, PlayerSou
 import net.psforever.objects.vital.{Contribution, InGameActivity, RevivingActivity, TelepadUseActivity, TerminalUsedActivity, VehicleCargoDismountActivity, VehicleCargoMountActivity, DismountingActivity, MountingActivity}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.exp.rec.{CombinedHealthAndArmorContributionProcess, MachineRecoveryExperienceContributionProcess}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
 
@@ -73,7 +74,6 @@ object KillContributions {
    * @param eventBus where to send the results of the experience determination(s)
    * @see `ActorRef`
    * @see `AvatarAction.UpdateKillsDeathsAssists`
-   * @see `AvatarServiceMessage`
    * @see `rewardTheseSupporters`
    * @see `SupportActivity`
    */
@@ -88,7 +88,7 @@ object KillContributions {
     //take the output and transform that into contribution distribution data
     rewardTheseSupporters(target, history, kill, bep)
       .foreach { case (charId, ContributionStatsOutput(player, weapons, exp)) =>
-        eventBus ! AvatarServiceMessage(
+        eventBus ! MessageEnvelope(
           player.Name,
           AvatarAction.UpdateKillsDeathsAssists(charId, SupportActivity(victim, weapons, exp.toLong))
         )
@@ -108,7 +108,6 @@ object KillContributions {
    * @see `ActorRef`
    * @see `additionalContributionSources`
    * @see `AvatarAction.UpdateKillsDeathsAssists`
-   * @see `AvatarServiceMessage`
    * @see `CombinedHealthAndArmorContributionProcess`
    * @see `composeContributionOutput`
    * @see `initialScoring`

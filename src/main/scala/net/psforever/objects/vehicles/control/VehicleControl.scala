@@ -36,9 +36,10 @@ import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
+import net.psforever.services.vehicle.VehicleAction
 
 import scala.annotation.unused
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -204,8 +205,7 @@ class VehicleControl(vehicle: Vehicle)
 
       case Vehicle.UpdateSubsystemStates(toChannel, stateToResolve) =>
         val events = vehicle.Zone.VehicleEvents
-        val guid0 = Service.defaultPlayerGUID
-        (stateToResolve match {
+        val pkts = (stateToResolve match {
           case Some(state) =>
             vehicle.Subsystems().filter { _.Enabled == state } //only subsystems that are enabled or are disabled
           case None =>
@@ -213,7 +213,7 @@ class VehicleControl(vehicle: Vehicle)
         })
           .flatMap { _.getMessage(vehicle) }
           .foreach { pkt =>
-            events ! VehicleServiceMessage(toChannel, VehicleAction.SendResponse(guid0, pkt))
+            events ! MessageEnvelope(toChannel, SendResponse(pkt))
           }
 
       case FactionAffinity.ConvertFactionAffinity(faction) =>
@@ -244,11 +244,11 @@ class VehicleControl(vehicle: Vehicle)
               log.info(s"changing vehicle equipment loadout to ${player.Name}'s option #${msg.unk1 + 1}")
               val (oldWeapons, newWeapons, oldInventory, finalInventory) =
                 handleTerminalMessageVehicleLoadout(player, definition, weapons, inventory)
-              zone.VehicleEvents ! VehicleServiceMessage(
+              zone.VehicleEvents ! MessageEnvelope(
                 zone.id,
                 VehicleAction.ChangeLoadout(vehicle.GUID, oldWeapons, newWeapons, oldInventory, finalInventory)
               )
-              zone.AvatarEvents ! AvatarServiceMessage(
+              zone.AvatarEvents ! MessageEnvelope(
                 player.Name,
                 AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result = true)
               )
@@ -256,7 +256,7 @@ class VehicleControl(vehicle: Vehicle)
             case _ => ()
           }
         } else {
-          zone.AvatarEvents ! AvatarServiceMessage(
+          zone.AvatarEvents ! MessageEnvelope(
             player.Name,
             AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result = false)
           )
@@ -330,9 +330,9 @@ class VehicleControl(vehicle: Vehicle)
     .orElse {
       case VehicleControl.Deletion() =>
         val zone = vehicle.Zone
-        zone.VehicleEvents ! VehicleServiceMessage(
+        zone.VehicleEvents ! MessageEnvelope(
           zone.id,
-          VehicleAction.UnloadVehicle(Service.defaultPlayerGUID, vehicle, vehicle.GUID)
+          VehicleAction.UnloadVehicle(vehicle, vehicle.GUID)
         )
         zone.Transport.tell(Zone.Vehicle.Despawn(vehicle), zone.Transport)
         //notify target spawner that the vehicle has despawned if this is a VR Shooting Range zone
@@ -451,7 +451,7 @@ class VehicleControl(vehicle: Vehicle)
             zone.actor ! ZoneActor.AddToBlockMap(player, vehicle.Position)
           }
           if (player.HasGUID) {
-            events ! VehicleServiceMessage(zoneId, VehicleAction.KickPassenger(player.GUID, 4, unk2 = true, guid))
+            events ! MessageEnvelope(zoneId, player.GUID, VehicleAction.KickPassenger(4, unk2 = true, guid))
           }
         }
       }
@@ -521,9 +521,9 @@ class VehicleControl(vehicle: Vehicle)
         val obj = ContainerObject
         obj.Find(item) match {
           case Some(slot) =>
-            obj.Zone.AvatarEvents ! AvatarServiceMessage(
+            obj.Zone.AvatarEvents ! MessageEnvelope(
               self.toString,
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(obj.GUID, item.GUID, slot))
+              SendResponse(ObjectAttachMessage(obj.GUID, item.GUID, slot))
             )
           case None =>  ()
         }
@@ -533,9 +533,9 @@ class VehicleControl(vehicle: Vehicle)
 
   def RemoveItemFromSlotCallback(item: Equipment, slot: Int): Unit = {
     val zone = ContainerObject.Zone
-    zone.VehicleEvents ! VehicleServiceMessage(
+    zone.VehicleEvents ! MessageEnvelope(
       self.toString,
-      VehicleAction.UnstowEquipment(Service.defaultPlayerGUID, item.GUID)
+      VehicleAction.UnstowEquipment(item.GUID)
     )
   }
 
@@ -547,25 +547,22 @@ class VehicleControl(vehicle: Vehicle)
     val events   = zone.VehicleEvents
     val iguid    = item.GUID
     item.Faction = obj.Faction
-    events ! VehicleServiceMessage(
+    events ! MessageEnvelope(
       //TODO when a new weapon, the equipment slot ui goes blank, but the weapon functions; remount vehicle to correct it
       if (obj.VisibleSlots.contains(slot)) zone.id else channel,
-      VehicleAction.SendResponse(
-        Service.defaultPlayerGUID,
-        OCM.detailed(item, ObjectCreateMessageParent(oguid, slot))
-      )
+      SendResponse(OCM.detailed(item, ObjectCreateMessageParent(oguid, slot)))
     )
     item match {
       case box: AmmoBox =>
-        events ! VehicleServiceMessage(
+        events ! MessageEnvelope(
           channel,
-          VehicleAction.InventoryState2(Service.defaultPlayerGUID, iguid, oguid, box.Capacity)
+          VehicleAction.InventoryState2(iguid, oguid, box.Capacity)
         )
       case weapon: Tool =>
         weapon.AmmoSlots.map { slot => slot.Box }.foreach { box =>
-          events ! VehicleServiceMessage(
+          events ! MessageEnvelope(
             channel,
-            VehicleAction.InventoryState2(Service.defaultPlayerGUID, box.GUID, iguid, box.Capacity)
+            VehicleAction.InventoryState2(box.GUID, iguid, box.Capacity)
           )
         }
       case _ => ()
@@ -576,9 +573,9 @@ class VehicleControl(vehicle: Vehicle)
     val obj  = ContainerObject
     val zone = obj.Zone
     val toChannel = if (obj.VisibleSlots.contains(fromSlot)) zone.id else self.toString
-    zone.VehicleEvents ! VehicleServiceMessage(
+    zone.VehicleEvents ! MessageEnvelope(
       toChannel,
-      VehicleAction.ObjectDelete(item.GUID)
+      ObjectDelete(item.GUID)
     )
   }
 
@@ -639,9 +636,9 @@ class VehicleControl(vehicle: Vehicle)
     if (canChargeShields) {
       vehicle.LogActivity(ShieldCharge(amount, motivator))
       vehicle.Shields = vehicle.Shields + amount
-      vehicle.Zone.VehicleEvents ! VehicleServiceMessage(
+      vehicle.Zone.VehicleEvents ! MessageEnvelope(
         s"${vehicle.Actor}",
-        VehicleAction.PlanetsideAttribute(PlanetSideGUID(0), vehicle.GUID, vehicle.Definition.shieldUiAttribute, vehicle.Shields)
+        PlanetsideAttribute(vehicle.GUID, vehicle.Definition.shieldUiAttribute, vehicle.Shields)
       )
     }
   }
@@ -694,9 +691,10 @@ class VehicleControl(vehicle: Vehicle)
         case Some(allow) =>
           val group = AccessPermissionGroup(attribute - 10)
           log.info(s"$dname changed ${vehicle.Definition.Name}'s access permission $group to $allow")
-          zone.VehicleEvents ! VehicleServiceMessage(
+          zone.VehicleEvents ! MessageEnvelope(
             zone.id,
-            VehicleAction.SeatPermissions(dguid, vguid, attribute, value)
+            dguid,
+            VehicleAction.SeatPermissions(vguid, attribute, value)
           )
           //kick players who should not be seated in the vehicle due to permission changes
           if (allow == VehicleLockState.Locked) { //TODO only important permission atm
@@ -707,9 +705,10 @@ class VehicleControl(vehicle: Vehicle)
                     if (vehicle.SeatPermissionGroup(seatIndex).contains(group) && !tplayer.Name.equals(dname)) { //can not kick self
                       seat.unmount(tplayer)
                       tplayer.VehicleSeated = None
-                      zone.VehicleEvents ! VehicleServiceMessage(
+                      zone.VehicleEvents ! MessageEnvelope(
                         zone.id,
-                        VehicleAction.KickPassenger(tplayer.GUID, 4, unk2 = false, vguid)
+                        tplayer.GUID,
+                        VehicleAction.KickPassenger(4, unk2 = false, vguid)
                       )
                     }
                   case _ => () // No player seated
@@ -755,15 +754,10 @@ class VehicleControl(vehicle: Vehicle)
 
   def vehicleSubsystemMessages(messages: List[PlanetSideGamePacket]): Unit = {
     val zone = vehicle.Zone
-    val zoneid = zone.id
-    val events = zone.VehicleEvents
-    val guid0 = Service.defaultPlayerGUID
-    messages.foreach { pkt =>
-      events ! VehicleServiceMessage(
-        zoneid,
-        VehicleAction.SendResponse(guid0, pkt)
-      )
-    }
+    zone.VehicleEvents ! MessageEnvelope(
+      zone.id,
+      SendResponse(messages)
+    )
   }
 
   override protected def canChangeVulnerability(state: Damageable.PersonalVulnerability): Boolean = {

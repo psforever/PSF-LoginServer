@@ -11,7 +11,8 @@ import net.psforever.objects.vehicles.Utility.InternalTelepad
 import net.psforever.objects.vital.SimpleResolutions
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.local.LocalAction
 
 import scala.concurrent.duration._
 
@@ -133,6 +134,6 @@ object TelepadControl {
   }
 
   def TelepadError(zone: Zone, channel: String, msg: String): Unit = {
-    zone.LocalEvents ! LocalServiceMessage(channel, LocalAction.RouterTelepadMessage(msg))
+    zone.LocalEvents ! MessageEnvelope(channel, LocalAction.RouterTelepadMessage(msg))
   }
 }

@@ -16,8 +16,8 @@ import net.psforever.objects.vital.ShieldCharge
 import net.psforever.objects.vital.interaction.DamageResult
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.services.Service
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{GenericObjectAction, PlanetsideAttribute, SendResponse}
 import net.psforever.types._
 
 import scala.annotation.unused
@@ -269,9 +269,9 @@ class BfrControl(vehicle: Vehicle)
 
   def disableShield(): Unit = {
     val zone = vehicle.Zone
-    zone.VehicleEvents ! VehicleServiceMessage(
+    zone.VehicleEvents ! MessageEnvelope(
       s"${zone.id}",
-      VehicleAction.SendResponse(PlanetSideGUID(0), GenericObjectActionMessage(vehicle.GUID, 45))
+      SendResponse(GenericObjectActionMessage(vehicle.GUID, 45))
     )
   }
 
@@ -283,9 +283,9 @@ class BfrControl(vehicle: Vehicle)
 
   def enableShield(): Unit = {
     val zone = vehicle.Zone
-    zone.VehicleEvents ! VehicleServiceMessage(
+    zone.VehicleEvents ! MessageEnvelope(
       s"${zone.id}",
-      VehicleAction.SendResponse(PlanetSideGUID(0), GenericObjectActionMessage(vehicle.GUID, 44))
+      SendResponse(GenericObjectActionMessage(vehicle.GUID, 44))
     )
   }
 
@@ -334,9 +334,9 @@ class BfrControl(vehicle: Vehicle)
     val vguid = vehicle.GUID
     val zone = vehicle.Zone
     val shields = vehicle.Shields
-    zone.VehicleEvents ! VehicleServiceMessage(
+    zone.VehicleEvents ! MessageEnvelope(
       zone.id,
-      VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vguid, vehicle.Definition.shieldUiAttribute, shields)
+      PlanetsideAttribute(vguid, vehicle.Definition.shieldUiAttribute, shields)
     )
   }
 
@@ -399,7 +399,7 @@ class BfrControl(vehicle: Vehicle)
       }) match {
         case (slot, Some(_)) =>
           armManagementFunc(slot)
-          val guid0 = Service.defaultPlayerGUID
+          val guid0 = Default.GUID0
           val doNotSendTo = other match {
             case Some(pguid: PlanetSideGUID) => pguid
             case _                           => guid0
@@ -414,9 +414,10 @@ class BfrControl(vehicle: Vehicle)
           }) match {
             case Some(useThisGuid) =>
               val zone = vehicle.Zone
-              zone.VehicleEvents ! VehicleServiceMessage(
+              zone.VehicleEvents ! MessageEnvelope(
                 zone.id,
-                VehicleAction.GenericObjectAction(doNotSendTo, useThisGuid, action)
+                doNotSendTo,
+                GenericObjectAction(useThisGuid, action)
               )
             case _ => ()
           }
@@ -546,7 +547,7 @@ class BfrControl(vehicle: Vehicle)
     val obj = ChargeTransferObject
     val zone = obj.Zone
     val events = zone.VehicleEvents
-    val GUID0 = Service.defaultPlayerGUID
+    val GUID0 = Default.GUID0
     getNtuContainer() match {
       case Some(siphon : NtuSiphon)
         if GlobalDefinitions.isBattleFrameNTUSiphon(siphon.equipment.Definition) &&
@@ -563,17 +564,14 @@ class BfrControl(vehicle: Vehicle)
           //cause the emp
           siphon.equipment.lastDischarge = now
           //TODO this is the apc emp effect; is there an ntu siphon emp effect?
-          events ! VehicleServiceMessage(
+          events ! MessageEnvelope(
             zone.id,
-            VehicleAction.SendResponse(
-              GUID0,
-              TriggerEffectMessage(
+            SendResponse(TriggerEffectMessage(
                 GUID0,
                 s"apc_explosion_emp_${faction.toString.toLowerCase}",
                 None,
                 Some(TriggeredEffectLocation(pos, obj.Orientation))
-              )
-            )
+              ))
           )
           //resolve what targets are affected by the emp
           Zone.serverSideDamage(
@@ -588,12 +586,9 @@ class BfrControl(vehicle: Vehicle)
           //the siphon is not ready to dispatch another emp; chat message borrowed from kit use logic
           //the client actually enforces a hard limit of 30s before it will react to use of the siphon emp mode
           //it does not even dispatch the packet before that, making it rare if this precautionary message is seen
-          events ! VehicleServiceMessage(
+          events ! MessageEnvelope(
             obj.Seats(0).occupant.get.Name,
-            VehicleAction.SendResponse(
-              GUID0,
-              ChatMsg(ChatMessageType.UNK_225, wideContents = false, "", s"@TimeUntilNextUse^${30000 - elapsedWait}", None)
-            )
+            SendResponse(ChatMsg(ChatMessageType.UNK_225, wideContents = false, "", s"@TimeUntilNextUse^${30000 - elapsedWait}", None))
           )
         }
       case _ => ()

@@ -4,7 +4,8 @@ package net.psforever.objects.serverobject.turret
 import akka.actor.Cancellable
 import net.psforever.objects.serverobject.ServerObjectControl
 import net.psforever.objects.{Default, Player, Tool}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
+import net.psforever.services.local.LocalAction
 import net.psforever.types.Vector3
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -49,13 +50,14 @@ class VanuSentryControl(turret: FacilityTurret)
           if (weapon.Magazine < weapon.MaxMagazine && System.currentTimeMillis() - weapon.LastDischarge > 3000L) {
             weapon.Magazine += 1
             val seat = TurretObject.Seat(0).get
-            seat.occupant.collect {
+            TurretObject.Zone.LocalEvents ! BundledEnvelope(seat.occupant.collect {
               case player: Player =>
-                TurretObject.Zone.LocalEvents ! LocalServiceMessage(
+                MessageEnvelope(
                   TurretObject.Zone.id,
-                  LocalAction.RechargeVehicleWeapon(player.GUID, TurretObject.GUID, weapon.GUID)
+                  player.GUID,
+                  LocalAction.RechargeVehicleWeapon(TurretObject.GUID, weapon.GUID)
                 )
-            }
+            })
           }
           else if (weapon.Magazine == weapon.MaxMagazine && weaponAmmoRechargeTimer != Default.Cancellable) {
             weaponAmmoRechargeTimer.cancel()

@@ -59,7 +59,7 @@ class PainboxControl(painbox: Painbox) extends PoweredAmenityControl {
   }
 
   var commonBehavior: Receive = {
-    case Service.Startup() =>
+    case Service.Startup =>
       if (!disabled && domain.midpoint == Vector3.Zero) {
         initialStartup()
       }

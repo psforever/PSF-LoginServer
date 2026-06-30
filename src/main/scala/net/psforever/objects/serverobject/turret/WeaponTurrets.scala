@@ -5,11 +5,11 @@ import net.psforever.objects.avatar.Certification
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.{Player, Tool, TurretDeployable}
 import net.psforever.packet.game.{HackMessage, HackState, HackState1, HackState7, InventoryStateMessage}
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.services.vehicle.support.TurretUpgrader
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
+import net.psforever.services.base.message.{SendResponse, SetEmpire}
+import net.psforever.services.local.LocalAction
+import net.psforever.services.vehicle.support.{TurretEnvelope, TurretUpgrader}
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.PlanetSideGUID
 
 object WeaponTurrets {
@@ -31,9 +31,9 @@ object WeaponTurrets {
       upgrade: TurretUpgrade.Value
   )(): Unit = {
     tool.Magazine = 0
-    target.Zone.AvatarEvents ! AvatarServiceMessage(
+    target.Zone.AvatarEvents ! MessageEnvelope(
       user.Name,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
+      SendResponse(InventoryStateMessage(tool.AmmoSlot.Box.GUID, tool.GUID, 0))
     )
     FinishUpgradingMannedTurret(target, upgrade)
   }
@@ -45,7 +45,7 @@ object WeaponTurrets {
     * @see `TurretUpgrade`
     * @see `TurretUpgrader.AddTask`
     * @see `TurretUpgrader.ClearSpecific`
-    * @see `VehicleServiceMessage.TurretUpgrade`
+    * @see `TurretMessage`
     * @param target the facility turret being upgraded
     * @param upgrade the upgrade being applied to the turret (usually, it's weapon system)
     */
@@ -53,8 +53,8 @@ object WeaponTurrets {
     log.info(s"Manned wall turret weapon being converted to $upgrade")
     val zone   = target.Zone
     val events = zone.VehicleEvents
-    events ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.ClearSpecific(List(target), zone))
-    events ! VehicleServiceMessage.TurretUpgrade(TurretUpgrader.AddTask(target, zone, upgrade))
+    events ! TurretEnvelope(TurretUpgrader.ClearSpecific(List(target), zone))
+    events ! TurretEnvelope(TurretUpgrader.AddTask(target, zone, upgrade))
   }
 
   /**
@@ -85,10 +85,9 @@ object WeaponTurrets {
       turret.UpdateTurretUpgradeTime()
       (HackState.Ongoing, progress.toInt)
     }
-    turret.Zone.AvatarEvents ! AvatarServiceMessage(
+    turret.Zone.AvatarEvents ! MessageEnvelope(
       tplayer.Name,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
+      SendResponse(
         HackMessage(progressType, turret.GUID, tplayer.GUID, progressGrade, -1f, progressState, HackState7.Unk8)
       )
     )
@@ -101,28 +100,30 @@ object WeaponTurrets {
     val certs = hacker.avatar.certifications
     if (certs.contains(Certification.ExpertHacking) || certs.contains(Certification.ElectronicsExpert)) {
       // Forcefully dismount all seated occupants from the turret
-      target.Seats.values.foreach { seat =>
+      zone.VehicleEvents ! BundledEnvelope(target.Seats.values.flatMap { seat =>
         seat.occupant.collect {
           player: Player =>
             seat.unmount(player)
             player.VehicleSeated = None
-            zone.VehicleEvents ! VehicleServiceMessage(
+            MessageEnvelope(
               zone.id,
-              VehicleAction.KickPassenger(player.GUID, 4, unk2 = false, target.GUID)
+              player.GUID,
+              VehicleAction.KickPassenger(4, unk2 = false, target.GUID)
             )
         }
-      }
+      })
       //hacker owns the deployable now
       target.OwnerGuid = None
       target.Actor ! Deployable.Ownership(hacker)
       //convert faction
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
-        AvatarAction.SetEmpire(Service.defaultPlayerGUID, target.GUID, hacker.Faction)
+        SetEmpire(target.GUID, hacker.Faction)
       )
-      zone.LocalEvents ! LocalServiceMessage(
+      zone.LocalEvents ! MessageEnvelope(
         zone.id,
-        LocalAction.TriggerSound(hacker.GUID, target.HackSound, target.Position, 30, 0.49803925f)
+        hacker.GUID,
+        LocalAction.TriggerSound(target.HackSound, target.Position, 30, 0.49803925f)
       )
     } else {
       //deconstruct

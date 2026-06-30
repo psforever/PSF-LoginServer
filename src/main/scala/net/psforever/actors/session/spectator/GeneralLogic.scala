@@ -16,7 +16,10 @@ import net.psforever.objects.zones.ZoneProjectile
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, ImplantAction, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitMembershipRequest, OutfitMembershipResponse, OutfitRequest, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
 import net.psforever.services.account.AccountPersistenceService
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.CachedEnvelope
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.types.{ExoSuitType, Vector3}
 
 import scala.concurrent.duration.DurationInt
@@ -74,10 +77,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     player.Crouching = isCrouching
     player.Jumping = isJumping
     player.Cloaked = player.ExoSuit == ExoSuitType.Infiltration && isCloaking
-    continent.AvatarEvents ! AvatarServiceMessage(
+    continent.AvatarEvents ! CachedEnvelope(
       "spectator",
+      avatarGuid,
       AvatarAction.PlayerState(
-        avatarGuid,
         player.Position,
         player.Velocity,
         yaw,
@@ -106,8 +109,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleEmote(pkt: EmoteMsg): Unit = {
-    val EmoteMsg(avatarGuid, emote) = pkt
-    sendResponse(EmoteMsg(avatarGuid, emote))
+    sendResponse(pkt)
   }
 
   def handleDropItem(pkt: DropItemMessage): Unit = { /* intentionally blank */ }
@@ -228,9 +230,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case GenericAction.MaxAnchorsExtend_RCV =>
         log.info(s"${player.Name} has anchored ${player.Sex.pronounObject}self to the ground")
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Anchored
-        continent.AvatarEvents ! AvatarServiceMessage(
+        continent.AvatarEvents ! MessageEnvelope(
           continent.id,
-          AvatarAction.PlanetsideAttribute(player.GUID, 19, 1)
+          player.GUID,
+          PlanetsideAttribute(player.GUID, 19, 1)
         )
         definition match {
           case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
@@ -249,9 +252,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
       case GenericAction.MaxAnchorsRelease_RCV =>
         log.info(s"${player.Name} has released the anchors")
         player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
-        continent.AvatarEvents ! AvatarServiceMessage(
+        continent.AvatarEvents ! MessageEnvelope(
           continent.id,
-          AvatarAction.PlanetsideAttribute(player.GUID, 19, 0)
+          player.GUID,
+          PlanetsideAttribute(player.GUID, 19, 0)
         )
         definition match {
           case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>

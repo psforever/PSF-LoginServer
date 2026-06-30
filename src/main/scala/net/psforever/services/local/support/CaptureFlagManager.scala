@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.services.local.support
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.login.WorldSession
 import net.psforever.objects.{Default, PlanetSideGameObject, Player}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
@@ -13,13 +13,29 @@ import net.psforever.objects.serverobject.terminals.capture.CaptureTerminal
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.packet.game._
-import net.psforever.services.{Service, ServiceManager}
+import net.psforever.services.ServiceManager
 import net.psforever.services.ServiceManager.{Lookup, LookupResult}
-import net.psforever.services.galaxy.{GalaxyAction, GalaxyServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelopeOnly}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{GenericObjectAction, SendResponse}
+import net.psforever.services.galaxy.GalaxyAction
+import net.psforever.services.local.LocalAction
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration.DurationInt
+
+case class CaptureFlagSupport(zone: Zone)
+  extends EventServiceSupport {
+  def label: String = "captureFlagManager"
+  def constructor(context: ActorContext): ActorRef = {
+    context.actorOf(Props(classOf[CaptureFlagManager], zone), name = "CaptureFlagManager")
+  }
+}
+
+final case class FlagEnvelope(supportMessage: CaptureFlagManager.Command)
+  extends GenericSupportEnvelopeOnly {
+  def supportLabel: String = "captureFlagManager"
+}
 
 /**
   * Responsible for handling capture flag related lifecycles
@@ -45,12 +61,11 @@ class CaptureFlagManager(zone: Zone) extends Actor {
     case CaptureFlagManager.SpawnCaptureFlag(capture_terminal, target, hackingFaction) =>
       val socket = capture_terminal.Owner.asInstanceOf[Building].GetFlagSocket.get
       // Override CC message when looked at
-        zone.LocalEvents ! LocalServiceMessage(
+      zone.LocalEvents ! MessageEnvelope(
         zone.id,
-        LocalAction.SendGenericObjectActionMessage(
-          PlanetSideGUID(-1),
+        GenericObjectAction(
           capture_terminal.GUID,
-          GenericObjectActionEnum.FlagSpawned
+          GenericObjectActionEnum.FlagSpawned.id
         )
       )
       // Register LLU object create task and callback to create on clients
@@ -67,9 +82,9 @@ class CaptureFlagManager(zone: Zone) extends Actor {
       TaskWorkflow.execute(WorldSession.CallBackForTask(
         GUIDTask.registerObject(zone.GUID, flag),
         zone.LocalEvents,
-        LocalServiceMessage(
+        MessageEnvelope(
           zone.id,
-          LocalAction.LluSpawned(Service.defaultPlayerGUID, flag)
+          LocalAction.LluSpawned(flag)
         )
       ))
       // Broadcast chat message for LLU spawn
@@ -82,7 +97,11 @@ class CaptureFlagManager(zone: Zone) extends Actor {
         case None => "A soldier"
       }
       // Trigger Install sound
-      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.TriggerSound(PlanetSideGUID(-1), TriggeredSound.LLUInstall, flag.Target.CaptureTerminal.get.Position, 20, 0.8000001f))
+      zone.LocalEvents ! MessageEnvelope(
+        zone.id,
+        PlanetSideGUID(-1),
+        LocalAction.TriggerSound(TriggeredSound.LLUInstall, flag.Target.CaptureTerminal.get.Position, 20, 0.8000001f)
+      )
       // Broadcast capture chat message
       CaptureFlagManager.ChatBroadcast(zone, CaptureFlagChatMessageStrings.CTF_Success(name, flag.Faction, flag.Owner.asInstanceOf[Building].Name))
       // Despawn flag
@@ -115,8 +134,16 @@ class CaptureFlagManager(zone: Zone) extends Actor {
 
     case CaptureFlagManager.PickupFlag(flag: CaptureFlag, player: Player) =>
       flag.Carrier = Some(player)
-      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SendPacket(ObjectAttachMessage(player.GUID, flag.GUID, 252)))
-      zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.TriggerSound(PlanetSideGUID(-1), TriggeredSound.LLUPickup, player.Position, 15, volume = 0.8f))
+      zone.LocalEvents ! MessageEnvelope(
+        zone.id,
+        PlanetSideGUID(-1),
+        SendResponse(ObjectAttachMessage(player.GUID, flag.GUID, 252))
+      )
+      zone.LocalEvents ! MessageEnvelope(
+        zone.id,
+        PlanetSideGUID(-1),
+        LocalAction.TriggerSound(TriggeredSound.LLUPickup, player.Position, 15, volume = 0.8f)
+      )
       CaptureFlagManager.ChatBroadcast(
         zone,
         CaptureFlagChatMessageStrings.CTF_FlagPickedUp(player.Name, player.Faction, flag.Owner.asInstanceOf[Building].Name),
@@ -132,7 +159,11 @@ class CaptureFlagManager(zone: Zone) extends Actor {
           // Remove attached player from flag
           flag.Carrier = None
           // Send drop packet
-          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.SendPacket(ObjectDetachMessage(player.GUID, flag.GUID, player.Position, 0, 0, 0)))
+          zone.LocalEvents ! MessageEnvelope(
+            zone.id,
+            PlanetSideGUID(-1),
+            SendResponse(ObjectDetachMessage(player.GUID, flag.GUID, player.Position, 0, 0, 0))
+          )
           // Send dropped chat message
           CaptureFlagManager.ChatBroadcast(
             zone,
@@ -155,9 +186,9 @@ class CaptureFlagManager(zone: Zone) extends Actor {
           TaskWorkflow.execute(WorldSession.CallBackForTask(
             GUIDTask.registerObject(zone.GUID, replacementLlu),
             zone.LocalEvents,
-            LocalServiceMessage(
+            MessageEnvelope(
               zone.id,
-              LocalAction.LluSpawned(Service.defaultPlayerGUID, replacementLlu)
+              LocalAction.LluSpawned(replacementLlu)
             )
           ))
         case _ =>
@@ -189,7 +220,7 @@ class CaptureFlagManager(zone: Zone) extends Actor {
         is_monolith_unit = false
       )
     }
-    galaxyService ! GalaxyServiceMessage(GalaxyAction.FlagMapUpdate(CaptureFlagUpdateMessage(zone.Number, flagInfo)))
+    galaxyService ! MessageEnvelope("", GalaxyAction.FlagMapUpdate(CaptureFlagUpdateMessage(zone.Number, flagInfo)))
   }
 
   private def TrackFlag(flag: CaptureFlag): Unit = {
@@ -216,7 +247,7 @@ class CaptureFlagManager(zone: Zone) extends Actor {
     flag.Owner.asInstanceOf[Building].GetFlagSocket.get.captureFlag = None
     UntrackFlag(flag)
     // Unregister LLU from clients,
-    zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.LluDespawned(PlanetSideGUID(-1), flag.GUID, flag.Position))
+    zone.LocalEvents ! MessageEnvelope(zone.id, PlanetSideGUID(-1), LocalAction.LluDespawned(flag.GUID, flag.Position))
     // Then unregister it from the GUID pool
     TaskWorkflow.execute(GUIDTask.unregisterObject(zone.GUID, flag))
   }
@@ -246,12 +277,10 @@ object CaptureFlagManager {
     } else {
       ChatMessageType.UNK_229
     }
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       zone.id,
-      LocalAction.SendChatMsg(
-        PlanetSideGUID(-1),
-        ChatMsg(messageType, wideContents = true, "", message, None)
-      )
+      PlanetSideGUID(-1),
+      SendResponse(ChatMsg(messageType, wideContents = true, "", message, None))
     )
   }
 
@@ -288,7 +317,7 @@ object CaptureFlagManager {
           if LoseFlagViolentlyToEnvironment(target, Set(EnvironmentAttribute.Water, EnvironmentAttribute.Lava, EnvironmentAttribute.Death)) /*||
             LoseFlagViolentlyToWarpGateEnvelope(zone, target)*/ =>
           flag.Destroyed = true
-          zone.LocalEvents ! LocalServiceMessage("", LocalAction.LluLost(flag))
+          zone.LocalEvents ! CaptureEnvelope(HackCaptureActor.FlagLost(flag))
           true
       }
       .getOrElse(false)

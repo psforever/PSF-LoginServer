@@ -32,7 +32,7 @@ import scala.concurrent.duration._
 class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
-  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
+  ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
   val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
   val avatarProbe = new TestProbe(system)
@@ -105,7 +105,7 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
 class AutoRepairFacilityIntegrationGiveNtuTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
-  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
+  ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
   val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
   val avatarProbe = new TestProbe(system)
@@ -160,7 +160,7 @@ class AutoRepairFacilityIntegrationGiveNtuTest extends FreedContextActorTest {
 class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
-  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
+  ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
@@ -251,7 +251,7 @@ class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest 
 class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
-  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
+  ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
@@ -353,7 +353,7 @@ class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends Free
 class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
-  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
+  ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()
   val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
@@ -469,7 +469,7 @@ class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedCon
 class AutoRepairTowerIntegrationTest extends FreedContextActorTest {
   import akka.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
-  ServiceManager.boot(system) ! ServiceManager.Register(Props[GalaxyService](), "galaxy")
+  ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
   val guid = new NumberPoolHub(new MaxNumberSource(max = 10))
   val avatarProbe = new TestProbe(system)

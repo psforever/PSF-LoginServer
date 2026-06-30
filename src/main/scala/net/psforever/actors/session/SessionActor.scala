@@ -3,7 +3,7 @@ package net.psforever.actors.session
 
 import akka.actor.{Actor, ActorRef, Cancellable, MDCContextAware, typed}
 import net.psforever.actors.session.normal.NormalMode
-import net.psforever.actors.session.support.ZoningOperations
+import net.psforever.actors.session.support.{CommonHandlerFunctions, CommonHandlerLogic, ZoningOperations}
 import net.psforever.objects.TurretDeployable
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.containable.Containable
@@ -18,12 +18,13 @@ import net.psforever.services.CavernRotationService
 import net.psforever.services.CavernRotationService.SendCavernRotationUpdates
 import net.psforever.services.ServiceManager.LookupResult
 import net.psforever.services.account.{PlayerToken, ReceiveAccountData}
-import net.psforever.services.avatar.AvatarServiceResponse
+import net.psforever.services.avatar.AvatarStamp
+import net.psforever.services.base.envelope.{GenericResponseEnvelope, Undelivered}
 import net.psforever.services.chat.ChatService
-import net.psforever.services.galaxy.GalaxyServiceResponse
-import net.psforever.services.local.LocalServiceResponse
+import net.psforever.services.galaxy.GalaxyStamp
+import net.psforever.services.local.LocalStamp
 import net.psforever.services.teamwork.SquadServiceResponse
-import net.psforever.services.vehicle.VehicleServiceResponse
+import net.psforever.services.vehicle.VehicleStamp
 import org.joda.time.LocalDateTime
 import org.log4s.MDC
 
@@ -94,6 +95,26 @@ object SessionActor {
   private final case object PokeClient extends Command
 
   final case class SetMode(mode: PlayerMode) extends Command
+
+  /**
+   * Determine if a response handler would process a given reply message, ignoring its guards.
+   * Treat handlers already ignoring their guards as "determined (will not pass)".
+   * @see `CommonHandlerFunctions.IgnoreFilter_=`
+   * @param reply message
+   * @param handler message handler
+   * @return `true`, if the response handler will process the response;
+   *         `false`, if the handler is skipped or if it would not process
+   */
+  private def HandlerAcceptingMessageTest(reply: Any)(handler: CommonHandlerFunctions): Boolean = {
+    if (handler.IgnoreFilter) {
+      false
+    } else {
+      handler.IgnoreFilter = true
+      val result = handler.isDefinedAt(reply)
+      handler.IgnoreFilter = false
+      result
+    }
+  }
 }
 
 class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], connectionId: String, sessionId: Long)
@@ -106,6 +127,9 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
   private[this] val data = new SessionData(middlewareActor, context)
   private[this] var mode: PlayerMode = NormalMode
   private[this] var logic: ModeLogic = _
+  private[this] var listOfHandlers: Seq[CommonHandlerFunctions] = List.empty
+
+  private val commonHandlerLogic: CommonHandlerLogic = new CommonHandlerLogic(data, context)
 
   override def postStop(): Unit = {
     clientKeepAlive.cancel()
@@ -119,7 +143,7 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       buffer.addOne(msg)
     case _ if data.whenAllEventBusesLoaded() =>
       context.become(inTheGame)
-      logic = mode.setup(data)
+      changeModeSetup(mode)
       buffer.foreach { self.tell(_, self) } //we forget the original sender, shouldn't be doing callbacks at this point
       buffer.clear()
     case _ => ()
@@ -160,9 +184,20 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     if (mode != newMode) {
       logic.switchFrom(data.session)
       mode = newMode
-      logic = newMode.setup(data)
+      changeModeSetup(newMode)
     }
     logic.switchTo(data.session)
+  }
+
+  private def changeModeSetup(newMode: PlayerMode): Unit = {
+    logic = newMode.setup(data)
+    listOfHandlers = List(
+      logic.avatarResponse,
+      logic.local,
+      logic.vehicleResponse,
+      logic.galaxy,
+      commonHandlerLogic
+    )
   }
 
   private def parse(sender: ActorRef): Receive = {
@@ -170,26 +205,17 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case packet: PlanetSideGamePacket =>
       handleGamePkt(packet)
 
-    case AvatarServiceResponse(toChannel, guid, reply) =>
-      logic.avatarResponse.handle(toChannel, guid, reply)
+    case SquadServiceResponse(_, excluded, reply) =>
+      logic.squad.handle(reply, excluded)
 
-    case GalaxyServiceResponse(_, reply) =>
-      logic.galaxy.handle(reply)
-
-    case LocalServiceResponse(toChannel, guid, reply) =>
-      logic.local.handle(toChannel, guid, reply)
+    case envelope: GenericResponseEnvelope =>
+      handleGenericResponseEnvelope(envelope)
 
     case Mountable.MountMessages(tplayer, reply) =>
       logic.mountResponse.handle(tplayer, reply)
 
-    case SquadServiceResponse(_, excluded, response) =>
-      logic.squad.handle(response, excluded)
-
     case Terminal.TerminalMessage(tplayer, msg, order) =>
       logic.terminals.handle(tplayer, msg, order)
-
-    case VehicleServiceResponse(toChannel, guid, reply) =>
-      logic.vehicleResponse.handle(toChannel, guid, reply)
 
     case ChatService.MessageResponse(fromSession, message, _) =>
       logic.chat.handleIncomingMessage(message, fromSession)
@@ -367,6 +393,52 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
 
     case default =>
       logic.general.handleReceiveDefaultMessage(default, sender)
+  }
+
+  private def handleGenericResponseEnvelope(envelope: GenericResponseEnvelope): Unit = {
+    //try use the stamp to match the specific handler
+    envelope.stamp match {
+      case Undelivered =>
+        val GenericResponseEnvelope(_, _, reply) = envelope
+        log.error(s"received a message's response that was not processed by an event system - $reply")
+      case AvatarStamp =>
+        handleEnvelopeWithResponseHandler(logic.avatarResponse, envelope)
+      case LocalStamp =>
+        handleEnvelopeWithResponseHandler(logic.local, envelope)
+      case VehicleStamp =>
+        handleEnvelopeWithResponseHandler(logic.vehicleResponse, envelope)
+      case GalaxyStamp =>
+        handleEnvelopeWithResponseHandler(logic.galaxy, envelope)
+      case unknownStamp =>
+        log.error(s"received a message from an unknown event system - reply: $envelope, stamp: $unknownStamp")
+    }
+    //println(s"event-system-rtt: ${System.currentTimeMillis() - envelope.time} ms")
+  }
+
+  private def handleEnvelopeWithResponseHandler(
+                                                 responseHandler: CommonHandlerFunctions,
+                                                 envelope: GenericResponseEnvelope
+                                               ): Unit = {
+    val GenericResponseEnvelope(toChannel, guid, reply) = envelope
+    //try the expected handler with the input response
+    if (!responseHandler.handle(toChannel, guid, reply)) {
+      //test the expected handler again, ignoring guard booleans; if it would have been handled, stop with this
+      responseHandler.IgnoreFilter = true
+      if (!responseHandler.isDefinedAt(reply)) {
+        //find every handler that might accept the input response, ignoring guard booleans only for the search
+        //try each discovered handler against the input response until one works
+        val test: CommonHandlerFunctions => Boolean = SessionActor.HandlerAcceptingMessageTest(reply)
+        listOfHandlers.filter(test) match {
+          case Nil =>
+            log.error(s"received completely unhandled response message - $reply for ${envelope.stamp}:$toChannel")
+          case first :: Nil =>
+            first.tryToHandle(reply)
+          case first :: others =>
+            first.tryToHandle(reply) || others.exists(_.tryToHandle(reply))
+        }
+      }
+      responseHandler.IgnoreFilter = false
+    }
   }
 
   private def handleGamePkt: PlanetSideGamePacket => Unit = {

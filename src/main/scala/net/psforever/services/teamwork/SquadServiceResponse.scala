@@ -2,14 +2,23 @@
 package net.psforever.services.teamwork
 
 import akka.actor.ActorRef
+import net.psforever.objects.Default
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.teamwork.Squad
 import net.psforever.packet.game.{SquadDetail, SquadInfo, WaypointEventAction, WaypointInfo}
+import net.psforever.services.base.message.EventResponse
 import net.psforever.types.{ChatMessageType, PlanetSideGUID, SquadResponseType, SquadWaypoint}
-import net.psforever.services.GenericEventBusMsg
+import net.psforever.services.base.EventSystemStamp
+import net.psforever.services.base.envelope.GenericResponseEnvelope
 
-final case class SquadServiceResponse(channel: String, exclude: Iterable[Long], response: SquadResponse.Response)
-    extends GenericEventBusMsg
+case object SquadStamp extends EventSystemStamp
+
+final case class SquadServiceResponse(channel: String, exclude: Iterable[Long], reply: SquadResponse.Response)
+     extends EventResponse with GenericResponseEnvelope {
+  def filter: PlanetSideGUID = Default.GUID0
+
+  def stamp: EventSystemStamp = SquadStamp
+}
 
 object SquadServiceResponse {
   def apply(toChannel: String, response: SquadResponse.Response): SquadServiceResponse =
@@ -20,7 +29,7 @@ object SquadServiceResponse {
 }
 
 object SquadResponse {
-  sealed trait Response
+  sealed trait Response extends EventResponse
 
   final case class ListSquadFavorite(line: Int, task: String) extends Response
 

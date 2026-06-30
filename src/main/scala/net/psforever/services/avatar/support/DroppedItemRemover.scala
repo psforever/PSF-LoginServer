@@ -1,12 +1,70 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar.support
 
+import akka.actor.{ActorContext, ActorRef, Props}
+import net.psforever.objects.Default
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{GUIDTask, TaskBundle}
-import net.psforever.services.{RemoverActor, Service}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.objects.zones.Zone
+import net.psforever.services.avatar.AvatarAction.{DropItem, PickupItem}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelope, GenericSupportEnvelopeOnly}
+import net.psforever.services.base.message.ObjectDelete
+import net.psforever.services.base.support.RemoverActor
+import net.psforever.types.PlanetSideGUID
 
 import scala.concurrent.duration._
+
+case object LitterRemovalSupport
+  extends EventServiceSupport {
+  def label: String = "janitor"
+  def constructor(context: ActorContext): ActorRef = {
+    context.actorOf(Props[DroppedItemRemover](), name = "DroppedItemRemover")
+  }
+}
+
+final case class PickupItemEnvelope(
+                                     channel: String,
+                                     filter: PlanetSideGUID,
+                                     msg: PickupItem,
+                                     zone: Zone
+                                   )
+  extends GenericSupportEnvelope {
+  def supportLabel: String = "janitor"
+  def supportMessage: Any = {
+    val PickupItem(item, _) = msg
+    RemoverActor.ClearSpecific(List(item), zone)
+  }
+}
+
+object PickupItemEnvelope {
+  def apply(channel: String, actionMessage: PickupItem, zone: Zone): PickupItemEnvelope =
+    PickupItemEnvelope(channel, Default.GUID0, actionMessage, zone)
+}
+
+final case class DropItemEnvelope(
+                                   channel: String,
+                                   filter: PlanetSideGUID,
+                                   msg: DropItem,
+                                   zone: Zone
+                                 )
+  extends GenericSupportEnvelope {
+  def supportLabel: String = "janitor"
+  def supportMessage: Any = {
+    val DropItem(item) = msg
+    RemoverActor.AddTask(item, zone)
+  }
+}
+
+object DropItemEnvelope {
+  def apply(channel: String, actionMessage: DropItem, zone: Zone): DropItemEnvelope =
+    DropItemEnvelope(channel, Default.GUID0, actionMessage, zone)
+}
+
+final case class GroundEnvelope(supportMessage: Any)
+  extends GenericSupportEnvelopeOnly {
+  def supportLabel: String = "janitor"
+}
 
 class DroppedItemRemover extends RemoverActor() {
   final val FirstStandardDuration: FiniteDuration = 3 minutes
@@ -22,9 +80,9 @@ class DroppedItemRemover extends RemoverActor() {
   def FirstJob(entry: RemoverActor.Entry): Unit = {
     import net.psforever.objects.zones.Zone
     entry.zone.Ground ! Zone.Ground.RemoveItem(entry.obj.GUID)
-    context.parent ! AvatarServiceMessage(
+    context.parent ! MessageEnvelope(
       entry.zone.id,
-      AvatarAction.ObjectDelete(Service.defaultPlayerGUID, entry.obj.GUID)
+      ObjectDelete(entry.obj.GUID)
     )
   }
 

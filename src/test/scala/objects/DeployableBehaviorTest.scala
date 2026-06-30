@@ -13,9 +13,9 @@ import net.psforever.objects.guid.NumberPoolHub
 import net.psforever.objects.guid.source.MaxNumberSource
 import net.psforever.objects.zones.{Zone, ZoneDeployableActor, ZoneMap}
 import net.psforever.packet.game._
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{ObjectDelete, SendResponse}
+import net.psforever.services.local.LocalAction
 import net.psforever.types._
 
 import scala.collection.mutable
@@ -50,16 +50,14 @@ class DeployableBehaviorSetupTest extends ActorTest {
 
       val eventsMsgs = eventsProbe.receiveN(2, 10.seconds)
       eventsMsgs.head match {
-        case LocalServiceMessage("test", LocalAction.DeployItem(obj)) =>
+        case MessageEnvelope("test", _, LocalAction.DeployItem(obj)) =>
           assert(obj eq jmine, "self-setup test - not same mine")
         case _ =>
           assert( false, "self-setup test - wrong deploy message")
       }
       eventsMsgs(1) match {
-        case LocalServiceMessage(
-          "TR",
+        case MessageEnvelope("TR", _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Build,
             DeployableInfo(PlanetSideGUID(1), DeployableIcon.DisruptorMine, Vector3(1,2,3), PlanetSideGUID(0))
           )
@@ -160,39 +158,36 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
       //assert(false, "test needs to be fixed")
       val eventsMsgs = eventsProbe.receiveN(7, 10.seconds)
       eventsMsgs.head match {
-        case AvatarServiceMessage(
+        case MessageEnvelope(
           "TestCharacter1",
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            ObjectDeployedMessage(0, "jammer_mine", DeployOutcome.Success, 1, 20)
-          )
+          _,
+          SendResponse(Seq(ObjectDeployedMessage(0, "jammer_mine", DeployOutcome.Success, 1, 20)))
         ) => ;
         case _ =>
           assert(false, "owned setup test, 2 - did not receive build confirmation")
       }
       eventsMsgs(1) match {
-        case LocalServiceMessage("TestCharacter1", LocalAction.DeployableUIFor(DeployedItem.jammer_mine)) => ;
+        case MessageEnvelope("TestCharacter1", _, LocalAction.DeployableUIFor(DeployedItem.jammer_mine)) => ;
         case _ => assert(false, "owned setup test, 2 - did not receive ui update")
       }
       eventsMsgs(2) match {
-        case LocalServiceMessage(
+        case MessageEnvelope(
           "test",
-          LocalAction.TriggerEffectLocation(PlanetSideGUID(3), "spawn_object_effect", Vector3(1,2,3), Vector3(4,5,6))
+          PlanetSideGUID(3),
+          LocalAction.TriggerEffectLocation("spawn_object_effect", Vector3(1,2,3), Vector3(4,5,6))
         )      => ;
         case _ => assert(false, "owned setup test, 2 - no spawn fx")
       }
       eventsMsgs(3) match {
-        case LocalServiceMessage("test", LocalAction.DeployItem(obj)) =>
+        case MessageEnvelope("test", _, LocalAction.DeployItem(obj)) =>
           assert(obj eq jmine, "owned setup test, 2 - not same mine")
         case _ =>
           assert( false, "owned setup test, 2 - wrong deploy message")
       }
       //the message order can be jumbled from here-on
       eventsMsgs(4) match {
-        case LocalServiceMessage(
-          "TR",
+        case MessageEnvelope("TR", _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Build,
             DeployableInfo(PlanetSideGUID(1), DeployableIcon.DisruptorMine, Vector3(1,2,3), PlanetSideGUID(3))
           )
@@ -201,15 +196,16 @@ class DeployableBehaviorSetupOwnedP2Test extends FreedContextActorTest {
           assert(false, "owned setup test, 2 - no icon or wrong icon")
       }
       eventsMsgs(5) match {
-        case AvatarServiceMessage(
+        case MessageEnvelope(
           "TestCharacter1",
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, GenericObjectActionMessage(PlanetSideGUID(1), 21))
+          _,
+          SendResponse(Seq(GenericObjectActionMessage(PlanetSideGUID(1), 21)))
         ) => ;
         case _ =>
           assert(false, "owned setup test, 2 - build action not reset (GOAM21)")
       }
       eventsMsgs(6) match {
-        case AvatarServiceMessage("test", AvatarAction.ObjectDelete(Service.defaultPlayerGUID, PlanetSideGUID(2), 0)) => ;
+        case MessageEnvelope("test", _, ObjectDelete(PlanetSideGUID(2), 0)) => ;
         case _ =>
           assert(false, "owned setup test, 2 - construction tool not deleted")
       }
@@ -250,14 +246,13 @@ class DeployableBehaviorDeconstructTest extends ActorTest {
       jmine.Actor ! Deployable.Deconstruct()
       val eventsMsgs = eventsProbe.receiveN(2, 10.seconds)
       eventsMsgs.head match {
-        case LocalServiceMessage("test", LocalAction.EliminateDeployable(_, PlanetSideGUID(1), Vector3(1,2,3), 2)) => ;
+        case MessageEnvelope("test", _, LocalAction.EliminateDeployable(_, PlanetSideGUID(1), Vector3(1,2,3), 2)) => ;
         case _ => assert(false, "deconstruct test - not eliminating deployable")
       }
       eventsMsgs(1) match {
-        case LocalServiceMessage(
-          "TR",
+        case MessageEnvelope(
+          "TR", _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Dismiss,
             DeployableInfo(PlanetSideGUID(1), DeployableIcon.DisruptorMine, Vector3(1, 2, 3), PlanetSideGUID(0))
           )
@@ -313,15 +308,14 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
       jmine.Actor ! Deployable.Deconstruct()
       val eventsMsgs = eventsProbe.receiveN(3, 10.seconds)
       eventsMsgs.head match {
-        case LocalServiceMessage("test",LocalAction.EliminateDeployable(mine, ValidPlanetSideGUID(1), Vector3(1.0,2.0,3.0),2))
+        case MessageEnvelope("test", _, LocalAction.EliminateDeployable(mine, ValidPlanetSideGUID(1), Vector3(1.0,2.0,3.0),2))
           if mine eq jmine => ;
         case _ => assert(false, "owned deconstruct test - not eliminating deployable")
       }
       eventsMsgs(1) match {
-        case LocalServiceMessage(
-          "TR",
+        case MessageEnvelope(
+          "TR", _,
           LocalAction.DeployableMapIcon(
-            PlanetSideGUID(0),
             DeploymentAction.Dismiss,
             DeployableInfo(PlanetSideGUID(1), DeployableIcon.DisruptorMine, Vector3(1, 2, 3), PlanetSideGUID(0))
           )
@@ -329,7 +323,7 @@ class DeployableBehaviorDeconstructOwnedTest extends FreedContextActorTest {
         case _ => assert(false, "owned deconstruct test - not removing icon")
       }
       eventsMsgs(2) match {
-        case LocalServiceMessage("TestCharacter1", LocalAction.DeployableUIFor(DeployedItem.jammer_mine)) => ;
+        case MessageEnvelope("TestCharacter1", _, LocalAction.DeployableUIFor(DeployedItem.jammer_mine)) => ;
         case _ => assert(false, "")
       }
 

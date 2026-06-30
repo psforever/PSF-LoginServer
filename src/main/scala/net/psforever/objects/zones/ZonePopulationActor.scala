@@ -7,7 +7,9 @@ import net.psforever.objects.avatar.{AvatarBot, CorpseControl, PlayerControl}
 import net.psforever.objects.sourcing.PlayerSource
 import net.psforever.objects.vital.{InGameHistory, SpawningActivity}
 import net.psforever.objects.{Default, Player}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.ObjectDelete
 import net.psforever.types.Vector3
 
 import scala.collection.concurrent.TrieMap
@@ -88,9 +90,9 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], b
       if (BotSpawn(bot, botList)) {
         bot.Zone = zone
         zone.actor ! ZoneActor.AddToBlockMap(bot, bot.Position)
-        zone.AvatarEvents ! AvatarServiceMessage(
-          zone.id,
-          AvatarAction.LoadPlayer(bot.GUID, bot.Definition.ObjectId, bot.GUID, bot.Definition.Packet.ConstructorData(bot).get, None)
+        zone.AvatarEvents ! MessageEnvelope(
+          zone.id, bot.GUID,
+          AvatarAction.LoadPlayer(bot.Definition.ObjectId, bot.GUID, bot.Definition.Packet.ConstructorData(bot).get, None)
         )
       }
 
@@ -99,9 +101,9 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], b
         if (bot.Actor != null) bot.Actor ! akka.actor.PoisonPill
         bot.Actor = Default.Actor
         zone.actor ! ZoneActor.RemoveFromBlockMap(bot)
-        zone.AvatarEvents ! AvatarServiceMessage(
-          zone.id,
-          AvatarAction.ObjectDelete(bot.GUID, bot.GUID, unk=0)
+        zone.AvatarEvents ! MessageEnvelope(
+          zone.id, bot.GUID,
+          ObjectDelete(bot.GUID, unk=0)
         )
       }
 

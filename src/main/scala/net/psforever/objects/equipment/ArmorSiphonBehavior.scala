@@ -10,8 +10,8 @@ import net.psforever.objects.vital.RepairFromArmorSiphon
 import net.psforever.objects.vital.etc.{ArmorSiphonModifiers, ArmorSiphonReason}
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.packet.game.QuantityUpdateMessage
-import net.psforever.services.Service
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.types.PlanetSideGUID
 
 import scala.collection.mutable
@@ -78,9 +78,9 @@ object ArmorSiphonBehavior {
             if(before < after) {
               obj.LogActivity(RepairFromArmorSiphon(asr.siphon.Definition, VehicleSource(obj), before - after))
               val zone = obj.Zone
-              zone.VehicleEvents ! VehicleServiceMessage(
+              zone.VehicleEvents ! MessageEnvelope(
                 zone.id,
-                VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, 0, after)
+                PlanetsideAttribute(obj.GUID, 0, after)
               )
             }
           case _ => ;
@@ -97,9 +97,9 @@ object ArmorSiphonBehavior {
             val siphon = siphonSlot.Equipment.get.asInstanceOf[Tool]
             val zone = obj.Zone
             //update current charge level
-            zone.VehicleEvents ! VehicleServiceMessage(
+            zone.VehicleEvents ! MessageEnvelope(
               obj.Actor.toString,
-              VehicleAction.SendResponse(Service.defaultPlayerGUID, QuantityUpdateMessage(siphon.AmmoSlot.Box.GUID, siphon.Magazine))
+              SendResponse(QuantityUpdateMessage(siphon.AmmoSlot.Box.GUID, siphon.Magazine))
             )
             siphonRecharge.put(guid, context.system.scheduler.scheduleWithFixedDelay(
               initialDelay = 3000 milliseconds,
@@ -119,9 +119,9 @@ object ArmorSiphonBehavior {
             val before = siphon.Magazine
             val after = siphon.Magazine = before + 1
             if (after > before) {
-              zone.VehicleEvents ! VehicleServiceMessage(
+              zone.VehicleEvents ! MessageEnvelope(
                 obj.Actor.toString,
-                VehicleAction.SendResponse(Service.defaultPlayerGUID, QuantityUpdateMessage(siphon.AmmoSlot.Box.GUID, after))
+                SendResponse(QuantityUpdateMessage(siphon.AmmoSlot.Box.GUID, after))
               )
               if (after == siphon.MaxMagazine) {
                 endSiphonRecharge(guid)

@@ -3,7 +3,7 @@ package net.psforever.objects.vehicles.control
 
 import net.psforever.objects._
 import net.psforever.objects.serverobject.damage.{Damageable, DamageableVehicle}
-import net.psforever.objects.vehicles.{Cargo, CarrierBehavior}
+import net.psforever.objects.vehicles.Cargo
 import net.psforever.objects.vital.interaction.DamageResult
 
 /**

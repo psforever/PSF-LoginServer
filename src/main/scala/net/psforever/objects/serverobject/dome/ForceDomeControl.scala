@@ -14,8 +14,9 @@ import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.prop.DamageWithPosition
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.ChatMsg
-import net.psforever.services.Service
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
+import net.psforever.services.base.message.SendResponse
+import net.psforever.services.local.LocalAction
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGeneratorState, Vector3}
 
 import scala.annotation.unused
@@ -45,9 +46,9 @@ object ForceDomeControl {
     val owner = dome.Owner
     val zone = owner.Zone
     owner.Actor ! BuildingActor.AmenityStateChange(dome)
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       zone.id,
-      LocalAction.UpdateForceDomeStatus(Service.defaultPlayerGUID, owner.GUID, activationState)
+      LocalAction.UpdateForceDomeStatus(owner.GUID, activationState)
     )
   }
 
@@ -124,11 +125,11 @@ object ForceDomeControl {
                                       state: Boolean
                                     ): Unit = {
     val zone = building.Zone
-    val message = LocalAction.SendResponse(ChatMsg(
+    val message = SendResponse(ChatMsg(
       ChatMessageType.UNK_229,
       s"The Capitol force dome at ${building.Name} will remain ${if (state) "activated" else "deactivated"}."
     ))
-    zone.LocalEvents ! LocalServiceMessage(zone.id, message)
+    zone.LocalEvents ! MessageEnvelope(zone.id, message)
   }
 
   /**
@@ -138,13 +139,13 @@ object ForceDomeControl {
    */
   def NormalDomeStateMessage(building: Building): Unit = {
     val events = building.Zone.LocalEvents
-    val message = LocalAction.SendResponse(ChatMsg(
+    val message = SendResponse(ChatMsg(
       ChatMessageType.UNK_227,
       "Expected capitol force dome state change will resume."
     ))
-    building.PlayersInSOI.foreach { player =>
-      events ! LocalServiceMessage(player.Name, message)
-    }
+    events ! BundledEnvelope(building.PlayersInSOI.map { player =>
+      MessageEnvelope(player.Name, message)
+    })
   }
 
   /**

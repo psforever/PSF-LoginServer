@@ -12,7 +12,8 @@ import net.psforever.objects.avatar.ModePermissions
 import net.psforever.objects.avatar.scoring.{Assist, Death, EquipmentStat, KDAStat, Kill, Life, ScoreCard, SupportActivity}
 import net.psforever.objects.sourcing.{TurretSource, VehicleSource}
 import net.psforever.packet.game.ImplantAction
-import net.psforever.services.avatar.AvatarServiceResponse
+import net.psforever.services.avatar.AvatarStamp
+import net.psforever.services.base.envelope.GenericResponseEnvelope
 import net.psforever.types.{ChatMessageType, StatisticalCategory, StatisticalElement}
 import net.psforever.zones.Zones
 import org.joda.time.{LocalDateTime, Seconds}
@@ -49,8 +50,9 @@ import net.psforever.objects.vital.{DamagingActivity, HealFromImplant, HealingAc
 import net.psforever.packet.game.objectcreate.{BasicCharacterData, ObjectClass, RibbonBars}
 import net.psforever.packet.game.{Friend => GameFriend, _}
 import net.psforever.persistence
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{SendResponse, PlanetsideAttribute}
+import net.psforever.services.avatar.AvatarAction
 import net.psforever.types.{
   CharacterSex,
   CharacterVoice,
@@ -585,9 +587,10 @@ object AvatarActor {
 
   def displayLookingForSquad(session: Session, state: Int): Unit = {
     val player = session.player
-    session.zone.AvatarEvents ! AvatarServiceMessage(
+    session.zone.AvatarEvents ! MessageEnvelope(
       player.Faction.toString,
-      AvatarAction.PlanetsideAttribute(player.GUID, 53, state)
+      player.GUID,
+      PlanetsideAttribute(player.GUID, 53, state)
     )
   }
 
@@ -1383,9 +1386,10 @@ class AvatarActor(
         case SetLookingForSquad(lfs) =>
           avatarCopy(avatar.copy(lookingForSquad = lfs))
           sessionActor ! SessionActor.SendResponse(PlanetsideAttributeMessage(session.get.player.GUID, 53, 0))
-          session.get.zone.AvatarEvents ! AvatarServiceMessage(
+          session.get.zone.AvatarEvents ! MessageEnvelope(
             avatar.faction.toString,
-            AvatarAction.PlanetsideAttribute(session.get.player.GUID, 53, if (lfs) 1 else 0)
+            session.get.player.GUID,
+            PlanetsideAttribute(session.get.player.GUID, 53, if (lfs) 1 else 0)
           )
           Behaviors.same
 
@@ -1794,9 +1798,9 @@ class AvatarActor(
           )
           val player = session.get.player
           val zone   = player.Zone
-          zone.AvatarEvents ! AvatarServiceMessage(
+          zone.AvatarEvents ! MessageEnvelope(
             zone.id,
-            AvatarAction.SendResponse(Service.defaultPlayerGUID, DisplayedAwardMessage(player.GUID, ribbon, bar))
+            SendResponse(DisplayedAwardMessage(player.GUID, ribbon, bar))
           )
           Behaviors.same
 
@@ -2073,9 +2077,9 @@ class AvatarActor(
         case Success(_) =>
           val zone = session.get.zone
           avatarCopy(avatar.copy(decoration = avatar.decoration.copy(cosmetics = Some(cosmetics))))
-          zone.AvatarEvents ! AvatarServiceMessage(
+          zone.AvatarEvents ! MessageEnvelope(
             zone.id,
-            AvatarAction.PlanetsideAttributeToAll(
+            PlanetsideAttribute(
               session.get.player.GUID,
               106,
               Cosmetic.valuesToAttributeValue(cosmetics)
@@ -3000,13 +3004,13 @@ class AvatarActor(
         val next      = BattleRank.withExperience(newBep).value
         val br24 = BattleRank.BR24.value
         sessionActor ! SessionActor.SendResponse(BattleExperienceMessage(pguid, newBep, localModifier))
-        events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(pguid, 17, newBep))
+        events ! MessageEnvelope(zoneId, PlanetsideAttribute(pguid, 17, newBep))
         if (current < br24 && next >= br24 || current >= br24 && next < br24) {
           setCosmetics(Set()).onComplete { _ =>
             val evts = events
             val name = player.Name
             val guid = pguid
-            evts ! AvatarServiceMessage(name, AvatarAction.PlanetsideAttributeToAll(guid, 106, 1)) //set to no helmet
+            evts ! MessageEnvelope(name, PlanetsideAttribute(guid, 106, 1)) //set to no helmet
           }
         }
         // when the level is reduced, take away any implants over the implant slot limit
@@ -3051,10 +3055,7 @@ class AvatarActor(
         val sess = session.get
         val zone = sess.zone
         avatar = avatar.copy(cep = cep)
-        zone.AvatarEvents ! AvatarServiceMessage(
-          zone.id,
-          AvatarAction.PlanetsideAttributeToAll(sess.player.GUID, 18, cep)
-        )
+        zone.AvatarEvents ! MessageEnvelope(zone.id, PlanetsideAttribute(sess.player.GUID, 18, cep))
       case Failure(exception) =>
         log.error(exception)("db failure")
     }
@@ -3152,7 +3153,7 @@ class AvatarActor(
     if (exp > 0L) {
       setBep(exp, msg)
       zone.actor ! ZoneActor.RewardOurSupporters(playerSource, historyTranscript, killStat, exp)
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         player.Name, AvatarAction.ShareKillExperienceWithSquad(player, exp))
     }
   }
@@ -3163,12 +3164,9 @@ class AvatarActor(
     val _session = session.get
     val zone     = _session.zone
     val player   = _session.player
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       player.Name,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-        AvatarStatisticsMessage(DeathStatistic(ScoreCard.deathCount(avatar.scorecard)))
-      )
+      SendResponse(AvatarStatisticsMessage(DeathStatistic(ScoreCard.deathCount(avatar.scorecard))))
     )
   }
 
@@ -3494,8 +3492,8 @@ class AvatarActor(
                                               value: Int
                                             ): Unit = {
     import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
-    import net.psforever.services.avatar.{AvatarResponse => RESP}
-    sessionActor.toClassic ! AvatarServiceResponse("", guid, RESP.AvatarImplant(action, index, value))
+    val resp = AvatarAction.AvatarImplant(action, index, value)
+    sessionActor.toClassic ! GenericResponseEnvelope(AvatarStamp, "", guid, resp)
   }
 
   private def buyImplantAction(
@@ -3654,9 +3652,9 @@ class AvatarActor(
       // Start client-side initialization timer, visible on the character screen
       // Progress accumulates according to the client's knowledge of the implant initialization time
       // What is normally a 60s timer that is set to 120s on the server will still visually update as if 60s
-      session.get.zone.AvatarEvents ! AvatarServiceMessage(
+      session.get.zone.AvatarEvents ! MessageEnvelope(
         avatar.name,
-        AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, actionProgress))
+        SendResponse(ActionProgressMessage(slot + 6, actionProgress))
       )
       implant.copy(initialized = false, active = false, timer = futureDelay)
     } else {
@@ -3703,9 +3701,9 @@ class AvatarActor(
   def stopImplantInitializationTimer(implant: Implant, slot: Int): Implant = {
     cancelImplantInitializedTimer(slot)
     //can not formally stop the initialization time on the character information window; set it to 100 to make it look blank
-    session.get.zone.AvatarEvents ! AvatarServiceMessage(
+    session.get.zone.AvatarEvents ! MessageEnvelope(
       avatar.name,
-      AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, 100))
+      SendResponse(ActionProgressMessage(slot + 6, 100))
     )
     implant.copy(initialized = false, active = false, timer = 0L)
   }
@@ -3773,9 +3771,10 @@ class AvatarActor(
   private def deactivateImplant(implant: Implant, slot: Int): Implant = {
     cancelImplantInitializedTimer(slot)
     // Deactivation sound / effect
-    session.get.zone.AvatarEvents ! AvatarServiceMessage(
+    session.get.zone.AvatarEvents ! MessageEnvelope(
       session.get.zone.id,
-      AvatarAction.PlanetsideAttribute(session.get.player.GUID, 28, implant.definition.implantType.value * 2)
+      session.get.player.GUID,
+      PlanetsideAttribute(session.get.player.GUID, 28, implant.definition.implantType.value * 2)
     )
     sendAvatarImplantMessageToSelf(session.get.player.GUID, ImplantAction.Activation, slot, value = 0)
     implant.copy(active = false)
@@ -3852,10 +3851,7 @@ class AvatarActor(
       val newHealth      = player.Health = originalHealth + 1
       val events         = zone.AvatarEvents
       player.LogActivity(HealFromImplant(implant.definition.implantType, 1))
-      events ! AvatarServiceMessage(
-        zone.id,
-        AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth)
-      )
+      events ! MessageEnvelope(zone.id, PlanetsideAttribute(guid, 0, newHealth))
       false
     } else {
       !aliveAndWounded
@@ -3867,9 +3863,10 @@ class AvatarActor(
     // Activation sound / effect
     val sess = session.get
     val zone = sess.zone
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       zone.id,
-      AvatarAction.PlanetsideAttribute(
+      sess.player.GUID,
+      PlanetsideAttribute(
         sess.player.GUID,
         28,
         implant.definition.implantType.value * 2 + 1
@@ -3892,9 +3889,9 @@ class AvatarActor(
           case (implantOpt @ Some(implant), slot) =>
             //update ongoing progress
             val actionProgress = calculateImplantTimerStats(implant, AvatarActor.initializationTime(implant))._3
-            session.get.zone.AvatarEvents ! AvatarServiceMessage(
+            session.get.zone.AvatarEvents ! MessageEnvelope(
               avatar.name,
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, ActionProgressMessage(slot + 6, actionProgress))
+              SendResponse(ActionProgressMessage(slot + 6, actionProgress))
             )
             implantOpt
           case (None, _) =>

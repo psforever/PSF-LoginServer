@@ -4,8 +4,11 @@ package net.psforever.services.hart
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.objects.zones.Zone
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.{GenericEventBus, GenericEventBusMsg}
+import net.psforever.services.base.EventSystemStamp
+import net.psforever.services.base.bus.GenericEventBus
+import net.psforever.services.base.envelope.{GenericResponseEnvelope, MessageEnvelope, NoReply}
+import net.psforever.services.base.message.EventResponse
+import net.psforever.services.local.LocalAction
 import net.psforever.types.{HartSequence, PlanetSideGUID}
 
 import scala.concurrent.duration._
@@ -20,7 +23,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
   */
 class HartTimer(zone: Zone) extends Actor {
   /** since the system is zone-locked, caching this value is fine */
-  val zoneId = zone.id
+  val zoneId: String = zone.id
   /** all of the paired HART facility amenities and the shuttle housed in that facility (in that order) */
   var padAndShuttlePairs: List[(PlanetSideGUID, PlanetSideGUID)] = List()
 
@@ -43,10 +46,10 @@ class HartTimer(zone: Zone) extends Actor {
   var timer: Cancellable = Default.Cancellable
 
   /** a message bus to which all associated orbital shuttle pads are subscribed */
-  val padEvents = new GenericEventBus[HartTimer.Command]
+  val padEvents = new GenericEventBus
   /** cache common messages */
-  val shuttleDockedInThisZone = HartTimer.ShuttleDocked(zoneId)
-  val shuttleFreeFromDockInThisZone = HartTimer.ShuttleFreeFromDock(zoneId)
+  val shuttleDockedInThisZone: HartTimer.ShuttleDocked = HartTimer.ShuttleDocked(zoneId)
+  val shuttleFreeFromDockInThisZone: HartTimer.ShuttleFreeFromDock = HartTimer.ShuttleFreeFromDock(zoneId)
 
   /** the behaviors common to both the inert and active operations of the hart */
   val commonBehavior: Receive = {
@@ -105,7 +108,7 @@ class HartTimer(zone: Zone) extends Actor {
         event.prerequisiteUpdate match {
           case Some(fields) =>
             val times = event.timeFields(time)
-            zone.LocalEvents ! LocalServiceMessage(
+            zone.LocalEvents ! MessageEnvelope(
               forChannel,
               LocalAction.ShuttleEvent(HartTimer.OrbitalShuttleEvent(
                 fields.u1, fields.u2, times.t1, times.t2, times.t3, padAndShuttlePairs zip Seq(20, 20, 20)
@@ -113,7 +116,7 @@ class HartTimer(zone: Zone) extends Actor {
             )
           case None => ;
         }
-        zone.LocalEvents ! LocalServiceMessage(
+        zone.LocalEvents ! MessageEnvelope(
           forChannel,
           LocalAction.ShuttleEvent(
             HartTimer.analyzeEvent(event, padAndShuttlePairs, time)
@@ -153,17 +156,17 @@ class HartTimer(zone: Zone) extends Actor {
     val evt = HartTimer.analyzeEvent(event, padAndShuttlePairs)
     event.docked match {
       case Some(true) if currEvent.docked.isEmpty =>
-        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.ShuttleEvent(evt))
+        zone.LocalEvents ! MessageEnvelope(zoneId, LocalAction.ShuttleEvent(evt))
         padEvents.publish( shuttleDockedInThisZone )
       case Some(false) if currEvent.docked.contains(true) =>
         padEvents.publish( shuttleFreeFromDockInThisZone )
         context.system.scheduler.scheduleOnce(
           delay = 10 milliseconds,
           zone.LocalEvents,
-          LocalServiceMessage(zoneId, LocalAction.ShuttleEvent(evt))
+          MessageEnvelope(zoneId, LocalAction.ShuttleEvent(evt))
         )
       case _ =>
-        zone.LocalEvents ! LocalServiceMessage(zoneId, LocalAction.ShuttleEvent(evt))
+        zone.LocalEvents ! MessageEnvelope(zoneId, LocalAction.ShuttleEvent(evt))
     }
     if (currEvent.lockedDoors != event.lockedDoors) {
       padEvents.publish( if(event.lockedDoors) HartTimer.LockDoors else HartTimer.UnlockDoors )
@@ -254,14 +257,22 @@ object HartTimer {
                                         pairs: List[((PlanetSideGUID, PlanetSideGUID), Int)]
                                       )
 
+  case object HartStamp extends EventSystemStamp
+
   /**
     * Design for the envelop for the message bus
     * to relay instructions back to the individual facility amenity portions of this HART system.
     * The channel is blank because it does not need special designation.
     */
-  trait Command extends GenericEventBusMsg { def channel: String = "" }
+  trait Command extends GenericResponseEnvelope {
+    def originalChannel: String = ""
+    def channel: String = ""
+    def filter: PlanetSideGUID = Default.GUID0
+    def stamp: EventSystemStamp = HartStamp
+    def reply: EventResponse = NoReply
+  }
   /**
-    * Forbid entry through the boartding gantry doors.
+    * Forbid entry through the boarding gantry doors.
     */
   case object LockDoors extends Command
   /**

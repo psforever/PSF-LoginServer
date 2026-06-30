@@ -33,9 +33,11 @@ import net.psforever.objects.zones.{ZoneProjectile, Zoning}
 import net.psforever.packet.PlanetSideGamePacket
 import net.psforever.packet.game.OutfitEventAction.{Initial, OutfitInfo, OutfitRankNames, Unk1}
 import net.psforever.packet.game.{ActionCancelMessage, AvatarFirstTimeEventMessage, AvatarImplantMessage, AvatarJumpMessage, BattleplanMessage, BindPlayerMessage, BugReportMessage, ChangeFireModeMessage, ChangeShortcutBankMessage, CharacterCreateRequestMessage, CharacterRequestMessage, ChatMsg, CollisionIs, ConnectToWorldRequestMessage, CreateShortcutMessage, DeadState, DeployObjectMessage, DisplayedAwardMessage, DropItemMessage, EmoteMsg, FacilityBenefitShieldChargeRequestMessage, FriendsRequest, GenericAction, GenericActionMessage, GenericCollisionMsg, GenericObjectActionAtPositionMessage, GenericObjectActionMessage, GenericObjectStateMsg, HitHint, InvalidTerrainMessage, LootItemMessage, MoveItemMessage, ObjectDetectedMessage, ObjectHeldMessage, OutfitEvent, OutfitMemberEvent, OutfitMembershipRequest, OutfitMembershipResponse, OutfitRequest, OutfitRequestAction, PickupItemMessage, PlanetsideAttributeMessage, PlayerStateMessageUpstream, RequestDestroyMessage, TargetingImplantRequest, TerrainCondition, TradeMessage, UnuseItemMessage, UseItemMessage, VoiceHostInfo, VoiceHostRequest, ZipLineMessage}
-import net.psforever.services.RemoverActor
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.avatar.support.CorpseEnvelope
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.PlanetsideAttribute
+import net.psforever.services.base.support.RemoverActor
 import net.psforever.types.{CapacitorStateType, ChatMessageType, Cosmetic, ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.concurrent.duration._
@@ -132,10 +134,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
     val eagleEye: Boolean = ops.canSeeReallyFar
     val isNotVisible: Boolean = sessionLogic.zoning.zoningStatus == Zoning.Status.Deconstructing ||
       (player.isAlive && sessionLogic.zoning.spawn.deadState == DeadState.RespawnTime)
-    continent.AvatarEvents ! AvatarServiceMessage(
+    continent.AvatarEvents ! MessageEnvelope(
       channel,
+      avatarGuid,
       AvatarAction.PlayerState(
-        avatarGuid,
         player.Position,
         player.Velocity,
         yaw,
@@ -163,15 +165,8 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
   }
 
   def handleEmote(pkt: EmoteMsg): Unit = {
-    val EmoteMsg(avatarGuid, emote) = pkt
-    val pZone = player.Zone
-    sendResponse(EmoteMsg(avatarGuid, emote))
-    pZone.blockMap.sector(player).livePlayerList.collect { case t if t.GUID != player.GUID =>
-      pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendResponse(EmoteMsg(avatarGuid, emote)))
-    }
-    pZone.AllPlayers.collect { case t if t.GUID != player.GUID && !t.allowInteraction =>
-      pZone.LocalEvents ! LocalServiceMessage(t.Name, LocalAction.SendResponse(EmoteMsg(avatarGuid, emote)))
-    }
+    sendResponse(pkt)
+    ops.handleEmote(pkt)
   }
 
   def handleDropItem(pkt: DropItemMessage): Unit = {
@@ -239,7 +234,7 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
 
       case Some(obj: Player) if obj.isBackpack =>
         obj.Position = Vector3.Zero
-        continent.AvatarEvents ! AvatarServiceMessage.Corpse(RemoverActor.ClearSpecific(List(obj), continent))
+        continent.AvatarEvents ! CorpseEnvelope(RemoverActor.ClearSpecific(List(obj), continent))
 
       case Some(obj: Player) =>
         sessionLogic.general.suicide(obj)
@@ -439,9 +434,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
           ops.dropSpecialSlotItem()
         case GenericAction.MaxAnchorsExtend_RCV =>
           player.UsingSpecial = SpecialExoSuitDefinition.Mode.Anchored
-          continent.AvatarEvents ! AvatarServiceMessage(
+          continent.AvatarEvents ! MessageEnvelope(
             continent.id,
-            AvatarAction.PlanetsideAttribute(player.GUID, 19, 1)
+            player.GUID,
+            PlanetsideAttribute(player.GUID, 19, 1)
           )
           definition match {
             case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>
@@ -459,9 +455,10 @@ class GeneralLogic(val ops: GeneralOperations, implicit val context: ActorContex
           }
         case GenericAction.MaxAnchorsRelease_RCV =>
           player.UsingSpecial = SpecialExoSuitDefinition.Mode.Normal
-          continent.AvatarEvents ! AvatarServiceMessage(
+          continent.AvatarEvents ! MessageEnvelope(
             continent.id,
-            AvatarAction.PlanetsideAttribute(player.GUID, 19, 0)
+            player.GUID,
+            PlanetsideAttribute(player.GUID, 19, 0)
           )
           definition match {
             case GlobalDefinitions.trhev_dualcycler | GlobalDefinitions.trhev_burster =>

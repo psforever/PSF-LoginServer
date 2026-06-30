@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.vehicle.support
 
-import akka.actor.Cancellable
+import akka.actor.{ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.objects.equipment.EquipmentSlot
 import net.psforever.objects.{AmmoBox, Default, PlanetSideGameObject, Tool}
 import net.psforever.objects.guid._
@@ -9,13 +9,28 @@ import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.turret.{FacilityTurret, TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.MountedWeapons
 import net.psforever.objects.zones.Zone
+import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelopeOnly}
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.types.PlanetSideGUID
-import net.psforever.services.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.support.{SimilarityComparator, SupportActor, SupportActorCaseConversions}
+import net.psforever.services.vehicle.VehicleAction
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+
+case object TurretUpgradeSupport
+  extends EventServiceSupport {
+  def label: String = "turretUpgrader"
+  def constructor(context: ActorContext): ActorRef = {
+    context.actorOf(Props[TurretUpgrader](), name = "TurretUpgrader")
+  }
+}
+
+final case class TurretEnvelope(supportMessage: Any)
+  extends GenericSupportEnvelopeOnly {
+  def supportLabel: String = "turretUpgrader"
+}
 
 class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
   var task: Cancellable = Default.Cancellable
@@ -159,9 +174,10 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
         seat.unmount(tplayer)
         tplayer.VehicleSeated = None
         if (tplayer.HasGUID) {
-          context.parent ! VehicleServiceMessage(
+          context.parent ! MessageEnvelope(
             zoneId,
-            VehicleAction.KickPassenger(tplayer.GUID, 4, unk2=false, turretGUID)
+            tplayer.GUID,
+            VehicleAction.KickPassenger(4, unk2=false, turretGUID)
           )
         }
       })
@@ -229,15 +245,16 @@ class TurretUpgrader extends SupportActor[TurretUpgrader.Entry] {
     trace(s"Wall turret finished ${target.Upgrade} upgrade")
     val targetGUID = target.GUID
     if (target.Health > 0) {
-      target.Weapons
+      context.parent ! BundledEnvelope(target.Weapons
         .map { case (index: Int, slot: EquipmentSlot) => (index, slot.Equipment) }
         .collect {
           case (index, Some(tool: Tool)) =>
-            context.parent ! VehicleServiceMessage(
+            MessageEnvelope(
               zone.id,
-              VehicleAction.EquipmentInSlot(PlanetSideGUID(0), targetGUID, index, tool)
+              VehicleAction.EquipmentInSlot(targetGUID, index, tool)
             )
         }
+      )
     }
     Finalize(target, entry.upgrade)
   }

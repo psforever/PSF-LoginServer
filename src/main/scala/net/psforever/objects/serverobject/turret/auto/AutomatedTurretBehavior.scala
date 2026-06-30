@@ -17,8 +17,8 @@ import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.interaction.InteractsWithZone
 import net.psforever.objects.{Default, PlanetSideGameObject, Player}
 import net.psforever.packet.game.{ChangeFireStateMessage_Start, ChangeFireStateMessage_Stop, ObjectDetectedMessage}
-import net.psforever.services.Service
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.SendResponse
 import net.psforever.types.{PlanetSideGUID, Vector3}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -879,7 +879,7 @@ object AutomatedTurretBehavior {
     EffectTarget.Validation.AutoTurretBlankVehicleTarget
   )
 
-  private val noTargets: List[PlanetSideGUID] = List(Service.defaultPlayerGUID)
+  private val noTargets: List[PlanetSideGUID] = List(Default.GUID0)
 
   /**
    * Are we tracking a target entity?
@@ -889,9 +889,9 @@ object AutomatedTurretBehavior {
    * @param list target's globally unique identifier, in list form
    */
   def startTracking(zone: Zone, channel: String, turretGuid: PlanetSideGUID, list: List[PlanetSideGUID]): Unit = {
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       channel,
-      LocalAction.SendResponse(ObjectDetectedMessage(turretGuid, turretGuid, 0, list))
+      SendResponse(ObjectDetectedMessage(turretGuid, turretGuid, 0, list))
     )
   }
 
@@ -902,9 +902,9 @@ object AutomatedTurretBehavior {
    * @param turretGuid turret
    */
   def stopTracking(zone: Zone, channel: String, turretGuid: PlanetSideGUID): Unit = {
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       channel,
-      LocalAction.SendResponse(ObjectDetectedMessage(turretGuid, turretGuid, 0, noTargets))
+      SendResponse(ObjectDetectedMessage(turretGuid, turretGuid, 0, noTargets))
     )
   }
 
@@ -915,9 +915,9 @@ object AutomatedTurretBehavior {
    * @param weaponGuid turret's weapon
    */
   def startShooting(zone: Zone, channel: String, weaponGuid: PlanetSideGUID): Unit = {
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       channel,
-      LocalAction.SendResponse(ChangeFireStateMessage_Start(weaponGuid))
+      SendResponse(ChangeFireStateMessage_Start(weaponGuid))
     )
   }
 
@@ -928,9 +928,9 @@ object AutomatedTurretBehavior {
    * @param weaponGuid turret's weapon
    */
   def stopShooting(zone: Zone, channel: String, weaponGuid: PlanetSideGUID): Unit = {
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       channel,
-      LocalAction.SendResponse(ChangeFireStateMessage_Stop(weaponGuid))
+      SendResponse(ChangeFireStateMessage_Stop(weaponGuid))
     )
   }
 

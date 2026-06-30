@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.damage
 
 import akka.actor.{Actor, Cancellable}
-import net.psforever.objects.{Vehicle, Vehicles}
+import net.psforever.objects.{Default, Vehicle, Vehicles}
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.damage.Damageable.Target
 import net.psforever.objects.sourcing.VehicleSource
@@ -12,8 +12,8 @@ import net.psforever.objects.vital.resolution.ResolutionCalculations
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.zones.exp.ToDatabase
 import net.psforever.packet.game.DamageWithPositionMessage
-import net.psforever.services.Service
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{PlanetsideAttribute, SendResponse}
 import net.psforever.types.Vector3
 
 import scala.concurrent.duration._
@@ -102,10 +102,9 @@ trait DamageableVehicle
     * Most all vehicles and the weapons mounted to them can jam
     * if the projectile that strikes (near) them has jammering properties.
     * If this vehicle has shields that were affected by previous damage, that is also reported to the clients.
-    * @see `Service.defaultPlayerGUID`
+    * @see `Default.GUID0`
     * @see `Vehicle.CargoHolds`
-    * @see `VehicleAction.PlanetsideAttribute`
-    * @see `VehicleServiceMessage`
+    * @see `PlanetsideAttribute`
     * @param target the entity being destroyed
     * @param cause historical information about the damage
     * @param amount how much damage was performed
@@ -142,27 +141,27 @@ trait DamageableVehicle
       }
       //stat changes
       if (damageToShields > 0) {
-        events ! VehicleServiceMessage(
+        events ! MessageEnvelope(
           shieldChannel,
-          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, obj.Definition.shieldUiAttribute, obj.Shields)
+          PlanetsideAttribute(targetGUID, obj.Definition.shieldUiAttribute, obj.Shields)
         )
         announceConfrontation = true
       }
       if (damageToHealth > 0) {
-        events ! VehicleServiceMessage(
+        events ! MessageEnvelope(
           healthChannel,
-          VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, targetGUID, 0, obj.Health)
+          PlanetsideAttribute(targetGUID, 0, obj.Health)
         )
         announceConfrontation = true
       }
     }
     if (announceConfrontation) {
       if (showAsAggravated) {
-        val msg = VehicleAction.SendResponse(Service.defaultPlayerGUID, DamageWithPositionMessage(totalDamage, Vector3.Zero))
+        val msg = SendResponse(DamageWithPositionMessage(totalDamage, Vector3.Zero))
         obj.Seats.values
           .collect { case seat if seat.occupant.nonEmpty => seat.occupant.get.Name }
           .foreach { channel =>
-            events ! VehicleServiceMessage(channel, msg)
+            events ! MessageEnvelope(channel, msg)
           }
       }
       else {
@@ -180,13 +179,11 @@ trait DamageableVehicle
     * Finally, the vehicle is tasked for deconstruction.
     * @see `Deployment.TryDeploymentChange`
     * @see `DriveState.Undeploying`
-    * @see `Service.defaultPlayerGUID`
+    * @see `Default.GUID0`
     * @see `Vehicle.CargoHolds`
-    * @see `VehicleAction.PlanetsideAttribute`
+    * @see `PlanetsideAttribute`
     * @see `RemoverActor.AddTask`
     * @see `RemoverActor.ClearSpecific`
-    * @see `VehicleServiceMessage`
-    * @see `VehicleServiceMessage.Decon`
     * @see `Zone.VehicleEvents`
     * @param target the entity being destroyed
     * @param cause historical information about the damage
@@ -217,9 +214,9 @@ trait DamageableVehicle
     //shields
     if (obj.Shields > 0) {
       obj.Shields = 0
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zone.id,
-        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, target.GUID, obj.Definition.shieldUiAttribute, 0)
+        PlanetsideAttribute(target.GUID, obj.Definition.shieldUiAttribute, 0)
       )
     }
     //database entry
@@ -243,22 +240,22 @@ trait DamageableVehicle
     import scala.concurrent.ExecutionContext.Implicits.global
     import scala.concurrent.duration._
     val obj = DamageableObject
-    val guid0 = Service.defaultPlayerGUID
+    val guid0 = Default.GUID0
     val zone = obj.Zone
     val zoneid = zone.id
     val events = zone.VehicleEvents
     //health to 1, shields to 0
     obj.Health = 1
     val guid = obj.GUID
-    events ! VehicleServiceMessage(
+    events ! MessageEnvelope(
       zoneid,
-      VehicleAction.PlanetsideAttribute(guid0, guid, 0, 1)
+      PlanetsideAttribute(guid, 0, 1)
     )
     if (obj.Shields > 0) {
       obj.Shields = 0
-      zone.VehicleEvents ! VehicleServiceMessage(
+      events ! MessageEnvelope(
         zone.id,
-        VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, obj.GUID, obj.Definition.shieldUiAttribute, 0)
+        PlanetsideAttribute(obj.GUID, obj.Definition.shieldUiAttribute, 0)
       )
     }
     //aggravation cancel

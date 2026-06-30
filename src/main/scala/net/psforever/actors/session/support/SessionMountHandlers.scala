@@ -5,11 +5,14 @@ import akka.actor.{ActorContext, typed}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.interior.Sidedness.OutsideOf
 import net.psforever.objects.{PlanetSideGameObject, Tool, Vehicle}
-import net.psforever.objects.vehicles.{CargoBehavior, MountableWeapons}
+import net.psforever.objects.vehicles.MountableWeapons
+import net.psforever.objects.vehicles.control.CargoBehavior
 import net.psforever.objects.vital.InGameHistory
 import net.psforever.packet.game.{DismountVehicleCargoMsg, GenericObjectActionMessage, InventoryStateMessage, MountVehicleCargoMsg, MountVehicleMsg, ObjectAttachMessage, ObjectDetachMessage, PlanetsideAttributeMessage}
-import net.psforever.services.Service
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.CachedEnvelope
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.SendResponse
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.{BailType, PlanetSideGUID, Vector3}
 //
 import net.psforever.actors.session.AvatarActor
@@ -185,9 +188,10 @@ class SessionMountHandlers(
     avatarActor ! AvatarActor.DeactivateActiveImplants
     avatarActor ! AvatarActor.SuspendStaminaRegeneration(3.seconds)
     sendResponse(ObjectAttachMessage(objGuid, playerGuid, seatNum))
-    continent.VehicleEvents ! VehicleServiceMessage(
+    continent.VehicleEvents ! MessageEnvelope(
       continent.id,
-      VehicleAction.MountVehicle(playerGuid, objGuid, seatNum)
+      playerGuid,
+      VehicleAction.MountVehicle(objGuid, seatNum)
     )
   }
 
@@ -202,13 +206,12 @@ class SessionMountHandlers(
     if (tplayer.BailProtection) {
       tplayer.ContributionFrom(obj)
       sessionLogic.keepAliveFunc = sessionLogic.zoning.NormalKeepAlive
-      continent.VehicleEvents ! VehicleServiceMessage(
+      continent.VehicleEvents ! MessageEnvelope(
         continent.id,
-        VehicleAction.SendResponse(Service.defaultPlayerGUID, PlanetsideAttributeMessage(obj.GUID, 81, 1))
-      )
-      continent.VehicleEvents ! VehicleServiceMessage(
-        continent.id,
-        VehicleAction.SendResponse(Service.defaultPlayerGUID, ObjectDetachMessage(obj.GUID, tplayer.GUID, tplayer.Position, obj.Orientation))
+        SendResponse(
+          PlanetsideAttributeMessage(obj.GUID, 81, 1),
+          ObjectDetachMessage(obj.GUID, tplayer.GUID, tplayer.Position, obj.Orientation)
+        )
       )
     }
     else {
@@ -223,22 +226,10 @@ class SessionMountHandlers(
           sessionLogic.vehicles.ServerVehicleOverrideStop(v)
         }*/
         v.Velocity = Vector3.Zero
-        continent.VehicleEvents ! VehicleServiceMessage(
+        continent.VehicleEvents ! CachedEnvelope(
           continent.id,
-          VehicleAction.VehicleState(
-            tplayer.GUID,
-            v.GUID,
-            unk1 = 0,
-            tplayer.Position,
-            v.Orientation,
-            v.Velocity,
-            v.Flying,
-            unk3 = 0,
-            unk4 = 0,
-            wheel_direction = 15,
-            unk5 = false,
-            unk6 = v.Cloaked
-          )
+          tplayer.GUID,
+          VehicleAction.VehicleState(v.GUID, unk1 = 0, tplayer.Position, v.Orientation, v.Velocity, v.Flying, unk3 = 0, unk4 = 0, wheel_direction = 15, unk5 = false, unk6 = v.Cloaked)
         )
       case _ => ()
     }
@@ -260,9 +251,10 @@ class SessionMountHandlers(
       BailType.Normal
     }
     sendResponse(DismountVehicleMsg(playerGuid, bailType, wasKickedByDriver = false))
-    continent.VehicleEvents ! VehicleServiceMessage(
+    continent.VehicleEvents ! MessageEnvelope(
       continent.id,
-      VehicleAction.DismountVehicle(playerGuid, bailType, unk2 = false)
+      playerGuid,
+      VehicleAction.DismountVehicle(bailType, unk2 = false)
     )
   }
 

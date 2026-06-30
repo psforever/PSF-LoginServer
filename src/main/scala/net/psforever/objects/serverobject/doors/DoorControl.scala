@@ -7,8 +7,10 @@ import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObjec
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}
 import net.psforever.objects.serverobject.locks.IFFLock
 import net.psforever.objects.serverobject.structures.PoweredAmenityControl
-import net.psforever.services.Service
-import net.psforever.services.local.{LocalAction, LocalResponse, LocalServiceMessage, LocalServiceResponse}
+import net.psforever.services.base.envelope.GenericResponseEnvelope
+import net.psforever.services.base.support.SupportActor
+import net.psforever.services.local.support.{DoorCloseActor, DoorMessage}
+import net.psforever.services.local.{LocalAction, LocalStamp}
 
 /**
   * An `Actor` that handles messages being dispatched to a specific `Door`.
@@ -19,24 +21,21 @@ class DoorControl(door: Door)
   with FactionAffinityBehavior.Check {
   def FactionObject: FactionAffinity = door
 
-  private var isLocked: Boolean = false
   private var lockingMechanism: Door.LockingMechanismLogic = DoorControl.alwaysOpen
 
   def commonBehavior: Receive = checkBehavior
     .orElse {
-      case Door.Lock =>
-        isLocked = true
+      case Door.UpdateMechanism(logic) =>
+        lockingMechanism = logic
         if (door.isOpen) {
           val zone = door.Zone
           door.Open = None
-          zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.DoorSlamsShut(door))
+          zone.LocalEvents ! DoorMessage(
+            zone.id,
+            LocalAction.DoorCloses(door.GUID),
+            SupportActor.ClearSpecific(List(door), zone)
+          )
         }
-
-      case Door.Unlock =>
-        isLocked = false
-
-      case Door.UpdateMechanism(logic) =>
-        lockingMechanism = logic
     }
 
   def poweredStateLogic: Receive =
@@ -48,7 +47,7 @@ class DoorControl(door: Door)
         case CommonMessages.Use(player, _) =>
           testToOpenDoor(player, door, door.Definition.initialOpeningDistance, sender())
 
-        case IFFLock.DoorOpenResponse(target: Player) if !isLocked =>
+        case IFFLock.DoorOpenResponse(target: Player) =>
           DoorControl.openDoor(target, door)
 
         case _ => ()
@@ -57,7 +56,7 @@ class DoorControl(door: Door)
   def unpoweredStateLogic: Receive = {
     commonBehavior
       .orElse {
-        case CommonMessages.Use(player, _) if !isLocked =>
+        case CommonMessages.Use(player, _) =>
           //without power, the door opens freely
           DoorControl.openDoor(player, door)
 
@@ -83,7 +82,7 @@ class DoorControl(door: Door)
                             ): Unit = {
     if (
         Doors.testForSpecificTargetHoldingDoorOpen(player, door, maximumDistance * maximumDistance).contains(player) &&
-          lockingMechanism(player, door) && !isLocked
+          lockingMechanism(player, door)
     ) {
       DoorControl.openDoor(player, door, replyTo)
     }
@@ -107,20 +106,21 @@ object DoorControl {
    */
   private def openDoor(player: Player, door: Door, replyTo: ActorRef = Default.Actor): Unit = {
     val zone = door.Zone
-    val doorGUID = door.GUID
     if (!door.isOpen) {
       //global open
       door.Open = player
-      zone.LocalEvents ! LocalServiceMessage(
+      zone.LocalEvents ! DoorMessage(
         zone.id,
-        LocalAction.DoorOpens(Service.defaultPlayerGUID, zone, door)
+        LocalAction.DoorOpens(zone, door),
+        DoorCloseActor.DoorIsOpen(door, zone, System.currentTimeMillis())
       )
     } else {
       //the door should already open, but the requesting player does not see it as open
-      replyTo ! LocalServiceResponse(
+      replyTo ! GenericResponseEnvelope(
+        LocalStamp,
         player.Name,
-        Service.defaultPlayerGUID,
-        LocalResponse.DoorOpens(doorGUID)
+        Default.GUID0,
+        LocalAction.DoorOpens(door.Zone, door)
       )
     }
   }

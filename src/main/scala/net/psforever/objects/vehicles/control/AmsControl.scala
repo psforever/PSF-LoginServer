@@ -2,8 +2,9 @@
 package net.psforever.objects.vehicles.control
 
 import net.psforever.objects._
-import net.psforever.services.Service
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.PlanetsideAttribute
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.DriveState
 
 /**
@@ -29,8 +30,8 @@ class AmsControl(vehicle: Vehicle)
           case None          => ""
         }
         val events = zone.VehicleEvents
-        events ! VehicleServiceMessage.AMSDeploymentChange(zone)
-        events ! VehicleServiceMessage(driverChannel, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vehicle.GUID, 81, 1))
+        events ! MessageEnvelope(zone.id, VehicleAction.AMSDeploymentChange(zone))
+        events ! MessageEnvelope(driverChannel, PlanetsideAttribute(vehicle.GUID, 81, 1))
       case _ => ;
     }
   }
@@ -49,8 +50,8 @@ class AmsControl(vehicle: Vehicle)
           case None          => ""
         }
         val events = zone.VehicleEvents
-        events ! VehicleServiceMessage.AMSDeploymentChange(zone)
-        events ! VehicleServiceMessage(driverChannel, VehicleAction.PlanetsideAttribute(Service.defaultPlayerGUID, vehicle.GUID, 81, 0))
+        events ! MessageEnvelope(zone.id, VehicleAction.AMSDeploymentChange(zone))
+        events ! MessageEnvelope(driverChannel, PlanetsideAttribute(vehicle.GUID, 81, 0))
       case _ => ;
     }
   }

@@ -3,8 +3,8 @@ package net.psforever.objects
 
 import net.psforever.objects.equipment.ChargeFireModeDefinition
 import net.psforever.packet.game.QuantityUpdateMessage
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.SendResponse
 
 object Tools {
   /**
@@ -22,12 +22,9 @@ object Tools {
     tool.FireMode match {
       case mode: ChargeFireModeDefinition if tool.Magazine > 0 =>
         val magazine = tool.Magazine -= mode.RoundsPerInterval
-        player.Zone.AvatarEvents ! AvatarServiceMessage(
+        player.Zone.AvatarEvents ! MessageEnvelope(
           player.Name,
-          AvatarAction.SendResponse(
-            Service.defaultPlayerGUID,
-            QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, magazine)
-          )
+          SendResponse(QuantityUpdateMessage(tool.AmmoSlot.Box.GUID, magazine))
         )
         player.isAlive
       case _ =>

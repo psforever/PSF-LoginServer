@@ -6,9 +6,9 @@ import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects._
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
+import net.psforever.services.base.message.SetEmpire
+import net.psforever.services.local.LocalAction
 import net.psforever.types.PlanetSideEmpire
 
 import scala.concurrent.duration._
@@ -111,7 +111,7 @@ trait DeployableBehavior {
       obj,
       toOwner = "",
       toFaction,
-      DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Service.defaultPlayerGUID)
+      DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Default.GUID0)
     )
     startOwnerlessDecay()
   }
@@ -198,14 +198,13 @@ trait DeployableBehavior {
       None
     }
     //zone build
-    localEvents ! LocalServiceMessage(zone.id, LocalAction.DeployItem(obj))
-    //zone map icon
-    localEvents ! LocalServiceMessage(
-      obj.Faction.toString,
-      LocalAction.DeployableMapIcon(
-        Service.defaultPlayerGUID,
-        DeploymentAction.Build,
-        DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID))
+    localEvents ! BundledEnvelope(
+      /* zone build */
+      MessageEnvelope(zone.id, LocalAction.DeployItem(obj)),
+      /* zone map icon */
+      MessageEnvelope(
+        obj.Faction.toString,
+        LocalAction.DeployableMapIcon(DeploymentAction.Build, DeployableInfo(obj.GUID, Deployable.Icon(obj.Definition.Item), obj.Position, obj.OwnerGuid.getOrElse(Default.GUID0)))
       )
     )
     //local build management
@@ -250,7 +249,7 @@ trait DeployableBehavior {
     //there's no special meaning behind directing any replies from from zone governance straight back to zone governance
     //this deployable control agency, however, will be expiring and can not be a recipient
     zone.Deployables ! Zone.Deployable.Dismiss(obj)
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       zone.id,
       LocalAction.EliminateDeployable(obj, obj.GUID, obj.Position, deletionType)
     )
@@ -285,27 +284,21 @@ object DeployableBehavior {
     val localEvents = zone.LocalEvents
     if (originalFaction != toFaction) {
       obj.Faction = toFaction
-      //visual tells in regards to ownership by faction
-      zone.AvatarEvents ! AvatarServiceMessage(
-        zone.id,
-        AvatarAction.SetEmpire(Service.defaultPlayerGUID, dGuid, toFaction)
-      )
-      //remove knowledge by the previous owner's faction
-      localEvents ! LocalServiceMessage(
-        originalFaction.toString,
-        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Dismiss, info)
+      localEvents ! BundledEnvelope(
+        /* visual tells in regards to ownership by faction */
+        MessageEnvelope(zone.id, SetEmpire(dGuid, toFaction)),
+        /* remove knowledge by the previous owner's faction */
+        MessageEnvelope(originalFaction.toString, LocalAction.DeployableMapIcon(DeploymentAction.Dismiss, info)),
+        /* display to the given faction */
+        MessageEnvelope(toFaction.toString, LocalAction.DeployableMapIcon(DeploymentAction.Build, info))
       )
       //remove deployable from original owner's toolbox and UI counter
-      zone.AllPlayers.filter(p => obj.OriginalOwnerName.contains(p.Name))
-        .foreach { originalOwner =>
+      localEvents ! BundledEnvelope(zone.AllPlayers
+        .filter(p => obj.OriginalOwnerName.contains(p.Name))
+        .map { originalOwner =>
           originalOwner.avatar.deployables.Remove(obj)
-          originalOwner.Zone.LocalEvents ! LocalServiceMessage(originalOwner.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
-      }
-      //display to the given faction
-      localEvents ! LocalServiceMessage(
-        toFaction.toString,
-        LocalAction.DeployableMapIcon(Service.defaultPlayerGUID, DeploymentAction.Build, info)
-      )
+          MessageEnvelope(originalOwner.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
+        })
     }
   }
 }

@@ -9,8 +9,9 @@ import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game._
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.types.PlanetSideGUID
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.local.LocalAction
 
 object Deployables {
   //private val log = org.log4s.getLogger("Deployables")
@@ -92,13 +93,9 @@ object Deployables {
           }
         target.AssignOwnership(None)
       }
-    events ! LocalServiceMessage(
+    events ! MessageEnvelope(
       s"${target.Faction}",
-      LocalAction.DeployableMapIcon(
-        PlanetSideGUID(0),
-        DeploymentAction.Dismiss,
-        DeployableInfo(target.GUID, Deployable.Icon(item), target.Position, PlanetSideGUID(0))
-      )
+      LocalAction.DeployableMapIcon(DeploymentAction.Dismiss, DeployableInfo(target.GUID, Deployable.Icon(item), target.Position, PlanetSideGUID(0)))
     )
   }
 

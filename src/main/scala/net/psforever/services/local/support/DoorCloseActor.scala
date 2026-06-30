@@ -1,14 +1,35 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local.support
 
-import akka.actor.{Actor, Cancellable}
+import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.objects.{Default, Doors}
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone
+import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelope}
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
+import net.psforever.services.local.LocalAction.IsADoorMessage
+import net.psforever.services.local.LocalAction
 import net.psforever.types.PlanetSideGUID
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
+
+case object DoorCloserSupport
+  extends EventServiceSupport {
+  def label: String = "doorCloser"
+  def constructor(context: ActorContext): ActorRef = {
+    context.actorOf(Props[DoorCloseActor](), name = "DoorCloser")
+  }
+}
+
+final case class DoorMessage(
+                              channel: String,
+                              msg: IsADoorMessage,
+                              supportMessage: Any
+                            ) extends GenericSupportEnvelope {
+  def filter: PlanetSideGUID = Default.GUID0
+  def supportLabel: String = "doorCloser"
+}
 
 /**
   * Close an opened door after a certain amount of time has passed.
@@ -43,11 +64,13 @@ class DoorCloseActor() extends Actor {
         doorsLeftOpen1 ++
           doorsLeftOpen2.map(entry => DoorCloseActor.DoorEntry(entry.door, entry.zone, now))
       ).sortBy(_.time)
-      doorsToClose2.foreach(entry => {
-        entry.door.Open = None                                                       //permissible break from synchronization
-        context.parent ! DoorCloseActor.CloseTheDoor(entry.door.GUID, entry.zone.id) //call up to the main event system
-      })
-
+      doorsToClose2
+        .map { case DoorCloseActor.DoorEntry(door, zone, _) =>
+          door.Open = None //permissible break from synchronization
+          (zone, MessageEnvelope(zone.id, LocalAction.DoorCloses(door.GUID))) //call up to the main event system
+        }
+        .groupBy(_._1)
+        .foreach { case (zone, list) => zone.LocalEvents ! BundledEnvelope(list.map(_._2)) }
       if (openDoors.nonEmpty) {
         val short_timeout: FiniteDuration = math.max(1, DoorCloseActor.timeout_time - (now - openDoors.head.time)).milliseconds
         import scala.concurrent.ExecutionContext.Implicits.global

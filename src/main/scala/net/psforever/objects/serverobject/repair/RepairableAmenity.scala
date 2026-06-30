@@ -5,7 +5,9 @@ import net.psforever.objects.Tool
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.objects.sourcing.{SourceEntry, SourceWithHealthEntry}
 import net.psforever.objects.vital.{DamagingActivity, RepairFromEquipment, SpawningActivity}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.packet.game.PlanetsideAttributeMessage
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.SendResponse
 
 /**
   * The "control" `Actor` mixin for repair-handling code
@@ -27,8 +29,7 @@ object RepairableAmenity {
   /**
     * A restored `Amenity` target dispatches two messages to chance its model and operational states.
     * These `PlanetSideAttributeMessage` attributes are the same as reported during zone load client configuration.
-    * @see `AvatarAction.PlanetsideAttributeToAll`
-    * @see `AvatarServiceMessage`
+    * @see `PlanetsideAttribute`
     * @see `Zone.AvatarEvents`
     * @param target the entity being destroyed
     */
@@ -37,8 +38,10 @@ object RepairableAmenity {
     val zoneId     = zone.id
     val events     = zone.AvatarEvents
     val targetGUID = target.GUID
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 50, 0))
-    events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 51, 0))
+    events ! MessageEnvelope(
+      zoneId,
+      SendResponse(PlanetsideAttributeMessage(targetGUID, 50, 0), PlanetsideAttributeMessage(targetGUID, 51, 0))
+    )
     RestorationOfHistory(target)
   }
 

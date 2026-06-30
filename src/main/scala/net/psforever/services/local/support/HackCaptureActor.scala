@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.services.local.support
 
-import akka.actor.{Actor, Cancellable}
+import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -13,15 +13,31 @@ import net.psforever.objects.Default
 import net.psforever.objects.serverobject.structures.participation.MajorFacilityHackParticipation
 import net.psforever.packet.game.{ChatMsg, GenericAction, HackState7, PlanetsideAttributeEnum}
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.services.Service
+import net.psforever.services.base.{EventServiceSupport, GenericSupportEnvelopeOnly}
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
+import net.psforever.services.base.message.PlanetsideAttribute
 import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.types.{ChatMessageType, PlanetSideEmpire, PlanetSideGUID}
+import net.psforever.services.local.LocalAction
+import net.psforever.types.{ChatMessageType, PlanetSideEmpire}
 
 import java.util.concurrent.{Executors, TimeUnit}
 import scala.collection.Seq
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.Random
+
+case object HackCaptureSupport
+  extends EventServiceSupport {
+  def label: String = "hackCapturer"
+  def constructor(context: ActorContext): ActorRef = {
+    context.actorOf(Props[HackCaptureActor](), name = "HackCapturer")
+  }
+}
+
+final case class CaptureEnvelope(supportMessage: Any)
+  extends GenericSupportEnvelopeOnly {
+  def supportLabel: String = "hackCapturer"
+}
 
 /**
  * Responsible for handling the aspects related to hacking control consoles and capturing bases.
@@ -156,24 +172,19 @@ class HackCaptureActor extends Actor {
     case HackCaptureActor.FlagLost(flag) =>
       val owner = flag.Owner.asInstanceOf[Building]
       val guid = owner.GUID
-      val terminalOpt = owner.CaptureTerminal
-      hackedObjects
-        .find(entry => guid == entry.target.Owner.GUID)
-        .collect { entry =>
-          val terminal = terminalOpt.get
-          hackedObjects = hackedObjects.filterNot(x => x eq entry)
-          log.info(s"FlagLost: ${flag.Carrier.map(_.Name).getOrElse("")} the flag carrier screwed up the capture for ${flag.Target.Name} and the LLU has been lost")
-          terminal.Actor ! CommonMessages.ClearHack()
-          NotifyHackStateChange(terminal, isResecured = true)
-          // If there's hacked objects left in the list restart the timer with the shortest hack time left
-          RestartTimer()
-          entry
-        }
-        .orElse{
-          log.warn(s"FlagLost: flag data does not match to an entry in the hacked objects list")
-          None
-        }
-      context.parent ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.FlagLost)
+      val (found, remaining) = hackedObjects.partition(_.target.Owner.GUID == guid)
+      hackedObjects = remaining
+      found.collectFirst { _ =>
+        val terminal = owner.CaptureTerminal.get
+        log.info(s"FlagLost: ${flag.Carrier.map(_.Name).getOrElse("")} the flag carrier screwed up the capture for ${flag.Target.Name} and the LLU has been lost")
+        terminal.Actor ! CommonMessages.ClearHack()
+        NotifyHackStateChange(terminal, isResecured = true)
+        RestartTimer() // If there's hacked objects left in the list restart the timer with the shortest hack time left
+      }
+      if (found.isEmpty) {
+        log.warn(s"FlagLost: flag data does not match to an entry in the hacked objects list")
+      }
+      owner.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.FlagLost))
 
     case _ => ()
   }
@@ -195,7 +206,7 @@ class HackCaptureActor extends Actor {
         true
       case Some((owner, Some(flag), Some(neighbours))) if neighbours.nonEmpty && hackingFaction != flag.Faction =>
         log.info(s"$hackingFaction is overriding the ongoing LLU hack of facility ${owner.Name} by ${flag.Faction}")
-        terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended)
+        terminal.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended))
         NotifyHackStateChange(terminal, isResecured = false)
         RestartTimer()
         spawnCaptureFlag(neighbours, terminal, hackingFaction)
@@ -209,7 +220,7 @@ class HackCaptureActor extends Actor {
       case Some((owner, Some(flag), _)) =>
         log.warn(s"TrySpawnCaptureFlag: couldn't find any neighbouring $hackingFaction facilities of ${owner.Name} for LLU hack")
         owner.GetFlagSocket.foreach { _.clearOldFlagData() }
-        terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended)
+        terminal.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Ended))
         false
       case _ =>
         log.error(s"TrySpawnCaptureFlag: expecting a terminal ${terminal.GUID.guid} with the ctf owning facility")
@@ -225,7 +236,7 @@ class HackCaptureActor extends Actor {
     // Find a random neighbouring base matching the hacking faction
     val targetBase = neighbours.toVector((new Random).nextInt(neighbours.size))
     // Request LLU is created by CaptureFlagActor via LocalService
-    terminal.Zone.LocalEvents ! CaptureFlagManager.SpawnCaptureFlag(terminal, targetBase, hackingFaction)
+    terminal.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.SpawnCaptureFlag(terminal, targetBase, hackingFaction))
   }
 
   private def NotifyHackStateChange(
@@ -234,12 +245,11 @@ class HackCaptureActor extends Actor {
                                    ): Unit = {
     val attributeValue = HackCaptureActor.GetHackUpdateAttributeValue(terminal, isResecured)
     // Notify all clients that CC has had its hack state changed
-    terminal.Zone.LocalEvents ! LocalServiceMessage(
+    terminal.Zone.LocalEvents ! MessageEnvelope(
       terminal.Zone.id,
-      LocalAction.SendPlanetsideAttributeMessage(
-        PlanetSideGUID(-1),
+      PlanetsideAttribute(
         terminal.GUID,
-        PlanetsideAttributeEnum.ControlConsoleHackUpdate,
+        PlanetsideAttributeEnum.ControlConsoleHackUpdate.id,
         attributeValue
       )
     )
@@ -267,18 +277,18 @@ class HackCaptureActor extends Actor {
 
   private def HackCompleted(terminal: CaptureTerminal with Hackable, hackedByFaction: PlanetSideEmpire.Value): Unit = {
     val building = terminal.Owner.asInstanceOf[Building]
+    val zone = building.Zone
+    val events = zone.LocalEvents
+    val messages: ArrayBuffer[MessageEnvelope] = ArrayBuffer()
     if (building.NtuLevel > 0) {
       building.virusId = 8
       building.virusInstalledBy = None
       log.info(s"Setting base ${building.GUID} / MapId: ${building.MapId} as owned by $hackedByFaction")
       //dispatch to players aligned with the capturing faction within the SOI
-      val events = building.Zone.LocalEvents
-      val msg = LocalAction.SendGenericActionMessage(Service.defaultPlayerGUID, GenericAction.FacilityCaptureFanfare)
-      building
-        .PlayersInSOI
-        .collect { case p if p.Faction == hackedByFaction =>
-          events ! LocalServiceMessage(p.Name, msg)
-        }
+      val msg = LocalAction.GenericActionMessage(GenericAction.FacilityCaptureFanfare)
+      messages.appendAll(building.PlayersInSOI.collect { case p if p.Faction == hackedByFaction =>
+        MessageEnvelope(p.Name, msg)
+      })
       val buildings = building.Zone.Buildings.values
       val hackedBaseId = building.GUID
       val facilities = if (building.Zone.id.startsWith("c")) {
@@ -312,7 +322,8 @@ class HackCaptureActor extends Actor {
     }
     NotifyHackStateChange(terminal, isResecured = true)
     // todo: this appears to be the way to reset the base warning lights after the hack finishes but it doesn't seem to work.
-    context.parent ! HackClearActor.SendHackMessageHackCleared(building.GUID, terminal.Zone.id, 3212836864L, HackState7.Unk8) //call up
+    messages.append(MessageEnvelope(zone.id, LocalAction.HackClear(building.GUID, 3212836864L, HackState7.Unk8)))
+    events ! BundledEnvelope(messages)
   }
 
   private def RestartTimer(): Unit = {

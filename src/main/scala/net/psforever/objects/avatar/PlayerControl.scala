@@ -25,9 +25,8 @@ import net.psforever.objects.zones._
 import net.psforever.packet.game._
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.types._
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.local.LocalAction
 import net.psforever.objects.locker.LockerContainerControl
 import net.psforever.objects.serverobject.environment.interaction.RespondsToZoneEnvironment
 import net.psforever.objects.serverobject.repair.Repairable
@@ -36,6 +35,8 @@ import net.psforever.objects.vital.collision.CollisionReason
 import net.psforever.objects.vital.etc.{PainboxReason, SuicideReason}
 import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.packet.PlanetSideGamePacket
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{EventMessage, HintsAtAttacker, ObjectDelete, PlanetsideAttribute, SendResponse}
 import org.joda.time.{LocalDateTime, Seconds}
 
 import scala.concurrent.duration._
@@ -125,7 +126,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           val zoneId = zone.id
           sendResponse(zone, zoneId, PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
           sendResponse(zone, zoneId, AvatarDeadStateMessage(DeadState.Alive, timer_max=0, timer=0, player.Position, player.Faction, unk5=true))
-          sendResponse(zone, zoneId, AvatarAction.PlanetsideAttributeToAll(revivalTargetGuid, attribute_type=0, health))
+          sendResponse(zone, zoneId, PlanetsideAttributeMessage(revivalTargetGuid, attribute_type=0, health))
           avatarActor ! AvatarActor.InitializeImplants
           avatarActor ! AvatarActor.SuspendStaminaRegeneration(Duration(1, "second"))
 
@@ -147,14 +148,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             if (!(player.isMoving || user.isMoving)) { //only allow stationary heals
               val newHealth = player.Health = originalHealth + 10
               val magazine = item.Discharge()
-              events ! AvatarServiceMessage(
+              events ! MessageEnvelope(
                 uname,
-                AvatarAction.SendResponse(
-                  Service.defaultPlayerGUID,
-                  InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)
-                )
+                SendResponse(InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong))
               )
-              events ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(guid, 0, newHealth))
+              events ! MessageEnvelope(zone.id, PlanetsideAttribute(guid, 0, newHealth))
               player.LogActivity(
                 HealFromEquipment(
                   PlayerSource(user),
@@ -174,14 +172,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             }
             if (player != user) {
               //"Someone is trying to heal you"
-              events ! AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(guid, 55, 1))
+              events ! MessageEnvelope(player.Name, PlanetsideAttribute(guid, 55, 1))
               //progress bar remains visible for all heal attempts
-              events ! AvatarServiceMessage(
+              events ! MessageEnvelope(
                 uname,
-                AvatarAction.SendResponse(
-                  Service.defaultPlayerGUID,
-                  RepairMessage(guid, player.Health * 100 / definition.MaxHealth)
-                )
+                SendResponse(RepairMessage(guid, player.Health * 100 / definition.MaxHealth))
               )
             }
           }
@@ -219,14 +214,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               val newArmor = player.Armor =
                 originalArmor + Repairable.applyLevelModifier(user, item, RepairToolValue(item)).toInt + definition.RepairMod
               val magazine = item.Discharge()
-              events ! AvatarServiceMessage(
+              events ! MessageEnvelope(
                 uname,
-                AvatarAction.SendResponse(
-                  Service.defaultPlayerGUID,
-                  InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong)
-                )
+                SendResponse(InventoryStateMessage(item.AmmoSlot.Box.GUID, item.GUID, magazine.toLong))
               )
-              events ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(guid, 4, player.Armor))
+              events ! MessageEnvelope(zone.id, PlanetsideAttribute(guid, 4, player.Armor))
               player.LogActivity(
                 RepairFromEquipment(
                   PlayerSource(user),
@@ -247,16 +239,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
             if (player != user) {
               if (player.isAlive) {
                 //"Someone is trying to repair you" gets strobed twice for visibility
-                val msg = AvatarServiceMessage(player.Name, AvatarAction.PlanetsideAttributeToAll(guid, 56, 1))
+                val msg = MessageEnvelope(player.Name, PlanetsideAttribute(guid, 56, 1))
                 events ! msg
                 import scala.concurrent.ExecutionContext.Implicits.global
                 context.system.scheduler.scheduleOnce(250 milliseconds, events, msg)
               }
               //progress bar remains visible for all repair attempts
-              events ! AvatarServiceMessage(
+              events ! MessageEnvelope(
                 uname,
-                AvatarAction
-                  .SendResponse(Service.defaultPlayerGUID, RepairMessage(guid, player.Armor * 100 / player.MaxArmor))
+                SendResponse(RepairMessage(guid, player.Armor * 100 / player.MaxArmor))
               )
             }
           }
@@ -321,16 +312,16 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               avatarActor ! AvatarActor.UpdateUseTime(kdef)
               player.Slot(slot).Equipment = None //remove from slot immediately; must exist on client for now
               TaskWorkflow.execute(GUIDTask.unregisterEquipment(zone.GUID, kit))
-              zone.AvatarEvents ! AvatarServiceMessage(
+              zone.AvatarEvents ! MessageEnvelope(
                 zone.id,
-                AvatarAction.PlanetsideAttributeToAll(player.GUID, attribute, value)
+                PlanetsideAttribute(player.GUID, attribute, value)
               )
-              zone.AvatarEvents ! AvatarServiceMessage(
+              zone.AvatarEvents ! MessageEnvelope(
                 player.Name,
                 AvatarAction.UseKit(kguid, kdef.ObjectId)
               )
             case _ =>
-              player.Zone.AvatarEvents ! AvatarServiceMessage(
+              player.Zone.AvatarEvents ! MessageEnvelope(
                 player.Name,
                 AvatarAction.KitNotUsed(kit.GUID, msg)
               )
@@ -344,15 +335,17 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           val events = player.Zone.AvatarEvents
           val resistance = player.TestArmMotion(slot)
           if (resistance && !updateMyHolsterArm) {
-            events ! AvatarServiceMessage(
+            events ! MessageEnvelope(
               player.Name,
-              AvatarAction.ObjectHeld(player.GUID, before, -1)
+              player.GUID,
+              AvatarAction.ObjectHeld(before, -1)
             )
           } else if ((!resistance && before != slot && (player.DrawnSlot = slot) != before) && ItemSwapSlot != before) {
             val mySlot = if (updateMyHolsterArm) slot else -1 //use as a short-circuit
-            events ! AvatarServiceMessage(
+            events ! MessageEnvelope(
               Players.ZoneChannelIfSpectating(player),
-              AvatarAction.ObjectHeld(player.GUID, mySlot, player.LastDrawnSlot)
+              player.GUID,
+              AvatarAction.ObjectHeld(mySlot, player.LastDrawnSlot)
             )
             val isHolsters = player.VisibleSlots.contains(slot)
             val equipment = player.Slot(slot).Equipment.orElse { player.Slot(before).Equipment }
@@ -362,9 +355,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   log.info(s"${player.Name} has drawn a ${unholsteredItem.Definition.Name} from its holster")
                   if (unholsteredItem.Definition == GlobalDefinitions.remote_electronics_kit) {
                     //rek beam/icon colour must match the player's correct hack level
-                    events ! AvatarServiceMessage(
+                    events ! MessageEnvelope(
                       Players.ZoneChannelIfSpectating(player),
-                      AvatarAction.PlanetsideAttribute(unholsteredItem.GUID, 116, player.avatar.hackingSkillLevel())
+                      unholsteredItem.GUID,
+                      PlanetsideAttribute(unholsteredItem.GUID, 116, player.avatar.hackingSkillLevel())
                     )
                   }
                 case None => ()
@@ -376,7 +370,11 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   //make sure the player didn't just initialte an orbital strike. If not (the if below is true), make sure waypoint is removed
                   if (holsteredEquipment.Definition == GlobalDefinitions.command_detonater && player.avatar.cr.value > 3 &&
                     !player.avatar.cooldowns.purchase.exists(os => os._1 == "orbital_strike" && Seconds.secondsBetween(os._2, LocalDateTime.now()).getSeconds < 12)) {
-                    player.Zone.LocalEvents ! LocalServiceMessage(s"${player.Faction}", LocalAction.SendPacket(OrbitalStrikeWaypointMessage(player.GUID, None)))
+                    player.Zone.LocalEvents ! MessageEnvelope(
+                      s"${player.Faction}",
+                      PlanetSideGUID(-1),
+                      SendResponse(OrbitalStrikeWaypointMessage(player.GUID, None))
+                    )
                   }
                 case None =>
                   log.info(s"${player.Name} lowers ${player.Sex.possessive} hand")
@@ -400,7 +398,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               if (exosuit == ExoSuitType.MAX) {
                 player.ResistArmMotion(PlayerControl.maxRestriction)
               }
-              player.Zone.AvatarEvents ! AvatarServiceMessage(
+              player.Zone.AvatarEvents ! MessageEnvelope(
                 player.Name,
                 AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result)
               )
@@ -532,7 +530,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   Deployables.initializeConstructionItem(player.avatar.certifications, citem)
               }
               val zone = player.Zone
-              zone.AvatarEvents ! AvatarServiceMessage(
+              zone.AvatarEvents ! MessageEnvelope(
                 Players.ZoneChannelIfSpectating(player),
                 AvatarAction.ChangeLoadout(
                   player.GUID,
@@ -548,7 +546,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                   itemsToDrop
                 )
               )
-              zone.AvatarEvents ! AvatarServiceMessage(
+              zone.AvatarEvents ! MessageEnvelope(
                 player.Name,
                 AvatarAction.TerminalOrderResult(msg.terminal_guid, msg.transaction_type, result=true)
               )
@@ -577,9 +575,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         case Zone.Ground.CanNotPickupItem(_, item_guid, reason) =>
           log.warn(s"${player.Name} failed to pick up an item ($item_guid) from the ground because $reason")
           if (reason.startsWith("@")) {
-            player.Zone.AvatarEvents ! AvatarServiceMessage(
+            player.Zone.AvatarEvents ! MessageEnvelope(
               player.Name,
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, ChatMsg(ChatMessageType.UNK_227, reason))
+              SendResponse(ChatMsg(ChatMessageType.UNK_227, reason))
             )
           }
 
@@ -597,7 +595,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
               val trigger = new BoomerTrigger
               trigger.Companion = obj.GUID
               obj.Trigger = trigger
-              zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, tool.GUID))
+              zone.AvatarEvents ! MessageEnvelope(zone.id, ObjectDelete(tool.GUID))
               TaskWorkflow.execute(GUIDTask.unregisterEquipment(zone.GUID, tool))
               player.Find(tool) match {
                 case Some(index) if player.VisibleSlots.contains(index) =>
@@ -649,7 +647,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
         case Player.LoseDeployable(obj) =>
           if (player.avatar.deployables.Remove(obj)) {
-            player.Zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
+            player.Zone.LocalEvents ! MessageEnvelope(player.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
           }
 
         case _ => ;
@@ -722,7 +720,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       //insert
       afterHolsters.foreach(elem => player.Slot(elem.start).Equipment = elem.obj)
       afterInventory.foreach(elem => player.Inventory.InsertQuickly(elem.start, elem.obj))
-      player.Zone.AvatarEvents ! AvatarServiceMessage(
+      player.Zone.AvatarEvents ! MessageEnvelope(
         Players.ZoneChannelIfSpectating(player),
         AvatarAction.ChangeExosuit(
           player.GUID,
@@ -748,7 +746,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   def loseDeployableOwnership(obj: Deployable): Boolean = {
     if (player.avatar.deployables.Remove(obj)) {
       obj.Actor ! Deployable.Ownership(None)
-      player.Zone.LocalEvents ! LocalServiceMessage(player.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
+      player.Zone.LocalEvents ! MessageEnvelope(player.Name, LocalAction.DeployableUIFor(obj.Definition.Item))
       true
     }
     else {
@@ -769,18 +767,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           case GlobalDefinitions.router_telepad => () /* no special animation */
           case GlobalDefinitions.ace
             if obj.Definition.deployAnimation == DeployAnimation.Standard =>
-            zone.LocalEvents ! LocalServiceMessage(
+            val ownerGuid = obj.OwnerGuid.getOrElse(Default.GUID0)
+            zone.LocalEvents ! MessageEnvelope(
               zone.id,
-              LocalAction.TriggerEffectLocation(
-                obj.OwnerGuid.getOrElse(Service.defaultPlayerGUID),
-                "spawn_object_effect",
-                obj.Position,
-                obj.Orientation
-              )
+              ownerGuid,
+              LocalAction.TriggerEffectLocation("spawn_object_effect", obj.Position, obj.Orientation)
             )
           case GlobalDefinitions.advanced_ace
             if obj.Definition.deployAnimation == DeployAnimation.Fdu =>
-            zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PutDownFDU(player.GUID))
+            zone.AvatarEvents ! MessageEnvelope(zone.id, AvatarAction.PutDownFDU(player.GUID))
           case _ =>
             org.log4s
               .getLogger(name = "Deployables")
@@ -883,9 +878,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     //always do armor update
     if (damageToArmor > 0) {
       val zone = target.Zone
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
-        AvatarAction.PlanetsideAttributeToAll(target.GUID, 4, target.Armor)
+        PlanetsideAttribute(target.GUID, 4, target.Armor)
       )
     }
     //choose
@@ -941,10 +936,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     target.LogActivity(cause)
     //stat changes
     if (damageToCapacitor > 0) {
-      events ! AvatarServiceMessage(
-        target.Name,
-        AvatarAction.PlanetsideAttributeSelf(targetGUID, 7, target.Capacitor.toLong)
-      )
+      events ! MessageEnvelope(target.Name, PlanetsideAttribute(targetGUID, 7, target.Capacitor.toLong))
       announceConfrontation = true //TODO should we?
     }
     if (damageToStamina > 0) {
@@ -952,15 +944,15 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
       announceConfrontation = true //TODO should we?
     }
     if (damageToHealth > 0) {
-      events ! AvatarServiceMessage(zoneId, AvatarAction.PlanetsideAttributeToAll(targetGUID, 0, health))
+      events ! MessageEnvelope(zoneId, PlanetsideAttribute(targetGUID, 0, health))
       announceConfrontation = true
     }
     val countableDamage = damageToHealth + damageToArmor
     if(announceConfrontation) {
       if (aggravated) {
-        events ! AvatarServiceMessage(
+        events ! MessageEnvelope(
           zoneId,
-          AvatarAction.SendResponse(Service.defaultPlayerGUID, AggravatedDamageMessage(targetGUID, countableDamage))
+          SendResponse(AggravatedDamageMessage(targetGUID, countableDamage))
         )
       } else {
         //activity on map
@@ -973,42 +965,37 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
                 val name = pSource.Name
                 zone.LivePlayers.find(_.Name == name).orElse(zone.Corpses.find(_.Name == name)) match {
                   case Some(tplayer) =>
-                    zone.AvatarEvents ! AvatarServiceMessage(
+                    zone.AvatarEvents ! MessageEnvelope(
                       target.Name,
-                      AvatarAction.HitHint(tplayer.GUID, target.GUID)
+                      target.GUID,
+                      HintsAtAttacker(tplayer.GUID)
                     )
                   case None =>
-                    zone.AvatarEvents ! AvatarServiceMessage(
+                    zone.AvatarEvents ! MessageEnvelope(
                       target.Name,
-                      AvatarAction.SendResponse(
-                        Service.defaultPlayerGUID,
-                        DamageWithPositionMessage(countableDamage, pSource.Position)
-                      )
+                      SendResponse(DamageWithPositionMessage(countableDamage, pSource.Position))
                     )
                 }
               case source =>
-                zone.AvatarEvents ! AvatarServiceMessage(
+                zone.AvatarEvents ! MessageEnvelope(
                   target.Name,
-                  AvatarAction.SendResponse(
-                    Service.defaultPlayerGUID,
-                    DamageWithPositionMessage(countableDamage, source.Position)
-                  )
+                  SendResponse(DamageWithPositionMessage(countableDamage, source.Position))
                 )
             }
           case None =>
             cause.interaction.cause match {
               case o: PainboxReason =>
-                zone.AvatarEvents ! AvatarServiceMessage(
+                zone.AvatarEvents ! MessageEnvelope(
                   target.Name,
                   AvatarAction.EnvironmentalDamage(target.GUID, o.entity.GUID, countableDamage)
                 )
               case _: CollisionReason =>
-                events ! AvatarServiceMessage(
+                events ! MessageEnvelope(
                   zoneId,
-                  AvatarAction.SendResponse(Service.defaultPlayerGUID, AggravatedDamageMessage(targetGUID, countableDamage))
+                  SendResponse(AggravatedDamageMessage(targetGUID, countableDamage))
                 )
               case _ =>
-                zone.AvatarEvents ! AvatarServiceMessage(
+                zone.AvatarEvents ! MessageEnvelope(
                   target.Name,
                   AvatarAction.EnvironmentalDamage(target.GUID, ValidPlanetSideGUID(0), countableDamage)
                 )
@@ -1064,19 +1051,16 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         damageLog.info(s"${player.Name} killed ${player.Sex.pronounObject}self")
     }
 
-    events ! AvatarServiceMessage(nameChannel, AvatarAction.Killed(player_guid, cause, target.VehicleSeated)) //align client interface fields with state
-    events ! AvatarServiceMessage(zoneChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 0, 0)) //health
+    events ! MessageEnvelope(nameChannel, player_guid, AvatarAction.Killed(cause, target.VehicleSeated)) //align client interface fields with state
+    events ! MessageEnvelope(zoneChannel, PlanetsideAttribute(player_guid, 0, 0)) //health
     if (target.Capacitor > 0) {
       target.Capacitor = 0
-      events ! AvatarServiceMessage(nameChannel, AvatarAction.PlanetsideAttributeToAll(player_guid, 7, 0)) // capacitor
+      events ! MessageEnvelope(nameChannel, PlanetsideAttribute(player_guid, 7, 0)) // capacitor
     }
     val attribute = DamageableEntity.attributionTo(cause, target.Zone, player_guid)
-    events ! AvatarServiceMessage(
+    events ! MessageEnvelope(
       nameChannel,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-        DestroyMessage(player_guid, attribute, Service.defaultPlayerGUID, pos)
-      ) //how many players get this message?
+      SendResponse(DestroyMessage(player_guid, attribute, Default.GUID0, pos)) //how many players get this message?
     )
   }
 
@@ -1105,12 +1089,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   override def StartJammeredSound(target: Any, dur: Int): Unit =
     target match {
       case obj: Player if !jammedSound =>
-        obj.Zone.AvatarEvents ! AvatarServiceMessage(
+        obj.Zone.AvatarEvents ! MessageEnvelope(
           obj.Zone.id,
-          AvatarAction.PlanetsideAttributeToAll(obj.GUID, 27, 1)
+          PlanetsideAttribute(obj.GUID, 27, 1)
         )
         super.StartJammeredSound(obj, 3000)
-      case _ => ;
+      case _ => ()
     }
 
   /**
@@ -1141,12 +1125,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   override def CancelJammeredSound(target: Any): Unit =
     target match {
       case obj: Player if jammedSound =>
-        obj.Zone.AvatarEvents ! AvatarServiceMessage(
+        obj.Zone.AvatarEvents ! MessageEnvelope(
           obj.Zone.id,
-          AvatarAction.PlanetsideAttributeToAll(obj.GUID, 27, 0)
+          PlanetsideAttribute(obj.GUID, 27, 0)
         )
         super.CancelJammeredSound(obj)
-      case _ => ;
+      case _ => ()
     }
 
   def RepairToolValue(item: Tool): Float = {
@@ -1167,9 +1151,9 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
         obj.Find(item) match {
           case Some(slot) =>
             PutItemInSlotCallback(item, slot)
-          case None => ;
+          case None => ()
         }
-      case _ => ;
+      case _ => ()
     }
   }
 
@@ -1188,7 +1172,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     if (slot == obj.DrawnSlot) {
       obj.DrawnSlot = Player.HandsDownSlot
     }
-    events ! AvatarServiceMessage(toChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
+    events ! MessageEnvelope(toChannel, ObjectDelete(item.GUID))
   }
 
   def PutItemInSlotCallback(item: Equipment, slot: Int): Unit = {
@@ -1209,10 +1193,10 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
           case Some(obj: BoomerDeployable) =>
             val deployables = player.avatar.deployables
             if (!deployables.Contains(obj) && deployables.Valid(obj)) {
-              events ! AvatarServiceMessage(toChannel, AvatarAction.SendResponse(
-                Service.defaultPlayerGUID,
-                GenericObjectAction2Message(1, player.GUID, trigger.GUID)
-              ))
+              events ! MessageEnvelope(
+                toChannel,
+                SendResponse(GenericObjectAction2Message(1, player.GUID, trigger.GUID))
+              )
               Players.gainDeployableOwnership(player, obj, deployables.AddOverLimit)
             }
           case _ => ()
@@ -1228,15 +1212,12 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
 
       case _ => ()
     }
-    events ! AvatarServiceMessage(
+    events ! MessageEnvelope(
       toChannel,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-        OCM.detailed(item, ObjectCreateMessageParent(guid, slot))
-      )
+      SendResponse(OCM.detailed(item, ObjectCreateMessageParent(guid, slot)))
     )
     if (!player.isBackpack && willBeVisible) {
-      events ! AvatarServiceMessage(zone.id, AvatarAction.EquipmentInHand(guid, guid, slot, item))
+      events ! MessageEnvelope(zone.id, guid, AvatarAction.EquipmentInHand(guid, slot, item))
     }
   }
 
@@ -1250,17 +1231,16 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
     } else {
       player.Name
     }
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       toChannel,
-      AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID)
+      ObjectDelete(item.GUID)
     )
   }
 
   def UpdateAuraEffect(target: AuraEffectBehavior.Target) : Unit = {
-    import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
     val zone = target.Zone
     val value = target.Aura.foldLeft(0)(_ + PlayerControl.auraEffectToAttributeValue(_))
-    zone.AvatarEvents ! AvatarServiceMessage(zone.id, AvatarAction.PlanetsideAttributeToAll(target.GUID, 54, value))
+    zone.AvatarEvents ! MessageEnvelope(zone.id, PlanetsideAttribute(target.GUID, 54, value))
   }
 }
 
@@ -1290,11 +1270,11 @@ object PlayerControl {
   }
 
   def sendResponse(zone: Zone, channel: String, msg: PlanetSideGamePacket): Unit = {
-    zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.SendResponse(Service.defaultPlayerGUID, msg))
+    zone.AvatarEvents ! MessageEnvelope(channel, SendResponse(msg))
   }
 
-  def sendResponse(zone: Zone, channel: String, msg: AvatarAction.Action): Unit = {
-    zone.AvatarEvents ! AvatarServiceMessage(channel, msg)
+  def sendResponse(zone: Zone, channel: String, filter: PlanetSideGUID, msg: EventMessage): Unit = {
+    zone.AvatarEvents ! MessageEnvelope(channel, filter, msg)
   }
 
   def maxRestriction(player: Player, slot: Int): Boolean = {

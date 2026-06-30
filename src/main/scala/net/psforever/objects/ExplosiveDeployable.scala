@@ -17,9 +17,9 @@ import net.psforever.objects.vital.interaction.{DamageInteraction, DamageResult}
 import net.psforever.objects.vital.projectile.ProjectileReason
 import net.psforever.objects.zones.Zone
 import net.psforever.types.Vector3
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.local.LocalAction
 
 import scala.annotation.unused
 import scala.concurrent.duration._
@@ -182,7 +182,7 @@ object ExplosiveDeployableControl {
     target.Health = 1 // short-circuit logic in DestructionAwareness
     val zone = target.Zone
     zone.Activity ! Zone.HotSpot.Activity(cause)
-    zone.LocalEvents ! LocalServiceMessage(zone.id, LocalAction.Detonate(target.GUID, target))
+    zone.LocalEvents ! MessageEnvelope(zone.id, LocalAction.Detonate(target.GUID, target))
     Zone.serverSideDamage(
       zone,
       target,
@@ -210,14 +210,14 @@ object ExplosiveDeployableControl {
       Some(if (target.Jammed || target.Destroyed) 0 seconds else 500 milliseconds)
     )
     target.Destroyed = true
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       zone.id,
-      AvatarAction.Destroy(target.GUID, attribution, Service.defaultPlayerGUID, target.Position)
+      AvatarAction.Destroy(target.GUID, attribution, Default.GUID0, target.Position)
     )
     if (target.Health == 0) {
-      zone.LocalEvents ! LocalServiceMessage(
+      zone.LocalEvents ! MessageEnvelope(
         zone.id,
-        LocalAction.TriggerEffect(Service.defaultPlayerGUID, "detonate_damaged_mine", target.GUID)
+        LocalAction.TriggerEffect("detonate_damaged_mine", target.GUID)
       )
     }
   }

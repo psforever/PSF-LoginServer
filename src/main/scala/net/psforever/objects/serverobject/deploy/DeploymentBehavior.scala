@@ -4,8 +4,8 @@ package net.psforever.objects.serverobject.deploy
 import akka.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.types.{DriveState, Vector3}
-import net.psforever.services.Service
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.vehicle.VehicleAction
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -97,16 +97,15 @@ trait DeploymentBehavior {
     val guid        = obj.GUID
     val zone        = obj.Zone
     val zoneChannel = zone.id
-    val GUID0       = Service.defaultPlayerGUID
     //TODO remove this arbitrary allowance angle when no longer helpful
     if (obj.Orientation.x > 30 && obj.Orientation.x < 330) {
       obj.DeploymentState = prevState
       prevState
     } else if (state == DriveState.Deploying) {
       obj.Velocity = Some(Vector3.Zero) //no velocity
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zoneChannel,
-        VehicleAction.DeployRequest(GUID0, guid, state, 0, unk2=false, Vector3.Zero)
+        VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )
       deploymentTimer.cancel()
       deploymentTimer = context.system.scheduler.scheduleOnce(obj.DeployTime.milliseconds)({
@@ -115,9 +114,9 @@ trait DeploymentBehavior {
       state
     } else if (state == DriveState.Deployed) {
       obj.Velocity = Some(Vector3.Zero) //no velocity
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zoneChannel,
-        VehicleAction.DeployRequest(GUID0, guid, state, 0, unk2=false, Vector3.Zero)
+        VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )
       state
     } else {
@@ -134,11 +133,10 @@ trait DeploymentBehavior {
     val guid        = obj.GUID
     val zone        = obj.Zone
     val zoneChannel = zone.id
-    val GUID0       = Service.defaultPlayerGUID
     if (state == DriveState.Undeploying) {
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zoneChannel,
-        VehicleAction.DeployRequest(GUID0, guid, state, 0, unk2=false, Vector3.Zero)
+        VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )
       import scala.concurrent.ExecutionContext.Implicits.global
       deploymentTimer.cancel()
@@ -147,9 +145,9 @@ trait DeploymentBehavior {
       })
       state
     } else if (state == DriveState.Mobile) {
-      zone.VehicleEvents ! VehicleServiceMessage(
+      zone.VehicleEvents ! MessageEnvelope(
         zoneChannel,
-        VehicleAction.DeployRequest(GUID0, guid, state, 0, unk2=false, Vector3.Zero)
+        VehicleAction.DeployRequest(guid, state, 0, unk2=false, Vector3.Zero)
       )
       state
     } else {

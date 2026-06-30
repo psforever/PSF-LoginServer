@@ -7,7 +7,8 @@ import net.psforever.objects.serverobject.environment.interaction.common.Watery
 import net.psforever.objects.serverobject.environment.interaction.common.Watery.OxygenStateTarget
 import net.psforever.objects.serverobject.environment.{EnvironmentTrait, PieceOfEnvironment, interaction}
 import net.psforever.objects.zones.interaction.InteractsWithZone
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.types.OxygenState
 
 import scala.concurrent.duration._
@@ -299,7 +300,7 @@ class WithWater(val channel: String)
                                   cond: OxygenStateTarget,
                                   data: Option[OxygenStateTarget]
                                 ): Unit = {
-    obj.Zone.AvatarEvents ! AvatarServiceMessage(channel, AvatarAction.OxygenState(cond, data))
+    obj.Zone.AvatarEvents ! MessageEnvelope(channel, AvatarAction.OxygenState(cond, data))
   }
 }
 

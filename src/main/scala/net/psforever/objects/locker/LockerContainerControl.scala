@@ -6,8 +6,8 @@ import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.serverobject.containable.{Containable, ContainableBehavior}
 import net.psforever.packet.game.objectcreate.ObjectCreateMessageParent
 import net.psforever.packet.game.{ObjectAttachMessage, ObjectCreateDetailedMessage, ObjectDetachMessage}
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.{ObjectDelete, SendResponse}
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 
 /**
@@ -19,7 +19,7 @@ import net.psforever.types.{PlanetSideEmpire, Vector3}
 class LockerContainerControl(locker: LockerContainer, toChannel: String)
   extends Actor
   with ContainableBehavior {
-  def ContainerObject = locker
+  def ContainerObject: LockerContainer = locker
 
   def receive: Receive =
     containerBehavior
@@ -34,9 +34,9 @@ class LockerContainerControl(locker: LockerContainer, toChannel: String)
         val obj = ContainerObject
         obj.Find(item) match {
           case Some(slot) =>
-            obj.Zone.AvatarEvents ! AvatarServiceMessage(
+            obj.Zone.AvatarEvents ! MessageEnvelope(
               toChannel,
-              AvatarAction.SendResponse(Service.defaultPlayerGUID, ObjectAttachMessage(obj.GUID, item.GUID, slot))
+              SendResponse(ObjectAttachMessage(obj.GUID, item.GUID, slot))
             )
           case None => ;
         }
@@ -46,17 +46,16 @@ class LockerContainerControl(locker: LockerContainer, toChannel: String)
 
   def RemoveItemFromSlotCallback(item: Equipment, slot: Int): Unit = {
     val zone = locker.Zone
-    zone.AvatarEvents ! AvatarServiceMessage(toChannel, AvatarAction.ObjectDelete(Service.defaultPlayerGUID, item.GUID))
+    zone.AvatarEvents ! MessageEnvelope(toChannel, ObjectDelete(item.GUID))
   }
 
   def PutItemInSlotCallback(item: Equipment, slot: Int): Unit = {
     val zone       = locker.Zone
     val definition = item.Definition
     item.Faction = PlanetSideEmpire.NEUTRAL
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       toChannel,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
+      SendResponse(
         ObjectCreateDetailedMessage(
           definition.ObjectId,
           item.GUID,
@@ -69,12 +68,9 @@ class LockerContainerControl(locker: LockerContainer, toChannel: String)
 
   def SwapItemCallback(item: Equipment, fromSlot: Int): Unit = {
     val zone = locker.Zone
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       toChannel,
-      AvatarAction.SendResponse(
-        Service.defaultPlayerGUID,
-        ObjectDetachMessage(locker.GUID, item.GUID, Vector3.Zero, 0f)
-      )
+      SendResponse(ObjectDetachMessage(locker.GUID, item.GUID, Vector3.Zero, 0f))
     )
   }
 }

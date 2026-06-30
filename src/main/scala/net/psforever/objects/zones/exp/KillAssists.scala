@@ -6,7 +6,8 @@ import net.psforever.objects.avatar.scoring.{Assist, Death, KDAStat, Kill}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.interaction.{Adversarial, DamageResult}
 import net.psforever.objects.vital.{DamagingActivity, HealingActivity, InGameActivity, RepairingActivity, RevivingActivity, SpawningActivity}
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.types.PlanetSideEmpire
 import net.psforever.util.Config
 
@@ -42,7 +43,6 @@ object KillAssists {
    * @param eventBus where to send the results of the experience determination(s)
    * @see `ActorRef`
    * @see `AvatarAction.UpdateKillsDeathsAssists`
-   * @see `AvatarServiceMessage`
    * @see `DamageResult`
    * @see `rewardThisPlayerDeath`
    */
@@ -52,9 +52,9 @@ object KillAssists {
                                           history: Iterable[InGameActivity],
                                           eventBus: ActorRef
                                         ): Unit = {
-    rewardThisPlayerDeath(victim, lastDamage, history).foreach { case (p, kda) =>
-      eventBus ! AvatarServiceMessage(p.Name, AvatarAction.UpdateKillsDeathsAssists(p.CharId, kda))
-    }
+    eventBus ! BundledEnvelope(rewardThisPlayerDeath(victim, lastDamage, history).map { case (p, kda) =>
+      MessageEnvelope(p.Name, AvatarAction.UpdateKillsDeathsAssists(p.CharId, kda))
+    })
   }
 
   /**

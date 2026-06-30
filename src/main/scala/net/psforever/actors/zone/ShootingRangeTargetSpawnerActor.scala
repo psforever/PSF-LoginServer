@@ -6,9 +6,10 @@ import net.psforever.objects.{Default, GlobalDefinitions, Tool, Vehicle}
 import net.psforever.objects.avatar.{AvatarBot, AvatarBotActor}
 import net.psforever.objects.guid.{GUIDTask, StraightforwardTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.zones.Zone
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
-import net.psforever.types.{CharacterSex, CharacterVoice, ExoSuitType, PlanetSideEmpire, PlanetSideGUID, Vector3}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.local.LocalAction
+import net.psforever.services.vehicle.VehicleAction
+import net.psforever.types.{CharacterSex, CharacterVoice, ExoSuitType, PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
 
 import scala.collection.mutable.ListBuffer
@@ -282,7 +283,6 @@ class ShootingRangeTargetSpawnerActor(zone: Zone) extends Actor {
    * @param bot the bot to remove
    */
   private def RemoveBot(bot: AvatarBot): Boolean = {
-    import net.psforever.services.Service
     activeInfantryTargets.indexOf(bot) match {
       case -1 =>
         log.warn(s"Failed to remove bot with GUID ${bot.GUID} from ${zone.id}'s active targets list! This shouldn't happen... and probably just caused a leak.")
@@ -290,9 +290,9 @@ class ShootingRangeTargetSpawnerActor(zone: Zone) extends Actor {
       case index =>
         activeInfantryTargets.remove(index)
     }
-    zone.LocalEvents ! LocalServiceMessage(
+    zone.LocalEvents ! MessageEnvelope(
       zone.id,
-      LocalAction.TriggerEffectLocation(Service.defaultPlayerGUID, "bot_destroyed_effect", bot.Position, bot.Orientation)
+      LocalAction.TriggerEffectLocation("bot_destroyed_effect", bot.Position, bot.Orientation)
     )
     //spawn a replacement bot
     context.system.scheduler.scheduleOnce(
@@ -356,10 +356,9 @@ class ShootingRangeTargetSpawnerActor(zone: Zone) extends Actor {
 
         def action(): Future[Any] = {
           zone.Transport ! Zone.Vehicle.Spawn(localVehicle)
-          zone.VehicleEvents ! VehicleServiceMessage(
+          zone.VehicleEvents ! MessageEnvelope(
             zone.id,
             VehicleAction.LoadVehicle(
-              PlanetSideGUID(0),
               localVehicle,
               localVehicle.Definition.ObjectId,
               localVehicle.GUID,

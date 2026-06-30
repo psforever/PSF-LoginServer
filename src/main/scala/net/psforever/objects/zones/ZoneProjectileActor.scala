@@ -2,10 +2,12 @@
 package net.psforever.objects.zones
 
 import akka.actor.{Actor, Cancellable}
+import net.psforever.objects.Default
 import net.psforever.objects.ballistics.Projectile
 import net.psforever.objects.guid.{GUIDTask, StraightforwardTask, TaskBundle, TaskWorkflow}
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.ObjectDelete
 import net.psforever.types.PlanetSideGUID
 
 import scala.collection.mutable
@@ -110,7 +112,7 @@ class ZoneProjectileActor(
       TaskBundle(
         reg.mainTask,
         TaskBundle(
-          reg.subTasks(0).mainTask,
+          reg.subTasks.head.mainTask,
           unregisterProjectile(obj)
         )
       )
@@ -142,11 +144,11 @@ class ZoneProjectileActor(
     projectileList.addOne(projectile)
     val (clarifiedFilterGuid, duration) = if (definition.radiation_cloud) {
       zone.blockMap.addTo(projectile)
-      (Service.defaultPlayerGUID, projectile.profile.Lifespan seconds)
+      (Default.GUID0, projectile.profile.Lifespan seconds)
     } else if (definition.RemoteClientData == (0,0)) {
       //remote projectiles that are not radiation clouds have lifespans controlled by the controller (user)
       //this projectile has defaulted remote client data
-      (Service.defaultPlayerGUID, projectile.profile.Lifespan * 1.5f seconds)
+      (Default.GUID0, projectile.profile.Lifespan * 1.5f seconds)
     } else {
       //remote projectiles that are not radiation clouds have lifespans controlled by the controller (user)
       //if the controller fails, the projectile has a bit more than its normal lifespan before automatic clean up
@@ -156,10 +158,10 @@ class ZoneProjectileActor(
       projectileGuid,
       context.system.scheduler.scheduleOnce(duration, self, ZoneProjectile.Remove(projectileGuid))
     )
-    zone.AvatarEvents ! AvatarServiceMessage(
+    zone.AvatarEvents ! MessageEnvelope(
       zone.id,
+      clarifiedFilterGuid,
       AvatarAction.LoadProjectile(
-        clarifiedFilterGuid,
         definition.ObjectId,
         projectileGuid,
         definition.Packet.ConstructorData(projectile).get
@@ -188,19 +190,19 @@ class ZoneProjectileActor(
     projectileList.remove(projectileList.indexOf(projectile))
     if (projectile.Definition.radiation_cloud) {
       zone.blockMap.removeFrom(projectile)
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
-        AvatarAction.ObjectDelete(PlanetSideGUID(0), projectile_guid, 2)
+        ObjectDelete(projectile_guid, 2)
       )
     } else if (projectile.Definition.RemoteClientData == (0,0)) {
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
-        AvatarAction.ObjectDelete(PlanetSideGUID(0), projectile_guid, 2)
+        ObjectDelete(projectile_guid, 2)
       )
     } else {
-      zone.AvatarEvents ! AvatarServiceMessage(
+      zone.AvatarEvents ! MessageEnvelope(
         zone.id,
-        AvatarAction.ProjectileExplodes(PlanetSideGUID(0), projectile_guid, projectile)
+        AvatarAction.ProjectileExplodes(projectile_guid, projectile)
       )
     }
   }

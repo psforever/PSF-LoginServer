@@ -131,7 +131,8 @@ case class AntiCheatConfig(
 
 case class NetworkConfig(
     session: SessionConfig,
-    middleware: MiddlewareConfig
+    middleware: MiddlewareConfig,
+    eventCaching: CachedMessagesConfig
 )
 
 case class MiddlewareConfig(
@@ -145,6 +146,12 @@ case class MiddlewareConfig(
 case class SessionConfig(
     inboundGraceTime: FiniteDuration,
     outboundGraceTime: FiniteDuration
+)
+
+case class CachedMessagesConfig(
+    flushCacheDelay: Long, //milliseconds
+    flushCacheMaxDelay: Long, //milliseconds
+    messageTrafficThreshold: Long
 )
 
 case class GameConfig(

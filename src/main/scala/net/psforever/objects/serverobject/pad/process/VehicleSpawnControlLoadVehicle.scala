@@ -7,8 +7,8 @@ import akka.util.Timeout
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.zones.Zone
-import net.psforever.services.Service
-import net.psforever.services.vehicle.{VehicleAction, VehicleServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.vehicle.VehicleAction
 import net.psforever.types.Vector3
 import net.psforever.zones.Zones
 
@@ -68,9 +68,9 @@ class VehicleSpawnControlLoadVehicle(pad: VehicleSpawnPad) extends VehicleSpawnC
             val vtype      = definition.ObjectId
             val vguid      = v.GUID
             val vdata      = definition.Packet.ConstructorData(v).get
-            zone.VehicleEvents ! VehicleServiceMessage(
+            zone.VehicleEvents ! MessageEnvelope(
               zone.id,
-              VehicleAction.LoadVehicle(Service.defaultPlayerGUID, v, vtype, vguid, vdata)
+              VehicleAction.LoadVehicle(v, vtype, vguid, vdata)
             )
             railJack ! temp.get
             temp = None

@@ -16,7 +16,9 @@ import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.zones.Zone
 import net.psforever.packet.game.{ChatMsg, SetChatFilterMessage}
 import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.avatar.AvatarAction
+import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
+import net.psforever.services.base.message.{ObjectDelete, SetEmpire}
 import net.psforever.services.chat.{ChatChannel, DefaultChannel, SpectatorChannel, SquadChannel}
 import net.psforever.types.ChatMessageType.{CMT_TOGGLESPECTATORMODE, CMT_TOGGLE_GM}
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire}
@@ -312,17 +314,20 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     val events = continent.AvatarEvents
     seeSpectatorsIn = Some(continent)
     events ! Service.Join(s"spectator")
-    continent
-      .AllPlayers
-      .filter(_.spectator)
-      .foreach { spectator =>
-        val guid = spectator.GUID
-        val definition = spectator.Definition
-        events ! AvatarServiceMessage(
-          channel,
-          AvatarAction.LoadPlayer(guid, definition.ObjectId, guid, definition.Packet.ConstructorData(spectator).get, None)
-        )
-      }
+    events ! BundledEnvelope(
+      continent
+        .AllPlayers
+        .filter(_.spectator)
+        .map { spectator =>
+          val guid = spectator.GUID
+          val definition = spectator.Definition
+          MessageEnvelope(
+            channel,
+            guid,
+            AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(spectator).get, None)
+          )
+        }
+    )
     true
   }
 
@@ -330,17 +335,16 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
     val channel = player.Name
     val events = continent.AvatarEvents
     seeSpectatorsIn = None
-    events ! Service.Leave(Some("spectator"))
-    continent
-      .AllPlayers
-      .filter(_.spectator)
-      .foreach { spectator =>
-        val guid = spectator.GUID
-        events ! AvatarServiceMessage(
-          channel,
-          AvatarAction.ObjectDelete(guid, guid)
-        )
-      }
+    events ! Service.Leave("spectator")
+    events ! BundledEnvelope(
+      continent
+        .AllPlayers
+        .filter(_.spectator)
+        .map { spectator =>
+          val guid = spectator.GUID
+          MessageEnvelope(channel, guid, ObjectDelete(guid))
+        }
+    )
     true
   }
 
@@ -392,9 +396,9 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
           true
         case o: Deployable =>
           o.Faction = foundFaction
-          continent.AvatarEvents ! AvatarServiceMessage(
+          continent.AvatarEvents ! MessageEnvelope(
             continent.id,
-            AvatarAction.SetEmpire(Service.defaultPlayerGUID, o.GUID, foundFaction)
+            SetEmpire(o.GUID, foundFaction)
           )
           true
         case o: Building =>
@@ -405,9 +409,9 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
           true
         case o: PlanetSideGameObject with FactionAffinity =>
           o.Faction = foundFaction
-          continent.AvatarEvents ! AvatarServiceMessage(
+          continent.AvatarEvents ! MessageEnvelope(
             continent.id,
-            AvatarAction.SetEmpire(Service.defaultPlayerGUID, o.GUID, foundFaction)
+            SetEmpire(o.GUID, foundFaction)
           )
           true
       }
@@ -512,7 +516,7 @@ class ChatLogic(val ops: ChatOperations, implicit val context: ActorContext) ext
           .foreach {
             case (_, false, _) => ()
             case (faction, true, _) =>
-              //events ! AvatarServiceMessage(s"$faction", reloadZoneMsg)
+              //events ! MessageEnvelope(s"$faction", reloadZoneMsg)
           }
       }
     }

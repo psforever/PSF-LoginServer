@@ -6,12 +6,12 @@ import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{BattleRank, CommandRank, DeployableToolbox, FirstTimeEvents, Implant, ProgressDecoration, Shortcut => AvatarShortcut}
 import net.psforever.objects.ce.Deployable
 import net.psforever.objects.serverobject.ServerObject
-import net.psforever.objects.{GlobalDefinitions, Player, Session, SimpleItem, Vehicle}
+import net.psforever.objects.{Default, GlobalDefinitions, Player, Session, SimpleItem, Vehicle}
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.packet.game.{DeployableInfo, DeployableObjectsInfoMessage, DeploymentAction, ObjectCreateDetailedMessage, ObjectDeleteMessage}
 import net.psforever.packet.game.objectcreate.{ObjectClass, ObjectCreateMessageParent, RibbonBars}
-import net.psforever.services.Service
-import net.psforever.services.avatar.{AvatarAction, AvatarServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.ObjectDelete
 import net.psforever.services.chat.SpectatorChannel
 import net.psforever.services.teamwork.{SquadAction, SquadServiceMessage}
 import net.psforever.types.{CapacitorStateType, ChatMessageType, ExoSuitType, MeritCommendation, SquadRequestType}
@@ -68,7 +68,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
     player.Inventory.Items
       .foreach { entry => sendResponse(ObjectDeleteMessage(entry.GUID, 0)) }
     sendResponse(ObjectDeleteMessage(player.avatar.locker.GUID, 0))
-    continent.AvatarEvents ! AvatarServiceMessage(continent.id, AvatarAction.ObjectDelete(pguid, pguid))
+    continent.AvatarEvents ! MessageEnvelope(continent.id, pguid, ObjectDelete(pguid))
     player.Holsters()
       .collect { case slot if slot.Equipment.nonEmpty => sendResponse(ObjectDeleteMessage(slot.Equipment.get.GUID, 0)) }
     val vehicleAndSeat = data.vehicles.GetMountableAndSeat(None, player, continent) match {
@@ -111,7 +111,7 @@ class SpectatorModeLogic(data: SessionData) extends ModeLogic {
       .foreach { obj =>
         sendResponse(DeployableObjectsInfoMessage(
           DeploymentAction.Dismiss,
-          DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Service.defaultPlayerGUID)
+          DeployableInfo(obj.GUID, Deployable.Icon.apply(obj.Definition.Item), obj.Position, Default.GUID0)
         ))
       }
     if (player.silenced) {

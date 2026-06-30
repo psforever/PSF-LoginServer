@@ -20,7 +20,8 @@ import net.psforever.objects.zones.exp.{ExperienceCalculator, SupportExperienceC
 import net.psforever.packet.game.{BuildingInfoUpdateMessage, PlanetsideAttributeMessage}
 import net.psforever.util.Database._
 import net.psforever.persistence
-import net.psforever.services.local.{LocalAction, LocalServiceMessage}
+import net.psforever.services.base.envelope.MessageEnvelope
+import net.psforever.services.base.message.SendResponse
 
 import scala.collection.mutable
 import scala.util.{Failure, Success}
@@ -234,26 +235,26 @@ class ZoneActor(
     }
     buildingOpt.foreach { building =>
       if (msg.generator_state == PlanetSideGeneratorState.Normal && building.hasCavernLockBenefit) {
-        zone.LocalEvents ! LocalServiceMessage(
+        zone.LocalEvents ! MessageEnvelope(
           zone.id,
-          LocalAction.SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 1))
+          SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 1))
         )
       }
       msg.is_hacked match {
         case true if building.BuildingType == StructureType.Facility && !zone.map.cavern =>
-          zone.LocalEvents ! LocalServiceMessage(
+          zone.LocalEvents ! MessageEnvelope(
             zone.id,
-            LocalAction.SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0))
+            SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0))
           )
         case false if building.hasCavernLockBenefit =>
-          zone.LocalEvents ! LocalServiceMessage(
+          zone.LocalEvents ! MessageEnvelope(
             zone.id,
-            LocalAction.SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 1))
+            SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 1))
           )
         case false if building.BuildingType == StructureType.Facility && !zone.map.cavern && !building.hasCavernLockBenefit =>
-          zone.LocalEvents ! LocalServiceMessage(
+          zone.LocalEvents ! MessageEnvelope(
             zone.id,
-            LocalAction.SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0))
+            SendResponse(PlanetsideAttributeMessage(building.GUID, 67, 0))
           )
         case _ =>
       }

@@ -3,16 +3,13 @@ package net.psforever.actors.session.support
 
 import akka.actor.{ActorContext, ActorRef, typed}
 import net.psforever.packet.game.FriendsResponse
-//
-import net.psforever.actors.session.AvatarActor
-import net.psforever.services.galaxy.GalaxyResponse
 
-trait GalaxyHandlerFunctions extends CommonSessionInterfacingFunctionality {
+import net.psforever.actors.session.AvatarActor
+
+trait GalaxyHandlerFunctions extends CommonSessionInterfacingFunctionality with CommonHandlerFunctions {
   def ops: SessionGalaxyHandlers
 
   def handleUpdateIgnoredPlayers(pkt: FriendsResponse): Unit
-
-  def handle(reply: GalaxyResponse.Response): Unit
 }
 
 class SessionGalaxyHandlers(
