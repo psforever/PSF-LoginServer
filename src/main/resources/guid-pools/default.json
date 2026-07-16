@@ -6,39 +6,39 @@
     "Selector": "specific"
   },
   {
-    "Name": "players",
+    "Name": "vehicles",
     "Start": 3001,
-    "Max": 4500,
-    "Selector": "random"
-  },
-  {
-    "Name": "lockers",
-    "Start": 4501,
     "Max": 5000,
     "Selector": "random"
   },
   {
-    "Name": "tools",
+    "Name": "lockers",
     "Start": 5001,
-    "Max": 9500,
+    "Max": 5500,
+    "Selector": "random"
+  },
+  {
+    "Name": "tools",
+    "Start": 5501,
+    "Max": 10000,
     "Selector": "random"
   },
   {
     "Name": "ammo",
-    "Start": 9501,
-    "Max": 23000,
+    "Start": 10001,
+    "Max": 23500,
     "Selector": "random"
   },
   {
     "Name": "kits",
-    "Start": 23001,
-    "Max": 36500,
+    "Start": 23501,
+    "Max": 37000,
     "Selector": "random"
   },
   {
     "Name": "items",
-    "Start": 36501,
-    "Max": 39500,
+    "Start": 37001,
+    "Max": 39700,
     "Selector": "random"
   },
   {
@@ -60,7 +60,7 @@
     "Selector": "specific"
   },
   {
-    "Name": "vehicles",
+    "Name": "players",
     "Start": 45001,
     "Max": 47000,
     "Selector": "random"
