@@ -764,7 +764,7 @@ object Zones {
           case _: Exception => defaultGuids
         }
 
-      val zone = new Zone(info.id, zoneMaps.find(_.name.equals(info.map.value)).get, info.value) {
+      val zone: Zone = new Zone(info.id, zoneMaps.find(_.name.equals(info.map.value)).get, info.value) {
         private val addPoolsFunc: () => Unit = addPools(guids, zone = this)
 
         override def SetupNumberPools() : Unit = addPoolsFunc()
