@@ -1,7 +1,8 @@
 # JDK 21 builder. The project's Scala/sbt versions come from build.sbt/build.properties;
-# this tag only needs to provide JDK 21 + a compatible sbt. Confirm the exact tag string
-# against https://hub.docker.com/r/sbtscala/scala-sbt/tags if the build cannot pull it.
-FROM sbtscala/scala-sbt:eclipse-temurin-jammy-21.0.5_11_1.10.7_2.13.16 as builder
+# this tag only needs to provide JDK 21 + an sbt launcher (which fetches sbt 1.10.7 /
+# Scala 2.13.16 per the project). No published sbtscala tag bundles 1.10.7_2.13.16, so we
+# use the newest available JDK-21 launcher tag. See https://hub.docker.com/r/sbtscala/scala-sbt/tags
+FROM sbtscala/scala-sbt:eclipse-temurin-jammy-21.0.2_13_1.10.4_2.13.15 as builder
 
 COPY . /PSF-LoginServer
 
