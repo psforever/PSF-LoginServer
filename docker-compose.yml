@@ -18,7 +18,7 @@ services:
     ports:
       - 51010:8080
   db:
-    image: postgres:14
+    image: postgres:${POSTGRES_VERSION:-14}
     ports:
       - 5432:5432
     environment:

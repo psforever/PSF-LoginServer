@@ -8,9 +8,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Prove migrations + tests across the current (12.8) and newer PostgreSQL majors.
+        postgres: ['12.8', '16', '17']
     services:
       postgres:
-        image: postgres:12.8
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_DB: psforever
           POSTGRES_USER: psforever

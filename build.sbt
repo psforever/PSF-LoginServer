@@ -73,8 +73,10 @@ lazy val psforeverSettings = Seq(
     "io.kamon"                   %% "kamon-apm-reporter"         % "2.6.0",
     "org.json4s"                 %% "json4s-native"              % "4.0.7",
     "io.getquill"                %% "quill-jasync-postgres"      % "3.18.0",
-    "org.flywaydb"                % "flyway-core"                % "9.16.0",
-    "org.postgresql"              % "postgresql"                 % "42.5.4",
+    "org.flywaydb"                % "flyway-core"                % "10.20.1",
+    // Flyway 10 is modular: the PostgreSQL dialect moved into its own artifact.
+    "org.flywaydb"                % "flyway-database-postgresql" % "10.20.1",
+    "org.postgresql"              % "postgresql"                 % "42.7.4",
     "com.typesafe"                % "config"                     % "1.4.3",
     "com.github.pureconfig"      %% "pureconfig"                 % "0.17.7",
     "com.beachape"               %% "enumeratum"                 % "1.7.3",
