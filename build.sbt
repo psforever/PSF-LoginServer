@@ -85,7 +85,7 @@ lazy val psforeverSettings = Seq(
     "io.circe"                   %% "circe-generic"              % "0.14.9",
     "io.circe"                   %% "circe-parser"               % "0.14.9",
     "org.scala-lang.modules"     %% "scala-parallel-collections" % "1.0.4",
-    "org.bouncycastle"            % "bcprov-jdk15on"             % "1.70"
+    "org.bouncycastle"            % "bcprov-jdk18on"             % "1.78.1"
   ),
   dependencyOverrides ++= Seq(
     "com.github.jasync-sql"   % "jasync-postgresql"  % "1.2.3",
