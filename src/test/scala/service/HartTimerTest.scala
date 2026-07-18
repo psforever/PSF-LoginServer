@@ -1,8 +1,8 @@
 // Copyright (c) 2021 PSForever
 package service
 
-import akka.actor.{ActorRef, Props}
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{ActorRef, Props}
+import org.apache.pekko.testkit.TestProbe
 import _root_.base.ActorTest
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.services.hart.HartTimer

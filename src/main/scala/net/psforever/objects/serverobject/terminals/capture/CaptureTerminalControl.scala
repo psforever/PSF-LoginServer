@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals.capture
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 import net.psforever.objects.serverobject.hackable.{GenericHackables, HackableBehavior}

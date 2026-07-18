@@ -1,9 +1,9 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{ActorContext, ActorRef, typed}
+import org.apache.pekko.actor.typed.receptionist.Receptionist
+import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.{ActorContext, ActorRef, typed}
 import net.psforever.services.base.envelope.MessageEnvelope
 import net.psforever.services.chat.ChatService
 

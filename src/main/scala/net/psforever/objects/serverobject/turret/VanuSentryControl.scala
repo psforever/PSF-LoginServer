@@ -1,7 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.objects.serverobject.turret
 
-import akka.actor.Cancellable
+import org.apache.pekko.actor.Cancellable
 import net.psforever.objects.serverobject.ServerObjectControl
 import net.psforever.objects.{Default, Player, Tool}
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
@@ -87,9 +87,9 @@ object VanuSentry {
   final case object ChangeFireStart
   final case object ChangeFireStop
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
   def Constructor(pos: Vector3, tdef: FacilityTurretDefinition)(id: Int, context: ActorContext): FacilityTurret = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     val obj = FacilityTurret(tdef)
     obj.Position = pos
     obj.Actor = context.actorOf(Props(classOf[VanuSentryControl], obj), s"${tdef.Name}_$id")

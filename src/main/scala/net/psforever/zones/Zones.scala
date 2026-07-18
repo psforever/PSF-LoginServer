@@ -5,7 +5,7 @@ import net.psforever.objects.serverobject.terminals.{ProximityTerminal, Proximit
 import net.psforever.objects.serverobject.mblocker.Locker
 
 import java.util.concurrent.atomic.AtomicInteger
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import io.circe._
 import io.circe.parser._
 import net.psforever.objects.{GlobalDefinitions, LocalLockerItem, LocalProjectile}

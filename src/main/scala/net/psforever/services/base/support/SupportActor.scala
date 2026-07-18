@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.base.support
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.objects.PlanetSideGameObject
 import net.psforever.objects.zones.Zone
 

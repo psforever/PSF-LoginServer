@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.structures
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.{GlobalDefinitions, NtuContainer, Player}
 import net.psforever.objects.serverobject.generator.Generator
@@ -14,7 +14,7 @@ import net.psforever.objects.zones.blockmap.BlockMapEntity
 import net.psforever.packet.game.{Additional3, BuildingInfoUpdateMessage, DensityLevelUpdateMessage}
 import net.psforever.types._
 import scalax.collection.{Graph, GraphEdge}
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import net.psforever.objects.serverobject.dome.ForceDomePhysics
 import net.psforever.objects.serverobject.llu.{CaptureFlag, CaptureFlagSocket}
 import net.psforever.objects.serverobject.structures.participation.{MajorFacilityHackParticipation, NoParticipation, ParticipationLogic, TowerHackParticipation}

@@ -1,9 +1,9 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.containable
 
-import akka.actor.{Actor, ActorRef}
-import akka.pattern.{AskTimeoutException, ask}
-import akka.util.Timeout
+import org.apache.pekko.actor.{Actor, ActorRef}
+import org.apache.pekko.pattern.{AskTimeoutException, ask}
+import org.apache.pekko.util.Timeout
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, InventoryItem}
 import net.psforever.objects.serverobject.PlanetSideServerObject

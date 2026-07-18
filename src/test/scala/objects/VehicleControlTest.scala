@@ -1,10 +1,10 @@
 // Copyright (c) 2020 PSForever
 package objects
 
-import akka.actor.testkit.typed.scaladsl.ActorTestKit
-import akka.actor.{ActorRef, Props}
-import akka.actor.typed.scaladsl.adapter._
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.testkit.typed.scaladsl.ActorTestKit
+import org.apache.pekko.actor.{ActorRef, Props}
+import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.testkit.TestProbe
 import base.{ActorTest, FreedContextActorTest}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{Avatar, PlayerControl}

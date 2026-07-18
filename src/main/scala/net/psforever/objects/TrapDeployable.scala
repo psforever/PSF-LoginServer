@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects
 
-import akka.actor.{Actor, ActorContext, Props}
+import org.apache.pekko.actor.{Actor, ActorContext, Props}
 import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployedItem}
 import net.psforever.objects.definition.converter.TRAPConverter
 import net.psforever.objects.definition.DeployableDefinition

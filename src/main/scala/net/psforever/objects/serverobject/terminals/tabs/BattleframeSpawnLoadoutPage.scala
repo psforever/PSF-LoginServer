@@ -1,7 +1,7 @@
 // Copyright (c) 2022 PSForever
 package net.psforever.objects.serverobject.terminals.tabs
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.loadouts.VehicleLoadout
 import net.psforever.objects.{Player, Vehicle}

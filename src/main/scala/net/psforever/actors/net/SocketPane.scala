@@ -1,12 +1,12 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.net
 
-import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
+import org.apache.pekko.actor.typed.receptionist.{Receptionist, ServiceKey}
 
 import java.net.{InetAddress, InetSocketAddress}
-import akka.{actor => classic}
-import akka.actor.typed.{ActorRef, Behavior, PostStop}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.{actor => classic}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import net.psforever.packet.PlanetSidePacket
 
 private[net] object SocketPanePortRotation {

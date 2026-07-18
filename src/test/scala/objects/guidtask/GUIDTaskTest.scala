@@ -4,8 +4,8 @@ package objects.guidtask
 import java.util.logging.LogManager
 
 import scala.util.Success
-import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{ActorRef, ActorSystem, Props}
+import org.apache.pekko.testkit.TestProbe
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.guid.selector.RandomSelector
 import net.psforever.objects.guid.source.MaxNumberSource
@@ -25,7 +25,7 @@ object GUIDTaskTest {
   }
 
   def CommonTestSetup(implicit system: ActorSystem): (NumberPoolHub, UniqueNumberOps, TestProbe) = {
-    import akka.testkit.TestProbe
+    import org.apache.pekko.testkit.TestProbe
 
     val guid: NumberPoolHub = new NumberPoolHub(new MaxNumberSource(90))
     guid.AddPool("players", (1 to 10).toList).Selector = new RandomSelector

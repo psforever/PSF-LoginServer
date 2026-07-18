@@ -2,8 +2,8 @@
 package objects.terminal
 
 import java.util.concurrent.atomic.AtomicInteger
-import akka.actor.Props
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.Props
+import org.apache.pekko.testkit.TestProbe
 import base.ActorTest
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.serverobject.CommonMessages
@@ -16,7 +16,7 @@ import org.specs2.mutable.Specification
 import net.psforever.services.Service
 
 import scala.concurrent.duration._
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import net.psforever.objects.avatar.Avatar
 import net.psforever.services.base.envelope.MessageEnvelope
 

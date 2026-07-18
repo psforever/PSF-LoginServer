@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2021 PSForever
 package net.psforever.objects.vehicles.control
 
-import akka.actor.Cancellable
+import org.apache.pekko.actor.Cancellable
 import net.psforever.actors.zone.{ShootingRangeTargetSpawner, ZoneActor}
 import net.psforever.objects._
 import net.psforever.objects.avatar.SpecialCarry

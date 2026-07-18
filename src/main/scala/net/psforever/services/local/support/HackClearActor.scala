@@ -2,7 +2,7 @@
 package net.psforever.services.local.support
 
 import java.util.concurrent.TimeUnit
-import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.objects.{Default, GlobalDefinitions}
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}

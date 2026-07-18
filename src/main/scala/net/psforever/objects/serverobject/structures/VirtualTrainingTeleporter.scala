@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.objects.serverobject.structures
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.types.{PlanetSideEmpire, Vector3}

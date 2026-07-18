@@ -1,9 +1,9 @@
 package net.psforever.actors.net
 
-import akka.actor.Cancellable
-import akka.actor.typed._
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.io.Udp
+import org.apache.pekko.actor.Cancellable
+import org.apache.pekko.actor.typed._
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.io.Udp
 import java.net.InetSocketAddress
 import java.security.{SecureRandom, Security}
 import javax.crypto.spec.SecretKeySpec
@@ -16,7 +16,7 @@ import scala.concurrent.duration._
 import scodec.Attempt
 import scodec.Attempt.{Failure, Successful}
 import scodec.bits.{BitVector, ByteVector, HexStringSyntax}
-import scodec.interop.akka.EnrichedByteVector
+import scodec.interop.pekko.EnrichedByteVector
 import net.psforever.objects.Default
 import net.psforever.packet._
 import net.psforever.packet.control._

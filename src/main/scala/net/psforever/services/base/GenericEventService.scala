@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.services.base
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.services.Service
 import net.psforever.services.base.bus.GenericEventBus
 import net.psforever.services.base.envelope.{BundledEnvelope, GenericMessageEnvelope}

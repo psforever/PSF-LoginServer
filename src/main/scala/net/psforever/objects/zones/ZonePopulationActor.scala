@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.zones
 
-import akka.actor.{Actor, ActorRef, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, Props}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{AvatarBot, CorpseControl, PlayerControl}
 import net.psforever.objects.sourcing.PlayerSource
@@ -98,7 +98,7 @@ class ZonePopulationActor(zone: Zone, playerMap: TrieMap[Int, Option[Player]], b
 
     case Zone.Bots.Release(bot) =>
       if (BotRelease(bot, botList)) {
-        if (bot.Actor != null) bot.Actor ! akka.actor.PoisonPill
+        if (bot.Actor != null) bot.Actor ! org.apache.pekko.actor.PoisonPill
         bot.Actor = Default.Actor
         zone.actor ! ZoneActor.RemoveFromBlockMap(bot)
         zone.AvatarEvents ! MessageEnvelope(
@@ -283,7 +283,7 @@ object ZonePopulationActor {
   }
 
   def PlayerLeave(player: Player): Unit = {
-    if (player.Actor != null) player.Actor ! akka.actor.PoisonPill
+    if (player.Actor != null) player.Actor ! org.apache.pekko.actor.PoisonPill
     player.Actor = Default.Actor
   }
 

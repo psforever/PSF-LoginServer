@@ -1,6 +1,6 @@
 package net.psforever.objects.serverobject.llu
 
-import akka.actor.{ActorContext, Props}
+import org.apache.pekko.actor.{ActorContext, Props}
 import net.psforever.objects.GlobalDefinitions
 import net.psforever.objects.serverobject.structures.Amenity
 import net.psforever.types.Vector3

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.base.support
 
-import akka.actor.Cancellable
+import org.apache.pekko.actor.Cancellable
 import net.psforever.objects.guid.{StraightforwardTask, TaskBundle, TaskWorkflow}
 import net.psforever.objects.zones.Zone
 import net.psforever.objects.{Default, PlanetSideGameObject}

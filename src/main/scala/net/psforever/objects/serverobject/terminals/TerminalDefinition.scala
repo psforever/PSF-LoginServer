@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.Player
 import net.psforever.objects.definition.converter.TerminalConverter
 import net.psforever.objects.serverobject.structures.AmenityDefinition

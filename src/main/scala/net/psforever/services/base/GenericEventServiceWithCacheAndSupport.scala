@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.services.base
 
-import akka.actor.Cancellable
+import org.apache.pekko.actor.Cancellable
 import net.psforever.objects.Default
 import net.psforever.services.base.envelope.{BundledEnvelope, GenericMessageEnvelope, GenericResponseEnvelope, MessageEnvelope, MessageTransformationBehavior}
 import net.psforever.services.base.message.EventMessage

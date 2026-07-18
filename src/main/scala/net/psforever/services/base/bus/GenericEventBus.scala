@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.base.bus
 
-import akka.event.{ActorEventBus, SubchannelClassification}
-import akka.util.Subclassification
+import org.apache.pekko.event.{ActorEventBus, SubchannelClassification}
+import org.apache.pekko.util.Subclassification
 import net.psforever.services.base.envelope.GenericResponseEnvelope
 
 /**

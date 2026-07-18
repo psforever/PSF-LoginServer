@@ -1,7 +1,7 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.repair
 
-import akka.actor.Actor.Receive
+import org.apache.pekko.actor.Actor.Receive
 import net.psforever.objects.equipment.Ammo
 import net.psforever.objects.{GlobalDefinitions, Player, Players, Tool}
 import net.psforever.objects.serverobject.{CommonMessages, PlanetSideServerObject}

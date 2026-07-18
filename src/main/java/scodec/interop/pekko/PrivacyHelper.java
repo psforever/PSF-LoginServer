@@ -1,8 +1,8 @@
-package scodec.interop.akka;
+package scodec.interop.pekko;
 
 import java.nio.ByteBuffer;
 
-import akka.util.ByteString.ByteString1C;
+import org.apache.pekko.util.ByteString.ByteString1C;
 
 interface PrivacyHelper {
 

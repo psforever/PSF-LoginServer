@@ -1,7 +1,7 @@
 // Copyright (c) 2018 PSForever
 package net.psforever.objects.ce
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.objects.{Default, TelepadDeployable, Vehicle}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity
@@ -59,7 +59,7 @@ object TelepadLike {
     */
   def Setup(obj: Amenity, context: ActorContext): Unit = {
     obj.asInstanceOf[TelepadLike].Router = obj.Owner.GUID
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     if (obj.Actor == Default.Actor) {
       obj.Actor = context.actorOf(Props(classOf[TelepadControl], obj), PlanetSideServerObject.UniqueActorName(obj))
     }
@@ -158,8 +158,8 @@ object TelepadLike {
   * a placeholder like this is easy to reason around.
   * @param obj an entity that extends `TelepadLike`
   */
-class TelepadControl(obj: InternalTelepad) extends akka.actor.Actor {
-  def receive: akka.actor.Actor.Receive = {
+class TelepadControl(obj: InternalTelepad) extends org.apache.pekko.actor.Actor {
+  def receive: org.apache.pekko.actor.Actor.Receive = {
     case TelepadLike.Activate(o: InternalTelepad) if obj eq o =>
       obj.Active = true
 

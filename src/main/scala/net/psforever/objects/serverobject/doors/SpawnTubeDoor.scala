@@ -1,8 +1,8 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.serverobject.doors
 
-import akka.actor.Props
-import akka.actor.ActorContext
+import org.apache.pekko.actor.Props
+import org.apache.pekko.actor.ActorContext
 import net.psforever.types.Vector3
 
 object SpawnTubeDoor {

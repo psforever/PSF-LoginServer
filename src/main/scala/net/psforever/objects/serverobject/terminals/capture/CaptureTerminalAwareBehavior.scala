@@ -1,6 +1,6 @@
 package net.psforever.objects.serverobject.terminals.capture
 
-import akka.actor.Actor.Receive
+import org.apache.pekko.actor.Actor.Receive
 import net.psforever.objects.serverobject.structures.Amenity
 
 import scala.annotation.unused

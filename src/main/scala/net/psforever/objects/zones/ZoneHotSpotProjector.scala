@@ -1,7 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.zones
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable, Props}
 import net.psforever.objects.Default
 import net.psforever.types.{PlanetSideEmpire, Vector3}
 import net.psforever.services.ServiceManager

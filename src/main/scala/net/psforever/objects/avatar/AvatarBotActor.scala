@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.objects.avatar
 
-import akka.actor.{Actor, ActorRef}
+import org.apache.pekko.actor.{Actor, ActorRef}
 import net.psforever.actors.zone.ShootingRangeTargetSpawner
 import net.psforever.objects.{GlobalDefinitions, Tool}
 import net.psforever.objects.equipment._

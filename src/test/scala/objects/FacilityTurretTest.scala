@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.Props
-import akka.testkit.TestProbe
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.Props
+import org.apache.pekko.testkit.TestProbe
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import base.ActorTest
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.{Avatar, Certification}

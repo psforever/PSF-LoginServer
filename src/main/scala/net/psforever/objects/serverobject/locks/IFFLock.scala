@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.locks
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.hackable.Hackable
@@ -70,7 +70,7 @@ object IFFLock {
     new IFFLock(idef)
   }
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
 
   /**
     * Instantiate an configure a `IFFLock` object
@@ -82,7 +82,7 @@ object IFFLock {
     * @return the `IFFLock` object
     */
   def Constructor(pos: Vector3, outwards_direction: Vector3)(id: Int, context: ActorContext): IFFLock = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     import net.psforever.objects.GlobalDefinitions
 
     val obj = IFFLock(GlobalDefinitions.lock_external)

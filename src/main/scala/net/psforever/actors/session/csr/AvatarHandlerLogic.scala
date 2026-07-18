@@ -1,8 +1,8 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.csr
 
-import akka.actor.Actor.Receive
-import akka.actor.{ActorContext, typed}
+import org.apache.pekko.actor.Actor.Receive
+import org.apache.pekko.actor.{ActorContext, typed}
 import net.psforever.actors.session.SessionActor
 import net.psforever.actors.session.normal.NormalMode
 import net.psforever.actors.session.support.AvatarHandlerFunctions

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.tube
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.objects.{Default, SpawnPointDefinition}
 import net.psforever.objects.definition.converter.SpawnTubeConverter
 import net.psforever.objects.serverobject.PlanetSideServerObject
@@ -24,7 +24,7 @@ object SpawnTubeDefinition {
     * @param context hook to the local `Actor` system
     */
   def Setup(obj: Amenity, context: ActorContext): Unit = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     if (obj.Actor == Default.Actor) {
       obj.Actor = context.actorOf(Props(classOf[SpawnTubeControl], obj), PlanetSideServerObject.UniqueActorName(obj))
     }

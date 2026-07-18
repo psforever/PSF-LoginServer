@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.llu
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior
 
 /**

@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.avatar
 
-import akka.actor.{Actor, ActorRef, Props, typed}
+import org.apache.pekko.actor.{Actor, ActorRef, Props, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.login.WorldSession.{DropEquipmentFromInventory, HoldNewEquipmentUp, PutNewEquipmentInInventoryOrDrop, RemoveOldEquipmentFromInventory}
 import net.psforever.objects._
@@ -82,7 +82,7 @@ class PlayerControl(player: Player, avatarActor: typed.ActorRef[AvatarActor.Comm
   }
 
   override def postStop(): Unit = {
-    lockerControlAgent ! akka.actor.PoisonPill
+    lockerControlAgent ! org.apache.pekko.actor.PoisonPill
     player.avatar.locker.Actor = Default.Actor
     EndAllEffects()
     EndAllAggravation()

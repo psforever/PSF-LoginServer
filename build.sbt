@@ -43,19 +43,22 @@ lazy val psforeverSettings = Seq(
   classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   libraryDependencies ++= Seq(
-    // Akka 2.8+ is BSL licensed, do not upgrade
-    "com.typesafe.akka"          %% "akka-actor"                 % "2.6.20",
-    "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.20",
-    "com.typesafe.akka"          %% "akka-protobuf-v3"           % "2.6.20",
-    "com.typesafe.akka"          %% "akka-stream"                % "2.6.20",
-    "com.typesafe.akka"          %% "akka-testkit"               % "2.6.20" % "test",
-    "com.typesafe.akka"          %% "akka-actor-typed"           % "2.6.20",
-    "com.typesafe.akka"          %% "akka-actor-testkit-typed"   % "2.6.20" % "test",
-    "com.typesafe.akka"          %% "akka-slf4j"                 % "2.6.20",
-    "com.typesafe.akka"          %% "akka-cluster-typed"         % "2.6.20",
-    "com.typesafe.akka"          %% "akka-coordination"          % "2.6.20",
-    "com.typesafe.akka"          %% "akka-cluster-tools"         % "2.6.20",
-    "com.typesafe.akka"          %% "akka-http"                  % "10.2.10",
+    // Apache Pekko: the Apache-2.0 licensed fork of Akka 2.6.x (drop-in namespace change).
+    // NOTE: pekko-protobuf-v3 / pekko-stream / pekko-cluster-typed / pekko-cluster-tools /
+    // pekko-coordination / pekko-http currently have 0 direct imports in the source tree and
+    // are kept only for behavioral parity with the Akka set; they are removal candidates once
+    // the test suite is green.
+    "org.apache.pekko"           %% "pekko-actor"                % "1.1.3",
+    "org.apache.pekko"           %% "pekko-slf4j"                % "1.1.3",
+    "org.apache.pekko"           %% "pekko-protobuf-v3"          % "1.1.3",
+    "org.apache.pekko"           %% "pekko-stream"               % "1.1.3",
+    "org.apache.pekko"           %% "pekko-testkit"              % "1.1.3" % "test",
+    "org.apache.pekko"           %% "pekko-actor-typed"          % "1.1.3",
+    "org.apache.pekko"           %% "pekko-actor-testkit-typed"  % "1.1.3" % "test",
+    "org.apache.pekko"           %% "pekko-cluster-typed"        % "1.1.3",
+    "org.apache.pekko"           %% "pekko-coordination"         % "1.1.3",
+    "org.apache.pekko"           %% "pekko-cluster-tools"        % "1.1.3",
+    "org.apache.pekko"           %% "pekko-http"                 % "1.1.0",
     "com.typesafe.scala-logging" %% "scala-logging"              % "3.9.5",
     "org.specs2"                 %% "specs2-core"                % "4.20.9" % "test",
     "org.scalatest"              %% "scalatest"                  % "3.2.19" % "test",

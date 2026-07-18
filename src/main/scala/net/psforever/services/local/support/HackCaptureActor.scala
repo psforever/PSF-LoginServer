@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.services.local.support
 
-import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.actors.zone.{BuildingActor, ZoneActor}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.objects.serverobject.hackable.Hackable

@@ -1,7 +1,7 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.normal
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.actors.session.SessionActor
 import net.psforever.actors.session.spectator.SpectatorMode
 import net.psforever.actors.session.support.{ChatFunctions, ChatOperations, SessionData}

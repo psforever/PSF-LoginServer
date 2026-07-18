@@ -1,4 +1,4 @@
-package akka.actor
+package org.apache.pekko.actor
 
 // Taken from https://medium.com/hootsuite-engineering/logging-contextual-info-in-an-asynchronous-scala-application-8ea33bfec9b3
 

@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{Actor, ActorRef, Props}
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{Actor, ActorRef, Props}
+import org.apache.pekko.testkit.TestProbe
 import base.ActorTest
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.ballistics._
@@ -23,7 +23,7 @@ import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.vital.base.DamageResolution
 import net.psforever.objects.vital.interaction.DamageInteraction
 import net.psforever.objects.vital.projectile.ProjectileReason
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.services.base.envelope.MessageEnvelope
 

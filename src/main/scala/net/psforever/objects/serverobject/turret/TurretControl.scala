@@ -1,7 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.objects.serverobject.turret
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.objects.equipment.JammableMountedWeapons
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.affinity.FactionAffinityBehavior

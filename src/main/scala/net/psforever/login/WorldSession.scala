@@ -1,8 +1,8 @@
 package net.psforever.login
 
-import akka.actor.ActorRef
-import akka.pattern.{AskTimeoutException, ask}
-import akka.util.Timeout
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.pattern.{AskTimeoutException, ask}
+import org.apache.pekko.util.Timeout
 import net.psforever.objects._
 import net.psforever.objects.equipment.{Ammo, Equipment, EquipmentSize}
 import net.psforever.objects.guid._

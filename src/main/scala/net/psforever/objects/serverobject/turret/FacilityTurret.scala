@@ -75,7 +75,7 @@ object FacilityTurret {
     new FacilityTurret(tDef)
   }
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
 
   /**
     * Instantiate and configure a `FacilityTurret` object
@@ -84,14 +84,14 @@ object FacilityTurret {
     * @return the `MannedTurret` object
     */
   def Constructor(tdef: FacilityTurretDefinition)(id: Int, context: ActorContext): FacilityTurret = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     val obj = FacilityTurret(tdef)
     obj.Actor = context.actorOf(Props(classOf[FacilityTurretControl], obj), s"${tdef.Name}_$id")
     obj
   }
 
   def Constructor(pos: Vector3, tdef: FacilityTurretDefinition)(id: Int, context: ActorContext): FacilityTurret = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     val obj = FacilityTurret(tdef)
     obj.Position = pos
     obj.Actor = context.actorOf(Props(classOf[FacilityTurretControl], obj), s"${tdef.Name}_$id")

@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.guid.uns
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.objects.guid.pool.NumberPool
 import net.psforever.objects.guid.selector.{NumberSelector, SpecificSelector}
 

@@ -142,7 +142,7 @@ object VehicleSpawnPad {
     new VehicleSpawnPad(spDef)
   }
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
   import net.psforever.types.Vector3
 
   /**
@@ -158,7 +158,7 @@ object VehicleSpawnPad {
       id: Int,
       context: ActorContext
   ): VehicleSpawnPad = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
 
     val obj = VehicleSpawnPad(pdef)
     obj.Position = pos

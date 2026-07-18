@@ -1,8 +1,8 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.spectator
 
-import akka.actor.Actor.Receive
-import akka.actor.ActorContext
+import org.apache.pekko.actor.Actor.Receive
+import org.apache.pekko.actor.ActorContext
 import net.psforever.actors.session.support.{SessionData, SessionVehicleHandlers, VehicleHandlerFunctions}
 import net.psforever.objects.{Vehicle, Vehicles}
 import net.psforever.objects.equipment.Equipment

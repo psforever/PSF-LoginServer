@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.transfer
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 
 trait TransferBehavior {
   _ : Actor =>

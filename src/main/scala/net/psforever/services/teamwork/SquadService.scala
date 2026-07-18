@@ -1,7 +1,7 @@
 // Copyright (c) 2019-2024 PSForever
 package net.psforever.services.teamwork
 
-import akka.actor.{Actor, ActorRef, Terminated}
+import org.apache.pekko.actor.{Actor, ActorRef, Terminated}
 import java.io.{PrintWriter, StringWriter}
 import scala.annotation.unused
 import scala.collection.concurrent.TrieMap

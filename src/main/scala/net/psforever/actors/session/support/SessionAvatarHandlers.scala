@@ -1,7 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.{ActorContext, typed}
+import org.apache.pekko.actor.{ActorContext, typed}
 import net.psforever.objects.serverobject.mount.Mountable
 import net.psforever.objects.{Default, PlanetSideGameObject, Player, Vehicle}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry, UniquePlayer}

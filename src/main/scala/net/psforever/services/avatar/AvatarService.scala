@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar
 
-import akka.actor.Props
+import org.apache.pekko.actor.Props
 import net.psforever.services.avatar.support.{CorpseRemovalSupport, LitterRemovalSupport}
 import net.psforever.services.base.{EventSystemStamp, GenericEventServiceWithCacheAndSupport}
 

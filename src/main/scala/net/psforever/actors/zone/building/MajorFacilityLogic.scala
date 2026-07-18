@@ -1,9 +1,9 @@
 // Copyright (c) 2022 PSForever
 package net.psforever.actors.zone.building
 
-import akka.{actor => classic}
-import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.{actor => classic}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import net.psforever.actors.commands.NtuCommand
 import net.psforever.actors.zone.{BuildingActor, BuildingControlDetails, ZoneActor}
 import net.psforever.objects.serverobject.damage.Damageable

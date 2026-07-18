@@ -1,7 +1,7 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.spectator
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.actors.session.SessionActor
 import net.psforever.actors.session.normal.NormalMode
 import net.psforever.actors.session.support.{MountHandlerFunctions, SessionData, SessionMountHandlers}

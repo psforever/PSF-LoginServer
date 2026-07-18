@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.deploy
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.types.{DriveState, Vector3}
 import net.psforever.services.base.envelope.MessageEnvelope
