@@ -366,6 +366,23 @@ class PersistenceMonitor(
     * but should be uncommon.
     */
   def PerformLogout(): Unit = {
+    // `inZone` is the zone last reported through an `Update` heartbeat. On an abrupt disconnect
+    // (a crash during/after a zone transfer, or right after a respawn before an `Update` landed)
+    // this can be stale, so the player's live avatar/corpse actually resides in a different zone.
+    // Keying the lookup solely off a stale `inZone` finds nothing, falls through to the no-op case
+    // below, and strands the entity (with its GUID and population membership) in the world until the
+    // server restarts. Re-point `inZone` to wherever the player actually is before proceeding.
+    if (!(inZone.Players.exists(_.name == name) || inZone.AllPlayers.exists(_.Name == name))) {
+      Zones.zones.find { z =>
+        z.Players.exists(_.name == name) || z.AllPlayers.exists(_.Name == name)
+      }.foreach { actualZone =>
+        log.warn(
+          s"PerformLogout: $name was not found in the last-recorded zone ${inZone.id}; " +
+            s"found in ${actualZone.id} instead (likely disconnected mid-transfer). Cleaning up there."
+        )
+        inZone = actualZone
+      }
+    }
     (inZone.Players.find(p => p.name == name), inZone.AllPlayers.find(p => p.Name == name)) match {
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
         //in case the player is holding the llu and disconnects
