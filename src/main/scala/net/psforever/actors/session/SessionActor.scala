@@ -298,6 +298,12 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
     case ZoningOperations.AvatarAwardMessageBundle(pkts, delay) =>
       data.zoning.spawn.performAvatarAwardMessageDelivery(pkts, delay)
 
+    case ZoningOperations.ZoningCountdownTick(runnable) =>
+      data.zoning.beginZoningCountdown(runnable)
+
+    case msg: ZoningOperations.ZoningSpawnPointRespawn =>
+      data.zoning.spawn.handleZoningSpawnPointRespawn(msg)
+
     case CommonMessages.ProgressEvent(delta, finishedAction, stepAction, tick) =>
       data.general.handleProgressChange(delta, finishedAction, stepAction, tick)
 
