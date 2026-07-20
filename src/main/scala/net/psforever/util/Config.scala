@@ -140,7 +140,8 @@ case class MiddlewareConfig(
     packetBundlingDelayMultiplier: Float,
     inReorderTimeout: FiniteDuration,
     inSubslotMissingDelay: FiniteDuration,
-    inSubslotMissingAttempts: Int
+    inSubslotMissingAttempts: Int,
+    smpHistoryLength: Int
 )
 
 case class SessionConfig(
