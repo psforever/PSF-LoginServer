@@ -2742,6 +2742,12 @@ class ZoningOperations(
             AvatarAction.LoadPlayer(definition.ObjectId, guid, definition.Packet.ConstructorData(player).get, None)
           )
       }
+      //The transient inter-zone vehicle reference has served its purpose now that the avatar exists in the new zone.
+      //The vehicle branch clears it above, but the infantry/spectator branches did not, so a stale ferry could survive
+      //(e.g. after a droppod or a vehicle transfer that resolved to an on-foot spawn) and misroute the NEXT transfer
+      //into LoadZoneInVehicle against a vehicle absent from the destination zone, crashing the client.
+      //Drop it unconditionally here so subsequent transfers cannot inherit a stale vehicle association.
+      interstellarFerry = None
       continent.Population ! Zone.Population.Spawn(avatar, player, avatarActor)
       avatarActor ! AvatarActor.RefreshPurchaseTimes()
       drawDeployableIconsOnMap(
