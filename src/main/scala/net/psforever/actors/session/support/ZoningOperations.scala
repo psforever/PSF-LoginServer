@@ -87,6 +87,37 @@ object ZoningOperations {
                                                               delay: Long
                                                             )
 
+  /**
+    * Delivered to the session actor when a zoning countdown timer elapses.
+    * Carrying the countdown continuation as a message (rather than executing it inside the timer closure)
+    * guarantees the countdown logic runs on the actor thread, serialized with all other session activity,
+    * so that a concurrent transfer's `zoningTimer.cancel()` is actually effective.
+    * @param runnable the next step of the zoning countdown to perform
+    */
+  private[session] final case class ZoningCountdownTick(runnable: Runnable)
+
+  /**
+    * Delivered to the session actor when a physical spawn-point respawn timer elapses.
+    * Carrying the resolved destination as a message (rather than executing it inside the timer closure)
+    * guarantees the respawn/zone-load logic runs on the actor thread, serialized with all other session activity,
+    * so that a concurrent transfer's `respawnTimer.cancel()` is actually effective and the closure can no longer
+    * read a half-updated `session`/`continent`/`interstellarFerry` off the global thread pool.
+    * @param zoneId the destination zone designation
+    * @param position where in the destination zone to place the avatar
+    * @param orientation the direction the avatar faces at the destination
+    * @param side the containment side of the destination spawn
+    * @param toZoneNumber the destination zone number, resolved at scheduling time
+    * @param physSpawnPoint the physical spawn point, if any
+    */
+  private[session] final case class ZoningSpawnPointRespawn(
+                                                             zoneId: String,
+                                                             position: Vector3,
+                                                             orientation: Vector3,
+                                                             side: Sidedness,
+                                                             toZoneNumber: Int,
+                                                             physSpawnPoint: Option[SpawnPoint]
+                                                           )
+
   private final val zoningCountdownMessages: Seq[Int] = Seq(5, 10, 20)
 
   def reportProgressionSystem(logic: SessionData): Unit = {
@@ -938,9 +969,11 @@ class ZoningOperations(
       zoningCounter = time
       sendResponse(ChatMsg(ChatMessageType.CMT_QUIT, wideContents=false, "", s"@${descriptor}_$origin", None))
       zoningTimer.cancel()
-      zoningTimer = context.system.scheduler.scheduleOnce(5 seconds) {
-        beginZoningCountdown(runnable)
-      }
+      zoningTimer = context.system.scheduler.scheduleOnce(
+        5 seconds,
+        context.self,
+        ZoningOperations.ZoningCountdownTick(runnable)
+      )
     } else if (zoningStatus == Zoning.Status.Countdown) {
       zoningCounter -= 5
       zoningTimer.cancel()
@@ -948,9 +981,11 @@ class ZoningOperations(
         if (ZoningOperations.zoningCountdownMessages.contains(zoningCounter)) {
           sendResponse(ChatMsg(zoningChatMessageType, wideContents=false, "", s"@${descriptor}_$zoningCounter", None))
         }
-        zoningTimer = context.system.scheduler.scheduleOnce(5 seconds) {
-          beginZoningCountdown(runnable)
-        }
+        zoningTimer = context.system.scheduler.scheduleOnce(
+          5 seconds,
+          context.self,
+          ZoningOperations.ZoningCountdownTick(runnable)
+        )
       } else {
         zoningCounter = 0
         //zoning deployment
@@ -3157,40 +3192,55 @@ class ZoningOperations(
         case _ =>
           Sidedness.StrictlyBetweenSides //todo needs better determination
       }
+      respawnTimer = context.system.scheduler.scheduleOnce(
+        respawnTime,
+        context.self,
+        ZoningOperations.ZoningSpawnPointRespawn(zoneId, pos, ori, toSide, toZoneNumber, physSpawnPoint)
+      )
+    }
+
+    /**
+     * Perform the deferred respawn / zone-load that was scheduled by `LoadZonePhysicalSpawnPoint`.
+     * This runs on the actor thread (delivered as `ZoningOperations.ZoningSpawnPointRespawn`)
+     * rather than inside a timer closure on the global thread pool,
+     * so that it observes a consistent `session`/`continent`/`interstellarFerry`
+     * and is genuinely cancellable by a superseding transfer.
+     * @see `LoadZonePhysicalSpawnPoint`
+     */
+    def handleZoningSpawnPointRespawn(msg: ZoningOperations.ZoningSpawnPointRespawn): Unit = {
+      val ZoningOperations.ZoningSpawnPointRespawn(zoneId, pos, ori, toSide, toZoneNumber, physSpawnPoint) = msg
       val toSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity => SourceEntry(o) }
-      respawnTimer = context.system.scheduler.scheduleOnce(respawnTime) {
-        if (!player.isAlive && player.History.nonEmpty) { // if the player is dead, handle as dead infantry, even if dead in a vehicle
-          // new player is spawning
-          val newPlayer = RespawnClone(player)
-          newPlayer.LogActivity(SpawningActivity(PlayerSource(newPlayer), toZoneNumber, toSpawnPoint))
-          LoadZoneAsPlayerUsing(newPlayer, pos, ori, toSide, zoneId)
-        } else {
-          avatarActor ! AvatarActor.DeactivateActiveImplants
-          val betterSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity with InGameHistory => o }
-          interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
-            case Some(vehicle: Vehicle) => // driver or passenger in vehicle using a warp gate, or a droppod
-              InGameHistory.SpawnReconstructionActivity(vehicle, toZoneNumber, betterSpawnPoint)
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
-              vehicle.WhichSide = toSide
-              LoadZoneInVehicle(vehicle, pos, ori, zoneId)
+      if (!player.isAlive && player.History.nonEmpty) { // if the player is dead, handle as dead infantry, even if dead in a vehicle
+        // new player is spawning
+        val newPlayer = RespawnClone(player)
+        newPlayer.LogActivity(SpawningActivity(PlayerSource(newPlayer), toZoneNumber, toSpawnPoint))
+        LoadZoneAsPlayerUsing(newPlayer, pos, ori, toSide, zoneId)
+      } else {
+        avatarActor ! AvatarActor.DeactivateActiveImplants
+        val betterSpawnPoint = physSpawnPoint.collect { case o: PlanetSideGameObject with FactionAffinity with InGameHistory => o }
+        interstellarFerry.orElse(continent.GUID(player.VehicleSeated)) match {
+          case Some(vehicle: Vehicle) => // driver or passenger in vehicle using a warp gate, or a droppod
+            InGameHistory.SpawnReconstructionActivity(vehicle, toZoneNumber, betterSpawnPoint)
+            InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
+            vehicle.WhichSide = toSide
+            LoadZoneInVehicle(vehicle, pos, ori, zoneId)
 
-            case _ if player.HasGUID => // player is deconstructing self or instant action
-              val player_guid = player.GUID
-              // entering or exiting VR zones uses a fade-out effect for the player instead of the usual green cloud deconstruction effect
-              val effect = if (player.IsInVRZone || zoneId.startsWith("tz")) 2 else 1
-              sendResponse(ObjectDeleteMessage(player_guid, unk1=effect))
-              continent.AvatarEvents ! MessageEnvelope(
-                continent.id,
-                player_guid,
-                ObjectDelete(player_guid, unk=effect)
-              )
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
-              LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
+          case _ if player.HasGUID => // player is deconstructing self or instant action
+            val player_guid = player.GUID
+            // entering or exiting VR zones uses a fade-out effect for the player instead of the usual green cloud deconstruction effect
+            val effect = if (player.IsInVRZone || zoneId.startsWith("tz")) 2 else 1
+            sendResponse(ObjectDeleteMessage(player_guid, unk1=effect))
+            continent.AvatarEvents ! MessageEnvelope(
+              continent.id,
+              player_guid,
+              ObjectDelete(player_guid, unk=effect)
+            )
+            InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
+            LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
 
-            case _ => //player is logging in
-              InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
-              LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
-          }
+          case _ => //player is logging in
+            InGameHistory.SpawnReconstructionActivity(player, toZoneNumber, betterSpawnPoint)
+            LoadZoneAsPlayerUsing(player, pos, ori, toSide, zoneId)
         }
       }
     }
