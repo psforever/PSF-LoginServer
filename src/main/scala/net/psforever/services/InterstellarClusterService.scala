@@ -46,8 +46,14 @@ object InterstellarClusterService {
 
   final case class ZonesResponse(zoneActor: Iterable[Zone])
 
-  final case class GetInstantActionSpawnPoint(faction: PlanetSideEmpire.Value, replyTo: ActorRef[SpawnPointResponse])
-      extends Command
+  // `token` is an opaque correlation value echoed back verbatim in the SpawnPointResponse.
+  // The requesting session uses it to discard responses that a newer spawn-point request has superseded
+  // (see ZoningOperations.handleSpawnPointResponse). Non-session callers may leave it at the default 0L.
+  final case class GetInstantActionSpawnPoint(
+      faction: PlanetSideEmpire.Value,
+      replyTo: ActorRef[SpawnPointResponse],
+      token: Long = 0L
+  ) extends Command
 
   final case class GetSpawnPoint(
       zoneNumber: Int,
@@ -55,7 +61,8 @@ object InterstellarClusterService {
       target: PlanetSideGUID,
       fromZoneNumber: Int,
       fromGateGuid: PlanetSideGUID,
-      replyTo: ActorRef[SpawnPointResponse]
+      replyTo: ActorRef[SpawnPointResponse],
+      token: Long = 0L
   ) extends Command
 
   final case class GetNearbySpawnPoint(
@@ -63,17 +70,19 @@ object InterstellarClusterService {
       faction: PlanetSideEmpire.Value,
       position: Vector3,
       spawnGroups: Seq[SpawnGroup],
-      replyTo: ActorRef[SpawnPointResponse]
+      replyTo: ActorRef[SpawnPointResponse],
+      token: Long = 0L
   ) extends Command
 
   final case class GetRandomSpawnPoint(
       zoneNumber: Int,
       faction: PlanetSideEmpire.Value,
       spawnGroups: Seq[SpawnGroup],
-      replyTo: ActorRef[SpawnPointResponse]
+      replyTo: ActorRef[SpawnPointResponse],
+      token: Long = 0L
   ) extends Command
 
-  final case class SpawnPointResponse(response: Option[(Zone, SpawnPoint)])
+  final case class SpawnPointResponse(response: Option[(Zone, SpawnPoint)], token: Long = 0L)
 
   final case class GetPlayers(replyTo: ActorRef[PlayersResponse]) extends Command
 
@@ -165,7 +174,7 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
       case FilterZones(predicate, replyTo) =>
         replyTo ! ZonesResponse(zones.filter(predicate))
 
-      case GetInstantActionSpawnPoint(faction, replyTo) =>
+      case GetInstantActionSpawnPoint(faction, replyTo, token) =>
         val spawnTarget: Seq[SpawnGroup] = if (Config.app.game.instantAction.spawnOnAms) {
           Seq(SpawnGroup.Tower, SpawnGroup.Facility, SpawnGroup.AMS)
         } else {
@@ -203,9 +212,9 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
               val spawnPoint = spawns.minBy(point => Vector3.DistanceSquared(point.Position, pos))
               (zone, spawnPoint)
           }
-        replyTo ! SpawnPointResponse(spawnResults)
+        replyTo ! SpawnPointResponse(spawnResults, token)
 
-      case GetRandomSpawnPoint(zoneNumber, faction, spawnGroups, replyTo) =>
+      case GetRandomSpawnPoint(zoneNumber, faction, spawnGroups, replyTo, token) =>
         val response = zones.find(_.Number == zoneNumber) match {
           case Some(zone: Zone) =>
             Random.shuffle(zone.findSpawns(faction, spawnGroups)).headOption match {
@@ -218,9 +227,9 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             log.error(s"no zone $zoneNumber")
             None
         }
-        replyTo ! SpawnPointResponse(response)
+        replyTo ! SpawnPointResponse(response, token)
 
-      case GetSpawnPoint(zoneNumber, faction, target, fromZoneNumber, fromOriginGuid, replyTo) =>
+      case GetSpawnPoint(zoneNumber, faction, target, fromZoneNumber, fromOriginGuid, replyTo, token) =>
         zones.find(_.Number == zoneNumber) match {
           case Some(zone) =>
             //found target zone; find a spawn point in target zone
@@ -233,10 +242,10 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             } match {
               case Some((_, spawnPoints)) =>
                 //spawn point selected
-                replyTo ! SpawnPointResponse(Some(zone, Random.shuffle(spawnPoints.toList).head))
+                replyTo ! SpawnPointResponse(Some(zone, Random.shuffle(spawnPoints.toList).head), token)
               case _ =>
                 //no spawn point found
-                replyTo ! SpawnPointResponse(None)
+                replyTo ! SpawnPointResponse(None, token)
             }
           case None =>
             //target zone not found; find origin and plot next immediate destination
@@ -253,24 +262,24 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
             }) match {
               case Some(outputGate: WarpGate) =>
                 //destination (next direct stopping point) found
-                replyTo ! SpawnPointResponse(Some(outputGate.Zone, outputGate))
+                replyTo ! SpawnPointResponse(Some(outputGate.Zone, outputGate), token)
               case _ =>
                 //no destination found
-                replyTo ! SpawnPointResponse(None)
+                replyTo ! SpawnPointResponse(None, token)
             }
         }
 
-      case GetNearbySpawnPoint(zoneNumber, faction, position, spawnGroups, replyTo) =>
+      case GetNearbySpawnPoint(zoneNumber, faction, position, spawnGroups, replyTo, token) =>
         zones.find(_.Number == zoneNumber) match {
           case Some(zone) =>
             zone.findNearestSpawnPoints(faction, position, spawnGroups) match {
               case None | Some(Nil) =>
-                replyTo ! SpawnPointResponse(None)
+                replyTo ! SpawnPointResponse(None, token)
               case Some(spawnPoints) =>
-                replyTo ! SpawnPointResponse(Some(zone, scala.util.Random.shuffle(spawnPoints).head))
+                replyTo ! SpawnPointResponse(Some(zone, scala.util.Random.shuffle(spawnPoints).head), token)
             }
           case None =>
-            replyTo ! SpawnPointResponse(None)
+            replyTo ! SpawnPointResponse(None, token)
         }
 
       case DroppodLaunchRequest(zoneNumber, position, faction, replyTo) =>

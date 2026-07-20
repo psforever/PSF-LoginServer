@@ -245,7 +245,8 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
           zone.Number,
           player.Faction,
           Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
-          context.self
+          context.self,
+          token = sessionLogic.zoning.nextSpawnPointToken()
         )
       }
   }

@@ -218,6 +218,14 @@ class ZoningOperations(
    */
   private[session] var zoneLoaded: Option[Boolean] = None
   /**
+   * a monotonically increasing correlation counter for outgoing spawn-point requests to the cluster service.
+   * Every session-originated `Get*SpawnPoint` request is stamped with a fresh value via `nextSpawnPointToken()`,
+   * and the value is echoed back in the `SpawnPointResponse`.
+   * A response whose token is older than the latest issued token has been superseded by a newer request
+   * (the classic rapid-zoning race) and is discarded rather than force-loaded into a mismatched zone.
+   */
+  private var spawnPointRequestToken: Long = 0L
+  /**
    * used during zone transfers to maintain reference to seated vehicle (which does not yet exist in the new zone)
    * used during intrazone gate transfers, but not in a way distinct from prior zone transfer procedures
    * should only be set during the transient period when moving between one spawn point and the next
@@ -267,7 +275,8 @@ class ZoningOperations(
             destinationBuildingGuid,
             continent.Number,
             building_guid,
-            context.self
+            context.self,
+            token = nextSpawnPointToken()
           )
           log.info(s"${player.Name} wants to use a warp gate")
 
@@ -295,6 +304,15 @@ class ZoningOperations(
 
   def handleBeginZoning(pkt: BeginZoningMessage): Unit = {
     val BeginZoningMessage() = pkt
+    if (zoneLoaded.contains(true)) {
+      //the current zone has already finished loading; this is a duplicate BeginZoningMessage
+      //(e.g. a second one queued behind a rapid transfer). Re-dumping ObjectCreate for entities
+      //the client already holds triggers "object already exists" and crashes it, so ignore it.
+      //A legitimate new zone load always resets zoneLoaded to None first (LoadZoneCommonTransferActivity).
+      log.warn(
+        s"BeginZoningMessage: ${player.Name} sent a duplicate zoning request for an already-loaded ${continent.id}; ignoring"
+      )
+    } else {
     log.trace(s"BeginZoningMessage: ${player.Name} is reticulating ${continent.id}'s splines ...")
     zoneLoaded = None
     val name = avatar.name
@@ -557,6 +575,7 @@ class ZoningOperations(
     )
     spawn.upstreamMessageCount = 0
     zoneLoaded = Some(true)
+    }
   }
 
   /* messages */
@@ -640,7 +659,8 @@ class ZoningOperations(
             player.Faction,
             player.Position,
             Seq(SpawnGroup.Facility, SpawnGroup.Tower),
-            context.self
+            context.self,
+            token = nextSpawnPointToken()
           )
         }
     }
@@ -668,14 +688,31 @@ class ZoningOperations(
     }
   }
 
-  def handleSpawnPointResponse(response: Option[(Zone, SpawnPoint)]): Unit = {
+  /**
+   * Produce the next correlation token for a session-originated spawn-point request.
+   * @see `spawnPointRequestToken`
+   * @see `handleSpawnPointResponse`
+   */
+  private[session] def nextSpawnPointToken(): Long = {
+    spawnPointRequestToken += 1
+    spawnPointRequestToken
+  }
+
+  def handleSpawnPointResponse(response: Option[(Zone, SpawnPoint)], token: Long): Unit = {
+    if (token != 0L && token != spawnPointRequestToken) {
+      //a newer spawn-point request has since been issued; this response belongs to a superseded transfer
+      log.debug(
+        s"SpawnPointResponse: ${player.Name} received a superseded spawn-point response " +
+          s"(token $token, current $spawnPointRequestToken); discarding to avoid loading a mismatched zone"
+      )
+    } else {
     zoningType match {
       case Zoning.Method.InstantAction if response.isEmpty =>
         CancelZoningProcessWithReason("@InstantActionNoHotspotsAvailable")
 
       case Zoning.Method.InstantAction if zoningStatus == Zoning.Status.Request =>
         beginZoningCountdown(() => {
-          cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
+          cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self, nextSpawnPointToken())
         })
 
       case Zoning.Method.Reset =>
@@ -712,6 +749,7 @@ class ZoningOperations(
         sessionLogic.general.dropSpecialSlotItem()
         continent.Population ! Zone.Population.Release(avatar)
         spawn.resolveZoningSpawnPointLoad(response, previousZoningType)
+    }
     }
   }
 
@@ -797,7 +835,8 @@ class ZoningOperations(
           Zones.sanctuaryZoneNumber(player.Faction),
           player.Faction,
           Seq(SpawnGroup.Sanctuary),
-          context.self
+          context.self,
+          token = nextSpawnPointToken()
         )
       })
     }
@@ -812,7 +851,7 @@ class ZoningOperations(
       zoningType = Zoning.Method.InstantAction
       zoningChatMessageType = ChatMessageType.CMT_INSTANTACTION
       zoningStatus = Zoning.Status.Request
-      cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
+      cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self, nextSpawnPointToken())
     }
   }
 
@@ -1578,14 +1617,16 @@ class ZoningOperations(
             Zones.sanctuaryZoneNumber(player.Faction),
             player.Faction,
             Seq(SpawnGroup.WarpGate),
-            context.self
+            context.self,
+            token = nextSpawnPointToken()
           )
         case _ =>
           cluster ! ICS.GetRandomSpawnPoint(
             Zones.sanctuaryZoneNumber(player.Faction),
             player.Faction,
             Seq(SpawnGroup.Sanctuary),
-            context.self
+            context.self,
+            token = nextSpawnPointToken()
           )
       }
     }
@@ -2044,7 +2085,8 @@ class ZoningOperations(
           player.Faction,
           shiftPosition.getOrElse(player.Position),
           Seq(spawnGroup),
-          context.self
+          context.self,
+          token = nextSpawnPointToken()
         )
         shiftPosition = None
       } else {
@@ -2271,7 +2313,7 @@ class ZoningOperations(
 
         case Zoning.Method.InstantAction if zoningStatus == Zoning.Status.Request =>
           beginZoningCountdown(() => {
-            cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self)
+            cluster ! ICS.GetInstantActionSpawnPoint(player.Faction, context.self, nextSpawnPointToken())
           })
 
         case Zoning.Method.Reset =>
@@ -2360,7 +2402,8 @@ class ZoningOperations(
           tplayer.Faction,
           tplayer.Position,
           Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
-          context.self
+          context.self,
+          token = nextSpawnPointToken()
         )
       }
     }
@@ -2396,7 +2439,8 @@ class ZoningOperations(
           tplayer.Faction,
           tplayer.Position,
           Seq(SpawnGroup.Facility, SpawnGroup.Tower, SpawnGroup.AMS),
-          context.self
+          context.self,
+          token = nextSpawnPointToken()
         )
       }
     }
@@ -4039,7 +4083,8 @@ class ZoningOperations(
           Zones.sanctuaryZoneNumber(faction),
           faction,
           Seq(SpawnGroup.Sanctuary),
-          context.self
+          context.self,
+          token = nextSpawnPointToken()
         )
       }
     }

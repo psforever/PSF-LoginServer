@@ -230,8 +230,8 @@ class SessionActor(middlewareActor: typed.ActorRef[MiddlewareActor.Command], con
       logic.general.handleRenewCharSavedTimerMsg()
 
     /* common messages (maybe once every respawn) */
-    case ICS.SpawnPointResponse(response) =>
-      data.zoning.handleSpawnPointResponse(response)
+    case ICS.SpawnPointResponse(response, token) =>
+      data.zoning.handleSpawnPointResponse(response, token)
 
     case SessionActor.NewPlayerLoaded(tplayer) =>
       data.zoning.spawn.handleNewPlayerLoaded(tplayer)
