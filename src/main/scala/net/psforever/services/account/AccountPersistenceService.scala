@@ -21,7 +21,7 @@ import net.psforever.services.base.message.ObjectDelete
 import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.zones.Zones
 
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 /**
   * A global service that manages user behavior as divided into the following three categories:
@@ -422,7 +422,21 @@ class PersistenceMonitor(
         AvatarLogout(avatar)
 
       case _ =>
-        //user stalled during initial session, or was caught in between zone transfer
+        //No live body for this player was found in any zone, but the account may still be registered as
+        //connected -- e.g. the player released, their corpse decayed, and they were sitting at the deployment
+        //map when the client dropped, so no body exists anywhere to locate. If they are still listed as online,
+        //clear the residual connected state (LivePlayerList / squad / galaxy / population); otherwise they would
+        //linger as "connected" until a server restart even though no entity is visible in the world.
+        LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(name) }).headOption match {
+          case Some(avatar) =>
+            log.warn(
+              s"PerformLogout: $name had no live body in any zone but was still registered as connected; " +
+                "clearing residual online state"
+            )
+            AvatarLogout(avatar)
+          case None =>
+            //user stalled during initial session, or was caught in between zone transfer
+        }
     }
   }
 
@@ -453,7 +467,11 @@ class PersistenceMonitor(
     }
     inZone.Population.tell(Zone.Population.Release(avatar), parent)
     inZone.AvatarEvents.tell(MessageEnvelope(inZone.id, pguid, ObjectDelete(pguid)), parent)
-    TaskWorkflow.execute(GUIDTask.unregisterPlayer(inZone.GUID, player))
+    TaskWorkflow.execute(GUIDTask.unregisterPlayer(inZone.GUID, player)).onComplete {
+      case Failure(e) =>
+        log.error(s"PerformLogout: failed to unregister ${player.Name} from ${inZone.id}; GUID may leak until restart: ${e.getMessage}")
+      case _ => ()
+    }
     //inZone.tasks.tell(GUIDTask.UnregisterPlayer(player)(inZone.GUID), parent)
     AvatarLogout(avatar)
   }
@@ -474,7 +492,11 @@ class PersistenceMonitor(
     galaxyService.tell(MessageEnvelope(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     Deployables.Disown(inZone, avatar, context.parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)
-    TaskWorkflow.execute(GUIDTask.unregisterObject(inZone.GUID, avatar.locker))
+    TaskWorkflow.execute(GUIDTask.unregisterObject(inZone.GUID, avatar.locker)).onComplete {
+      case Failure(e) =>
+        log.error(s"PerformLogout: failed to unregister ${avatar.name}'s locker from ${inZone.id}; GUID may leak until restart: ${e.getMessage}")
+      case _ => ()
+    }
     //inZone.tasks.tell(GUIDTask.UnregisterObjectTask(avatar.locker)(inZone.GUID), context.parent)
     log.info(s"Logout of ${avatar.name}")
   }
