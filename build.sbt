@@ -110,7 +110,18 @@ lazy val server = (project in file("server"))
     inConfig(QuietTest)(Defaults.testTasks),
     packMain := Map("psforever-server" -> "net.psforever.server.Server"),
     packArchivePrefix := "psforever-server",
-    packJvmOpts := Map("psforever-server" -> Seq("-Dstacktrace.app.packages=net.psforever")),
+    // The packaged launcher previously passed no memory or collector settings at all, so the
+    // server ran on whatever the JVM defaulted to -- in a container, a fraction of host RAM.
+    // The -Xmx in .jvmopts applies to sbt, not to this script. G1 with an explicit pause
+    // target keeps collections short; the server's hitching is sensitive to stop-the-world
+    // pauses because they stall every connected session simultaneously.
+    packJvmOpts := Map("psforever-server" -> Seq(
+      "-Dstacktrace.app.packages=net.psforever",
+      "-Xms2g",
+      "-Xmx4g",
+      "-XX:+UseG1GC",
+      "-XX:MaxGCPauseMillis=50"
+    )),
     packExtraClasspath := Map("psforever-server" -> Seq("${PROG_HOME}/config")),
     packResourceDir += ((psforever / baseDirectory).value / "config" -> "config")
   )
