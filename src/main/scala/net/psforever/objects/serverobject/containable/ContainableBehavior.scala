@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.containable
 
 import akka.actor.{Actor, ActorRef}
-import akka.pattern.{AskTimeoutException, ask}
+import akka.pattern.ask
 import akka.util.Timeout
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, InventoryItem}
@@ -196,10 +196,12 @@ trait ContainableBehavior {
 
               case _ => ; //TODO what?
             }
-            //always do this
-            moveItemOver
-              .recover { case _: AskTimeoutException => destination.Actor ! ContainableBehavior.Resume() }
-              .onComplete { _ => destination.Actor ! ContainableBehavior.Resume() }
+            /* exactly one Resume must answer the Wait() above. The previous form recovered an
+               AskTimeoutException by sending a Resume and, because recover yields a successful
+               future, the following onComplete sent a second one -- releasing an unrelated
+               concurrent move's guard and letting interleaved insertions through.
+               onComplete alone already covers both success and failure. */
+            moveItemOver.onComplete { _ => destination.Actor ! ContainableBehavior.Resume() }
           }
         case _ => ;
         //we could not find the item to be moved in the source location; trying to act on old data?
