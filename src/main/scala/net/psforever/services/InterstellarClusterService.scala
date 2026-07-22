@@ -125,13 +125,13 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
     mutable.Map(
       _zones.map {
         zone =>
-          /* dispatchers.conf defines a pool per zone so that one busy continent cannot starve
-             the others, but nothing ever selected them: the deployment entries in akka.conf
-             name "<id>-actor" paths that are never created, and config deployment does not
-             apply to typed actors in any case.
-             Not every zone id is guaranteed to have a matching entry, and
-             DispatcherSelector.fromConfig throws on a missing key, so fall back to the default
-             pool rather than prevent the server from starting. */
+          /* Each zone runs on its own pool from dispatchers.conf, so that one busy continent
+             cannot starve the others. The dispatcher is selected here at the spawn site
+             because this is a typed actor, which config-based deployment does not apply to.
+             Not every zone id is guaranteed to have a matching entry -- Zone.Nowhere, the
+             sentinel for an invalid location, has none -- and DispatcherSelector.fromConfig
+             throws on a missing key, so an absent pool falls back to the default rather than
+             preventing the server from starting. */
           val dispatcherPath = s"${zone.id}-zone-dispatcher"
           val zoneDispatcher =
             if (context.system.settings.config.hasPath(dispatcherPath)) {

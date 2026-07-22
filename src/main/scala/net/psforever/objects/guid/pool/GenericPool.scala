@@ -82,11 +82,10 @@ object GenericPool {
     */
   def first(list: List[Long], domainSize: Int): Int = {
     if (list.size < domainSize) {
-      /* an Array, because this is indexed by position in a loop: List.apply walks the chain,
-         so the identical scan over a List cost O(index) per step. This pool is the fallback
-         for any exhausted pool and receives every number in the hub -- on the order of tens
-         of thousands -- which made the scan quadratic and left the pool actor's mailbox
-         blocked for a long time at precisely the moment the server was under pressure. */
+      /* An Array, because the loop below indexes it by position and Array.apply is constant
+         time. That matters here more than elsewhere: this pool is the fallback for any
+         exhausted pool and receives every number in the hub, on the order of tens of
+         thousands, and the scan runs on the pool actor's thread while its mailbox waits. */
       val sortedList: Array[Long] = (0L +: list.sorted :+ domainSize.toLong).toArray
       var index: Int = 0
       val listLen = sortedList.length - 1

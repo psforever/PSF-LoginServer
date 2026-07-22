@@ -675,13 +675,11 @@ class MiddlewareActor(
     */
   private def processQueue(): Unit = {
     inReorderQueueFunc()
-    /* processOutQueueBundle dispatches at most one bundle per call, so a single call per timer
-       tick capped each client's outbound throughput at one MTU-sized bundle per delay period
-       regardless of backlog. Drain up to the configured number of bundles instead, so a burst
-       clears in a few ticks rather than tens of seconds, while the delay continues to govern
-       how aggressively packets are coalesced.
-       The budget also bounds the loop: it runs a fixed number of times at most, so it cannot
-       spin even if a queue fails to shrink. */
+    /* Drain up to `packetBundlingDrainLimit` bundles per run. processOutQueueBundle dispatches
+       one bundle per call, so this budget governs how much of a backlog a single run clears,
+       while the bundling delay governs how aggressively packets are coalesced into each
+       bundle. The budget also bounds the loop, which therefore always terminates after a
+       fixed number of iterations even if a queue fails to shrink. */
     var budget: Int = packetBundlingDrainLimit
     while (budget > 0 && (outQueueBundled.nonEmpty || outQueue.nonEmpty)) {
       processOutQueueBundle()

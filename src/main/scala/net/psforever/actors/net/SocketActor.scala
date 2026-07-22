@@ -142,9 +142,10 @@ class SocketActor(
                   val ref = context.spawn(
                     MiddlewareActor(udpCommandAdapter, remote, nextPlan, connectionId),
                     s"middleware-$connectionId",
-                    /* crypto, bundling and reordering for one connection; world-session is the
-                       pool akka.conf meant to isolate this work onto, and it has to be selected
-                       here because path-based deployment does not apply to typed actors */
+                    /* crypto, bundling and reordering for one connection, isolated onto the
+                       world-session pool. The dispatcher is selected here at the spawn site
+                       because this is a typed actor, which config-based deployment in
+                       akka.conf does not apply to. */
                     ActorTags(s"uuid=$connectionId").withDispatcherFromConfig("world-session")
                   )
                   context.watch(ref)

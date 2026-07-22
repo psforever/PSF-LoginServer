@@ -1,8 +1,7 @@
 -- Indexes for foreign keys that are queried on the login and gameplay hot paths.
 --
--- PostgreSQL does not create an index for a REFERENCES constraint, so before this migration
--- every one of the lookups below was a sequential scan. Only V015 (outfits) had declared any
--- indexes at all.
+-- PostgreSQL does not create an index for a REFERENCES constraint, so each foreign key that
+-- is filtered on needs one declared explicitly or the lookup is a sequential scan.
 --
 -- Deliberately omitted, because an existing constraint already provides a usable btree with
 -- avatar_id as its leading column:
@@ -13,7 +12,7 @@
 -- Adding further indexes there would only cost write throughput.
 
 -- Read for every character on the character select screen, and rewritten whenever a loadout
--- is saved or deleted. Primary key is id alone, so avatar_id was unindexed.
+-- is saved or deleted. The primary key is id alone, so it does not serve avatar_id lookups.
 CREATE INDEX IF NOT EXISTS "loadout_avatar_id_idx" ON "loadout" ("avatar_id");
 CREATE INDEX IF NOT EXISTS "vehicleloadout_avatar_id_idx" ON "vehicleloadout" ("avatar_id");
 
@@ -33,7 +32,7 @@ CREATE INDEX IF NOT EXISTS "avatar_account_id_idx" ON "avatar" ("account_id");
 -- killactivity is an append-only kill log that grows for the lifetime of the server, and the
 -- campaign KDA query reads it on every single login with
 --   WHERE (killer_id = ? OR victim_id = ?) AND killer_id <> victim_id
--- Without these, login cost grew in proportion to every kill ever recorded. The OR is
--- satisfied by two separate indexes via a bitmap union.
+-- Two single-column indexes let the OR resolve as a bitmap union, keeping that query
+-- proportional to one player's kills rather than to every kill the server has recorded.
 CREATE INDEX IF NOT EXISTS "killactivity_killer_id_idx" ON "killactivity" ("killer_id");
 CREATE INDEX IF NOT EXISTS "killactivity_victim_id_idx" ON "killactivity" ("victim_id");

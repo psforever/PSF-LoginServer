@@ -21,8 +21,9 @@ object MultiPacketEx extends Marshallable[MultiPacketEx] {
     val MaxValue = (1L << 31) - 1
     val MinValue = 0
 
-    /* hoisted out of encode/decode; these run once per sub-packet of every inbound
-       and outbound bundle, and scodec codecs are immutable and safe to share */
+    /* Shared across calls: sizeCodec runs once per sub-packet of every inbound and outbound
+       bundle, so these are built once here rather than per invocation. scodec codecs are
+       immutable and safe to share. */
     private val mediumCodec = (constant(hex"ff") :: uint16L).dropUnits
     private val largeCodec  = (constant(hex"ffffff") :: uint32L).dropUnits
     private val sizeTypes   = Vector(8, 16, 32)

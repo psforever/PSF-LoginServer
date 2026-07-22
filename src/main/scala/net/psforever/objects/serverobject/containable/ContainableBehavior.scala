@@ -196,11 +196,10 @@ trait ContainableBehavior {
 
               case _ => ; //TODO what?
             }
-            /* exactly one Resume must answer the Wait() above. The previous form recovered an
-               AskTimeoutException by sending a Resume and, because recover yields a successful
-               future, the following onComplete sent a second one -- releasing an unrelated
-               concurrent move's guard and letting interleaved insertions through.
-               onComplete alone already covers both success and failure. */
+            /* Exactly one Resume answers the Wait() above, and onComplete alone delivers it
+               for both success and failure -- including an AskTimeoutException. A second
+               Resume would release an unrelated concurrent move's guard and let insertions
+               interleave with a move that is still in flight. */
             moveItemOver.onComplete { _ => destination.Actor ! ContainableBehavior.Resume() }
           }
         case _ => ;

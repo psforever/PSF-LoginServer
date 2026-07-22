@@ -1487,7 +1487,7 @@ class ChatOperations(
   override protected[session] def stop(): Unit = {
     silenceTimer.cancel()
     chatService ! ChatService.LeaveAllChannels(chatServiceAdapter)
-    /* this pool is per-session; without this its threads outlive the session that made them */
+    /* the scheduler pool is owned by this session, so it is released with the session */
     scheduler.shutdown()
   }
 }

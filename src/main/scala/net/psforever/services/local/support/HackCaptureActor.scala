@@ -342,9 +342,9 @@ class HackCaptureActor extends Actor {
                                  delayMillis: Long
                                ): Unit = {
     val buildingIterator = buildings.iterator
-    /* the handle must be cancelled once the iterator is spent, or the task keeps waking
-       every delayMillis for the lifetime of the pool doing nothing; compare the equivalent
-       loop in ChatOperations.processBuildingsWithDelay, which already cancels */
+    /* The handle is captured so the task can cancel itself once the iterator is spent;
+       otherwise it would keep waking every delayMillis for the lifetime of the pool with no
+       work left to do. ChatOperations.processBuildingsWithDelay follows the same pattern. */
     var handle: ScheduledFuture[_] = null
     handle = scheduler.scheduleAtFixedRate(
       () => {

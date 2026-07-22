@@ -131,10 +131,11 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
       }
     )
 
-  /* The parameter is a Boolean, so there are only ever two of these codecs, but a fresh tree of
-     roughly a dozen primitive codecs plus combinators and an xmap closure was constructed on
-     every call. This is reached once per object in every ObjectCreateMessage, and spawning or
-     zoning emits hundreds back to back. scodec codecs are immutable and safe to share.
+  /* The parameter is a Boolean, so there are only ever two of these codecs; each is built once
+     and shared. Worth doing because this is reached once per object in every
+     ObjectCreateMessage and spawning or zoning emits hundreds back to back, while each tree
+     costs roughly a dozen primitive codecs plus combinators and an xmap closure to construct.
+     scodec codecs are immutable and safe to share.
      lazy, so that initialisation order within this object cannot observe a null. */
   private lazy val codecPlain: Codec[CommonFieldData] = buildCodec(extra = false)
   private lazy val codecExtra: Codec[CommonFieldData] = buildCodec(extra = true)

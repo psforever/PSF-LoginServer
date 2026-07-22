@@ -277,11 +277,12 @@ object Sector {
   * @param environmentList fields that represent the game world environment
   */
 /**
-  * The entity lists are declared by-name and retained as `lazy val`s.
-  * A sector group frequently spans a great many sectors, and callers usually consult only one or two
-  * of the ten categories, so materializing all of them eagerly does a large amount of discarded work
-  * on hot paths such as the per-movement-packet local sector refresh.
-  * Each list is instead condensed on first access and memoized thereafter.
+  * The entity lists are declared by-name and retained as `lazy val`s, so each category is
+  * condensed on first access and memoized thereafter.
+  * A sector group frequently spans a great many sectors while callers usually consult only one or
+  * two of the ten categories, and the group is rebuilt on hot paths such as the per-movement-packet
+  * local sector refresh, so condensing a category only when it is read keeps that cost proportional
+  * to what is actually used.
   */
 class SectorGroup(
                    val rangeX: Float,

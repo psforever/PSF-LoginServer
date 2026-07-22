@@ -1,8 +1,8 @@
 services:
   loginserver:
-    # Matches the JDK the Dockerfile builds with. This previously ran JDK 8, whose default
-    # collector is ParallelGC -- full collections there are stop-the-world and can run into
-    # seconds, stalling every connected client at once.
+    # Matches the JDK the Dockerfile builds with, so local runs and released builds share a
+    # collector. Keep this off JDK 8, whose default ParallelGC does stop-the-world full
+    # collections that can run into seconds and stall every connected client at once.
     image: sbtscala/scala-sbt:eclipse-temurin-focal-11.0.17_8_1.8.2_2.13.10
     volumes:
       - .:/PSF-Loginserver:z

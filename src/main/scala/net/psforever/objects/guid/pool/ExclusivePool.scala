@@ -9,12 +9,13 @@ class ExclusivePool(override val numbers: List[Int]) extends SimplePool(numbers)
   private val pool: Array[Int] = Array.ofDim[Int](numbers.length)
   numbers.indices.foreach(i => { pool(i) = i })
 
-  /* `numbers` is a List, so both hot operations walked it: Get did numbers(index), which is
-     O(index), and Return did an O(n) indexOf. The configured pools are large -- deployables
-     16000, ammo and kits 13500 each -- and unregistration happens in bulk when a player dies
-     or a vehicle is deconstructed, all serialised through one pool actor.
-     An indexed copy and a reverse lookup make both constant time. Neither is mutated after
-     construction, and SimplePool has already rejected duplicates. */
+  /* Constant-time views over `numbers`, which is a List: an indexed copy for resolving a
+     selector index to its number, and a reverse lookup for resolving a number back to its
+     index. Both operations are hot -- the configured pools are large (deployables 16000,
+     ammo and kits 13500 each) and unregistration arrives in bulk when a player dies or a
+     vehicle is deconstructed, all serialised through one pool actor.
+     Neither structure is mutated after construction, and SimplePool has already rejected
+     duplicates, so the reverse lookup is unambiguous. */
   private val numbersByIndex: Array[Int] = numbers.toArray
   private val indexByNumber: Map[Int, Int] = numbers.zipWithIndex.toMap
 

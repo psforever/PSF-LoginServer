@@ -88,11 +88,11 @@ final case class SocketSetupInfo(
 object SocketPane {
   val SocketPaneKey: ServiceKey[Command] = ServiceKey[SocketPane.Command](id = "socketPane")
 
-  /** The UDP read loop gets the dedicated thread akka.conf always intended for it.
+  /** Dispatcher for the UDP read loop.
     * network-listener is a PinnedDispatcher, so each socket actor -- one per bound port --
-    * receives its own thread rather than competing with game logic on the default pool.
-    * Selecting it here rather than by actor path is deliberate: these are typed actors, and
-    * config-based deployment does not apply to them. */
+    * owns a dedicated thread and is insulated from game logic running on other pools.
+    * The dispatcher is selected here at the spawn site because these are typed actors, which
+    * config-based deployment in akka.conf does not apply to. */
   private val socketDispatcher: DispatcherSelector = DispatcherSelector.fromConfig("network-listener")
 
   /**

@@ -294,10 +294,11 @@ object GamePacketOpcode extends Enumeration {
   ClientCheatedMessage   // last known message type (243, 0xf3)
   = Value
 
-  /* Err takes its message by value, so any interpolation here is built eagerly on every
-     packet that lands on an unimplemented opcode -- and a great many opcodes are still
-     stubs. Rendering the payload as hex allocated a string twice the packet's length each
-     time; the opcode alone identifies the gap. */
+  /* The message names the opcode only, which is what identifies the missing marshaller.
+     Keep it cheap to build: Err takes its message by value, so anything interpolated here is
+     constructed eagerly for every packet that lands on an unimplemented opcode, and a great
+     many opcodes are still stubs. Rendering the payload would cost a string twice the
+     packet's length each time. */
   private def noDecoder(opcode: GamePacketOpcode.Type) =
     (_: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet $opcode"))
 
