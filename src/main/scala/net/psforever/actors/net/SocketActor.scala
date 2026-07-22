@@ -142,7 +142,10 @@ class SocketActor(
                   val ref = context.spawn(
                     MiddlewareActor(udpCommandAdapter, remote, nextPlan, connectionId),
                     s"middleware-$connectionId",
-                    ActorTags(s"uuid=$connectionId")
+                    /* crypto, bundling and reordering for one connection; world-session is the
+                       pool akka.conf meant to isolate this work onto, and it has to be selected
+                       here because path-based deployment does not apply to typed actors */
+                    ActorTags(s"uuid=$connectionId").withDispatcherFromConfig("world-session")
                   )
                   context.watch(ref)
                   packetActors(remote) = ref
