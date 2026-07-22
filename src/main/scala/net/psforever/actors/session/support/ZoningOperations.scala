@@ -89,19 +89,19 @@ object ZoningOperations {
 
   /**
     * Delivered to the session actor when a zoning countdown timer elapses.
-    * Carrying the countdown continuation as a message (rather than executing it inside the timer closure)
-    * guarantees the countdown logic runs on the actor thread, serialized with all other session activity,
-    * so that a concurrent transfer's `zoningTimer.cancel()` is actually effective.
+    * The countdown continuation travels as a message so that the countdown logic runs on the actor
+    * thread, serialized with all other session activity, which is what makes a concurrent transfer's
+    * `zoningTimer.cancel()` effective.
     * @param runnable the next step of the zoning countdown to perform
     */
   private[session] final case class ZoningCountdownTick(runnable: Runnable)
 
   /**
     * Delivered to the session actor when a physical spawn-point respawn timer elapses.
-    * Carrying the resolved destination as a message (rather than executing it inside the timer closure)
-    * guarantees the respawn/zone-load logic runs on the actor thread, serialized with all other session activity,
-    * so that a concurrent transfer's `respawnTimer.cancel()` is actually effective and the closure can no longer
-    * read a half-updated `session`/`continent`/`interstellarFerry` off the global thread pool.
+    * The resolved destination travels as a message so that the respawn/zone-load logic runs on the
+    * actor thread, serialized with all other session activity. That is what makes a concurrent
+    * transfer's `respawnTimer.cancel()` effective, and it keeps `session`/`continent`/
+    * `interstellarFerry` from being read in a half-updated state off the global thread pool.
     * @param zoneId the destination zone designation
     * @param position where in the destination zone to place the avatar
     * @param orientation the direction the avatar faces at the destination
