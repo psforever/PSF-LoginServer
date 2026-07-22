@@ -9,6 +9,15 @@ class ExclusivePool(override val numbers: List[Int]) extends SimplePool(numbers)
   private val pool: Array[Int] = Array.ofDim[Int](numbers.length)
   numbers.indices.foreach(i => { pool(i) = i })
 
+  /* `numbers` is a List, so both hot operations walked it: Get did numbers(index), which is
+     O(index), and Return did an O(n) indexOf. The configured pools are large -- deployables
+     16000, ammo and kits 13500 each -- and unregistration happens in bulk when a player dies
+     or a vehicle is deconstructed, all serialised through one pool actor.
+     An indexed copy and a reverse lookup make both constant time. Neither is mutated after
+     construction, and SimplePool has already rejected duplicates. */
+  private val numbersByIndex: Array[Int] = numbers.toArray
+  private val indexByNumber: Map[Int, Int] = numbers.zipWithIndex.toMap
+
   override def Count: Int = pool.count(value => value == -1)
 
   override def Selector_=(slctr: NumberSelector): Unit = {
@@ -21,12 +30,11 @@ class ExclusivePool(override val numbers: List[Int]) extends SimplePool(numbers)
     if (index == -1) {
       Failure(new Exception("there are no numbers available in the pool"))
     } else {
-      Success(numbers(index))
+      Success(numbersByIndex(index))
     }
   }
 
   override def Return(number: Int): Boolean = {
-    val index = Numbers.indexOf(number)
-    index != -1 && Selector.Return(index, pool)
+    indexByNumber.get(number).exists(index => Selector.Return(index, pool))
   }
 }
