@@ -145,11 +145,17 @@ object TaskWorkflow {
         //no subtasks; just execute the main task
         promise.completeWith(task.action())
       case list =>
-        var unassignedCompletion: Boolean = true //shared mutex
+        /* The monitor must be a dedicated object. Synchronising on a Boolean synchronises on
+           the boxed java.lang.Boolean, and valueOf returns the cached TRUE/FALSE singletons,
+           so every task bundle in the server contended the same two JVM-wide monitors.
+           It was also not a valid mutex: the monitor identity changed when the flag flipped,
+           so two threads could hold "the lock" at once and complete the promise twice. */
+        val completionLock = new Object
+        var unassignedCompletion: Boolean = true
         //wait for subtasks to complete
         list.foreach { result =>
           result.onComplete { _ =>
-            unassignedCompletion.synchronized {
+            completionLock.synchronized {
               if (unassignedCompletion && composedSubs.forall(matchOnFutureCompletion)) {
                 unassignedCompletion = false
                 if (composedSubs.forall(matchOnFutureSuccess)) {
