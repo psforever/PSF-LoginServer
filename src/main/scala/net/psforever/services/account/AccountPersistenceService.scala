@@ -368,10 +368,10 @@ class PersistenceMonitor(
   def PerformLogout(): Unit = {
     // `inZone` is the zone last reported through an `Update` heartbeat. On an abrupt disconnect
     // (a crash during/after a zone transfer, or right after a respawn before an `Update` landed)
-    // this can be stale, so the player's live avatar/corpse actually resides in a different zone.
-    // Keying the lookup solely off a stale `inZone` finds nothing, falls through to the no-op case
-    // below, and strands the entity (with its GUID and population membership) in the world until the
-    // server restarts. Re-point `inZone` to wherever the player actually is before proceeding.
+    // it can be stale, and the player's live avatar/corpse resides in a different zone. Locate the
+    // entity across all zones and re-point `inZone` at wherever it actually is before proceeding,
+    // so the logout below acts on it rather than finding nothing and leaving it stranded in the
+    // world -- holding its GUID and population membership -- until the server restarts.
     if (!(inZone.Players.exists(_.name == name) || inZone.AllPlayers.exists(_.Name == name))) {
       Zones.zones.find { z =>
         z.Players.exists(_.name == name) || z.AllPlayers.exists(_.Name == name)
@@ -422,11 +422,11 @@ class PersistenceMonitor(
         AvatarLogout(avatar)
 
       case _ =>
-        //No live body for this player was found in any zone, but the account may still be registered as
-        //connected -- e.g. the player released, their corpse decayed, and they were sitting at the deployment
-        //map when the client dropped, so no body exists anywhere to locate. If they are still listed as online,
-        //clear the residual connected state (LivePlayerList / squad / galaxy / population); otherwise they would
-        //linger as "connected" until a server restart even though no entity is visible in the world.
+        //No live body for this player exists in any zone, yet the account can still be registered as
+        //connected -- e.g. the player released, their corpse decayed, and they were sitting at the
+        //deployment map when the client dropped. Clear the residual connected state
+        //(LivePlayerList / squad / galaxy / population) for anyone still listed as online, so the
+        //account does not remain "connected" until a server restart with no entity in the world.
         LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(name) }).headOption match {
           case Some(avatar) =>
             log.warn(
