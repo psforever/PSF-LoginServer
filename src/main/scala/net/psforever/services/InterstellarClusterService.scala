@@ -3,7 +3,7 @@ package net.psforever.services
 
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
+import akka.actor.typed.{ActorRef, Behavior, DispatcherSelector, SupervisorStrategy}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.{SpawnPoint, Vehicle}
@@ -125,7 +125,22 @@ class InterstellarClusterService(context: ActorContext[InterstellarClusterServic
     mutable.Map(
       _zones.map {
         zone =>
-          val zoneActor = context.spawn(ZoneActor(zone), s"zone-${zone.id}")
+          /* Each zone runs on its own pool from dispatchers.conf, so that one busy continent
+             cannot starve the others. The dispatcher is selected here at the spawn site
+             because this is a typed actor, which config-based deployment does not apply to.
+             Not every zone id is guaranteed to have a matching entry -- Zone.Nowhere, the
+             sentinel for an invalid location, has none -- and DispatcherSelector.fromConfig
+             throws on a missing key, so an absent pool falls back to the default rather than
+             preventing the server from starting. */
+          val dispatcherPath = s"${zone.id}-zone-dispatcher"
+          val zoneDispatcher =
+            if (context.system.settings.config.hasPath(dispatcherPath)) {
+              DispatcherSelector.fromConfig(dispatcherPath)
+            } else {
+              context.log.warn(s"no dispatcher configured at $dispatcherPath; zone ${zone.id} shares the default pool")
+              DispatcherSelector.default()
+            }
+          val zoneActor = context.spawn(ZoneActor(zone), s"zone-${zone.id}", zoneDispatcher)
           (zone.id, (zoneActor, zone))
       }.toSeq: _*
     )

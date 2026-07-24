@@ -294,8 +294,13 @@ object GamePacketOpcode extends Enumeration {
   ClientCheatedMessage   // last known message type (243, 0xf3)
   = Value
 
+  /* The message names the opcode only, which is what identifies the missing marshaller.
+     Keep it cheap to build: Err takes its message by value, so anything interpolated here is
+     constructed eagerly for every packet that lands on an unimplemented opcode, and a great
+     many opcodes are still stubs. Rendering the payload would cost a string twice the
+     packet's length each time. */
   private def noDecoder(opcode: GamePacketOpcode.Type) =
-    (bits: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet $opcode (${bits.toHex})"))
+    (_: BitVector) => Attempt.failure(Err(s"Could not find a marshaller for game packet $opcode"))
 
   /// Mapping of packet IDs to decoders. Notice that we are using the @switch annotation which ensures that the Scala
   /// compiler will be able to optimize this as a lookup table (switch statement). Microbenchmarks show a nearly 400x

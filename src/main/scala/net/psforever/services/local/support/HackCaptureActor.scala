@@ -20,7 +20,7 @@ import net.psforever.services.local.support.HackCaptureActor.GetHackingFaction
 import net.psforever.services.local.LocalAction
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire}
 
-import java.util.concurrent.{Executors, TimeUnit}
+import java.util.concurrent.{Executors, ScheduledFuture, TimeUnit}
 import scala.collection.Seq
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -342,7 +342,11 @@ class HackCaptureActor extends Actor {
                                  delayMillis: Long
                                ): Unit = {
     val buildingIterator = buildings.iterator
-    scheduler.scheduleAtFixedRate(
+    /* The handle is captured so the task can cancel itself once the iterator is spent;
+       otherwise it would keep waking every delayMillis for the lifetime of the pool with no
+       work left to do. ChatOperations.processBuildingsWithDelay follows the same pattern. */
+    var handle: ScheduledFuture[_] = null
+    handle = scheduler.scheduleAtFixedRate(
       () => {
         if (buildingIterator.hasNext) {
           val building = buildingIterator.next()
@@ -351,6 +355,9 @@ class HackCaptureActor extends Actor {
           buildingActor ! BuildingActor.SetFaction(faction)
           buildingActor ! BuildingActor.AmenityStateChange(terminal, Some(false))
           buildingActor ! BuildingActor.MapUpdate()
+        }
+        else {
+          handle.cancel(false)
         }
       },
       0,

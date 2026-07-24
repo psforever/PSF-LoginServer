@@ -304,6 +304,10 @@ class MiddlewareActor(
     "milliseconds"
   )
 
+  /** How many bundles a single run of the bundling process may dispatch; at least one */
+  private val packetBundlingDrainLimit: Int =
+    math.max(1, Config.app.network.middleware.packetBundlingDrainLimit)
+
   /** Timer that handles the bundling and throttling of outgoing packets and resolves disorganized inbound packets */
   private var packetProcessor: Cancellable = Default.Cancellable
 
@@ -671,7 +675,16 @@ class MiddlewareActor(
     */
   private def processQueue(): Unit = {
     inReorderQueueFunc()
-    processOutQueueBundle()
+    /* Drain up to `packetBundlingDrainLimit` bundles per run. processOutQueueBundle dispatches
+       one bundle per call, so this budget governs how much of a backlog a single run clears,
+       while the bundling delay governs how aggressively packets are coalesced into each
+       bundle. The budget also bounds the loop, which therefore always terminates after a
+       fixed number of iterations even if a queue fails to shrink. */
+    var budget: Int = packetBundlingDrainLimit
+    while (budget > 0 && (outQueueBundled.nonEmpty || outQueue.nonEmpty)) {
+      processOutQueueBundle()
+      budget -= 1
+    }
   }
 
   /**

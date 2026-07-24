@@ -5,7 +5,7 @@ import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 
 import java.net.{InetAddress, InetSocketAddress}
 import akka.{actor => classic}
-import akka.actor.typed.{ActorRef, Behavior, PostStop}
+import akka.actor.typed.{ActorRef, Behavior, DispatcherSelector, PostStop}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import net.psforever.packet.PlanetSidePacket
 
@@ -88,6 +88,13 @@ final case class SocketSetupInfo(
 object SocketPane {
   val SocketPaneKey: ServiceKey[Command] = ServiceKey[SocketPane.Command](id = "socketPane")
 
+  /** Dispatcher for the UDP read loop.
+    * network-listener is a PinnedDispatcher, so each socket actor -- one per bound port --
+    * owns a dedicated thread and is insulated from game logic running on other pools.
+    * The dispatcher is selected here at the spawn site because these are typed actors, which
+    * config-based deployment in akka.conf does not apply to. */
+  private val socketDispatcher: DispatcherSelector = DispatcherSelector.fromConfig("network-listener")
+
   /**
    * Overrode constructor for `SocketPane` entities.
    * Registers the entity with the actor receptionist.
@@ -138,7 +145,7 @@ class SocketPane(
   /** all sockets produced by the socket group information and any later socket creation commands */
   private var socketActors: Array[ActorRef[SocketActor.Command]] = initialPortSetup.flatMap {
       case SocketSetup(_, SocketSetupInfo(address, ports, plan), _) =>
-        ports.map { portNum => context.spawn(SocketActor(new InetSocketAddress(address, portNum), plan), name=s"world-socket-$portNum") }
+        ports.map { portNum => context.spawn(SocketActor(new InetSocketAddress(address, portNum), plan), name=s"world-socket-$portNum", SocketPane.socketDispatcher) }
     }.toArray
   /** load balancing for redirecting newly discovered packet input to different sockets (ports);
    * should be referenced externally to switch sockets;
@@ -169,7 +176,7 @@ class SocketPane(
           val index = socketConfigs.indexWhere { setup => setup.groupId.equals(groupId) }
           val SocketSetup(_, SocketSetupInfo(address, ports, plan), _) = socketConfigs(index)
           socketActors = socketActors :+
-            context.spawn(SocketActor(new InetSocketAddress(address, port), plan), name=s"world-socket-$port")
+            context.spawn(SocketActor(new InetSocketAddress(address, port), plan), name=s"world-socket-$port", SocketPane.socketDispatcher)
           socketConfigs = (socketConfigs.take(index) :+ SocketSetup(groupId, SocketSetupInfo(address, ports :+ port, plan))) ++
             socketConfigs.drop(index + 1)
           socketRotations = (socketRotations.take(index) :+ SocketPanePortRotation(socketRotations(index), port)) ++
@@ -183,7 +190,7 @@ class SocketPane(
 
         case SocketPane.CreateNewSocketGroup(groupId, info @ SocketSetupInfo(address, ports, plan)) =>
           socketActors = socketActors ++
-            ports.map { portNum => context.spawn(SocketActor(new InetSocketAddress(address, portNum), plan), name=s"world-socket-$portNum") }
+            ports.map { portNum => context.spawn(SocketActor(new InetSocketAddress(address, portNum), plan), name=s"world-socket-$portNum", SocketPane.socketDispatcher) }
           socketConfigs = socketConfigs :+
             SocketSetup(groupId, info)
           socketRotations = socketRotations :+
