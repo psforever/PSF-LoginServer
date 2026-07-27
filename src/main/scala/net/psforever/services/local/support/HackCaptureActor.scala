@@ -90,12 +90,12 @@ class HackCaptureActor extends Actor {
         building.GetFlag match {
           case Some(llu) if llu.Destroyed =>
             // LLU was destroyed while in the field. Send resecured notifications
-            terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.FlagLost)
+            terminal.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.FlagLost))
             NotifyHackStateChange(terminal, isResecured = true)
 
           case Some(llu) =>
             // LLU was not delivered in time. Send resecured notifications
-            terminal.Zone.LocalEvents ! CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.TimedOut)
+            terminal.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(llu, CaptureFlagLostReasonEnum.TimedOut))
             NotifyHackStateChange(terminal, isResecured = true)
 
           case _ =>
@@ -126,7 +126,7 @@ class HackCaptureActor extends Actor {
       val hackTime = results.headOption.map { now - _.hack_timestamp }.getOrElse(facilityHackTime)
       // If LLU exists it was not delivered. Send resecured notifications
       building.GetFlag.collect {
-        case flag: CaptureFlag => target.Zone.LocalEvents ! CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Resecured)
+        case flag: CaptureFlag => target.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Lost(flag, CaptureFlagLostReasonEnum.Resecured))
       }
       NotifyHackStateChange(target, isResecured = true)
       building.Participation.RewardFacilityCapture(
@@ -161,7 +161,7 @@ class HackCaptureActor extends Actor {
             isResecured = false
           )
           entry.target.Actor ! CommonMessages.ClearHack()
-          flag.Zone.LocalEvents ! CaptureFlagManager.Captured(flag)
+          flag.Zone.LocalEvents ! FlagEnvelope(CaptureFlagManager.Captured(flag))
           // If there's hacked objects left in the list restart the timer with the shortest hack time left
           RestartTimer()
 
@@ -304,7 +304,8 @@ class HackCaptureActor extends Actor {
       val towersToCapture = buildings.filter(b =>
         b.BuildingType == StructureType.Tower && b.Faction != hackedByFaction
       ).toSeq
-      if (ownedFacilities.size == facilities.size - 1) {
+      if (ownedFacilities.size == facilities.size - 1 &&
+        (building.BuildingType == StructureType.Facility || building.Zone.id.startsWith("c"))) {
         building.Zone.lockedBy = hackedByFaction
         building.Zone.benefitRecipient = hackedByFaction
         building.Zone.NotifyContinentalLockBenefits(building.Zone, building)

@@ -21,7 +21,7 @@ import net.psforever.services.avatar.support.GroundEnvelope
 import net.psforever.services.base.envelope.{BundledEnvelope, MessageEnvelope}
 import net.psforever.services.base.message.{ObjectDelete, PlanetsideAttribute, SendResponse}
 import net.psforever.services.base.support.RemoverActor
-import net.psforever.services.local.support.{CaptureEnvelope, HackCaptureActor}
+import net.psforever.services.local.support.{CaptureEnvelope, FlagEnvelope, HackCaptureActor}
 import net.psforever.services.local.LocalAction
 
 import scala.collection.mutable
@@ -500,12 +500,12 @@ class GeneralOperations(
               }
           }
           if (!CaptureFlagManager.ReasonToLoseFlagViolently(continent, Some(guid), player)) {
-            continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
+            continent.LocalEvents ! FlagEnvelope(CaptureFlagManager.DropFlag(llu))
           }
         case Some((llu, Some(carrier: Player)))
           if carrier.GUID == player.GUID &&
             !CaptureFlagManager.ReasonToLoseFlagViolently(continent, Some(guid), player) =>
-          continent.LocalEvents ! CaptureFlagManager.DropFlag(llu)
+          continent.LocalEvents ! FlagEnvelope(CaptureFlagManager.DropFlag(llu))
         case Some((_, Some(carrier: Player))) =>
           log.warn(s"${player.toString} tried to drop LLU, but it is currently held by ${carrier.toString}")
         case Some((_, None)) =>
@@ -1542,7 +1542,7 @@ class GeneralOperations(
       case None if obj.Faction == player.Faction && player.ZoningRequest == Zoning.Method.None =>
         specialItemSlotGuid = Some(obj.GUID)
         player.Carrying = SpecialCarry.CaptureFlag
-        continent.LocalEvents ! CaptureFlagManager.PickupFlag(obj, player)
+        continent.LocalEvents ! FlagEnvelope(CaptureFlagManager.PickupFlag(obj, player))
       case None =>
         log.warn(s"${player.Faction} player ${player.toString} tried to pick up a ${obj.Faction} LLU -  ${obj.GUID}")
       case Some(guid) if guid != obj.GUID =>
