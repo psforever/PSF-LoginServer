@@ -61,26 +61,28 @@ class PropertyOverrideManager extends Actor {
     gamePropertyScopes = scopesBuffer.toList
   }
 
-  def LoadFile(path: String): List[(String, String, String)] = {
+  def LoadFile(path: String): ListBuffer[(String, String, String)] = {
     val stream = getClass.getClassLoader.getResourceAsStream(path)
     if (stream == null) {
-      List.empty[(String, String, String)]
-    } else {
-      val content = scala.io.Source.fromInputStream(stream).getLines()
-      val data = content
-        .filter(_.startsWith("add_property"))
-        .map { line => (line, line.split("\\s+")) }
-        .filter(_._2.length > 2) //n >= 3
-        .map { case (line, tokens) =>
-          val objectName = tokens(1)
-          val property = tokens(2)
-          val propertyValue = line.drop(objectName.length + property.length + 15) //"add_property" (12) + spaces (3)
-          (objectName, property, propertyValue)
-        }
-        .toList
-      stream.close()
-      data
+      return null
     }
+    val content                                    = scala.io.Source.fromInputStream(stream).getLines().filter(x => x.startsWith("add_property"))
+    val data: ListBuffer[(String, String, String)] = ListBuffer()
+    for (line <- content) {
+      val splitLine = line.split(" ")
+      if (splitLine.length >= 3) {
+        val objectName = splitLine(1)
+        val property   = splitLine(2)
+        var propertyValue = ""
+        for (i <- 3 until splitLine.length) {
+          propertyValue += splitLine(i) + " "
+        }
+        propertyValue = propertyValue.trim
+        data += ((objectName, property, propertyValue))
+      }
+    }
+    stream.close()
+    data
   }
 }
 
