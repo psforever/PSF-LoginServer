@@ -21,7 +21,7 @@ import net.psforever.services.base.message.ObjectDelete
 import net.psforever.services.galaxy.GalaxyAction
 import net.psforever.zones.Zones
 
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 /**
   * A global service that manages user behavior as divided into the following three categories:
@@ -366,6 +366,23 @@ class PersistenceMonitor(
     * but should be uncommon.
     */
   def PerformLogout(): Unit = {
+    // `inZone` is the zone last reported through an `Update` heartbeat. On an abrupt disconnect
+    // (a crash during/after a zone transfer, or right after a respawn before an `Update` landed)
+    // it can be stale, and the player's live avatar/corpse resides in a different zone. Locate the
+    // entity across all zones and re-point `inZone` at wherever it actually is before proceeding,
+    // so the logout below acts on it rather than finding nothing and leaving it stranded in the
+    // world -- holding its GUID and population membership -- until the server restarts.
+    if (!(inZone.Players.exists(_.name == name) || inZone.AllPlayers.exists(_.Name == name))) {
+      Zones.zones.find { z =>
+        z.Players.exists(_.name == name) || z.AllPlayers.exists(_.Name == name)
+      }.foreach { actualZone =>
+        log.warn(
+          s"PerformLogout: $name was not found in the last-recorded zone ${inZone.id}; " +
+            s"found in ${actualZone.id} instead (likely disconnected mid-transfer). Cleaning up there."
+        )
+        inZone = actualZone
+      }
+    }
     (inZone.Players.find(p => p.name == name), inZone.AllPlayers.find(p => p.Name == name)) match {
       case (Some(avatar), Some(player)) if player.VehicleSeated.nonEmpty =>
         //in case the player is holding the llu and disconnects
@@ -405,7 +422,21 @@ class PersistenceMonitor(
         AvatarLogout(avatar)
 
       case _ =>
-        //user stalled during initial session, or was caught in between zone transfer
+        //No live body for this player exists in any zone, yet the account can still be registered as
+        //connected -- e.g. the player released, their corpse decayed, and they were sitting at the
+        //deployment map when the client dropped. Clear the residual connected state
+        //(LivePlayerList / squad / galaxy / population) for anyone still listed as online, so the
+        //account does not remain "connected" until a server restart with no entity in the world.
+        LivePlayerList.WorldPopulation({ case (_, a) => a.name.equals(name) }).headOption match {
+          case Some(avatar) =>
+            log.warn(
+              s"PerformLogout: $name had no live body in any zone but was still registered as connected; " +
+                "clearing residual online state"
+            )
+            AvatarLogout(avatar)
+          case None =>
+            //user stalled during initial session, or was caught in between zone transfer
+        }
     }
   }
 
@@ -436,7 +467,11 @@ class PersistenceMonitor(
     }
     inZone.Population.tell(Zone.Population.Release(avatar), parent)
     inZone.AvatarEvents.tell(MessageEnvelope(inZone.id, pguid, ObjectDelete(pguid)), parent)
-    TaskWorkflow.execute(GUIDTask.unregisterPlayer(inZone.GUID, player))
+    TaskWorkflow.execute(GUIDTask.unregisterPlayer(inZone.GUID, player)).onComplete {
+      case Failure(e) =>
+        log.error(s"PerformLogout: failed to unregister ${player.Name} from ${inZone.id}; GUID may leak until restart: ${e.getMessage}")
+      case _ => ()
+    }
     //inZone.tasks.tell(GUIDTask.UnregisterPlayer(player)(inZone.GUID), parent)
     AvatarLogout(avatar)
   }
@@ -457,7 +492,11 @@ class PersistenceMonitor(
     galaxyService.tell(MessageEnvelope(GalaxyAction.LogStatusChange(avatar.name)), context.parent)
     Deployables.Disown(inZone, avatar, context.parent)
     inZone.Population.tell(Zone.Population.Leave(avatar), context.parent)
-    TaskWorkflow.execute(GUIDTask.unregisterObject(inZone.GUID, avatar.locker))
+    TaskWorkflow.execute(GUIDTask.unregisterObject(inZone.GUID, avatar.locker)).onComplete {
+      case Failure(e) =>
+        log.error(s"PerformLogout: failed to unregister ${avatar.name}'s locker from ${inZone.id}; GUID may leak until restart: ${e.getMessage}")
+      case _ => ()
+    }
     //inZone.tasks.tell(GUIDTask.UnregisterObjectTask(avatar.locker)(inZone.GUID), context.parent)
     log.info(s"Logout of ${avatar.name}")
   }
