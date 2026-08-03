@@ -367,31 +367,31 @@ class CharacterDataTest extends Specification {
           ObjectClass.plasma_grenade,
           PlanetSideGUID(3662),
           0,
-          WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, CommonFieldData()(false))
+          WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
         ) ::
           InventoryItemData(
             ObjectClass.bank,
             PlanetSideGUID(3908),
             1,
-            WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, CommonFieldData()(false))
+            WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
           ) ::
           InventoryItemData(
             ObjectClass.mini_chaingun,
             PlanetSideGUID(4164),
             2,
-            WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, CommonFieldData()(false))
+            WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
           ) ::
           InventoryItemData(
             ObjectClass.phoenix,
             PlanetSideGUID(3603),
             3,
-            WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, CommonFieldData()(false))
+            WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
           ) ::
           InventoryItemData(
             ObjectClass.chainblade,
             PlanetSideGUID(4088),
             4,
-            WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, CommonFieldData()(false))
+            WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
           ) ::
           Nil
       )
@@ -474,31 +474,31 @@ class CharacterDataTest extends Specification {
           ObjectClass.plasma_grenade,
           PlanetSideGUID(3662),
           0,
-          WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, CommonFieldData()(false))
+          WeaponData(0, 0, ObjectClass.plasma_grenade_ammo, PlanetSideGUID(3751), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
         ) ::
           InventoryItemData(
             ObjectClass.bank,
             PlanetSideGUID(3908),
             1,
-            WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, CommonFieldData()(false))
+            WeaponData(0, 0, 1, ObjectClass.armor_canister, PlanetSideGUID(4143), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
           ) ::
           InventoryItemData(
             ObjectClass.mini_chaingun,
             PlanetSideGUID(4164),
             2,
-            WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, CommonFieldData()(false))
+            WeaponData(0, 0, ObjectClass.bullet_9mm, PlanetSideGUID(3728), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
           ) ::
           InventoryItemData(
             ObjectClass.phoenix,
             PlanetSideGUID(3603),
             3,
-            WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, CommonFieldData()(false))
+            WeaponData(0, 0, ObjectClass.phoenix_missile, PlanetSideGUID(3056), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
           ) ::
           InventoryItemData(
             ObjectClass.chainblade,
             PlanetSideGUID(4088),
             4,
-            WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, CommonFieldData()(false))
+            WeaponData(0, 0, 1, ObjectClass.melee_ammo, PlanetSideGUID(3279), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
           ) ::
           Nil
       )

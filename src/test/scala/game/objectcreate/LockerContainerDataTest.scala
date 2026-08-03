@@ -83,11 +83,11 @@ class LockerContainerDataTest extends Specification {
                   PlanetSideGUID(0)
                 ),
                 0,
-                List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3426), 0, CommonFieldData()(false)))
+                List(InternalSlot(ObjectClass.armor_canister, PlanetSideGUID(3426), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))))
               )
             ),
-            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, CommonFieldData()(false)),
-            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, CommonFieldData()(false))
+            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(4090), 45, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))),
+            InventoryItemData(ObjectClass.armor_canister, PlanetSideGUID(3326), 78, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
           )
         )
       )

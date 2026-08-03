@@ -53,9 +53,9 @@ class WeaponDataTest extends Specification {
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
+                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -106,9 +106,9 @@ class WeaponDataTest extends Specification {
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
+                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -125,9 +125,9 @@ class WeaponDataTest extends Specification {
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
+                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -184,9 +184,9 @@ class WeaponDataTest extends Specification {
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual false
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
+                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -243,9 +243,9 @@ class WeaponDataTest extends Specification {
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual false
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
+                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -262,9 +262,9 @@ class WeaponDataTest extends Specification {
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual false
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
+                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -311,13 +311,13 @@ class WeaponDataTest extends Specification {
               ObjectClass.bullet_9mm,
               PlanetSideGUID(3918),
               0,
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
             ),
             AmmoBoxData(
               ObjectClass.rocket,
               PlanetSideGUID(3941),
               1,
-              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
             )
           )
         )
@@ -352,8 +352,16 @@ class WeaponDataTest extends Specification {
           CommonFieldData(PlanetSideEmpire.NC, false, false, false, None, false, None, None, PlanetSideGUID(0)),
           0,
           List(
-            AmmoBoxData(ObjectClass.bullet_9mm, PlanetSideGUID(3528), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, 0)(false)),
-            AmmoBoxData(ObjectClass.rocket, PlanetSideGUID(3031), 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, 0)(false))
+            AmmoBoxData(
+              ObjectClass.bullet_9mm,
+              PlanetSideGUID(3528), 0,
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
+            ),
+            AmmoBoxData(
+              ObjectClass.rocket,
+              PlanetSideGUID(3031), 1,
+              CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
+            )
           )
         )
       )

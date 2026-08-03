@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.Tool
-import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedWeaponData, InternalSlot, WeaponData}
+import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataExtra, DetailedWeaponData, InternalSlot, WeaponData}
 import net.psforever.types.PlanetSideGUID
 
 import scala.util.{Failure, Success, Try}
@@ -16,15 +16,15 @@ class BattleFrameToolConverter extends ObjectCreateConverter[Tool]() {
     Success(
       WeaponData(
         CommonFieldData(
-          obj.Faction,
+          faction = obj.Faction,
           bops = false,
           alternate = false,
-          true,
-          None,
-          obj.Jammed,
-          Some(false),
-          None,
-          PlanetSideGUID(0)
+          v1 = true,
+          v2 = Some(CommonFieldDataExtra.Default),
+          jammered = obj.Jammed,
+          v4 = None,
+          v5 = None,
+          guid = PlanetSideGUID(0)
         ),
         obj.FireModeIndex,
         slots

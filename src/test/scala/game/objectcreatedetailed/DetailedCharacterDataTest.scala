@@ -1488,9 +1488,9 @@ class DetailedCharacterDataTest extends Specification {
                     false,
                     false,
                     true,
-                    None,
+                    Some(CommonFieldDataExtra.Default),
                     false,
-                    Some(false),
+                    None,
                     None,
                     PlanetSideGUID(0)
                   ),
@@ -1674,9 +1674,9 @@ class DetailedCharacterDataTest extends Specification {
                 false,
                 false,
                 true,
-                None,
+                Some(CommonFieldDataExtra.Default),
                 false,
-                Some(false),
+                None,
                 None,
                 PlanetSideGUID(0)
               )
@@ -1859,9 +1859,9 @@ class DetailedCharacterDataTest extends Specification {
                 false,
                 false,
                 true,
-                None,
+                Some(CommonFieldDataExtra.Default),
                 false,
-                Some(false),
+                None,
                 None,
                 PlanetSideGUID(0)
               )
@@ -3533,13 +3533,13 @@ class DetailedCharacterDataTest extends Specification {
             12,
             DetailedREKData(
               CommonFieldData(
-                PlanetSideEmpire.NC,
+                PlanetSideEmpire.VS,
                 false,
                 false,
                 true,
-                None,
+                Some(CommonFieldDataExtra.Default),
                 false,
-                Some(false),
+                None,
                 None,
                 PlanetSideGUID(0)
               ),
@@ -4486,13 +4486,13 @@ class DetailedCharacterDataTest extends Specification {
             39,
             DetailedREKData(
               CommonFieldData(
-                PlanetSideEmpire.NC,
+                PlanetSideEmpire.VS,
                 false,
                 false,
                 true,
-                None,
+                Some(CommonFieldDataExtra.Default),
                 false,
-                Some(false),
+                None,
                 None,
                 PlanetSideGUID(0)
               ),
@@ -5711,13 +5711,13 @@ class DetailedCharacterDataTest extends Specification {
             39,
             DetailedREKData(
               CommonFieldData(
-                PlanetSideEmpire.TR,
+                PlanetSideEmpire.VS,
                 false,
                 false,
                 true,
-                None,
+                Some(CommonFieldDataExtra.Default),
                 false,
-                Some(false),
+                None,
                 None,
                 PlanetSideGUID(0)
               ),
@@ -5736,5 +5736,26 @@ class DetailedCharacterDataTest extends Specification {
       pkt_bitv.drop(141) mustEqual ori_bitv.drop(141)
       //TODO work on DetailedCharacterData to make this pass as a single stream
     }
+  }
+}
+
+object DetailedCharacterDataTest extends Specification {
+  def LongStringTest(expected: ByteVector, actual: ByteVector, segmentLength: Int): Boolean = {
+    var passes: Boolean = true
+    var index: Long = 0
+    val length: Long = actual.size
+    while (passes && index < length) {
+      val segmentEnd = index + segmentLength
+      var expectedFragment = expected.slice(index.toInt, segmentEnd.toInt)
+      var actualFragment = actual.slice(index.toInt, segmentEnd.toInt)
+      if (!actualFragment.equals(expectedFragment)) {
+        println(s"Byte pattern match offset: $index")
+        println(s"Expected: $expectedFragment")
+        println(s"Actual: $actualFragment")
+        passes = false
+      }
+      index = segmentEnd
+    }
+    passes
   }
 }

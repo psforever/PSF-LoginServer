@@ -27,9 +27,14 @@ class DetailedREKDataTest extends Specification {
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual true
-              v2.isEmpty mustEqual true
+              v2 match {
+                case Some(extra) =>
+                  extra.unk1.isEmpty mustEqual true
+                  extra.unk2 mustEqual false
+                case None => ko
+              }
               v3 mustEqual false
-              v4.contains(false) mustEqual true
+              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
               unk mustEqual 0
@@ -43,7 +48,7 @@ class DetailedREKDataTest extends Specification {
 
     "encode" in {
       val obj = DetailedREKData(
-        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.NC, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
       )
       val msg = ObjectCreateDetailedMessage(
         ObjectClass.remote_electronics_kit,

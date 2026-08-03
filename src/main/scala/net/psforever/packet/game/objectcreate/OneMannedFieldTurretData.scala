@@ -50,7 +50,7 @@ object OneMannedFieldTurretData extends Marshallable[OneMannedFieldTurretData] {
     new OneMannedFieldTurretData(deploy, health, Some(internals))
 
   implicit val codec: Codec[OneMannedFieldTurretData] = (
-    ("deploy" | CommonFieldDataWithPlacement.codec2) ::
+    ("deploy" | CommonFieldDataWithPlacement.codec_extra) ::
       PlanetSideGUID.codec :: //hoist/extract with the deploy.owner_guid in field above
       bool ::
       ("health" | uint8L) ::

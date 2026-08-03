@@ -101,9 +101,9 @@ class SmallTurretDataTest extends Specification {
                       bops mustEqual false
                       alternate mustEqual false
                       v1 mustEqual true
-                      v2.isEmpty mustEqual true
+                      v2 must beSome(CommonFieldDataExtra.Default)
                       v3 mustEqual false
-                      v4.contains(false) mustEqual true
+                      v4.isEmpty mustEqual true
                       v5.isEmpty mustEqual true
                       fguid mustEqual PlanetSideGUID(0)
                     case _ =>
@@ -169,9 +169,9 @@ class SmallTurretDataTest extends Specification {
                       bops = false,
                       alternate = false,
                       v1 = true,
-                      None,
+                      Some(CommonFieldDataExtra.Default),
                       jammered = false,
-                      Some(false),
+                      None,
                       None,
                       PlanetSideGUID(0)
                     )

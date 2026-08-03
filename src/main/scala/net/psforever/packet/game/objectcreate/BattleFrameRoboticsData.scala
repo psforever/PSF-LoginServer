@@ -62,7 +62,7 @@ object BattleFrameRoboticsData extends Marshallable[BattleFrameRoboticsData] {
     import shapeless.::
     (
       ("pos" | PlacementData.codec) >>:~ { pos =>
-        ("data" | CommonFieldData.codec(extra = false)) ::
+        ("data" | CommonFieldData.codec) ::
         ("health" | uint8L) ::
         ("shield" | uint8L) ::
         ("unk1" | uint16) :: //usually 0

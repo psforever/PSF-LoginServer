@@ -23,7 +23,7 @@ final case class DetailedREKData(data: CommonFieldData, unk: Int = 0) extends Co
 
 object DetailedREKData extends Marshallable[DetailedREKData] {
   implicit val codec: Codec[DetailedREKData] = (
-    ("data" | CommonFieldData.codec2) ::
+    ("data" | CommonFieldData.codec(extra = true)) ::
       uint8 ::
       uint16L ::
       uint4L ::

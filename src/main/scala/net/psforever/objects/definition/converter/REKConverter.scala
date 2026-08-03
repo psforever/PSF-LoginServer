@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.SimpleItem
-import net.psforever.packet.game.objectcreate.{CommonFieldData, DetailedREKData, REKData}
+import net.psforever.packet.game.objectcreate.{CommonFieldData, CommonFieldDataExtra, DetailedREKData, REKData}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
 
 import scala.util.{Success, Try}
@@ -12,15 +12,15 @@ class REKConverter extends ObjectCreateConverter[SimpleItem]() {
     Success(
       REKData(
         CommonFieldData(
-          PlanetSideEmpire.NEUTRAL, //TODO faction affinity
-          false,
-          false,
-          true,
-          None,
-          false,
-          Some(false),
-          None,
-          PlanetSideGUID(0)
+          faction = obj.Faction,
+          bops = false,
+          alternate = false,
+          v1 = true,
+          v2 = Some(CommonFieldDataExtra.Default),
+          jammered = false,
+          v4 = None,
+          v5 = None,
+          guid = PlanetSideGUID(0)
         )
       )
     )
@@ -30,15 +30,15 @@ class REKConverter extends ObjectCreateConverter[SimpleItem]() {
     Success(
       DetailedREKData(
         CommonFieldData(
-          PlanetSideEmpire.NEUTRAL, //TODO faction affinity
-          false,
-          false,
-          true,
-          None,
-          false,
-          Some(false),
-          None,
-          PlanetSideGUID(0)
+          faction = obj.Faction,
+          bops = false,
+          alternate = false,
+          v1 = true,
+          v2 = Some(CommonFieldDataExtra.Default),
+          jammered = false,
+          v4 = None,
+          v5 = None,
+          guid = PlanetSideGUID(0)
         )
       )
     )

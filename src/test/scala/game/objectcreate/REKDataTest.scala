@@ -28,9 +28,14 @@ class REKDataTest extends Specification {
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual true
-              v2.isEmpty mustEqual true
+              v2 match {
+                case Some(extra) =>
+                  extra.unk1.isEmpty mustEqual true
+                  extra.unk2 mustEqual false
+                case None => ko
+              }
               v3 mustEqual false
-              v4.contains(false) mustEqual true
+              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
               unk1 mustEqual 0
@@ -62,9 +67,14 @@ class REKDataTest extends Specification {
               bops mustEqual false
               alternate mustEqual false
               v1 mustEqual false
-              v2.isEmpty mustEqual true
+              v2 match {
+                case Some(extra) =>
+                  extra.unk1.isEmpty mustEqual true
+                  extra.unk2 mustEqual false
+                case None => ko
+              }
               v3 mustEqual false
-              v4.contains(false) mustEqual true
+              v4.isEmpty mustEqual true
               v5.isEmpty mustEqual true
               fguid mustEqual PlanetSideGUID(0)
 
@@ -80,7 +90,7 @@ class REKDataTest extends Specification {
 
     "encode (held)" in {
       val obj = REKData(
-        CommonFieldData(PlanetSideEmpire.TR, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+        CommonFieldData(PlanetSideEmpire.TR, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
       )
       val msg = ObjectCreateMessage(
         ObjectClass.remote_electronics_kit,
@@ -96,7 +106,7 @@ class REKDataTest extends Specification {
       val obj = DroppedItemData(
         PlacementData(4675.039f, 5506.953f, 72.703125f, 0f, 0f, 230.625f),
         REKData(
-          CommonFieldData(PlanetSideEmpire.VS, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)),
+          CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)),
           3,
           0
         )

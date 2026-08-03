@@ -53,19 +53,15 @@ object CommonFieldDataWithPlacement extends Marshallable[CommonFieldDataWithPlac
   ): CommonFieldDataWithPlacement =
     CommonFieldDataWithPlacement(pos, CommonFieldData(faction, destroyed, unk, player_guid))
 
-  def codec(extra: Boolean): Codec[CommonFieldDataWithPlacement] =
+  implicit val codec: Codec[CommonFieldDataWithPlacement] =
     (
       ("pos" | PlacementData.codec) ::
-        CommonFieldData.codec(extra)
-    ).as[CommonFieldDataWithPlacement]
+        ("data" | CommonFieldData.codec)
+      ).as[CommonFieldDataWithPlacement]
 
-  implicit val codec: Codec[CommonFieldDataWithPlacement] = codec(false)
-
-  def codec2(extra: Boolean): Codec[CommonFieldDataWithPlacement] =
+  implicit val codec_extra: Codec[CommonFieldDataWithPlacement] =
     (
       ("pos" | PlacementData.codec) ::
-        CommonFieldData.codec2(extra)
-    ).as[CommonFieldDataWithPlacement]
-
-  implicit val codec2: Codec[CommonFieldDataWithPlacement] = codec2(false)
+        ("data" | CommonFieldData.codec_extra)
+      ).as[CommonFieldDataWithPlacement]
 }

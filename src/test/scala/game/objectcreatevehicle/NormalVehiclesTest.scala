@@ -31,6 +31,9 @@ class NormalVehiclesTest extends Specification {
           fury.pos.vel.isEmpty mustEqual true
           fury.data.faction mustEqual PlanetSideEmpire.VS
           fury.data.v1 mustEqual true
+          fury.data.v2 must beSome(CommonFieldDataExtra.Default)
+          fury.data.v4.isEmpty mustEqual true
+          fury.data.v5.isEmpty mustEqual true
           fury.data.guid mustEqual PlanetSideGUID(0)
           fury.health mustEqual 255
           //
@@ -69,9 +72,9 @@ class NormalVehiclesTest extends Specification {
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual true
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
+                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -99,6 +102,9 @@ class NormalVehiclesTest extends Specification {
           lightning.pos.vel.isEmpty mustEqual true
           lightning.data.faction mustEqual PlanetSideEmpire.VS
           lightning.data.v1 mustEqual true
+          lightning.data.v2 must beSome(CommonFieldDataExtra.Default)
+          lightning.data.v4.isEmpty mustEqual true
+          lightning.data.v5.isEmpty mustEqual true
           lightning.data.guid mustEqual PlanetSideGUID(0)
           lightning.health mustEqual 255
 
@@ -137,9 +143,9 @@ class NormalVehiclesTest extends Specification {
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual false
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
+                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -155,9 +161,9 @@ class NormalVehiclesTest extends Specification {
                   bops mustEqual false
                   alternate mustEqual false
                   v1 mustEqual false
-                  v2.isEmpty mustEqual true
+                  v2 must beSome(CommonFieldDataExtra.Default)
                   v3 mustEqual false
-                  v4.contains(false) mustEqual true
+                  v4.isEmpty mustEqual true
                   v5.isEmpty mustEqual true
                   fguid mustEqual PlanetSideGUID(0)
                 case _ =>
@@ -199,8 +205,10 @@ class NormalVehiclesTest extends Specification {
               vdata.faction mustEqual PlanetSideEmpire.NC
               vdata.alternate mustEqual false
               vdata.v1 mustEqual true
-              vdata.jammered mustEqual false
+              vdata.v2 must beSome(CommonFieldDataExtra.Default)
+              vdata.v4.isEmpty mustEqual true
               vdata.v5.isEmpty mustEqual true
+              vdata.jammered mustEqual false
               vdata.guid mustEqual PlanetSideGUID(0)
 
               health mustEqual 255
@@ -242,9 +250,9 @@ class NormalVehiclesTest extends Specification {
                       bops mustEqual false
                       alternate mustEqual false
                       v1 mustEqual true
-                      v2.isEmpty mustEqual true
+                      v2 must beSome(CommonFieldDataExtra.Default)
                       v3 mustEqual false
-                      v4.contains(false) mustEqual true
+                      v4.isEmpty mustEqual true
                       v5.isEmpty mustEqual true
                       fguid mustEqual PlanetSideGUID(0)
                     case _ =>
@@ -285,9 +293,9 @@ class NormalVehiclesTest extends Specification {
                       bops mustEqual false
                       alternate mustEqual false
                       v1 mustEqual true
-                      v2.isEmpty mustEqual true
+                      v2 must beSome(CommonFieldDataExtra.Default)
                       v3 mustEqual false
-                      v4.contains(false) mustEqual true
+                      v4.isEmpty mustEqual true
                       v5.isEmpty mustEqual true
                       fguid mustEqual PlanetSideGUID(0)
                     case _ =>
@@ -307,7 +315,7 @@ class NormalVehiclesTest extends Specification {
     "encode (fury)" in {
       val obj = VehicleData(
         PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
-        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)),
         false,
         255,
         false,
@@ -332,7 +340,7 @@ class NormalVehiclesTest extends Specification {
                       ObjectClass.hellfire_ammo,
                       PlanetSideGUID(432),
                       0,
-                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
                     )
                   )
                 )
@@ -350,7 +358,7 @@ class NormalVehiclesTest extends Specification {
     "encode (lightning)" in {
       val obj = VehicleData(
         PlacementData(3674.8438f, 2726.789f, 91.15625f, 0f, 0f, 90.0f),
-        CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
+        CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)),
         false,
         255,
         false,
@@ -371,8 +379,8 @@ class NormalVehiclesTest extends Specification {
                   CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, None, None, PlanetSideGUID(0)),
                   0,
                   List(
-                    InternalSlot(ObjectClass.bullet_75mm, PlanetSideGUID(92), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, Some(false), None, PlanetSideGUID(0))),
-                    InternalSlot(ObjectClass.bullet_25mm, PlanetSideGUID(93), 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, None, false, Some(false), None, PlanetSideGUID(0)))
+                    InternalSlot(ObjectClass.bullet_75mm, PlanetSideGUID(92), 0, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))),
+                    InternalSlot(ObjectClass.bullet_25mm, PlanetSideGUID(93), 1, CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)))
                   )
                 )
               )
@@ -389,7 +397,7 @@ class NormalVehiclesTest extends Specification {
     "encode (medium transport)" in {
       val obj = VehicleData(
         PlacementData(6531.961f, 1872.1406f, 24.734375f, 0f, 0f, 357.1875f),
-        CommonFieldData(PlanetSideEmpire.NC, false, false, true, None, false, Some(false), None, PlanetSideGUID(0)),
+        CommonFieldData(PlanetSideEmpire.NC, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0)),
         false,
         255,
         false,
@@ -414,7 +422,7 @@ class NormalVehiclesTest extends Specification {
                       ObjectClass.bullet_20mm,
                       PlanetSideGUID(420),
                       0,
-                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
                     )
                   )
                 )
@@ -431,7 +439,7 @@ class NormalVehiclesTest extends Specification {
                       ObjectClass.bullet_20mm,
                       PlanetSideGUID(575),
                       0,
-                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, None, false, Some(false), None, PlanetSideGUID(0))
+                      CommonFieldData(PlanetSideEmpire.NEUTRAL, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
                     )
                   )
                 )

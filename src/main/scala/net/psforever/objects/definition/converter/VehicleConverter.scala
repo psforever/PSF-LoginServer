@@ -2,7 +2,7 @@
 package net.psforever.objects.definition.converter
 
 import net.psforever.objects.equipment.{Equipment, EquipmentSlot}
-import net.psforever.objects.{PlanetSideGameObject, Vehicle}
+import net.psforever.objects.{Default, PlanetSideGameObject, Vehicle}
 import net.psforever.packet.game.objectcreate._
 import net.psforever.types.{DriveState, PlanetSideGUID, VehicleFormat}
 import net.psforever.zones.Zones
@@ -22,18 +22,15 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
         VehicleData(
           PlacementData(obj.Position, obj.Orientation, obj.Velocity),
           CommonFieldData(
-            obj.Faction,
+            faction = obj.Faction,
             bops = false,
             alternate = false,
             v1 = false,
-            v2 = None,
+            v2 = Some(CommonFieldDataExtra.Default),
             jammered = obj.Jammed,
-            v4 = Some(false),
+            v4 = None,
             v5 = None,
-            obj.OwnerGuid match {
-              case Some(owner) => owner
-              case None        => PlanetSideGUID(0)
-            }
+            guid = obj.OwnerGuid.getOrElse(PlanetSideGUID(0))
           ),
           boostMaxHealth = boosted,
           health,
@@ -56,11 +53,11 @@ class VehicleConverter extends ObjectCreateConverter[Vehicle]() {
             bops = false,
             alternate = true,
             v1 = false,
-            v2 = None,
-            jammered = obj.Jammed,
-            v4 = Some(false),
+            v2 = Some(CommonFieldDataExtra.Default),
+            jammered = false,
+            v4 = None,
             v5 = None,
-            guid = PlanetSideGUID(0)
+            guid = Default.GUID0
           ),
           boostMaxHealth = boosted,
           health = 0,

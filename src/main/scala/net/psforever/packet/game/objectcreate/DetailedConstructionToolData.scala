@@ -27,7 +27,7 @@ object DetailedConstructionToolData extends Marshallable[DetailedConstructionToo
   def apply(data: CommonFieldData): DetailedConstructionToolData = DetailedConstructionToolData(data, 0)
 
   implicit val codec: Codec[DetailedConstructionToolData] = (
-    ("data" | CommonFieldData.codec(extra = false)) ::
+    ("data" | CommonFieldData.codec) ::
       uint8 :: //n > 1 produces a stack of construction items (tends to crash the client)
       ("mode" | uint16) ::
       uint2 ::

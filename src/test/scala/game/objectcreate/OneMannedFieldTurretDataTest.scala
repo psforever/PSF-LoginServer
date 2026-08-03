@@ -32,9 +32,9 @@ class OneMannedFieldTurretDataTest extends Specification {
               deploy.bops mustEqual false
               deploy.alternate mustEqual false
               deploy.v1 mustEqual true
-              deploy.v2.isEmpty mustEqual true
+              deploy.v2 must beSome(CommonFieldDataExtra.Default)
               deploy.jammered mustEqual false
-              deploy.v4.contains(false) mustEqual true
+              deploy.v4.isEmpty mustEqual true
               deploy.v5.isEmpty mustEqual true
               deploy.guid mustEqual PlanetSideGUID(2502)
 
@@ -71,9 +71,9 @@ class OneMannedFieldTurretDataTest extends Specification {
                       bops mustEqual false
                       alternate mustEqual false
                       v1 mustEqual true
-                      v2.isEmpty mustEqual true
+                      v2 must beSome(CommonFieldDataExtra.Default)
                       v3 mustEqual false
-                      v4.contains(false) mustEqual true
+                      v4.isEmpty mustEqual true
                       v5.isEmpty mustEqual true
                       fguid mustEqual PlanetSideGUID(0)
                     case _ =>
@@ -94,7 +94,7 @@ class OneMannedFieldTurretDataTest extends Specification {
       val obj = OneMannedFieldTurretData(
         CommonFieldDataWithPlacement(
           PlacementData(Vector3(3567.1406f, 2988.0078f, 71.84375f), Vector3.z(185.625f)),
-          CommonFieldData(PlanetSideEmpire.VS, false, false, true, None, false, Some(false), None, PlanetSideGUID(2502))
+          CommonFieldData(PlanetSideEmpire.VS, false, false, true, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(2502))
         ),
         255,
         InventoryData(
@@ -126,9 +126,9 @@ class OneMannedFieldTurretDataTest extends Specification {
                       false,
                       false,
                       true,
-                      None,
+                      Some(CommonFieldDataExtra.Default),
                       false,
-                      Some(false),
+                      None,
                       None,
                       PlanetSideGUID(0)
                     )

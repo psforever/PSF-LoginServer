@@ -3,15 +3,22 @@ package net.psforever.packet.game.objectcreate
 
 import net.psforever.packet.Marshallable
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID}
-import scodec.{Attempt, Codec, Err}
+import scodec.Codec
 import scodec.codecs._
 import shapeless.{::, HNil}
 
 final case class CommonFieldDataExtra(unk1: Option[Int], unk2: Boolean) extends StreamBitSize {
-  override def bitsize: Long = 17L
+  override def bitsize: Long = {
+    unk1 match {
+      case Some(_) => 17L
+      case None => 1L
+    }
+  }
 }
 
 object CommonFieldDataExtra {
+  final val Default: CommonFieldDataExtra = CommonFieldDataExtra(unk1 = None, unk2 = false)
+
   def codec(unk1: Boolean): Codec[CommonFieldDataExtra] =
     (
       ("unk1" | conditional(unk1, uint16L)) :: //not sure what flags this field
@@ -77,8 +84,14 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
   def apply(): CommonFieldData =
     CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(0))
 
+  def apply(extra: Boolean): CommonFieldData =
+    CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, None, PlanetSideGUID(0))
+
   def apply(faction: PlanetSideEmpire.Value): CommonFieldData =
     CommonFieldData(faction, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(0))
+
+  def apply(faction: PlanetSideEmpire.Value, extra: Boolean): CommonFieldData =
+    CommonFieldData(faction, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, None, PlanetSideGUID(0))
 
   def apply(faction: PlanetSideEmpire.Value, unk: Int): CommonFieldData =
     CommonFieldData(faction, bops = false, alternate = false, v1 = unk > 1, None, jammered = unk > 0, None, None, PlanetSideGUID(0))
@@ -110,13 +123,13 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
     CommonFieldData(faction, bops, destroyed, unk > 1, None, jammered = unk > 0, None, jammeredField, player_guid)
   }
 
-  private def buildCodec(extra: Boolean): Codec[CommonFieldData] =
+  def codec(extra: Boolean, extra16bit: Boolean = false): Codec[CommonFieldData] =
     (
       ("faction" | PlanetSideEmpire.codec) ::
         ("bops" | bool) ::
         ("alternate" | bool) ::
         ("v1" | bool) :: //the purpose of this bit changes depending on the previous bit
-        ("v2" | conditional(extra, CommonFieldDataExtra.codec(unk1 = false))) ::
+        ("v2" | conditional(extra, CommonFieldDataExtra.codec(unk1 = extra16bit))) ::
         ("jammered" | bool) ::
         ("v5" | optional(bool, uint16L)) ::
         ("guid" | PlanetSideGUID.codec)
@@ -131,49 +144,7 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
       }
     )
 
-  /* The parameter is a Boolean, so there are only ever two of these codecs; each is built once
-     and shared. Worth doing because this is reached once per object in every
-     ObjectCreateMessage and spawning or zoning emits hundreds back to back, while each tree
-     costs roughly a dozen primitive codecs plus combinators and an xmap closure to construct.
-     scodec codecs are immutable and safe to share.
-     lazy, so that initialisation order within this object cannot observe a null. */
-  private lazy val codecPlain: Codec[CommonFieldData] = buildCodec(extra = false)
-  private lazy val codecExtra: Codec[CommonFieldData] = buildCodec(extra = true)
-
-  def codec(extra: Boolean): Codec[CommonFieldData] = if (extra) codecExtra else codecPlain
-
   implicit val codec: Codec[CommonFieldData] = codec(extra = false)
 
-  private def buildCodec2(extra: Boolean): Codec[CommonFieldData] =
-    (
-      ("faction" | PlanetSideEmpire.codec) ::
-        ("bops" | bool) ::
-        ("alternate" | bool) ::
-        ("v1" | bool) :: //though the code path differs depending on the previous bit, this one gets read one way or another
-        ("v2" | conditional(extra, CommonFieldDataExtra.codec(unk1 = false))) ::
-        ("jammered" | bool) ::
-        ("v5" | optional(bool, uint16L)) ::
-        ("v4" | bool) ::
-        ("guid" | PlanetSideGUID.codec)
-    ).exmap[CommonFieldData](
-      {
-        case faction :: bops :: alternate :: v1 :: v2 :: v3 :: v5 :: v4 :: guid :: HNil =>
-          Attempt.successful(CommonFieldData(faction, bops, alternate, v1, v2, v3, Some(v4), v5, guid))
-      },
-      {
-        case CommonFieldData(_, _, _, _, _, _, None, _, _) =>
-          Attempt.Failure(Err("invalid CommonFieldData - expected a field to be defined, but it was 'None'"))
-
-        case CommonFieldData(faction, bops, alternate, v1, v2, v3, Some(v4), v5, player_guid) =>
-          Attempt.successful(faction :: bops :: alternate :: v1 :: v2 :: v3 :: v5 :: v4 :: player_guid :: HNil)
-      }
-    )
-
-  /* see the note on codec above; same two-shape memoisation */
-  private lazy val codec2Plain: Codec[CommonFieldData] = buildCodec2(extra = false)
-  private lazy val codec2Extra: Codec[CommonFieldData] = buildCodec2(extra = true)
-
-  def codec2(extra: Boolean): Codec[CommonFieldData] = if (extra) codec2Extra else codec2Plain
-
-  val codec2: Codec[CommonFieldData] = codec2(extra = false)
+  val codec_extra: Codec[CommonFieldData] = codec(extra = true)
 }

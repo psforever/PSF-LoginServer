@@ -282,25 +282,25 @@ class UtilityVehiclesTest extends Specification {
                 ObjectClass.matrix_terminalc,
                 PlanetSideGUID(3663),
                 1,
-                CommonFieldData(PlanetSideEmpire.VS)(false)
+                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
               ),
               InternalSlot(
                 ObjectClass.ams_respawn_tube,
                 PlanetSideGUID(3638),
                 2,
-                CommonFieldData(PlanetSideEmpire.VS)(false)
+                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
               ),
               InternalSlot(
                 ObjectClass.order_terminala,
                 PlanetSideGUID(3827),
                 3,
-                CommonFieldData(PlanetSideEmpire.VS)(false)
+                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
               ),
               InternalSlot(
                 ObjectClass.order_terminalb,
                 PlanetSideGUID(3556),
                 4,
-                CommonFieldData(PlanetSideEmpire.VS)(false)
+                CommonFieldData(PlanetSideEmpire.VS, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
               )
             )
           )
@@ -411,16 +411,20 @@ class UtilityVehiclesTest extends Specification {
               }
             ),
             InternalSlot(
-              ObjectClass.matrix_terminalc, PlanetSideGUID(3265), 1, CommonFieldData(PlanetSideEmpire.TR)(flag = false)
+              ObjectClass.matrix_terminalc, PlanetSideGUID(3265), 1,
+              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
             ),
             InternalSlot(
-              ObjectClass.ams_respawn_tube, PlanetSideGUID(4346), 2, CommonFieldData(PlanetSideEmpire.TR)(flag = false)
+              ObjectClass.ams_respawn_tube, PlanetSideGUID(4346), 2,
+              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
             ),
             InternalSlot(
-              ObjectClass.order_terminala, PlanetSideGUID(4363), 3, CommonFieldData(PlanetSideEmpire.TR)(flag = false)
+              ObjectClass.order_terminala, PlanetSideGUID(4363), 3,
+              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
             ),
             InternalSlot(
-              ObjectClass.order_terminalb, PlanetSideGUID(4074), 4, CommonFieldData(PlanetSideEmpire.TR)(flag = false)
+              ObjectClass.order_terminalb, PlanetSideGUID(4074), 4,
+              CommonFieldData(PlanetSideEmpire.TR, false, false, false, Some(CommonFieldDataExtra.Default), false, None, None, PlanetSideGUID(0))
             )
           )
         ))
