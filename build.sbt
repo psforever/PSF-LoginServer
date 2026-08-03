@@ -3,13 +3,10 @@
 lazy val psforeverSettings = Seq(
   organization := "net.psforever",
   version := "1.0.2-SNAPSHOT",
-  scalaVersion := "2.13.16",
+  scalaVersion := "2.13.18",
   Global / cancelable := false,
-  // Disabled: sbt-scalafix 0.10.4 pins semanticdb 4.6.0, which has no build for Scala 2.13.16.
-  // Re-enable alongside an sbt-scalafix bump that supplies a 2.13.16-compatible semanticdb.
-  // This only affects the scalafix linter, not compilation or tests.
-  semanticdbEnabled := false,
-  //semanticdbVersion := scalafixSemanticdb.revision,
+  semanticdbEnabled := true,
+  semanticdbVersion := scalafixSemanticdb.revision,
   scalacOptions := Seq(
     "-unchecked",
     "-feature",

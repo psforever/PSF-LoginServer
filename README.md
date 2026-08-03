@@ -21,15 +21,15 @@ which has the instructions on downloading the game and using the PSForever launc
 
 ## Server Requirements
 - Running
-  - [Java](https://www.java.com/en/) Development Kit 8.0
-    - JDK 1.8_251
+  - [Java](https://www.java.com/en/) Development Kit 21
+    - JDK 21 (LTS); CI builds and tests on Temurin 21
   - [Scala](https://www.scala-lang.org/)
-    - 2.13.3 (set in `build.sbt`)
+    - 2.13.18 (set in `build.sbt`)
   - [sbt](http://www.scala-sbt.org) (Scala build tool)
-    - 1.4.5+?
-    - Up to date
+    - 1.10.7 (set in `project/build.properties`; the launcher fetches it for you)
   - [PostgreSQL](https://www.postgresql.org/)
-    - 10+
+    - 12+ (CI proves migrations and tests against 12.8, 16 and 17; the Docker Compose
+      stack defaults to 18)
 - Development (+Running)
   - [Git](https://en.wikipedia.org/wiki/Git)
   - IDE or Text Editor
@@ -199,14 +199,14 @@ sbt packArchiveZip # creates a single zip with resources
 ```
 This will use the sbt-pack plugin to create a JAR file and some helper scripts to run the server. The output for this
 will be in the `PSF-LoginServer/target` directory. Now you can copy the ZIP file to a server you want to run it on. You
-will need the Java 8 runtime (JRE only) on the target to run this. In the ZIP file, there is a `bin/` directory with
+will need the Java 21 runtime (JRE only) on the target to run this. In the ZIP file, there is a `bin/` directory with
 some helper scripts. Run the correct file for your platform (.BAT for Windows and shell script for Unix).
 
 ## Troubleshooting
 1. If dependency resolution results in certificate issues or generates a `/null/` directory into which some library
 files are placed, the Java versioning is incorrectly applied.  Your system's Java, via `JAVA_HOME` environment variable,
-must be advanced enough to operate the toolset and only the project itself requires JDK 8.  Check that project settings
-import and utilize Java 1.8_251.  Perform normal generated file cleanup, e.g., sbt's `clean`.
+must be advanced enough to operate the toolset; the project itself requires JDK 21.  Check that project settings
+import and utilize JDK 21.  Perform normal generated file cleanup, e.g., sbt's `clean`.
 Any extraneous folders may also be deleted without issue.
 2. If the server repeatedly complains that "authentication method 10 not supported" during startup, your PostgreSQL
 database does not support [scram-sha-256](https://www.postgresql.org/docs/current/auth-password.html) authentication.
