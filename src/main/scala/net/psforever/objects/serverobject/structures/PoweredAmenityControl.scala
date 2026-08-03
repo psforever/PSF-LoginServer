@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.structures
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.actors.zone.BuildingActor
 
 trait PoweredAmenityControl extends Actor {

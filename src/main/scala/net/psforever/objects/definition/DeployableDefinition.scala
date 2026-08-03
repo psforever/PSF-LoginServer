@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.objects.Default
 import net.psforever.objects.ce.{Deployable, DeployableCategory, DeployedItem}
 import net.psforever.objects.definition.converter.SmallDeployableConverter
@@ -44,7 +44,7 @@ trait BaseDeployableDefinition {
   def Initialize(obj: Deployable, context: ActorContext): Unit = {}
 
   def Uninitialize(obj: Deployable, context: ActorContext): Unit = {
-    obj.Actor ! akka.actor.PoisonPill
+    obj.Actor ! org.apache.pekko.actor.PoisonPill
     obj.Actor = Default.Actor
   }
 }

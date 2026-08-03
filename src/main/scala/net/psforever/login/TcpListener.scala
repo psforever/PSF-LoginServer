@@ -2,9 +2,9 @@ package net.psforever.login
 
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{Actor, ActorRef, OneForOneStrategy, Props}
-import akka.io._
+import org.apache.pekko.actor.SupervisorStrategy.Stop
+import org.apache.pekko.actor.{Actor, ActorRef, OneForOneStrategy, Props}
+import org.apache.pekko.io._
 
 class TcpListener[T <: Actor](actorClass: Class[T], nextActorName: String, listenAddress: InetAddress, port: Int)
     extends Actor {

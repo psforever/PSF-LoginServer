@@ -1,9 +1,9 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.actors.session
 
-import akka.actor.Cancellable
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
-import akka.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
+import org.apache.pekko.actor.Cancellable
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop, SupervisorStrategy}
 
 import java.util.concurrent.atomic.AtomicInteger
 import net.psforever.actors.zone.ZoneActor
@@ -3491,7 +3491,7 @@ class AvatarActor(
                                               index: Int,
                                               value: Int
                                             ): Unit = {
-    import akka.actor.typed.scaladsl.adapter.TypedActorRefOps
+    import org.apache.pekko.actor.typed.scaladsl.adapter.TypedActorRefOps
     val resp = AvatarAction.AvatarImplant(action, index, value)
     sessionActor.toClassic ! GenericResponseEnvelope(AvatarStamp, "", guid, resp)
   }

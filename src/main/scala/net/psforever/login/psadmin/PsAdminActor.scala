@@ -2,17 +2,17 @@ package net.psforever.login.psadmin
 
 import java.net.InetSocketAddress
 
-import akka.actor.typed.receptionist.Receptionist
-import akka.actor.{Actor, ActorRef, Props, Stash, typed}
-import akka.io.Tcp
-import akka.util.ByteString
+import org.apache.pekko.actor.typed.receptionist.Receptionist
+import org.apache.pekko.actor.{Actor, ActorRef, Props, Stash, typed}
+import org.apache.pekko.io.Tcp
+import org.apache.pekko.util.ByteString
 import org.json4s._
 import org.json4s.native.Serialization.write
 import scodec.bits._
-import scodec.interop.akka._
+import scodec.interop.pekko._
 import net.psforever.services._
 import scala.collection.mutable.Map
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 
 object PsAdminActor {
   val whiteSpaceRegex = """\s+""".r

@@ -1,7 +1,7 @@
 // Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.environment.interaction
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.objects.serverobject.environment.EnvironmentTrait
 import net.psforever.objects.zones.interaction.InteractsWithZone

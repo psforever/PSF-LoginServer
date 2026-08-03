@@ -1,8 +1,8 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.normal
 
-import akka.actor.Actor.Receive
-import akka.actor.{ActorContext, ActorRef, typed}
+import org.apache.pekko.actor.Actor.Receive
+import org.apache.pekko.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.{GalaxyHandlerFunctions, SessionData, SessionGalaxyHandlers}
 import net.psforever.packet.game.{BroadcastWarpgateUpdateMessage, FriendsResponse, HotSpotUpdateMessage, ZoneInfoMessage, ZonePopulationUpdateMessage, HotSpotInfo => PacketHotSpotInfo}

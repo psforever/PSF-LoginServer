@@ -1,7 +1,7 @@
 //Copyright (c) 2020 PSForever
 package net.psforever.objects.serverobject.damage
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import net.psforever.objects.equipment.JammableUnit
 import net.psforever.objects.serverobject.turret.{TurretUpgrade, WeaponTurret}
 import net.psforever.objects.vehicles.MountedWeapons

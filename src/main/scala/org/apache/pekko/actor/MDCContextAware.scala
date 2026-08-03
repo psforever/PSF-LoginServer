@@ -1,8 +1,8 @@
-package akka.actor
+package org.apache.pekko.actor
 
 // Taken from https://medium.com/hootsuite-engineering/logging-contextual-info-in-an-asynchronous-scala-application-8ea33bfec9b3
 
-import akka.util.Timeout
+import org.apache.pekko.util.Timeout
 import org.slf4j.MDC
 
 import scala.concurrent.Future
@@ -10,8 +10,8 @@ import scala.concurrent.Future
 trait MDCContextAware extends Actor with ActorLogging {
   import MDCContextAware._
 
-  // This is why this needs to be in package akka.actor
-  override protected[akka] def aroundReceive(receive: Actor.Receive, msg: Any): Unit = {
+  // This is why this needs to be in package org.apache.pekko.actor
+  override protected[pekko] def aroundReceive(receive: Actor.Receive, msg: Any): Unit = {
     val orig = MDC.getCopyOfContextMap
     try {
       msg match {
@@ -45,7 +45,7 @@ object MDCContextAware {
       */
     implicit class ContextLocalAwareActorRef(val ref: ActorRef) extends AnyVal {
 
-      import akka.pattern.ask
+      import org.apache.pekko.pattern.ask
 
       /**
         * Send a message to an actor that is MDCContextAware - it will propagate

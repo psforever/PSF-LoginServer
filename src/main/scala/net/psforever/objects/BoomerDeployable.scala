@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import akka.actor.{ActorContext, Props}
+import org.apache.pekko.actor.{ActorContext, Props}
 import net.psforever.objects.ce.{Deployable, DeployedItem}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.serverobject.affinity.FactionAffinity

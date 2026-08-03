@@ -1,6 +1,6 @@
 package net.psforever.actors.commands
 
-import akka.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.ActorRef
 import net.psforever.objects.NtuContainer
 
 object NtuCommand {

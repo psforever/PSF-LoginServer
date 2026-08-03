@@ -1,7 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.{ActorContext, typed}
+import org.apache.pekko.actor.{ActorContext, typed}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects.inventory.InventoryItem
 import net.psforever.objects.sourcing.AmenitySource

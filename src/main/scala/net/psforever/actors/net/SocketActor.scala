@@ -3,15 +3,15 @@ package net.psforever.actors.net
 import java.net.InetSocketAddress
 import java.security.SecureRandom
 import java.util.UUID.randomUUID
-import akka.actor.Cancellable
-import akka.{actor => classic}
-import akka.actor.typed.{ActorRef, ActorTags, Behavior, PostStop, Terminated}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.io.{IO, Udp}
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.Cancellable
+import org.apache.pekko.{actor => classic}
+import org.apache.pekko.actor.typed.{ActorRef, ActorTags, Behavior, PostStop, Terminated}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.io.{IO, Udp}
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import net.psforever.packet.PlanetSidePacket
 import net.psforever.util.Config
-import scodec.interop.akka.EnrichedByteString
+import scodec.interop.pekko.EnrichedByteString
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContextExecutor
@@ -145,7 +145,7 @@ class SocketActor(
                     /* crypto, bundling and reordering for one connection, isolated onto the
                        world-session pool. The dispatcher is selected here at the spawn site
                        because this is a typed actor, which config-based deployment in
-                       akka.conf does not apply to. */
+                       pekko.conf does not apply to. */
                     ActorTags(s"uuid=$connectionId").withDispatcherFromConfig("world-session")
                   )
                   context.watch(ref)

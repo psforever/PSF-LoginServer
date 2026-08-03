@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 
 object Service {
   case object Startup

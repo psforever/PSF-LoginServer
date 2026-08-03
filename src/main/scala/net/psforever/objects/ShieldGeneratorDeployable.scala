@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects
 
-import akka.actor.{Actor, ActorContext, Props}
+import org.apache.pekko.actor.{Actor, ActorContext, Props}
 import net.psforever.objects.ce.{Deployable, DeployableBehavior, DeployableCategory}
 import net.psforever.objects.definition.{DeployableDefinition, WithShields}
 import net.psforever.objects.definition.converter.ShieldGeneratorConverter

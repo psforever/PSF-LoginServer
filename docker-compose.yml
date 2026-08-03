@@ -1,9 +1,13 @@
 services:
   loginserver:
+    # Image only needs to provide JDK 21 + an sbt launcher; the project's sbt (1.12.14)
+    # and Scala (2.13.18) versions come from build.properties/build.sbt and are fetched
+    # by the launcher. (No published sbtscala tag bundles 1.12.14_2.13.18.)
+    #
     # Matches the JDK the Dockerfile builds with, so local runs and released builds share a
-    # collector. Keep this off JDK 8, whose default ParallelGC does stop-the-world full
-    # collections that can run into seconds and stall every connected client at once.
-    image: sbtscala/scala-sbt:eclipse-temurin-focal-11.0.17_8_1.8.2_2.13.10
+    # collector. JDK 21 defaults to G1, which avoids the multi-second stop-the-world full
+    # collections of JDK 8's ParallelGC that stall every connected client at once.
+    image: sbtscala/scala-sbt:eclipse-temurin-jammy-21.0.2_13_1.10.4_2.13.15
     volumes:
       - .:/PSF-Loginserver:z
     working_dir: /PSF-Loginserver
@@ -21,7 +25,7 @@ services:
     ports:
       - 51010:8080
   db:
-    image: postgres:14
+    image: postgres:${POSTGRES_VERSION:-18}
     ports:
       - 5432:5432
     environment:

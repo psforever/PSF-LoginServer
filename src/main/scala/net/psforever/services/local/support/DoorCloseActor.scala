@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.local.support
 
-import akka.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Cancellable, Props}
 import net.psforever.objects.{Default, Doors}
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.zones.Zone

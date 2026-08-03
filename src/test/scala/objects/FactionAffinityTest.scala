@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{Actor, ActorSystem, Props}
+import org.apache.pekko.actor.{Actor, ActorSystem, Props}
 import base.ActorTest
 import net.psforever.objects.{GlobalDefinitions, Vehicle}
 import net.psforever.objects.serverobject.affinity.FactionAffinity

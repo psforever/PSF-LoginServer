@@ -1,7 +1,7 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.spectator
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.actors.session.support.{SessionData, SessionTerminalHandlers, TerminalHandlerFunctions}
 import net.psforever.login.WorldSession.SellEquipmentFromInventory
 import net.psforever.objects.Player

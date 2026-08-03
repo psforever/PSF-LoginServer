@@ -1,9 +1,9 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services
 
-import akka.actor.{Actor, ActorIdentity, ActorRef, ActorSystem, Identify, InvalidActorNameException, Props, typed}
-import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.receptionist.Receptionist
+import org.apache.pekko.actor.{Actor, ActorIdentity, ActorRef, ActorSystem, Identify, InvalidActorNameException, Props, typed}
+import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.receptionist.Receptionist
 
 import scala.collection.mutable
 

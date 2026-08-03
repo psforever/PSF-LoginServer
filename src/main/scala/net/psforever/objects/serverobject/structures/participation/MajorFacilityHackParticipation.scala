@@ -7,8 +7,8 @@ import net.psforever.objects.zones.{HotSpotInfo, ZoneHotSpotProjector}
 import net.psforever.services.avatar.AvatarAction
 import net.psforever.types.{ChatMessageType, PlanetSideEmpire, Vector3}
 import net.psforever.util.Config
-import akka.pattern.ask
-import akka.util.Timeout
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.scoring.Kill

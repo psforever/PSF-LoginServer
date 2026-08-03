@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.Actor.Receive
+import org.apache.pekko.actor.Actor.Receive
 import net.psforever.objects.{Default, Player}
 import net.psforever.services.base.message.EventResponse
 import net.psforever.types.PlanetSideGUID

@@ -9,7 +9,7 @@ import net.psforever.objects.serverobject.structures._
 import net.psforever.objects.zones.Zone
 import net.psforever.types.PlanetSideEmpire
 import org.specs2.mutable.Specification
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import net.psforever.services.{InterstellarClusterService, ServiceManager}
 
 class AmenityTest extends Specification {

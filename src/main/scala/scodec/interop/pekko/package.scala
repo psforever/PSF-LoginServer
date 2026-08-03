@@ -2,9 +2,9 @@ package scodec.interop
 
 import scodec.bits.ByteVector
 
-import _root_.akka.util.ByteString
+import _root_.org.apache.pekko.util.ByteString
 
-package object akka {
+package object pekko {
 
   implicit class EnrichedByteString(val value: ByteString) extends AnyVal {
     def toByteVector: ByteVector = ByteVector.viewAt((idx: Long) => value(idx.toInt), value.size.toLong)

@@ -1,6 +1,6 @@
 package net.psforever.objects.serverobject.painbox
 
-import akka.actor.Cancellable
+import org.apache.pekko.actor.Cancellable
 import net.psforever.objects.serverobject.doors.Door
 import net.psforever.objects.serverobject.structures.{Building, PoweredAmenityControl}
 import net.psforever.objects.sourcing.SourceEntry

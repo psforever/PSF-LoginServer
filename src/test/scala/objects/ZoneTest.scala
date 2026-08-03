@@ -3,7 +3,7 @@ package objects
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import base.ActorTest
 import net.psforever.objects.entity.IdentifiableEntity
 import net.psforever.objects.equipment.Equipment
@@ -17,7 +17,7 @@ import net.psforever.objects.serverobject.structures.{Building, FoundationBuilde
 import net.psforever.objects.zones.{Zone, ZoneMap}
 import net.psforever.objects.Vehicle
 import org.specs2.mutable.Specification
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.services.ServiceManager

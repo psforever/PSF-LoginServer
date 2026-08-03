@@ -43,7 +43,7 @@ object ImplantTerminalMech {
     new ImplantTerminalMech(idef)
   }
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
 
   /**
     * Instantiate an configure a `ImplantTerminalMech` object
@@ -53,7 +53,7 @@ object ImplantTerminalMech {
     * @return the `ImplantTerminalMech` object
     */
   def Constructor(pos: Vector3)(id: Int, context: ActorContext): ImplantTerminalMech = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     import net.psforever.objects.GlobalDefinitions
 
     val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)
@@ -66,7 +66,7 @@ object ImplantTerminalMech {
   }
   @deprecated("use implant terminal mechs that have position", "destroyAndRepair")
   def Constructor(id: Int, context: ActorContext): ImplantTerminalMech = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     import net.psforever.objects.GlobalDefinitions
 
     val obj = ImplantTerminalMech(GlobalDefinitions.implant_terminal_mech)

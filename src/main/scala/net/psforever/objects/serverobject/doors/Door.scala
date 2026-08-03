@@ -79,7 +79,7 @@ object Door {
     new Door(tdef)
   }
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
 
   /**
     * Instantiate and configure a `Door` object.
@@ -88,7 +88,7 @@ object Door {
     * @return the `Door` object
     */
   def Constructor(id: Int, context: ActorContext): Door = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     import net.psforever.objects.GlobalDefinitions
 
     val obj = Door(GlobalDefinitions.door)
@@ -121,7 +121,7 @@ object Door {
     * @return the `Door` object
     */
   def Constructor(pos: Vector3, ddef: DoorDefinition)(id: Int, context: ActorContext): Door = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
 
     val obj = Door(ddef)
     obj.Position = pos

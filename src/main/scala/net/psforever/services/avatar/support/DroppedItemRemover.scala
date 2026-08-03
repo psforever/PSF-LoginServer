@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.services.avatar.support
 
-import akka.actor.{ActorContext, ActorRef, Props}
+import org.apache.pekko.actor.{ActorContext, ActorRef, Props}
 import net.psforever.objects.Default
 import net.psforever.objects.equipment.Equipment
 import net.psforever.objects.guid.{GUIDTask, TaskBundle}

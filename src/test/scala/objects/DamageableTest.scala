@@ -1,9 +1,9 @@
 // Copyright (c) 2020 PSForever
 package objects
 
-import akka.actor.{ActorRef, Props}
-import akka.actor.testkit.typed.scaladsl.ActorTestKit
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{ActorRef, Props}
+import org.apache.pekko.actor.testkit.typed.scaladsl.ActorTestKit
+import org.apache.pekko.testkit.TestProbe
 import base.{ActorTest, FreedContextActorTest}
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects._
@@ -1234,7 +1234,7 @@ class DamageableVehicleDamageMountedTest extends FreedContextActorTest {
   zone.Activity = activityProbe.ref
   zone.AvatarEvents = avatarProbe.ref
   zone.VehicleEvents = vehicleProbe.ref
-  import akka.actor.typed.scaladsl.adapter._
+  import org.apache.pekko.actor.typed.scaladsl.adapter._
   zone.actor = new TestProbe(system).ref.toTyped[ZoneActor.Command]
 
   val lodestar: Vehicle = Vehicle(GlobalDefinitions.lodestar) //guid=1 & 4,5,6,7,8,9
@@ -1610,7 +1610,7 @@ class DamageableVehicleDestroyTest extends ActorTest {
 //    override def Activity = activityProbe.ref
 //    override def AvatarEvents = avatarProbe.ref
 //    override def VehicleEvents = vehicleProbe.ref
-//    import akka.actor.typed.scaladsl.adapter._
+//    import org.apache.pekko.actor.typed.scaladsl.adapter._
 //    this.actor = catchall.ref.toTyped[ZoneActor.Command]
 //  }
 //

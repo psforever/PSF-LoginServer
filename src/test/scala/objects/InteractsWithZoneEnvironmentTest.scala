@@ -1,7 +1,7 @@
 package objects
 
-import akka.actor.ActorRef
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects.Player
 import net.psforever.objects.avatar.Avatar

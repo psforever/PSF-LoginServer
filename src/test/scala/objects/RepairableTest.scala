@@ -1,8 +1,8 @@
 // Copyright (c) 2020 PSForever
 package objects
 
-import akka.actor.Props
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.Props
+import org.apache.pekko.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects._
 import net.psforever.objects.avatar.{Avatar, Certification}

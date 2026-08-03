@@ -1,7 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.services.teamwork
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.Default
 import net.psforever.objects.avatar.Certification
 import net.psforever.objects.teamwork.Squad

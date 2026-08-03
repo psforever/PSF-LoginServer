@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.objects.{Default, Player}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity

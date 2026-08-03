@@ -1,7 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.objects.zones.exp
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import net.psforever.objects.avatar.scoring.{Assist, Death, KDAStat, Kill}
 import net.psforever.objects.sourcing.{PlayerSource, SourceEntry}
 import net.psforever.objects.vital.interaction.{Adversarial, DamageResult}

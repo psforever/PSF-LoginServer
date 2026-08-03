@@ -1,7 +1,7 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.normal
 
-import akka.actor.{ActorContext, ActorRef, typed}
+import org.apache.pekko.actor.{ActorContext, ActorRef, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.actors.session.support.SessionSquadHandlers.{rethrowSquadServiceResponse, SquadUIElement}
 import net.psforever.actors.session.support.{SessionData, SessionSquadHandlers, SpawnOperations, SquadHandlerFunctions}

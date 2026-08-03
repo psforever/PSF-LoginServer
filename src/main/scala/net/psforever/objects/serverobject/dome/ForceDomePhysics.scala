@@ -40,7 +40,7 @@ class ForceDomePhysics(private val cfddef: ForceDomeDefinition)
 }
 
 object ForceDomePhysics {
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
 
   /**
    * Instantiate and configure a `CapitolForceDome` object.
@@ -50,7 +50,7 @@ object ForceDomePhysics {
    * @return the `CapitolForceDome` object
    */
   def Constructor(fddef: ForceDomeDefinition)(id: Int, context: ActorContext): ForceDomePhysics = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
 
     val obj = new ForceDomePhysics(fddef)
     obj.Actor = context.actorOf(Props(classOf[ForceDomeControl], obj), name = s"${fddef.Name}_$id")

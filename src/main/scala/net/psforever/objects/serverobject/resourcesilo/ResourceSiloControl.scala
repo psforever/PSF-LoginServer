@@ -1,7 +1,7 @@
 // Copyright (c) 2019 PSForever
 package net.psforever.objects.serverobject.resourcesilo
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.serverobject.CommonMessages
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.serverobject.affinity.{FactionAffinity, FactionAffinityBehavior}

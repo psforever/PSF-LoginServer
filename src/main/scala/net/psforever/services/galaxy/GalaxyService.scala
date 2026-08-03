@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2026 PSForever
 package net.psforever.services.galaxy
 
-import akka.actor.Props
+import org.apache.pekko.actor.Props
 import net.psforever.services.base.{EventSystemStamp, GenericEventService}
 
 case object GalaxyStamp extends EventSystemStamp {

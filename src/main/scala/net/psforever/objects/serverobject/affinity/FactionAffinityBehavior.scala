@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.affinity
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 
 object FactionAffinityBehavior {
 

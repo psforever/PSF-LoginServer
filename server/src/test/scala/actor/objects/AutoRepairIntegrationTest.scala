@@ -1,9 +1,9 @@
 // Copyright (c) 2020 PSForever
 package actor.objects
 
-import akka.actor.Props
-import akka.testkit.TestProbe
-import base.FreedContextActorTest
+import org.apache.pekko.actor.Props
+import org.apache.pekko.testkit.TestProbe
+import actor.base.FreedContextActorTest
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.ballistics.Projectile
@@ -30,7 +30,7 @@ import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration._
 
 class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
-  import akka.actor.typed.scaladsl.adapter._
+  import org.apache.pekko.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
@@ -103,7 +103,7 @@ class AutoRepairFacilityIntegrationTest extends FreedContextActorTest {
 }
 
 class AutoRepairFacilityIntegrationGiveNtuTest extends FreedContextActorTest {
-  import akka.actor.typed.scaladsl.adapter._
+  import org.apache.pekko.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
@@ -158,7 +158,7 @@ class AutoRepairFacilityIntegrationGiveNtuTest extends FreedContextActorTest {
 }
 
 class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest {
-  import akka.actor.typed.scaladsl.adapter._
+  import org.apache.pekko.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
@@ -249,7 +249,7 @@ class AutoRepairFacilityIntegrationAntGiveNtuTest extends FreedContextActorTest 
 }
 
 class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends FreedContextActorTest {
-  import akka.actor.typed.scaladsl.adapter._
+  import org.apache.pekko.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
@@ -351,7 +351,7 @@ class AutoRepairFacilityIntegrationTerminalDestroyedTerminalAntTest extends Free
 }
 
 class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedContextActorTest {
-  import akka.actor.typed.scaladsl.adapter._
+  import org.apache.pekko.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
@@ -467,7 +467,7 @@ class AutoRepairFacilityIntegrationTerminalIncompleteRepairTest extends FreedCon
 }
 
 class AutoRepairTowerIntegrationTest extends FreedContextActorTest {
-  import akka.actor.typed.scaladsl.adapter._
+  import org.apache.pekko.actor.typed.scaladsl.adapter._
   system.spawn(InterstellarClusterService(Nil), InterstellarClusterService.InterstellarClusterServiceKey.id)
   ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)

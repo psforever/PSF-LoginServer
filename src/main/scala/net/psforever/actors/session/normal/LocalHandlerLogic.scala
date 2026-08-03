@@ -1,8 +1,8 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.session.normal
 
-import akka.actor.Actor.Receive
-import akka.actor.ActorContext
+import org.apache.pekko.actor.Actor.Receive
+import org.apache.pekko.actor.ActorContext
 import net.psforever.actors.session.support.SpawnOperations.ActivityQueuedTask
 import net.psforever.actors.session.support.{LocalHandlerFunctions, SessionData, SessionLocalHandlers, SpawnOperations}
 import net.psforever.objects.ce.Deployable
@@ -240,7 +240,7 @@ class LocalHandlerLogic(val ops: SessionLocalHandlers, implicit val context: Act
         zone.AvatarEvents ! Service.Join(player.Name) //must manually restore this subscriptions
         sessionLogic.zoning.spawn.handleNewPlayerLoaded(player) //will restart subscriptions and dispatch a LoadMapMessage
       } else {
-        import akka.actor.typed.scaladsl.adapter._
+        import org.apache.pekko.actor.typed.scaladsl.adapter._
         sessionLogic.cluster ! InterstellarClusterService.GetRandomSpawnPoint(
           zone.Number,
           player.Faction,

@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.objects.ce
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.guid.{GUIDTask, TaskWorkflow}
 import net.psforever.objects._
 import net.psforever.objects.zones.Zone

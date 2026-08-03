@@ -1,7 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.{ActorContext, typed}
+import org.apache.pekko.actor.{ActorContext, typed}
 import net.psforever.objects.serverobject.affinity.FactionAffinity
 import net.psforever.objects.serverobject.interior.Sidedness.OutsideOf
 import net.psforever.objects.{PlanetSideGameObject, Tool, Vehicle}

@@ -1,7 +1,7 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.{ActorContext, typed}
+import org.apache.pekko.actor.{ActorContext, typed}
 import net.psforever.actors.session.AvatarActor
 import net.psforever.objects.serverobject.deploy.Deployment
 import net.psforever.objects.serverobject.mount.Mountable

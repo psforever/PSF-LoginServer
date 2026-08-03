@@ -1,12 +1,12 @@
 // Copyright (c) 2024 PSForever
 package net.psforever.actors.net
 
-import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
+import org.apache.pekko.actor.typed.receptionist.{Receptionist, ServiceKey}
 
 import java.net.{InetAddress, InetSocketAddress}
-import akka.{actor => classic}
-import akka.actor.typed.{ActorRef, Behavior, DispatcherSelector, PostStop}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.{actor => classic}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior, DispatcherSelector, PostStop}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import net.psforever.packet.PlanetSidePacket
 
 private[net] object SocketPanePortRotation {
@@ -92,7 +92,7 @@ object SocketPane {
     * network-listener is a PinnedDispatcher, so each socket actor -- one per bound port --
     * owns a dedicated thread and is insulated from game logic running on other pools.
     * The dispatcher is selected here at the spawn site because these are typed actors, which
-    * config-based deployment in akka.conf does not apply to. */
+    * config-based deployment in pekko.conf does not apply to. */
   private val socketDispatcher: DispatcherSelector = DispatcherSelector.fromConfig("network-listener")
 
   /**

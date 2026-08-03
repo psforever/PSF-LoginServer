@@ -42,10 +42,10 @@ object Generator {
     new Generator(gdef)
   }
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
   import net.psforever.types.Vector3
   def Constructor(pos: Vector3)(id: Int, context: ActorContext): Generator = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     import net.psforever.objects.GlobalDefinitions
 
     val obj = Generator(GlobalDefinitions.generator)

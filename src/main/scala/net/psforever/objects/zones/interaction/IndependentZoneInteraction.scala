@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PSForever
 package net.psforever.objects.zones.interaction
 
-import akka.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, Cancellable}
 import net.psforever.objects.Default
 
 import scala.concurrent.ExecutionContext.Implicits.global

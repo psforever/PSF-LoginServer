@@ -1,7 +1,7 @@
 // Copyright (c) 2021 PSForever
 package net.psforever.services.hart
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import net.psforever.objects.Default
 import net.psforever.objects.zones.Zone
 import net.psforever.services.base.EventSystemStamp

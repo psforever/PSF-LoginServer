@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package actor.objects
 
-import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{ActorRef, ActorSystem, Props}
+import org.apache.pekko.testkit.TestProbe
 import actor.base.ActorTest
 import net.psforever.objects.serverobject.pad.{VehicleSpawnControl, VehicleSpawnPad}
 import net.psforever.objects.serverobject.structures.StructureType
@@ -10,7 +10,7 @@ import net.psforever.objects.{GlobalDefinitions, Player, Vehicle}
 import net.psforever.objects.zones.Zone
 import net.psforever.types.{PlanetSideGUID, _}
 import net.psforever.services.vehicle.VehicleAction
-import akka.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.typed.scaladsl.adapter._
 import net.psforever.actors.zone.ZoneActor
 import net.psforever.objects.avatar.Avatar
 import net.psforever.objects.serverobject.terminals.Terminal

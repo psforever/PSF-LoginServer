@@ -1,7 +1,7 @@
 // Copyright (c) 2022 PSForever
 package net.psforever.services.teamwork
 
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 
 import scala.collection.mutable
 import net.psforever.objects.teamwork.{Squad, SquadFeatures}

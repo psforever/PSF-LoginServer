@@ -8,7 +8,7 @@ object Default {
   final val GUID0: PlanetSideGUID = ValidPlanetSideGUID(0)
 
   //cancellable
-  import akka.actor.Cancellable
+  import org.apache.pekko.actor.Cancellable
   protected class InternalCancellable extends Cancellable {
     override def cancel(): Boolean = true
 
@@ -24,7 +24,7 @@ object Default {
   final def Cancellable: Cancellable = cancellable
 
   //actor
-  import akka.actor.{Actor => AkkaActor, ActorRef, ActorSystem, DeadLetter, Props, typed => Typed}
+  import org.apache.pekko.actor.{Actor => AkkaActor, ActorRef, ActorSystem, DeadLetter, Props, typed => Typed}
 
   /**
     * An actor designed to wrap around `deadLetters` and redirect all normal messages to it.
@@ -54,7 +54,7 @@ object Default {
   final def Actor: ActorRef = defaultRef
 
   object typed {
-    import akka.actor.typed.scaladsl.adapter._
+    import org.apache.pekko.actor.typed.scaladsl.adapter._
     private val defaultTypedRef: Typed.ActorRef[Any] = defaultRef.toTyped[Any]
 
     /**

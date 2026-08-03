@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.serverobject.terminals
 
-import akka.actor.ActorContext
+import org.apache.pekko.actor.ActorContext
 import net.psforever.objects.{Default, Player}
 import net.psforever.objects.serverobject.PlanetSideServerObject
 import net.psforever.objects.serverobject.structures.Amenity
@@ -29,7 +29,7 @@ object MatrixTerminalDefinition {
     * @param context hook to the local `Actor` system
     */
   def Setup(obj: Amenity, context: ActorContext): Unit = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
     if (obj.Actor == Default.Actor) {
       obj.Actor = context.actorOf(Props(classOf[TerminalControl], obj), PlanetSideServerObject.UniqueActorName(obj))
     }

@@ -1,8 +1,8 @@
 // Copyright (c) 2020 PSForever
 package objects
 
-import akka.actor.DeadLetter
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.DeadLetter
+import org.apache.pekko.testkit.TestProbe
 import base.ActorTest
 import net.psforever.objects.Default
 import org.specs2.mutable.Specification

@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package objects
 
-import akka.actor.{ActorRef, Props}
-import akka.testkit.TestProbe
+import org.apache.pekko.actor.{ActorRef, Props}
+import org.apache.pekko.testkit.TestProbe
 import base.{ActorTest, FreedContextActorTest}
 import net.psforever.actors.zone.BuildingActor
 import net.psforever.objects.guid.NumberPoolHub
@@ -150,7 +150,7 @@ class ResourceSiloControlStartupMessageSomeTest extends ActorTest {
 }
 
 class ResourceSiloControlUseTest extends FreedContextActorTest {
-  import akka.actor.typed.scaladsl.adapter._
+  import org.apache.pekko.actor.typed.scaladsl.adapter._
   ServiceManager.boot(system) ! ServiceManager.Register(GalaxyService(), "galaxy")
   expectNoMessage(1000 milliseconds)
   var buildingMap = new TrieMap[Int, Building]()

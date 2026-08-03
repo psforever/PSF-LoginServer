@@ -1,7 +1,7 @@
 // Copyright (c) 2017 PSForever
 package net.psforever.objects.definition
 
-import akka.actor.{ActorContext, Props}
+import org.apache.pekko.actor.{ActorContext, Props}
 import net.psforever.objects.{Default, NtuContainerDefinition, Vehicle}
 import net.psforever.objects.definition.converter.VehicleConverter
 import net.psforever.objects.inventory.InventoryTile
@@ -226,7 +226,7 @@ class VehicleDefinition(objectId: Int)
 
   //noinspection ScalaUnusedSymbol
   def Uninitialize(obj: Vehicle, context: ActorContext): Unit = {
-    obj.Actor ! akka.actor.PoisonPill
+    obj.Actor ! org.apache.pekko.actor.PoisonPill
     obj.Actor = Default.Actor
   }
 

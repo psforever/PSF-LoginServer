@@ -1,8 +1,8 @@
 // Copyright (c) 2017 PSForever
 package base
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import akka.testkit.{ImplicitSender, TestKit}
+import org.apache.pekko.actor.{Actor, ActorRef, ActorSystem, Props}
+import org.apache.pekko.testkit.{ImplicitSender, TestKit}
 import com.typesafe.config.ConfigFactory
 import net.psforever.objects.Default
 import org.scalatest.BeforeAndAfterAll
@@ -29,10 +29,10 @@ abstract class ActorTest(sys: ActorSystem = ActorSystem("system", ConfigFactory.
 object ActorTest {
   import scala.jdk.CollectionConverters._
   private val LoggingConfig = Map(
-    "akka.loggers"          -> List("akka.testkit.TestEventListener").asJava,
-    "akka.loglevel"         -> "OFF",
-    "akka.stdout-loglevel"  -> "OFF",
-    "akka.log-dead-letters" -> "OFF"
+    "pekko.loggers"          -> List("org.apache.pekko.testkit.TestEventListener").asJava,
+    "pekko.loglevel"         -> "OFF",
+    "pekko.stdout-loglevel"  -> "OFF",
+    "pekko.log-dead-letters" -> "OFF"
   ).asJava
 
   /**

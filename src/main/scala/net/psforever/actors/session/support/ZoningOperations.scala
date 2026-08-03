@@ -1,11 +1,11 @@
 // Copyright (c) 2023 PSForever
 package net.psforever.actors.session.support
 
-import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{ActorContext, ActorRef, Cancellable, typed}
-import akka.pattern.ask
-import akka.util.Timeout
+import org.apache.pekko.actor.typed.receptionist.Receptionist
+import org.apache.pekko.actor.typed.scaladsl.adapter._
+import org.apache.pekko.actor.{ActorContext, ActorRef, Cancellable, typed}
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
 import net.psforever.actors.session.support.SpawnOperations.ActivityQueuedTask
 import net.psforever.login.WorldSession
 import net.psforever.objects.avatar.{BattleRank, DeployableToolbox, SpecialCarry}

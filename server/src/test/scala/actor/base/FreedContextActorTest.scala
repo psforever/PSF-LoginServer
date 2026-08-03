@@ -1,9 +1,9 @@
 // Copyright (c) 2020 PSForever
 package actor.base
 
-import akka.actor.{Actor, ActorContext, ActorRef, Props}
-import akka.pattern.ask
-import akka.util.Timeout
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, Props}
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

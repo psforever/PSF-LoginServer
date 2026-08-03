@@ -28,7 +28,7 @@ object SpawnTube {
     new SpawnTube(tDef)
   }
 
-  import akka.actor.ActorContext
+  import org.apache.pekko.actor.ActorContext
   import net.psforever.types.Vector3
 
   /**
@@ -56,7 +56,7 @@ object SpawnTube {
       id: Int,
       context: ActorContext
   ): SpawnTube = {
-    import akka.actor.Props
+    import org.apache.pekko.actor.Props
 
     val obj = SpawnTube(tdef)
     obj.Position = pos
