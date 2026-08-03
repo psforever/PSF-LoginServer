@@ -55,11 +55,12 @@ class SphereOfInfluenceActor(zone: Zone) extends Actor {
     sois.foreach {
       case (facility, radius) =>
         val facilityXY = facility.Position.xy
-        val playersOnFoot = zone.blockMap.sector(facility)
+        val sector = zone.blockMap.sector(facility)
+        val playersOnFoot = sector
           .livePlayerList
           .filter(p => Vector3.DistanceSquared(facilityXY, p.Position.xy) < radius)
 
-        val vehicleOccupants = zone.blockMap.sector(facility)
+        val vehicleOccupants = sector
           .vehicleList
           .filter(v => Vector3.DistanceSquared(facilityXY, v.Position.xy) < radius)
           .flatMap(_.Seats.values.flatMap(_.occupants))

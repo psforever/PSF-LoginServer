@@ -3,6 +3,10 @@ services:
     # Image only needs to provide JDK 21 + an sbt launcher; the project's sbt (1.10.7)
     # and Scala (2.13.16) versions come from build.properties/build.sbt and are fetched
     # by the launcher. (No published sbtscala tag bundles 1.10.7_2.13.16.)
+    #
+    # Matches the JDK the Dockerfile builds with, so local runs and released builds share a
+    # collector. JDK 21 defaults to G1, which avoids the multi-second stop-the-world full
+    # collections of JDK 8's ParallelGC that stall every connected client at once.
     image: sbtscala/scala-sbt:eclipse-temurin-jammy-21.0.2_13_1.10.4_2.13.15
     volumes:
       - .:/PSF-Loginserver:z

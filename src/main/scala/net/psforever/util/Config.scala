@@ -141,6 +141,7 @@ case class NetworkConfig(
 case class MiddlewareConfig(
     packetBundlingDelay: FiniteDuration,
     packetBundlingDelayMultiplier: Float,
+    packetBundlingDrainLimit: Int,
     inReorderTimeout: FiniteDuration,
     inSubslotMissingDelay: FiniteDuration,
     inSubslotMissingAttempts: Int

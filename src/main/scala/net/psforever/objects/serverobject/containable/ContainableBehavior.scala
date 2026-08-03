@@ -2,7 +2,7 @@
 package net.psforever.objects.serverobject.containable
 
 import org.apache.pekko.actor.{Actor, ActorRef}
-import org.apache.pekko.pattern.{AskTimeoutException, ask}
+import org.apache.pekko.pattern.ask
 import org.apache.pekko.util.Timeout
 import net.psforever.objects.equipment.{Equipment, EquipmentSize}
 import net.psforever.objects.inventory.{Container, InventoryItem}
@@ -196,10 +196,11 @@ trait ContainableBehavior {
 
               case _ => ; //TODO what?
             }
-            //always do this
-            moveItemOver
-              .recover { case _: AskTimeoutException => destination.Actor ! ContainableBehavior.Resume() }
-              .onComplete { _ => destination.Actor ! ContainableBehavior.Resume() }
+            /* Exactly one Resume answers the Wait() above, and onComplete alone delivers it
+               for both success and failure -- including an AskTimeoutException. A second
+               Resume would release an unrelated concurrent move's guard and let insertions
+               interleave with a move that is still in flight. */
+            moveItemOver.onComplete { _ => destination.Actor ! ContainableBehavior.Resume() }
           }
         case _ => ;
         //we could not find the item to be moved in the source location; trying to act on old data?

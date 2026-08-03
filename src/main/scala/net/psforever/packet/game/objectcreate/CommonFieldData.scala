@@ -110,7 +110,7 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
     CommonFieldData(faction, bops, destroyed, unk > 1, None, jammered = unk > 0, None, jammeredField, player_guid)
   }
 
-  def codec(extra: Boolean): Codec[CommonFieldData] =
+  private def buildCodec(extra: Boolean): Codec[CommonFieldData] =
     (
       ("faction" | PlanetSideEmpire.codec) ::
         ("bops" | bool) ::
@@ -131,9 +131,20 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
       }
     )
 
+  /* The parameter is a Boolean, so there are only ever two of these codecs; each is built once
+     and shared. Worth doing because this is reached once per object in every
+     ObjectCreateMessage and spawning or zoning emits hundreds back to back, while each tree
+     costs roughly a dozen primitive codecs plus combinators and an xmap closure to construct.
+     scodec codecs are immutable and safe to share.
+     lazy, so that initialisation order within this object cannot observe a null. */
+  private lazy val codecPlain: Codec[CommonFieldData] = buildCodec(extra = false)
+  private lazy val codecExtra: Codec[CommonFieldData] = buildCodec(extra = true)
+
+  def codec(extra: Boolean): Codec[CommonFieldData] = if (extra) codecExtra else codecPlain
+
   implicit val codec: Codec[CommonFieldData] = codec(extra = false)
 
-  def codec2(extra: Boolean): Codec[CommonFieldData] =
+  private def buildCodec2(extra: Boolean): Codec[CommonFieldData] =
     (
       ("faction" | PlanetSideEmpire.codec) ::
         ("bops" | bool) ::
@@ -157,6 +168,12 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
           Attempt.successful(faction :: bops :: alternate :: v1 :: v2 :: v3 :: v5 :: v4 :: player_guid :: HNil)
       }
     )
+
+  /* see the note on codec above; same two-shape memoisation */
+  private lazy val codec2Plain: Codec[CommonFieldData] = buildCodec2(extra = false)
+  private lazy val codec2Extra: Codec[CommonFieldData] = buildCodec2(extra = true)
+
+  def codec2(extra: Boolean): Codec[CommonFieldData] = if (extra) codec2Extra else codec2Plain
 
   val codec2: Codec[CommonFieldData] = codec2(extra = false)
 }
