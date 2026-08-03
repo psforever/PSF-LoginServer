@@ -26,7 +26,7 @@ which has the instructions on downloading the game and using the PSForever launc
   - [Scala](https://www.scala-lang.org/)
     - 2.13.18 (set in `build.sbt`)
   - [sbt](http://www.scala-sbt.org) (Scala build tool)
-    - 1.10.7 (set in `project/build.properties`; the launcher fetches it for you)
+    - 1.12.14 (set in `project/build.properties`; the launcher fetches it for you)
   - [PostgreSQL](https://www.postgresql.org/)
     - 12+ (CI proves migrations and tests against 12.8, 16 and 17; the Docker Compose
       stack defaults to 18)

@@ -1,8 +1,8 @@
 services:
   loginserver:
-    # Image only needs to provide JDK 21 + an sbt launcher; the project's sbt (1.10.7)
+    # Image only needs to provide JDK 21 + an sbt launcher; the project's sbt (1.12.14)
     # and Scala (2.13.18) versions come from build.properties/build.sbt and are fetched
-    # by the launcher. (No published sbtscala tag bundles 1.10.7_2.13.18.)
+    # by the launcher. (No published sbtscala tag bundles 1.12.14_2.13.18.)
     #
     # Matches the JDK the Dockerfile builds with, so local runs and released builds share a
     # collector. JDK 21 defaults to G1, which avoids the multi-second stop-the-world full
