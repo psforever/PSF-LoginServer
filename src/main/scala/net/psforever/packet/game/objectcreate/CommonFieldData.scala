@@ -81,14 +81,21 @@ object CommonFieldData extends Marshallable[CommonFieldData] {
     * Overloaded constructors.
     * @return a `CommonFieldData` object
     */
-  def apply(): CommonFieldData =
+  def apply(): CommonFieldData = {
     CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(0))
+  }
 
-  def apply(extra: Boolean): CommonFieldData =
-    CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, None, PlanetSideGUID(0))
-
-  def apply(faction: PlanetSideEmpire.Value): CommonFieldData =
+  def apply(faction: PlanetSideEmpire.Value): CommonFieldData = {
     CommonFieldData(faction, bops = false, alternate = false, v1 = false, None, jammered = false, None, None, PlanetSideGUID(0))
+  }
+
+  def extra(): CommonFieldData = {
+    CommonFieldData(PlanetSideEmpire.NEUTRAL, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, None, PlanetSideGUID(0))
+  }
+
+  def extra(faction: PlanetSideEmpire.Value): CommonFieldData = {
+    CommonFieldData(faction, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, None, PlanetSideGUID(0))
+  }
 
   def apply(faction: PlanetSideEmpire.Value, extra: Boolean): CommonFieldData =
     CommonFieldData(faction, bops = false, alternate = false, v1 = false, Some(CommonFieldDataExtra.Default), jammered = false, None, None, PlanetSideGUID(0))

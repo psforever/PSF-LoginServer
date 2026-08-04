@@ -1,10 +1,11 @@
 package net.psforever.objects.definition.converter
 
+import net.psforever.objects.Default
 import net.psforever.objects.serverobject.hackable.Hackable
 import net.psforever.objects.serverobject.llu.CaptureFlag
 import net.psforever.objects.serverobject.structures.Building
 import net.psforever.objects.sourcing.PlayerSource
-import net.psforever.packet.game.objectcreate.{CaptureFlagData, PlacementData}
+import net.psforever.packet.game.objectcreate.{CaptureFlagData, CommonFieldData, CommonFieldDataWithPlacement, PlacementData}
 import net.psforever.types.{PlanetSideEmpire, PlanetSideGUID, Vector3}
 
 import scala.util.{Success, Try}
@@ -20,8 +21,20 @@ class CaptureFlagConverter extends ObjectCreateConverter[CaptureFlag]() {
 
     Success(
       CaptureFlagData(
-        new PlacementData(obj.Position, obj.Orientation, obj.Velocity),
-        obj.Faction,
+        CommonFieldDataWithPlacement(
+          PlacementData(obj.Position, obj.Orientation, None),
+          CommonFieldData(
+            faction = obj.Faction,
+            bops = false,
+            alternate = false,
+            v1 = true,
+            v2 = None,
+            jammered = false,
+            v4 = None,
+            v5 = None,
+            guid = Default.GUID0
+          )
+        ),
         obj.Owner.asInstanceOf[Building].GUID.guid,
         obj.Target.GUID.guid,
         millisecondsRemaining
